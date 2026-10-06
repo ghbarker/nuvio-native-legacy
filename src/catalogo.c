@@ -145,6 +145,16 @@ static int  *epIni, *epQtd, nEps;
 // detalhe guarda) precisa saber que ele deixou de valer — e, no caso dos
 // episodios, que a faixa dele foi ZERADA junto e ninguem vai repedir sozinho.
 static unsigned catRevisao;
+// SOBE A CADA MUDANCA EM ITEM, e nao so na troca do bloco: marca de lista
+// (naLista), progresso, item acrescentado ou substituido. Existe para quem
+// mostra uma LISTA DERIVADA do catalogo (o painel de Salvos) poder perguntar
+// "mudou alguma coisa?" em O(1) por quadro, em vez de comparar a contagem e o
+// primeiro item — o retrato que o painel usava nao via mudanca de marca e,
+// quando disparava, a reconstrucao percorria o catalogo inteiro (2000 itens
+// de 15 KB cada, um desencontro de cache por item no ARM da TV). Atomico: a
+// descoberta escreve de outro fio. Ver cat_revisao_itens em catalogo.h.
+static unsigned catMudancas;
+static void mudou(void) { __atomic_add_fetch(&catMudancas, 1u, __ATOMIC_RELEASE); }
 
 // O progresso de reproducao e uma posicao, nao uma prova de que o titulo foi
 // marcado como assistido. O historico do Trakt fica separado, por identidade
@@ -191,11 +201,21 @@ static int historico_pos(const char *imdb, const char *tipo, int criar) {
 
 // Leitura interna da modal: -1 = historico ainda nao consultado, 0 = nao
 // visto confirmado, 1 = visto confirmado.
+int cat_historico_estado_id(const char *imdb, const char *tipo);
 int cat_historico_estado_item(int indice) {
   const CatItem *it = cat_item(indice);
-  int p;
   if (!it || !it->imdb[0]) return -1;
-  p = historico_pos(it->imdb, it->tipo, 0);
+  return cat_historico_estado_id(it->imdb, it->tipo);
+}
+
+// A MESMA LEITURA POR ID, para quem nao tem indice: o menu aberto pelo painel
+// de Salvos fala de um titulo que pode nao estar no catalogo (veio so da lista
+// local, ver salvospainel.c). A tabela ja e por IMDb + tipo; o indice acima so
+// servia para chegar nesses dois campos.
+int cat_historico_estado_id(const char *imdb, const char *tipo) {
+  int p;
+  if (!imdb || !imdb[0]) return -1;
+  p = historico_pos(imdb, tipo ? tipo : "movie", 0);
   return p >= 0 && historico[p].conhecido ? historico[p].visto : -1;
 }
 
@@ -902,6 +922,36 @@ int cat_indice_por_imdb(const char *imdb) {
   return -1;
 }
 
+// O MESMO TITULO EM DUAS FILEIRAS (#151). A serie que a pessoa esta vendo
+// costuma estar em "Continuar assistindo" E na fileira de onde o detalhe foi
+// aberto — e os episodios so sao publicados na copia do detalhe. O player
+// re-resolvia pelo IMDb com cat_indice_por_imdb, que devolve a PRIMEIRA copia
+// (a do CW, no topo): ao trocar de fonte dentro do player, ele reabria nessa
+// copia, sem lista, e o "Proximo episodio" sumia. No log do #151 (id 4439):
+// detalhe com 132 episodios e, na troca de fonte, "lista com 0 episodios".
+//
+// Ordem: a copia que o chamador ja tinha, se ainda e o mesmo titulo e tem
+// episodios; senao qualquer copia com episodios; senao a do chamador (filme
+// nao tem lista); senao a primeira.
+int cat_indice_titulo(const char *imdb, int preferido) {
+  int i, m = cat_n(), primeiro = -1, comEps = -1, prefOk = 0;
+  const CatItem *c;
+  if (!imdb || !imdb[0] || m < 1) return -1;
+  if (preferido >= 0 && preferido < m && (c = cat_item(preferido)) &&
+      c->imdb[0] && mesmoTitulo(c->imdb, imdb)) {
+    if (cat_n_episodios(preferido) > 0) return preferido;
+    prefOk = 1;
+  }
+  for (i = 0; i < m && comEps < 0; i++) {
+    c = cat_item(i);
+    if (!c || !c->imdb[0] || !mesmoTitulo(c->imdb, imdb)) continue;
+    if (primeiro < 0) primeiro = i;
+    if (cat_n_episodios(i) > 0) comEps = i;
+  }
+  if (comEps >= 0) return comEps;
+  return prefOk ? preferido : primeiro;
+}
+
 static int normalizarIndice(int indice) {
   int i = cat_n();
   if (i < 1) return -1;
@@ -916,6 +966,7 @@ void cat_apontar_episodio(int indice, int temporada, int episodio) {
     itens[indice].nomeEpisodio[0] = 0;
   itens[indice].temporada = temporada;
   itens[indice].episodio  = episodio;
+  mudou();
   for (e = 0; e < cat_n_episodios(indice); e++) {
     const CatEp *ep = cat_episodio(indice, e);
     if (ep && ep->temporada == temporada && ep->episodio == episodio) {
@@ -931,6 +982,7 @@ void cat_aplicar_progresso(int indice, double posSeg, double durSeg, int tempora
   itens[indice].progresso = (int)(100.0 * posSeg / durSeg);
   itens[indice].restanteMin = (int)((durSeg - posSeg) / 60.0 + 0.5);
   cat_apontar_episodio(indice, temporada, episodio);
+  mudou();
 }
 
 // Reaplica o que esta em progresso.c sobre itens[]. Os registros vem do mais
@@ -1023,7 +1075,7 @@ static void tirarDaJanela(int r, int indice) {
     for (k = r; k + 1 < total; k++) fils[k] = fils[k + 1];
     nFils = total - 1;
   }
-  catRevisao++;
+  catRevisao++; mudou();
 }
 
 // Devolve 1 se achou e tirou.
@@ -1121,6 +1173,7 @@ void cat_zerar_progresso(int indice) {
   itens[indice].restanteMin = 0;
   itens[indice].temporada   = 0;
   itens[indice].episodio    = 0;
+  mudou();
 }
 
 void cat_salvar_progresso(int indice, double posSeg, double durSeg) {
@@ -1138,6 +1191,7 @@ void cat_salvar_progresso_ep(int indice, double posSeg, double durSeg, int tempo
 }
 
 unsigned cat_revisao(void) { return catRevisao; }
+unsigned cat_revisao_itens(void) { return __atomic_load_n(&catMudancas, __ATOMIC_ACQUIRE); }
 
 int cat_n_episodios(int indiceItem) {
   int m = cat_n();
@@ -1195,7 +1249,12 @@ int cat_copiar_fileira(const char *chave, CatItem *saida, int max,
 //     publicado e seguro, e zerar faria a home piscar a cada titulo aberto.
 void cat_definir_na_lista(int i, int naLista) {
   if (!itens || n <= 0 || i < 0 || i >= n) return;
+  // SO SOBE A REVISAO SE MUDOU DE FATO: os reconciliadores (salvos.c,
+  // contalib.c) remarcam o que ja estava marcado, e uma revisao que sobe sem
+  // mudanca faria o painel de Salvos reconstruir a toa.
+  if (itens[i].naLista == (naLista ? 1 : 0)) return;
   itens[i].naLista = naLista ? 1 : 0;
+  mudou();
 }
 
 // O MESMO TITULO VIVE EM VARIAS FILEIRAS, cada uma com a sua copia do CatItem
@@ -1207,7 +1266,10 @@ int cat_definir_na_lista_imdb(const char *imdb, int naLista) {
   int i, k = 0;
   if (!itens || n <= 0 || !imdb || !imdb[0]) return 0;
   for (i = 0; i < n; i++)
-    if (!strcmp(itens[i].imdb, imdb)) { itens[i].naLista = naLista ? 1 : 0; k++; }
+    if (!strcmp(itens[i].imdb, imdb)) {
+      if (itens[i].naLista != (naLista ? 1 : 0)) { itens[i].naLista = naLista ? 1 : 0; mudou(); }
+      k++;
+    }
   return k;
 }
 int cat_imdb_na_lista(const char *imdb) {
@@ -1224,6 +1286,7 @@ int cat_imdb_na_lista(const char *imdb) {
 void cat_atualizar_item(int i, const CatItem *item) {
   if (!item || !itens || n <= 0 || i < 0 || i >= n) return;
   itens[i] = *item;
+  mudou();
 }
 
 // Acrescenta N de UMA VEZ. cat_acrescentar copia o catalogo inteiro a cada
@@ -1256,8 +1319,64 @@ int cat_acrescentar_lote(const CatItem *v, int qtd, int *saidaIdx) {
   nAlocado = novoN;
   __atomic_store_n(&n, novoN, __ATOMIC_RELEASE);
   garantirFaixas(nAlocado);
+  mudou();
   pthread_mutex_unlock(&pubTrava);
   return qtd;
+}
+
+// Ver catalogo.h. Mesma troca de bloco de cat_acrescentar_lote (acrescenta no
+// FIM, janelas continuam valendo, `n` nao zera), feita inteira sob pubTrava:
+// quem chama e o fio da descoberta, e o de "Continuar assistindo" pode estar
+// trocando o bloco ao mesmo tempo.
+int cat_mesclar_listas(const CatItem *v, int qtd) {
+  CatItem *novo;
+  int m, k, i, marcados = 0, novos = 0;
+  if (!v || qtd < 1) return 0;
+  pthread_mutex_lock(&pubTrava);
+  // NADA MUDA, NADA SE COPIA. E o caso comum da volta silenciosa (a mesma
+  // lista de cinco minutos atras): cada troca de bloco copia o catalogo
+  // inteiro, e o CatItem passa de 15 KB.
+  { int falta = 0;
+    for (k = 0; k < qtd && !falta; k++) {
+      int achou = 0;
+      if (!v[k].imdb[0]) continue;
+      for (i = 0; i < n && !achou; i++)
+        if (!strcmp(itens[i].imdb, v[k].imdb) &&
+            (!v[k].naLista || itens[i].naLista) &&
+            (!v[k].naColecao || itens[i].naColecao)) achou = 1;
+      if (!achou) falta = 1;
+    }
+    if (!falta) { pthread_mutex_unlock(&pubTrava); return 0; } }
+  novo = malloc(sizeof(CatItem) * (size_t)(n + qtd > 0 ? n + qtd : 1));
+  if (!novo) { pthread_mutex_unlock(&pubTrava); return 0; }
+  if (n > 0) memcpy(novo, itens, sizeof(CatItem) * (size_t)n);
+  m = n;
+  for (k = 0; k < qtd; k++) {
+    int achou = 0;
+    if (!v[k].imdb[0]) continue;
+    for (i = 0; i < m; i++) {
+      if (strcmp(novo[i].imdb, v[k].imdb)) continue;
+      if (v[k].naLista)   novo[i].naLista = 1;
+      if (v[k].naColecao) novo[i].naColecao = 1;
+      achou = 1;
+    }
+    if (achou) { marcados++; continue; }
+    if (m >= CAT_MAX) continue;
+    novo[m] = v[k];
+    if (v[k].poster[0])   arte_reserva_registrar(v[k].poster,   v[k].imdb, 1);
+    if (v[k].backdrop[0]) arte_reserva_registrar(v[k].backdrop, v[k].imdb, 0);
+    m++; novos++;
+  }
+  aposentar(itens);
+  __atomic_store_n(&itens, novo, __ATOMIC_RELEASE);
+  nAlocado = m;
+  __atomic_store_n(&n, m, __ATOMIC_RELEASE);
+  garantirFaixas(nAlocado);
+  mudou();
+  pthread_mutex_unlock(&pubTrava);
+  printf("[cat] listas do Trakt na tela: %d marcado(s), %d novo(s)\n", marcados, novos);
+  fflush(stdout);
+  return novos;
 }
 
 int cat_acrescentar(const CatItem *item) {
@@ -1276,6 +1395,7 @@ int cat_acrescentar(const CatItem *item) {
   nAlocado = novoN;
   __atomic_store_n(&n, novoN, __ATOMIC_RELEASE);
   garantirFaixas(nAlocado);
+  mudou();
   if (novo[novoN - 1].poster[0]) arte_reserva_registrar(novo[novoN - 1].poster, novo[novoN - 1].imdb, 1);
   if (novo[novoN - 1].backdrop[0]) arte_reserva_registrar(novo[novoN - 1].backdrop, novo[novoN - 1].imdb, 0);
   pthread_mutex_unlock(&pubTrava);
@@ -1348,7 +1468,7 @@ void cat_republicar_fileiras(const CatFileira *novasFils, int nNovas) {
   // rede) trocava fils[] sem avisar ninguem — e a home so percebia na proxima
   // publicacao da descoberta. Agora cat_revisao() e um guarda correto do
   // estado das fileiras, usado por sincronizarFileiras em home.c.
-  catRevisao++;
+  catRevisao++; mudou();
   pthread_mutex_unlock(&pubTrava);
 }
 
@@ -1425,7 +1545,7 @@ void cat_definir_tudo(const CatItem *lista, int qtd,
   // Episodios do catalogo anterior nao valem para o novo: os indices mudaram.
   nEps = 0;
   zerarFaixas(nAlocado);
-  catRevisao++;
+  catRevisao++; mudou();
   (void)0;
   // O progresso e por imdb e vive em progresso.c, entao sobrevive a troca —
   // mas precisa ser reaplicado, porque os itens novos nasceram zerados. E aqui
@@ -1507,7 +1627,7 @@ void cat_trocar_continuar(const CatItem *lista, int qtd) {
   // Os indices andaram: nenhuma faixa de episodio vale para o item novo.
   nEps = 0;
   zerarFaixas(nAlocado);
-  catRevisao++;
+  catRevisao++; mudou();
   aplicarProgressoDoDisco();
   printf("[cat] continuar assistindo refeita: %d item(ns)\n", qtd);
   fflush(stdout);

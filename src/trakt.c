@@ -8,6 +8,7 @@
 #include "rede.h"
 #include "js.h"
 #include "nuvem.h"
+#include "cwordem.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -341,6 +342,32 @@ static int enfeitar(CatItem *d, const char *tipo) {
       v = strstr(corpo, chave);
       if (v) { const char *ini = v; while (ini > corpo && *ini != '{') ini--;
                js_texto(ini, js_fim(ini), "name", d->nomeEpisodio, sizeof d->nomeEpisodio); } }
+  }
+  // A DATA DE ESTREIA DO EPISODIO "A SEGUIR" (issue #127), do mesmo videos[]
+  // que acabou de confirmar que ele existe. E ela que separa o que ja foi ao ar
+  // do que ainda vai — a Ordenacao de Continuar assistindo (cwordem.h) poe os
+  // futuros no fim ou numa fileira propria. Vale para o Simkl tambem: o lote
+  // dele passa por aqui (simkl_continuar -> trakt_enfeitar_lote). Episodio sem
+  // `released` fica sem data, e sem data conta como exibido, como no web.
+  if (d->progresso == 0 && d->temporada > 0 && d->episodio > 0 && !strcmp(tipo, "series")) {
+    char chave[48], quando[40] = "";
+    const char *v;
+    snprintf(chave, sizeof chave, "\"id\":\"%s:%d:%d\"", serie, d->temporada, d->episodio);
+    v = strstr(corpo, chave);
+    if (v) {
+      const char *ini = v;
+      long long ms;
+      while (ini > corpo && *ini != '{') ini--;
+      if (!js_texto(ini, js_fim(ini), "released", quando, sizeof quando))
+        js_texto(ini, js_fim(ini), "firstAired", quando, sizeof quando);
+      ms = js_ms_iso(quando);
+      cwo_marcar_estreia(d->imdb, ms > 0 ? ms : CWO_SEM_DATA);
+      if (ms <= 0)
+        printf("[trakt] estreia: %s sem released/firstAired no Cinemeta (\"%s\")\n",
+               d->imdb, quando);
+    } else {
+      printf("[trakt] estreia: %s fora do videos[] do Cinemeta; sem data\n", d->imdb);
+    }
   }
   // So completa buracos: nao trocar metahub por vazio se o Cinemeta omitir.
   if (!d->poster[0])   js_texto(corpo, NULL, "poster", d->poster, sizeof d->poster);
@@ -701,12 +728,16 @@ static void carregarHistoricoReal(const char *const *cab) {
   free(corpo);
 }
 
+static volatile int continuarFalhou;
+int trakt_continuar_falhou(void) { return continuarFalhou; }
+
 int trakt_continuar(CatItem *saida, int max) {
   const char *cab[4];
   char aut[200], chave[140];
   char *corpo;
   const char *p;
   int n = 0;
+  continuarFalhou = 0;
   if (!ligado) return 0;
   snprintf(aut, sizeof aut, "Authorization: Bearer %s", token);
   snprintf(chave, sizeof chave, "trakt-api-key: %s", cliente);
@@ -716,7 +747,7 @@ int trakt_continuar(CatItem *saida, int max) {
   cab[3] = NULL;
   nPlay = 0;
   corpo = rede_baixar_com("https://api.trakt.tv/sync/playback?extended=full", 25, cab);
-  if (!corpo) { printf("[trakt] sem resposta\n"); return 0; }
+  if (!corpo) { continuarFalhou = 1; printf("[trakt] sem resposta\n"); return 0; }
   // O corpo e um array na raiz; js_array procura por chave, entao anda-se a mao.
   p = strchr(corpo, '[');
   p = p ? p + 1 : NULL;

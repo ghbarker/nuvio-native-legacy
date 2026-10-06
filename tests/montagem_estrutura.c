@@ -14,9 +14,10 @@
 // (desc_iniciar), com homeestado.c, catalogo.c, colecoes.c e catordem.c DE
 // VERDADE — a assinatura, o snapshot e o cache em disco sao os do app. So a
 // rede, o Trakt e fileiras.c sao dubles. A mudanca "chega do sync" dentro de
-// trakt_lista("watchlist"), que montar() chama DEPOIS de buscar as fileiras e
-// ANTES de decidir se publica: e o mesmo instante do log (colecoes chegando
-// com os catalogos ja no ar), so que deterministico.
+// simkl_plantowatch, que montar() chama DEPOIS de buscar as fileiras e ANTES
+// de decidir se publica: e o mesmo instante do log (colecoes chegando com os
+// catalogos ja no ar), so que deterministico. (Era trakt_lista("watchlist"),
+// que desde fix/trakt-cedo-montagem roda num fio proprio no COMECO da volta.)
 //
 //   1. colecoes chegando (estrutura) com o que foi buscado bastando: UMA
 //      montagem, nada descartado, fileiras na tela, snapshot e cache validos
@@ -140,9 +141,9 @@ static int foiPedido(const char *id) {
 // ------------------------------------------------ "o sync" entre a rede e o fim
 enum { NADA, COLECAO_SEM_EFEITO, COLECAO_ENGOLE, REGISTRO_CRESCE, TROCA_DONO };
 static volatile int mudancaArmada = NADA;
-int trakt_lista(const char *q, CatItem *s, int m) {
+int trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
+int simkl_plantowatch(CatItem *s, int m) {
   (void)s; (void)m;
-  if (strcmp(q, "watchlist")) return 0;
   switch (mudancaArmada) {
     case COLECAO_SEM_EFEITO: assert(col_definir_json(COLECAO_ALHEIA) > 0); break;
     case COLECAO_ENGOLE:     assert(col_definir_json(COLECAO_ENGOLE_A) > 0); break;
@@ -174,8 +175,11 @@ int   fil_linha_oculta(int i)              { (void)i; return 0; }
 int   fil_linha_tipo(int i)                { (void)i; return FIL_TIPO_AUTO; }
 int   fil_linha_tam(int i)                 { (void)i; return FIL_TAM_PADRAO; }
 void  fil_gravar_registro(void)            { }
-int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n) {
-  (void)ids; (void)bases; (void)n; return 0; }
+int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n,
+                          int perfilDaLista) {
+  (void)ids; (void)bases; (void)n; (void)perfilDaLista; return 0; }
+int   fil_addon_novo(const char *id, const char *base) { (void)id; (void)base; return 0; }
+int   addons_perfil_da_lista(void)         { return 0; }
 int   fil_limite(void)                     { return 3; }
 const char *fil_hero_fonte(void)           { return "auto"; }
 int   fil_oculta(const char *c)            { (void)c; return 0; }
@@ -188,6 +192,9 @@ static volatile int montagens;
 void  marco(const char *n)                 { if (!strcmp(n, "montar: inicio")) montagens++; }
 void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_idioma_ingles(void)          { return 0; }
+int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_itens_fileira(void)          { return 12; }   // padrao (#163)
+int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 int   ajustes_cw_ligado(void)              { return 1; }
 int   ajustes_cw_estilo(void)              { return 0; }
 int   ajustes_posteres_deitados(void)      { return 0; }
@@ -202,14 +209,14 @@ int   ajustes_tmdb_cw(void)                { return 0; }
 const char *ajustes_tmdb_idioma(void)      { return "pt-BR"; }
 const char *ajustes_tmdb_chave(void)       { return ""; }
 const char *i18n(const char *s)            { return s; }
-int   simkl_ativo(void)                    { return 0; }
+int   simkl_ativo(void)                    { return 1; }
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
-int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
-int   ajustes_salvos_no_simkl(void)        { return 0; }
+int   ajustes_salvos_no_simkl(void)        { return 1; }   // para simkl_plantowatch rodar
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; return n; }
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 int   trakt_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
+int   trakt_continuar_falhou(void)        { return 0; }
 int   trakt_e_a_seguir(const char *id)     { (void)id; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   arte_reserva_registrar(const char *url, const char *imdb, int poster) {

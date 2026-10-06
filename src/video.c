@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include "marco.h"
 #include "mkv.h"
+#include "mkvass.h"
 #include "js.h"
 #include "lsregistro.h"
 #include <stdio.h>
@@ -91,7 +92,9 @@ static void aplicarEstilo(void);
 
 // Definidos adiante (junto de urlAtual, que e o que o fio consome); declarados
 // aqui porque o parse do sourceInfo, bem acima, e quem dispara o fio.
-static char  urlAtual[1024];   // URL da reproducao corrente
+// Mesmo limite de Stream.url: o pipeline recebe a URL original, e cortar a
+// copia faria somente a sonda MKV/ASS falhar (inclusive apos tentar de novo).
+static char  urlAtual[4096];
 const char *video_url_atual(void) { return urlAtual; }
 // Recuperacao de pipeline destruido: pedida pelo fio de resposta do luna e
 // executada no fio principal (video_bombear), porque recarregar de dentro do
@@ -350,6 +353,10 @@ static int       fonX = -1, fonY, fonW, fonH, dstX = -1, dstY, dstW, dstH;
 // Caracteristicas do fluxo, tiradas do evento videoInfo da assinatura do uMS.
 // O ACB precisa delas para descrever o video ao pipeline de exibicao.
 static int       vidW = 1920, vidH = 1080, vidTaxa = 30;
+// Tamanho do quadro usado na ultima SDL_webOSSetExportedWindow (#158). Quando o
+// videoInfo chega depois com outro tamanho, a janela e reaplicada com ele.
+static int       expSrcW, expSrcH;
+static void      expJanelaAplicar(void);
 static long      vidBits;
 static char      vidVarredura[24] = "progressive";
 // hdrType real informado pelo uMS para a camada que chegou ao decoder. Isto
@@ -846,6 +853,10 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
     double v;
     v = numeroDe(p, "\"width\":");      if (v > 0) vidW = (int)v;
     v = numeroDe(p, "\"height\":");     if (v > 0) vidH = (int)v;
+    // O quadro real chegou diferente do que a janela exportada recebeu como
+    // origem (#158): reaplica, sem recorte de fonte (esse tem caminho proprio).
+    if (expWin[0] && fonX < 0 && expSrcW > 0 && (vidW != expSrcW || vidH != expSrcH))
+      expJanelaAplicar();
     v = numeroDe(p, "\"frameRate\":");  if (v > 0) vidTaxa = (int)v;
     v = numeroDe(p, "\"bitRate\":");    if (v > 0) vidBits = (long)v;
     { const char *q = strstr(p, "\"scanType\":\"");
@@ -1368,13 +1379,25 @@ double video_creditos(void) {
 static void *lerMkv(void *arg) {
   MkvFaixa fx[MKV_MAX_FAIXAS];
   MkvCap   caps[MKV_MAX_CAPS];
-  char url[1024];
+  char url[sizeof urlAtual];
   int n, i, j, casou = 0, nCaps = 0;
   (void)arg;
 
   snprintf(url, sizeof url, "%s", urlAtual);
 
-  n = mkv_faixas_e_caps(url, fx, MKV_MAX_FAIXAS, caps, MKV_MAX_CAPS, &nCaps);
+  // PRE-BUSCA (#92, v1.4.7): o inicio do arquivo ja foi lido ANTES do video
+  // pelo mkvass. Serve aqui sem um pedido a mais pela rede — com o video
+  // tocando e no mesmo CDN, que e justamente quando o do relato recusava.
+  n = 0;
+  { unsigned char *cab = NULL; long cabN = 0;
+    if (mkvass_cabecalho(url, &cab, &cabN)) {
+      n = mkv_faixas_do_trecho(cab, cabN, fx, MKV_MAX_FAIXAS, caps, MKV_MAX_CAPS, &nCaps);
+      printf("[mkv] sonda pelo trecho da pre-busca (%ld bytes, sem rede): %d faixa(s)%s\n", cabN, n,
+             n > 0 ? "" : " — Tracks nao coube, vai a rede");
+      fflush(stdout);
+      free(cab);
+    } }
+  if (n < 1) n = mkv_faixas_e_caps(url, fx, MKV_MAX_FAIXAS, caps, MKV_MAX_CAPS, &nCaps);
   if (nCaps > 0) {
     creditosNomeado = mkv_creditos_nomeados(caps, nCaps);
     creditosUltimo  = nCaps > 1 ? caps[nCaps - 1].inicio : 0.0;
@@ -1514,7 +1537,12 @@ void video_bombear(void) {
   // SONDA DE MKV so com folga de buffer. 20 s a frente e o sinal de que a
   // fonte esta entregando mais rapido do que o decoder consome, e portanto de
   // que ha banda sobrando para os 320 KB do cabecalho.
-  if (mkvPendente && !fioMkvVivo && urlAtual[0] && bufferSeg - posSeg >= 20.0)
+  //
+  // Com o inicio do arquivo JA LIDO pela pre-busca do mkvass (#92, v1.4.7) a
+  // sonda nao custa rede: dispara logo, e a legenda automatica decide no
+  // sourceInfo em vez de esperar os 20 s de buffer.
+  if (mkvPendente && !fioMkvVivo && urlAtual[0] &&
+      (bufferSeg - posSeg >= 20.0 || mkvass_cabecalho(urlAtual, NULL, NULL)))
     video_sondar_mkv_agora();
   // Avanco pendente que ja repousou.
   if (seekEm && SDL_GetTicks() >= seekEm) {
@@ -1833,6 +1861,29 @@ static void seekAgora(double segundos) {
 // ali; um plano de hardware nao descarta o excedente como o compositor do
 // navegador faz com transform: scale(). Quem amplia e o video_janela_fonte
 // abaixo, recortando a FONTE.
+// A JANELA EXPORTADA COM O QUADRO INTEIRO COMO ORIGEM (#158). Aqui ia `src`
+// NULL ("o quadro inteiro"), e o SDL de parte das TVs repassa o nulo direto ao
+// protocolo: "error marshalling arguments for set_exported_window (signature
+// oo): null value passed for arg 0". Em umas TVs isso so fica no log (1.4.2:
+// o video seguia tocando); em outras a conexao com o Wayland cai, o SDL manda
+// SDL_QUIT e o app fecha — o "aperto play no canal e o app sai" do #158, com
+// "tipo=0x100" logo depois do erro nos registros 4000 e 4012 (LG C4).
+// `src` e o quadro que o decoder entrega, como no guia de midia do webosbrew
+// e no ss4s: {0, 0, largura, altura}. Quem recorta a fonte e o
+// video_janela_fonte. Antes do videoInfo vidW/vidH ainda sao os da midia
+// anterior (ou 1920x1080); quando ele chega com outro tamanho, a janela e
+// reaplicada (ver o bloco do videoInfo).
+static void expJanelaAplicar(void) {
+  SDL_Rect src, dst;
+  if (!expWin[0] || !sdlExpJanela || janW < 1 || janH < 1) return;
+  src.x = 0; src.y = 0; src.w = vidW > 0 ? vidW : 1920; src.h = vidH > 0 ? vidH : 1080;
+  dst.x = janX; dst.y = janY; dst.w = janW; dst.h = janH;
+  expSrcW = src.w; expSrcH = src.h;
+  printf("[video] janela exportada (quadro %dx%d) -> %d\n", src.w, src.h,
+         sdlExpJanela(expWin, &src, &dst));
+  fflush(stdout);
+}
+
 void video_janela(int x, int y, int w, int h) {
   long tarefa = 0;
   int cheia = (x == 0 && y == 0 && w == 1920 && h == 1080);
@@ -1854,10 +1905,7 @@ void video_janela(int x, int y, int w, int h) {
   printf("[video] janela %d,%d %dx%d cheia=%d\n", x, y, w, h, cheia);
   fflush(stdout);
   if (expWin[0]) {
-    // src NULL = o quadro inteiro. Quem recorta a fonte e o video_janela_fonte.
-    SDL_Rect dst; dst.x = x; dst.y = y; dst.w = w; dst.h = h;
-    printf("[video] janela exportada -> %d\n", sdlExpJanela(expWin, NULL, &dst));
-    fflush(stdout);
+    expJanelaAplicar();
     return;
   }
   acbJanela(acb, x, y, w, h, cheia, &tarefa);

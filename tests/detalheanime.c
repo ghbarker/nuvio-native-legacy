@@ -29,6 +29,8 @@
 // (o conjunto e o de tests/colfileiras.c, menos os cat_* — que catalogo.c ja
 // traz — e mais os que este teste ja tinha)
 int         ajustes_idioma_ingles(void) { return 0; }
+int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 const char *i18n(const char *s)         { return s; }
 const char *dados_dir(void)             { return ""; }
 const char *sessao_usuario(void)        { return ""; }
@@ -66,8 +68,12 @@ int   ajustes_tmdb_cw(void)                { return 0; }
 const char *ajustes_tmdb_idioma(void)      { return "pt-BR"; }
 const char *ajustes_tmdb_chave(void)       { return ""; }
 void  fil_gravar_registro(void)            { }
-int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n) {
-  (void)ids; (void)bases; (void)n; return 0; }
+int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n,
+                          int perfilDaLista) {
+  (void)ids; (void)bases; (void)n; (void)perfilDaLista; return 0; }
+int   fil_addon_novo(const char *id, const char *base) { (void)id; (void)base; return 0; }
+int   addons_perfil_da_lista(void)         { return 0; }
+int   addons_ativo(int i)                  { (void)i; return 1; }
 int   fil_limite(void)                     { return 16; }
 int   fil_oculta(const char *c)            { (void)c; return 0; }
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
@@ -96,6 +102,7 @@ void  prog_remover(const char *c)          { (void)c; }
 void  prog_marcar_removido(const char *i)  { (void)i; }
 int   prog_removido_vence(const char *i, long long ms) { (void)i; (void)ms; return 0; }
 int   trakt_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
+int   trakt_continuar_falhou(void)        { return 0; }
 // Simkl (issue #110): sem vinculo nos testes de fileira, como o Trakt acima.
 int   simkl_ativo(void)                    { return 0; }
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }

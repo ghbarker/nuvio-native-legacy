@@ -29,6 +29,12 @@ int  assrender_adicionar_fonte(const char *nome, const void *dados, size_t taman
  * libass. enabled=0 preserva todas as cores do arquivo ASS. */
 void assrender_definir_cor(int enabled, int r, int g, int b);
 
+/* Area em que o video aparece na tela (x,y,w,h, podendo passar da tela nos
+ * modos de zoom), dimensoes do quadro decodificado e escala das fontes do
+ * arquivo (1.0 = como o autor fez). Barato: so pede ao worker quando muda. */
+void assrender_definir_layout(float x, float y, float w, float h,
+                              int videoW, int videoH, double escalaFonte);
+
 /* Executa no thread grafico a limpeza de texturas pendente apos troca de
  * faixa ou seek, mesmo quando a nova faixa nao e ASS. */
 void assrender_aplicar_invalidacao(void);
@@ -55,5 +61,14 @@ void assrender_geracao(unsigned geracao);
  * pasta de fontes do sistema e custa ~2,1 s; feito quando a faixa e escolhida,
  * corre em paralelo com o indice do MKV em vez de atrasar a primeira fala. */
 void assrender_preaquecer(void);
+
+/* Assinatura de fonte TrueType/OpenType/colecao nos primeiros bytes. */
+int  assrender_bytes_sao_fonte(const void *dados, size_t n);
+/* Le os arquivos de fonte de `dir` (so os que tem assinatura de fonte; o
+ * resto conta em *ignorados) e entrega cada um a `cb`. Devolve quantos. */
+int  assrender_ler_pasta_fontes(const char *dir,
+                                void (*cb)(const char *nome, const void *dados,
+                                           size_t tam, void *u),
+                                void *u, int *ignorados);
 
 #endif

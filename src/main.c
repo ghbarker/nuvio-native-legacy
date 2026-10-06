@@ -32,6 +32,7 @@
 #include "webp.h"
 #include "cachearte.h"
 #include "artehero.h"
+#include "arteescolha.h"
 #include "artereserva.h"
 #include "trailerapple.h"
 #include "home.h"
@@ -51,6 +52,7 @@
 #include "video.h"
 #include "addons.h"
 #include "ajustes.h"
+#include "corviva.h"
 #include "catalogo.h"
 #include "descoberta.h"
 #include "trakt.h"
@@ -445,6 +447,13 @@ int main(int argc, char **argv) {
   // transparente, e o plano de video do aparelho — que fica ATRAS da janela e
   // so aparece pelo alpha — nunca poderia ser revelado.
   SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+  // E 8 bits por cor, pedidos e nao herdados: o padrao do SDL e 3/3/2 minimo,
+  // e o EGL que listar RGB565 antes de 8888 entregaria 32 niveis por canal —
+  // degrau de 8/255, que dither nenhum esconde. Na C9 o EGL ja dava 8888
+  // (log: "framebuffer R8 G8 B8 A8"); o pedido e para as outras LGs.
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 #ifdef __EMSCRIPTEN__
   // O navegador da TV ja entrega a pagina em tela cheia; pedir FULLSCREEN
   // aqui exigiria um gesto do usuario e falharia em silencio.
@@ -622,7 +631,14 @@ int main(int argc, char **argv) {
     SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &g);
     SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &b);
     printf("framebuffer R%d G%d B%d A%d%s\n", r, g, b, a,
-           a > 0 ? "" : "  <<< SEM ALPHA: video nao tem como aparecer"); }
+           a > 0 ? "" : "  <<< SEM ALPHA: video nao tem como aparecer");
+    // O que o GL diz do alvo LIGADO, e nao o que o SDL leu da config EGL: sao
+    // fontes diferentes, e so esta enxerga um drawable que o driver rebaixou.
+    { GLint br = -1, bg = -1, bb = -1, ba = -1;
+      glGetIntegerv(GL_RED_BITS, &br);   glGetIntegerv(GL_GREEN_BITS, &bg);
+      glGetIntegerv(GL_BLUE_BITS, &bb);  glGetIntegerv(GL_ALPHA_BITS, &ba);
+      printf("framebuffer GL R%d G%d B%d A%d%s\n", br, bg, bb, ba,
+             (br > 0 && br < 8) ? "  <<< MENOS DE 8 BITS: degrade vai sair em faixas" : ""); } }
 
   // MARCOS FINOS DO ARRANQUE. Na TV Samsung o log parava exatamente na linha
   // "framebuffer ..." acima e nada mais saia — sem erro, sem excecao. Entre
@@ -696,6 +712,8 @@ int main(int argc, char **argv) {
   // do card (mesma url real ou mesmos bytes) — artereserva.h.
   artehero_definir_igual(arte_mesma_imagem);
   artehero_definir_resolvida(arte_fonte_resolvida);
+  // A arte escolhida a mao (#142): lida do disco na primeira consulta.
+  artehero_definir_escolha(arteesc_fundo, arteesc_logo);
   // Fonte "Apple TV" do destaque: a arte-chave que a busca do trailer traz.
   arte_fonte_definir_apple(trailerapple_arte);
   // A conta vem ANTES da UI: app_iniciar decide entre abrir na home e abrir no
@@ -712,6 +730,9 @@ int main(int argc, char **argv) {
   traktauth_carregar_perfil(perfis_ativo());
   simklauth_carregar_perfil(perfis_ativo());
   if (!app_iniciar(dirArte)) return 1;
+  // Cor viva: a paleta da ultima cena volta ANTES do primeiro quadro, entao
+  // quem usa o tema dinamico ja abre o app na cor do ultimo titulo.
+  corviva_carregar();
 #ifdef __EMSCRIPTEN__
   nv_ceder_quadro();   // o segundo ponto: ver a nota logo depois de gfx_iniciar
 #endif
@@ -756,9 +777,11 @@ int main(int argc, char **argv) {
   trakt_carregar(dirArte);
   desc_tmdb(dirArte);
   desc_iniciar();
-  // Metade da resolucao: o snapshot so aparece escurecido e nas bordas.
-  int temSnap = gfx_snap_iniciar((int)NV_TELA_W / 2, (int)NV_TELA_H / 2);
-  int snapValido = 0;
+  // RESOLUCAO DE LAYOUT, e nao metade: o snapshot e o fundo parado atras do
+  // painel de Salvos (app.c), e a esquerda dele e uma faixa de 1120 px da home
+  // a 42 % de brilho — na metade, o texto das fileiras amolecia no instante em
+  // que a copia entrava no lugar da home desenhada. RGB, ~6 MB.
+  gfx_snap_iniciar((int)NV_TELA_W, (int)NV_TELA_H);
   // Alvo minusculo de proposito: e ele esticado que vira o desfoque do fundo.
   // 480x270: com o gaussiano de duas passadas, o que importa nao e o alvo ser
   // minusculo (isso e que produzia blocos ao esticar) e sim o desfoque ser de
@@ -952,6 +975,11 @@ int main(int argc, char **argv) {
     fUplN = tex_upl_n; fUplB = tex_upl_bytes;
     t0 = NV_T0();
     app_atualizar(dt, agora);
+    // COR VIVA: UMA vez por quadro, antes do desenho. Consome o pedido que o
+    // desenho do quadro anterior fez (corviva_definir) e anda a transicao; o
+    // desenho deste quadro so le o resultado (ajustes_acento, NV_COR_FUNDO_*).
+    corviva_quadro(dt, ajustes_cor_viva(), ajustes_cor_logo(),
+                   ajustes_animacoes_reduzidas());
     fUpd = NV_DT(t0);
 
     // RECORTE DESLIGADO ANTES DO CLEAR. glClear respeita o scissor test: se
@@ -964,8 +992,14 @@ int main(int argc, char **argv) {
     gfx_novo_quadro();
     tex_novo_quadro();
     gfx_sem_recorte();
+    gfx_ambiente_preparar();
     glClearColor(NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    // "Dinâmica imersiva": a luz da arte POR BAIXO de toda tela, logo depois do
+    // clear — e o que as rampas do destaque e do detalhe deixam aparecer quando
+    // se apagam em alfa (uVaza). Uma passada de tela cheia com 4 luzes; nos
+    // outros temas a forca e 0 e isto nao desenha nada.
+    gfx_ambiente(1.0f);
     fClr = NV_DT(t0);
     t0 = NV_T0();
     txt_novo_quadro();
@@ -1072,6 +1106,7 @@ int main(int argc, char **argv) {
              rssMB(),
              dados_persistente() ? "" : "  <<< SEM PERSISTENCIA");
       avisos_sinal(NULL, (float)rssMB());   // batida: no maximo 1 a cada 60 s
+      corviva_gravar_se_preciso(0);          // corviva.txt: no maximo 1 a cada 20 s
       dados_sync_sucessos = 0;
       dados_sync_falhas = 0;
 #ifdef __EMSCRIPTEN__
@@ -1162,6 +1197,7 @@ int main(int argc, char **argv) {
   gfx_borrao_encerrar();
   gfx_snap_encerrar();
   app_encerrar();
+  corviva_gravar_se_preciso(1);
   tex_encerrar();
   txt_encerrar();
   gfx_encerrar();
@@ -1169,6 +1205,14 @@ int main(int argc, char **argv) {
   SDL_DestroyWindow(win);
   IMG_Quit();
   SDL_Quit();
+#ifdef __EMSCRIPTEN__
+  // O SDL_Quit apaga TODOS os hints (SDL_ClearHints, SDL.c do port 2.32.10),
+  // inclusive o de ASYNCIFY acima — e os fios de trabalho continuam vivos
+  // ate a pagina fechar. O primeiro SDL_Delay de um deles depois disto via
+  // emscripten_sleep e abortava: "Aborted(invalid state: 1)" logo depois do
+  // "fim" em todo log de saida da Samsung 1.5.0. Repor o hint aqui fecha isso.
+  SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+#endif
   printf("fim\n");
 #ifdef __EMSCRIPTEN__
   // SAIR DE VERDADE NO TIZEN. Aqui o laco de quadro acabou e o main devolve,

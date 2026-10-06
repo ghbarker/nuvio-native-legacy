@@ -2,6 +2,7 @@
 // hero no topo, rail fixa à esquerda e fileiras horizontais de posters. A
 // infraestrutura nativa cuida de cache assíncrono, foco e transições.
 #include "home.h"
+#include "corviva.h"
 // NV_LEVE (tools/tizen.sh --leve): build de diagnostico sem a animacao do
 // cartaz em foco, um dos suspeitos do travamento de #72.
 #ifdef NV_LEVE
@@ -28,11 +29,13 @@
 #include "revela.h"
 #include "layout.h"
 #include "ajustes.h"
+#include "cwordem.h"
 #include "catalogo.h"
 #include "artehero.h"
 #include "colecoes.h"
 #include "addons.h"   /* addons_nome_por_id: o addon de um grupo de colecoes */
 #include "gif.h"
+#include "gifcolecao.h"
 #include "badges.h"
 #include "extras.h"
 #include "diretor.h"
@@ -52,6 +55,7 @@ int player_aberto(void);
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <time.h>
 #include "trailer.h"
 #include "trailerimdb.h"
 #include "trailerapple.h"
@@ -68,6 +72,7 @@ int player_aberto(void);
 // vetor — o card nunca acendia ao receber foco e a memoria do vizinho era
 // corrompida em silencio.
 #define MAX_CARDS 33
+_Static_assert(DESC_ITENS_POR_FILEIRA <= MAX_CARDS - 1, "itens por fileira + Ver tudo cabem em MAX_CARDS");
 // A faixa editorial precisa de uma terceira alternativa para não terminar
 // visualmente depois de apenas dois cards. Quando o catálogo que virou
 // destaque entrega menos que isso, completamos com títulos já publicados no
@@ -580,6 +585,14 @@ static void desenhaPlaceholderHero(GfxRect r, const CatItem *item, float alpha,
                                    int esperando) {
   GfxRect bloco = { r.x + r.w * 0.58f, r.y + 32.0f,
                     r.w * 0.34f, r.h - 64.0f };
+  // A CAMINHO, NADA (#164). O bloco "Carregando arte…" entrava a cada troca
+  // de foco em que a arte passava do prazo — na Samsung o decode de uma arte
+  // de destaque leva 300-900 ms, entao era quase toda troca — e o bloco
+  // aparecendo e sumindo lia como um piscar. O que o #21 exige continua: a
+  // arte do titulo ANTERIOR ja saiu (heroSai), nada falso fica na tela. So
+  // nao ha mais um cartao por cima do vazio; a arte nova entra quando chegar.
+  // "Arte indisponível" (titulo sem arte nenhuma) continua sendo desenhado.
+  if (esperando) return;
   gfx_cor(bloco, 0.035f, 0.075f, 0.082f, 0.098f, alpha * 0.92f);
   { TxtLinha t = txt_linha(TXT_HERO_META,
                             esperando ? "Carregando arte…" : "Arte indisponível",
@@ -660,6 +673,10 @@ static const char *arte_por_formato(const CatItem *item, int deitado) {
 static const char *arte_hero_do_item(const CatItem *item) {
   int fonte = ajustes_hero_fonte();
   int diferente = ajustes_hero_arte_diferente();
+  // A ARTE ESCOLHIDA A MAO (#142) VENCE ATE O STILL DO EPISODIO: quem apontou
+  // a foto na tela "Trocar arte" quer ve-la no destaque, e o still e regra
+  // automatica. Tabela vazia = um retorno NULL, nada mais no quadro.
+  { const char *esc = artehero_url_escolhida(item); if (esc) return esc; }
   // Ao escolher uma origem, o usuario esta pedindo a arte do titulo — nao o
   // still automatico do episodio. Automatico mantem o comportamento anterior,
   // inclusive o still de Continuar assistindo. A escolha entre fonte, card e
@@ -1378,7 +1395,9 @@ void home_evento(const SDL_Event *e) {
         // card dela ja e um convite a tocar. Segurar OK continua abrindo o
         // menu — o ramo NV_HOLD_MS acima nem chega aqui.
         const Fileira *fl = &fileiras[foco.fileira];
-        if (ajustes_cw_ok_toca() &&
+        // "Proximos episodios" (issue #127) NAO toca: o episodio ainda nao foi
+        // ao ar, e nenhum addon tem fonte para ele. OK abre a pagina.
+        if (ajustes_cw_ok_toca() && strcmp(fl->chave, "upcoming_section") &&
             (fl->tipo == FILEIRA_CONTINUE || fl->tipo == FILEIRA_RETORNO ||
              !strcmp(fl->chave, "continue_watching")))
           pedidoTocar = 1;
@@ -1485,8 +1504,20 @@ static int assinaturaPrefs(void) {
   return (ajustes_cw_ligado() ? 1 : 0)
        | (ajustes_cw_estilo() << 1)
        | (ajustes_posteres_deitados() ? 8 : 0)
-       | (ajustes_rotulos_poster() ? 16 : 0);
+       | (ajustes_rotulos_poster() ? 16 : 0)
+       // A Ordenacao (issue #127): "Separar futuros" parte a fileira em duas
+       // sem a descoberta publicar nada novo quando a lista ja e a mesma.
+       | (ajustes_cw_ordem() << 5);
 }
+
+// OS CARDS FUTUROS DE "CONTINUAR ASSISTINDO" com a Ordenacao em "Separar
+// futuros" (issue #127, ver cwordem.h): indices no catalogo, na ordem da
+// fileira (a montagem ja os pos pela estreia). Separados no laco das fileiras
+// e reinseridos como "upcoming_section" logo abaixo da retomada DEPOIS do
+// arranjo por fil_unir: a fileira nao e do catalogo nem da conta, e sim uma
+// metade da retomada — registra-la em fileiras.c a poria no fim da home (chave
+// nova vai para o fim) e deixaria a pessoa separa-la da outra metade.
+static int proxHome[MAX_CARDS], nProxHome;
 static void sincronizarFileiras(void) {
   int nCat = cat_n_fileiras(), r, destino = 0;
   int assin = assinaturaPrefs();
@@ -1499,19 +1530,23 @@ static void sincronizarFileiras(void) {
   // direto (cat_revisao); cat_revisao e bumpado em cat_definir_tudo,
   // cat_trocar_continuar E cat_republicar_fileiras, cobrindo todo caminho
   // que troca fils[].
-  static unsigned ultCatRev, ultFilRev, ultColRev, ultFilLim;
+  static unsigned ultCatRev, ultFilRev, ultColRev, ultFilLim, ultCwoRev;
   unsigned catRev = cat_revisao(), filRev = fil_revisao();
   int filLim = fil_limite();
   unsigned colRev = col_revisao();
+  // cwo_revisao tambem: o conjunto de futuros pode mudar sem o catalogo mudar
+  // (a mesma lista publicada, so a divisao outra), e o hash abaixo ja o pesa.
+  unsigned cwoRev = cwo_revisao();
   if (nCat == filsAplicadas && assin == prefsAplicadas &&
       catRev == ultCatRev && filRev == ultFilRev &&
-      colRev == ultColRev && filLim == ultFilLim &&
+      colRev == ultColRev && filLim == ultFilLim && cwoRev == ultCwoRev &&
       retomarAplicada == retomarRev &&
       ultCatRev) {   // ultCatRev=0: primeira chamada, cai no hash
     ultFilRev = filRev; ultColRev = colRev; ultFilLim = (unsigned)filLim;
     return;
   }
   ultCatRev = catRev; ultFilRev = filRev; ultColRev = colRev; ultFilLim = (unsigned)filLim;
+  ultCwoRev = cwoRev;
   unsigned revisao = 2166136261u;
   // A escolha LOCAL de fileiras entra na mesma assinatura do catalogo: ordem,
   // liga/desliga, forma, tamanho e limite mudam a lista tanto quanto uma
@@ -1531,6 +1566,9 @@ static void sincronizarFileiras(void) {
   // em Ajustes: aquilo bumpa fil_revisao(), a assinatura muda, a home remonta e
   // a colecao aparece. Fechar e reabrir voltava ao mesmo lugar.
   revisao = (revisao ^ colRev) * 16777619u;
+  // Quem a montagem publicou como futuro (issue #127): so pesa em "Separar
+  // futuros", mas e um inteiro — mais barato perguntar sempre que ramificar.
+  revisao = (revisao ^ cwo_revisao()) * 16777619u;
   for (r = 0; r < nCat; r++) {
     const CatFileira *cf = cat_fileira(r);
     if (!cf) break;
@@ -1565,6 +1603,7 @@ static void sincronizarFileiras(void) {
   memcpy(antigas, fileiras, sizeof antigas);
   int temDestaque = 0;
   int destaqueIndice = -1;
+  nProxHome = 0;
   for (r = 0; r < nCat && destino < MAX_FIL - 1; r++) {
     const CatFileira *cf = cat_fileira(r);
     if (!cf) break;
@@ -1594,7 +1633,12 @@ static void sincronizarFileiras(void) {
     }
     // MAX_CARDS - 1: a ultima coluna e do card "Ver tudo". Sem reservar, uma
     // fileira cheia empurraria o card para fora do vetor de animacao.
-    fileiras[destino].n   = cf->n > 12 ? 12 : cf->n;
+    // "Itens por fileira" (#163), no maximo DESC_ITENS_POR_FILEIRA, que tem de
+    // caber em MAX_CARDS - 1. Diminuir vale na hora (corta aqui); aumentar,
+    // quando os catalogos forem pedidos de novo.
+    { int teto = ajustes_itens_fileira();
+      if (teto > DESC_ITENS_POR_FILEIRA) teto = DESC_ITENS_POR_FILEIRA;
+      fileiras[destino].n = cf->n > teto ? teto : cf->n; }
     // UMA COLUNA A MAIS: o card "Ver tudo" no fim. So em fileira que veio de um
     // CATALOGO de addon — "Continuar assistindo" e as listas do Trakt nao tem
     // continuacao para pedir (o base fica vazio nelas).
@@ -1607,6 +1651,17 @@ static void sincronizarFileiras(void) {
     snprintf(fileiras[destino].catTipo, sizeof fileiras[destino].catTipo, "%s", cf->tipo);
     fileiras[destino].ini = cf->ini;
     if(!strcmp(cf->chave,"social_activity"))fileiras[destino].tipo=FILEIRA_SOCIAL;
+    if (!strcmp(cf->chave, "continue_watching") && ajustes_cw_ordem() == CWO_SEPARAR) {
+      Fileira *cw = &fileiras[destino];
+      int c, nm = 0;
+      for (c = 0; c < cw->n && nProxHome < MAX_CARDS; c++) {
+        int idx = cf->ini + c;
+        const CatItem *it = cat_item(idx);
+        if (it && cwo_e_futuro(it->imdb)) proxHome[nProxHome++] = idx;
+        else cw->itens[nm++] = idx;
+      }
+      if (nProxHome) { cw->usaItens = 1; cw->n = nm; }
+    }
     snprintf(fileiras[destino].chave, sizeof fileiras[destino].chave,
              "%s", cf->chave);
     destino++;
@@ -1759,8 +1814,20 @@ static void sincronizarFileiras(void) {
     q = fil_unir(ch, destino, ord, MAX_FIL);
     for (k = 0; k < q && w < MAX_FIL; k++) {
       Fileira *f = &fileiras[ord[k]];
+      int j, repetida = 0;
       if (!strcmp(f->chave, "last_session")) continue;
       if (fil_oculta(f->chave)) continue;
+      // UMA FILEIRA POR CHAVE (issue #127, "Proximos episodios" duplicada na
+      // C9 do dono). A chave e a identidade da fileira em todo o resto — foco,
+      // rolagem, registro, ordem —, e duas com a mesma chave desenhariam o
+      // mesmo conteudo duas vezes. Nenhum caminho medido produz isso, mas a
+      // home tem de ser idempotente sobre o que chega; e o log diz de onde
+      // veio se voltar a acontecer.
+      for (j = 0; j < w && !repetida; j++) repetida = !strcmp(arranjo[j].chave, f->chave);
+      if (repetida) {
+        printf("[home] fileira repetida descartada: %s\n", f->chave);
+        continue;
+      }
       arranjo[w++] = *f;
     }
     // QUANTAS FILEIRAS ESTE CORTE ENGOLIU. O aviso do fim da home contava so
@@ -1810,6 +1877,33 @@ static void sincronizarFileiras(void) {
       w = mantidas; }
     memcpy(fileiras, arranjo, sizeof(Fileira) * (size_t)w);
     destino = w;
+  }
+  // "PROXIMOS EPISODIOS" LOGO ABAIXO DA RETOMADA (issue #127) — e onde o web
+  // poe a `upcoming_section`. Mesma forma, tamanho e tipo da retomada (a copia
+  // leva o que fil_tipo/fil_escala decidiram para ela). Retomada escondida pela
+  // pessoa leva esta junto; retomada que ficou SO com futuros da o lugar a esta,
+  // em vez de sobrar um cabecalho sem card.
+  if (nProxHome) {
+    int c = -1, q, ja = 0;
+    for (q = 0; q < destino; q++) {
+      if (c < 0 && !strcmp(fileiras[q].chave, "continue_watching")) c = q;
+      if (!strcmp(fileiras[q].chave, "upcoming_section")) ja = 1;
+    }
+    if (c >= 0 && !ja) {
+      Fileira u = fileiras[c];
+      u.n = nProxHome;
+      memcpy(u.itens, proxHome, sizeof(int) * (size_t)nProxHome);
+      u.usaItens = 1;
+      u.verTudo = 0;
+      snprintf(u.titulo, sizeof u.titulo, "%s", "Pr\xc3\xb3ximos epis\xc3\xb3""dios");
+      snprintf(u.chave, sizeof u.chave, "upcoming_section");
+      if (fileiras[c].n < 1) fileiras[c] = u;
+      else if (destino < MAX_FIL) {
+        memmove(fileiras + c + 2, fileiras + c + 1, sizeof(Fileira) * (size_t)(destino - c - 1));
+        fileiras[c + 1] = u;
+        destino++;
+      }
+    }
   }
   nFileiras = destino;
   retomarAplicada = retomarRev;
@@ -2153,6 +2247,7 @@ static void desenhaHero(Uint32 agora, float saida) {
     if(p) {
       const char *arte=arte_hero_do_item(p);   // tela cheia: arte grande
       GLuint ta=arte?tex_obter_hero(arte):0;
+      if(arte)corviva_definir(arte,CORVIVA_HOME);
       // A atividade continua com um ambiente discreto, mas quando o Trakt
       // trouxe arte real ela vira o assunto do hero. A pessoa fica apenas na
       // ficha social, onde o avatar tem contexto e não compete com o titulo.
@@ -2238,6 +2333,7 @@ static void desenhaHero(Uint32 agora, float saida) {
       GLuint t=0;
       if (ehDiretor) diretor_pedir(folder->title);
       if (!t && art[0]) t=tex_obter_hero(art);
+      if (art[0]) corviva_definir(art, CORVIVA_HOME);
       if(t){gfx_tex_aspect_atual=tex_aspecto(art);gfx_rect(r,t,modoHero,0,0,0,0,0,0,0,aArte);gfx_tex_aspect_atual=0;}
       heroArteRect=r;
       float x=ajustes_conteudo_x(),a=1-saida;
@@ -2400,6 +2496,10 @@ static void desenhaHero(Uint32 agora, float saida) {
 
   const CatItem *ci = cat_item_exato(heroAtual);
   const char *arteA = arte_por_identidade(heroAtual, 2);
+  // COR VIVA: o titulo do destaque e quem manda na cor da home. heroAtual so
+  // troca quando a arte nova ja decodificou (acima), entao a cor chega junto
+  // com a arte, e corviva ainda espera 150 ms parado antes de mudar.
+  if (arteA) corviva_definir(arteA, CORVIVA_HOME);
   const CatItem *cAnt = cat_item_exato(heroAnterior);
   const char *arteB = arte_por_identidade(heroAnterior, 2);
   // Teto de 1920: o hero ocupa a tela e a 960 saia esticado ao dobro.
@@ -2512,7 +2612,17 @@ static void desenhaHero(Uint32 agora, float saida) {
   destaque[0] = 0;
   if (contHero) snprintf(destaque, sizeof destaque, i18n("CONTINUAR DE ONDE PAROU  \xc2\xb7  %d MIN"),
                          ci->restanteMin);
-  else if (seguirHero) snprintf(destaque, sizeof destaque, "%s", i18n("A SEGUIR"));
+  else if (seguirHero) {
+    // O FUTURO DIZ QUANDO (issue #127): "ESTREIA 21 OUT", nao o "A SEGUIR" do
+    // episodio que ja pode tocar. Mesma decisao e mesma data do card
+    // (continuar.c), para os dois nao discordarem.
+    char quando[32];
+    if (cwo_e_futuro(ci->imdb) &&
+        cwo_data_curta(cwo_estreia(ci->imdb), (long long)time(NULL) * 1000LL,
+                       ajustes_idioma_ingles(), 1, quando, sizeof quando))
+      snprintf(destaque, sizeof destaque, i18n("ESTREIA %s"), quando);
+    else snprintf(destaque, sizeof destaque, "%s", i18n("A SEGUIR"));
+  }
   const char *selo = (ci && ci->classificacao[0] && !contHero && !seguirHero) ? ci->classificacao : NULL;
   char nota[8];
   nota[0] = 0;
@@ -2571,6 +2681,8 @@ static void desenhaHero(Uint32 agora, float saida) {
   // Durante a promoção para o hero, entregar a textura menor já pronta evita
   // um quadro vazio; o cache continua reprocessando para o teto final.
   GLuint tlogo = urlLogo ? tex_obter_larg_qualquer(urlLogo, maxWLogo) : 0;
+  // COR VIVA: o logo do mesmo titulo do destaque ("Cor da logo").
+  if (urlLogo) corviva_definir_logo(urlLogo, CORVIVA_HOME);
   // Igual ao detalhe: nome escrito so quando nao ha logo ou o cache ja falhou.
   // Antes, qualquer decode pendente caia no ramo de texto — ao voltar do
   // detalhe (catalogo com url nova do TMDB) parecia "sumiu a arte do titulo".
@@ -2750,12 +2862,11 @@ static void alvoCard(float x, float y, float w, float h, int r, int c) {
 static void desenhaAtalhos(int r, float y) {
   float w = larguraFil(r), h = alturaFil(r);
   static int ultimo=-1;static Uint32 desde;
-  // Estado do ramo de GIF (#29), ao lado do da sequencia de JPEG porque os dois
-  // descrevem o MESMO cartaz em foco e sao zerados juntos quando ele muda.
-  //   gifAnima  -1 = ainda nao perguntei, 0 = nao e animado, 1 = e
-  //   gifUltimo instante da ultima amostra, para o passo de 67 ms
-  //   gifTex    a textura devolvida, reaproveitada entre as amostras
-  static int gifAnima=-1;static Uint32 gifUltimo;static GLuint gifTex;
+  // Estado do ramo de GIF (#29), SEPARADO do da sequencia de JPEG desde o #141:
+  // o GIF passou a poder sair da CAPA, e a troca de fonte no mesmo cartaz
+  // tambem zera a pergunta ao arquivo. Ver gifcolecao.h.
+  static GcFoco gcFoco; static int gcIniciado;
+  if (!gcIniciado) { gifcol_foco_iniciar(&gcFoco); gcIniciado = 1; }
   // Quadro da sequencia de JPEG que ja esta resolvido, para nao reconsultar
   // o cache nos ~4 quadros de tela que cabem entre dois passos de 67 ms.
   static int seqIndice=-1;static GLuint seqTex;
@@ -2789,44 +2900,73 @@ static void desenhaAtalhos(int r, float y) {
     // NA HORA da importacao —, e pasta que vem da conta nunca tem sequencia
     // nenhuma. Para todas essas, a unica animacao possivel e o proprio GIF.
     //
-    // So o Tizen anima: la o navegador conta o tempo e compoe os quadros. No
-    // webOS gif_textura devolve 0 (nao ha libgif nem IMG_LoadAnimation no
-    // aparelho) e o cartaz fica na capa parada, como hoje. Ver gif.h.
-    if(gif_pode_animar()&&
-       foco.fileira==r&&foco.coluna==c&&folder->frames<1&&folder->focusGif[0] && !NV_SEM_GIF &&
-       !ajustes_animacoes_reduzidas()) {
+    // A FONTE (#141): focusGifUrl, ou a propria CAPA quando os bytes que
+    // chegaram dela sao GIF e a conta nao mandou focusGifUrl. E, quando nao
+    // anima, UMA linha por cartaz dizendo por que (gifcol_registrar).
+    //
+    // So o Tizen anima: la gif.c decodifica o GIF num fio proprio e conta o
+    // tempo. No webOS gif_pode_animar e 0 e o cartaz fica na capa parada,
+    // como hoje — e o arquivo nem e pedido; so o motivo vai ao log. Ver gif.h.
+    if(foco.fileira==r&&foco.coluna==c&&folder->frames<1) {
       int id=fileiras[r].folders[c];Uint32 now=SDL_GetTicks();
-      // O ARQUIVO E PEDIDO FORA DO ATRASO de 350 ms. Dentro dele, o download so
-      // comecaria depois do atraso e o primeiro quadro chegaria tarde; pedir
-      // cedo custa uma consulta ao cache, que devolve NULL enquanto nao chegou.
-      const char *arq = tex_arquivo(folder->focusGif);
-      if(ultimo!=id){
-        // gifTex TAMBEM ZERA: a textura de gif.c e uma so, e ate o primeiro
-        // quadro deste cartaz chegar ela ainda tem o ultimo do cartaz anterior.
-        ultimo=id;desde=now;gifUltimo=0;gifAnima=-1;gifTex=0;
-        // gif_parar SOLTA O BLOB do cartaz anterior. Sem isto ele fica preso e
-        // o proximo cartaz teria de revoga-lo tarde.
+      unsigned char magCapa[4], mag[4];
+      int temMagCapa=0, daCapa=0, temMag=0;
+      GcMotivo motivo=GC_ANIMA;
+      const char *fonte;
+      char chave[200];
+      // A magica da capa so interessa sem focusGif: e uma busca no cache.
+      if(!folder->focusGif[0]&&arte&&arte[0]) temMagCapa=tex_magica(arte,magCapa);
+      fonte=gifcol_fonte(folder->focusGif,arte,temMagCapa?magCapa:NULL,&daCapa);
+      if(gifcol_focar(&gcFoco,id,fonte,now)) {
+        // gif_parar SOLTA O FIO DE DECODE do cartaz anterior; e gif_textura
+        // devolve 0 ate o primeiro quadro DESTE chegar (a textura e uma so, e
+        // ainda tem o ultimo quadro do outro).
         gif_parar();
       }
-      // gif_animado LE O ARQUIVO INTEIRO. Uma vez por cartaz, e nao por quadro.
-      if(gifAnima<0&&arq) gifAnima=gif_animado(arq);
-      if(arq&&gifAnima>0&&now-desde>350&&now-gifUltimo>=67) {
-        // 67 ms e o mesmo passo da sequencia de JPEG. Cada chamada copia
-        // 480x270 RGBA = 518 KB do canvas ate a textura; a 60 fps seriam
-        // ~31 MB/s numa TV que ja e o gargalo do cache de imagem.
-        GLuint motion=gif_textura(arq,480);
-        gifUltimo=now;
-        if(motion){
-          tex=motion;
-          // A PROPORCAO DA CAPA NAO VALE AQUI. Abaixo o desenho usa
-          // tex_aspecto(arte), que e a da capa; o GIF do CDN pode vir em
-          // qualquer proporcao. Zero deixa o desenho usar a moldura.
-          gifDesenhando=1;
+      if(!fonte) motivo=gifcol_sem_fonte(arte,temMagCapa?magCapa:NULL);
+      else if(NV_SEM_GIF||ajustes_animacoes_reduzidas()) motivo=GC_REDUZIDAS;
+      else if(!gif_pode_animar()) motivo=GC_APARELHO;
+      else {
+        // O ARQUIVO E PEDIDO FORA DO ATRASO de 350 ms. Dentro dele, o download so
+        // comecaria depois do atraso e o primeiro quadro chegaria tarde; pedir
+        // cedo custa uma consulta ao cache, que devolve NULL enquanto nao chegou.
+        const char *arq = tex_arquivo(fonte);
+        if(!arq) {
+          // Sem arquivo: ou ainda nao chegou, ou chegou e nao e GIF (no Tizen
+          // so GIF vira arquivo), ou era GIF e a poda levou (tex_arquivo ja
+          // pediu de novo, uma vez).
+          temMag=tex_magica(fonte,mag);
+          motivo=!temMag?GC_ARQ_AINDA:(gifcol_eh_gif(mag)?GC_SUMIU:GC_FORMATO);
+        } else {
+          // gif_animado LE O ARQUIVO INTEIRO. Uma vez por cartaz, e nao por quadro.
+          if(gcFoco.anima<0) {
+            gcFoco.anima=gif_animado(arq);
+            gcFoco.motivoArq=gifcol_motivo_arquivo(arq,gcFoco.anima,gcFoco.magicaArq);
+          }
+          if(gcFoco.anima<=0) { motivo=gcFoco.motivoArq; memcpy(mag,gcFoco.magicaArq,4); temMag=1; }
+          else if(now-gcFoco.desde>350) {
+            // A CADA DESENHO, sem passo de 67 ms (1.4.7): o relogio e de gif.c,
+            // que so sobe as linhas que mudaram quando o quadro do GIF vence. O
+            // passo de 67 ms prendia o GIF a 15 fps, abaixo do ritmo do arquivo.
+            GLuint motion=gif_textura(arq,480);
+            if(motion){
+              tex=motion;
+              // A PROPORCAO DA CAPA NAO VALE AQUI. Abaixo o desenho usa
+              // tex_aspecto(arte), que e a da capa; o GIF do CDN pode vir em
+              // qualquer proporcao. Zero deixa o desenho usar a moldura.
+              gifDesenhando=1;
+            } else if(gif_recusou(arq)) motivo=GC_ORCAMENTO;
+          }
         }
-      } else if(arq&&gifAnima>0&&now-desde>350&&gifTex){
-        tex=gifTex;gifDesenhando=1;
       }
-      if(tex&&gifDesenhando)gifTex=tex;
+      // OS PROVISORIOS ESPERAM O PRAZO: "ainda nao chegou" aos 200 ms e so um
+      // download em andamento. Os definitivos saem na hora.
+      if(motivo!=GC_ANIMA&&
+         ((motivo!=GC_ARQ_AINDA&&motivo!=GC_CAPA_AINDA)||now-gcFoco.desde>GIFCOL_PRAZO_MS)) {
+        snprintf(chave,sizeof chave,"%s|%s",folder->groupId,folder->id);
+        gifcol_registrar(chave,folder->title,motivo,fonte?fonte:arte,fonte?daCapa:1,
+                         temMag?mag:NULL);
+      }
     }
     if(foco.fileira==r&&foco.coluna==c&&folder->frames>0 && !NV_SEM_GIF &&
        !ajustes_animacoes_reduzidas()) {
@@ -2927,7 +3067,19 @@ void home_trailer_passo(int topo, float dt, Uint32 agora) {
   int pronto;
   Uint32 decorrido;
   if (!trailer_suportado()) return;
-  pronto = topo && focoHero && ajustes_hero_ligado() && ajustes_trailer_hero() &&
+  // DUAS PORTAS PARA O MESMO TRAILER. Com o foco no destaque, "Trailer no
+  // destaque". Com o foco num CARTAZ das fileiras (#124: "parado num titulo do
+  // catalogo, nada toca"), "Trailer do cartaz em foco" — o
+  // focusedPosterBackdropTrailerEnabled do web, destino hero_media: o destaque
+  // ja segue o card em repouso (heroAtual, ver "O HERO SEGUE O FOCO"), entao o
+  // trailer toca onde a arte dele ja esta. Espera o mesmo tempo da expansao do
+  // cartaz, contado de quando o foco parou nele.
+  { int noHero = focoHero && ajustes_hero_ligado() && ajustes_trailer_hero();
+    int noCartaz = !focoHero && ajustes_hero_ligado() && ajustes_trailer_cartaz() &&
+                   heroPendente == heroAtual &&
+                   agora - heroPendenteEm >= (Uint32)(ajustes_expandir_poster_atraso() * 1000.0f);
+    pronto = topo && (noHero || noCartaz); }
+  pronto = pronto &&
            heroDesejado < 0 && heroAtual >= 0 && heroEntra >= 0.999f && heroSai <= 0.001f &&
            !(foco.fileira >= 0 && foco.fileira < nFileiras &&
              (fileiras[foco.fileira].tipo == FILEIRA_CATALOGOS ||
@@ -2973,11 +3125,9 @@ void home_trailer_passo(int topo, float dt, Uint32 agora) {
                               ci->tipo[0] ? !strcmp(ci->tipo, "series") : 0,
                               ci->tmdb);
 #endif
-#ifndef __EMSCRIPTEN__
     // O IMDb exige Referer, que navegador nenhum deixa por (e o CORS dele so
-    // aceita imdb.com): na Samsung nem pedir.
-    trailerimdb_pedir(ci->imdb);
-#endif
+    // aceita imdb.com): na Samsung so pelo servico de recomendacoes (#136).
+    if (!trailerfonte_tizen() || trailerfonte_imdb_tizen()) trailerimdb_pedir(ci->imdb);
   } else {
     decorrido = agora - heroTrailerDesde;
 #ifdef __EMSCRIPTEN__
@@ -3051,13 +3201,24 @@ void home_trailer_passo(int topo, float dt, Uint32 agora) {
     c.apple = trailerapple_url(ci->imdb);
     c.appleRespondeu = trailerapple_respondeu(ci->imdb) || venceu;
     c.appleFalhou = heroTrailerAppleFalhou;
+    if (!trailerfonte_tizen() || trailerfonte_imdb_tizen()) {
+      c.imdb = trailerimdb_url(ci->imdb, NULL);
+      c.imdbRespondeu = trailerimdb_respondeu(ci->imdb) || venceu;
+    } else c.imdbRespondeu = 1;
 #ifdef __EMSCRIPTEN__
-    c.youtube = heroTrailerYoutube(ci->imdb);
+    // SEM YOUTUBE NO DESTAQUE DA SAMSUNG (#136). O iframe do embed custa
+    // segundos de fio principal nesta TV — registro da AU7000: raf-max=1034
+    // ms, longtask-max=934 ms atribuido ao iframe, FPS=6.7 — e depois cai no
+    // erro 153 ("Video player configuration error") e o hero fecha sem
+    // `playing` aos 6,5 s. O destaque troca a cada seta: e o pior lugar para
+    // ele. Aqui so <video> (Apple, IMDb); o YouTube fica na pagina do titulo.
+    // A lista do TMDB ainda e pedida (heroTrailerYoutube), mas nao abre.
+    (void)heroTrailerYoutube;
+    c.youtube = NULL;
+    c.youtubeRespondeu = 1;
 #else
-    c.imdb = trailerimdb_url(ci->imdb, NULL);
-    c.imdbRespondeu = trailerimdb_respondeu(ci->imdb) || venceu;
-#endif
     c.youtubeRespondeu = venceu;
+#endif
     d = trailerfonte_escolher(trailerfonte_ajuste(), trailerfonte_tizen(), &c, &u, &qual);
     if (d == TRF_ESPERA && !venceu) goto trailer_hero_fim;
     if (d == TRF_ABRE && u) {

@@ -49,6 +49,8 @@
 #include "anim.h"
 #include "revela.h"
 #include "layout.h"
+#include "corviva.h"
+#include "trocaarte.h"
 #include "catalogo.h"
 #include "artehero.h"
 #include "recomenda.h"
@@ -226,10 +228,12 @@ static const char *trailerFonte(int k, int *qual) {
   if (ci && ci->imdb[0]) {
     c.apple = trailerapple_url(ci->imdb);
     c.appleRespondeu = trailerapple_respondeu(ci->imdb);
-#ifndef __EMSCRIPTEN__
-    c.imdb = trailerimdb_url(ci->imdb, NULL);
-    c.imdbRespondeu = trailerimdb_respondeu(ci->imdb);
-#endif
+    // IMDb tambem na Samsung quando a build tem por onde perguntar (#136):
+    // MP4 direto no <video> do app, antes do iframe do YouTube.
+    if (!tz || trailerfonte_imdb_tizen()) {
+      c.imdb = trailerimdb_url(ci->imdb, NULL);
+      c.imdbRespondeu = trailerimdb_respondeu(ci->imdb);
+    } else c.imdbRespondeu = 1;
   } else c.appleRespondeu = c.imdbRespondeu = 1;   // sem id nao ha o que esperar
 #ifdef __EMSCRIPTEN__
   if (k >= 0 && k < extras_n_trailers() && extras_trailer_yt(k)[0]) c.youtube = extras_trailer_yt(k);
@@ -244,12 +248,27 @@ static const char *trailerFonte(int k, int *qual) {
     trailerSemFonteLogado = 1;
     printf("[trailer] detalhe: sem trailer (ajuste %d, apple %s, imdb %s, youtube %s)\n", aj,
            c.apple ? "tem" : c.appleRespondeu ? "sem" : "?",
-           tz ? "n/a" : c.imdb ? "tem" : c.imdbRespondeu ? "sem" : "?",
+           tz && !trailerfonte_imdb_tizen() ? "n/a" : c.imdb ? "tem" : c.imdbRespondeu ? "sem" : "?",
            !tz ? "n/a" : c.youtube ? "tem" : "sem");
     fflush(stdout);
   }
   return NULL;
 }
+// A URL que a fonte `qual` tem para o titulo agora, ou NULL. E o degrau
+// seguinte do prazo do fundo (detail_atualizar): la a ordem ja foi decidida,
+// so falta saber se aquela fonte tem o que tocar.
+#ifdef __EMSCRIPTEN__
+static const char *trailerUrlDaFonte(int qual) {
+  const CatItem *ci = cat_item(idx);
+  switch (qual) {
+    case TRF_APPLE: return ci && ci->imdb[0] ? trailerapple_url(ci->imdb) : NULL;
+    case TRF_IMDB:  return ci && ci->imdb[0] && trailerfonte_imdb_tizen() ? trailerimdb_url(ci->imdb, NULL) : NULL;
+    case TRF_YOUTUBE:
+      return extras_n_trailers() > 0 && extras_trailer_yt(0)[0] ? extras_trailer_yt(0) : NULL;
+    default: return NULL;
+  }
+}
+#endif
 static int temporada = 0;            // temporada ESCOLHIDA (nao a focada)
 // Repouso do foco sobre a fileira de temporadas, para trocar de temporada ao
 // PARAR numa pilula em vez de a cada pilula por que se passa.
@@ -787,6 +806,10 @@ static const char *logoDe(int i) {
 }
 static const char *arteDeViva(int i);
 static const char *arteDe(int i) {
+  // "TROCAR ARTE" ABERTA (#142): a pagina mostra a previa ja carregada da
+  // miniatura em foco — e o que faz a Cor viva e o veu seguirem a escolha
+  // antes do OK, sem caminho proprio.
+  if (i == idx) { const char *pv = trocaarte_previa_fundo(); if (pv) return pv; }
   // Congelada, MAS NAO PRESA A UM 404: a url da fonte escolhida pode ser
   // virtual (TMDB/Trakt pelo id, artereserva.h) e so se sabe se ela existe
   // depois do download. Falhou, solta e escolhe de novo (cai na seguinte).
@@ -823,6 +846,7 @@ static int arteDetalheEhPoster(int i) {
   const CatItem *c = cat_item(i);
   // Congelado junto com a arte: a resposta descreve a url guardada, nao a
   // que o enriquecimento pode ter posto no catalogo depois.
+  if (i == idx && trocaarte_previa_fundo()) return 0;   // previa: sempre fundo
   if (i == idx && arteFixa[0]) return arteFixaPoster;
   { int r = c && !c->backdrop[0] && c->poster[0];
     if (i == idx) arteFixaPoster = r;
@@ -832,7 +856,7 @@ static int arteDetalheEhPoster(int i) {
 static void desenhaArteDetalhe(GfxRect alvo, GLuint tex, const char *arte,
                                int poster, float alpha, float pg) {
   if (!tex) {
-    gfx_cor(alvo, 0.0f, 0.051f, 0.051f, 0.051f, alpha);
+    gfx_cor(alvo, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, alpha);
     return;
   }
   gfx_tex_aspect_atual = tex_aspecto(arte);
@@ -898,6 +922,7 @@ void detail_abrir(const HomeItem *it) {
   // limpam a marca sozinhos.
   serieaud_fechar();
   seriefrases_fechar();
+  trocaarte_fechar();
   audAberta = 0; audTempAberta = -1; audTempVista = -1; frasesAberta = 0;
   item = *it;
   aberto = 1; saindo = 0; nivel = 0; botao = 0;
@@ -930,13 +955,12 @@ void detail_abrir(const HomeItem *it) {
     extrasSerie = ehSerie();
     extras_pedir(ci ? ci->imdb : "", extrasSerie, ci ? ci->tmdb : 0);
     // Pedir agora e o que deixa o trailer pronto quando a pagina assentar.
-    // Apple nos dois alvos; IMDb so na LG (exige Referer, que o navegador
-    // nao deixa por, e o CORS dele so aceita imdb.com).
+    // Apple nos dois alvos; IMDb na LG e, na Samsung, so pelo servico de
+    // recomendacoes (a API exige Referer, que o navegador nao deixa por, e o
+    // CORS dela so aceita imdb.com — #136).
     if (trailer_suportado() && ci && ci->imdb[0]) {
       trailerapple_pedir(ci->imdb, ci->titulo, ci->meta, ehSerie());
-#ifndef __EMSCRIPTEN__
-      trailerimdb_pedir(ci->imdb);
-#endif
+      if (!trailerfonte_tizen() || trailerfonte_imdb_tizen()) trailerimdb_pedir(ci->imdb);
     }
   }
   // A aba marcada tem de ser a da temporada de "Continuar assistindo", nao a
@@ -1441,9 +1465,17 @@ static const char *rotuloLembrar(void) {
 // Instante em que o dono ligou o lembrete, para o despertador tocar inteiro
 // no quadro seguinte ao OK. 0 = nao houve troca nesta sessao.
 static Uint32 lembreteEm;
+// "TROCAR ARTE" (#142): o ULTIMO circular da linha, depois do recomendar. So
+// filme e serie com id — e o id que guarda a escolha (arteescolha.h), e canal
+// e evento nao tem backdrop de fonte nenhuma para escolher.
+static int temArte(void) {
+  const CatItem *ci = cat_item(idx);
+  if (!ci || (!ci->imdb[0] && ci->tmdb <= 0)) return 0;
+  return !strcmp(ci->tipo, "movie") || !strcmp(ci->tipo, "series");
+}
 static int nBotoes(void) {
   return (ehSerie() ? 3 : 4) + (temInicio() ? 1 : 0) + (temLembrar() ? 1 : 0)
-         + (temRecomendar() ? 1 : 0);
+         + (temRecomendar() ? 1 : 0) + (temArte() ? 1 : 0);
 }
 
 // Que ACAO esta na posicao `n` da linha. As acoes tem numeros fixos (0
@@ -1453,7 +1485,7 @@ static int nBotoes(void) {
 // "marcar assistido". Quando temInicio, a posicao 1 e o secundario de texto
 // e os circulares escorregam um para a direita.
 enum { ACAO_PRIMARIO = 0, ACAO_LISTA = 1, ACAO_ASSISTIDO = 2, ACAO_FONTES = 3,
-       ACAO_INICIO = 4, ACAO_RECOMENDAR = 5, ACAO_LEMBRAR = 6 };
+       ACAO_INICIO = 4, ACAO_RECOMENDAR = 5, ACAO_LEMBRAR = 6, ACAO_ARTE = 7 };
 static int acaoEm(int n) {
   if (temInicio()) {
     if (n == 1) return ACAO_INICIO;
@@ -1470,6 +1502,10 @@ static int acaoEm(int n) {
   // serie: com 3 circulares numa serie, a ultima posicao e n == 3, e a regra
   // de baixo devolveria 4 — que e ACAO_INICIO, o botao de texto. O OK ali
   // abriria "assistir do comeco" a partir de um circular de enviar.
+  // O "Trocar arte" vem DEPOIS do recomendar, e a conta e a mesma: a ultima
+  // posicao da linha, antes do salto da serie.
+  if (temArte() && n == (ehSerie() ? 3 : 4) + (temRecomendar() ? 1 : 0))
+    return ACAO_ARTE;
   if (temRecomendar() && n == (ehSerie() ? 3 : 4)) return ACAO_RECOMENDAR;
   if (n >= 2 && ehSerie()) return n + 1;   // serie pula o olho
   return n;
@@ -1481,6 +1517,9 @@ void detail_evento(const SDL_Event *e) {
   // no fundo nao passa por aqui — ele nao tem teclado, a pagina continua a
   // dela, e qualquer coisa que tire a pagina do topo o fecha (detail_atualizar).
   if (trailer_cheia() && trailer_evento(e)) return;
+  // "TROCAR ARTE" COME TUDO enquanto aberta (#142): e a coisa mais recente na
+  // tela, e o Voltar dela fecha so ela.
+  if (trocaarte_aberto()) { trocaarte_evento(e); return; }
   // MODO CINEMA: a primeira tecla so devolve o bloco de texto (o trailer
   // segue); Voltar fecha o trailer e fica na pagina.
   if (trailerCopyOculta && e->type == SDL_KEYDOWN && !e->key.repeat) {
@@ -1673,6 +1712,10 @@ void detail_evento(const SDL_Event *e) {
         pedMarcar = 1;
       } else if (acao == ACAO_ASSISTIDO) {
         pedAssistido = 1;
+      } else if (acao == ACAO_ARTE) {
+        // A tela de escolha come o teclado ate fechar (topo de detail_evento).
+        trailer_fechar();
+        trocaarte_abrir(cat_item(idx));
       } else if (acao == ACAO_RECOMENDAR) {
         // A MESMA MODAL DO MENU DO CARTAZ, e nao uma segunda copia dela: ver
         // recenviar.h. Aberta, ela fica acima desta tela no roteador de app.c e
@@ -1741,7 +1784,22 @@ void detail_evento(const SDL_Event *e) {
         GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
         trailerEtapa = 0; trailerPrazo = 0;   // tela cheia: so o teclado fecha
         trailer_abrir(u, tela, trailerfonte_com_som(trailerfonte_tizen()), 1);
-      } else extras_trailer_abrir(foco.coluna);
+      }
+#ifdef __EMSCRIPTEN__
+      // SAMSUNG: NUNCA o navegador (#136). O window.open do wgt trocava a
+      // pagina do proprio app pelo youtube.com/watch — tocava, mas sem Voltar
+      // para o Nuvio. Sem fonte na ordem do ajuste (ex.: "IMDb" fixo e o
+      // titulo sem IMDb), o cartao focado ainda e um video do YouTube: toca
+      // AQUI, em tela cheia, e o Voltar fecha (trailer_evento).
+      else if (trailer_suportado() && foco.coluna < extras_n_trailers() &&
+               extras_trailer_yt(foco.coluna)[0]) {
+        GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
+        trailerEtapa = 0; trailerPrazo = 0;
+        trailer_abrir(extras_trailer_yt(foco.coluna), tela, 0, 1);
+      }
+#else
+      else extras_trailer_abrir(foco.coluna);
+#endif
     } else if (foco.fileira == SEC_ESTUDIOS) {
       // OK num logo abre o browse daquela produtora/rede no vertudo — e a
       // mesma pasta sintetica TMDB que as colecoes usam (issue #44), montada
@@ -2036,8 +2094,17 @@ void detail_atualizar(float dt, Uint32 agora) {
   // quadro nao custa nada (e um flag sob mutex) e evita precisar de uma borda:
   // `saindo` tambem e ligado por caminhos que nao passam pelo Voltar, como o
   // OK num estudio, que abre o vertudo e deixa esta tela para tras.
-  if (saindo) { serieaud_fechar(); seriefrases_fechar(); }
+  if (saindo) { serieaud_fechar(); seriefrases_fechar(); trocaarte_fechar(); }
   revalidarIdx();
+  trocaarte_atualizar(dt);
+  // OK NA TELA DE ESCOLHA: a arte congelada na abertura (arteFixa/logoFixo)
+  // e justamente a que a pessoa acabou de trocar. Solta e pede de novo — com a
+  // escolha gravada, artehero ja devolve a nova.
+  if (trocaarte_consumir_mudanca()) {
+    arteFixa[0] = logoFixo[0] = logoCatalogoFixo[0] = 0;
+    arteFixaPoster = 0;
+    artehero_logo_sessao_iniciar(cat_item(idx));
+  }
   // TRAILER AUTOMATICO, mudo, no lugar da arte (dono, 20/09/2026: "trailer
   // autoplay direto na interface"). Comeca NV_TRAILER_ESPERA_MS depois de a
   // pagina assentar, uma vez por abertura, e so enquanto a pagina esta no
@@ -2046,6 +2113,7 @@ void detail_atualizar(float dt, Uint32 agora) {
   // teclado fecha.
   if (trailer_suportado()) {
     int topo = !saindo && nivel == 0 && !pessoaAberta && !episodios_menu_aberto() &&
+               !trocaarte_aberto() &&
                !pedReproduzir && !pedFontes && !player_aberto() &&
                pg < 0.05f && scrollY < 1.0f;
     if (!detail_assentado() || !topo) { if (!trailer_cheia()) trailerDesde = 0; }
@@ -2073,28 +2141,33 @@ void detail_atualizar(float dt, Uint32 agora) {
     // O PRAZO. Tocou: o prazo morre (buffering depois de `playing` nao e
     // falha). Nao tocou a tempo, ou o elemento deu erro (trailer_atualizar
     // ja fechou e marcou trailer_falhou): loga e passa para a PROXIMA fonte da
-    // ordem do ajuste, uma vez — em Automatico, Apple -> YouTube; com uma fonte
-    // fixa nao ha proxima e fica a arte. Tela cheia nao entra aqui.
-    // trailerEtapa: 0 nada, TRF_APPLE/TRF_YOUTUBE a fonte aberta, -1 acabou.
+    // ordem do ajuste que tem trailer — em Automatico, Apple -> IMDb ->
+    // YouTube (o erro 153 do embed chega como -3 e anda na hora, #136); com
+    // uma fonte fixa nao ha proxima e fica a arte. Tela cheia nao entra aqui.
+    // trailerEtapa: 0 nada, TRF_* a fonte aberta, -1 acabou.
     if (trailerEtapa > 0) {
       int venceu = trailer_aberto() && !trailer_cheia() && !trailer_tocando() &&
                    trailerPrazo && (Sint32)(agora - trailerPrazo) >= 0;
       int errou = !trailer_aberto() && trailer_falhou();
       if (trailer_aberto() && trailer_tocando()) trailerPrazo = 0;
       if ((venceu || errou) && topo) {
+        // A PROXIMA DA ORDEM QUE TEM TRAILER: Apple -> IMDb -> YouTube na
+        // Samsung (#136). Uma fonte da ordem sem trailer para o titulo e
+        // pulada, nao encerra a fila.
         int prox = trailerfonte_depois(trailerfonte_ajuste(), trailerfonte_tizen(), trailerEtapa);
-        const char *yt = extras_n_trailers() > 0 ? extras_trailer_yt(0) : "";
-        const char *seg = prox == TRF_YOUTUBE && yt[0] ? yt : NULL;
-        printf("[trailer] detalhe: %s %d ms (%s, estado %d), %s\n",
+        const char *seg = NULL;
+        while (prox && !(seg = trailerUrlDaFonte(prox)))
+          prox = trailerfonte_depois(trailerfonte_ajuste(), trailerfonte_tizen(), prox);
+        printf("[trailer] detalhe: %s %d ms (%s, estado %d), %s%s\n",
                errou ? "erro em" : "sem playing em", NV_TRAILER_PREPARA_MS,
                trailerfonte_nome(trailerEtapa), trailer_estado(),
-               seg ? "tenta YouTube" : prox ? "proxima fonte sem trailer, fica a arte" : "fica a arte");
+               seg ? "tenta " : "fica a arte", seg ? trailerfonte_nome(prox) : "");
         fflush(stdout);
         if (trailer_aberto()) trailer_fechar();
         if (seg) {
           GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
           trailer_abrir(seg, tela, 0, 0);
-          trailerEtapa = TRF_YOUTUBE;
+          trailerEtapa = prox;
           trailerPrazo = agora + NV_TRAILER_PREPARA_MS;
         } else { trailerEtapa = -1; trailerPrazo = 0; }
       } else if (!trailer_aberto() && !errou) {
@@ -2466,6 +2539,10 @@ static void desenhaBotao(GfxRect r, const char *rot, int icone, int focado, floa
       // icone era sempre o mesmo e nao dizia estado nenhum — era so um enfeite
       // que o dono nao conseguia ler ("avisar o que foi visto").
       gfx_icone(ig, progressoDe(idx) >= 90 ? "visto" : "naovisto", ic, ic, ic, a);
+    } else if (icone == ACAO_ARTE) {
+      // MOLDURA COM MONTANHA: o glifo universal de "imagem". PNG de
+      // deploy/app/art/icones como os vizinhos; arte.svg descreve o desenho.
+      gfx_icone(ig, "arte", ic, ic, ic, a);
     } else if (icone == ACAO_RECOMENDAR) {
       // AVIAO DE PAPEL — o mesmo vocabulario dos vizinhos: um PNG de
       // deploy/app/art/icones com a forma na alpha, desenhado com GFX_MARCA e
@@ -3511,6 +3588,21 @@ static void desenhaEpisodio(GfxRect r, int c, float f, float a, Uint32 agora) {
     if (t3) { arte = reserva; t2 = t3; }
   }
   float aArte = (c >= 0 && c < DET_REV_EP) ? revela_arte(&revEp[c], t2 != 0, agora) : 1.0f;
+  // DESFOCAR NAO ASSISTIDOS (blurUnwatchedEpisodes, #133). O ajuste existia na
+  // tela e na conta e nada o lia — o card saia nitido em toda plataforma.
+  // "Nao assistido" e tudo que o mapa NAO afirma como visto: inclusive o "nao
+  // sei" (-1) de quem nao tem Trakt ou cujo historico ainda nao chegou. Aqui o
+  // erro seguro e o contrario do check: desfocar um episodio que a pessoa ja
+  // viu custa nada; mostrar nitido o que ela pediu para esconder e o spoiler.
+  if (t2 && ajustes_desfocar_nao_assistidos() &&
+      !(ep && serie && serie->imdb[0] &&
+        vistoep_estado(serie->imdb, ep->temporada, ep->episodio) == 1)) {
+    GLuint tb = gfx_desfocado(t2, arte);
+    // Copia ainda nao gerada (no maximo duas por quadro): o fundo do card, e
+    // nunca a arte nitida por um quadro.
+    if (tb) t2 = tb;
+    else { t2 = 0; arte = NULL; }
+  }
   if (t2) {
     if (aArte < 0.999f) gfx_cor(th, raioTh, 0.133f, 0.133f, 0.133f, a);
     gfx_tex_aspect_atual = tex_aspecto(arte);
@@ -3636,8 +3728,9 @@ static void desenhaEpisodio(GfxRect r, int c, float f, float a, Uint32 agora) {
   // Sem sinopse o espaco
   // fica vazio: melhor um card com menos texto que um card com texto errado.
   if (epSin)
-    txt_bloco(TXT_DET_SIN, epSin, 255, 255, 255, tx, r.y + NV_DETP_EP_SIN_Y,
-              NV_DETP_EP_TEXTO_W, NV_DETP_EP_LD_SIN, a * 0.9f, 3);
+    txt_bloco_corta(TXT_DET_SIN, epSin, 255, 255, 255, tx,
+                    r.y + NV_DETP_EP_SIN_Y, NV_DETP_EP_TEXTO_W,
+                    NV_DETP_EP_LD_SIN, a * 0.9f, 3);
 
   // Meta: relogio + duracao + data, 20/400 rgb(179,179,179), com 38 de folga
   // entre os dois blocos.
@@ -4859,7 +4952,7 @@ static void desenhaEsqueletoElenco(float a) {
 
 static void desenhaPessoa(float a) {
   GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
-  gfx_cor(tela, 0.0f, 0.051f, 0.051f, 0.051f, a);
+  gfx_cor(tela, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, a);
 
   { GLuint t = pessoa_foto()[0] ? tex_obter(pessoa_foto()) : 0;
     GfxRect r = { NV_DETP_X, 96.0f, PES_FOTO_W, PES_FOTO_H };
@@ -4931,11 +5024,21 @@ static void desenhaPessoa(float a) {
 
 void detail_desenhar(Uint32 agora) {
   if (!aberto) return;
+  // COR VIVA: a pagina do titulo manda na cor, acima da home que pode estar
+  // desenhada por baixo (a prioridade resolve o mesmo quadro). A chave e a
+  // MESMA arte que o fundo pede em tela cheia logo abaixo.
+  { const char *cv = arteDe(idx), *lg = logoDe(idx);
+    if (cv) corviva_definir(cv, CORVIVA_DETALHE);
+    if (lg) corviva_definir_logo(lg, CORVIVA_DETALHE); }
   float s = suave(t), a2 = fase2();
 
   if (!detail_cobre_tela()) {
     GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
-    gfx_cor(tela, 0.0f, 0.051f, 0.051f, 0.051f, s);   // #0d0d0d, o fundo do web
+    gfx_cor(tela, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, s);   // #0d0d0d, o fundo do web
+    // Imersiva: a MESMA luz que main.c pinta depois do clear, subindo junto
+    // com o fundo. Sem ela, no quadro em que o detalhe passa a cobrir a tela
+    // (a home deixa de ser desenhada) a luz de baixo aparecia de uma vez.
+    gfx_ambiente(s);
   }
   gfx_sem_recorte();
 
@@ -4987,7 +5090,7 @@ void detail_desenhar(Uint32 agora) {
   // a apaga.
   if (pg > 0.01f && !detail_cobre_tela()) {
     GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
-    gfx_cor(tela, 0.0f, 0.051f, 0.051f, 0.051f, pg);
+    gfx_cor(tela, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, pg);
   }
   // 4o parametro = forca da VINHETA, nao "foco". Vai a 0 junto com a rolagem,
   // que e o par que faltava: o web apaga a arte para 15% E some com a vinheta
@@ -5005,8 +5108,12 @@ void detail_desenhar(Uint32 agora) {
   { float c = anim_suave(trailerCopy);
     // Modo cinema: o bloco desce 220 px enquanto apaga; o logo pequeno entra
     // no canto de baixo. As duas molas sao a mesma, entao o cruzamento e limpo.
-    heroWeb(a2 * (1.0f - c), -scrollY + (1.0f - a2) * NV_TELA_H * 0.05f + c * 220.0f);
-    if (c > 0.005f) logoCinema(c * a2); }
+    // Com "Trocar arte" aberta o texto da pagina sai e fica a arte: o que se
+    // escolhe e o fundo, e ele precisa da tela (a tela desenha o logo).
+    float ta = trocaarte_visivel();
+    heroWeb(a2 * (1.0f - c) * (1.0f - ta), -scrollY + (1.0f - a2) * NV_TELA_H * 0.05f + c * 220.0f);
+    if (c > 0.005f) logoCinema(c * a2);
+    if (ta > 0.005f) trocaarte_desenhar(logoDe(idx)); }
 
 
   if (pg <= 0.01f && scrollY < 1.0f) {

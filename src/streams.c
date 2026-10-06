@@ -311,6 +311,9 @@ static long pontos(const Stream *s) {
   return p;
 }
 
+long stream_pontos(const Stream *s) { return s ? pontos(s) : 0; }
+int  stream_cabe_no_teto(const Stream *s) { return s ? cabeNoTeto(s) : 1; }
+
 // Endereco de aviso e nao de conteudo. Estes dois foram MEDIDOS no aparelho:
 // o AIOStreams manda para slate.m3u8/slate.mp4 ("This playback link couldn't be
 // verified") quando o link expirou, e o Debridio para downloading.mp4 quando o
@@ -643,10 +646,36 @@ int stream_primeira_boa(int tentativas) {
 #define CANAL_PRAZO_S 3
 static int canalProx, canalN;
 // Classe de cada candidata: 0 = nao conferida ainda, 1 = VIVA (playlist com
-// segmento), 2 = MORTA (respondeu sem segmento), 3 = MUDA (nao respondeu).
+// segmento), 2 = MORTA (respondeu sem segmento), 3 = MUDA (nao respondeu),
+// 4 = INCERTA (respondeu com corpo grande que nao e playlist — ver fioCanal).
 static unsigned char *canalClasse;
 static int classeEscolhida;
+// A FILA INTEIRA, e nao so a primeira. MEDIDO na C9 em 25/09 (HBO Mundi,
+// FrostView, 7 fontes): a sonda deu 2 "mortas" (a 4K entre elas) e 5 mudas,
+// escolheu a 1 e o watchdog seguia `canalFonteIdx + 1` — 1, 2, 3... e a 0,
+// que era a UNICA que abria (11,8 s ate loadCompleted, escolhida a mao na
+// folha), nunca entrava. Agora a sonda deixa a ordem de tentativa pronta e o
+// watchdog anda por ela; a morta vai para o fim, mas vai.
+#define CANAL_ORDEM_MAX 64
+static int canalOrdem[CANAL_ORDEM_MAX], canalOrdemN;
+static unsigned char canalOrdemClasse[CANAL_ORDEM_MAX];
+static unsigned canalOrdemGeracao;
+static int canalInformativa;
 static pthread_mutex_t canalTrava = PTHREAD_MUTEX_INITIALIZER;
+
+// Acima disto, resposta sem segmento e INCERTA, nao morta (ver fioCanal).
+#define CANAL_MORTA_MAX_B 4096
+
+// So o TIPO do corpo, para o log — nunca o conteudo: playlist de canal traz
+// usuario e senha do provedor nas urls dos segmentos.
+static const char *tipoCorpo(const char *c) {
+  if (strstr(c, "#EXTM3U")) return "m3u";
+  if (strstr(c, "<MPD") || strstr(c, "<mpd")) return "mpd";
+  if (strstr(c, "<html") || strstr(c, "<HTML") || strstr(c, "<!DOCTYPE") ||
+      strstr(c, "<!doctype")) return "html";
+  if (c[0] == '{' || c[0] == '[') return "json";
+  return "outro";
+}
 
 static void *fioCanal(void *u) {
   (void)u;
@@ -709,9 +738,19 @@ static void *fioCanal(void *u) {
       printf("[fonte] %d muda: playlist nao respondeu em %ds\n", meu, CANAL_PRAZO_S);
     } else if (strstr(corpo, "#EXTINF") || strstr(corpo, "#EXT-X-STREAM-INF")) {
       canalClasse[meu] = 1;
+    } else if (n > CANAL_MORTA_MAX_B) {
+      // GRANDE DEMAIS PARA SER A MORTA CONHECIDA. A morta medida e uma
+      // playlist de 98 B, cabecalho e nada. Na C9 em 25/09 a 4K da HBO Mundi
+      // devolveu 71751 B sem #EXTINF a sonda e TOCOU quando escolhida a mao
+      // (relay que ainda estava aquecendo, ou formato que a sonda nao le).
+      // Corpo grande sem marca de HLS nao prova nada: quem decide e o player.
+      canalClasse[meu] = 4;
+      printf("[fonte] %d incerta: %ld B sem segmento (%s); quem decide e o player\n",
+             meu, n, tipoCorpo(corpo));
     } else {
       canalClasse[meu] = 2;
-      printf("[fonte] %d morta: playlist com %ld B e nenhum segmento\n", meu, n);
+      printf("[fonte] %d morta: playlist com %ld B e nenhum segmento (%s)\n", meu, n,
+             tipoCorpo(corpo));
     }
     free(corpo);
   }
@@ -733,28 +772,49 @@ int stream_canal_primeira_viva(int tentativas) {
 
   // PREFERENCIA POR CLASSE, e dentro da classe pela ORDEM DO ADDON — que para
   // canal ao vivo e o ranking dele (FHD/HD/SD). Viva ganha de muda; muda ganha
-  // de nada. Morta nunca entra: ela JA respondeu dizendo que nao tem segmento.
+  // de nada. Morta nao e escolhida: ela JA respondeu sem segmento — mas fica
+  // no fim da fila do watchdog (canalOrdem), porque "morta" pela sonda ja
+  // tocou pelo player.
   // Ordem de preferencia: viva dentro do teto, viva acima do teto, muda dentro
   // do teto, muda. O teto nunca tira a ultima fonte da mesa.
-  for (q = 0; q < tentativas && escolhida < 0; q++)
-    if (canalClasse[q] == 1 && cabeNoTeto(&lista[q])) escolhida = q;
-  for (q = 0; q < tentativas && escolhida < 0; q++)
-    if (canalClasse[q] == 1) escolhida = q;
-  for (q = 0; q < tentativas && escolhida < 0; q++)
-    if (canalClasse[q] == 3 && cabeNoTeto(&lista[q])) escolhida = q;
-  for (q = 0; q < tentativas && escolhida < 0; q++)
-    if (canalClasse[q] == 3) escolhida = q;
+  // A mesma regra monta a FILA INTEIRA: viva, incerta, muda (cada uma dentro
+  // do teto antes de acima dele), a morta por ultimo e, depois das conferidas,
+  // as que ficaram fora da sonda na ordem do addon. A escolhida e a cabeca da
+  // fila, se nao for morta.
+  { static const unsigned char ordemClasse[] = { 1, 4, 3, 2 };
+    int c, t;
+    canalOrdemN = 0;
+    for (c = 0; c < 4; c++)
+      for (t = 1; t >= 0; t--)
+        for (q = 0; q < tentativas && canalOrdemN < CANAL_ORDEM_MAX; q++)
+          if (canalClasse[q] == ordemClasse[c] && cabeNoTeto(&lista[q]) == t) {
+            canalOrdemClasse[canalOrdemN] = canalClasse[q];
+            canalOrdem[canalOrdemN++] = q;
+          }
+    for (q = tentativas; q < total && canalOrdemN < CANAL_ORDEM_MAX; q++) {
+      canalOrdemClasse[canalOrdemN] = 0;
+      canalOrdem[canalOrdemN++] = q;
+    }
+    pthread_mutex_lock(&verTrava);
+    canalOrdemGeracao = listaGeracao;
+    pthread_mutex_unlock(&verTrava);
+    canalInformativa = 0;
+    for (q = 0; q < tentativas; q++) if (canalClasse[q] == 1) canalInformativa = 1;
+    if (canalOrdemN > 0 && canalOrdemClasse[0] != 2) escolhida = canalOrdem[0];
+  }
   if (escolhida >= 0 && !cabeNoTeto(&lista[escolhida]))
     printf("[fonte] canal: nenhuma fonte dentro do teto de %dp; usando %dp\n",
            alturaMax(), lista[escolhida].altura);
   { int vivas = 0, mortas = 0, mudas = 0;
+    int incertas = 0;
     for (q = 0; q < tentativas; q++) {
       if (canalClasse[q] == 1) vivas++;
       else if (canalClasse[q] == 2) mortas++;
       else if (canalClasse[q] == 3) mudas++;
+      else if (canalClasse[q] == 4) incertas++;
     }
-    printf("[fonte] canal: %d viva(s), %d morta(s), %d muda(s) de %d; escolhida %d\n",
-           vivas, mortas, mudas, tentativas, escolhida); }
+    printf("[fonte] canal: %d viva(s), %d incerta(s), %d morta(s), %d muda(s) de %d; escolhida %d\n",
+           vivas, incertas, mortas, mudas, tentativas, escolhida); }
   marco(escolhida >= 0 ? "canal: fonte escolhida por playlist"
                        : "canal: nenhuma playlist utilizavel");
   // A CLASSE DA ESCOLHIDA fica disponivel para quem chamou: uma fonte MUDA que
@@ -766,6 +826,35 @@ int stream_canal_primeira_viva(int tentativas) {
 }
 
 int stream_canal_classe_escolhida(void) { return classeEscolhida; }
+
+static int ordemValida(void) {
+  int ok;
+  pthread_mutex_lock(&verTrava);
+  ok = canalOrdemN > 0 && canalOrdemGeracao == listaGeracao;
+  pthread_mutex_unlock(&verTrava);
+  return ok;
+}
+
+int stream_canal_proxima(int atualIdx) {
+  int q;
+  if (ordemValida())
+    for (q = 0; q < canalOrdemN; q++)
+      if (canalOrdem[q] == atualIdx) return q + 1 < canalOrdemN ? canalOrdem[q + 1] : -1;
+  // Sem fila (lista que nao passou pela sonda, ou indice fora dela): a ordem
+  // do addon, como sempre foi.
+  return atualIdx + 1 < stream_n() ? atualIdx + 1 : -1;
+}
+
+int stream_canal_prazo_longo(int idx) {
+  int q;
+  // Sonda que nao achou NENHUMA viva nao informou nada: todas mudas/incertas
+  // e o que se ve quando o relay e lento (HBO Mundi, 25/09: curl 28 a 3 s em
+  // todas, e a 4K abriu em 11,8 s). Ai o prazo curto so garantia a falha.
+  if (!ordemValida() || !canalInformativa) return 1;
+  for (q = 0; q < canalOrdemN; q++)
+    if (canalOrdem[q] == idx) return canalOrdemClasse[q] == 1 || canalOrdemClasse[q] == 4;
+  return 1;
+}
 
 int stream_automatico(void) {
   if (!stream_n()) return -1;
@@ -814,8 +903,7 @@ static char provedores[13][96];
 static int nProvedores;
 
 static int passaFiltro(int i) {
-  if (soMp4 && !lista[i].mp4) return 0;
-  if (filtro && strcmp(lista[i].provedor, provedores[filtro])) return 0;
+  if (soMp4 && !lista[i].mp4) return 0;  if (filtro && strcmp(lista[i].provedor, provedores[filtro])) return 0;
   return 1;
 }
 
@@ -882,12 +970,25 @@ static void desenharAudioBars(float x, float y, float alfa, int focado,
 }
 
 void stream_folha_abrir(void) {
+  int excl;
   aberta=1; escolha=-1; foco=0; grupo=1; filtro=0; soMp4=0; recarregar=0;
   atualizarProvedores();
   if(atual>=0) foco=atual;
   rolagem=0;velRol=0;
+  // A CONTAGEM DA FOLHA NO LOG (#132). O log tinha "[addons] X: N fontes" e
+  // "[addons] total N" de um lado e nada do que a folha mostrou do outro: um
+  // relato de "so 1 fonte listada" nao tinha como dizer se a queda foi no
+  // addon, no descarte de torrent sem debrid ou na folha.
+  pthread_mutex_lock(&autoExclTrava);
+  excl = nAutomaticasExcluidas;
+  pthread_mutex_unlock(&autoExclTrava);
+  printf("[fonte] folha: %d de %d na lista (%d addon(s); %d torrent(s) sem debrid "
+         "descartado(s); %d ja recusada(s) pelo automatico, continuam na folha)\n",
+         nFiltrados(), n, nProvedores - 1, descartadosSemDebrid, excl);
+  fflush(stdout);
 }
 int stream_folha_aberta(void) { return aberta; }
+int stream_folha_n(void) { return nFiltrados(); }
 void stream_folha_evento(const SDL_Event *e) {
   if(!aberta || e->type!=SDL_KEYDOWN) return;
   SDL_Keycode k=e->key.keysym.sym;

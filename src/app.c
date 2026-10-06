@@ -27,8 +27,10 @@
 #include "text.h"
 #include "tex_cache.h"
 #include "artehero.h"
+#include "arteescolha.h"
 #include "vertudo.h"
 #include "guia.h"
+#include "guialembrete.h"   /* aviso do lembrete de programa do guia */
 #include "epg.h"
 #include "posplay.h"
 #include "ctxmenu.h"
@@ -61,6 +63,8 @@
 #include "novidades139.h"
 #include "novidades1312.h"
 #include "novidades142.h"
+#include "novidades148.h"
+#include "novidades151.h"
 #include "telemetria.h"
 #include "avisos.h"
 #include "recintro.h"
@@ -257,7 +261,7 @@ static void *escolherFonteCanal(void *u) {
   FonteJob *job = u;
   int e;
   e = stream_canal_primeira_viva(8);
-  job->prazo = stream_canal_classe_escolhida() == 3
+  job->prazo = (e >= 0 && !stream_canal_prazo_longo(e))
                   ? CANAL_FONTE_PRAZO_MUDA_MS : CANAL_FONTE_PRAZO_MS;
   // -1 so acontece quando TODAS responderam dizendo que nao tem segmento.
   // Ai nao ha o que tentar, mas a primeira da lista com o watchdog ainda e
@@ -856,6 +860,28 @@ static void tocarCanal(const CatItem *it) {
   marco("guia: buscando fontes do canal");
 }
 
+// O CANAL NO AR VAI PARA O GUIA, sem recarregar (25/09/2026). O mesmo fluxo
+// muda so de retangulo: da tela cheia (ou do PiP de canto) para o preview
+// 800x450, com a janela andando em degraus (player_minimizar_para_guia). O
+// guia foca a linha do canal e deixa de seguir o foco com o preview — so OK
+// em outro canal troca o que toca. E o caminho de: Voltar num canal aberto
+// pelo guia, Azul na faixa do mini guia, e Guia na barra com o PiP no ar.
+static void guiaComCanalNoAr(void) {
+  char id[80];
+  float x, y, w, h;
+  snprintf(id, sizeof id, "%s", player_id_canal());
+  guia_preview_rect(&x, &y, &w, &h);
+  if (player_mini_ativo()) player_mini_no_guia(x, y, w, h);
+  else player_minimizar_para_guia(x, y, w, h);
+  if (tela != TELA_GUIA || !guia_aberta()) {
+    if (tela == TELA_GUIA) guia_abrir();
+    else trocarTela(TELA_GUIA);
+  }
+  guia_adotar_canal(id);
+  printf("[guia] canal no ar foi para o preview, sem recarregar\n");
+  fflush(stdout);
+}
+
 // A home carregou? Sem arte no pacote ela nao carrega, e ate agora isso
 // DERRUBAVA o app: app_iniciar devolvia 0 e o main saia com codigo 1. Num
 // pacote de dono isso nunca acontecia porque a arte ia junto; num pacote
@@ -867,6 +893,7 @@ static int homePronta;
 int app_iniciar(const char *dirArte) {
   diagnostico_recuperar_checkpoint();
   homePronta = home_iniciar(dirArte);
+  novidades148_dir(dirArte);
   if (!homePronta)
     printf("[app] sem arte no pacote: a home so aparece depois do primeiro sync\n");
   menu_iniciar();
@@ -885,6 +912,9 @@ int app_iniciar(const char *dirArte) {
   // primeiro Reproduzir, que pode acontecer segundos depois do arranque quando
   // a pessoa abre direto no "Continuar assistindo".
   fontepref_iniciar();
+  // A ARTE ESCOLHIDA A MAO (#142) tambem, antes do primeiro destaque: sem ela
+  // lida, o hero abriria na foto automatica e trocaria no quadro seguinte.
+  arteesc_iniciar();
   // MESMA RAZAO, OUTRA LISTA: o cache de recomendacoes guarda titulo e poster,
   // entao a aba Social do painel AZUL desenha no primeiro quadro, antes de
   // existir catalogo e antes de a rede responder. Isto nao abre conexao — quem
@@ -946,6 +976,9 @@ void app_evento(const SDL_Event *e) {
   // AZUL/CH+ abrem a lista, e com a lista aberta ela come o teclado. Fora
   // desses dois estados ela nao toca em nada (ver avisos.h).
   if (avisos_evento(e)) return;
+  // O CARTAO DO LEMBRETE DE PROGRAMA, em qualquer tela: com ele de pe as
+  // setas laterais, o OK e o Voltar sao dele (ver guialembrete.h).
+  if (glem_evento(e)) return;
 
   // PORTA DE TESTE: F10 abre o Guia de TV de onde quer que o app esteja.
   //
@@ -1036,6 +1069,37 @@ void app_evento(const SDL_Event *e) {
     }
     return;
   }
+  // O DA 1.4.8 abre Ajustes (na cor) ou o teste de velocidade AQUI, no mesmo
+  // evento, pelo mesmo motivo do da 1.4.2 logo acima.
+  if (novidades148_aberto()) {
+    novidades148_evento(e);
+    switch (novidades148_pedido()) {
+      case N148_PEDIU_COR:
+        ajustes_abrir_na_cor();
+        trocarTela(TELA_AJUSTES);
+        menu_definir_destino(MENU_AJUSTES);
+        break;
+      case N148_PEDIU_VELOCIDADE:
+        // Mesmo caminho do atalho de Ajustes, mas o Voltar devolve a home, de
+        // onde a pessoa veio (diagDaHome), como o do cartao da 1.4.2.
+        diagDaHome = 1;
+        diagnostico_abrir_velocidade();
+        trocarTela(TELA_DIAGNOSTICO);
+        menu_definir_destino(MENU_AJUSTES);
+        break;
+      default: break;
+    }
+    return;
+  }
+  if (novidades151_aberto()) {
+    novidades151_evento(e);
+    if (novidades151_pedido() == N151_PEDIU_AJUSTES) {
+      ajustes_abrir_na_fonte();
+      trocarTela(TELA_AJUSTES);
+      menu_definir_destino(MENU_AJUSTES);
+    }
+    return;
+  }
   if (novidades1312_aberto()) { novidades1312_evento(e); return; }
   if (telemetria_aberto()) { telemetria_evento(e); return; }
   // O explicador do Social e da mesma familia, e come esquerda/direita:
@@ -1067,7 +1131,7 @@ void app_evento(const SDL_Event *e) {
   // TELA_GUIA (bucket C / PiP no guia): Azul e CH+/- ja caem aqui ANTES de
   // guia_evento — restaurar e zapar com o guia tela cheia aberto. Voltar
   // continua com o guia (sair do guia, PiP segue), como um nivel de navegacao.
-  if (player_mini_ativo() && e->type == SDL_KEYDOWN) {
+  if (player_mini_ativo() && !player_mini_no_guia_ativo() && e->type == SDL_KEYDOWN) {
     SDL_Keycode mk = e->key.keysym.sym;
     int msc = e->key.keysym.scancode;
     if ((mk == SDLK_AC_BACK || mk == SDLK_ESCAPE || mk == SDLK_BACKSPACE ||
@@ -1103,7 +1167,12 @@ void app_evento(const SDL_Event *e) {
   if (e->type == SDL_KEYDOWN) saiuPorEsquerda = (e->key.keysym.sym == SDLK_LEFT);
   if (player_aberto()) { player_evento(e); return; }
   if (detail_aberto()) { detail_evento(e); return; }
-  if (spainel_aberto()) { spainel_evento(e); return; }
+  // O MENU DO CARTAZ ABERTO PELO PAINEL (segurar OK numa linha de Salvos)
+  // fica por cima dele: com os dois no ar, a tecla e do menu.
+  if (spainel_aberto()) {
+    if (ctx_aberto()) ctx_evento(e); else spainel_evento(e);
+    return;
+  }
   if (menu_aberto())   { menu_evento(e);   return; }
   // "Ver tudo" fica ENTRE a home e o detalhe: ela cobre a home e o detalhe
   // cobre ela. Por isso vem depois do detalhe e antes do roteamento por tela.
@@ -1378,7 +1447,7 @@ void app_atualizar(float dt, Uint32 agora) {
   //
   // Chamar em todo quadro nao custa: a decisao acontece uma vez e o modulo a
   // guarda — a leitura do arquivo de bandeira nao se repete.
-  if (tela == TELA_HOME && homePronta && !player_aberto() && !detail_aberto()) {
+  if (tela == TELA_HOME && homePronta && !player_aberto() && !detail_aberto() && !novidades151_aberto()) {
     // Esta e a primeira explicacao da versao: aparece antes dos demais
     // cartoes de onboarding. Depois de OK, o bloco abaixo continua a fila
     // antiga no quadro seguinte.
@@ -1447,23 +1516,37 @@ void app_atualizar(float dt, Uint32 agora) {
         !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() &&
         !pipintro_aberto())
       novidades142_primeira_vez();
+    // O da 1.4.8 depois do da 1.4.2: na ordem em que as coisas chegaram.
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
         !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
         !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
         !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() &&
+        !novidades148_aberto() && !novidades151_aberto() && !pipintro_aberto())
+      novidades148_primeira_vez();
+    // Fontes e ajuda visual: uma apresentação por aparelho, depois da cor viva.
+    if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
+        !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
+        !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() &&
+        !novidades148_aberto() && !novidades151_aberto() && !pipintro_aberto())
+      novidades151_primeira_vez();
+    if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
+        !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
+        !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() &&
         !novidades1312_aberto() && !pipintro_aberto())
       novidades1312_primeira_vez();
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
         !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
         !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
-        !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !telemetria_aberto() && !pipintro_aberto())
+        !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto())
       telemetria_primeira_vez();
     // AVISO DE VERSAO NOVA: a consulta ao GitHub so parte quando a home esta
     // de pe (nao disputa a rede com o catalogo), e o cartao so abre quando
     // nenhum outro cartao de primeira vez esta aberto.
     atualizacao_verificar();
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades142_aberto() && !pipintro_aberto())
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !pipintro_aberto())
       atualizacao_mostrar_se_houver();
     // RECOMENDACAO DE UM AMIGO: a sondagem parte daqui pelo mesmo motivo que a
     // do GitHub — com a home de pe ela nao disputa a rede com o catalogo. Sem
@@ -1474,7 +1557,7 @@ void app_atualizar(float dt, Uint32 agora) {
     recomenda_verificar();
 #endif
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta())
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta())
       recomenda_mostrar_se_houver();
     // EXPLICADOR DAS TELAS SOCIAIS: mesmas guardas de todos os outros, mais
     // a do cartao de recomendacao recebida — dois cartoes ao mesmo tempo
@@ -1482,7 +1565,7 @@ void app_atualizar(float dt, Uint32 agora) {
     // NUVIO_REC_URL (recomenda_ativo), e por isso nao ha guarda aqui: um
     // anuncio de recurso que nao esta no pacote e pior que silencio.
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
         !recomenda_aberta())
       recintro_primeira_vez();
     // LEMBRETE VENCIDO: o unico aviso que esta TV consegue dar. Ultimo da fila
@@ -1490,13 +1573,13 @@ void app_atualizar(float dt, Uint32 agora) {
     // cima do outro —, e sem consulta de rede nenhuma: o que ele mostra ja
     // esta em disco desde que o dono apertou "Lembrar-me".
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
         !recomenda_aberta() && !recintro_aberto())
       agendaviso_mostrar_se_houver();
     // O CARTAO DO CRASH, depois do lembrete e pelas mesmas regras: um cartao
     // por vez, com a home de pe.
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
         !recomenda_aberta() && !recintro_aberto() && !agendaviso_aberto())
       avisos_mostrar_se_houver();
     }
@@ -1605,6 +1688,15 @@ void app_atualizar(float dt, Uint32 agora) {
     diagDaHome = 0;
     trocarTela(TELA_DIAGNOSTICO);
   }
+  // O ATALHO DO TESTE DE VELOCIDADE (Ajustes › Diagnóstico, logo abaixo do
+  // diagnostico): a mesma tela, ja no teste, sem apresentacao nem objetivo. O
+  // pedido vai ANTES da troca porque e diagnostico_iniciar quem o le. O Voltar
+  // do resultado sai da tela, e diagDaHome = 0 devolve a Ajustes.
+  if (tela == TELA_AJUSTES && ajustes_pediu_velocidade()) {
+    diagDaHome = 0;
+    diagnostico_abrir_velocidade();
+    trocarTela(TELA_DIAGNOSTICO);
+  }
   // O diagnóstico nasce em Ajustes; voltar deve devolver a pessoa ao mesmo
   // ponto do menu para que ela possa conferir ou alterar o restante do perfil.
   // Aberto pelo cartao da 1.4.2 (diagDaHome), o Voltar devolve a home, de
@@ -1663,13 +1755,10 @@ void app_atualizar(float dt, Uint32 agora) {
       case MENU_GUIA:
         // PiP ativo: overlay sobre o mini (recomendacao backlog C) em vez da
         // tela cheia opaca — zap/Azul/Voltar do PiP continuam coerentes.
-        if (player_mini_ativo()) {
-          const char *id = player_id_canal();
-          guia_overlay_abrir();
-          if (id[0]) guia_focar_id(id);
-        } else {
-          trocarTela(TELA_GUIA);
-        }
+        // PiP no ar: o guia COMPLETO abre com o canal deslizando do canto
+        // para o preview (sem recarregar) — o PiP nao tem mais lugar no guia.
+        if (player_mini_ativo() && player_id_canal()[0]) guiaComCanalNoAr();
+        else trocarTela(TELA_GUIA);
         break;
       case MENU_EXPLORAR:   trocarTela(TELA_EXPLORAR);   break;
       case MENU_BUSCAR:     trocarTela(TELA_BUSCA);      break;
@@ -2069,7 +2158,7 @@ void app_atualizar(float dt, Uint32 agora) {
         (player_carregando() && desde > CANAL_ABRE_TETO_MS) ||
         video_bufferando_ms() > CANAL_TRAVA_MS;
     if (morta) {
-      int prox = canalFonteIdx + 1;
+      int prox = stream_canal_proxima(canalFonteIdx);
       const Stream *s;
       // PORTAL STALKER: nao existe "proxima fonte" — cada canal tem uma so, e
       // o que morre nao e o canal, e o LINK, que vale minutos. Avancar o indice
@@ -2109,20 +2198,21 @@ void app_atualizar(float dt, Uint32 agora) {
       // por 12 s a 600 kbps, o watchdog declarou morta e a "proxima" era a
       // mesma url — recarregou o mesmo fluxo lento e travou de novo. Pula as
       // repetidas; a lista continua na ordem do addon.
-      while (prox < stream_n()) {
+      while (prox >= 0 && prox < stream_n()) {
         const Stream *cand = stream_item(prox), *atual = stream_item(canalFonteIdx);
         if (!cand || !atual || strcmp(cand->url, atual->url) != 0) break;
-        prox++;
+        prox = stream_canal_proxima(prox);
       }
-      s = prox < stream_n() ? stream_item(prox) : NULL;
+      s = (prox >= 0 && prox < stream_n()) ? stream_item(prox) : NULL;
       if (s) {
         printf("[guia] fonte %d nao abriu; tentando %d\n", canalFonteIdx, prox);
         marco("canal: fonte morta, proxima");
         stream_definir_atual(prox);
         canalFonteIdx = prox; canalFonteDesde = SDL_GetTicks();
-        // A lista ja se mostrou ruim uma vez: as seguintes entram com o prazo
-        // curto. Uma fonte boa abre bem antes dele de qualquer jeito.
-        canalFontePrazo = CANAL_FONTE_PRAZO_MUDA_MS;
+        // Prazo pela classe da PROXIMA, nao por "a lista ja falhou uma vez":
+        // com todas mudas o curto matava a 4K que abre em 11,8 s (25/09).
+        canalFontePrazo = stream_canal_prazo_longo(prox)
+                            ? CANAL_FONTE_PRAZO_MS : CANAL_FONTE_PRAZO_MUDA_MS;
         player_definir_fonte(s->url);
       } else {
         canalFonteIdx = -1;
@@ -2193,9 +2283,33 @@ void app_atualizar(float dt, Uint32 agora) {
     stream_folha_abrir();
   }
 
-  // CANAL ESCOLHIDO NO GUIA — tela cheia ou overlay, mesma acao: toca direto.
+  // CANAL ESCOLHIDO NO GUIA — tela cheia ou faixa, mesma acao: toca direto.
   { CatItem it;
     if (aguardandoFonte != 2 && guia_pediu_canal(&it)) tocarCanal(&it); }
+  // O PREVIEW DO GUIA e uma sessao "mini no guia" do player: mesma busca de
+  // fonte, mesmo watchdog, e o OK nele depois so faz a janela crescer.
+  { CatItem it;
+    if (aguardandoFonte != 2 && guia_pediu_preview(&it)) {
+      float x, y, w, h;
+      guia_preview_rect(&x, &y, &w, &h);
+      player_mini_no_guia(x, y, w, h);
+      player_manter_mini();
+      tocarCanal(&it);
+    } }
+  if (guia_pediu_parar_preview() && player_mini_no_guia_ativo()) player_fechar_mini();
+  // OK no canal que ja toca no preview: tela cheia crescendo, SEM carregar.
+  if (guia_pediu_restaurar() && player_mini_no_guia_ativo()) {
+    player_restaurar();
+    printf("[guia] preview -> tela cheia no mesmo fluxo\n");
+    fflush(stdout);
+  }
+  // Azul na faixa do mini guia: o guia completo, com o canal no preview.
+  if (guia_pediu_guia_cheio() && player_aberto() && player_id_canal()[0]) guiaComCanalNoAr();
+  // Sessao do preview sem guia na tela (saiu por um caminho que nao passou
+  // pelo sair() do guia): nao fica tocando escondida.
+  if (player_mini_no_guia_ativo() && !player_janela_animando(NULL, NULL, NULL, NULL) &&
+      (tela != TELA_GUIA || !guia_aberta()))
+    player_fechar_mini();
 
   // CH+/- COM CANAL NO AR: zap na ordem do guia. A lista pode ainda nao ter
   // sido carregada (guia nunca aberto nesta sessao): a primeira tecla dispara
@@ -2271,6 +2385,11 @@ void app_atualizar(float dt, Uint32 agora) {
   // SO QUANDO O TITULO NAO ESTA LA. Continuar algo que ja esta na fileira e o
   // caso comum, e ali nada mudou de lugar — pagar um ciclo inteiro (~20 s nesta
   // TV) a cada saida do player seria cobrar do comum o preco do raro.
+  // VOLTAR NUM CANAL ABERTO PELO GUIA: o video encolhe para o preview do guia,
+  // na hora (sem esperar o fade da interface do player) e sem recarregar. O
+  // PiP de canto ficou para os canais abertos fora do guia.
+  if (player_quer_sair() && player_minimizavel() && tela == TELA_GUIA && guia_aberta())
+    guiaComCanalNoAr();
   if (player_quer_sair() && !player_aberto()) {
     if (player_minimizavel()) {
       // CANAL AO VIVO sai para PiP: o fluxo fica num canto da tela em vez de
@@ -2434,7 +2553,7 @@ void app_atualizar(float dt, Uint32 agora) {
                      !avisos_cartao_aberto() && !sintro_aberto() && !pipintro_aberto() &&
                      !novidades_aberto() && !novidades11_aberto() && !novidades12_aberto() &&
                      !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() &&
-                     !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !telemetria_aberto() &&
+                     !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() &&
                      !recintro_aberto() && !atualizacao_aberta() && !agendaviso_aberto() &&
                      !recomenda_aberta() && !recenviar_aberto() && !faixas_aberta() &&
                      !episodios_aberto() && !stream_folha_aberta() && !guia_overlay_aberta() &&
@@ -2457,11 +2576,27 @@ void app_atualizar(float dt, Uint32 agora) {
   novidades139_atualizar(dt, agora);
   novidades1312_atualizar(dt, agora);
   novidades142_atualizar(dt, agora);
+  novidades148_atualizar(dt, agora);
+  novidades151_atualizar(dt, agora);
   telemetria_atualizar(dt, agora);
   recintro_atualizar(dt, agora);
   atualizacao_atualizar(dt, agora);
   agendaviso_atualizar(dt, agora);
   avisos_atualizar(dt, agora);
+  // Lembretes de programa: so com alguem dentro do app (nao no login nem na
+  // escolha de perfil), uma conferencia por segundo no maximo.
+  if (sessao_logada() && tela != TELA_LOGIN && tela != TELA_ESCOLHA_PERFIL) {
+    char lid[80], lnome[120], lbase[600];
+    CatItem it;
+    glem_passo(dt, agora);
+    // "Assistir" no cartao: o canal em tela cheia, de onde a pessoa estiver.
+    if (aguardandoFonte != 2 && glem_pediu_assistir(lid, sizeof lid, lnome, sizeof lnome,
+                                                     lbase, sizeof lbase) &&
+        guia_item_do_canal(lid, lnome, lbase, &it)) {
+      if (player_mini_ativo()) player_fechar_mini();
+      tocarCanal(&it);
+    }
+  }
   pipintro_atualizar(dt, agora);
   if(tela==TELA_SOCIAL) social_atualizar(dt, agora);
   if(tela==TELA_ADDONS) addonsui_atualizar(dt, agora);
@@ -2477,6 +2612,64 @@ void app_atualizar(float dt, Uint32 agora) {
 // ponteiro so pode focar o que as setas focariam. A pergunta e a mesma que o
 // roteador de app_evento faz ("esta aberta?"), so que na ordem do desenho.
 #define CAMADA_SE(aberta) do { if (aberta) ponteiro_camada(); } while (0)
+
+// TUDO QUE FICA ATRAS DO PAINEL DE SALVOS: a tela, "Ver tudo", o cartaz com
+// menu, o detalhe e o menu lateral. Funcao propria para spainel_fundo poder
+// pinta-la direto ou uma vez so, dentro do FBO do fundo parado.
+static void desenharAtrasDoPainel(void *ctx) {
+  Uint32 agora = *(const Uint32 *)ctx;
+  // "Ver tudo" cobre a tela de tras por completo (fundo opaco), entao a home
+  // nao precisa ser desenhada por baixo — a mesma conta do detail_cobre_tela.
+  if (!detail_cobre_tela() && !vertudo_aberta()) {
+    switch (tela) {
+      case TELA_EXPLORAR:   explorar_desenhar(agora);   break;
+      case TELA_GUIA:       guia_desenhar(agora);       break;
+      case TELA_BUSCA:      busca_desenhar(agora);      break;
+      case TELA_BIBLIOTECA: biblioteca_desenhar(agora); break;
+      case TELA_AGENDA:     agendaui_desenhar(agora);   break;
+      case TELA_PERFIL:     perfil_desenhar(agora);     break;
+      case TELA_SOCIAL:     social_desenhar(agora);     break;
+      case TELA_ADDONS:     addonsui_desenhar(agora);   break;
+      case TELA_AJUSTES:    ajustes_desenhar(agora);    break;
+      case TELA_DIAGNOSTICO: diagnostico_desenhar(agora); break;
+      default:              home_desenhar(agora);       break;
+    }
+  }
+  CAMADA_SE(vertudo_aberta());
+  if (!detail_cobre_tela()) vertudo_desenhar(agora);
+  // Com o painel de Salvos na tela o menu do cartaz e desenhado DEPOIS dele
+  // (desenharTelas): e o painel que o abre, e por baixo ele ficaria sob o veu.
+  if (!spainel_visivel() || detail_aberto()) {
+    CAMADA_SE(ctx_aberto());
+    ctx_desenhar(agora);
+  }
+  CAMADA_SE(detail_aberto());
+  detail_desenhar(agora);
+  // A rail NAO existe na tela de detalhe do app web: ela e full-bleed e a
+  // coluna de conteudo comeca em x=72, ou seja, DENTRO do que a rail ocuparia.
+  // Com a rail por cima, o logo, o botao "Reproduzir" e a linha de duracao
+  // ficavam cortados pela faixa preta de 144px — foi o primeiro defeito que
+  // apareceu na captura do aparelho depois do port.
+  // A rail some com o detalhe aberto (o web nao a tem nessa tela) e some
+  // tambem quando `collapseSidebar` esta ligado, que e o estado do perfil do
+  // dono. Recolhida ela nao ocupa largura nenhuma: o conteudo passa a comecar
+  // em 104, e quem devolve esse x e ajustes_conteudo_x().
+  // A guarda de `collapseSidebar` NAO entra aqui. Ela ja existe DENTRO do
+  // menu_desenhar, e la ela pula so a RAIL FIXA — que e o correto: recolhida,
+  // a barra nao ocupa largura, mas continua abrindo como CAMADA ao ganhar
+  // foco, exatamente como o web faz.
+  //
+  // Com a guarda tambem neste ponto, o menu_desenhar nunca era chamado no
+  // perfil do dono (collapseSidebar ligado): o menu abria, engolia as teclas
+  // e nao desenhava nada. Ficava sem menu e sem caminho para os Ajustes — foi
+  // o defeito relatado como "nao ta mostrando o menu e nao tem os ajustes".
+  // Guarda repetida em dois lugares para a mesma regra: no de dentro ela
+  // significa "nao pinte a faixa", no de fora significava "nao exista".
+  if (menu_visivel() && sidebar_permitida() && !detail_aberto()) {
+    CAMADA_SE(menu_aberto());
+    menu_desenhar(agora);
+  }
+}
 
 static void desenharTelas(Uint32 agora) {
   if (tela == TELA_LOGIN)          { login_desenhar(agora);     return; }
@@ -2517,58 +2710,30 @@ static void desenharTelas(Uint32 agora) {
 
   // O player cobre tudo; desenhar o que esta atras dele e trabalho jogado fora
   // — a mesma conta que ja valia para o cartao de detalhe esticado.
-  if (!player_aberto()) {
-    // "Ver tudo" cobre a tela de tras por completo (fundo opaco), entao a home
-    // nao precisa ser desenhada por baixo — a mesma conta do detail_cobre_tela.
-    if (!detail_cobre_tela() && !vertudo_aberta()) {
-      switch (tela) {
-        case TELA_EXPLORAR:   explorar_desenhar(agora);   break;
-        case TELA_GUIA:       guia_desenhar(agora);       break;
-        case TELA_BUSCA:      busca_desenhar(agora);      break;
-        case TELA_BIBLIOTECA: biblioteca_desenhar(agora); break;
-        case TELA_AGENDA:     agendaui_desenhar(agora);   break;
-        case TELA_PERFIL:     perfil_desenhar(agora);     break;
-        case TELA_SOCIAL:     social_desenhar(agora);     break;
-        case TELA_ADDONS:     addonsui_desenhar(agora);   break;
-        case TELA_AJUSTES:    ajustes_desenhar(agora);    break;
-        case TELA_DIAGNOSTICO: diagnostico_desenhar(agora); break;
-        default:              home_desenhar(agora);       break;
-      }
-    }
-    CAMADA_SE(vertudo_aberta());
-    if (!detail_cobre_tela()) vertudo_desenhar(agora);
-    CAMADA_SE(ctx_aberto());
-    ctx_desenhar(agora);
-    CAMADA_SE(detail_aberto());
-    detail_desenhar(agora);
-    // A rail NAO existe na tela de detalhe do app web: ela e full-bleed e a
-    // coluna de conteudo comeca em x=72, ou seja, DENTRO do que a rail ocuparia.
-    // Com a rail por cima, o logo, o botao "Reproduzir" e a linha de duracao
-    // ficavam cortados pela faixa preta de 144px — foi o primeiro defeito que
-    // apareceu na captura do aparelho depois do port.
-    // A rail some com o detalhe aberto (o web nao a tem nessa tela) e some
-    // tambem quando `collapseSidebar` esta ligado, que e o estado do perfil do
-    // dono. Recolhida ela nao ocupa largura nenhuma: o conteudo passa a comecar
-    // em 104, e quem devolve esse x e ajustes_conteudo_x().
-    // A guarda de `collapseSidebar` NAO entra aqui. Ela ja existe DENTRO do
-    // menu_desenhar, e la ela pula so a RAIL FIXA — que e o correto: recolhida,
-    // a barra nao ocupa largura, mas continua abrindo como CAMADA ao ganhar
-    // foco, exatamente como o web faz.
+  // ...exceto enquanto o video do preview do guia CRESCE para a tela cheia: ai
+  // o guia continua em volta do furo que anda (player_desenhar).
+  if (!player_aberto() || player_janela_animando(NULL, NULL, NULL, NULL)) {
+    // O FUNDO PARADO DO PAINEL DE SALVOS: com o painel inteiro na tela, tudo
+    // que fica atras dele e pintado UMA vez num FBO, ja com o veu, e os quadros
+    // seguintes desenham so a copia e o painel. Ver spainel_fundo em
+    // salvospainel.c para a medida da C9 que motivou isto.
     //
-    // Com a guarda tambem neste ponto, o menu_desenhar nunca era chamado no
-    // perfil do dono (collapseSidebar ligado): o menu abria, engolia as teclas
-    // e nao desenhava nada. Ficava sem menu e sem caminho para os Ajustes — foi
-    // o defeito relatado como "nao ta mostrando o menu e nao tem os ajustes".
-    // Guarda repetida em dois lugares para a mesma regra: no de dentro ela
-    // significa "nao pinte a faixa", no de fora significava "nao exista".
-    if (menu_visivel() && sidebar_permitida() && !detail_aberto()) {
-      CAMADA_SE(menu_aberto());
-      menu_desenhar(agora);
-    }
+    // SO NA HOME e so sem outra camada no meio: menu, cartaz com menu, "Ver
+    // tudo" e detalhe mudam por baixo do painel ou pedem o proprio desenho. A
+    // copia e refeita quando o catalogo troca (fileiras novas por baixo) e cai
+    // assim que o painel comeca a fechar.
+    { int podeParar = tela == TELA_HOME && !detail_aberto() && !vertudo_aberta() &&
+                      (!ctx_aberto() || ctx_do_painel()) && !menu_aberto() &&
+                      !player_mini_ativo();
+      spainel_fundo(podeParar, cat_revisao(), desenharAtrasDoPainel, &agora); }
     // Depois do menu: as duas camadas de "Salvos" escurecem a tela inteira e
     // tem de ficar por cima de tudo que a home desenhou, inclusive da rail.
     CAMADA_SE(spainel_aberto());
-    if (spainel_visivel() && !detail_aberto()) spainel_desenhar(agora);
+    if (spainel_visivel() && !detail_aberto()) {
+      spainel_desenhar(agora);
+      CAMADA_SE(ctx_aberto());
+      ctx_desenhar(agora);
+    }
   }
   CAMADA_SE(player_aberto());
   player_desenhar(agora);
@@ -2626,6 +2791,10 @@ void app_desenhar(Uint32 agora) {
   if (!registro_aberto()) novidades1312_desenhar(agora);
   CAMADA_SE(novidades142_aberto());
   if (!registro_aberto()) novidades142_desenhar(agora);
+  CAMADA_SE(novidades148_aberto());
+  if (!registro_aberto()) novidades148_desenhar(agora);
+  CAMADA_SE(novidades151_aberto());
+  if (!registro_aberto()) novidades151_desenhar(agora);
   CAMADA_SE(telemetria_aberto());
   if (!registro_aberto()) telemetria_desenhar(agora);
   CAMADA_SE(recintro_aberto());
@@ -2642,6 +2811,11 @@ void app_desenhar(Uint32 agora) {
   if (!registro_aberto() && !player_aberto() && sessao_logada() &&
       tela != TELA_LOGIN && tela != TELA_ESCOLHA_PERFIL)
     avisos_desenhar(agora);
+  // O cartao do lembrete fica acima do player e da tela: e um aviso com hora.
+  CAMADA_SE(glem_cartao_aberto());
+  if (!registro_aberto() && sessao_logada() && tela != TELA_LOGIN &&
+      tela != TELA_ESCOLHA_PERFIL)
+    glem_desenhar(agora);
   CAMADA_SE(recenviar_aberto());
   if (!registro_aberto()) recenviar_desenhar(agora);
   CAMADA_SE(recomenda_aberta());

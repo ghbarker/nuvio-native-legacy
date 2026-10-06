@@ -183,6 +183,7 @@ void desc_remontar_fileiras(void) {
 }
 static int repeticoes;
 void desc_repetir(void) { repeticoes++; }
+void desc_repetir_addons(void) { repeticoes++; }
 void desc_refazer_continuar(void) {}
 void desc_esquecer(void) {}
 void desc_tmdb_definir(const char *c) { (void)c; }
@@ -190,9 +191,11 @@ void desc_tmdb_definir(const char *c) { (void)c; }
 // ------------------------------------------------------------ o resto, mudo
 
 int  addons_definir_lista(const AddonRemoto *l, int n) { (void)l; (void)n; return 0; }
+void addons_marcar_da_conta(int perfil) { (void)perfil; }
 void addons_esquecer(void) {}
 int  addons_exportar(AddonRemoto *s, int m) { (void)s; (void)m; return 0; }
 void agenda_esquecer(void) {}
+void lembrete_esquecer_todos(void) {}
 int  ajustes_aplicar_blob(const char *j) { (void)j; return 0; }
 void ajustes_definir_ocultar_nao_lancados(int l) { (void)l; }
 int  ajustes_mesclar_blob(const char *b, char **s) { (void)b; *s = NULL; return 0; }

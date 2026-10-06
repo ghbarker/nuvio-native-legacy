@@ -19,7 +19,7 @@ The package contains **no credentials**. `tools/testa-ipk.sh` proves it, and
 
 VIDAA apps are web-based, hosted at a URL. Nuvio is available at:
 
-**`https://nuvio-recomendacoes.henriquef29.workers.dev/tv/`**
+**`https://nuvio-tv.henriquef29.workers.dev/tv/`**
 
 Two builds are available; the TV picks automatically:
 - **Multithreaded (mt)** — uses SharedArrayBuffer, faster if supported
@@ -60,12 +60,9 @@ See `tools/vidaa-instalar/README.md` for detailed instructions.
 ### Which webOS versions
 
 webOS **4.x** is measured, on a C9. webOS **5+** is reported working by users.
-webOS **3.x** has an experimental build on the `webos3` branch — see the webOS 3
-section of the [README](README.md) for what was changed, how it was verified
-against retail firmware symbol dumps, and the three things that verification
-cannot answer. Nobody here owns a webOS 3 set, so treat it as an experiment: for
-those TVs the [web fork](https://github.com/iqui27/NuvioTVSmart-legacy-webos) is
-the safer choice.
+webOS **3.x** is reported working by testers (webOS 3.4.3) and uses the **same
+package** as everyone else. Many of those sets can't decode H.265 or HDR and have
+little free RAM, so pick H.264 sources when you can.
 
 ### Developer Mode
 

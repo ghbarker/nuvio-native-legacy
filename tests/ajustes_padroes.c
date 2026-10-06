@@ -42,8 +42,18 @@ int main(void) {
   assert(valor[AJ_ANIM] == 0);                // animacoes completas
   assert(valor[AJ_RESOLUCAO] == 0);           // 1080p
   assert(valor[AJ_TEMA] == 0);
-  // Depois do tema o vetor ja estava certo; o "+" salva no Trakt.
+  // O "+" salva no Trakt. Este assert passava POR ACASO de 22/09 ate o #149:
+  // o vetor estava sete casas curto (as linhas do Stalker e do Xtream), e o 1
+  // que caia aqui era o do envio automatico. As duas pontas da faixa agora.
   assert(valor[AJ_SALVOS_DEST] == 1);
+  assert(valor[AJ_STALKER_PORTAL] == 0 && valor[AJ_XTREAM_LIMPAR] == 0);
+  assert(valor[AJ_ENVIO_AUTO] == 0);          // envio sozinho: LIGADO (dono)
+  assert(valor[AJ_TEX_MB] == 0);              // memoria para imagens: auto
+  // #163: itens por fileira nasce em 12 (o de sempre); 18 e 24 sao escolha,
+  // com o aviso de memoria para TV de 1 GB. E a opcao vive neste aparelho.
+  assert(valor[AJ_ITENS_FILEIRA] == 0 && ajustes_itens_fileira() == 12);
+  assert(OPCOES[AJ_ITENS_FILEIRA].n == 3);
+  assert(somenteDesteAparelho(AJ_ITENS_FILEIRA));
   // 23/09: tres fontes novas NO FIM de "Background do hero", com o mesmo
   // indice do contrato ARTEHERO_* (o gravado em heroFundoLocal).
   assert(OPCOES[AJ_HERO_FUNDO].n == ARTEHERO_N_ESCOLHAS);

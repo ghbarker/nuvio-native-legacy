@@ -1,8 +1,10 @@
 #include "tex_cache.h"
+#include "gif.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <utime.h>
 #include <errno.h>
+#include <math.h>
 #ifndef __EMSCRIPTEN__
 #include <pthread.h>
 #include <sys/statvfs.h>
@@ -35,6 +37,7 @@ static int arqDiscoTem(const char *dst);
 #include <SDL2/SDL_image.h>
 #include "webp.h"
 #include "jpegrapido.h"
+#include "corviva.h"
 #include "artereserva.h"
 #include "artetamanho.h"
 #include "perfiltv.h"
@@ -127,6 +130,14 @@ typedef struct {
   // PRETO (acromatico, variante errada do TMDB) de logo de MARCA escuro mas
   // colorido (vermelho, vinho), que deve passar intacto.
   int croma;
+  // DESVIO da luminancia dos pixels opacos, MAIS UM (0 = ainda nao medido; o
+  // memset do slot zera tudo e zero nao pode ser "tom unico"). Separa a MARCA
+  // de uma cor so (silhueta branca, preta, vermelha) do logo em AZULEJO — um
+  // quadrado arredondado claro com a marca escura dentro, com a borda
+  // transparente. Os dois tem borda transparente; so este numero os distingue,
+  // e tingir o segundo como marca pinta um QUADRADO CHAPADO (o "logo branco"
+  // do guia na C9, 25/09/2026). Ver tex_logo_tom_unico.
+  int desvio1;
   // COR DE FUNDO da arte: a media da BORDA quando ela e opaca (logo com
   // fundo proprio), -2 quando a borda e transparente (logo recortado), -1
   // enquanto nao se sabe. Ver tex_cor_fundo.
@@ -170,6 +181,16 @@ typedef struct {
   long nBruto;
   int varianteCache;
   char urlCache[512];
+  // OS 4 PRIMEIROS BYTES do que a rede entregou (#141), e se ja se sabe.
+  // Quem pergunta e o cartaz de colecao: "a capa e um GIF?" (para animar a
+  // capa quando a conta nao mandou focusGifUrl) e "o GIF de foco veio GIF
+  // mesmo?". No Tizen so GIF vai a arquivo — o resto vive em `bruto` e some
+  // no decode —, entao sem guardar isto aqui nao ha arquivo onde conferir.
+  unsigned char magica[4];
+  int temMagica;
+  // tex_arquivo ja pediu este GIF DE NOVO uma vez porque o arquivo sumiu do
+  // disco (poda). Uma vez por item: e a guarda contra laco de download.
+  int rebaixouGif;
 } Item;
 
 #define NV_TEX_FIOS 2
@@ -464,7 +485,18 @@ static int quente(const Item *it) {
 // aconteceu, e a versao pequena continua servindo. `limite` fica no valor
 // promovido de proposito: com `w < limite` o proximo pedido cai em
 // `fonteMenor` e nao refaz a promocao a cada quadro.
+//
+// OS BYTES BAIXADOS SAEM JUNTO (24/09/2026, cards com a arte de OUTRO titulo
+// na C9: "Resident Evil" com o logo de "Searching", "Hokum" com o de
+// "Missing"). O fio de rede deixa o corpo em Item.bruto e o decode o consome;
+// se o decode desiste antes (pedido velho: o painel rolou), o slot ficava
+// VAZIO com o logo ainda em `bruto`. O proximo caminho a ocupar o slot era um
+// cartaz que ja estava no disco — o acerto de disco devolve sem tocar em
+// `bruto` —, e o decode, que prefere os bytes ao arquivo, publicava o logo com
+// o nome do cartaz. A guarda de caminho do decode nao pega: o caminho do item
+// e mesmo o do cartaz. tests/texbruto.c refaz a sequencia.
 static void desistir(int idx) {
+  soltarBruto(&itens[idx]);
   itens[idx].filaRedeEm = 0;
   itens[idx].filaDecEm = 0;
   itens[idx].filaUploadEm = 0;
@@ -1622,6 +1654,14 @@ static int baixarParaItem(int idx, const char *url, char *dst, size_t tam, int *
       free(corpo);
       return ok;
     }
+    // WEBP ANIMADO (#141): alem da textura parada de sempre (o Worker le o
+    // primeiro quadro), o arquivo para gif.c animar — ele le por caminho, como
+    // o GIF acima. So quando este build anima WebP; senao nada muda.
+    if (gif_webp_suportado() && gif_webp_animado_bytes(corpo, (size_t)n) && dirCache[0]) {
+      char arq[600];
+      nomeDeCache(url, arq, sizeof arq);
+      gravarLocal(arq, (const char *)corpo, n, trace);
+    }
     /* JPEG/PNG/WebP bytes are already compressed. Persist the response as-is;
      * decoding remains the existing worker path and no raw RGBA is stored. */
     if (foiRede && *foiRede) cachearte_salvar(url, variante, corpo, n, 0);
@@ -1779,6 +1819,28 @@ static int threadRede(void *arg) {
       continue;
       }
     }
+    // A MAGICA do que chegou (ver Item.magica). Dos bytes quando vieram para a
+    // memoria; do arquivo quando o que chegou foi arquivo (GIF, e no LG o
+    // acerto de disco). Lido FORA da trava: e um fopen.
+    { unsigned char mag[4] = {0, 0, 0, 0};
+      int temArq = 0;
+      FILE *g;
+      SDL_LockMutex(mtx);
+      temArq = !(itens[idx].bruto && itens[idx].nBruto >= 4);
+      SDL_UnlockMutex(mtx);
+      if (temArq && (g = fopen(local, "rb")) != NULL) {
+        temArq = fread(mag, 1, 4, g) == 4 ? 2 : 0;
+        fclose(g);
+      }
+      SDL_LockMutex(mtx);
+      if (itens[idx].estado == PENDENTE && !pedidoObsoleto(&itens[idx])) {
+        if (itens[idx].bruto && itens[idx].nBruto >= 4) {
+          memcpy(itens[idx].magica, itens[idx].bruto, 4); itens[idx].temMagica = 1;
+        } else if (temArq == 2) {
+          memcpy(itens[idx].magica, mag, 4); itens[idx].temMagica = 1;
+        }
+      }
+      SDL_UnlockMutex(mtx); }
     SDL_LockMutex(mtx);
     if (itens[idx].estado != PENDENTE || pedidoObsoleto(&itens[idx])) {
       if (itens[idx].estado == PENDENTE) desistir(idx);
@@ -2004,6 +2066,11 @@ static int threadDecode(void *arg) {
     // Copiado SOB O MUTEX: o item pode ser promovido a hero enquanto este fio
     // decodifica, e ler o campo depois daria uma leitura sem trava.
     limite = itens[idx].limite > 0 ? itens[idx].limite : NV_TEX_LARG_MAX;
+    // Cor viva (corviva.h) so para a arte de TELA CHEIA: e o que destaque,
+    // detalhe e player pedem (tex_obter_hero), e so ela decide a cor. Cartaz
+    // de fileira passaria por aqui as centenas e empurraria do anel de 256 as
+    // artes que importam.
+    int heroiPedido = ehHero(&itens[idx]);
     filaEm = itens[idx].filaDecEm;
     itens[idx].filaDecEm = 0;
     localDireto = itens[idx].localDireto;
@@ -2198,25 +2265,31 @@ static int threadDecode(void *arg) {
     // na mao e roda em prioridade baixa. Amostra de 4 em 4 nos dois eixos —
     // 1/16 dos pixels bastam para dizer se uma arte e escura, e a conta inteira
     // num logo de 700x271 seria trabalho sem retorno.
-    int lumMedia = -1, cromaMedia = 0;
+    int lumMedia = -1, cromaMedia = 0, desvio1 = 0;
     int corR = -1, corG = 0, corB = 0;
     if (conv && conv->format->BytesPerPixel == 4) {
       const unsigned char *px = (const unsigned char *)conv->pixels;
       long soma = 0, somaC = 0, n = 0;
+      double soma2 = 0.0;
       int yy, xx;
       for (yy = 0; yy < conv->h; yy += 4) {
         const unsigned char *ln = px + (size_t)yy * conv->pitch;
         for (xx = 0; xx < conv->w; xx += 4) {
           const unsigned char *q = ln + (size_t)xx * 4;   // ABGR8888: R,G,B,A
           if (q[3] < 200) continue;                       // so o que e opaco
-          soma += (q[0] * 299 + q[1] * 587 + q[2] * 114) / 1000;
+          { int lu = (q[0] * 299 + q[1] * 587 + q[2] * 114) / 1000;
+            soma += lu; soma2 += (double)lu * (double)lu; }
           { int mx = q[0] > q[1] ? q[0] : q[1]; if (q[2] > mx) mx = q[2];
             int mn = q[0] < q[1] ? q[0] : q[1]; if (q[2] < mn) mn = q[2];
             somaC += mx - mn; }
           n++;
         }
       }
-      if (n > 0) { lumMedia = (int)(soma / n); cromaMedia = (int)(somaC / n); }
+      if (n > 0) {
+        double m = (double)soma / (double)n, v = soma2 / (double)n - m * m;
+        lumMedia = (int)(soma / n); cromaMedia = (int)(somaC / n);
+        desvio1 = (int)(v > 0.0 ? sqrt(v) : 0.0) + 1;
+      }
       // COR DE FUNDO: a media da BORDA da imagem (uma moldura de 1 px de
       // cada lado). Logo com fundo proprio (o quadrado cinza do Disney+) tem
       // a borda opaca e de uma cor so; logo recortado tem a borda
@@ -2242,6 +2315,31 @@ static int threadDecode(void *arg) {
         }
         if (bt > 0 && bn * 10 >= bt * 8) { corR = (int)(br / bn); corG = (int)(bg / bn); corB = (int)(bb / bn); }
         else corR = -2; }
+    }
+
+    // COR VIVA: a paleta sai DAQUI, dos pixels que este fio ja tem — nenhuma
+    // leitura de volta da GPU, nenhum decode a mais. corviva_extrair amostra
+    // uma grade de 32x18 (576 pontos) e nao aloca nada. O custo vai ao log UMA
+    // vez, na primeira arte, para a medida da C9 existir sem inundar o log.
+    // Roda em TODA arte (~15 us), mas so ANOTA a de tela cheia e a que tem
+    // transparencia — o LOGO do titulo ("Cor da logo"), que e decodificado na
+    // largura do desenho, nunca no teto do destaque. Cartaz de fileira e opaco
+    // e pequeno: medido e esquecido, sem empurrar ninguem do anel.
+    if (conv && conv->format->BytesPerPixel == 4) {
+      static int medido;
+      CorvivaPaleta pal;
+      Uint64 c0 = SDL_GetPerformanceCounter();
+      corviva_extrair((const unsigned char *)conv->pixels, conv->w, conv->h,
+                      conv->pitch, &pal);
+      if (!medido) {
+        medido = 1;
+        printf("[cor] extracao: %.0f us (%dx%d, %s)\n",
+               (double)(SDL_GetPerformanceCounter() - c0) * 1e6 /
+                 (double)SDL_GetPerformanceFrequency(),
+               conv->w, conv->h, pal.ok ? "com cor" : "sem cor");
+        fflush(stdout);
+      }
+      if (heroiPedido || pal.transparente) corviva_anotar(urlOrig, &pal);
     }
 
     // A FALHA PRECISA APARECER. Sem log, uma imagem que nunca decodifica vira
@@ -2283,6 +2381,7 @@ static int threadDecode(void *arg) {
     } else if (itens[idx].estado == PENDENTE) {
       itens[idx].lum = lumMedia;
       itens[idx].croma = cromaMedia;
+      itens[idx].desvio1 = desvio1;
       itens[idx].corR = corR; itens[idx].corG = corG; itens[idx].corB = corB;
       itens[idx].sup = conv;
       if (conv) {
@@ -2941,6 +3040,9 @@ static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
   } else {
     int novo = slotLivre();
     if (novo >= 0) {
+      // Slot novo nao herda bytes de ninguem (ver desistir): o que estiver
+      // em `bruto` e de outro caminho e o decode o preferiria ao arquivo.
+      soltarBruto(&itens[novo]);
       strncpy(itens[novo].caminho, caminho, sizeof itens[novo].caminho - 1);
       itens[novo].hash = h;
       itens[novo].limite = limite;
@@ -3074,10 +3176,48 @@ const char *tex_arquivo(const char *url) {
   if (f) { fseek(f, 0, SEEK_END); n = ftell(f); fclose(f); }
   // Mesmo piso de garantirLocal: abaixo disso e pagina de erro, nao arquivo.
   if (n > 512) return local;
+  // O ARQUIVO SUMIU, MAS ERA GIF (#141): o "limite conhecido" da nota acima.
+  // A poda (podarCacheDisco) apaga o arquivo e o item continua PRONTO com a
+  // textura de um quadro — o pedido la embaixo so encostaria no LRU, e o
+  // cartaz ficaria parado para sempre. Pede o arquivo de novo UMA vez por
+  // item (rebaixouGif): o que acabou de chegar e o mais novo da pasta, e a
+  // poda apaga do mais velho, entao ele fica. A textura antiga segue na tela
+  // durante o download (a mesma regra da promocao em tex_obter_limite).
+  if (mtx) {
+    unsigned long h = hashCaminho(url);
+    int i;
+    BUSCA_MEDIDA(i, url, h);
+    if (i >= 0 && itens[i].estado == PRONTO && itens[i].temMagica &&
+        !memcmp(itens[i].magica, "GIF8", 4) && !itens[i].rebaixouGif &&
+        !itens[i].naFilaDec && !itens[i].localDireto) {
+      int prox = (filaFim + 1) % MAX_FILA;
+      if (prox != filaIni) {
+        itens[i].rebaixouGif = 1;
+        itens[i].estado = PENDENTE;
+        fila[filaFim] = i; filaFim = prox;
+        itens[i].filaRedeEm = SDL_GetTicks();
+        acordarRede();
+        printf("[tex] GIF saiu do cache de disco (poda): pedindo o arquivo de novo, uma vez\n");
+        fflush(stdout);
+      }
+    }
+    SDL_UnlockMutex(mtx);
+  }
   // 128 e o teto MINIMO que tex_obter_limite aceita pelo caminho normal; o que
   // interessa e o efeito colateral, que e o arquivo no disco.
   tex_obter_limite(url, 128, 0, 0);
   return NULL;
+}
+
+int tex_magica(const char *caminho, unsigned char magica[4]) {
+  int tem = 0, i;
+  unsigned long h;
+  if (!caminho || !*caminho || !mtx) return 0;
+  h = hashCaminho(caminho);
+  BUSCA_MEDIDA(i, caminho, h);
+  if (i >= 0 && itens[i].temMagica) { memcpy(magica, itens[i].magica, 4); tem = 1; }
+  SDL_UnlockMutex(mtx);
+  return tem;
 }
 
 int tex_falhou(const char *caminho) {
@@ -3143,6 +3283,19 @@ int tex_cor_fundo(const char *caminho, float *r, float *g, float *b) {
   }
   SDL_UnlockMutex(mtx);
   return ok;
+}
+
+int tex_logo_tom_unico(const char *caminho) {
+  int r = -1;
+  unsigned long h;
+  int i;
+  if (!caminho || !*caminho) return -1;
+  h = hashCaminho(caminho);
+  BUSCA_MEDIDA(i, caminho, h);
+  if (i >= 0 && itens[i].tex && itens[i].desvio1 > 0)
+    r = (itens[i].desvio1 - 1) <= NV_LOGO_TOM_UNICO_DESVIO;
+  SDL_UnlockMutex(mtx);
+  return r;
 }
 
 int tex_marca_escura(const char *caminho) {

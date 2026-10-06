@@ -40,6 +40,7 @@
 #include "layout.h"
 #include "catalogo.h"
 #include "artehero.h"
+#include "corviva.h"
 
 // A CASCA DO TIZEN PRECISA SABER SE O PLAYER ESTA NA TELA. tools/tizen-shell.html
 // traduz as teclas de midia do controle Samsung (play/pause, stop, avancar,
@@ -276,6 +277,10 @@ static Uint32 pgDesde;
 static int   comVideo = 0;
 static int   pedFaixas = 0;
 static int   esperandoFonte = 0;   // aberto sem URL, esperando o addon responder
+// Pre-busca da legenda ASS segurando o video (ver player_definir_fonte): a url
+// que vai ao pipeline quando ela acabar. "" = nenhuma.
+static char   prebuscaUrl[4096];
+static Uint32 prebuscaDesde;
 static float posSeg = 0.0f;
 // Relogio da LEGENDA (#92): posSeg e o ultimo currentTime do pipeline, que na
 // C9 chega a cada ~200 ms. A legenda desenhada com ele andava aos degraus e em
@@ -313,6 +318,13 @@ static CatItem itemCanal;
 // `querMini` e o pedido do CH+/- feito dentro do PiP: so ele mantem a
 // miniatura na troca de canal — OK num canal (guia, home) volta a tela cheia.
 static int     mini, querMini;
+// MINI NO GUIA (25/09/2026): a mesma sessao "mini", mas o destino e o
+// PREVIEW 800x450 do guia e nao o canto da tela, e sem moldura, etiqueta nem
+// dica — quem fura a superficie e desenha em volta e o guia. E o que faz o
+// canal no ar ir da tela cheia para o preview (e voltar) SEM recarregar: o
+// pipeline e o mesmo, so o retangulo muda. O PiP de canto continua existindo
+// fora do guia (canal aberto pela home).
+static int     miniGuia;
 // O TITULO ABERTO E UMA COPIA, NAO UM INDICE.
 //
 // `idx` e uma posicao no catalogo, e o catalogo e REPUBLICADO durante a sessao
@@ -336,10 +348,12 @@ static const CatItem *item(void) {
 }
 // O indice CORRENTE do titulo aberto: re-resolvido pelo IMDb, porque o que foi
 // guardado em `idx` pode ter sido deslocado por uma republicacao. Cai em `idx`
-// quando o titulo nao esta mais no catalogo (ou nao tem IMDb).
+// quando o titulo nao esta mais no catalogo (ou nao tem IMDb). #151: fica em
+// `idx` enquanto ele for o mesmo titulo — a primeira copia pelo IMDb costuma
+// ser o card do CW, que nao tem a lista de episodios.
 static int idxAtual(void) {
   if (temFixo && itemFixo.imdb[0]) {
-    int i = cat_indice_por_imdb(itemFixo.imdb);
+    int i = cat_indice_titulo(itemFixo.imdb, idx);
     if (i >= 0) return i;
   }
   return idx;
@@ -365,7 +379,7 @@ static int epgIdx = -1;
 // por player_definir_episodio: um `static int` dentro da funcao registraria a
 // PRIMEIRA reproducao da sessao e ficaria mudo em todas as outras — que e
 // justamente quando o relato acontece.
-static int credAvisado, credFimAvisado;
+static int credAvisado, credFimAvisado, semProxAvisado;
 static double credAvisadoEm;
 static int introIdx=-1, introT=-1, introE=-1;
 static int retomadaAplicada, retomarPct;
@@ -386,8 +400,9 @@ int player_pediu_proximo(int *t,int *e) {
 }
 const CatEp *player_proximo_episodio(void) {
   const CatEp *melhor=NULL;
-  for(int i=0;i<cat_n_episodios(idx);i++) {
-    const CatEp *p=cat_episodio(idx,i);if(!p)continue;
+  int ix=idxAtual(),n=cat_n_episodios(ix);
+  for(int i=0;i<n;i++) {
+    const CatEp *p=cat_episodio(ix,i);if(!p)continue;
     if(p->temporada<epT||(p->temporada==epT&&p->episodio<=epE))continue;
     if(!melhor||p->temporada<melhor->temporada||
        (p->temporada==melhor->temporada&&p->episodio<melhor->episodio))melhor=p;
@@ -405,6 +420,7 @@ const CatEp *player_proximo_episodio(void) {
 static char erroTitulo[160], erroDica[160];
 void player_erro_fonte(void) {
   esperandoFonte = 0; erroFonte = 1; visivel = 1; tocando = 0; soBarra = 0;
+  prebuscaUrl[0] = 0;                // erro no meio da pre-busca: o video nao sai
   erroTitulo[0] = erroDica[0] = 0;   // erro sem motivo nao herda o do anterior
 }
 void player_erro_fonte_motivo(const char *titulo, const char *dica) {
@@ -456,7 +472,7 @@ void player_definir_episodio(int t, int e) {
     if (idx != introIdx || introT || introE) {
       introIdx = idx; introT = introE = 0;
       intro_pedir(c->imdb, 0, 0);
-      credAvisado = credFimAvisado = 0; credAvisadoEm = 0;
+      credAvisado = credFimAvisado = semProxAvisado = 0; credAvisadoEm = 0;
     }
     return;
   }
@@ -491,8 +507,8 @@ void player_definir_episodio(int t, int e) {
   snprintf(linhaEp, sizeof linhaEp, i18n("T%dE%d"), epT, epE);
   if (epT == c->temporada && epE == c->episodio && c->nomeEpisodio[0])
     snprintf(linhaEp, sizeof linhaEp, i18n("T%dE%d · %s"), epT, epE, c->nomeEpisodio);
-  for (int i = 0; i < cat_n_episodios(idx); i++) {
-    const CatEp *ep = cat_episodio(idx, i);
+  for (int ix = idxAtual(), i = 0; i < cat_n_episodios(ix); i++) {
+    const CatEp *ep = cat_episodio(ix, i);
     if (ep && ep->temporada == epT && ep->episodio == epE) {
       snprintf(linhaEp, sizeof linhaEp, i18n("T%dE%d · %s"), epT, epE, ep->nome);
       break;
@@ -500,7 +516,7 @@ void player_definir_episodio(int t, int e) {
   }
   if(idx!=introIdx||epT!=introT||epE!=introE){
     introIdx=idx;introT=epT;introE=epE;intro_pedir(c->imdb,epT,epE);
-    credAvisado=credFimAvisado=0;credAvisadoEm=0;
+    credAvisado=credFimAvisado=semProxAvisado=0;credAvisadoEm=0;
   }
 }
 
@@ -707,6 +723,15 @@ static float aspectoQuadro(void) {
 
 typedef struct { float x, y, w, h; } PlrRect;
 static PlrRect miniDestino(void);
+// ANIMACAO DA JANELA DE VIDEO entre dois retangulos (tela cheia <-> preview
+// do guia). Em degraus espacados, como o recuo do painel de creditos: cada
+// degrau e uma mensagem ao pipeline, entao ha PLR_ENC_PASSOS delas em
+// ~450 ms, e nao uma por quadro. Enquanto anima, aplicarAspecto nao mexe no
+// plano — o fim da animacao e quem entrega o destino definitivo.
+static int     janAtiva;
+static float   janT;
+static Uint32  janEm;
+static PlrRect janDe, janPara, janAgora;
 
 static PlrRect aspectoRect(int modo) {
   const float tela = NV_TELA_W / NV_TELA_H;
@@ -846,6 +871,7 @@ static void aplicarAspecto(void) {
   float qw, qh;
   int sx, sy, sw, sh;
   if (!comVideo) return;
+  if (janAtiva) return;
 
   // No PiP todo recalculo cai na miniatura — o videoInfo da fonte nova num
   // zap, por exemplo, chega DEPOIS do video_janela do canto e sem esta
@@ -988,12 +1014,14 @@ void player_abrir(int indiceCatalogo, const char *url) {
     // fluxo de sempre. Qualquer outra abertura (OK no guia, filme, serie)
     // volta a tela cheia e para o video do canto.
     if (ficaMini && canalSessao) { mini = 1; aberto = 0; }
-    else if (mini || ficaMini) { mini = 0; video_parar(); }
+    else if (mini || ficaMini) { mini = 0; miniGuia = 0; video_parar(); }
+    else miniGuia = 0;
+    janAtiva = 0;
     avisarCascaAberto(aberto);
     if (ci && ci->imdb[0] && !canalSessao) parental_pedir(ci->imdb);
     // A grade EPG comeca a baixar ja: o banner "agora/a seguir" do OSD e o
     // overlay do guia dependem dela. Idempotente.
-    if (canalSessao) { epg_iniciar(); guia_carregar(); } }
+    if (canalSessao) { guia_carregar(); epg_iniciar(); } }
   tocando = 1; visivel = 1; anim = 0.0f; entrada = 0.0f; soBarra = 0; cheio = 1.0f;
   pedFontes = erroFonte = pedFaixas = pedProxT = pedProxE = 0; inicioImagem = 0;
   erroTitulo[0] = erroDica[0] = 0;
@@ -1010,7 +1038,9 @@ void player_abrir(int indiceCatalogo, const char *url) {
   // "Zoom cinema" continuar valendo no filme seguinte, como no web.
   prefsLer();
   toastAte = 0; toastTexto[0] = 0; avisouAudio = 0;
+  prebuscaUrl[0] = 0;
   comVideo = (url && *url && video_tocar(url));
+  mkvass_video_aberto(comVideo);
   aplicarAspecto();
 
   const CatItem *c = item();
@@ -1037,14 +1067,52 @@ void player_abrir(int indiceCatalogo, const char *url) {
 
 int player_aberto(void)    { return aberto; }
 int player_quer_sair(void) { return pediuSair; }
-// So depois do loadCompleted. Antes disso o pipeline ainda nao pos nada no
-// plano de hardware, e furar a superficie cedo trocava a arte por um retangulo
-// PRETO enquanto o fluxo abria — que era o "clica em reproduzir e fica preto".
-void player_definir_fonte(const char *url) {
-  if ((!aberto && !mini) || !url || !*url) return;
-  esperandoFonte = 0;
-  erroFonte = 0;
+
+// --- PRE-BUSCA DA LEGENDA ASS ANTES DO VIDEO (#92, v1.4.7) -------------------
+//
+// No registro do relato (webOS 25, Torrentio -> Real-Debrid) todo Range do
+// mkvass feito com o video tocando era cortado (77465 e 11929 bytes, sempre)
+// e o resto era recusado, enquanto o video — o mesmo arquivo — tocava. Nao se
+// sabe se e o CDN limitando conexoes ao arquivo com o pipeline segurando uma
+// (hipotese, nao provada), a rede da pessoa ou o webOS 25. O que se pode fazer
+// sem saber: ler o que a legenda precisa ANTES de a URL ir ao pipeline. A tela
+// fica em "abrindo fonte" (esperandoFonte) ate a pre-busca acabar ou vencer
+// MKVASS_PREBUSCA_MS; dai o video comeca com o que chegou e o fio segue.
+//
+// SO PARA MKV COM LEGENDA A COLHER: sessao de VOD em tela cheia, preferencia
+// de legenda ligada e a fonte DIZENDO que e .mkv (url, arquivo ou descricao).
+// MP4, HLS, canal, PiP e quem nao quer legenda nao esperam nada. Um MKV cuja
+// legenda no idioma nao e ASS custa um Range (o cabecalho) antes do video.
+#ifndef __EMSCRIPTEN__
+static int temMkv(const char *t) {
+  const char *p;
+  for (p = t ? t : ""; (p = strchr(p, '.')) != NULL; p++)
+    if (!strncasecmp(p, ".mkv", 4)) return 1;
+  return 0;
+}
+
+// O ordinal da legenda que a legenda AUTOMATICA vai ligar, pela mesma regra
+// (ling_legenda_auto, embutida primeiro). Os idiomas vem do cabecalho do
+// arquivo, na ordem das TrackEntry — a mesma ordem da lista da TV.
+static int escolherLegendaPrebusca(const char *const *idiomas, int n) {
+  int r = ling_legenda_auto(ling_legenda(), idiomas, n, 1, NULL, 0, 1);
+  return r >= 0 && r < n ? r : -1;
+}
+
+static int prebuscaCabe(const char *url) {
+  const char *pref = ling_legenda();
+  const Stream *s = stream_item(stream_atual());
+  if (mini || ehCanal() || !url || !*url) return 0;
+  if (!pref || !*pref || !strcasecmp(pref, "none")) return 0;
+  if (s && strcmp(s->url, url)) s = NULL;     // torrent resolvido: a url e outra
+  if (s && s->mp4) return 0;
+  return temMkv(url) || (s && (temMkv(s->arquivo) || temMkv(s->descricao) || temMkv(s->rotulo)));
+}
+#endif
+
+static void tocarFonte(const char *url) {
   comVideo = video_tocar(url);
+  mkvass_video_aberto(comVideo);
   if (!comVideo) erroSemVideo();
   // No PiP a fonte nova retoca o mesmo canto — o destino de tela cheia do
   // aplicarAspecto so vale com a tela aberta.
@@ -1052,6 +1120,26 @@ void player_definir_fonte(const char *url) {
               video_janela((int)(r.x + 0.5f), (int)(r.y + 0.5f),
                            (int)(r.w + 0.5f), (int)(r.h + 0.5f)); }
   else aplicarAspecto();
+}
+// So depois do loadCompleted. Antes disso o pipeline ainda nao pos nada no
+// plano de hardware, e furar a superficie cedo trocava a arte por um retangulo
+// PRETO enquanto o fluxo abria — que era o "clica em reproduzir e fica preto".
+void player_definir_fonte(const char *url) {
+  if ((!aberto && !mini) || !url || !*url) return;
+  esperandoFonte = 0;
+  erroFonte = 0;
+#ifndef __EMSCRIPTEN__
+  prebuscaUrl[0] = 0;
+  if (prebuscaCabe(url) && mkvass_prebuscar(url, escolherLegendaPrebusca, retomarPct / 100.0)) {
+    // O video espera (player_atualizar solta): a tela segue em "abrindo fonte".
+    if (comVideo) { video_parar(); comVideo = 0; mkvass_video_aberto(0); }
+    snprintf(prebuscaUrl, sizeof prebuscaUrl, "%s", url);
+    prebuscaDesde = SDL_GetTicks();
+    esperandoFonte = 1;
+    return;
+  }
+#endif
+  tocarFonte(url);
 }
 
 // Consome o pedido de abrir a folha de faixas: quem le, zera.
@@ -1189,12 +1277,14 @@ void player_encerrar(void) {
     // overlay depois do desligamento, e o proximo titulo abriria com a legenda
     // do anterior. mkvass_parar grava o sidecar parcial com o que ja veio.
     mkvass_parar();
+    mkvass_video_aberto(0);
+    prebuscaUrl[0] = 0;
     legenda_desligar();
     printf("[player] saida: video_parar %u ms, resto %u ms\n",
            (unsigned)(tv - t0), (unsigned)(SDL_GetTicks() - tv));
     fflush(stdout); }
   comVideo = 0; esperandoFonte = 0; aberto = 0; saindo = 0; pediuSair = 0;
-  mini = 0; querMini = 0;
+  mini = 0; querMini = 0; miniGuia = 0; janAtiva = 0;
   avisarCascaAberto(0);
   // Os DOIS relogios, e nao so o do primeiro quadro. `pgDesde` sobrevivendo ao
   // fechamento faria a proxima reproducao achar que a janela do aviso ja tinha
@@ -1219,8 +1309,10 @@ void player_encerrar(void) {
 
 // O destino em miniatura: a caixa e 16:9 e a proporcao do quadro e respeitada
 // DENTRO dela — um canal 4:3 letterboxa na caixa em vez de esticar.
+static PlrRect miniGuiaCaixa = { 1040.0f, 108.0f, 800.0f, 450.0f };
 static PlrRect miniDestino(void) {
   PlrRect o = { PLR_PIP_X, PLR_PIP_Y, PLR_PIP_W, PLR_PIP_H };
+  if (miniGuia) o = miniGuiaCaixa;
   float vw = (float)video_largura(), vh = (float)video_altura();
   if (vw > 1.0f && vh > 1.0f) {
     float ca = vw / vh, ba = o.w / o.h;
@@ -1244,8 +1336,87 @@ void player_minimizar(void) {
                (int)(r.w + 0.5f), (int)(r.h + 0.5f));
 }
 
+// Tela cheia "contain" pela proporcao do quadro: o fim da animacao de
+// crescer. O modo de proporcao de verdade (zoom, recorte) entra no ultimo
+// degrau, por aplicarAspecto.
+static PlrRect telaCheia(void) {
+  PlrRect o = { 0.0f, 0.0f, NV_TELA_W, NV_TELA_H };
+  float q = aspectoQuadro(), t = NV_TELA_W / NV_TELA_H;
+  if (q > t + 0.01f) { o.h = NV_TELA_W / q; o.y = (NV_TELA_H - o.h) * 0.5f; }
+  else if (q < t - 0.01f) { o.w = NV_TELA_H * q; o.x = (NV_TELA_W - o.w) * 0.5f; }
+  return o;
+}
+static void janelaMandar(PlrRect r) {
+  video_janela((int)(r.x + 0.5f), (int)(r.y + 0.5f), (int)(r.w + 0.5f), (int)(r.h + 0.5f));
+}
+static void janelaAnimar(PlrRect de, PlrRect para) {
+  janDe = de; janPara = para; janAgora = de; janT = 0.0f; janEm = 0; janAtiva = 1;
+}
+// Um degrau por PLR_ENC_MS. Curva ease-out (1-(1-t)^3): parte rapido e
+// assenta devagar, que e o que se le como "o video veio para a frente".
+static void janelaPasso(Uint32 agora) {
+  float k, u;
+  if (!janAtiva || agora < janEm) return;
+  janT += 1.0f / (float)PLR_ENC_PASSOS;
+  if (janT > 1.0f) janT = 1.0f;
+  u = 1.0f - janT; k = 1.0f - u * u * u;
+  janAgora.x = janDe.x + (janPara.x - janDe.x) * k;
+  janAgora.y = janDe.y + (janPara.y - janDe.y) * k;
+  janAgora.w = janDe.w + (janPara.w - janDe.w) * k;
+  janAgora.h = janDe.h + (janPara.h - janDe.h) * k;
+  janEm = agora + PLR_ENC_MS;
+  if (janT >= 1.0f) {
+    janAtiva = 0;
+    if (mini) janelaMandar(miniDestino());
+    else aplicarAspecto();
+  } else janelaMandar(janAgora);
+}
+
+int player_janela_animando(float *x, float *y, float *w, float *h) {
+  if (!janAtiva) return 0;
+  if (x) *x = janAgora.x;
+  if (y) *y = janAgora.y;
+  if (w) *w = janAgora.w;
+  if (h) *h = janAgora.h;
+  return 1;
+}
+
+void player_mini_no_guia(float x, float y, float w, float h) {
+  PlrRect de = miniDestino();
+  int eraCanto = mini && !miniGuia;
+  miniGuiaCaixa = (PlrRect){ x, y, w, h };
+  miniGuia = 1;
+  // Um PiP de canto que vira preview do guia desliza do canto ate o preview.
+  if (eraCanto && comVideo) janelaAnimar(de, miniDestino());
+}
+int  player_mini_no_guia_ativo(void) { return mini && miniGuia; }
+
+void player_minimizar_para_guia(float x, float y, float w, float h) {
+  PlrRect de;
+  if (!player_minimizavel()) { player_encerrar(); return; }
+  de = telaCheia();
+  miniGuiaCaixa = (PlrRect){ x, y, w, h };
+  miniGuia = 1;
+  mini = 1; pediuSair = 0; visivel = 0; aberto = 0; saindo = 0;
+  avisarCascaAberto(0);
+  pausao_fechar(); episodios_fechar(); posplay_fechar();
+  janelaAnimar(de, miniDestino());
+}
+
 void player_restaurar(void) {
   if (!mini) return;
+  if (miniGuia && comVideo) {
+    // Do preview do guia para a tela cheia, crescendo, com o MESMO fluxo: nada
+    // de video_tocar, nada de busca de fonte.
+    PlrRect de = miniDestino();
+    miniGuia = 0;
+    mini = 0; aberto = 1; saindo = 0; entrada = 0.0f;
+    visivel = 1; soBarra = 0; ultimoInput = SDL_GetTicks();
+    avisarCascaAberto(1);
+    janelaAnimar(de, telaCheia());
+    return;
+  }
+  miniGuia = 0;
   mini = 0; aberto = 1; saindo = 0; entrada = 0.0f;
   visivel = 1; soBarra = 0; ultimoInput = SDL_GetTicks();
   avisarCascaAberto(1);
@@ -1254,7 +1425,7 @@ void player_restaurar(void) {
 
 void player_fechar_mini(void) {
   if (!mini) return;
-  mini = 0;
+  mini = 0; miniGuia = 0; janAtiva = 0;
   // comVideo pode ja ser 0 (zap em transito: a fonte nova nao chegou) e o
   // stream velho continuaria no ar — parar e seguro mesmo sem pipeline ativo.
   video_parar();
@@ -1274,18 +1445,22 @@ void player_mini_desenhar(Uint32 agora) {
   (void)agora;
   if (!mini) { lx = -1.0f; return; }
   r = miniDestino();
+  if (janAtiva) { lx = r.x; ly = r.y; lw = r.w; lh = r.h; }
   if (r.x != lx || r.y != ly || r.w != lw || r.h != lh) {
     video_janela((int)(r.x + 0.5f), (int)(r.y + 0.5f),
                  (int)(r.w + 0.5f), (int)(r.h + 0.5f));
     lx = r.x; ly = r.y; lw = r.w; lh = r.h;
   }
+  // No guia quem desenha e o guia (furo no preview, selo, bordas).
+  if (miniGuia) return;
   f = (GfxRect){ r.x, r.y, r.w, r.h };
   corFocoPlayer(&fr, &fg, &fb);
   // Furo com o MESMO raio do anel: sem ele o plano de video e retangular e
   // os cantos do quadro escapam por fora da moldura arredondada.
   gfx_furo_raio(f, 0.14f);
-  gfx_rect(f, 0, GFX_ANEL, 0, NV_ANEL_FOCO / f.w, 0, 0.14f,
-           fr, fg, fb, 0.85f);
+  // Espessura em pixels (gfx_anel): NV_ANEL_FOCO / f.w dava 2,25 px num
+  // quadro 16:9, porque o anel mede em fracao da ALTURA.
+  gfx_anel(f, 0.14f, NV_ANEL_FOCO, fr, fg, fb, 0.85f);
   // A etiqueta e UMA linha so dentro do furo: ponto vermelho + AO VIVO +
   // canal + programa do ar, cortada na borda direita do quadro para nomes
   // longos nao vazarem por cima do anel.
@@ -1383,6 +1558,17 @@ int player_regra_concluiu(double posSeg, double durSeg, double cred) {
 
 static int ofertaProximo(void) {
   const CatEp *p=player_proximo_episodio();
+  // #151: "o Proximo as vezes nao aparece". Sem proximo episodio na lista o
+  // cartao nao existe, e isso nao deixava rastro: uma linha por episodio, nos
+  // 2 minutos finais, com o tamanho da lista e se ela ainda estava chegando.
+  // Lista vazia = o player abriu sem os episodios do titulo; lista cheia sem
+  // proximo = fim da serie, ou a temporada seguinte ainda nao esta no addon.
+  if(!p&&epT>0&&duracaoSeg>1&&duracaoSeg-posSeg<=PLR_CRED_PISO_S&&!semProxAvisado){
+    semProxAvisado=1;
+    printf("[posplay] sem proximo episodio depois de T%dE%d: lista com %d episodios%s\n",
+           epT,epE,cat_n_episodios(idxAtual()),desc_episodios_carregando(idxAtual())?" (ainda carregando)":"");
+    fflush(stdout);
+  }
   if(!p||duracaoSeg<=1)return 0;
   // DUAS FONTES, NESTA ORDEM, e e a mesma ordem do posplay.c: o capitulo do
   // Matroska descreve ESTA copia, o TheIntroDB descreve o lancamento. Esta
@@ -1742,7 +1928,32 @@ void player_atualizar(float dt, Uint32 agora) {
              i18n("Esta TV não toca o áudio desta fonte. Troque a fonte ou o áudio."));
     toastAte = agora + 6000;
   }
-  if (!aberto) return;
+  janelaPasso(agora);
+  if (!aberto) {
+    prebuscaUrl[0] = 0;
+    return;
+  }
+
+  // PRE-BUSCA: solta o video quando ela acabou (pronta, desistiu, nada a
+  // colher) ou quando o teto venceu — o que nao chegou vem em segundo plano.
+  // (Na Samsung prebuscaUrl nunca e preenchida: o bloco nao roda.)
+  if (prebuscaUrl[0]) {
+    int fase = mkvass_prebusca_fase();
+    Uint32 esperou = agora - prebuscaDesde;
+    if (fase != 1 || esperou >= (Uint32)MKVASS_PREBUSCA_MS) {
+      char u[sizeof prebuscaUrl];
+      long ped = 0, bytes = 0; int col = 0, tot = 0;
+      mkvass_estatisticas(&ped, &bytes, &col, &tot);
+      printf("[player] pre-busca da legenda: video solto apos %u ms (%s; %d/%d blocos, %ld Ranges, %ld KB)\n",
+             (unsigned)esperou, fase == 1 ? "teto vencido, o resto segue em segundo plano"
+             : "a pre-busca acabou", col, tot, ped, bytes / 1024);
+      fflush(stdout);
+      snprintf(u, sizeof u, "%s", prebuscaUrl);
+      prebuscaUrl[0] = 0;
+      esperandoFonte = 0;
+      tocarFonte(u);
+    }
+  }
 
   entrada = anim_mola(entrada, saindo ? 0.0f : 1.0f, dt, NV_MOLA_TELA);
   // Marca o primeiro quadro COM IMAGEM. E daqui que a guia parental conta o
@@ -1953,8 +2164,27 @@ static void corLegenda(int i,int *r,int *g,int *b){
 // O \pos vem em PlayResX/PlayResY do cabecalho e vira pixel de tela por regra
 // de tres. A ancora ASS e a do libass: 1-3 base, 4-6 meio, 7-9 topo; 1/4/7
 // esquerda, 2/5/8 centro, 3/6/9 direita.
-typedef struct { TxtLinha cor[4], borda[4]; int n; float w, h; } LegBloco;
+#define PLR_LEG_LINHAS 6
+#define PLR_LEG_LARG   1660.0f
+typedef struct { TxtLinha cor[PLR_LEG_LINHAS], borda[PLR_LEG_LINHAS]; int n; float w, h; } LegBloco;
 
+static void blocoLinha(LegBloco *bl, TxtEstilo est, const char *linha, int r, int g, int b,
+                       TxtFamilia fam, int enf) {
+  if (bl->n >= PLR_LEG_LINHAS) return;
+  bl->cor[bl->n]   = txt_linha_corta_enfase(est, linha, r, g, b, 255, PLR_LEG_LARG, fam, enf);
+  bl->borda[bl->n] = legEstilo.borda ? txt_linha_corta_enfase(est, linha, 0, 0, 0, 255, PLR_LEG_LARG, fam, enf) : (TxtLinha){0};
+  if (bl->cor[bl->n].w > bl->w) bl->w = bl->cor[bl->n].w;
+  bl->h += bl->cor[bl->n].h + (bl->n ? 5 : 0);
+  bl->n++;
+}
+
+// QUEBRA POR PALAVRA (#156). Cada linha do arquivo ia inteira para o corte com
+// reticencias: uma fala longa numa linha so (comum em SRT externo, que nao
+// quebra) virava "... ele disse que…" e o resto da fala sumia. Agora a linha
+// quebra onde passa da largura, como o player do sistema faz com a legenda
+// embutida. O \n do arquivo continua sendo quebra dura. Medir cada tentativa
+// rasteriza, como em txt_bloco; o cache de linhas do text.c devolve as mesmas
+// no quadro seguinte.
 static void montarBloco(const LegendaCue *c, TxtEstilo est, int r, int g, int b, LegBloco *bl) {
   char texto[768], *linha, *salva;
   TxtFamilia fam = (TxtFamilia)legEstilo.familia;
@@ -1962,12 +2192,21 @@ static void montarBloco(const LegendaCue *c, TxtEstilo est, int r, int g, int b,
   bl->n = 0; bl->w = 0; bl->h = 0;
   snprintf(texto, sizeof texto, "%s", c->texto);
   linha = strtok_r(texto, "\n", &salva);
-  while (linha && bl->n < 4) {
-    bl->cor[bl->n]   = txt_linha_corta_enfase(est, linha, r, g, b, 255, 1660, fam, enf);
-    bl->borda[bl->n] = legEstilo.borda ? txt_linha_corta_enfase(est, linha, 0, 0, 0, 255, 1660, fam, enf) : (TxtLinha){0};
-    if (bl->cor[bl->n].w > bl->w) bl->w = bl->cor[bl->n].w;
-    bl->h += bl->cor[bl->n].h + (bl->n ? 5 : 0);
-    bl->n++; linha = strtok_r(NULL, "\n", &salva);
+  while (linha && bl->n < PLR_LEG_LINHAS) {
+    char atual[768] = "", tent[768];
+    char *palavra, *sp;
+    for (palavra = strtok_r(linha, " ", &sp); palavra; palavra = strtok_r(NULL, " ", &sp)) {
+      snprintf(tent, sizeof tent, "%s%s%s", atual, atual[0] ? " " : "", palavra);
+      if (atual[0] &&
+          txt_linha_corta_enfase(est, tent, r, g, b, 255, 1e9f, fam, enf).w > PLR_LEG_LARG) {
+        blocoLinha(bl, est, atual, r, g, b, fam, enf);
+        snprintf(atual, sizeof atual, "%s", palavra);
+      } else {
+        snprintf(atual, sizeof atual, "%s", tent);
+      }
+    }
+    if (atual[0]) blocoLinha(bl, est, atual, r, g, b, fam, enf);
+    linha = strtok_r(NULL, "\n", &salva);
   }
 }
 
@@ -2025,18 +2264,53 @@ int player_texto_legenda_nativa(char *dst, int tam) {
 /* O uMS da C9 limita fonte e escala. OpenSubtitles passa por este overlay
  * SDL/GLES, exatamente como o overlay HTML do app web. Desde o #92 tambem
  * desenha ASS: varios blocos ao mesmo tempo, cada um no seu lugar. */
+/* Onde o video esta NESTE quadro — e ali que o ASS e composto: as placas do
+ * arquivo sao posicionadas em cima da imagem, nao da tela. Segue o mesmo
+ * caminho do plano de hardware: miniatura, animacao da janela, modo de
+ * proporcao (inclusive o retangulo virtual que passa da tela no zoom) e o
+ * recuo do painel de creditos. Sem as dimensoes do quadro, a tela inteira. */
+static PlrRect areaVideoLegenda(void) {
+  PlrRect r = { 0.0f, 0.0f, NV_TELA_W, NV_TELA_H }, d, o;
+  if (video_largura() < 2 || video_altura() < 2) return r;
+  if (mini) return miniDestino();
+  if (janAtiva) return janAgora;
+  r = aspectoRect(aspecto);
+  if (encolhe > 0.999f) return r;
+  d = aspectoVisivel(aspecto);
+  o = destinoComRecuo(d);
+  r.x = o.x + (r.x - d.x) * encolhe;
+  r.y = o.y + (r.y - d.y) * encolhe;
+  r.w *= encolhe; r.h *= encolhe;
+  return r;
+}
+
+/* Tamanho da folha aplicado ao ASS: 120 % e o padrao do app, e no ASS o
+ * padrao e o tamanho que o autor escolheu. O resto e proporcional — tudo
+ * cresce junto, como o sub-scale do mpv, sem mexer em cor, borda ou lugar. */
+static double escalaFonteAss(void) {
+  int pct = legEstilo.tamanho;
+  if (pct < 50) pct = 50;
+  if (pct > 200) pct = 200;
+  return pct / 120.0;
+}
+
 static void desenharLegendaExterna(void){
   /* ASS completo: libass devolve uma lista de bitmaps por camada, preservando
    * karaoke, movimento, desenho vetorial, fontes e todas as tags do arquivo.
-   * A preferencia de cor do app e a unica sobrescrita explicita nesta fase;
-   * com o padrao intocado, a fonte continua sendo a do proprio ASS. */
+   * Da folha, so chegam ao ASS o que nao desmonta o estilo do autor: tamanho
+   * (escala proporcional), opacidade e atraso. Cor, fonte, fundo, posicao e
+   * borda ficam com o arquivo, como no app web desde o 1.2.0 — trocar a cor
+   * apagava o karaoke e as placas coloridas. A folha mostra essas linhas como
+   * preservadas (faixas.c). */
   int r, g, b;
   assrender_aplicar_invalidacao();
-  corLegenda(legEstilo.cor, &r, &g, &b);
-  assrender_definir_cor(player_leg_estilo_tocado(PLR_LEG_COR), r, g, b);
+  assrender_definir_cor(0, 0, 0, 0);
   if (assrender_ativo()) {
+    PlrRect area = areaVideoLegenda();
     float alpha = (legEstilo.opacidade==3?.25f:legEstilo.opacidade==2?.5f:
                    legEstilo.opacidade==1?.75f:1.f) * entrada;
+    assrender_definir_layout(area.x, area.y, area.w, area.h,
+                             video_largura(), video_altura(), escalaFonteAss());
     assrender_desenhar(posLegenda(), legEstilo.atrasoMs, alpha,
                         0, 0, NV_TELA_W, NV_TELA_H);
     return;
@@ -2168,6 +2442,15 @@ void player_desenhar(Uint32 agora) {
   (void)agora;
   if (!aberto) return;
   const CatItem *c = item();
+  // COR VIVA: o titulo que TOCA manda na cor (abrindo, OSD, pausa, pos-play),
+  // acima de tudo. A chave e a arte da tela de abertura logo abaixo; se ela
+  // ainda nao tem paleta, fica a do detalhe, que e o mesmo titulo. Canal ao
+  // vivo nao pede: o logo do canal nao e cor de titulo, e o zap trocaria a
+  // cor da tela a cada canal.
+  if (c && c->backdrop[0] && !player_id_canal()[0]) {
+    corviva_definir(artehero_url(c), CORVIVA_PLAYER);
+    if (c->logo[0]) corviva_definir_logo(artehero_logo_sessao(c), CORVIVA_PLAYER);
+  }
 
   // --- o quadro de video ---
   // Com pipeline nao ha o que desenhar: o video esta num plano de hardware ATRAS
@@ -2193,9 +2476,17 @@ void player_desenhar(Uint32 agora) {
     // Fora do furo fica PRETO, e nao a arte-chave: e o que a TV mostra ao lado
     // do plano de video, e pintar outra coisa ali criaria uma borda que nao
     // existe no aparelho.
-    if (furo.w < NV_TELA_W - 0.5f || furo.h < NV_TELA_H - 0.5f)
-      gfx_cor(tela, 0.0f, 0, 0, 0, 1.0f);
-    if (furo.w > 0.0f && furo.h > 0.0f) gfx_furo(furo);
+    // CRESCENDO DO PREVIEW DO GUIA: o furo segue o retangulo do degrau, com
+    // canto arredondado, e fora dele NAO ha preto — o guia continua a vista
+    // em volta ate o video tomar a tela.
+    if (janAtiva) {
+      GfxRect fa = { janAgora.x, janAgora.y, janAgora.w, janAgora.h };
+      gfx_furo_raio(fa, (16.0f * (1.0f - janT)) / (fa.h > 1.0f ? fa.h : 1.0f));
+    } else {
+      if (furo.w < NV_TELA_W - 0.5f || furo.h < NV_TELA_H - 0.5f)
+        gfx_cor(tela, 0.0f, 0, 0, 0, 1.0f);
+      if (furo.w > 0.0f && furo.h > 0.0f) gfx_furo(furo);
+    }
   } else {
     // CANAL NAO TEM BACKDROP, TEM LOGO. O addon de canais manda a MESMA imagem
     // em poster/background, e ela e a marca do canal — um PNG pequeno, com

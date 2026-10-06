@@ -204,6 +204,7 @@ int trakt_continuar(CatItem *s, int m) {
   }
   return i;
 }
+int   trakt_continuar_falhou(void)        { return 0; }
 // Segunda chamada = segunda montagem. E ali, no log, entre "trakt continuar
 // assistindo" e "trakt atividade dos amigos", que o sync entrega as colecoes:
 // "[desc] fileiras remontadas sem rede: 12 de 12". A config muda junto.
@@ -231,6 +232,9 @@ int trakt_social(CatItem *s, int m) {
 // ------------------------------------------------------------------ o resto
 void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_cw_fonte(void)               { return AJ_CWF_TRAKT; }
+int   ajustes_itens_fileira(void)          { return 12; }   // padrao (#163)
+int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 int   ajustes_idioma_ingles(void)          { return 0; }
 int   ajustes_tmdb_ligado(void)            { return 0; }
 int   ajustes_tmdb_basico(void)            { return 0; }
@@ -245,8 +249,12 @@ int   cat_indice_por_imdb(const char *s)   { (void)s; return -1; }
 const CatItem *cat_item(int i)             { return (i >= 0 && i < nPub) ? &pub[i] : NULL; }
 int   cat_n_episodios(int i)               { (void)i; return 0; }
 void  fil_gravar_registro(void)            { }
-int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n) {
-  (void)ids; (void)bases; (void)n; return 0; }
+int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n,
+                          int perfilDaLista) {
+  (void)ids; (void)bases; (void)n; (void)perfilDaLista; return 0; }
+int   fil_addon_novo(const char *id, const char *base) { (void)id; (void)base; return 0; }
+int   addons_perfil_da_lista(void)         { return 0; }
+int   addons_ativo(int i)                  { (void)i; return 1; }
 int   fil_limite(void)                     { return 16; }
 int   fil_oculta(const char *c)            { (void)c; return 0; }
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
@@ -273,6 +281,8 @@ int   ajustes_salvos_no_simkl(void)        { return 0; }
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; (void)n; return 0; }
 int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
 void  cat_trocar_continuar(const CatItem *l, int q) { (void)l; (void)q; }
+// trakt_lista devolve 0 aqui: nada para mesclar.
+int   cat_mesclar_listas(const CatItem *v, int q) { (void)v; (void)q; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 
 // ------------------------------------------------------------------ o teste
@@ -348,7 +358,7 @@ int main(void) {
                         "{\"addon_id\":\"ultramax\",\"type\":\"movie\",\"catalog_id\":\"u150\",\"order\":0},"
                         "{\"addon_id\":\"ultramax\",\"type\":\"movie\",\"catalog_id\":\"u100\",\"order\":1}"
                         "]}}]") >= 0);
-    n = lerManifesto(0, "https://ultramax.test", d, 32, &real, &prom);
+    n = lerManifesto(0, "https://ultramax.test", d, 32, 1, &real, &prom);
     for (i = 0; i < n; i++) {
       if (!strcmp(d[i].id, "u150")) tem150 = 1;
       if (!strcmp(d[i].id, "u100")) tem100 = 1;
@@ -370,6 +380,20 @@ int main(void) {
     nSoBuscaVolta = 0;
     catordem_esquecer(); }
   puts("ok  a cota le os catalogos da ordem da conta, nao so os primeiros (#126)");
+
+  // Addon DESLIGADO na conta: o manifesto e lido (id aprendido), mas nenhum
+  // catalogo dele vira candidato, "fora da cota" ou alvo de busca. Na C9
+  // (24/09) Pluto TV, Minha TV e FrostView, desligados, ganhavam fileira.
+  { static Decl d[32];
+    int real = -1, prom = -1, n, alvos = desc_busca_n_alvos();
+    n = lerManifesto(0, "https://ultramax.test", d, 32, 0, &real, &prom);
+    assert(n == 0);
+    assert(real == 0 && prom == 0);
+    assert(nForaCota == 0);
+    assert(desc_busca_n_alvos() == alvos);
+    foraCotaSoltar();
+    nSoBuscaVolta = 0; }
+  puts("ok  addon desligado na conta nao declara fileira nem alvo de busca");
 
   // ------------------------------------------------------------- caso 1
   // A sequencia da LG: pacote na tela, perfil/config mudando no meio da

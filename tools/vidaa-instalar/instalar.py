@@ -313,8 +313,8 @@ Examples:
     )
     parser.add_argument("--ip", default=None,
                         help="Local IP for DNS (default: auto-detect)")
-    parser.add_argument("--url", default="https://nuvio-recomendacoes.henriquef29.workers.dev/tv/",
-                        help="Application URL (default: https://nuvio-recomendacoes.henriquef29.workers.dev/tv/)")
+    parser.add_argument("--url", default="https://nuvio-tv.henriquef29.workers.dev/tv/",
+                        help="Application URL (default: https://nuvio-tv.henriquef29.workers.dev/tv/)")
     parser.add_argument("--dns-port", type=int, default=53,
                         help="DNS port (default: 53, requires root)")
     parser.add_argument("--https-port", type=int, default=443,

@@ -120,6 +120,18 @@ void player_manter_mini(void);
 void player_restaurar(void);
 void player_fechar_mini(void);
 void player_mini_desenhar(Uint32 agora);
+// MINI NO GUIA: o "mini" cujo destino e o preview do guia (sem moldura: o
+// guia fura e desenha em volta). `player_mini_no_guia` define a caixa e liga
+// o modo — antes de player_manter_mini()+abrir, a sessao nova ja nasce no
+// preview; com um PiP de canto no ar, ele desliza ate a caixa.
+// `player_minimizar_para_guia`: da tela cheia ao preview, encolhendo, com o
+// mesmo fluxo. `player_restaurar` com o mini no guia faz o caminho inverso,
+// crescendo. `player_janela_animando` devolve 1 e o retangulo do degrau
+// enquanto a janela anda — o guia fura ali durante o encolher.
+void player_mini_no_guia(float x, float y, float w, float h);
+int  player_mini_no_guia_ativo(void);
+void player_minimizar_para_guia(float x, float y, float w, float h);
+int  player_janela_animando(float *x, float *y, float *w, float *h);
 
 // --- MODOS DE PROPORCAO -----------------------------------------------------
 // Os OITO modos do app web, na mesma ordem e com os mesmos fatores
@@ -184,6 +196,11 @@ void player_leg_estilo_mudou(void);
 // "quero o comportamento normal do app", e o normal do app e respeitar o
 // arquivo. Tamanho, fonte e borda nao entram nesta conta — eles vencem o ASS
 // SEMPRE, porque tamanho de legenda numa TV e acessibilidade, nao estilo.
+//
+// Tudo isto vale para o parser REDUZIDO (legenda.c). Com o libass desenhando,
+// o arquivo manda em cor, fonte, fundo, posicao e borda (decisao do dono em
+// 25/09/2026, alinhada ao app web 1.2.0): trocar a cor apagava karaoke e
+// placas. O tamanho continua da pessoa, como escala proporcional do libass.
 #define PLR_LEG_NADA  0
 #define PLR_LEG_COR   1
 void player_leg_estilo_tocou(int campos);  // PLR_LEG_NADA zera

@@ -168,4 +168,4 @@ done
 
 echo "vidaa-site.sh: pronto em $VERSION_DIR"
 echo "vidaa-site.sh: publicar com:"
-echo "  cd servidor/recomendacoes && npx wrangler deploy"
+echo "  bash tools/vidaa-publicar.sh"

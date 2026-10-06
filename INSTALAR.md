@@ -19,7 +19,7 @@ pacote se alguma voltar.
 
 Apps em VIDAA sao hospedadas numa URL, nao sao pacotes de sistema. O Nuvio esta em:
 
-**`https://nuvio-recomendacoes.henriquef29.workers.dev/tv/`**
+**`https://nuvio-tv.henriquef29.workers.dev/tv/`**
 
 Dois builds disponiveis; a TV escolhe automaticamente:
 - **Multifio (mt)** — usa SharedArrayBuffer, mais rapido se suportado

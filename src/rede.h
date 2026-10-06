@@ -56,6 +56,37 @@ char *rede_baixar_com(const char *url, int segundos, const char *const *cabecalh
 char *rede_baixar_trecho(const char *url, int segundos, long ini, long fim,
                          long *tam);
 
+// O mesmo, dizendo POR QUE falhou (#92). `*status` recebe o codigo HTTP da
+// resposta final, depois dos redirecionamentos (0 = nenhuma resposta), e
+// `*erro` o codigo da libcurl (28 = prazo, 7 = conexao recusada; 0 no Tizen,
+// que nao tem libcurl). O corpo so volta em 2xx: um 403/429/416 e NULL como
+// antes, mas quem chama sabe separar "o CDN recusou esta conexao" de "a rede
+// caiu" — o mkvass trata um como freio e o outro como falha passageira.
+// `final` (opcional, `tamFinal` bytes) recebe o endereco depois dos
+// redirecionamentos — o mesmo que rede_url_final daria, sem pedido a mais.
+// Qualquer ponteiro pode ser NULL.
+//
+// CORPO CORTADO (#92): um 206 que fecha antes do fim (curl 18) nao e mais
+// falha — o que veio fica e o resto e pedido do byte seguinte, ate completar
+// ou um pedaco nao trazer nada (ai NULL, com o codigo). O host que corta ganha
+// um teto de pedido lembrado a sessao inteira (rede_corte_host), e os trechos
+// seguintes ja saem em pedacos desse tamanho. `segundos` e o prazo do trecho
+// INTEIRO, nao de cada pedaco. rede_baixar_trecho passa pelo mesmo laco.
+char *rede_baixar_trecho_st(const char *url, int segundos, long ini, long fim,
+                            long *tam, int *status, int *erro,
+                            char *final, unsigned tamFinal);
+
+// Teto de pedido aprendido para o host de `url` (esquema, host e porta), em
+// bytes; 0 = o host nunca cortou um Range nesta sessao. Um host que corta e
+// tambem o candidato a derrubar conexao a mais: o mkvass passa a uma so.
+long rede_corte_host(const char *url);
+
+// 1 quando o ULTIMO rede_baixar_trecho_st DESTE FIO falhou porque um pedaco
+// seguinte (o resto, depois de um corte ou de um pedaco do teto) voltou com
+// zero bytes e sem estourar o prazo: o servidor recusou continuar (#92, v1.4.7:
+// o Real-Debrid, com o video tocando). Ler logo depois da chamada, no mesmo fio.
+int rede_resto_recusado(void);
+
 // Teto de bytes da transferencia corrente (0 = sem teto). E interno ao modulo;
 // esta exposto so porque rede_baixar_trecho o usa. Nao mexer de fora.
 #if defined(__GNUC__)
@@ -145,6 +176,39 @@ char *rede_baixar_bin_medido_controle(const char *url, int segundos,
 char *rede_baixar_etag(const char *url, int segundos,
                        const char *const *cabecalhos, int *status,
                        char *etag, unsigned tamEtag);
+
+// VAZAO DE UM STREAM: baixa `url` a partir do byte `inicio` por ate
+// `segundos` (contados do PRIMEIRO BYTE do corpo, nao da conexao) ou
+// `maxBytes`, e JOGA OS BYTES FORA — nada e acumulado em memoria, que e o que
+// a TV nao tem. Existe para o teste de velocidade do diagnostico (vazao.h).
+//
+// `kbpsPorSegundo` recebe uma amostra por SEGUNDO INTEIRO de corpo (ate
+// `nMax`); um segundo em que nada chegou vale 0, e e justamente o trecho
+// ruim que a conta do "otimo" precisa ver. Medida mais curta que 1 s (o
+// arquivo acabou) vira uma amostra so. Devolve quantas amostras escreveu.
+//
+// `cabecalhos` como em rede_baixar_com (os proxyHeaders do addon); `final`
+// (opcional) recebe o endereco depois dos redirecionamentos. `cancelado` e
+// lido durante o recebimento.
+//
+// NO TIZEN nao ha como contar bytes enquanto chegam (XHR sincrono entrega o
+// corpo inteiro de uma vez): la sao pedidos de Range em pedacos crescentes,
+// cada um descartado no proprio JavaScript e cronometrado, e cada pedaco
+// vira tantas amostras quantos segundos ele levou. Um CDN sem CORS para a
+// origem do app (debrid) aparece como status 0 e erro -1: quem chama diz
+// "nao deu para medir pelo navegador", sem inventar numero.
+typedef struct {
+  int status;               // HTTP da resposta final; 0 = nenhuma resposta
+  int erro;                 // libcurl (0 = ok); -1 no Tizen: o navegador recusou
+  long long bytes;          // recebidos (e descartados)
+  unsigned long ms;         // do primeiro byte ao fim da medida
+  unsigned long esperaMs;   // do pedido ao primeiro byte
+  int cancelado;
+} RedeVazao;
+int rede_medir_vazao(const char *url, const char *const *cabecalhos, int segundos,
+                     long inicio, long long maxBytes, volatile int *cancelado,
+                     int *kbpsPorSegundo, int nMax, RedeVazao *res,
+                     char *final, unsigned tamFinal);
 
 // Registra quem OUVE os 401. Sem isto um token de sessao vencido era so uma
 // linha no log — o Trakt continuava "conectado" na tela enquanto toda

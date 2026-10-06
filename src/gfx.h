@@ -29,8 +29,9 @@ typedef enum {
   // que este shader vem sendo mantido.
   GFX_HERO_CHEIO = 12,
   // Contorno sem miolo, cheio ou tracejado. Usa o mesmo SDF dos outros modos —
-  // um anel e `abs(d) < espessura` —, entao serve para retangulo arredondado
-  // tanto quanto para circulo (raio 0.5 = circulo).
+  // o traco e `-espessura < d < 0`, POR DENTRO do rect —, entao serve para
+  // retangulo arredondado tanto quanto para circulo (raio 0.5 = circulo).
+  // Prefira gfx_anel / gfx_anel_fora, que recebem a espessura em pixels.
   //
   // Passe a espessura em `parx`, na mesma escala normalizada de `raio`, e o
   // numero de tracos do pontilhado em `pary` (0 = anel continuo). Exemplo, o
@@ -177,7 +178,19 @@ typedef enum {
   //   uFoco = tempo em segundos (0 = parado, para animacoes reduzidas)
   // Substitui o preenchimento de fundo da tela, entao nao soma camada cheia.
   GFX_CEU = 30,
-  GFX_NMODOS = 31
+  // COR VIVA (corviva.h). Os dois primeiros NAO se pedem pelo nome: gfx_rect
+  // troca GFX_COR e GFX_ANEL por eles quando a cor passada e exatamente o
+  // destaque vivo e o tema e "Dinâmica gradiente" ou "imersiva" — e assim que
+  // o botao, a linha em foco e o anel de ~40 arquivos viram degrade sem que
+  // nenhum mude. As paradas vem de nv_grad_viva, e a luz anda devagar com
+  // nv_tempo_viva (o degrade "respira"; parado com animacoes reduzidas).
+  GFX_COR_GRAD = 31,
+  GFX_ANEL_GRAD = 32,
+  // GFX_AMBIENTE — a cor da arte VAZANDO na interface: quatro luzes grandes e
+  // macias (esquerda, direita, topo, base) com as cores de regiao da arte,
+  // numa passada so de tela cheia, com dither contra faixas. Use gfx_ambiente.
+  GFX_AMBIENTE = 33,
+  GFX_NMODOS = 34
 } GfxModo;
 
 typedef struct {
@@ -251,6 +264,19 @@ int  gfx_borrao_iniciar(int w, int h);
 void gfx_borrao_gerar(int via, unsigned int tex, float texAspecto);
 void gfx_borrao_desenhar(int via, GfxRect r, float alpha);
 void gfx_borrao_encerrar(void);
+// Copia DESFOCADA e pequena (96x54) de uma textura de arte, para o ajuste
+// "Desfocar nao assistidos" (#133). Gerada na primeira chamada e guardada; as
+// seguintes devolvem a mesma textura. `chave` e o caminho da arte, e com o
+// nome GL identifica a copia (o nome sozinho volta de glGenTextures com outra
+// imagem depois de um despejo). Desenhe como qualquer arte, por GFX_CARD e
+// com gfx_tex_aspect_atual = tex_aspecto(caminho): a copia guarda a imagem
+// INTEIRA e ja sai de pe.
+//
+// Devolve 0 enquanto nao ha copia (limite de geracoes por quadro, ou alvo de
+// render indisponivel). Nesse caso NAO desenhe a arte nitida no lugar — o
+// ajuste existe para esconder o spoiler; pinte o fundo do card.
+GLuint gfx_desfocado(GLuint src, const char *chave);
+int  gfx_snap_ok(void);        // 1 quando o FBO do snapshot existe
 void gfx_snap_comecar(void);   // redireciona o desenho para o snapshot
 void gfx_snap_terminar(void);  // volta para a tela
 void gfx_snap_desenhar(void);  // pinta o snapshot ocupando a tela toda
@@ -299,6 +325,22 @@ void gfx_rect(GfxRect r, GLuint tex, GfxModo modo, float foco,
 
 // Atalhos legiveis para os casos comuns.
 void gfx_cor(GfxRect r, float raio, float cr, float cg, float cb, float ca);
+// A luz ambiente do tema "Dinâmica imersiva", tela cheia, com `alfa` a mais
+// por cima da forca que corviva ja anima. Nao desenha nada fora dele: o custo
+// e zero nos outros temas. main.c chama logo depois do glClear.
+// Assa a luz imersiva no quadro pequeno. Chamar ANTES do clear da tela (ver gfx.c).
+void gfx_ambiente_preparar(void);
+void gfx_ambiente(float alfa);
+// Contorno de `esp` PIXELS por dentro de r: a borda de fora do anel e a borda
+// de r, entao anel e miolo no mesmo rect dao uma borda so. `raio` e o de r,
+// normalizado pela altura, como em gfx_cor.
+void gfx_anel(GfxRect r, float raio, float esp,
+              float cr, float cg, float cb, float ca);
+// Anel de foco POR FORA de uma peca: `folga` px de vao e `esp` px de traco,
+// concentrico com ela (o raio em pixels cresce folga + esp). `raio` e o da
+// PECA. E o jeito de desenhar anel em volta de botao, cartao ou celula.
+void gfx_anel_fora(GfxRect peca, float raio, float folga, float esp,
+                   float cr, float cg, float cb, float ca);
 // Cartao focado com material tipo vidro: mancha de accent atras, base escura
 // translucida, lavagem em degrade por pixel e reflexo de topo muito leve.
 // A area extra fica limitada a um unico item focado, nunca a tela inteira.

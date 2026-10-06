@@ -3,10 +3,11 @@
 // puro, sem wrangler e sem rede — o mesmo estilo de teste-xtream.mjs: um
 // `buscar`/`env.ASSETS.fetch` de mentira que devolve o que o teste pede.
 //
-//   node servidor/recomendacoes/teste-vidaa.mjs
+//   node servidor/tv/teste-vidaa.mjs
 import assert from "node:assert/strict";
 import worker from "./src/index.js";
-import { rotaProxy } from "./src/proxy.js";
+import api from "../recomendacoes/src/index.js";
+import { rotaProxy } from "../recomendacoes/src/proxy.js";
 
 const logs = [];
 console.log = (...a) => logs.push(a.join(" "));
@@ -138,15 +139,29 @@ const W = "https://w.test";
 {
   const env = { DB: fakeDB() };
   const cab = { authorization: "Bearer tok-a", "x-nuvio-auth": "nuvio" };
-  let r = await worker.fetch(new Request(W + "/v1/rec", { headers: cab }), env);
+  let r = await api.fetch(new Request(W + "/v1/rec", { headers: cab }), env);
   assert.equal(r.status, 200);
   const etag = r.headers.get("etag");
   assert.ok(etag);
-  r = await worker.fetch(new Request(W + "/v1/rec", { headers: { ...cab, "if-none-match": etag } }), env);
+  r = await api.fetch(new Request(W + "/v1/rec", { headers: { ...cab, "if-none-match": etag } }), env);
   assert.equal(r.status, 304);
   assert.equal(r.headers.get("access-control-allow-origin"), "*", "304 sem isto e invisivel para o XHR em modo cors");
   assert.equal(r.headers.get("access-control-expose-headers"), "etag");
   console.error("ok  /v1/rec: 304 agora leva Access-Control-Allow-Origin e expõe etag");
+}
+
+// === a API so REPASSA /tv e /v1/proxy para o worker da TV ====================
+{
+  const visto = [];
+  const env = { TV: { fetch: async (rq) => { visto.push(new URL(rq.url).pathname); return new Response("tv"); } } };
+  for (const c of ["/tv", "/tv/", "/tv/1.4.3/mt/index.wasm", "/v1/proxy"]) {
+    const r = await api.fetch(new Request(W + c), env);
+    assert.equal(await r.text(), "tv");
+  }
+  assert.equal(visto.length, 4);
+  const r = await api.fetch(new Request(W + "/tv/"), {});
+  assert.equal(r.status, 404, "sem o binding TV: 404, nunca o 401 da sessao");
+  console.error("ok  API: /tv e /v1/proxy repassados ao worker nuvio-tv; 404 sem o binding");
 }
 
 // === /v1/proxy ================================================================

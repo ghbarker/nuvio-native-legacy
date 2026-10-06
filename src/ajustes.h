@@ -22,6 +22,30 @@ int  ajustes_quer_sair(void);
 // 1 quando a linha "Addons" foi acionada. Lido e zerado na chamada.
 int  ajustes_pediu_addons(void);   // 1 quando o Back deve fechar a tela
 int  ajustes_pediu_diagnostico(void);
+// OK em "Teste de velocidade" (Ajustes › Diagnóstico). Lido e zerado pelo app.c.
+int  ajustes_pediu_velocidade(void);
+// Itens da barra lateral que a pessoa pode esconder (#162). 1 = aparece.
+int  ajustes_menu_explorar(void);
+int  ajustes_menu_guia(void);
+int  ajustes_menu_agenda(void);
+int  ajustes_menu_perfil(void);
+// "Trailer do cartaz em foco" (#124, focusedPosterBackdropTrailerEnabled),
+// ja considerando a dependencia: 1 so com expandir ou cartaz deitado ligados.
+int  ajustes_trailer_cartaz(void);
+// "Itens por fileira" da Home (#163): 12, 18 ou 24. Padrao 12.
+int  ajustes_itens_fileira(void);
+// A proxima abertura da tela (ajustes_iniciar) pousa o foco em "Cor de
+// destaque" em vez da primeira linha. E o "Experimentar a cor viva" do cartao
+// da 1.4.8: chamar ANTES de trocar para TELA_AJUSTES.
+void ajustes_abrir_na_cor(void);
+// Atalho do cartão de novidades para a tipografia da interface.
+void ajustes_abrir_na_fonte(void);
+// A linha em foco (indice AJ_*; -1 com o foco num grupo), para os testes
+// conferirem onde a tela abriu.
+int  ajustes_opcao_em_foco(void);
+// 1 = o foco esta na coluna de categorias, que e onde a tela abre sempre —
+// menos logo depois de ajustes_abrir_na_cor, que pousa na lista.
+int  ajustes_foco_no_indice(void);
 void ajustes_encerrar(void);
 
 // Leitura pelo resto do app. "Animacoes reduzidas" e a que mais importa: com
@@ -64,6 +88,13 @@ int ajustes_idioma_ingles(void);
 // ajustes.c para o motivo de nao ser a paleta inteira. Branco e o padrao, que
 // e exatamente o anel que sempre existiu.
 void ajustes_acento(float *r, float *g, float *b);
+// 0 = tema fixo; CORVIVA_SIMPLES ("Dinâmica") ou CORVIVA_ESTILIZADA ("Dinâmica
+// estilizada"): o destaque segue a arte do titulo em cena (corviva.h). Os dois
+// sao LOCAIS: nao sobem para a conta e a conta nao os desfaz (ver
+// ajustes_aplicar_blob / ajustes_mesclar_blob).
+int  ajustes_cor_viva(void);
+// "Cor da logo": 1 = com tema dinamico, o destaque sai do logo do titulo.
+int  ajustes_cor_logo(void);
 // A MESMA cor mais a TINTA que contrasta com ela: devolve 0.067 (#111) sobre
 // realce claro e 1.0 (branco) sobre realce escuro, luminancia Rec.709 com o
 // degrau em 0,55. E a regra de FOCO de layout.h (preenchimento na cor de
@@ -96,6 +127,17 @@ int   ajustes_gradiente_foco_classico(void); // classicFocusGradientEnabled
 // x onde o conteudo comeca. Nao e constante: o recuo e sempre 104 e a rail
 // soma os 144 dela quando esta fixa.
 float ajustes_conteudo_x(void);
+// A FAIXA QUE A RAIL FIXA COBRE na borda esquerda, em px de tela: 144 com ela
+// presa (classica OU moderna — as duas pintam o mesmo desenhaRailFixa, e a
+// moderna desliga o recolhimento), 0 recolhida. E a UNICA fonte desse numero:
+// tela nenhuma deve somar NV_LEGACY_RAIL_W por conta propria.
+float ajustes_rail_largura_fixa(void);
+// Area util de uma tela que nasceu desenhada para a tela inteira (#rail fixa,
+// 26/09): `padEsq` e `padDir` sao os recuos que ela ja usava (80, 96, 104...).
+// Devolve x = rail + padEsq e w = NV_TELA_W - padDir - x. Recolhida, e a conta
+// de antes, byte por byte; fixa, o conteudo anda para a direita e ENCOLHE —
+// quem tem grade tira colunas a partir de `w`, nao escala nem corta.
+void  ajustes_area_conteudo(float padEsq, float padDir, float *x, float *w);
 
 // --- LAYOUT: rotulos e metadados --------------------------------------------
 int   ajustes_rotulos_poster(void);     // posterLabelsEnabled

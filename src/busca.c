@@ -81,7 +81,11 @@
 #define BU_MAX_FILEIRAS 32
 #define BU_MAX_POR_FIL  12
 
-#define BU_KB_X        NV_CONTENT_PAD
+// O teclado (e tudo a direita dele, que sai de BU_KB_X) parte do mesmo x da
+// home: 104 recolhida, 248 com a rail fixa. Era NV_CONTENT_PAD cravado, e com a
+// rail presa a primeira coluna de teclas ficava embaixo dela (26/09). As
+// fileiras de resultado so perdem largura — elas ja rolam na horizontal.
+#define BU_KB_X        ajustes_conteudo_x()
 
 // --- Buscas recentes (campo vazio; regras em buscasrec.h) ---------------------
 // Pilulas de 56 (a altura do SECUNDARIO de botoes.h e das pilulas da Biblioteca)
@@ -674,7 +678,7 @@ void busca_atualizar(float dt, Uint32 agora) {
 // --- Desenho -----------------------------------------------------------------
 // Campo de consulta: nenhum botao decorativo que nao possa receber foco.
 static void desenhaCabecalho(Uint32 agora) {
-  float x = NV_CONTENT_PAD;
+  float x = BU_KB_X;
   float raio = 0.5f;
   GfxRect campo = { x, BU_HEAD_Y, BU_DIR - x, BU_HEAD_H };
   float ar, ag, ab;
@@ -894,13 +898,13 @@ static void desenhaResultados(Uint32 agora) {
         if (f > 0.01f) {
           GfxRect luz = { poster.x - 22.0f, poster.y - 22.0f,
                           poster.w + 44.0f, poster.h + 44.0f };
-          GfxRect b = { poster.x - 3.0f, poster.y - 3.0f,
-                        poster.w + 6.0f, poster.h + 6.0f };
           ajustes_acento(&ar, &ag, &ab);
           gfx_rect(luz, 0, GFX_SOMBRA, 1.0f, 0, 0, 0.5f,
                    ar, ag, ab, 0.24f * f);
-          gfx_rect(b, 0, GFX_ANEL, 0.0f, 0.014f, 0.0f, raio,
-                   ar, ag, ab, f);
+          // 3 px encostados no cartaz e CONCENTRICOS: o anel crescia 3 px de
+          // cada lado mas reusava o raio normalizado do cartaz, entao o canto
+          // dele fechava ~3 px antes do que devia.
+          gfx_anel_fora(poster, raio, 0.0f, 3.0f, ar, ag, ab, f);
         }
 
         const char *arte = ci->poster[0] ? ci->poster

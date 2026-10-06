@@ -254,6 +254,10 @@ IGNORAR = {
     "abrir", "buscar", "erro",      # nomes de operacao do bridge JS (video_tizen.c)
     "fontes", "legenda", "mais", "nao", "poster",  # chaves internas, nao rotulo
     "fileiras", "ordem-da-conta",  # partes do contexto no log de homeestado.c
+    # Pontos de parada da volta condenada (descoberta.c, CONDENADA): so log.
+    "antes de pedir os catalogos", "depois da atividade dos amigos",
+    "depois do continuar assistindo", "depois dos catalogos",
+    "depois dos manifestos", "esperando os catalogos", "lendo os manifestos",
     "crédit", "crédito",            # palavra procurada no capitulo do MKV
     "episodio", "episódio",         # palavra procurada no nome do video TMDB (extras.c)
     # Nome proprio e sigla: iguais nos dois idiomas.
@@ -304,6 +308,24 @@ IGNORAR = {
     # para o printf "[legenda] faixa N -> TV: motivo" — o mesmo caso dos
     # motivos do [col] acima: log em portugues de proposito, para quem manda
     # o registro na issue.
+    # #92, v1.4.7: se o VIDEO ja estava aberto quando um Range do mkvass
+    # falhou (momentoVideo, mkvass.c), e o porque do video solto na linha da
+    # pre-busca (player.c). Os dois so vao a printf de diagnostico, por um
+    # `return`/ternario que a varredura nao liga ao printf.
+    # Os motivos de gifcol_motivo_texto() (gifcolecao.c, #141): por que o
+    # cartaz de colecao em foco nao anima. `return "..."` que so vai ao
+    # printf "[gif] cartaz ... nao anima: motivo" — log para a issue.
+    "sem focusGifUrl e a capa nao e GIF",
+    "sem focusGifUrl e a capa ainda nao chegou",
+    "arquivo do GIF ainda nao chegou",
+    "veio GIF mas o arquivo saiu do disco",
+    "o arquivo nao e GIF",
+    "GIF de 1 quadro",
+    "recusado pelo orcamento de animacao (ver a linha [gif] acima)",
+    "este aparelho nao anima GIF (webOS ou TV de 1 GB)",
+    "antes do video",
+    "com video aberto",
+    "teto vencido, o resto segue em segundo plano",
     "faixa inexistente",
     "sem URL da fonte",
     "mkvass ja desistiu desta faixa nesta sessao",

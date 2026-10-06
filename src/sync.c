@@ -3,6 +3,7 @@
 #include "nuvem.h"
 #include "perfis.h"
 #include "agenda.h"
+#include "lembrete.h"
 #include "dados.h"
 #include "addons.h"
 #include "debrid.h"
@@ -28,6 +29,7 @@
 #include "homeestado.h"
 #include "cachearte.h"
 #include "extras.h"
+#include "arteescolha.h"
 #include "js.h"
 #include "jsw.h"
 #include <stdio.h>
@@ -793,7 +795,14 @@ void sync_passo(unsigned agoraMs) {
   if (addonsCedo) {
     addonsCedo = 0;
     if (temAddonsRem && perfilDoCiclo == perfis_ativo()) {
-      if (addons_definir_lista(addonsRem, nAddonsRem)) desc_repetir();
+      // _addons: a volta que ainda nao leu a lista (o caso do arranque e da
+      // escolha de perfil) atende o pedido sozinha, sem ser jogada fora.
+      // A lista vale para a poda de fileiras SO DEPOIS de marcada como deste
+      // perfil — e antes de desc_repetir_addons, para a volta que ela dispara
+      // ja poder podar. Ver addons_marcar_da_conta.
+      { int mudou = addons_definir_lista(addonsRem, nAddonsRem);
+        if (nAddonsRem > 0) addons_marcar_da_conta(perfilDoCiclo);
+        if (mudou) desc_repetir_addons(); }
       temAddonsRem = 0;
     }
   }
@@ -847,12 +856,14 @@ void sync_passo(unsigned agoraMs) {
   // ultimas refazia Trakt e todos os manifestos por nada, e como o ciclo novo
   // publica um conjunto diferente do anterior, a home carregava um catalogo,
   // trocava por outro e so entao assentava na ordem final.
-  { int remontar = 0, soFileiras = 0;
+  { int remontar = 0, soFileiras = 0, soAddons = 0;
   // SO REMONTA QUANDO A LISTA MUDOU DE VERDADE. Ligar `remontar` porque a
   // resposta chegou fazia um ciclo de descoberta completo a cada cinco minutos
   // com a lista identica — ver listaIgual em addons.c.
   if (temAddonsRem) {
-    if (addons_definir_lista(addonsRem, nAddonsRem)) remontar = 1;
+    if (addons_definir_lista(addonsRem, nAddonsRem)) soAddons = 1;
+    // O ciclo de outro perfil ja foi descartado acima: esta lista e do ativo.
+    if (nAddonsRem > 0) addons_marcar_da_conta(perfilDoCiclo);
     temAddonsRem = 0;
   }
   // Vinculo feito NESTA TV ganha do que a conta manda: o servidor nao aceita o
@@ -939,7 +950,10 @@ void sync_passo(unsigned agoraMs) {
   }
   // Rede so quando muda o que buscar. Quando as duas coisas mudam no mesmo
   // ciclo, o ciclo de rede ja remonta as fileiras no fim — nao ha o que somar.
+  // Credencial nova pede a volta inteira de novo (o Trakt ja lido e o velho);
+  // so a lista de addons, nem sempre — ver desc_repetir_addons.
   if (remontar) desc_repetir();
+  else if (soAddons) desc_repetir_addons();
   else if (soFileiras) desc_remontar_fileiras(); }
   if (temAjustesBlob && ajustesBlob) {
     ajustes_aplicar_blob(ajustesBlob);
@@ -1092,6 +1106,8 @@ void sync_esquecer_usuario(void) {
   // saiu, com o dia em que cada uma volta. Mesmo argumento dos salvos, e com o
   // agravante de a tela Agenda mostrar essa lista inteira de uma vez.
   agenda_esquecer();
+  // E os lembretes de programa do guia, pelo mesmo motivo.
+  lembrete_esquecer_todos();
   // E AS RECOMENDACOES, pela mesma razao com um agravante proprio: elas trazem
   // o NOME de quem mandou. Sem esta linha a proxima pessoa a entrar abriria a
   // aba Social com a lista de amigos de quem saiu.
@@ -1102,6 +1118,9 @@ void sync_esquecer_usuario(void) {
   // sobreviveria ao logout em disco e passaria a mandar na reproducao da
   // proxima pessoa.
   fontepref_esquecer();
+  // E A ARTE ESCOLHIDA A MAO (#142): diz o que a pessoa abriu e guardou, e
+  // sem esta linha a proxima conta herdaria as fotos de quem saiu.
+  arteesc_esquecer();
   // E AS BUSCAS RECENTES. Nao sobem para a conta (sao deste aparelho), mas sao
   // o que a pessoa procurou — a proxima a entrar abriria a Busca com a lista
   // de quem saiu nas pilulas, a um OK de refazer cada uma.

@@ -246,6 +246,9 @@ int  cat_blocos_aposentados(void);
 void cat_dir_gravacao(const char *dir);
 
 int cat_indice_por_imdb(const char *imdb);
+// Como cat_indice_por_imdb, mas fica em `preferido` enquanto ele for o mesmo
+// titulo e prefere uma copia COM episodios (#151; ver catalogo.c).
+int cat_indice_titulo(const char *imdb, int preferido);
 
 // Acrescenta um titulo ao FIM e devolve o indice, ou -1. Para o titulo que veio
 // de fora do catalogo (filmografia de ator, "Mais como este"). Ver a nota sobre
@@ -259,6 +262,12 @@ int cat_acrescentar(const CatItem *item);
 // copia o catalogo inteiro por chamada, e a busca chegava a mover dezenas de MB
 // no fio de desenho a cada tecla.
 int cat_acrescentar_lote(const CatItem *v, int qtd, int *saidaIdx);
+// A watchlist/colecao do Trakt por cima do bloco da tela, SEM trocar fileira:
+// titulo que ja esta no catalogo so ganha a marca (naLista/naColecao, em todas
+// as copias), o resto entra no fim, como cat_acrescentar_lote. Nada sai — a
+// publicacao completa da descoberta e quem poda o que deixou a lista. Devolve
+// quantos entraram.
+int cat_mesclar_listas(const CatItem *v, int qtd);
 
 // Atualiza o espelho local de "esta na watchlist". A verdade e o Trakt, mas
 // esperar o proximo ciclo de descoberta para o botao mudar de cara faria o
@@ -403,6 +412,10 @@ int           cat_similares(int indice, int *saida, int max);
 // Quantas vezes o catalogo INTEIRO foi trocado. Muda => todo indice guardado
 // fora daqui deixou de valer, e as faixas de episodio foram zeradas.
 unsigned      cat_revisao(void);
+// Sobe a cada mudanca em QUALQUER item (marca de lista, progresso, item novo,
+// substituido ou removido), alem de toda troca do bloco. Barata de ler por
+// quadro; quem deriva uma lista do catalogo reconstroi so quando ela muda.
+unsigned      cat_revisao_itens(void);
 int           cat_n_episodios(int indiceItem);
 const CatEp  *cat_episodio(int indiceItem, int i);   // indice circular; NULL se o catalogo esta vazio
 

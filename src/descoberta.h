@@ -51,6 +51,11 @@ void desc_iniciar(void);
 // se um ciclo ja estiver no ar, o pedido fica guardado e roda ao fim dele, em
 // vez de ser descartado. Chamar do fio principal.
 void desc_repetir(void);
+// Remonta porque a LISTA DE ADDONS mudou (sync). Mais barato que desc_repetir:
+// se a montagem em curso ainda nao leu a lista, ela ja vai ler a nova, e o
+// pedido e atendido por ela — sem jogar fora o Trakt que ela ja buscou. Se ja
+// leu, e o mesmo que desc_repetir. Chamar do fio principal.
+void desc_repetir_addons(void);
 // Refaz so a fileira "Continuar assistindo", fora do ciclo completo (issue
 // #38). Fio proprio: remontar a fileira faz rede. Pedido repetido enquanto um
 // fio ja roda vira UMA rodada a mais no fim, nao uma fila.
@@ -164,7 +169,7 @@ int  desc_buscando(void);
 // vezes a mesma coisa nao refaz a busca.
 // --- VER TUDO: um catalogo inteiro, em paginas ------------------------------
 //
-// A home mostra 12 itens por fileira (MAX_POR_FILEIRA). O catalogo tem mais, e
+// A home mostra DESC_ITENS_POR_FILEIRA itens por fileira. O catalogo tem mais, e
 // o protocolo Stremio pagina por `skip`:
 //   <base>/catalog/<tipo>/<id>/skip=<n>.json
 // E o mesmo caminho da busca, com outro filtro no lugar do termo.
@@ -172,6 +177,13 @@ int  desc_buscando(void);
 // Assincrono, como todo o resto: dispara e volta na hora. Quem desenha pergunta
 // quantos ja chegaram.
 #define VT_MAX 1000
+
+// ITENS POR FILEIRA DA HOME (#163: "da para passar de 12?"). Eram 12. O web
+// usa 15 no layout padrao e 24 no classico (HOME_MAX_ITEMS_PER_ROW_CLASSIC,
+// homeConstants.js); aqui e 24. home.c reserva MAX_CARDS = 33 colunas (os
+// cartazes mais o "Ver tudo"), entao cabe. Custo: ~15,6 KB por item em RAM,
+// e as capas continuam carregando so quando entram na tela.
+#define DESC_ITENS_POR_FILEIRA 24
 
 // Comeca (ou continua) a leitura do catalogo. `pagina` 0 e o inicio; cada
 // pagina seguinte pede skip = pagina * VT_PASSO. Repetir a mesma pagina nao
@@ -199,10 +211,15 @@ void desc_episodios(int indiceItem, int temporada);
 // pendurada e a lista nunca chega na temporada escolhida.
 void desc_episodios_pendente(void);
 int desc_episodios_carregando(int indiceItem);
-// Preenche `nota` (x10) dos eps da temporada dada a partir do JSON de
-// /tv/<id>/season/<n> do TMDB. Pura; devolve quantos ganharam nota.
+// Preenche `nota` (x10) e a `sinopse` no idioma pedido (#150) dos eps da
+// temporada dada a partir do JSON de /tv/<id>/season/<n> do TMDB. Pura;
+// devolve quantos episodios mudaram.
 int  desc_tmdb_notas_temporada(const char *json, CatEp *eps, int n,
                                int temporada);
+// Casa o `cast` de /credits do TMDB com o elenco do item POR NOME (sem acento,
+// caixa nem pontuacao) e completa a lista com o resto do TMDB (#153). Pura;
+// devolve quantos nomes casaram.
+int  desc_tmdb_elenco(const char *json, CatItem *d);
 // Tipo(s) em que perguntar o /meta do Cinemeta, na ordem (1 ou 2). Tipo
 // incerto ("anime" etc.) tenta serie e depois filme. Puras.
 int  desc_meta_tipos(const char *tipo, const char *saida[2]);

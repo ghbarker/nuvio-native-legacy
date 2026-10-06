@@ -151,6 +151,13 @@ int  stream_primeira_boa(int tentativas);
 // Publica para o parser e o teste; a lista ja vem com o campo preenchido.
 int  stream_texto_fora_de_cache(const char *texto);
 
+// A PONTUACAO DA FONTE AUTOMATICA (modo "Melhor fonte") e o teto de
+// "Qualidade maxima", para quem precisa ordenar uma lista que NAO e a do
+// titulo aberto: o teste de velocidade do diagnostico mede primeiro a fonte
+// que o automatico escolheria, com a mesma regra, sem copia-la.
+long stream_pontos(const Stream *s);
+int  stream_cabe_no_teto(const Stream *s);
+
 // TORRENT SEM URL ESCOLHIDO A DEDO NA FOLHA. A escolha manual chamava
 // player_definir_fonte(s->url) com a url VAZIA — e player_definir_fonte volta
 // calado com url vazia: o player ficava em "carregando" para sempre. So o
@@ -182,9 +189,26 @@ int  stream_canal_primeira_viva(int tentativas);
 // Serve para o chamador dar prazo menor a quem ja provou estar ruim.
 int  stream_canal_classe_escolhida(void);
 
+// A proxima fonte a tentar depois de `atual`, na fila que a sonda montou
+// (viva, incerta, muda, morta; teto antes de acima dele). -1 = acabou. Sem
+// fila valida para a lista atual, a ordem do addon (atual + 1).
+int  stream_canal_proxima(int atual);
+// 1 quando a fonte `idx` merece o prazo cheio de abertura: viva, incerta, ou
+// sonda que nao achou nenhuma viva (nao informou nada). 0 = muda/morta numa
+// lista em que outras responderam, prazo curto.
+int  stream_canal_prazo_longo(int idx);
+
 // --- folha de fontes (a lista que sobe por cima do player/detalhe) ---
 void stream_folha_abrir(void);
 int  stream_folha_aberta(void);
+// QUANTAS LINHAS A FOLHA MOSTRA AGORA — issue #132 ("so 1 fonte listada"). A
+// folha lista a lista INTEIRA de stream_definir_lista; so os filtros que a
+// pessoa liga NA PROPRIA FOLHA (provedor, "MP4") tiram linha. A verificacao do
+// automatico, "Fonte automatica" (Melhor/Primeira da lista), as candidatas que
+// falharam (stream_automatico_excluir) e a fonte fora de cache NAO escondem
+// nada. tests/fontes_lista.sh prende isso; abrir a folha escreve a contagem no
+// log ("[fonte] folha: N de M na lista"), para o proximo relato dizer onde caiu.
+int  stream_folha_n(void);
 void stream_folha_evento(const SDL_Event *e);
 void stream_folha_atualizar(float dt, Uint32 agora);
 void stream_folha_desenhar(Uint32 agora);

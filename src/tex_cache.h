@@ -77,6 +77,13 @@ GLuint tex_obter_passageira(const char *caminho, float largLayout);
 // thread de desenho.
 const char *tex_arquivo(const char *url);
 
+// Os 4 PRIMEIROS BYTES do que a rede entregou para `caminho` (1), ou 0 quando
+// o item nao existe ou ainda nao baixou. Nao pede nada. Existe para o cartaz
+// de colecao (#141): decidir se a CAPA e um GIF animavel e dizer no log em
+// que formato um "GIF" chegou. No Tizen so GIF vira arquivo; o resto vive na
+// memoria do item e some no decode, e esta e a unica testemunha que sobra.
+int tex_magica(const char *caminho, unsigned char magica[4]);
+
 // Proporcao (w/h) da textura ja carregada; 0 se ainda nao esta pronta.
 // Necessaria para o "cover" do shader — sem ela a arte estica.
 float tex_aspecto(const char *caminho);
@@ -110,6 +117,13 @@ int tex_falhou(const char *caminho);
 //
 // Responde 0 enquanto a textura nao carregou: nao tingir e o padrao seguro.
 int  tex_marca_escura(const char *caminho);
+
+// O logo e de UM TOM SO (marca de uma cor, sem nada dentro)? 1 sim, 0 nao
+// (varios tons: azulejo claro com a marca escura, logo colorido com
+// detalhe), -1 enquanto nao carregou. So o de tom unico pode ser tingido pela
+// forma do alfa (GFX_MARCA) sem virar um bloco chapado.
+#define NV_LOGO_TOM_UNICO_DESVIO 28
+int  tex_logo_tom_unico(const char *caminho);
 
 // Identificador estável derivado do caminho, usado apenas no trace de uma
 // sessão. Não imprime nem armazena a URL original.
