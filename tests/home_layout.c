@@ -1,6 +1,9 @@
 // Sem janela, rede ou TV: valida composição editorial e foco sobre dados reais
 // de catálogo (fixtures), usando a implementação da Home e do catálogo.
 #include <assert.h>
+// Antes do home.c: os dois acessores viram os do teste (ver homeCom).
+#define ajustes_home_layout teste_home_layout
+#define ajustes_hero_ligado teste_hero_ligado
 #include "../src/home.c"
 
 void cachearte_marcar_grupo(int grupo, const char *url, int variante, int essencial, int emUso) {
@@ -13,6 +16,7 @@ void tex_cache_marcar_larg(int grupo, const char *url, float larg, int essencial
 }
 int tex_falhou(const char *url) { (void)url; return 0; }
 int tex_largura_fonte(const char *url) { (void)url; return 0; }
+float tex_aspecto(const char *c) { (void)c; return 0.0f; }
 Uint32 SDL_GetTicks(void) { return 0; }
 
 // catalogo.c agora le o progresso de progresso.c, que fala com dados.c e
@@ -32,7 +36,19 @@ int   perfis_ativo(void) { return 1; }
 const char *addons_base_por_id(const char *id) { (void)id; return ""; }
 const char *addons_nome_por_id(const char *id) { (void)id; return ""; }
 
+// LAYOUT E DESTAQUE DO TESTE. home.c le os dois por estes acessores; trocados
+// aqui por variaveis, sem arrastar o disco e os idiomas de ajustes.c para o
+// link. O padrao e o da TV que nunca mexeu: Moderna, destaque ligado.
+static int testeLayout = HOME_LAYOUT_MODERNA, testeHero = 1;
+int teste_home_layout(void) { return testeLayout; }
+int teste_hero_ligado(void) { return testeHero; }
+static void homeCom(int layout, int heroLigado) { testeLayout = layout; testeHero = heroLigado; }
+
 int main(void) {
+  // A composicao abaixo e a da home SEM o destaque no topo: e nela que a
+  // primeira fileira de catalogo vira a vitrine (vitrineNaPrimeira). O #201
+  // (com destaque) tem bloco proprio no fim.
+  homeCom(HOME_LAYOUT_MODERNA, 0);
   // O TETO DE FILEIRAS NO MAXIMO, porque este teste e sobre COMPOSICAO e FOCO.
   //
   // O limite legado é 16 linhas visíveis. O fixture valida a composição dentro
@@ -53,6 +69,9 @@ int main(void) {
   assert(tipoDaEscolha(FIL_TIPO_DESTAQUE) == FILEIRA_DESTAQUE);
   assert(tipoDaEscolha(FIL_TIPO_DESTAQUE_QUADRADO) == FILEIRA_DESTAQUE_QUADRADO);
   assert(!strcmp(fil_tipo_rotulo(FIL_TIPO_DESTAQUE_QUADRADO), "Destaque 4:3"));
+  // Os 4:3 maiores sao a mesma forma; o tamanho vem do fator (fil_escala).
+  assert(tipoDaEscolha(FIL_TIPO_DESTAQUE_QUADRADO_M) == FILEIRA_DESTAQUE_QUADRADO);
+  assert(tipoDaEscolha(FIL_TIPO_DESTAQUE_QUADRADO_G) == FILEIRA_DESTAQUE_QUADRADO);
   assert(gapDe(FILEIRA_DESTAQUE) == NV_CARD_GAP_GRANDE);
   assert(gapDe(FILEIRA_DESTAQUE_QUADRADO) == NV_CARD_GAP_GRANDE);
   assert(gapDe(FILEIRA_NORMAL) == NV_CARD_GAP);
@@ -101,6 +120,27 @@ int main(void) {
       if (!strcmp(fileiras[r].chave, fils[i].chave)) achou++;
     assert(achou == 1); // nenhum catálogo removido ou duplicado
   }
+  // #201 (mackojanko): COM o destaque no topo, a primeira fileira de catalogo
+  // sai em Automatico como as outras — o destaque ja e a vitrine e percorre
+  // os mesmos titulos. Na Dinamica a vitrine continua (e regra dela).
+  { int lay, r, destaques;
+    for (lay = 0; lay < HOME_LAYOUT_N; lay++) {
+      homeCom(lay, 1);
+      sincronizarFileiras();
+      assert(!strcmp(fileiras[2].chave, "catalogo_1"));
+      for (r = 0, destaques = 0; r < nFileiras; r++)
+        destaques += fileiras[r].tipo == FILEIRA_DESTAQUE;
+      if (lay == HOME_LAYOUT_DINAMICA) {
+        assert(fileiras[2].tipo == FILEIRA_DESTAQUE && destaques == 1);
+      } else {
+        assert(fileiras[2].tipo == FILEIRA_NORMAL && destaques == 0);
+        assert(fileiras[2].tipo == fileiras[3].tipo);   // igual a seguinte
+      }
+    }
+    homeCom(HOME_LAYOUT_MODERNA, 0);
+    sincronizarFileiras();
+    assert(fileiras[2].tipo == FILEIRA_DESTAQUE);
+  }
   foco.fileira = 0; foco.coluna = 0;
   for (int i = 0; i < 16; i++) assert(focus_mover(&foco, 0, 1));
   assert(foco.fileira == 16);
@@ -132,9 +172,12 @@ int main(void) {
   // amigos" em segundo, grupos de colecao no FIM, na ordem declarada.
   assert(nFileiras>=11);
   assert(fileiras[1].tipo==FILEIRA_SOCIAL);
-  // O primeiro catalogo com conteudo vira o destaque; o resto segue a ordem.
-  assert(fileiras[0].tipo==FILEIRA_DESTAQUE);
-  assert(!strcmp(fileiras[0].chave,"catalogo_1"));
+  // O primeiro catalogo com conteudo vira o destaque (destaque desligado, ver
+  // homeCom); o resto segue a ordem. "Continuar assistindo" fica em [0] e
+  // "Entre amigos" em [1], entao o destaque e o [2] — a assercao antiga pedia
+  // o [0] e abortava aqui antes do #201 tambem.
+  assert(fileiras[2].tipo==FILEIRA_DESTAQUE);
+  assert(!strcmp(fileiras[2].chave,"catalogo_1"));
   assert(fileiras[nFileiras-2].tipo==FILEIRA_CATALOGOS);
   assert(!strcmp(fileiras[nFileiras-2].titulo,"Streaming"));
   assert(!strcmp(col_folder(fileiras[nFileiras-2].folders[0])->title,"Netflix"));

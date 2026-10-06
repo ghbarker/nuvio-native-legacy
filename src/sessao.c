@@ -33,6 +33,11 @@ static char erro[240];
 
 static unsigned pollMs = POLL_MS;
 
+// Login por e-mail (#216). Os dois textos vivem so ate o pedido sair.
+static char emailPend[256], senhaPend[256];
+static int  emailPedido;          // pedido guardado ate o fio do QR acabar
+static char erroEmail[240];
+
 static pthread_t fio;
 static int fioVivo;
 static int passoPronto;           // o fio terminou; a proxima etapa pode ir
@@ -84,12 +89,50 @@ static void lerJwt(const char *token) {
     expiraEm = (long)js_num(payload, fim, "exp", 0); }
 }
 
+// Forma de JWT (tres partes nao vazias, sem espaco): so a FORMA, a assinatura e
+// do servidor. Serve para recusar lixo gravado por uma falha no meio do login.
+static int jwtValido(const char *t) {
+  const char *p1, *p2;
+  if (!t || !*t || strpbrk(t, " \t\r\n")) return 0;
+  p1 = strchr(t, '.');
+  if (!p1 || p1 == t) return 0;
+  p2 = strchr(p1 + 1, '.');
+  if (!p2 || p2 == p1 + 1 || !p2[1]) return 0;
+  return 1;
+}
+
 // Folga de 30s, igual a do web: um token que vence durante a requisicao volta
 // como 401 e custa a viagem inteira.
 static int vencido(void) {
   if (!acesso[0]) return 1;
   if (!expiraEm) return 0;   // sem exp legivel, so o servidor pode dizer
   return expiraEm <= (long)time(NULL) + 30;
+}
+
+// FALHA DO SERVIDOR, e nao da pessoa (#215): sem resposta, 429 ou 5xx. Nesses
+// casos nada que a TV tem e invalido — o token, o refresh token, o codigo — e
+// apagar qualquer um deles transformaria uma queda de horas do servidor numa
+// conta perdida neste aparelho.
+static int falhaServidor(int st) { return st == 0 || st == 429 || st >= 500; }
+
+// A frase da tela para "o servidor da conta nao respondeu". i18n no FORMATO,
+// como o resto deste arquivo: a frase final, com o numero, nunca casaria com
+// a chave.
+// Sem HTTP (st == 0) a causa e de transporte; o texto da libcurl ("curl 35:
+// ...") vai junto, na tela e no log, porque o APK de release nao mostra o stderr
+// dela (#223). Sem segredo: so o codigo e a frase da biblioteca.
+static void anexarTransporte(char *dst, unsigned tam, int st) {
+  const char *t = nuvem_ultimo_erro();
+  size_t n = strlen(dst);
+  if (st == 0 && t && t[0] && n + 4 < tam) snprintf(dst + n, tam - n, " [%s]", t);
+}
+
+static void erroServidor(int st) {
+  if (st) snprintf(erro, sizeof erro,
+                   i18n("O servidor da conta Nuvio não respondeu (HTTP %d). Tente de novo em alguns minutos."), st);
+  else    snprintf(erro, sizeof erro, "%s",
+                   i18n("O servidor da conta Nuvio não respondeu. Tente de novo em alguns minutos."));
+  anexarTransporte(erro, sizeof erro, st);
 }
 
 // ---------------------------------------------------------------- disco
@@ -131,7 +174,9 @@ static int guardarTokens(const char *corpo, int ehAnonima) {
       js_texto(ses, fim, "refresh_token", r, sizeof r);
     }
   }
-  if (!a[0]) return 0;
+  if (!a[0] || !jwtValido(a)) return 0;
+  // ATOMICO (#223): o que ja estava (sessao anterior, anonima) so e trocado
+  // quando a resposta nova esta inteira; resposta torta nao deixa meia sessao.
   snprintf(acesso, sizeof acesso, "%s", a);
   snprintf(renovar, sizeof renovar, "%s", r);
   anonima = ehAnonima ? 1 : 0;
@@ -155,21 +200,26 @@ static int sessaoAnonima(void) {
   // dedicado. O web tenta os dois na mesma ordem.
   resp = nuvem_post("/auth/v1/token?grant_type=anonymous", "{}", NULL, &st);
   if (resp && st >= 200 && st < 300 && guardarTokens(resp, 1)) { free(resp); return 1; }
-  if (resp) {
-    snprintf(erro, sizeof erro, "sessao anonima recusada (HTTP %d)", st);
-    free(resp);
-  } else {
-    snprintf(erro, sizeof erro, "sem rede ao abrir sessao");
-  }
+  printf("[sessao] sessao anonima: HTTP %d %s\n", st, nuvem_ultimo_erro());
+  if (falhaServidor(st)) erroServidor(st);
+  else snprintf(erro, sizeof erro, "sessao anonima recusada (HTTP %d)", st);
+  free(resp);
   return 0;
 }
 
 // ---------------------------------------------------------------- renovacao
 
+// Status HTTP da ultima renovacao, para chamar() devolver a quem pediu o
+// motivo real (um 504 da renovacao nao e um 401 da RPC).
+static int stRenovacao;
+
+// 1 = renovado; 0 = recusado de verdade (sessao encerrada); -1 = o servidor
+// nao respondeu: a sessao FICA, e a proxima chamada tenta de novo.
 static int renovarToken(void) {
   Jsw w;
   char *resp;
   int st = 0, ok;
+  stRenovacao = 0;
   if (!renovar[0]) return 0;
   jsw_iniciar(&w);
   jsw_obj_ini(&w);
@@ -180,6 +230,17 @@ static int renovarToken(void) {
   jsw_livre(&w);
   ok = (resp && st >= 200 && st < 300 && guardarTokens(resp, anonima));
   free(resp);
+  stRenovacao = st;
+  if (!ok && falhaServidor(st)) {
+    // O SERVIDOR CAIU, O TOKEN NAO (#215). Ate aqui qualquer falha da
+    // renovacao apagava a sessao do disco: com o servidor da conta em 504 por
+    // horas, cada TV cujo token vencesse nesse intervalo saia da conta sozinha
+    // — e nao conseguia entrar de novo, porque o login fala com o mesmo
+    // servidor. So uma RECUSA (4xx) encerra a sessao.
+    printf("[sessao] renovacao sem resposta do servidor (HTTP %d): sessao mantida\n", st);
+    nuvem_falhou();
+    return -1;
+  }
   if (!ok) {
     // Renovacao recusada e o fim da sessao, nao um erro transitorio: insistir
     // com um refresh token invalido devolve 400 para sempre.
@@ -197,15 +258,25 @@ static char *chamar(const char *caminho, const char *corpo, int *status) {
   char *resp;
   int st = 0;
   if (!nuvem_pronta()) { if (status) *status = 0; return NULL; }
-  if (vencido() && renovar[0]) renovarToken();
+  // Token vencido e servidor sem responder a renovacao: nem tenta a RPC (ela
+  // voltaria 401 e pediria outra renovacao). O status e o da renovacao, para
+  // quem chamou saber que a falha e do servidor e usar a copia (sync.c).
+  if (vencido() && renovar[0] && renovarToken() < 0) {
+    if (status) *status = stRenovacao;
+    return NULL;
+  }
   resp = nuvem_post(caminho, corpo, acesso, &st);
   if (st == 401 && renovar[0]) {
+    int rr;
     free(resp);
-    if (!renovarToken()) { if (status) *status = 401; return NULL; }
+    rr = renovarToken();
+    if (rr <= 0) { if (status) *status = rr < 0 ? stRenovacao : 401; return NULL; }
     resp = nuvem_post(caminho, corpo, acesso, &st);
   }
   if (status) *status = st;
-  if (!resp || st == 0 || st >= 500) nuvem_falhou();
+  // 429 tambem freia: e o servidor pedindo menos pedidos, e o ciclo de sync
+  // mandaria mais dez em seguida.
+  if (!resp || st == 0 || st == 429 || st >= 500) nuvem_falhou();
   else nuvem_ok();
   return resp;
 }
@@ -221,15 +292,20 @@ char *sessao_tabela(const char *tabela, const char *consulta, int *status) {
   char *resp;
   int st = 0;
   if (!nuvem_pronta()) { if (status) *status = 0; return NULL; }
-  if (vencido() && renovar[0]) renovarToken();
+  if (vencido() && renovar[0] && renovarToken() < 0) {
+    if (status) *status = stRenovacao;
+    return NULL;
+  }
   resp = nuvem_tabela(tabela, consulta, acesso, &st);
   if (st == 401 && renovar[0]) {
+    int rr;
     free(resp);
-    if (!renovarToken()) { if (status) *status = 401; return NULL; }
+    rr = renovarToken();
+    if (rr <= 0) { if (status) *status = rr < 0 ? stRenovacao : 401; return NULL; }
     resp = nuvem_tabela(tabela, consulta, acesso, &st);
   }
   if (status) *status = st;
-  if (!resp || st == 0 || st >= 500) nuvem_falhou();
+  if (!resp || st == 0 || st == 429 || st >= 500) nuvem_falhou();
   else nuvem_ok();
   return resp;
 }
@@ -249,6 +325,9 @@ static void *fioPedir(void *u) {
   char *resp;
   int st = 0;
   (void)u;
+#ifdef NV_TPK40
+  nv_tpk40_etapa("note sign-in-thread started");   // rastro do Tizen 4/5 (#180)
+#endif
   erro[0] = 0;
   codigo[0] = 0;
   urlLogin[0] = 0;
@@ -311,13 +390,21 @@ static void *fioPedir(void *u) {
     char msg[160];
     msg[0] = 0;
     if (resp) js_texto(resp, resp + strlen(resp), "message", msg, sizeof msg);
-    if (msg[0]) snprintf(erro, sizeof erro, "o servidor recusou: %s", msg);
-    else        snprintf(erro, sizeof erro, i18n("nao consegui pedir o codigo (HTTP %d)"), st);
-    estado = SES_ERRO;
+    // NO LOG, com o corpo: ate aqui a falha do pedido de codigo so ia para a
+    // tela, e o #214 ("QR da erro HTTP 400") nao deixou rastro nenhum no
+    // registro para dizer QUEM respondeu 400 — o PostgREST (JSON com
+    // "message") ou algo na frente dele (Cloudflare responde texto puro,
+    // "error code: 502", medido em 02/10). O corpo de erro nao traz segredo.
+    printf("[sessao] pedido de codigo: HTTP %d %s: %.160s\n", st, nuvem_ultimo_erro(), resp ? resp : "(sem corpo)");
+    if (falhaServidor(st)) erroServidor(st);
+    else if (msg[0]) snprintf(erro, sizeof erro, "o servidor recusou: %s", msg);
+    else snprintf(erro, sizeof erro,
+                  i18n("O servidor da conta Nuvio recusou o pedido do código (HTTP %d). Tente de novo em alguns minutos."), st);
+    if (!emailPedido && estado != SES_EMAIL) estado = SES_ERRO;
   } else {
     if (!urlLogin[0])
       snprintf(urlLogin, sizeof urlLogin, "%s?code=%s", nuvem_base_login(), codigo);
-    estado = SES_AGUARDANDO;
+    if (!emailPedido && estado != SES_EMAIL) estado = SES_AGUARDANDO;
   }
   free(resp);
   passoPronto = 1;
@@ -364,7 +451,14 @@ static void *fioPoll(void *u) {
       estado = SES_LOGADO;
       codigo[0] = 0;
       printf("[sessao] logado como %s\n", sub[0] ? sub : "(sem sub)");
+    } else if (falhaServidor(st)) {
+      // AUTORIZADO, mas o servidor nao respondeu a troca: o codigo continua
+      // valendo, entao a TV continua esperando e a proxima volta do poll tenta
+      // a troca de novo — a pessoa nao precisa escanear outra vez.
+      printf("[sessao] troca do codigo sem resposta do servidor (HTTP %d): tento de novo\n", st);
+      estado = SES_AGUARDANDO;
     } else {
+      printf("[sessao] troca do codigo recusada (HTTP %d)\n", st);
       snprintf(erro, sizeof erro, i18n("troca de codigo recusada (HTTP %d)"), st);
       estado = SES_ERRO;
     }
@@ -376,6 +470,101 @@ static void *fioPoll(void *u) {
   passoPronto = 1;
   return NULL;
 }
+
+// ---------------------------------------------------------------- e-mail
+
+
+static void apagar(volatile char *p, size_t n) { while (n--) *p++ = 0; }
+
+// A FRASE, nunca o corpo cru: o corpo de erro do GoTrue nao traz segredo, mas
+// vem em ingles e com codigo interno. Dois formatos convivem: o antigo
+// {"error":"invalid_grant","error_description":"Invalid login credentials"} e
+// o novo {"error_code":"invalid_credentials","msg":"..."}.
+void sessao_email_erro_de(int st, const char *corpo, char *dst, unsigned tam) {
+  char cod[80], desc[200];
+  const char *fim;
+  cod[0] = desc[0] = 0;
+  if (corpo) {
+    fim = corpo + strlen(corpo);
+    js_texto(corpo, fim, "error_code", cod, sizeof cod);
+    if (!cod[0]) js_texto(corpo, fim, "error", cod, sizeof cod);
+    js_texto(corpo, fim, "error_description", desc, sizeof desc);
+    if (!desc[0]) js_texto(corpo, fim, "msg", desc, sizeof desc);
+    if (!desc[0]) js_texto(corpo, fim, "message", desc, sizeof desc);
+  }
+  if (st == 0 || st >= 500) {
+    if (st) snprintf(dst, tam, i18n("O servidor da conta Nuvio não respondeu (HTTP %d). Tente de novo em alguns minutos."), st);
+    else    snprintf(dst, tam, "%s", i18n("O servidor da conta Nuvio não respondeu. Tente de novo em alguns minutos."));
+  } else if (st == 429 || !strcmp(cod, "over_request_rate_limit") ||
+             !strcmp(cod, "over_email_send_rate_limit")) {
+    snprintf(dst, tam, "%s", i18n("Muitas tentativas. Espere um minuto e tente de novo."));
+  } else if (!strcmp(cod, "email_not_confirmed") || strstr(desc, "not confirmed")) {
+    snprintf(dst, tam, "%s", i18n("Este e-mail ainda não foi confirmado. Abra o link que a Nuvio mandou e tente de novo."));
+  } else if (!strcmp(cod, "invalid_credentials") || !strcmp(cod, "invalid_grant") ||
+             strstr(desc, "Invalid login credentials") || st == 400) {
+    snprintf(dst, tam, "%s", i18n("E-mail ou senha incorretos."));
+  } else {
+    snprintf(dst, tam, i18n("O servidor da conta Nuvio recusou o login (HTTP %d)."), st);
+  }
+}
+
+static void *fioEmail(void *u) {
+  Jsw w;
+  char *resp;
+  int st = 0;
+  (void)u;
+  jsw_iniciar(&w);
+  jsw_obj_ini(&w);
+  jsw_cs(&w, "email", emailPend);
+  jsw_cs(&w, "password", senhaPend);
+  jsw_obj_fim(&w);
+  apagar(senhaPend, sizeof senhaPend);
+  resp = nuvem_post("/auth/v1/token?grant_type=password", jsw_texto_final(&w), NULL, &st);
+  { char *t = (char *)jsw_texto_final(&w); if (t) apagar(t, strlen(t)); }
+  jsw_livre(&w);
+  apagar(emailPend, sizeof emailPend);
+  if (resp && st >= 200 && st < 300 && guardarTokens(resp, 0)) {
+    erroEmail[0] = 0;
+    codigo[0] = 0;
+    estado = SES_LOGADO;
+    printf("[sessao] logado por e-mail como %s\n", sub[0] ? sub : "(sem sub)");
+  } else {
+    // So o status vai para o log: o corpo de erro do GoTrue repete o e-mail
+    // em algumas versoes ("User with email x not found").
+    printf("[sessao] login por e-mail: HTTP %d %s\n", st, nuvem_ultimo_erro());
+    sessao_email_erro_de(st == 200 ? 0 : st, resp, erroEmail, sizeof erroEmail);
+    anexarTransporte(erroEmail, sizeof erroEmail, st);
+    if (st >= 200 && st < 300)
+      snprintf(erroEmail, sizeof erroEmail, "%s", i18n("O servidor da conta Nuvio não respondeu. Tente de novo em alguns minutos."));
+    estado = SES_DESLOGADO;
+  }
+  if (resp) { apagar(resp, strlen(resp)); free(resp); }
+  passoPronto = 1;
+  return NULL;
+}
+
+static void soltar(void *(*rotina)(void *));
+
+void sessao_login_email(const char *email, const char *senha) {
+  if (!nuvem_pronta()) {
+    snprintf(erroEmail, sizeof erroEmail, "%s", i18n("Este pacote foi montado sem servidor."));
+    return;
+  }
+  if (estado == SES_EMAIL || emailPedido) return;
+  snprintf(emailPend, sizeof emailPend, "%s", email ? email : "");
+  snprintf(senhaPend, sizeof senhaPend, "%s", senha ? senha : "");
+  erroEmail[0] = 0;
+  // O QR para aqui: com o estado fora de AGUARDANDO o poll nao e reagendado.
+  // Um pedido de codigo ou poll ja em voo termina antes (sessao_passo so
+  // solta o fio do e-mail com fioVivo em 0) — dois fios nunca escrevem os
+  // tokens ao mesmo tempo.
+  codigo[0] = 0;
+  estado = SES_EMAIL;
+  emailPedido = 1;
+  sessao_passo(0);
+}
+
+const char *sessao_erro_email(void) { return erroEmail; }
 
 static void soltar(void *(*rotina)(void *)) {
   if (fioVivo) return;
@@ -400,7 +589,17 @@ void sessao_iniciar(void) {
   snprintf(renovar, sizeof renovar, "%s", l2 ? l2 : "");
   anonima = (l3 && atoi(l3) == 1);
   free(buf);
+  // SESSAO PELA METADE nunca vira estado (#223): arquivo truncado, token que
+  // nao e JWT, ou conta sem `sub`. Descarta de memoria e de disco e cai na tela
+  // de login — antes o app subia "logado" sem conta e a tela ficava em branco
+  // ate a pessoa limpar os dados.
   lerJwt(acesso);
+  if (acesso[0] && (!jwtValido(acesso) || (!anonima && !sub[0]))) {
+    printf("[sessao] sessao gravada invalida: descartada, indo para o login\n");
+    limpar();
+    dados_apagar(ARQ_SESSAO);
+    return;
+  }
   // Sessao anonima gravada NAO conta como conta: ela existe so como degrau para
   // pedir o codigo, e tratar isso como "logado" faria o app pular a tela de
   // login e depois falhar em todo sync com 401 sem explicar nada.
@@ -429,7 +628,8 @@ void sessao_login_comecar(void) {
     estado = SES_ERRO;
     return;
   }
-  if (estado == SES_PEDINDO || estado == SES_AGUARDANDO || estado == SES_TROCANDO) return;
+  if (estado == SES_PEDINDO || estado == SES_AGUARDANDO || estado == SES_TROCANDO ||
+      estado == SES_EMAIL || emailPedido) return;
   erro[0] = 0;
   codigo[0] = 0;
   estado = SES_PEDINDO;
@@ -440,6 +640,22 @@ void sessao_login_comecar(void) {
 void sessao_passo(unsigned agoraMs) {
   if (fioVivo && passoPronto) { fioVivo = 0; passoPronto = 0; }
   if (fioVivo) return;
+  if (emailPedido) {
+    emailPedido = 0;
+    // Um fio do QR que acabou depois do pedido pode ter mexido no estado.
+    if (sessao_logada() && estado == SES_LOGADO) {
+      apagar(emailPend, sizeof emailPend); apagar(senhaPend, sizeof senhaPend);
+      return;
+    }
+    estado = SES_EMAIL;
+    soltar(fioEmail);
+    if (!fioVivo) {
+      apagar(emailPend, sizeof emailPend); apagar(senhaPend, sizeof senhaPend);
+      snprintf(erroEmail, sizeof erroEmail, "%s", i18n("O servidor da conta Nuvio não respondeu. Tente de novo em alguns minutos."));
+      estado = SES_DESLOGADO;
+    }
+    return;
+  }
 
   if (estado == SES_AGUARDANDO) {
     if (!loginComecouMs) loginComecouMs = agoraMs;

@@ -26,19 +26,27 @@
 // os simbolos que ele pede (addons, rede, trakt...) viram dubles abaixo. Os
 // cat_* NAO viram duble: este arquivo existe exatamente para exercitar os de
 // verdade do catalogo.c.
+int ajustes_busca_cinemeta(void) { return 1; }
 #include "../src/descoberta.c"
 #include "../src/progresso.h"
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "jellyfin_stub.inc"
+
+Uint32 SDL_GetTicks(void) { return 0; }
 
 // --- DUBLES: nenhum participa da regra, so fazem descoberta.c linkar ---------
 // (o conjunto e o de tests/colfileiras.c, menos os cat_* — que catalogo.c ja
 // traz — e mais os que este teste ja tinha)
 int         ajustes_idioma_ingles(void) { return 0; }
+int ajustes_idioma(void) { return 0; }
+int   ajustes_cw_concluido(void)         { return 90; }  // factory "watched" threshold
+unsigned recomenda_geracao(void)         { return 0; }   // social generation: no social layer here
 int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
 int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 const char *i18n(const char *s)         { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 const char *dados_dir(void)             { return ""; }
 const char *sessao_usuario(void)        { return ""; }
 int         perfis_ativo(void)          { return 1; }
@@ -70,6 +78,11 @@ void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_cw_fonte(void)               { return 0; }
 int   ajustes_tmdb_ligado(void)            { return 1; }
 int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
 int   ajustes_tmdb_arte(void)              { return 0; }
 int   ajustes_tmdb_elenco(void)            { return 0; }
 int   ajustes_tmdb_cw(void)                { return 0; }
@@ -87,6 +100,7 @@ int   fil_oculta(const char *c)            { (void)c; return 0; }
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
 // catalogos fora da cota nao interessa a este teste.
 int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
 void fil_registrar_se_couber(const char *c, const char *t, const char *a,
                              const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
 void  fil_registrar(const char *c, const char *t, const char *a,
@@ -113,12 +127,19 @@ int   trakt_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   trakt_continuar_falhou(void)        { return 0; }
 // Simkl (issue #110): sem vinculo nos testes de fileira, como o Trakt acima.
 int   simkl_ativo(void)                    { return 0; }
+
+// "A seguir" da conta (#199): so para linkar; sem vistos, nada semeia.
+int   trakt_ativo(void)                    { return 1; }
+int   ajustes_cw_do_episodio_mais_alto(void) { return 1; }
+int   contalib_sementes_a_seguir(ContaSemente *s, int m, int a) { (void)s; (void)m; (void)a; return 0; }
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
 int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; (void)n; return 0; }
 int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
+// O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   addons_n(void)                       { return 0; }
@@ -362,5 +383,14 @@ int main(void) {
   puts("ok  elenco do TMDB casa por nome, nao por posicao (#153)");
 
   puts("cateps: tudo ok");
+  {
+    CatEp timed = {0}; timed.temporada=1; timed.episodio=1;
+    const char *runtime = "{\"episodes\":[{\"episode_number\":1,\"runtime\":47}]}";
+    assert(desc_tmdb_notas_temporada(runtime,&timed,1,1)==1);
+    assert(!strcmp(timed.duracao,"47 min"));
+    assert(desc_tmdb_notas_temporada(runtime,&timed,1,1)==0);
+    assert(desc_tmdb_notas_temporada("{\"episodes\":[{\"episode_number\":1,\"runtime\":null}]}",&timed,1,1)==0);
+    assert(!strcmp(timed.duracao,"47 min"));
+  }
   return 0;
 }

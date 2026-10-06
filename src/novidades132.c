@@ -13,6 +13,8 @@
 #include "anim.h"
 #include "layout.h"
 #include "idioma.h"
+#define NV_ESCALA_TELA_ATIVA   // mede pela tela do fator ativo (escala.h)
+#include "escala.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,7 +97,14 @@ static float feature(float x, float y, float w, const char *icone,
     return h > N132_FEAT_H - 40.0f ? h + 40.0f : N132_FEAT_H; }
 }
 
+static void novidades132_desenharCorpo_(Uint32 agora);
+// Cartao de tela quase cheia: ampliado so se ainda couber (escala.h).
 void novidades132_desenhar(Uint32 agora) {
+  ESCALA_SE_COUBER_INI(N132_W, N132_H);
+  novidades132_desenharCorpo_(agora);
+  ESCALA_SE_COUBER_FIM();
+}
+static void novidades132_desenharCorpo_(Uint32 agora) {
   float a = anim_suave(entrada), dy, y;
   (void)agora;
   if (entrada < 0.002f) return;
@@ -124,8 +133,13 @@ void novidades132_desenhar(Uint32 agora) {
   { float fx = N132_TXT_X, fw = N132_TXT_W;
     y += feature(fx, y, fw, "lembrete",
           "Central de avisos",
+#ifdef NV_ANDROID
+          "Recomendação de amigo, estreia, versão nova e avisos de quem faz o "
+          "app: um toast quando chega, CH+ abre, e a aba Avisos em Salvos.", a);
+#else
           "Recomendação de amigo, estreia, versão nova e avisos de quem faz o "
           "app: um toast quando chega, AZUL abre, e a aba Avisos em Salvos.", a);
+#endif
     y += feature(fx, y, fw, "menu_guide",
           "O Guia de TV abre na hora",
           "A última lista de canais fica guardada e aparece de imediato; a rede "

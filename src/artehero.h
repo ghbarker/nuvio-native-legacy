@@ -96,9 +96,17 @@ const char *artehero_url_fonte(const CatItem *item, int fonte);
 // quando existe outra — o desenho nao fica preso num 404.
 const char *artehero_url_card_fonte(const CatItem *item, int fonte, int diferente);
 const char *artehero_url_destaque(const CatItem *item, int fonte, int diferente);
+// "Fundo do destaque do addon" (Ajustes, desligado de fabrica): 1 = nas duas
+// funcoes acima, o `background` que o addon mandou no catalogo vem antes da
+// fonte e do "outra arte" (so a escolha a mao, #142, vem antes dele). Item sem
+// origem de addon, sem fundo proprio ou com ele ja falhado: a regra acima.
+void artehero_fundo_addon(int sim);
 
 // A url que o item guarda, sem política — para quem desenha pequeno.
 const char *artehero_url_card(const CatItem *item);
+// Fundo DEITADO do metahub pelo id do IMDb, ou NULL (sem tt, ou ja falhou).
+// Para o card deitado que recebeu uma arte EM PE do addon (home.c).
+const char *artehero_url_metahub_fundo(const CatItem *item);
 
 // O STILL DO EPISÓDIO EM ANDAMENTO, em tamanho de tela cheia, ou NULL.
 //

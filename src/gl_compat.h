@@ -8,7 +8,9 @@
 #ifndef NV_GL_COMPAT_H
 #define NV_GL_COMPAT_H
 
-#ifdef __APPLE__
+// NV_GLES_NO_MAC: o teste tests/fundo_assado.sh compila o nucleo no Mac
+// contra o GLES2 do ANGLE (o dialeto e as regras de FBO da TV), nao o GL 2.1.
+#if defined(__APPLE__) && !defined(NV_GLES_NO_MAC)
   #define GL_SILENCE_DEPRECATION 1
   #include <OpenGL/gl.h>
   #include <OpenGL/glext.h>
@@ -19,9 +21,15 @@
   #define glCheckFramebufferStatus glCheckFramebufferStatusEXT
   #define glDeleteFramebuffers     glDeleteFramebuffersEXT
   #define glGenerateMipmap         glGenerateMipmapEXT
-  #define GL_FRAMEBUFFER           GL_FRAMEBUFFER_EXT
-  #define GL_COLOR_ATTACHMENT0     GL_COLOR_ATTACHMENT0_EXT
-  #define GL_FRAMEBUFFER_COMPLETE  GL_FRAMEBUFFER_COMPLETE_EXT
+  #ifndef GL_FRAMEBUFFER
+    #define GL_FRAMEBUFFER           GL_FRAMEBUFFER_EXT
+  #endif
+  #ifndef GL_COLOR_ATTACHMENT0
+    #define GL_COLOR_ATTACHMENT0     GL_COLOR_ATTACHMENT0_EXT
+  #endif
+  #ifndef GL_FRAMEBUFFER_COMPLETE
+    #define GL_FRAMEBUFFER_COMPLETE  GL_FRAMEBUFFER_COMPLETE_EXT
+  #endif
   // GLSL 1.20 nao tem qualificadores de precisao; declara-los quebra a
   // compilacao, entao viram nada.
   #define NV_GLSL_PREFIXO \

@@ -1,9 +1,13 @@
 #include "avisos.h"
+#include "ilha.h"
+#include "ilhasalvar.h"
+#define AV_ILHA_CHAVE "avisos"   // o "N avisos novos" da central na ilha (ilha.c junta)
 #include "dados.h"
 #include "rede.h"
 #include "js.h"
 #include "gfx.h"
 #include "botoes.h"
+#include "seguro.h"
 #include "text.h"
 #include "anim.h"
 #include "layout.h"
@@ -13,12 +17,17 @@
 #include "atualizacao.h"
 #include "salvosintro.h"
 #include "registro.h"
-#include "perfiltv.h"
+#include "regcodigo.h"
+#include "redesaude.h"
 #include <math.h>
 #include "agenda.h"
+#include "catalogo.h"
+#include "salvos.h"
 #include "sessao.h"
 #include "trakt.h"
 #include "marco.h"
+#define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
+#include "escala.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +59,12 @@
 #define AV_MAX        40
 #define AV_VISTOS_ARQ "avisos-vistos.txt"
 #define AV_MARCA_ARQ  "sessao-viva.txt"
+#if defined(NV_TPK) || defined(NV_ANDROID)
+// No .tpk (e no Android) o /tmp nao e do app: o anterior fica na pasta de dados (tpk.c).
+#define AV_LOG_ANTERIOR (getenv("NUVIO_LOG_ANTERIOR"))
+#else
 #define AV_LOG_ANTERIOR "/tmp/nuvio-anterior.log"
+#endif
 #define AV_REGISTRO_MAX (200 * 1024)
 // 20 s, nao 6 (dono, 20/09/2026: "teria que ficar mais tempo"). Quem esta
 // olhando um card do outro lado da tela leva um tempo para notar o canto.
@@ -64,6 +78,7 @@ typedef struct {
   char texto[420];
   char alvo[24];        // imdb (agenda) ou versao (update)
   int  visto;
+  int  anunciar;        // novo: a ilha ainda nao disse o assunto (anunciarNaIlha)
 } Aviso;
 
 static Aviso itens[AV_MAX];
@@ -79,9 +94,8 @@ static int  nVistos, vistosLidos;
 // Painel e toast.
 static int   aberto, foco;
 static float entrada, rol;
-static float toastAte;          // SDL_GetTicks em que o toast some; 0 = sem toast
 static int   toastN;
-static float toastA;
+static long long recAnunciada = -1;   // id da ultima recomendacao dita na ilha
 static int   vistosSujos;
 
 // Acoes entregues a app.c.
@@ -123,6 +137,17 @@ static void lerLogAnterior(void) {
 }
 #endif
 static int   envioEstado;       // 0 nada, 1 enviando, 2 ok, 3 falhou
+// O RECIBO E O MOTIVO do ultimo envio MANUAL (o automatico so atualiza
+// envAuto*): o painel de envio do registro (registro.c) mostra o codigo, o
+// HTTP, o tamanho e, na falha, por que falhou — servidor, TV sem internet ou
+// prazo. Escritos pelo fio de envio, lidos pelo de desenho; inteiros e
+// strings curtas atras de `trava`.
+static int    envMotivo, envHttp, envLinhas, envPendenteRede;
+static long   envBytes;
+static time_t envQuando, envAutoQuando;
+static int    envAutoHttp;
+static char   envCodigo[8];
+static Uint32 envAutoProximo;
 static pthread_t fioEnvio;
 
 // O CARTAO DO CRASH, na reabertura: uma pergunta, dois botoes. Abre uma vez
@@ -198,6 +223,7 @@ static int por(const char *id, int tipo, const char *titulo, const char *texto, 
   snprintf(itens[n].texto, sizeof itens[n].texto, "%s", texto);
   if (alvo) snprintf(itens[n].alvo, sizeof itens[n].alvo, "%s", alvo);
   itens[n].visto = foiVisto(id);
+  itens[n].anunciar = !itens[n].visto;
   n++;
   return !itens[n - 1].visto;
 }
@@ -218,6 +244,26 @@ static void toast(int novos) {
   if (novos <= 0) return;
   toastN += novos;
   toastPendente = 1;
+}
+
+void avisos_idioma_definido(const char *codigo, const char *texto) {
+  char id[72];
+  int novo;
+  snprintf(id, sizeof id, "idioma:%s", codigo ? codigo : "");
+  pthread_mutex_lock(&trava);
+  novo = por(id, AV_CANAL, i18n("Idioma"), texto ? texto : "", NULL);
+  pthread_mutex_unlock(&trava);
+  toast(novo);
+}
+
+int avisos_sessao_anterior_caiu(void) { return crashDetectado; }
+
+void avisos_modo_seguro(const char *id, const char *titulo, const char *texto) {
+  int novo;
+  pthread_mutex_lock(&trava);
+  novo = por(id, AV_CANAL, titulo ? titulo : "", texto ? texto : "", NULL);
+  pthread_mutex_unlock(&trava);
+  toast(novo);
 }
 
 int avisos_n_novos(void) {
@@ -340,7 +386,15 @@ int avisos_enviar_diagnostico(const char *execucao_id, const char *relatorio,
            "{\"versao\":\"%s\",\"plataforma\":\"%s\",\"execucao_id\":\"%s\",\"texto\":\"%s\"}",
            NV_VERSAO,
 #ifdef __EMSCRIPTEN__
-           ptv_nome(),
+#ifdef NV_VIDAA
+           "vidaa",
+#else
+           "tizen",
+#endif
+#elif defined(NV_TPK)
+           "tizen-tpk",
+#elif defined(NV_ANDROID)
+           "android",
 #elif defined(__APPLE__)
            "mac",
 #else
@@ -420,7 +474,8 @@ static void *enviarRegistro(void *u) {
     } }
 #endif
   if (!idHead(cab, aut, sizeof aut, via, sizeof via, chave, sizeof chave)) {
-    free(texto); envioEstado = 3; return NULL;
+    if (!automatico) { pthread_mutex_lock(&trava); envMotivo = AVISOS_ENVIO_CONTA; envHttp = 0; pthread_mutex_unlock(&trava); }
+    free(texto); envioEstado = automatico ? 0 : 3; return NULL;
   }
   corpo = malloc(nTexto * 2 + 512);
   if (!corpo) { free(texto); envioEstado = 3; return NULL; }
@@ -431,7 +486,15 @@ static void *enviarRegistro(void *u) {
              "{\"versao\":\"%s\",\"plataforma\":\"%s\",\"quando\":\"%s\",\"texto\":\"%s\"}",
              NV_VERSAO,
 #ifdef __EMSCRIPTEN__
-             ptv_nome(),
+#ifdef NV_VIDAA
+             "vidaa",
+#else
+             "tizen",
+#endif
+#elif defined(NV_TPK)
+             "tizen-tpk",
+#elif defined(NV_ANDROID)
+             "android",
 #elif defined(__APPLE__)
              "mac",
 #else
@@ -441,10 +504,48 @@ static void *enviarRegistro(void *u) {
              u == &AUTO_ANTERIOR ? agoraTextoAuto("anterior") :
              manual ? agoraTexto() : crashQuando, esc);
     free(esc); }
+  { long linhas = 0; size_t k;
+    for (k = 0; texto && k < nTexto; k++) if (texto[k] == '\n') linhas++;
+    if (!automatico) { pthread_mutex_lock(&trava); envBytes = (long)nTexto; envLinhas = (int)linhas; pthread_mutex_unlock(&trava); } }
   free(texto);
   { char url[300];
+    Uint32 t0 = SDL_GetTicks();
     snprintf(url, sizeof url, "%s/v1/registro", NV_REC_URL);
-    resp = rede_postar_st(url, 30, cab, corpo, &status); }
+    resp = rede_postar_st(url, 30, cab, corpo, &status);
+    if (!automatico) {
+      char id[32], cod[8] = "";
+      int ok = status >= 200 && status < 300;
+      // O codigo: o do recibo quando o servidor ja manda ("codigo"), senao o
+      // derivado do registro_id (regcodigo.h) — os dois dao o mesmo.
+      if (ok && resp) {
+        const char *c = strstr(resp, "\"codigo\"");
+        if (c && (c = strchr(c, ':')) != NULL) {
+          int j = 0;
+          c++;
+          while (*c == ' ' || *c == '"') c++;
+          while (j < 6 && ((*c >= '0' && *c <= '9') || (*c >= 'A' && *c <= 'Z'))) cod[j++] = *c++;
+          cod[j] = 0;
+          if (j != 6) cod[0] = 0;
+        }
+        if (!cod[0] && extrairRegistroId(resp, id, sizeof id)) regcodigo_de_id(id, cod);
+      }
+      pthread_mutex_lock(&trava);
+      envHttp = status;
+      snprintf(envCodigo, sizeof envCodigo, "%s", cod);
+      envMotivo = ok ? AVISOS_ENVIO_OK
+                : status > 0 ? AVISOS_ENVIO_SERVIDOR
+                : rede_saude_offline() ? AVISOS_ENVIO_OFFLINE
+                : SDL_GetTicks() - t0 >= 29000u ? AVISOS_ENVIO_PRAZO : AVISOS_ENVIO_CONEXAO;
+      envPendenteRede = envMotivo == AVISOS_ENVIO_OFFLINE;
+      pthread_mutex_unlock(&trava);
+      if (cod[0]) {
+        char linha[48];
+        snprintf(linha, sizeof linha, "%s %ld\n", cod, (long)time(NULL));
+        dados_gravar("registro-codigo.txt", linha);
+      }
+    } else {
+      pthread_mutex_lock(&trava); envAutoQuando = time(NULL); envAutoHttp = status; pthread_mutex_unlock(&trava);
+    } }
   free(corpo);
   free(resp);
   envioEstado = automatico ? 0 : (status >= 200 && status < 300) ? 2 : 3;
@@ -486,7 +587,10 @@ static void *fioCanalFn(void *u) {
       const char *f = js_fim(p);
       char id[72] = "", desde[12] = "", ate[12] = "", plat[12] = "", ateV[16] = "";
       char tit[160] = "", titEn[160] = "", txt[420] = "", txtEn[420] = "";
-      int ingles = ajustes_idioma_ingles(), ok = 1;
+      // Todo idioma que nao o portugues le o texto em ingles: o canal so tem pt e en, e
+      // o ingles e o que mais gente entende. So o portugues (o do Brasil e o de
+      // Portugal) le o portugues.
+      int ingles = ajustes_idioma() != IDIOMA_PT && ajustes_idioma() != IDIOMA_PTPT, ok = 1;
       js_texto(p, f, "id", id, sizeof id);
       js_texto(p, f, "desde", desde, sizeof desde);
       js_texto(p, f, "ate", ate, sizeof ate);
@@ -501,7 +605,19 @@ static void *fioCanalFn(void *u) {
       if (ate[0] && strcmp(hoje, ate) > 0) ok = 0;
       if (ateV[0] && versaoMaior(NV_VERSAO, ateV)) ok = 0;
 #ifdef __EMSCRIPTEN__
-      if (plat[0] && strcmp(plat, "todas") && strcmp(plat, ptv_nome())) ok = 0;
+#ifdef NV_VIDAA
+      if (plat[0] && strcmp(plat, "todas") && strcmp(plat, "vidaa")) ok = 0;
+#else
+      if (plat[0] && strcmp(plat, "todas") && strcmp(plat, "tizen")) ok = 0;
+#endif
+#elif defined(NV_TPK)
+      // O .tpk tambem e Samsung: vale o "tizen" de sempre, mais o "tizen-tpk"
+      // so dele. O anuncio do proprio preview (id com "tpk-preview") nao faz
+      // sentido dentro dele.
+      if (plat[0] && strcmp(plat, "todas") && strcmp(plat, "tizen") && strcmp(plat, "tizen-tpk")) ok = 0;
+      if (strstr(id, "tpk-preview")) ok = 0;
+#elif defined(NV_ANDROID)
+      if (plat[0] && strcmp(plat, "todas") && strcmp(plat, "android")) ok = 0;
 #else
       if (plat[0] && strcmp(plat, "todas") && strcmp(plat, "lg")) ok = 0;
 #endif
@@ -686,6 +802,7 @@ void avisos_encerrar(void) {
   dados_despedida_fim();   // no Tizen: sincrono, vale mesmo se o apagar abaixo nao chegar ao disco
   dados_apagar(AV_MARCA_ARQ);
   vistosGravar();
+  seguro_encerrar();   // confirma o que estava em prova e fecha a sessao no diario
 }
 
 // Fontes que o app ja tem: um item por estado, atualizado a cada volta.
@@ -696,9 +813,21 @@ static void colherLocais(void) {
   { int k = recomenda_ativo() ? recomenda_n_novas() : 0;
     if (k > 0) {
       char txt[200];
+      RecItem r;
       snprintf(txt, sizeof txt, k == 1 ? i18n("%d recomendação nova de um amigo. Abra Salvos para ver.")
                                        : i18n("%d recomendações novas de amigos. Abra Salvos para ver."), k);
       novos += por("rec", AV_REC, i18n("Recomendação de amigo"), txt, NULL);
+      // UMA VEZ POR RECOMENDACAO, nao por item da lista: o item "rec" e um so
+      // (a contagem troca no lugar), mas cada recomendacao nova que chega e um
+      // assunto novo para a ilha ("Ana recomendou Fallout"). Guarda o id da
+      // ultima anunciada; a mais nova diferente dela e ainda nao vista anuncia.
+      if (recomenda_item(0, &r) && !r.visto && r.id != recAnunciada) {
+        int i;
+        recAnunciada = r.id;
+        for (i = 0; i < n; i++) if (!strcmp(itens[i].id, "rec")) {
+          if (!itens[i].anunciar) { itens[i].anunciar = 1; novos++; }
+        }
+      }
     } else tirar("rec"); }
   // Atualizacao
   { const char *v = atualizacao_nova();
@@ -739,15 +868,15 @@ void avisos_atualizar(float dt, Uint32 agora) {
     if (pthread_create(&fioCanal, NULL, fioCanalFn, NULL) == 0) pthread_detach(fioCanal);
     else canalVivo = 0;
   }
-  { float alvo = (toastAte > 0.0f && (float)agora < toastAte && !aberto) ? 1.0f : 0.0f;
-    toastA = ajustes_animacoes_reduzidas() ? alvo : anim_mola(toastA, alvo, dt, NV_MOLA_TELA);
-    if (alvo == 0.0f && toastA < 0.01f && toastAte > 0.0f && (float)agora >= toastAte) { toastAte = 0.0f; toastN = 0; } }
+
   if (vistosSujos && !aberto) vistosGravar();
   avisos_envio_auto_passo(agora);
 }
 
 int  avisos_aberto(void) { return aberto; }
-void avisos_abrir(void)  { aberto = 1; foco = 0; rol = 0.0f; toastAte = 0.0f; toastN = 0; }
+// A CENTRAL ABERTA LE TUDO: os avisos dela saem da ilha (os que diziam o
+// assunto e o "N avisos novos" que juntou o resto).
+void avisos_abrir(void)  { aberto = 1; foco = 0; rol = 0.0f; toastN = 0; ilha_retirar_grupo(); }
 const char *avisos_pediu_abrir(void) {
   static char saida[24];
   if (!pediuAbrir[0]) return NULL;
@@ -769,9 +898,11 @@ int avisos_evento(const SDL_Event *e) {
   if (e->type != SDL_KEYDOWN) return aberto;
   k = e->key.keysym.sym; sc = e->key.keysym.scancode;
   if (!aberto) {
-    // O TOAST NA TELA e a unica hora em que AZUL/CH+ vem para ca: fora dela
-    // as duas teclas continuam sendo o que sempre foram (Salvos, secao do guia).
-    if (toastA > 0.5f && !e->key.repeat &&
+    // O AVISO DA CENTRAL NA ILHA e a unica hora em que AZUL/CH+ vem para ca:
+    // fora dela as duas teclas continuam sendo o que sempre foram (Salvos,
+    // secao do guia). Aviso com modal proprio (recomendacao, versao nova) ja
+    // foi atendido antes, em ilha_evento: a pilula cresce para ele.
+    if (ilha_tecla_central() && !e->key.repeat &&
         (k == SDLK_s || sc == NV_SCANCODE_BLUE || sc == NV_SCANCODE_CH_UP || k == SDLK_PAGEUP)) {
       avisos_abrir();
       return 1;
@@ -806,69 +937,200 @@ static const char *icone(int tipo) {
   }
 }
 
-static void desenharToast(Uint32 agora) {
-  // AVISO COM HIERARQUIA: icone + contexto + contagem + acao. A versao de uma
-  // linha era funcional, mas parecia uma legenda pequena perdida no canto da
-  // TV. O bloco agora tem uma leitura em dois tempos: "Central de avisos" como
-  // contexto, depois a contagem em corpo maior, e por fim a tecla desenhada.
-  // A tecla continua sendo o disco azul da LG ou o rocker CH+ da Samsung, nao
-  // texto — "AZUL" e uma cor a procurar entre quatro.
-  //
-  // PULSA na cor de acento (dono: "meio que piscar com a cor pra chamar
-  // atencao"): a luz difusa e o ponto respiram a ~1 Hz. Sem piscar de verdade
-  // — ligar/desligar num canto de TV le como defeito; a respiracao le como
-  // "tem algo aqui".
-  char txt[120];
-  TxtLinha cab, t1, t2;
-  float w, h = 104.0f, x, y, ar, ag, ab, pulso, lado = 42.0f;
-  float tinta;
-  GfxRect bloco;
-  if (toastA < 0.01f) return;
-  tinta = ajustes_acento_tinta(&ar, &ag, &ab);
-  pulso = ajustes_animacoes_reduzidas() ? 0.5f :
-          0.5f + 0.5f * sinf((float)agora * (2.0f * 3.14159265f / 1100.0f));
-  snprintf(txt, sizeof txt, toastN == 1 ? i18n("%d aviso novo") : i18n("%d avisos novos"), toastN);
-  cab = txt_linha(TXT_CAPTION2, i18n("Central de avisos"), 156, 160, 172, 255);
-  t1 = txt_linha(TXT_BODY, txt, (int)(tinta * 255.0f + 0.5f),
-                 (int)(tinta * 255.0f + 0.5f), (int)(tinta * 255.0f + 0.5f), 255);
-  t2 = txt_linha(TXT_CAPTION2, i18n("abre"), 178, 181, 190, 255);
-  w = 24.0f + 56.0f + 18.0f + (cab.w > t1.w ? cab.w : t1.w) +
-      30.0f + lado + 10.0f + t2.w + 24.0f;
-  // CANTO SUPERIOR DIREITO: o aviso sai da cena e nao compete com as fileiras
-  // de conteudo. A entrada vem de cima, com distancia suficiente para ser lida
-  // como um componente e nao como texto que piscou no canto.
-  x = NV_TELA_W - 64.0f - w;
-  y = 40.0f - (1.0f - toastA) * 32.0f;
-  bloco = (GfxRect){ x, y, w, h };
-  // Luz difusa de acento respirando POR TRAS da pilula, no lugar do anel de
-  // 2 px: a linguagem nova do app nao tem aneis (dono, 21/09/2026), e uma
-  // mancha que cresce e apaga chama tanto quanto o anel sem desenhar borda.
-  gfx_rect((GfxRect){ x - h * 0.7f, y - h * 0.7f, w + h * 1.4f, h * 2.4f }, 0, GFX_SOMBRA,
-           1.0f, 0, 0, 0.5f, ar, ag, ab, (0.07f + 0.13f * pulso) * toastA);
-  gfx_cor(bloco, 28.0f / h, 0.055f, 0.058f, 0.068f, 0.98f * toastA);
-  // Icone de notificacao: SO O SINO, sem disco (dono, 23/09/2026: "deixar so
-  // o sininho sem fundo"). O sino leva a cor de realce e cresce para ocupar o
-  // lugar do disco; o ponto que pulsa acompanha na mesma cor.
-  { GfxRect ic = { x + 24.0f, y + 24.0f, 56.0f, 56.0f };
-    float d = 5.0f + 3.0f * pulso;
-    // (23/09) Sino PREENCHIDO do Phosphor (bell-fill, MIT) em art/icones/
-    // sino.png, no lugar do GFX_SINO de contorno fino — o dono pediu "tirar o
-    // contorno do sino e usar um sino mais bonito".
-    gfx_icone((GfxRect){ ic.x + 6.0f, ic.y + 6.0f, 44.0f, 44.0f }, "sino",
-              ar, ag, ab, toastA);
-    gfx_cor((GfxRect){ ic.x + ic.w - d - 1.0f, ic.y - d * 0.5f, d, d },
-            0.5f, ar, ag, ab, 0.90f * toastA); }
-  txt_desenhar_alpha(cab, x + 98.0f, y + 18.0f, toastA);
-  txt_desenhar_alpha(t1, x + 98.0f, y + 48.0f, toastA);
-  { float ax = x + w - 24.0f - lado - 10.0f - t2.w;
-    sintro_tecla_atalho(ax, y + 25.0f, lado, toastA);
-    txt_desenhar_alpha(t2, ax + lado + 10.0f, y + 25.0f + (lado - t2.h) * 0.5f, toastA); }
+// O TOAST MORA NA ILHA (01/10/2026, pedido do dono), e desde 02/10 ele DIZ O
+// ASSUNTO (mockup aprovado): em vez de "1 aviso novo", "Ana recomendou
+// Fallout", "Saiu T2E5 de The Bear", "Versão 1.7.2 chegou". Cada item novo
+// entra na ilha como um aviso da CENTRAL (grupo = 1, chave "av:<id>"); quando
+// chegam varios juntos, ilha.c deixa o primeiro dizer o seu e junta os que
+// esperam num "N avisos novos" que abre esta lista — o mesmo toast de antes,
+// so que para o resto. A regra de "quando" continua aqui: so com a central
+// fechada e sem o cartao do crash na frente (avisos_desenhar).
+//
+// Os que tem para onde ir levam o MODAL da ilha (a pilula cresce, AZUL/CH+):
+// recomendacao (Ver / Salvar / Dispensar), versao nova (Atualizar / Depois),
+// queda (Enviar registro / Agora não) e o aviso do dono (o texto inteiro). O
+// episodio novo abre o modal do cartao de estreia (ilhacart.c), quando ele
+// esta na pilula. Quem executa o botao e avisos_ilha_acao.
+static RecItem recDaIlha;              // a recomendacao que o modal mostra
+static void anunciarItem(const Aviso *it) {
+  char chave[96], txt[240], f1[200], f2[200];
+  IlhaAvisoEx e;
+  static IlhaModal m;
+  memset(&e, 0, sizeof e);
+  memset(&m, 0, sizeof m);
+  snprintf(chave, sizeof chave, "av:%s", it->id);
+  e.chave = chave; e.grupo = 1; e.texto = txt;
+  switch (it->tipo) {
+    case AV_REC: {
+      RecItem *r = &recDaIlha;
+      int idx;
+      if (!recomenda_item(0, r) || !r->titulo[0]) { snprintf(txt, sizeof txt, "%s", it->texto); e.tipo = ILHA_ACENTO; e.icone = "recomendar"; e.tecla = 1; e.ms = 8000u; break; }
+      snprintf(txt, sizeof txt, i18n("%s recomendou %s"),
+               ilha_forte(f1, sizeof f1, r->deNome[0] ? r->deNome : "?"), ilha_forte(f2, sizeof f2, r->titulo));
+      e.tipo = ILHA_ACENTO; e.ms = 8000u;
+      e.rosto = r->deAvatar; e.rostoNome = r->deNome[0] ? r->deNome : "?"; e.capa = r->poster;
+      snprintf(m.kicker, sizeof m.kicker, i18n("Recomendação de %s"), r->deNome[0] ? r->deNome : "?");
+      snprintf(m.titulo, sizeof m.titulo, "%s", r->titulo);
+      { char nota[24] = "";
+        if (r->nota > 0) snprintf(nota, sizeof nota, " · IMDb %d,%d", r->nota / 10, r->nota % 10);
+        snprintf(m.linha, sizeof m.linha, "%s%s%s%s", i18n(!strncmp(r->tipo, "series", 6) ? "Série" : "Filme"),
+                 r->ano[0] ? " · " : "", r->ano, nota); }
+      { const char *fr = rec_frase(r);
+        if (fr && fr[0]) snprintf(m.fala, sizeof m.fala, "\xe2\x80\x9c%s\xe2\x80\x9d", fr); }
+      if (r->criado > 0) rec_quando_texto(m.estado, sizeof m.estado, r->criado);
+      // A ARTE 16:9 do titulo quando ele esta no catalogo; senao o cartaz.
+      idx = r->imdb[0] ? cat_indice_por_imdb(r->imdb) : -1;
+      { const CatItem *ci = idx >= 0 ? cat_item(idx) : NULL;
+        snprintf(m.arte, sizeof m.arte, "%s", ci && ci->backdrop[0] ? ci->backdrop : r->poster); }
+      snprintf(m.rosto, sizeof m.rosto, "%s", r->deAvatar);
+      snprintf(m.rostoNome, sizeof m.rostoNome, "%s", r->deNome[0] ? r->deNome : "?");
+      m.salvos = 1; m.nBotoes = 3;
+      snprintf(m.botao[0], sizeof m.botao[0], "%s", i18n("Ver"));
+      snprintf(m.botaoIcone[0], sizeof m.botaoIcone[0], "play");
+      snprintf(m.botao[1], sizeof m.botao[1], "%s", i18n("Salvar"));
+      snprintf(m.botaoIcone[1], sizeof m.botaoIcone[1], "aj_bookmark");
+      snprintf(m.botao[2], sizeof m.botao[2], "%s", i18n("Dispensar"));
+      e.modal = &m;
+      break; }
+    case AV_AGENDA: {
+      const AgItem *ag = it->alvo[0] ? agenda_registro(it->alvo) : NULL;
+      const char *tit = ag && ag->titulo[0] ? ag->titulo : it->texto;
+      e.tipo = ILHA_ACENTO;
+      // ESTREIA HOJE (o episodio vai ao ar hoje) e SAIU (ja foi): o mesmo
+      // aviso de agenda, com a frase do dia. O de hoje e mais curto e nao
+      // leva a tecla: ainda nao ha o que assistir.
+      if (ag && agenda_dias(ag->dataProx) == 0) {
+        snprintf(txt, sizeof txt, i18n("%s estreia hoje"), ilha_forte(f1, sizeof f1, tit));
+        e.icone = "aj_calendar"; e.ms = 6000u;
+      } else {
+        if (ag && ag->temporada > 0 && ag->episodio > 0)
+          snprintf(txt, sizeof txt, i18n("Saiu T%dE%d de %s"), ag->temporada, ag->episodio, ilha_forte(f1, sizeof f1, tit));
+        else snprintf(txt, sizeof txt, i18n("Episódio novo de %s"), ilha_forte(f1, sizeof f1, tit));
+        e.icone = "aj_tv-minimal-play"; e.ms = 8000u;
+        e.cartao = ILHA_ESTREIA + 1;
+        e.tecla = 1;
+      }
+      break; }
+    case AV_UPDATE:
+      // GLASS UI v2 (mockup ajustes-v2 "v2-upd-aviso", 03/10): o aviso de duas
+      // linhas, e a tecla nao abre mais um modal da ilha — o proprio CARTAO DA
+      // ATUALIZACAO nasce da pilula (atualizacao.c), pela acao do aviso.
+      snprintf(txt, sizeof txt, "%s", it->texto);
+      e.titulo = it->titulo;
+      e.tipo = ILHA_ACENTO; e.icone = "aj_download"; e.ms = 10000u;
+      e.acao = 1; e.dica = i18n("Ver o que mudou");
+      break;
+    case AV_CRASH:
+      // O DONO TIROU O CARTAO DO ARRANQUE em 23/09 ("tira a mensagem de enviar
+      // o log quando entra no app, ja temos os logs") e aprovou este aviso em
+      // 02/10. As duas coisas cabem juntas assim: com o envio automatico
+      // ligado o registro ja foi (ou vai) sozinho e a ilha nao pergunta nada;
+      // desligado, ela diz uma vez, sem cartao, e AZUL leva ao envio.
+      if (ajustes_envio_auto()) return;
+      snprintf(txt, sizeof txt, "%s", i18n("O app fechou sozinho da última vez"));
+      e.tipo = ILHA_ERRO; e.prior = ILHA_P2; e.icone = "aj_triangle-alert"; e.ms = 9000u;
+      // O titulo do modal e a frase inteira (mockup do registro, quadro 14).
+      snprintf(m.titulo, sizeof m.titulo, "%s", txt);
+      snprintf(m.texto, sizeof m.texto, "%s", it->texto);
+      snprintf(m.icone, sizeof m.icone, "aj_triangle-alert");
+      m.tipo = ILHA_ERRO; m.nBotoes = 2;
+      snprintf(m.botao[0], sizeof m.botao[0], "%s", i18n("Enviar registro"));
+      snprintf(m.botaoIcone[0], sizeof m.botaoIcone[0], "aj_send");
+      snprintf(m.kicker, sizeof m.kicker, "%s", i18n("Aviso"));
+      m.cabecalho = 1;
+      snprintf(m.botao[1], sizeof m.botao[1], "%s", i18n("Agora não"));
+      e.modal = &m;
+      break;
+    default:
+      // AV_CANAL: o aviso do dono (e os de idioma e modo seguro, que usam o
+      // mesmo tipo). A pilula diz o titulo; o texto inteiro fica no modal.
+      snprintf(txt, sizeof txt, "%s", it->titulo);
+      e.tipo = ILHA_INFO; e.icone = "aj_megaphone"; e.ms = 10000u;
+      if (it->texto[0]) {
+        snprintf(m.kicker, sizeof m.kicker, "%s", i18n("Aviso"));
+        snprintf(m.titulo, sizeof m.titulo, "%s", it->titulo);
+        snprintf(m.texto, sizeof m.texto, "%s", it->texto);
+        snprintf(m.icone, sizeof m.icone, "aj_megaphone");
+        m.nBotoes = 1;
+        snprintf(m.botao[0], sizeof m.botao[0], "%s", i18n("Fechar"));
+        e.modal = &m;
+      }
+      break;
+  }
+  ilha_avisar_ex(&e);
+}
+
+// Os itens com `anunciar` vao para a ilha, cada um uma vez. Sem nenhum
+// marcado e com contagem (o toast(N) dos testes), o "N avisos novos" de antes.
+static void anunciarNaIlha(void) {
+  static Aviso copia[AV_MAX];
+  int i, k = 0;
+  pthread_mutex_lock(&trava);
+  for (i = 0; i < n; i++) if (itens[i].anunciar) { itens[i].anunciar = 0; copia[k++] = itens[i]; }
+  pthread_mutex_unlock(&trava);
+  for (i = 0; i < k; i++) anunciarItem(&copia[i]);
+  if (!k && toastN > 0) {
+    char txt[120];
+    snprintf(txt, sizeof txt, toastN == 1 ? i18n("%d aviso novo") : i18n("%d avisos novos"), toastN);
+    { IlhaAvisoEx e;
+      memset(&e, 0, sizeof e);
+      e.chave = AV_ILHA_CHAVE; e.tipo = ILHA_ACENTO; e.icone = "sino"; e.texto = txt;
+      e.ms = (unsigned)AV_TOAST_MS; e.tecla = 1; e.grupo = 1;
+      ilha_avisar_ex(&e); }
+  }
+  toastN = 0;
+}
+
+void avisos_ilha_acao(const char *chave, int botao) {
+  const char *id;
+  if (!chave || strncmp(chave, "av:", 3)) return;
+  id = chave + 3;
+  if (!strcmp(id, "rec")) {
+    if (botao == 1 && recDaIlha.imdb[0]) snprintf(pediuAbrir, sizeof pediuAbrir, "%s", recDaIlha.imdb);
+    else if (botao == 2 && recDaIlha.imdb[0]) {
+      // SALVAR: o titulo do catalogo quando existe, senao o que a
+      // recomendacao trouxe (o mesmo minimo que salvos.c guarda).
+      int idx = cat_indice_por_imdb(recDaIlha.imdb);
+      const CatItem *ci = idx >= 0 ? cat_item(idx) : NULL;
+      static CatItem tmp;
+      if (!ci) {
+        memset(&tmp, 0, sizeof tmp);
+        snprintf(tmp.imdb, sizeof tmp.imdb, "%s", recDaIlha.imdb);
+        snprintf(tmp.tipo, sizeof tmp.tipo, "%s", recDaIlha.tipo);
+        snprintf(tmp.titulo, sizeof tmp.titulo, "%s", recDaIlha.titulo);
+        snprintf(tmp.poster, sizeof tmp.poster, "%s", recDaIlha.poster);
+        ci = &tmp;
+      }
+      // Primeira vez: a ilha pergunta onde o + salva e grava depois (ilhasalvar.c).
+      if (!ilhasalvar_perguntar(ci, 1)) {
+        salvos_definir(ci, 1);
+        // O Trakt so se a pessoa pediu (o mesmo criterio do "+", app.c).
+        if (ajustes_salvos_no_trakt()) trakt_watchlist(ci->imdb, 1);
+        ilhasalvar_aviso(ci, 1);
+      }
+    }
+    // As tres respondem a recomendacao: o selo apaga (o mesmo que abrir Salvos).
+    recomenda_marcar_vistas();
+  } else if (!strncmp(id, "update:", 7)) {
+    if (botao == 1) pediuCodigo = AVISOS_ABRIR_ATUALIZACAO;
+  } else if (!strncmp(id, "crash:", 6)) {
+    if (botao == 1) enviarAgora();
+  }
+  avisos_marcar_visto(id);
 }
 
 // A LISTA, desenhada dentro de qualquer caixa: o painel proprio usa, e a aba
 // AVISOS do painel de Salvos tambem (pedido do dono: abrir quando quiser, sem
 // depender do toast). `foco` e de quem chama; -1 = nenhuma linha em foco.
-#define AVL_ROW 164.0f
+// GLASS UI (mockup "ilha" tela 3, 02/10): a linha do aviso e a LINHA DA ILHA
+// do painel Social (salvospainel.c) — sem caixa em repouso, superficie um
+// degrau mais clara so no foco, raio 22, recuo 18/22, o disco do icone de 52,
+// titulo 24 semibold, texto 19 a 62 % (duas linhas de 25) e a acao em 15 a
+// 38 %. 18 + 29 + 4 + 50 + 4 + 18 + 18 = 141. Era um cartao escuro por linha
+// e o foco num bloco cheio de acento: na aba Avisos, ao lado das outras
+// tres, lia como outro aplicativo.
+#define AVL_ROW 142.0f
+#define AVL_PADX 22.0f
 // A LINHA EM FOCO DE UM AVISO DO CANAL CRESCE para o texto inteiro (20/09/2026,
 // visto na previa do aviso da 1.3.4-rc1: duas linhas cortavam justamente o
 // "onde baixar"). As outras ficam em AVL_ROW. A altura expandida e medida no
@@ -877,10 +1139,29 @@ static void desenharToast(Uint32 agora) {
 #define AVL_LINHAS_CANAL 8
 static float alturaCanalFoco = AVL_ROW + 4.0f * 27.0f;
 static int ehCanalExpansivel(int i) { return i >= 0 && i < n && itens[i].tipo == AV_CANAL; }
+// A ALTURA DE CADA LINHA SAI DO QUE ELA TEM: texto de uma ou de duas linhas,
+// e a linha da acao so quando o aviso tem acao. Com AVL_ROW fixo, um aviso de
+// "modo seguro" (uma frase, sem acao) ganhava 40 px de superficie vazia
+// embaixo no foco — a captura da aba Avisos mostrou. A largura do texto e a
+// do ultimo desenho (todo hospedeiro desenha antes de rolar); antes do
+// primeiro, a da aba Avisos do painel Social.
+static float larguraTextoAviso = 610.0f;
+static int temAcaoAviso(const Aviso *av) {
+  return av->tipo == AV_REC || av->tipo == AV_AGENDA || av->tipo == AV_UPDATE || av->tipo == AV_CRASH;
+}
+static float alturaAviso(int i) {
+  const Aviso *av = &itens[i];
+  float h = 18.0f + 29.0f + 18.0f;
+  if (av->texto[0])
+    h += 4.0f + ((float)txt_largura(TXT_ILHA_SUB, av->texto) > larguraTextoAviso ? 50.0f : 25.0f);
+  if (temAcaoAviso(av)) h += 4.0f + 18.0f;
+  return h < 92.0f ? 92.0f : h;
+}
 float avisos_lista_altura_linha(int linha, int focoLinha) {
   float h = AVL_ROW;
   pthread_mutex_lock(&trava);
   if (linha == focoLinha && ehCanalExpansivel(linha)) h = alturaCanalFoco;
+  else if (linha >= 0 && linha < n) h = alturaAviso(linha);
   pthread_mutex_unlock(&trava);
   return h;
 }
@@ -892,57 +1173,64 @@ float avisos_lista_y(int linha, int focoLinha) {
 }
 float avisos_lista_altura(void) {
   pthread_mutex_lock(&trava);
-  { float h = n > 0 ? (float)n * AVL_ROW : 60.0f; pthread_mutex_unlock(&trava); return h; }
+  { float h = 0.0f;
+    int i;
+    for (i = 0; i < n; i++) h += alturaAviso(i);
+    if (n == 0) h = 60.0f;
+    pthread_mutex_unlock(&trava); return h; }
 }
 int avisos_lista_n(void) { int k; pthread_mutex_lock(&trava); k = n; pthread_mutex_unlock(&trava); return k; }
 
 void avisos_lista_desenhar(float x, float y0, float w, float a, int focoLinha) {
   float ar, ag, ab;
   int i;
-  // Tinta sobre o realce: branca, a nao ser que o realce seja branco
-  // (ajustes_acento_tinta). `tf` e o texto principal, `ts` o secundario.
+  const float fr = 243.0f / 255.0f, fg = 242.0f / 255.0f, fb = 239.0f / 255.0f;
   ajustes_acento(&ar, &ag, &ab);
-  int tf = ajustes_tinta_foco(), ts = ajustes_tinta_foco2();
   pthread_mutex_lock(&trava);
   if (n == 0) {
-    TxtLinha t = txt_linha(TXT_CAPTION, i18n("Nada por enquanto."), 150, 153, 162, 255);
-    txt_desenhar_alpha(t, x, y0, a);
+    TxtLinha t = txt_linha(TXT_ILHA_SUB, i18n("Nada por enquanto."), 243, 242, 239, 255);
+    txt_desenhar_alpha(t, x + AVL_PADX, y0, a * 0.5f);
   }
   { float y = y0;
   for (i = 0; i < n; i++) {
     const Aviso *av = &itens[i];
     int f = (i == focoLinha);
     int expande = f && av->tipo == AV_CANAL;
-    float rowH = expande ? alturaCanalFoco : AVL_ROW;
-    GfxRect row = { x, y, w, rowH - 10.0f };
+    float tx = x + AVL_PADX + 52.0f + 18.0f, tw = w - (tx - x) - AVL_PADX;
+    float rowH;
+    larguraTextoAviso = tw;
+    rowH = expande ? alturaCanalFoco : alturaAviso(i);
+    GfxRect row = { x, y, w, rowH };
     const char *acao = NULL;
-    // O cartao selecionado usa fill accent opaco; o halo reduzido fica atras
-    // dele e nao vaza para os avisos vizinhos.
     if (f) {
-      botao_luz(row, .4f, a);
-      gfx_cor(row, 14.0f / row.h, ar, ag, ab, a);
-    } else {
-      gfx_cor(row, 14.0f / row.h, .062f, .066f, .079f, .92f * a);
+      if (ajustes_vidro()) gfx_cor(row, 22.0f / row.h, 1, 1, 1, .12f * a);
+      else {
+        gfx_rect((GfxRect){ row.x - 14.0f, row.y - 2.0f, row.w + 28.0f, row.h + 30.0f }, 0,
+                 GFX_SOMBRA, 1.0f, 0, 0, 0.5f, 0, 0, 0, .30f * a);
+        gfx_cor(row, 22.0f / row.h, .169f, .176f, .204f, a);
+      }
     }
-    gfx_cor((GfxRect){ x + 20.0f, y + 22.0f, 52.0f, 52.0f }, 0.5f,
-            0.12f, 0.13f, 0.15f, a);
-    gfx_icone((GfxRect){ x + 32.0f, y + 34.0f, 28.0f, 28.0f }, icone(av->tipo),
-              f ? tf / 255.0f : 0.62f, f ? tf / 255.0f : 0.80f,
-              f ? tf / 255.0f : 0.96f, a);
+    // O disco do icone: branco a 8 % (o ".dsc" do mockup), o icone a 85 %.
+    if (ajustes_vidro()) gfx_cor((GfxRect){ x + AVL_PADX, y + 18.0f, 52.0f, 52.0f }, 0.5f, 1, 1, 1, .08f * a);
+    else gfx_cor((GfxRect){ x + AVL_PADX, y + 18.0f, 52.0f, 52.0f }, 0.5f, .141f, .149f, .173f, a);
+    gfx_icone((GfxRect){ x + AVL_PADX + 13.0f, y + 31.0f, 26.0f, 26.0f }, icone(av->tipo),
+              fr * .85f, fg * .85f, fb * .85f, a);
     // NOVO = um ponto na cor de acento colado ao icone, e nao uma pilula com
     // palavra: a palavra competia com o titulo e o ponto e o vocabulario que
-    // a aba Social ja usa para "qual delas e nova".
-    if (!av->visto && !f) gfx_cor((GfxRect){ x + 62.0f, y + 18.0f, 14.0f, 14.0f }, 0.5f, ar, ag, ab, a);
-    { TxtLinha t = txt_linha_corta(TXT_BODY, av->titulo, f ? tf : 240, f ? tf : 241, f ? tf : 245, 255, w - 116.0f);
-      txt_desenhar_alpha(t, x + 92.0f, y + 16.0f, a); }
+    // a aba Social ja usa para "qual delas e nova". Agora tambem no foco: a
+    // superficie do foco nao e mais o acento, entao o ponto nao some nela.
+    if (!av->visto) gfx_cor((GfxRect){ x + AVL_PADX + 40.0f, y + 16.0f, 14.0f, 14.0f }, 0.5f, ar, ag, ab, a);
+    { TxtLinha t = txt_linha_corta(TXT_ILHA_NOME, av->titulo, f ? 255 : 243, f ? 255 : 242,
+                                   f ? 255 : 239, 255, tw);
+      txt_desenhar_alpha(t, tx, y + 18.0f, a * (f ? 1.0f : 0.88f)); }
     if (expande) {
-      float h = txt_bloco(TXT_CAPTION, av->texto, 60, 62, 70, x + 92.0f, y + 50.0f, w - 116.0f, 27.0f, a, AVL_LINHAS_CANAL);
-      float nova = 50.0f + h + 34.0f;
-      if (nova < AVL_ROW) nova = AVL_ROW;
+      float h = txt_bloco(TXT_ILHA_SUB, av->texto, 243, 242, 239, tx, y + 51.0f, tw, 25.0f, a * 0.62f,
+                          AVL_LINHAS_CANAL);
+      float nova = 51.0f + h + (temAcaoAviso(av) ? 4.0f + 18.0f : 0.0f) + 18.0f;
+      if (nova < alturaAviso(i)) nova = alturaAviso(i);
       alturaCanalFoco = nova;
     }
-    else if (f) txt_bloco(TXT_CAPTION, av->texto, ts, ts, ts, x + 92.0f, y + 50.0f, w - 116.0f, 27.0f, a, 2);
-    else        txt_bloco(TXT_CAPTION, av->texto, 150, 153, 162, x + 92.0f, y + 50.0f, w - 116.0f, 27.0f, a, 2);
+    else txt_bloco(TXT_ILHA_SUB, av->texto, 243, 242, 239, tx, y + 51.0f, tw, 25.0f, a * 0.62f, 2);
     switch (av->tipo) {
       case AV_REC:    acao = i18n("OK abre Salvos"); break;
       case AV_AGENDA: acao = i18n("OK abre o título"); break;
@@ -952,9 +1240,8 @@ void avisos_lista_desenhar(float x, float y0, float w, float a, int focoLinha) {
       default: break;
     }
     if (acao) {
-      TxtLinha t = txt_linha(TXT_CAPTION2, acao, f ? ts : 168,
-                             f ? ts : 172, f ? ts : 182, 255);
-      txt_desenhar_alpha(t, x + 92.0f, y + row.h - 34.0f, a * 0.95f);
+      TxtLinha t = txt_linha_corta(TXT_ILHA_HORA, acao, 243, 242, 239, 255, tw);
+      txt_desenhar_alpha(t, tx, y + rowH - 18.0f - 18.0f, a * (f ? 0.62f : 0.38f));
     }
     y += rowH;
   } }
@@ -987,6 +1274,31 @@ int avisos_lista_ok(int linha) {
   }
 }
 
+// A ESTREIA AINDA NAO LIDA mais recente (ilhacart.c poe na ilha). Os itens
+// entram no fim da lista, entao o mais novo e o de indice maior.
+int avisos_estreia_pendente(char *id, size_t tamId, char *imdb, size_t tamImdb) {
+  int i, achou = 0;
+  pthread_mutex_lock(&trava);
+  for (i = n - 1; i >= 0; i--)
+    if (itens[i].tipo == AV_AGENDA && !itens[i].visto && itens[i].alvo[0]) {
+      snprintf(id, tamId, "%s", itens[i].id);
+      snprintf(imdb, tamImdb, "%s", itens[i].alvo);
+      achou = 1;
+      break;
+    }
+  pthread_mutex_unlock(&trava);
+  return achou;
+}
+
+void avisos_marcar_visto(const char *id) {
+  int i;
+  if (!id || !id[0]) return;
+  pthread_mutex_lock(&trava);
+  for (i = 0; i < n; i++) if (!strcmp(itens[i].id, id)) itens[i].visto = 1;
+  marcarVisto(id);
+  pthread_mutex_unlock(&trava);
+}
+
 // Tudo lido: o hospedeiro chama ao fechar (o painel proprio e a aba).
 void avisos_marcar_lidos(void) {
   int i;
@@ -995,10 +1307,20 @@ void avisos_marcar_lidos(void) {
   pthread_mutex_unlock(&trava);
 }
 
+static void avisos_desenharCorpo_(Uint32 agora);
+// Camada ampliada (escala.h): o corpo desenha na tela virtual.
 void avisos_desenhar(Uint32 agora) {
+  ESCALA_INI();
+  avisos_desenharCorpo_(agora);
+  ESCALA_FIM();
+}
+static void avisos_desenharCorpo_(Uint32 agora) {
+  (void)agora;
   float a = anim_clamp(entrada, 0.0f, 1.0f), dx;
-  if (toastPendente && !aberto && !cartao) { toastPendente = 0; toastAte = (float)agora + AV_TOAST_MS; }
-  if (!cartao) desenharToast(agora);
+  if (toastPendente && !aberto && !cartao) {
+    toastPendente = 0;
+    anunciarNaIlha();
+  }
   if (a < 0.01f) { cartaoDesenhar(); return; }
   dx = (1.0f - a) * 80.0f;
   gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, 0.45f * a);
@@ -1017,7 +1339,9 @@ void avisos_desenhar(Uint32 agora) {
     float fim = avisos_lista_y(foco, foco) + avisos_lista_altura_linha(foco, foco);
     float alvo = fim > areaH ? fim - areaH : 0.0f;
     rol += (alvo - rol) * 0.25f; }
-  avisos_lista_desenhar(AVP_X + dx + AVP_MARG, AVP_TOPO - rol, AVP_W - 2 * AVP_MARG, a, foco);
+  // A linha da ilha tem 22 de recuo proprio: a caixa dela sai 22 para fora,
+  // e o texto continua na prumada do titulo do painel.
+  avisos_lista_desenhar(AVP_X + dx + AVP_MARG - 22.0f, AVP_TOPO - rol, AVP_W - 2 * AVP_MARG + 44.0f, a, foco);
   gfx_sem_recorte();
   { TxtLinha t = txt_linha_corta(TXT_CAPTION2, i18n("↑ ↓ escolher · OK agir · Voltar fecha e marca tudo como lido"),
                                  140, 144, 154, 255, AVP_W - 2 * AVP_MARG);
@@ -1053,6 +1377,14 @@ static void lerLogAtual(void) {
 void avisos_envio_auto_passo(Uint32 agora) {
   static int anteriorFeito;
   static Uint32 proximo;
+  // "O registro fica guardado e sai assim que a rede voltar" (painel de envio,
+  // TV sem internet): o envio manual que caiu por falta de rede sai sozinho
+  // no primeiro quadro com a rede de volta, com ou sem o envio automatico.
+  if (envPendenteRede && envioEstado != 1 && !rede_saude_offline()) {
+    envPendenteRede = 0;
+    avisos_enviar_registro_atual();
+    return;
+  }
   if (!ajustes_envio_auto() || !NV_REC_URL[0] || envioEstado == 1) return;
   if (!anteriorFeito) {
     anteriorFeito = 1;
@@ -1064,6 +1396,7 @@ void avisos_envio_auto_passo(Uint32 agora) {
 #else
       { FILE *f = fopen(AV_LOG_ANTERIOR, "rb"); tem = f != NULL; if (f) fclose(f); }
 #endif
+    envAutoProximo = proximo;
     if (tem) {
       envioEstado = 1;
       if (pthread_create(&fioEnvio, NULL, enviarRegistro, (void *)&AUTO_ANTERIOR) == 0) pthread_detach(fioEnvio);
@@ -1083,6 +1416,7 @@ void avisos_envio_auto_passo(Uint32 agora) {
 #else
   proximo = agora + 300000;
 #endif
+  envAutoProximo = proximo;
   lerLogAtual();
   fflush(stdout);
   envioEstado = 1;
@@ -1092,7 +1426,21 @@ void avisos_envio_auto_passo(Uint32 agora) {
 
 void avisos_enviar_registro_atual(void) {
   if (envioEstado == 1) return;
-  if (!NV_REC_URL[0]) { envioEstado = 3; return; }
+  envQuando = time(NULL);
+  envCodigo[0] = 0; envHttp = 0;
+  if (!NV_REC_URL[0]) { envMotivo = AVISOS_ENVIO_INDISPONIVEL; envioEstado = 3; return; }
+  // Sem internet (redesaude.h) nem tenta: diz o porque e espera a rede voltar.
+  if (rede_saude_offline()) {
+    envMotivo = AVISOS_ENVIO_OFFLINE; envPendenteRede = 1; envioEstado = 3;
+    { FILE *f; const char *arq = registro_arquivo();
+      envBytes = 0; envLinhas = 0;
+      if (arq && (f = fopen(arq, "rb")) != NULL) {
+        fseek(f, 0, SEEK_END); envBytes = ftell(f); fclose(f);
+        if (envBytes > AV_REGISTRO_MAX) envBytes = AV_REGISTRO_MAX;
+      } }
+    return;
+  }
+  envMotivo = 0; envPendenteRede = 0;
 #ifdef __EMSCRIPTEN__
   // Fio principal: e o unico com localStorage. O shell grava nv-log a cada
   // 10 s, entao o que vai e o log ate a ultima gravacao.
@@ -1115,3 +1463,48 @@ void avisos_enviar_registro_atual(void) {
   if (pthread_create(&fioEnvio, NULL, enviarRegistro, (void *)&ATUAL) == 0) pthread_detach(fioEnvio);
   else envioEstado = 3;
 }
+
+int avisos_envio_info(AvisosEnvio *o) {
+  char *s;
+  memset(o, 0, sizeof *o);
+  o->disponivel = NV_REC_URL[0] != 0;
+  pthread_mutex_lock(&trava);
+  o->estado = envioEstado; o->motivo = envMotivo; o->http = envHttp;
+  o->bytes = envBytes; o->linhas = envLinhas; o->quando = envQuando;
+  o->autoQuando = envAutoQuando; o->autoHttp = envAutoHttp;
+  o->pendenteRede = envPendenteRede;
+  snprintf(o->codigo, sizeof o->codigo, "%s", envCodigo);
+  pthread_mutex_unlock(&trava);
+  o->autoProximoMs = envAutoProximo;
+  s = dados_ler("registro-codigo.txt");
+  if (s) {
+    long t = 0;
+    char c[8] = "";
+    if (sscanf(s, "%7s %ld", c, &t) == 2 && strlen(c) == 6) {
+      snprintf(o->ultimoCodigo, sizeof o->ultimoCodigo, "%s", c);
+      o->ultimoCodigoQuando = (time_t)t;
+    }
+    free(s);
+  }
+  return o->estado;
+}
+
+#ifdef AVISOS_TESTE_ENVIO
+// A queda da sessao anterior na ilha, como o arranque a anunciaria.
+void avisos_teste_queda(const char *texto) {
+  Aviso a;
+  memset(&a, 0, sizeof a);
+  snprintf(a.id, sizeof a.id, "teste:crash");
+  a.tipo = AV_CRASH;
+  snprintf(a.titulo, sizeof a.titulo, "%s", i18n("O app fechou sozinho"));
+  snprintf(a.texto, sizeof a.texto, "%s", texto);
+  anunciarItem(&a);
+}
+void avisos_teste_envio(int estado, int motivo, int http, const char *codigo, long bytes, int linhas) {
+  envioEstado = estado; envMotivo = motivo; envHttp = http; envBytes = bytes; envLinhas = linhas;
+  envQuando = time(NULL);
+  snprintf(envCodigo, sizeof envCodigo, "%s", codigo ? codigo : "");
+  envPendenteRede = motivo == AVISOS_ENVIO_OFFLINE;
+}
+void avisos_teste_envio_auto(long haSeg, int http) { envAutoQuando = time(NULL) - haSeg; envAutoHttp = http; envAutoProximo = SDL_GetTicks() + 240000u; }
+#endif

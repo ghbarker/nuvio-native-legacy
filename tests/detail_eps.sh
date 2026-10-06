@@ -45,7 +45,7 @@ rg -q 'const CatEp \*ep = cat_episodio\(idx, epAbsoluto\(c\)\);' src/detail.c
 # da temporada em PROGRESSO (S2E2 numa serie de 4 temporadas, por exemplo), e
 # nao a do primeiro episodio da serie (S1E1). Sem isto detail_abrir escolhia
 # sempre a temporada de cat_episodio(idx, 0) e ignorava ci->temporada.
-if ! rg -q 'ci0->progresso > 0 && ci0->progresso < 90 &&' src/detail.c; then
+if ! rg -q 'ci0->progresso > 0 && ci0->progresso < ajustes_cw_concluido\(\) &&' src/detail.c; then
   echo 'detail: temporada inicial ignora o progresso de Continuar assistindo' >&2
   exit 1
 fi
@@ -100,4 +100,11 @@ if ! rg -q 'if \(sabe\)' src/detail.c; then
   exit 1
 fi
 
+
+# Esquerda/direita na PONTA da fileira de episodios trocam de temporada (dono,
+# 03/10), e a folha vertical de episodios (episodios.c, tambem usada no player)
+# troca com o foco ja na lista.
+rg -q 'static int detail_ep_borda\(int dir\)' src/detail.c
+rg -q 'detail_ep_borda\(k == SDLK_RIGHT \? 1 : -1\)' src/detail.c
+rg -q 'if \(grupo >= 0 && \(k == SDLK_LEFT \|\| k == SDLK_RIGHT\)\)' src/episodios.c
 echo 'detail eps: PASS'

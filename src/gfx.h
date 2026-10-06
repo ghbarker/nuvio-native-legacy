@@ -123,6 +123,8 @@ typedef enum {
   //
   // uPar.x = ate onde a rampa vai, em fracao da ALTURA DESTE retangulo. A cor
   // vem de uCor.rgb (branco para realce), o alfa de uCor.a.
+  // uPar.y > 0 inverte o sentido: cheia da BASE ate uPar.y, zero em uPar.x
+  // (medidos da base) — o veu escuro da legenda do cartao deitado.
   GFX_BRILHO_TOPO = 24,
   // GFX_ARTE — a imagem como ela e, so que com os CANTOS ARREDONDADOS.
   //
@@ -190,16 +192,100 @@ typedef enum {
   // macias (esquerda, direita, topo, base) com as cores de regiao da arte,
   // numa passada so de tela cheia, com dither contra faixas. Use gfx_ambiente.
   GFX_AMBIENTE = 33,
-  GFX_NMODOS = 34
+  // GFX_COPIA — a textura INTEIRA, RGB e ALPHA, sem SDF nem efeito. E a
+  // ampliacao do alvo interno de 1280x720 (gpunivel.h, nivel 2): o alpha tem
+  // de passar junto, senao o furo do plano de video some. uPar.y > 0.5 = a
+  // fonte e um FBO (origem embaixo), como no GFX_SNAP.
+  GFX_COPIA = 36,
+  // GFX_VITRINE — a arte do destaque nos layouts PADRAO e DINAMICA da home
+  // (ajustes_home_layout). Cover com ANCORAGEM vertical, cantos por SDF, o veu
+  // de leitura (esquerda e base) ASSADO na propria passada, e um esvanecer
+  // opcional da base em ALFA. Um modo so e nao arte + veu por cima, pelo mesmo
+  // motivo do GFX_DETALHE: o custo desta GPU e o de preenchimento, e cada
+  // camada extra de um destaque de ponta a ponta e uma tela cheia a mais.
+  //
+  //   uPar.x  = ancoragem vertical do recorte, 0 (topo) a 1 (base); 0,5 = centro
+  //   uPar.y  = 1 dissolve a base em alfa (o fundo atras aparece);
+  //             0 deixa a arte inteira
+  //   uCor.r  = inicio do veu inferior em 0..1; 0 usa o padrao 0,38
+  //   uCor.a  = alfa da arte; uCor.g/b nao sao usados
+  //   uFoco   = forca do veu de leitura, 0 a 1 (0 = arte pura, sobre o trailer)
+  //   uRaio   = canto, como no GFX_CARD (fracao da altura)
+  //   uTexAsp = w/h da textura (gfx_tex_aspect_atual)
+  GFX_VITRINE = 34,
+  // GFX_FUNDO_DIN — o fundo da home DINAMICA: SO COR, um degrade vertical de
+  // uma cor (a do titulo em foco). Sem textura e sem arte desfocada.
+  //   uCor.rgb = cor do topo; uCor.a = alfa
+  //   uFoco    = quanto da cor sobra na base (0..1)
+  GFX_FUNDO_DIN = 35,
+  // GFX_HERO_CAM / GFX_HERO_CHEIO_CAM — as camadas do destaque numa passada
+  // (o crossfade). So por gfx_hero_camadas.
+  GFX_HERO_CAM = 37,
+  GFX_HERO_CHEIO_CAM = 38,
+  // GFX_JANELA — o CARTAO DO CARROSSEL da Dinamica (detail.c): a arte em
+  // "cover" na TELA CHEIA, vista por uma janela arredondada. A arte nunca
+  // escala: o rect e a abertura, e gfx_janela_atual diz onde ela fica no
+  // quadro da arte (x, y, w, h em fracao da tela). Esticar o cartao so
+  // aumenta a abertura. Leva a vinheta do GFX_DETALHE (mesma curva, medida no
+  // quadro da arte) com forca em uFoco, e o apagar da pagina rolada em
+  // uPar.x (mistura com o fundo, opaco); uPar.y escolhe o veu: 0 = so o canto
+  // de baixo a esquerda (cartao), 1 = a vinheta da pagina — no cartao do tamanho da tela os
+  // dois modos dao o mesmo pixel, e a troca entre eles nao se ve.
+  // Cor com r < 0.5 = SO O VEU (cor do fundo com alpha, sem a arte): por cima
+  // do furo do trailer que toca no cartao.
+  GFX_JANELA = 39,
+  // VEU EM DEGRADE DE CSS (Glass UI do player, 03/10): o preto (ou uCor.rgb)
+  // cheio numa borda do rect e zero na outra, pelo dither de nv_dither. Os
+  // veus do mockup sao linear-gradient de varias paradas; aqui viram uma curva
+  // so: (1-d)^uFoco com uFoco > 0, ou 1-smoothstep(d) com uFoco = 0. `d` e a
+  // distancia da borda cheia, em fracao do rect, dividida por uPar.y (o ponto
+  // em que o veu zera; 1 = a borda oposta). uPar.x escolhe a borda cheia:
+  // 0 = baixo, 1 = cima, 2 = esquerda, 3 = direita. Use por gfx_veu_css.
+  GFX_VEU_CSS = 40,
+  // GFX_MINI — o alvo de uma miniatura (gfx_mini_desenhar): FBO lido de cabeca
+  // para cima, cantos por SDF.
+  GFX_MINI = 41,
+  // GFX_TEXTURA — o recorte do titulo numa pilula/barra (cor de destaque
+  // "Textura"). Nao se pede direto: gfx_rect troca para ele todo GFX_COR
+  // cheio na cor exata do destaque enquanto gfx_textura_definir tem textura.
+  GFX_TEXTURA = 42,
+  // GFX_FOSCO — a luz assada (320x180, a arte borrada do fundo) lida em
+  // COORDENADA DE TELA (vAmb) e recortada pelos cantos do painel: o vidro
+  // fosco. uTex = o assado; uCor.a = alfa. Use gfx_vidro_fosco.
+  GFX_FOSCO = 43,
+  GFX_NMODOS = 44
 } GfxModo;
 
 typedef struct {
   float x, y, w, h;
 } GfxRect;
 
+// A textura do titulo para o modo Textura (ajustes_textura_quadro): `janela`
+// e o recorte (x, y, w, h em fracao da imagem), `aspecto` o w/h da textura,
+// `forca` 1 ou 0,35 (sutil), `veu` o alfa do veu atras do rotulo e
+// `veuBranco` 1 quando a tinta e escura. tex 0 desliga.
+void gfx_textura_definir(GLuint tex, const float janela[4], float aspecto,
+                         float forca, float veu, int veuBranco);
+int  gfx_textura_ativa(void);
+// O matiz da Imersiva por cima de um miolo de vidro (16% da luz do destaque,
+// com a forca da luz ambiente). gfx_vidro_painel/folha ja o chamam.
+void gfx_vidro_matiz(GfxRect r, float raio, float a);
+// O miolo de cor lisa (cr,cg,cb,ca) E a matiz acima numa passada so — o mesmo
+// pixel que gfx_cor(miolo) + gfx_vidro_matiz(r, raio, a), uma camada a menos.
+void gfx_vidro_miolo(GfxRect r, float raio, float cr, float cg, float cb, float ca, float a);
+
 // Proporcao (w/h) da textura a desenhar. 0 = mapeia direto (texto, veu).
 // Definir ANTES de gfx_rect para que a arte seja recortada, nunca esticada.
 extern float gfx_tex_aspect_atual;
+// 1 = a textura do proximo GFX_ARTE tem alfa 255 em todo pixel (tex_opaca).
+// Com ela, um GFX_ARTE de tela cheia, canto vivo e alfa 1 esconde tudo o que
+// estiver por baixo, e a luz ambiente pendente (gfx_ambiente) nao e pintada.
+// Quem liga desliga logo depois do desenho, como gfx_tex_aspect_atual.
+extern int gfx_arte_opaca_atual;
+int gfx_arte_veu(GfxRect r, GLuint tex, float base, float aEsq, float aDir, float a);
+// Deslize da arte do destaque dentro do proprio retangulo, em fracao da largura
+// (so GFX_HERO, GFX_HERO_CHEIO e GFX_VITRINE). Quem define devolve a 0.
+extern float gfx_desliza_atual;
 // 1 = o GFX_CARD deve sempre preencher a moldura com cover. Usado pela forma
 // editorial 4:3, que nao pode cair no contain quando recebe arte 16:9.
 extern float gfx_card_forcar_cover_atual;
@@ -210,8 +296,33 @@ extern float gfx_borda_foco_atual;
 // Deslocamento da luz do foco no GFX_CARD (revela.h, revela_varre): 0 = faixa
 // especular no repouso. Quem define para um card devolve a 0 logo depois.
 extern float gfx_varre_atual;
+// O VEU DA BASE DENTRO DA ARTE DO CARD. {fracao1, alfa1, fracao2, alfa2}: os
+// veus de gfx_veu_base que o PROXIMO GFX_CARD ja aplica no proprio fragmento.
+// Como passada separada o veu dividia com a arte a cobertura da borda e, no
+// pixel da borda, deixava arte quase sem veu: um fio claro na base do card.
+// Quem chama: limpa, poe os veus (gfx_veu_card_por), desenha a arte, liga
+// gfx_veu_na_arte (gfx_veu_base passa a pular os mesmos veus) e limpa no fim.
+extern float gfx_veu_card_atual[4];
+extern int gfx_veu_na_arte;
+int  gfx_veu_card_por(float fracao, float alfa);
+void gfx_veu_card_limpar(void);
 // Opacidade de grupo: deve voltar a 1 ao terminar o grupo.
 extern float gfx_opacidade_grupo;
+// Transformacao de grupo (Ajustes v2: a lista que cresce por cima do menu):
+// todo retangulo e recorte desenhado ate gfx_sem_transformar sai escalado por
+// `s` em torno de (ox, oy) e deslocado por (dx, dy), em coordenadas de layout.
+// Nao aninha. Miniaturas e passadas internas ficam de fora.
+void gfx_transformar(float ox, float oy, float s, float dx, float dy);
+void gfx_sem_transformar(void);
+// GIRO DE GRUPO: todo retangulo desenhado ate gfx_sem_girar sai girado `rad`
+// radianos em torno de (cx, cy), em coordenadas de layout. Existe para a parede
+// inclinada da escolha de perfil e o feixe do projetor (perfilsel.c). O recorte
+// (tesoura) NAO gira. Nao aninha; passadas internas ficam de fora.
+void gfx_girar(float rad, float cx, float cy);
+void gfx_sem_girar(void);
+// Janela do GFX_JANELA: x, y, w, h do rect no quadro da arte em tela cheia,
+// em fracao (0..1). Quem desenha devolve a {0,0,1,1}.
+extern float gfx_janela_atual[4];
 
 // Snapshot: renderiza uma tela inteira para textura, para poder redesenha-la
 // como um unico quad. Existe porque a home continua visivel pela moldura da
@@ -244,6 +355,9 @@ void gfx_recorte(float x, float y, float w, float h);
 // `nome` e o basename sem extensao: "mais", "visto", "naovisto", "fontes",
 // "play", "pause", "legenda", "audio", "aspecto", "avancar", "episodios",
 // "trailer".
+// Excecao: aj_smartphone acompanha o nucleo como o mesmo PNG embutido. O TPK
+// pode atualizar somente a .so e conservar arte antiga sem esse arquivo.
+// Carga preguiçosa, uma textura de 128x128; gfx_encerrar devolve a textura.
 void gfx_icones_dir(const char *dirArte);
 void gfx_icone(GfxRect r, const char *nome, float cr, float cg, float cb, float ca);
 void gfx_sem_recorte(void);
@@ -276,13 +390,44 @@ void gfx_borrao_encerrar(void);
 // render indisponivel). Nesse caso NAO desenhe a arte nitida no lugar — o
 // ajuste existe para esconder o spoiler; pinte o fundo do card.
 GLuint gfx_desfocado(GLuint src, const char *chave);
+// Um pixel da copia desfocada (u da esquerda, v de cima). So diagnostico.
+int gfx_desfocado_px(GLuint tex, float u, float v, unsigned char rgb[3]);
 int  gfx_snap_ok(void);        // 1 quando o FBO do snapshot existe
 void gfx_snap_comecar(void);   // redireciona o desenho para o snapshot
 void gfx_snap_terminar(void);  // volta para a tela
 void gfx_snap_desenhar(void);  // pinta o snapshot ocupando a tela toda
 void gfx_snap_encerrar(void);
 
-void gfx_tamanho_alvo(int w, int h);   // drawable real, para restaurar viewport
+void gfx_tamanho_alvo(int w, int h);
+
+// MINIATURA: uma tela DE VERDADE desenhada num alvo proprio e mostrada
+// reduzida (previa das Novidades da 1.8.0, inspetor do Guia de uso). Entre
+// comecar e terminar o desenho segue em coordenadas de layout: o ponto
+// (x0, y0) cai no canto de cima do alvo e cada unidade vale `esc` pixels.
+// Nada de gfx_desfocado/gfx_ambiente/snapshot la dentro.
+typedef struct { GLuint fbo, tex; int w, h; } GfxMini;
+int  gfx_mini_alvo(GfxMini *m, int w, int h);   // cria ou recria; 0 = sem FBO
+void gfx_mini_comecar(GfxMini *m, float x0, float y0, float esc);
+void gfx_mini_terminar(void);
+void gfx_mini_desenhar(const GfxMini *m, GfxRect r, float raioPx, float a);
+void gfx_mini_liberar(GfxMini *m);
+// Dentro da miniatura: a base de `r` some ate `alfa` (o .gv.fade do mockup).
+void gfx_mini_esvanecer(GfxRect r, float alfa);   // drawable real, para restaurar viewport
+// TAMANHO DA INTERFACE (Ajustes > Aparencia). As camadas que nao sao a home
+// nem o detalhe (Ajustes, player, folhas, ilhas, menus, modais) desenham numa
+// TELA VIRTUAL de 1920/s x 1080/s, e o gfx amplia tudo por s na hora de
+// rasterizar: retangulos, recortes, furos e alvos do ponteiro. O texto dessas
+// camadas e rasterizado JA no tamanho ampliado (text.c), nunca esticado.
+//   gfx_escala_ui      o fator configurado (1, 1.2, 1.3, 1.5)
+//   gfx_escala         o fator ATIVO agora (1 fora de uma camada ampliada)
+//   gfx_escala_entrar  liga o fator configurado; devolve o anterior
+//   gfx_escala_sair    devolve o anterior (aninhar e seguro: nao multiplica)
+// Com s = 1 nenhum caminho muda: e o mesmo pixel de antes.
+void  gfx_escala_ui_definir(float s);
+float gfx_escala_ui(void);
+float gfx_escala(void);
+float gfx_escala_entrar(void);
+void  gfx_escala_sair(float anterior);
 int  gfx_iniciar(void);
 void gfx_encerrar(void);
 
@@ -292,7 +437,7 @@ void gfx_encerrar(void);
 void gfx_tex_esquecer(GLuint tex);
 
 // Desenha um retangulo. `foco` 0..1 controla especular/sombra; `parx/pary`
-// deslocam a arte dentro do card (parallax); `raio` em fracao do menor lado.
+// so deslocam a luz; a arte nunca e cortada nem deslocada (#176); `raio` em fracao do menor lado.
 // TELEMETRIA DE QUADRO. Zerados por gfx_novo_quadro, uma vez por quadro.
 //
 // O QUE ESTES NUMEROS JA RESPONDERAM (medido na TV, home rolando, 1920x1080):
@@ -316,8 +461,55 @@ extern double gfx_ms_rect;  // ms de CPU dentro de gfx_rect
 extern int    gfx_n_outros;  // chamadas de recorte/FBO/desfoque
 extern double gfx_ms_outros; // ms de CPU nesses pontos de GL
 extern double gfx_fill;      // area submetida no quadro, em telas cheias
+// O mesmo, RECORTADO na tela: retangulo que sai pelas bordas (a prateleira que
+// sangra, o destaque rolado) so conta o que aparece. E o mais proximo do
+// preenchimento real que da para tirar sem GPU; nao enxerga a tesoura.
+extern double gfx_fill_vis;
 extern int    gfx_n_cheio;   // desenhos cobrindo >= 50% da tela
+extern int    gfx_n_cheio_mistura;   // desses, com mistura (so -DNV_FLUIDEZ_PERF)
+// O mesmo gfx_fill repartido por modo (programa): diz QUAL shader cobre a
+// tela, que e a pergunta de uma GPU presa em preenchimento (gpunivel.h).
+extern double gfx_fill_modo[GFX_NMODOS];
+extern int gfx_n_assados;
+extern int gfx_rastro_grandes;   // rastro: imprime todo desenho >= 12% da tela
+// INSTRUMENTO DE CAMPO: bit N ligado = o modo N nao e desenhado. main.c le a
+// lista de /tmp/nuvio-gfx-off a cada 3 s (numeros separados por espaco). Serve
+// para medir na TV quanto fps cada tipo de desenho custa, sem recompilar.
+extern unsigned long long gfx_modos_desligados;
+extern double gfx_fill_modo_ult[GFX_NMODOS];
 void gfx_novo_quadro(void);
+
+// EFEITOS LEVES (nivel 1 de gpunivel.h). 1 = sem o dither dos degrades (o
+// ruido highp por pixel em todo veu, rampa do destaque e luz) e sem os dois
+// realces puramente decorativos (GFX_BRILHO_TOPO CLARO, GFX_LUZ; o veu escuro
+// de gfx_veu_base fica, ele carrega o texto). E um uniform, e
+// nao outra compilacao: trocar de nivel no meio da sessao nao pode custar a
+// compilacao inteira dos shaders (0,7-2 s numa TV fraca).
+// VEU SO NA BASE de um card: degrade vertical que chega a zero em `fracao` da
+// altura (medida da base), com os cantos de baixo do card. `raio` e o do card
+// (fracao da altura DELE). Substitui o GFX_VEU de cartao inteiro, que cobria
+// arte onde nao ha texto e custava fps na C9 (29/09: 48 -> 60 sem ele).
+void gfx_veu_base(GfxRect card, float raio, float fracao, float alfa);
+// REALCE CLARO NO TOPO de um cartao (GFX_BRILHO_TOPO): rampa de `alcance`
+// (fracao da altura) a partir do topo, com os cantos do cartao. Desenha so a
+// faixa da rampa: o mesmo pixel de pedir o cartao inteiro, com ~90% menos
+// preenchimento (ver gfx.c).
+void gfx_brilho_topo(GfxRect r, float raio, float alcance,
+                     float cr, float cg, float cb, float ca);
+// Veu em degrade (GFX_VEU_CSS): `borda` 0 = cheio embaixo, 1 = em cima,
+// 2 = a esquerda, 3 = a direita; `curva` > 0 e o expoente de (1-d), 0 = a
+// queda suave; `fim` (0..1] e onde zera. Preto a `a`.
+void gfx_veu_css(GfxRect r, int borda, float curva, float fim, float a);
+// gfx_veu_css com um chapado preto de alfa `base` por baixo, composto na mesma
+// passada (uma tela cheia misturada a menos que gfx_cor + gfx_veu_css).
+void gfx_veu_css_base(GfxRect r, int borda, float curva, float fim, float a, float base);
+void gfx_definir_efeitos_leves(int leves);
+int  gfx_efeitos_leves(void);
+// EFEITOS MINIMOS (nivel 2 de gpunivel.h), por cima dos leves: sem a luz de
+// tela cheia do tema imersivo (gfx_ambiente) e sem sombra/halo (GFX_SOMBRA).
+// Resolucao nativa: tira camadas que so enfeitam em vez de borrar o texto.
+void gfx_definir_efeitos_minimos(int minimos);
+int  gfx_efeitos_minimos(void);
 
 void gfx_rect(GfxRect r, GLuint tex, GfxModo modo, float foco,
               float parx, float pary, float raio,
@@ -325,12 +517,67 @@ void gfx_rect(GfxRect r, GLuint tex, GfxModo modo, float foco,
 
 // Atalhos legiveis para os casos comuns.
 void gfx_cor(GfxRect r, float raio, float cr, float cg, float cb, float ca);
+// Multiplicador de COR (nao de alfa) aplicado a GFX_COR/TEXTO/ANEL/MARCA: o brilho
+// da interface do player (esmaecer.h). 1 = sem efeito; quem muda restaura.
+extern float gfx_osd_mult;
+// A mancha GFX_SOMBRA em `s` sem o miolo `furo`, que um painel OPACO pintado em
+// seguida cobre inteiro (mesmo pixel, menos preenchimento). Ver gfx.c.
+void gfx_sombra_vazada(GfxRect s, float foco, float parx, float raio, float cr, float cg, float cb, float ca,
+                       GfxRect furo);
+// A sombra `s` de um painel que vem por cima com alfa `alfaPainel` e canto de
+// `raioPx` pixels: vazada quando o painel e opaco (>= 0,98), inteira senao.
+void gfx_sombra_sob(GfxRect s, float foco, float parx, float raio, float cr, float cg, float cb,
+                    float ca, GfxRect painel, float raioPx, float alfaPainel);
+// Destaque em camadas numa passada so (o crossfade): devolve 0 sem desenhar
+// se nao puder garantir o mesmo pixel do caminho em duas passadas.
+int gfx_hero_camadas(GfxRect r, GfxModo modo, GLuint texA, float aspA, float alfaA,
+                     GLuint texB, float aspB, float alfaB);
 // A luz ambiente do tema "Dinâmica imersiva", tela cheia, com `alfa` a mais
 // por cima da forca que corviva ja anima. Nao desenha nada fora dele: o custo
 // e zero nos outros temas. main.c chama logo depois do glClear.
 // Assa a luz imersiva no quadro pequeno. Chamar ANTES do clear da tela (ver gfx.c).
 void gfx_ambiente_preparar(void);
+// Vidro fosco (Ajustes > Vidro fosco): desenha, dentro do painel, a arte borrada
+// do fundo (o assado de gfx_ambiente_preparar) alinhada a tela. Nada se este
+// quadro nao assou fundo nenhum. Chamado por gfx_vidro_folha/painel, ANTES da tinta.
+void gfx_vidro_fosco(GfxRect r, float raio, float a);
+// O quadro tem video vivo (furo) por baixo: o fosco nao desenha ate o proximo
+// gfx_novo_quadro (o assado e a luz da arte, nao o que passa no video).
+void gfx_vidro_fosco_bloquear(void);
+// Fonte do fosco ate o proximo gfx_novo_quadro: o fundo assado deste quadro
+// (fundo.c, "Arte borrada"), no lugar do assado da luz imersiva.
+void gfx_vidro_fosco_fonte(GLuint tex);
+// CANAIS DE FUNDO DA LUZ ASSADA (fundo.c, "Arte borrada" e "Frost" de tela
+// cheia): o quadro pequeno (320x180, GL_RGB) do `canal` (0..1), pintado por
+// `pintar(ctx)` em coordenadas de layout de tela cheia pelo MESMO assado da luz
+// imersiva, so quando `chave` (n <= 24 floats) muda. Devolve a textura (0 =
+// sem FBO: desenhe direto).
+GLuint gfx_luz_canal(int canal, const float *chave, int n, void (*pintar)(void *), void *ctx);
+// A passada de tela da luz imersiva (GFX_SNAP de tela cheia, opaca e sem
+// mistura com alfa 1). `veu` = { r, g, b, forca } aplicado na mesma passada, ou
+// NULL; `pontilhar` = a cor pelo nv_dither.
+void gfx_luz_canal_desenhar(GLuint tex, float a, const float *veu, int pontilhar);
+extern int gfx_n_fundo_assados;
+// 1 = o desenho direto de sempre, sem quadro pequeno (testes comparam os dois).
+extern int gfx_fundo_assado_desligado;
+// DIAGNOSTICO DE UMA VEZ (fundo.c): le um pixel do quadro pequeno `tex` ou do
+// alvo atual (u da esquerda, v de cima, 0..1), e grava em BMP o quadro pequeno
+// (320x180) ou o alvo atual (metade do tamanho). Devolvem 0 se nao deu.
+int gfx_luz_canal_px(GLuint tex, float u, float v, unsigned char rgb[3]);
+int gfx_tela_px(float u, float v, unsigned char rgb[3]);
+int gfx_luz_canal_bmp(GLuint tex, const char *caminho);
+int gfx_tela_bmp(const char *caminho);
+// Fator da opacidade do vidro: 1,0 = os 78% de sempre (ajustes_vidro_opacidade / 0,78).
+float gfx_vidro_opacidade(void);
 void gfx_ambiente(float alfa);
+// Pinta a luz que gfx_ambiente deixou pendente, se ainda houver (ver a nota
+// em gfx.c). main.c chama no fim do desenho do quadro; e inofensivo repetir.
+void gfx_ambiente_descarregar(void);
+// --- FUNDO DA HOME DINAMICA (GFX_FUNDO_DIN) ---------------------------------
+// Um quad de tela cheia, OPACO e sem mistura, com um degrade vertical de uma
+// cor: `topo` no alto e topo*`queda` na base. E o unico custo do fundo — nada
+// e assado nem decodificado por troca de titulo. Substitui o clear.
+void          gfx_fundo_din_desenhar(const float topo[3], float queda);
 // Contorno de `esp` PIXELS por dentro de r: a borda de fora do anel e a borda
 // de r, entao anel e miolo no mesmo rect dao uma borda so. `raio` e o de r,
 // normalizado pela altura, como em gfx_cor.
@@ -346,6 +593,47 @@ void gfx_anel_fora(GfxRect peca, float raio, float folga, float esp,
 // A area extra fica limitada a um unico item focado, nunca a tela inteira.
 void gfx_cartao_foco_vidro(GfxRect r, float raio, float foco, float alfa,
                            float cr, float cg, float cb);
+// --- INTERFACE DE VIDRO (Ajustes > Aparencia; ajustes_vidro()) ---------------
+// O miolo comum do visual "vidro" (referencia: outro fork do app, em video):
+// superficie translucida que deixa a arte de tras passar, borda de fio de
+// cabelo, cantos generosos, e o foco marcado por CONTORNO BRANCO em vez de
+// preenchimento na cor de realce ou brilho colorido. Quem decide se usa e a
+// tela (ajustes_vidro()); estas funcoes so desenham, e desligado nenhuma delas
+// e chamada — o desenho antigo fica byte a byte o mesmo.
+//
+// SEM DESFOQUE DE FUNDO, de proposito: o vidro real pede uma copia do quadro
+// ATRAS de cada painel, e nesta GPU (C9) ate um quad de tela cheia com blend
+// derrubou o quadro (ver a luz imersiva, assada em 320x180). Aqui e uma cor
+// unica com alfa — a arte de tras aparece por ela, so que nitida — e o custo
+// e o de um gfx_cor por painel.
+//
+// Superficie de um painel/pilula/linha: cinza-frio translucido + aro de 1,5 px
+// a 14 % de branco. `fundo` e o alfa do miolo (0,55 em pilula sobre pagina
+// escura; ~0,78 num painel flutuante sobre arte, onde o texto precisa de
+// contraste). Em repouso 0,16 x 0,55 sobre o fundo #0D0D0D da 0,11 — o cinza
+// das pilulas do video de referencia.
+void gfx_vidro_folha(GfxRect r, float raio, float a);
+void gfx_vidro_superficie(GfxRect r, float raio, float a);
+// Fio de REPOUSO de um cartao/painel de vidro. Obedece a "Contorno do vidro";
+// o anel de FOCO (gfx_vidro_foco) nunca passa por aqui.
+void gfx_vidro_aro(GfxRect r, float raio, float esp, float cr, float cg, float cb, float ca);
+void gfx_vidro_painel(GfxRect r, float raio, float fundo, float a);
+// FOCO de uma pilula/linha JA desenhada com gfx_vidro_painel: o miolo clareia
+// (branco a 9 %) e o contorno de 2 px em branco acende com a mola `foco`.
+void gfx_vidro_foco(GfxRect r, float raio, float foco, float a);
+// FOCO de um cartaz/cartao de arte: contorno na cor do realce (branco no padrao) de 3 px POR FORA, com 2 px
+// de vao — limpo, sem brilho colorido nem sombra.
+void gfx_vidro_cartao(GfxRect r, float raio, float foco, float a);
+// FOCO de botao de acao e item de menu: a pilula vira BRANCA cheia (a mola
+// interpola a opacidade), e o texto passa a escuro em foco >= 0,5 — quem chama
+// escolhe a tinta com gfx_vidro_tinta.
+void gfx_vidro_pilula_cheia(GfxRect r, float raio, float foco, float a);
+// Tinta do texto sobre a superficie de vidro: escura sobre a pilula branca do
+// foco, clara (235) no resto.
+int  gfx_vidro_tinta(float foco);
+// Como gfx_vidro_painel, mas com lavagem e aro na COR DO REALCE: a acao
+// principal em repouso (Play) e as marcas de estado mantem o tema visivel.
+void gfx_vidro_painel_acento(GfxRect r, float raio, float fundo, float a);
 // A luz de realce dos paineis flutuantes (ver GFX_LUZ): `raio` e o dos cantos
 // do painel, na mesma fracao do menor lado que gfx_cor usa; (cx, cy) e o
 // centro da luz em pixels RELATIVOS ao canto superior esquerdo de `r` (pode
@@ -361,6 +649,9 @@ void gfx_furo(GfxRect r);
 // video so aparece pela area arredondada.
 void gfx_furo_raio(GfxRect r, float raio);
 void gfx_textura(GfxRect r, GLuint tex);
+// Esmaece o quadro inteiro ja desenhado para `a` (0 = transparente, mostra o
+// plano de video de baixo). Usado no dissolve do voo da ilha.
+void gfx_dissolver_tela(float a);
 // Card carregando: a superficie do esqueleto com a luz passando (GFX_ESQUELETO).
 void gfx_esqueleto(GfxRect r, float raio, float cr, float cg, float cb, float ca);
 

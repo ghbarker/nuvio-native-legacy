@@ -87,6 +87,7 @@ int trakt_definir(const char *tk, const char *cli) {
 void trakt_esquecer(void) { definido[0] = 0; ativo = 0; nEsquecer++; }
 int  trakt_ativo(void)    { return ativo; }
 int  trakt_recusada(void) { return 0; }
+void trakt_sessao_morta(void) {}
 
 const char *nuvem_trakt_cliente(void) { return "cliente-teste"; }
 const char *nuvem_trakt_segredo(void) { return "segredo-teste"; }
@@ -96,6 +97,7 @@ int  sync_empurrar_credencial(const char *p, const char *j) { (void)p; (void)j; 
 static int nRepetir;
 void desc_repetir(void)   { nRepetir++; }
 const char *i18n(const char *s) { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 
 // A rede: codigo de dispositivo, token do codigo e renovacao. `segurar` prende
 // a resposta ate o teste soltar — e assim que a troca de perfil acontece com o

@@ -83,6 +83,34 @@ int main(void) {
      "SSA reduzido: detector case-insensitive e com recuo");
   free(v);
 
+  // A busca de cues e binaria para todos os formatos. SRT/VTT fora de ordem
+  // precisa ter a mesma ordenacao que ASS antes de chegar a essa busca.
+  const char *foraOrdem = "2\n00:00:10,000 --> 00:00:12,000\nMais tarde\n\n"
+                         "1\n00:00:01,000 --> 00:00:03,000\nMais cedo\n\n";
+  n = legenda_extrair(foraOrdem, &v);
+  OK(n == 2 && v[0].inicio == 1.0 && v[1].inicio == 10.0,
+     "SRT fora de ordem: cues ordenados por inicio");
+  free(v);
+  legenda_definir_corpo(foraOrdem);
+  LegendaCue atual;
+  OK(legenda_cues(11.0, 0, &atual, 1) == 1 && !strcmp(atual.texto, "Mais tarde"),
+     "SRT fora de ordem: fala ativa continua visivel");
+  legenda_desligar();
+
+  // NaN passa pelas comparacoes de ordem e envenena a busca binaria; infinito
+  // tambem nao representa um instante valido de uma faixa.
+  n = legenda_extrair("1\n00:00:nan --> 00:00:05,000\nInvalida\n\n"
+                      "2\n00:00:01,000 --> 00:00:inf\nInfinita\n\n"
+                      "4\n00:00:erro --> 00:00:05,000\nTruncada\n\n"
+                      "3\n00:00:01,000 --> 00:00:03,000\nValida\n\n", &v);
+  OK(n == 1 && !strcmp(v[0].texto, "Valida"), "SRT: timestamps nao finitos descartados");
+  free(v);
+  n = legenda_extrair_ass("Dialogue: 0,0:00:nan,0:00:05.00,Default,,0,0,0,,Invalida\n"
+                         "Dialogue: 0,0:00:01.00,0:00:inf,Default,,0,0,0,,Infinita\n"
+                         "Dialogue: 0,0:00:01.00,0:00:03.00,Default,,0,0,0,,Valida\n", &v);
+  OK(n == 1 && !strcmp(v[0].texto, "Valida"), "ASS: timestamps nao finitos descartados");
+  free(v);
+
   // --- CHARSET: o texto chega ao parser em UTF-8, venha como vier -----------
   { const char *cs; char *u;
     // "Não, você está enganado." em Windows-1252
@@ -97,6 +125,16 @@ int main(void) {
     static const char c1251[] = "\xCF\xF0\xE8\xE2\xE5\xF2, \xEA\xE0\xEA \xE4\xE5\xEB\xE0";
     u = legenda_utf8(c1251, (long)strlen(c1251), &cs);
     OK(u && !strcmp(cs, "windows-1251") && !strcmp(u, "Привет, как дела"), "cp1251 cirilico (%s: %s)", cs, u ? u : "-");
+    free(u);
+    // Arabe em Windows-1256 (#247, #261)
+    static const char c1256[] = "\xE3\xD1\xCD\xC8\xC7\xA1" " \xDF\xED\xDD" " \xCD\xC7\xE1\xDF" " \xC7\xE1\xED\xE6\xE3\xBF" " \xC3\xE4\xC7" " \xC8\xCE\xED\xD1" " \xD4\xDF\xD1\xC7" " \xE1\xDF";
+    u = legenda_utf8(c1256, (long)strlen(c1256), &cs);
+    OK(u && !strcmp(cs, "windows-1256") && !strcmp(u, "مرحبا، كيف حالك اليوم؟ أنا بخير شكرا لك"), "cp1256 arabe (%s)", cs);
+    free(u);
+    // Russo com palavras em maiusculas continua 1251
+    static const char c1251m[] = "\xC2\xCD\xC8\xCC\xC0\xCD\xC8\xC5! \xCE\xCF\xC0\xD1\xCD\xCE\xD1\xD2\xDC! \xCF\xF0\xE8\xE2\xE5\xF2, \xEA\xE0\xEA" " \xE4\xE5\xEB\xE0, \xE2\xF1\xB8" " \xF5\xEE\xF0\xEE\xF8\xEE";
+    u = legenda_utf8(c1251m, (long)strlen(c1251m), &cs);
+    OK(u && !strcmp(cs, "windows-1251") && !strcmp(u, "ВНИМАНИЕ! ОПАСНОСТЬ! Привет, как дела, всё хорошо"), "cp1251 com maiusculas (%s)", cs);
     free(u);
     // UTF-8 com BOM: tira o BOM, nao mexe no resto
     static const char bom[] = "\xEF\xBB\xBFol\xC3\xA1";

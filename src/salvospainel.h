@@ -14,9 +14,19 @@
 #ifndef NV_SALVOSPAINEL_H
 #define NV_SALVOSPAINEL_H
 #include <SDL2/SDL.h>
+#include <stddef.h>
 
 void spainel_abrir(void);
 void spainel_fechar(void);
+// NASCER DA ILHA (ilha.h, com o relogio na tela): o painel abre crescendo do
+// retangulo (x, y, w, h) — a pilula, ou o modal dela — ate a forma dele, em vez
+// de deslizar da borda. `spainel_recolher_para` e chamado por quadro com o
+// retangulo atual da pilula (ok = 0 quando ela nao esta na tela): e para la
+// que ele encolhe ao fechar. Sem ilha, o painel e o de sempre.
+void spainel_abrir_de(float x, float y, float w, float h);
+void spainel_recolher_para(int ok, float x, float y, float w, float h);
+// 1 enquanto o painel visivel nasceu da ilha (a pilula fica coberta por ele).
+int  spainel_da_ilha(void);
 // 1 enquanto a camada e dona do D-pad. Cai para 0 no instante da escolha, com a
 // animacao de saida ainda rodando — e esse o sinal para o conteudo voltar a
 // responder as teclas, senao o D-pad fica morto durante o recolhimento (a mesma
@@ -39,10 +49,21 @@ void spainel_fundo(int podeParar, unsigned rev, void (*fundo)(void *), void *ctx
 int  spainel_n_reconstrucoes(void);
 // Quantas vezes o fundo parado foi pintado no FBO.
 int  spainel_n_fundos(void);
+// Quantas linhas da aba Salvos estao em "Continuar" (com progresso). Testes.
+int  spainel_n_continuar(void);
 
 // IMDb do titulo que o dono escolheu, ou NULL. Consumido uma vez. Quem resolve
 // o id no catalogo e abre o detalhe e o roteador (app.c) — o painel nao conhece
 // nem detail.c nem a descoberta, exatamente como perfil.c nao conhecia.
 const char *spainel_pediu_abrir(void);
+// OK na linha de um amigo (aba Amigos): o id da pessoa, uma vez, para app.c
+// abrir o perfil (amigoperfil.h). O painel ja fechou.
+int spainel_pediu_perfil(char *id, size_t tam);
+// Para os testes: abre direto numa aba (0 Salvos, 1 Atividade, 2 Amigos,
+// 3 Avisos), com o foco na primeira linha da lista.
+void spainel_ir_aba(int aba);
+// Abre (se preciso) na aba Atividade e poe o foco no primeiro evento de amigo
+// do titulo `imdb` (a lista rola ate ele). Sem evento desse titulo, so a aba.
+void spainel_abrir_titulo(const char *imdb);
 
 #endif

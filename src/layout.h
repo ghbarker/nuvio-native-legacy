@@ -21,6 +21,16 @@
 // layouts — e `collapseSidebar` em layoutPreferences.js, que o perfil do dono
 // tem em true. Com ela recolhida a home comeca em 104.
 #define NV_CONTENT_PAD          104.0f
+// O MENU DOS LAYOUTS CLASSICOS com a rail fixa (menu.c, mockup Glass UI
+// "ilha"): a borda direita da pilula de icones, em px da tela REAL (o menu
+// desenha em escala fixa, nao segue o Tamanho da interface), e o vao ate o
+// conteudo. Moderna: ilha de base88 ampliada20%, em x48. Padrao:
+// a mesma pilula colada na borda (borda 88). ajustes_rail_largura_fixa
+// reserva borda + vao - NV_CONTENT_PAD, e o conteudo comeca 64 px depois dela.
+#define NV_MENU_MODERNA_AUMENTO      1.20f
+#define NV_MENU_RAIL_BORDA_MODERNA (48.0f + 88.0f * NV_MENU_MODERNA_AUMENTO)
+#define NV_MENU_RAIL_BORDA_PADRAO   88.0f
+#define NV_MENU_RAIL_VAO            64.0f
 
 // Hero em TELA CHEIA (`modernHeroFullScreenBackdropEnabled`, tambem true no
 // perfil do dono). MEDIDO: .home-modern-hero-media 1920x1062 em (0,0), imagem
@@ -80,11 +90,15 @@
 // e o topo das fileiras cai nos mesmos 518,4 que NV_SHELF_TOP ja usa.
 #define NV_HERO_COPY_GAP        40.0f   // --modern-hero-copy-bottom-gap
 #define NV_HERO_COPY_LINHA      16.0f   // gap do flex column
+#define NV_AMIGOS_HERO_H        36.0f   // linha de amigos (rostos + frase) acima da meta do destaque
 
 // Scancode do BACK no SDL da LG (SDL_SCANCODE_WEBOS_BACK). Nao esta no
 // SDL_scancode.h padrao, por isso vem como numero.
 #define NV_SCANCODE_BACK 482
 #define NV_SCANCODE_BLUE 489 // SDL_webOS.h: SDL_WEBOS_SCANCODE_BLUE
+// AMARELA: abre o Spotlight (spotlight.h) fora do Guia, que a usa para alternar
+// a vista. 488 MEDIDO no D1: "[tecla] scancode=488" em 34 envios de log webOS.
+#define NV_SCANCODE_YELLOW 488 // SDL_WEBOS_SCANCODE_YELLOW
 // CH+/CH- do controle da LG. Existiam no SDL_webOS.h do sysroot e nao tinham
 // consumidor — agora trocam de canal no player quando um canal esta no ar.
 #define NV_SCANCODE_CH_UP   480 // SDL_WEBOS_SCANCODE_CH_UP
@@ -229,6 +243,84 @@
 // NV_HERO_BOTAO_H que o layout do hero ja usava para a linha de acoes.
 #define NV_HOME_HERO_BOTAO_GAP 26.0f
 #define NV_LEGACY_ROW_HEAD_H 46.0f // titulo + margem ate os cards (564 - 518)
+
+// --- LAYOUTS DA HOME (ajustes_home_layout) ---------------------------------
+// MODERNA e tudo o que esta acima. As medidas abaixo sao DESTES DOIS layouts
+// novos e nao vem de captura do app web: o Padrao segue o `classic` do app
+// oficial (destaque contido, fileiras num fundo liso) e a Dinamica e a Apple
+// TV; os numeros sao de projeto, conferidos nas capturas de
+// tests/homelayouts_shot.sh.
+//
+// PADRAO — banner no topo, fileiras abaixo. O banner fica parado (ele NAO
+// rola): a fileira em foco se ancora em NV_PAD_TOPO_FIL, como na Moderna, so
+// que mais embaixo, e as de cima somem no corte logo abaixo do banner.
+//   banner: y 0..528, TELA CHEIA na largura (sem cartao nem canto); a arte se
+//   dissolve na base para o fundo e o texto fica no trecho opaco
+//   fileiras: titulo da fileira em foco em 544 -> 56 px de respiro
+#define NV_PAD_BANNER_Y     0.0f   // tela cheia: do topo, sem cartao
+#define NV_PAD_BANNER_H   528.0f   // termina 16 px antes do titulo da fileira
+#define NV_PAD_TOPO_FIL   544.0f
+#define NV_PAD_TEXTO_BASE  72.0f   // do fim do botao ate a base do banner
+#define NV_PAD_LOGO_H     116.0f
+#define NV_PAD_LOGO_MAX_W 380.0f
+#define NV_PAD_SIN_W      760.0f
+#define NV_PAD_FILEIRA_GAP 80.0f  // vao entre fileiras (a home original respira mais)
+// Cartaz em pe do Padrao: 260x390 (2:3), o tamanho da referencia (a home
+// original do Nuvio), no lugar dos 212x322 da Moderna. E o tamanho de FABRICA:
+// "Largura do item" continua valendo como fator sobre ele (home.c,
+// escalaCartazPadrao), com teto para a fileira em foco caber inteira na tela.
+#define NV_PAD_CARTAZ_W   260.0f
+#define NV_PAD_CARTAZ_H   390.0f
+#define NV_PAD_CARTAZ_FOLGA 40.0f  // da base do cartaz em foco ate a base da tela
+//
+// DINAMICA — o destaque ocupa 0..780 e ROLA com a pagina: com o foco no
+// destaque a primeira fileira espia por baixo (titulo em 800); descendo, o
+// destaque sobe e some e a fileira em foco se ancora em NV_DIN_TOPO_FIL. A
+// diferenca entre as duas e a "empurra" do destaque (mesma mola da Moderna, com
+// o sinal trocado: a rolagem fica NEGATIVA com o foco no destaque).
+//
+// HERO QUASE CHEIO E ROLAGEM CENTRADA (dono, 01/10: "como o Apple TV"). Com o
+// foco no destaque so o titulo de "Continuar assistindo" e a beirada dos
+// cartoes espiam na base (titulo em 980, dentro da margem segura de 54 px da
+// TV; cartoes de 1026 a 1080), e o bloco do destaque (logo, meta, sinopse,
+// botao) desce junto: o botao termina NV_DIN_TEXTO_BASE acima do fim da zona
+// do texto, ~76 px acima do titulo da fileira, como o Apple TV. Descendo, a
+// fileira em foco fica no MEIO da tela (o centro dela em NV_DIN_CENTRO_FIL) e
+// a lista rola por baixo; as de cima continuam a vista ate sairem pela borda.
+// Nos extremos a rolagem para: a primeira fileira nao desce de
+// NV_DIN_TOPO_FIL e a ultima nao sobe alem de NV_DIN_FOLGA_BASE da base (sem
+// buraco em cima nem embaixo).
+#define NV_DIN_HERO_H     960.0f   // zona do TEXTO do destaque (a arte e maior)
+#define NV_DIN_TEXTO_BASE  56.0f   // do fim do botao ate o fim da zona do texto
+#define NV_DIN_ARTE_H    1080.0f   // a ARTE e a tela inteira, de borda a borda
+#define NV_DIN_ARTE_FADE_A  80.0f  // rolagem em que a arte comeca a apagar
+#define NV_DIN_ARTE_FADE_B 560.0f  // ...e em que ja sumiu
+#define NV_DIN_REPOUSO_FIL 980.0f  // titulo da 1a fileira com o destaque em foco
+#define NV_DIN_TOPO_FIL   150.0f   // titulo da 1a fileira, com o foco nela
+#define NV_DIN_CENTRO_FIL 540.0f   // centro da fileira em foco (titulo + cartoes)
+#define NV_DIN_FOLGA_BASE  96.0f   // da base da ultima fileira a base da tela
+#define NV_DIN_FILEIRA_GAP 32.0f   // vao entre fileiras (mais fileiras na tela)
+#define NV_DIN_LOGO_H     168.0f
+#define NV_DIN_LOGO_MAX_W 520.0f
+#define NV_DIN_DEST_W     640.0f   // cartao de destaque grande (16:9)
+#define NV_DIN_DEST_H     360.0f
+#define NV_DIN_LARGA_W    384.0f   // faixa deitada
+#define NV_DIN_LARGA_H    216.0f
+#define NV_DIN_LARGA_VEU  0.62f    // altura do veu da legenda na faixa deitada
+#define NV_DIN_LARGA_PAD  20.0f    // recuo da legenda dentro da faixa
+#define NV_DIN_PAINEL_RAIO 36.0f   // canto do painel de vidro de cada fileira
+// Faixa do numeral do Top 10: o numeral mora no vao a esquerda do cartaz e o
+// cartaz cobre a ponta direita dele (a Apple faz assim), entao o passo da
+// fileira cresce por ela.
+#define NV_TOP10_NUM_FAIXA 138.0f
+// O numeral: corpo do TXT_RANK_GRANDE (os algarismos da Inter medem ~0,73 do
+// corpo, ~190 px contra o cartaz de 322 — perto de 60%, a proporcao da Apple),
+// quanto da largura dele fica POR BAIXO do cartaz, e a folga minima ate o
+// cartaz anterior (o "10" encolhe para caber, em vez de invadi-lo).
+#define NV_TOP10_NUM_CORPO 260
+#define NV_TOP10_NUM_SOB   0.20f
+#define NV_TOP10_NUM_FOLGA 14.0f
+#define NV_TOP10_NUM_BASE  0.80f   // linha de base / altura da linha (Inter: 0,969 de 1,211)
 
 // As quatro secoes visuais que a home do Apple TV usa, cada uma com proporcao
 // propria — OBSERVADO nas fotos de referencia:
@@ -453,7 +545,7 @@
 // (components.css:15282), ja convertidos para o canvas de 1920; o guia
 // parental nao e refeito la e fica com os 22 da regra base.
 #define NV_FT_PG_RELOGIO 26   // .player-clock
-#define NV_FT_PG_FIM     20   // .player-ends-at
+#define NV_FT_PG_FIM     22   // .player-ends-at
 #define NV_FT_PG_ROTULO  22   // .player-parental-label
 #define NV_FT_PG_GRAV    22   // .player-parental-severity
 // Entrelinha (leading) OFICIAL de cada estilo. Usar a altura que o SDL_ttf
@@ -498,9 +590,44 @@
 #define NV_COR_FOCO_B     0.188f
 
 // Raios, em fracao do menor lado (o shader usa SDF normalizado)
+// ESCALA DE PAINEL (revisao de proporcao, 30/09). Toda folha lateral e todo
+// painel sobre o player usam os mesmos numeros: margem da tela, recuo interno,
+// altura de controle (pilula/aba), vao entre controles e entre linhas, raio de
+// linha em PIXEIS (converter para fracao da altura no desenho).
+#define NV_FOLHA_MARGEM   24.0f   // da folha ate as bordas da tela, nos tres lados
+#define NV_FOLHA_PAD      40.0f   // recuo do conteudo dentro da folha
+#define NV_FOLHA_RAIO     28.0f
+#define NV_CTRL_H         56.0f   // pilula de acao e aba de filtro
+#define NV_CTRL_VAO       12.0f   // entre pilulas/abas vizinhas
+#define NV_LINHA_VAO      12.0f   // entre linhas/cartoes de uma lista
+#define NV_LINHA_RAIO_PX  18.0f
 #define NV_RAIO_CARD     0.055f
 #define NV_RAIO_PILL     0.5f
 #define NV_RAIO_BADGE    0.18f
+
+// MATERIAL DA ILHA — GLASS UI (02/10/2026, mockups em design/glass-ilha e
+// design/ilha; regras completas no DESIGN.md). Todo painel e uma ilha no
+// material da ilha do relogio. Os valores moram no desenho de cada tela
+// (streams.c e o modelo); estes sao os que todas repetem:
+//   miolo   vidro: gfx_vidro_folha (~80%)   solido: .071/.075/.086 a ~0.98
+//   luz     gfx_luz_canto fraca no canto de cima (~5% vidro, ~4% solido)
+//   sombra  GFX_SOMBRA curta; NENHUM contorno; raio NV_FOLHA_RAIO
+//   veu     tela atras da folha: preto 30% (vidro) / 42% (solido)
+//   foco    LINHA = superficie um degrau mais clara (vidro branco 12-14%,
+//           solido .17/.176/.204); BOTAO/CHIP = pilula cheia no acento
+//   chip    NV_CTRL_H, branco 8% (solido .14/.148/.17); segmentado: trilho
+//           branco 5%, selecionado 12-14%
+//   acento  so para estado e elemento-chave; logos de qualidade todos brancos
+//   degrade so por shader com nv_dither (painel de 8 bits), nunca faixas
+//
+// ILHA DO RELOGIO (ilha.h). Topo a 36 px: dentro da area segura de acao das
+// TVs (5 % de 1080 = 54 px para o TEXTO; a pilula comeca antes, o texto dela
+// fica em ~50). Fechada ela mede 52 de altura; aberta para um aviso, 64.
+#define NV_ILHA_Y          36.0f
+#define NV_ILHA_H          52.0f
+#define NV_ILHA_H_ABERTA   64.0f
+#define NV_ILHA_MARGEM_D   64.0f   // da borda direita, quando ancorada a direita
+#define NV_ILHA_TEXTO_MAX 760.0f   // frase do aviso: mais que isto, reticencias
 
 // Fundo: #0D0D0D. Aqui estava #252629, com a justificativa de que "o
 // quase-preto fazia os cards flutuarem no vazio" — mas a referencia E
@@ -577,12 +704,13 @@ extern float nv_cor_fundo_viva[3];   // corviva.c
 // 1,1 a 3,2 s; o master inteiro levava 10,5 s. 8 s cobre o pior caso bom com
 // folga para a rede de uma TV sem esperar para sempre.
 #define NV_TRAILER_PREPARA_MS 8000
-// No destaque da home a Apple ganha uma janela curta antes do fallback do
-// YouTube. Esperar quatro segundos fazia o hero parecer parado na Samsung;
-// a janela total abaixo continua finita para que a rotacao nunca dependa da
-// rede.
-#define NV_TRAILER_HERO_ESPERA_MS 1200
-#define NV_TRAILER_HERO_MAX_ESPERA_MS 3200
+// No destaque da home a ESPERA antes de abrir e ajuste ("Espera do trailer no
+// destaque", ajustes_trailer_hero_espera_ms: 0,2 a 10 s, padrao 2,2 s; era
+// 1200 fixo). Vencida ela, a Apple ainda ganha esta janela curta antes do
+// fallback do YouTube, contada a partir da espera: esperar quatro segundos
+// fazia o hero parecer parado na Samsung, e a janela total continua finita
+// para que a rotacao nunca dependa da rede.
+#define NV_TRAILER_HERO_JANELA_MS 2000
 // Depois de criar o elemento, seguramos o card enquanto ele prepara. Se a
 // rede/browser nao produzir `playing` nesse prazo, a arte volta e o carrossel
 // pode seguir para o proximo titulo. 5000 e nao 3500: no emulador Tizen 10 a
@@ -590,10 +718,11 @@ extern float nv_cor_fundo_viva[3];   // corviva.c
 // 0,7 s depois (+4,0 s do trailer_abrir) — com 3,5 s o hero desistia da Apple
 // que ja estava chegando e caia no YouTube, que na TV falha (#82/#86).
 #define NV_TRAILER_HERO_PREPARA_MS 5000
-// Cada fonte recebe seu proprio prazo de preparacao. O teto e explicito:
-// resolucao (3,2 s) + Apple (5 s) + YouTube (5 s) = 13,2 s, mesmo que a
-// Apple falhe no ultimo instante da janela e o fallback precise preparar.
-#define NV_TRAILER_HERO_MAX_TOTAL_ESPERA_MS (NV_TRAILER_HERO_MAX_ESPERA_MS + 2 * NV_TRAILER_HERO_PREPARA_MS)
+// Cada fonte recebe seu proprio prazo de preparacao. O teto e explicito, alem
+// da espera do ajuste: resolucao (2 s) + Apple (5 s) + YouTube (5 s) = 12 s,
+// mesmo que a Apple falhe no ultimo instante da janela e o fallback precise
+// preparar.
+#define NV_TRAILER_HERO_MAX_TOTAL_ESPERA_MS (NV_TRAILER_HERO_JANELA_MS + 2 * NV_TRAILER_HERO_PREPARA_MS)
 // A ampliacao do trailer virou ajuste ("Proporção do trailer", ajustes_trailer_zoom).
 // Frequencia (rad/s) da mola de 2a ordem que rola as fileiras da home. Vale o
 // k da CAUDA medida no deslize da referencia (~12,5 /s); 11,5 e o valor que

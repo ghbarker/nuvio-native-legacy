@@ -34,19 +34,13 @@
      quadro nao ha AVPlay tocando nada atras, e a abertura some exatamente no
      quadro em que poderia haver.
 
-     O ICONE NAO TEM FUNDO TRANSPARENTE, e isso decide as duas linhas abaixo.
-     Medido lendo os pixels do icon.png da Samsung num navegador: o fundo dele
-     e um degrade quase preto, de 3,5,19 nos cantos a 5,7,24 no meio das
-     bordas. Posto sobre qualquer cor chapada ele aparece como um RETANGULO em
-     volta da marca — e um degrade nao casa com cor nenhuma.
-     `mix-blend-mode: lighten` sobre exatamente o tom MAIS CLARO dele (#050718)
-     resolve sem editar a arte: todo pixel do fundo do icone e igual ou mais
-     escuro que a tela, entao some nela; a marca, que e clara, passa intacta.
-     Navegador que ignore a propriedade cai no retangulo de hoje, que e o
-     comportamento tolerado e nao uma falha.
-     O app entra desenhando o proprio fundo (NV_COR_FUNDO, #0D0D0D em
-     layout.h); os dois sao quase pretos e a troca no primeiro quadro nao se
-     percebe. */
+     NEUTRA (2.0 N1b): sem logo. O logo do app (Novo/Classico) e escolha do
+     usuario, gravada pelo app; esta pagina roda antes do wasm e nao pode
+     honra-la, entao so a barra de carga aparece, sobre o fundo liso da
+     abertura do app (#0E0F12, o AB_FUNDO de src/abertura.c). O logo escolhido
+     entra na abertura de dentro do app, sobre o mesmo fundo.
+     O app entra desenhando esse mesmo fundo: a troca no primeiro quadro nao
+     se percebe. */
   /* `top/left/right/bottom` POR EXTENSO, e nao `inset: 0`. O Chromium do
      Tizen 6.0 (Chrome 76) NAO conhece a abreviacao `inset` (Chrome 87+):
      ele ignorava a linha, o div ficava absoluto sem offset nenhum — encolhido
@@ -55,12 +49,9 @@
      icon in the corner". No Chrome de mesa `inset` funciona e o defeito nao
      aparece, que e por que a conferencia local passou. */
   #abertura { position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-              z-index: 4; background: #050718;
+              z-index: 4; background: #0E0F12;
               display: flex; flex-direction: column;
               align-items: center; justify-content: center; }
-  #abertura img { width: 512px; max-width: 42%; height: auto;
-                  mix-blend-mode: lighten;
-                  animation: nvPulso 1.8s ease-in-out infinite; }
   /* Barra do preload. Sem nenhum movimento na tela, um arranque de dez
      segundos e indistinguivel de um travado — que e a duvida que o painel
      tecnico respondia por acidente.
@@ -79,7 +70,6 @@
   /* Fracao conhecida: para de vaguear e passa a crescer da esquerda. */
   #abertura .barra.medida i { animation: none; transform: none;
                               transition: width .25s linear; }
-  @keyframes nvPulso { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
   @keyframes nvCorre { 0% { transform: translateX(-110%); }
                        100% { transform: translateX(440%); } }
   /* Mesmo motivo de #abertura: sem `inset` no Chromium desta TV. */
@@ -111,13 +101,20 @@
 <!-- A ABERTURA fica ANTES do painel no DOM so por leitura; quem manda na
      sobreposicao e o z-index (abertura 4, diag 5): com o painel aberto por
      tecla ou pelo cao de guarda, e ele que fica por cima. -->
-<div id="abertura"><img src="icon.png" alt="Nuvio"><div class="barra"><i></i></div></div>
+<div id="abertura"><div class="barra"><i></i></div></div>
 <!-- NASCE ESCONDIDO. Ver o cao de guarda no fim do arranque: ele volta sozinho
      quando o primeiro quadro NAO chega, que e o unico caso em que ele tinha de
      estar na tela. A tecla verde tambem continua trazendo-o a qualquer hora. -->
 <div id="diag" hidden>Nuvio: iniciando…</div>
 <canvas id="canvas" width="1920" height="1080" tabindex="0"
         oncontextmenu="event.preventDefault()"></canvas>
+<!-- CAMPO DO IME (src/entrada_texto.c). Invisivel e fora do caminho do
+     ponteiro; so existe para o IME da Samsung ter onde escrever. -->
+<input id="nvTextoCampo" type="text" autocomplete="off" autocorrect="off"
+       spellcheck="false" aria-hidden="true" tabindex="-1"
+       style="position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0.01;
+              border:0;padding:0;margin:0;color:transparent;background:transparent;
+              caret-color:transparent;pointer-events:none;z-index:0">
 <script>
   // DIAGNOSTICO DE ARRANQUE, e ele sai ANTES de qualquer coisa do app.
   //
@@ -342,7 +339,7 @@
       // que separa "nosso wasm" de "runtime da TV" sem profiler no aparelho
       // (registro do Tizen 9 de 20/09/2026: swap de 200-480 ms sem que o C
       // estivesse fazendo nada). src/main.c le e zera no [navegador].
-      window.__nvLong = { max: 0, n: 0, soma: 0, quem: "" };
+      window.__nvLong = { max: 0, n: 0, soma: 0, quem: "", fase: "" };
       try {
         new PerformanceObserver(function (lista) {
           var L = window.__nvLong;
@@ -350,6 +347,7 @@
             L.n++; L.soma += e.duration;
             if (e.duration > L.max) {
               L.max = e.duration;
+              L.fase = window.__nvFase || "?";
               var a = e.attribution && e.attribution[0];
               L.quem = e.name + (a ? "/" + a.containerType + (a.containerSrc ? ":" + a.containerSrc.slice(-24) : "") : "");
             }
@@ -424,7 +422,16 @@
     // explicar um arranque travado.
     setStatus: function (t) {
       if (!t) return;
-      if (window.__nvDiag) window.__nvDiag(t);
+      // Progresso do preload chega ~150 vezes em 0,1 s: cada uma passava por
+      // mostrar() (anel, log de 200 KB, repintura) no fio principal e comia o
+      // anel de 200 linhas antes de o app falar. So o texto sem contagem e
+      // cada degrau de 10 % vao ao painel; a barra continua a cada chamada.
+      var mp = /\((\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\)/.exec(t);
+      var passo = mp && parseFloat(mp[2]) > 0 ? Math.floor(parseFloat(mp[1]) / parseFloat(mp[2]) * 10) : -1;
+      if (window.__nvDiag && (passo < 0 || passo !== Module.nvPassoPreload)) {
+        Module.nvPassoPreload = passo;
+        window.__nvDiag(t);
+      }
       var barra = document.querySelector("#abertura .barra");
       if (!barra) return;
       var m = /\((\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\)/.exec(t);
@@ -465,6 +472,79 @@
     printErr: function (t) { console.warn(t); if (window.__nvDiag) window.__nvDiag(t, 1); }
   };
 
+  // TECLADO DO SISTEMA (src/entrada_texto.c). O C chama nvTexto.abrir/fechar
+  // por EM_ASM e LE seq/valor/fim a cada quadro; o JS nunca chama o WASM.
+  //
+  // focus() por JS abre o IME porque o metadado
+  // http://samsung.com/tv/metadata/use.keypad.without.useraction vale true por
+  // padrao (guia "Keyboard/IME" da Samsung). Done = 65376, Cancel = 65385;
+  // o resto do IME chega como keyCode 229 e o texto pelo evento input.
+  // Enquanto o campo tem foco, as teclas NAO sobem ao window: o SDL escuta la,
+  // e a letra entraria duas vezes (pelo IME e pelo KEYDOWN).
+  // Este ouvinte de captura vem ANTES dos outros de keydown de proposito: o
+  // Return (10009) com o IME aberto fecha so o IME, e nao o Spotlight.
+  (function () {
+    var t = { seq: 0, valor: "", fim: -1, aberto: false };
+    var campo = function () { return document.getElementById("nvTextoCampo"); };
+    function devolverFoco() {
+      var c = document.getElementById("canvas");
+      if (c) c.focus();
+    }
+    function terminar(confirmou) {
+      if (!t.aberto) return;
+      t.aberto = false;
+      t.fim = confirmou ? 1 : 0;
+      var el = campo();
+      if (el) el.blur();
+      devolverFoco();
+    }
+    function ler() {
+      var el = campo();
+      if (!el || !t.aberto) return;
+      if (el.value !== t.valor) { t.valor = el.value; t.seq++; }
+    }
+    t.abrir = function (atual, voz) {
+      var el = campo();
+      if (!el) return;
+      t.valor = atual || ""; el.value = t.valor; t.fim = -1; t.aberto = true;
+      t.seq++;
+      el.focus();
+      try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {}
+      console.log("[texto] wgt: campo focado (voz=" + (voz ? 1 : 0) + ")");
+    };
+    t.fechar = function () {
+      if (!t.aberto) return;
+      t.aberto = false;
+      var el = campo();
+      if (el) el.blur();
+      devolverFoco();
+    };
+    window.nvTexto = t;
+    window.addEventListener("load", function () {
+      var el = campo();
+      if (!el) return;
+      el.addEventListener("input", ler);
+      el.addEventListener("compositionend", ler);
+      el.addEventListener("change", ler);
+      el.addEventListener("blur", function () { ler(); terminar(0); });
+      ["keydown", "keyup", "keypress"].forEach(function (tipo) {
+        el.addEventListener(tipo, function (ev) {
+          if (!t.aberto) return;
+          ev.stopPropagation();
+          if (tipo !== "keydown") return;
+          if (ev.keyCode === 65376 || ev.keyCode === 13) { ev.preventDefault(); ler(); terminar(1); }
+          else if (ev.keyCode === 65385 || ev.keyCode === 27) { ev.preventDefault(); ler(); terminar(0); }
+        });
+      });
+    });
+    window.addEventListener("keydown", function (ev) {
+      if (!t.aberto || ev.keyCode !== 10009) return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      ler(); terminar(0);
+    }, true);
+  })();
+
   // Teclas do controle Samsung. Sem registrar, o firmware nao entrega nada alem
   // das setas e do OK — as coloridas, as de midia e o Return sao engolidas
   // pelo sistema. Equivale ao hint SDL_WEBOS_ACCESS_POLICY_KEYS_BACK do webOS.
@@ -478,7 +558,7 @@
       // que e onde ela funciona bem.
       ["MediaPlay", "MediaPause", "MediaPlayPause", "MediaStop",
        "MediaRewind", "MediaFastForward", "ChannelUp",
-       "ColorF0Red", "ColorF1Green", "ColorF2Yellow", "ColorF3Blue"]
+       "ColorF0Red", "ColorF1Green", "ColorF2Yellow", "ColorF3Blue", "Search"]
         .forEach(function (k) {
           try { tizen.tvinputdevice.registerKey(k); } catch (e) {}
         });
@@ -688,6 +768,39 @@
       }));
     });
   }, true);
+
+  // SPOTLIGHT (src/spotlight.h). A tecla "Search" (10225, controles Samsung de
+  // botao de busca) vira F6 = abrir pela voz; a AMARELA (405) vira F5 = abrir.
+  // Os dois keyCodes nao existem na tabela do SDL e morreriam aqui, como o
+  // 10009 do Return. A tecla de MICROFONE do Smart Remote nao esta entre as
+  // registraveis do tizen.tvinputdevice: se ela chegar, a linha abaixo conta.
+  window.addEventListener("keydown", function (ev) {
+    if (!ev.isTrusted) return;
+    var f = ev.keyCode === 10225 ? "F6" : ev.keyCode === 405 ? "F5" : null;
+    if (!f) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    var alvo = document.getElementById("canvas") || window;
+    ["keydown", "keyup"].forEach(function (t) {
+      alvo.dispatchEvent(new KeyboardEvent(t, {
+        key: f, code: f, keyCode: f === "F6" ? 117 : 116, which: f === "F6" ? 117 : 116,
+        bubbles: true, cancelable: true
+      }));
+    });
+  }, true);
+  // TECLA QUE O SDL NAO CONHECE, uma linha por keyCode por sessao, como o
+  // "[tecla] scancode=" do C: e assim que se descobre o que o controle da
+  // pessoa manda (o microfone, por exemplo) sem build instrumentada.
+  (function () {
+    var vistos = {};
+    window.addEventListener("keydown", function (ev) {
+      if (!ev.isTrusted || ev.keyCode < 300 || vistos[ev.keyCode]) return;
+      vistos[ev.keyCode] = 1;
+      var t = "[tecla] wgt keyCode=" + ev.keyCode + " key=" + ev.key;
+      console.log(t);
+      if (window.__nvDiag) window.__nvDiag(t);
+    }, true);
+  })();
 
   // O SDL le o teclado do elemento com foco. Sem isto o app abre e nao responde
   // ao controle, o que parece travamento e nao falta de foco.

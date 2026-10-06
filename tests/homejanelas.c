@@ -29,7 +29,11 @@ int  prog_removido_vence(const char *imdb, long long instanteMs) { (void)imdb; (
 int  cat_tirar_continuar(const char *imdb) { (void)imdb; return 0; }
 int arte_reserva_episodios(const char *imdb, const char *corpo) { (void)imdb; (void)corpo; return 0; }
 
+int ajustes_busca_cinemeta(void) { return 1; }
 #include "../src/descoberta.c"
+#include "jellyfin_stub.inc"
+unsigned recomenda_geracao(void) { return 1; }
+Uint32 SDL_GetTicks(void) { return 0; }
 
 #define BASE "https://addon.example/abc"
 #define AID  "app.addon.demo"
@@ -123,6 +127,8 @@ void cat_republicar_fileiras(const CatFileira *f, int n) {
   pthread_mutex_lock(&pubTravaT); pubFileiras(f, n); pthread_mutex_unlock(&pubTravaT);
 }
 int cat_n(void) { return nPub; }
+/* This fixture seeds either a complete package or an empty catalogue. */
+int cat_home_apenas_fixas(void) { return nPub == 0; }
 int cat_n_fileiras(void) { return nPubFils; }
 const CatFileira *cat_fileira(int r) { return (r >= 0 && r < nPubFils) ? &pubFils[r] : NULL; }
 int cat_copiar_fileira(const char *chave, CatItem *saida, int max, CatFileira *meta) {
@@ -205,6 +211,8 @@ int trakt_continuar(CatItem *s, int m) {
   return i;
 }
 int   trakt_continuar_falhou(void)        { return 0; }
+// O servico social proprio (recomenda.c) fica fora deste teste: sem amigos Nuvio, a uniao e o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
 // Segunda chamada = segunda montagem. E ali, no log, entre "trakt continuar
 // assistindo" e "trakt atividade dos amigos", que o sync entrega as colecoes:
 // "[desc] fileiras remontadas sem rede: 12 de 12". A config muda junto.
@@ -234,10 +242,17 @@ void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_cw_fonte(void)               { return AJ_CWF_TRAKT; }
 int   ajustes_itens_fileira(void)          { return 12; }   // padrao (#163)
 int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_concluido(void)           { return 90; }  // Percentual assistido de fabrica
 int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 int   ajustes_idioma_ingles(void)          { return 0; }
+int ajustes_idioma(void) { return 0; }
 int   ajustes_tmdb_ligado(void)            { return 0; }
 int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
 int   trakt_e_a_seguir(const char *id)     { (void)id; return 0; }
 const char *ajustes_tmdb_idioma(void)      { return "pt-BR"; }
 int   cat_acrescentar(const CatItem *i)    { (void)i; return -1; }
@@ -246,8 +261,10 @@ void  cat_cache_substituido(void)          { }
 void  cat_definir_episodios(int i, const CatEp *l, int n) { (void)i; (void)l; (void)n; }
 int   cat_gravar_cache(const char *d)      { (void)d; return 0; }
 int   cat_indice_por_imdb(const char *s)   { (void)s; return -1; }
+int   cat_indice_vivo(int i, const char *s) { (void)s; return i; }
 const CatItem *cat_item(int i)             { return (i >= 0 && i < nPub) ? &pub[i] : NULL; }
 int   cat_n_episodios(int i)               { (void)i; return 0; }
+double cat_relogio_ms(void)                { return 0.0; }   // descoberta.c times publicarMontagem; the value is only logged
 void  fil_gravar_registro(void)            { }
 int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n,
                           int perfilDaLista) {
@@ -255,11 +272,14 @@ int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int 
 int   fil_addon_novo(const char *id, const char *base) { (void)id; (void)base; return 0; }
 int   addons_perfil_da_lista(void)         { return 0; }
 int   addons_ativo(int i)                  { (void)i; return 1; }
+int   addons_fornece(int i, int oque)     { (void)i; (void)oque; return 0; }
+int   addons_sondado(int i)              { (void)i; return 0; }
 int   fil_limite(void)                     { return 16; }
 int   fil_oculta(const char *c)            { (void)c; return 0; }
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
 // catalogos fora da cota nao interessa a este teste.
 int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
 void fil_registrar_se_couber(const char *c, const char *t, const char *a,
                              const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
 void  fil_registrar(const char *c, const char *t, const char *a, const char *tp, int itens) {
@@ -268,6 +288,7 @@ int   fil_tem_ordem(void)                  { return 0; }
 int   fil_unir(const char *const *c, int n, int *s, int m) {
   int i; (void)c; for (i = 0; i < n && i < m; i++) s[i] = i; return i; }
 const char *i18n(const char *s)            { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 void  marco(const char *n)                 { (void)n; }
 void  prog_chave(char *d, unsigned n, const char *c, int t, int e) { (void)c; (void)t; (void)e; if (n) d[0] = 0; }
 void  prog_content_id(char *d, unsigned n, const char *i, int *t, int *e) { (void)i; (void)t; (void)e; if (n) d[0] = 0; }
@@ -442,3 +463,7 @@ int main(void) {
   puts("homejanelas: tudo ok");
   return 0;
 }
+
+const char *dados_dir(void) { return ""; }
+int perfis_ativo(void) { return 1; }
+int ajustes_tmdb_arte(void) { return 0; }

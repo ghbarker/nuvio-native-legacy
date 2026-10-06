@@ -11,16 +11,23 @@
 //   2. detalhe — camada sobre a tela corrente
 //   3. menu    — camada sobre a tela corrente
 //   4. a tela corrente (home, busca, biblioteca ou ajustes)
+#include "celbotao.h"
 #include "ponteiro.h"
 #include "app.h"
+#include "descanso.h"
+#include "iconeapp.h"
+#include "logoapp.h"
 #include "registro.h"
 #include "addonsui.h"
+#include "pluginsui.h"
 #include "login.h"
 #include "sessao.h"
 #include "perfis.h"
+#include "fontevolta.h"
 #include "perfilsel.h"
 #include "sync.h"
 #include "traktauth.h"
+#include "discord.h"
 #include "simklauth.h"
 #include "simkl.h"
 #include "listas.h"
@@ -30,6 +37,9 @@
 #include "arteescolha.h"
 #include "vertudo.h"
 #include "guia.h"
+#include "livetvdiag.h"
+#include "proxyts.h"
+#include "livetv_regras.h"
 #include "guialembrete.h"   /* aviso do lembrete de programa do guia */
 #include "epg.h"
 #include "posplay.h"
@@ -41,6 +51,7 @@
 #include "detail.h"
 #include "menu.h"
 #include "busca.h"
+#include "spotlight.h"
 #include "biblioteca.h"
 #include "explorar.h"
 #include "agendaui.h"
@@ -49,7 +60,9 @@
 #include "perfil.h"
 #include "salvos.h"
 #include "recomenda.h"
+#include "atividade.h"
 #include "recenviar.h"
+#include "pessoas.h"
 #include "salvospainel.h"
 #include "salvosintro.h"
 #include "novidades.h"
@@ -64,26 +77,51 @@
 #include "novidades1312.h"
 #include "novidades142.h"
 #include "novidades148.h"
-#include "novidades151.h"
+#include "novidades170.h"
+#include "novidades180.h"
+#include "novidades20.h"
 #include "telemetria.h"
 #include "avisos.h"
+#include "ilha.h"
+#include "ilhasalvar.h"
+#include "plrilha.h"
+#include "ilhacart.h"
+#include "cwretido.h"
+#include "ilhasinais.h"
+#include "enquete.h"
 #include "recintro.h"
 #include "atualizacao.h"
 #include "pipintro.h"
 #include "social.h"
+#include "amigoperfil.h"
+#include "amigosfil.h"
 #include "ajustes.h"
+#include "ajustes_ux.h"
 #include "anim.h"
 #include "diagnostico.h"
 #include "debrid.h"
+#include "p2p.h"
+#include "p2pmotor.h"
 #include "player.h"
+#include "legsync.h"
 #include "streams.h"
+#include "streamfitdur.h"
+#include "streamfitpassiva.h"
+#include "vazao.h"
 #include "stalker.h"
 #include "xtream.h"
+#include "rede.h"
+#include "ts_sonda.h"
+#include <unistd.h>
+#include "ondever.h"
 #include "fontepref.h"
 #include "video.h"
 #include "addons.h"
 #include "idioma.h"
 #include "descoberta.h"
+#include "ilha_voo.h"
+#include "colecoes.h"
+#include "posterprov.h"
 #include "proximo.h"
 #include "trakt.h"
 #include "visto.h"
@@ -118,12 +156,59 @@ void app_abrir_titulo(const char *imdb) {
 }
 
 static int aguardandoFonte;
+// ESCOLHA AUTOMATICA COM A LISTA AINDA ENCHENDO (#221). A busca publica cada
+// addon que responde (addons.c); a escolha de VOD nao espera mais o ultimo.
+// Ela sai quando a lista ja tem uma fonte boa o bastante pelos criterios de
+// sempre (fonteauto_pode_decidir) ou quando passa o prazo de Ajustes ("Espera
+// pelos add-ons"). Com fonte LEMBRADA neste titulo, o addon dela e esperado
+// sem prazo: a escolha da pessoa nao e trocada por pressa.
+//
+// `autoEsperaN` > 0: a verificacao da lista parcial nao achou nenhuma que
+// sirva e a busca ainda esta no ar; a proxima tentativa so sai quando a
+// lista crescer alem disso (senao reconferia as mesmas a cada quadro).
+static int autoEsperaN;
+static void idBaseDoTitulo(char *dst, size_t tam);
+static int prefFolhaN = -1;
+static int autoParcialPronto(void) {
+  char base[24];
+  const FontePref *fp;
+  int prazo, lembrada = -1, prefPendente = 0;
+  static int ultN = -1, ultLembrada = -1;
+  static unsigned ultGeracao;
+  if (!addons_busca_parcial() || player_id_canal()[0]) return 0;
+  if (stream_n() < 1 || stream_n() <= autoEsperaN) return 0;
+  if (stream_n_candidatas() < 1) return 0;
+  idBaseDoTitulo(base, sizeof base);
+  fp = base[0] ? fontepref_do_titulo(base) : NULL;
+  if (fp) {
+    // fontepref_escolher escreve no log: uma vez por tamanho de lista.
+    if (stream_n() != ultN || stream_lista_geracao() != ultGeracao) {
+      ultN = stream_n(); ultGeracao = stream_lista_geracao();
+      ultLembrada = fontepref_escolher(base);
+    }
+    lembrada = ultLembrada;
+    prefPendente = lembrada < 0 && addons_pendente_nome(fp->provedor);
+  }
+  // Escolher a mao: a folha abre com o que ja chegou e continua enchendo.
+  if (ajustes_fonte_manual() && lembrada < 0) return !prefPendente;
+  prazo = ajustes_fonte_prazo_ms();
+  return stream_auto_pode_decidir(lembrada, prefPendente,
+                                  prazo > 0 && addons_busca_ms() >= (unsigned)prazo);
+}
 // Episodio que o card de "Continuar assistindo" ANUNCIAVA quando o OK pediu
 // para tocar (issue #93). Armado no ramo home_pediu_tocar e consumido pelo
 // ramo de detail_pediu_reproduzir, no lugar do episodioAlvo — que neste
 // instante ainda nao tem a lista de episodios nem o "proximo" que
 // continuar_desenhar calculou para desenhar o card.
 static int cwTocarT, cwTocarE;
+// O MESMO OK num card cujo episodio TERMINOU e cuja lista de episodios ainda
+// nao chegou: a pagina abre e o toque fica esperando a lista para achar o
+// proximo, em vez de recomecar o terminado. `cwEsperaItem` e uma copia: a
+// fileira pode ser refeita enquanto a lista chega.
+static int cwEspera;
+static CatItem cwEsperaItem;
+static Uint32 cwEsperaDesde;
+#define CW_ESPERA_MS 15000u
 static pthread_t fioFonte;
 static int fioFonteVivo;                  // 0 = canal escolheu sem o fio
 static _Atomic int fonteEscolhida = -2;   // release/acquire entre verificacao e UI
@@ -154,8 +239,10 @@ static int stalkerRenovando;
 // ~20 s com candidatas mortas — medido no log: 4 delas estouraram o timeout e
 // o canal abriu depois de 19 s de "carregando". Para TV ao vivo a lista do
 // addon ja vem curada (FrostView manda FHD/HD/SD na ordem), entao o canal vai
-// DIRETO para a primeira fonte e este par vigia: nao abriu em ~12 s ou o
+// DIRETO para a primeira fonte e este par vigia: nao abriu em ~25 s ou o
 // player marcou erro, tenta a proxima da lista sem pedir nada ao dono.
+// Uma fonte classificada viva pode levar ~20 s ate o primeiro quadro; o watchdog
+// de abertura tem folga para esse caso, limitado pelo teto absoluto abaixo.
 // A folha foi aberta com um player ESPERANDO fonte (ajustes_fonte_manual).
 // Serve para uma pergunta so: se ela fechar sem escolha, quem avisa o player?
 // Sem isto, sair da folha com Voltar deixaria a tela em "carregando" para
@@ -172,25 +259,38 @@ static Uint32 canalFonteDesde;            // quando a fonte atual foi pedida
 // do dono e nao pode ser trocada por outra fonte por tras da tela.
 static int    fonteVODAutomatica;
 static int    fonteVODTentativas;
+// Retomar pela fonte guardada em curso (tocarFonteGuardada); 0 = caminho normal.
+static int    voltaAtiva;
+static Uint32 voltaDesde;
 static Uint32 fonteVODDesde;
+static Uint32 fonteManualDesde;   // OK na folha de Fontes: prazo ate o primeiro quadro
 static void limparFonteVOD(void);
-#define CANAL_FONTE_PRAZO_MS 12000
+#define CANAL_FONTE_PRAZO_MS 25000
 // PRAZO CURTO para fonte que JA PROVOU estar ruim. A conferencia de playlist
 // (stream_canal_primeira_viva) classifica cada candidata antes de tocar; quando
 // a escolhida e apenas "muda" — nao devolveu a playlist em 3 s — dar a ela os
-// mesmos 12 s de uma fonte sadia e somar espera sobre espera. MEDIDO na LG num
-// canal fora do ar: 3 s de conferencia + 12 s de watchdog POR FONTE.
-// Os 12 s continuam valendo para a fonte VIVA, que e onde eles existem para
-// servir: um canal 4K pesado legitimamente demora isso para abrir.
+// mesmos 25 s de uma fonte sadia e somar espera sobre espera. MEDIDO na LG num
+// canal fora do ar, antes do aumento: 3 s de conferencia + 12 s de watchdog
+// POR FONTE. A fonte VIVA recebe 25 s, pois pode levar ~20 s ate o quadro.
 #define CANAL_FONTE_PRAZO_MUDA_MS 4000
 // TRAVA DEPOIS DE ABRIR. Um canal ao vivo com 12 s de imagem congelada ja
 // perdeu — ao contrario de um filme, nao ha nada para recuperar esperando: o
-// que passou, passou. O numero e o mesmo do prazo de abertura de proposito, e
-// pelo mesmo motivo de escala: um pico de rede que enche o buffer de novo
+// que passou, passou. O prazo de trava continua em 12 s (independente dos
+// 25 s de abertura): um pico de rede que enche o buffer de novo
 // termina MUITO antes disso, entao o que sobrevive a 12 s nao e pico, e fonte
 // morta. Baixar mais arrisca trocar de fonte num engasgo que ia passar.
 #define CANAL_TRAVA_MS 12000
 #define CANAL_ABRE_TETO_MS 45000   // com buffer cheio e sem quadro; ver o watchdog
+// DADO CHEGANDO E DECODER MUDO, so no Xtream (#158). Nos registros 6311/6314
+// (LG C4, webOS 11.2) e 6362/6372 (outra TV, outro provedor) o bufferRange
+// subia (9 s, 36 s) sem NENHUM videoInfo, e o teto de 45 s acima era o unico
+// prazo: 45 s por formato antes de tentar o outro, e o cartao de erro saia e
+// era tirado de novo pelo "voltou a entregar". Nas TVs que tocam o mesmo tipo
+// de canal o videoInfo chega ~3 s depois do resourceInfo (registro 7005:
+// loadCompleted em 7,9 s). 15 s e o quintuplo disso. So Xtream: o caso
+// medido de "abre devagar" (Meu Futebol, 18/09, 20 s ate o quadro) e de
+// addon e fica com o teto longo de sempre.
+#define CANAL_SEM_DECODER_MS 15000
 
 static PerfilDados perfilPendente;
 static int perfilSucesso;
@@ -217,6 +317,8 @@ static void *carregarPerfil(void *u) {
   return NULL;
 }
 static void invalidarPerfil(void) {
+  ilhacart_esquecer_vivo();
+  home_retomar_esquecer();
   atomic_fetch_add_explicit(&perfilGeracao,1,memory_order_acq_rel);
   atomic_store_explicit(&perfilCarga,0,memory_order_release);
   pthread_mutex_lock(&perfilTrava);memset(&perfilPendente,0,sizeof perfilPendente);perfilSucesso=0;pthread_mutex_unlock(&perfilTrava);
@@ -294,8 +396,11 @@ static void limparFontePendente(void) {
 }
 static void limparFonteVOD(void) {
   fonteVODAutomatica = 0;
+  voltaAtiva = 0;
   fonteVODTentativas = 0;
   fonteVODDesde = 0;
+  fonteManualDesde = 0;
+  player_definir_tentativa(0, 0);
 }
 static int iniciarFonteJob(int tipo, unsigned geracao, const char *id, int renovando) {
   FonteJob *job = &fonteJob;
@@ -339,10 +444,31 @@ static int pedirFonteJob(int tipo, unsigned geracao, const char *id, int renovan
 #include "gfx.h"
 #include "catalogo.h"
 #include "layout.h"
+#include "servidores.h"
 #include <stdio.h>
 
 static Tela tela = TELA_HOME;
 static int sair = 0;
+
+// Nome curto da tela em cena, para o log de campo ("[gpu-modos] lento: ...
+// tela=episodios"). O que fica POR CIMA vence: painel de Fontes, Episodios e
+// Faixas sobre o player, Salvos, menu e detalhe sobre a home. Sem isto a linha
+// de FPS baixo nao diz em que tela a TV caiu, e nao ha como separar o custo do
+// vidro em Episodios do custo em qualquer outra. So letras minusculas e '-'.
+const char *app_tela_nome(void) {
+  static const char *const NOMES[] = {
+    "login", "escolha-perfil", "home", "explorar", "guia", "busca", "biblioteca", "perfil",
+    "ajustes", "diagnostico", "player", "social", "addons", "agenda", "livetv-diag", "plugins"
+  };
+  if (stream_folha_aberta()) return "fontes";
+  if (episodios_aberto()) return "episodios";
+  if (faixas_aberta()) return "faixas";
+  if (spainel_aberto()) return "salvos";
+  if (menu_aberto()) return "menu";
+  if (tela == TELA_HOME && detail_aberto()) return "detalhe";
+  if ((unsigned)tela < sizeof NOMES / sizeof *NOMES) return NOMES[tela];
+  return "?";
+}
 static int saiuPorEsquerda;   // a ultima tecla foi ESQUERDA (ver app_evento)
 // A barra e uma camada de navegacao, mas nao pode disputar o Guia de TV nem
 // um canal minimizado. Manter a regra aqui evita que cada tela invente sua
@@ -357,6 +483,11 @@ static int sidebar_permitida(void) {
 // requisicoes) num perfil que nao mudou seria pagar o preco da troca em toda
 // abertura do app.
 static int perfilAntes = 1;
+// Quando a troca de perfil comecou a preparar a home nova. Ver o teto abaixo.
+static Uint32 trocaPerfilDesde;
+// Teto da espera pela home do perfil novo. A rede lenta nunca prende a pessoa
+// na tela de escolha mais do que isto; passado ele, a home abre como estiver.
+#define TROCA_PERFIL_TETO_MS 6000
 
 // O detalhe precisa do retangulo REAL de onde o card saiu para o voo comecar
 // dali. Cada tela que abre um titulo entrega o seu; quando nenhuma entrega
@@ -373,6 +504,9 @@ static void abrirTitulo(const HomeItem *it) {
   // aqui e nao. Um so lugar para os dois: o titulo resolvido entra no catalogo
   // e trocaDeTituloSeSolicitada abre ele.
   c = cat_item(it->indice);
+  // Uma pagina nova pode abrir trailer no mesmo plano. Retomar na ilha ja
+  // foi tratado antes deste caminho, sem passar pela pagina nem por fontes.
+  player_descartar_retido();
   if (c && !strncmp(c->imdb, "tmdb:", 5) && desc_chave_tmdb() &&
       desc_chave_tmdb()[0] && !desc_titulo_buscando()) {
     // Sem chave do TMDB nao ha como resolver: abre como dava (arte e sinopse,
@@ -416,16 +550,26 @@ static void idDoAlvo(const CatItem *ci, char *dst, size_t n) {
   int t = 0, e = 0;
   if (!ci) { if (n) dst[0] = 0; return; }
   if (!strcmp(ci->tipo, "series") && detail_ep_foco(&t, &e) && t > 0 && e > 0)
-    snprintf(dst, n, "%.*s:%d:%d", (int)strcspn(ci->imdb,":"),ci->imdb, t, e);
+    // cat_id_stream: "tt:T:E" no IMDb; o id do video do addon nos demais
+    // ("kitsu:41370:5"). Os dois callers passam o item do detalhe.
+    cat_id_stream(detail_indice(), t, e, dst, (unsigned)n);
   else
     snprintf(dst, n, "%s", ci->imdb);
 }
 
 // A tela de Diagnostico foi aberta pelo cartao da 1.4.2, nao por Ajustes.
 static int diagDaHome;
+static int ltdDoGuia;
+
+// O perfil do amigo aberto pelo DUELO do Perfil e Stats: Voltar nele volta ao
+// Perfil, nao a home. Qualquer outra troca de tela esquece.
+static int socialDoPerfil;
 
 static void trocarTela(Tela nova) {
   if (nova == tela) return;
+  if (nova != TELA_SOCIAL) socialDoPerfil = 0;
+  if (tela == TELA_AJUSTES) ajustes_encerrar();
+  if (tela == TELA_LIVETV_DIAG) livetvdiag_encerrar();
   tela = nova;
   // Cada tela zera o proprio estado ao ser aberta: voltar para a busca com o
   // texto de duas navegacoes atras seria lixo, nao memoria util.
@@ -438,6 +582,7 @@ static void trocarTela(Tela nova) {
     case TELA_PERFIL:     perfil_abrir(); pedirPerfil(); break;
     case TELA_AJUSTES:    ajustes_iniciar();    break;
     case TELA_DIAGNOSTICO: diagnostico_iniciar(); break;
+    case TELA_LIVETV_DIAG: livetvdiag_iniciar(); break;
     default: break;
   }
 }
@@ -450,27 +595,196 @@ static void alvoPlayer(char *alvo, size_t tam) {
   // republicacao do catalogo ja pode ter apontado para outro item.
   if (player_id_canal()[0]) { snprintf(alvo,tam,"%s",player_id_canal()); return; }
   if (!c) { alvo[0] = 0; return; }
-  if (t > 0 && e > 0) snprintf(alvo,tam,"%.*s:%d:%d",(int)strcspn(c->imdb,":"),c->imdb,t,e);
+  if (t > 0 && e > 0) cat_id_stream(player_indice(), t, e, alvo, (unsigned)tam);
   else snprintf(alvo,tam,"%s",c->imdb);
 }
-static void buscarParaPlayer(void) {
+// --- StreamFit runtime and passive gate (F03) -------------------------------
+// RUNTIME OF THE EXACT TARGET, from metadata the catalog already parsed. Asked
+// by the sources sheet when it opens (UI thread) with the id it will classify;
+// answers only when that id is the one the player or the detail would request
+// (alvoPlayer / idDoAlvo — the same functions that stamp stream_definir_alvo),
+// so another title or episode never lends its runtime. Movie: the Cinemeta/addon
+// "runtime" kept in CatItem.meta. Episode: that episode's own runtime (the
+// /meta video or TMDB season episode), never the show's or a season total.
+static double fitRuntimeItem(int indice, int t, int e) {
+  const CatItem *c = cat_item(indice);
+  if (!c) return 0;
+  if (t > 0 && e > 0) {
+    int n = cat_n_episodios(indice);
+    for (int k = 0; k < n; k++) {
+      const CatEp *ep = cat_episodio(indice, k);
+      if (ep && ep->temporada == t && ep->episodio == e) return streamfitdur_texto(ep->duracao);
+    }
+    return 0;
+  }
+  return !strcmp(c->tipo, "movie") ? streamfitdur_meta_filme(c->meta) : 0;
+}
+static double fitRuntimeMeta(const char *alvo) {
+  char a[64];
+  int t = 0, e = 0;
+  if (!alvo || !*alvo) return 0;
+  if (player_aberto() && !player_id_canal()[0]) {
+    alvoPlayer(a, sizeof a);
+    if (!strcmp(a, alvo)) { player_episodio_atual(&t, &e); return fitRuntimeItem(player_indice(), t, e); }
+  }
+  { const CatItem *ci = cat_item(detail_indice());
+    idDoAlvo(ci, a, sizeof a);
+    if (ci && !strcmp(a, alvo)) {
+      if (!strcmp(ci->tipo, "series") && !(detail_ep_foco(&t, &e) && t > 0 && e > 0)) return 0;
+      return fitRuntimeItem(detail_indice(), t, e);
+    }
+  }
+  return 0;
+}
+// REAL MEDIA DURATION of the player's own source (player_duracao_midia), for
+// the player's exact target. A new file or target clears the previous media
+// duration first; metadata of that target stays. Every frame, cheap.
+static void fitDuracaoMidia(void) {
+  static char ultAlvo[64];
+  static unsigned long ultUrl;
+  static int enviado;
+  char alvo[64];
+  unsigned long h = 5381;
+  double d;
+  if (!player_aberto() || player_id_canal()[0]) return;
+  alvoPlayer(alvo, sizeof alvo);
+  for (const char *p = video_url_atual(); p && *p; p++) h = h * 33 + (unsigned char)*p;
+  if (strcmp(alvo, ultAlvo) || h != ultUrl) {
+    if (ultAlvo[0] && enviado) stream_fit_duracao(ultAlvo, 0, SF_DUR_MEDIA);
+    snprintf(ultAlvo, sizeof ultAlvo, "%s", alvo);
+    ultUrl = h; enviado = 0;
+  }
+  if (!enviado && alvo[0] && !vazao_url_aviso(video_url_atual()) && player_duracao_midia(&d)) {
+    stream_fit_duracao(alvo, d, SF_DUR_MEDIA);
+    enviado = 1;
+  }
+}
+// PASSIVE TELEMETRY GATE: only the Android backend session that is the
+// player's real source may feed StreamFit. Trailer, channel, warning clip,
+// paused-in-mini or idle pipeline: generation 0, every window is stale.
+static void fitPassivaPermitir(void) {
+#ifdef NV_ANDROID
+  int ok = player_aberto() && !player_id_canal()[0] && player_com_video() &&
+           !vazao_url_aviso(video_url_atual());
+  streamfitpassiva_permitir(ok ? video_android_sessao() : 0);
+#endif
+}
+
+static void buscarParaPlayerModo(int renovar) {
   char alvo[64]; alvoPlayer(alvo,sizeof alvo);
   const char *idC = player_id_canal();
   // Episodio novo abre um ciclo novo de fontes. A fonte automatica do
   // episodio anterior nao pode contaminar o watchdog nem a lista de exclusao.
   limparFonteVOD();
+  autoEsperaN = 0;
   // CARIMBA O ALVO ANTES DE PEDIR (issue #101). A lista que voltar passa a
   // saber de que episodio ela e; sem isto ninguem consegue distinguir "a lista
   // do E6" de "a lista do E5 que ninguem invalidou". Ver streams.h.
   stream_definir_alvo(alvo);
-  if (idC[0]) { addons_buscar(alvo,"tv"); addons_buscar_legendas(alvo,"tv"); return; }
+  if (idC[0]) {
+    // SEM LEGENDA DE ADDON NO CANAL: o id do canal ia ao OpenSubtitles como
+    // "movie" (Recarregar da folha). As do canal sao as do fluxo (faixas.c).
+    if (renovar) addons_buscar_renovar(alvo,"tv"); else addons_buscar(alvo,"tv");
+    return;
+  }
   {
     const CatItem *c = cat_item(player_indice());
     if (c && alvo[0]) {
-      addons_buscar(alvo,c->tipo);
+      if (renovar) addons_buscar_renovar(alvo,c->tipo); else addons_buscar(alvo,c->tipo);
       addons_buscar_legendas(alvo,c->tipo);
     }
   }
+}
+static void buscarParaPlayer(void) { buscarParaPlayerModo(0); }
+
+// RENOVA POR IDADE **E POR DONO** (issue #101).
+//
+// O alvo tambem mudou: era idDoAlvo(), o episodio EM FOCO na pagina, e
+// quem toca nem sempre e ele — "Retomar" e o card de Continuar assistindo
+// abrem outro episodio (cwTocar/episodioDoDetalhe), e a busca saia para um id
+// diferente do que ia reproduzir. alvoPlayer le o episodio ja definitivo,
+// depois de player_abrir.
+//
+// E a condicao deixou de ser so o relogio: a lista podia ter 3 s de vida
+// e ser do episodio anterior, e ai nada a refazia. Idade cobre o link
+// assinado que expira; o dono cobre o episodio errado. Sao duas coisas.
+static void renovarListaDoPlayer(void) {
+  const CatItem *ci = cat_item(player_indice());
+  char alvoP[64]; alvoPlayer(alvoP, sizeof alvoP);
+  if (ci && ci->imdb[0] && alvoP[0] &&
+      (stream_idade_ms() > NV_LINK_VALIDO_MS || !stream_lista_do_alvo(alvoP))) {
+    printf("fonte: lista com %ums%s, renovando (%s)\n",
+           (unsigned)stream_idade_ms(),
+           stream_lista_do_alvo(alvoP) ? "" : " e de outro alvo", alvoP);
+    stream_definir_alvo(alvoP);
+    addons_buscar(alvoP, ci->tipo);
+  }
+}
+
+// RETOMAR PELA FONTE QUE ESTAVA TOCANDO (fontevolta.h).
+//
+// O caminho de sempre e: busca em todos os addons, verificacao, abertura. Com
+// a fonte da ultima sessao boa deste titulo/episodio guardada (mesma conta,
+// mesmo perfil, link dentro da validade), a abertura vai DIRETO nela — o seek
+// para o ponto salvo e o mesmo de qualquer abertura (retomarPct no player).
+// A busca nos addons continua saindo, mas em segundo plano: e ela que enche a
+// folha de Fontes e que fica pronta para o recuo abaixo.
+//
+// O RECUO e silencioso: conferencia em paralelo que falha (4xx/5xx, endereco
+// de aviso), erro do player, clipe curto no lugar do titulo, ou o prazo
+// FONTEVOLTA_PRAZO_MS sem abrir — o video para, a tela continua em "abrindo
+// fonte" e a escolha normal assume (aguardandoFonte = 1), com a lista que a
+// busca de fundo ja trouxe ou esta trazendo.
+static int tocarFonteGuardada(void) {
+  Stream s;
+  char alvo[64];
+  if (player_id_canal()[0] || !player_aberto()) return 0;
+  alvoPlayer(alvo, sizeof alvo);
+  if (!alvo[0] || !fontevolta_pegar(alvo, sessao_usuario(), perfis_ativo(), SDL_GetTicks(), &s))
+    return 0;
+  marco("abrir: fonte guardada, sem busca");
+  stream_definir_atual(-1);
+  video_definir_dv(s.dolbyVision);
+  video_definir_cabecalhos(s.cabecalhos);
+  video_definir_mp4(s.mp4 || strstr(s.url, ".mp4") != NULL);
+  fontevolta_conferir(s.url, s.cabecalhos);
+  player_definir_fonte(s.url);
+  voltaAtiva = 1;
+  voltaDesde = SDL_GetTicks();
+  return 1;
+}
+static void vigiarFonteGuardada(void) {
+  const char *motivo = NULL;
+  Uint32 desde;
+  if (!voltaAtiva) return;
+  if (!player_aberto() || player_quer_sair() || player_id_canal()[0] || aguardandoFonte) {
+    voltaAtiva = 0; return;
+  }
+  { FontevoltaSinais g;
+    int d;
+    g.falhou = video_falhou() || player_fonte_falhou();
+    g.pronto = video_pronto();
+    g.duracao = video_duracao();
+    g.carregando = player_carregando();
+    g.conferencia = fontevolta_conferencia();
+    g.desdeMs = desde = SDL_GetTicks() - voltaDesde;
+    d = fontevolta_decidir(&g, &motivo);
+    if (d == FV_ABRIU) {
+      printf("[voltafonte] abriu em %u ms sem busca\n", (unsigned)desde);
+      fflush(stdout);
+      voltaAtiva = 0;
+      return;
+    } }
+  if (!motivo) return;
+  printf("[voltafonte] recuo para a busca: %s (%u ms)\n", motivo, (unsigned)desde);
+  fflush(stdout);
+  marco("abrir: fonte guardada falhou, busca normal");
+  voltaAtiva = 0;
+  fontevolta_esquecer(motivo);
+  player_voltar_a_esperar();
+  limparFonteVOD();
+  renovarListaDoPlayer();
+  aguardandoFonte = 1;
 }
 // ID BASE DO TITULO EM JOGO, sem ":temporada:episodio".
 //
@@ -489,6 +803,17 @@ static void idBaseDoTitulo(char *dst, size_t tam) {
   c = cat_item(player_aberto() ? player_indice() : detail_indice());
   if (!c || !c->imdb[0]) return;
   fontepref_id_base(c->imdb, dst, (unsigned)tam);
+}
+
+// O nome que a folha de Fontes poe no titulo de cada linha: o do item que
+// idBaseDoTitulo usa (o player aberto, senao o detalhe). Canal fica sem nome
+// e a folha cai no addon.
+static void nomeParaFolha(void) {
+  const CatItem *c = player_id_canal()[0] ? NULL
+                   : cat_item(player_aberto() ? player_indice() : detail_indice());
+  stream_folha_nome(c ? c->titulo : "");
+  stream_folha_canal(player_id_canal()[0] != 0);
+  stream_folha_item(c ? (player_aberto() ? player_indice() : detail_indice()) : -1);
 }
 
 static void episodioDoDetalhe(void) {
@@ -521,17 +846,174 @@ static int montarCanalStalker(const char *id, const char *url) {
 
 // Canal Xtream: a URL e estavel e nasce do cadastro (ver xtream.h). Nao vai a
 // rede; e o mesmo formato de lista de UMA fonte do portal Stalker.
+//
+// DUAS FONTES, .m3u8 e .ts (#158), na ordem de xtream_formatos: o que a conta
+// declara em allowed_output_formats e o que ja tocou nesta sessao. A troca
+// de uma para a outra e o watchdog de canal de sempre (fonte morta ->
+// proxima), sem caminho novo. Um painel que nao gera HLS para um canal
+// responde "Media Not Found" no .m3u8 e toca no .ts.
+// AS FONTES DE UM CANAL XTREAM: o mesmo canal em cada formato que a conta
+// aceita (xtream_formatos) e, com a Live TV > Resolucao principal, as OUTRAS
+// RESOLUCOES do mesmo canal na lista ("CINEMAX FHD" / "CINEMAX HD", ver
+// guia_variantes). A da resolucao escolhida vai primeiro; se nao abrir, o
+// watchdog passa para a seguinte. Em Automatica o canal escolhido vai primeiro
+// e as variantes ficam de reserva.
+#define XT_VARIANTES_MAX 3
 static int resolverCanalXtream(void) {
-  Stream s;
-  char url[4096];
-  if (!xtream_url(player_id_canal(), url, sizeof url)) return -1;
-  memset(&s, 0, sizeof s);
-  snprintf(s.url, sizeof s.url, "%s", url);
-  snprintf(s.rotulo, sizeof s.rotulo, "%s", "Xtream");
-  snprintf(s.provedor, sizeof s.provedor, "%s", "xtream");
-  s.fileIdx = -1;
-  stream_definir_lista(&s, 1);
+  static Stream s[3 * XT_VARIANTES_MAX];
+  GuiaVariante v[XT_VARIANTES_MAX], ord[XT_VARIANTES_MAX];
+  const char *ext[2];
+  int k = xtream_formatos(ext), i, j, n = 0, nv, no = 0;
+  int alvo = nv_res_opcao_altura(ajustes_livetv_resolucao());
+  memset(s, 0, sizeof s);
+  nv = guia_variantes(player_id_canal(), v, XT_VARIANTES_MAX);
+  if (nv < 1) {
+    snprintf(v[0].id, sizeof v[0].id, "%s", player_id_canal());
+    v[0].nome[0] = 0; v[0].altura = 0; nv = 1;
+  }
+  for (j = 0; j < nv; j++) if (nv_res_preferida(v[j].altura, alvo)) ord[no++] = v[j];
+  for (j = 0; j < nv; j++) if (!nv_res_preferida(v[j].altura, alvo)) ord[no++] = v[j];
+  for (j = 0; j < no; j++)
+    for (i = 0; i < k && n < (int)(sizeof s / sizeof *s); i++) {
+      char url[4096];
+      const char *f = !strcmp(ext[i], "ts") ? "TS" : "HLS";
+      if (!xtream_url_formato(ord[j].id, ext[i], url, sizeof url)) continue;
+      // PROXY DE TS (#158, proxyts.h): a primeira fonte de cada variante vai
+      // pelo proxy local — HLS (ou .ts que o painel responde com playlist) vira
+      // TS continuo; o que ja e TS continuo o proxy redireciona direto. As
+      // fontes diretas ficam atras, de reserva.
+      if (!i && ajustes_livetv_proxy() && proxyts_disponivel() && n < (int)(sizeof s / sizeof *s) - 1) {
+        snprintf(s[n].url, sizeof s[n].url, "%s%s", PROXYTS_PREFIXO, url);
+        if (strcmp(ord[j].id, player_id_canal()) && ord[j].nome[0])
+          snprintf(s[n].rotulo, sizeof s[n].rotulo, "Xtream (%s, proxy) · %s", f, ord[j].nome);
+        else snprintf(s[n].rotulo, sizeof s[n].rotulo, "Xtream (%s, proxy)", f);
+        snprintf(s[n].provedor, sizeof s[n].provedor, "%s", "xtream");
+        s[n].altura = ord[j].altura;
+        s[n].fileIdx = -1;
+        n++;
+      }
+      snprintf(s[n].url, sizeof s[n].url, "%s", url);
+      if (strcmp(ord[j].id, player_id_canal()) && ord[j].nome[0])
+        snprintf(s[n].rotulo, sizeof s[n].rotulo, "Xtream (%s) · %s", f, ord[j].nome);
+      else snprintf(s[n].rotulo, sizeof s[n].rotulo, "Xtream (%s)", f);
+      snprintf(s[n].provedor, sizeof s[n].provedor, "%s", "xtream");
+      s[n].altura = ord[j].altura;
+      s[n].fileIdx = -1;
+      n++;
+    }
+  if (!n) return -1;
+  if (nv > 1 || alvo)
+    printf("[livetv] xtream: %d variante(s) do canal, %d fonte(s); resolucao principal %dp, primeira %s\n",
+           nv, n, alvo, s[0].rotulo);
+  stream_definir_lista(s, n);
   return 0;
+}
+
+// O CARTAO DE ERRO DO CANAL XTREAM diz o que se sabe (#158). O generico
+// "nao foi possivel abrir a fonte" era tudo o que a pessoa via — e no registro
+// 6314 nem isso ficava, porque o "voltou a entregar" tirava o cartao. A conta
+// (xtream_conta_ler, no fio do guia) explica os casos em que NENHUM canal
+// toca; o erro do pipeline, o deste canal.
+static void motivoCanalXtream(char *t, size_t nt, char *d, size_t nd) {
+  XtreamConta c;
+  const char *err = video_erro_texto();
+  int aviso = xtream_conta(&c) ? xtream_conta_aviso(&c, (long long)time(NULL)) : XA_NADA;
+  // SO UM FORMATO TENTADO (#158, registro 13776): a conta declara
+  // allowed_output_formats=["ts"], a lista do canal tem uma fonte so, e o
+  // cartao dizia "nao abriu em HLS nem em TS" sem HLS nenhum ter sido pedido.
+  const char *ext[2], *umFormato = NULL;
+  if (xtream_formatos(ext) == 1) umFormato = !strcmp(ext[0], "ts") ? "TS" : "HLS";
+  if (aviso == XA_EXPIRADA) {
+    snprintf(t, nt, "%s", i18n("A assinatura Xtream venceu."));
+    snprintf(d, nd, "%s", i18n("Renove com o seu provedor. Os canais voltam sozinhos depois disso."));
+  } else if (aviso == XA_DESATIVADA || aviso == XA_RECUSOU) {
+    snprintf(t, nt, "%s", i18n("O provedor desativou esta conta Xtream."));
+    snprintf(d, nd, "%s", i18n("Fale com o seu provedor ou confira o cadastro em Ajustes."));
+  } else if (aviso == XA_TELAS_CHEIAS) {
+    snprintf(t, nt, i18n("Todas as telas da conta Xtream estão em uso (%d de %d)."),
+             c.conexoes, c.maxConexoes);
+    snprintf(d, nd, "%s", i18n("Feche o Xtream em outro aparelho e tente de novo."));
+  } else if (err && err[0]) {
+    snprintf(t, nt, "%s", i18n("O provedor não entregou este canal."));
+    if (umFormato) snprintf(d, nd, i18n("Resposta do servidor: %s. A conta só permite %s."), err, umFormato);
+    else snprintf(d, nd, i18n("Resposta do servidor: %s. HLS e TS foram tentados."), err);
+  } else {
+    if (umFormato) snprintf(t, nt, i18n("O canal não abriu em %s."), umFormato);
+    else snprintf(t, nt, "%s", i18n("O canal não abriu em HLS nem em TS."));
+    snprintf(d, nd, "%s", i18n("O vídeo chegou, mas a TV não começou a tocar. Envie o registro em Ajustes."));
+  }
+}
+static void erroCanalXtream(void) {
+  char t[160], d[200];
+  motivoCanalXtream(t, sizeof t, d, sizeof d);
+  player_erro_fonte_motivo(t, d);
+}
+// O QUE O PROVEDOR MANDA DE VERDADE (#158). Quando o canal Xtream morre por
+// "dado chegando e decoder mudo" e nao ha outra fonte, o pipeline e fechado e
+// um fio le o comeco do mesmo .ts e a playlist .m3u8 do mesmo canal, e escreve
+// no registro: e TS? que codecs a PMT declara? o SPS e 10 bits? a .m3u8 existe
+// mesmo com allowed_output_formats=ts? Na C4 do pasha o uMS fica 45 s com 36 s
+// de buffer sem nunca dizer o que recebeu (registro 14195), e outro app na
+// mesma TV toca o canal — sem isto nao ha como saber o que muda. So diagnostico:
+// nada aqui decide reproducao. Uma vez por canal; o pipeline fecha antes porque
+// a conta tem 1 tela so (telas=0/1) e uma segunda conexao seria recusada.
+static void *sondarCanalXtreamFio(void *u) {
+  char *id = u, url[4096], fin[4096], r[600];
+  long n = 0;
+  int st = 0, er = 0;
+  char *b;
+  sleep(1);
+  if (xtream_url_formato(id, "ts", url, sizeof url)) {
+    fin[0] = 0;
+    b = rede_baixar_trecho_st(url, 8, 0, 786431, &n, &st, &er, fin, sizeof fin);
+    if (b && n > 0) {
+      TsSonda ts;
+      ts_sondar((const unsigned char *)b, n, &ts);
+      ts_resumo(&ts, r, sizeof r);
+    } else memcpy(r, "-", 2);
+    printf("[xtream] sonda ts: HTTP %d curl=%d %ld B%s | %s\n", st, er, n,
+           fin[0] && strcmp(fin, url) ? " (redirecionado)" : "", r);
+    free(b);
+  }
+  if (xtream_url_formato(id, "m3u8", url, sizeof url)) {
+    int linhas = 0, ts = 0;
+    n = 0; st = 0; er = 0;
+    b = rede_baixar_trecho_st(url, 6, 0, 65535, &n, &st, &er, NULL, 0);
+    if (b && n > 0) {
+      const char *q;
+      for (q = b; q && *q; q = strchr(q, '\n')) {
+        if (*q == '\n') q++;
+        if (!*q) break;
+        if (*q != '#') { linhas++; if (strstr(q, ".ts")) ts++; }
+      }
+    }
+    printf("[xtream] sonda m3u8: HTTP %d curl=%d %ld B, %s, %d entrada(s) (%d .ts)\n", st, er, n,
+           b && n >= 7 && !strncmp(b, "#EXTM3U", 7) ? "comeca com #EXTM3U" : "NAO e playlist",
+           linhas, ts);
+    free(b);
+  }
+  fflush(stdout);
+  free(id);
+  return NULL;
+}
+static void sondarCanalXtream(const char *id) {
+  static char ultimo[80];
+  pthread_t t;
+  char *c;
+  if (!id || !id[0] || !strcmp(ultimo, id)) return;
+  snprintf(ultimo, sizeof ultimo, "%s", id);
+  c = strdup(id);
+  if (!c) return;
+  if (pthread_create(&t, NULL, sondarCanalXtreamFio, c) == 0) pthread_detach(t);
+  else free(c);
+}
+// No PREVIEW do guia a miniatura morre quieta (ver o watchdog); para o Xtream
+// sai ao menos a frase curta por cima do guia — no registro 6314 a pessoa
+// ficava olhando um preview preto sem saber por que.
+static void avisoCanalXtreamMini(void) {
+  char t[160], d[200];
+  motivoCanalXtream(t, sizeof t, d, sizeof d);
+  glem_aviso_curto(t);
 }
 
 // Um unico worker pode existir. O fio de desenho so junta depois de DONE;
@@ -651,6 +1133,11 @@ static void erroSemFonte(void) {
     // manda. Sem esta frase a pessoa lia "nenhuma fonte" numa lista cheia.
     player_erro_fonte_motivo(i18n("As fontes torrent desta lista não estão no cache do debrid"),
         i18n("Abra Fontes e escolha uma: o serviço começa a baixar."));
+  } else if (!canal && p2p_ativo() && !debrid_ativo() && stream_qtd_torrents() > 0) {
+    // So ha torrent na lista e o automatico nao toca P2P (sem peers a TV
+    // ficaria parada). A folha toca.
+    player_erro_fonte_motivo(i18n("As fontes desta lista são P2P (torrent)"),
+        i18n("Abra Fontes e escolha uma: ela toca pelo servidor P2P."));
   } else if (addons_motivo_vazio(motivo, sizeof motivo))
     player_erro_fonte_motivo(motivo, canal
         ? i18n("Escolha outro canal no guia ou tente de novo mais tarde.")
@@ -726,7 +1213,43 @@ static void pedirTorrentEscolhido(int indice) {
     player_erro_fonte();
     return;
   }
-  player_toast(i18n("Pedindo o torrent ao serviço de debrid…"), 5000);
+  // Sem debrid, quem responde e o servidor P2P, que espera peers: dizer que
+  // pode levar meio minuto evita a pessoa achar que travou.
+  if (!debrid_ativo() && p2p_usa_motor())
+    player_toast_ex(i18n("Baixando o torrent nesta TV… pode levar até um minuto"), 30000, "aj_download", 0);
+  else if (!debrid_ativo() && p2p_ativo())
+    player_toast_ex(i18n("Pedindo o torrent ao servidor P2P… pode levar até um minuto"), 30000, "aj_download", 0);
+  else
+    player_toast_ex(i18n("Pedindo o torrent ao serviço de debrid…"), 5000, "aj_download", 0);
+}
+// MOTOR P2P EMBUTIDO (p2pmotor.h), a cada quadro e ANTES de qualquer return
+// de app_atualizar (login, perfis e outras telas saem cedo de la). So le
+// atomicos e pega a trava curta do motor: a vigia (disco/RAM/statvfs) e o
+// destroy rodam em fios proprios.
+static void vigiarMotorP2p(void) {
+  int m;
+  // Sem p2pmotor_disponivel() aqui: no .tpk ele abre a libnuvio_engine.so
+  // (dlopen), e isso so deve acontecer quando alguem pede P2P. ativo() e
+  // motivo_parada() so leem estado.
+  // Player fechado (nem cheio nem mini): nada de baixar/compartilhar com
+  // ninguem assistindo. Pedido em curso e cancelado (sai em <= 20 ms); depois
+  // que ele sai, o motor para em fio solto e o cache e apagado.
+  if (!p2pmotor_segurado() && !player_aberto() && !player_mini_ativo() && p2pmotor_ativo()) {
+    if (fioTorrentVivo) p2pmotor_cancelar();
+    else p2pmotor_parar_fundo();
+  }
+  // A vigia parou o motor com o filme tocando: dizer por que.
+  if ((m = p2pmotor_motivo_parada()) && player_aberto()) {
+    if (m == P2P_ERR_RAM)
+      player_erro_fonte_motivo(i18n("O P2P passou do limite de memória"),
+          i18n("O vídeo parou para proteger o app. Abra Fontes para escolher outra opção."));
+    else if (m == P2P_ERR_DISCO)
+      player_erro_fonte_motivo(i18n("Não foi possível medir o espaço livre da TV"),
+          i18n("Sem essa medida o P2P não baixa nada. Abra Fontes para escolher outra opção."));
+    else
+      player_erro_fonte_motivo(i18n("O P2P encheu o espaço livre da TV"),
+          i18n("O vídeo parou para não lotar a TV. Escolha uma fonte menor."));
+  }
 }
 static void processarTorrentJob(void) {
   TorrentJob *j = &torrentJob;
@@ -755,6 +1278,50 @@ static void processarTorrentJob(void) {
         snprintf(titulo, sizeof titulo, i18n("O %s está baixando este torrent"), serv);
       player_erro_fonte_motivo(titulo,
           i18n("Ele fica na sua conta: escolha esta fonte de novo em alguns minutos."));
+      // E A ILHA DIZ DE NOVO NA HOME (02/10, mockup "Fonte baixando no
+      // debrid"): o cartao do player some com o Voltar, e o aviso espera na
+      // fila da ilha ate a pilula voltar a aparecer.
+      { const CatItem *pc = cat_item(player_indice());
+        ilhasinais_debrid_baixando(serv, pc ? pc->titulo : NULL); }
+    } else if (j->resultado == STREAM_P2P_FALHOU) {
+      // O SERVIDOR P2P respondeu por ultimo (o debrid nao resolveu ou nao
+      // existe), entao o motivo que a pessoa precisa e o dele: cada um tem um
+      // conserto diferente (endereco, torrent sem peers, arquivo errado).
+      switch (p2p_ultimo_erro()) {
+        case P2P_ERR_SERVIDOR:
+          player_erro_fonte_motivo(i18n("Servidor P2P sem resposta"),
+              i18n("Confira o endereço e se o servidor está ligado, em Ajustes > Avançado."));
+          break;
+        case P2P_ERR_NAO_STREMIO:
+          player_erro_fonte_motivo(i18n("O endereço respondeu, mas não é um servidor Stremio"),
+              i18n("Confira o endereço e a porta (11470) em Ajustes > Avançado."));
+          break;
+        case P2P_ERR_SEM_PEERS:
+          player_erro_fonte_motivo(i18n("Este torrent não tem peers agora"),
+              i18n("Os dados não chegaram a tempo. Escolha outra fonte ou tente mais tarde."));
+          break;
+        case P2P_ERR_SEM_VIDEO:
+          player_erro_fonte_motivo(i18n("Este torrent não tem arquivo de vídeo"),
+              i18n("Abra Fontes para escolher outra opção."));
+          break;
+        case P2P_ERR_MOTOR:
+          player_erro_fonte_motivo(i18n("O P2P desta TV não iniciou"),
+              i18n("Abra Fontes para escolher outra opção."));
+          break;
+        case P2P_ERR_SEM_ESPACO:
+          player_erro_fonte_motivo(i18n("Falta espaço livre na TV para o P2P"),
+              i18n("O P2P precisa de 256 MB livres. Abra Fontes para escolher outra opção."));
+          break;
+        case P2P_ERR_DISCO:
+          player_erro_fonte_motivo(i18n("Não foi possível medir o espaço livre da TV"),
+              i18n("Sem essa medida o P2P não baixa nada. Abra Fontes para escolher outra opção."));
+          break;
+        case P2P_ERR_CANCELADO:
+          break;   // outra escolha/fechamento ja cuidou da tela
+        default:
+          player_erro_fonte_motivo(i18n("O servidor P2P não abriu este torrent"),
+              i18n("Abra Fontes para escolher outra opção."));
+      }
     } else if (j->resultado == 0 && debrid_sem_plano()) {
       player_erro_fonte_motivo(i18n(debrid_sem_plano_frase(debrid_sem_plano())),
           i18n("Abra Fontes para escolher uma fonte direta."));
@@ -794,11 +1361,46 @@ static int pedirProximaFonteVOD(void) {
   }
   return 1;
 }
+// ESCOLHA MANUAL QUE NAO ABRE: prazo ate o primeiro quadro (fontevolta.h).
+// Vence -> o erro de fonte do player, com "A fonte nao respondeu" e as saidas
+// de sempre. O automatico ja tem o proprio prazo (tentarProximaFonteVOD).
+static void vigiarAberturaManual(void) {
+  FontevoltaSinais g;
+  Uint32 desde;
+  if (!fonteManualDesde) return;
+  if (!player_aberto() || player_quer_sair() || player_id_canal()[0] ||
+      fonteVODAutomatica || aguardandoFonte != 0 || player_fonte_falhou() || video_pronto()) {
+    fonteManualDesde = 0; return;
+  }
+  desde = SDL_GetTicks() - fonteManualDesde;
+  memset(&g, 0, sizeof g);
+  g.falhou = video_falhou() || player_fonte_falhou();
+  g.pronto = video_pronto();
+  g.carregando = player_carregando();
+  g.desdeMs = desde;
+  // Erro do player no preparo (Media3 2004 etc., video_android.c): sem isto a
+  // tela ficava em "Abrindo fonte" ate o prazo, ou para sempre.
+  if (video_falhou()) {
+    printf("[fonte] escolha manual: erro do player em %u ms (%s)\n", (unsigned)desde, video_erro_texto());
+    fflush(stdout);
+    fonteManualDesde = 0;
+    player_erro_fonte_motivo(i18n("Não foi possível abrir a fonte"), NULL);
+    return;
+  }
+  if (!fontevolta_abertura_vencida(&g, FONTE_MANUAL_PRAZO_MS)) return;
+  printf("[fonte] escolha manual nao abriu em %u ms: erro de fonte\n", (unsigned)desde);
+  fflush(stdout);
+  fonteManualDesde = 0;
+  player_erro_fonte_motivo(i18n("A fonte não respondeu a tempo."), NULL);
+}
 static void tentarProximaFonteVOD(void) {
   Uint32 desde;
   int atual, motivo = 0;
   if (!fonteVODAutomatica || player_id_canal()[0] || !player_aberto() ||
       player_quer_sair() || aguardandoFonte != 0 || !fonteVODDesde) return;
+  // Rede caiu com o video andando: a mesma fonte esta sendo recarregada
+  // (video_reconexao.h). So vira troca de fonte quando ela desistir (falhou).
+  if (video_reconectando()) return;
   desde = SDL_GetTicks() - fonteVODDesde;
   if (video_falhou() || player_fonte_falhou()) motivo = 1;
   else if (player_carregando() && desde > VOD_FONTE_PRAZO_MS) motivo = 2;
@@ -807,15 +1409,23 @@ static void tentarProximaFonteVOD(void) {
 
   atual = stream_atual();
   if (atual >= 0) stream_automatico_excluir(atual);
+  // Erro do PLAYER (nao prazo nem buffer): as irmas desta fonte saem junto,
+  // senao as vagas que sobram vao todas para links que falham igual.
+  if (atual >= 0 && motivo == 1) {
+    int k = stream_automatico_excluir_irmas(atual);
+    if (k) printf("[fonte] automatico VOD pulou %d link(s) irmao(s) de %d\n", k, atual);
+  }
   if (fonteVODTentativas >= VOD_FONTE_MAX_TENTATIVAS ||
       stream_automatico() < 0) {
     printf("[fonte] automatico VOD sem proxima candidata (motivo=%d, %d de %d)\n",
            motivo, fonteVODTentativas, VOD_FONTE_MAX_TENTATIVAS);
     fonteVODAutomatica = 0;
-    player_erro_fonte();
+    if (motivo == 2) player_erro_fonte_motivo(i18n("A fonte não respondeu a tempo."), NULL);
+    else player_erro_fonte();
     return;
   }
   if (!pedirProximaFonteVOD()) return;
+  player_definir_tentativa(fonteVODTentativas + 1, VOD_FONTE_MAX_TENTATIVAS);
   printf("[fonte] automatico VOD descartou %d; verificando proxima (%d/%d)\n",
          atual, fonteVODTentativas + 1, VOD_FONTE_MAX_TENTATIVAS);
   marco("fonte VOD travou; tentando proxima");
@@ -837,7 +1447,8 @@ static void tocarCanal(const CatItem *it) {
   if (ni < 0) ni = cat_acrescentar(it);
   if (ni < 0) return;
   limparFonteVOD();
-  if (player_aberto()) player_encerrar();
+  if (player_aberto() || player_retido()) player_encerrar();
+  diagnostico_cancelar_vazao();
   player_abrir(ni, NULL);
   // cat_acrescentar e cat_definir_tudo correm juntos: se uma republicacao
   // atravessou os dois, ni ja nao e o canal. A marca garante a sessao.
@@ -866,6 +1477,24 @@ static void tocarCanal(const CatItem *it) {
 // guia foca a linha do canal e deixa de seguir o foco com o preview — so OK
 // em outro canal troca o que toca. E o caminho de: Voltar num canal aberto
 // pelo guia, Azul na faixa do mini guia, e Guia na barra com o PiP no ar.
+// UM TITULO, UM LUGAR (cwretido.h). Quem segura o titulo que acabou de sair
+// do player: o cartao da ilha (relogio ligado) ou a faixa "Retomar agora"
+// (desligado). Uma comparacao de string por quadro. O titulo SOLTO (cartao
+// dispensado, vencido, trocado por outro titulo, relogio trocado) volta a
+// valer em "Continuar assistindo" e vai para a FRENTE dela, no mesmo quadro e
+// sem rede (cwfrente.h) — a home so remonta a fileira, sem refazer o resto.
+static void cwRetidoSincronizar(void) {
+  char antes[64];
+  snprintf(antes, sizeof antes, "%s", cw_retido());
+  if (!cw_retido_definir(cw_retido_escolher(ajustes_relogio_ligado(), ilhacart_vivo_imdb(),
+                                            home_retomar_imdb())))
+    return;
+  if (antes[0] && !cw_retido_exclui(antes)) {
+    int i = cat_indice_por_imdb(antes);
+    if (i >= 0) desc_continuar_otimista(i);
+  }
+}
+
 static void guiaComCanalNoAr(void) {
   char id[80];
   float x, y, w, h;
@@ -891,9 +1520,15 @@ static void guiaComCanalNoAr(void) {
 static int homePronta;
 
 int app_iniciar(const char *dirArte) {
+  ajustes_recursos(dirArte);
+  login_recursos(dirArte);
   diagnostico_recuperar_checkpoint();
+  stream_fit_fonte_metadados(fitRuntimeMeta);
   homePronta = home_iniciar(dirArte);
   novidades148_dir(dirArte);
+  novidades170_dir(dirArte);
+  novidades180_dir(dirArte);
+  novidades20_dir(dirArte);
   if (!homePronta)
     printf("[app] sem arte no pacote: a home so aparece depois do primeiro sync\n");
   menu_iniciar();
@@ -911,6 +1546,7 @@ int app_iniciar(const char *dirArte) {
   // A FONTE LEMBRADA, do mesmo jeito e pelo mesmo motivo: ela e lida antes do
   // primeiro Reproduzir, que pode acontecer segundos depois do arranque quando
   // a pessoa abre direto no "Continuar assistindo".
+  ondever_iniciar();
   fontepref_iniciar();
   // A ARTE ESCOLHIDA A MAO (#142) tambem, antes do primeiro destaque: sem ela
   // lida, o hero abriria na foto automatica e trocaria no quadro seguinte.
@@ -920,6 +1556,11 @@ int app_iniciar(const char *dirArte) {
   // existir catalogo e antes de a rede responder. Isto nao abre conexao — quem
   // faz isso e recomenda_verificar, la embaixo, com a home ja de pe.
   recomenda_iniciar();
+  ilhasinais_iniciar();  // a saude da rede passa a ouvir os pedidos (ilha, 02/10)
+  atividade_iniciar();   // a fila de POST /v1/atividade que nao saiu (atividade.h)
+  // O envio da atividade segue o nivel de privacidade (alcance) do Social: a
+  // funcao e chamada agora e a cada mudanca; "nao perguntado" chega como 0.
+  recomenda_ao_mudar_alcance(atividade_definir_permitido);
   // Sem conta, o app abre no login. Com sessao gravada ele nem passa por ela —
   // pedir o codigo de novo a cada arranque seria o mesmo que nao ter gravado.
   if (sessao_logada()) {
@@ -952,8 +1593,186 @@ int app_iniciar(const char *dirArte) {
   return 1;
 }
 
+// --- SPOTLIGHT (spotlight.h) ---------------------------------------------------
+// Atalho: F6 (microfone traduzido por plataforma), F5 (amarela traduzida) e a
+// AMARELA da LG direto — menos no Guia, onde ela alterna a vista. Nao abre por
+// cima do player em tela cheia nem do painel de Salvos (que tem fundo parado
+// proprio, no mesmo FBO).
+static int spotAtalho(const SDL_Event *e) {
+  SDL_Keycode k;
+  if (e->type != SDL_KEYDOWN) return 0;
+  k = e->key.keysym.sym;
+  if (k == SPOT_TECLA_VOZ || k == SPOT_TECLA_ABRIR) return 1;
+  return e->key.keysym.scancode == NV_SCANCODE_YELLOW && tela != TELA_GUIA;
+}
+static int spotPode(void) {
+  return tela != TELA_LOGIN && tela != TELA_ESCOLHA_PERFIL && !player_aberto() &&
+         !spainel_aberto() && !guia_overlay_aberta();
+}
+static void spotAbrir(int voz) {
+  static Uint32 ultimo;
+  Uint32 t = SDL_GetTicks();
+  // Segurar a tecla manda KEYDOWNs separados (ver a AZUL em app_evento): um so abre.
+  if (t - ultimo < 400) return;
+  ultimo = t;
+  if (menu_aberto()) menu_fechar();
+  if (ctx_aberto()) return;
+  spot_abrir(voz);
+}
+// Pessoa do TMDB esperando a pagina do titulo dela chegar (ver SPOT_PESSOA).
+// Vale SPOT_PESSOA_PRAZO_MS: um titulo que chegue depois disso e outro pedido.
+#define SPOT_PESSOA_PRAZO_MS 20000u
+static SpotPedido spotPessoaDepois;
+static Uint32 spotPessoaDesde;
+// Abre a filmografia da pessoa: do Spotlight e da Busca (busca_pediu_pessoa).
+static void abrirPessoa(const SpotPedido *pp) {
+  SpotPedido p = *pp;
+  // A pagina do titulo de onde a pessoa veio, com a filmografia por cima.
+  if (p.indice >= 0) {
+    abrirPorIndice(p.indice);
+    detail_mostrar_pessoa(p.tmdb, p.nome, p.arte);
+    return;
+  }
+  // Pessoa do TMDB (spotpessoa.h): a filmografia mora na pagina de um
+  // titulo, entao abre a do primeiro titulo pelo qual ela e conhecida.
+  // No catalogo ja abre agora; fora dele a descoberta busca o meta e
+  // trocaDeTituloSeSolicitada mostra a pessoa quando a pagina abrir.
+  { int i, idx = -1;
+    for (i = 0; i < cat_n() && idx < 0; i++) {
+      const CatItem *ci = cat_item(i);
+      if (ci && ci->tmdb == p.tituloTmdb && strcmp(ci->tipo, "channel")) idx = i;
+    }
+    if (idx >= 0) { abrirPorIndice(idx); detail_mostrar_pessoa(p.tmdb, p.nome, p.arte); }
+    else if (p.tituloTmdb > 0) {
+      spotPessoaDepois = p;
+      spotPessoaDesde = SDL_GetTicks();
+      desc_pedir_titulo_tmdb(p.tituloTmdb, p.tituloTipo);
+    } }
+}
+// O que a pessoa escolheu no Spotlight, ja com a caixa fechada.
+static void spotAtender(void) {
+  SpotPedido p;
+  if (!spot_pediu(&p)) return;
+  switch (p.tipo) {
+    case SPOT_TITULO:
+      abrirPorIndice(p.indice);
+      break;
+    case SPOT_PESSOA:
+      abrirPessoa(&p);
+      break;
+    case SPOT_COLECAO: {
+      const ColFolder *f = col_folder(p.indice);
+      if (f) { detail_fechar(); vertudo_colecao(f); }
+      break; }
+    case SPOT_CATALOGO: {
+      const CatFileira *cf = cat_fileira(p.indice);
+      if (cf && cf->base[0]) { detail_fechar(); vertudo_abrir(cf->base, cf->tipo, cf->catId, cf->titulo); }
+      break; }
+    case SPOT_ADDONS:
+      detail_fechar();
+      addonsui_abrir();
+      trocarTela(TELA_ADDONS);
+      break;
+    case SPOT_GUIA:
+      if (tela != TELA_AJUSTES) { ajustes_abrir_no_guia(0); trocarTela(TELA_AJUSTES); menu_definir_destino(MENU_AJUSTES); }
+      ajustes_guia_ir(p.indice);
+      break;
+    case SPOT_AJUSTE:
+      detail_fechar();
+      ajustes_abrir_opcao(p.indice);
+      if (tela == TELA_AJUSTES) ajustes_iniciar();
+      else trocarTela(TELA_AJUSTES);
+      menu_definir_destino(MENU_AJUSTES);
+      break;
+    case SPOT_CANAL: {
+      CatItem it;
+      if (aguardandoFonte != 2 && guia_item_do_canal(p.id, p.nome, p.base, &it)) tocarCanal(&it);
+      break; }
+    default: break;
+  }
+  printf("[spotlight] escolheu tipo=%d\n", p.tipo);
+  fflush(stdout);
+}
+
+int app_no_login(void) { return tela == TELA_LOGIN; }
+
+int app_na_home(void) {
+  return tela == TELA_HOME && homePronta && !player_aberto() && !detail_aberto() &&
+         !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto();
+}
+
+// ONDE A AZUL/CH+ ABRE O PAINEL DE SALVOS/AVISOS (dono, 04/10: "tem que dar
+// para abrir as notificacoes e a sidebar social da parte de titulos tambem e em
+// outros lugares"). Antes so na Home. Agora tambem na pagina do titulo (e a
+// ficha da pessoa, que vive nela), "Ver tudo"/colecao e nas telas de menu
+// (Explorar, Busca, Biblioteca, Perfil, Social, Add-ons, Plugins, Agenda).
+// Nunca sobre o player, o guia, Ajustes ou diagnosticos, e nunca com uma
+// folha/menu do cartaz por cima: elas tem a tecla. A tecla "S" de teclado de
+// Mac nao vale com um campo de texto ativo (e a letra, nao a AZUL).
+static int azulPodeAbrirSalvos(const SDL_Event *e) {
+  if (player_aberto() || player_mini_ativo() || menu_aberto() || ctx_aberto() ||
+      faixas_aberta() || episodios_aberto() || stream_folha_aberta() ||
+      guia_overlay_aberta() || pessoas_aberto() || recomenda_aberta() || recenviar_aberto())
+    return 0;
+  // So no teclado de verdade (Mac/desktop). No Android a AZUL, o CH+ e o
+  // MENU/BOOKMARK CHEGAM como "s" (NuvioActivity/main.c) e o SDL pode deixar o
+  // text input ligado: a regra recusava o atalho e o CH+ parou de abrir a ilha.
+#ifndef NV_ANDROID
+  if (e->key.keysym.sym == SDLK_s && e->key.keysym.scancode != NV_SCANCODE_BLUE &&
+      SDL_IsTextInputActive()) return 0;
+#endif
+  switch (tela) {
+    case TELA_HOME: case TELA_EXPLORAR: case TELA_BUSCA: case TELA_BIBLIOTECA:
+    case TELA_PERFIL: case TELA_SOCIAL: case TELA_ADDONS: case TELA_PLUGINS:
+    case TELA_AGENDA: return 1;
+    default: return 0;
+  }
+}
+
+// Abre/fecha o painel de Salvos+Avisos pelo caminho da AZUL. `comModal` 0 e o
+// "Cima na pagina do titulo": abre direto, sem o modal de cartao da ilha.
+static void alternarSalvos(int comModal) {
+  static Uint32 ultimoToque;
+  Uint32 agoraTecla = SDL_GetTicks();
+  float ix, iy, iw, ih;
+  if (agoraTecla - ultimoToque < 400) return;   // repeticao do firmware
+  ultimoToque = agoraTecla;
+  if (spainel_aberto()) spainel_fechar();
+  else if (comModal && (ilha_cartao_na_tela() || ilha_atividade_expansivel()) && ilha_modal_abrir()) {}
+  else if (ajustes_relogio_ligado() && ilha_rect(&ix, &iy, &iw, &ih)) spainel_abrir_de(ix, iy, iw, ih);
+  else spainel_abrir();
+}
+
+// OK NA ILHA DE AMIGOS DA PAGINA DO TITULO (detail.c): o mesmo painel da tecla
+// azul (nascendo da ilha do relogio quando ela esta na tela), ja na aba
+// Atividade e no primeiro evento de amigo daquele titulo.
+static void abrirSocialNoTitulo(const char *imdb) {
+  float ix, iy, iw, ih;
+  if (!spainel_aberto()) {
+    if (ajustes_relogio_ligado() && ilha_rect(&ix, &iy, &iw, &ih)) spainel_abrir_de(ix, iy, iw, ih);
+    else spainel_abrir();
+  }
+  spainel_abrir_titulo(imdb);
+}
+
+// O circular "Explorar" da pagina do titulo: a pagina fecha e a toca do coelho
+// comeca nele. Voltar no primeiro degrau da toca pede a pagina de volta
+// (explorar_pediu_abrir), com a grade de climas por baixo.
+static void abrirExplorarNoTitulo(void) {
+  MapaObra o;
+  if (!mapa_obra_do_catalogo(detail_indice(), &o)) return;
+  detail_fechar_seco();
+  trocarTela(TELA_EXPLORAR);
+  menu_definir_destino(MENU_EXPLORAR);
+  explorar_abrir_titulo(&o);
+}
+
 void app_evento(const SDL_Event *e) {
   if (e->type == SDL_QUIT) { sair = 1; return; }
+  ilhacart_validar_identidade();
+  // Qualquer gesto da pessoa: a atividade ao vivo da ilha conta 30 min daqui.
+  if (e->type == SDL_KEYDOWN || e->type == SDL_MOUSEBUTTONDOWN || e->type == SDL_MOUSEWHEEL)
+    ilhacart_tecla(SDL_GetTicks());
 
   // A explicacao de primeira abertura bloqueia o restante da interface ate
   // ser reconhecida ou fechada. Ela aparece na Home, mas pertence ao fluxo de
@@ -972,6 +1791,11 @@ void app_evento(const SDL_Event *e) {
   // mais importa. Enquanto aberto ele engole todo o teclado, incluindo o KEYUP
   // do toque que o abriu ou fechou (ver a nota da armadilha em registro.c).
   if (registro_evento(e)) return;
+  // O painel de envio do registro (Ajustes > Enviar registro, ou o "Enviar
+  // agora" do painel): modal, come o teclado enquanto aberto.
+  if (registro_envio_evento(e)) return;
+  // O MODAL DA ILHA (ilha.h) e uma camada: aberto, come o teclado todo.
+  if (ilha_evento(e)) return;
   // A CENTRAL DE AVISOS vem logo depois do painel de log: com o toast na tela
   // AZUL/CH+ abrem a lista, e com a lista aberta ela come o teclado. Fora
   // desses dois estados ela nao toca em nada (ver avisos.h).
@@ -979,6 +1803,22 @@ void app_evento(const SDL_Event *e) {
   // O CARTAO DO LEMBRETE DE PROGRAMA, em qualquer tela: com ele de pe as
   // setas laterais, o OK e o Voltar sao dele (ver guialembrete.h).
   if (glem_evento(e)) return;
+  // O CARTAO DO CELULAR (celbotao.h), aberto de qualquer campo de texto: come
+  // o teclado todo ate fechar.
+  if (celb_evento(e)) return;
+  // O GUIA DA 2.0 (novidades20.h) e tela inteira e come o teclado todo,
+  // inclusive a AZUL (pula para o resumo). "Abrir o Guia de uso" leva a
+  // Ajustes › Sobre e ajuda › Guia de uso.
+  if (novidades20_aberto()) {
+    novidades20_evento(e);
+    if (novidades20_pedido() == N20_PEDIU_GUIA) {
+      menu_fechar();
+      ajustes_abrir_no_guia(0);
+      trocarTela(TELA_AJUSTES);
+      menu_definir_destino(MENU_AJUSTES);
+    }
+    return;
+  }
 
   // PORTA DE TESTE: F10 abre o Guia de TV de onde quer que o app esteja.
   //
@@ -1002,6 +1842,10 @@ void app_evento(const SDL_Event *e) {
   if (tela == TELA_LOGIN)          { login_evento(e);     return; }
   if (tela == TELA_ESCOLHA_PERFIL) { perfilsel_evento(e); return; }
 
+  // O SPOTLIGHT ABERTO e dono de todo o teclado: e uma caixa modal por cima da
+  // tela, e o que ele escolhe so e feito depois de ele fechar.
+  if (spot_aberto()) { spot_evento(e); spotAtender(); return; }
+
   // ALTERNA O PAINEL DE SALVOS, COM REPOUSO — e o repouso e o conserto.
   //
   // A TECLA AZUL MUDOU DE DONO. Ate esta versao ela abria o painel "Sua
@@ -1023,16 +1867,18 @@ void app_evento(const SDL_Event *e) {
   // 400 ms: acima do intervalo de repeticao de qualquer controle e bem abaixo
   // de dois toques deliberados. Vale para os dois sentidos (abrir e fechar),
   // porque o defeito nao distingue: o segundo evento e que sobra.
+  //
+  // COM O RELOGIO NA TELA a mesma tecla passa pela ilha (ilha.h, pedido do
+  // dono de 01/10): com um cartao na pilula (atividade ao vivo, estreia) ela
+  // abre o MODAL — e ai o CH+ tambem, como no toast da central —; sem cartao
+  // o painel NASCE da pilula (spainel_abrir_de) em vez de entrar pela borda.
+  // Relogio desligado: o de sempre.
   if(e->type==SDL_KEYDOWN && !e->key.repeat &&
-     (e->key.keysym.sym==SDLK_s || e->key.keysym.scancode==NV_SCANCODE_BLUE) &&
-     tela==TELA_HOME && !player_aberto() && !player_mini_ativo() &&
-     !detail_aberto() && !vertudo_aberta() && !menu_aberto()) {
-    static Uint32 ultimoToque;
-    Uint32 agoraTecla = SDL_GetTicks();
-    if (agoraTecla - ultimoToque < 400) return;   // repeticao do firmware
-    ultimoToque = agoraTecla;
-    if(spainel_aberto())spainel_fechar();
-    else spainel_abrir();
+     (e->key.keysym.sym==SDLK_s || e->key.keysym.scancode==NV_SCANCODE_BLUE ||
+      ((ilha_cartao_na_tela() || ilha_atividade_expansivel()) && !spainel_aberto() &&
+       (e->key.keysym.scancode==NV_SCANCODE_CH_UP || e->key.keysym.sym==SDLK_PAGEUP))) &&
+     azulPodeAbrirSalvos(e)) {
+    alternarSalvos(1);
     return;
   }
 
@@ -1091,13 +1937,33 @@ void app_evento(const SDL_Event *e) {
     }
     return;
   }
-  if (novidades151_aberto()) {
-    novidades151_evento(e);
-    if (novidades151_pedido() == N151_PEDIU_AJUSTES) {
-      ajustes_abrir_na_fonte();
-      trocarTela(TELA_AJUSTES);
-      menu_definir_destino(MENU_AJUSTES);
+  // O DA 1.7 (no lugar do da 1.6.6, que nunca saiu): "Abrir o Spotlight" fecha
+  // o cartao e abre a busca por cima da home. Aqui, no mesmo evento, pelo
+  // mesmo motivo do da 1.4.2 acima.
+  // O DA 1.8.0, o unico cartao de primeira vez daqui em diante
+  // (novidadesfila.h). "Abrir o guia" leva a Ajustes › Sobre e ajuda › Guia
+  // de uso, com "Voltar às novidades"; "Vidro ou sólido" pousa na Interface de
+  // vidro. Aqui, no mesmo evento, pelo mesmo motivo do da 1.4.2.
+  if (novidades180_aberto()) {
+    novidades180_evento(e);
+    switch (novidades180_pedido()) {
+      case N180_PEDIU_GUIA:
+        ajustes_abrir_no_guia(1);
+        trocarTela(TELA_AJUSTES);
+        menu_definir_destino(MENU_AJUSTES);
+        break;
+      case N180_PEDIU_VIDRO:
+        ajustes_abrir_no_vidro();
+        trocarTela(TELA_AJUSTES);
+        menu_definir_destino(MENU_AJUSTES);
+        break;
+      default: break;
     }
+    return;
+  }
+  if (novidades170_aberto()) {
+    novidades170_evento(e);
+    if (novidades170_pedido() == N170_PEDIU_SPOT && spotPode()) spotAbrir(0);
     return;
   }
   if (novidades1312_aberto()) { novidades1312_evento(e); return; }
@@ -1112,9 +1978,13 @@ void app_evento(const SDL_Event *e) {
   // painel da tecla AZUL — as tres portas que a abrem. Abaixo do cartao de
   // aviso, que e uma pergunta sobre outra recomendacao.
   if (recenviar_aberto()) { recenviar_evento(e); return; }
+  // ENCONTRAR PESSOAS (busca, perfil, pedidos): mesma altura da modal de
+  // recomendar — abre da aba Social e de Ajustes, e devolve o foco a quem abriu.
+  if (pessoas_aberto()) { pessoas_evento(e); return; }
 
   // A folha de fontes fica acima de tudo: ela e uma pergunta, e enquanto ela
   // esta em pe nada mais deve responder ao D-pad.
+  if (faixas_pilula_tecla(e)) return;
   if (faixas_aberta()) { faixas_evento(e); return; }
   if (episodios_aberto()) { episodios_evento(e); return; }
   if (stream_folha_aberta()) { stream_folha_evento(e); return; }
@@ -1165,8 +2035,33 @@ void app_evento(const SDL_Event *e) {
   // por essa tecla, a home volta JA com a barra aberta em vez de exigir um
   // segundo ESQUERDA. `saiuPorEsquerda` e o que o bloco de sair le.
   if (e->type == SDL_KEYDOWN) saiuPorEsquerda = (e->key.keysym.sym == SDLK_LEFT);
+  if (spotAtalho(e) && spotPode()) { spotAbrir(e->key.keysym.sym == SPOT_TECLA_VOZ); return; }
   if (player_aberto()) { player_evento(e); return; }
-  if (detail_aberto()) { detail_evento(e); return; }
+  // A BARRA LATERAL POR CIMA DA PAGINA DO TITULO (dono, 03/10: "pode abrir por
+  // cima"): ESQUERDA no comeco de uma fileira pede a barra e a pagina fica
+  // viva embaixo. Aberta, a tecla e dela; recolhendo, ja volta para a pagina.
+  // O PAINEL DE SALVOS/AVISOS POR CIMA DA PAGINA DO TITULO: aberto, a tecla e
+  // dele; Voltar fecha e o foco da pagina fica onde estava (ela nao ve nada).
+  if (detail_aberto() && spainel_aberto()) {
+    if (ctx_aberto()) ctx_evento(e); else spainel_evento(e);
+    return;
+  }
+  if (detail_aberto() && menu_aberto()) { menu_evento(e); return; }
+  if (detail_aberto()) {
+    detail_evento(e);
+    // CIMA no alto da pagina (controle sem tecla colorida): o mesmo painel.
+    if (detail_aberto() && detail_pediu_social() && azulPodeAbrirSalvos(e)) alternarSalvos(0);
+    // No MESMO evento, como a home: diferido um quadro, as teclas seguintes
+    // do controle ainda cairiam na pagina.
+    if (detail_aberto() && detail_pediu_menu() && sidebar_permitida()) {
+      menu_abrir_sobre(1);
+      saiuPorEsquerda = 0;
+    }
+    { char im[24];
+      if (detail_aberto() && detail_pediu_amigos(im, sizeof im)) abrirSocialNoTitulo(im); }
+    if (detail_aberto() && detail_pediu_explorar()) abrirExplorarNoTitulo();
+    return;
+  }
   // O MENU DO CARTAZ ABERTO PELO PAINEL (segurar OK numa linha de Salvos)
   // fica por cima dele: com os dois no ar, a tecla e do menu.
   if (spainel_aberto()) {
@@ -1178,7 +2073,16 @@ void app_evento(const SDL_Event *e) {
   // cobre ela. Por isso vem depois do detalhe e antes do roteamento por tela.
   // O menu do cartaz fica ACIMA de tudo que a home mostra: ele e modal.
   if (ctx_aberto())     { ctx_evento(e);     return; }
-  if (vertudo_aberta()) { vertudo_evento(e); return; }
+  if (vertudo_aberta()) {
+    vertudo_evento(e);
+    // ESQUERDA na coluna 0 de "Ver tudo"/colecao: a barra por cima dela.
+    // Por cima: DIREITA/Voltar voltam para a lista, um destino a fecha.
+    if (vertudo_aberta() && vertudo_pediu_menu() && sidebar_permitida()) {
+      menu_abrir_sobre(0);
+      saiuPorEsquerda = 0;
+    }
+    return;
+  }
 
   switch (tela) {
     case TELA_EXPLORAR:   explorar_evento(e);   break;
@@ -1187,10 +2091,12 @@ void app_evento(const SDL_Event *e) {
     case TELA_BIBLIOTECA: biblioteca_evento(e); break;
     case TELA_AGENDA:     agendaui_evento(e);   break;
     case TELA_PERFIL:     perfil_evento(e);     break;
-    case TELA_SOCIAL:     social_evento(e);     break;
+    case TELA_SOCIAL:     amigoperfil_evento(e); break;
     case TELA_ADDONS:     addonsui_evento(e);   break;
+    case TELA_PLUGINS:    pluginsui_evento(e);  break;
     case TELA_AJUSTES:    ajustes_evento(e);    break;
     case TELA_DIAGNOSTICO: diagnostico_evento(e); break;
+    case TELA_LIVETV_DIAG: livetvdiag_evento(e); break;
     default:              home_evento(e);       break;
   }
 
@@ -1233,7 +2139,10 @@ static void marcarAssistidoSeSolicitado(void) {
   // funcao devolvia antes de gravar — o espelho local nunca mudava, so o Trakt.
   // Sem duracao conhecida do item, usa-se uma hora inteira como sentinela: o
   // que importa e a porcentagem (100% ou 0%), e e isso que sync e fileira leem.
-  { int visto = (c->progresso >= 90);
+  // O ESTADO DE PARTIDA e o mesmo que o olho desenha (cat_visto, #212). Era
+  // `progresso >= 90`: filme visto no Trakt mas sem progresso local mostrava o
+  // olho aberto e o toque "marcava" de novo em vez de desmarcar.
+  { int visto = cat_visto(c);
     const double dur = 3600.0;
     cat_salvar_progresso(i, visto ? 0.0 : dur, dur);
     if (c->imdb[0]) {
@@ -1245,7 +2154,11 @@ static void marcarAssistidoSeSolicitado(void) {
       // — nunca era escrito. Com Trakt quem escreve o historico e o 2xx dele.
       visto_titulo(c->imdb, c->tipo, c->temporadas, c->nTemporadas, !visto,
                    visto_destinos());
-      if (!trakt_ativo()) cat_historico_definir_id(c->imdb, c->tipo, !visto);
+      // NA HORA, com ou sem Trakt (#212): o olho e o selo leem o historico, e
+      // esperar o 2xx deixava o olho no estado velho por um ou dois segundos
+      // — ou para sempre, se o historico conhecido dizia o contrario do
+      // progresso. O 2xx do Trakt (trakt.c) reescreve o mesmo valor.
+      cat_historico_definir_id(c->imdb, c->tipo, !visto);
     }
     printf("[app] assistido %s: %s\n", visto ? "desmarcado" : "marcado",
            c->titulo); fflush(stdout); }
@@ -1253,7 +2166,7 @@ static void marcarAssistidoSeSolicitado(void) {
 
 static void trocaDeTituloSeSolicitada(void) {
   int alvo = detail_pediu_abrir();
-  if (alvo >= 0) { abrirPorIndice(alvo); return; }
+  if (alvo >= 0) { detail_volta_notar(alvo); abrirPorIndice(alvo); return; }
   // Titulo que veio de FORA do catalogo: a descoberta buscou o meta num fio e
   // avisa aqui quando ele entrou. Abrir no fio da rede seria mexer na tela de
   // outro fio; este e o unico lugar que abre titulo.
@@ -1262,14 +2175,38 @@ static void trocaDeTituloSeSolicitada(void) {
     // detalhe abria por baixo do video e ninguem via — "clico e nao faz nada".
     // O caminho do titulo que JA esta no catalogo (posplay_pediu_titulo)
     // encerra o player antes; este faz o mesmo.
-    if (novo >= 0) { if (player_aberto()) player_encerrar(); abrirPorIndice(novo); } }
+    if (novo >= 0) {
+      if (player_aberto() || player_retido()) player_encerrar();
+      detail_volta_notar(novo);
+      abrirPorIndice(novo);
+      if (spotPessoaDepois.tmdb > 0) {
+        if (SDL_GetTicks() - spotPessoaDesde < SPOT_PESSOA_PRAZO_MS)
+          detail_mostrar_pessoa(spotPessoaDepois.tmdb, spotPessoaDepois.nome, spotPessoaDepois.arte);
+        spotPessoaDepois.tmdb = 0;
+      }
+    } }
 }
 
 void app_atualizar(float dt, Uint32 agora) {
+  if (player_aberto() || player_mini_ativo()) diagnostico_cancelar_vazao();
+  // Login e escolha de perfil retornam cedo; a atividade da conta anterior
+  // precisa sair antes deles, junto de qualquer modal/pedido ja enfileirado.
+  ilhacart_validar_identidade();
   // Animacoes reduzidas valem para TODA mola e rampa do app (anim.h), nao so
   // para as telas que lembravam de perguntar. Uma leitura por quadro.
   anim_politica_reduzida = ajustes_animacoes_reduzidas();
+  // OK na vitrine da tela de descanso (descanso.h): abre o titulo, so com a
+  // Home na frente. Em outra tela o OK so acordou.
+  { int k = descanso_pedido_abrir();
+    if (k >= 0 && app_na_home()) abrirPorIndice(k); }
+  vigiarMotorP2p();
   diagnostico_intro_atualizar(dt, agora);
+  // Spotlight: a mola de entrada/saida e o ditado correm em qualquer tela; o
+  // OK segurado em "Buscar" (menu.c) abre por aqui, no quadro em que cruza.
+  spot_atualizar(dt, agora);
+  celb_atualizar(dt);
+  if (menu_pediu_spotlight() && spotPode()) spotAbrir(0);
+  if (spot_aberto() && !spotPode()) spot_fechar();
   cancelarFonteSeSaiu();
   processarFonteJob();
   // A QUALIDADE DA IMAGEM CHEGA AOS DOIS MODULOS QUE A CONSOMEM, e so quando
@@ -1283,9 +2220,16 @@ void app_atualizar(float dt, Uint32 agora) {
       tex_qualidade(q);
       artehero_qualidade(q);
     } }
+  // ARTE DO ADDON (Ajustes > Layout > Arte do addon): o mesmo roteamento, pelo
+  // mesmo motivo — artehero, posterprov e colecoes nao incluem ajustes.h. O
+  // logo e lido direto por descoberta.c, que ja depende dos Ajustes.
+  artehero_fundo_addon(ajustes_fundo_addon());
+  posterprov_preferir_addon(ajustes_poster_addon());
+  col_arte_conta(ajustes_col_arte_conta());
   // O backend precisa progredir mesmo no login, perfis e transicoes que
   // retornam cedo: seek pendente no Tizen e prazo de recuo DV no webOS.
   video_bombear();
+  player_validar_retido(agora);
   if (tela == TELA_LOGIN) {
     login_atualizar(dt, agora);
     // A troca so acontece AQUI, quando a sessao existe de verdade — nao no
@@ -1321,6 +2265,11 @@ void app_atualizar(float dt, Uint32 agora) {
   // onde o vinculo e feito, "Aguardando a autorizacao" nunca saia do lugar
   // mesmo com a pessoa ja tendo autorizado no celular.
   traktauth_passo((unsigned)agora);
+  discord_passo((unsigned)agora);
+  // PERSONAL SERVERS (servidores.h: Jellyfin, Emby, Plex): the modules fetches on its own workers; the
+  // Home is rebuilt when its row snapshot changes or the option flips. One
+  // integer compare per frame, no network here.
+  if (servidores_passo()) desc_repetir_silencioso();
   simklauth_passo((unsigned)agora);
 
   if (tela == TELA_ESCOLHA_PERFIL) {
@@ -1352,7 +2301,29 @@ void app_atualizar(float dt, Uint32 agora) {
       }
       return;
     }
+    if (perfilsel_concluido() && perfilsel_preparando()) {
+      // A HOME DO PERFIL NOVO SE MONTA AQUI ATRAS, e so aparece pronta. Antes a
+      // home abria no instante da escolha e se reconstruia duas ou tres vezes
+      // na frente da pessoa: a do perfil anterior, depois a dos addons novos,
+      // depois a do Continuar e das colecoes do perfil. Pronta = o ciclo de
+      // sync DESTE perfil aplicado e nenhuma montagem no ar (catalogos ou
+      // Continuar). O teto existe para uma rede lenta nunca prender a pessoa
+      // na tela de escolha: passado ele, a home abre como estiver e termina de
+      // se montar ali, como antes.
+      if ((sync_perfil_pronto() && !desc_montando()) ||
+          agora - trocaPerfilDesde >= TROCA_PERFIL_TETO_MS) {
+        printf("[perfis] home do perfil %d %s em %u ms\n", perfis_ativo(),
+               (sync_perfil_pronto() && !desc_montando()) ? "pronta" : "aberta pelo teto",
+               (unsigned)(agora - trocaPerfilDesde));
+        fflush(stdout);
+        perfilsel_preparar(0, agora);
+        home_ir_topo();
+        tela = TELA_HOME;
+      }
+      return;
+    }
     if (perfilsel_concluido()) {
+      int trocou = perfis_ativo() != perfilAntes;
       // O perfil mudou o destino do sync: rodar de novo traz os addons e o
       // progresso DESTE perfil, e nao os do perfil anterior que o primeiro
       // ciclo pegou. So quando MUDOU: confirmar o mesmo perfil e o caso comum
@@ -1374,9 +2345,17 @@ void app_atualizar(float dt, Uint32 agora) {
       // O que continua condicionado a troca e so o CARO: invalidarPerfil()
       // joga fora o que ja foi carregado, e reaplicar ajustes so faz sentido
       // quando o destino mudou.
-      if (perfis_ativo() != perfilAntes) {
+      if (trocou) {
         invalidarPerfil();
-        sync_reaplicar_ajustes();
+        // Os ajustes DESTE perfil nesta TV (ou os do principal, na primeira
+        // visita), e o blob da conta dele por cima. Ver sync_trocar_perfil.
+        sync_trocar_perfil(perfilAntes);
+        ilhasinais_perfil_trocado();   // "Agora no perfil Lia" na ilha (02/10)
+        enquete_perfil_trocado();      // a enquete do perfil anterior sai (N3)
+        // AS COLECOES DO PERFIL ANTERIOR SAEM JA. col_definir_json so roda
+        // quando a conta manda linhas, entao um perfil sem colecoes ficava
+        // com as do anterior para sempre.
+        col_esquecer_perfil();
         // E A FILEIRA DE CONTINUAR, que invalidarPerfil() nao alcanca.
         //
         // invalidarPerfil() so zera a tela de Perfil/Stats. Quem refaz o
@@ -1413,14 +2392,46 @@ void app_atualizar(float dt, Uint32 agora) {
         if (sk) simkl_esquecer();
         if (tk || sk) desc_repetir(); }
       sync_iniciar();
+      if (trocou) {
+        // Fica nesta tela, com o indicador no cartao, ate a home estar pronta
+        // (bloco acima). Confirmar o mesmo perfil nao espera nada: a home ja e
+        // a dele.
+        perfilAntes = perfis_ativo();
+        trocaPerfilDesde = agora;
+        perfilsel_preparar(1, agora);
+        return;
+      }
       tela = TELA_HOME;
     }
     return;
   }
 
+  // O fundo das listras (login e escolha de perfil) sai da memoria quando a
+  // pessoa passa das duas telas. Sem textura carregada, e um teste e nada mais.
+  login_soltar();
+
   // Um ciclo por vez, e so quando a conta existe. O passo e barato: sem fio
   // terminado ele nao faz nada.
   sync_passo((unsigned)agora);
+  // SERVIDOR DA CONTA FORA DO AR (#215): um aviso discreto na ilha, uma vez
+  // por queda, e retirado quando ele volta. Sem isto a pessoa via a home sem
+  // addons (ou com os de ontem) e concluia que o app quebrou — e saia da conta
+  // para "consertar", que e a unica coisa que piora o caso.
+  { static int avisado;
+    int fora = sync_addons_fora();
+    if (fora && !avisado) {
+      ilha_avisar("conta-fora", ILHA_INFO, NULL,
+                  fora == 1
+                    ? i18n("Servidor da conta Nuvio fora do ar — usando seus addons salvos")
+                    : i18n("Servidor da conta Nuvio fora do ar — seus addons voltam quando ele responder"),
+                  9000u, 0);
+      avisado = 1;
+    } else if (!fora && avisado) {
+      // A CONTA VOLTOU (02/10, mockup): antes so retirava o aviso. Agora diz,
+      // com a MESMA chave — se o "fora" ainda estiver na pilula, troca no lugar.
+      ilha_avisar("conta-fora", ILHA_OK, "aj_cloud", i18n("A conta voltou. Addons atualizados."), 4000u, 0);
+      avisado = 0;
+    } }
 
   // A REDE DESCOBRIU PERFIS QUE O CACHE NAO TINHA: perguntar mesmo assim.
   //
@@ -1432,6 +2443,7 @@ void app_atualizar(float dt, Uint32 agora) {
   // sempre nessa primeira sessao.
   if (tela == TELA_HOME && !player_aberto() && !detail_aberto() &&
       perfis_precisa_escolher()) {
+    player_descartar_retido();
     tela = TELA_ESCOLHA_PERFIL;
     perfilAntes = perfis_ativo();
     perfilsel_iniciar();
@@ -1447,7 +2459,16 @@ void app_atualizar(float dt, Uint32 agora) {
   //
   // Chamar em todo quadro nao custa: a decisao acontece uma vez e o modulo a
   // guarda — a leitura do arquivo de bandeira nao se repete.
-  if (tela == TELA_HOME && homePronta && !player_aberto() && !detail_aberto() && !novidades151_aberto()) {
+  // A 1.8.0 PRIMEIRO, e antes da fila antiga: novidades180_primeira_vez
+  // prepara a fila (grava as marcas antigas, novidadesfila.h) e abre o cartao;
+  // os *_primeira_vez() de baixo ja encontram tudo visto.
+  // DA 2.0 EM DIANTE o guia novo e o unico "primeira vez" (novidades20.h):
+  // ele prepara a fila antiga, grava a marca da 1.8.0 e abre uma vez, para
+  // quem atualiza e para quem instala do zero. novidades180_primeira_vez nao
+  // e mais chamada: o cartao da 1.8.0 so vive como cena do Guia de uso.
+  if (tela == TELA_HOME && homePronta && !player_aberto() && !detail_aberto())
+    novidades20_primeira_vez();
+  if (tela == TELA_HOME && homePronta && !player_aberto() && !detail_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto()) {
     // Esta e a primeira explicacao da versao: aparece antes dos demais
     // cartoes de onboarding. Depois de OK, o bloco abaixo continua a fila
     // antiga no quadro seguinte.
@@ -1521,32 +2542,36 @@ void app_atualizar(float dt, Uint32 agora) {
         !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
         !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
         !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() &&
-        !novidades148_aberto() && !novidades151_aberto() && !pipintro_aberto())
+        !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !pipintro_aberto())
       novidades148_primeira_vez();
-    // Fontes e ajuda visual: uma apresentação por aparelho, depois da cor viva.
+    // A 1.7 no lugar da 1.6.0 (a 1.6.6 nunca saiu; como a 1.6.0 tomou o da
+    // 1.5.2): uma apresentacao por aparelho, depois da cor viva. Quem nao viu
+    // a da 1.6.0 nao a recebe mais; a desta versao cobre.
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
         !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
         !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
         !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() &&
-        !novidades148_aberto() && !novidades151_aberto() && !pipintro_aberto())
-      novidades151_primeira_vez();
+        !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !pipintro_aberto())
+      novidades170_primeira_vez();
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
         !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
         !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
-        !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() &&
+        !novidades134_aberto() && !novidades139_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() &&
         !novidades1312_aberto() && !pipintro_aberto())
       novidades1312_primeira_vez();
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
         !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() &&
         !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() &&
-        !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto())
+        !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !telemetria_aberto() && !pipintro_aberto())
       telemetria_primeira_vez();
     // AVISO DE VERSAO NOVA: a consulta ao GitHub so parte quando a home esta
     // de pe (nao disputa a rede com o catalogo), e o cartao so abre quando
-    // nenhum outro cartao de primeira vez esta aberto.
-    atualizacao_verificar();
+    // nenhum outro cartao de primeira vez esta aberto. Chamada a cada quadro:
+    // a agenda (atualizacao_agenda_vence) decide se ja e hora de reconsultar
+    // (~6 h), e nunca com o mini player tocando.
+    if (!player_mini_ativo()) atualizacao_verificar();
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !pipintro_aberto())
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !pipintro_aberto())
       atualizacao_mostrar_se_houver();
     // RECOMENDACAO DE UM AMIGO: a sondagem parte daqui pelo mesmo motivo que a
     // do GitHub — com a home de pe ela nao disputa a rede com o catalogo. Sem
@@ -1557,7 +2582,7 @@ void app_atualizar(float dt, Uint32 agora) {
     recomenda_verificar();
 #endif
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta())
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta())
       recomenda_mostrar_se_houver();
     // EXPLICADOR DAS TELAS SOCIAIS: mesmas guardas de todos os outros, mais
     // a do cartao de recomendacao recebida — dois cartoes ao mesmo tempo
@@ -1565,7 +2590,7 @@ void app_atualizar(float dt, Uint32 agora) {
     // NUVIO_REC_URL (recomenda_ativo), e por isso nao ha guarda aqui: um
     // anuncio de recurso que nao esta no pacote e pior que silencio.
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
         !recomenda_aberta())
       recintro_primeira_vez();
     // LEMBRETE VENCIDO: o unico aviso que esta TV consegue dar. Ultimo da fila
@@ -1573,13 +2598,13 @@ void app_atualizar(float dt, Uint32 agora) {
     // cima do outro —, e sem consulta de rede nenhuma: o que ele mostra ja
     // esta em disco desde que o dono apertou "Lembrar-me".
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
         !recomenda_aberta() && !recintro_aberto())
       agendaviso_mostrar_se_houver();
     // O CARTAO DO CRASH, depois do lembrete e pelas mesmas regras: um cartao
     // por vez, com a home de pe.
     if (!registro_aberto() && !sintro_aberto() && !novidades_aberto() &&
-        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
+        !novidades11_aberto() && !novidades12_aberto() && !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() && !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !telemetria_aberto() && !pipintro_aberto() && !atualizacao_aberta() &&
         !recomenda_aberta() && !recintro_aberto() && !agendaviso_aberto())
       avisos_mostrar_se_houver();
     }
@@ -1617,7 +2642,17 @@ void app_atualizar(float dt, Uint32 agora) {
   salvos_reconciliar();
 
   // Durante a verificacao nao substituir a lista que os workers consultam.
+  // ACRESCENTAR pode (#221): os indices de quem ja estava nao mudam.
+  addons_drenar();
   if (aguardandoFonte != 2) addons_estado();
+  // A marca "Sua escolha anterior" na folha que abriu antes de o addon da
+  // lembrada responder: confere de novo quando a lista cresce.
+  if (stream_folha_aberta() && stream_preferida() < 0 && stream_n() != prefFolhaN) {
+    char base[24];
+    prefFolhaN = stream_n();
+    idBaseDoTitulo(base, sizeof base);
+    if (base[0] && fontepref_tem(base)) stream_preferir(fontepref_escolher(base));
+  } else if (!stream_folha_aberta()) prefFolhaN = -1;
   trocaDeTituloSeSolicitada();
   marcarAssistidoSeSolicitado();
   if (atomic_load_explicit(&perfilCarga, memory_order_acquire) == 2) {
@@ -1641,11 +2676,84 @@ void app_atualizar(float dt, Uint32 agora) {
   { int c = avisos_pediu();
     if (c == AVISOS_ABRIR_SALVOS && !spainel_aberto()) spainel_abrir();
     else if (c == AVISOS_ABRIR_ATUALIZACAO) atualizacao_abrir(); }
+  // A ILHA: cartoes (ilhacart.c) e o que o modal pediu.
+  { const CatItem *ab = detail_aberto() ? cat_item(detail_indice()) : NULL;
+    IlhaCartao ic;
+    int qual = 0, o;
+    ilhacart_atualizar(agora, ab && ab->imdb[0] ? ab->imdb : NULL);
+    ilhasinais_passo(agora);
+    // O "Reconectar" do Trakt (modal da ilha): Ajustes, na linha do Trakt.
+    if (ilhasinais_pediu_trakt() && !player_aberto()) {
+      if (detail_aberto()) detail_fechar_seco();
+      ajustes_abrir_no_trakt();
+      trocarTela(TELA_AJUSTES); menu_definir_destino(MENU_AJUSTES);
+    }
+    o = ilha_pediu(&ic, &qual);
+    if (o && qual == ILHA_VIVO && !ilhacart_vivo_vale(&ic)) o = ILHA_PEDIU_NADA;
+    if (o == ILHA_PEDIU_SALVOS) {
+      // O PAINEL NASCE DO MODAL: o retangulo de agora e o do modal, que some
+      // seco no mesmo quadro — o painel toma a forma dele e cresce.
+      float ix, iy, iw, ih;
+      if (!spainel_aberto()) {
+        if (ilha_rect(&ix, &iy, &iw, &ih)) spainel_abrir_de(ix, iy, iw, ih);
+        else spainel_abrir();
+      }
+      ilha_modal_fechar(1);
+    } else if ((o == ILHA_PEDIU_TOCAR || o == ILHA_PEDIU_DETALHES) && !player_aberto()) {
+      int idx = cat_indice_por_imdb(ic.imdb);
+      if (qual == ILHA_ESTREIA) avisos_marcar_visto(ic.avisoId);
+      if (o == ILHA_PEDIU_TOCAR && qual == ILHA_VIVO &&
+          player_retomar_retido(ic.imdb, ic.serie ? ic.t : 0, ic.serie ? ic.e : 0)) {
+        if (detail_aberto()) detail_fechar_seco();
+        if (menu_aberto()) menu_fechar();
+        ilha_modal_fechar(1);
+      } else if (idx >= 0) {
+        // O mesmo caminho do OK no card de "Continuar assistindo" com "OK no
+        // card" = Retomar: a pagina abre e a reproducao e pedida junto, no
+        // episodio que o cartao mostrava (cwTocarT/E, issue #93).
+        cwTocarT = cwTocarE = 0; cwEspera = 0;
+        if (o == ILHA_PEDIU_TOCAR && ic.serie && ic.t > 0 && ic.e > 0) { cwTocarT = ic.t; cwTocarE = ic.e; }
+        abrirPorIndice(idx);
+        if (o == ILHA_PEDIU_TOCAR) detail_pedir_reproduzir();
+      } else desc_pedir_titulo(ic.imdb);
+    } else if (o == ILHA_PEDIU_DISPENSAR) {
+      if (qual == ILHA_VIVO) player_descartar_retido();
+      ilhacart_dispensar(qual);
+    }
+  }
+  // Da pagina do titulo, um titulo escolhido no painel de Salvos/avisos TROCA a
+  // pagina (a de baixo fecha seca). So esse pedido: os demais seguem de fora.
+  if (detail_aberto() && !player_aberto()) {
+    const char *alvo = spainel_pediu_abrir();
+    if (alvo && alvo[0]) {
+      int k = cat_indice_por_imdb(alvo);
+      detail_fechar_seco();
+      if (k >= 0) abrirPorIndice(k); else desc_pedir_titulo(alvo);
+    }
+  }
   if (!detail_aberto() && !player_aberto()) {
     const char *alvo = spainel_pediu_abrir();
     if (!alvo) alvo = recomenda_pediu_abrir();   // mesmo contrato, outra origem
     if (!alvo) alvo = avisos_pediu_abrir();
+    { static char afImdb[24];
+      if (!alvo && amigosfil_pediu_titulo(afImdb, sizeof afImdb)) alvo = afImdb; }
     if (!alvo && tela == TELA_AGENDA) alvo = agendaui_pediu_abrir();
+    // "ASSISTIR T<n>E<n>" DO MODAL DA AGENDA: abre o titulo e pede a
+    // reproducao do episodio no mesmo passe — o caminho do cartao de Continuar
+    // assistindo (issue #93): cwTocarT/E valem sobre o episodio que o detalhe
+    // adivinharia. Titulo fora do catalogo so abre (a descoberta o busca num
+    // fio e o episodio ja nao tem para onde ir); tocar la e um OK a mais.
+    if (!alvo && tela == TELA_AGENDA) {
+      int tt = 0, te = 0;
+      const char *tc = agendaui_pediu_tocar(&tt, &te);
+      if (tc && tc[0]) {
+        int k = cat_indice_por_imdb(tc);
+        if (k >= 0) {
+          abrirPorIndice(k);
+          if (detail_aberto()) { cwTocarT = tt; cwTocarE = te; detail_pedir_reproduzir(); }
+        } else desc_pedir_titulo(tc);
+      }
+    }
     if (!alvo && abrirTeste[0]) { alvo = abrirTeste; abrirTeste[0] = 0; }
     if (alvo && alvo[0]) {
       int k = cat_indice_por_imdb(alvo);
@@ -1653,12 +2761,18 @@ void app_atualizar(float dt, Uint32 agora) {
     }
   }
 
-  if (tela==TELA_HOME) {
-    CatItem pessoa;
-    if(home_pediu_pessoa_social(&pessoa)) {
-      social_abrir(&pessoa);trocarTela(TELA_SOCIAL);
+  // O PERFIL DO AMIGO (amigoperfil.c): OK num rosto da fileira de amigos ou
+  // na linha do amigo no painel. Substitui a ficha do Trakt de social.c.
+  { char pid[96];
+    if ((tela == TELA_HOME && amigosfil_pediu_perfil(pid, sizeof pid)) ||
+        spainel_pediu_perfil(pid, sizeof pid)) {
+      if (spainel_aberto()) spainel_fechar();
+      amigoperfil_abrir(pid); trocarTela(TELA_SOCIAL);
     }
-  }
+    if (tela == TELA_PERFIL && perfil_pediu_amigo(pid, sizeof pid)) {
+      amigoperfil_abrir(pid); trocarTela(TELA_SOCIAL);
+      socialDoPerfil = 1;
+    } }
   if (tela==TELA_HOME && home_pediu_social()) {
     trocarTela(TELA_AJUSTES);menu_definir_destino(MENU_AJUSTES);
   }
@@ -1680,9 +2794,44 @@ void app_atualizar(float dt, Uint32 agora) {
   } else if (tela == TELA_ADDONS && addonsui_quer_sair()) {
     trocarTela(TELA_AJUSTES); menu_definir_destino(MENU_AJUSTES);
   }
+  if (tela == TELA_AJUSTES) {
+    int buscaAjustes = ajustes_pediu_busca();
+    if (buscaAjustes == 2) spot_reabrir_ajustes();
+    else if (buscaAjustes == 1) spot_abrir_ajustes(0);
+  }
+  // "Voltar às novidades" no Guia de uso aberto pelo cartao da 1.8.0: a home
+  // e o cartao de novo, com o foco no guia.
+  // Ajustes › Sobre e ajuda › Novidades 2.0: o guia por cima de Ajustes, do
+  // comeco; ao fechar, Ajustes continua onde estava.
+  if (tela == TELA_AJUSTES && ajustes_pediu_novidades20()) novidades20_abrir(0);
+  if (tela == TELA_AJUSTES && ajustes_pediu_novidades()) {
+    trocarTela(TELA_HOME);
+    menu_definir_destino(MENU_INICIO);
+    novidades180_reabrir();
+  }
+  // Os atalhos de tela do Guia de uso ("Abrir o Guia de TV" e cia.): a tela e
+  // o item do menu, como se a pessoa tivesse ido pelo menu.
+  if (tela == TELA_AJUSTES) {
+    switch (ajustes_pediu_tela()) {
+      case AJ_TELA_GUIA_TV:    trocarTela(TELA_GUIA);       menu_definir_destino(MENU_GUIA);       break;
+      case AJ_TELA_BIBLIOTECA: trocarTela(TELA_BIBLIOTECA); menu_definir_destino(MENU_BIBLIOTECA); break;
+      case AJ_TELA_AGENDA:     trocarTela(TELA_AGENDA);     menu_definir_destino(MENU_AGENDA);     break;
+      case AJ_TELA_EXPLORAR:   trocarTela(TELA_EXPLORAR);   menu_definir_destino(MENU_EXPLORAR);   break;
+      case AJ_TELA_PERFIL:     trocarTela(TELA_PERFIL);     menu_definir_destino(MENU_PERFIL);     break;
+      default: break;
+    }
+  }
   if (tela == TELA_AJUSTES && ajustes_pediu_addons()) {
     addonsui_abrir();
     trocarTela(TELA_ADDONS);
+  }
+  // Plugins (F09): o mesmo caminho da lista de addons (abre de Ajustes, volta a ela).
+  if (tela == TELA_PLUGINS && pluginsui_quer_sair()) {
+    trocarTela(TELA_AJUSTES); menu_definir_destino(MENU_AJUSTES);
+  }
+  if (tela == TELA_AJUSTES && ajustes_pediu_plugins()) {
+    pluginsui_abrir();
+    trocarTela(TELA_PLUGINS);
   }
   if (tela == TELA_AJUSTES && ajustes_pediu_diagnostico()) {
     diagDaHome = 0;
@@ -1692,6 +2841,20 @@ void app_atualizar(float dt, Uint32 agora) {
   // diagnostico): a mesma tela, ja no teste, sem apresentacao nem objetivo. O
   // pedido vai ANTES da troca porque e diagnostico_iniciar quem o le. O Voltar
   // do resultado sai da tela, e diagDaHome = 0 devolve a Ajustes.
+  // DIAGNOSTICO DA LIVE TV: de Ajustes (Conteudo > Live TV) ou do VERDE no
+  // guia. O Voltar devolve a quem abriu.
+  if (tela == TELA_AJUSTES && ajustes_pediu_livetv_diag()) {
+    ltdDoGuia = 0;
+    trocarTela(TELA_LIVETV_DIAG);
+  }
+  if (tela == TELA_GUIA && guia_pediu_livetv_diag()) {
+    ltdDoGuia = 1;
+    trocarTela(TELA_LIVETV_DIAG);
+  }
+  if (tela == TELA_LIVETV_DIAG && livetvdiag_quer_sair()) {
+    trocarTela(ltdDoGuia ? TELA_GUIA : TELA_AJUSTES);
+    menu_definir_destino(ltdDoGuia ? MENU_GUIA : MENU_AJUSTES);
+  }
   if (tela == TELA_AJUSTES && ajustes_pediu_velocidade()) {
     diagDaHome = 0;
     diagnostico_abrir_velocidade();
@@ -1720,7 +2883,7 @@ void app_atualizar(float dt, Uint32 agora) {
               || (tela == TELA_BIBLIOTECA && biblioteca_quer_sair())
               || (tela == TELA_AGENDA     && agendaui_quer_sair())
               || (tela == TELA_PERFIL      && perfil_quer_sair())
-              || (tela == TELA_SOCIAL      && social_quer_sair())
+              || (tela == TELA_SOCIAL      && amigoperfil_quer_sair())
               || (tela == TELA_AJUSTES    && ajustes_quer_sair())
               || (tela == TELA_DIAGNOSTICO && diagnostico_quer_sair());
     if (fechar) {
@@ -1729,6 +2892,10 @@ void app_atualizar(float dt, Uint32 agora) {
       // só para alcançar a navegação principal.
       if (saiuPorEsquerda && sidebar_permitida()) {
         menu_abrir();
+      } else if (tela == TELA_SOCIAL && socialDoPerfil) {
+        trocarTela(TELA_PERFIL);
+        menu_definir_destino(MENU_PERFIL);
+        perfil_voltar_ao_duelo();
       } else {
         trocarTela(TELA_HOME);
         menu_definir_destino(MENU_INICIO);
@@ -1742,7 +2909,18 @@ void app_atualizar(float dt, Uint32 agora) {
   // Trocar de usuario, pedido pelo rodape da barra lateral. Vem ANTES do
   // destino: as duas coisas saem do mesmo menu, e quem pediu troca nao quer
   // mudar de aba.
+  // UM DESTINO ESCOLHIDO NA BARRA ABERTA POR CIMA DA PAGINA fecha a pagina,
+  // como qualquer navegacao (mesmo o destino atual: "Inicio" com a pagina
+  // aberta sobre a home e voltar para a home). Voltar/DIREITA nao passam aqui.
+  // "Ver tudo" idem: a barra tambem abre por cima dela (coluna 0), e sem isto
+  // a lista ficaria cobrindo a tela nova.
+  if (menu_escolheu()) {
+    if (detail_aberto()) detail_fechar_seco();
+    if (vertudo_aberta()) vertudo_fechar_seco();
+  }
   if (menu_pediu_trocar()) {
+    player_descartar_retido();
+    fontevolta_esquecer("troca de usuario");
     invalidarPerfil();
     tela = TELA_ESCOLHA_PERFIL;
     perfilAntes = perfis_ativo();
@@ -1750,6 +2928,9 @@ void app_atualizar(float dt, Uint32 agora) {
     return;
   }
 
+  { int c = menu_pediu_colecao();
+    const ColFolder *pf = c >= 0 ? col_folder(c) : NULL;
+    if (pf) vertudo_colecao(pf); }
   if (menu_mudou_destino()) {
     switch (menu_destino()) {
       case MENU_GUIA:
@@ -1778,6 +2959,7 @@ void app_atualizar(float dt, Uint32 agora) {
   if (!detail_aberto() && !player_aberto()) {
     int idx = -1;
     HomeItem it;
+    SpotPedido pedPessoa;
     if (tela == TELA_HOME && home_pediu_abrir()) {
       if (home_item_focado(&it)) abrirTitulo(&it);
     } else if (tela == TELA_EXPLORAR && explorar_pediu_abrir(&idx)) {
@@ -1789,23 +2971,47 @@ void app_atualizar(float dt, Uint32 agora) {
       if (home_item_focado(&it)) {
         // O episodio a tocar e o que o CARD mostrava, nao o que o detalhe
         // adivinharia: para serie o card pode anunciar o PROXIMO episodio
-        // (continuar_desenhar troca T/E pelo prox_para_item quando o semeado
+        // (continuar_desenhar troca T/E pelo prox_seguinte quando o semeado
         // ja terminou), e episodioAlvo chegaria a outro numero — ou a nenhum,
         // porque a lista de episodios ainda nao chegou da rede.
         const CatItem *cw = cat_item(it.indice);
+        int tocar = 1;
         cwTocarT = cwTocarE = 0;
+        cwEspera = 0;
         if (cw && !strcmp(cw->tipo, "series")) {
-          ProxSugestao prox;
           cwTocarT = cw->temporada; cwTocarE = cw->episodio;
-          if (prox_para_item(cw, cat_episodio(it.indice, 0),
-                             cat_n_episodios(it.indice),
-                             (long long)time(NULL) * 1000LL, &prox)) {
-            cwTocarT = prox.temporada; cwTocarE = prox.episodio;
+          // EPISODIO TERMINADO NUNCA TOCA DE NOVO DO COMECO. O card ja anuncia
+          // o proximo quando a lista existe; sem lista (a copia do card nao
+          // tem), a pagina abre e o toque espera a lista (cwEsperarProximo).
+          // Sem proximo — fim da serie, ou o seguinte ainda nao foi ao ar —,
+          // so a pagina abre.
+          if (cw->progresso >= ajustes_cw_concluido() && cw->temporada > 0 &&
+              cw->episodio > 0) {
+            int k = cat_indice_titulo(cw->imdb, it.indice);
+            ProxSugestao prox;
+            tocar = 0;
+            cwTocarT = cwTocarE = 0;
+            if (k >= 0 && cat_n_episodios(k) > 0) {
+              if (prox_seguinte(cw, cat_episodio(k, 0), cat_n_episodios(k),
+                                ajustes_cw_concluido(),
+                                (long long)time(NULL) * 1000LL, &prox)) {
+                cwTocarT = prox.temporada; cwTocarE = prox.episodio;
+                tocar = 1;
+              } else
+                printf("[cw] %s terminado e sem proximo: abrindo so a pagina\n", cw->imdb);
+            } else {
+              cwEsperaItem = *cw;
+              cwEsperaDesde = SDL_GetTicks();
+              cwEspera = 1;
+              printf("[cw] %s terminado, lista a caminho: o toque espera o proximo\n", cw->imdb);
+            }
           }
         }
         abrirTitulo(&it);
-        detail_pedir_reproduzir();
+        if (tocar) detail_pedir_reproduzir();
       }
+    } else if (tela == TELA_BUSCA && busca_pediu_pessoa(&pedPessoa)) {
+      abrirPessoa(&pedPessoa);
     } else if (tela == TELA_BUSCA && busca_pediu_abrir(&idx)) {
       if (busca_item_focado(&it)) abrirTitulo(&it); else abrirPorIndice(idx);
     } else if (tela == TELA_BIBLIOTECA && biblioteca_pediu_abrir(&idx)) {
@@ -1817,10 +3023,33 @@ void app_atualizar(float dt, Uint32 agora) {
         if (idx >= 0) abrirPorIndice(idx); else desc_pedir_titulo(p.id);
       }
     } else if (tela == TELA_SOCIAL) {
-      SocialItemSelecionado s;
-      if (social_item_selecionado(&s) && s.imdb[0]) {
-        idx=cat_indice_por_imdb(s.imdb);
-        if(idx>=0)abrirPorIndice(idx); else desc_pedir_titulo(s.imdb);
+      char si[24];
+      if (amigoperfil_pediu_titulo(si, sizeof si) && si[0]) {
+        idx=cat_indice_por_imdb(si);
+        if(idx>=0)abrirPorIndice(idx); else desc_pedir_titulo(si);
+      }
+    }
+  }
+
+  // A ESPERA DO PROXIMO (cwEspera, acima). Pagina fechada, player aberto ou
+  // prazo vencido desistem: a pagina fica aberta e nada toca.
+  if (cwEspera) {
+    if (!detail_aberto() || player_aberto() ||
+        SDL_GetTicks() - cwEsperaDesde > CW_ESPERA_MS) {
+      printf("[cw] %s: lista nao chegou a tempo; fica so a pagina\n", cwEsperaItem.imdb);
+      cwEspera = 0; cwTocarT = cwTocarE = 0;
+    } else {
+      int k = cat_indice_titulo(cwEsperaItem.imdb, detail_indice());
+      if (k >= 0 && cat_n_episodios(k) > 0) {
+        ProxSugestao prox;
+        cwEspera = 0; cwTocarT = cwTocarE = 0;
+        if (prox_seguinte(&cwEsperaItem, cat_episodio(k, 0), cat_n_episodios(k),
+                          ajustes_cw_concluido(),
+                          (long long)time(NULL) * 1000LL, &prox)) {
+          cwTocarT = prox.temporada; cwTocarE = prox.episodio;
+          detail_pedir_reproduzir();
+        } else
+          printf("[cw] %s terminado e sem proximo: abrindo so a pagina\n", cwEsperaItem.imdb);
       }
     }
   }
@@ -1843,18 +3072,19 @@ void app_atualizar(float dt, Uint32 agora) {
     // titulo aberto 3 s depois do arranque consultava os 4 addons do pacote
     // ("total 0"), a lista da conta chegava aos 5 s com 12, e ninguem repetia
     // a consulta — a folha de fontes ficava vazia ate trocar de titulo.
-    { static char ultimoAlvo[32] = "";
+    { static char ultimoAlvo[64] = "";
       static unsigned ultimaVersao = 0;
       int i = detail_indice();
       const CatItem *ci = cat_item(i);
-      char alvo[32];
+      char alvo[64];
       idDoAlvo(ci, alvo, sizeof alvo);
       if (!player_aberto() && aguardandoFonte != 2 && ci && ci->imdb[0] &&
           (strcmp(alvo, ultimoAlvo) || (detail_aberto() && ultimaVersao != addons_versao()))) {
         if (!strcmp(alvo, ultimoAlvo)) printf("[addons] lista mudou: refazendo a busca de fontes de %s\n", alvo);
         snprintf(ultimoAlvo, sizeof ultimoAlvo, "%s", alvo);
         ultimaVersao = addons_versao();
-        { stream_definir_alvo(alvo); addons_buscar(alvo, ci->tipo); }
+        // A FICHA (meta) SAI ANTES DAS FONTES (R2): a pagina espera a ficha, nao
+        // a lista de streams; o pedido de fontes segue logo depois, em paralelo.
         // Episodios do titulo aberto, na temporada onde o dono parou. Sai da
         // rede na hora: guardar a lista de episodios de 40 titulos no pacote
         // envelhecia a cada temporada nova.
@@ -1864,6 +3094,7 @@ void app_atualizar(float dt, Uint32 agora) {
         // e serie, mesmo quando o catalogo ja trouxe elenco.
         if (!strcmp(ci->tipo, "series") || strcmp(ci->tipo, "movie") ||
             ci->nElenco == 0) desc_episodios(i, 0);
+        { stream_definir_alvo(alvo); addons_buscar(alvo, ci->tipo); }
         // Legendas do OpenSubtitles junto: sao dezenas por titulo e a busca
         // leva segundos. Pedir so quando o dono abre a folha de faixas faria
         // ele esperar de olho numa lista vazia.
@@ -1875,12 +3106,14 @@ void app_atualizar(float dt, Uint32 agora) {
     // player_definir_episodio.
     int doInicio = detail_pediu_do_inicio();
     if ((detail_pediu_reproduzir() || doInicio) && aguardandoFonte != 2) {
+      marco("abrir: reproduzir pedido");
       // A tela abre JA, no estado "abrindo fonte", e a escolha acontece depois.
       // Escolher antes deixaria o botao sem resposta por segundos, e escolher
       // sem verificar entregava o video de aviso do debrid — que toca normal e
       // por isso passa por sucesso.
       const CatItem *ci = cat_item(detail_indice());
       limparFonteVOD();
+      diagnostico_cancelar_vazao();
       player_abrir(detail_indice(), NULL);
       episodioDoDetalhe();
       // CW direto (issue #93): o episodio que o card anunciava vale sobre o
@@ -1899,27 +3132,10 @@ void app_atualizar(float dt, Uint32 agora) {
         char alvoLeg[64]; alvoPlayer(alvoLeg, sizeof alvoLeg);
         addons_buscar_legendas(alvoLeg, ci->tipo);
       }
-      // RENOVA POR IDADE **E POR DONO** (issue #101).
-      //
-      // O alvo tambem mudou: era idDoAlvo(), o episodio EM FOCO na pagina, e
-      // quem toca nem sempre e ele — "Retomar" e o card de Continuar assistindo
-      // abrem outro episodio (cwTocar/episodioDoDetalhe, logo acima), e a busca
-      // saia para um id diferente do que ia reproduzir. alvoPlayer le o
-      // episodio ja definitivo, depois de player_abrir.
-      //
-      // E a condicao deixou de ser so o relogio: a lista podia ter 3 s de vida
-      // e ser do episodio anterior, e ai nada a refazia. Idade cobre o link
-      // assinado que expira; o dono cobre o episodio errado. Sao duas coisas.
-      { char alvoP[64]; alvoPlayer(alvoP, sizeof alvoP);
-        if (ci && ci->imdb[0] && alvoP[0] &&
-            (stream_idade_ms() > NV_LINK_VALIDO_MS || !stream_lista_do_alvo(alvoP))) {
-          printf("fonte: lista com %ums%s, renovando (%s)\n",
-                 (unsigned)stream_idade_ms(),
-                 stream_lista_do_alvo(alvoP) ? "" : " e de outro alvo", alvoP);
-          stream_definir_alvo(alvoP);
-          addons_buscar(alvoP, ci->tipo);
-        } }
-      aguardandoFonte = 1;
+      // A busca de fontes sai SEMPRE (renovarListaDoPlayer): com a fonte
+      // guardada ela corre em segundo plano e so serve a folha e ao recuo.
+      renovarListaDoPlayer();
+      if (!tocarFonteGuardada()) aguardandoFonte = 1;
     }
     if (detail_pediu_marcar()) {
       // Alterna no Trakt E no espelho local. O estado de partida vem de
@@ -1934,11 +3150,14 @@ void app_atualizar(float dt, Uint32 agora) {
       // mesma disciplina que ctxmenu.c ja aplica (e que o teste de contrato
       // cobra la).
       int entrar = c ? !c->naLista : 0;
+      // Primeira vez: a ilha pergunta onde o + salva e grava DEPOIS (ilhasalvar.c).
+      if (c && ilhasalvar_perguntar(c, entrar)) c = NULL;
       biblioteca_alternar_lista(i);
       // LOCAL SEMPRE, e primeiro. E o unico destino que sobrevive ao
       // fechamento do app sem depender de conta nenhuma; ver salvos.h. Sem
       // isto, quem nao tem Trakt vinculado apertava "+" e nao guardava nada.
       if (c) salvos_definir(c, entrar);
+      if (c) atividade_salvo(c, entrar);   // ev=salvo para o Social (atividade.h)
       // O TRAKT SO SE A PESSOA PEDIU. A escolha vem do explicador de primeira
       // vez e continua em Ajustes › Interface e conta ("Onde o + salva"). O
       // padrao e ligado, entao para quem ja usava o app nada muda.
@@ -1952,6 +3171,7 @@ void app_atualizar(float dt, Uint32 agora) {
         else simkl_lista_tipo(c->imdb, c->tipo, entrar);
       }
       if (c) cat_definir_na_lista(i, entrar);
+      if (c) ilhasalvar_aviso(c, entrar);   // o voo da capa e o "Salvo em ..." na ilha
     }
     if (detail_pediu_fontes()) {
       // A lembrada e localizada ANTES de abrir, para a folha ja desenhar a
@@ -1959,7 +3179,7 @@ void app_atualizar(float dt, Uint32 agora) {
       char base[24];
       idBaseDoTitulo(base, sizeof base);
       stream_preferir(base[0] ? fontepref_escolher(base) : -1);
-      stream_folha_abrir();
+      nomeParaFolha(); stream_folha_abrir();
     }
   }
   // Escolher uma fonte na folha inicia a reproducao DELA. Trocar de fonte com o
@@ -1967,8 +3187,17 @@ void app_atualizar(float dt, Uint32 agora) {
   // duas ficariam presas no mesmo pipeline.
   // A busca disparada por Reproduzir terminou: agora VERIFICA as fontes, em
   // ordem, ate achar uma que leve ao arquivo — e so entao liga o video.
-  if (aguardandoFonte == 1 && addons_estado() != ADD_BUSCANDO) {
+  if (aguardandoFonte == 1 &&
+      (addons_estado() != ADD_BUSCANDO || autoParcialPronto())) {
     unsigned geracao = novaGeracaoFonte();
+    if (addons_busca_parcial()) {
+      char faltam[160];
+      int k = addons_faltam(faltam, sizeof faltam);
+      printf("[fonte] escolha com %d fontes aos %u ms; faltam %d addon(s): %s\n",
+             stream_n(), addons_busca_ms(), k, faltam);
+      marco("fonte: escolha antes do ultimo addon");
+    }
+    autoEsperaN = 0;
     aguardandoFonte = 2;
     fontePedidoGeracao = geracao;
     limparFontePendente();
@@ -2041,7 +3270,7 @@ void app_atualizar(float dt, Uint32 agora) {
       if (ajustes_fonte_manual() && stream_n() > 0 && lembrada < 0) {
         aguardandoFonte = 0;
         folhaParaTocar = 1;
-        stream_folha_abrir();
+        nomeParaFolha(); stream_folha_abrir();
       } else if (pedirFonteJob(FJOB_ADDON, geracao, NULL, 0) < 0) {
         aguardandoFonte = 0; player_erro_fonte();
       }
@@ -2058,12 +3287,28 @@ void app_atualizar(float dt, Uint32 agora) {
     // Anuncia o CONTENTOR pelo mesmo caminho: e o que dispensa a sonda de
     // Matroska num arquivo que nunca teria um cabecalho desses.
     if (s) video_definir_mp4(s->mp4 || strstr(s->url, ".mp4") != NULL);
-    marco(s ? "fonte escolhida" : "nenhuma fonte serve");
+    { int esperarMais = !s && !player_id_canal()[0] && !ajustes_fonte_primeira() &&
+                        addons_busca_parcial();
+      marco(s ? "fonte escolhida" : esperarMais ? "fonte: nenhuma das parciais serve"
+                                                : "nenhuma fonte serve"); }
     // Nenhuma fonte e um debrid recusou a CONTA (403 de plano/limite, registro
     // 1541): diz qual no log, que e onde se separa "o addon nao tinha" de "o
     // TorBox nao deixou". Ver debrid_recusa em debrid.h.
     if (!s) { char rec[64];
       if (debrid_recusa(rec, sizeof rec)) printf("[fonte] o debrid recusou (%s)\n", rec); }
+    // NENHUMA DAS QUE JA CHEGARAM SERVE, MAS A BUSCA AINDA ESTA NO AR (#221):
+    // nao e "nenhuma fonte serve" — e esperar os addons que faltam. As que
+    // falharam ja sairam da fila (stream_automatico_excluir); a proxima
+    // escolha so sai com lista maior. "Primeira da lista" segue o caminho dela
+    // abaixo (uma conferida por vez, dentro do orcamento de tentativas).
+    if (!s && !player_id_canal()[0] && !ajustes_fonte_primeira() &&
+        addons_busca_parcial() && (player_aberto() || player_mini_ativo()) &&
+        !player_quer_sair()) {
+      printf("[fonte] nenhuma das %d que chegaram serve; esperando os addons que faltam\n",
+             stream_n());
+      autoEsperaN = stream_n();
+      aguardandoFonte = 1;
+    } else {
     // PiP conta como sessao viva: o zap dentro da miniatura depende desta
     // fonte chegar — com a guarda antiga ela seria descartada.
     if ((player_aberto() || player_mini_ativo()) && !player_quer_sair()) {
@@ -2073,11 +3318,13 @@ void app_atualizar(float dt, Uint32 agora) {
         // Tocou por outra fonte, mas um servico de debrid ficou de fora por
         // conta sem plano: diz uma vez por sessao, sem bloquear nada.
         { int novo = debrid_sem_plano_novo();
-          if (novo) player_toast(i18n(debrid_sem_plano_frase(novo)), 7000); }
+          if (novo) player_toast_ex(i18n(debrid_sem_plano_frase(novo)), 7000, "aj_triangle-alert", 1); }
         if (!player_id_canal()[0]) {
           fonteVODAutomatica = 1;
           fonteVODTentativas++;
           fonteVODDesde = SDL_GetTicks();
+          // "Fonte 2 de 3" na ilha do player: a troca deixa de ser muda.
+          player_definir_tentativa(fonteVODTentativas, VOD_FONTE_MAX_TENTATIVAS);
         }
         // Armado so em sessao de canal: o indice passa a responder ao
         // watchdog de fonte morta ate a lista acabar ou o canal trocar.
@@ -2093,9 +3340,11 @@ void app_atualizar(float dt, Uint32 agora) {
                stream_automatico() >= 0) {
         printf("[fonte] primeira da lista nao serviu; conferindo a seguinte (%d/%d)\n",
                fonteVODTentativas + 1, VOD_FONTE_MAX_TENTATIVAS);
+        player_definir_tentativa(fonteVODTentativas + 1, VOD_FONTE_MAX_TENTATIVAS);
         (void)pedirProximaFonteVOD();
       }
       else { limparFonteVOD(); erroSemFonte(); }
+    }
     }
   }
 
@@ -2122,8 +3371,14 @@ void app_atualizar(float dt, Uint32 agora) {
   // compartilhado (o trailer HLS do detalhe acabara de tocar), nao de fonte
   // nenhuma do player. Sem player_tem_video() a pessoa ficava numa tela preta
   // sem erro e sem fonte.
+  //
+  // E O PIPELINE TEM DE TER CARREGADO (#158). No registro 6314 esta linha saiu
+  // com "buffer 9.0s" numa fonte que nunca chegou ao loadCompleted: o buffer
+  // enchia, o decoder nao comecava, e o cartao era tirado para uma tela
+  // preta. O caso que motivou o conserto (18/09) tinha loadCompleted.
   if ((player_aberto() || player_mini_ativo()) && player_fonte_falhou() &&
-      player_tem_video() && video_buffer_fim() > 0.5 && !video_falhou()) {
+      player_tem_video() && video_buffer_fim() > 0.5 && !video_falhou() &&
+      video_pronto()) {
     printf("[player] a fonte voltou a entregar (buffer %.1fs): tirando o erro da tela\n",
            video_buffer_fim());
     fflush(stdout);
@@ -2153,11 +3408,36 @@ void app_atualizar(float dt, Uint32 agora) {
     // curto so vale enquanto nada chegou. Com dados e sem quadro, vale o teto
     // longo — o uMS que engole 39 s e nao toca em 45 s esta mesmo travado.
     Uint32 desde = SDL_GetTicks() - canalFonteDesde;
+    int xt = xtream_e_id(player_id_canal());
+    // ESPERA DE AJUSTES (Live TV > Espera para abrir o canal, ou o "Aplicar"
+    // do diagnostico da Live TV): 25 ou 45 s no lugar dos 15 s do Xtream sem
+    // decoder e dos 25 s da fonte viva sem dado. O prazo curto da fonte MUDA
+    // (4 s) fica: ela ja provou que nao responde.
+    Uint32 espera = ajustes_livetv_espera_ms();
+    Uint32 semDecMs = espera ? espera : CANAL_SEM_DECODER_MS;
+    Uint32 prazo = (espera && canalFontePrazo == CANAL_FONTE_PRAZO_MS) ? espera : canalFontePrazo;
+    Uint32 teto = espera > CANAL_ABRE_TETO_MS ? espera : CANAL_ABRE_TETO_MS;
+    int semDecoder = xt && player_carregando() && desde > semDecMs &&
+        video_buffer_fim() > 0.5 && !video_decoder_anunciou();
     int morta = player_fonte_falhou() || video_falhou() ||
-        (player_carregando() && desde > canalFontePrazo && video_buffer_fim() <= 0.5) ||
-        (player_carregando() && desde > CANAL_ABRE_TETO_MS) ||
-        video_bufferando_ms() > CANAL_TRAVA_MS;
+        (player_carregando() && desde > prazo && video_buffer_fim() <= 0.5) ||
+        (player_carregando() && desde > teto) ||
+        video_bufferando_ms() > CANAL_TRAVA_MS || semDecoder;
+    // O formato que tocou vai na frente nos proximos canais (xtream.h).
+    { static char tocouUrl[64];
+      if (xt && video_pronto() && strncmp(tocouUrl, player_id_canal(), sizeof tocouUrl - 1)) {
+        snprintf(tocouUrl, sizeof tocouUrl, "%s", player_id_canal());
+        xtream_formato_funcionou(video_url_atual());
+      }
+      if (!video_pronto()) tocouUrl[0] = 0; }
     if (morta) {
+      // POR QUE MORREU, numa linha (#158): o registro so dizia "fonte 0 nao
+      // abriu", e a diferenca entre "erro do servidor", "sem dado" e "dado
+      // sem decoder" e o que decide o proximo conserto.
+      printf("[guia] fonte %d morta: falhou=%d erro='%s' buffer=%.1fs decoder=%d "
+             "carregando=%d %ums\n", canalFonteIdx, video_falhou(), video_erro_texto(),
+             video_buffer_fim(), video_decoder_anunciou(), player_carregando(), (unsigned)desde);
+      fflush(stdout);
       int prox = stream_canal_proxima(canalFonteIdx);
       const Stream *s;
       // PORTAL STALKER: nao existe "proxima fonte" — cada canal tem uma so, e
@@ -2218,13 +3498,19 @@ void app_atualizar(float dt, Uint32 agora) {
         canalFonteIdx = -1;
         // Sem mais fonte na lista: na tela cheia vira o erro de sempre; no
         // PiP a miniatura morre quieta em vez de prender um quadro morto.
-        if (player_mini_ativo()) player_fechar_mini();
+        if (player_mini_ativo()) { if (xt) avisoCanalXtreamMini(); player_fechar_mini(); }
+        else if (xt) erroCanalXtream();
         else player_erro_fonte();
+        if (semDecoder) { video_parar(); sondarCanalXtream(player_id_canal()); }
       }
     }
   }
 
+  vigiarFonteGuardada();
+  fitDuracaoMidia();
+  fitPassivaPermitir();
   tentarProximaFonteVOD();
+  vigiarAberturaManual();
   processarTorrentJob();
 
   int fonte;
@@ -2253,22 +3539,29 @@ void app_atualizar(float dt, Uint32 agora) {
       int titulo=player_aberto()?player_indice():detail_indice(), t=0,e=0;
       if (player_aberto()) { player_episodio_atual(&t,&e); player_encerrar(); }
       else detail_ep_foco(&t,&e);
+      diagnostico_cancelar_vazao();
       player_abrir(titulo,NULL);
       player_definir_episodio(t,e);
       stream_definir_atual(fonte);
-      // Qualquer escolha nova invalida a resposta de um torrent anterior.
+      // Qualquer escolha nova invalida a resposta de um torrent anterior; o
+      // motor P2P corta o pedido velho ja (sem isso a escolha nova esperaria
+      // ate 55 s na fila do fio unico).
       torrentSessao++;
+      p2pmotor_cancelar();
       if (!s->url[0] && s->infoHash[0]) {
         pedirTorrentEscolhido(fonte);
       } else {
+        // Fonte direta: o torrent do motor (se havia) para de baixar.
+        p2pmotor_parar_fundo();
         player_definir_fonte(s->url);
+        if (!player_id_canal()[0]) fonteManualDesde = SDL_GetTicks();
         // FONTE QUE O ADDON MARCA COMO FORA DE CACHE ("⏳", "[TB download]"):
         // tocar o link e o que manda o servico baixar, e o que o addon devolve
         // enquanto baixa e um clipe de aviso de ~8 s (registros 1136, 2191,
         // 2501). O clipe fecha o player sem nada na tela; o aviso diz o que
         // esta acontecendo e o que fazer.
         if (s->foraCache)
-          player_toast(i18n("Fonte fora do cache: o debrid começa a baixar. Se tocar um aviso curto, tente de novo em alguns minutos."), 9000);
+          player_toast_ex(i18n("Fonte fora do cache: o debrid começa a baixar. Se tocar um aviso curto, tente de novo em alguns minutos."), 9000, "aj_download", 0);
       }
       // Escolha manual num canal tambem entra no watchdog: fonte viva escolhida
       // a dedo pode morrer igual.
@@ -2280,7 +3573,7 @@ void app_atualizar(float dt, Uint32 agora) {
     stream_folha_contexto(player_linha_episodio());
     idBaseDoTitulo(base, sizeof base);
     stream_preferir(base[0] ? fontepref_escolher(base) : -1);
-    stream_folha_abrir();
+    nomeParaFolha(); stream_folha_abrir();
   }
 
   // CANAL ESCOLHIDO NO GUIA — tela cheia ou faixa, mesma acao: toca direto.
@@ -2305,13 +3598,17 @@ void app_atualizar(float dt, Uint32 agora) {
   }
   // Azul na faixa do mini guia: o guia completo, com o canal no preview.
   if (guia_pediu_guia_cheio() && player_aberto() && player_id_canal()[0]) guiaComCanalNoAr();
+  // O botao "Guia" do OSD do canal: o mesmo guia completo, com o canal no
+  // preview e tocando.
+  if (player_pediu_guia_cheio() && player_aberto() && player_id_canal()[0]) guiaComCanalNoAr();
   // Sessao do preview sem guia na tela (saiu por um caminho que nao passou
   // pelo sair() do guia): nao fica tocando escondida.
   if (player_mini_no_guia_ativo() && !player_janela_animando(NULL, NULL, NULL, NULL) &&
       (tela != TELA_GUIA || !guia_aberta()))
     player_fechar_mini();
 
-  // CH+/- COM CANAL NO AR: zap na ordem do guia. A lista pode ainda nao ter
+  // CH+/- COM CANAL NO AR: zap na ordem do guia (`dir` e o deslocamento que o
+  // debounce do player somou, nao so +1/-1). A lista pode ainda nao ter
   // sido carregada (guia nunca aberto nesta sessao): a primeira tecla dispara
   // a carga e nao troca nada, a seguinte ja zapeia.
   { int dir = player_pediu_zap();
@@ -2322,6 +3619,14 @@ void app_atualizar(float dt, Uint32 agora) {
       else guia_carregar();
     } }
 
+  // RECARREGAR (botao do OSD do canal): mesma acao do zap com deslocamento 0 —
+  // o proprio canal, fonte buscada de novo.
+  if (player_pediu_recarregar() && player_aberto() && aguardandoFonte != 2) {
+    const char *id = player_id_canal();
+    CatItem it;
+    if (id[0] && guia_zap(id, 0, &it)) tocarCanal(&it);
+  }
+
   // BAIXO/AZUL COM CANAL NO AR: o overlay do guia abre focado no canal que
   // esta tocando. player_id_canal e o id congelado na abertura — o indice no
   // catalogo pode ja ter sido remapeado por uma republicacao da descoberta.
@@ -2331,16 +3636,17 @@ void app_atualizar(float dt, Uint32 agora) {
     if (id[0]) guia_focar_id(id);
   }
   if (aguardandoFonte != 2 && stream_folha_recarregar()) {
-    if (player_aberto()) buscarParaPlayer();
+    if (player_aberto()) buscarParaPlayerModo(1);
     else {
       const CatItem *ci=cat_item(detail_indice()); char id[64];
       idDoAlvo(ci,id,sizeof id);
-      if (ci) { stream_definir_alvo(id); addons_buscar(id,ci->tipo); }
+      if (ci) { stream_definir_alvo(id); addons_buscar_renovar(id,ci->tipo); }
     }
   }
   { int t,e;
     if (aguardandoFonte != 2 && episodios_escolheu(&t,&e) && player_aberto()) {
       int titulo=player_indice();
+      diagnostico_cancelar_vazao();
       player_encerrar(); player_abrir(titulo,NULL);
       player_definir_episodio(t,e);
       marco("buscando fontes"); buscarParaPlayer(); aguardandoFonte=1;
@@ -2349,6 +3655,7 @@ void app_atualizar(float dt, Uint32 agora) {
   { int t,e;
     if (aguardandoFonte != 2 && player_pediu_proximo(&t,&e) && player_aberto()) {
       int titulo=player_indice();
+      diagnostico_cancelar_vazao();
       player_encerrar(); player_abrir(titulo,NULL); player_definir_episodio(t,e);
       marco("proximo episodio: buscando fontes"); buscarParaPlayer(); aguardandoFonte=1;
     }
@@ -2357,7 +3664,7 @@ void app_atualizar(float dt, Uint32 agora) {
   // O player devolve 1 para a coluna de audio e 2 para a de legenda.
   { int q = player_pediu_faixas();
     if (q) faixas_abrir_em(q == 2 ? 1 : 0); }
-  faixas_atualizar(dt, agora);
+  if (!player_retido()) faixas_atualizar(dt, agora);
   stream_folha_atualizar(dt, agora);
   // FOLHA FECHADA SEM ESCOLHER, com o player esperando por ela. Voltar na
   // folha e "desisti", nao "tente sozinho": abrir a fonte que a pessoa acabou
@@ -2368,28 +3675,25 @@ void app_atualizar(float dt, Uint32 agora) {
     if (player_aberto()) player_erro_fonte();
   }
 
-  // SAIR DO PLAYER PODE PRECISAR REFAZER "CONTINUAR ASSISTINDO".
+  // SAIR DO PLAYER COLOCA O TITULO NA FRENTE DE "CONTINUAR ASSISTINDO".
   //
-  // Relato: "assisto um filme ou episodio, saio do player, e o titulo so
-  // aparece em Continuar assistindo depois de fechar e reabrir o app".
-  // Certissimo: o progresso e gravado na hora, mas a FILEIRA e montada durante
-  // a descoberta (montarContinuar), e nada a refazia ao sair.
+  // Relato antigo: "assisto um filme ou episodio, saio do player, e o titulo so
+  // aparece em Continuar assistindo depois de fechar e reabrir o app". A
+  // resposta foi desc_repetir() quando o titulo nao estava na fileira — o ciclo
+  // inteiro (~20 s nesta TV), que republicava a home e punha "Carregando
+  // fileiras…" na ilha bem no voo do player ate a pilula. E o card so entrava
+  // depois do pouso (dono, 03/10). Hoje fecharSessao ja refaz so o Continuar
+  // num fio (desc_refazer_continuar), e o card entra LOCAL no mesmo quadro
+  // (desc_continuar_otimista, logo depois de player_encerrar/suspender, com o
+  // progresso ja no item): na frente, onde a refacao tambem o poe.
   //
-  // POR QUE desc_repetir() E NAO UMA REMONTAGEM BARATA, que era o meu primeiro
-  // reflexo: montarContinuar chama a rede (trakt_continuar, trakt_enfeitar_lote)
-  // e usa buffers `static` do fio de descoberta — chama-la daqui seria I/O
-  // bloqueante no fio de desenho E corrida com aquele fio. desc_repetir() ja e
-  // a resposta da casa para "esta fileira precisa ser refeita": ajustes.c a usa
-  // quando a FONTE do Continuar assistindo muda, que e o mesmo problema.
-  //
-  // SO QUANDO O TITULO NAO ESTA LA. Continuar algo que ja esta na fileira e o
-  // caso comum, e ali nada mudou de lugar — pagar um ciclo inteiro (~20 s nesta
-  // TV) a cada saida do player seria cobrar do comum o preco do raro.
   // VOLTAR NUM CANAL ABERTO PELO GUIA: o video encolhe para o preview do guia,
   // na hora (sem esperar o fade da interface do player) e sem recarregar. O
   // PiP de canto ficou para os canais abertos fora do guia.
   if (player_quer_sair() && player_minimizavel() && tela == TELA_GUIA && guia_aberta())
     guiaComCanalNoAr();
+  if (player_quer_sair() && !player_minimizavel() && ajustes_saida_player_home())
+    player_preparar_retencao();
   if (player_quer_sair() && !player_aberto()) {
     if (player_minimizavel()) {
       // CANAL AO VIVO sai para PiP: o fluxo fica num canto da tela em vez de
@@ -2406,41 +3710,51 @@ void app_atualizar(float dt, Uint32 agora) {
     } else {
     int idx = player_indice();
     const CatItem *ci = idx >= 0 ? cat_item(idx) : NULL;
-    int naFileira = 0;
-    if (ci && ci->imdb[0]) {
-      int r;
-      for (r = 0; r < cat_n_fileiras() && !naFileira; r++) {
-        const CatFileira *f = cat_fileira(r);
-        if (!f || strcmp(f->chave, "continue_watching")) continue;
-        { int k;
-          for (k = 0; k < f->n; k++) {
-            const CatItem *it = cat_item(f->ini + k);
-            if (it && !strcmp(it->imdb, ci->imdb)) { naFileira = 1; break; }
-          } }
-      }
-      if (!naFileira) {
-        printf("[home] %s nao estava em Continuar assistindo: refazendo\n",
-               ci->imdb);
-        fflush(stdout);
-        desc_repetir();
-      }
-    }
-    player_encerrar();
+    // O fundo do voo, copiado ANTES da saida: desc_continuar_otimista troca o
+    // bloco do catalogo e `ci` deixa de valer.
+    char fundoVoo[sizeof ci->backdrop], imdbSaiu[sizeof ci->imdb];
+    snprintf(fundoVoo, sizeof fundoVoo, "%s", ci ? ci->backdrop : "");
+    snprintf(imdbSaiu, sizeof imdbSaiu, "%s", ci ? ci->imdb : "");
+    { unsigned vivoAntes = ilhacart_vivo_seq();
+      if (!ajustes_saida_player_home() || !player_suspender()) player_encerrar();
+      // UM LUGAR SO (cwretido.h): o cartao da ilha / a faixa "Retomar agora"
+      // acabaram de pegar o titulo (player_encerrar -> ilhacart_player_saiu,
+      // home_registrar_retorno) e ele NAO entra em "Continuar assistindo"
+      // agora; entra quando sair de la. Sem cartao nem faixa (sem conta, ou
+      // titulo terminado), o de sempre: na frente, local.
+      cwRetidoSincronizar();
+      // O indice CORRENTE do titulo (o player grava por ele, idxAtual).
+      if (imdbSaiu[0] && !cw_retido_exclui(imdbSaiu))
+        desc_continuar_otimista(cat_indice_vivo(idx, imdbSaiu));
+      // MINIMIZAR NA ILHA (pedido do dono, 02/10): saiu no MEIO (esta saida
+      // virou a atividade ao vivo, o criterio de home_retorno_vale) com o
+      // relogio ligado e "Ao sair do player" = home. A pagina do titulo e o
+      // que mais estiver por cima fecham SECOS — quem anima e o quadro do
+      // video encolhendo ate a pilula. Terminou o titulo: o fluxo de sempre.
+      if (ajustes_saida_player_home() && ilhacart_vivo_seq() != vivoAntes) {
+        if (detail_aberto()) detail_fechar_seco();
+        if (vertudo_aberta()) vertudo_fechar_seco();
+        if (menu_aberto()) menu_fechar();
+        trocarTela(TELA_HOME);
+        menu_definir_destino(MENU_INICIO);
+        ilha_minimizar(fundoVoo[0] ? fundoVoo : NULL);
+#ifdef NV_ANDROID
+        // A sessao ficou pausada atras da home: o voo comeca DISSOLVENDO a
+        // partir do proprio video parado (ilha_minimizar_dissolver).
+        ilha_minimizar_dissolver(player_retido());
+#endif
+      } }
     }
   }
 
+  cwRetidoSincronizar();
   player_atualizar(dt, agora);
+  // A barra por cima da pagina: o trailer do fundo fica mudo enquanto ela
+  // esta aberta (detail_sob_menu). O pedido de barra da pagina e lido em
+  // app_evento, no mesmo evento da ESQUERDA, e abre por cima dela.
+  detail_sob_menu(detail_aberto() && menu_aberto());
   detail_atualizar(dt, agora);
   menu_atualizar(dt, agora);
-  // A PAGINA DE TITULO saiu por ESQUERDA (detail_pediu_menu): a barra entra
-  // quando a mola de saida terminou e a tela de baixo voltou a ser dona do
-  // foco. Era `saiuPorEsquerda` cru aqui — e isso abria a barra em QUALQUER
-  // ESQUERDA de qualquer tela, inclusive andando numa fileira da home.
-  if (!detail_aberto() && detail_pediu_menu() && sidebar_permitida() &&
-      !menu_aberto()) {
-    menu_abrir();
-    saiuPorEsquerda = 0;
-  }
   // PÓS-REPRODUÇÃO. O proximo episodio reabre a busca de fonte com o id novo;
   // o titulo relacionado sai do player e abre o detalhe, que e onde o dono
   // escolhe se quer mesmo assistir.
@@ -2464,6 +3778,7 @@ void app_atualizar(float dt, Uint32 agora) {
       //     (que ja corta no ':' — era o que o atalho reimplementava a mao).
       int titulo = player_indice();
       player_encerrar();
+      diagnostico_cancelar_vazao();
       player_abrir(titulo, NULL);
       player_definir_episodio(t, e);
       // DEPOIS de player_definir_episodio, e a ordem e o conserto de um bug
@@ -2504,6 +3819,7 @@ void app_atualizar(float dt, Uint32 agora) {
   ctx_atualizar(dt, agora);
   { int i = ctx_pediu_detalhes();
     if (i >= 0) {
+      player_descartar_retido();
       const CatItem *ci = cat_item(i);
       HomeItem it;
       memset(&it, 0, sizeof it);
@@ -2519,6 +3835,7 @@ void app_atualizar(float dt, Uint32 agora) {
   // Titulo escolhido na grade: abre o detalhe, como se tivesse vindo da home.
   { int idx = vertudo_pediu_abrir();
     if (idx >= 0) {
+      player_descartar_retido();
       const CatItem *ci = cat_item(idx);
       // A grade nao tem retangulo de origem para a transicao crescer a partir
       // dele: o card fica na tela que esta saindo. Entra centrado, do tamanho
@@ -2542,20 +3859,21 @@ void app_atualizar(float dt, Uint32 agora) {
     case TELA_PERFIL:     break;
     case TELA_AJUSTES:    ajustes_atualizar(dt, agora);    break;
     case TELA_DIAGNOSTICO: diagnostico_atualizar(dt, agora); break;
+    case TELA_LIVETV_DIAG: livetvdiag_atualizar(dt, agora); break;
     default:              home_atualizar(dt, agora);       break;
   }
   // TRAILER NO DESTAQUE: so com a home na frente de tudo. A lista e a mesma
   // ordem de app_evento — o que come tecla antes da home tambem esta na
   // frente dela na tela.
   home_trailer_passo(tela == TELA_HOME && homePronta && login_concluido() && perfilsel_concluido() &&
-                     !player_aberto() && !player_mini_ativo() && !detail_aberto() && !spainel_aberto() &&
+                     !player_aberto() && !player_retido() && !player_mini_ativo() && !detail_aberto() && !spainel_aberto() &&
                      !menu_aberto() && !ctx_aberto() && !vertudo_aberta() && !avisos_aberto() &&
                      !avisos_cartao_aberto() && !sintro_aberto() && !pipintro_aberto() &&
                      !novidades_aberto() && !novidades11_aberto() && !novidades12_aberto() &&
                      !novidades13_aberto() && !novidades131_aberto() && !novidades132_aberto() &&
-                     !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades151_aberto() && !telemetria_aberto() &&
+                     !novidades133_aberto() && !novidades134_aberto() && !novidades139_aberto() && !novidades1312_aberto() && !novidades142_aberto() && !novidades148_aberto() && !novidades170_aberto() && !novidades180_aberto() && !novidades20_aberto() && !telemetria_aberto() &&
                      !recintro_aberto() && !atualizacao_aberta() && !agendaviso_aberto() &&
-                     !recomenda_aberta() && !recenviar_aberto() && !faixas_aberta() &&
+                     !recomenda_aberta() && !recenviar_aberto() && !pessoas_aberto() && !faixas_aberta() &&
                      !episodios_aberto() && !stream_folha_aberta() && !guia_overlay_aberta() &&
                      !registro_aberto(),
                      dt, agora);
@@ -2564,6 +3882,7 @@ void app_atualizar(float dt, Uint32 agora) {
   spainel_atualizar(dt, agora);
   recomenda_atualizar(dt, agora);
   recenviar_atualizar(dt, agora);
+  pessoas_atualizar(dt, agora);
   sintro_atualizar(dt, agora);
   novidades_atualizar(dt, agora);
   novidades11_atualizar(dt, agora);
@@ -2577,7 +3896,9 @@ void app_atualizar(float dt, Uint32 agora) {
   novidades1312_atualizar(dt, agora);
   novidades142_atualizar(dt, agora);
   novidades148_atualizar(dt, agora);
-  novidades151_atualizar(dt, agora);
+  novidades170_atualizar(dt, agora);
+  novidades180_atualizar(dt, agora);
+  novidades20_atualizar(dt, agora);
   telemetria_atualizar(dt, agora);
   recintro_atualizar(dt, agora);
   atualizacao_atualizar(dt, agora);
@@ -2598,8 +3919,9 @@ void app_atualizar(float dt, Uint32 agora) {
     }
   }
   pipintro_atualizar(dt, agora);
-  if(tela==TELA_SOCIAL) social_atualizar(dt, agora);
+  if(tela==TELA_SOCIAL) amigoperfil_atualizar(dt, agora);
   if(tela==TELA_ADDONS) addonsui_atualizar(dt, agora);
+  if(tela==TELA_PLUGINS) pluginsui_atualizar(dt, agora);
 }
 
 // O corpo do desenho de TELA. Saiu de app_desenhar para uma funcao propria por
@@ -2628,10 +3950,12 @@ static void desenharAtrasDoPainel(void *ctx) {
       case TELA_BIBLIOTECA: biblioteca_desenhar(agora); break;
       case TELA_AGENDA:     agendaui_desenhar(agora);   break;
       case TELA_PERFIL:     perfil_desenhar(agora);     break;
-      case TELA_SOCIAL:     social_desenhar(agora);     break;
+      case TELA_SOCIAL:     amigoperfil_desenhar(agora);     break;
       case TELA_ADDONS:     addonsui_desenhar(agora);   break;
+      case TELA_PLUGINS:    pluginsui_desenhar(agora);  break;
       case TELA_AJUSTES:    ajustes_desenhar(agora);    break;
       case TELA_DIAGNOSTICO: diagnostico_desenhar(agora); break;
+      case TELA_LIVETV_DIAG: livetvdiag_desenhar(agora); break;
       default:              home_desenhar(agora);       break;
     }
   }
@@ -2639,7 +3963,7 @@ static void desenharAtrasDoPainel(void *ctx) {
   if (!detail_cobre_tela()) vertudo_desenhar(agora);
   // Com o painel de Salvos na tela o menu do cartaz e desenhado DEPOIS dele
   // (desenharTelas): e o painel que o abre, e por baixo ele ficaria sob o veu.
-  if (!spainel_visivel() || detail_aberto()) {
+  if (!spainel_visivel()) {
     CAMADA_SE(ctx_aberto());
     ctx_desenhar(agora);
   }
@@ -2665,7 +3989,19 @@ static void desenharAtrasDoPainel(void *ctx) {
   // o defeito relatado como "nao ta mostrando o menu e nao tem os ajustes".
   // Guarda repetida em dois lugares para a mesma regra: no de dentro ela
   // significa "nao pinte a faixa", no de fora significava "nao exista".
-  if (menu_visivel() && sidebar_permitida() && !detail_aberto()) {
+  // Com a pagina do titulo aberta, so a barra aberta POR CIMA dela
+  // (menu_sobre), ate recolher; a rail fixa nao aparece na pagina.
+  if (menu_visivel() && sidebar_permitida() && (!detail_aberto() || menu_sobre())) {
+    // Layout Dinamica: a pilula da barra fica no canto das telas do menu, no
+    // lugar do titulo delas (que nao e desenhado: menu_pilula_titulo). Na
+    // home some com a pagina rolada. Telas fora do menu (Addons, Social,
+    // diagnosticos) tem titulo proprio nesse canto: la ela some na hora, e a
+    // barra abre pelo ESQUERDA na borda e pela faixa do ponteiro.
+    menu_pilula_mostrar(vertudo_aberta() || detail_aberto() ? -1.0f   // "Ver tudo"/colecao/pagina tem cabecalho proprio
+                        : tela == TELA_HOME ? home_topo_fracao()
+                        : (tela == TELA_EXPLORAR || tela == TELA_BUSCA ||
+                           tela == TELA_BIBLIOTECA || tela == TELA_AGENDA ||
+                           tela == TELA_PERFIL || tela == TELA_AJUSTES) ? 1.0f : -1.0f);
     CAMADA_SE(menu_aberto());
     menu_desenhar(agora);
   }
@@ -2696,6 +4032,9 @@ static void desenharTelas(Uint32 agora) {
     GfxRect fundo = { 0, 0, NV_TELA_W, NV_TELA_H };
     TxtLinha t, sb;
     gfx_cor(fundo, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
+    // A ABERTURA com a marca do icone escolhido (apoiadores); com o Original,
+    // a tela de sempre, so com o texto.
+    logoapp_marca((GfxRect){ (NV_TELA_W - 160.0f) * 0.5f, 260.0f, 160.0f, 160.0f }, 1.0f);
     t = txt_linha(TXT_TITULO2, "Preparando seu catálogo…", 255, 255, 255, 255);
     txt_desenhar(t, (NV_TELA_W - t.w) * 0.5f, 460.0f);
     sb = txt_linha(TXT_BODY,
@@ -2729,12 +4068,15 @@ static void desenharTelas(Uint32 agora) {
     // Depois do menu: as duas camadas de "Salvos" escurecem a tela inteira e
     // tem de ficar por cima de tudo que a home desenhou, inclusive da rail.
     CAMADA_SE(spainel_aberto());
-    if (spainel_visivel() && !detail_aberto()) {
+    if (spainel_visivel()) {
       spainel_desenhar(agora);
       CAMADA_SE(ctx_aberto());
       ctx_desenhar(agora);
     }
   }
+  // BRILHO DA INTERFACE DO PLAYER (esmaecer.h): tudo daqui ate a ilha do player
+  // multiplica a cor pelo fator (a legenda se isenta em player.c).
+  if (player_aberto()) gfx_osd_mult = player_osd_brilho();
   CAMADA_SE(player_aberto());
   player_desenhar(agora);
   // O overlay do guia vai POR CIMA do player — o video continua atras do fundo
@@ -2746,9 +4088,73 @@ static void desenharTelas(Uint32 agora) {
   stream_folha_desenhar(agora);
   CAMADA_SE(faixas_aberta());
   faixas_desenhar(agora);
+  // A ILHA DO RELOGIO DENTRO DO PLAYER (plrilha.h), por cima de todas as
+  // camadas dele: a pilula da hora, os avisos e o que nasce dela (Audio,
+  // Legendas, estilo, carregando, erro) — e a folha de Fontes, que cresce
+  // dela (streams.c) e por isso nao a esconde mais.
+  if (player_aberto()) plrilha_desenhar(agora);
+  gfx_osd_mult = 1.0f;
+}
+
+// ONDE O RELOGIO DA ILHA CABE (ilha.h). Em toda tela de menu (Home, Explorar,
+// Guia, Busca, Biblioteca, Perfil, Social, Add-ons, Agenda), no carrossel
+// ampliado ("Ver tudo") e na pagina do titulo — pedido do dono (03/10): antes
+// so a Home mostrava. Ele fica sempre na DIREITA. Nunca com uma camada de tela cheia na frente
+// (explicadores, cartoes de
+// atualizacao/crash/lembrete, menu de contexto, folhas de fontes/episodios/
+// faixas): a pilula ficaria boiando sobre o veu de outra coisa. Os AVISOS da
+// ilha nao passam por aqui — eles aparecem em qualquer tela fora do player.
+static int spotVeuPronto;   // o veu do Spotlight ja esta na copia congelada
+static int relogioCabe(void) {
+  // AJUSTES NO GLASS UI (mockup de 03/10): o relogio fica no canto, em cima da
+  // ilha de categorias — a tela nao tem mais titulo ali. Com folha, vinculo ou
+  // teclado por cima ele some, como na home com um cartao na frente.
+  if (tela == TELA_AJUSTES) return !menu_aberto() && ajustes_relogio_cabe();
+  // CARROSSEL DE TITULOS DA APPLE TV (cartao de vizinhos, sem expandir): sem
+  // relogio (dono, 04/10). Ele volta, pela animacao da ilha, quando o cartao
+  // estica para a pagina.
+  if (detail_aberto() && detail_relogio_oculto()) return 0;
+  if (tela == TELA_HOME) { if (!homePronta) return 0; }
+  else if (tela != TELA_EXPLORAR && tela != TELA_BUSCA &&
+           tela != TELA_BIBLIOTECA && tela != TELA_PERFIL && tela != TELA_SOCIAL &&
+           tela != TELA_ADDONS && tela != TELA_PLUGINS && tela != TELA_AGENDA) return 0;
+  // O MENU ABERTO NAO ESCONDE MAIS O RELOGIO (Glass UI, mockup "ilha" tela 1):
+  // a ilha do menu nasce logo abaixo da do relogio, na mesma margem
+  // (ilha_posicionar), e as duas formam a coluna da esquerda.
+  if (ctx_aberto() || stream_folha_aberta() || faixas_aberta() || episodios_aberto()) return 0;
+  if (sintro_aberto() || novidades_aberto() || novidades11_aberto() || novidades12_aberto() ||
+      novidades13_aberto() || novidades131_aberto() || novidades132_aberto() ||
+      novidades133_aberto() || novidades134_aberto() || novidades139_aberto() ||
+      novidades1312_aberto() || novidades142_aberto() || novidades148_aberto() ||
+      novidades170_aberto() || novidades180_aberto() || novidades20_aberto() || telemetria_aberto() || recintro_aberto() ||
+      atualizacao_aberta() || agendaviso_aberto() || avisos_cartao_aberto() ||
+      glem_cartao_aberto() || recenviar_aberto() || pessoas_aberto() ||
+      recomenda_aberta() || pipintro_aberto() || diagnostico_intro_aberto())
+    return 0;
+  return 1;
 }
 
 void app_desenhar(Uint32 agora) {
+  // O GUIA DA 2.0 e tela inteira e opaco: nada do app por baixo (uma camada
+  // de tela cheia a menos; o fundo dele e o assado do Borrada).
+  if (novidades20_aberto() && !registro_aberto() && !player_aberto()) {
+    gfx_sem_recorte();
+    gfx_cor((GfxRect){0, 0, NV_TELA_W, NV_TELA_H}, 0,
+            NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
+    ponteiro_camada();
+    novidades20_desenhar(agora);
+    return;
+  }
+  // The highlights modal owns input and covers almost the whole screen.
+  // Do not rasterize Home text or punch trailer holes through its backdrop.
+  if (novidades180_aberto() && !registro_aberto() && !player_aberto()) {
+    gfx_sem_recorte();
+    gfx_cor((GfxRect){0, 0, NV_TELA_W, NV_TELA_H}, 0,
+            NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
+    ponteiro_camada();
+    novidades180_desenhar(agora);
+    return;
+  }
   // COM O PAINEL DE LOG ABERTO A INTERFACE NAO E PINTADA.
   //
   // O painel e um cartao de tela quase cheia e opaco (alpha 0.94): pintar a
@@ -2762,7 +4168,57 @@ void app_desenhar(Uint32 agora) {
   // de alpha que o revela, entao o plano de video fica coberto enquanto o
   // painel esta em pe — que e o comportamento desejado para quem parou o app
   // para LER o log.
-  if (!registro_aberto()) desenharTelas(agora);
+  // COM O SPOTLIGHT ASSENTADO O FUNDO CONGELA, como o do painel de Salvos
+  // (spainel_fundo): a tela de tras e o veu sao pintados UMA vez no FBO do
+  // snapshot e os quadros seguintes so copiam — uma camada de tela cheia a
+  // menos por quadro (o veu) e a tela de tras inteira a menos. A copia e
+  // refeita quando o catalogo muda e em 0,4 / 1,5 / 4 s, para a arte que
+  // ainda chegava aparecer. Nada de congelar com video no ar (o PiP pinta o
+  // furo) nem com o painel de Salvos, que usa o mesmo FBO.
+  { static int pronto, refeitas, regCongelado;
+    static unsigned revPronta;
+    static Uint32 desde;
+    static const Uint32 REFAZ[] = { 400, 1500, 4000 };
+    int parar = !registro_aberto() && spot_cheio() && gfx_snap_ok() &&
+                !player_mini_ativo() && !player_aberto() && !spainel_visivel();
+    spotVeuPronto = 0;
+    if (!parar) { pronto = 0; refeitas = 0; }
+    else if (revPronta != cat_revisao()) pronto = 0;
+    else if (pronto && refeitas < 3 && SDL_GetTicks() - desde >= REFAZ[refeitas]) {
+      pronto = 0; refeitas++;
+    }
+    if (parar && pronto) { gfx_snap_desenhar(); spotVeuPronto = 1; }
+    else if (parar) {
+      gfx_snap_comecar();
+      gfx_sem_recorte();
+      glClearColor(NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT);
+      desenharTelas(agora);
+      spot_veu();
+      gfx_sem_recorte();
+      gfx_snap_terminar();
+      gfx_snap_desenhar();
+      if (!refeitas) desde = SDL_GetTicks();
+      pronto = 1; revPronta = cat_revisao();
+      spotVeuPronto = 1;
+    } else if (registro_aberto()) {
+      // O PAINEL DE REGISTRO E VIDRO (03/10): a tela de tras e pintada UMA vez
+      // no FBO do snapshot ao abrir e os quadros seguintes so copiam. Com o
+      // video no ar (o furo do plano de video nao vai para a textura) ou sem
+      // FBO, fica a cor de limpeza, como antes.
+      if (!regCongelado && gfx_snap_ok() && !player_aberto() && !player_mini_ativo()) {
+        gfx_snap_comecar();
+        gfx_sem_recorte();
+        glClearColor(NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        desenharTelas(agora);
+        gfx_sem_recorte();
+        gfx_snap_terminar();
+        regCongelado = 1;
+      }
+      if (regCongelado) gfx_snap_desenhar();
+    } else desenharTelas(agora);
+    if (!registro_aberto()) regCongelado = 0; }
   // O explicador fica ACIMA de qualquer tela (menos do painel de log, que e
   // ferramenta de diagnostico): ele e a primeira coisa que a pessoa ve depois
   // desta atualizacao, e nada pode aparecer por cima dele.
@@ -2793,8 +4249,12 @@ void app_desenhar(Uint32 agora) {
   if (!registro_aberto()) novidades142_desenhar(agora);
   CAMADA_SE(novidades148_aberto());
   if (!registro_aberto()) novidades148_desenhar(agora);
-  CAMADA_SE(novidades151_aberto());
-  if (!registro_aberto()) novidades151_desenhar(agora);
+  CAMADA_SE(novidades170_aberto());
+  if (!registro_aberto()) novidades170_desenhar(agora);
+  CAMADA_SE(novidades180_aberto());
+  if (!registro_aberto()) novidades180_desenhar(agora);
+  // O esmaecer de saida do guia da 2.0, por cima do app que ja voltou.
+  if (!registro_aberto() && novidades20_visivel()) novidades20_desenhar(agora);
   CAMADA_SE(telemetria_aberto());
   if (!registro_aberto()) telemetria_desenhar(agora);
   CAMADA_SE(recintro_aberto());
@@ -2811,6 +4271,57 @@ void app_desenhar(Uint32 agora) {
   if (!registro_aberto() && !player_aberto() && sessao_logada() &&
       tela != TELA_LOGIN && tela != TELA_ESCOLHA_PERFIL)
     avisos_desenhar(agora);
+  // A ILHA DO RELOGIO (ilha.h): mesmas guardas da central — com a pessoa
+  // dentro do app. Com o player aberto quem fala e a ilha DO PLAYER
+  // (plrilha.h, desenhada em desenharTelas): a mesma pilula, no mesmo canto,
+  // com a hora e o "termina as" do titulo. No Guia ela vai para o topo direito
+  // (o titulo do guia ocupa o esquerdo).
+  static int homeCarregando;
+  static Uint32 homeConcluida;
+  // O VOO DO PLAYER ATE A PILULA NAO DIVIDE A ILHA COM A CARGA DA HOME
+  // (ilha_voo_silencio, tests/ilha_voo_cw.sh): calada enquanto voa e logo
+  // depois do pouso; a carga que continuar no ar aparece em seguida.
+  static IlhaVooSilencio vooSilencio;
+  int vooCalado = ilha_voo_silencio(&vooSilencio, ilha_minimizando(), agora);
+  if (tela == TELA_HOME && !detail_aberto() && vooCalado) {
+    // Sem "Home carregada" atrasado depois do pouso por uma carga que acabou
+    // durante o voo: a que ainda estiver no ar volta a contar no quadro seguinte.
+    homeCarregando = 0; homeConcluida = 0;
+    ilha_atividade_detalhes(NULL, NULL);
+  }
+  else if (tela == TELA_HOME && !detail_aberto()) {
+    DescHomeCarga load; desc_home_carga(&load);
+    if (load.ativo) { homeCarregando = 1; homeConcluida = 0; }
+    else if (homeCarregando) { homeCarregando = 0; homeConcluida = agora; }
+    int concluida = homeConcluida && agora - homeConcluida < 1000u;
+    if (load.ativo || concluida || ilha_modal_aberto()) {
+      const char *stage = !load.ativo ? i18n("Home carregada") :
+        load.fase == 2 ? i18n("Carregando fileiras…") : i18n("Sincronizando a Home…");
+      IlhaAtvCarga carga = { NULL, load.ms, load.addonsProntos, load.addonsTotal, load.fileiras, load.falhas, load.ativo };
+      ilha_atividade_detalhes(i18n("Carregamento da Home"), stage);
+      ilha_atividade_carga(&carga);
+      if (load.ativo) {
+        char shortStatus[160];
+        snprintf(shortStatus, sizeof shortStatus, "%s · %s", i18n("Carregando fileiras…"), i18n("Detalhes"));
+        ilha_atividade(shortStatus, -1.0f);
+      } else if (concluida) ilha_atividade(i18n("Home carregada"), -1.0f);
+    } else ilha_atividade_detalhes(NULL, NULL);
+  } else ilha_atividade_detalhes(NULL, NULL);
+  if (guia_atualizando_lista()) ilha_atividade(i18n("Atualizando a lista de canais…"), -1.0f);
+  if (!registro_aberto() && !player_aberto() && sessao_logada() &&
+      tela != TELA_LOGIN && tela != TELA_ESCOLHA_PERFIL) {
+    ilha_relogio_visivel(relogioCabe() && ajustes_relogio_ligado());
+    ilha_posicionar(1);
+    // O painel de Salvos que nasceu da pilula recolhe para ela (o retangulo
+    // do quadro anterior) e, enquanto esta na tela, a cobre.
+    { float ix = 0, iy = 0, iw = 0, ih = 0;
+      int ok = ajustes_relogio_ligado() && ilha_rect(&ix, &iy, &iw, &ih);
+      spainel_recolher_para(ok, ix, iy, iw, ih); }
+    // O CARTAO DA ATUALIZACAO e a pilula crescida (atualizacao.c): enquanto
+    // ele esta na tela, ela fica por baixo, medindo, sem se desenhar.
+    ilha_coberta(spainel_da_ilha() || atualizacao_cobre_ilha());
+    ilha_desenhar(agora);
+  }
   // O cartao do lembrete fica acima do player e da tela: e um aviso com hora.
   CAMADA_SE(glem_cartao_aberto());
   if (!registro_aberto() && sessao_logada() && tela != TELA_LOGIN &&
@@ -2818,17 +4329,33 @@ void app_desenhar(Uint32 agora) {
     glem_desenhar(agora);
   CAMADA_SE(recenviar_aberto());
   if (!registro_aberto()) recenviar_desenhar(agora);
+  CAMADA_SE(pessoas_aberto());
+  if (!registro_aberto()) pessoas_desenhar(agora);
   CAMADA_SE(recomenda_aberta());
   if (!registro_aberto()) recomenda_desenhar(agora);
   CAMADA_SE(pipintro_aberto());
   if (!registro_aberto()) pipintro_desenhar(agora);
+  if (!registro_aberto()) spot_desenhar(agora, spotVeuPronto);
+  if (!registro_aberto()) celb_desenhar();
   CAMADA_SE(diagnostico_intro_aberto());
   if (!registro_aberto()) diagnostico_intro_desenhar(agora);
+  // O MEDIDOR DE DESEMPENHO (Ajustes > Desempenho desta TV) nao e mais camada
+  // propria: e conteudo da ilha do relogio (ilha.c, plrilha.c; desempenho.h).
   CAMADA_SE(registro_aberto());
   registro_desenhar();
+  // A ilha do relogio fica acima do painel de registro, no canto de sempre.
+  if (registro_aberto() && sessao_logada()) {
+    ilha_relogio_visivel(ajustes_relogio_ligado());
+    ilha_posicionar(1);
+    ilha_desenhar(agora);
+  }
 }
 
 int app_quer_sair(void) { return sair; }
+int app_zap_ativo(void) {
+  if (tela == TELA_GUIA) return 1;
+  return (tela == TELA_PLAYER || player_mini_ativo()) && player_id_canal()[0];
+}
 
 void app_encerrar(void) {
   avisos_encerrar();   // saida limpa: apaga a marca de sessao viva
@@ -2849,9 +4376,12 @@ void app_encerrar(void) {
   }
   aguardandoFonte = 0;
   player_encerrar();
+  legsync_destruir();   // F05: join dos fios do AutoSync, depois do player
+  discord_encerrar();   // a atividade some na hora, sem esperar o Discord notar a queda
   video_encerrar();    // solta o nome LS2 antes do processo sumir (deploy mata sem aviso)
   ajustes_encerrar();
   diagnostico_encerrar();
+  livetvdiag_encerrar();
   biblioteca_encerrar();
   explorar_encerrar();
   perfil_encerrar();

@@ -7,6 +7,7 @@
 // preferencias do player, mas quem o define e o modulo de video.
 #include "video.h"
 #include "catalogo.h"
+#include "aovivo.h"
 #include <SDL2/SDL.h>
 
 // Abre a reproducao do titulo `indiceCatalogo` (indice circular, igual ao do
@@ -16,7 +17,13 @@
 void player_abrir(int indiceCatalogo, const char *url);
 void player_definir_episodio(int temporada, int episodio);
 void player_do_inicio(void);
+// Posicao confiavel para preparar o Android: registro com duracao conhecida,
+// coerente com o percentual escolhido. Zero mantem a retomada normal depois
+// da duracao real; metadados/reservas nao servem para converter percentual.
+double player_regra_retomada_inicial(double posSalva, double durSalva,
+                                     int percentual, int concluido);
 void player_episodio_atual(int *temporada, int *episodio);
+void player_aprender_creditos(void);
 int player_indice(void);
 const char *player_linha_episodio(void);
 int player_pediu_fontes(void);
@@ -52,7 +59,13 @@ void player_erro_fonte_motivo(const char *titulo, const char *dica);
 // Aviso curto no alto da tela do player (a mesma pilula do modo de aspecto),
 // por `ms`. Some sozinho; a sessao nova do player apaga o que estiver de pe.
 void player_toast(const char *texto, unsigned ms);
+// O mesmo aviso com o icone (art/icones) e, `ambar` = 1, a cor de aviso: a
+// pilula da ilha abre com ele (plrilha.h). player_toast e o informativo.
+void player_toast_ex(const char *texto, unsigned ms, const char *icone, int ambar);
 void player_limpar_erro_fonte(void);   // fonte "morta" que voltou a entregar
+// A tentativa do automatico de fontes ("Fonte 2 de 3" na ilha ao abrir):
+// `n` = qual (1 = a primeira), `max` = o teto. 0, 0 = nenhuma.
+void player_definir_tentativa(int n, int max);
 // 1 quando a fonte atual falhou. O app usa no watchdog de canal: stream de TV
 // ao vivo que nao abre troca sozinho para o proximo da lista.
 int  player_fonte_falhou(void);
@@ -61,6 +74,8 @@ int  player_tem_video(void);   // esta sessao abriu um video (nao o trailer)
 // 1 quando ha video de verdade por tras desta sessao. O desenho usa isto para
 // nao pintar a arte-chave por cima do plano de video.
 int  player_com_video(void);
+// Pinta o que fica fora do furo do video (ver player.c). So o recuado leva arte.
+void player_fundo_fora_do_furo(GfxRect furo, int recuado, const CatItem *c);
 int  player_pediu_faixas(void);   // CIMA no player abre audio/legendas
 
 // 1 enquanto a fonte abre. A tela mostra a arte-chave e um indicador; sem isso
@@ -73,22 +88,42 @@ int   player_foco_na_barra(void);
 // #128: 1 na busca que comecou com os controles escondidos, quando so a barra
 // e o tempo estao na tela.
 int   player_so_barra(void);
+// A mola da fileira de botoes: fecha (0) com o foco na barra, volta (1) com
+// ele embaixo. Para teste.
+float player_fileira(void);
 // #122: texto da legenda embutida entregue pelo player nativo, ja limpo.
 void  player_limpar_legenda_nativa(char *s);
 int   player_texto_legenda_nativa(char *dst, int tam);
 float player_posicao_seg(void);
+int   player_pausado(void);
+// Fator de cor do OSD do player (Ajustes > Brilho da interface no player + degrau
+// automatico com a barra parada). 1 = sem efeito. Ver esmaecer.h.
+float player_osd_brilho(void);
+float player_duracao_seg(void);
+int   player_eh_canal(void);
+// StreamFit (F03): 1 + real backend duration of the player's own source.
+int   player_duracao_midia(double *seg);
 
 // Liga a fonte numa sessao ja aberta. Existe porque o link so pode ser pedido
 // no ultimo instante (ver stream_idade_ms), entao a tela abre antes de haver
 // URL e o video entra quando chega.
 void player_definir_fonte(const char *url);
+// Desfaz a fonte em curso SEM fechar a tela: o video para e a sessao volta a
+// "abrindo fonte", como logo depois de player_abrir. E o recuo da fonte
+// guardada (fontevolta.h) para a busca normal, sem a pessoa ver o player
+// fechar e abrir.
+void player_voltar_a_esperar(void);
 
 int  player_aberto(void);   // 1 enquanto a tela existe, inclusive durante o fade de saida
 // Pedidos que so existem com um CANAL no ar (tipo "channel"/"tv"):
 // `player_pediu_guia` — BAIXO ou a tecla azul pediram o overlay do guia.
-// `player_pediu_zap` — CH+/CH- do controle (NV_SCANCODE_CH_UP/DOWN): +1/-1.
+// `player_pediu_zap` — CH+/CH- (NV_SCANCODE_CH_UP/DOWN), PgUp/PgDn e os botoes
+//   do OSD, somados por um debounce de 600 ms (aovivo.h): o deslocamento total.
 int  player_pediu_guia(void);
-int  player_pediu_zap(void);
+// O botao "Guia" do OSD do canal: o guia COMPLETO com o canal no preview.
+int  player_pediu_guia_cheio(void);
+int  player_pediu_zap(void);        // deslocamento em canais (+3, -1...), 0 = nenhum
+int  player_pediu_recarregar(void);  // "Recarregar" do OSD: refaz a fonte do mesmo canal
 // Identidade do canal congelada na abertura: o indice do catalogo pode ser
 // remapeado por uma republicacao da descoberta em plena reproducao, e zap/foco
 // do guia nao podem depender dele. "" quando a sessao nao e de canal.
@@ -101,6 +136,17 @@ void player_atualizar(float dt, Uint32 agora);
 void player_desenhar(Uint32 agora);
 int  player_quer_sair(void);  // 1 assim que o Back foi apertado
 void player_encerrar(void);
+// VOD na ilha: pausa antecipada durante a saida, conserva somente com ack,
+// depois retoma o mesmo IMDb/episodio sem reabrir fonte ou buscar posicao.
+void player_preparar_retencao(void);
+int  player_suspender(void);
+int  player_retido(void);
+// 1 = retida so ate o voo da saida pousar (Android, sem "Manter o video
+// pronto ao sair"); player_validar_retido solta em PLR_RETIDO_VOO_MS.
+int  player_retido_so_voo(void);
+int  player_retomar_retido(const char *imdb, int temporada, int episodio);
+void player_validar_retido(Uint32 agora);
+void player_descartar_retido(void);
 
 // --- MINI-PLAYER (PiP) DE CANAL ---------------------------------------------
 // Sair de um canal para a home nao mata a transmissao: o destino do plano de
@@ -210,5 +256,21 @@ int  player_leg_estilo_tocado(int campo);
 // pasta de arte, que a TV nao trata como persistente. Ver a nota em
 // prefsArquivo (player.c).
 void player_dir(const char *dir);
+
+#ifdef NV_SHOT_HOOKS
+// Capturas (tests/player_glass_shot.c): estado de tela sem pipeline.
+void player_shot_estado(Uint32 agora, float pos, float dur, int tocando, int botao,
+                        int barraFoco, int soBarra);
+void player_shot_foco(int botao, int barra);
+void player_shot_toast(Uint32 agora, const char *texto, const char *icone, int ambar, int modo);
+void player_shot_esconder(void);
+void player_shot_carregando(int sim);
+void player_shot_buscando(int sim);
+void player_shot_video(int sim);
+// Canal: a grade, o numero, quanto atras do ao vivo, o botao em foco e o
+// painel de Informacoes.
+void player_shot_favorito(int f);   // 1 = botao Favorito na fileira, 2 = e o canal nos favoritos
+void player_shot_canal(const AoVivoEpg *e, int numero, int atrasS, int botaoFoco, int info);   // comVideo sem furo: a arte faz de video
+#endif
 
 #endif

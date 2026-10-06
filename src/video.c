@@ -1,4 +1,7 @@
 #include "video.h"
+#include "esmaecer.h"
+#include "video_escala.h"
+#include "video_reconexao.h"
 #include "idioma.h"
 #include "linguas.h"
 #include <SDL2/SDL.h>
@@ -7,6 +10,7 @@
 #include "mkvass.h"
 #include "js.h"
 #include "lsregistro.h"
+#include "rede.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -95,7 +99,9 @@ static void aplicarEstilo(void);
 // Mesmo limite de Stream.url: o pipeline recebe a URL original, e cortar a
 // copia faria somente a sonda MKV/ASS falhar (inclusive apos tentar de novo).
 static char  urlAtual[4096];
+#if !defined(NV_TPK) && !defined(NV_ANDROID)   // .tpk e Android: video_url_atual vem do video_*.c do alvo
 const char *video_url_atual(void) { return urlAtual; }
+#endif
 // Recuperacao de pipeline destruido: pedida pelo fio de resposta do luna e
 // executada no fio principal (video_bombear), porque recarregar de dentro do
 // tratador de evento reentra no mesmo caminho que acabou de falhar.
@@ -120,12 +126,18 @@ static char  legUrlAoCarregar[1024];
 static char  legUrlAtual[1024];
 // Avanco pendente: alvo e quando manda-lo. Ver SEEK_REPOUSO_MS.
 static int    pausaPedida;   // 1 enquanto a pausa foi pedida por nos
+static int    pausaConfirmada;
 // Sonda de MKV pedida, esperando o buffer. Ver a nota no sourceInfo.
 static int    mkvPendente;
 // 1 quando a fonte foi anunciada como MP4. Ver video_definir_mp4.
 static int    fonteMp4;
 static double seekAlvo;
 static Uint32 seekEm;
+// Seek diagnostics (#246): when the last "seek" went out, whether seekDone has
+// come back, and the seekable/trickable flags the uMS reported. Log only.
+static Uint32 seekEnvEm;
+static int    seekEnvAlvo, seekEnvAviso;
+static int    srcSeekable = -1, srcTrickable = -1;
 // Declarada aqui porque video_bombear a chama antes da definicao. O clang do
 // Mac aceita a implicita; o gcc do ARM recusa — e o ARM que esta certo. Terceira
 // vez neste arquivo.
@@ -138,16 +150,23 @@ static int       fioMkvVivo;
 // abertura e fazer o load correto ser ignorado.
 static unsigned  sessao;
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 // No Mac nao existe barramento nem plano de video. Os cotos deixam o resto do
-// app compilar e rodar igual, so sem imagem em movimento.
+// app compilar e rodar igual, so sem imagem em movimento. As capturas podem
+// simular um video (video_simular, video.h); zerado e o coto mudo.
+static VideoSimulacao SIM;
+void video_simular(const VideoSimulacao *s) { if (s) SIM = *s; else memset(&SIM, 0, sizeof SIM); }
 int  video_iniciar(void) { return 0; }
 int  video_iniciar_auto(void) { return 0; }
 int  video_registro_negado(void) { return 0; }
+int video_luna(const char *uri, const char *carga, void (*cb)(const char *, void *), void *ctx) {
+  (void)uri; (void)carga; (void)cb; (void)ctx; return 0;
+}
 int  video_tocar(const char *u) { snprintf(urlAtual, sizeof urlAtual, "%s", u ? u : ""); return 0; }
 void video_bombear(void) {}
 void video_parar(void) {}
 void video_pausar(int p) { (void)p; }
+int  video_pausa_confirmada(void) { return 0; }
 void video_volume(int pct) { (void)pct; }
 void video_buscar(double s) { (void)s; }
 void video_janela(int x,int y,int w,int h) { (void)x;(void)y;(void)w;(void)h; }
@@ -161,51 +180,58 @@ void video_janela_fonte(int sx,int sy,int sw,int sh,int dx,int dy,int dw,int dh)
   (void)sx;(void)sy;(void)sw;(void)sh;(void)dx;(void)dy;(void)dw;(void)dh;
 }
 void video_recorte_reaplicar(void) {}
-double video_pos(void) { return 0; }
-double video_duracao(void) { return 0; }
+void video_escala_definir(int sw, int sh) { (void)sw; (void)sh; }
+double video_pos(void) { return SIM.pos; }
+double video_duracao(void) { return SIM.duracao; }
 // Sem pipeline nao ha arquivo para ler capitulos: no Mac o pos-reproducao cai
 // no plano B dos ultimos minutos, que e o mesmo caminho de um MKV sem
 // capitulos. Melhor um stub honesto que um numero inventado.
 double video_creditos(void) { return 0.0; }
-double video_buffer_fim(void) { return 0; }
+double video_buffer_fim(void) { return SIM.bufferFim; }
 void video_definir_dv(int dv) { (void)dv; }
 int  video_tocando(void) { return 0; }
-int  video_pronto(void) { return 0; }
+int  video_pronto(void) { return SIM.pronto; }
 int  video_ativo(void) { return 0; }
 int  video_falhou(void) { return 0; }
+const char *video_erro_texto(void) { return ""; }
+int  video_decoder_anunciou(void) { return 1; }
 int  video_audio_nao_suportado(void) { return 0; }
 int  video_terminou(void) { return 0; }
-unsigned video_bufferando_ms(void) { return 0; }
-int  video_n_audio(void) { return 0; }
-int  video_n_legenda(void) { return 0; }
-const VideoFaixa *video_audio(int i) { (void)i; return 0; }
-const VideoFaixa *video_legenda(int i) { (void)i; return 0; }
+int  video_conflito_recurso(void) { return 0; }
+unsigned video_bufferando_ms(void) { return SIM.bufferandoMs; }
+int  video_n_audio(void) { return SIM.nAudio; }
+int  video_n_legenda(void) { return SIM.nLeg; }
+const VideoFaixa *video_audio(int i) { return i >= 0 && i < SIM.nAudio ? &SIM.audio[i] : 0; }
+const VideoFaixa *video_legenda(int i) { return i >= 0 && i < SIM.nLeg ? &SIM.leg[i] : 0; }
 int video_legenda_ordinal_mkv(int i) { (void)i; return -1; }
 int  video_mkv_sondado(void) { return 2; }
 void video_sondar_mkv_agora(void) {}
-int  video_audio_atual(void) { return 0; }
-int  video_legenda_atual(void) { return -1; }
+int  video_audio_atual(void) { return SIM.audioAtual; }
+int  video_legenda_atual(void) { return SIM.nLeg ? SIM.legAtual : -1; }
 void video_escolher_audio(int i) { (void)i; }
 void video_escolher_legenda(int i) { (void)i; }
 int  video_legenda_nativa(char *d, int t) { (void)t; if (d) d[0] = 0; return 0; }
 void video_legenda_externa(const char *u) { (void)u; }
 void video_legenda_estilo(const VideoLegendaEstilo *e) { (void)e; }
 void video_definir_mp4(int m) { (void)m; }
+void video_definir_reconexao(int sim) { (void)sim; }
+int  video_reconectando(void) { return SIM.reconectando; }
 // No Mac quem toca e o pipeline do sistema por outro caminho; os cabecalhos do
 // addon so tem efeito no payload do load da webOS. Stub para o alvo linkar.
 void video_definir_cabecalhos(const char *cabs) { (void)cabs; }
-int  video_tem_atmos(void) { return 0; }
-int  video_tem_dolby_vision(void) { return 0; }
-const char *video_hdr(void) { return "none"; }
-int  video_largura(void) { return 0; }
-int  video_altura(void) { return 0; }
+int  video_tem_atmos(void) { return SIM.atmos; }
+int  video_tem_dolby_vision(void) { return SIM.dv; }
+const char *video_hdr(void) { return SIM.hdr[0] ? SIM.hdr : "none"; }
+int  video_largura(void) { return SIM.largura; }
+int  video_altura(void) { return SIM.altura; }
 int  video_pode_forcar_sdr(void) { return 0; }
 // No Mac nao ha plano de video: 1 para que a tela de aspecto ofereca todos os
 // modos ao desenvolver, que e o mesmo que a LG faz.
 int  video_recorte_fonte(void) { return 1; }
 void video_forcar_sdr(void) {}
 void video_encerrar(void) {}
-#else
+// .tpk da Samsung: o player e o do host .NET, em video_tpk.c.
+#elif !defined(NV_TPK) && !defined(NV_ANDROID)   // ramo luna (webOS): Android usa video_android.c
 #include <dlfcn.h>
 
 typedef struct LSHandle LSHandle;
@@ -277,6 +303,7 @@ static int         (*lsRegister)(const char *, LSHandle **, void *);
 static int         (*lsUnregister)(LSHandle *, void *);
 static int         (*lsAttach)(LSHandle *, void *, void *);
 static int         (*lsCall)(LSHandle *, const char *, const char *, Filtro, void *, unsigned long *, void *);
+static int (*lsCallUma)(LSHandle *, const char *, const char *, Filtro, void *, unsigned long *, void *);
 static const char *(*lsPayload)(LSMessage *);
 static void *(*loopNovo)(void *, int);
 static void  (*loopRodar)(void *);
@@ -347,6 +374,18 @@ static long      acb;
 // Retangulo pedido pela UI. Guardado porque o ACB so aceita a janela depois do
 // loadCompleted, que chega muito depois de quem pediu.
 static int       janX, janY, janW = 1920, janH = 1080;
+// Tamanho da superficie (drawable) em que o retangulo de DESTINO do plano de
+// video e entendido; 1920x1080 ate o main dizer outra coisa. Ver video_escala.h.
+static int       escW = 1920, escH = 1080;
+// Destino em unidades de layout -> pixels da superficie. So o DESTINO escala: a
+// fonte (recorte) e o quadro `org` sao coordenadas do quadro decodificado.
+static SDL_Rect escDst(int x, int y, int w, int h) {
+  NvRetInt r = { x, y, w, h };
+  SDL_Rect o;
+  r = nv_video_escalar(r, 1920, 1080, escW, escH);
+  o.x = r.x; o.y = r.y; o.w = r.w; o.h = r.h;
+  return o;
+}
 // Ultimo par fonte/destino aplicado pelo setDisplayWindow do uMS, para nao
 // repetir a mesma chamada a cada quadro. fonX = -1 quer dizer "nada aplicado".
 static int       fonX = -1, fonY, fonW, fonH, dstX = -1, dstY, dstW, dstH;
@@ -392,9 +431,23 @@ static int dvPedido;
 static char      midia[64];
 static double    posSeg, durSeg;
 static int       tocando, pronto, ligado, falhou, terminou;
+// Ver video_erro_texto. Escrito no fio do LS2, lido pelo de desenho: e so
+// texto curto e o pior caso de corrida e ler meia mensagem num quadro.
+static char      erroTexto[96];
 // errorCode 200 "Audio Codec Not Supported": o VIDEO segue tocando e so o
 // audio morre. Ver o tratamento em lerEvento.
 static int       audioNaoSup;
+// RECONEXAO (video_reconexao.h). O erro chega no fio do LS2 e so ANOTA
+// (reconErroPend); a decisao e o recarregar sao do video_bombear, no fio
+// principal, como o `recuperando`.
+static NvReconexao recon;
+static int reconProxima, reconPermitida, reconIniciou;
+static volatile int reconErroPend, reconErroRede;
+// Escolhas da pessoa no instante da queda. Guardadas a parte porque cada
+// tentativa passa por tocarInterno, que zera audioAtual/legAtual/legUrlAtual:
+// uma segunda tentativa leria o estado do recarregar que nao abriu.
+static int  reconAudio = -1, reconLeg = -1;
+static char reconLegUrl[1024];
 
 // PLAYER_TYPE_MSE. O ACB usa isto para saber que a fonte e um pipeline de
 // midia e nao um sintonizador.
@@ -490,19 +543,33 @@ static void esperar(int ms) { struct timespec t; t.tv_sec = ms / 1000;
 // /etc/starfish-release da a linha "Rockhopper release 4.10.2-31 (...)" — o
 // numero depois de "release" e o que vale. Sem o arquivo, a ausencia da
 // libAcbAPI ja e prova de 5+, porque foi nela que a LG apagou a lib.
+// A LINHA INTEIRA vai ao log uma vez (#158). O "pronto (webOS 5, ...)" do
+// registro 6311 (LG C4 atualizada para webOS 11.2) era o chute "sem ACB => 5"
+// e nao a versao: a TV do relato e as que tocam saiam iguais no log, e a
+// unica diferenca conhecida — o firmware — nao aparecia em lugar nenhum.
+static char releaseLinha[128];
 static int webosMaior(void) {
-  static int v;
+  static int v, lido;
   if (v) return v;
   { FILE *f = fopen("/etc/starfish-release", "r");
     if (f) {
       char linha[256];
       while (fgets(linha, sizeof linha, f)) {
         const char *r = strstr(linha, "release ");
+        if (!releaseLinha[0]) {
+          size_t n = strcspn(linha, "\r\n");
+          snprintf(releaseLinha, sizeof releaseLinha, "%.*s", (int)n, linha);
+        }
         if (r && sscanf(r + 8, "%d", &v) == 1 && v > 0) break;
         v = 0;
       }
       fclose(f);
     } }
+  if (!lido) {
+    lido = 1;
+    printf("[video] starfish-release: %s\n", releaseLinha[0] ? releaseLinha : "(sem arquivo)");
+    fflush(stdout);
+  }
   if (!v) v = expWin[0] ? 5 : 4;
   return v;
 }
@@ -631,12 +698,16 @@ static void *prenderPlano(void *u) {
   // COM RECORTE DE FONTE JA PEDIDO, prende o plano com o recorte — a janela
   // lisa aqui era o que desfazia o zoom do trailer (trailer.c pede o recorte
   // assim que o videoInfo chega, e este bind termina depois disso).
-  if (fonX >= 0 && acbJanelaCustom)
-    acbJanelaCustom(acb, fonX, fonY, fonW, fonH, dstX, dstY, dstW, dstH,
-                    (dstX == 0 && dstY == 0 && dstW == 1920 && dstH == 1080), &tarefa);
-  else
-    acbJanela(acb, janX, janY, janW, janH,
-              (janX == 0 && janY == 0 && janW == 1920 && janH == 1080), &tarefa);
+  { SDL_Rect d = escDst(fonX >= 0 ? dstX : janX, fonX >= 0 ? dstY : janY,
+                        fonX >= 0 ? dstW : janW, fonX >= 0 ? dstH : janH);
+    if (fonX >= 0 && acbJanelaCustom)
+      acbJanelaCustom(acb, fonX, fonY, fonW, fonH, d.x, d.y, d.w, d.h,
+                      (dstX == 0 && dstY == 0 && dstW == 1920 && dstH == 1080), &tarefa);
+    else {
+      d = escDst(janX, janY, janW, janH);
+      acbJanela(acb, d.x, d.y, d.w, d.h,
+                (janX == 0 && janY == 0 && janW == 1920 && janH == 1080), &tarefa);
+    } }
   acbEstado(acb, NV_ACB_FOREGROUND, estTocando, &tarefa);
   printf("[video] plano preso em %d,%d %dx%d%s\n", janX, janY, janW, janH,
          fonX >= 0 ? " (com recorte)" : "");
@@ -656,7 +727,7 @@ static void recorteNoPrimeiroQuadro(void) {
     int ok;
     org.x = 0; org.y = 0; org.w = vidW > 0 ? vidW : 1920; org.h = vidH > 0 ? vidH : 1080;
     src.x = fonX; src.y = fonY; src.w = fonW; src.h = fonH;
-    dst.x = dstX; dst.y = dstY; dst.w = dstW; dst.h = dstH;
+    dst = escDst(dstX, dstY, dstW, dstH);
     ok = sdlExpRecorte(expWin, &org, &src, &dst);
     printf("[video] recorte reaplicado no primeiro quadro (janela exportada) -> %d\n", ok);
     fflush(stdout);
@@ -696,7 +767,16 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
     if (strstr(p, "\"error") || strstr(p, "rror\"")) logar = 1;   // erro sempre sai
     while (n && (p[n - 1] == '\n' || p[n - 1] == '\r' || p[n - 1] == ' ')) n--;
     if (logar) { printf("[video] ev %.*s\n", (int)n, p); fflush(stdout); } }
+  if (strstr(p, "seekDone") && seekEnvEm) {
+    printf("[video] seek to %ds done in %ums\n", seekEnvAlvo, (unsigned)(SDL_GetTicks() - seekEnvEm));
+    fflush(stdout);
+    seekEnvEm = 0;
+  }
   if (strstr(p, "sourceInfo")) {
+    { const char *q = strstr(p, "\"seekable\":");
+      srcSeekable = q ? (strncmp(q + 11, "true", 4) == 0) : -1;
+      q = strstr(p, "\"trickable\":");
+      srcTrickable = q ? (strncmp(q + 12, "true", 4) == 0) : -1; }
     const char *q;
     nAudio = nLeg = 0;
     vidAtmos = 0;
@@ -970,6 +1050,7 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
     marco(m);
   }
   if (strstr(p, "playing")) {
+    pausaConfirmada = 0;
     tocando = 1;
     if (acb && midia[0]) {
       long tarefa = 0;
@@ -978,11 +1059,13 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
       // (trailer.c) pedia o zoom antes do `playing`, esta linha desfazia, e a
       // tarja preta voltava (dono, 20/09/2026: "mas ta com a barra").
       if (fonX >= 0 && acbJanelaCustom) {
-        acbJanelaCustom(acb, fonX, fonY, fonW, fonH, dstX, dstY, dstW, dstH,
+        SDL_Rect d = escDst(dstX, dstY, dstW, dstH);
+        acbJanelaCustom(acb, fonX, fonY, fonW, fonH, d.x, d.y, d.w, d.h,
                         (dstX == 0 && dstY == 0 && dstW == 1920 && dstH == 1080), &tarefa);
         printf("[video] recorte reaplicado com o fluxo ja tocando\n");
       } else {
-        acbJanela(acb, janX, janY, janW, janH,
+        SDL_Rect d = escDst(janX, janY, janW, janH);
+        acbJanela(acb, d.x, d.y, d.w, d.h,
                   (janX == 0 && janY == 0 && janW == 1920 && janH == 1080), &tarefa);
         printf("[video] janela reaplicada com o fluxo ja tocando\n");
       }
@@ -994,6 +1077,7 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
     // pausa vinda do pipeline e o defeito.
     if (tocando && !pausaPedida) marco("pausado PELO PIPELINE");
     tocando = 0;
+    pausaConfirmada = pausaPedida;
   }
   if (strstr(p, "endOfStream")) { tocando = 0; terminou = 1; marco("endOfStream"); }
 
@@ -1012,6 +1096,19 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
     snprintf(m, sizeof m, "pipeline erro: %.60s", q);
     { char *n2; for (n2 = m; *n2; n2++) if (*n2 == '\n' || *n2 == '\r') *n2 = ' '; }
     marco(m);
+    // Guardado para a tela (video_erro_texto): codigo e texto, sem o resto do
+    // JSON. "40403 server error:40403" e o que o registro 4958 (#158) trouxe
+    // no canal que o provedor dava como "Media Not Found".
+    { double cod = numeroDe(p, "\"errorCode\":");
+      const char *t = strstr(p, "errorText\":\"");
+      char txt[72] = "";
+      if (t) {
+        const char *f;
+        t += 12;
+        f = strchr(t, '"');
+        if (f && f - t < (int)sizeof txt) { memcpy(txt, t, (size_t)(f - t)); txt[f - t] = 0; }
+      }
+      snprintf(erroTexto, sizeof erroTexto, "%.0f %s", cod >= 0 ? cod : 0.0, txt); }
     // PIPELINE DESTRUIDO. Medido duas vezes na TV do dono: ~71 s depois de um
     // avanco, o uMS responde "com.webos.pipeline.<id> is not running" e o video
     // simplesmente para — o app nao fazia NADA, e era isso que ele descrevia
@@ -1040,6 +1137,11 @@ static int aoEvento(LSHandle *h, LSMessage *m, void *u) {
       legAoCarregar   = legAtual;
       snprintf(legUrlAoCarregar, sizeof legUrlAoCarregar, "%s", legUrlAtual);
       marco("pipeline morreu: recarregando");
+    } else if (!recuperando) {
+      // Qualquer outro erro: pode ser a rede caindo com o episodio andando.
+      // Quem decide entre reconectar e `falhou` e o video_bombear.
+      reconErroRede = nv_recon_rede_ums(numeroDe(p, "\"errorCode\":"));
+      reconErroPend = 1;
     } else falhou = 1;
   }
   { double v = numeroDe(p, "\"currentTime\":");
@@ -1091,6 +1193,42 @@ static int lsChamar(const char *uri, const char *carga, Filtro cb, void *ctx,
   return ok;
 }
 
+// CHAMADA LUNA PARA QUEM NAO E O PLAYER (ondever.c: listar apps, abrir a
+// Netflix, abrir a loja). Mesmo barramento: o app roda como usuario comum no
+// jail e nao pode executar luna-send (medido na C9, 02/10: "sh: luna-send:
+// Permission denied"); o LS2 por dlopen e a porta que funciona. Uma resposta
+// so (LSCallOneReply), entregue no fio do laco do glib.
+static int iniciar(int automatico);
+typedef struct { void (*cb)(const char *, void *); void *ctx; } LunaPedido;
+static int lunaResposta(LSHandle *h, LSMessage *m, void *u) {
+  LunaPedido *p = u;
+  (void)h;
+  if (p) { if (p->cb) p->cb(lsPayload(m), p->ctx); free(p); }
+  return 1;
+}
+int video_luna(const char *uri, const char *carga, void (*cb)(const char *, void *), void *ctx) {
+  union { NvLsErro e; char folga[256]; } er;
+  unsigned long tok = 0;
+  LunaPedido *p;
+  int ok;
+  if (!bus) iniciar(1);
+  if (!bus || !lsCallUma) { printf("[video] luna %s: bus unavailable\n", uri); fflush(stdout); return 0; }
+  p = malloc(sizeof *p);
+  if (!p) return 0;
+  p->cb = cb; p->ctx = ctx;
+  memset(&er, 0, sizeof er);
+  if (lsErroIniciar) lsErroIniciar(&er);
+  ok = lsCallUma(bus, uri, carga, lunaResposta, p, &tok, &er);
+  if (!ok) {
+    printf("[video] luna %s failed: code=%d msg=%.200s\n", uri, er.e.code,
+           er.e.message ? er.e.message : "(vazio)");
+    fflush(stdout);
+    free(p);
+  }
+  if (er.e.message && lsErroLiberar) lsErroLiberar(&er);
+  return ok;
+}
+
 static void chamar(const char *metodo, const char *carga, Filtro cb) {
   char uri[128];
   snprintf(uri, sizeof uri, "luna://com.webos.media/%s", metodo);
@@ -1125,6 +1263,8 @@ static void chamarEm(const char *servico, const char *metodo,
   lsChamar(uri, carga, cb, NULL, rot);
 }
 
+static void protegerScreensaver(void);
+static int modoLoad;   // video_modo_live_consumir do load em curso
 static int aoCarregar(LSHandle *h, LSMessage *m, void *u) {
   const char *p = lsPayload(m), *q;
   char b[256];
@@ -1152,18 +1292,68 @@ static int aoCarregar(LSHandle *h, LSMessage *m, void *u) {
     if (!f || f - q >= (int)sizeof midia) return 1;
     memcpy(midia, q, f - q); midia[f - q] = 0; }
 
+  protegerScreensaver();
   snprintf(b, sizeof b, "{\"connectionId\":\"%s\"}", midia);
   chamar("notifyForeground", b, soLog);
   snprintf(b, sizeof b, "{\"mediaId\":\"%s\"}", midia);
   chamarCtx("subscribe", b, aoEvento, (void *)(uintptr_t)minhaSessao);
-  snprintf(b, sizeof b, "{\"mediaId\":\"%s\",\"type\":\"video\",\"index\":0}", midia);
-  chamar("selectTrack", b, soLog);
+  // MODO 1/2 (#158): sem selectTrack antes do sourceInfo — o pipeline de live
+  // ainda nao sabe que faixas tem, e e a unica chamada que este app manda que
+  // o navegador e o Kodi nao mandam no comeco.
+  if (!modoLoad) {
+    snprintf(b, sizeof b, "{\"mediaId\":\"%s\",\"type\":\"video\",\"index\":0}", midia);
+    chamar("selectTrack", b, soLog);
+  }
   snprintf(b, sizeof b, "{\"mediaId\":\"%s\"}", midia);
   chamar("play", b, soLog);
   return 1;
 }
 
 static void *rodarLaco(void *u) { (void)u; loopRodar(laco); return NULL; }
+
+// SCREENSAVER DA LG DURANTE O FILME. O buraco de video composto por GL nao conta
+// como "video em tela cheia" para o tvpower, entao o timer de inatividade do
+// remoto dispara o screensaver no meio do filme (relato C1, 1.7.0: a cada ~20
+// min). API nao documentada: assina registerScreenSaverRequest; quando o
+// screensaver vai ativar chega state "Active" + timestamp, e responder ack:false
+// com o MESMO timestamp o cancela. Sem filme tocando respondemos ack:true para
+// nao segurar o screensaver normal da TV.
+static int protetorLigado;
+static int aoPedidoScreensaver(LSHandle *h, LSMessage *m, void *u) {
+  const char *p = lsPayload(m);
+  char estado[24], ts[64], b[192];
+  int segurar;
+  (void)h; (void)u;
+  if (!ligado || !bus || !p ||
+      !js_texto_raiz(p, "state", estado, sizeof estado) || strcmp(estado, "Active")) return 1;
+  // Preserva o token recebido, inclusive quando string, sem arredondar numeros
+  // grandes ou responder com timestamp truncado.
+  if (!js_bruto(p, NULL, "timestamp", ts, sizeof ts)) return 1;
+  if (ts[0] != '"') {
+    char *fim;
+    if (!isdigit((unsigned char)ts[0]) && ts[0] != '-') return 1;
+    strtod(ts, &fim);
+    if (*fim) return 1;
+  }
+  segurar = midia[0] && tocando && !pausaPedida && !terminou && !falhou;
+  // A tela de descanso do Nuvio (vitrine/relogio) e quem cuida da TV parada:
+  // o screensaver da LG entraria por cima dela no mesmo minuto.
+  if (!segurar && esmaecer_segura_protetor_tv()) segurar = 2;
+  snprintf(b, sizeof b, "{\"clientName\":\"space.nuvio.native.legacy\",\"ack\":%s,\"timestamp\":%s}",
+           segurar ? "false" : "true", ts);
+  printf("[video] screensaver pedido: %s\n", segurar == 2 ? "seguro (tela de descanso do Nuvio)"
+                                           : segurar ? "seguro (filme tocando)" : "liberado");
+  fflush(stdout);
+  lsChamar("luna://com.webos.service.tvpower/power/responseScreenSaverRequest",
+           b, NULL, NULL, "responseScreenSaverRequest");
+  return 1;
+}
+static void protegerScreensaver(void) {
+  if (protetorLigado || !ligado || !bus) return;
+  protetorLigado = lsChamar("luna://com.webos.service.tvpower/power/registerScreenSaverRequest",
+           "{\"subscribe\":true,\"clientName\":\"space.nuvio.native.legacy\"}",
+           aoPedidoScreensaver, NULL, "registerScreenSaverRequest");
+}
 
 // O ACB EXIGE um callback de verdade. Passar NULL nao e ignorado: no primeiro
 // evento ele salta para o endereco 0 e o app morre com SIGSEGV em pc=0x0, longe
@@ -1240,6 +1430,7 @@ static int iniciar(int automatico) {
   // Soft como acbJanelaCustom: so e usado na limpeza de um registro a meio
   // caminho; faltar numa lib nao pode custar o video inteiro.
   *(void **)(&lsUnregister) = dlsym(L, "LSUnregister");
+  *(void **)(&lsCallUma) = dlsym(L, "LSCallOneReply");
   SIM(G, loopNovo,   "g_main_loop_new");
   SIM(G, loopRodar,  "g_main_loop_run");
   SIM(G, loopParar,  "g_main_loop_quit");
@@ -1330,6 +1521,10 @@ static int iniciar(int automatico) {
   printf("[video] pronto (webOS %d, acb=%ld, janela=%s)\n",
          webosMaior(), acb, expWin[0] ? expWin : "-");
   fflush(stdout);
+  // TELA DE DESCANSO (esmaecer.h): o pedido do screensaver da TV passa a ser
+  // respondido desde ja, e nao so no primeiro filme. Sem tela de descanso do
+  // Nuvio a resposta continua ack:true (o da TV entra como sempre).
+  protegerScreensaver();
   return 1;
 }
 
@@ -1470,20 +1665,43 @@ static void *lerMkv(void *arg) {
       // TV nao trouxe idioma.
       snprintf(f->codec, sizeof f->codec, "%s", m->codec);
       f->ordinalMkv = ordinal;
-      if (jaTemIdioma) continue;
-      if (m->idioma[0] && strcmp(m->idioma, "und")) {
-        snprintf(f->idioma, sizeof f->idioma, "%s", m->idioma);
-        casou++;
+      { const char *peloNome = ling_do_nome(m->nome);
+        int letreiro = ling_letreiro(m->nome, m->forcado), corrigiu = 0;
+        char id[8];
+        snprintf(id, sizeof id, "%s", jaTemIdioma ? f->idioma
+                 : (m->idioma[0] && strcmp(m->idioma, "und")) ? m->idioma : "");
+        // O NOME DIZ OUTRO IDIOMA: "Português" etiquetado eng e comum em
+        // release remontado, e quem escolhe pela lista le o nome. So quando o
+        // nome cita UM idioma com todas as letras (ling_do_nome); fora disso
+        // fica a etiqueta do arquivo.
+        if (peloNome && (!id[0] || !ling_casa(peloNome, id))) {
+          printf("[mkv]   tv[%d]: nome \"%s\" diz %s, etiqueta diz %s: vale o nome\n", i,
+                 m->nome, peloNome, id[0] ? id : "-");
+          snprintf(id, sizeof id, "%s", peloNome);
+          corrigiu = 1;
+        }
+        f->letreiro = letreiro;
+        if (jaTemIdioma && !corrigiu && !letreiro) continue;
+        if (!jaTemIdioma && id[0]) casou++;
+        snprintf(f->idioma, sizeof f->idioma, "%s", id);
+        // LETREIROS: "Português  ·  Letreiros", seja o nome "Signs & Songs",
+        // "Forced" ou a flag do arquivo — a pessoa precisa saber que essa nao
+        // traduz o dialogo.
+        if (letreiro)
+          snprintf(f->rotulo, sizeof f->rotulo, "%s%s%s",
+                   f->idioma[0] ? i18n(ling_nome(f->idioma)) : "",
+                   f->idioma[0] ? "  \xc2\xb7  " : "", i18n("Letreiros"));
+        // O NOME da faixa ("SDH", "Full") e o que separa duas legendas do
+        // MESMO idioma. Sem ele o dono ve "Portugues" tres vezes e escolhe no
+        // escuro — e essa e justamente a lista que ele reclamou. Nome que e so
+        // o idioma ("Português", uma palavra) nao repete o que ja esta ali.
+        else if (m->nome[0] && !(peloNome && !strchr(m->nome, ' ')))
+          snprintf(f->rotulo, sizeof f->rotulo, "%s%s%s",
+                   f->idioma[0] ? i18n(ling_nome(f->idioma)) : "",
+                   f->idioma[0] ? "  \xc2\xb7  " : "", m->nome);
+        else if (f->idioma[0])
+          snprintf(f->rotulo, sizeof f->rotulo, "%s", i18n(ling_nome(f->idioma)));
       }
-      // O NOME da faixa ("Forced", "SDH", "Full") e o que separa duas legendas
-      // do MESMO idioma. Sem ele o dono ve "Portugues" tres vezes e escolhe no
-      // escuro — e essa e justamente a lista que ele reclamou.
-      if (m->nome[0])
-        snprintf(f->rotulo, sizeof f->rotulo, "%s%s%s",
-                 f->idioma[0] ? i18n(ling_nome(f->idioma)) : "",
-                 f->idioma[0] ? "  \xc2\xb7  " : "", m->nome);
-      else if (f->idioma[0])
-        snprintf(f->rotulo, sizeof f->rotulo, "%s", i18n(ling_nome(f->idioma)));
     }
     fflush(stdout); }
   { char m[64];
@@ -1504,9 +1722,42 @@ static long agoraMs(void) {
 }
 
 static int tocarInterno(const char *url, int comDV);
+static void pararSessao(void);
+
+// Recarrega a fonte corrente e, quando o load terminar, devolve faixas e
+// posicao (o loadCompleted aplica: faixas primeiro, posicao depois). Serve a
+// morte de pipeline e a reconexao.
+//
+// As escolhas vao para os campos *AoCarregar DEPOIS do tocarInterno: ele passa
+// por pararSessao, que os zera. Antes o `recuperando` gravava faixas e legenda
+// externa no fio do LS2 e o tocarInterno as apagava em seguida, entao o video
+// voltava sempre com a faixa 0 e sem legenda.
+static int recarregarMesmaFonte(double alvo, int aud, int leg, const char *legUrl) {
+  char lu[sizeof legUrlAoCarregar];
+  snprintf(lu, sizeof lu, "%s", legUrl ? legUrl : "");
+  if (!tocarInterno(urlAtual, !semDVForcado)) return 0;
+  audioAoCarregar = aud;
+  legAoCarregar   = leg;
+  snprintf(legUrlAoCarregar, sizeof legUrlAoCarregar, "%s", lu);
+  // O seek so vale depois do load; guardar o alvo e deixar o loadCompleted
+  // aplica-lo evita mandar posicao para um pipeline que ainda nao existe.
+  if (alvo > 1.0) posAoCarregar = alvo;
+  return 1;
+}
+
+void video_definir_reconexao(int sim) { reconProxima = sim ? 1 : 0; }
+int  video_reconectando(void) {
+  return nv_recon_ativa(&recon) && (recon.pendente || !pronto) ? recon.tentativa : 0;
+}
 
 int video_tocar(const char *url) {
   dvRecuado = 0;
+  // O modo vale para esta fonte e para os recarregar dela (tocarInterno).
+  modoLoad = video_modo_live_consumir();
+  nv_recon_zerar(&recon);
+  reconPermitida = reconProxima; reconProxima = 0;
+  reconIniciou = 0; reconErroPend = 0;
+  reconAudio = reconLeg = -1; reconLegUrl[0] = 0;
   falhou = 0; terminou = 0; audioNaoSup = 0;
   // FONTE NOVA, decisao nova: o "sem HDR" era sobre o arquivo anterior.
   semDVForcado = 0;
@@ -1549,16 +1800,51 @@ void video_bombear(void) {
     Uint32 q = seekEm; seekEm = 0; (void)q;
     seekAgora(seekAlvo);
   }
+  if (seekEnvEm && !seekEnvAviso && SDL_GetTicks() - seekEnvEm >= 3000) {
+    seekEnvAviso = 1;
+    printf("[video] seek to %ds: no seekDone after 3000 ms; pipeline at %dms, seekable=%d trickable=%d\n",
+           seekEnvAlvo, (int)(posSeg * 1000.0), srcSeekable, srcTrickable);
+    fflush(stdout);
+  }
   // RECUPERACAO DO PIPELINE, no fio principal. Ver a nota em `recuperando`.
   if (recuperando) {
     double alvo = retomarEm;
     recuperando = 0;
     marco("recarregando a fonte");
-    if (tocarInterno(urlAtual, !semDVForcado) && alvo > 1.0) {
-      // O seek so vale depois do load; guardar o alvo e deixar o
-      // loadCompleted aplica-lo evita mandar posicao para um pipeline que
-      // ainda nao existe.
-      posAoCarregar = alvo;
+    recarregarMesmaFonte(alvo, audioAoCarregar, legAoCarregar, legUrlAoCarregar);
+  }
+  // RECONEXAO: ver video_reconexao.h.
+  if (pronto && posSeg > 0.5) reconIniciou = 1;
+  if (pronto) nv_recon_progresso(&recon, posSeg);
+  if (reconErroPend) {
+    int antes = recon.tentativa;
+    reconErroPend = 0;
+    if (reconPermitida && urlAtual[0] && (reconIniciou || recon.tentativa) &&
+        nv_recon_erro(&recon, reconErroRede, SDL_GetTicks(), posSeg)) {
+      if (!antes) {
+        reconAudio = audioAtual; reconLeg = legAtual;
+        snprintf(reconLegUrl, sizeof reconLegUrl, "%s", legUrlAtual);
+      }
+      if (recon.tentativa != antes) {
+        char m[96];
+        snprintf(m, sizeof m, "conexao caiu (%.40s): tentativa %d/%d, espera %us",
+                 erroTexto, recon.tentativa, NV_RECON_MAX,
+                 nv_recon_espera_ms(recon.tentativa) / 1000u);
+        marco(m);
+      }
+      bufferandoDesde = 0;
+    } else {
+      if (recon.esgotou) marco("reconexao: desistiu depois de 3 tentativas");
+      falhou = 1;
+    }
+  }
+  if (nv_recon_vencida(&recon, SDL_GetTicks())) {
+    char m[64];
+    snprintf(m, sizeof m, "reconectando: alvo %.0fs, tentativa %d", recon.alvo, recon.tentativa);
+    marco(m);
+    // Load que nem sai daqui conta como a proxima tentativa.
+    if (!recarregarMesmaFonte(recon.alvo, reconAudio, reconLeg, reconLegUrl)) {
+      reconErroRede = 1; reconErroPend = 1;
     }
   }
   // O recuo por prazo foi REMOVIDO por nao funcionar: o gatilho era "o pipeline
@@ -1651,7 +1937,12 @@ static void montarHttpHeader(char *dst, unsigned tam) {
     if (ck[0])  { u += snprintf(dst + u, tam - u, "%s\"cookies\":\"%s\"", algum++ ? "," : "", ck); }
     snprintf(dst + u, tam - u, "}},");
   }
-  printf("[video] httpHeader no load: %s\n", dst); fflush(stdout);
+  // O cookie do stream e credencial de terceiro (CloudFront assinado): o log
+  // vai para o D1, entao mostra so quais campos foram, nunca o valor.
+  printf("[video] httpHeader no load: referer=%s userAgent=%s cookies=%s\n",
+         ref[0] ? "sim" : "nao", ua[0] ? "sim" : "nao",
+         ck[0] ? "sim (omitido)" : "nao");
+  fflush(stdout);
 }
 
 static int tocarInterno(const char *url, int comDV) {
@@ -1664,7 +1955,7 @@ static int tocarInterno(const char *url, int comDV) {
   char carga[8192];
   unsigned minhaSessao;
   if (!ligado && !video_iniciar()) return 0;
-  video_parar();
+  pararSessao();
   minhaSessao = ++sessao;
   viuVideo = 0;
   // O retangulo aplicado e da SESSAO: sem zerar, uma sessao nova que calcule o
@@ -1755,6 +2046,21 @@ static int tocarInterno(const char *url, int comDV) {
   }
   { char hh[768];
     montarHttpHeader(hh, sizeof hh);
+  if (modoLoad == 2) {
+    // PAYLOAD ENXUTO DE LIVE (#158, modo 2): o que o load de um <video> HLS
+    // costuma mandar — transporte dito pelo nome, sem useSeekableRanges nem
+    // bufferControl (que sao de VOD). Experimental, atras de Ajustes.
+    int hls = strstr(url, ".m3u8") != NULL;
+    snprintf(carga, sizeof carga,
+        "{\"payload\":{\"option\":{"
+        "\"appId\":\"space.nuvio.native.legacy\","
+        "%s%s"
+        "\"mediaTransportType\":\"%s\","
+        "\"windowId\":\"%s\"}},"
+        "\"uri\":\"%s\",\"type\":\"media\"}",
+        dolby, hh, hls ? "HLS" : "URI",
+        expWin[0] ? expWin : "window_id_dummy", url);
+  } else
   snprintf(carga, sizeof carga,
       "{\"payload\":{\"option\":{\"useSeekableRanges\":true,"
       "\"appId\":\"space.nuvio.native.legacy\","
@@ -1775,13 +2081,61 @@ static int tocarInterno(const char *url, int comDV) {
       falhou = 1;
       return 0;
     } }
-  printf("[video] URL: %s\n", url); fflush(stdout);
+  // A URL INTEIRA NAO VAI AO LOG (#158). Ate a 1.5.3 esta linha imprimia a
+  // URL crua, e a do Xtream leva usuario e senha no caminho
+  // (<servidor>/live/U/P/<id>.m3u8): os registros 4958 e 6311 chegaram ao D1
+  // com a credencial do provedor da pessoa dentro. O host e a extensao bastam
+  // para a triagem ("qual servidor", "HLS ou TS").
+  { char pub[160], ext[12] = "";
+    const char *q = strchr(url, '?'), *b, *d;
+    size_t n = q ? (size_t)(q - url) : strlen(url);
+    for (b = url + n; b > url && b[-1] != '/'; b--) {}
+    for (d = url + n; d > b && d[-1] != '.'; d--) {}
+    if (d > b && (size_t)(url + n - d) < sizeof ext - 1) {
+      size_t k = (size_t)(url + n - d), i;
+      int ok = 1;
+      for (i = 0; i < k; i++) if (!isalnum((unsigned char)d[i])) ok = 0;
+      if (ok && k) { ext[0] = '.'; memcpy(ext + 1, d, k); ext[k + 1] = 0; }
+    }
+    printf("[video] URL: %s%s%s\n", rede_url_publica(url, pub, sizeof pub),
+           ext[0] ? " " : "", ext);
+    fflush(stdout); }
+  // JANELA EXPORTADA ANTES DO LOAD (#158) — DEFENSIVO, NAO PROVADO.
+  //
+  // O que o registro mostra (6311/6314, LG C4 em webOS 11.2, e 6362/6372,
+  // outra TV com PowerVR, outro provedor): o load volta errorCode 0, o
+  // resourceInfo reserva VDEC e ADEC, o bufferRange sobe (9 s numa, 36 s na
+  // outra) — e NUNCA chega videoInfo, sourceInfo nem loadCompleted, em
+  // NENHUMA fonte (Xtream, flixnest, sslip), ate o "Playing error" (100). Nas
+  // outras TVs com o mesmo caminho (c7ca4398, 7005) o videoInfo chega em ~3 s.
+  // Os dados chegam; o decoder nao se anuncia.
+  //
+  // O que muda aqui: ate agora o SetExportedWindow so era chamado DEPOIS do
+  // load (video_janela desiste sem mediaId, e o preview ja tinha gravado o
+  // retangulo antes — o "sem repetir" engolia a chamada seguinte). Na
+  // primeira reproducao de uma sessao a janela exportada ia ao pipeline sem
+  // nunca ter recebido quadro nem destino. A ordem do guia de midia do
+  // webosbrew e: cria a janela, SetExportedWindow, e so entao o load com o
+  // windowId. Se isto e o que o webOS 11 passou a exigir, nao sei: e a unica
+  // diferenca de protocolo que este lado controla, e custa uma chamada que o
+  // fluxo ja fazia (depois). A prova e o proximo registro dessa TV mostrar
+  // videoInfo.
+  if (expWin[0]) expJanelaAplicar();
+  if (modoLoad) { printf("[video] modo do load: %d\n", modoLoad); fflush(stdout); }
   msDoLoad = agoraMs();
   chamarCtx("load", carga, aoCarregar, (void *)(uintptr_t)minhaSessao);
   return 1;
 }
 
+// Sair do video (ou trocar de fonte) cancela a queda em curso: sem isto o
+// video_bombear recarregaria a fonte velha depois de a tela ja ter fechado.
 void video_parar(void) {
+  nv_recon_zerar(&recon);
+  reconErroPend = 0;
+  pararSessao();
+}
+
+static void pararSessao(void) {
   char b[128];
   // Invalida tambem a sessao que ainda esta esperando o retorno de load. Esse
   // era o caso abrir -> sair -> abrir que travava: nao havia mediaId para
@@ -1792,20 +2146,28 @@ void video_parar(void) {
   audioAoCarregar = legAoCarregar = -1;
   legUrlAoCarregar[0] = 0;
   pausaPedida = 0; seekEm = 0; mkvPendente = 0;
+  pausaConfirmada = 0;
   if (ligado && midia[0]) {
     snprintf(b, sizeof b, "{\"mediaId\":\"%s\"}", midia);
     chamar("unload", b, soLog);
   }
   midia[0] = 0; tocando = pronto = 0; falhou = 0; audioNaoSup = 0;
+  erroTexto[0] = 0;
 }
 
 void video_pausar(int pausado) {
   char b[128];
   if (!ligado || !midia[0]) return;
   snprintf(b, sizeof b, "{\"mediaId\":\"%s\"}", midia);
+  pausaConfirmada = 0;
+  pausaPedida = pausado;
   chamar(pausado ? "pause" : "play", b, soLog);
   tocando = !pausado;
-  pausaPedida = pausado;
+}
+
+int video_pausa_confirmada(void) {
+  return pausaPedida && pausaConfirmada && pronto && midia[0] &&
+         !falhou && !terminou && !video_reconectando();
 }
 
 void video_volume(int pct) {
@@ -1843,6 +2205,7 @@ static void seekAgora(double segundos) {
   snprintf(b, sizeof b, "{\"mediaId\":\"%s\",\"position\":%d}",
            midia, (int)(segundos * 1000.0));
   chamar("seek", b, soLog);
+  seekEnvEm = SDL_GetTicks() | 1; seekEnvAlvo = (int)segundos; seekEnvAviso = 0;
   { char m[48]; snprintf(m, sizeof m, "seek para %ds", (int)segundos); marco(m); }
 }
 
@@ -1877,11 +2240,24 @@ static void expJanelaAplicar(void) {
   SDL_Rect src, dst;
   if (!expWin[0] || !sdlExpJanela || janW < 1 || janH < 1) return;
   src.x = 0; src.y = 0; src.w = vidW > 0 ? vidW : 1920; src.h = vidH > 0 ? vidH : 1080;
-  dst.x = janX; dst.y = janY; dst.w = janW; dst.h = janH;
+  dst = escDst(janX, janY, janW, janH);
   expSrcW = src.w; expSrcH = src.h;
   printf("[video] janela exportada (quadro %dx%d) -> %d\n", src.w, src.h,
          sdlExpJanela(expWin, &src, &dst));
   fflush(stdout);
+}
+
+// Chamada UMA vez pelo main, com o drawable que o SDL entregou. Fica em 1920x1080
+// (escala 1, o caminho da C9) se vier algo invalido.
+void video_escala_definir(int sw, int sh) {
+  if (sw < 1 || sh < 1) return;
+  escW = sw; escH = sh;
+  printf("[video] escala da janela %.3fx%.3f (superficie %dx%d, layout 1920x1080)%s\n",
+         (double)sw / 1920.0, (double)sh / 1080.0, sw, sh,
+         (sw == 1920 && sh == 1080) ? "" : " — HIPOTESE: destino lido no espaco da superficie (#176)");
+  fflush(stdout);
+  // Um retangulo ja guardado em pixels antigos nao existe: o cache de dedup e
+  // por unidades de layout, que nao mudaram, entao nada a invalidar.
 }
 
 void video_janela(int x, int y, int w, int h) {
@@ -1908,7 +2284,8 @@ void video_janela(int x, int y, int w, int h) {
     expJanelaAplicar();
     return;
   }
-  acbJanela(acb, x, y, w, h, cheia, &tarefa);
+  { SDL_Rect d = escDst(x, y, w, h);
+    acbJanela(acb, d.x, d.y, d.w, d.h, cheia, &tarefa); }
 }
 
 // A resposta do uMS ao setDisplayWindow, LOGADA — e AGIDA.
@@ -1935,7 +2312,7 @@ static int aoJanela(LSHandle *h, LSMessage *m, void *u) {
     printf("[video] uMS recusou o recorte de fonte; voltando a tela cheia pelo ACB\n");
     fflush(stdout);
     janX = janY = 0; janW = 1920; janH = 1080;
-    if (acb) acbJanela(acb, 0, 0, 1920, 1080, 1, &tarefa);
+    if (acb) acbJanela(acb, 0, 0, escW, escH, 1, &tarefa);
   }
   return 1;
 }
@@ -1952,10 +2329,12 @@ static int aoJanela(LSHandle *h, LSMessage *m, void *u) {
 // Mantem o acbJanela para o caso de tela cheia sem recorte, que ja funcionava.
 void video_recorte_reaplicar(void) {
   long tarefa = 0;
+  SDL_Rect d;
   if (fonX < 0 || !ligado || !midia[0] || !acb || !acbJanelaCustom) return;
+  d = escDst(dstX, dstY, dstW, dstH);
   printf("[video] recorte repetido: fonte %d,%d %dx%d -> destino %d,%d %dx%d -> %d\n",
          fonX, fonY, fonW, fonH, dstX, dstY, dstW, dstH,
-         acbJanelaCustom(acb, fonX, fonY, fonW, fonH, dstX, dstY, dstW, dstH,
+         acbJanelaCustom(acb, fonX, fonY, fonW, fonH, d.x, d.y, d.w, d.h,
                          (dstX == 0 && dstY == 0 && dstW == 1920 && dstH == 1080), &tarefa));
   fflush(stdout);
 }
@@ -1999,7 +2378,7 @@ void video_janela_fonte(int sx, int sy, int sw, int sh,
     SDL_Rect org, src, dst;
     org.x = 0;  org.y = 0;  org.w = vidW > 0 ? vidW : 1920; org.h = vidH > 0 ? vidH : 1080;
     src.x = sx; src.y = sy; src.w = sw; src.h = sh;
-    dst.x = dx; dst.y = dy; dst.w = dw; dst.h = dh;
+    dst = escDst(dx, dy, dw, dh);
     if (sdlExpRecorte && sdlExpRecorte(expWin, &org, &src, &dst)) return;
     // Recusou (ou nem existe): cair para tela cheia sem recorte pela mesma
     // regra do ACB — perde-se o zoom, nao a imagem.
@@ -2011,7 +2390,8 @@ void video_janela_fonte(int sx, int sy, int sw, int sh,
   // O caminho e o ACB, nao o luna direto: o hub recusa o app no tv.display.
   if (acbJanelaCustom && acb) {
     long tarefa = 0;
-    int r = acbJanelaCustom(acb, sx, sy, sw, sh, dx, dy, dw, dh, cheia, &tarefa);
+    SDL_Rect d = escDst(dx, dy, dw, dh);
+    int r = acbJanelaCustom(acb, sx, sy, sw, sh, d.x, d.y, d.w, d.h, cheia, &tarefa);
     printf("[video] acb janela custom -> %d\n", r); fflush(stdout);
     if (r) return;
     printf("[video] acb recusou o recorte; voltando a tela cheia\n"); fflush(stdout);
@@ -2036,11 +2416,16 @@ int    video_ativo(void)    { return midia[0] != 0; }
 // sem a flag, um pipeline que carrega e morre em seguida nunca dispara a
 // proxima da lista.
 int    video_falhou(void)   { return falhou; }
+const char *video_erro_texto(void) { return erroTexto; }
+int    video_decoder_anunciou(void) { return viuVideo; }
 int    video_audio_nao_suportado(void) { return audioNaoSup; }
 int    video_terminou(void) { return terminou; }
+int    video_conflito_recurso(void) { return 0; }
 unsigned video_bufferando_ms(void) {
   Uint32 d = bufferandoDesde;
-  if (!d) return 0;
+  // Esperando para reconectar nao e "fonte que morreu sem dizer": o watchdog
+  // (app.c) nao pode trocar de fonte enquanto a maquina de reconexao decide.
+  if (!d || nv_recon_ativa(&recon)) return 0;
   // 1 e nao 0 quando o carimbo acabou de sair: 0 e a resposta reservada para
   // "nao esta bufferizando", e devolve-lo no primeiro milissegundo diria o
   // contrario do que aconteceu.
@@ -2248,6 +2633,7 @@ void video_encerrar(void) {
     erroLimpar();
     bus = NULL;
   }
+  protetorLigado = 0;
   ligado = 0;
 }
 // O uMS desenha a legenda embutida sozinho: nada para o app pintar.

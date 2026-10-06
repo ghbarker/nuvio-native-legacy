@@ -1,4 +1,17 @@
 #include "trailerapple.h"
+// O .tpk toca pelo mesmo servidor de midia do .wgt (muse-server), e o master
+// HLS da Apple o trava ("[DEADLOCK] ... 90 second", ver varianteMidia): la
+// vale o caminho da Samsung, a playlist de UMA variante, e nao o reduzido em
+// file:// da LG (o player roda em outro processo, fora da pasta do app).
+#if defined(__EMSCRIPTEN__) || defined(NV_TPK)
+#define NV_TRAILER_SAMSUNG 1
+#endif
+// ANDROID: NV_TRAILER_SAMSUNG fica DESLIGADO de proposito. O ExoPlayer toca HLS
+// master, mas o ramo da LG (reduzido de UMA variante em <dados>/trailer, entregue
+// como file://) nao depende de nada do webOS: so de dados_caminho e de
+// rede_baixar_com. E o que se quer aqui: variante fixa, sem ABR trocando o
+// tamanho do quadro no meio e invalidando o recorte. NAO PROVADO no aparelho
+// (o video_android precisa aceitar file:// de HLS).
 #include "rede.h"
 #include "js.h"
 #include "dados.h"
@@ -63,7 +76,7 @@ static int lerDisco(Entrada *e) {
   e->expira = atol(linha);
   e->url[0] = 0;
   if (fgets(linha, sizeof linha, f)) { linha[strcspn(linha, "\r\n")] = 0; if (strcmp(linha, "-")) snprintf(e->url, sizeof e->url, "%s", linha); }
-#ifdef __EMSCRIPTEN__
+#ifdef NV_TRAILER_SAMSUNG
   e->toca[0] = 0;
   if (fgets(linha, sizeof linha, f)) { linha[strcspn(linha, "\r\n")] = 0; if (strcmp(linha, "-")) snprintf(e->toca, sizeof e->toca, "%s", linha); }
 #endif
@@ -117,11 +130,19 @@ static int atributo(const char *linha, const char *nome, char *dst, unsigned tam
   return 0;
 }
 
+#ifndef NV_TRAILER_SAMSUNG   /* so a LG monta o reduzido em disco */
 static int montarReduzido(const char *imdb, int teto, char *saida, unsigned tam) {
   char cm[600], cr[600], linha[2048];
   char melhorInf[2048] = "", melhorUri[1024] = "", melhorAudio[128] = "";
   int melhorW = 0, melhorAvc = 0;
   FILE *f, *g;
+#ifdef NV_ANDROID
+  // ANDROID: "Máxima" vira 1080p. Na TCL Smart TV Pro (Mali-G52) a variante
+  // 3840px hvc1 travou a interface 8 s e depois 20 s ao abrir o trailer de
+  // fundo (log de 30/09: clr=19535 ms). O trailer toca atras do texto da
+  // pagina; 1080p ja enche a tela.
+  if (!teto || teto > 1080) teto = 1080;
+#endif
   caminhoMaster(imdb, cm, sizeof cm, ".m3u8");
   caminhoMaster(imdb, cr, sizeof cr, "-play.m3u8");
   if (!cm[0] || !(f = fopen(cm, "r"))) return 0;
@@ -169,8 +190,9 @@ static int montarReduzido(const char *imdb, int teto, char *saida, unsigned tam)
   snprintf(saida, tam, "file://%s", cr);
   return 1;
 }
+#endif  /* !NV_TRAILER_SAMSUNG */
 
-#ifdef __EMSCRIPTEN__
+#ifdef NV_TRAILER_SAMSUNG
 // SAMSUNG: NUNCA O MASTER NO <video>. Provado no emulador Tizen 10 (winpc,
 // 22/09/2026, klog do muse-server): entregue o master da Apple (93 a 165
 // #EXT-X-STREAM-INF, tres "pathways" de CDN, content steering), o motor HLS
@@ -493,7 +515,7 @@ static void *buscar(void *arg) {
     if (r < 0) semResposta = 1;
     else if (r == 1) { r = hlsDe(id, serie, url, sizeof url); if (r < 0) semResposta = 1; }
   }
-#ifdef __EMSCRIPTEN__
+#ifdef NV_TRAILER_SAMSUNG
   char midia[600] = "";
   if (url[0]) {
     // Samsung: o master so e LIDO aqui, nunca entregue ao <video> (ver
@@ -523,7 +545,7 @@ static void *buscar(void *arg) {
   e->emVoo = 0; e->respondeu = 1;
   snprintf(e->url, sizeof e->url, "%s", url);
   e->toca[0] = 0; e->tocaQual = -1;
-#ifdef __EMSCRIPTEN__
+#ifdef NV_TRAILER_SAMSUNG
   // A variante vale pelo teto do momento da busca. Trocar o teto nos Ajustes
   // so pega na proxima busca (acerto dura 1 h): guardar o master inteiro por
   // titulo para refazer a escolha custaria ~80 KB x TA_MAX de heap na TV.
@@ -550,7 +572,7 @@ void trailerapple_pedir(const char *imdb, const char *titulo, const char *meta, 
     char cm[600];
     struct stat st;
     caminhoMaster(imdb, cm, sizeof cm, ".m3u8");
-#ifdef __EMSCRIPTEN__
+#ifdef NV_TRAILER_SAMSUNG
     // Cache de antes desta versao guarda so o master: sem variante de midia
     // ele nao serve (o master nao vai mais ao <video>), entao busca de novo.
     (void)st; (void)cm; e->respondeu = !e->url[0] || e->toca[0];
@@ -578,7 +600,7 @@ const char *trailerapple_url(const char *imdb) {
   trancar();
   e = achar(imdb);
   if (e && valido(e) && e->url[0]) {
-#ifdef __EMSCRIPTEN__
+#ifdef NV_TRAILER_SAMSUNG
     r = e->toca[0] ? e->toca : NULL;
 #else
     int teto = ajustes_trailer_qualidade();

@@ -10,6 +10,9 @@
 // aprovado sao escritos la, nunca nos dados de quem roda.
 #include "../src/diagnostico.c"
 #include "rail_shot.h"
+#include "ilha.h"
+#include "ajustes_ux.h"
+#include "badges.h"
 #include <SDL2/SDL_image.h>
 #include <assert.h>
 
@@ -31,6 +34,12 @@ static void captura(const char *nome, SDL_Window *win, int tela) {
     glClear(GL_COLOR_BUFFER_BIT);
     if (tela) ajustes_desenhar(SDL_GetTicks());
     else diagnostico_desenhar(SDL_GetTicks());
+    if (getenv("NUVIO_SHOT_ILHA")) {   // a ilha do relogio, como o app poe
+      ilha_relogio_visivel(1);
+      ilha_posicionar(1);
+      ilha_desenhar(SDL_GetTicks());
+      SDL_Delay(12);
+    }
     rail_shot_desenhar(MENU_AJUSTES);
     if (i == 39) {
       unsigned char *pix = malloc(1920 * 1080 * 4);
@@ -100,6 +109,9 @@ int main(int argc, char **argv) {
     f = fopen(caminho, "w");
     assert(f);
     fprintf(f, "idioma %d\nanimacoes 0\n", pt ? 0 : 1);
+    // NUVIO_SHOT_TEMA / NUVIO_SHOT_VIDRO=0: o acento e o material da captura.
+    if (getenv("NUVIO_SHOT_TEMA")) fprintf(f, "selected_theme %s\n", getenv("NUVIO_SHOT_TEMA"));
+    if (getenv("NUVIO_SHOT_VIDRO")) fprintf(f, "vidroLocal %d\n", *getenv("NUVIO_SHOT_VIDRO") == '0' ? 1 : 0);
     fclose(f); }
   ajustes_dir(dir);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -121,6 +133,10 @@ int main(int argc, char **argv) {
   gfx_tamanho_alvo(1920, 1080);
   assert(gfx_iniciar());
   assert(txt_iniciar("deploy/app", 1));
+  ajustes_recursos("deploy/app/art");
+  gfx_icones_dir("deploy/app/art");
+  badges_carregar("deploy/app/art");
+  ajustes_ui_arte(21);
   tex_iniciar(64);
   gfx_icones_dir("deploy/app/art");
   // A C9: 2245 MB de RAM nao existem no Mac (sem /proc); o que a tela mostra
@@ -130,6 +146,11 @@ int main(int argc, char **argv) {
   d.intro = 0;
   snprintf(nome, sizeof nome, "%s-1-inicio.bmp", saida);
   captura(nome, w, 0);
+
+  d.intro = 1;
+  snprintf(nome, sizeof nome, "%s-0-intro.bmp", saida);
+  captura(nome, w, 0);
+  d.intro = 0;
 
   focoModo = 1;
   snprintf(nome, sizeof nome, "%s-2-inicio-desempenho.bmp", saida);
@@ -174,6 +195,7 @@ int main(int argc, char **argv) {
   addons_adicionar("MediaFusion", "https://exemplo.invalid/d/manifest.json");
   addons_adicionar("OpenSubtitles v3", "https://exemplo.invalid/e/manifest.json");
   memset(&vz, 0, sizeof vz);
+  ajustes_ui_arte(13);
   vz.aberto = 1;
   vz.nAddon = 5;
   vz.addon[0] = (VazAddon){ 1, 812, 200, 1, 34, 3 };
@@ -212,6 +234,93 @@ int main(int argc, char **argv) {
   memset(&vz.resumo, 0, sizeof vz.resumo);
   vz.resultado = VR_NAVEGADOR;
   snprintf(nome, sizeof nome, "%s-10-velocidade-navegador.bmp", saida);
+  captura(nome, w, 0);
+
+  // CICLO COMPLETO e POR ADD-ON (numeros inventados, do tamanho do real): 37
+  // fontes de 4 add-ons, 3 do debrid listadas, 2 fora do limite.
+  memset(&vz, 0, sizeof vz);
+  vz.aberto = 1;
+  vz.nAddon = 5;
+  vz.addon[0] = (VazAddon){ 1, 812, 200, 1, 34, 3, 12, 4 };
+  vz.addon[1] = (VazAddon){ 1, 2410, 200, 1, 112, 3, 14, 2 };
+  vz.addon[2] = (VazAddon){ 1, 1333, 200, 1, 18, 2, 8, 0 };
+  vz.addon[3] = (VazAddon){ 1, 6004, 0, 0, 0, 0, 0, 0 };
+  vz.addon[4] = (VazAddon){ 1, 390, 404, 0, 0, 0, 0, 0 };
+  vz.mediveisTotal = 34;
+  vz.ciclo = VCM_COMPLETO;
+  vz.debridTotal = 3;
+  vz.sel.foraDoLimite = 0;
+  vz.nFila = 34;
+  { static const char *const NOMES[] = { "Remux 4K HDR DV", "WEB-DL 1080p", "BluRay 1080p x265",
+                                         "WEB-DL 4K", "Remux 1080p", "HDTV 720p", "WEB 720p" };
+    static const int ALT[] = { 2160, 1080, 1080, 2160, 1080, 720, 720 };
+    static const long TAM[] = { 59200, 8200, 5600, 21500, 27300, 2100, 1400 };
+    static const char *const HOSTS[] = { "cdn3.real-debrid.com", "de-2.download.torbox.app",
+                                         "dl.premiumize.me", "cdn.alldebrid.com" };
+    int i, n = 0;
+    for (i = 0; i < 12; i++) {
+      VazCicloRes *x = &vz.cic[n++];
+      memset(x, 0, sizeof *x);
+      x->addon = i % 3;
+      x->sit = VS_OK;
+      x->altura = ALT[i % 7];
+      x->dv = i % 7 == 0;
+      x->tamanhoMB = TAM[i % 7];
+      snprintf(x->nome, sizeof x->nome, "%s", NOMES[i % 7]);
+      snprintf(x->host, sizeof x->host, "%s", HOSTS[i % 4]);
+      x->esperaMs = 180 + i * 41;
+      { int base = 74000 - i * 6100;
+        int am[5] = { base, base + 2000, base - 3000, base + 1000, base - 1000 };
+        vazao_resumir(am, 5, &x->r); }
+      x->necessarioKbps = vazao_necessario_kbps(x->altura, x->tamanhoMB, VAZAO_FILME_S);
+      x->suf = vazao_suficiencia(&x->r, x->necessarioKbps);
+    }
+    vz.cic[n - 1].sit = VS_FALHOU;
+    vz.cic[n - 1].host[0] = 0;
+    memset(&vz.cic[n - 1].r, 0, sizeof vz.cic[n - 1].r);
+    for (i = 0; i < 3; i++) {
+      VazCicloRes *x = &vz.cic[n++];
+      memset(x, 0, sizeof *x);
+      x->addon = i % 2;
+      x->sit = VS_DEBRID;
+      x->altura = 2160;
+      x->tamanhoMB = 48000;
+      snprintf(x->nome, sizeof x->nome, "%s", "Remux 4K (fora de cache)");
+    }
+    atomic_store(&vz.nCic, n); }
+  vz.resultado = VR_OK;
+  vz.agenda.tentadas = 12;
+  atomic_store(&vz.estado, 1);
+  atomic_store(&vz.fase, 2);
+  atomic_store(&vz.total, 5 + 34);
+  atomic_store(&vz.feitos, 5 + 11);
+  vz.fonteIniMs = SDL_GetTicks();
+  snprintf(nome, sizeof nome, "%s-11-ciclo-rodando.bmp", saida);
+  captura(nome, w, 0);
+
+  atomic_store(&vz.estado, 2);
+  snprintf(nome, sizeof nome, "%s-12-ciclo-resultado.bmp", saida);
+  captura(nome, w, 0);
+
+  vz.botao = 1;
+  vz.rolagem = 7;
+  snprintf(nome, sizeof nome, "%s-13-ciclo-rolado.bmp", saida);
+  captura(nome, w, 0);
+
+  // POR ADD-ON: um por add-on, agrupado.
+  vz.ciclo = VCM_ADDON;
+  vz.rolagem = 0;
+  vz.botao = 2;
+  vz.nFila = 3;
+  { VazCicloRes tmp[VAZ_CICLO_LISTA_MAX];
+    int i, k = 0;
+    for (i = 0; i < atomic_load(&vz.nCic) && k < 3; i++)
+      if (vz.cic[i].sit == VS_OK && vz.cic[i].addon == k) tmp[k++] = vz.cic[i];
+    memset(vz.cic, 0, sizeof vz.cic);
+    memcpy(vz.cic, tmp, (size_t)k * sizeof tmp[0]);
+    atomic_store(&vz.nCic, k); }
+  vz.debridTotal = 0;
+  snprintf(nome, sizeof nome, "%s-14-por-addon.bmp", saida);
   captura(nome, w, 0);
   memset(&vz, 0, sizeof vz);
 

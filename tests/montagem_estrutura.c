@@ -36,7 +36,11 @@
 #include <unistd.h>
 int arte_reserva_episodios(const char *imdb, const char *corpo) { (void)imdb; (void)corpo; return 0; }
 
+int ajustes_busca_cinemeta(void) { return 1; }
 #include "../src/descoberta.c"
+#include "jellyfin_stub.inc"
+unsigned recomenda_geracao(void) { return 1; }
+Uint32 SDL_GetTicks(void) { return 0; }
 
 #define BASE "https://addon.example/abc"
 #define AID  "app.addon.demo"
@@ -98,6 +102,8 @@ int dados_apagar(const char *nome) {
 int   addons_n(void)                   { return 1; }
 const char *addons_base(int i)         { (void)i; return BASE; }
 int   addons_ativo(int i)              { (void)i; return 1; }
+int   addons_fornece(int i, int oque)     { (void)i; (void)oque; return 0; }
+int   addons_sondado(int i)              { (void)i; return 0; }
 const char *addons_id_manifesto(int i) { (void)i; return AID; }
 const char *addons_nome(int i)         { (void)i; return "Addon"; }
 unsigned addons_versao(void)           { return 1; }
@@ -161,6 +167,7 @@ static int nRegistro;
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
 // catalogos fora da cota nao interessa a este teste.
 int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
 void fil_registrar_se_couber(const char *c, const char *t, const char *a,
                              const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
 void fil_registrar(const char *c, const char *t, const char *a, const char *tp, int itens) {
@@ -192,7 +199,9 @@ static volatile int montagens;
 void  marco(const char *n)                 { if (!strcmp(n, "montar: inicio")) montagens++; }
 void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_idioma_ingles(void)          { return 0; }
+int ajustes_idioma(void) { return 0; }
 int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_concluido(void)           { return 90; }  // Percentual assistido de fabrica
 int   ajustes_itens_fileira(void)          { return 12; }   // padrao (#163)
 int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 int   ajustes_cw_ligado(void)              { return 1; }
@@ -203,17 +212,26 @@ int   ajustes_hero_fonte(void)             { return 0; }
 int   ajustes_cw_fonte(void)               { return 0; }
 int   ajustes_tmdb_ligado(void)            { return 0; }
 int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
 int   ajustes_tmdb_arte(void)              { return 0; }
 int   ajustes_tmdb_elenco(void)            { return 0; }
 int   ajustes_tmdb_cw(void)                { return 0; }
 const char *ajustes_tmdb_idioma(void)      { return "pt-BR"; }
 const char *ajustes_tmdb_chave(void)       { return ""; }
 const char *i18n(const char *s)            { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 int   simkl_ativo(void)                    { return 1; }
+int   trakt_ativo(void)                    { return 1; }   // #199, so para linkar
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 1; }   // para simkl_plantowatch rodar
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; return n; }
+// O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 int   trakt_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   trakt_continuar_falhou(void)        { return 0; }

@@ -1137,3 +1137,14 @@ void video_encerrar(void) {
 }
 
 #endif // defined(__EMSCRIPTEN__) && defined(NV_VIDAA)
+
+// API de video que entrou depois deste backend (1.5 a 2.0). O <video> do
+// navegador reconecta sozinho, nao disputa recurso com outro app e nao da
+// texto de erro alem do MediaError que ja vai para o log: respostas neutras.
+void video_escala_definir(int sw, int sh) { (void)sw; (void)sh; }
+void video_definir_reconexao(int sim) { (void)sim; }
+int  video_reconectando(void) { return 0; }
+int  video_conflito_recurso(void) { return 0; }
+int  video_decoder_anunciou(void) { return 1; }
+const char *video_erro_texto(void) { return ""; }
+int  video_pausa_confirmada(void) { return video_pronto() && !video_tocando(); }

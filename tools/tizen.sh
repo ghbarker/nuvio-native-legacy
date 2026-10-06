@@ -333,6 +333,10 @@ if [ -f "$WEBP_ROOT_REAL/lib/libwebp.a" ] && [ -f "$WEBP_ROOT_REAL/include/webp/
 else
   echo "tizen.sh: AVISO libwebp WASM ausente em $WEBP_ROOT_REAL: WebP animado desligado (rode tools/build-webp-wasm.sh)" >&2
 fi
+# FONTES NO PACOTE: dentro do index.data em todo alvo menos a VIDAA (ver o bloco
+# logo depois do emcc).
+FONTES_PRELOAD="--preload-file deploy/app/fonts@/app/fonts"
+[ "$PLAT_VIDAA" = "1" ] && FONTES_PRELOAD=""
 eval emcc $SOURCES ${EXTRA_SOURCES} -o "$SAIDA/index.html" -O2 "$ENV_D" ${NUVIO_EXTRA_CFLAGS:-} $ASS_CFLAGS $ASS_LIBS $WEBP_CFLAGS $WEBP_LIBS \
   -sWASM_BIGINT=0 \
   -sUSE_SDL=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_TTF=2 -sUSE_LIBJPEG=1 \
@@ -405,14 +409,40 @@ eval emcc $SOURCES ${EXTRA_SOURCES} -o "$SAIDA/index.html" -O2 "$ENV_D" ${NUVIO_
   `# ("'PThread' was not exported"), ou seja, o proprio medidor mataria o app.` \
   -sEXPORTED_RUNTIME_METHODS=$RUNTIME_EXPORTS \
   -lidbfs.js \
+  -lwebsocket.js \
   `# ASSERTIONS=0 NA BUILD DE ENTREGA (20/09/2026, #72). Com 1 o glue confere` \
   `# pilha e assinatura a cada chamada JS<->wasm e cada erro de FS monta um` \
   `# ErrnoError com pilha. O que ele dava — morrer falando em vez de calado —` \
   `# hoje o registro em localStorage (tizen-shell.html) da. NUVIO_ASSERTS=1 liga.` \
   -sEXIT_RUNTIME=0 -sASSERTIONS="${NUVIO_ASSERTS:-0}" \
-  --preload-file deploy/app/fonts@/app/fonts \
+  $FONTES_PRELOAD \
   --preload-file "$ARTE"@/app/art \
   --shell-file "$SHELL_USADO"
+# VIDAA: as fontes saem num segundo pacote (fontes.data + fontes.js), carregado
+# por um <script> antes do index.js. Com a arte da 2.0 o index.data unico passou
+# de 25 MiB, o teto por arquivo do Workers Assets (ver FONTES_PRELOAD acima).
+if [ "$PLAT_VIDAA" = "1" ]; then
+  EMCC_DIR=$(dirname "$(command -v emcc)")
+  ( cd "$SAIDA" && "$EMCC_DIR/tools/file_packager" fontes.data \
+      --preload "$OLDPWD/deploy/app/fonts@/app/fonts" --js-output=fontes.js >/dev/null )
+  npx --yes esbuild@0.25.0 "$SAIDA/fontes.js" --target=chrome69 \
+      --outfile="$SAIDA/fontes.chrome69.js" --log-level=warning
+  mv "$SAIDA/fontes.chrome69.js" "$SAIDA/fontes.js"
+  # fontes.js roda ANTES do index.js: precisa do mesmo polyfill de globalThis
+  # (M69 nao tem; ver o bloco do index.js mais abaixo).
+  cat tools/tizen-globalthis.js "$SAIDA/fontes.js" > "$SAIDA/fontes.polyfill.js"
+  mv "$SAIDA/fontes.polyfill.js" "$SAIDA/fontes.js"
+  python3 - "$SAIDA/index.html" <<'PYEOF'
+import re, sys
+p = sys.argv[1]
+s = open(p).read()
+m = re.search(r'<script[^>]*src="?index\.js"?[^>]*></script>', s)
+if not m:
+    sys.exit("tizen.sh: ERRO — <script> do index.js nao achado em index.html")
+s = s[:m.start()] + '<script src="fontes.js"></script>\n' + s[m.start():]
+open(p, "w").write(s)
+PYEOF
+fi
 # O WORKER DE DECODE (#72) e um arquivo a parte, carregado por index.html como
 # `decodificador.js`; sem ele o app roda, mas cada arte custa fio principal.
 cp tools/decodificador.js "$SAIDA/decodificador.js"

@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <utime.h>
 #include <errno.h>
+#include <time.h>
 #include <math.h>
 #ifndef __EMSCRIPTEN__
 #include <pthread.h>
@@ -19,6 +20,9 @@ static void iniciarGravador(void);
 #include "sdlcompat.h"
 #ifdef NV_TEX_TEST_AFTER_POP
 extern void NV_TEX_TEST_AFTER_POP(void);
+#endif
+#ifdef NV_TEX_TEST_BEFORE_DISK_LOCK
+extern void NV_TEX_TEST_BEFORE_DISK_LOCK(void);
 #endif
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -41,6 +45,7 @@ static int arqDiscoTem(const char *dst);
 #include "artereserva.h"
 #include "artetamanho.h"
 #include "perfiltv.h"
+#include "posterprov.h"
 #include <stdint.h>
 #include "cachearte.h"
 #include <string.h>
@@ -51,7 +56,9 @@ static int arqDiscoTem(const char *dst);
 #define MAX_FILA 128
 #define NV_TEX_STALE_FRAMES 8
 #define NV_TEX_STALE_MS 200
+#ifndef NV_TEX_UPLOAD_BUDGET_MS
 #define NV_TEX_UPLOAD_BUDGET_MS 4.0
+#endif
 // Telemetria curta de uma sessao: so registra esperas que ja sao visiveis para
 // quem navega. O identificador e FNV do caminho; nenhuma URL entra no trace.
 #define NV_TEX_TRACE_MS 250
@@ -81,7 +88,7 @@ typedef struct {
 typedef enum { VAZIO=0, PENDENTE, DECODIFICADO, PRONTO, FALHOU } Estado;
 
 typedef struct {
-  char caminho[512];
+  char caminho[NV_TEX_URL_MAX];
   unsigned long hash;  // FNV-1a do caminho, para pular o strcmp na busca
   Estado estado;
   SDL_Surface *sup;   // preenchida pela thread; consumida no bombear
@@ -118,6 +125,9 @@ typedef struct {
   // idioma + vote_average), entao a unica forma de saber se um logo e preto e
   // OLHAR os pixels.
   int lum;
+  // 1 = TODO pixel tem alfa 255 (conferido inteiro na thread de decode); 0 =
+  // ha transparencia ou nao se sabe. Ver tex_opaca.
+  int opaca;
   // Quando tentar de novo (ticks) e quantas vezes ja falhou. Ver o enum Estado.
   Uint32 tentarEm;
   int    falhas;
@@ -180,7 +190,7 @@ typedef struct {
   unsigned char *bruto;
   long nBruto;
   int varianteCache;
-  char urlCache[512];
+  char urlCache[NV_TEX_URL_MAX];
   // OS 4 PRIMEIROS BYTES do que a rede entregou (#141), e se ja se sabe.
   // Quem pergunta e o cartaz de colecao: "a capa e um GIF?" (para animar a
   // capa quando a conta nao mandou focusGifUrl) e "o GIF de foco veio GIF
@@ -218,6 +228,12 @@ static void acordarRede(void) {
   else SDL_CondSignal(cond);
 }
 static Item itens[MAX_ITENS_ABS];
+// Envio em faixas em curso (ver tex_bombear): o slot, a textura reservada, a
+// superficie (que continua em itens[uplIdx].sup) e a proxima linha.
+static int uplIdx = -1;
+static GLuint uplTex;
+static SDL_Surface *uplSup;
+static int uplY;
 // Bytes baixados que ainda nao foram consumidos pelo decode (LG e Tizen).
 static void soltarBruto(Item *it) {
   free(it->bruto); it->bruto = NULL; it->nBruto = 0; it->urlCache[0] = 0;
@@ -226,6 +242,12 @@ static int nMax = 64;
 static unsigned long relogio = 1;
 
 static SDL_mutex *mtx;
+#ifndef __EMSCRIPTEN__
+// O gravador de disco vive ate o processo sair. Seu callback de poda precisa
+// terminar antes de mtx/itens serem destruidos e observar a proxima
+// inicializacao completa. Ordem: vidaMtx, depois mtx; nunca o inverso.
+static pthread_mutex_t vidaMtx = PTHREAD_MUTEX_INITIALIZER;
+#endif
 static SDL_Thread *thr;
 static int rodando = 0;
 
@@ -251,8 +273,11 @@ static char dirCache[512];
 // comentario "So apaga o que esta no NOSSO cache". Eu escrevi duas remocoes
 // novas ao lado dela e nao a repeti.
 static int noCache(const char *caminho) {
-  return dirCache[0] && caminho &&
-         !strncmp(caminho, dirCache, strlen(dirCache));
+  size_t n = strlen(dirCache);
+  // /cache-pacote nao pertence a /cache: a limpeza de decode nao pode
+  // apagar arte local so porque o nome da pasta compartilha o prefixo.
+  return n && caminho && !strncmp(caminho, dirCache, n) &&
+         (dirCache[n - 1] == '/' || caminho[n] == '/');
 }
 // Bytes gravados no cache de disco. No alvo Tizen "disco" e MEMFS, ou seja RAM
 // (o log mostra idbfs=0/0.0ms), e nada nunca e apagado — cada arte baixada fica
@@ -376,9 +401,11 @@ static SDL_cond *condLivre;
 // mesmo e perderia a ordem de chegada dos demais, que e o que faz a fileira
 // aparecer da esquerda para a direita em vez de embaralhada.
 static int tirarFila(int *f, int *ini, int fim) {
-  int p = *ini, achou = -1, idx;
+  int p = *ini, achou = -1, idx, nivel = 0;
+  // NIVEL 2 = LOGO DE TITULO, 1 = tela cheia, 0 = o resto. O primeiro de maior
+  // nivel vence; empate fica na ordem de chegada.
   while (p != fim) {
-    if (itens[f[p]].urgente) { achou = p; break; }
+    if (itens[f[p]].urgente > nivel) { achou = p; nivel = itens[f[p]].urgente; }
     p = (p + 1) % MAX_FILA;
   }
   if (achou < 0) {
@@ -452,6 +479,7 @@ unsigned long tex_hash_public(const char *caminho) {
 }
 
 int    tex_n_busca = 0;
+unsigned tex_n_falta = 0;
 double tex_ms_busca = 0.0;
 int    tex_despejos = 0;
 int    tex_despejos_quentes = 0;
@@ -541,6 +569,9 @@ static int pedidoObsoleto(const Item *it) {
          agora - it->ultimoPedido >= NV_TEX_STALE_MS;
 }
 
+static void podar(void);
+static int pressaoAtiva(void);
+
 void tex_novo_quadro(void) {
   tex_n_busca = 0;
   tex_ms_busca = 0.0;
@@ -562,6 +593,9 @@ void tex_novo_quadro(void) {
       desistir(i);
     }
   }
+  // PRESSAO DE MEMORIA (tex_pressao_memoria): o aviso chega de outro fio, que
+  // nao tem contexto GL e nao pode despejar textura. Quem despeja e este quadro.
+  if (pressaoAtiva()) podar();
   SDL_UnlockMutex(mtx);
 }
 
@@ -730,8 +764,64 @@ sai:
 
 // Despeja os menos usados ate caber no orcamento. Chamada com o mutex travado.
 // Para quando so resta arte quente ou em voo: ver despejar().
+//
+// PRESSAO DE MEMORIA DO SISTEMA (Android onTrimMemory). Um upload de textura
+// chegou a levar 16 s com o low-memory killer ativo (HANDOFF-PERFORMANCE, item
+// 4): o app seguia pedindo memoria enquanto o sistema tentava tirar dela.
+// Sob aviso, o teto efetivo cai por uns segundos e podar() despeja arte FRIA
+// ate caber — nunca a quente nem a em voo (ver despejar). Passado o prazo o teto
+// volta sozinho: onTrimMemory avisa na transicao, nao enquanto dura.
+// Escrito pelo fio da JNI, lido pelo fio de desenho; int de 32 bits, sem trava.
+#define NV_TEX_PRESSAO_MS 30000u
+static volatile int pressaoPct = 100;
+static volatile Uint32 pressaoAte;
+static int pressaoAtiva(void) {
+  if (pressaoPct >= 100) return 0;
+  if ((int)(SDL_GetTicks() - pressaoAte) >= 0) {
+    pressaoPct = 100;
+    printf("[tex] pressao de memoria passou: teto de volta a %ld MB\n", orcamento / (1024L * 1024L));
+    fflush(stdout);
+    return 0;
+  }
+  return 1;
+}
+static long limiteBytes(void) {
+  return pressaoAtiva() ? orcamento / 100 * pressaoPct : orcamento;
+}
+// Niveis de ComponentCallbacks2.onTrimMemory -> fracao do teto que fica.
+// 5/10/15 sao com o app em primeiro plano (MODERATE/LOW/CRITICAL); 20 e a UI
+// escondida; 40+ e o app em segundo plano; 60/80 o processo na ponta da lista
+// do killer. Nivel desconhecido ou < 5 nao muda nada.
+int tex_pressao_pct(int nivel) {
+  if (nivel >= 60) return 25;
+  if (nivel >= 20) return 50;
+  if (nivel >= 15) return 40;
+  if (nivel >= 10) return 60;
+  if (nivel >= 5) return 80;
+  return 100;
+}
+void tex_pressao_memoria(int nivel) {
+  int pct = tex_pressao_pct(nivel);
+  if (pct >= 100) return;
+  /* Aviso mais fraco nao afrouxa um mais forte ainda em vigor. */
+  if (pressaoAtiva() && pressaoPct < pct) pct = pressaoPct;
+  pressaoPct = pct;
+  pressaoAte = SDL_GetTicks() + NV_TEX_PRESSAO_MS;
+  printf("[tex] pressao de memoria (trim %d): teto a %d%% por %u s\n", nivel, pct, NV_TEX_PRESSAO_MS / 1000u);
+  fflush(stdout);
+}
+#ifdef NV_ANDROID
+#include <jni.h>
+JNIEXPORT void JNICALL
+Java_space_nuvio_nativelegacy_NuvioActivity_nativeTrimMemoria(JNIEnv *env, jobject act, jint nivel) {
+  (void)env; (void)act;
+  tex_pressao_memoria((int)nivel);
+}
+#endif
+
 static void podar(void) {
-  while (bytesUsados > orcamento)
+  long lim = limiteBytes();
+  while (bytesUsados > lim)
     if (despejar(0) < 0) break;
 }
 
@@ -1085,7 +1175,11 @@ static int discoProtegido(const char *caminho, void *ctx) {
   int i, protegido = 0;
   (void)ctx;
   if (cachearte_nativo_protegido(caminho)) return 1;
-  if (!mtx) return 0;
+  pthread_mutex_lock(&vidaMtx);
+  if (!mtx) { pthread_mutex_unlock(&vidaMtx); return 0; }
+#ifdef NV_TEX_TEST_BEFORE_DISK_LOCK
+  NV_TEX_TEST_BEFORE_DISK_LOCK();
+#endif
   SDL_LockMutex(mtx);
   for (i = 0; i < nMax; i++) {
     char local[600];
@@ -1094,6 +1188,7 @@ static int discoProtegido(const char *caminho, void *ctx) {
     if (!strcmp(local, caminho)) { protegido = 1; break; }
   }
   SDL_UnlockMutex(mtx);
+  pthread_mutex_unlock(&vidaMtx);
   return protegido;
 }
 static void publicarDiscoNativo(void) {
@@ -1175,7 +1270,7 @@ static int gravarArquivo(const char *dst, const char *sufixo,
  * (gravacaoPendente) e nao volta a rede. */
 #define NV_GRAV_MAX 32
 #define NV_GRAV_BYTES (24L * 1024L * 1024L)
-typedef struct { char dst[600]; unsigned char *b; long n; } Grav;
+typedef struct { char dst[600]; unsigned char *b; long n; int cancelada; } Grav;
 static pthread_mutex_t gravMtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t gravCond = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t gravVazia = PTHREAD_COND_INITIALIZER;
@@ -1201,6 +1296,7 @@ static void *fioGravador(void *arg) {
   cachearte_estatisticas_pedir();
   podarSePreciso(0, 0);
   for (;;) {
+    char descartar[600] = "";
     pthread_mutex_lock(&gravMtx);
     while (!gravN) { pthread_cond_broadcast(&gravVazia); pthread_cond_wait(&gravCond, &gravMtx); }
     gravAtual = filaGrav[gravIni];
@@ -1209,8 +1305,20 @@ static void *fioGravador(void *arg) {
     pthread_mutex_unlock(&gravMtx);
     if (gravAtual.b) gravarArquivo(gravAtual.dst, ".fila", gravAtual.b, gravAtual.n);
     pthread_mutex_lock(&gravMtx);
+    // O decode pode recusar o corpo enquanto fwrite ainda esta em curso.
+    // Nao libera o buffer do gravador; remove o arquivo depois do rename.
+    if (gravAtual.cancelada) {
+      snprintf(descartar, sizeof descartar, "%s", gravAtual.dst);
+      pthread_mutex_unlock(&gravMtx);
+      if (remove(descartar) == 0) {
+        cachearte_nativo_indice_remover(descartar);
+        publicarDiscoNativo();
+      }
+      pthread_mutex_lock(&gravMtx);
+    }
     gravBytes -= gravAtual.n;
     free(gravAtual.b); gravAtual.b = NULL; gravAtual.dst[0] = 0; gravAtual.n = 0;
+    gravAtual.cancelada = 0;
     pthread_mutex_unlock(&gravMtx);
   }
   return NULL;
@@ -1262,7 +1370,7 @@ static int enfileirarGravacao(const char *dst, const unsigned char *b, long n) {
     Grav *g = &filaGrav[(gravIni + gravN) % NV_GRAV_MAX];
     memcpy(copia, b, (size_t)n);
     snprintf(g->dst, sizeof g->dst, "%s", dst);
-    g->b = copia; g->n = n;
+    g->b = copia; g->n = n; g->cancelada = 0;
     gravN++; gravBytes += n; ok = 1;
     pthread_cond_signal(&gravCond);
   } else {
@@ -1280,7 +1388,8 @@ static int gravacaoPendente(const char *dst, unsigned char **b, long *n) {
   pthread_mutex_lock(&gravMtx);
   for (i = -1; i < gravN && !ok; i++) {
     Grav *g = i < 0 ? &gravAtual : &filaGrav[(gravIni + i) % NV_GRAV_MAX];
-    if (g->b && !strcmp(g->dst, dst) && (*b = (unsigned char *)malloc((size_t)g->n)) != NULL) {
+    if (g->b && !g->cancelada && !strcmp(g->dst, dst) &&
+        (*b = (unsigned char *)malloc((size_t)g->n)) != NULL) {
       memcpy(*b, g->b, (size_t)g->n); *n = g->n; ok = 1;
     }
   }
@@ -1291,6 +1400,7 @@ static int gravacaoPendente(const char *dst, unsigned char **b, long *n) {
 static void cancelarGravacao(const char *dst) {
   int i;
   pthread_mutex_lock(&gravMtx);
+  if (gravAtual.b && !strcmp(gravAtual.dst, dst)) gravAtual.cancelada = 1;
   for (i = 0; i < gravN; i++) {
     Grav *g = &filaGrav[(gravIni + i) % NV_GRAV_MAX];
     if (g->b && !strcmp(g->dst, dst)) { gravBytes -= g->n; free(g->b); g->b = NULL; g->n = 0; }
@@ -1314,24 +1424,138 @@ void tex_cache_esperar_gravacoes(void) {
 // Baixa UMA url e devolve o corpo so se ele for imagem; NULL com a razao no
 // log. Separado de garantirLocal para a reserva do TMDB passar pelo mesmo
 // crivo (assinatura, tamanho) que a url original.
+// URL DE PROVEDOR DE POSTER NUNCA VAI PARA O LOG COM O QUE TEM DEPOIS DO HOST:
+// o token do SpatialPosters e a chave do RPDB moram na query/caminho
+// (posterprov.h). As DEMAIS tambem passam por redacao (rede_url_log): o cartaz
+// que um addon de meta devolve (btttr.cc do BetterPosters/PostersPlus,
+// AioMetadata, RPDB, top-posters) leva a config da pessoa no CAMINHO, e ate a
+// 1.6.4 ia inteiro para o log em "[tex] corpo curto"/"download falhou".
+static const char *urlLog(const char *url, char *buf, size_t n) {
+  return posterprov_e_provedor(url) ? posterprov_redigir(url, buf, n)
+                                    : rede_url_log(url, buf, (unsigned)n);
+}
+
+// ARTE QUE NAO EXISTE NAO VOLTA A RODADA (05/10/2026, B3).
+//
+// MEDIDO nos registros D1 (364 pessoas desde 22/09): `[tex] download falhou`
+// em 94 pessoas na LG, 38 no TPK, 33 no WGT — quase tudo 404 do metahub
+// (images/episodes/live) e do bingecat para ids sem arte, mais curl 28 de
+// ~8,5 s. O recuo por item (2 s/10 s/60 s, FALHOU) so vale enquanto o slot
+// existe: despejado o slot, a falha some com ele, e a proxima abertura da tela
+// baixa o MESMO 404 de novo, ocupando um dos fios de rede de arte enquanto a
+// arte visivel espera na fila (fila-rede p50/p90/p99 0,6/2,4/10 s na LG).
+//
+// Aqui fica a memoria por URL, fora do slot: 404/410 vale 24 h e sobrevive ao
+// reinicio (arquivo .arte-negativa na pasta do cache, so no nativo — o MEMFS
+// do Tizen nao persiste, e la o XHR nao da o status aqui); o prazo estourado
+// vale 30 s so na RAM, porque e da rede e nao do titulo. A chave e o FNV da URL
+// realmente pedida (a variante de tamanho tem a sua).
+//
+// O PRAZO de 8 s NAO caiu: o download BEM-SUCEDIDO na LG tem p99 de 6,0 s
+// (D1, 8.486 pedidos); um prazo de 5 s faria arte que hoje chega virar falha.
+// O custo do prazo longo era repetir o mesmo host morto, e e isso que esta
+// memoria corta.
+#define NV_NEG_N 512
+#define NV_NEG_404_S (24 * 3600)
+#define NV_NEG_FALHA_S 30
+typedef struct { unsigned long h; long ate; int fixa; } NegArte;
+static NegArte negArte[NV_NEG_N];
+static pthread_mutex_t negMtx = PTHREAD_MUTEX_INITIALIZER;
+static int negCarregada;
+static int negAcertos;   // pedidos que a memoria poupou nesta sessao
+static void negCaminho(char *dst, size_t tam) {
+  snprintf(dst, tam, "%s/.arte-negativa", dirCache);
+}
+static void negCarregar(void) {
+#ifndef __EMSCRIPTEN__
+  char cam[600];
+  FILE *f;
+  long agora = (long)time(NULL);
+  int i = 0;
+  if (!dirCache[0]) return;
+  negCaminho(cam, sizeof cam);
+  f = fopen(cam, "rb");
+  if (!f) return;
+  pthread_mutex_lock(&negMtx);
+  { unsigned long h; long ate;
+    while (i < NV_NEG_N && fread(&h, sizeof h, 1, f) == 1 && fread(&ate, sizeof ate, 1, f) == 1)
+      if (ate > agora && ate - agora <= NV_NEG_404_S) {
+        negArte[i].h = h; negArte[i].ate = ate; negArte[i].fixa = 1; i++;
+      } }
+  pthread_mutex_unlock(&negMtx);
+  fclose(f);
+  if (i) { printf("[tex] arte negativa: %d url(s) sem arte lembradas do disco\n", i); fflush(stdout); }
+#endif
+}
+static void negGravar(void) {
+#ifndef __EMSCRIPTEN__
+  char cam[600], tmp[620];
+  FILE *f;
+  long agora = (long)time(NULL);
+  int i;
+  if (!dirCache[0]) return;
+  negCaminho(cam, sizeof cam);
+  snprintf(tmp, sizeof tmp, "%s.parcial", cam);
+  f = fopen(tmp, "wb");
+  if (!f) return;
+  pthread_mutex_lock(&negMtx);
+  for (i = 0; i < NV_NEG_N; i++)
+    if (negArte[i].fixa && negArte[i].ate > agora) {
+      fwrite(&negArte[i].h, sizeof negArte[i].h, 1, f);
+      fwrite(&negArte[i].ate, sizeof negArte[i].ate, 1, f);
+    }
+  pthread_mutex_unlock(&negMtx);
+  if (fclose(f) == 0) rename(tmp, cam); else remove(tmp);
+#endif
+}
+static int negTem(const char *url) {
+  unsigned long h = hashCaminho(url);
+  long agora = (long)time(NULL);
+  int i, r = 0;
+  if (!negCarregada) { negCarregada = 1; negCarregar(); }
+  pthread_mutex_lock(&negMtx);
+  for (i = 0; i < NV_NEG_N; i++)
+    if (negArte[i].h == h && negArte[i].ate > agora) { r = 1; negAcertos++; break; }
+  pthread_mutex_unlock(&negMtx);
+  return r;
+}
+__attribute__((unused)) static void negPor(const char *url, int segundos, int fixa) {
+  unsigned long h = hashCaminho(url);
+  long agora = (long)time(NULL);
+  int i, alvo = 0;
+  pthread_mutex_lock(&negMtx);
+  for (i = 0; i < NV_NEG_N; i++) {
+    if (negArte[i].h == h) { alvo = i; break; }
+    if (negArte[i].ate < negArte[alvo].ate) alvo = i;   // vencida/livre primeiro
+  }
+  negArte[alvo].h = h; negArte[alvo].ate = agora + segundos; negArte[alvo].fixa = fixa;
+  pthread_mutex_unlock(&negMtx);
+  if (fixa) negGravar();
+}
+int tex_negativas_poupadas(void) { return negAcertos; }
+
 static char *baixarImagem(const char *url, long *n, TexFetchTrace *trace) {
+  char urlLogBuf[160];
   char *corpo;
   // URL VIRTUAL DE FONTE (artereserva.h): o fundo do TMDB/Trakt de um item que
   // so trouxe o do catalogo. Resolve aqui, no fio de rede, e baixa a real; o
   // chamador continua gravando sob a virtual, entao a consulta nao se repete.
   // -1 = nao ha essa arte: falha como um 404, e quem desenha cai na seguinte.
-  { char real[512];
+  { char real[NV_TEX_URL_MAX];
     int r;
     Uint32 t = SDL_GetTicks();
     r = arte_fonte_resolver(url, real, sizeof real);
     if (trace) trace->resolveMs += SDL_GetTicks() - t;
     if (r < 0) {
-      printf("[tex] fonte sem fundo para: %.70s\n", url);
+      printf("[tex] fonte sem fundo para: %s\n", urlLog(url, urlLogBuf, sizeof urlLogBuf));
       fflush(stdout);
       return NULL;
     }
     if (r > 0) return baixarImagem(real, n, trace);
   }
+  // Ja se sabe que esta URL nao tem arte (ver negTem): falha na hora, sem
+  // ocupar o fio — quem desenha cai na proxima fonte como num 404.
+  if (negTem(url)) return NULL;
   // 8 s e nao 25: isto e uma IMAGEM. Com 25 s, duas URLs mortas seguravam os
   // dois fios de decode por quase um minuto e a tela inteira parava de receber
   // arte — repetidamente, porque nada guarda a falha.
@@ -1349,7 +1573,36 @@ static char *baixarImagem(const char *url, long *n, TexFetchTrace *trace) {
       corpo = rede_postar_bin(NV_REC_URL "/v1/xtream", 8, url, n);
     else
 #endif
-    corpo = rede_baixar_bin(url, 8, n);
+    if (posterprov_e_provedor(url)) {
+      // PROVEDOR DE POSTER (posterprov.h): no maximo PP_SIMULT juntos, e prazo
+      // de 20 s porque um cartaz frio e RENDERIZADO no servidor (medido: ~3 s
+      // na instancia publica, ate 30 s no limite dela). O portao fica so em
+      // volta do download; esperar vaga nao gasta o prazo.
+      posterprov_portao_entrar();
+      corpo = rede_baixar_bin(url, 20, n);
+      posterprov_portao_sair();
+    } else {
+#if !defined(__EMSCRIPTEN__) && !defined(rede_baixar_bin)
+      // (Os testes trocam rede_baixar_bin por um dublê: sem status ali.)
+      // Com o STATUS na mao (rede_baixar_bin devolve so NULL): e ele que
+      // separa o 404 do titulo sem arte (24 h) da rede que falhou (2 min).
+      RedeMedida md;
+      memset(&md, 0, sizeof md);
+      corpo = rede_baixar_bin_medido_controle(url, 8, NULL, NULL, n, &md);
+      if (corpo && (md.status < 200 || md.status >= 300)) {
+        char seg[120];
+        printf("[rede] HTTP %d em %s\n", md.status, rede_url_publica(url, seg, sizeof seg));
+        free(corpo); corpo = NULL; *n = 0;
+      }
+      if (!corpo && (md.status == 404 || md.status == 410)) negPor(url, NV_NEG_404_S, 1);
+      // Prazo estourado (sem resposta, quase o prazo inteiro): o host esta
+      // morto AGORA. 30 s, e nao mais: o recuo do item (2/10/60 s) ainda
+      // ganha a tentativa de 60 s se a rede voltar.
+      else if (!corpo && md.status == 0 && md.ms >= 6000) negPor(url, NV_NEG_FALHA_S, 0);
+#else
+      corpo = rede_baixar_bin(url, 8, n);
+#endif
+    }
     if (trace) {
       trace->netMs += SDL_GetTicks() - t;
       trace->netCalls++;
@@ -1366,8 +1619,8 @@ static char *baixarImagem(const char *url, long *n, TexFetchTrace *trace) {
     // downloads tentados, ZERO linha de log e zero textura — com o comentario
     // logo acima afirmando que este ramo ja nao era mudo. Como nada guarda a
     // falha, cada quadro pedia de novo as mesmas URLs, para sempre.
-    if (corpo) printf("[tex] corpo curto (%ld B): %.70s\n", *n, url);
-    else       printf("[tex] download falhou (sem corpo): %.70s\n", url);
+    if (corpo) printf("[tex] corpo curto (%ld B): %s\n", *n, urlLog(url, urlLogBuf, sizeof urlLogBuf));
+    else       printf("[tex] download falhou (sem corpo): %s\n", urlLog(url, urlLogBuf, sizeof urlLogBuf));
     fflush(stdout);
     free(corpo);
     return NULL;
@@ -1384,7 +1637,7 @@ static char *baixarImagem(const char *url, long *n, TexFetchTrace *trace) {
        (b0[0] == 'R'  && b0[1] == 'I'  && b0[2] == 'F'  && b0[3] == 'F' &&
         *n > 12 && b0[8] == 'W' && b0[9] == 'E' && b0[10] == 'B' && b0[11] == 'P'));
     if (!ok) {
-      printf("[tex] resposta nao e imagem (%ld B): %.70s\n", *n, url);
+      printf("[tex] resposta nao e imagem (%ld B): %s\n", *n, urlLog(url, urlLogBuf, sizeof urlLogBuf));
       fflush(stdout);
       free(corpo);
       return NULL;
@@ -1592,7 +1845,7 @@ static int mesmoPedido(int idx, const char *pedido) {
 static int baixarParaItem(int idx, const char *url, char *dst, size_t tam, int *foiRede,
                           TexFetchTrace *trace) {
   const char *pedido = url;   // o caminho do item; `url` pode virar a variante
-  char certo[600];
+  char certo[NV_TEX_URL_MAX];
   int limitePedido;
   SDL_LockMutex(mtx); limitePedido = itens[idx].limite; SDL_UnlockMutex(mtx);
 #ifdef __EMSCRIPTEN__
@@ -1668,7 +1921,7 @@ static int baixarParaItem(int idx, const char *url, char *dst, size_t tam, int *
     SDL_LockMutex(mtx);
     if (!mesmoPedido(idx, pedido)) {
       SDL_UnlockMutex(mtx); free(corpo);
-      printf("[tex] bytes descartados: o slot virou outro pedido durante o download (%.60s)\n", pedido);
+      { char lb[160]; printf("[tex] bytes descartados: o slot virou outro pedido durante o download (%s)\n", urlLog(pedido, lb, sizeof lb)); }
       fflush(stdout);
       return -1;
     }
@@ -1728,13 +1981,14 @@ static int baixarParaItem(int idx, const char *url, char *dst, size_t tam, int *
     SDL_LockMutex(mtx);
     if (!mesmoPedido(idx, pedido)) {
       SDL_UnlockMutex(mtx); free(corpo);
-      printf("[tex] bytes descartados: o slot virou outro pedido durante o download (%.60s)\n", pedido);
+      { char lb[160]; printf("[tex] bytes descartados: o slot virou outro pedido durante o download (%s)\n", urlLog(pedido, lb, sizeof lb)); }
       fflush(stdout);
       return -1;
     }
     free(itens[idx].bruto);
     itens[idx].bruto = corpo;
     itens[idx].nBruto = n;
+    snprintf(itens[idx].urlCache, sizeof itens[idx].urlCache, "%s", url);
     SDL_UnlockMutex(mtx);
     return 1;
   }
@@ -1749,7 +2003,7 @@ static int threadRede(void *arg) {
   int meu = (int)(intptr_t)arg;
   for (;;) {
     int idx;
-    char caminho[512], local[600];
+    char caminho[NV_TEX_URL_MAX], local[600];
     Uint32 filaEm = 0, filaWait = 0;
     int urgente = 0;
     SDL_LockMutex(mtx);
@@ -2023,6 +2277,41 @@ SDL_Surface *tex_reduzir(SDL_Surface *src, int lw, int lh) {
   return dst;
 }
 
+#ifndef __EMSCRIPTEN__
+// Algumas SDL_image do webOS nao incluem GIF. A foto usa o decoder C ja
+// embarcado: um quadro, limitado, sem iniciar animacao nem fio adicional.
+static SDL_Surface *gifFotoMem(const unsigned char *b, size_t n, int limite,
+                              int *ow, int *oh) {
+  int w, h, y;
+  unsigned char *px = gif_primeiro_rgba(b, n, limite, &w, &h, ow, oh);
+  SDL_Surface *s;
+  if (!px) return NULL;
+  s = nv_superficie(0, w, h, 32, SDL_PIXELFORMAT_ABGR8888);
+  if (s)
+    for (y = 0; y < h; y++)
+      memcpy((char *)s->pixels + y * s->pitch, px + (size_t)y * w * 4, (size_t)w * 4);
+  free(px);
+  return s;
+}
+
+static SDL_Surface *gifFotoArquivo(const char *caminho, int limite, int *ow, int *oh) {
+  unsigned char magic[4], *b;
+  long n;
+  SDL_Surface *s = NULL;
+  FILE *f = fopen(caminho, "rb");
+  if (!f) return NULL;
+  if (fread(magic, 1, sizeof magic, f) != sizeof magic || memcmp(magic, "GIF8", 4) ||
+      fseek(f, 0, SEEK_END) != 0 || (n = ftell(f)) < 14 || n > 32L * 1024 * 1024 ||
+      fseek(f, 0, SEEK_SET) != 0) { fclose(f); return NULL; }
+  b = malloc((size_t)n);
+  if (b && fread(b, 1, (size_t)n, f) == (size_t)n)
+    s = gifFotoMem(b, (size_t)n, limite, ow, oh);
+  free(b);
+  fclose(f);
+  return s;
+}
+#endif
+
 static int threadDecode(void *arg) {
   (void)arg;
   // PRIORIDADE BAIXA, e isto nao e detalhe.
@@ -2054,13 +2343,13 @@ static int threadDecode(void *arg) {
       SDL_UnlockMutex(mtx);
       continue;
     }
-    char caminho[512];
+    char caminho[NV_TEX_URL_MAX];
     int limite;
     Uint32 filaEm = 0, filaWait = 0;
     int localDireto = 0;
     strncpy(caminho, itens[idx].caminho, sizeof caminho - 1);
     caminho[sizeof caminho - 1] = 0;
-    char urlOrig[512];
+    char urlOrig[NV_TEX_URL_MAX];
     strncpy(urlOrig, caminho, sizeof urlOrig - 1);
     urlOrig[sizeof urlOrig - 1] = 0;
     // Copiado SOB O MUTEX: o item pode ser promovido a hero enquanto este fio
@@ -2081,9 +2370,9 @@ static int threadDecode(void *arg) {
     int daMemoria = bruto != NULL;
 #ifdef __EMSCRIPTEN__
     int varianteCache = itens[idx].varianteCache;
-    char urlCache[512];
-    snprintf(urlCache, sizeof urlCache, "%s", itens[idx].urlCache);
 #endif
+    char urlCache[NV_TEX_URL_MAX];
+    snprintf(urlCache, sizeof urlCache, "%s", itens[idx].urlCache);
     itens[idx].bruto = NULL; itens[idx].nBruto = 0;
     itens[idx].urlCache[0] = 0;
     SDL_UnlockMutex(mtx);
@@ -2099,6 +2388,8 @@ static int threadDecode(void *arg) {
 #endif
 
     Uint32 t0 = SDL_GetTicks(), tLoad;
+    unsigned char magDec[4] = {0, 0, 0, 0};
+    int temMagDec = 0;
     int srcW = 0, srcH = 0;
     SDL_Surface *bruta = NULL;
     SDL_Surface *conv = NULL;
@@ -2113,6 +2404,7 @@ static int threadDecode(void *arg) {
         bruta = rw ? IMG_Load_RW(rw, 1) : NULL;
       }
       if (!bruta) bruta = webp_carregar_larg_mem(bruto, (size_t)nBruto, limite, &srcW, &srcH);
+      if (!bruta) bruta = gifFotoMem(bruto, (size_t)nBruto, limite, &srcW, &srcH);
 #endif
       free(bruto);
     } else
@@ -2120,12 +2412,18 @@ static int threadDecode(void *arg) {
     // O download JA ACONTECEU no fio de rede; aqui garantirLocal so traduz a
     // URL para o caminho do cache, sem tocar a rede.
     // Com variante (limiteTamanho), o arquivo no disco e o dela.
-    { char local[600], certo[600];
+    { char local[600], certo[NV_TEX_URL_MAX];
       const char *fonte = caminho;
       if (limTam > 0 && arte_tamanho_url(caminho, limTam, certo, sizeof certo)) fonte = certo;
       if (garantirLocal(fonte, local, sizeof local, NULL, NULL))
         snprintf(caminho, sizeof caminho, "%s", local);
     }
+    // A MAGICA do arquivo (Item.magica): quem veio direto do disco
+    // (discoDireto) nao passou pelo fio de rede, que e quem a lia.
+#ifndef __EMSCRIPTEN__
+    { FILE *g = fopen(caminho, "rb");
+      if (g) { temMagDec = fread(magDec, 1, 4, g) == 4; fclose(g); } }
+#endif
     // JPEG SAI DO DECODIFICADOR JA REDUZIDO (jpegrapido.h): 1/2, 1/4 ou 1/8
     // dentro da DCT, o que cobre o pedido. srcW/srcH ficam com o tamanho do
     // ARQUIVO — e o que `fonteW` guarda para decidir promocao — e nao com o
@@ -2135,6 +2433,9 @@ static int threadDecode(void *arg) {
     // O SDL2_image desta TV nao le WebP; a libwebp do sistema le (webp.c),
     // e ja reduz ao limite — os fundos do Xperience sao 3840x2160.
     if (!bruta) bruta = webp_carregar_larg(caminho, limite, &srcW, &srcH);
+#ifndef __EMSCRIPTEN__
+    if (!bruta) bruta = gifFotoArquivo(caminho, limite, &srcW, &srcH);
+#endif
     }
     tLoad = SDL_GetTicks();
     if (bruta && !srcW) { srcW = bruta->w; srcH = bruta->h; }
@@ -2247,9 +2548,10 @@ static int threadDecode(void *arg) {
         // Em duas partes: ler o arquivo (IMG_Load) e reduzir (tex_reduzir +
         // conversao). E o que separa "a libjpeg e lenta" de "a media de area
         // e lenta" — duas respostas com consertos opostos.
-        printf("[tex] decode lento: %u ms (ler %u, reduzir %u) para %dx%d (saiu %dx%d) %s\n",
-               (unsigned)dt, (unsigned)(tLoad - t0), (unsigned)(SDL_GetTicks() - tLoad),
-               srcW, srcH, conv->w, conv->h, urlOrig);
+        { char lb[160];
+          printf("[tex] decode lento: %u ms (ler %u, reduzir %u) para %dx%d (saiu %dx%d) %s\n",
+                 (unsigned)dt, (unsigned)(tLoad - t0), (unsigned)(SDL_GetTicks() - tLoad),
+                 srcW, srcH, conv->w, conv->h, urlLog(urlOrig, lb, sizeof lb)); }
         if (limTam > 0) printf("[tex] (variante do tamanho, teto %d)\n", limTam);
         printf("[tex-trace] decode hash=%08lx kind=%s queue=%u total=%u load=%u reduce=%u src=%dx%d out=%dx%d\n",
                hashCaminho(urlOrig), localDireto ? "local" : "remote",
@@ -2258,15 +2560,29 @@ static int threadDecode(void *arg) {
         fflush(stdout);
       } }
     if (getenv("NUVIO_TEX_LOG") && conv)
-      printf("[tex-nitidez] fonte=%dx%d teto=%d final=%dx%d %s\n",
-             srcW, srcH, limite, conv->w, conv->h, urlOrig);
+      { char lb[160];
+        printf("[tex-nitidez] fonte=%dx%d teto=%d final=%dx%d %s\n",
+               srcW, srcH, limite, conv->w, conv->h, urlLog(urlOrig, lb, sizeof lb)); }
 
     // MEDIDA DE LUMINANCIA, aqui e nao no desenho: esta thread ja tem os pixels
     // na mao e roda em prioridade baixa. Amostra de 4 em 4 nos dois eixos —
     // 1/16 dos pixels bastam para dizer se uma arte e escura, e a conta inteira
     // num logo de 700x271 seria trabalho sem retorno.
     int lumMedia = -1, cromaMedia = 0, desvio1 = 0;
-    int corR = -1, corG = 0, corB = 0;
+    int corR = -1, corG = 0, corB = 0, opaca = 0;
+    // OPACA DE PONTA A PONTA? Conferido pixel a pixel (para no primeiro alfa <
+    // 255): e o que deixa o desenho dispensar a camada de tela cheia que ficaria
+    // inteira atras desta arte (gfx_arte_opaca_atual). Uma amostra nao basta —
+    // um pixel transparente perdido mostraria o fundo errado. ~2 M leituras num
+    // heroi de 1920x1080, nesta thread de baixa prioridade.
+    if (conv && conv->format->BytesPerPixel == 4 && conv->w > 0 && conv->h > 0) {
+      int yy, xx;
+      opaca = 1;
+      for (yy = 0; yy < conv->h && opaca; yy++) {
+        const unsigned char *ln = (const unsigned char *)conv->pixels + (size_t)yy * conv->pitch;
+        for (xx = 0; xx < conv->w; xx++) if (ln[(size_t)xx * 4 + 3] != 255) { opaca = 0; break; }
+      }
+    }
     if (conv && conv->format->BytesPerPixel == 4) {
       const unsigned char *px = (const unsigned char *)conv->pixels;
       long soma = 0, somaC = 0, n = 0;
@@ -2357,10 +2673,13 @@ static int threadDecode(void *arg) {
     // (mesmoPedido): nao sendo o mesmo caminho, a superficie vai para o lixo.
     if (strcmp(itens[idx].caminho, urlOrig)) {
       if (conv) SDL_FreeSurface(conv);
-      printf("[tex] decode descartado: o slot virou outro pedido (%.60s)\n", urlOrig);
+      { char lb[160]; printf("[tex] decode descartado: o slot virou outro pedido (%s)\n", urlLog(urlOrig, lb, sizeof lb)); }
       fflush(stdout);
       SDL_UnlockMutex(mtx);
       continue;
+    }
+    if (temMagDec && !itens[idx].temMagica) {
+      memcpy(itens[idx].magica, magDec, 4); itens[idx].temMagica = 1;
     }
     if (itens[idx].estado == PENDENTE && !conv && pedidoObsoleto(&itens[idx])) {
       // A imagem terminou depois de o card sair da tela E NAO DECODIFICOU: nao
@@ -2380,6 +2699,7 @@ static int threadDecode(void *arg) {
       falhou = 1;
     } else if (itens[idx].estado == PENDENTE) {
       itens[idx].lum = lumMedia;
+      itens[idx].opaca = opaca;
       itens[idx].croma = cromaMedia;
       itens[idx].desvio1 = desvio1;
       itens[idx].corR = corR; itens[idx].corG = corG; itens[idx].corB = corB;
@@ -2435,8 +2755,9 @@ static int threadDecode(void *arg) {
         if (g) { fseek(g, 0, SEEK_END); tam = ftell(g); rewind(g);
                  if (fread(mag, 1, 4, g) != 4) { }
                  fclose(g); } }
+      { char lb[160];
       printf("[tex] decode falhou (%s) tam=%ld magica=%02x%02x%02x%02x: %.70s\n",
-             IMG_GetError(), tam, mag[0], mag[1], mag[2], mag[3], caminho);
+             IMG_GetError(), tam, mag[0], mag[1], mag[2], mag[3], urlLog(caminho, lb, sizeof lb)); }
       // GIF INTEIRO NAO E ARQUIVO ENVENENADO — E ARQUIVO DE OUTRO LEITOR.
       //
       // Issue #49, e as duas fotos do log do @rawldon fecham a cadeia: o
@@ -2465,7 +2786,9 @@ static int threadDecode(void *arg) {
            * estar na fila de gravacao; nao deixa virar arquivo envenenado. */
           if (daMemoria) {
             char local[600];
-            nomeDeCache(urlOrig, local, sizeof local);
+            // A chave do item pode ser /original/, mas os bytes baixados e
+            // a gravacao pertencem a /w780/ ou /w1280/. Invalida essa URL.
+            nomeDeCache(urlCache[0] ? urlCache : urlOrig, local, sizeof local);
             cancelarGravacao(local);
             if (remove(local) == 0) { cachearte_nativo_indice_remover(local); publicarDiscoNativo(); }
           }
@@ -2602,7 +2925,8 @@ static int orcamentoMB(void) {
   // variante promete "cache grande para TV com RAM sobrando", nao "300 em
   // qualquer TV". O teto e o mesmo que Ajustes usa (tetoPermitidoMB): 64 abaixo
   // de 1,2 GB, 160 abaixo de 2 GB, 300 abaixo de 3 GB, 512 acima.
-  { int teto = ptv_tex_teto_mb(PTV_LG, mem);
+  // (ptv_plataforma: na LG e o PTV_LG de sempre; no .tpk, a tabela PTV_TPK.)
+  { int teto = ptv_tex_teto_mb(ptv_plataforma(), mem);
     if (mb > teto) {
       printf("[tex] NV_TEX_MB_FIXO=%d acima do que %ld MB de RAM permitem: fica em %d MB\n", mb, mem, teto);
       mb = teto; porque = "NV_TEX_MB_FIXO limitado pela RAM";
@@ -2678,6 +3002,8 @@ void tex_definir_orcamento_auto_mb(int mb) {
   orcAuto = mb;
   if (orcFixo == 0) tex_definir_orcamento_mb(0);
 }
+
+int tex_orcamento_auto_mb(void) { return orcAuto; }
 
 void tex_definir_fios_rede(int n) {
   if (!mtx) return;
@@ -2783,8 +3109,16 @@ int tex_historico(long *saida, int max) {
   return n;
 }
 
+// O que o posterprov precisa saber de uma URL de provedor: -1 falhou (HTTP,
+// prazo, corpo que nao e imagem, decode), 1 ja tem textura, 0 ainda vai.
+static int estadoPoster(const char *url) {
+  if (tex_falhou(url)) return -1;
+  return tex_aspecto(url) > 0.0f ? 1 : 0;
+}
+
 int tex_iniciar(int max_itens) {
   int mb = orcamentoMB();
+  posterprov_hook_estado(estadoPoster);
   int fiosDecode = NV_TEX_FIOS, fiosRede = NV_TEX_FIOS_REDE;
   // Os outros dois padroes do aparelho (fios ativos e teto do heroi) saem da
   // MESMA tabela do orcamento. Ver perfiltv.c.
@@ -2816,11 +3150,17 @@ int tex_iniciar(int max_itens) {
   // esta e nao um numero maior cravado.
   { float e = escalaBuf > 0.1f ? escalaBuf : 1.0f;
     orcamento = (long)(mb * e * e) * 1024L * 1024L; }
+#ifndef __EMSCRIPTEN__
+  pthread_mutex_lock(&vidaMtx);
+#endif
   bytesUsados = 0;
   memset(itens, 0, sizeof itens);
   mtx = SDL_CreateMutex(); cond = SDL_CreateCond();
   condDec = SDL_CreateCond(); condLivre = SDL_CreateCond();
   rodando = 1;
+#ifndef __EMSCRIPTEN__
+  pthread_mutex_unlock(&vidaMtx);
+#endif
   // DOIS fios de decode, nao um. A fila e retirada sob o mutex e cada fio leva
   // um indice proprio, entao mais consumidores e seguro sem outra mudanca.
   //
@@ -2848,6 +3188,7 @@ int tex_iniciar(int max_itens) {
 }
 
 void tex_encerrar(void) {
+  if (!mtx) return;
   SDL_LockMutex(mtx); rodando = 0;
   SDL_CondBroadcast(cond); SDL_CondBroadcast(condDec);
   SDL_CondBroadcast(condLivre);
@@ -2860,16 +3201,35 @@ void tex_encerrar(void) {
     for (k = 0; k < NV_TEX_FIOS_REDE; k++)
       if (thrsRede[k]) { SDL_WaitThread(thrsRede[k], NULL); thrsRede[k] = NULL; }
     thr = NULL; }
+#ifndef __EMSCRIPTEN__
+  // Nenhum mutex SDL esta tomado aqui: o callback em curso pode termina-lo,
+  // e os seguintes so veem mtx NULL depois deste encerramento completo.
+  pthread_mutex_lock(&vidaMtx);
+#endif
+  if (uplTex) glDeleteTextures(1, &uplTex);
+  uplTex = 0; uplIdx = -1; uplSup = NULL; uplY = 0;
   for (int i = 0; i < nMax; i++) {
     if (itens[i].tex) glDeleteTextures(1, &itens[i].tex);
     if (itens[i].sup) SDL_FreeSurface(itens[i].sup);
+    soltarBruto(&itens[i]);
   }
+  memset(itens, 0, sizeof itens);
+  filaIni = filaFim = decIni = decFim = 0;
+  bytesUsados = 0; fiosRedeCriados = 0;
+  SDL_DestroyCond(condLivre); SDL_DestroyCond(condDec);
   SDL_DestroyCond(cond); SDL_DestroyMutex(mtx);
+  condLivre = condDec = cond = NULL; mtx = NULL;
+#ifndef __EMSCRIPTEN__
+  pthread_mutex_unlock(&vidaMtx);
+#endif
 }
 
 // Ver tex_obter_larg_qualquer: 1 durante essa chamada, e a textura menor que
 // ja existe e entregue enquanto a maior e reprocessada.
 static int aceitaMenor;
+// Pedido de LOGO DE TITULO em curso (ver tex_obter_logo_larg): sobe o item para
+// o nivel 2 da fila, a frente ate do fundo de tela cheia.
+static int pedidoLogo;
 // CAMINHO QUE NAO E TEXTO NAO VIRA PEDIDO. Guarda, nao conserto: o caso que a
 // trouxe (lixo binario como caminho, "[tex] decode falhou (Couldn't open
 // ���̑C)") era um ponteiro para bloco do catalogo ja liberado, consertado em
@@ -2885,9 +3245,45 @@ static int caminhoInvalido(const char *c) {
   return 0;
 }
 
+int tex_disco_direto = 0;
+// ARTE QUE JA ESTA NO DISCO NAO ENTRA NA FILA DE REDE (05/10/2026, B3).
+//
+// MEDIDO na C9 (logs de 04 e 05/10, leitura): das 389 esperas `fila-rede`
+// acima de 250 ms, 328 sao de pedidos cujo fetch NAO apareceu como lento —
+// acertos de disco (um fopen) que esperaram, somados, 150 s atras dos quatro
+// fios ocupados com downloads de 0,6-2 s (net_ms p50 650, p90 1,5-2,1 s) e
+// com consultas de fonte de 1,5 s. Ou seja: arte que a TV ja tinha esperava a
+// internet dos OUTROS cartazes. E o "na C9 a arte demora a aparecer" com o
+// cache de disco cheio (1.300+ arquivos).
+//
+// Aqui o fio de desenho pergunta ao INDICE do cache de disco (nomes em RAM,
+// sem I/O) se o arquivo da variante certa existe; existindo, o item vai
+// direto para a fila de DECODE, que ja le do arquivo (garantirLocal so
+// traduz a URL). Arquivo que a poda apagou no meio do caminho cai no
+// garantirLocal do decode, que baixa como antes. Fila de decode cheia ou
+// indice ainda nao montado: fila de rede, como sempre foi.
+static int discoDireto(int idx) {
+#ifndef __EMSCRIPTEN__
+  char certo[NV_TEX_URL_MAX], dst[600];
+  int usar;
+  if (!dirCache[0] || !itens[idx].caminho[0]) return 0;
+  usar = arte_tamanho_url(itens[idx].caminho, itens[idx].limite, certo, sizeof certo);
+  nomeDeCache(usar ? certo : itens[idx].caminho, dst, sizeof dst);
+  if (!cachearte_nativo_indice_tem(dst)) return 0;
+  itens[idx].limiteTamanho = usar ? itens[idx].limite : 0;
+  if (!enfileirarDecodeSemEspera(idx)) return 0;
+  tex_disco_direto++;
+  return 1;
+#else
+  (void)idx;
+  return 0;
+#endif
+}
+
 static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
                                int passageiro) {
   if (!caminho || !*caminho) return 0;
+  if (pedidoLogo) urgente = 2;
   if (caminhoInvalido(caminho)) {
     static int avisos;
     if (avisos < 3) {
@@ -2911,7 +3307,7 @@ static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
   if (i >= 0 && itens[i].estado == FALHOU) {
     itens[i].ultimoQuadro = quadroAtual;
     itens[i].ultimoPedido = SDL_GetTicks();
-    if (urgente) itens[i].urgente = 1;
+    if (urgente > itens[i].urgente) itens[i].urgente = urgente;
     // Ja falhou: so volta para a fila quando o RECUO vencer, e no maximo
     // QUATRO vezes. Sem a espera o pedido voltava a cada quadro e a arte
     // quebrada tomava a frente da boa; sem o teto acontece coisa pior, e ela
@@ -2952,6 +3348,9 @@ static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
         }
       }
     }
+    // Falhou mas ainda vai tentar de novo: e arte que pode chegar, e o fundo
+    // parado do painel de Salvos precisa saber (ver spainel_fundo).
+    if (itens[i].falhas < 4) tex_n_falta++;
     SDL_UnlockMutex(mtx);
     return 0;
   }
@@ -2965,9 +3364,10 @@ static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
     // antes, como poster da fileira, e e exatamente esse item que precisa
     // furar a fila agora.
     if (urgente && itens[i].estado != PRONTO) {
-      if (!itens[i].urgente)
-        printf("[tex-trace] pedido hash=%08lx role=hero limite=%d\n", h, limite);
-      itens[i].urgente = 1;
+      if (urgente > itens[i].urgente)
+        printf("[tex-trace] pedido hash=%08lx role=%s limite=%d\n", h,
+               urgente > 1 ? "logo" : "hero", limite);
+      if (urgente > itens[i].urgente) itens[i].urgente = urgente;
     }
     // PROMOCAO: a mesma arte pode ser pedida como poster (960) e depois como
     // hero (1920). Se o teto novo e maior e a textura pronta ficou menor que
@@ -3012,8 +3412,11 @@ static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
       if (itens[i].localDireto) {
         itens[i].estado = PENDENTE;
         (void)enfileirarDecodeSemEspera(i);
+      } else if ((itens[i].estado = PENDENTE, discoDireto(i))) {
+        /* do disco, sem rede */
       } else {
         int prox = (filaFim + 1) % MAX_FILA;
+        itens[i].estado = PRONTO;
         if (prox != filaIni) {
           itens[i].estado = PENDENTE;
           fila[filaFim] = i; filaFim = prox;
@@ -3051,26 +3454,30 @@ static GLuint tex_obter_limite(const char *caminho, int limite, int urgente,
       itens[novo].uso = ++relogio;
       itens[novo].ultimoQuadro = quadroAtual;
       itens[novo].ultimoPedido = SDL_GetTicks();
-      itens[novo].urgente = urgente ? 1 : 0;
+      itens[novo].urgente = urgente;
       itens[novo].passageiro = passageiro ? 1 : 0;
       itens[novo].localDireto = caminhoLocal(caminho);
       if (itens[novo].localDireto) {
         // Fila cheia nao transforma caminho local em espera de rede nem trava
         // a UI; o estado PENDENTE sera reenfileirado no proximo pedido.
         (void)enfileirarDecodeSemEspera(novo);
+      } else if (discoDireto(novo)) {
+        /* do disco, sem rede */
       } else {
         int prox = (filaFim + 1) % MAX_FILA;
         if (prox != filaIni) {
           fila[filaFim] = novo; filaFim = prox;
           itens[novo].filaRedeEm = SDL_GetTicks();
           if (urgente)
-            printf("[tex-trace] pedido hash=%08lx role=hero limite=%d\n", h, limite);
+            printf("[tex-trace] pedido hash=%08lx role=%s limite=%d\n", h,
+                   urgente > 1 ? "logo" : "hero", limite);
           acordarRede();
         }
         else { itens[novo].estado = VAZIO; itens[novo].caminho[0] = 0; } // fila cheia
       }
     }
   }
+  if (!saida) tex_n_falta++;
   SDL_UnlockMutex(mtx);
   return saida;
 }
@@ -3096,7 +3503,7 @@ static int capDeLargura(float largLayout) {
 
 void tex_cache_marcar_larg(int grupo, const char *url, float largLayout,
                            int essencial, int emUso) {
-  char urlReal[600];
+  char urlReal[NV_TEX_URL_MAX];
   int cap = largLayout <= 1.0f ? NV_TEX_LARG_MAX : capDeLargura(largLayout);
   int variante = NV_CACHE_ARTE_MEDIUM;
   if (!url || !*url) return;
@@ -3133,6 +3540,27 @@ GLuint tex_obter_larg_qualquer(const char *caminho, float largLayout) {
   aceitaMenor = 1;
   t = tex_obter_larg(caminho, largLayout);
   aceitaMenor = 0;
+  return t;
+}
+
+// LOGO DE TITULO: um PNG de dezenas de KB que a pessoa espera ao lado do nome.
+// MEDIDO na C9 (logcat de 04/10): a fila de rede e FIFO e o logo, pedido como
+// arte de card, esperava 0,5 a 0,85 s atras de cartazes e fundos de fileira
+// (fila-rede wait=..., urgente=0) antes de comecar a baixar; o decode (dois
+// fios, fundos de 3840x2160 de 300-500 ms) e a mesma fila. Nivel 2 fura as duas.
+GLuint tex_obter_logo_larg(const char *caminho, float largLayout) {
+  GLuint t;
+  pedidoLogo = 1;
+  t = tex_obter_larg(caminho, largLayout);
+  pedidoLogo = 0;
+  return t;
+}
+
+GLuint tex_obter_logo_larg_qualquer(const char *caminho, float largLayout) {
+  GLuint t;
+  pedidoLogo = 1;
+  t = tex_obter_larg_qualquer(caminho, largLayout);
+  pedidoLogo = 0;
   return t;
 }
 
@@ -3254,6 +3682,18 @@ float tex_aspecto(const char *caminho) {
   return a;
 }
 
+int tex_opaca(const char *caminho) {
+  int r = 0;
+  unsigned long h;
+  int i;
+  if (!caminho || !*caminho) return 0;
+  h = hashCaminho(caminho);
+  BUSCA_MEDIDA(i, caminho, h);
+  if (i >= 0 && itens[i].tex) r = itens[i].opaca;
+  SDL_UnlockMutex(mtx);
+  return r;
+}
+
 int tex_luminancia(const char *caminho) {
   int r = -1;
   unsigned long h;
@@ -3316,43 +3756,33 @@ int tex_marca_escura(const char *caminho) {
 int    tex_upl_n;
 long   tex_upl_bytes;
 
-int tex_bombear(int max_por_quadro) {
-  int subiu = 0;
-  Uint64 inicio = SDL_GetPerformanceCounter();
-  double freq = (double)SDL_GetPerformanceFrequency();
-  for (int passo = 0; passo < max_por_quadro; passo++) {
-    if (subiu > 0 &&
-        (double)(SDL_GetPerformanceCounter() - inicio) * 1000.0 / freq >=
-            NV_TEX_UPLOAD_BUDGET_MS)
-      break;
-    SDL_Surface *sup = NULL; int alvo = -1;
-    Uint32 filaEm = 0, filaWait = 0;
-    char uploadPath[512] = "";
-    SDL_LockMutex(mtx);
-    for (int i = 0; i < nMax; i++) {
-      if (itens[i].estado == DECODIFICADO && itens[i].sup) {
-        sup = itens[i].sup; itens[i].sup = NULL; alvo = i;
-        filaEm = itens[i].filaUploadEm; itens[i].filaUploadEm = 0;
-        snprintf(uploadPath, sizeof uploadPath, "%s", itens[i].caminho);
-        break;
-      }
-    }
-    SDL_UnlockMutex(mtx);
-    if (!sup) break;
+// ENVIO EM FAIXAS (05/10/2026, B3). Textura acima de NV_TEX_FAIXA_BYTES sobe
+// em pedacos de linhas, um orcamento de quadro por vez, em vez de num
+// glTexImage2D so.
+//
+// MEDIDO na C9 (logs de 04 e 05/10, leitura): o heroi de 1920x1080 (8,3 MB)
+// custa gl_ms 14-58 por envio (p50 ~21) — 38 envios de heroi registrados,
+// cada um um quadro perdido inteiro (ou dois) no fio que desenha, e o resto
+// do custo aparece no glClear do quadro seguinte. O orcamento de 4 ms por
+// quadro (NV_TEX_UPLOAD_BUDGET_MS) nunca valeu para ele: o primeiro envio do
+// quadro passa sempre, e ele era um envio so.
+//
+// Com faixas de 2 MB o mesmo heroi vira 4 pedacos de ~270 linhas. A textura
+// so e PUBLICADA (PRONTO) quando a ultima faixa sobe: ate la quem desenha ve
+// o que ja via (o cinza/crossfade, ou a versao menor na promocao), nunca uma
+// textura pela metade. Num aparelho rapido o laco abaixo sobe varias faixas no
+// mesmo quadro, enquanto o orcamento deixar, e nada muda. A superficie fica
+// no item (`sup`) durante o envio, entao tex_novo_quadro nao a trata como
+// pedido velho e nenhum outro caminho mexe num item DECODIFICADO.
+#define NV_TEX_FAIXA_BYTES (2L * 1024L * 1024L)
+// Rastro do envio em faixas: os mesmos numeros do upload-total.
+static Uint32 uplEm, uplGlMs, uplFila;
+static char uplPath[512];
 
-    if (filaEm) {
-      filaWait = SDL_GetTicks() - filaEm;
-      if (filaWait >= NV_TEX_TRACE_MS)
-        printf("[tex-trace] fila-upload hash=%08lx wait=%u\n",
-               hashCaminho(uploadPath), (unsigned)filaWait);
-    }
-
-    Uint32 uploadEm = SDL_GetTicks();
-    Uint32 glMs = 0;
-    GLuint t; glGenTextures(1, &t); glBindTexture(GL_TEXTURE_2D, t);
-    tex_upl_n++;
-    tex_upl_bytes += (long)sup->w * sup->h * 4;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sup->w, sup->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, sup->pixels);
+// Publica a textura `t` (ja com todos os pixels) no item `alvo`. Chamada sem
+// a trava; `sup` ja saiu do item.
+static void publicarEnvio(int alvo, GLuint t, SDL_Surface *sup, Uint32 uploadEm,
+                          Uint32 glMs, Uint32 filaWait, const char *uploadPath) {
     // Mipmaps servem a duas coisas: reduzir o serrilhado quando a arte aparece
   // menor que o original, e — a razao de terem entrado agora — permitir o fundo
   // desfocado da pagina de detalhe. Em GLES2 nao ha blur barato; amostrar um
@@ -3392,6 +3822,8 @@ int tex_bombear(int max_por_quadro) {
     int ap = (sup->h > 0) && ((sup->h & (sup->h - 1)) == 0);
     if (!lp || !ap) comMip = 0; }
 #endif
+  Uint32 mipEm = SDL_GetTicks();
+  glBindTexture(GL_TEXTURE_2D, t);
   if (comMip) glGenerateMipmap(GL_TEXTURE_2D);
   // MIPMAP_NEAREST e nao _LINEAR: o trilinear le DOIS niveis da piramide por
   // amostra, e nesta GPU isso e o dobro do custo de textura em cada pixel de
@@ -3399,13 +3831,13 @@ int tex_bombear(int max_por_quadro) {
   // so apareceria numa animacao de zoom continuo — que o app nao faz.
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                   comMip ? GL_LINEAR_MIPMAP_NEAREST : GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gfx_tex_esquecer(0);  // o bind do upload passou por fora do gfx_rect
-    glMs = SDL_GetTicks() - uploadEm;
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  gfx_tex_esquecer(0);  // o bind do upload passou por fora do gfx_rect
+  glMs += SDL_GetTicks() - mipEm;
 
-    SDL_LockMutex(mtx);
+  SDL_LockMutex(mtx);
     // PROMOCAO VAZAVA. Quando a mesma arte e pedida com um teto maior (poster a
     // 288 e depois heroi a 1920), o item volta a PENDENTE e passa por aqui de
     // novo — e esta linha sobrescrevia `tex` sem apagar a textura antiga e
@@ -3416,25 +3848,124 @@ int tex_bombear(int max_por_quadro) {
     // orcamento inflado, podar() passava a despejar cada vez mais cedo — ate
     // despejar arte que estava na tela, um quadro depois de ela subir. Era mais
     // uma fonte de "poster que some".
-    if (itens[alvo].tex) {
-      gfx_tex_esquecer(itens[alvo].tex);
-      glDeleteTextures(1, &itens[alvo].tex);
+  if (itens[alvo].tex) {
+    gfx_tex_esquecer(itens[alvo].tex);
+    glDeleteTextures(1, &itens[alvo].tex);
     bytesUsados -= bytesTextura(itens[alvo].w, itens[alvo].h);
-      if (bytesUsados < 0) bytesUsados = 0;
-    }
-    itens[alvo].tex = t; itens[alvo].w = sup->w; itens[alvo].h = sup->h;
-    itens[alvo].estado = PRONTO;
-    itens[alvo].urgente = 0;
-    bytesUsados += bytesTextura(sup->w, sup->h);
-    podar();
-    SDL_UnlockMutex(mtx);
-    long uploadBytes = (long)sup->w * sup->h * 4;
+    if (bytesUsados < 0) bytesUsados = 0;
+  }
+  itens[alvo].tex = t; itens[alvo].w = sup->w; itens[alvo].h = sup->h;
+  itens[alvo].estado = PRONTO;
+  itens[alvo].urgente = 0;
+  bytesUsados += bytesTextura(sup->w, sup->h);
+  podar();
+  SDL_UnlockMutex(mtx);
+  { long uploadBytes = (long)sup->w * sup->h * 4;
+    Uint32 uploadMs = SDL_GetTicks() - uploadEm;
     SDL_FreeSurface(sup);
-    { Uint32 uploadMs = SDL_GetTicks() - uploadEm;
-      if (uploadMs >= NV_TEX_TRACE_UPLOAD_MS || glMs >= NV_TEX_TRACE_UPLOAD_MS)
-        printf("[tex-trace] upload-total hash=%08lx total_ms=%u gl_ms=%u bytes=%ld mip=%d queue=%u\n",
-               hashCaminho(uploadPath), (unsigned)uploadMs, (unsigned)glMs,
-               uploadBytes, comMip, (unsigned)filaWait); }
+    if (uploadMs >= NV_TEX_TRACE_UPLOAD_MS || glMs >= NV_TEX_TRACE_UPLOAD_MS)
+      printf("[tex-trace] upload-total hash=%08lx total_ms=%u gl_ms=%u bytes=%ld mip=%d queue=%u\n",
+             hashCaminho(uploadPath), (unsigned)uploadMs, (unsigned)glMs,
+             uploadBytes, comMip, (unsigned)filaWait); }
+}
+
+static void uplAbortar(void) {
+  if (uplTex) glDeleteTextures(1, &uplTex);
+  uplTex = 0; uplIdx = -1; uplSup = NULL; uplY = 0;
+}
+
+int tex_bombear(int max_por_quadro) {
+  int subiu = 0, trabalhou = 0;
+  Uint64 inicio = SDL_GetPerformanceCounter();
+  double freq = (double)SDL_GetPerformanceFrequency();
+  for (int passo = 0; passo < max_por_quadro + 16; passo++) {
+    if (trabalhou &&
+        (double)(SDL_GetPerformanceCounter() - inicio) * 1000.0 / freq >=
+            NV_TEX_UPLOAD_BUDGET_MS)
+      break;
+    if (subiu >= max_por_quadro) break;
+
+    // 1. Ha um envio em faixas em curso: a proxima faixa.
+    if (uplIdx >= 0) {
+      int ok, alvo = uplIdx;
+      SDL_LockMutex(mtx);
+      ok = itens[alvo].estado == DECODIFICADO && itens[alvo].sup == uplSup &&
+           !strcmp(itens[alvo].caminho, uplPath);
+      SDL_UnlockMutex(mtx);
+      if (!ok) { uplAbortar(); continue; }
+      { SDL_Surface *sup = uplSup;
+        int linhas = (int)(NV_TEX_FAIXA_BYTES / ((long)sup->w * 4));
+        Uint32 em = SDL_GetTicks();
+        if (linhas < 16) linhas = 16;
+        if (uplY + linhas > sup->h) linhas = sup->h - uplY;
+        glBindTexture(GL_TEXTURE_2D, uplTex);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, uplY, sup->w, linhas, GL_RGBA, GL_UNSIGNED_BYTE,
+                        (const unsigned char *)sup->pixels + (size_t)uplY * sup->pitch);
+        gfx_tex_esquecer(0);
+        tex_upl_bytes += (long)sup->w * linhas * 4;
+        uplY += linhas;
+        uplGlMs += SDL_GetTicks() - em;
+        trabalhou = 1;
+        if (uplY < sup->h) continue;
+        // Ultima faixa: a textura esta inteira, publica.
+        { GLuint t = uplTex;
+          SDL_LockMutex(mtx);
+          itens[alvo].sup = NULL;
+          SDL_UnlockMutex(mtx);
+          uplTex = 0; uplIdx = -1; uplSup = NULL; uplY = 0;
+          tex_upl_n++;
+          publicarEnvio(alvo, t, sup, uplEm, uplGlMs, uplFila, uplPath);
+          subiu++; }
+      }
+      continue;
+    }
+
+    // 2. O proximo decodificado: LOGO (2) e TELA CHEIA (1) antes do resto,
+    //    empate na ordem dos slots (a de sempre). Um cartaz que chega antes
+    //    nao segura o heroi, que e o que a pessoa esta olhando.
+    SDL_Surface *sup = NULL; int alvo = -1, nivel = -1;
+    Uint32 filaEm = 0, filaWait = 0;
+    char uploadPath[512] = "";
+    SDL_LockMutex(mtx);
+    for (int i = 0; i < nMax; i++)
+      if (itens[i].estado == DECODIFICADO && itens[i].sup && itens[i].urgente > nivel) {
+        alvo = i; nivel = itens[i].urgente;
+        if (nivel >= 2) break;
+      }
+    if (alvo >= 0) {
+      sup = itens[alvo].sup;
+      filaEm = itens[alvo].filaUploadEm; itens[alvo].filaUploadEm = 0;
+      snprintf(uploadPath, sizeof uploadPath, "%s", itens[alvo].caminho);
+      // Grande: a superficie FICA no item durante o envio em faixas.
+      if ((long)sup->w * sup->h * 4 <= NV_TEX_FAIXA_BYTES) itens[alvo].sup = NULL;
+    }
+    SDL_UnlockMutex(mtx);
+    if (!sup) break;
+
+    if (filaEm) {
+      filaWait = SDL_GetTicks() - filaEm;
+      if (filaWait >= NV_TEX_TRACE_MS)
+        printf("[tex-trace] fila-upload hash=%08lx wait=%u\n",
+               hashCaminho(uploadPath), (unsigned)filaWait);
+    }
+
+    Uint32 uploadEm = SDL_GetTicks();
+    GLuint t; glGenTextures(1, &t); glBindTexture(GL_TEXTURE_2D, t);
+    if ((long)sup->w * sup->h * 4 > NV_TEX_FAIXA_BYTES) {
+      // So reserva; as faixas vem no passo 1 (deste quadro, se sobrar
+      // orcamento, ou dos seguintes).
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sup->w, sup->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+      gfx_tex_esquecer(0);
+      uplIdx = alvo; uplTex = t; uplSup = sup; uplY = 0;
+      uplEm = uploadEm; uplGlMs = SDL_GetTicks() - uploadEm; uplFila = filaWait;
+      snprintf(uplPath, sizeof uplPath, "%s", uploadPath);
+      continue;
+    }
+    tex_upl_n++;
+    tex_upl_bytes += (long)sup->w * sup->h * 4;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sup->w, sup->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, sup->pixels);
+    trabalhou = 1;
+    publicarEnvio(alvo, t, sup, uploadEm, SDL_GetTicks() - uploadEm, filaWait, uploadPath);
     subiu++;
   }
   return subiu;

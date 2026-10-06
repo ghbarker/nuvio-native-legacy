@@ -16,6 +16,12 @@
 #include "addons.h"
 #include "fontecache.h"
 
+// Provider discovery is tested in ondever_lookup.c. This isolated addon
+// transport fixture must not start an unrelated TMDB request.
+void ondever_pedir(const char *id, int series, long tmdb) {
+  (void)id; (void)series; (void)tmdb;
+}
+
 // ---------------------------------------------------------------- duble
 //
 // A BUSCA DE FONTES DE VERDADE (addons_buscar -> fio -> addons_estado), com a
@@ -33,9 +39,16 @@ static int nDebridNovaBusca;
 // guarda o tipo de cada pedido, na ordem, para conferir quem foi primeiro.
 static const char *respCanalTv, *respCanalChannel;
 static char pedidosCanal[200];
+// lento.test (#182): as primeiras `falhasLento` requisicoes NAO respondem (o
+// timeout do AIOStreams frio); as seguintes respondem com uma fonte.
+static int falhasLento, chamadasLento;
 char *rede_baixar(const char *url, int s) {
   const char *r;
   (void)s;
+  if (strstr(url, "lento.test")) {
+    if (++chamadasLento <= falhasLento) return NULL;
+    return strdup("{\"streams\":[{\"url\":\"https://x/l.mp4\"}]}");
+  }
   if (strstr(url, "canal.test")) {
     int tv = strstr(url, "/stream/tv/") != NULL;
     strncat(pedidosCanal, tv ? "tv," : "channel,",
@@ -55,10 +68,26 @@ int stream_extrair(const char *json, const char *prov, Stream **saida) {
   *saida = n ? calloc((size_t)n, sizeof(Stream)) : NULL;
   return n;
 }
+// F11: Jellyfin targets are routed away from addons; not exercised here.
+#include "jellyfin.h"
+int servidores_fontes_pedir(const char *alvo) { (void)alvo; return 0; }
+int servidores_fontes_colher(const char *alvo, Stream **l, int *n) {
+  (void)alvo; if (l) *l = NULL; if (n) *n = 0; return JF_FONTES_FALHOU; }
+uint64_t badges_detectar(const char *m) { (void)m; return 0; }
 void stream_definir_lista(const Stream *l, int n) { (void)l; (void)n; }
+void stream_definir_lista_idade(const Stream *l, int n, Uint32 idade) {
+  (void)idade; stream_definir_lista(l, n); }
+void stream_lista_acrescentar(const Stream *l, int n, int o) { (void)l; (void)n; (void)o; }
+void stream_invalidar(const char *p) { (void)p; }
+int stream_n(void) { return 0; }
+int stream_lista_do_alvo(const char *id) { (void)id; return 0; }
+Uint32 SDL_GetTicks(void) { return 1000; }
+const char *sessao_usuario(void) { return ""; }
+int perfis_ativo(void) { return 1; }
 void debrid_definir_episodio(int t, int e) { (void)t; (void)e; }
 void debrid_nova_busca(void) { nDebridNovaBusca++; }
 const char *i18n(const char *s) { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 const char *rede_url_publica(const char *url, char *dst, unsigned tam) {
   snprintf(dst, tam, "%s", url ? url : ""); return dst; }
 void marco(const char *s) { (void)s; }
@@ -68,6 +97,23 @@ void fontecache_guardar(const char *id, const char *tipo, const Stream *l, int n
   (void)id; (void)tipo; (void)l; (void)n; }
 void fontecache_ceder(void) {}
 void fontecache_avancar(void) {}
+unsigned fontecache_vod_geracao(void) { return 0; }
+void fontecache_vod_limpar(void) {}
+void fontecache_vod_apagar(const char *id, const char *tipo, const char *origem,
+                          const FontecacheEscopo *escopo) {
+  (void)id; (void)tipo; (void)origem; (void)escopo;
+}
+void fontecache_vod_guardar(const char *id, const char *tipo, const char *origem,
+                           const FontecacheEscopo *escopo,
+                           const Stream *l, int n, Uint32 quando) {
+  (void)id; (void)tipo; (void)origem; (void)escopo; (void)l; (void)n; (void)quando;
+}
+int fontecache_vod_pegar(const char *id, const char *tipo, const char *origem,
+                        const FontecacheEscopo *escopo,
+                        Stream **l, int *n, Uint32 *idade) {
+  (void)id; (void)tipo; (void)origem; (void)escopo;
+  *l = NULL; *n = 0; *idade = 0; return FC_NADA;
+}
 
 // Uma busca inteira, esperando o fio acabar, e a frase da folha.
 static const char *buscarMotivo(const char *id) {
@@ -203,6 +249,90 @@ int main(void) {
     while (addons_estado() == ADD_BUSCANDO) usleep(1000);
     if (!addons_motivo_vazio(m, sizeof m)) snprintf(m, sizeof m, "(sem causa)");
     conferirTexto("channel mudo, tv vazio", m, "Canal TV não tem fonte para este canal agora"); }
+
+  // ---- #182: addon lento aparece sozinho, sem recarregar a mao
+  conferir("addon lento entrou", addons_adicionar("Lento", "https://lento.test/manifest.json"), 1);
+  // 11) nao respondeu na 1a tentativa, respondeu na 2a: a lista ja o traz.
+  falhasLento = 1; chamadasLento = 0;
+  addons_definir_origem("https://lento.test");
+  addons_buscar("tt0000011", "movie");
+  addons_definir_origem(NULL);
+  while (addons_estado() == ADD_BUSCANDO) usleep(1000);
+  conferir("lento respondeu na segunda tentativa", addons_estado(), ADD_PRONTO);
+  conferir("duas requisicoes", chamadasLento, 2);
+  // 12) fora do ar de verdade: duas consultas gastam a 2a tentativa, a terceira
+  //     nao (um addon morto nao pode dobrar o prazo de toda abertura).
+  falhasLento = 1000; chamadasLento = 0;
+  { int k, esperado[3] = { 2, 2, 1 };
+    for (k = 0; k < 3; k++) {
+      int antes = chamadasLento;
+      addons_definir_origem("https://lento.test");
+      addons_buscar("tt0000012", "movie");
+      addons_definir_origem(NULL);
+      while (addons_estado() == ADD_BUSCANDO) usleep(1000);
+      conferir("addon morto: requisicoes da consulta", chamadasLento - antes, esperado[k]);
+    } }
+
+  // RESOURCE "meta" (#174/#175), num addon proprio no fim para nao mexer nos
+  // nomes e capacidades que as verificacoes acima leem. Duas formas do
+  // protocolo (objeto e string); quem nao declara fica sem.
+  { int a = addons_n(), b, c;
+    addons_adicionar("Meta A", "https://meta-a.test/manifest.json");
+    addons_adicionar("Meta B", "https://meta-b.test/manifest.json");
+    addons_adicionar("Meta C", "https://meta-c.test/manifest.json");
+    b = a + 1; c = a + 2;
+    addons_manifesto_lido(a, "{\"id\":\"m.a\",\"name\":\"Meta A\",\"resources\":"
+                             "[\"catalog\",{\"name\":\"meta\",\"types\":[\"series\"]}]}");
+    addons_manifesto_lido(b, "{\"id\":\"m.b\",\"name\":\"Meta B\",\"resources\":[\"meta\",\"subtitles\"]}");
+    addons_manifesto_lido(c, "{\"id\":\"m.c\",\"name\":\"Meta C\",\"resources\":[\"stream\"]}");
+    conferir("meta (objeto)", addons_fornece(a, ADD_META), 1);
+    conferir("meta (string)", addons_fornece(b, ADD_META), 1);
+    conferir("meta (nao declara)", addons_fornece(c, ADD_META), 0);
+    conferir("legenda segue lida do manifesto", addons_fornece(b, ADD_LEGENDA), 1); }
+
+  // idPrefixes/types DO RESOURCE "meta" (addons_aceita_id). A raiz do manifesto
+  // e o resource declaram; o do resource vence; o "idPrefixes" de OUTRO resource
+  // (stream) ou de um catalogo nao pode vazar para o meta.
+  { int a = addons_n(), b, c, d, e, f;
+    addons_adicionar("Pref A", "https://pref-a.test/manifest.json");
+    addons_adicionar("Pref B", "https://pref-b.test/manifest.json");
+    addons_adicionar("Pref C", "https://pref-c.test/manifest.json");
+    addons_adicionar("Pref D", "https://pref-d.test/manifest.json");
+    addons_adicionar("Pref E", "https://pref-e.test/manifest.json");
+    addons_adicionar("Pref F", "https://pref-f.test/manifest.json");
+    b = a + 1; c = a + 2; d = a + 3; e = a + 4; f = a + 5;
+    // A: no resource, com tipos ("anime" e o do Kitsu)
+    addons_manifesto_lido(a, "{\"id\":\"p.a\",\"name\":\"Pref A\",\"types\":[\"movie\",\"series\"],"
+                             "\"resources\":[\"catalog\",{\"name\":\"stream\",\"types\":[\"series\"],\"idPrefixes\":[\"tt\"]},"
+                             "{\"name\":\"meta\",\"types\":[\"Anime\",\"series\"],\"idPrefixes\":[\"kitsu:\",\"mal:\"]}],"
+                             "\"catalogs\":[{\"type\":\"anime\",\"id\":\"k\",\"idPrefixes\":[\"zzz:\"]}]}");
+    conferir("prefixo do resource casa", addons_aceita_id(a, "series", "kitsu:41370"), 1);
+    conferir("segundo prefixo casa", addons_aceita_id(a, "anime", "mal:456"), 1);
+    conferir("tipo declarado sem caixa", addons_aceita_id(a, "ANIME", "kitsu:1"), 1);
+    conferir("prefixo do stream nao vaza para o meta", addons_aceita_id(a, "series", "tt0111161"), 0);
+    conferir("prefixo do catalogo nao vaza", addons_aceita_id(a, "series", "zzz:1"), 0);
+    conferir("tipo fora dos declarados", addons_aceita_id(a, "movie", "kitsu:41370"), 0);
+    // B: so na raiz
+    addons_manifesto_lido(b, "{\"id\":\"p.b\",\"name\":\"Pref B\",\"idPrefixes\":[\"tt\"],"
+                             "\"types\":[\"movie\",\"series\"],\"resources\":[\"catalog\",\"meta\",\"stream\"]}");
+    conferir("raiz: tt casa", addons_aceita_id(b, "movie", "tt0111161"), 1);
+    conferir("raiz: kitsu nao", addons_aceita_id(b, "series", "kitsu:1"), 0);
+    // C: o resource declara e vence o da raiz
+    addons_manifesto_lido(c, "{\"id\":\"p.c\",\"name\":\"Pref C\",\"idPrefixes\":[\"tt\"],"
+                             "\"resources\":[{\"name\":\"meta\",\"idPrefixes\":[\"xperience:\"]}]}");
+    conferir("resource vence a raiz", addons_aceita_id(c, "series", "xperience:abc"), 1);
+    conferir("a raiz nao vale onde o resource declarou", addons_aceita_id(c, "series", "tt1"), 0);
+    conferir("sem tipos declarados, qualquer tipo", addons_aceita_id(c, "anime", "xperience:abc"), 1);
+    // D: meta sem nenhum prefixo -> nao da para saber
+    addons_manifesto_lido(d, "{\"id\":\"p.d\",\"name\":\"Pref D\",\"resources\":[\"meta\"]}");
+    conferir("sem idPrefixes: desconhecido", addons_aceita_id(d, "series", "kitsu:1"), -1);
+    // E: nao tem meta
+    addons_manifesto_lido(e, "{\"id\":\"p.e\",\"name\":\"Pref E\",\"idPrefixes\":[\"kitsu:\"],\"resources\":[\"stream\"]}");
+    conferir("sem o resource meta: nao serve", addons_aceita_id(e, "series", "kitsu:1"), 0);
+    // F: manifesto nunca lido -> desconhecido; indice ruim -> 0
+    conferir("nao sondado: desconhecido", addons_aceita_id(f, "series", "kitsu:1"), -1);
+    conferir("indice invalido", addons_aceita_id(999, "series", "kitsu:1"), 0);
+    conferir("id vazio", addons_aceita_id(a, "series", ""), 0); }
 
   remove(caminho);
   rmdir(dir);

@@ -20,6 +20,10 @@ typedef struct {
 } ColSource;
 typedef struct {
   char id[96], title[128], group[64], cover[512], hero[512], logo[512];
+  /* backdropImageUrl da COLECAO (o grupo), a arte que vale para toda pasta que
+     nao trouxe a sua. `hero` guarda so o heroBackdropUrl da PASTA. A escolha
+     entre eles mora em col_banner/col_capa, na ordem do app web. */
+  char groupBackdrop[512];
   char groupId[64];   /* id da colecao no web; a chave de ordem da conta e collection_<groupId> */
   char frameDir[600];
   char detailHero[512];
@@ -36,8 +40,24 @@ typedef struct {
      reconstrucao sem duplicar. */
   int extra;
   int frames, hideTitle, nSources;
+  /* FORMA DO CARTAO da pasta (COL_FORMA_*): o `tileShape` que o editor de
+     colecoes do app web grava por pasta. Ver col_forma_texto. */
+  int forma;
   ColSource sources[COL_SOURCE_MAX];
 } ColFolder;
+/* As tres formas do app web (collectionsStore.js, normalizePosterShape:
+   POSTER, LANDSCAPE/WIDE, SQUARE). PAISAGEM e o zero de proposito: e como o
+   nativo sempre desenhou, e o que fica para a pasta do pacote (collections.json
+   nao traz o campo) e para toda pasta montada com memset. */
+enum { COL_FORMA_PAISAGEM = 0, COL_FORMA_QUADRADO, COL_FORMA_POSTER, COL_FORMA_N };
+/* Texto do JSON -> COL_FORMA_*, na regra do web: "POSTER" e pôster,
+   "LANDSCAPE" ou "WIDE" e paisagem, e QUALQUER OUTRA COISA (inclusive ausente)
+   e quadrado — e o que o web desenha para uma pasta da conta sem o campo. */
+int col_forma_texto(const char *s);
+/* A forma da FILEIRA de um grupo. O web desenha cartao por cartao; a fileira
+   nativa tem um passo so, entao vale a forma da maioria das pastas do grupo
+   (empate: a da primeira). COL_FORMA_PAISAGEM quando o grupo nao existe. */
+int col_grupo_forma(const char *nome);
 int col_carregar(const char *dir);
 /* Pastas que o PROPRIO APP acrescenta (hoje: as listas do Trakt que a
    Biblioteca levou para a Home — ver src/listas.c).
@@ -55,9 +75,23 @@ int col_extra_definir(const ColFolder *v, int n);
 // web: collections[{id,title,backdropImageUrl,folders[{id,title,coverImageUrl,
 // heroBackdropUrl,titleLogoUrl,hideTitle,sources[{provider,addonBaseUrl,type,
 // catalogId,title,genre}]}]}]. Aceita o array, o objeto {collections}, a linha
-// da RPC ({collections_json}) e collections_json como STRING escapada. Vazio
-// nao apaga as locais (mesma regra dos addons). Devolve quantas pastas entraram.
+// da RPC ({collections_json}) e collections_json como STRING escapada. An
+// explicit empty snapshot clears account/package folders, retaining extras.
+// Missing/null/truncated replies retain the current snapshot. Returns folders;
+// callers use col_revisao(), including deletions and unchanged nonempty pulls.
 int col_definir_json(const char *json);
+// Pure validation, safe on the sync worker before caching an account reply.
+int col_resposta_valida(const char *json);
+// TROCA DE PERFIL: tira da tela as colecoes do perfil anterior (as da conta e
+// as do pacote). As do perfil novo entram quando o sync as trouxer; se ele nao
+// tiver nenhuma, a home fica sem colecoes. As extras (listas fixadas) ficam.
+void col_esquecer_perfil(void);
+/* "Arte das pastas da conta" (Ajustes, desligado de fabrica): 1 = a pasta da
+   conta que casa com uma do pacote usa a capa/fundo/logo da conta onde a conta
+   os tem (a capa leva o GIF da conta; o fundo desliga o modo editorial). 0 = a
+   arte curada do pacote, como sempre. Trocar refaz o casamento com a ultima
+   resposta da conta, na hora (a revisao muda e a home remonta). */
+void col_arte_conta(int sim);
 // Chave de fileira de um grupo: collection_<id da colecao> quando a colecao
 // tem id (web e catordem usam o id), senao collection_<titulo do grupo>.
 void col_chave_grupo(const char *group, char *dst, unsigned n);
@@ -65,7 +99,13 @@ int col_n(void);
 // Muda sempre que o conjunto de pastas muda. Quem decide remontar a tela deve
 // olhar ISTO e nao col_n(): trocar N pastas por outras N mantem o numero.
 unsigned col_revisao(void);
+// A complete account snapshot was accepted for this profile, even when empty.
+int col_tem_conta(void);
 const ColFolder *col_folder(int i);
+// Identity-based grouping: two collections can have the same display title.
+void col_chave_pasta(const ColFolder *pasta, char *dst, unsigned n);
+int col_grupo_chave(const char *chave, int *indices, int max);
+int col_grupo_forma_chave(const char *chave);
 int col_grupo(const char *nome, int *indices, int max);
 // addonId dominante do grupo (1) ou "" quando as fontes sao de addons
 // diferentes / nao sao de addon (0). Ver a definicao.
@@ -81,5 +121,18 @@ void col_despejar_fontes(int max);
 // oculto). Preenche `grupo` com o nome do grupo do melhor casamento.
 int col_diagnostico(const char *base, const char *type, const char *id,
                     char *grupo, unsigned n);
+// A arte que a PASTA mostra, na ordem do app web (homeScreen.js,
+// normalizeCollectionFolderItem): o BANNER (fundo do destaque e da tela da
+// colecao) e heroBackdropUrl, depois coverImageUrl, depois o backdropImageUrl da
+// colecao; a CAPA do cartaz e coverImageUrl, depois o backdropImageUrl da
+// colecao. "" quando nenhum campo veio — nada e inventado.
+const char *col_banner(const ColFolder *f);
+const char *col_capa(const ColFolder *f);
 void col_cor(const ColFolder *f, float *r, float *g, float *b);
+// NOME LEGIVEL DE UMA FONTE, para a aba da pagina da colecao: o titulo que a
+// conta deu a fonte, senao o nome do catalogo no manifesto (`manifesto`, pode
+// ser NULL/""). Vazio quando nenhum dos dois serve — igual ao catId, ou com
+// cara de id ("streaming_netflix_movies": underscore e nenhum espaco). Quem
+// chama poe so o tipo (Filmes/Series) no lugar.
+void col_nome_fonte(const ColSource *s, const char *manifesto, char *dst, unsigned n);
 #endif

@@ -17,7 +17,12 @@ int main(void) {
   assert(col_definir_json(web) == 1);
   const ColFolder *f = col_folder(0);
   assert(f && !strcmp(f->group, "Streaming") && !strcmp(f->groupId, "c1") && !strcmp(f->id, "f1"));
-  assert(!strcmp(f->hero, "https://img/bg.jpg") && !strcmp(f->cover, "https://img/nf.jpg") && f->hideTitle == 1);
+  assert(!strcmp(f->cover, "https://img/nf.jpg") && f->hideTitle == 1);
+  // BANNER na ordem do web: heroBackdropUrl > coverImageUrl > backdropImageUrl
+  // da colecao. A pasta nao trouxe heroBackdropUrl, entao o hero fica vazio e o
+  // backdrop da colecao e so o ultimo recurso.
+  assert(!f->hero[0] && !strcmp(f->groupBackdrop, "https://img/bg.jpg"));
+  assert(!strcmp(col_banner(f), "https://img/nf.jpg") && !strcmp(col_capa(f), "https://img/nf.jpg"));
   assert(f->nSources == 3);
   assert(!strcmp(f->sources[0].base, "https://addon/abc") && !strcmp(f->sources[0].catId, "nf_movies") && !f->sources[0].genre[0]);
   // A fonte tmdb ENTRA (issue #44): antes ela era descartada e uma pasta so
@@ -25,6 +30,19 @@ int main(void) {
   // nunca aparecia na TV.
   assert(!strcmp(f->sources[1].prov, "tmdb") && !strcmp(f->sources[1].tmdbTipo, "DISCOVER"));
   assert(!strcmp(f->sources[2].title, "Series") && !strcmp(f->sources[2].type, "series"));
+  // Cadeia de arte da pasta, na ordem do web, ate o ultimo campo.
+  assert(col_definir_json("{\"collections\":[{\"id\":\"cc\",\"title\":\"C\",\"backdropImageUrl\":\"https://img/grupo.jpg\",\"folders\":["
+    "{\"id\":\"a\",\"title\":\"So grupo\",\"sources\":[{\"addonId\":\"a\",\"type\":\"movie\",\"catalogId\":\"k\"}]},"
+    "{\"id\":\"b\",\"title\":\"Com hero\",\"heroBackdropUrl\":\"https://img/h.jpg\",\"coverImageUrl\":\"https://img/c.jpg\","
+      "\"sources\":[{\"addonId\":\"a\",\"type\":\"movie\",\"catalogId\":\"k\"}]},"
+    "{\"id\":\"n\",\"title\":\"Nada\",\"sources\":[{\"addonId\":\"a\",\"type\":\"movie\",\"catalogId\":\"k\"}]}]},"
+    "{\"id\":\"cd\",\"title\":\"D\",\"folders\":[{\"id\":\"z\",\"title\":\"Zero\","
+      "\"sources\":[{\"addonId\":\"a\",\"type\":\"movie\",\"catalogId\":\"k\"}]}]}]}") == 4);
+  assert(!strcmp(col_capa(col_folder(0)), "https://img/grupo.jpg") && !strcmp(col_banner(col_folder(0)), "https://img/grupo.jpg"));
+  assert(!strcmp(col_banner(col_folder(1)), "https://img/h.jpg") && !strcmp(col_capa(col_folder(1)), "https://img/c.jpg"));
+  assert(!col_banner(col_folder(3))[0] && !col_capa(col_folder(3))[0]);   // sem campo nenhum: nada inventado
+  puts("ok  banner: heroBackdropUrl > coverImageUrl > backdropImageUrl da colecao; capa: cover > backdrop; vazio fica vazio");
+  assert(col_definir_json(web) == 1);
   puts("ok  shape do web: linha da RPC, manifest.json cortado, fonte tmdb entra, genre None vazio");
 
   char chave[192];
@@ -50,9 +68,42 @@ int main(void) {
   assert(col_definir_json(esc) == 1 && !strcmp(col_folder(0)->groupId, "c9"));
   puts("ok  collections_json como string escapada");
 
-  // vazio nao apaga
-  assert(col_definir_json("{\"collections\":[]}") == 0 && col_n() == 1);
-  puts("ok  vazio mantem o que havia");
+  // Only an explicit complete empty snapshot deletes old account collections.
+  unsigned rev = col_revisao();
+  const char *invalidas[] = {
+    "{\"collections\":[] garbage}",
+    "{\"collections\":[],\"broken\":}",
+    "{\"collections\":[],\"broken\":[}",
+    "{\"collections\":[],}",
+    "{\"collections\":[],\"broken\":01}",
+    "{\"collections\":[],\"broken\":1e+}",
+    "{\"collections\":[],\"broken\":\"\\q\"}",
+    "{\"collections\":[],\"broken\":\"\\u123\"}",
+    "{\"collections\":[],\"broken\":truex}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"broken\\\":}\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[]}\\u0000garbage\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"x\\\":\\\"\\n\\\"}\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"x\\\":\\\"\\u000A\\\"}\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"x\\\":\\\"\\u000D\\\"}\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"x\\\":\\\"\\u0009\\\"}\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"x\\\":\\\"\\u0001\\\"}\"}",
+    "{\"collections_json\":\"{\\\"collections\\\":[],\\\"x\\\":\\\"\\uD83D\\uDE\"}"
+  };
+  for (size_t i = 0; i < sizeof invalidas / sizeof invalidas[0]; i++) {
+    assert(!col_resposta_valida(invalidas[i]));
+    assert(col_definir_json(invalidas[i]) == 0 && col_n() == 1 && col_revisao() == rev);
+  }
+  assert(col_resposta_valida(" \n{\"collections\":[],\"other\":[-1.25e+3,true,false,null,\"\\u00e1\\n\",{}]}\t"));
+  assert(col_resposta_valida("{\"collections_json\":\"\\n{\\\"collections\\\":[],\\\"x\\\":\\\"\\u00e1\\uD83D\\uDE00\\\"}\\t\"}"));
+  assert(col_resposta_valida("{\"collections_json\":\"\\u000A\\u000D{\\\"collections\\\":[]}\\u0009\"}"));
+  puts("ok  malformed envelope and encoded snapshot retain last-good collections; complete JSON values accepted");
+  assert(col_definir_json("[]") == 0 && col_n() == 1 && col_revisao() == rev);
+  assert(col_definir_json("{\"collections_json\":null}") == 0 && col_n() == 1);
+  assert(col_definir_json("{\"collections\":[{\"id\":\"cut\"") == 0 && col_n() == 1);
+  assert(col_definir_json("{\"collections\":[]}") == 0 && col_n() == 0 && col_revisao() != rev);
+  rev = col_revisao();
+  assert(col_definir_json("{\"collections\":[]}") == 0 && col_revisao() == rev);
+  puts("ok  explicit empty clears; missing/null/truncated retain; unchanged revision is stable");
   // fonte so com addonId (como a conta manda): entra, e a base resolve no acesso
   assert(col_definir_json("{\"collections\":[{\"id\":\"c\",\"title\":\"T\",\"folders\":[{\"id\":\"g\",\"title\":\"G\",\"sources\":[{\"provider\":\"addon\",\"addonId\":\"org.x\",\"type\":\"movie\",\"catalogId\":\"k\"}]}]}]}") == 1);
   assert(!strcmp(col_folder(0)->sources[0].base, "https://resolvido"));
@@ -83,9 +134,51 @@ int main(void) {
     assert(col_carregar(dir) == 1 && col_folder(0)->local && col_folder(0)->frames == 12);
     assert(col_definir_json("{\"collections\":[{\"id\":\"c1\",\"title\":\"Streaming Renomeado\",\"folders\":[{\"id\":\"f1\",\"title\":\"Netflix\",\"coverImageUrl\":\"https://cdn/nf.webp\",\"sources\":[{\"addonId\":\"x\",\"type\":\"movie\",\"catalogId\":\"nf_movies\"}]}]},{\"id\":\"c2\",\"title\":\"Nova\",\"folders\":[{\"id\":\"f9\",\"title\":\"Nova pasta\",\"coverImageUrl\":\"https://cdn/n.webp\",\"sources\":[{\"addonId\":\"x\",\"type\":\"movie\",\"catalogId\":\"k\"}]}]}]}") == 2);
     assert(strstr(col_folder(0)->hero, "/collections/f1/hero.jpg") && col_folder(0)->frames == 12 && col_folder(0)->local);
-    assert(!strcmp(col_folder(0)->group, "Streaming Renomeado") && !strcmp(col_folder(0)->sources[0].base, "https://addon/abc"));
+    assert(!strcmp(col_folder(0)->group, "Streaming Renomeado") &&
+           !strcmp(col_folder(0)->sources[0].addonId, "x") && !col_folder(0)->sources[0].base[0]);
     assert(!strcmp(col_folder(1)->cover, "https://cdn/n.webp") && !col_folder(1)->local);
     puts("ok  pasta do pacote guarda arte e quadros; a conta da grupo, titulo e pastas novas"); }
+  // "ARTE DAS PASTAS DA CONTA": desligado e o pacote (acima); ligado, capa,
+  // fundo e logo da conta vencem campo a campo, e desligar de novo devolve a
+  // arte curada na hora (o casamento e refeito com a ultima resposta).
+  { char dir[] = "/tmp/nuvio-colarte-XXXXXX"; char caminho[300]; FILE *f;
+    const char *conta =
+      "{\"collections\":[{\"id\":\"c1\",\"title\":\"S\",\"folders\":["
+      "{\"id\":\"f1\",\"title\":\"Netflix\",\"coverImageUrl\":\"https://cdn/nf.webp\","
+        "\"heroBackdropUrl\":\"https://cdn/nf-hero.jpg\",\"titleLogoUrl\":\"https://cdn/nf-logo.png\","
+        "\"focusGifUrl\":\"https://cdn/nf.gif\","
+        "\"sources\":[{\"addonId\":\"x\",\"type\":\"movie\",\"catalogId\":\"k\"}]},"
+      "{\"id\":\"f2\",\"title\":\"Prime\",\"titleLogoUrl\":\"https://cdn/pv-logo.png\","
+        "\"sources\":[{\"addonId\":\"x\",\"type\":\"movie\",\"catalogId\":\"k\"}]}]}]}";
+    assert(mkdtemp(dir));
+    snprintf(caminho, sizeof caminho, "%s/collections.json", dir); f = fopen(caminho, "w");
+    fputs("{\"groups\":[{\"id\":\"c1\",\"title\":\"S\",\"folders\":["
+          "{\"id\":\"f1\",\"title\":\"Netflix\",\"cover\":\"c/f1.jpg\",\"hero\":\"c/f1h.jpg\",\"logo\":\"c/f1l.png\",\"frames\":12,"
+            "\"sources\":[{\"title\":\"M\",\"base\":\"https://a\",\"type\":\"movie\",\"catId\":\"k\"}]},"
+          "{\"id\":\"f2\",\"title\":\"Prime\",\"cover\":\"c/f2.jpg\",\"hero\":\"c/f2h.jpg\",\"logo\":\"c/f2l.png\","
+            "\"sources\":[{\"title\":\"M\",\"base\":\"https://a\",\"type\":\"movie\",\"catId\":\"k\"}]}]}]}", f);
+    fclose(f);
+    col_arte_conta(0);
+    assert(col_carregar(dir) == 2);
+    assert(col_definir_json(conta) == 2);
+    assert(strstr(col_folder(0)->cover, "c/f1.jpg") && col_folder(0)->frames == 12);
+    assert(strstr(col_folder(1)->logo, "c/f2l.png"));
+    col_arte_conta(1);   // refaz na hora, sem nova resposta da conta
+    assert(col_n() == 2 && col_folder(0)->local && col_folder(1)->local);
+    assert(!strcmp(col_folder(0)->cover, "https://cdn/nf.webp") && col_folder(0)->frames == 0 &&
+           !strcmp(col_folder(0)->focusGif, "https://cdn/nf.gif"));
+    assert(!strcmp(col_folder(0)->hero, "https://cdn/nf-hero.jpg") && !col_folder(0)->editorial);
+    assert(!strcmp(col_folder(0)->logo, "https://cdn/nf-logo.png"));
+    // So o logo na conta: capa e fundo continuam os do pacote.
+    assert(strstr(col_folder(1)->cover, "c/f2.jpg") && strstr(col_folder(1)->hero, "c/f2h.jpg") &&
+           !strcmp(col_folder(1)->logo, "https://cdn/pv-logo.png"));
+    assert(col_definir_json(conta) == 2);   // ciclo de sync com o ajuste ligado: estavel
+    assert(!strcmp(col_folder(0)->cover, "https://cdn/nf.webp"));
+    col_arte_conta(0);   // desligar devolve a arte curada
+    assert(strstr(col_folder(0)->cover, "c/f1.jpg") && col_folder(0)->frames == 12 &&
+           strstr(col_folder(0)->hero, "c/f1h.jpg") && strstr(col_folder(1)->logo, "c/f2l.png"));
+    remove(caminho); rmdir(dir);
+    puts("ok  arte das pastas da conta: desligado o pacote, ligado a conta campo a campo, volta na hora"); }
   // O GIF DA CONTA CONTRA A ARTE DO PACOTE. A regra e "a versao local fica
   // inteira", e o GIF nao a contradiz: o pacote nao TEM focusGif para perder.
   //   frames > 0  — ja anima pela sequencia curada; a URL da conta e ignorada.
@@ -136,6 +229,67 @@ int main(void) {
     // col_por_catalogo ja evita, repetido aqui porque sao duas varreduras.
     assert(col_diagnostico("", "movie", "top", g, sizeof g) == 0);
     puts("ok  col_diagnostico separa os quatro motivos de nao engolir"); }
+
+  // FORMA DA PASTA (tileShape do web): POSTER, LANDSCAPE/WIDE, e o resto —
+  // inclusive ausente — quadrado. A fileira usa a da maioria.
+  { const char *f = "\"sources\":[{\"addonBaseUrl\":\"https://a/x\",\"type\":\"movie\",\"catalogId\":\"k\"}]";
+    char js[2000];
+    snprintf(js, sizeof js,
+      "{\"collections\":[{\"id\":\"cf\",\"title\":\"Formas\",\"folders\":["
+      "{\"id\":\"p\",\"title\":\"P\",\"tileShape\":\"POSTER\",%s},"
+      "{\"id\":\"w\",\"title\":\"W\",\"tileShape\":\"wide\",%s},"
+      "{\"id\":\"l\",\"title\":\"L\",\"posterShape\":\"LANDSCAPE\",%s},"
+      "{\"id\":\"s\",\"title\":\"S\",%s}]}]}", f, f, f, f);
+    assert(col_definir_json(js) == 4);
+    assert(col_folder(0)->forma == COL_FORMA_POSTER);
+    assert(col_folder(1)->forma == COL_FORMA_PAISAGEM);
+    assert(col_folder(2)->forma == COL_FORMA_PAISAGEM);
+    assert(col_folder(3)->forma == COL_FORMA_QUADRADO);
+    assert(col_grupo_forma("Formas") == COL_FORMA_PAISAGEM);
+    assert(col_grupo_forma("nao existe") == COL_FORMA_PAISAGEM);
+    assert(col_forma_texto("square") == COL_FORMA_QUADRADO);
+    puts("ok  tileShape da pasta vira a forma do cartao, na regra do web"); }
+  // Empty account snapshots remove package rows too. A later nonempty profile
+  // snapshot can still recover the curated artwork without reviving old rows.
+  { char dir[] = "/tmp/nuvio-col-perfil-XXXXXX", arq[700];
+    FILE *f;
+    int i, achou = 0;
+    assert(mkdtemp(dir));
+    snprintf(arq, sizeof arq, "%s/collections.json", dir);
+    f = fopen(arq, "w"); assert(f);
+    fputs("{\"groups\":[{\"title\":\"G\",\"id\":\"g1\",\"folders\":[{\"id\":\"f1\",\"title\":\"Netflix\","
+          "\"cover\":\"c.jpg\",\"sources\":[{\"base\":\"https://a\",\"type\":\"movie\",\"catId\":\"m\"}]}]}]}", f);
+    fclose(f);
+    assert(col_carregar(dir) == 1);
+    assert(col_definir_json("[{\"collections_json\":[]}]") == 0 && col_n() == 0);
+    col_esquecer_perfil();
+    assert(col_n() == 0);
+    assert(col_definir_json("[{\"collections_json\":[]}]") == 0 && col_n() == 0);
+    assert(col_definir_json("[{\"collections_json\":{\"collections\":[]}}]") == 0 && col_n() == 0);
+    assert(col_definir_json(web) == 1);
+    for (i = 0; i < col_n(); i++)
+      if (!strcmp(col_folder(i)->id, "f1")) {
+        achou = 1;
+        assert(col_folder(i)->local == 1 && strstr(col_folder(i)->cover, "/c.jpg"));
+      }
+    assert(achou);
+    unlink(arq); rmdir(dir);
+    puts("ok  troca de perfil: colecoes do anterior saem, arte do pacote volta"); }
+
+  { ColSource s; char n[128];
+    memset(&s, 0, sizeof s);
+    snprintf(s.catId, sizeof s.catId, "streaming_netflix_movies");
+    snprintf(s.title, sizeof s.title, "streaming_netflix_movies");   // conta sem titulo: colecoes.c copia o catId
+    col_nome_fonte(&s, "", n, sizeof n); assert(!n[0]);
+    col_nome_fonte(&s, NULL, n, sizeof n); assert(!n[0]);
+    col_nome_fonte(&s, "streaming_netflix_movies", n, sizeof n); assert(!n[0]);
+    col_nome_fonte(&s, "outro_id_cru", n, sizeof n); assert(!n[0]);
+    col_nome_fonte(&s, "Netflix", n, sizeof n); assert(!strcmp(n, "Netflix"));
+    snprintf(s.title, sizeof s.title, "Originais");
+    col_nome_fonte(&s, "Netflix", n, sizeof n); assert(!strcmp(n, "Originais"));
+    snprintf(s.title, sizeof s.title, "mdblist.13914"); snprintf(s.catId, sizeof s.catId, "mdblist.13914");
+    col_nome_fonte(&s, "Top 2024", n, sizeof n); assert(!strcmp(n, "Top 2024"));
+    puts("ok  nome da aba: titulo da conta, senao manifesto, nunca id cru"); }
 
   puts("colecoes: tudo ok");
   return 0;

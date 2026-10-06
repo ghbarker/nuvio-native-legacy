@@ -34,7 +34,10 @@
 #include <unistd.h>
 int arte_reserva_episodios(const char *imdb, const char *corpo) { (void)imdb; (void)corpo; return 0; }
 
+int ajustes_busca_cinemeta(void) { return 1; }
 #include "../src/descoberta.c"
+#include "jellyfin_stub.inc"
+Uint32 SDL_GetTicks(void) { return 0; }
 
 #define BASE "https://addon.example/abc"
 #define AID  "app.addon.demo"
@@ -50,7 +53,8 @@ static const char *MANIFESTO =
 
 // ------------------------------------------------------------ a identidade
 static char dirDados[PATH_MAX];
-const char *sessao_usuario(void)  { return "dono"; }
+static const char *fixtureDono = "dono";
+const char *sessao_usuario(void)  { return __atomic_load_n(&fixtureDono, __ATOMIC_ACQUIRE); }
 int         perfis_ativo(void)    { return 1; }
 const char *dados_dir(void)       { return dirDados; }
 static void caminhoDado(char *dst, size_t tam, const char *nome) {
@@ -85,6 +89,8 @@ static const char *baseAtual(void)     { return versaoAddons > 1 ? BASE_NOVA : B
 int   addons_n(void)                   { return 1; }
 const char *addons_base(int i)         { (void)i; return baseAtual(); }
 int   addons_ativo(int i)              { (void)i; return 1; }
+int   addons_fornece(int i, int oque)     { (void)i; (void)oque; return 0; }
+int   addons_sondado(int i)              { (void)i; return 0; }
 const char *addons_id_manifesto(int i) { (void)i; return AID; }
 const char *addons_nome(int i)         { (void)i; return "Addon"; }
 unsigned addons_versao(void)           { return versaoAddons; }
@@ -108,6 +114,11 @@ static volatile int pedidosCatalogo, pendurados;
 static pthread_t fioDaMontagem;
 static volatile int temFioDaMontagem, manifestosEmSerie;
 static pthread_mutex_t pedTrava = PTHREAD_MUTEX_INITIALIZER;
+/* Hooks only for the focused cold/warm publication fixture. Defaults keep
+ * the original six scenarios unchanged. */
+static void (*fixtureCatalogo)(const char *id);
+static void (*fixtureMarco)(const char *name);
+static int fixtureCW, fixtureSocial;
 
 static int imdbNaTela(const char *imdb, int (*campo)(const CatItem *)) {
   int i, k = 0;
@@ -133,6 +144,7 @@ char *rede_baixar(const char *url, int t) {
   p = strstr(url, "/catalog/movie/");
   if (!p) return NULL;
   snprintf(id, sizeof id, "%.5s", p + 15);
+  if (fixtureCatalogo) fixtureCatalogo(id);
   pthread_mutex_lock(&pedTrava);
   pedidosCatalogo++;
   armado = armadoCatalogo;
@@ -184,14 +196,25 @@ int trakt_lista(const char *q, CatItem *s, int m) {
 // O "sync" que chega entre o Trakt e a leitura da lista de addons.
 enum { S_NADA, S_ADDONS, S_CREDENCIAL };
 static volatile int armadoSocial = S_NADA;
+// O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
+unsigned recomenda_geracao(void) { return 1; }
 int trakt_social(CatItem *s, int m) {
   int a = armadoSocial;
   (void)s; (void)m;
   armadoSocial = S_NADA;
-  fioDaMontagem = pthread_self(); temFioDaMontagem = 1;
+  // (fioDaMontagem e marcado em trakt_continuar: o social corre em fio proprio.)
   // Lista nova = versao nova: o manifesto largado no comeco nao serve mais.
   if (a == S_ADDONS) { versaoAddons++; desc_repetir_addons(); }
   else if (a == S_CREDENCIAL) desc_repetir();
+  if (fixtureSocial && m > 0) {
+    memset(s, 0, sizeof *s);
+    snprintf(s->imdb, sizeof s->imdb, "ttSocial");
+    snprintf(s->tipo, sizeof s->tipo, "movie");
+    snprintf(s->titulo, sizeof s->titulo, "Social");
+    snprintf(s->poster, sizeof s->poster, "social.jpg");
+    return 1;
+  }
   return 0;
 }
 
@@ -218,6 +241,7 @@ int   addons_perfil_da_lista(void)         { return 0; }
 int   fil_limite(void)                     { return 3; }
 // Dubles da escolha da cota (#126), como em homejanelas.c.
 int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
 void fil_registrar_se_couber(const char *c, const char *t, const char *a,
                              const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
 const char *fil_hero_fonte(void)           { return "auto"; }
@@ -228,10 +252,15 @@ int   fil_unir(const char *const *c, int n, int *s, int m) {
 
 // ------------------------------------------------------------------ o resto
 static volatile int montagens;
-void  marco(const char *n)                 { if (!strcmp(n, "montar: inicio")) montagens++; }
+void  marco(const char *n) {
+  if (!strcmp(n, "montar: inicio")) montagens++;
+  if (fixtureMarco) fixtureMarco(n);
+}
 void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_idioma_ingles(void)          { return 0; }
+int ajustes_idioma(void) { return 0; }
 int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_concluido(void)           { return 90; }  // Percentual assistido de fabrica
 int   ajustes_itens_fileira(void)          { return 12; }   // padrao (#163)
 int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 int   ajustes_cw_ligado(void)              { return 1; }
@@ -239,23 +268,45 @@ int   ajustes_cw_estilo(void)              { return 0; }
 int   ajustes_posteres_deitados(void)      { return 0; }
 int   ajustes_rotulos_poster(void)         { return 1; }
 int   ajustes_hero_fonte(void)             { return 0; }
-int   ajustes_cw_fonte(void)               { return AJ_CWF_CONTA; }
+int   ajustes_cw_fonte(void)               { return fixtureCW ? AJ_CWF_TRAKT : AJ_CWF_CONTA; }
 int   ajustes_tmdb_ligado(void)            { return 0; }
 int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
 int   ajustes_tmdb_arte(void)              { return 0; }
 int   ajustes_tmdb_elenco(void)            { return 0; }
 int   ajustes_tmdb_cw(void)                { return 0; }
 const char *ajustes_tmdb_idioma(void)      { return "pt-BR"; }
 const char *ajustes_tmdb_chave(void)       { return ""; }
 const char *i18n(const char *s)            { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 int   simkl_ativo(void)                    { return 0; }
+
+// "A seguir" da conta (#199): so para linkar; sem vistos, nada semeia.
+int   trakt_ativo(void)                    { return 1; }
+int   ajustes_cw_do_episodio_mais_alto(void) { return 1; }
+int   contalib_sementes_a_seguir(ContaSemente *s, int m, int a) { (void)s; (void)m; (void)a; return 0; }
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
 int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; return n; }
-int   trakt_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
+int trakt_continuar(CatItem *s, int m) {
+  fioDaMontagem = pthread_self(); temFioDaMontagem = 1;
+  if (!fixtureCW || m < 1) return 0;
+  memset(s, 0, sizeof *s);
+  snprintf(s->imdb, sizeof s->imdb, "ttCW");
+  snprintf(s->tipo, sizeof s->tipo, "movie");
+  snprintf(s->titulo, sizeof s->titulo, "CW");
+  snprintf(s->poster, sizeof s->poster, "cw.jpg");
+  s->progresso = 20;
+  return 1;
+}
 int   trakt_e_a_seguir(const char *id)     { (void)id; return 0; }
+int   trakt_continuar_falhou(void)         { return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   arte_reserva_registrar(const char *url, const char *imdb, int poster) {
   (void)url; (void)imdb; (void)poster; return 1; }

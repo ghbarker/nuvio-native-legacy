@@ -1,5 +1,6 @@
 #include "ctxmenu.h"
 #include "catalogo.h"
+#include "logotitulo.h"
 #include "descoberta.h"
 #include "syncprog.h"
 #include "visto.h"
@@ -14,16 +15,26 @@
 #include "ajustes.h"
 #include "progresso.h"
 #include "salvos.h"
+#include "ilhasalvar.h"
+#include "ilhaacao.h"
+#include "ilha.h"
 #include "recomenda.h"
+#include "atividade.h"
 #include "recenviar.h"
 #include "botoes.h"
 #include "badges.h"
 #include "idioma.h"
+#include "fileiras.h"
+#include "colecoes.h"
+#include "listas.h"
+#include "home.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ponteiro.h"
+#define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
+#include "escala.h"
 
 // Mantem o header publico de Trakt estavel: estas leituras sao o contrato
 // interno entre a modal e as escritas assincronas do proprio port.
@@ -37,13 +48,30 @@ extern void cat_historico_definir_id(const char *imdb, const char *tipo, int vis
 enum { CTX_OP_NENHUMA, CTX_OP_LISTA = 1, CTX_OP_HISTORICO = 2 };
 enum { CTX_PENDENTE = 1, CTX_CONFIRMADA = 2, CTX_FALHA = 3 };
 
-// MEDIDO no bundle 1.0.4: o dialogo tem 37,5vw de largura (720 px em 1920).
-#define CTX_W      720.0f
+// Ar e rodape do modal de ESTILO (a pagina 1), que tem desenho proprio.
 #define CTX_PAD     44.0f
-#define CTX_LINHA   BOTAO_H_PRIMARIO // mesma altura do botao primario do detalhe
-#define CTX_GAP     BOTAO_GAP         // o mesmo ritmo entre acoes do app
-#define CTX_CAB    158.0f     // titulo, estados e rotulo do grupo
 #define CTX_RODAPE  70.0f
+// O MENU DO CARTAZ E UMA ILHA AO LADO DO POSTER (dono, 02/10, mockup "ilha"
+// tela 7): 420 de largura, raio 32, 14 de ar; cabecalho com o nome (24/700) e
+// a linha "Serie · 2024 · ..." (16 a 50 %); linhas de 60 em pilula, 4 entre
+// elas. Era um dialogo de 720 no meio da tela, com selos de estado e rodape de
+// teclas — os dois sairam com o mockup: o rotulo de cada opcao ja diz o
+// estado ("Remover dos Salvos", "Desmarcar como assistido"). O logo ficou.
+#define CTX_W        420.0f
+#define CTX_ILHA_PAD  14.0f
+#define CTX_ILHA_RAIO 32.0f
+#define CTX_CAB       75.0f     // 12 + nome + 4 + meta + 10
+// O LOGO DO TITULO NO LUGAR DO NOME (pedido do dono, 01/10, reafirmado em
+// 02/10 sobre o mockup): uma caixa de 300 x 52 reservada sempre que o titulo
+// TEM logo (logotitulo_url), carregado ou nao — o cabecalho nao pula quando o
+// arquivo chega. Sem logo nenhum, o nome em texto e o cabecalho curto.
+#define CTX_LOGO_W   300.0f
+#define CTX_LOGO_H    52.0f
+#define CTX_CAB_LOGO (12.0f + CTX_LOGO_H + 6.0f + 19.0f + 10.0f)
+#define CTX_LINHA     60.0f
+#define CTX_GAP        4.0f
+#define CTX_AO_LADO   30.0f     // do poster a ilha
+#define CTX_BORDA     48.0f     // margem minima da tela
 
 // SALVO E UM FATO DO TITULO, NAO DO CARTAO. Segurar OK num cartao do
 // "Trending" de um titulo que esta nos Salvos oferecia "Salvar", porque aquela
@@ -59,6 +87,11 @@ static int tituloSalvo(const CatItem *ci) {
 }
 
 static int   aberto, idx = -1, foco, pedDetalhes = -1;
+// MODO LISTA (Biblioteca > Listas): o menu e de uma LISTA, nao de um titulo.
+// `cartazFixo`: o retangulo do cartaz veio de quem abriu (biblioteca.c) e nao
+// deve ser refeito a cada quadro a partir do cartaz focado da HOME.
+static int       doLista, cartazFixo, listaPedida, listaAlterou;
+static LstLista  lista;
 static float anim;
 static int   operacao, intencao, estadoOperacao;
 static int   espelhoAplicado;
@@ -102,11 +135,27 @@ static Uint32 holdDesde;
 // comecou exatamente assim.
 static int     doPainel;
 static CatItem copiaPainel;
+// MODO SOCIAL (abas Atividade e Amigos do painel, dono 03/10: "falta o menu
+// contextual na aba activity e friends"): o mesmo modo painel, sem "Mover para
+// categoria" (isso e dos Salvos), mais as acoes da LINHA que o painel passa
+// (CtxExtra: "Ja assisti", "Ver perfil"...). Sem IMDb (a linha do amigo) o
+// menu tem SO as extras, com o nome no cabecalho.
+static int      doSocial;
+static CtxExtra extras[CTX_EXTRAS_MAX];
+static int      nExtras, extraPedido = -1, confExtra = -1;
+static int      pendExtra = -1;   // extra a soltar quando o historico confirmar
 // Removeu pelo painel: o menu sai sozinho quando a remocao CONFIRMA — a linha
 // ja nao existe mais atras dele, e o foco do painel foi para a seguinte.
 static int     fecharAoConfirmar;
 static char    pedDetalhesImdb[24];
 static float   dicaCx = -1.0f;   // centro da barra de "Segure OK"; <0 = tela
+// O POSTER DE ONDE O MENU SAIU (home_item_focado): a ilha nasce ao lado dele e
+// ele e redesenhado POR CIMA do veu, como no mockup — a pessoa ve de qual
+// titulo sao as opcoes sem ler o nome. Sem poster (destaque, painel de
+// Salvos), a ilha fica no meio.
+static int     temCartaz;
+static GfxRect cartazRect;
+static char    cartazArte[1024];
 
 static int teclaOk(SDL_Keycode k) {
   return k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE;
@@ -160,12 +209,65 @@ static int observarHold(void *u, SDL_Event *e) {
 // lugar so, entao uma sexta opcao deixa de aparecer em vez de corromper
 // memoria — mas "deixa de aparecer" tambem e defeito, e por isso o numero sobe
 // aqui e nao em silencio.
-#define CTX_MAX 5
+// SETE desde "Estilo da fileira": seis no cartaz (as cinco + a entrada do
+// estilo) e, na pagina de estilos, ate cinco formas. O contrato conta as linhas
+// de juntar(), e a pagina de estilos e a sexta e setima delas.
+// SEIS desde o modal de estilo: as formas sairam de ops[]. O laco que as
+// juntava contava UMA linha para o contrato e escrevia sete — e o teto de sete
+// era exatamente o que deixava o Destaque 4:3 e a faixa com titulo de fora do
+// menu. Agora elas moram em estLin[FIL_TIPO_N], do tamanho do enum.
+#define CTX_MAX 9
 static struct { const char *rot; int acao; } ops[CTX_MAX];
 static int nOps;
 static float focoAnim[CTX_MAX];
 static int holdObservador;
-enum { OP_DETALHES, OP_LISTA, OP_ASSISTIDO, OP_TIRAR_CONTINUAR, OP_RECOMENDAR };
+enum { OP_DETALHES, OP_LISTA, OP_ASSISTIDO, OP_TIRAR_CONTINUAR, OP_RECOMENDAR, OP_DISPENSAR,
+       OP_ESTILO, OP_CATEGORIA, OP_L_ABRIR, OP_L_FIXAR, OP_L_HOME,
+       OP_EXTRA = 100 };   // OP_EXTRA + k = extras[k] (modo social)
+// "Mover para categoria" pedido no modo painel: o IMDb do titulo, consumido
+// uma vez pelo painel (ctx_pediu_categoria), que abre a escolha dele.
+static char pedCategoriaImdb[24];
+
+// --- ESTILO DA FILEIRA -------------------------------------------------------
+//
+// A home diz de que FILEIRA e o cartao (ctx_fileira) antes de abrir o menu, e
+// o menu oferece a forma dela. Quem grava e fileiras.c, no mesmo campo da tela
+// Ajustes > Fileiras da Home: as duas telas mostram sempre a mesma escolha.
+//
+// Duas paginas: 0 e o menu do titulo (com a entrada "Estilo da fileira"), 1 e
+// a lista de formas. Um grupo de colecao nao tem titulo por tras — o cartao e
+// uma pasta — e abre direto na pagina 1 (soFileira).
+static char filChave[192], filTitulo[96];
+// "Dispensar" do cartao "Retomar agora": pedido pela home (pend) e valido para
+// o menu aberto (op).
+static int dispensarPend, dispensarOp;
+static int  pagina, soFileira;
+// PAGINA 2: A CONFIRMACAO de "Tirar de Continuar assistindo" (dono, 02/10:
+// modal de ilha do mockup "ilha" tela 7). Tirar apaga o ponto de retomada
+// aqui e nas contas ligadas — nao se desfaz com um Voltar —, entao a acao so
+// roda depois de um OK em "Tirar da fileira". O foco nasce nele (confFoco 0);
+// Voltar e "Cancelar" (1) devolvem ao menu, com o foco na mesma opcao.
+static int   confFoco;
+static float confAnim[2];// A PAGINA DE ESTILOS E UM MODAL PROPRIO (dono, 01/10/2026: "tem todos os
+// estilos? ... coloque ao lado o preview de como seria os cards"): a lista de
+// formas a esquerda, com a atual marcada, e a direita a fileira desenhada na
+// forma em foco com as artes dela (home_previa_fileira). As formas nao passam
+// por ops[]: o vetor e do tamanho do enum, entao toda forma que fil_estilos
+// devolve aparece.
+//
+// UMA LINHA POR FORMA (dono, 01/10): as que so diferem em tamanho — as tres
+// paisagens, os tres 4:3 — dividem a linha, e o tamanho e um segmentado P M G
+// DENTRO dela, que esquerda/direita trocam. Cima/baixo continuam sendo "outra
+// forma"; a previa mostra sempre o tamanho em foco. Sub-lista foi descartada:
+// um segundo nivel com Voltar proprio no D-pad esconde os tamanhos atras de um
+// OK, e o segmentado os mostra o tempo todo.
+static FilEstiloLinha estLin[FIL_TIPO_N];
+static int   nEstilos, estFoco, estTam[FIL_TIPO_N];
+static float estAnim[FIL_TIPO_N];
+// A previa troca com a mola: a forma de antes sai enquanto a nova entra.
+// `prevRef*` e a forma que decide a reducao de cada uma (home_previa_fileira).
+static int   prevAtual = -1, prevAnt = -1, prevRefAtual = -1, prevRefAnt = -1;
+static float prevT = 1.0f;
 
 // --- RECOMENDAR: O FLUXO NAO MORA MAIS AQUI ---------------------------------
 //
@@ -209,7 +311,7 @@ static int indiceAtual(void) {
 static const CatItem *itemAtual(void) {
   int i = indiceAtual();
   const CatItem *ci = i >= 0 ? cat_item(i) : NULL;
-  if (!ci && doPainel && copiaPainel.imdb[0]) ci = &copiaPainel;
+  if (!ci && doPainel && (copiaPainel.imdb[0] || doSocial)) ci = &copiaPainel;
   return ci;
 }
 
@@ -224,11 +326,58 @@ static void juntar(const char *rot, int acao) {
   ops[nOps].rot = rot; ops[nOps].acao = acao; nOps++;
 }
 
+// "MARCAR COMO ASSISTIDO" so existe em filme e serie com IMDb; no painel, serie
+// so quando o catalogo a tem (a copia nao traz as temporadas).
+static int assistidoPossivel(const CatItem *ci, int i) {
+  return ci && ci->imdb[0] && (!strcmp(ci->tipo, "movie") || !strcmp(ci->tipo, "series")) &&
+         (!doPainel || i >= 0 || !strcmp(ci->tipo, "movie"));
+}
+// A extra que se junta a "Marcar como assistido" (CtxExtra.juntaAssistido), ou -1.
+static int extraJunta(void) {
+  int k;
+  if (!doSocial) return -1;
+  for (k = 0; k < nExtras; k++) if (extras[k].juntaAssistido) return k;
+  return -1;
+}
+
 static void montar(void) {
   int i = indiceAtual();
   const CatItem *ci = itemAtual();
   nOps = 0;
+  if (doLista) {
+    const char *porque;
+    juntar("Abrir lista", OP_L_ABRIR);
+    juntar(lst_fixada(&lista) ? "Tirar da Biblioteca" : "Fixar na Biblioteca", OP_L_FIXAR);
+    // So onde a Home sabe buscar a lista (o Simkl nao): oferecer a acao que so
+    // responde "nao" seria o botao que aparenta funcionar.
+    if (lst_aceita_home(&lista, &porque))
+      juntar(lst_na_home(&lista) ? "Tirar da Home" : "Adicionar à Home", OP_L_HOME);
+    if (foco >= nOps) foco = nOps - 1;
+    if (foco < 0) foco = 0;
+    return;
+  }
+  if (pagina == 1) {
+    int k, j, atual = fil_tipo(filChave);
+    nEstilos = fil_estilo_linhas(filChave, estLin, FIL_TIPO_N);
+    // O foco nasce na forma que vale agora, no TAMANHO que vale agora; as
+    // outras linhas de tamanho nascem no menor (o de sempre).
+    if (estFoco < 0 || estFoco >= nEstilos)
+      for (estFoco = 0, k = 0; k < nEstilos; k++) {
+        estTam[k] = 0;
+        for (j = 0; j < estLin[k].n; j++)
+          if (estLin[k].tipos[j] == atual) { estFoco = k; estTam[k] = j; }
+      }
+    return;
+  }
   if (!ci) return;
+  // A LINHA DO AMIGO nao e titulo: so as acoes dela.
+  if (doSocial && !ci->imdb[0]) {
+    int k;
+    for (k = 0; k < nExtras; k++) juntar(extras[k].rot, OP_EXTRA + k);
+    if (foco >= nOps) foco = nOps > 0 ? nOps - 1 : 0;
+    if (foco < 0) foco = 0;
+    return;
+  }
   // "Mais informações" no painel, que e o nome que o dono deu ao pedir; o
   // efeito e o mesmo "Ver detalhes" do cartaz (a pagina do titulo).
   juntar(doPainel ? "Mais informações" : "Ver detalhes", OP_DETALHES);
@@ -245,20 +394,28 @@ static void montar(void) {
              : (tituloSalvo(ci) ? "Remover dos Salvos" : "Salvar"),
            OP_LISTA);
   }
+  // AS CATEGORIAS DA PESSOA (salvosorg.h) so existem no painel de Salvos: e
+  // la que o titulo esta salvo e e la que a escolha abre.
+  if (doPainel && !doSocial && ci->imdb[0]) juntar("Mover para categoria", OP_CATEGORIA);
   // O web so oferece "assistido" em filme e serie — nao em canal nem evento,
   // que sao tipos que os addons do dono tambem declaram.
   //
   // NO PAINEL, SERIE SO COM O CATALOGO. A copia da lista local nao tem as
   // temporadas, e desmarcar uma serie no Simkl sem elas apaga a serie da
   // biblioteca de la (ver visto.c/simkl.c). Filme nao tem esse risco.
-  if (ci->imdb[0] && (!strcmp(ci->tipo, "movie") || !strcmp(ci->tipo, "series")) &&
-      (!doPainel || i >= 0 || !strcmp(ci->tipo, "movie"))) {
+  if (assistidoPossivel(ci, i) && extraJunta() < 0) {
     juntar(estadoOperacao == CTX_PENDENTE && operacao == CTX_OP_HISTORICO
              ? (intencao ? "Marcando como assistido..."
                          : "Desmarcando como assistido...")
              : (historicoDe(ci) == 1 ? "Desmarcar como assistido"
                                      : "Marcar como assistido"),
            OP_ASSISTIDO);
+  } else if (extraJunta() >= 0) {
+    // "JA ASSISTI" DA RECOMENDACAO: UMA acao so, no lugar de "Marcar como
+    // assistido". Enquanto o historico espera o 2xx, o rotulo diz isso.
+    int k = extraJunta();
+    juntar(estadoOperacao == CTX_PENDENTE && operacao == CTX_OP_HISTORICO
+             ? "Marcando como assistido..." : extras[k].rot, OP_EXTRA + k);
   }
   // TIRAR DE "CONTINUAR ASSISTINDO".
   //
@@ -283,6 +440,18 @@ static void montar(void) {
       (!strcmp(ci->tipo, "movie") || !strcmp(ci->tipo, "series"))) {
     juntar("Recomendar a um amigo", OP_RECOMENDAR);
   }
+  // Por ULTIMO: e da fileira, nao do titulo. So quando a home disse qual e a
+  // fileira e ela tem forma para escolher (Continuar assistindo, Top 10 e o
+  // destaque ficam com o visual deles — a home nem passa a chave).
+  if (!doPainel && filChave[0] && fil_estilos(filChave, NULL, NULL, FIL_TIPO_N) > 0)
+    juntar("Estilo da fileira", OP_ESTILO);
+  // Cartao "Retomar agora": soltar o titulo da faixa, sem apagar progresso.
+  if (!doPainel && dispensarOp) juntar("Dispensar", OP_DISPENSAR);
+  // As acoes da linha social por ULTIMO: sao dela, nao do titulo.
+  if (doSocial) {
+    int k;
+    for (k = 0; k < nExtras; k++) if (k != extraJunta()) juntar(extras[k].rot, OP_EXTRA + k);
+  }
   // O FOCO TEM DE CABER NA LISTA QUE ACABOU DE SER MONTADA.
   //
   // montar() roda de novo a cada confirmacao, e a lista ENCOLHE em casos
@@ -296,15 +465,111 @@ static void montar(void) {
 }
 
 static void abrirComum(int indice);
+// O cartaz vem da HOME, em pixels da tela real; o menu e camada ampliada e
+// mede pela tela virtual (escala.h). Desenhado na virtual ele cai no mesmo
+// lugar e no mesmo tamanho da tela.
+static GfxRect ctxDaHome(GfxRect r) {
+  float e = gfx_escala_ui();
+  return (GfxRect){ r.x / e, r.y / e, r.w / e, r.h / e };
+}
+
+// Coloca o menu FORA do cartaz selecionado. Tenta o lado direito primeiro,
+// depois o esquerdo; se nenhum lado comporta a ilha inteira, escolhe o lado
+// com mais espaco e prende a ilha dentro da viewport. A mesma geometria vale
+// para cartazes retrato e paisagem e para todos os chamadores.
+static float ctxXCartaz(GfxRect r) {
+  float minX = CTX_BORDA;
+  float maxX = NV_TELA_W - CTX_BORDA - CTX_W;
+  float direita = r.x + r.w + CTX_AO_LADO;
+  float esquerda = r.x - CTX_AO_LADO - CTX_W;
+  if (maxX < minX) {
+    minX = 0.0f;
+    maxX = NV_TELA_W > CTX_W ? NV_TELA_W - CTX_W : 0.0f;
+  }
+  if (direita <= maxX) return direita;
+  if (esquerda >= minX) return esquerda;
+  if (maxX - direita >= esquerda - minX) {
+    if (direita < minX) return minX;
+    if (direita > maxX) return maxX;
+    return direita;
+  }
+  if (esquerda < minX) return minX;
+  if (esquerda > maxX) return maxX;
+  return esquerda;
+}
+
 void ctx_abrir(int indice) {
+  if (holdCancelado) {
+    holdCancelado = 0;
+    holdPronto = 0;
+    dispensarPend = 0;
+    return;
+  }
+  if (indice < 0 || indice >= cat_n() || !cat_item(indice)) { filChave[0] = 0; dispensarPend = 0; return; }
+  doPainel = 0;
+  doSocial = 0;
+  soFileira = 0;
+  doLista = 0;
+  abrirComum(indice);
+  { HomeItem hi;
+    // So um CARTAZ: o destaque tambem e "item focado", mas o retangulo dele e
+    // a arte de tela cheia, e ao lado dela nao ha lugar.
+    if (home_item_focado(&hi) && hi.indice == indice && hi.rect.w > 8.0f && hi.rect.h > 8.0f &&
+        hi.rect.w < 1920.0f * 0.5f && hi.rect.h < 1080.0f * 0.7f) {
+      temCartaz = 1;
+      cartazRect = ctxDaHome(hi.rect);
+      snprintf(cartazArte, sizeof cartazArte, "%s", hi.arte ? hi.arte : "");
+    }
+  }
+}
+
+void ctx_abrir_cartaz(int indice, GfxRect r, const char *arte) {
+  ctx_abrir(indice);
+  if (!aberto || doLista) return;
+  cartazFixo = 0;
+  if (r.w > 8.0f && r.h > 8.0f && arte && arte[0]) {
+    temCartaz = 1;
+    cartazFixo = 1;
+    cartazRect = r;
+    snprintf(cartazArte, sizeof cartazArte, "%s", arte);
+  }
+}
+
+void ctx_abrir_lista(const LstLista *l) {
+  if (holdCancelado) { holdCancelado = 0; holdPronto = 0; return; }
+  if (!l) return;
+  filChave[0] = 0;
+  doPainel = 0; soFileira = 0; doSocial = 0;
+  lista = *l;
+  doLista = 1;
+  abrirComum(-1);
+  // Baixa os itens para o resumo ter capas e a mistura. Os da lista aberta de
+  // antes (se havia) nao servem: lst_abrir comeca do zero.
+  lst_abrir(&lista, lista.midia[0] ? lista.midia : "MOVIE");
+}
+int ctx_pediu_lista(void) { int v = listaPedida; listaPedida = 0; return v; }
+int ctx_lista_alterou(void) { int v = listaAlterou; listaAlterou = 0; return v; }
+
+void ctx_dispensar_retomar(int on) { dispensarPend = on ? 1 : 0; }
+
+void ctx_fileira(const char *chave, const char *titulo) {
+  snprintf(filChave, sizeof filChave, "%s", chave ? chave : "");
+  snprintf(filTitulo, sizeof filTitulo, "%s", titulo ? titulo : "");
+}
+
+void ctx_abrir_fileira(const char *chave, const char *titulo) {
   if (holdCancelado) {
     holdCancelado = 0;
     holdPronto = 0;
     return;
   }
-  if (indice < 0 || indice >= cat_n() || !cat_item(indice)) return;
+  ctx_fileira(chave, titulo);
+  if (fil_estilos(filChave, NULL, NULL, FIL_TIPO_N) < 1) { filChave[0] = 0; return; }
   doPainel = 0;
-  abrirComum(indice);
+  doSocial = 0;
+  soFileira = 1;
+  doLista = 0;
+  abrirComum(-1);
 }
 
 // O que as duas portas fazem igual. Separado para o modo painel nao ser uma
@@ -315,6 +580,12 @@ static void abrirComum(int indice) {
   holdPronto = 0;
   esperandoSoltura = 1;   // o OK que abriu ainda esta afundado; ver a nota acima
   idx = indice; foco = 0; aberto = 1; pedDetalhes = -1;
+  dispensarOp = dispensarPend; dispensarPend = 0;
+  temCartaz = 0; cartazFixo = 0;
+  pagina = soFileira ? 1 : 0;
+  estFoco = -1;               // montar() poe o foco na forma atual
+  prevAtual = prevAnt = prevRefAtual = prevRefAnt = -1; prevT = 1.0f;
+  memset(estAnim, 0, sizeof estAnim);
   pedDetalhesImdb[0] = 0;
   fecharAoConfirmar = 0;
   operacao = CTX_OP_NENHUMA; intencao = 0; estadoOperacao = 0;
@@ -331,14 +602,42 @@ void ctx_abrir_salvo(const CatItem *titulo) {
     return;
   }
   if (!titulo || !titulo->imdb[0]) return;
+  filChave[0] = 0;   // o painel de Salvos nao e fileira da home
+  soFileira = 0;
   copiaPainel = *titulo;
   // O ID DO TITULO, nunca o do episodio: e o que a lista local, a watchlist e
   // a conta guardam (salvos.h), e o que o Trakt recebe no DELETE.
   salvos_id_titulo(titulo->imdb, copiaPainel.imdb, sizeof copiaPainel.imdb);
   if (!copiaPainel.tipo[0]) snprintf(copiaPainel.tipo, sizeof copiaPainel.tipo, "movie");
   doPainel = 1;
+  doSocial = 0;
+  doLista = 0;
   abrirComum(-1);
 }
+
+void ctx_abrir_social(const CatItem *titulo, const CtxExtra *ex, int n) {
+  int k;
+  if (holdCancelado) { holdCancelado = 0; holdPronto = 0; return; }
+  if (!titulo || (!titulo->imdb[0] && n < 1)) return;
+  filChave[0] = 0;
+  soFileira = 0;
+  copiaPainel = *titulo;
+  if (copiaPainel.imdb[0]) {
+    salvos_id_titulo(titulo->imdb, copiaPainel.imdb, sizeof copiaPainel.imdb);
+    if (!copiaPainel.tipo[0]) snprintf(copiaPainel.tipo, sizeof copiaPainel.tipo, "movie");
+  }
+  nExtras = 0;
+  for (k = 0; ex && k < n && k < CTX_EXTRAS_MAX; k++) extras[nExtras++] = ex[k];
+  extraPedido = -1;
+  confExtra = -1;
+  pendExtra = -1;
+  doPainel = 1;
+  doSocial = 1;
+  doLista = 0;
+  abrirComum(-1);
+}
+
+int ctx_pediu_extra(void) { int v = extraPedido; extraPedido = -1; return v; }
 
 int ctx_do_painel(void) { return aberto && doPainel; }
 void ctx_centro_dica(float cx) { dicaCx = cx; }
@@ -352,11 +651,47 @@ const char *ctx_pediu_detalhes_imdb(void) {
 }
 
 int ctx_aberto(void) { return aberto; }
+const char *ctx_pediu_categoria(void) {
+  static char s[24];
+  if (!pedCategoriaImdb[0]) return NULL;
+  snprintf(s, sizeof s, "%s", pedCategoriaImdb);
+  pedCategoriaImdb[0] = 0;
+  return s;
+}
 int ctx_pediu_detalhes(void) { int v = pedDetalhes; pedDetalhes = -1; return v; }
 
 // O ESPELHO LOCAL DE "ASSISTIDO", separado de quem confirma: com Trakt ele
 // roda depois do 2xx (ctx_atualizar); sem Trakt roda na hora (aplicar), porque
 // nao ha resposta nenhuma a esperar.
+
+// --- ILHA: a confirmacao de assistido / nao assistido (ilhaacao.h) -----------------
+// Desfazer so quando ha inverso de verdade: DESMARCAR e puro (nada some), e
+// MARCAR so quando o titulo nao tinha posicao de retomada — marcar apaga o
+// ponto de retomada local e nas contas, e esse nao volta.
+typedef struct { CatItem ci; int intencao; } AssistidoCtx;
+static CatItem opItem;      // copia do titulo da operacao em curso (o bloco do catalogo troca)
+static int opTinhaRetomada;
+static void desfazerAssistido(const void *p) {
+  const AssistidoCtx *c = p;
+  int volta = !c->intencao;
+  visto_titulo(c->ci.imdb, c->ci.tipo, c->ci.temporadas, c->ci.nTemporadas, volta, visto_destinos());
+  if (trakt_ativo()) trakt_assistido_tipo(c->ci.imdb, c->ci.tipo, volta);
+  cat_historico_definir_id(c->ci.imdb, c->ci.tipo, volta);
+  desc_remontar_fileiras();
+}
+static void anunciarAssistido(int intencao) {
+  static AssistidoCtx c;
+  IlhaAcao a;
+  if (!opItem.imdb[0]) return;
+  c.ci = opItem; c.intencao = intencao;
+  memset(&a, 0, sizeof a);
+  a.icone = intencao ? "check" : "aj_x";
+  a.frase = intencao ? i18n("Marcado como assistido") : i18n("Marcado como não assistido");
+  a.titulo = opItem.titulo; a.thumb = opItem.poster; a.arte = opItem.backdrop;
+  a.tipo = intencao ? ILHA_OK : ILHA_INFO;
+  if (!(intencao && opTinhaRetomada)) { a.desfazer = desfazerAssistido; a.ctx = &c; a.ctxN = sizeof c; }
+  ilhaacao_feita(&a);
+}
 static void espelharAssistido(int atual, const CatItem *ci, int intencao) {
   cat_historico_definir_id(ci->imdb, ci->tipo, intencao);
   // MARCAR COMO ASSISTIDO APAGA A POSICAO DE RETOMADA.
@@ -382,16 +717,118 @@ static void espelharAssistido(int atual, const CatItem *ci, int intencao) {
     trakt_playback_remover(ci->imdb);
     simkl_playback_remover(ci->imdb);
     syncprog_remover(chave);
+    // O CARIMBO DE "TIRAR DE CONTINUAR" (#244). Sem ele a proxima passada
+    // readmitia o item pelo /sync/playback que o servidor ainda devolvia (ou
+    // por uma pausa que o DELETE nao alcancou), so sem a barra.
+    prog_marcar_removido(ci->imdb);
+    // E O CARD SAI DA FILEIRA NA HORA (#244): zerar a barra deixava os cards da
+    // obra ali, "marca todos mas nao remove nenhum". Mesma remocao do "Tirar".
+    // Depois de zerar: tirar desloca a janela e `atual` deixaria de valer.
     cat_zerar_progresso(atual);
+    { char obra[sizeof ci->imdb];   // `ci` aponta para o bloco que a poda desloca
+      snprintf(obra, sizeof obra, "%s", ci->imdb);
+      cat_tirar_continuar(obra); }
   }
+}
+
+// OK na pagina de estilos. Grava e sai: a home remonta pela revisao de
+// fileiras.c e a pessoa ve a forma nova no lugar, sem o veu do menu por cima.
+// A forma da linha `i` no tamanho escolhido nela, e a maior da linha (a que
+// decide a reducao da previa).
+static int estTipo(int i) {
+  int j;
+  if (i < 0 || i >= nEstilos) return -1;
+  j = estTam[i];
+  if (j < 0 || j >= estLin[i].n) j = 0;
+  return estLin[i].tipos[j];
+}
+static int estRef(int i) {
+  return (i >= 0 && i < nEstilos) ? estLin[i].tipos[estLin[i].n - 1] : -1;
+}
+
+static void aplicarEstilo(void) {
+  if (estFoco >= 0 && estFoco < nEstilos) fil_definir_tipo(filChave, estTipo(estFoco));
+  aberto = 0;
+}
+
+// MARCAR/DESMARCAR NO HISTORICO DA CONTA (o corpo de OP_ASSISTIDO, e tambem o
+// passo de historico do "Ja assisti" da recomendacao: `soMarcar` nunca desmarca).
+static void iniciarAssistido(int atual, const CatItem *ci, int soMarcar) {
+      intencao = soMarcar ? 1 : (historicoDe(ci) == 1 ? 0 : 1);
+      opItem = *ci; opTinhaRetomada = ci->progresso > 0 || ci->restanteMin > 0;
+      snprintf(operacaoImdb, sizeof operacaoImdb, "%s", ci->imdb);
+      operacao = CTX_OP_HISTORICO;
+      opSimkl = 0;
+      avisoOp = NULL;
+      espelhoAplicado = 0;
+      estadoOperacao = CTX_PENDENTE;
+      // SIMKL E CONTA NUVIO, em fio (visto.c), com ou sem Trakt. Antes daqui
+      // so havia o Trakt, e sem ele esta acao era "[trakt] historico recusado:
+      // Trakt desligado" e CTX_FALHA — o "sem o traktv nao ta dando o watched"
+      // do dono. As temporadas vao junto porque desmarcar serie no Simkl sem
+      // elas apagaria a serie da biblioteca de la (ver simkl.c).
+      visto_titulo(ci->imdb, ci->tipo, ci->temporadas, ci->nTemporadas, intencao,
+                   visto_destinos());
+      if (trakt_ativo()) {
+        // O caminho do Trakt NAO MUDOU: mesmo pedido, mesma espera, espelho so
+        // depois do 2xx em ctx_atualizar.
+        if (!trakt_assistido_tipo(ci->imdb, ci->tipo, intencao))
+          estadoOperacao = CTX_FALHA;
+      } else {
+        // SEM TRAKT NAO HA RESPOSTA A ESPERAR (o mesmo raciocinio do "+" na
+        // Lista do Nuvio, acima): o local e a verdade desta TV, aplicado agora,
+        // e a conta o devolve no proximo pull (sync.c aplica os vistos da
+        // conta justamente quando o Trakt esta desligado).
+        espelharAssistido(atual, ci, intencao);
+        estadoOperacao = CTX_CONFIRMADA;
+        espelhoAplicado = 1;
+        desc_remontar_fileiras();
+        anunciarAssistido(intencao);
+      }
 }
 
 static void aplicar(void) {
   int atual = indiceAtual();
   const CatItem *ci = itemAtual();
   int acao;
-  if (!ci || foco < 0 || foco >= nOps) return;
+  if (foco < 0 || foco >= nOps) return;
   acao = ops[foco].acao;
+  if (doLista) {
+    if (acao == OP_L_ABRIR) { listaPedida = 1; aberto = 0; }
+    else if (acao == OP_L_FIXAR) { lst_alternar_fixada(&lista); listaAlterou = 1; montar(); }
+    else if (acao == OP_L_HOME) { lst_alternar_home(&lista); listaAlterou = 1; montar(); }
+    return;
+  }
+  if (acao == OP_ESTILO) {
+    pagina = 1; estFoco = -1; prevAtual = prevAnt = prevRefAtual = prevRefAnt = -1; prevT = 1.0f;
+    memset(estAnim, 0, sizeof estAnim);
+    montar(); return;
+  }
+  if (!ci) return;
+  if (acao >= OP_EXTRA && acao < OP_EXTRA + nExtras) {
+    int k = acao - OP_EXTRA;
+    if (extras[k].juntaAssistido && assistidoPossivel(ci, indiceAtual()) &&
+        historicoDe(ci) != 1) {
+      // "JA ASSISTI": primeiro o historico da conta (so marca). A extra sai
+      // quando ele confirma — agora, sem Trakt, ou em ctx_atualizar com o 2xx.
+      if (estadoOperacao == CTX_PENDENTE) return;
+      iniciarAssistido(indiceAtual(), ci, 1);
+      if (estadoOperacao == CTX_PENDENTE) { pendExtra = k; montar(); return; }
+      if (estadoOperacao == CTX_FALHA) { montar(); return; }
+    }
+    // A EXTRA QUE NAO SE DESFAZ (remover amigo) passa pela mesma pagina de
+    // confirmacao de "Tirar de Continuar assistindo", com o foco em Cancelar.
+    if (extras[k].confirmar && pagina != 2) {
+      pagina = 2; confFoco = 1; confExtra = k;
+      confAnim[0] = confAnim[1] = 0.0f;
+      return;
+    }
+    extraPedido = k;
+    confExtra = -1;
+    pagina = 0;
+    aberto = 0;
+    return;
+  }
   // SO A ESPERA BLOQUEIA, e nao "ja houve uma operacao".
   //
   // A guarda antiga era `operacao != CTX_OP_NENHUMA && estado != FALHA`, e
@@ -403,6 +840,13 @@ static void aplicar(void) {
   // Enquanto a requisicao esta no ar continua valendo esperar: duas escritas
   // simultaneas na mesma superficie e que nao podem acontecer.
   if (acao != OP_DETALHES && estadoOperacao == CTX_PENDENTE) return;
+  // Tirar so depois da confirmacao: o primeiro OK abre a pagina 2, e e ela
+  // que chama aplicar() de novo, com a pagina ainda em 2.
+  if (acao == OP_TIRAR_CONTINUAR && pagina != 2) {
+    pagina = 2; confFoco = 0;
+    confAnim[0] = confAnim[1] = 0.0f;
+    return;
+  }
   switch (acao) {
     case OP_DETALHES:
       // O painel resolve pelo IMDb (spainel_pediu_abrir -> app.c), porque o
@@ -414,6 +858,9 @@ static void aplicar(void) {
       // Captura a intencao ANTES de qualquer escrita. O mesmo valor segue para
       // o POST e so chega ao espelho local depois de uma resposta 2xx.
       intencao = !tituloSalvo(ci);
+      // Primeira vez: a ilha pergunta onde o + salva; o menu sai e o titulo e
+      // gravado depois da resposta (ilhasalvar.c).
+      if (ilhasalvar_perguntar(ci, intencao)) { aberto = 0; return; }
       snprintf(operacaoImdb, sizeof operacaoImdb, "%s", ci->imdb);
       operacao = CTX_OP_LISTA;
       fecharAoConfirmar = doPainel && !intencao;
@@ -425,6 +872,9 @@ static void aplicar(void) {
       // acontece fora do jogo de estados abaixo; ver salvos.h para por que ele
       // e o unico destino que sobrevive ao fechamento do app.
       salvos_definir(ci, intencao);
+      atividade_salvo(ci, intencao);   // ev=salvo para o Social (atividade.h)
+      ilhasalvar_aviso(ci, intencao);  // voo da capa + "Salvo em ..." / "Removido da lista"
+
       // TRAKT ESCOLHIDO E SEM VINCULO cai no ramo local, como o Simkl sem
       // vinculo ja caia. Antes era CTX_FALHA com a lista local JA escrita: o
       // titulo saia do arquivo, a marca do catalogo ficava, e o "Remover" do
@@ -462,38 +912,12 @@ static void aplicar(void) {
       montar();
       break;
     case OP_ASSISTIDO:
-      // Progresso e posicao de retomada, nao historico. So um retrato de
-      // historico confirmado pode inverter a acao para "desmarcar".
-      intencao = historicoDe(ci) == 1 ? 0 : 1;
-      snprintf(operacaoImdb, sizeof operacaoImdb, "%s", ci->imdb);
-      operacao = CTX_OP_HISTORICO;
-      opSimkl = 0;
-      avisoOp = NULL;
-      espelhoAplicado = 0;
-      estadoOperacao = CTX_PENDENTE;
-      // SIMKL E CONTA NUVIO, em fio (visto.c), com ou sem Trakt. Antes daqui
-      // so havia o Trakt, e sem ele esta acao era "[trakt] historico recusado:
-      // Trakt desligado" e CTX_FALHA — o "sem o traktv nao ta dando o watched"
-      // do dono. As temporadas vao junto porque desmarcar serie no Simkl sem
-      // elas apagaria a serie da biblioteca de la (ver simkl.c).
-      visto_titulo(ci->imdb, ci->tipo, ci->temporadas, ci->nTemporadas, intencao,
-                   visto_destinos());
-      if (trakt_ativo()) {
-        // O caminho do Trakt NAO MUDOU: mesmo pedido, mesma espera, espelho so
-        // depois do 2xx em ctx_atualizar.
-        if (!trakt_assistido_tipo(ci->imdb, ci->tipo, intencao))
-          estadoOperacao = CTX_FALHA;
-      } else {
-        // SEM TRAKT NAO HA RESPOSTA A ESPERAR (o mesmo raciocinio do "+" na
-        // Lista do Nuvio, acima): o local e a verdade desta TV, aplicado agora,
-        // e a conta o devolve no proximo pull (sync.c aplica os vistos da
-        // conta justamente quando o Trakt esta desligado).
-        espelharAssistido(atual, ci, intencao);
-        estadoOperacao = CTX_CONFIRMADA;
-        espelhoAplicado = 1;
-        desc_remontar_fileiras();
-      }
+      iniciarAssistido(atual, ci, 0);
       montar();
+      break;
+    case OP_CATEGORIA:
+      snprintf(pedCategoriaImdb, sizeof pedCategoriaImdb, "%s", ci->imdb);
+      aberto = 0;
       break;
     case OP_RECOMENDAR:
       // FECHA ESTE MODAL E ABRE O COMPARTILHADO. O menu do cartaz falou de um
@@ -501,6 +925,11 @@ static void aplicar(void) {
       // mesma razao que salvospainel.c copia: o vetor do catalogo troca de
       // bloco a cada republicacao da descoberta.
       if (recenviar_abrir(ci)) aberto = 0;
+      break;
+    case OP_DISPENSAR:
+      home_retomar_dispensar();
+      aberto = 0;
+      pagina = 0;
       break;
     case OP_TIRAR_CONTINUAR: {
       // COPIA ANTES: `ci` aponta para dentro do bloco do catalogo, e
@@ -510,7 +939,9 @@ static void aplicar(void) {
       char imdb[sizeof ci->imdb];
       int temp = ci->temporada, ep = ci->episodio;
       pthread_t t;
+      char tit[sizeof ci->titulo];
       snprintf(imdb, sizeof imdb, "%s", ci->imdb);
+      snprintf(tit, sizeof tit, "%s", ci->titulo);
       // Efeito local e imediato, ANTES da rede: zera o que a legenda desenha
       // neste indice (o card pode estar numa fileira de catalogo com barra) e
       // desc_tirar_continuar apaga o registro, carimba a remocao e tira o card
@@ -543,7 +974,16 @@ static void aplicar(void) {
       // O Simkl tambem guarda o pausado (issue #110). Ja sai em fio proprio;
       // sem id conhecido (item que nao veio do Simkl) nao faz nada.
       simkl_playback_remover(imdb);
+      // SEM DESFAZER: o ponto de retomada foi apagado aqui e nas contas, e nao
+      // ha como restaura-lo; por isso a confirmacao do menu continua.
+      { IlhaAcao a;
+        memset(&a, 0, sizeof a);
+        a.icone = "aj_x"; a.frase = i18n("Removido de Continuar assistindo");
+        a.titulo = tit;
+        a.tipo = ILHA_INFO;
+        ilhaacao_feita(&a); }
       aberto = 0;
+      pagina = 0;
       break;
     }
   }
@@ -567,7 +1007,41 @@ void ctx_evento(const SDL_Event *e) {
   if (e->key.repeat && teclaOk(k)) return;
   if (esperandoSoltura && teclaOk(k)) return;
   if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
-      e->key.keysym.scancode == NV_SCANCODE_BACK) { aberto = 0; return; }
+      e->key.keysym.scancode == NV_SCANCODE_BACK) {
+    // Da pagina de estilos, Voltar volta ao menu do titulo — com o foco na
+    // entrada de onde a pessoa veio. Sem titulo por tras (colecao), fecha.
+    // Voltar CANCELA: nada foi gravado ao mover o foco, so a previa mudou.
+    if (pagina == 2) { pagina = 0; confExtra = -1; return; }   // Voltar = Cancelar
+    if (pagina == 1 && !soFileira) {
+      pagina = 0; montar();
+      for (foco = 0; foco < nOps && ops[foco].acao != OP_ESTILO; foco++) {}
+      if (foco >= nOps) foco = 0;
+      return;
+    }
+    aberto = 0; return;
+  }
+  // CONFIRMACAO: os dois botoes lado a lado; OK no primeiro tira, no
+  // segundo cancela. Cima/baixo nao fazem nada (nao ha para onde ir).
+  if (pagina == 2) {
+    if (k == SDLK_LEFT)  { confFoco = 0; return; }
+    if (k == SDLK_RIGHT) { confFoco = 1; return; }
+    if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE) {
+      if (confFoco == 0) aplicar(); else { pagina = 0; confExtra = -1; }
+    }
+    return;
+  }
+  // Pagina de estilos: cima/baixo trocam a forma, esquerda/direita o tamanho
+  // (so nas linhas que tem tamanhos); nada disso grava. OK grava.
+  if (pagina == 1) {
+    if (k == SDLK_UP)   { if (estFoco > 0) estFoco--; return; }
+    if (k == SDLK_DOWN) { if (estFoco + 1 < nEstilos) estFoco++; return; }
+    if (estFoco >= 0 && estFoco < nEstilos && estLin[estFoco].n > 1) {
+      if (k == SDLK_LEFT)  { if (estTam[estFoco] > 0) estTam[estFoco]--; return; }
+      if (k == SDLK_RIGHT) { if (estTam[estFoco] + 1 < estLin[estFoco].n) estTam[estFoco]++; return; }
+    }
+    if (teclaOk(k)) aplicarEstilo();
+    return;
+  }
   // Enquanto a requisicao esta no ar, OK nao repete a escrita. O foco continua
   // sendo o do modal e Voltar sempre pode cancelar a espera visual.
   //
@@ -598,14 +1072,37 @@ void ctx_atualizar(float dt, Uint32 agora) {
       ? (aberto && foco == i ? 1.0f : 0.0f)
       : anim_mola(focoAnim[i], aberto && foco == i ? 1.0f : 0.0f,
                   dt, NV_MOLA_FOCO);
+  for (i = 0; i < 2; i++)
+    confAnim[i] = ajustes_animacoes_reduzidas()
+      ? (pagina == 2 && confFoco == i ? 1.0f : 0.0f)
+      : anim_mola(confAnim[i], pagina == 2 && confFoco == i ? 1.0f : 0.0f, dt, NV_MOLA_FOCO);
+  // Pagina de estilos: o foco da lista e a troca da previa. So aqui, e so com
+  // a pagina aberta — fechada, nada disto anda nem desenha.
+  if (aberto && pagina == 1) {
+    for (i = 0; i < FIL_TIPO_N; i++)
+      estAnim[i] = ajustes_animacoes_reduzidas()
+        ? (estFoco == i ? 1.0f : 0.0f)
+        : anim_mola(estAnim[i], estFoco == i ? 1.0f : 0.0f, dt, NV_MOLA_FOCO);
+    if (estFoco >= 0 && estFoco < nEstilos && estTipo(estFoco) != prevAtual) {
+      // A primeira forma entra com o proprio modal; as seguintes, com a mola.
+      prevAnt = prevAtual; prevRefAnt = prevRefAtual;
+      prevAtual = estTipo(estFoco); prevRefAtual = estRef(estFoco);
+      prevT = prevAnt < 0 ? 1.0f : 0.0f;
+    }
+    prevT = ajustes_animacoes_reduzidas() ? 1.0f : anim_mola(prevT, 1.0f, dt, NV_MOLA_FOCO);
+  }
 
   atual = indiceAtual();
-  if (aberto && !itemAtual()) { aberto = 0; return; }
+  if (aberto && !soFileira && !doLista && !itemAtual()) { aberto = 0; return; }
 
   if (operacao != CTX_OP_NENHUMA && estadoOperacao == CTX_PENDENTE) {
     int novo = opSimkl ? simkl_lista_estado() : trakt_operacao_estado(operacao);
     if (novo == CTX_CONFIRMADA || novo == CTX_FALHA) {
       estadoOperacao = novo;
+      if (pendExtra >= 0) {
+        if (novo == CTX_CONFIRMADA) { extraPedido = pendExtra; aberto = 0; pagina = 0; }
+        pendExtra = -1;
+      }
       if (!espelhoAplicado && itemAtual()) {
         const CatItem *ci = itemAtual();
         if (ci && novo == CTX_CONFIRMADA) {
@@ -614,6 +1111,7 @@ void ctx_atualizar(float dt, Uint32 agora) {
             cat_definir_na_lista_imdb(operacaoImdb, intencao);
           } else {
             espelharAssistido(atual, ci, intencao);
+            anunciarAssistido(intencao);
           }
         }
         espelhoAplicado = 1;
@@ -644,16 +1142,465 @@ void ctx_atualizar(float dt, Uint32 agora) {
 // PONTEIRO (#99): passar por cima de uma opcao a foca (a mesma variavel de
 // cima/baixo); o clique e o OK. Clicar fora do cartao fecha, como o Voltar.
 static void ponteiroCtxOpcao(int i, int b) { (void)b; if (i >= 0 && i < nOps) foco = i; }
+static void ponteiroConfFoco(int i, int b) { (void)b; confFoco = i; }
+static void ponteiroConfOk(int i, int b) {
+  (void)b; confFoco = i;
+  if (i == 0) aplicar(); else pagina = 0;
+}
 static void ponteiroCtxFora(int a, int b) { (void)a; (void)b; aberto = 0; }
+// `b` > 0 e o segmento de tamanho b-1 da linha (o alvo menor, por cima dela).
+static void ponteiroEstFoco(int i, int b) {
+  if (i < 0 || i >= nEstilos) return;
+  estFoco = i;
+  if (b > 0 && b - 1 < estLin[i].n) estTam[i] = b - 1;
+}
+static void ponteiroEstOk(int i, int b) {
+  if (i < 0 || i >= nEstilos) return;
+  ponteiroEstFoco(i, b);
+  aplicarEstilo();
+}
 
+// GLASS UI (dono, 02/10, mockup "ilha" tela 7): TODO MODAL E UMA ILHA — o
+// material da folha de Fontes e da ilha do relogio. Sombra curta, miolo de
+// vidro (gfx_vidro_folha) ou solido, uma luz larga e fraca BRANCA no canto de
+// cima (era a luz na cor do realce: o acento agora so marca estado) e sem aro.
+static void ilhaCtx(GfxRect p, float raioPx, float a) {
+  const int vid = ajustes_vidro();
+  float raio = raioPx / p.h;
+  gfx_sombra_sob((GfxRect){ p.x - 18.0f, p.y - 8.0f, p.w + 36.0f, p.h + 40.0f }, 1.0f, 0, 0.5f,
+                 0, 0, 0, .42f * a, p, raioPx, vid ? 0.0f : .98f * a);
+  if (vid) gfx_vidro_folha(p, raio, a);
+  else gfx_cor(p, raio, .071f, .075f, .086f, .98f * a);
+  gfx_luz_canto(p, raio, p.w * .25f, -p.h * .25f, p.w * .9f, 1, 1, 1, (vid ? .06f : .04f) * a);
+}
+
+// KICKER das ilhas: 15/700 em caixa alta (a do idioma), espacado .14em,
+// branco a 45 % — o "CONTINUAR ASSISTINDO" da confirmacao do mockup.
+static void kickerCtx(const char *t, float x, float y, float a) {
+  char up[160];
+  idioma_maiusc_em(ajustes_idioma(), up, sizeof up, i18n(t));
+  txt_tracking(TXT_MINI, up, 243, 242, 239, x, y, .45f * a, 2.1f);
+}
+
+// UMA LINHA DE LISTA dentro da ilha (as opcoes do cartaz, as formas da
+// fileira): a .it do mockup — pilula de 60, icone de 24 a 20 da borda, 18 ate
+// o rotulo (22/500 a 72 %). O FOCO = SUPERFICIE UM DEGRAU MAIS CLARA (branco
+// a 14 % no vidro, cinza opaco no solido) e o rotulo acende inteiro, sem
+// pilula cheia nem contorno — como o menu e o painel de Salvos. A pilula
+// cheia no acento fica para botao.
+#define CTX_ICONE 24.0f
+static void linhaCtx(GfxRect r, const char *rot, const char *icone, float f, float a) {
+  float k = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
+  float lum = .72f + .28f * k;
+  if (k > 0.01f) {
+    if (ajustes_vidro()) gfx_cor(r, 0.5f, 1, 1, 1, .14f * k * a);
+    else gfx_cor(r, 0.5f, .19f, .195f, .215f, k * a);
+  }
+  if (icone && icone[0])
+    gfx_icone((GfxRect){ r.x + 20.0f, r.y + (r.h - CTX_ICONE) * 0.5f, CTX_ICONE, CTX_ICONE },
+              icone, .953f, .949f, .937f, lum * a);
+  { TxtLinha t = txt_linha_corta(TXT_PG_ROTULO, rot, 243, 242, 239, 255,
+                                 r.w - 20.0f - CTX_ICONE - 18.0f - 20.0f);
+    txt_desenhar_alpha(t, r.x + 20.0f + CTX_ICONE + 18.0f, r.y + (r.h - t.h) * 0.5f, lum * a); }
+}
+
+
+// --- O MODAL DE ESTILO ------------------------------------------------------
+//
+// O mesmo cartao flutuante do menu (vidro ou folha com a luz do realce), mais
+// largo: a lista de formas a esquerda e, a direita, um PALCO na cor do fundo da
+// Home com o nome da fileira e a fileira desenhada na forma em foco. O palco e
+// a Home em miniatura de proposito — a pergunta da pessoa e "como fica la".
+#define EST_W       1680.0f
+#define EST_LISTA_W  500.0f
+#define EST_LINHA     60.0f
+#define EST_GAP       10.0f
+#define EST_COL_GAP   48.0f
+#define EST_PALCO_H  520.0f   // altura minima do palco da previa
+#define EST_PALCO_Y  140.0f   // do topo da coluna ao palco: nome + frase
+
+// O SEGMENTADO DE TAMANHO, na ponta direita da pilula da linha `i`: uma letra
+// por tamanho (a primeira da palavra traduzida — P M G, S M L), o escolhido
+// cheio na cor do texto da pilula e o gravado com um anel. Na tinta da pilula:
+// escura quando ela esta acesa (branca), clara em repouso.
+#define EST_SEG_W   46.0f
+#define EST_SEG_H   40.0f
+#define EST_SEG_GAP  6.0f
+static void desenhaTamanhos(GfxRect r, int i, int atual, float a) {
+  float fr, fg, fb, ti = botao_cor_foco(&fr, &fg, &fb);
+  // A linha agora acende por SUPERFICIE (linhaCtx), nunca no acento: a tinta
+  // e sempre a clara de repouso.
+  int aceso = 0, j, n = estLin[i].n;
+  (void)estAnim;
+  // A tinta e a do rotulo da pilula (botao_pilula): a de botao_cor_foco acesa,
+  // clara em repouso. A letra escolhida vai no fundo da pilula — o realce
+  // aceso, o escuro do cartao em repouso — sobre um disco na tinta.
+  float tinta = aceso ? ti : 0.93f;
+  float lr = aceso ? fr : 0.08f, lg = aceso ? fg : 0.085f, lb = aceso ? fb : 0.1f;
+  float x0 = r.x + r.w - 10.0f - (float)n * EST_SEG_W - (float)(n - 1) * EST_SEG_GAP;
+  float y0 = r.y + (r.h - EST_SEG_H) * 0.5f;
+  for (j = 0; j < n; j++) {
+    GfxRect c = { x0 + (float)j * (EST_SEG_W + EST_SEG_GAP), y0, EST_SEG_W, EST_SEG_H };
+    const char *pal = i18n(fil_estilo_tam_palavra(j));
+    char letra[8];
+    int k = 0, esc = j == estTam[i], t8 = (int)(tinta * 255.0f + 0.5f);
+    TxtLinha l;
+    // A primeira letra, inteira: um caractere UTF-8 e o lider mais as
+    // continuacoes (10xxxxxx).
+    if (pal[0]) { letra[k++] = pal[0];
+      while (k < 6 && ((unsigned char)pal[k] & 0xC0) == 0x80) { letra[k] = pal[k]; k++; } }
+    letra[k] = 0;
+    if (aberto && a > 0.5f)
+      ponteiro_alvo(c.x, c.y, c.w, c.h, ponteiroEstFoco, ponteiroEstOk, i, j + 1);
+    if (esc) gfx_cor(c, 0.5f, tinta, tinta, tinta, 0.95f * a);
+    else if (estLin[i].tipos[j] == atual)
+      gfx_anel(c, 0.5f, 1.5f, tinta, tinta, tinta, 0.6f * a);
+    l = esc ? txt_linha(TXT_DET_BOTAO, letra, (int)(lr * 255.0f + 0.5f),
+                        (int)(lg * 255.0f + 0.5f), (int)(lb * 255.0f + 0.5f), 255)
+            : txt_linha(TXT_DET_BOTAO, letra, t8, t8, t8, 255);
+    txt_desenhar_alpha(l, c.x + (c.w - (float)l.w) * 0.5f, c.y + (c.h - (float)l.h) * 0.5f,
+                       (esc ? 1.0f : 0.72f) * a);
+  }
+}
+
+static void desenhaEstilos(float a) {
+  float lista = (float)nEstilos * (EST_LINHA + EST_GAP) - EST_GAP;
+  float corpo = lista > EST_PALCO_H + EST_PALCO_Y ? lista : EST_PALCO_H + EST_PALCO_Y;
+  float alt = CTX_PAD * 2.0f + 116.0f + corpo + CTX_RODAPE;
+  float x = (NV_TELA_W - EST_W) * 0.5f, y = (NV_TELA_H - alt) * 0.5f;
+  float topo, dx, dw;
+  int i, atual = fil_tipo(filChave);
+  float ar_, ag_, ab_;
+  { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
+    gfx_cor(tela, 0.0f, 0, 0, 0, 0.55f * a); }
+  if (aberto && a > 0.5f && ponteiro_ativo()) {
+    ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, ponteiroCtxFora, 0, 0);
+    ponteiro_alvo(x, y, EST_W, alt, NULL, NULL, 0, 0);
+  }
+  y += (1.0f - a) * 40.0f;
+  ajustes_acento(&ar_, &ag_, &ab_);
+  ilhaCtx((GfxRect){ x, y, EST_W, alt }, 36.0f, a);
+  (void)ar_; (void)ag_; (void)ab_;
+  // CABECALHO DE MODAL DA ILHA (o da confirmacao do mockup "ilha" tela 7):
+  // kicker em caixa alta espacada a 45 % e o nome da fileira em negrito.
+  kickerCtx("Estilo da fileira", x + CTX_PAD, y + CTX_PAD, a);
+  { TxtLinha t = txt_linha_corta(TXT_ROW_TITULO, filTitulo, 243, 242, 239, 255,
+                                 EST_W - CTX_PAD * 2.0f);
+    txt_desenhar_alpha(t, x + CTX_PAD, y + CTX_PAD + 26.0f, a); }
+  topo = y + CTX_PAD + 116.0f;
+
+  // A LISTA. O visto marca a forma que vale agora; o foco e so a previa.
+  for (i = 0; i < nEstilos; i++) {
+    GfxRect r = { x + CTX_PAD, topo + (float)i * (EST_LINHA + EST_GAP), EST_LISTA_W, EST_LINHA };
+    int j, temAtual = 0;
+    for (j = 0; j < estLin[i].n; j++) if (estLin[i].tipos[j] == atual) temAtual = 1;
+    if (aberto && a > 0.5f)
+      ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEstFoco, ponteiroEstOk, i, 0);
+    linhaCtx(r, estLin[i].rotulo, temAtual ? "check" : "", estAnim[i], a);
+    if (estLin[i].n > 1) desenhaTamanhos(r, i, atual, a);
+  }
+
+  // A DIREITA: o nome da forma em foco, a frase dela e o palco.
+  dx = x + CTX_PAD + EST_LISTA_W + EST_COL_GAP;
+  dw = x + EST_W - CTX_PAD - dx;
+  if (estFoco >= 0 && estFoco < nEstilos) {
+    float ty = topo;
+    int jt = estTam[estFoco] >= 0 && estTam[estFoco] < estLin[estFoco].n ? estTam[estFoco] : 0;
+    TxtLinha nome = txt_linha(TXT_TITULO3, estLin[estFoco].nomes[jt], 245, 248, 255, 255);
+    txt_desenhar_alpha(nome, dx, ty, a);
+    if (estTipo(estFoco) == atual)
+      badge_desenhar(dx + nome.w + 18.0f, ty + (nome.h - BADGE_H) * 0.5f, "Atual",
+                     BADGE_REALCE, a);
+    ty += nome.h + 8.0f;
+    txt_bloco_corta(TXT_CAPTION2, i18n(fil_estilo_ajuda(filChave, estTipo(estFoco))),
+                    170, 174, 184, dx, ty, dw, 30.0f, a * 0.92f, 2);
+  }
+  // O palco comeca abaixo das duas linhas da frase e vai ate a base da lista.
+  { GfxRect palco = { dx, topo + EST_PALCO_Y, dw, corpo - EST_PALCO_Y };
+    TxtLinha tl;
+    GfxRect area;
+    // O palco e uma superficie dentro da ilha, sem aro (regra 1 do Glass UI).
+    gfx_cor(palco, 26.0f / palco.h, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 0.96f * a);
+    tl = txt_linha_corta(TXT_ROW_TITULO, filTitulo, 245, 246, 249, 255, palco.w - 64.0f);
+    txt_desenhar_alpha(tl, palco.x + 32.0f, palco.y + 28.0f, a);
+    area = (GfxRect){ palco.x + 32.0f, palco.y + 28.0f + tl.h + 20.0f,
+                      palco.w - 32.0f, palco.h - (28.0f + tl.h + 20.0f) - 28.0f };
+    // A forma que sai desliza para a esquerda e apaga; a nova entra pela
+    // direita. 24 px: o bastante para ler "trocou", pouco para competir.
+    if (prevAnt >= 0 && prevT < 0.995f) {
+      GfxRect s = area; s.x -= 24.0f * prevT;
+      home_previa_fileira(filChave, prevAnt, prevRefAnt, s, a * (1.0f - prevT));
+    }
+    if (prevAtual >= 0) {
+      GfxRect e = area; e.x += 24.0f * (1.0f - prevT);
+      // O recorte acompanha a area deslocada; sem o corte de volta a direita
+      // a arte que entra passaria da borda do palco.
+      if (e.x + e.w > palco.x + palco.w) e.w = palco.x + palco.w - e.x;
+      home_previa_fileira(filChave, prevAtual, prevRefAtual, e, a * prevT);
+    } }
+
+  // O gesto de tamanho so aparece no rodape quando a linha em foco tem um.
+  { int comTam = estFoco >= 0 && estFoco < nEstilos && estLin[estFoco].n > 1;
+    TxtLinha t = txt_linha(TXT_ILHA_APOIO, comTam
+                   ? "↑ ↓ Escolher   ·   ← → Tamanho   ·   OK Aplicar   ·   Voltar Cancelar"
+                   : "↑ ↓ Escolher   ·   OK Aplicar   ·   Voltar Cancelar",
+                           243, 242, 239, 255);
+    txt_desenhar_alpha(t, x + CTX_PAD, y + alt - CTX_PAD - t.h, a * 0.42f); }
+}
+
+// --- A CONFIRMACAO (pagina 2) -----------------------------------------------
+//
+// A ilha centralizada do mockup "ilha" tela 7: 720 de largura, raio 36, 44 de
+// ar; kicker "CONTINUAR ASSISTINDO", a pergunta em 36/700, o texto em 20/400 a
+// 62 % com entrelinha 1,5, e os botoes de 60 em pilula a 34 do texto. Botao em
+// foco = pilula cheia no acento, o mesmo do chip das Fontes (streams.c); o
+// outro, a pilula de vidro (branco a 8 %).
+//
+// O TEXTO DIZ O QUE ACONTECE DE VERDADE (desc_tirar_continuar e os DELETE de
+// aplicar): o ponto de retomada e apagado aqui, no Trakt, no Simkl e na conta
+// — nao "fica guardado" —, e o carimbo prog_marcar_removido segura o card fora
+// ate haver um registro MAIS NOVO que a remocao, isto e, ate a pessoa assistir
+// de novo (aqui ou em outro aparelho). Episodio novo sozinho nao o traz.
+#define CONF_W     720.0f
+#define CONF_PAD    44.0f
+#define CONF_BOT_H  60.0f
+static float botaoConf(int i, float x, float y, const char *rot, float f, float a) {
+  TxtLinha t = txt_linha(TXT_HERO_META, rot, 243, 242, 239, 255);
+  GfxRect r = { x, y, t.w + 56.0f, CONF_BOT_H };
+  float ar, ag, ab;
+  int tinta = ajustes_tinta_foco();
+  int c = (int)(243.0f + ((float)tinta - 243.0f) * (f > 0.5f ? 1.0f : 0.0f));
+  ajustes_acento(&ar, &ag, &ab);
+  if (ajustes_vidro()) gfx_cor(r, .5f, 1, 1, 1, .08f * (1.0f - f) * a);
+  else gfx_cor(r, .5f, .125f, .13f, .153f, (1.0f - f) * a);
+  if (f > 0.01f) {
+    if (ajustes_vidro()) gfx_vidro_pilula_cheia(r, .5f, f, a);
+    else { botao_luz(r, .55f * f, a); gfx_cor(r, .5f, ar, ag, ab, f * a); }
+  }
+  t = txt_linha(TXT_HERO_META, rot, c, c, c, 255);
+  txt_desenhar_alpha(t, r.x + 28.0f, r.y + (r.h - t.h) * 0.5f, (f > 0.5f ? 1.0f : .88f) * a);
+  if (aberto && a > 0.5f && ponteiro_ativo())
+    ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroConfFoco, ponteiroConfOk, i, 0);
+  return r.w;
+}
+
+static void desenhaConfirmar(const CatItem *ci, float a) {
+  char pergunta[240];
+  const char *texto = i18n("O ponto onde você parou é apagado. O título volta para a fileira se você assistir de novo.");
+  const char *kicker = "Continuar assistindo", *botao = "Tirar da fileira";
+  float tw = CONF_W - 2.0f * CONF_PAD, hTit, hTxt, alt, x, y, bx;
+  snprintf(pergunta, sizeof pergunta, i18n("Tirar %s da fileira?"), ci->titulo);
+  if (confExtra >= 0 && confExtra < nExtras) {
+    const CtxExtra *x0 = &extras[confExtra];
+    snprintf(pergunta, sizeof pergunta, i18n(x0->pergunta ? x0->pergunta : "%s"), ci->titulo);
+    texto = i18n(x0->texto ? x0->texto : "");
+    kicker = x0->kicker ? x0->kicker : "";
+    botao = x0->rot;
+  }
+  { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
+    gfx_cor(tela, 0.0f, 0, 0, 0, 0.55f * a); }
+  // Medir antes de desenhar (alfa 0): a pergunta pode quebrar com um nome
+  // longo, e o texto ocupa mais linhas em alemao que em portugues.
+  hTit = txt_bloco_corta(TXT_ILHA_PERGUNTA, pergunta, 243, 242, 239, 0, 0, tw, 44.0f, 0.0f, 2);
+  hTxt = txt_bloco_corta(TXT_ILHA_TEXTO, texto, 243, 242, 239, 0, 0, tw, 30.0f, 0.0f, 4);
+  alt = CONF_PAD + 18.0f + 8.0f + hTit + 14.0f + hTxt + 34.0f + CONF_BOT_H + CONF_PAD;
+  x = (NV_TELA_W - CONF_W) * 0.5f;
+  y = (NV_TELA_H - alt) * 0.5f;
+  if (aberto && a > 0.5f && ponteiro_ativo()) {
+    ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, ponteiroCtxFora, 0, 0);
+    ponteiro_alvo(x, y, CONF_W, alt, NULL, NULL, 0, 0);
+  }
+  ilhaCtx((GfxRect){ x, y, CONF_W, alt }, 36.0f, a);
+  y += CONF_PAD;
+  kickerCtx(kicker, x + CONF_PAD, y, a);
+  y += 18.0f + 8.0f;
+  txt_bloco_corta(TXT_ILHA_PERGUNTA, pergunta, 243, 242, 239, x + CONF_PAD, y, tw, 44.0f, a, 2);
+  y += hTit + 14.0f;
+  txt_bloco_corta(TXT_ILHA_TEXTO, texto, 243, 242, 239, x + CONF_PAD, y, tw, 30.0f, .62f * a, 4);
+  y += hTxt + 34.0f;
+  bx = x + CONF_PAD;
+  bx += botaoConf(0, bx, y, i18n(botao), confAnim[0], a) + 12.0f;
+  botaoConf(1, bx, y, i18n("Cancelar"), confAnim[1], a);
+}
+
+// --- O MENU DE UMA LISTA ------------------------------------------------------
+//
+// Segurar OK num cartao de lista (Biblioteca > Listas) abre uma ilha mais larga
+// que a do cartaz, porque ela carrega um RESUMO: a arte da pasta quando a fonte
+// tem (so a conta Nuvio; ver col_capa — Trakt e Simkl nao dao imagem de lista),
+// o nome, o que ha nela (a mistura "12 filmes · 4 séries" quando os itens
+// baixados trazem os dois tipos; o Trakt devolve UM tipo por pedido, entao uma
+// lista dele diz so o tipo que esta aberto), quem fez e quantas curtidas, e as
+// capas dos primeiros itens. Tudo o que a fonte nao informa fica de fora: nada
+// de "0 títulos" onde o dado nao existe.
+#define CTXL_W       560.0f
+#define CTXL_ARTE_H  150.0f
+#define CTXL_CAPAS     6
+#define CTXL_CAPA_GAP 10.0f
+
+// A arte da lista, quando a fonte tem uma: a capa da pasta de colecao da conta.
+static const char *arteDaLista(const LstLista *l) {
+  int i;
+  if (l->fonte != LST_NUVIO || !l->colId[0]) return NULL;
+  for (i = 0; i < col_n(); i++) {
+    const ColFolder *f = col_folder(i);
+    if (f && !strcmp(f->id, l->colId)) {
+      const char *c = col_capa(f);
+      return c && c[0] ? c : NULL;
+    }
+  }
+  return NULL;
+}
+
+// "12 filmes · 4 séries", a partir dos itens ja baixados. Vazio ate chegarem.
+static void misturaDaLista(const LstLista *l, char *dst, size_t n) {
+  int total = lst_itens_n(), nf = 0, ns = 0, i;
+  CatItem it;
+  dst[0] = 0;
+  for (i = 0; i < total && i < LST_ITENS_MAX; i++) {
+    if (!lst_item(i, &it)) continue;
+    if (!strcmp(it.tipo, "series") || it.nTemporadas > 0) ns++; else nf++;
+  }
+  if (nf + ns == 0) return;
+  // So a primeira pagina chegou: a mistura dela nao e a da lista, e dizer
+  // "8 filmes · 2 séries" de uma lista de 138 seria inventar o resto. Fica a
+  // contagem que a fonte informa (quem chama).
+  if (l->itens > nf + ns) return;
+  if (nf && ns) {
+    snprintf(dst, n, "%d %s \xc2\xb7 %d %s", nf, i18n(nf == 1 ? "filme" : "filmes"),
+             ns, i18n(ns == 1 ? "série" : "séries"));
+    return;
+  }
+  { int q = nf ? nf : ns;
+    snprintf(dst, n, "%d %s", q, nf ? i18n(q == 1 ? "filme" : "filmes")
+                                    : i18n(q == 1 ? "série" : "séries")); }
+}
+
+static void desenhaLista(float a) {
+  const LstLista *l = &lista;
+  const char *arte = arteDaLista(l);
+  char mix[96], quem[160], kick[96];
+  TxtLinha n, m, q;
+  float x, y, alt, hx, hy, hw, cy;
+  int i, temQuem, carregando = lst_itens_carregando() > 0;
+  const float pad = CTX_ILHA_PAD, esc = gfx_escala_ui();
+  const float capaW = (CTXL_W - 2.0f * (pad + 20.0f) - (CTXL_CAPAS - 1) * CTXL_CAPA_GAP) / CTXL_CAPAS;
+  const float capaH = capaW * 1.5f;
+
+  misturaDaLista(l, mix, sizeof mix);
+  if (!mix[0]) {
+    if (l->itens >= 0) snprintf(mix, sizeof mix, "%d %s", l->itens, i18n(l->itens == 1 ? "título" : "títulos"));
+    else snprintf(mix, sizeof mix, "%s", carregando ? i18n("Carregando…") : "");
+  }
+  quem[0] = 0;
+  if (l->autor[0]) snprintf(quem, sizeof quem, "%s %s", i18n("por"), l->autor);
+  if (l->curtidas > 0) {
+    char c[48];
+    snprintf(c, sizeof c, "%d %s", l->curtidas, i18n(l->curtidas == 1 ? "curtida" : "curtidas"));
+    if (quem[0]) { size_t k = strlen(quem); snprintf(quem + k, sizeof quem - k, " \xc2\xb7 %s", c); }
+    else snprintf(quem, sizeof quem, "%s", c);
+  }
+  temQuem = quem[0] != 0;
+  snprintf(kick, sizeof kick, "%s \xc2\xb7 %s", i18n("Lista"),
+           l->fonte == LST_TRAKT ? "Trakt" : l->fonte == LST_SIMKL ? "Simkl" : "Nuvio");
+
+  hw = CTXL_W - 2.0f * (pad + 20.0f);
+  n = txt_linha_corta(TXT_ILHA_NOME, l->titulo, 243, 242, 239, 255, hw);
+  m = txt_linha_corta(TXT_ILHA_APOIO, mix, 243, 242, 239, 255, hw);
+  q = txt_linha_corta(TXT_ILHA_APOIO, quem, 243, 242, 239, 255, hw);
+
+  alt = pad * 2.0f + (arte ? CTXL_ARTE_H + 12.0f : 0.0f)
+      + 12.0f + 22.0f + n.h + 6.0f + m.h + (temQuem ? 4.0f + q.h : 0.0f)
+      + 18.0f + capaH + 14.0f + (float)nOps * (CTX_LINHA + CTX_GAP);
+  x = (NV_TELA_W - CTXL_W) * 0.5f;
+  y = (NV_TELA_H - alt) * 0.5f;
+  if (y < CTX_BORDA) y = CTX_BORDA;
+
+  { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
+    gfx_cor(tela, 0.0f, 0, 0, 0, 0.55f * a); }
+  if (aberto && a > 0.5f && ponteiro_ativo()) {
+    ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, ponteiroCtxFora, 0, 0);
+    ponteiro_alvo(x, y, CTXL_W, alt, NULL, NULL, 0, 0);
+  }
+  y += (1.0f - a) * 16.0f;
+  ilhaCtx((GfxRect){ x, y, CTXL_W, alt }, CTX_ILHA_RAIO, a);
+
+  cy = y + pad;
+  if (arte) {
+    GfxRect r = { x + pad, cy, CTXL_W - 2.0f * pad, CTXL_ARTE_H };
+    GLuint t = tex_obter_larg(arte, r.w * esc);
+    float raio = 22.0f / r.h;
+    if (t) {
+      gfx_tex_aspect_atual = tex_aspecto(arte);
+      gfx_rect(r, t, GFX_CARD, 0, 0, 0, raio, 0, 0, 0, a);
+      gfx_tex_aspect_atual = 0.0f;
+    } else gfx_cor(r, raio, NV_COR_ESQUELETO_R, NV_COR_ESQUELETO_G, NV_COR_ESQUELETO_B, a);
+    cy += CTXL_ARTE_H + 12.0f;
+  }
+  hx = x + pad + 20.0f;
+  hy = cy + 12.0f;
+  kickerCtx(kick, hx, hy, a);
+  hy += 22.0f;
+  txt_desenhar_alpha(n, hx, hy, a);
+  hy += n.h + 6.0f;
+  txt_desenhar_alpha(m, hx, hy, .72f * a);
+  hy += m.h + 4.0f;
+  if (temQuem) { txt_desenhar_alpha(q, hx, hy, .5f * a); hy += q.h; }
+  hy += 18.0f;
+
+  // AS CAPAS DOS PRIMEIROS ITENS. Sem item ainda, o esqueleto marca o lugar.
+  for (i = 0; i < CTXL_CAPAS; i++) {
+    GfxRect r = { hx + i * (capaW + CTXL_CAPA_GAP), hy, capaW, capaH };
+    float raio = 10.0f / capaH;
+    CatItem it;
+    const char *u = NULL;
+    GLuint t = 0;
+    if (lst_item(i, &it)) u = it.poster[0] ? it.poster : it.backdrop[0] ? it.backdrop : NULL;
+    if (u) t = tex_obter_larg(u, capaW * esc);
+    if (t) {
+      gfx_tex_aspect_atual = tex_aspecto(u);
+      gfx_rect(r, t, GFX_CARD, 0, 0, 0, raio, 0, 0, 0, a);
+      gfx_tex_aspect_atual = 0.0f;
+    } else if (u || carregando || i == 0 || lst_itens_n() > i)
+      gfx_cor(r, raio, NV_COR_ESQUELETO_R, NV_COR_ESQUELETO_G, NV_COR_ESQUELETO_B, a);
+  }
+  hy += capaH + 14.0f;
+
+  for (i = 0; i < nOps; i++) {
+    float by = hy + CTX_GAP + (float)i * (CTX_LINHA + CTX_GAP) - CTX_GAP;
+    GfxRect r = { x + pad, by, CTXL_W - pad * 2.0f, CTX_LINHA };
+    const char *icone = ops[i].acao == OP_L_ABRIR ? "aj_library"
+                      : ops[i].acao == OP_L_FIXAR ? "aj_folders" : "aj_rows-3";
+    if (aberto && a > 0.5f)
+      ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroCtxOpcao, NULL, i, 0);
+    linhaCtx(r, ops[i].rot, icone, focoAnim[i], a);
+  }
+}
+
+static void ctx_desenharCorpo_(Uint32 agora);
+// Camada ampliada (escala.h): o corpo desenha na tela virtual.
 void ctx_desenhar(Uint32 agora) {
+  ESCALA_INI();
+  ctx_desenharCorpo_(agora);
+  ESCALA_FIM();
+}
+// O cartao da home e em pixels reais; o menu desenha na tela virtual.
+static int cartaoDaHome(void) {
+  int ok;
+  ESCALA_REAL_INI();
+  ok = home_cartao_foco_por_cima(idx);
+  ESCALA_REAL_FIM();
+  return ok;
+}
+static void ctx_desenharCorpo_(Uint32 agora) {
   const CatItem *ci;
-  const char *estados[2];
   const char *mensagem = NULL;
-  float a = anim, alt, x, y;
-  int i, nEstados = 1;
+  float a = anim, alt, x, y, cab;
+  int i, comLogo;
   (void)agora;
-  if (!aberto && holdAtivo) {
+  // So no painel de Salvos (dicaCx): na home o cartao pressionado ja tem a
+  // propria barra (home.c), e esta, no meio da tela, era a sobra duplicada.
+  if (!aberto && holdAtivo && dicaCx >= 0.0f) {
     float p = (float)(SDL_GetTicks() - holdDesde) / (float)NV_HOLD_MS;
     TxtLinha t;
     // O centro e o da tela, ou o do painel de Salvos quando e nele que o dedo
@@ -677,8 +1624,11 @@ void ctx_desenhar(Uint32 agora) {
                        420.0f * p, 8.0f }, 4.0f, 0.78f, 0.84f, 0.96f, 0.98f);
   }
   if (a < 0.01f) return;
+  if (pagina == 1) { desenhaEstilos(a); return; }
+  if (doLista) { desenhaLista(a); return; }
   ci = itemAtual();
   if (!ci) return;
+  if (pagina == 2) { desenhaConfirmar(ci, a); return; }
   if (estadoOperacao == CTX_PENDENTE)
     mensagem = operacao == CTX_OP_LISTA ? "Atualizando biblioteca..."
                                         : (intencao ? "Marcando como assistido..."
@@ -692,102 +1642,114 @@ void ctx_desenhar(Uint32 agora) {
   if (estadoOperacao == CTX_CONFIRMADA && operacao == CTX_OP_LISTA && avisoOp)
     mensagem = avisoOp;
 
-  estados[0] = tituloSalvo(ci) ? "Na biblioteca" : "Fora da biblioteca";
-  if (!strcmp(ci->tipo, "movie") || !strcmp(ci->tipo, "series")) {
-    { int historico = historicoDe(ci);
-      estados[1] = historico == 1 ? "Assistido"
-                   : historico == 0 ? "Não assistido"
-                   : ci->progresso > 0 ? "Progresso salvo"
-                   : "Histórico não consultado"; }
-    nEstados = 2;
+  // O poster acompanha o cartao na home (a mola de foco ainda pode estar
+  // andando quando o menu abre): o retangulo e o deste quadro.
+  if (temCartaz && !doPainel && !cartazFixo) {
+    HomeItem hi;
+    if (home_item_focado(&hi) && hi.indice == idx && hi.rect.w > 8.0f && hi.rect.h > 8.0f)
+      cartazRect = ctxDaHome(hi.rect);
   }
 
   { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
-    gfx_cor(tela, 0.0f, 0, 0, 0, 0.72f * a); }
+    gfx_cor(tela, 0.0f, 0, 0, 0, 0.55f * a); }
 
-  alt = CTX_PAD * 2.0f + CTX_CAB +
-        (float)nOps * (CTX_LINHA + CTX_GAP) - CTX_GAP + CTX_RODAPE;
-  x = (NV_TELA_W - CTX_W) * 0.5f;
+  comLogo = logotitulo_url(ci, CTX_LOGO_W) != NULL;
+  cab = comLogo ? CTX_CAB_LOGO : CTX_CAB;
+  alt = CTX_ILHA_PAD * 2.0f + cab + (float)nOps * (CTX_LINHA + CTX_GAP);
+  // AO LADO DO CARTAZ, alinhada ao topo: tenta a direita, depois a esquerda.
+  // Se ambos os lados forem estreitos, ctxXCartaz escolhe o de maior espaco e
+  // prende a ilha na viewport para manter todas as opcoes acessiveis.
+  // Sem cartaz: no meio da tela, ou do painel de Salvos (dicaCx).
+  x = -1.0f;
   y = (NV_TELA_H - alt) * 0.5f;
+  if (temCartaz && !doPainel) {
+    x = ctxXCartaz(cartazRect);
+    y = cartazRect.y;
+  }
+  if (x < 0.0f) {
+    float cx = doPainel && dicaCx >= 0.0f ? dicaCx : NV_TELA_W * 0.5f;
+    x = cx - CTX_W * 0.5f;
+  }
+  if (y + alt > NV_TELA_H - CTX_BORDA) y = NV_TELA_H - CTX_BORDA - alt;
+  if (y < CTX_BORDA) y = CTX_BORDA;
   if (aberto && a > 0.5f && ponteiro_ativo()) {
     ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, ponteiroCtxFora, 0, 0);
     ponteiro_alvo(x, y, CTX_W, alt, NULL, NULL, 0, 0);
   }
-  // Sobe do fundo enquanto aparece, como as outras folhas do app.
-  y += (1.0f - a) * 40.0f;
 
-  // CARTAO FLUTUANTE (a "cara nova" da barra lateral, dono, 21/09/2026):
-  // cantos de 28 px de verdade (raio normalizado pelo menor lado, senao o
-  // canto muda com o numero de opcoes), fundo translucido e UMA luz difusa na
-  // cor de realce entrando pelo canto superior esquerdo, presa aos cantos do
-  // cartao (GFX_LUZ). Com o veu de tela cheia ja pago, e a ultima camada
-  // grande daqui — e mede o cartao, nao a tela.
-  float ar_, ag_, ab_; ajustes_acento(&ar_, &ag_, &ab_);
-  { GfxRect p = { x, y, CTX_W, alt };
-    float menor = alt < CTX_W ? alt : CTX_W, raio = 28.0f / menor;
-    gfx_cor(p, raio, 0.055f, 0.058f, 0.068f, 0.94f * a);
-    gfx_luz_canto(p, raio, CTX_W * 0.1f, -CTX_W * 0.1f, CTX_W * 0.65f, ar_, ag_, ab_, 0.22f * a); }
+  // O POSTER POR CIMA DO VEU, na mesma caixa e no mesmo raio do cartao da
+  // home (ajustes_raio_poster_px): com `a` ele so desvela o que ja estava la.
+  // DA HOME: o proprio cartao, pintado pela mesma funcao da fileira (arte,
+  // recorte, veus, rotulo, logo, anel), em pixels reais — nada de refazer a
+  // arte aqui com outro aspecto. So o que nao e da home (Biblioteca) cai na
+  // arte solta abaixo.
+  if (temCartaz && !doPainel && !cartazFixo && cartaoDaHome()) {
+    /* feito */
+  } else
+  if (temCartaz && !doPainel && cartazArte[0]) {
+    GLuint t = tex_obter_larg(cartazArte, cartazRect.w * gfx_escala_ui());
+    if (t) {
+      float raio = ajustes_raio_poster_px() / gfx_escala_ui() / cartazRect.h, teto = 0.5f * cartazRect.w / cartazRect.h;
+      if (raio > teto) raio = teto;
+      gfx_tex_aspect_atual = tex_aspecto(cartazArte);
+      gfx_rect(cartazRect, t, GFX_CARD, 0, 0, 0, raio, 0, 0, 0, a);
+      gfx_tex_aspect_atual = 0.0f;
+    }
+  }
 
-  { TxtLinha t = txt_linha(TXT_CAPTION2, "TÍTULO SELECIONADO", 174, 178, 188, 255);
-    txt_desenhar_alpha(t, x + CTX_PAD, y + CTX_PAD, a * 0.95f); }
-  { TxtLinha t = txt_linha_corta(TXT_HEADLINE, ci->titulo, 245, 248, 255, 255,
-                                 CTX_W - CTX_PAD * 2.0f);
-    txt_desenhar_alpha(t, x + CTX_PAD, y + CTX_PAD + 28.0f, a); }
-  { const char *subtitulo = mensagem ? mensagem : "Opções do título";
-    TxtLinha t = txt_linha(TXT_DET_META2, subtitulo, 150, 154, 163, 255);
-    txt_desenhar_alpha(t, x + CTX_PAD, y + CTX_PAD + 70.0f, a * 0.9f); }
+  // Entra deslizando 16 px a partir do lado do poster, como as folhas do app.
+  x += (1.0f - a) * (temCartaz && !doPainel && x < cartazRect.x ? 16.0f : -16.0f);
+  ilhaCtx((GfxRect){ x, y, CTX_W, alt }, CTX_ILHA_RAIO, a);
 
-  // OS SELOS DE ESTADO SAO DA TABELA (badges.h) e TEM HIERARQUIA: o estado
-  // POSITIVO ("Na biblioteca", "Assistido") acende em realce a 18 %; o
-  // negativo ou desconhecido ("Fora da biblioteca", "Historico nao
-  // consultado") e cinza com texto apagado. Antes eram duas pilulas cinza
-  // iguais e a pessoa tinha de LER para saber se o titulo ja era dela.
-  { float sx = x + CTX_PAD;
-    float sy = y + CTX_PAD + 106.0f;
-    int historico = historicoDe(ci);
-    for (i = 0; i < nEstados; i++) {
-      int positivo = i == 0 ? tituloSalvo(ci) : historico == 1;
-      // "Progresso salvo" e o unico estado nem positivo nem negativo: neutro.
-      int fraco = i == 0 ? !tituloSalvo(ci) : !(historico < 0 && ci->progresso > 0);
-      sx += badge_desenhar(sx, sy, estados[i],
-                           positivo ? BADGE_REALCE : fraco ? BADGE_APAGADO : BADGE_NEUTRO,
-                           a) + BADGE_GAP;
-    } }
+  // CABECALHO: o nome e, embaixo, o que o titulo e ("Serie · 2024 · ...") —
+  // ou, enquanto ha uma escrita, o estado dela.
+  { float hx = x + CTX_ILHA_PAD + 20.0f, hy = y + CTX_ILHA_PAD + 12.0f, hw = CTX_W - 2.0f * (CTX_ILHA_PAD + 20.0f);
+    char meta[200];
+    const char *tp = !strcmp(ci->tipo, "movie") ? i18n("Filme")
+                   : !strcmp(ci->tipo, "series") ? i18n("Série") : "";
+    TxtLinha m;
+    float my;
+    int falha = estadoOperacao == CTX_FALHA;
+    if (mensagem) snprintf(meta, sizeof meta, "%s", i18n(mensagem));
+    else snprintf(meta, sizeof meta, "%s%s%s", tp, tp[0] && ci->meta[0] ? " \xc2\xb7 " : "", ci->meta);
+    m = txt_linha_corta(TXT_ILHA_APOIO, meta, falha ? 240 : 243, falha ? 190 : 242, falha ? 130 : 239, 255, hw);
+    if (comLogo) {
+      // Logo (ou, enquanto ele chega, o nome) na caixa reservada.
+      logotitulo_desenhar(ci, ci->titulo, TXT_ILHA_NOME, hx, hy, CTX_LOGO_W, CTX_LOGO_H, hw, a);
+      my = hy + CTX_LOGO_H + 6.0f;
+    } else {
+      TxtLinha n = txt_linha_corta(TXT_ILHA_NOME, ci->titulo, 243, 242, 239, 255, hw);
+      txt_desenhar_alpha(n, hx, hy, a);
+      my = hy + n.h + 4.0f;
+    }
+    txt_desenhar_alpha(m, hx, my, (mensagem ? .8f : .5f) * a); }
 
   for (i = 0; i < nOps; i++) {
-    float by = y + CTX_PAD + CTX_CAB + (float)i * (CTX_LINHA + CTX_GAP);
-    GfxRect r = { x + CTX_PAD, by, CTX_W - CTX_PAD * 2.0f, CTX_LINHA };
+    float by = y + CTX_ILHA_PAD + cab + CTX_GAP + (float)i * (CTX_LINHA + CTX_GAP);
+    GfxRect r = { x + CTX_ILHA_PAD, by, CTX_W - CTX_ILHA_PAD * 2.0f, CTX_LINHA };
     float f = focoAnim[i];
     if (aberto && a > 0.5f)
       ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroCtxOpcao, NULL, i, 0);
-    // O menu usava uma pilula propria: 86px, cinza fixo, TXT_PLR_CORPO e uma
-    // seta desenhada a mao. Isso fazia as acoes parecerem de outra tela. O
-    // componente comum concentra altura, raio, luz, acento e tinta legivel;
-    // aqui ele so recebe a opcao como uma acao primaria alinhada a esquerda.
-    // O ICONE DIZ O QUE A OPCAO FAZ antes de a pessoa ler — os mesmos PNG
-    // dos botoes redondos da tela de titulo (gfx.h), para o menu e o detalhe
-    // falarem o mesmo vocabulario: seta = abrir, "+"/olho = biblioteca,
-    // olho riscado/aberto = historico, oculto = tirar da fileira, aviao =
-    // recomendar.
-    const char *icone = "avancar";
+    // O ICONE DIZ O QUE A OPCAO FAZ antes de a pessoa ler — o traco fino do
+    // Lucide (aj_*, tools/icones-lucide.sh), o mesmo do mockup: info =
+    // detalhes, a estante = salvar/remover dos Salvos, olho (riscado) =
+    // historico, X = tirar da fileira, duas pessoas = recomendar.
+    const char *icone = "aj_info";
     switch (ops[i].acao) {
-      case OP_LISTA:     icone = tituloSalvo(ci) ? "visto" : "mais"; break;
+      case OP_LISTA:     icone = "aj_library"; break;
       case OP_ASSISTIDO: icone = historicoDe(ci) == 1
-                                 ? "naovisto" : "visto"; break;
-      case OP_TIRAR_CONTINUAR: icone = "oculto"; break;
-      case OP_RECOMENDAR: icone = "recomendar"; break;
-      default: break;
+                                 ? "aj_eye-off" : "aj_eye"; break;
+      case OP_TIRAR_CONTINUAR: icone = "aj_x"; break;
+      case OP_DISPENSAR:  icone = "aj_x"; break;
+      case OP_RECOMENDAR: icone = "aj_users"; break;
+      case OP_ESTILO:     icone = "aj_rows-3"; break;
+      case OP_CATEGORIA:  icone = "aj_folders"; break;
+      default:
+        if (ops[i].acao >= OP_EXTRA && ops[i].acao < OP_EXTRA + nExtras &&
+            extras[ops[i].acao - OP_EXTRA].icone)
+          icone = extras[ops[i].acao - OP_EXTRA].icone;
+        break;
     }
-    botao_pilula(r, ops[i].rot, icone, f, 1, 1, a);
+    linhaCtx(r, ops[i].rot, icone, f, a);
   }
-
-  { const char *rodape = estadoOperacao == CTX_PENDENTE
-                           ? "Voltar Fechar   Aguarde..."
-                           : operacao != CTX_OP_NENHUMA
-                           ? "↑ ↓ Navegar   OK Fechar   Voltar Fechar"
-                           : "↑ ↓ Navegar   OK Selecionar   Voltar Fechar";
-    TxtLinha t = txt_linha(TXT_CAPTION2, rodape,
-                           155, 159, 169, 255);
-    txt_desenhar_alpha(t, x + CTX_PAD,
-                       y + alt - CTX_PAD - t.h, a * 0.86f); }
 }

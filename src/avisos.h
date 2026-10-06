@@ -40,6 +40,18 @@
 #define NV_AVISOS_H
 #include <SDL2/SDL.h>
 
+// Avisa (toast + item na lista) que o idioma da interface foi escolhido sozinho.
+// Um item por idioma, entao so uma vez por idioma. Chamado por ajustes.c.
+void avisos_idioma_definido(const char *codigo, const char *texto);
+// 1 se a sessao ANTERIOR nao se despediu (crash, kill por memoria, energia),
+// ja descontada a despedida do Tizen (pagina escondida = a TV fechou em segundo
+// plano, nao e queda). Valido depois de avisos_iniciar; o modo seguro (seguro.h)
+// decide o que desfazer a partir disto. Existe porque dados_despedida_ler apaga
+// o que le: so avisos_iniciar pode pergunta-lo, uma vez.
+int  avisos_sessao_anterior_caiu(void);
+// Aviso do modo seguro (ajuste desfeito, perfil seguro): entra na lista com toast.
+// Um item por `id`; o id leva o numero da sessao, entao cada queda avisa uma vez.
+void avisos_modo_seguro(const char *id, const char *titulo, const char *texto);
 void avisos_iniciar(void);   // depois de dados_iniciar; grava a marca de sessao
 void avisos_encerrar(void);  // saida limpa: apaga a marca
 // Ultimo sinal de vida na marca de sessao: evento de janela ("oculto",
@@ -77,6 +89,33 @@ int  avisos_enviar_diagnostico(const char *execucao_id, const char *relatorio,
 // Envio automatico (ajuste "Enviar registros sozinho"): chamado por quadro.
 void avisos_envio_auto_passo(Uint32 agora);
 int  avisos_envio_estado(void);
+// O ULTIMO ENVIO, para o painel de envio do registro (registro.c) e o
+// inspetor de Ajustes. `motivo` diz por que o manual falhou: o servidor
+// respondeu com erro (http), a TV esta sem internet (redesaude.h; nem tenta,
+// e manda sozinho quando a rede volta), o prazo de 30 s acabou, a conexao
+// caiu, falta login, ou esta compilacao nao tem servidor.
+enum { AVISOS_ENVIO_OK = 1, AVISOS_ENVIO_SERVIDOR, AVISOS_ENVIO_OFFLINE,
+       AVISOS_ENVIO_PRAZO, AVISOS_ENVIO_CONEXAO, AVISOS_ENVIO_CONTA,
+       AVISOS_ENVIO_INDISPONIVEL };
+#include <time.h>
+typedef struct {
+  int    disponivel;          // ha servidor de registros nesta compilacao
+  int    estado, motivo, http, linhas, pendenteRede;
+  long   bytes;
+  time_t quando;              // inicio do ultimo envio manual
+  char   codigo[8];           // codigo do ultimo envio manual (vazio sem recibo)
+  time_t autoQuando;          // ultimo envio automatico (0 = nenhum)
+  int    autoHttp;
+  Uint32 autoProximoMs;       // SDL_GetTicks do proximo automatico (0 = nao marcado)
+  char   ultimoCodigo[8];     // o ultimo codigo recebido, de qualquer sessao
+  time_t ultimoCodigoQuando;
+} AvisosEnvio;
+int  avisos_envio_info(AvisosEnvio *o);
+#ifdef AVISOS_TESTE_ENVIO
+void avisos_teste_envio(int estado, int motivo, int http, const char *codigo, long bytes, int linhas);
+void avisos_teste_envio_auto(long haSeg, int http);
+void avisos_teste_queda(const char *texto);
+#endif
 
 // A LISTA COMO COMPONENTE, para a aba AVISOS do painel de Salvos: quem hospeda
 // desenha na caixa que tem, guarda o proprio foco e chama _ok no OK. _ok
@@ -92,5 +131,17 @@ float avisos_lista_y(int linha, int focoLinha);
 void  avisos_lista_desenhar(float x, float y, float w, float a, int focoLinha);
 int   avisos_lista_ok(int linha);
 void  avisos_marcar_lidos(void);
+
+// A ilha (ilhacart.c): o episodio novo (AV_AGENDA) ainda nao lido mais
+// recente — o id do item e o imdb da serie — e marcar UM item como lido.
+#include <stddef.h>
+int  avisos_estreia_pendente(char *id, size_t tamId, char *imdb, size_t tamImdb);
+void avisos_marcar_visto(const char *id);
+
+// Botao do MODAL DA ILHA de um aviso da central (chave "av:<id>", ver
+// anunciarItem em avisos.c): `botao` 1..3, o que ilha_aviso_pediu entregou.
+// Executa (abrir o titulo, salvar, enviar o registro, abrir a atualizacao) e
+// marca o item como lido.
+void avisos_ilha_acao(const char *chave, int botao);
 
 #endif

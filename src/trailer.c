@@ -1,7 +1,10 @@
 #include "trailer.h"
+#include "plrui.h"
+#include "text.h"
 #include "layout.h"
 #include "ajustes.h"
 #include "trailerfonte.h"
+#include "video.h"      // trailer_osd_desenhar reads video_pos/duracao on every target
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +20,51 @@ static int    falhouUltima;
 static GfxRect rect;
 static char   fonteAtual[1024];
 static Uint32 abertoEm;   // SDL_GetTicks da abertura da fonte atual, para o log
+static int    dono;       // TRAILER_DONO_* (trailer.h)
+static char   donoImdb[32];
+
+void trailer_recorte(int vw, int vh, float z, float dw, float dh,
+                     int *sx, int *sy, int *sw, int *sh) {
+  int w, h;
+  // QUADRO MATTED (Apple: 1920x804, 3836x1606) nao tem tarja embutida — a
+  // tarja e o proprio plano encaixando 2.39 em 16:9. Encher a tela e
+  // recortar as LATERAIS ate 16:9, sem o zoom fixo. Quadro 16:9 (IMDb, com
+  // a tarja dentro da imagem) leva o zoom do ajuste. "Original" (1.0) nao
+  // tira zoom nenhum em nenhum dos dois.
+  if (z <= 1.001f) { w = vw; h = vh; }
+  else if ((float)vw / (float)vh > 1.85f) { h = vh; w = (int)(vh * 16.0f / 9.0f); if (w > vw) w = vw; }
+  else { w = (int)(vw / z); h = (int)(vh / z); }
+  // E DEPOIS O "COVER" NO DESTINO. O plano estica a fonte no retangulo de
+  // destino, sem guardar proporcao: a conta acima so servia a um destino
+  // 16:9. O banner do layout Padrao e 1920x528 (3,6:1) e MEDIDO no log da C9
+  // do dono (01/10/2026, 1.6.4): "fonte 244,138 1432x804 -> destino 0,0
+  // 1920x528" — o trailer achatado pela metade na altura, a foto dele de
+  // "so a imagem espremida". Corta-se a fonte na proporcao do destino, pelo
+  // centro, como a arte do destaque faz (cover).
+  //
+  // Destino MAIS LARGO que o recorte do zoom: a largura volta a crescer ate
+  // o quadro inteiro antes de se cortar altura. O zoom existe para tirar a
+  // tarja de CIMA e de BAIXO; as laterais que ele cortava eram so para manter
+  // 16:9. No banner a altura que sobra (528 de 1920) ja cai dentro da imagem,
+  // sem tarja, e o trailer sai sem zoom a mais.
+  if (dw > 1.0f && dh > 1.0f && w > 0 && h > 0) {
+    float ad = dw / dh, af = (float)w / (float)h;
+    if (af < ad * 0.995f) {
+      float qw = (float)h * ad;
+      if (qw > (float)vw) qw = (float)vw;
+      w = (int)qw;
+      h = (int)(qw / ad);
+    } else if (af > ad * 1.005f) {
+      w = (int)((float)h * ad);
+    }
+  }
+  // PAR, como o player faz (player.c, aplicarAspecto): o escalonador
+  // trabalha em 4:2:0 e origem ou tamanho impar da meio pixel de croma na
+  // borda — e 803 de altura era o que saia daqui.
+  w &= ~1; h &= ~1;
+  *sw = w; *sh = h;
+  *sx = ((vw - w) / 2) & ~1; *sy = ((vh - h) / 2) & ~1;
+}
 
 #ifdef __EMSCRIPTEN__
 // O iframe fica ATRAS do canvas (z-index 0 contra 1 do canvas), no mesmo
@@ -190,13 +238,43 @@ int trailer_suportado(void) { return 1; }
 // o quadro ter tamanho — os dois ficam pendentes e trailer_atualizar aplica.
 #include "video.h"
 static int volumePendente, recortePendente, pausado;
+/* Prepared only means metadata/demuxer ready. A trailer must reach Playing
+ * once before autoplay regards it as started. Sticky after that, so a paused
+ * or buffering trailer keeps its existing image instead of closing the hole. */
+static int tocouFonte;
 // O recorte e REPETIDO nos primeiros segundos (ver reaplicarAte): o pipeline
 // desta TV prende o plano em mais de um ponto depois do load (bind do ACB,
 // `playing`), e um recorte pedido cedo demais pode ser engolido por um deles.
 static Uint32 reaplicarAte, reaplicarEm, tocandoDesde;
 static int quadroInteiroEnviado;
+#ifdef NV_TPK
+// O PLANO ESCONDIDO ATE O RECORTE ASSENTAR (#178, trailer_mostra_video).
+// `recorteEnviadoEm` e o instante do primeiro recorte desta fonte; o ROI vai
+// ao host por fila (Video.cs, Principal), e o respiro cobre essa viagem e o
+// SetRoi. Sem recorte em NV_TRAILER_TPK_ROI_PRAZO_MS de tocando (quadro sem
+// tamanho, host que nao responde), mostra assim mesmo.
+#define NV_TRAILER_TPK_ROI_ASSENTA_MS 300
+#define NV_TRAILER_TPK_ROI_PRAZO_MS   2000
+// Sem nem `tocando` (o host sempre manda logo depois do Start), a tela cheia
+// abre o furo mesmo assim neste prazo: e o comportamento de antes.
+#define NV_TRAILER_TPK_SEM_TOCAR_MS   6000
+static Uint32 recorteEnviadoEm;
+static int    mostraLogado;
+// O FURO SO COM IMAGEM (#188, #195). O host manda `pronto` e `tocando` logo
+// depois do prepare e do Start, antes do primeiro quadro; um furo aberto ai
+// mostra o que esta atras do app (no Tizen 9, a tela inicial da Samsung) ate a
+// imagem chegar. A posicao do player (Video.cs, Tique: so le com o estado
+// Playing) andar e o sinal de que ha quadro no plano. Pegajoso por fonte: a
+// pausa do trailer em tela cheia nao fecha o furo.
+#define NV_TRAILER_TPK_POS_MIN 0.25
+// A posicao nao andou (host que nao le a posicao): abre neste prazo de
+// `tocando`, como antes.
+#define NV_TRAILER_TPK_POS_PRAZO_MS 4000u
+static int    imagemVista;
+static Uint32 tocandoVisto;
+#endif
 int trailer_suportado(void) {
-#ifdef __APPLE__
+#if defined(__APPLE__)
   return 0;
 #else
   // O FRACASSO NAO TRAVA, MAS TEM TETO. O deploy mata o processo e relanca
@@ -206,6 +284,11 @@ int trailer_suportado(void) {
   // 15 s pela sessao inteira — 1327 recusas de PERMISSION, que nao muda
   // sozinha. O play continua tentando (video_iniciar, pedido da pessoa).
   static int sabe = 0;
+#ifdef NV_TPK
+  // Outro app ja tomou o video da TV nesta sessao (#178): abrir trailer de
+  // novo so abriria o furo em cima do video DELE. Fica a arte.
+  if (video_conflito_recurso()) return 0;
+#endif
   if (sabe) return 1;
   if (video_iniciar_auto()) sabe = 1;
   return sabe;
@@ -213,6 +296,7 @@ int trailer_suportado(void) {
 }
 static void nativoAplicar(void) {
   if (!aberto) return;
+  if(video_tocando())tocouFonte=1;
   // O uMS setVolume funciona nesta TV (provado ao contrario: sem ele o
   // trailer tocou com som).
   if (volumePendente && video_ativo()) { video_volume(comSom ? 100 : 0); volumePendente = 0; }
@@ -230,26 +314,16 @@ static void nativoAplicar(void) {
   if (recortePendente && video_tocando() && !tocandoDesde) tocandoDesde = SDL_GetTicks();
   if (recortePendente && video_pronto() && video_largura() > 0 && video_altura() > 0 &&
       tocandoDesde && SDL_GetTicks() - tocandoDesde >= 800) {
-    int vw = video_largura(), vh = video_altura();
-    float z = ajustes_trailer_zoom();
     int sw, sh, sx, sy;
-    // QUADRO MATTED (Apple: 1920x804, 3836x1606) nao tem tarja embutida — a
-    // tarja e o proprio plano encaixando 2.39 em 16:9. Encher a tela e
-    // recortar as LATERAIS ate 16:9, sem o zoom fixo. Quadro 16:9 (IMDb, com
-    // a tarja dentro da imagem) leva o zoom do ajuste. "Original" (1.0) nao
-    // recorta nada em nenhum dos dois.
-    if (z <= 1.001f) { sw = vw; sh = vh; }
-    else if ((float)vw / (float)vh > 1.85f) { sh = vh; sw = (int)(vh * 16.0f / 9.0f); if (sw > vw) sw = vw; }
-    else { sw = (int)(vw / z); sh = (int)(vh / z); }
-    // PAR, como o player faz (player.c, aplicarAspecto): o escalonador
-    // trabalha em 4:2:0 e origem ou tamanho impar da meio pixel de croma na
-    // borda — e 803 de altura era o que saia daqui.
-    sw &= ~1; sh &= ~1;
-    sx = ((vw - sw) / 2) & ~1; sy = ((vh - sh) / 2) & ~1;
-    if (video_recorte_fonte())
+    trailer_recorte(video_largura(), video_altura(), ajustes_trailer_zoom(),
+                    rect.w, rect.h, &sx, &sy, &sw, &sh);
+    if (video_recorte_fonte_trailer())
       video_janela_fonte(sx, sy, sw, sh,
                          (int)rect.x, (int)rect.y, (int)rect.w, (int)rect.h);
     recortePendente = 0;
+#ifdef NV_TPK
+    if (!recorteEnviadoEm) recorteEnviadoEm = SDL_GetTicks() | 1;
+#endif
     if (!reaplicarAte) { reaplicarAte = SDL_GetTicks() + 6000; reaplicarEm = SDL_GetTicks() + 1500; }
   }
   if (reaplicarAte && SDL_GetTicks() >= reaplicarEm) {
@@ -285,8 +359,15 @@ void trailer_abrir(const char *fonte, GfxRect r, int som, int modoCheia) {
 #else
   if (nova) {
     if (!video_tocar(fonte)) return;
+#ifdef NV_TPK
+    video_tpk_trailer_marcar(1);
+#endif
+    tocouFonte = 0;
     volumePendente = 1; recortePendente = 1; pausado = 0; reaplicarAte = 0;
     tocandoDesde = 0; quadroInteiroEnviado = 0;
+#ifdef NV_TPK
+    recorteEnviadoEm = 0; mostraLogado = 0; imagemVista = 0; tocandoVisto = 0;
+#endif
   } else if (comSom != som) volumePendente = 1;
   video_janela((int)r.x, (int)r.y, (int)r.w, (int)r.h);
   if (!nova) recortePendente = 1;
@@ -323,9 +404,34 @@ void trailer_fechar(void) {
   video_parar();
 #endif
   aberto = 0; cheia = 0; fonteAtual[0] = 0;
+#ifndef __EMSCRIPTEN__
+  tocouFonte = 0;
+#endif
+  dono = TRAILER_DONO_NENHUM; donoImdb[0] = 0;
+}
+
+void trailer_marcar_dono(int d, const char *imdb) {
+  if (!aberto) return;
+  dono = d;
+  snprintf(donoImdb, sizeof donoImdb, "%s", imdb ? imdb : "");
+}
+int trailer_dono(void) { return aberto ? dono : TRAILER_DONO_NENHUM; }
+const char *trailer_dono_imdb(void) { return aberto ? donoImdb : ""; }
+
+int trailer_continuar(GfxRect r, int som) {
+  char f[sizeof fonteAtual];
+  if (!aberto || cheia || !fonteAtual[0]) return 0;
+  // Copia: trailer_abrir le `fonte` e grava fonteAtual. Mesma fonte = nao e
+  // "nova": so o volume e o retangulo (com o recorte do zoom) mudam.
+  snprintf(f, sizeof f, "%s", fonteAtual);
+  trailer_abrir(f, r, som, 0);
+  printf("[trailer] continua %.60s %s\n", f, comSom ? "com som" : "mudo");
+  fflush(stdout);
+  return 1;
 }
 
 int trailer_aberto(void)  { return aberto; }
+int trailer_com_som(void) { return aberto && comSom; }
 int trailer_cheia(void)   { return aberto && cheia; }
 int trailer_tocando(void) {
 #ifdef __EMSCRIPTEN__
@@ -333,7 +439,45 @@ int trailer_tocando(void) {
   int e = aberto ? trailer_js_estado() : -2;
   return e == 1 || e == 3;
 #else
-  return aberto && video_pronto() && !video_falhou() && !video_terminou();
+  if(!aberto||!video_pronto()||video_falhou()||video_terminou()||video_conflito_recurso())return 0;
+  if(video_tocando())tocouFonte=1;
+  return tocouFonte;
+#endif
+}
+int trailer_mostra_video(void) {
+#if defined(NV_TPK) && !defined(__EMSCRIPTEN__)
+  Uint32 t = SDL_GetTicks();
+  const char *porque = NULL;
+  if (!aberto) return 0;
+  if (!imagemVista) {
+    if (video_tocando() && !tocandoVisto) tocandoVisto = t | 1;
+    if (video_pos() < NV_TRAILER_TPK_POS_MIN &&
+        !(tocandoVisto && (Sint32)(t - tocandoVisto) >= (Sint32)NV_TRAILER_TPK_POS_PRAZO_MS)) return 0;
+    imagemVista = 1;
+  }
+  // "Original", ou o alvo sem recorte (video_tpk.c, o padrao desde #188): nada
+  // a esperar, o LetterBox de sempre ja e a imagem certa.
+  // "Original" so dispensa a espera quando o destino tambem nao pede corte
+  // (o cover de trailer_recorte num destino que nao e da proporcao do video).
+  int semCorte = !video_recorte_fonte_trailer();
+  if (!semCorte && ajustes_trailer_zoom() <= 1.001f && video_largura() > 0 && video_altura() > 0) {
+    int sx, sy, sw, sh;
+    trailer_recorte(video_largura(), video_altura(), 1.0f, rect.w, rect.h, &sx, &sy, &sw, &sh);
+    semCorte = sw >= (video_largura() & ~1) && sh >= (video_altura() & ~1);
+  }
+  if (semCorte) porque = "sem recorte";
+  else if (recorteEnviadoEm && (Sint32)(t - recorteEnviadoEm) >= NV_TRAILER_TPK_ROI_ASSENTA_MS) porque = "recorte assentou";
+  else if (tocandoDesde && (Sint32)(t - tocandoDesde) >= NV_TRAILER_TPK_ROI_PRAZO_MS) porque = "sem recorte em 2 s, mostra assim";
+  else if (!tocandoDesde && abertoEm && (Sint32)(t - abertoEm) >= NV_TRAILER_TPK_SEM_TOCAR_MS) porque = "sem tocando, mostra assim";
+  if (!porque) return 0;
+  if (!mostraLogado) {
+    mostraLogado = 1;
+    printf("[trailer] tpk: plano visivel +%ums (%s, posicao %.2fs)\n", (unsigned)(t - abertoEm), porque, video_pos());
+    fflush(stdout);
+  }
+  return 1;
+#else
+  return 1;
 #endif
 }
 GfxRect trailer_retangulo(void) { return rect; }
@@ -391,11 +535,64 @@ void trailer_atualizar(Uint32 agora) {
   video_bombear();
   nativoAplicar();
   // Acabou ou a fonte falhou: fecha e a pagina volta a arte.
-  if (video_terminou() || video_falhou()) {
-    falhouUltima = video_falhou() ? 1 : 0;
+  // conflito: outro app (YouTube) tomou o plano de video — fecha, fica a arte.
+  if (video_terminou() || video_falhou() || video_conflito_recurso()) {
+    falhouUltima = video_falhou() || video_conflito_recurso() ? 1 : 0;
     trailer_fechar();
   }
 #endif
 }
 
 int trailer_falhou(void) { return falhouUltima; }
+
+// O OSD DO TRAILER EM TELA CHEIA (Glass UI, mockup de 03/10, proposta
+// aprovada): so com o trailer PAUSADO — o trailer e o proprio heroi. A pilula
+// da ilha diz o que e ("Trailer · titulo"), a barra fina do player embaixo e
+// o tempo; o unico botao e Continuar (o que o OK faz). Quem desenha a tela
+// cheia (detail.c) chama isto por cima do furo.
+int trailer_pausado(void) {
+#ifdef __EMSCRIPTEN__
+  return aberto && cheia && trailer_js_pausado();
+#else
+  return aberto && cheia && pausado;
+#endif
+}
+void trailer_osd_desenhar(const char *titulo, float a) {
+  double pos = video_pos(), dur = video_duracao();
+  if (!trailer_pausado() || a < 0.01f) return;
+  gfx_veu_css((GfxRect){ 0, 0, NV_TELA_W, 260.0f }, 1, 1.38f, 1.0f, 0.52f * a);
+  gfx_veu_css((GfxRect){ 0, NV_TELA_H - 300.0f, NV_TELA_W, 300.0f }, 0, 1.0f, 1.0f, 0.60f * a);
+  { TxtLinha l1 = txt_linha(TXT_ILHA_NOME, "Trailer", 243, 242, 239, 255);
+    TxtLinha l2 = txt_linha_corta(TXT_ILHA_CORPO, titulo ? titulo : "", 243, 242, 239, 179, 900.0f);
+    float w = 24.0f + 24.0f + 12.0f + (float)l1.w + (l2.w ? 12.0f + 1.0f + 12.0f + (float)l2.w : 0.0f) + 24.0f;
+    GfxRect p = { 96.0f, 48.0f, w, 56.0f };
+    float x = p.x + 24.0f, yc = p.y + 28.0f;
+    plrui_material(p, 28.0f, 0, a);
+    gfx_icone((GfxRect){ x, yc - 12.0f, 24.0f, 24.0f }, "pl_clapperboard", 1, 1, 1, a);
+    x += 36.0f;
+    txt_desenhar_alpha(l1, x, yc - (float)l1.h * 0.5f, a);
+    x += (float)l1.w + 12.0f;
+    if (l2.w) { plrui_sep(x, yc, a); txt_desenhar_alpha(l2, x + 13.0f, yc - (float)l2.h * 0.5f, a); } }
+  if (dur > 1.0) {
+    char t1[24], d[24], t2[32];
+    plrui_barra(96.0f, 1000.0f, NV_TELA_W - 192.0f, (float)(pos / dur),
+                (float)(video_buffer_fim() / dur), 0, NULL, 0, a);
+    plrui_tempo(t1, sizeof t1, pos); plrui_tempo(d, sizeof d, dur);
+    snprintf(t2, sizeof t2, "/ %s", d);
+    { TxtLinha l2 = txt_linha(TXT_ILHA_NOME, t2, 243, 242, 239, 128);
+      TxtLinha l1 = txt_linha(TXT_ILHA_NOME, t1, 243, 242, 239, 235);
+      float xr = NV_TELA_W - 96.0f - l2.w;
+      txt_desenhar_alpha(l2, xr, 916.0f, a);
+      txt_desenhar_alpha(l1, xr - 8.0f - l1.w, 916.0f, a); }
+  }
+  { TxtLinha l = txt_linha(TXT_G21B, "Continuar", 0, 0, 0, 255);
+    GfxRect b = { 96.0f, 896.0f, 22.0f + 28.0f + 12.0f + (float)l.w + 28.0f, 68.0f };
+    float k = plrui_tinta() / 255.0f;
+    plrui_pilula_foco(b, a);
+    gfx_icone((GfxRect){ b.x + 22.0f, b.y + 20.0f, 28.0f, 28.0f }, "pl_play-f", k, k, k, a);
+    l = txt_linha(TXT_G21B, "Continuar", plrui_tinta(), plrui_tinta(), plrui_tinta(), 255);
+    txt_desenhar_alpha(l, b.x + 22.0f + 28.0f + 12.0f, b.y + (68.0f - (float)l.h) * 0.5f, a); }
+}
+#ifdef NV_SHOT_HOOKS
+void trailer_shot_pausado(int sim) { aberto = cheia = sim; pausado = sim; }
+#endif

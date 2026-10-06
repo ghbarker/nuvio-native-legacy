@@ -36,7 +36,7 @@ cd "$(dirname "$0")/.."
 TV_IP="${NUVIO_TV_IP:-192.168.1.32}"
 TV_PASS="${NUVIO_TV_PASS:-alpine}"
 APP_ID="space.nuvio.native.legacy"
-ARES="../NuvioWeb-0.3.38-beta/node_modules/.bin/ares-package"
+ARES="${NUVIO_ARES_PACKAGE:-../NuvioWeb-0.3.38-beta/node_modules/.bin/ares-package}"
 
 # --high-cache pode vir antes ou depois de --build/--ipk. So muda uma -D e os
 # nomes; o codigo e o mesmo — e por isso a variante nao precisa de branch.
@@ -61,7 +61,7 @@ echo "==> compilando para ARM"
 LIXO=""
 limpar() { [ -n "$LIXO" ] && rm -rf $LIXO; }
 trap limpar EXIT
-ENVF=$(mktemp); LIXO="$LIXO $ENVF"
+ENVF=$(mktemp "${TMPDIR:-/tmp}/nuvio-arm-env.XXXXXXXX"); LIXO="$LIXO $ENVF"
 tools/env.sh --env-file "$ENVF"
 # NUVIO_EXTRA_CFLAGS: bandeiras a mais para uma build de teste, sem tocar no
 # codigo. Nasceu para o -DNV_PEDIR_4K do issue #28, que so existe para uma
@@ -72,7 +72,16 @@ tools/env.sh --env-file "$ENVF"
 # bandeira de compilacao nao e uma string do binario. Posta la, ela derrubava a
 # build com "ABORTADO: NUVIO_EXTRA_CFLAGS nao entrou no binario ARM", que e a
 # guarda funcionando sobre a coisa errada.
-docker run --rm --platform linux/arm64 --env-file "$ENVF" \
+# Motor P2P embutido (src/p2pmotor.h): a pasta <raiz>/arm e a de trabalho de
+# tools/p2p-motor/build-arm.sh (nuvio-engine + libtorrent + OpenSSL ja
+# compilados para ARM), achada por tools/p2p-motor/pasta.sh (NUVIO_P2P_MOTOR,
+# ou a pasta padrao; =none compila sem). Incompleta = erro.
+. tools/p2p-motor/pasta.sh
+nv_p2p_resolver arm
+P2P_VOL=""
+[ -n "$NV_P2P_DIR" ] && P2P_VOL="-v $NV_P2P_DIR:/p2p"
+docker run --rm --platform linux/arm64 --env-file "$ENVF" $P2P_VOL \
+  -e NUVIO_P2P_MOTOR="${NV_P2P_DIR:+1}" \
   -e NUVIO_EXTRA_CFLAGS="${NUVIO_EXTRA_CFLAGS:-}" \
   -e NUVIO_ASS_LIBASS="${NUVIO_ASS_LIBASS:-1}" \
   -v "$PWD":/work nuvio-webos-sdk sh -c '
@@ -85,7 +94,19 @@ docker run --rm --platform linux/arm64 --env-file "$ENVF" \
     ASS_CFLAGS="-DNV_ASS_LIBASS -I$ASS/include"
     ASS_LIBS="-L$ASS/lib -Wl,--start-group -lass -lharfbuzz -lfribidi -lfreetype -Wl,--end-group"
   fi
-  arm-webos-linux-gnueabi-gcc src/*.c -o nuvio-proto.arm -O2 $NUVIO_EXTRA_CFLAGS $ASS_CFLAGS \
+  # -DNV_WEBOS: a identidade do alvo tem que vir daqui, porque o compilador
+  # webos define __linux__ igual a qualquer Linux e a toolchain nao tem macro
+  # propria (src/ajustes.c separa o locale da TV por ela, como NV_TPK e
+  # NV_ANDROID fazem nos outros alvos).
+  P2P_CFLAGS=""
+  P2P_LIBS=""
+  if [ "${NUVIO_P2P_MOTOR:-}" = "1" ]; then
+    P2P_CFLAGS="-DNV_P2P_MOTOR -I/p2p/nuvio-engine/include"
+    # C++, libatomic e libgcc estaticos: o firmware da TV tem libstdc++ de outra
+    # versao (ou nenhuma), e libatomic.so.1 nao e garantida.
+    P2P_LIBS="/p2p/build-arm/libnuvio_engine.a /p2p/build-arm/_deps/nuvio_libtorrent-build/libtorrent-rasterbar.a $SR/usr/lib/libssl.a $SR/usr/lib/libcrypto.a -static-libgcc -Wl,-Bstatic -lstdc++ -latomic -Wl,-Bdynamic -lrt -Wl,--gc-sections"
+  fi
+  arm-webos-linux-gnueabi-gcc src/*.c -o nuvio-proto.arm -O2 -DNV_WEBOS $NUVIO_EXTRA_CFLAGS $ASS_CFLAGS $P2P_CFLAGS \
     -DNV_SUPABASE_URL="\"$NV_SUPABASE_URL\"" \
     -DNV_SUPABASE_ANON_KEY="\"$NV_SUPABASE_ANON_KEY\"" \
     -DNV_TV_LOGIN_BASE="\"$NV_TV_LOGIN_BASE\"" \
@@ -94,10 +115,12 @@ docker run --rm --platform linux/arm64 --env-file "$ENVF" \
     -DNV_SIMKL_CLIENT_ID="\"$NV_SIMKL_CLIENT_ID\"" \
     -DNV_SIMKL_APP="\"$NV_SIMKL_APP\"" \
     -DNV_TMDB_API_KEY="\"$NV_TMDB_API_KEY\"" \
+    -DNV_SEEKR_API_KEY="\"$NV_SEEKR_API_KEY\"" \
     -DNV_REC_URL="\"$NV_REC_URL\"" \
+    -DNV_DISCORD_CLIENT_ID="\"${NV_DISCORD_CLIENT_ID:-}\"" \
     -DNV_VERSAO="\"$NV_VERSAO\"" \
     -I$SR/usr/include -I$SR/usr/include/SDL2 \
-    -lSDL2 -lSDL2_image -lSDL2_ttf -lGLESv2 -lEGL -ldl -lpthread -lz -lm $ASS_LIBS'
+    -lSDL2 -lSDL2_image -lSDL2_ttf -lGLESv2 -lEGL $P2P_LIBS -ldl -lpthread -lz -lm $ASS_LIBS'
 
 # CONFERE que a configuracao entrou MESMO no binario. Sem isto o unico sintoma
 # e a tela de login dizendo que o pacote saiu sem servidor, ja na TV.
@@ -138,9 +161,15 @@ rm -f ./*.ipk
 #
 # ajustes.txt sai pelo mesmo motivo, com dano menor: e a preferencia de LAYOUT
 # de quem montou, e ela chegaria como se fosse a de quem instalou.
+#
+# debrid.txt e a CHAVE de debrid digitada na TV do dono (Ajustes > Integracoes >
+# Debrid): "alldebrid=<chave>", "torbox=<chave>"... Credencial de conta paga —
+# quem instalasse tocaria torrent na assinatura do dono. fanart.txt (chave
+# pessoal) e p2p.txt (IP da rede do dono) tinham a mesma sina e tambem nao
+# estavam na lista.
 ARQ_DE_PESSOA="trakt.txt addons.txt tmdb.txt mdblist.txt ajustes.txt
                progresso.txt nuvem.txt sessao.txt perfil.txt cliente.txt
-               listas.txt guia-fav.txt"
+               listas.txt guia-fav.txt debrid.txt fanart.txt p2p.txt"
 
 # UM POR PERFIL, entao o nome nao e fixo: stalker-p1.txt, stalker-p2.txt...
 # Estes guardam o MAC do portal IPTV, que autentica a assinatura de quem
@@ -151,7 +180,7 @@ ARQ_DE_PESSOA="trakt.txt addons.txt tmdb.txt mdblist.txt ajustes.txt
 # trakt-p*/trakt-fluxo*/simkl*: o vinculo do Trakt e do Simkl passou a ser um
 # arquivo POR PERFIL (traktauth.c, simklauth.c) — o trakt.txt da lista de nomes
 # acima deixou de alcancar o token quando a pasta de dados cai na da arte.
-GLOB_DE_PESSOA="stalker-p*.txt xtream-p*.txt listas-p*.txt trakt-p*.txt trakt-fluxo*.txt simkl*.txt"
+GLOB_DE_PESSOA="stalker-p*.txt xtream-p*.txt listas-p*.txt trakt-p*.txt trakt-fluxo*.txt simkl*.txt conta-*.txt conta-*.txt.tmp discord-p*.txt discord-p*.txt.tmp jellyfin-p*.txt jellyfin-p*.txt.tmp emby-p*.txt emby-p*.txt.tmp plex-p*.txt plex-p*.txt.tmp"
 
 # O ACERVO DE QUEM EMPACOTOU, que nao e credencial de login e vaza igual.
 #
@@ -196,7 +225,7 @@ DIR_DE_PESSOA="collections"
 
 if [ "$1" = "--ipk" ]; then
   echo "==> empacotando (sem credenciais)"
-  PALCO=$(mktemp -d); LIXO="$LIXO $PALCO"
+  PALCO=$(mktemp -d "${TMPDIR:-/tmp}/nuvio-arm-pacote.XXXXXXXX"); LIXO="$LIXO $PALCO"
   cp -R deploy/app "$PALCO/app"
   # cache/ e cache de EXECUCAO, nao arte do pacote: sao megabytes de imagem
   # baixada que o app rebaixa sozinho.
@@ -204,6 +233,13 @@ if [ "$1" = "--ipk" ]; then
   for f in $ARQ_DE_PESSOA $ACERVO_DE_PESSOA; do rm -f "$PALCO/app/art/$f"; done
   for g in $GLOB_DE_PESSOA; do rm -f "$PALCO"/app/art/$g; done
   for d in $DIR_DE_PESSOA; do rm -rf "$PALCO/app/art/$d"; done
+  # MODO DO BINARIO: o ares-package copia o modo do arquivo, e o `cp` la de cima
+  # SOBRESCREVE um deploy/app/nuvio-proto existente mantendo o modo ANTIGO dele.
+  # A 1.7.1 saiu assim com -rwx---r--: o app roda como uid 5152, que nao e dono
+  # nem grupo, entao sem x para "outros" o webOS nao executa e o app fecha ao
+  # abrir em toda TV (#224, #225). A C9 do dono nao pegou porque la o binario e
+  # trocado com chmod 755 a mao.
+  chmod 755 "$PALCO/app/nuvio-proto"
 
   "$ARES" "$PALCO/app" -o .
   IPK=$(ls -t ./*.ipk | head -1)
@@ -239,6 +275,9 @@ if [ "$1" = "--ipk" ]; then
     printf '%s\n' "$LISTA" | grep -qE "art/$pre[0-9]+\.txt$" && VAZOU="$VAZOU $pre*.txt"
   done
   printf '%s\n' "$LISTA" | grep -qE "art/(trakt-fluxo|simkl)\.txt$" && VAZOU="$VAZOU trakt-fluxo.txt/simkl.txt"
+  printf '%s\n' "$LISTA" | grep -qE '(^|/)conta-[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU conta-*.txt/conta-*.txt.tmp"
+  printf '%s\n' "$LISTA" | grep -qE '(^|/)discord-p[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU discord profile tokens"
+  printf '%s\n' "$LISTA" | grep -qE '(^|/)(jellyfin|emby|plex)-p[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU media-server profile tokens"
   # Diretorio: qualquer caminho DENTRO dele conta como vazamento, nao so a
   # entrada da pasta — o tar pode listar os arquivos sem listar o diretorio.
   for d in $DIR_DE_PESSOA; do
@@ -248,6 +287,28 @@ if [ "$1" = "--ipk" ]; then
     echo "    ABORTADO: o pacote leva credencial ->$VAZOU"
     rm -f "$IPK"
     exit 1
+  fi
+  # O chmod acima e a intencao; o modo DENTRO do pacote e o fato (#224).
+  MODO=$(cd "$PALCO" && tar tvzf data.tar.gz 2>/dev/null | awk '/\/nuvio-proto$/ {print $1}')
+  if [ "$MODO" != "-rwxr-xr-x" ]; then
+    echo "    ABORTADO: nuvio-proto no pacote com modo '${MODO:-ausente}', esperado -rwxr-xr-x (o webOS nao executa)"
+    rm -f "$IPK"
+    exit 1
+  fi
+  # AVISOS DE LICENCA do motor (libtorrent, Boost, OpenSSL, nuvio-engine).
+  printf '%s\n' "$LISTA" | grep -qE 'licencas/p2p-avisos\.txt$' || {
+    echo "    ABORTADO: o pacote nao leva licencas/p2p-avisos.txt"; rm -f "$IPK"; exit 1; }
+  # MOTOR P2P: pasta achada = o binario DENTRO do pacote tem de te-lo (marca "Nuvio Engine/", simbolos da API sao ocultos). A guarda
+  # fica no arquivo pronto, nao no flag que se passou ao compilador.
+  if [ -n "$NV_P2P_DIR" ]; then
+    mkdir -p "$PALCO/x" && tar xzf "$PALCO/data.tar.gz" -C "$PALCO/x" 2>/dev/null
+    MOT=$(find "$PALCO/x" -name nuvio-proto -type f | head -1)
+    if [ -z "$MOT" ] || [ "$(strings "$MOT" | grep -c 'Nuvio Engine/')" -lt 1 ]; then
+      echo "    ABORTADO: o nuvio-proto do pacote nao tem o motor P2P (marca "Nuvio Engine/")"; rm -f "$IPK"; exit 1
+    fi
+    echo "    motor P2P dentro do nuvio-proto do pacote"
+  else
+    echo "    ATENCAO: pacote SEM motor P2P (NUVIO_P2P_MOTOR=none ou sem pasta)"
   fi
   echo "    $IPK ($(du -h "$IPK" | cut -f1)) — sem art/{$(echo $ARQ_DE_PESSOA $GLOB_DE_PESSOA $ACERVO_DE_PESSOA $DIR_DE_PESSOA | tr ' ' ',')}"
 fi
@@ -300,10 +361,10 @@ STAMP=${STAMP:0:8}
 [ -n "$VARIANTE" ] && STAMP="$STAMP high cache"
 # CARIMBO POR ACRESCIMO, e nao por substituicao de "(BUILD)".
 #
-# O titulo do pacote publicado e so "Nuvio" — e o nome que a pessoa ve na TV, e
+# O titulo do pacote publicado e so "Nuvio Legacy" — e o nome que a pessoa ve na TV, e
 # nele nao cabe nome de build. Mas a INSTALACAO DE DESENVOLVIMENTO precisa dizer
 # qual binario esta ali, entao o carimbo entra ao lado do nome so no caminho do
-# deploy por ssh: "Nuvio (08cd72a3)". O pacote de release nunca passa por aqui.
+# deploy por ssh: "Nuvio Legacy (08cd72a3)". O pacote de release nunca passa por aqui.
 #
 # A conferencia de verdade continua sendo /proc/<pid>/exe: o app manager cacheia
 # o appinfo ate reinstalar, e ja aconteceu de o titulo mostrar a build anterior.
@@ -333,12 +394,12 @@ echo "==> sincronizando arte"
 if ! ( set -o pipefail
        tar czf - -C deploy/app --exclude 'art/cache' \
            --exclude 'appinfo.json.stamped' \
-           art fonts icon.png icon-large.png \
+           art fonts icon.png icon-large.png splash.png \
          | $SSH "root@$TV_IP" "tar xzf - -C $APPDIR" ) 2>&1 \
      | grep -v 'unknown extended header keyword'; then
   :
 fi
-if ! $SSH "root@$TV_IP" "test -f $APPDIR/art/marcas/trakt.png"; then
+if ! $SSH "root@$TV_IP" "test -f $APPDIR/art/marcas/trakt.png && test -f $APPDIR/art/marcas/logo-novo-marca.png && test -f $APPDIR/art/marcas/abertura.jpg && test -f $APPDIR/art/marcas/login-fundo.jpg"; then
   echo "    FALHOU: a arte nao chegou na TV"; exit 1
 fi
 rm -f deploy/app/appinfo.json.stamped

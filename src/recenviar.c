@@ -17,8 +17,11 @@
 #include "ajustes.h"
 #include "idioma.h"
 #include "tex_cache.h"
-#include "artehero.h"
+#include "logotitulo.h"
 #include "botoes.h"
+#include "plrui.h"
+#define NV_ESCALA_TELA_ATIVA   // mede pela tela do fator ativo (escala.h)
+#include "escala.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -347,8 +350,9 @@ static const char *urlLogoTitulo(void) {
   static char url[512];
   const char *u;
   size_t n;
-  if (!temItem || !item.logo[0] || pagina == RE_PAG_AMIGOS) return NULL;
-  u = artehero_url_logo_larg(item.logo, RE_LOGO_W);
+  if (!temItem || pagina == RE_PAG_AMIGOS) return NULL;
+  // O MESMO logo do hero/detalhe (escolha a mao e sessao primeiro).
+  u = logotitulo_url(&item, RE_LOGO_W);
   if (!u || !u[0]) return NULL;
   n = strlen(u);
   if (n >= sizeof url) return NULL;
@@ -356,24 +360,12 @@ static const char *urlLogoTitulo(void) {
   return url;
 }
 
-static void desenhaLogo(const char *url, GLuint tex, float x, float y,
-                        const char *fallback, float a) {
-  float asp = tex ? tex_aspecto(url) : 0.0f;
-  if (!tex || asp <= 0.01f) {
-    TxtLinha t = txt_linha_corta(TXT_HEADLINE, fallback, 245, 248, 255, 255,
-                                 RE_LOGO_W);
-    txt_desenhar_alpha(t, x, y + (RE_LOGO_H - t.h) * 0.5f, a);
-    return;
-  }
-  { float w = RE_LOGO_W, h = w / asp;
-    GfxRect r;
-    GfxModo modo;
-    if (h > RE_LOGO_H) { h = RE_LOGO_H; w = h * asp; }
-    r = (GfxRect){ x + (RE_LOGO_W - w) * 0.5f,
-                   y + (RE_LOGO_H - h) * 0.5f, w, h };
-    modo = tex_marca_escura(url) ? GFX_MARCA : GFX_TEXTO;
-    gfx_rect(r, tex, modo, 0, 0, 0, 0, 0.96f, 0.97f, 0.99f, a);
-  }
+// O logo ENCOSTA A ESQUERDA, na coluna do texto (era centrado na caixa de
+// 280 e deixava um vao antes da arte). Desenho comum a todas as modais com o
+// titulo no cabecalho: logotitulo.h.
+static void desenhaLogo(float x, float y, const char *fallback, float a) {
+  logotitulo_desenhar(&item, fallback, TXT_HEADLINE, x, y, RE_LOGO_W,
+                      RE_LOGO_H, RE_INTERNO, a);
 }
 
 // As seis caixas do codigo. Centradas em `larg` a partir de `x`.
@@ -392,7 +384,8 @@ static float desenhaCodigo(float x, float y, float larg, float a) {
     // O RAIO DO gfx_cor E FRACAO DA ALTURA, nao pixel. Um "14" aqui viraria
     // uma pilula de 116px de alto — e foi assim que a primeira versao deste
     // recurso saiu na foto.
-    gfx_cor(b, 14.0f / RE_COD_H, 1.0f, 1.0f, 1.0f, 0.10f * a);
+    if (ajustes_vidro()) gfx_vidro_painel(b, 14.0f / RE_COD_H, 0.55f, a);
+    else gfx_cor(b, 14.0f / RE_COD_H, 0.14f, 0.15f, 0.17f, a);
     if ((int)strlen(cod) == n) {
       TxtLinha t;
       ch[0] = cod[i]; ch[1] = 0;
@@ -427,7 +420,12 @@ static void desenhaLinha(float x, float y, const char *rot, float f,
                          float a, const RecContato *c) {
   GfxRect r = { x, y, RE_INTERNO, RE_LINHA };
   float tx = r.x + BOTAO_PAD_X;
-  int cor = botao_superficie(r, f, a);
+  int cor;
+  if (ajustes_vidro()) {
+    gfx_vidro_superficie(r, 0.5f, a);
+    plrui_linha_foco(r, RE_LINHA * 0.5f, f * a);
+    cor = 243;
+  } else cor = botao_superficie(r, f, a);
   // FOTO DO AMIGO (ou a inicial), como na aba Social: a linha so com o nome
   // nao dizia quem era.
   if (c) {
@@ -441,19 +439,37 @@ static void desenhaLinha(float x, float y, const char *rot, float f,
     txt_desenhar_alpha(t, tx, y + (RE_LINHA - t.h) * 0.5f, a); }
 }
 
+static void recenviar_desenharCorpo_(Uint32 agora);
+static float alturaCartao(float *cabOut, float *topoOut) {
+  int n = nLinhas(), vis = n < RE_JANELA ? n : RE_JANELA, k;
+  const char *logo = urlLogoTitulo();
+  float cabTopo = !logo ? 170.0f : pagina == RE_PAG_MODELOS ? RE_LOGO_CAB + 30.0f : RE_LOGO_CAB;
+  float cab, alt;
+  if (vis < 1) vis = 1;
+  if (pagina == RE_PAG_AMIGOS) cab = 162.0f + RE_COD_H + 112.0f;
+  else if (pagina == RE_PAG_CONTATOS && nCtts == 0) cab = cabTopo + 116.0f;
+  else cab = cabTopo;
+  alt = RE_PAD * 2.0f + cab + (float)vis * (RE_LINHA + RE_GAP) - RE_GAP + RE_RODAPE;
+  for (k = topo; k < n && k - topo < RE_JANELA; k++) alt += secaoAntes(k);
+  if (cabOut) *cabOut = cab;
+  if (topoOut) *topoOut = cabTopo;
+  return alt;
+}
+// Cartao de tela quase cheia: ampliado so se ainda couber (escala.h).
 void recenviar_desenhar(Uint32 agora) {
+  ESCALA_SE_COUBER_INI(RE_W, alturaCartao(NULL, NULL));
+  recenviar_desenharCorpo_(agora);
+  ESCALA_SE_COUBER_FIM();
+}
+static void recenviar_desenharCorpo_(Uint32 agora) {
   float a = anim_suave(anim), alt, x, y, cab, cabTopo, hx, hy, hw;
-  int i, n, vis;
-  GLuint logoTex;
-  const char *titulo, *chapeu, *pergunta, *rodape, *logo;
+  int i, n;
+  const char *titulo, *chapeu, *pergunta, *logo;
   (void)agora;
   if (anim < 0.01f) return;
 
   n = nLinhas();
-  vis = n < RE_JANELA ? n : RE_JANELA;
-  if (vis < 1) vis = 1;
   logo = urlLogoTitulo();
-  logoTex = logo ? tex_obter_larg(logo, RE_LOGO_W) : 0;
 
   // ALTURA DO CABECALHO, por pagina. A de amigos carrega as seis caixas do
   // codigo e duas linhas de explicacao; as outras duas carregam so o titulo e
@@ -465,28 +481,22 @@ void recenviar_desenhar(Uint32 agora) {
   // 120 a pergunta ("Para quem?") caia POR BAIXO da primeira linha. No passo da
   // mensagem com logo o nome do amigo vem antes da arte, e a pilha e ~30 px
   // mais alta que no passo dos contatos.
-  cabTopo = !logo ? 170.0f
-          : pagina == RE_PAG_MODELOS ? RE_LOGO_CAB + 30.0f : RE_LOGO_CAB;
-  if (pagina == RE_PAG_AMIGOS)          cab = 162.0f + RE_COD_H + 112.0f;
-  else if (pagina == RE_PAG_CONTATOS && nCtts == 0) cab = cabTopo + 116.0f;
-  else                                  cab = cabTopo;
-
-  alt = RE_PAD * 2.0f + cab + (float)vis * (RE_LINHA + RE_GAP) - RE_GAP
-        + RE_RODAPE;
-  { int k; for (k = topo; k < n && k - topo < RE_JANELA; k++) alt += secaoAntes(k); }
+  alt = alturaCartao(&cab, &cabTopo);
   x = (NV_TELA_W - RE_W) * 0.5f;
   y = (NV_TELA_H - alt) * 0.5f;
   y += (1.0f - a) * 40.0f;
 
-  gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, 0.72f * anim);
-  // O CARTAO FLUTUANTE DO MENU DO CARTAZ (ctxmenu.c): mesmo fundo, cantos de
-  // 28 px pelo menor lado e a luz de realce entrando pelo canto de cima.
+  gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, (ajustes_vidro() ? 0.30f : 0.42f) * anim);
+  // Ilha no mesmo material da folha de Fontes: a opacidade configurada e Frost
+  // valem aqui, com a forma opaca equivalente quando o vidro esta desligado.
   { GfxRect p = { x, y, RE_W, alt };
-    float ar, ag, ab, menor = alt < RE_W ? alt : RE_W, raio = 28.0f / menor;
-    ajustes_acento(&ar, &ag, &ab);
-    gfx_cor(p, raio, 0.055f, 0.058f, 0.068f, 0.94f * a);
-    gfx_luz_canto(p, raio, RE_W * 0.1f, -RE_W * 0.1f, RE_W * 0.65f,
-                  ar, ag, ab, 0.22f * a); }
+    float raio = 28.0f / (alt > 1.0f ? alt : 1.0f);
+    if (ajustes_vidro()) {
+      gfx_rect((GfxRect){p.x-18.0f,p.y-8.0f,p.w+36.0f,p.h+40.0f},
+               0,GFX_SOMBRA,1.0f,0,0,.5f,0,0,0,.38f*a);
+      gfx_vidro_folha(p,raio,a);
+    } else plrui_material(p,28.0f,1,a);
+  }
 
   if (pagina == RE_PAG_AMIGOS) {
     chapeu = "AMIGOS";
@@ -523,7 +533,7 @@ void recenviar_desenhar(Uint32 agora) {
   }
 
   if (logo && pagina == RE_PAG_CONTATOS) {
-    desenhaLogo(logo, logoTex, hx, hy, item.titulo, a);
+    desenhaLogo(hx, hy, item.titulo, a);
     hy += RE_LOGO_H + 8.0f;
     if (item.meta[0]) {
       TxtLinha t = txt_linha_corta(TXT_DET_META2, item.meta, 190, 192, 200,
@@ -537,7 +547,7 @@ void recenviar_desenhar(Uint32 agora) {
     hy += txt_bloco(TXT_HEADLINE, titulo, 245, 248, 255, hx, hy, hw, 46.0f,
                     a, 2) + 6.0f;
     if (logo) {
-      desenhaLogo(logo, logoTex, hx, hy, item.titulo, a);
+      desenhaLogo(hx, hy, item.titulo, a);
       hy += RE_LOGO_H + 6.0f;
     }
     // Na tela de AMIGOS nao ha subtitulo: o nome da obra ali nao responde a
@@ -639,11 +649,9 @@ void recenviar_desenhar(Uint32 agora) {
     txt_desenhar_alpha(t, x + RE_PAD, y + alt - RE_PAD - RE_RODAPE + 4.0f,
                        a * 0.95f);
   }
-  rodape = pagina == RE_PAG_CONTATOS && !temItem
-             ? "↑ ↓ Navegar   OK Selecionar   Voltar Fechar"
-             : "↑ ↓ Navegar   OK Selecionar   Voltar Anterior";
-  { TxtLinha t = txt_linha(TXT_CAPTION2, rodape, 155, 159, 169, 255);
-    txt_desenhar_alpha(t, x + RE_PAD, y + alt - RE_PAD - t.h, a * 0.86f); }
+  { const char *teclas[] = { "↑ ↓", "OK", "Voltar" };
+    const char *rotulos[] = { "Navegar", "Selecionar", pagina == RE_PAG_CONTATOS && !temItem ? "Fechar" : "Voltar" };
+    plrui_dicas(teclas, rotulos, 3, x + RE_PAD, y + alt - RE_PAD - 15.0f, 0, a); }
 
   // O teclado fica POR CIMA desta modal, e nao no lugar dela: ele e uma
   // pergunta curta sobre a tela que continua valendo atras.

@@ -72,14 +72,51 @@ int  addons_tem_catalogo(int i);  // 1 quando o addon fornece catalogo
 // Origem do proximo alvo (base do addon que publicou o canal). Com ela a busca
 // pergunta SO a esse addon; vazia, pergunta a todos. Ver alvoBase em addons.c.
 void addons_definir_origem(const char *base);
+
+// Origem extra de fontes (os plugins Nuvio, plugins.h — F09), consultada em
+// paralelo com os addons e somada depois deles. `ativa` diz se vale perguntar.
+// CADA PARTE DA ORIGEM EXTRA E MAIS UMA ORIGEM NA FOLHA (#221): `aviso` (pode
+// ser NULL) e chamado do fio da origem para a parte `k` (o scraper, na ordem do
+// manifesto) com estado 1 = vai rodar, 2 = terminou (com `n` fontes em
+// `fontes`, um Stream *; copiadas na hora), 3 = desistiu.
+typedef void (*OrigemAviso)(void *u, int k, const char *nome, int estado,
+                            const void *fontes /* const Stream * */, int n);
+typedef int (*OrigemExtra)(const char *id, const char *tipo, int (*cancelado)(void *),
+                           void *ctx, OrigemAviso aviso, void *avisoU,
+                           void *saida /* Stream ** */);
+void addons_definir_origem_extra(OrigemExtra f, int (*ativa)(void));
+int  addons_origem_extra_ativa(void);
 void addons_buscar(const char *imdb, const char *tipo);
+// Recarregar explicito: descarta a resposta anterior e vai a rede, inclusive
+// quando a lista atual esta vazia ou foi filtrada por falta de debrid.
+void addons_buscar_renovar(const char *imdb, const char *tipo);
+
+// --- busca em andamento, addon a addon (#221) --------------------------------
+// A busca real de filme/serie publica cada addon que responde, sem esperar os
+// outros: a folha enche aos poucos e a escolha automatica pode sair antes do
+// fim (app.c). addons_estado ja drena; addons_drenar e so a drenagem, para o
+// app.c chamar enquanto a verificacao roda (sem tocar no resto do estado).
+void addons_drenar(void);
+// 1 enquanto a busca real de VOD esta no ar publicando por addon.
+int  addons_busca_parcial(void);
+// Milissegundos desde o disparo dessa busca; 0 fora dela.
+unsigned addons_busca_ms(void);
+// Quantos addons ainda nao responderam (contando quem espera a segunda chance)
+// e, em `nomes`, os nomes deles separados por virgula. 0 fora da busca.
+int  addons_faltam(char *nomes, unsigned tam);
+// O mesmo contando tambem os scrapers de plugin; *plugins = quantos deles.
+int  addons_faltam_tipo(char *nomes, unsigned tam, int *plugins);
+// Algum addon de indice menor que `idx` (ordem de instalacao) ainda falta?
+int  addons_pendente_antes(int idx);
+// O addon com este nome (Stream.provedor) ainda falta?
+int  addons_pendente_nome(const char *nome);
 
 // A mesma consulta, SINCRONA E REENTRANTE, e addons_consultar — declarada em
 // fontecache.h, e nao aqui, porque a assinatura precisa de Stream (streams.h,
 // que puxa SDL) e este cabecalho e incluido por modulos que os testes compilam
 // sem SDL (tests/colecoes.sh). Definida em addons.c.
 
-// --- legendas externas (OpenSubtitles) ---------------------------------------
+// --- legendas externas dos addons -------------------------------------------
 // Addon de legenda responde em /subtitles/<tipo>/<id>.json com
 // {"subtitles":[{lang,url,subtitleFileName,...}]}. Sao dezenas por titulo, a
 // maioria em idiomas que nao interessam — por isso a lista e FILTRADA por
@@ -90,6 +127,8 @@ typedef struct {
   char rotulo[64];   // "Portugues (BR)  ·  Silo.S01E05.WEB"
   char idioma[8];
   char url[600];
+  char provedor[64]; // nome do addon que devolveu esta legenda
+  char arquivo[96];  // subtitleFileName / movieReleaseName as sent; "" = not sent
 } Legenda;
 
 void addons_buscar_legendas(const char *imdb, const char *tipo);
@@ -114,13 +153,23 @@ int  addons_n_legendas(void);
 // precisa dessa distincao; a folha nao, ela so mostra o que ha.
 int  addons_legendas_prontas(void);
 const Legenda *addons_legenda(int i);
+// ATOMIC SNAPSHOT of the subtitle list: copies up to `max` entries while the
+// list mutex is held, so a reader never sees a list being replaced (the
+// pointer from addons_legenda() is read after the unlock and can race the
+// worker). `geracao` (optional) receives the list generation; `prontas`
+// (optional) the same answer as addons_legendas_prontas(), from the same lock.
+// Returns how many entries were copied.
+int  addons_legendas_copiar(Legenda *dst, int max, unsigned *geracao, int *prontas);
+#ifdef NV_SHOT_HOOKS
+void addons_shot_legendas(const Legenda *v, int n);
+#endif
 
 
 // --- lista para a tela de addons --------------------------------------------
 //
 // A conta pode ter addon DESLIGADO, e ele continua na lista: some das consultas
 // mas aparece na tela, para poder ser religado sem pegar o celular.
-enum { ADD_CATALOGO = 0, ADD_STREAM, ADD_LEGENDA };
+enum { ADD_CATALOGO = 0, ADD_STREAM, ADD_LEGENDA, ADD_META };
 
 const char *addons_nome(int i);
 int  addons_ativo(int i);
@@ -132,6 +181,13 @@ int  addons_adicionar(const char *nome, const char *urlManifest);
 // otimista; addons_sondado() diz qual dos dois casos e.
 int  addons_fornece(int i, int oque);
 int  addons_sondado(int i);
+// O addon `i` serve /meta/<tipo>/<id>.json? Le o que o manifesto DECLARA no
+// resource "meta" (types e idPrefixes, do resource ou da raiz):
+//   1 = declara meta para esse tipo e esse prefixo de id;
+//   0 = nao serve (sem "meta", ou declarou tipos/prefixos e este nao esta);
+//  -1 = nao da para saber (manifesto nao lido, ou sem idPrefixes).
+// `tipo` vazio nao filtra por tipo.
+int  addons_aceita_id(int i, const char *tipo, const char *id);
 // Le o manifesto de cada addon num fio proprio, uma vez por lista.
 //
 // SO SERVE COMO RESERVA hoje, e a distincao importa: ela era chamada de um
@@ -177,6 +233,11 @@ int addons_catalogos_canal(int i, AddCatCanal *saida, int max);
 // addon trouxe fonte). Chamar do fio da UI, depois de addons_estado() sair de
 // ADD_BUSCANDO.
 int addons_motivo_vazio(char *dst, unsigned n);
+// ADDON FORA DO AR (ilha do relogio, 02/10): sobe 1 cada vez que um addon NAO
+// RESPONDEU a uma busca de fontes de verdade (nem na segunda chance), e so na
+// primeira consulta seguida que falha — responder de novo rearma. Copia o nome
+// dele em `nome`. Quem avisa compara o numero com o ultimo que viu.
+unsigned addons_fora_do_ar(char *nome, unsigned tam);
 
 AddEstado addons_estado(void);
 // HA BUSCA DE FONTES EM ANDAMENTO? Leitura pura, sem os efeitos de

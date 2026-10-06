@@ -28,7 +28,13 @@ RAIZ = pathlib.Path(__file__).resolve().parent.parent
 # lista de proposito: ela mede E desenha, e nao passava por i18n.
 DESENHO = ("txt_linha", "txt_linha_corta", "txt_linha_familia",
            "txt_linha_corta_familia", "txt_bloco", "txt_bloco_dir",
-           "txt_tracking")
+           "txt_tracking",
+           # Os atalhos do registro do app (registro_ilha.inc, registro_envio.inc,
+           # desempenho.c, telemetria.c): todos passam o texto por txt_linha /
+           # txt_bloco / txt_tracking, que traduzem.
+           "rgT", "rgTC", "rgTT", "rgBloco", "rgKicker", "rgK2", "rgCaps",
+           "rgStat", "rgCartNota", "rgBotao", "rgKbdTexto", "rgCabecalho",
+           "rgSeguindo", "rgBlocoAltura", "dsT", "tlT", "tlCaps", "tlBotao")
 
 # Um literal em C pode vir partido ("abc" "def") e com escapes. Junta e decodifica.
 LIT = re.compile(r'"((?:[^"\\]|\\.)*)"(?:\s*"((?:[^"\\]|\\.)*)")*')
@@ -204,7 +210,9 @@ NAO_E_TELA = ("printf", "fprintf", "puts", "fputs", "perror", "marco",
               "strcmp", "strncmp", "strcasecmp", "strstr", "strchr", "strrchr",
               "getenv", "setenv", "fopen", "unlink", "remove", "rename",
               "mkdir", "system", "dlopen", "dlsym", "js_", "jsw_", "rede_",
-              "curl_", "SDL_Log", "addons_buscar", "cat_indice_por",
+              "curl_", "SDL_Log",
+              # motivo de log da fonte guardada (fontevolta.h): nunca tela
+              "fontevolta_", "addons_buscar", "cat_indice_por",
               "idioma_registrar", "assert", "_Static_assert",
               "EM_ASM", "MAIN_THREAD",
               # NOME DE ICONE NAO E TEXTO. gfx_icone recebe o basename do SVG
@@ -216,7 +224,10 @@ NAO_E_TELA = ("printf", "fprintf", "puts", "fputs", "perror", "marco",
               "tex_obter", "tex_arquivo",
               # DADO DE MENTIRA da central de avisos (NUVIO_AVISOS_DEMO): imita
               # o que a rede traria, nao e rotulo de tela.
-              "demoAviso")
+              "demoAviso",
+              # LEITOR DE JSON de recomenda.c: objeto(r, "agora") e chave da
+              # resposta do servidor, nao rotulo.
+              "objeto(")
 
 RE_DESENHO = re.compile(
     r"(?<![A-Za-z0-9_])(" + "|".join(DESENHO) + r")\s*\(")
@@ -247,21 +258,118 @@ def contexto(txt, i):
 # "nao sei o que e": sem esta lista a ferramenta nao pode virar teste, e sem
 # virar teste ela nao impede a proxima regressao.
 IGNORAR = {
+    # RC 1.8 triage, each checked in the source:
+    # - sync.c NOME[] are the labels of the "[sync] etapas" LOG line; "ver" is a
+    #   field name in the jellyfin conta file; "forcé" is a pattern legref.c
+    #   letreiro() matches against track names (comparison data, like "português").
+    "biblioteca", "ver", "forcé",
+    # - pluginjs.c error texts only go to the "[plugins] <nome>: ..." log line
+    #   (plugins.c prints res.erro; no screen draws it).
+    "cabecalhos maiores que o teto", "callback do fetch", "codigo do scraper",
+    "orcamento de rede dos plugins esgotado", "resposta maior que o teto",
+    "sem contexto (orcamento)", "sem memoria", "sem runtime (orcamento)",
+    "prazo de %d ms",
+    # - salvospainel.c: the format sits in a CtxExtra initializer and ctxmenu.c
+    #   (ctx confirmation, i18n(x0->pergunta)) translates it; the key is in idioma_tab.h.
+    "Remover %s dos amigos?",
+    # Registro do app (03/10): etiquetas de area do log ([fonte], [legendas])
+    # que registro.c procura para agrupar as linhas, icones passados aos
+    # atalhos de desenho, e nomes proprios/arquivos que nao se traduzem.
+    "fonte", "legendas", "aj_info", "aj_rotate-cw", "nuvio.log", "libcurl",
+    "Mac", "webOS", "Samsung .wgt", "Samsung",
+    # Ajustes no Glass UI (03/10): a unidade "Mbps" e universal (mesma em
+    # todas as linguas); a chave de fileira de mentira da captura de Ajustes
+    # (ajustes_teste_quadro) e a subpasta da arte embarcada (ajArte) nao sao
+    # texto de tela.
+    "Mbps", "com.linvo.cinemeta_movie_top", "poster/",
+    # Guia de uso (03/10): ids dos quadros do mockup em ajustesTesteGuia e o
+    # id de entrada do guia.json que eles apontam. So a captura usa; nunca
+    # vao para a tela.
+    "guia-fontes", "guia-fileiras", "guia-legendas", "guia-vindo-do-whatsnew",
+    "h-fileiras",
+    # Palavra que a folha de Fontes PROCURA no nome/descricao do arquivo para
+    # saber se ha audio em portugues (streams.c, idiomaDa). Dado de comparacao,
+    # nunca texto desenhado.
+    "português",
+    # Trailer diagnostic gate IDs are log codes, never UI labels.
+    "dynamic-poster-hidden", "poster-wait",
+    # Identificadores de aplicativos; nunca apresentados como texto da interface.
+    'br.com.claro-now',
+    'br.com.claro.now.smarttvclient',
+    'com.amazon.amazonvideo.livingroom',
+    'com.apple.appletv',
+    'com.apple.atve.androidtv.appletv',
+    'com.disney.disneyplus',
+    'com.disney.disneyplus-prod',
+    'com.globo.globotv',
+    'com.google.android.youtube.tv',
+    'com.netflix.ninja',
+    'com.wbd.stream',
+
+    # Motivos do vigia da fonte guardada (fontevolta.c, fontevolta_decidir):
+    # vao so para o log "[voltafonte] recuo para a busca: <motivo>".
+    "erro do player", "clipe curto", "conferencia falhou",
+    # Hosts de provedor de poster/meta que levam a config no caminho
+    # (redeurl.c, rede_url_log): dado de comparacao, nunca tela. "com" casou
+    # com a lista de palavras de portugues.
+    "elfhosted.com", "ratingposterdb.com", "top-poster", "top-posters.com",
+    "toposters.com",
+    # Atalhos de e-mail do teclado (teclado.c, #216): digitam o pedaco de
+    # endereco, igual em toda lingua.
+    ".com", "@gmail.com", "@hotmail.com", "@outlook.com",
+    # Cartao da 1.7.2 (novidades172.c): a marca, igual em toda lingua, e o
+    # endereco de exemplo digitado na previa do login por e-mail.
+    "NUVIO LEGACY", "voce@gmail.com",
+    # Pedaco do printf "[tmdb] idioma dos metadados" (ajustes.c,
+    # ajustes_tmdb_idioma_relatar): o ternario fica numa linha sem o printf,
+    # entao NAO_E_TELA nao o ve. So log.
+    "da interface",
+    # Palavras que o nome PUBLICO do catalogo tem quando ele e um ranking; sao
+    # dado de comparacao de home.c (sinalRanking, layout Dinamica), nunca texto
+    # desenhado. "top", "popular" e "trending" ja nao acusam por serem ASCII.
+    "em alta", "mais vist", "tendência",
     "-perfil",                      # sufixo de nome de arquivo (ajustes.c)
+    "recomendacoes-perfil.txt",     # nome de arquivo do perfil publico (recomenda.c)
+    "amigos-vistos.txt",            # nome de arquivo das novidades vistas (socialvis.c)
+    "%s/poster/%02d.jpg",           # caminho da arte dos dados de exemplo (socialvis.c, so teste)
     "biblioteca.h", "catalogo.h", "fileiras.h", "perfil.h", "legenda.h",
     "perfil.txt",                   # #include e nome de arquivo
     "com.webos.media.client.nuvio", # id do cliente LS2
     "abrir", "buscar", "erro",      # nomes de operacao do bridge JS (video_tizen.c)
     "fontes", "legenda", "mais", "nao", "poster",  # chaves internas, nao rotulo
     "fileiras", "ordem-da-conta",  # partes do contexto no log de homeestado.c
+    # motivo do degrau no log "[gpu-nivel] nivel 1 -> 2 (...)" (gpunivel.c aplicar)
+    "GPU presa mesmo com efeitos leves: efeitos minimos",
     # Pontos de parada da volta condenada (descoberta.c, CONDENADA): so log.
     "antes de pedir os catalogos", "depois da atividade dos amigos",
     "depois do continuar assistindo", "depois dos catalogos",
     "depois dos manifestos", "esperando os catalogos", "lendo os manifestos",
+    # Motivos e origens do nivel de GPU (gpunivel.c): so vao ao nuvio.log.
+    "definido por gpun_definir_nivel", "nenhum", "padrao", "sem alvo interno",
+    "teto de tempo de medida",
+    "lento pela CPU ou pelo resto, nao pela GPU: menos pixel nao ajuda",
+    # .tpk: so vao ao nuvio.log / erro de compilacao / nome de arquivo.
+    "NV_TPK40 e so da libnuvio.so do Tizen 4/5; nunca junto com Emscripten",
+    "libEGL nao encontrada na TV", "libnuvio.staged.ver",
+    "sem recorte em 2 s, mostra assim", "sem tocando, mostra assim",
+    "sem recorte",
+    "eglMakeCurrent no fio do app falhou: 0x%x",
     "crédit", "crédito",            # palavra procurada no capitulo do MKV
     "episodio", "episódio",         # palavra procurada no nome do video TMDB (extras.c)
+    "película",                     # palavra de apoio da busca de manchetes em espanhol (noticias.c, PAR)
+    "seriál",                       # idem em tcheco e eslovaco (noticias.c, PAR)
+    # Nome NATIVO de um idioma no seletor (ajustes.c, V_IDIOMA): sem i18n de
+    # proposito, quem trocou para uma lingua que nao le precisa achar a sua.
+    "Türkçe",
+    # "Ola" escrito em cada idioma (novidades160.c, OLA): a cena dos idiomas
+    # mostra cada lingua nela mesma, sem traducao de proposito.
+    "Olá", "Xin chào",
+    # #158: dados, nao rotulo. A tabela de letras modificadoras (U+1D2C..)
+    # da normalizacao de nome de canal (epg.c) e uma palavra procurada no nome
+    # de categoria do Xtream para achar o pais da grade (guia.c).
+    "a?b?de?ghijklmn?o?prtuw", "românia",
     # Nome proprio e sigla: iguais nos dois idiomas.
-    "IMDb", "Trakt", "YouTube", "PIN", "AI-powered",
+    "IMDb", "Trakt", "YouTube", "PIN", "AI-powered", "NUVIO",
     # Tabela de acentos -> letra base da normalizacao de titulo (trailerapple.c):
     # dado, nao rotulo.
     "ÀÁÂÃÄÅàáâãäåÈÉÊËèéêëÌÍÎÏìíîïÒÓÔÕÖØòóôõöøÙÚÛÜùúûüÝýÿÑñÇç",
@@ -278,6 +386,13 @@ IGNORAR = {
     "# Fileiras da Home, escolha DESTE aparelho. Nunca e enviada para\n"
     "# a conta nem para o Trakt.\n",
     "%d addons · %d progressos · %d vistos · %d na lista · %d coleções%s",
+    # #215: as duas variantes do mesmo resumo de sync acima (servidor da conta
+    # fora do ar), o nome de arquivo da copia local (contacache.c) e a chave
+    # do aviso na ilha (app.c) — chave interna, nao rotulo.
+    "servidor da conta fora do ar (HTTP %d) · usando a cópia de %s",
+    "servidor da conta fora do ar (HTTP %d) · sem cópia salva",
+    "conta-%s-p%d.json", "conta-fora",
+    "conta-addons-pend-",  # prefixo de arquivo da fila offline, nunca texto de tela
     "hdr do pipeline: %s (fonte DV=%d)",
     # Tres marcos de video.c/video_tizen.c. O buffer e montado numa instrucao
     # e entregue a marco() na SEGUINTE, entao marco — que ja esta em
@@ -341,6 +456,15 @@ IGNORAR = {
     "faixa nao e ASS",
     "sem indice da faixa",
     "sem CueRelativePosition",
+    # Chave do JSON do worker (noticia.c, /v1/noticia) e fragmento de class
+    # HTML que o extrator descarta (leitura.c, "saiba-mais"): dado, nao rotulo.
+    '"titulo"', "saiba-mais",
+    # novidades20.c: textos da tabela CAP[] (e a lista B[] do resumo) com "%" no
+    # meio da frase ("200%"). Nao sao formato de snprintf: sao chaves, e o desenho
+    # passa cada uma por i18n() (novidades20.c, linhas de `i18n(e->t)`). Todas
+    # tem entrada em idioma_tab.h. "poster/%s.jpg" e um caminho de arquivo.
+    "Volume até 200%", "Tamanho padrão 80%", "Continuar assistindo · 58%",
+    "Cache de busca e volume até 200%", "poster/%s.jpg",
 }
 
 def sem_corpo_em_js(txt):
@@ -379,7 +503,13 @@ def varrer():
     chaves = chaves_da_tabela()
     faltando_tabela, faltando_i18n = {}, {}
     faltando_funcao = {}
-    for arq in sorted((RAIZ / "src").glob("*.c")):
+    src = RAIZ / "src"
+    arquivos = sorted(src.glob("*.c")) + [
+        src / nome for nome in ("ajustes_ux_tela.inc", "ajustes_ux_interacao.inc",
+                                "ajustes_ux_desenho.inc", "ajustes_ux_ilha.inc",
+                                "registro_ilha.inc", "registro_envio.inc") if (src / nome).exists()
+    ]
+    for arq in sorted(arquivos):
         if arq.name == "idioma.c":
             continue
         txt = arq.read_text(encoding="utf-8")

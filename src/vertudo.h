@@ -20,10 +20,14 @@ void vertudo_colecao(const ColFolder *folder);
 void vertudo_abrir(const char *base, const char *tipo, const char *catId,
                    const char *titulo);
 int  vertudo_aberta(void);
+// Some sem animar (o player saiu para a home: ilha_minimizar).
+void vertudo_fechar_seco(void);
 void vertudo_evento(const SDL_Event *e);
 void vertudo_atualizar(float dt, Uint32 agora);
 void vertudo_desenhar(Uint32 agora);
 // Indice no catalogo global do titulo que o dono abriu, ou -1. Consumido uma
 // vez: o roteador chama, abre o detalhe e a tela se fecha.
 int  vertudo_pediu_abrir(void);
+// 1 uma vez: ESQUERDA na coluna 0 pediu a barra lateral (abre por cima).
+int  vertudo_pediu_menu(void);
 #endif

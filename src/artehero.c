@@ -35,6 +35,11 @@ static const char *idLimpo(const char *imdb, char *dst, size_t tam) {
   dst[i] = 0;
   return dst;
 }
+static int idLimpoOk(const CatItem *item, char *dst, size_t tam) {
+  if (!item || strncmp(item->imdb, "tt", 2)) return 0;
+  idLimpo(item->imdb, dst, tam);
+  return dst[0] != 0;
+}
 
 static int (*jaFalhou)(const char *) = NULL;
 void artehero_definir_falhou(int (*falhou)(const char *caminho)) {
@@ -77,9 +82,29 @@ static int fundoOriginal(void) {
 #endif
 }
 
+// fixar() mora mais abaixo (anel de buffers); declarado aqui para o card.
+static const char *fixar(const char *u, const char *tmp);
+
+const char *artehero_url_metahub_fundo(const CatItem *item) {
+  char id[32], buf[256];
+  if (!idLimpoOk(item, id, sizeof id)) return NULL;
+  snprintf(buf, sizeof buf, "https://images.metahub.space/background/medium/%s/img", id);
+  return falhou(buf) ? NULL : fixar(buf, buf);
+}
+
 const char *artehero_url_card(const CatItem *item) {
   if (!item) return NULL;
   if (item->backdrop[0]) return item->backdrop;
+  // SEM FUNDO, A MESMA REGRA DO DESTAQUE (artehero_url): o metahub monta um
+  // por id do IMDb antes de cair no cartaz. O card deitado so tinha o cartaz,
+  // e o cartaz em pe dentro de um card deitado sai como uma faixa estreita no
+  // meio do escuro — "AI for you" na C9 (29/09), enquanto o destaque do mesmo
+  // titulo mostrava a foto larga certa.
+  { char id[32], buf[256];
+    if (idLimpoOk(item, id, sizeof id)) {
+      snprintf(buf, sizeof buf, "https://images.metahub.space/background/medium/%s/img", id);
+      if (!falhou(buf)) return fixar(buf, buf);
+    } }
   if (item->poster[0]) return item->poster;
   return NULL;
 }
@@ -89,7 +114,6 @@ const char *artehero_url_card(const CatItem *item) {
 // e com um `static char buf` so o segundo pedido reescrevia o primeiro: o hero
 // de Continuar assistindo desenhava o still do titulo anterior. fixar() esta
 // mais abaixo e e o mesmo anel das fontes.
-static const char *fixar(const char *u, const char *tmp);
 
 const char *artehero_url_episodio(const CatItem *item) {
   char buf[512];
@@ -508,10 +532,27 @@ static int mesmaFoto(const char *a, const char *b) {
   return mesmaImagem && mesmaImagem(a, b);
 }
 
+// "FUNDO DO DESTAQUE DO ADDON" (ajuste local, desligado de fabrica). Ligado,
+// o `background` que o addon mandou no catalogo vence a fonte escolhida e o
+// "outra arte" — so a escolha a mao (#142) vem antes. Conta como fundo do
+// addon: item com origem (veio de um catalogo de addon) e backdropCatalogo que
+// nao e o proprio poster (deMeta copia o poster quando o addon nao manda
+// fundo). Sem isso, ou se ja falhou, NULL e vale a politica de sempre.
+static int fundoAddon;
+void artehero_fundo_addon(int sim) { fundoAddon = sim ? 1 : 0; }
+static const char *urlAddon(const CatItem *item, int grande, char *tmp, size_t tam) {
+  const char *u;
+  if (!fundoAddon || !item || !item->origem[0] || !item->backdropCatalogo[0] ||
+      !strcmp(item->backdropCatalogo, item->poster)) return NULL;
+  u = urlDaFonte(item, ARTEHERO_CATALOGO, grande, tmp, tam);
+  return (u && !falhou(u)) ? u : NULL;
+}
+
 const char *artehero_url_card_fonte(const CatItem *item, int fonte, int diferente) {
   char tmp[512];
   const char *u;
   if (!item) return NULL;
+  if ((u = urlAddon(item, 0, tmp, sizeof tmp)) != NULL) return fixar(u, tmp);
   // Diferente LIGADO: o card fica com a arte do catalogo, sempre; a fonte
   // escolhida vai so para o destaque e o detalhe (regra no .h).
   if (diferente || fonte <= ARTEHERO_AUTO) return artehero_url_card(item);
@@ -542,6 +583,7 @@ const char *artehero_url_destaque(const CatItem *item, int fonte, int diferente)
   if (!item) return NULL;
   // A escolha a mao vence a fonte dos Ajustes e o "outra arte" (#142).
   if ((u = artehero_url_escolhida(item)) != NULL) return u;
+  if ((u = urlAddon(item, 1, tmp, sizeof tmp)) != NULL) return fixar(u, tmp);
   if (!diferente) {
     // PADRAO: a mesma imagem do card (19/09), agora com a fonte escolhida
     // valendo para os dois. Sem a fonte, a arte automatica.

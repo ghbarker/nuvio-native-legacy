@@ -26,6 +26,16 @@ int main(void) {
   ok("en casa com eng",   ling_casa("eng", "en"));
   ok("es NAO casa com pt", !ling_casa("spa", "pt"));
 
+  // Subs.ro emits ISO 639-2/T ron; MKV often uses bibliographic rum.
+  ok("ro accepts Subs.ro ron", ling_casa("ron", "ro"));
+  ok("rum accepts ron", ling_casa("ron", "rum"));
+  ok("ron accepts ro", ling_casa("ro", "ron"));
+  ok("ron does not accept English", !ling_casa("eng", "ron"));
+  ok("ron display name", !strcmp(ling_nome("ron"), "Romeno"));
+  { const char *roAddon[] = { "ron" };
+    ok("auto selects Subs.ro Romanian", ling_legenda_auto("ro", NULL, 0, 1, roAddon, 1, 1) == 0);
+  }
+
   // Codigo desconhecido pelos dois lados: comparacao crua, sem inventar.
   ok("glg casa com glg",  ling_casa("glg", "glg"));
   ok("glg nao casa cat",  !ling_casa("glg", "cat"));
@@ -71,6 +81,29 @@ int main(void) {
        ling_legenda_auto("", emb, 2, 1, add, 2, 1) == LING_AUTO_NADA);
     ok("auto: none nao liga",
        ling_legenda_auto("none", emb, 2, 1, add, 2, 1) == LING_AUTO_NADA); }
+
+  // Faixa so de LETREIROS: pelo nome ou pela FlagForced; a faixa inteira que
+  // tambem traz as placas ("Full + Songs") nao e letreiro.
+  ok("letreiro: Signs & Songs", ling_letreiro("Signs & Songs", 0));
+  ok("letreiro: English [Forced]", ling_letreiro("English [Forced]", 0));
+  ok("letreiro: songs", ling_letreiro("songs", 0));
+  ok("letreiro: Português (Forçada)", ling_letreiro("Portugu\xc3\xaas (For\xc3\xa7" "ada)", 0));
+  ok("letreiro: flag do arquivo", ling_letreiro("", 1));
+  ok("letreiro: Full nao", !ling_letreiro("Full + Songs", 0));
+  ok("letreiro: SDH nao", !ling_letreiro("English SDH", 0));
+  ok("letreiro: Design nao e sign", !ling_letreiro("Design", 0));
+  ok("letreiro: sem nome nem flag", !ling_letreiro(NULL, 0));
+
+  // Idioma pelo NOME da faixa, so quando ele diz um idioma com todas as letras.
+  { const char *c;
+    c = ling_do_nome("Portugu\xc3\xaas");      ok("nome: Português = por", c && !strcmp(c, "por"));
+    c = ling_do_nome("Brazilian Portuguese");  ok("nome: Brazilian Portuguese = pob", c && !strcmp(c, "pob"));
+    c = ling_do_nome("English SDH");           ok("nome: English SDH = eng", c && !strcmp(c, "eng"));
+    c = ling_do_nome("Espa\xc3\xb1ol (Latino)"); ok("nome: Español = spa", c && !strcmp(c, "spa"));
+    ok("nome: Signs & Songs nao diz idioma", !ling_do_nome("Signs & Songs"));
+    ok("nome: dois idiomas = nenhum", !ling_do_nome("English / Portuguese"));
+    ok("nome: Full nao diz idioma", !ling_do_nome("Full"));
+    ok("nome: vazio", !ling_do_nome("")); }
 
   if (falhas) { printf("%d falha(s)\n", falhas); return 1; }
   printf("linguas ok\n");

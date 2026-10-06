@@ -1,4 +1,4 @@
-// PONTEIRO DO MAGIC REMOTE (issue #99).
+// PONTEIRO DO MAGIC REMOTE (#99) E TOQUE DIRETO (#216).
 //
 // COMO ELE CHEGA. No webOS o ponteiro e um wl_pointer do compositor, e o SDL
 // da LG o entrega como mouse comum: SDL_MOUSEMOTION em coordenadas da janela,
@@ -30,8 +30,11 @@
 //     barra de tempo do player, o fundo que fecha uma folha) chama ele em vez
 //     do OK.
 //   - RODINHA vira seta: cima/baixo, e esquerda/direita na rodinha lateral.
-//   - SETA DO CONTROLE esconde o cursor; ele volta no proximo movimento. Parado
-//     alguns segundos ele some sozinho.
+//   - DEDO (#216): tocar = focar + OK; arrastar rola (vira setas, com
+//     inercia na soltura); arrastar sobre alvo arrastavel chama o ativar.
+//   - SETA DO CONTROLE esconde o cursor; ele volta com um movimento de
+//     verdade (janela curta e limiar de distancia: o tremor de quem aperta a
+//     seta nao conta). Parado alguns segundos ele some sozinho.
 //
 // CUSTO ZERO SEM PONTEIRO: com o cursor escondido ponteiro_alvo() retorna na
 // primeira linha e nada e desenhado. Quem nunca pega o Magic Remote paga uma
@@ -53,6 +56,7 @@ typedef struct {
   PonteiroFn ativar;   // clique proprio no lugar do OK. Pode ser NULL.
                        // Os dois NULL = anteparo: absorve o clique, nao faz nada.
   int a, b;
+  int arrasta;         // ponteiro_alvo_arrastavel: o dedo arrasta, nao rola
 } PonteiroAlvo;
 
 void ponteiro_iniciar(void);
@@ -73,12 +77,22 @@ void ponteiro_quadro(Uint32 agora);
 // cursor (sem ele e so a troca de lista).
 void ponteiro_desenhar(void);
 
-// Vale a pena registrar alvos? (cursor na tela)
+// Vale a pena registrar alvos? Cursor na tela ou dispositivo de toque. No
+// Android os alvos existem antes do primeiro dedo, sem desenhar cursor.
 int  ponteiro_ativo(void);
 
 void ponteiro_alvo(float x, float y, float w, float h,
                    PonteiroFn focar, PonteiroFn ativar, int a, int b);
 void ponteiro_camada(void);
+// Marca o ULTIMO alvo registrado como arrastavel por dedo (#216): arrastar
+// sobre ele chama o `ativar` a cada movimento, em vez de rolar a tela. E a
+// barra de tempo do player.
+void ponteiro_alvo_arrastavel(void);
+// 1 enquanto focar/ativar estao rodando por causa de um DEDO (e nao do Magic
+// Remote). O player usa para tocar = mostrar controles e arrastar = procurar.
+int  ponteiro_toque(void);
+// Ha tela de toque (Android, ou um dedo ja chegou): alvos pequenos crescem.
+int  ponteiro_tem_toque(void);
 
 // Posicao logica atual (para quem ativa por coordenada, como a barra de tempo).
 float ponteiro_x(void);
@@ -92,5 +106,9 @@ int  ponteiro_achar(const PonteiroAlvo *v, int n, float x, float y);
 void ponteiro_teste_relogio(Uint32 (*fn)(void));
 // Tamanho da janela para a conversao janela -> logico (0 = SDL_GetWindowSize).
 void ponteiro_teste_janela(int w, int h);
+// Disponibilidade de toque injetavel, sem precisar de hardware no teste.
+void ponteiro_teste_toque(int ligado);
+// SDL_webOSCursorVisibility de mentira (so com -DNV_PONT_WEBOS_TESTE).
+void ponteiro_teste_cursor_sistema(SDL_bool (*fn)(SDL_bool));
 
 #endif

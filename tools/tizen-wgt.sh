@@ -93,6 +93,9 @@ else
   cp deploy/app/icon.png "$ESTAGIO"/icon.png
 fi
 
+# (A abertura em HTML e neutra desde o 2.0 N1b: sem icone do app nela, entao
+# nao ha mais icones-app/ solto no pacote.)
+
 # CONFERE ANTES DE FECHAR. Um .wgt sem o .wasm instala, abre e fica preto — o
 # mesmo tipo de falha muda que ja mordeu o empacotamento Tizen do fork em
 # JavaScript, que saiu sem player.chunk.js e so falhou na TV.

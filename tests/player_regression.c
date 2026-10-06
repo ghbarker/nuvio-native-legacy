@@ -46,6 +46,7 @@ static void teclaPlayer(SDL_Keycode k) {
 }
 static void teclaMenu(SDL_Keycode k) {
   SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=k;menu_evento(&e);
+  e.type=SDL_KEYUP;menu_evento(&e);
 }
 static void testar(void) {
   perfil_iniciar();perfil_abrir();
@@ -154,26 +155,26 @@ static void testar(void) {
   assert(strstr(player_linha_episodio(), ajustes_idioma_ingles() ? "S2E4" : "T2E4"));
   assert(strstr(player_linha_episodio(),"Episódio 24"));
   assert(player_proximo_episodio()&&player_proximo_episodio()->temporada==2&&player_proximo_episodio()->episodio==5);
-  teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RETURN);
-  assert(player_pediu_faixas()==2); /* Play, proporção, legendas: sem saltos. */
+  teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RETURN);
+  assert(player_pediu_faixas()==2); /* Play, legendas (ordem do Glass UI): sem saltos. */
   assert(player_controles_visiveis());
   teclaPlayer(SDLK_DOWN);assert(!player_controles_visiveis());
   teclaPlayer(SDLK_DOWN);assert(player_controles_visiveis());
-  teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RETURN);
-  assert(player_pediu_fontes());
+  teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RETURN);
+  assert(player_pediu_fontes());   /* legendas -> audio -> proporcao -> fontes */
   assert(player_carregando());player_encerrar();
   // #109: a tecla que revela os controles decide o foco. Com o foco em
   // Legendas e os controles escondidos, OK pausa e os controles sobem NO PLAY
   // — o OK seguinte alterna de novo em vez de abrir a folha de legendas.
   // Sessao sem URL tambem nao tem video proprio (registro 1518).
   player_abrir(0,NULL);assert(!player_tem_video());player_definir_episodio(2,4);
-  teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);      // foco em Legendas
+  teclaPlayer(SDLK_RIGHT);      // foco em Legendas
   teclaPlayer(SDLK_DOWN);assert(!player_controles_visiveis());
   teclaPlayer(SDLK_RETURN);assert(player_controles_visiveis());
   teclaPlayer(SDLK_RETURN);assert(player_pediu_faixas()==0);
   // A tecla fisica Play/Pause (SDLK_PAUSE, traduzida pela casca da Samsung)
   // com os controles EM PE e o foco em Legendas: alterna, nao abre a folha.
-  teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);
+  teclaPlayer(SDLK_RIGHT);
   teclaPlayer(SDLK_PAUSE);teclaPlayer(SDLK_RETURN);assert(player_pediu_faixas()==0);
   player_encerrar();
   // #122: o texto que o AVPlay entrega no onsubtitlechange vira texto puro
@@ -213,7 +214,7 @@ static void testar(void) {
   assert(!player_so_barra());
   teclaPlayer(SDLK_RETURN);assert(player_controles_visiveis());   // OK no Play: alterna
   { float p1=player_posicao_seg();
-    teclaPlayer(SDLK_RIGHT);teclaPlayer(SDLK_RIGHT);
+    teclaPlayer(SDLK_RIGHT);
     assert(!player_foco_na_barra()&&player_posicao_seg()==p1);
     teclaPlayer(SDLK_RETURN);assert(player_pediu_faixas()==2); }   // Legendas
   // Escondido de novo por BAIXO e revelado por BAIXO: fileira, nao barra.
@@ -224,6 +225,24 @@ static void testar(void) {
   teclaPlayer(SDLK_DOWN);assert(!player_controles_visiveis());
   teclaPlayer(SDLK_LEFT);assert(player_so_barra());
   teclaPlayer(SDLK_RETURN);assert(player_controles_visiveis()&&!player_so_barra());
+  player_encerrar();
+  // FOCO NA BARRA (pedido do dono, 03/10): a fileira de botoes FECHA e volta
+  // quando o foco desce; e CIMA na barra nao faz NADA — abria o Audio.
+  player_abrir(0,NULL);player_definir_episodio(2,4);
+  assert(player_controles_visiveis()&&!player_foco_na_barra());
+  { Uint32 t0=SDL_GetTicks();int i;
+    for(i=0;i<60;i++)player_atualizar(1.f/60,t0);
+    assert(player_fileira()>0.95f);
+    teclaPlayer(SDLK_UP);assert(player_foco_na_barra());
+    for(i=0;i<60;i++)player_atualizar(1.f/60,t0);
+    assert(player_fileira()<0.05f);
+    teclaPlayer(SDLK_UP);
+    assert(player_pediu_faixas()==0&&player_foco_na_barra()&&player_controles_visiveis());
+    teclaPlayer(SDLK_UP);teclaPlayer(SDLK_UP);
+    assert(player_pediu_faixas()==0&&player_foco_na_barra());
+    teclaPlayer(SDLK_DOWN);assert(!player_foco_na_barra()&&player_controles_visiveis());
+    for(i=0;i<60;i++)player_atualizar(1.f/60,t0);
+    assert(player_fileira()>0.95f); }
   player_encerrar();
   strcpy(c.tipo,"movie");cat_definir(&c,1);player_abrir(0,NULL);
   player_definir_episodio(2,4);assert(!player_linha_episodio()[0]);
@@ -308,6 +327,9 @@ static void testar(void) {
   //   E o que NAO acabou continua nao acabando: metade do episodio nao marca
   //   nada, com ou sem marcador.
   assert(!player_regra_concluiu(540,1080,0) && !player_regra_proximo(540,1080,0));
+  /* R8: the old 10% window refused credits at 1346s of 1500s (154s left). */
+  assert(player_regra_proximo(1346,1500,1346) && !player_regra_proximo(1300,1500,1346));
+  assert(!player_regra_proximo(1200,1500,1100));   /* 400s left: still refused */
   assert(!player_regra_concluiu(0,0,0));      // sem duracao nao ha o que concluir
 
   // Ordem da rail: Inicio, Explorar, Guia TV, Busca. Um DOWN para em Explorar,
@@ -346,10 +368,20 @@ static void testar(void) {
     cat_definir(&tv,1);
     player_abrir(0,NULL);
     assert(player_aberto());
+    // ZAPPING COM DEBOUNCE (aovivo.h): o toque NAO troca na hora — soma, e o
+    // pedido sai 600 ms depois do ultimo toque com o deslocamento total.
     { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.scancode=480; /* CH_UP */
-      player_evento(&e);assert(player_pediu_zap()==1 && !player_pediu_zap()); }
+      player_evento(&e);assert(player_pediu_zap()==0);
+      player_atualizar(0.016f,SDL_GetTicks()+100);assert(player_pediu_zap()==0);
+      player_atualizar(0.016f,SDL_GetTicks()+900);
+      assert(player_pediu_zap()==1 && !player_pediu_zap()); }
     { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.scancode=481; /* CH_DOWN */
-      player_evento(&e);assert(player_pediu_zap()==-1); }
+      player_evento(&e);player_evento(&e);
+      player_atualizar(0.016f,SDL_GetTicks()+900);assert(player_pediu_zap()==-2); }
+    // CH+ e CH- que se cancelam nao trocam nada.
+    { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.scancode=480;
+      player_evento(&e);e.key.keysym.scancode=481;player_evento(&e);
+      player_atualizar(0.016f,SDL_GetTicks()+900);assert(player_pediu_zap()==0); }
     { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=SDLK_DOWN;
       player_evento(&e);assert(player_pediu_guia()==1 && !player_pediu_guia()); }
     { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.scancode=489; /* BLUE */
@@ -367,7 +399,7 @@ static void testar(void) {
     { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=SDLK_DOWN;
       player_evento(&e);assert(player_pediu_guia()==1); }
     { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.scancode=480;
-      player_evento(&e);assert(player_pediu_zap()==1); }
+      player_evento(&e);player_atualizar(0.016f,SDL_GetTicks()+900);assert(player_pediu_zap()==1); }
     // player_marcar_canal: quem abriu pelo guia marca a sessao mesmo que o
     // indice ja tenha vindo errado de uma republicacao anterior.
     player_encerrar();
@@ -412,7 +444,7 @@ static void captura(const char *nome,SDL_Window *win,int painel) {
       for(int k=0;k<3;k++) {
         GfxRect r={180+k*470.f,360,440,248};
         gfx_cor(r,.045f,.18f+.05f*k,.24f,.30f,1);
-        continuar_desenhar(&c,r);
+        continuar_desenhar(&c,r,.045f);
       }
       menu_atualizar(1.f/60,SDL_GetTicks());menu_desenhar(SDL_GetTicks());
     }

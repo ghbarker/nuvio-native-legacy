@@ -30,10 +30,19 @@ typedef struct { double inicio,fim; int tipo; } IntroTrecho;
 enum { INTRO_ABERTURA=1, INTRO_RESUMO=2, INTRO_CREDITOS=3 };
 // `temporada` e `episodio` ZERO = filme: a consulta sai so com o imdb.
 void intro_pedir(const char *imdb,int temporada,int episodio);
+// Igual a intro_pedir, mas diz a duracao (s) dos episodios E-1 e E+1 quando o
+// catalogo sabe (0 = desconhecida): sem marcador deste episodio, o marcador de
+// um vizinho vira "quanto falta para o fim". Ver credfonte.h.
+void intro_pedir_vizinhos(const char *imdb,int temporada,int episodio,double durAnt,double durProx);
 void intro_desligar(void);
 int  intro_ativo(double posSeg,double *fim,int *tipo);
 // Segundo em que os creditos comecam, ou 0 quando nao ha marcador. Serve ao
 // posplay.c, que precisa do INSTANTE e nao de "estou dentro".
 double intro_creditos_seg(void);
 int  intro_extrair(const char *json,IntroTrecho *saida,int max);
+// Copia ate `max` trechos conhecidos; devolve quantos.
+int  intro_trechos(IntroTrecho *saida,int max);
+#ifdef NV_SHOT_HOOKS
+void intro_shot_definir(const IntroTrecho *v,int n);   // capturas: trechos fixos
+#endif
 #endif

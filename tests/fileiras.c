@@ -145,8 +145,99 @@ int main(void) {
   //    duas listas de chaves: quem acrescentar uma chave sintetica nova teria
   //    de lembrar das duas.
   for (i = 0; i < fil_n(); i++)
-    assert(fil_aceita_tipo(i) == (fil_linha_origem(i) == FIL_ORIGEM_CATALOGO));
-  puts("ok  so catalogo de addon escolhe a forma do card");
+    assert(fil_aceita_tipo(i) == (fil_linha_origem(i) != FIL_ORIGEM_APP));
+  puts("ok  catalogo e colecao escolhem a forma do card; fileira do app nao");
+
+  // 6b. ESTILO PELO MENU DO CARTAZ. O menu grava o MESMO `tipo` da tela de
+  //     Ajustes; colecao so aceita as formas dela, e o ciclo dos Ajustes pula
+  //     o resto.
+  { int tipos[FIL_TIPO_N], n, k, col = -1, cat = -1; const char *rot[FIL_TIPO_N];
+    fil_registrar("collection_formas", "Formas", "", "", 3);
+    fil_registrar("addon_movie_formas", "Formas cat", "Addon", "movie", 3);
+    n = fil_estilos("addon_movie_formas", tipos, rot, FIL_TIPO_N);
+    // TODAS as formas de FilTipo, cada uma uma vez (o modal de estilo nao tem
+    // mais o teto de sete linhas do menu que deixava o 4:3 e a faixa de fora).
+    // Ordem das LINHAS do modal achatada: as tres paisagens juntas (a linha
+    // "Paisagem"), a faixa, os tres 4:3 juntos, os rankings.
+    assert(n == FIL_TIPO_N && tipos[0] == FIL_TIPO_AUTO && tipos[1] == FIL_TIPO_CARTAZ &&
+           tipos[2] == FIL_TIPO_SERVICO && tipos[3] == FIL_TIPO_COLECAO &&
+           tipos[4] == FIL_TIPO_DESTAQUE && tipos[5] == FIL_TIPO_LARGA &&
+           tipos[6] == FIL_TIPO_DESTAQUE_QUADRADO &&
+           tipos[7] == FIL_TIPO_DESTAQUE_QUADRADO_M &&
+           tipos[8] == FIL_TIPO_DESTAQUE_QUADRADO_G && !strcmp(rot[2], "Paisagem pequena"));
+    { int visto[FIL_TIPO_N] = {0}, k;
+      for (k = 0; k < n; k++) { assert(!visto[tipos[k]]); visto[tipos[k]] = 1; } }
+    // Issue #201: os dois rankings no menu, o numerado (Dinamica) primeiro.
+    assert(tipos[9] == FIL_TIPO_RANKING && tipos[10] == FIL_TIPO_TOP10 &&
+           !strcmp(rot[9], "Ranking numerado"));
+    // AS LINHAS: o que so muda de tamanho divide uma linha so.
+    { FilEstiloLinha l[FIL_TIPO_N];
+      int nl = fil_estilo_linhas("addon_movie_formas", l, FIL_TIPO_N);
+      assert(nl == 7);
+      assert(!strcmp(l[2].rotulo, "Paisagem") && l[2].n == 3 &&
+             l[2].tipos[0] == FIL_TIPO_SERVICO && l[2].tipos[2] == FIL_TIPO_DESTAQUE &&
+             !strcmp(l[2].nomes[2], "Paisagem grande"));
+      assert(!strcmp(l[4].rotulo, "Destaque 4:3") && l[4].n == 3 &&
+             l[4].tipos[0] == FIL_TIPO_DESTAQUE_QUADRADO &&
+             l[4].tipos[2] == FIL_TIPO_DESTAQUE_QUADRADO_G);
+      for (k = 0; k < nl; k++) if (k != 2 && k != 4) assert(l[k].n == 1);
+      assert(fil_estilo_linhas("collection_formas", l, FIL_TIPO_N) == 4 && l[1].n == 1);
+      assert(fil_estilo_linhas("continue_watching", l, FIL_TIPO_N) == 0); }
+    // OS 4:3 MAIORES: a mesma forma, com fator. O 6 gravado de antes continua
+    // sendo o 4:3 de sempre (fator 1), e o Tamanho Grande nao passa do teto.
+    assert(fil_definir_tipo("addon_movie_formas", FIL_TIPO_DESTAQUE_QUADRADO));
+    assert(fil_escala("addon_movie_formas") == 1.0f);
+    assert(fil_definir_tipo("addon_movie_formas", FIL_TIPO_DESTAQUE_QUADRADO_G));
+    assert(fil_tipo("addon_movie_formas") == FIL_TIPO_DESTAQUE_QUADRADO_G);
+    assert(fil_escala("addon_movie_formas") == 1.5f);
+    assert(fil_escala_tipo("addon_movie_formas", FIL_TIPO_DESTAQUE_QUADRADO_M) == 1.25f);
+    assert(fil_escala_tipo("addon_movie_formas", FIL_TIPO_CARTAZ) == 1.0f);
+    assert(!fil_definir_tipo("collection_formas", FIL_TIPO_DESTAQUE_QUADRADO_M));
+    assert(fil_estilo_ajuda("addon_movie_formas", FIL_TIPO_DESTAQUE_QUADRADO_G)[0]);
+    assert(!strcmp(fil_tipo_rotulo(FIL_TIPO_DESTAQUE_QUADRADO_G), "Destaque 4:3 grande"));
+    for (k = 0; k < fil_n(); k++)
+      if (!strcmp(fil_chave(k), "addon_movie_formas")) {
+        while (fil_linha_tam(k) != FIL_TAM_GRANDE) fil_ciclar_tam(k);
+        assert(fil_escala("addon_movie_formas") == 1.5f);              // teto
+        assert(fil_escala_tipo("addon_movie_formas", FIL_TIPO_DESTAQUE_QUADRADO_M) == 1.5f);
+        assert(fil_escala_tipo("addon_movie_formas", FIL_TIPO_DESTAQUE_QUADRADO) == 1.2f);
+        while (fil_linha_tam(k) != FIL_TAM_PADRAO) fil_ciclar_tam(k);
+      }
+    assert(fil_definir_tipo("addon_movie_formas", FIL_TIPO_LARGA));
+    assert(fil_tipo("addon_movie_formas") == FIL_TIPO_LARGA);
+    assert(!fil_definir_tipo("collection_formas", FIL_TIPO_LARGA));   // colecao nao
+    assert(fil_estilo_ajuda("addon_movie_formas", FIL_TIPO_LARGA)[0]);
+    assert(strcmp(fil_estilo_ajuda("collection_formas", FIL_TIPO_CARTAZ),
+                  fil_estilo_ajuda("addon_movie_formas", FIL_TIPO_CARTAZ)));
+    assert(fil_definir_tipo("addon_movie_formas", FIL_TIPO_RANKING));
+    assert(fil_tipo("addon_movie_formas") == FIL_TIPO_RANKING);
+    assert(!fil_definir_tipo("collection_formas", FIL_TIPO_RANKING));   // colecao nao
+    n = fil_estilos("collection_formas", tipos, rot, 8);
+    assert(n == 4 && tipos[1] == FIL_TIPO_COLECAO &&
+           tipos[2] == FIL_TIPO_DESTAQUE_QUADRADO && tipos[3] == FIL_TIPO_CARTAZ);
+    assert(fil_estilos("continue_watching", tipos, rot, 8) == 0);
+    assert(!fil_definir_tipo("continue_watching", FIL_TIPO_CARTAZ));
+    assert(!fil_definir_tipo("collection_formas", FIL_TIPO_TOP10));   // nao e forma de colecao
+    assert(fil_definir_tipo("collection_formas", FIL_TIPO_CARTAZ));
+    assert(fil_tipo("collection_formas") == FIL_TIPO_CARTAZ);
+    assert(!strcmp(fil_estilo_rotulo("collection_formas", FIL_TIPO_CARTAZ), "Pôster"));
+    assert(fil_definir_tipo("addon_movie_formas", FIL_TIPO_SERVICO));
+    assert(fil_tipo("addon_movie_formas") == FIL_TIPO_SERVICO);
+    for (k = 0; k < fil_n(); k++) {
+      if (!strcmp(fil_chave(k), "collection_formas")) col = k;
+      if (!strcmp(fil_chave(k), "addon_movie_formas")) cat = k;
+    }
+    assert(col >= 0 && cat >= 0);
+    assert(!strcmp(fil_linha_tipo_rotulo(col), "Pôster"));
+    assert(!strcmp(fil_linha_tipo_rotulo(cat), fil_tipo_rotulo(FIL_TIPO_SERVICO)));
+    // Ciclo dos Ajustes numa colecao: Poster -> Automatico -> Paisagem -> Quadrado.
+    fil_ciclar_tipo(col); assert(fil_linha_tipo(col) == FIL_TIPO_AUTO);
+    fil_ciclar_tipo(col); assert(fil_linha_tipo(col) == FIL_TIPO_COLECAO);
+    fil_ciclar_tipo(col); assert(fil_linha_tipo(col) == FIL_TIPO_DESTAQUE_QUADRADO);
+    fil_ciclar_tipo(col); assert(fil_linha_tipo(col) == FIL_TIPO_CARTAZ);
+    fil_definir_tipo("collection_formas", FIL_TIPO_AUTO);
+    fil_definir_tipo("addon_movie_formas", FIL_TIPO_AUTO); }
+  puts("ok  estilo da fileira: menu e Ajustes gravam o mesmo tipo");
 
   // 7. O QUE ACOMPANHA A ORIGEM. Addon e tipo: o PRIMEIRO que souber preenche,
   //    porque sao dois registradores (descoberta e home) e so um conhece o
@@ -726,6 +817,178 @@ int main(void) {
   fil_definir_perfil(0);
   usaArquivo = 0;
   puts("ok  fileirasui.txt antigo semeia so o perfil 1");
+
+  // ISSUE #197 (UA55TU8200, Tizen 5.5): segurar a seta no "limite de
+  // fileiras" passava por cada valor, e CADA passo para baixo mandava para
+  // "Fora da Home" o que ficou alem dele. Log 12448: limite 15 -> 3 -> 20 e a
+  // home ficou com "2 fileiras na tela (limite 20, 16 fileira(s) no
+  // catalogo)". Agora a rajada so vale no fim da edicao, e so o valor final.
+  fil_esquecer();
+  fil_definir_limite(10);
+  { int j, ocultas;
+    char n[12][8];
+    for (j = 0; j < 12; j++) { snprintf(n[j], sizeof n[j], "r%d", j); fil_registrar(n[j], n[j], "X", "movie", 1); }
+    for (j = 10; j >= 3; j--) fil_ajustar_limite(j);    // desce ate 3...
+    for (j = 4; j <= 20; j++) fil_ajustar_limite(j);    // ...e sobe ate 20
+    fil_confirmar_limite();
+    for (ocultas = 0, j = 0; j < fil_n(); j++) if (fil_linha_oculta(j)) ocultas++;
+    assert(ocultas == 0 && fil_limite() == 20 && fil_n_na_home() == 12);
+    // Rajada que TERMINA mais baixa: vale a decisao do dono, fora da home.
+    for (j = 19; j >= 5; j--) fil_ajustar_limite(j);
+    assert(fil_n_na_home() == 5 && fil_n_fila() == 7);   // antes de confirmar: nada escondido
+    fil_confirmar_limite();
+    for (ocultas = 0, j = 0; j < fil_n(); j++) if (fil_linha_oculta(j)) ocultas++;
+    assert(ocultas == 7 && fil_n_fila() == 0);
+    fil_confirmar_limite();                              // sem rajada: nada
+    for (ocultas = 0, j = 0; j < fil_n(); j++) if (fil_linha_oculta(j)) ocultas++;
+    assert(ocultas == 7); }
+  puts("ok  #197: rajada no limite so esconde pelo valor final");
+
+  // ISSUE #197, a outra metade: catalogo que a cota deixou de fora entra na
+  // lista para ESCOLHA (fil_registrar_se_couber) e entrava LIGADO. Com vagas
+  // sobrando na home (a rajada acima as abria), ele ficava dentro do limite,
+  // fil_escolhida o dava como escolhido na TV e a volta seguinte o pedia: as
+  // fileiras de ator do Xperience em ordem de manifesto (Mahershala Ali,
+  // Matthew McConaughey...) apareceram na home sem ninguem as escolher.
+  fil_esquecer();
+  fil_definir_limite(20);
+  { int j, est = -1, pf = -1;
+    fil_registrar("cw", "Continuar", "", "", 3);
+    fil_registrar("cand", "Trending", "Xperience", "movie", 12);
+    fil_registrar_se_couber("fora_a", "Mahershala Ali", "Xperience", "movie");
+    fil_registrar_se_couber("fora_b", "Matthew McConaughey", "Xperience", "movie");
+    assert(fil_escolhida("fora_a") < 0 && fil_escolhida("fora_b") < 0);
+    assert(fil_escolhida("cand") == 1);
+    for (j = 0; j < fil_n(); j++) {
+      if (!strcmp(fil_chave(j), "fora_a")) { assert(fil_estado(j) == FIL_FORA); pf = j; }
+      if (!strcmp(fil_chave(j), "fora_b")) assert(fil_estado(j) == FIL_FORA);
+    }
+    // Nao e escolha da pessoa: a cota nao o trata como desligado (a ordem da
+    // conta ainda pode pedi-lo) e ele nao ocupa vaga nem fila.
+    assert(!fil_oculta("fora_a"));
+    assert(fil_n_na_home() == 2 && fil_n_fila() == 0);
+    // Quando a descoberta o pede (vira candidato), ele passa a ser ligado.
+    fil_registrar("fora_b", "Matthew McConaughey", "Xperience", "movie", 12);
+    for (j = 0; j < fil_n(); j++) if (!strcmp(fil_chave(j), "fora_b")) assert(fil_estado(j) == FIL_NA_HOME);
+    // A pessoa ADICIONA pela aba "Fora": entra na home, que tem vaga.
+    for (j = 0; j < fil_n(); j++) if (!strcmp(fil_chave(j), "fora_a")) pf = j;
+    fil_adicionar(pf, &est);
+    assert(est == FIL_NA_HOME && fil_escolhida("fora_a") >= 0);
+    // E se ela a REMOVE, e escolha: fil_oculta passa a valer.
+    for (j = 0; j < fil_n(); j++) if (!strcmp(fil_chave(j), "fora_a")) pf = j;
+    fil_remover(pf);
+    assert(fil_oculta("fora_a")); }
+  puts("ok  #197: fora da cota entra fora da home, sem tomar vaga");
+
+  // LIMPEZA UNICA DO #197 sobre um arquivo NO FORMATO DO RELATOR, reconstruido
+  // dos logs 12448/12454/12489 (UA55TU8200): limite 12, ordem propria, 768
+  // linhas; as fileiras que a home tinha antes da rajada (Movies, Series, AI for
+  // you, IMDb Top 100...) ocultas; as de ator do Xperience em ordem de manifesto
+  // (Mahershala Ali ... Paul Rudd) ligadas; o resto do Xperience oculto pela
+  // normalizacao; um catalogo que a pessoa adicionou na TV (PenguPlay) e um que
+  // ela tirou (HdHub) — esses dois nao podem mudar.
+  { static const char *XP = "app.xperience.7d740fc3-61dd-4b90-8bd6-6eded683626e";
+    static const char *BC = "com.aicat.4shiv27.nuvio";
+    static const char *ATORES[] = { "mahershala_ali", "matthew_mcconaughey", "melissa_mccarthy",
+      "meryl_streep", "michael_b_jordan", "michael_herbig", "michelle_yeoh", "mila_kunis",
+      "millie_bobby_brown", "natalie_portman", "nicolas_cage", "nicole_kidman", "oscar_isaac",
+      "owen_wilson", "pascal", "paul_mescal", "paul_rudd" };
+    #define N_ATORES 17
+    char conta[9][160];
+    const char *contaP[9];
+    int j, total = 0, restantes;
+    FILE *f;
+    snprintf(conta[0], 160, "%s_movie_trending_movies", XP);
+    snprintf(conta[1], 160, "%s_movie_bw_spiderman", XP);
+    snprintf(conta[2], 160, "%s_movie_movies", XP);
+    snprintf(conta[3], 160, "%s_series_series", XP);
+    snprintf(conta[4], 160, "%s_series_bw_safed_sagar", XP);
+    snprintf(conta[5], 160, "%s_movie_actor_ana_de_armas_movies", XP);
+    snprintf(conta[6], 160, "%s_movie_ai_for_you", BC);
+    snprintf(conta[7], 160, "%s_series_ai_for_you", BC);
+    snprintf(conta[8], 160, "%s_movie_imdb_top_100", XP);
+    for (j = 0; j < 9; j++) contaP[j] = conta[j];
+    fil_esquecer();
+    usaArquivo = 1;
+    f = fopen("/tmp/fileirasui.txt", "w");
+    assert(f);
+    fputs("# Fileiras da Home\nlimite 12\nordem 1\n", f);
+    fputs("linha continue_watching\t0\t0\t1\t0\tContinuar assistindo\n", f); total++;
+    fputs("linha social_activity\t0\t0\t1\t0\tEntre amigos\n", f); total++;
+    fprintf(f, "linha %s\t0\t0\t1\t0\tTrending - Movie\n", conta[0]); total++;
+    fprintf(f, "linha %s\t0\t0\t1\t0\tBecause you watched Spider-Man\n", conta[1]); total++;
+    for (j = 2; j < 9; j++) { fprintf(f, "linha %s\t1\t0\t1\t0\tDa conta %d\n", conta[j], j); total++; }
+    fputs("linha com.penguplay_movie_top\t0\t0\t1\t0\tPenguPlay Top\n", f); total++;
+    fputs("linha com.stremio.HdHub_movie_latest\t1\t0\t1\t0\tHdHub Latest\n", f); total++;
+    fputs("linha collection_streaming\t0\t0\t1\t0\tStreaming\n", f); total++;
+    for (j = 0; j < N_ATORES; j++) { fprintf(f, "linha %s_movie_actor_%s_movies\t0\t0\t1\t0\tAtor %d - Movie\n", XP, ATORES[j], j); total++; }
+    for (j = 0; total < FIL_MAX; j++, total++)
+      fprintf(f, "linha %s_movie_outro_%d\t1\t0\t1\t0\tOutro %d\n", XP, j, j);
+    fclose(f);
+    fil_teste_recarregar();
+    assert(fil_n() == FIL_MAX && fil_limite() == 12);
+    assert(fil_migrar_197(contaP, 9) == 7 + N_ATORES);
+    for (j = 2; j < 9; j++) assert(!fil_oculta(conta[j]));                 // (a) voltaram
+    for (j = 0; j < fil_n(); j++) {
+      const char *k = fil_chave(j);
+      if (strstr(k, "_movie_actor_") && strstr(k, XP) && !strstr(k, "ana_de_armas"))
+        assert(fil_estado(j) == FIL_FORA && !fil_oculta(k));              // (b) sugestao
+      if (!strcmp(k, "com.penguplay_movie_top")) assert(fil_estado(j) != FIL_FORA);
+      if (!strcmp(k, "com.stremio.HdHub_movie_latest")) assert(fil_oculta(k));
+      if (strstr(k, "_movie_outro_")) assert(fil_oculta(k));
+    }
+    assert(fil_escolhida(conta[2]) >= 0 && fil_escolhida(conta[8]) >= 0);
+    assert(fil_n_na_home() == 13 && fil_n_capacidade() == 10);
+    assert(fil_n_fila() == 0); // CW/social/collection do not consume catalogue slots
+    // UMA VEZ SO: a marca foi gravada no arquivo, e na memoria ja nao roda.
+    { static char buf[300000]; size_t n; FILE *g = fopen("/tmp/fileirasui.txt", "r");
+      assert(g); n = fread(buf, 1, sizeof buf - 1, g); buf[n] = 0; fclose(g);
+      assert(strstr(buf, "\nmigracao 197\n")); }
+    assert(fil_migrar_197(contaP, 9) == 0); }
+  puts("ok  #197 limpeza: arquivo do relator volta a home dele, uma vez so");
+
+  // A marca vale no disco: um arquivo com "migracao 197" nao e tocado, e um
+  // arquivo SEM o padrao do defeito so ganha a marca.
+  { FILE *f;
+    const char *conta[] = { "xp_movie_a" };
+    int j;
+    fil_esquecer();
+    f = fopen("/tmp/fileirasui.txt", "w");
+    fputs("limite 7\nordem 1\nmigracao 197\nlinha xp_movie_a\t1\t0\t1\t0\tA\n", f);
+    for (j = 0; j < 300; j++) fprintf(f, "linha xp_movie_i%d\t%d\t0\t1\t0\tI%d\n", j, j < 150, j);
+    fclose(f);
+    fil_teste_recarregar();
+    assert(fil_migrar_197(conta, 1) == 0 && fil_oculta("xp_movie_a"));
+    fil_esquecer();
+    f = fopen("/tmp/fileirasui.txt", "w");
+    fputs("limite 7\nordem 1\nlinha xp_movie_a\t1\t0\t1\t0\tA\nlinha xp_movie_b\t0\t0\t1\t0\tB\n", f);
+    fclose(f);
+    fil_teste_recarregar();
+    assert(fil_migrar_197(conta, 1) == 0 && fil_oculta("xp_movie_a"));   // pequeno: fora do padrao
+    { char buf[256]; size_t n; f = fopen("/tmp/fileirasui.txt", "r"); n = fread(buf, 1, sizeof buf - 1, f); buf[n] = 0; fclose(f);
+      assert(strstr(buf, "migracao 197")); }
+    assert(fil_migrar_197(conta, 1) == 0);
+    fil_esquecer();
+    remove("/tmp/fileirasui.txt");
+    usaArquivo = 0; }
+  puts("ok  #197 limpeza: marca no arquivo; fora do padrao nao mexe");
+
+  // A HOME LE O MESMO ESTADO DO EDITOR (fil_estado_chave). Limite 3, quatro
+  // ligadas: "d" e a fila e a home nao pode desenha-la; "z" desligada esta fora;
+  // chave que a tabela nao conhece devolve -1 (a home nao a barra).
+  fil_esquecer();
+  fil_definir_limite(3);
+  { const char *n[] = { "a", "b", "c", "d", "z" };
+    int j;
+    for (j = 0; j < 5; j++) fil_registrar(n[j], n[j], "X", "movie", 1);
+    fil_remover(4);
+    assert(fil_estado_chave("a") == FIL_NA_HOME && fil_estado_chave("c") == FIL_NA_HOME);
+    assert(fil_estado_chave("d") == FIL_NA_FILA);
+    assert(fil_estado_chave("z") == FIL_FORA);
+    assert(fil_estado_chave("nunca") == -1 && fil_estado_chave("") == -1);
+    fil_remover(0);                              // abre vaga: d entra sozinha
+    assert(fil_estado_chave("d") == FIL_NA_HOME); }
+  puts("ok  estado por chave: fila e fora nao entram na home");
 
   puts("fileiras: tudo ok");
   return 0;

@@ -1,3 +1,4 @@
+void servidores_perfil_trocou(void);   // servidores.c: cancel in-flight work, load this profile
 #include "perfis.h"
 #include "sessao.h"
 #include "nuvem.h"
@@ -12,6 +13,9 @@
 void fontepref_definir_perfil(int perfil);
 // Mesma razao (arteescolha.h nao puxa SDL, mas fica no mesmo molde).
 void arteesc_definir_perfil(int perfil);
+// Mesma razao: ajustes.h puxa SDL. O ajuste "Usar os addons do perfil
+// principal" (Ajustes > Conta), ver perfis_ativo_addons.
+int ajustes_addons_do_principal(void);
 #include "js.h"
 #include "jsw.h"
 #include <stdio.h>
@@ -324,10 +328,18 @@ int           perfis_ativo(void)     { return ativo > 0 ? ativo : 1; }
 // O nativo ignorava isso e pedia sempre profile_id=<indice>, entao um perfil
 // com a marca voltava com ZERO addons — o relato "os perfis nao sincronizam os
 // addons". O perfil 1 nunca e redirecionado: ele E a origem.
+//
+// O AJUSTE LOCAL "Usar os addons do perfil principal" (padrao LIGADO) soma com a
+// marca da conta, nao a substitui. Sem o campo no servidor a marca ficava 0 e o
+// perfil 2 abria sem addon nenhum; com o ajuste ligado ele le os do principal
+// mesmo assim. Desligado, vale so o que a conta diz: `uses_primary_addons=true`
+// continua sendo respeitado, porque foi a pessoa que marcou isso no app web, e
+// um ajuste desta TV nao deve desfazer a escolha da conta.
 int perfis_ativo_addons(void) {
   const ContaPerfil *p = perfis_item_ativo();
   int a = perfis_ativo();
-  return (p && p->usaAddonsDoPrimario && a != 1) ? 1 : a;
+  if (a == 1) return 1;
+  return ((p && p->usaAddonsDoPrimario) || ajustes_addons_do_principal()) ? 1 : a;
 }
 
 void perfis_carregar_ativo(void) {
@@ -350,13 +362,23 @@ void perfis_carregar_ativo(void) {
   lerCache();
 }
 
+// plugins.h puxa streams.h (SDL); perfis.c compila sem SDL nos testes.
+void plugins_perfil_mudou(void);
+
 void perfis_definir_ativo(int indice) {
   char linha[32];
+  int ativoAntes = ativo;
   if (indice <= 0) return;
   ativo = indice;
   fil_definir_perfil(indice);
   fontepref_definir_perfil(indice);
   arteesc_definir_perfil(indice);
+  // O estado dos plugins e da conta+perfil: trocar avanca a geracao, corta os
+  // scrapers em voo e relê o liga/desliga e os repositorios do perfil novo.
+  plugins_perfil_mudou();
+  // Personal servers are per profile: drop the previous profile's in-flight
+  // requests and load this profile's connection (jellyfin.h).
+  if (indice != ativoAntes) servidores_perfil_trocou();
   escolhido = 1;
   gravado = 1;
   snprintf(linha, sizeof linha, "%d\n", indice);

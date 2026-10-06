@@ -6,6 +6,98 @@
 #ifndef NV_REDE_H
 #define NV_REDE_H
 
+#include <stddef.h>
+#include <stdint.h>
+
+/* API aditiva para workers/plugins. Nao usa o estado por fio dos wrappers.
+ * O pedido BLOQUEIA; executa-lo fora do desenho. Strings, corpo e callback
+ * ficam validos ate retornar. rede_resposta_limpar libera as duas alocacoes.
+ * max_bytes/max_cabecalhos zero usam limites seguros, nunca "ilimitado".
+ * TLS e verificado; ca_arquivo sobrescreve o bundle confiavel registrado no
+ * arranque (rede_discord_ca), ou usa trust do sistema se nao houver bundle.
+ * Redirects so HTTP(S), sem downgrade HTTPS. Cabecalhos do dono e corpo nao
+ * atravessam origem; 307/308 autenticados entre origens sao recusados.
+ * O XHR sincrono WGT nao oferece este contrato: retorna INDISPONIVEL sem
+ * iniciar I/O. Os wrappers antigos continuam disponiveis com seus limites.
+ */
+typedef struct RedeGrupo RedeGrupo;
+typedef struct RedeJob RedeJob;
+typedef enum {
+  REDE_OK = 0, REDE_ENTRADA, REDE_INDISPONIVEL, REDE_MEMORIA,
+  REDE_TRANSPORTE, REDE_PRAZO, REDE_CANCELADO, REDE_GERACAO,
+  REDE_LIMITE_CORPO, REDE_LIMITE_CABECALHOS, REDE_REDIRECT
+} RedeErro;
+#define REDE_CORPO_PADRAO (8u * 1024u * 1024u)
+#define REDE_CORPO_MAXIMO (32u * 1024u * 1024u)
+#define REDE_CAB_PADRAO 16384u
+#define REDE_CAB_MAXIMO 65536u
+#define REDE_CAP_CORPO 1u
+#define REDE_CAP_JOB 2u
+#define REDE_CAP_REDIRECT 4u
+#define REDE_CAP_INTERVALO 8u
+
+typedef struct {
+  uint64_t bytes;       /* payload no fio, antes da descompressao */
+  unsigned ms;         /* duracao real; nunca inventa janelas de 1 s */
+  unsigned inicio_ms;  /* relativo ao primeiro byte do corpo */
+  int completa;        /* >=1 s; amostra final curta vale 0 */
+} RedeIntervalo;
+typedef struct {
+  const char *metodo;   /* NULL = GET; GET/HEAD/POST/PUT/PATCH/DELETE */
+  const char *url;
+  const char *const *cabecalhos;
+  const void *corpo;
+  size_t n_corpo;       /* binario, nao strlen */
+  unsigned prazo_ms;    /* total, inclusive redirects; 0 = 15 s, max 300 s */
+  size_t max_bytes, max_cabecalhos;
+  int seguir;          /* 0 = devolver 3xx; 1 = ate 5 redirects */
+  const char *ca_arquivo;
+  RedeJob *job;
+  void (*intervalo)(const RedeIntervalo *, void *);
+  void *intervalo_usuario;
+  /* Optional streamed/discarded GET: keeps only a 512-byte prefix. Stops at
+   * window or cap, never allocates the media body. A byte cap does not prove
+   * a completed time window. Zero keeps the normal buffered contract. */
+  unsigned janela_corpo_ms;  /* from first body byte; max 60 s */
+  uint64_t max_descartado;    /* required with window; max 2 GiB */
+  int (*parar)(void *);       /* additional caller cancellation, no UI work */
+  void *parar_usuario;
+} RedePedido;
+typedef struct {
+  int status, curl_erro;
+  RedeErro erro;        /* HTTP 4xx/5xx e uma resposta, nao erro de transporte */
+  char *corpo, *cabecalhos;
+  size_t n_corpo, n_cabecalhos;
+  char final[4096], host[256], mime[128]; /* final pode ser privado: nunca logar */
+  int retry_after_s;
+  unsigned ms, primeiro_byte_ms, corpo_ms, intervalos_completos;
+  uint64_t bytes_fio;   /* separado de n_corpo (descomprimido) */
+  unsigned char prefixo[512];
+  unsigned n_prefixo;
+  int fim_janela, fim_teto; /* intentional discard stops, not transport EOF */
+} RedeResposta;
+unsigned rede_pedido_capacidades(void);
+int rede_pedir(const RedePedido *pedido, RedeResposta *resposta);
+void rede_resposta_limpar(RedeResposta *resposta);
+
+/* Grupo vive fora do request: avancar ao trocar conta/perfil/titulo invalida
+ * todos os jobs anteriores. Jobs retidos impedem UAF; nenhuma geracao volta
+ * a ser valida. Cancelar um job nao cancela seus irmaos. Soltar o grupo do
+ * dono nao o cancela; cancelar explicitamente no encerramento. O chamador
+ * deve conferir rede_job_estado tambem ao publicar numa fila da UI: mudar
+ * a geracao DEPOIS do retorno nao consegue retirar um resultado ja entregue.
+ * Sem scheduler/pool: integra os workers atuais. Sem TLS de compilador.
+ */
+RedeGrupo *rede_grupo_criar(void);
+void rede_grupo_soltar(RedeGrupo *grupo);
+uint64_t rede_grupo_avancar(RedeGrupo *grupo);
+void rede_grupo_cancelar(RedeGrupo *grupo);
+RedeJob *rede_job_criar(RedeGrupo *grupo);
+void rede_job_reter(RedeJob *job);
+void rede_job_soltar(RedeJob *job);
+void rede_job_cancelar(RedeJob *job);
+RedeErro rede_job_estado(RedeJob *job);
+
 typedef struct {
   int status;          // 0 = transporte sem resposta
   long bytes;          // corpo recebido; -1 quando nao medido
@@ -89,17 +181,35 @@ int rede_resto_recusado(void);
 
 // Teto de bytes da transferencia corrente (0 = sem teto). E interno ao modulo;
 // esta exposto so porque rede_baixar_trecho o usa. Nao mexer de fora.
-#if defined(__GNUC__)
+//
+// NV_TPK40 (libnuvio do pacote Tizen 4/5, tools/tpk.sh): SEM _Thread_local.
+// Nessas TVs a .so pode entrar pelo carregador de ELF proprio do host
+// (Program40.cs), que nao monta TLS de compilador — o primeiro acesso a uma
+// variavel _Thread_local seria o fim do processo. O estado por fio vive numa
+// struct por pthread_key (rede.c); o nome continua um lvalue por macro.
+#if defined(NV_TPK40)
+long *rede_teto_ptr(void);
+#define rede_teto (*rede_teto_ptr())
+#elif defined(__GNUC__)
 extern _Thread_local long rede_teto;
 #else
 extern long rede_teto;
 #endif
 
-// Segue os redirecionamentos e devolve o endereco FINAL, sem baixar o corpo.
+// Segue os redirecionamentos com GET Range de 64 bytes e devolve o endereco
+// FINAL somente em HTTP2xx, sem truncar o destino. Nativo descarta o corpo e
+// aborta ao passar de 64 bytes; XHR sincrono do WGT recebe a resposta inteira,
+// mas nao a copia para o heap WASM (nao pode abortar durante o recebimento).
 // Serve para saber se um link de debrid leva ao arquivo ou a um video de aviso
 // ("downloading.mp4", "slate.mp4") — que TOCA NORMALMENTE e por isso nao da
 // erro nenhum. 1 se conseguiu resolver.
 int rede_url_final(const char *url, int segundos, char *dst, unsigned tam);
+// Igual, com os cabecalhos exigidos pelo addon e status HTTP final (0 quando
+// nao houve resposta). Falha de transporte, HTTP nao2xx ou destino pequeno
+// deixam dst vazio. Quem chama no WGT deve distinguir recusa por cabecalho
+// controlado pelo navegador de fonte morta: AVPlay pode enviar esse cabecalho.
+int rede_url_final_cab(const char *url, int segundos, const char *const *cabecalhos,
+                       char *dst, unsigned tam, int *status);
 
 #ifdef NV_VIDAA
 // VARIANTE PARA A VIDAA. rede_url_final so devolve 0/1, e na VIDAA um 0 pode
@@ -145,6 +255,10 @@ char *rede_postar_st(const char *url, int segundos, const char *const *cabecalho
 // O corpo de erro e justamente o que o chamador quer ler.
 char *rede_baixar_st(const char *url, int segundos, const char *const *cabecalhos,
                      int *status);
+// O mesmo, e o Retry-After em segundos (delta ou HTTP-date; 0 = ausente,
+// invalido, vencido ou oculto pelo CORS no WGT). Para os 429 dos provedores.
+char *rede_baixar_st_retry(const char *url, int segundos, const char *const *cabecalhos,
+                           int *status, int *retryAfter);
 
 // GET com medicao por requisicao. Nao partilha teto, estado ou acumuladores
 // com outros pedidos; a sonda de diagnostico pode chamar isto em serie ou em
@@ -209,11 +323,29 @@ int rede_medir_vazao(const char *url, const char *const *cabecalhos, int segundo
                      long inicio, long long maxBytes, volatile int *cancelado,
                      int *kbpsPorSegundo, int nMax, RedeVazao *res,
                      char *final, unsigned tamFinal);
+// Prazo, em ms, para o PRIMEIRO byte do corpo (DNS, TLS, redirecionamentos e a
+// espera do servidor) nas proximas medidas; passado dele a medida desiste. 0
+// volta ao padrao (8 s). O ciclo completo baixa varias fontes em fila e uma
+// fonte parada nao pode segurar a fila inteira. So o libcurl honra (o XHR
+// sincrono do Tizen nao tem prazo).
+void rede_vazao_espera(unsigned long ms);
 
 // Registra quem OUVE os 401. Sem isto um token de sessao vencido era so uma
 // linha no log — o Trakt continuava "conectado" na tela enquanto toda
 // resposta voltava 401. O callback recebe a URL e decide se a recusa e dele.
 void rede_avisar_401(void (*f)(const char *url));
+
+// Registra quem OUVE o fim de cada pedido, para a saude da rede (redesaude.h:
+// "sem internet" / "internet de volta" na ilha, 02/10). O callback recebe o
+// CURLcode (0 = ok; no Tizen-wasm 0 = respondeu, 6 = sem resposta) e a URL, e
+// roda no fio do pedido. Ponteiro e nao chamada direta para os testes que
+// compilam rede.c sozinho nao precisarem do modulo.
+void rede_avisar_saude(void (*f)(int codigo, const char *url));
+// Cada pedido que terminou, com o host, o CURLcode (0 = transporte ok), o
+// HTTP e quantos ms levou (0 = nao medido, no wasm). E de onde a aba Rede do
+// painel de registro tira pedidos, falhas e tempo tipico por host
+// (redesaude.h: rede_hosts_*). Um ouvinte so; chamado de qualquer fio.
+void rede_avisar_host(void (*f)(const char *url, int codigo, int http, unsigned ms));
 
 // Carrega a libcurl AGORA, no fio que chamar. Existe para o arranque fazer isso
 // no fio principal, antes de qualquer fio de rede nascer: `curl_global_init`
@@ -237,6 +369,43 @@ void rede_preparar(void);
 //
 // Escreve em `dst` e devolve `dst`, para poder ir direto num printf. Texto sem
 // "://" e copiado como esta (nao e URL, nao ha caminho a esconder).
+// Texto da falha de transporte do ULTIMO pedido deste fio ("curl 35: ..."), ou
+// "" quando ele passou. Sem URL, corpo ou segredo; serve a tela e ao log (#223).
+const char *rede_ultimo_erro(void);
 const char *rede_url_publica(const char *url, char *dst, unsigned tam);
+
+// URL DE IMAGEM/META PARA LOG, mais util que rede_url_publica mas igualmente
+// segura: mantem esquema, host e os segmentos do caminho que nao podem ser
+// credencial (ex.: /t/p/w500/abc.jpg do TMDB), e troca por <redigido> todo
+// segmento suspeito (>= 24 chars, uuid, JWT, config serializada) e a query.
+// Hosts que levam a config/chave da pessoa NO CAMINHO (btttr.cc do
+// BetterPosters/PostersPlus, AioMetadata, *.elfhosted, RPDB, top-posters)
+// ficam so com o host e, no fim, o id do titulo. Regra em redeurl.c; teste em
+// tests/redeurl_log.sh.
+const char *rede_url_log(const char *url, char *dst, unsigned tam);
+// O criterio de "segmento suspeito" acima, exposto para o teste.
+int rede_segmento_suspeito(const char *s, unsigned n);
+
+// CONEXAO TLS CRUA, sem HTTP. Existe para o websocket do Discord (discordws.c):
+// a libcurl das TVs (7.53.1) nao fala websocket, mas abre o TLS e entrega o
+// canal com CONNECT_ONLY. `url` e "https://host:porta/" — so host e porta
+// contam. Bloqueia ate conectar ou estourar `segundos`. NULL = sem conexao.
+// No navegador (Emscripten) sempre NULL.
+// Startup only: optional trusted CA bundle for Discord OAuth and Gateway.
+// Empty uses libcurl system trust; never disables certificate verification.
+void rede_discord_ca(const char *pemPath);
+// OAuth POST: verified TLS, dedicated handle, no native redirects.
+char *rede_postar_seguro_st(const char *url, int segundos, const char *const *cab,
+                            const char *corpo, int *status);
+typedef struct RedeTls RedeTls;
+RedeTls *rede_tls_abrir(const char *url, int segundos);
+// Manda tudo ou falha: 0 ok, -1 erro.
+int rede_tls_enviar(RedeTls *t, const void *buf, size_t n);
+// One nonblocking send. 0 = success/would-block; *foi is the consumed prefix.
+int rede_tls_tentar_enviar(RedeTls *t, const void *buf, size_t n, size_t *foi);
+// Ate `n` bytes, esperando no maximo `esperaMs` (0 = nao espera).
+// >0 bytes lidos, 0 nada chegou, -1 conexao caiu ou fechou.
+int rede_tls_receber(RedeTls *t, void *buf, size_t n, int esperaMs);
+void rede_tls_fechar(RedeTls *t);
 
 #endif

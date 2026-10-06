@@ -6,48 +6,93 @@
 #include "badges.h"
 #include "text.h"
 #include "anim.h"
+#include "revela.h"
 #include "proximo.h"
 #include "trakt.h"
 #include "simkl.h"
 #include "cwordem.h"
+#include "descoberta.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-void continuar_desenhar(const CatItem *ci, GfxRect r) {
+// A lista de episodios do card terminado. O catalogo so recebe episodios
+// quando o titulo e ABERTO (app.c), entao o card do Continuar — uma copia sem
+// lista — ficava para sempre no episodio que acabou. So o card TERMINADO pede
+// (costuma ser um so), e no maximo uma vez a cada 30 s por titulo: sem meta a
+// resposta volta vazia, e pedir a cada quadro so disputaria o fio com o
+// detalhe.
+//
+// UM RELOGIO POR TITULO. Era um so ("ultimo"): com DOIS cards terminados na
+// fileira eles se revezavam no "ultimo", o limite de 30 s nunca valia e os
+// dois pediam de novo a cada resposta — 47 pedidos em ~7 min no registro
+// 25007 (webOS 1.7.4, tt39304754 e tt33044444 alternando).
+#define CW_PEDIDOS 8
+static void pedirEpisodios(int idx, const char *imdb) {
+  static struct { char imdb[64]; time_t quando; } ped[CW_PEDIDOS];
+  time_t agora = time(NULL);
+  int i, vaga = 0;
+  desc_episodios_pendente();
+  if (desc_episodios_carregando(idx)) return;
+  for (i = 0; i < CW_PEDIDOS; i++) {
+    if (!strcmp(ped[i].imdb, imdb)) {
+      if (agora - ped[i].quando < 30) return;
+      vaga = i;
+      break;
+    }
+    if (ped[i].quando < ped[vaga].quando) vaga = i;   // o mais antigo cede a vaga
+  }
+  snprintf(ped[vaga].imdb, sizeof ped[vaga].imdb, "%s", imdb);
+  ped[vaga].quando = agora;
+  printf("[cw] %s terminado sem lista de episodios: pedindo para achar o proximo\n", imdb);
+  desc_episodios(idx, 0);
+}
+
+void continuar_desenhar(const CatItem *ci, GfxRect r, float raio) {
   CatItem copia;
   ProxSugestao prox;
   int idx;
   if (!ci) return;
-  // Episodio semeado ja terminado: o card passa a anunciar o PROXIMO, quando a
-  // regra portada do web deixa (ver proximo.h). A decisao mora aqui, e nao na
-  // home, porque so muda o que este card ESCREVE — nenhuma fileira nova, nenhum
-  // poster a mais para decodificar.
+  // Episodio ja terminado (ajuste Percentual assistido): o card passa a
+  // anunciar o PROXIMO (prox_seguinte, proximo.h). A decisao mora aqui, e nao
+  // na home, porque so muda o que este card ESCREVE — nenhuma fileira nova,
+  // nenhum poster a mais para decodificar.
   //
-  // O teto de PROX_MAX_BUSCAS nao precisa ser aplicado aqui: a fileira ja nasce
-  // com 8 itens (trakt_continuar, em descoberta.c), bem abaixo dele.
-  idx = cat_indice_por_imdb(ci->imdb);
-  if (idx >= 0 &&
-      prox_para_item(ci, cat_episodio(idx, 0), cat_n_episodios(idx),
-                     (long long)time(NULL) * 1000LL, &prox)) {
-    copia = *ci;
-    copia.temporada = prox.temporada;
-    copia.episodio  = prox.episodio;
-    snprintf(copia.nomeEpisodio, sizeof copia.nomeEpisodio, "%s", prox.nome);
-    // O selo de "restam N min" e da duracao do episodio ANTERIOR e a barra e do
-    // progresso dele; nenhum dos dois descreve um episodio que nao comecou.
-    copia.restanteMin = 0;
-    copia.progresso = 0;
-    ci = &copia;
+  // A copia COM episodios, quando ha (cat_indice_titulo): a do card costuma
+  // nao ter lista, e a do detalhe aberto antes tem.
+  idx = cat_indice_titulo(ci->imdb, cat_indice_por_imdb(ci->imdb));
+  if (idx >= 0 && !strcmp(ci->tipo, "series") && ci->temporada > 0 &&
+      ci->episodio > 0 && ci->progresso >= ajustes_cw_concluido()) {
+    if (cat_n_episodios(idx) <= 0) pedirEpisodios(idx, ci->imdb);
+    else if (prox_seguinte(ci, cat_episodio(idx, 0), cat_n_episodios(idx),
+                           ajustes_cw_concluido(),
+                           (long long)time(NULL) * 1000LL, &prox)) {
+      copia = *ci;
+      copia.temporada = prox.temporada;
+      copia.episodio  = prox.episodio;
+      snprintf(copia.nomeEpisodio, sizeof copia.nomeEpisodio, "%s", prox.nome);
+      // O selo de "restam N min" e da duracao do episodio ANTERIOR e a barra e
+      // do progresso dele; nenhum dos dois descreve um episodio que nao comecou.
+      copia.restanteMin = 0;
+      copia.progresso = 0;
+      ci = &copia;
+    }
   }
 
   {
   float esc = r.w / NV_DESTAQUE_W;
   float pad = NV_CW_PAD * esc, largura = r.w - pad * 2;
-  gfx_rect(r, 0, GFX_VEU, 0, 0, 0, NV_RAIO_CARD, 0, 0, 0, .85f);
+  // Veu so na base (gfx.h, gfx_veu_base): o nome e o episodio ficam embaixo;
+  // o selo de cima tem o proprio fundo.
+  //
+  // O RAIO E O DA ARTE (#144). Era NV_RAIO_CARD fixo (~13 px neste cartao),
+  // enquanto a arte usa o raio de Ajustes: com raio maior os cantos do veu
+  // passavam por fora da curva da arte e apareciam como cantos escuros e
+  // "cortados" na base do cartao.
+  gfx_veu_base(r, raio, NV_CW_VEU_F, NV_CW_VEU_A);
 
   // Um retangulo compacto, nao uma pilula. Nunca inventar status de estreia.
-  if (ci->restanteMin > 0 || (ci->progresso == 0 && (trakt_e_a_seguir(ci->imdb) || simkl_e_a_seguir(ci->imdb)))) {
+  if (ci->restanteMin > 0 || (ci->progresso == 0 && (trakt_e_a_seguir(ci->imdb) || simkl_e_a_seguir(ci->imdb) || cwo_conta_a_seguir(ci->imdb)))) {
     char selo[48];
     int h = ci->restanteMin / 60, m = ci->restanteMin % 60;
     // "A SEGUIR" e nao "53min Restantes": o item de progresso 0 e o proximo
@@ -60,9 +105,9 @@ void continuar_desenhar(const CatItem *ci, GfxRect r) {
     char quando[32];
     if (ci->progresso == 0 && cwo_e_futuro(ci->imdb) &&
         cwo_data_curta(cwo_estreia(ci->imdb), (long long)time(NULL) * 1000LL,
-                       ajustes_idioma_ingles(), 0, quando, sizeof quando))
+                       ajustes_idioma(), 0, quando, sizeof quando))
       snprintf(selo, sizeof selo, i18n("Estreia %s"), quando);
-    else if (ci->progresso == 0 && (trakt_e_a_seguir(ci->imdb) || simkl_e_a_seguir(ci->imdb)))
+    else if (ci->progresso == 0 && (trakt_e_a_seguir(ci->imdb) || simkl_e_a_seguir(ci->imdb) || cwo_conta_a_seguir(ci->imdb)))
       snprintf(selo, sizeof selo, "%s", i18n("A seguir"));
     else if (h && m) snprintf(selo, sizeof selo, i18n("%dh %dmin Restantes"), h, m);
     else if (h) snprintf(selo, sizeof selo, i18n("%dh Restantes"), h);
@@ -114,9 +159,15 @@ void continuar_desenhar(const CatItem *ci, GfxRect r) {
   }
 
   // Linha fina, recuada da moldura. A parte vazia nao vira uma faixa cinza.
+  // A barra ANDA do valor que mostrava ate o novo (revela.h): na volta do
+  // player o card cresce ate onde a pessoa parou, em vez de saltar.
+  // O zero tambem e registrado: o "a seguir" que comeca a ser visto cresce
+  // do nada ate o valor novo.
+  float prog = revela_progresso(ci->imdb, ci->temporada, ci->episodio,
+                                (float)ci->progresso, SDL_GetTicks());
   if (ci->progresso > 0) {
     float h = NV_CW_BAR_H * esc;
-    float preenchido = largura * anim_clamp(ci->progresso / 100.f, 0, 1);
+    float preenchido = largura * anim_clamp(prog / 100.f, 0, 1);
     if (preenchido < h) preenchido = h;
     GfxRect barra = {r.x + pad, r.y + r.h - NV_CW_BAR_BOTTOM*esc - h, preenchido, h};
     gfx_cor(barra, .5f, .96f, .965f, .98f, .98f);

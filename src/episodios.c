@@ -1,3 +1,4 @@
+#include "logotitulo.h"
 #include "episodios.h"
 #include "ajustes.h"   /* ajustes_acento: a cor do check da confirmacao */
 #include "idioma.h"
@@ -15,10 +16,35 @@
 #include <stdio.h>
 #include <string.h>
 #include "ponteiro.h"
+#include "plrui.h"
+#include "progresso.h"
+#include "plrilha.h"
+#define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
+#include "escala.h"
 
-#define EP_W 720.0f
-#define EP_ROW 172.0f
-#define EP_TOP 216.0f
+// OS EPISODIOS NO PLAYER NASCEM DA ILHA DO RELOGIO (pedido do dono, 03/10),
+// como Audio e Legendas (faixas.c, plrilha.h): a pilula da hora cresce ate a
+// lista e a linha dela fica de cabecalho. Era uma folha colada na direita.
+// Corpo de EP_W: kicker com a serie + "Episodios" e o disco de fechar, o
+// segmentado das temporadas, EP_VIS linhas de EP_ROW (still 240x135 com o
+// progresso e o disco de assistido sobre ela) e o rodape com a posicao e a
+// dica do "Segure OK". O menu de visto continua MODAL, dentro da ilha.
+#define EP_W     820.0f
+#define EP_PAD_X  18.0f
+#define EP_PAD_Y  22.0f
+#define EP_TIT_H  64.0f
+#define EP_SEG_H  54.0f
+#define EP_ROW   160.0f
+// Linhas a vista: 4, ou menos quando a ilha nao cabe na altura da tela virtual
+// (escala.h: 3 em 120%, 2 em 150%). O miolo fixo da ilha sao 251, a pilula da
+// hora por cima ~60, e as margens de cima e de baixo.
+static int epVis(void) {
+  int n = (int)((NV_TELA_H - 48.0f - 40.0f - 60.0f - 251.0f) / 160.0f);
+  return n > 4 ? 4 : n < 2 ? 2 : n;
+}
+#define EP_VIS    epVis()
+#define EP_PE_H   47.0f
+#define EP_VAZIO 120.0f
 static int aberto, titulo, atualT, atualE, temporada, foco, grupo;
 static int pedidoT, pedidoE;
 static float anim, scroll;
@@ -83,6 +109,22 @@ static int vmFeito, vmFeitoN, vmFeitoVisto; static Uint32 vmFeitoAte;
 // menu passa a servir tambem a pagina de detalhe, onde a folha nem esta aberta.
 static int  vmIdx = -1, vmT, vmE;
 static char vmNome[96];
+// O TITULO, e nao so a posicao (#190). `titulo` e `vmIdx` sao indices no
+// catalogo, e o catalogo e refeito com a folha aberta — a refacao de
+// "Continuar assistindo" roda com o player tocando. A mesma posicao passava a
+// ser de outra serie, e a folha listava os episodios dela ("Attack on Titan
+// trocado por Knights of Guinevere no menu de episodios"). Guardado na
+// abertura e conferido por revalidar() antes de cada uso.
+static char idTitulo[64], vmId[64];
+static void guardarId(char *dst, size_t tam, int idx) {
+  const CatItem *ci = cat_item(idx);
+  snprintf(dst, tam, "%s", ci ? ci->imdb : "");
+}
+static void revalidar(void) {
+  int i;
+  if (idTitulo[0] && (i = cat_indice_vivo(titulo, idTitulo)) >= 0) titulo = i;
+  if (vmId[0] && (i = cat_indice_vivo(vmIdx, vmId)) >= 0) vmIdx = i;
+}
 // A MINIATURA DO EPISODIO, resolvida UMA vez na abertura. O cartao mostra a
 // arte do episodio de que ele fala — sem ela o menu e quatro linhas de texto
 // que poderiam ser de qualquer titulo. Procurar no catalogo a cada quadro
@@ -100,6 +142,7 @@ static void menuAbrir(int idx, int t, int e, const char *nome, int so) {
   const CatItem *ci = cat_item(idx);
   if (!ci || !ci->imdb[0]) return;
   vmIdx = idx; vmT = t; vmE = e; vmSo = so; vmModoTemp = 0;
+  guardarId(vmId, sizeof vmId, idx);
   snprintf(vmNome, sizeof vmNome, "%s", nome ? nome : "");
   vmThumb[0] = 0;
   { int i;
@@ -234,6 +277,7 @@ static void menuAbrirTemporada(int idx, int t, int so) {
 
 void episodios_abrir(int idx, int t, int e) {
   titulo = idx; atualT = t; atualE = e; aberto = 1;
+  guardarId(idTitulo, sizeof idTitulo, idx);
   temporada = foco = 0; grupo = 1; pedidoE = 0; scroll = 0;
   vmAberto = 0; vmSegurando = 0; vmConsumir = 0;
   localizarAtual = 1; alvoE = e; semMolaScroll = 1;
@@ -242,9 +286,11 @@ void episodios_abrir(int idx, int t, int e) {
   desc_episodios(titulo, t);
 }
 int episodios_aberto(void) { return aberto; }
+float episodios_anim(void) { return anim; }
 int   episodios_foco_linha(void) { return foco; }
 float episodios_rolagem(void) { return scroll; }
 void episodios_fechar(void) { aberto = 0; }
+int  episodios_titulo(void) { revalidar(); return titulo; }
 int episodios_escolheu(int *t, int *e) {
   if (!pedidoE) return 0;
   *t = pedidoT; *e = pedidoE; pedidoE = 0; return 1;
@@ -262,167 +308,115 @@ int episodios_escolheu(int *t, int *e) {
 static void ponteiroVmOpcao(int i, int b) { (void)b; if (i >= 0 && i < vmOpcoes()) vmFoco = i; }
 static void ponteiroVmFora(int a, int b) { (void)a; (void)b; vmAberto = 0; }
 
-static void menuDesenhar(float x, float larg, float anim) {
+// O MENU DE VISTO (segurar OK) vira uma ILHA MODAL: still + kicker +
+// "T1E4 · nome", e as acoes em linhas de folha (foco = superficie), nao
+// pilulas empilhadas. No player ele fica DENTRO da ilha dos episodios
+// (`area` e o retangulo dela, que o desenho ja recorta), logo abaixo do
+// cabecalho; sozinho (detalhe), no centro da tela.
+#define VM_PAD 44.0f
+#define VM_TH_H 126.0f
+#define VM_OPT_PASSO 66.0f
+static float menuAltura(void) {
+  float optTop = VM_PAD + VM_TH_H + 26.0f;
+  if (vmFeito) return optTop + 60.0f + VM_PAD;
+  return optTop + (float)vmOpcoes() * VM_OPT_PASSO - 4.0f + 22.0f + 30.0f + VM_PAD;
+}
+#define VM_TOPO_ILHA 104.0f   // do topo da ilha ao modal: o cabecalho (64) + 40
+static void menuDesenhar(GfxRect area, float anim) {
+  const float PAD = VM_PAD, TH_W = 224.0f, TH_H = VM_TH_H, OPT_H = 62.0f, OPT_PASSO = VM_OPT_PASSO;
+  float mh, optTop, MW = area.w - 40.0f < 800.0f ? area.w - 40.0f : 800.0f;
+  char cab[160];
+  int i;
   if (!vmAberto) return;
-  {
-    const CatItem *ci=cat_item(vmIdx);
-    // CENTRADO SOBRE A FOLHA, e nao sobre a tela. A folha ocupa so os EP_W da
-    // direita; centrar em NV_TELA_W punha o menu sobre o vazio da esquerda,
-    // longe do episodio a que ele se refere — visivel na captura de revisao.
-    //
-    // TETO NA LARGURA. Dentro da folha `larg` e a coluna dela e o menu fica
-    // justo; sobre a pagina de detalhe `larg` e a tela inteira, e sem teto o
-    // menu virava uma faixa de 1848 px atravessando tudo — visto na captura de
-    // revisao. O teto e a largura que ele ja tinha na folha, entao os dois
-    // lugares mostram o MESMO menu.
-    //
-    // A ALTURA E SOMADA, e nao cravada. Antes era `120+n*62+62`, um numero que
-    // nao dizia de onde vinha, e a dica de teclas encostava na ultima pilula —
-    // 8 px de folga na captura da TV, que na tela le como texto grudado no
-    // botao. Agora cada pedaco entra na conta com nome.
-    const float PAD=32.0f, TH_W=176.0f, TH_H=99.0f, OPT_H=54.0f, OPT_PASSO=62.0f;
-    float ar, ag, ab;
-    float tinta = ajustes_acento_tinta(&ar, &ag, &ab);
-    int focoTxt = (int)(tinta * 255.0f + 0.5f);
-    const float CAB_H=TH_H+22.0f;              // cabecalho: a miniatura manda
-    float mw=larg-72.0f;
-    float optTop, mh;
-    char cab[140];
-    int i;
-    if (mw > EP_W-72.0f) mw = EP_W-72.0f;
-    optTop = PAD + CAB_H;
-    mh = optTop + (float)(vmOpcoes()-1)*OPT_PASSO + OPT_H
-         + 22.0f    // respiro antes da dica
-         + 26.0f    // a dica
-         + PAD;     // rodape
-    if (vmFeito) mh = optTop + 60.0f + PAD;   // so o check e a frase
-    { GfxRect m={x+(larg-mw)*.5f,(NV_TELA_H-mh)*.5f,mw,mh};
+  optTop = PAD + TH_H + 26.0f;
+  mh = menuAltura();
+  { GfxRect m = { area.x + (area.w - MW) * 0.5f, area.y + VM_TOPO_ILHA, MW, mh };
+    if (vmSo) m.y = (NV_TELA_H - mh) * 0.5f;
     if (ponteiro_ativo() && anim > .5f) {
       ponteiro_camada();
       if (!vmFeito) ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, ponteiroVmFora, 0, 0);
       ponteiro_alvo(m.x, m.y, m.w, m.h, NULL, NULL, 0, 0);
     }
-    // Veu proprio: a lista atras tem texto pequeno em tres colunas.
-    gfx_cor((GfxRect){0,0,NV_TELA_W,NV_TELA_H},0,0,0,0,.72f*anim);
-    // Cartao opaco e neutro; o accent fica reservado a opcao focada, sem luz
-    // atravessando o painel e tingindo a arte atras.
-    gfx_cor(m,.05f,.052f,.055f,.068f,.99f*anim);
-
-    // CABECALHO COM A ARTE DO EPISODIO. Sem miniatura o texto ocupa a linha
-    // inteira, em vez de deixar um buraco do tamanho da imagem que nao veio.
-    { float tx=m.x+PAD, tw=mw-PAD*2.0f;
-      GLuint th=vmThumb[0]?tex_obter_larg(vmThumb,TH_W):0;
-      // O cabecalho do menu mostra o still do MESMO episodio: desfocado pela
-      // mesma regra da lista (#133), senao o menu entregava o que ela esconde.
-      // Sem copia pronta ainda, o texto ocupa a linha por um quadro.
+    gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0, 0, 0, 0, (ajustes_vidro() ? .40f : .42f) * anim);
+    plrui_material(m, 36.0f, 1, anim);
+    if (ajustes_vidro()) gfx_cor(m, 36.0f / m.h, 0.055f, 0.059f, 0.071f, 0.55f * anim);   // .94 no mockup
+    { float tx = m.x + PAD, tw = MW - PAD * 2.0f;
+      GLuint th = vmThumb[0] ? tex_obter_larg(vmThumb, TH_W) : 0;
+      // O cabecalho mostra o still do MESMO episodio: desfocado pela mesma
+      // regra da lista (#133), senao o menu entregava o que ela esconde.
       if (th && !vmModoTemp && ajustes_desfocar_nao_assistidos()) {
         const CatItem *cv = cat_item(vmIdx);
-        if (!(cv && vistoep_estado(cv->imdb, vmT, vmE) == 1))
-          th = gfx_desfocado(th, vmThumb);
+        if (!(cv && vistoep_estado(cv->imdb, vmT, vmE) == 1)) th = gfx_desfocado(th, vmThumb);
       }
       if (th) {
-        GfxRect r={m.x+PAD,m.y+PAD,TH_W,TH_H};
-        gfx_tex_aspect_atual=tex_aspecto(vmThumb);
-        gfx_rect(r,th,GFX_CARD,0,0,0,10.0f/TH_H,0,0,0,anim);
-        gfx_tex_aspect_atual=0.0f;
-        tx=m.x+PAD+TH_W+22.0f; tw=mw-(TH_W+22.0f)-PAD*2.0f;
+        gfx_tex_aspect_atual = tex_aspecto(vmThumb);
+        gfx_rect((GfxRect){ m.x + PAD, m.y + PAD, TH_W, TH_H }, th, GFX_CARD, 0, 0, 0, 16.0f / TH_H, 0, 0, 0, anim);
+        gfx_tex_aspect_atual = 0.0f;
+        tx += TH_W + 26.0f; tw -= TH_W + 26.0f;
       }
-      // NO MENU DA TEMPORADA o sobrescrito e a temporada e a linha grande e a
-      // serie: nao ha episodio de que falar, e o sentido esta nas opcoes.
-      if (vmModoTemp) {
-        char sob[48];
-        snprintf(sob,sizeof sob,i18n("Temporada %d"),vmT);
-        txt_desenhar_alpha(txt_linha(TXT_CAPTION2,sob,174,178,188,255),
-                           tx,m.y+PAD+6.0f,anim);
-        snprintf(cab,sizeof cab,"%s",vmNome);
-      } else {
-      txt_desenhar_alpha(txt_linha(TXT_CAPTION2,
-          vmVisto?i18n("MARCAR COMO ASSISTIDO"):i18n("DESMARCAR COMO ASSISTIDO"),
-          174,178,188,255),tx,m.y+PAD+6.0f,anim);
-      snprintf(cab,sizeof cab,i18n("T%dE%d · %s"),vmT,vmE,vmNome);
-      }
-      txt_desenhar_alpha(txt_linha_corta(TXT_HEADLINE,cab,245,248,255,255,tw),
-                         tx,m.y+PAD+36.0f,anim);
-      (void)tw; }
-
+      { float yc = m.y + PAD + TH_H * 0.5f;
+        if (vmModoTemp) {
+          char sob[48];
+          snprintf(sob, sizeof sob, i18n("Temporada %d"), vmT);
+          plrui_kicker(sob, tx, yc - 32.0f, 243, 242, 239, anim * 0.45f);
+          logotitulo_desenhar(cat_item(vmIdx), vmNome, TXT_HEADLINE, tx, yc - 6.0f,
+                              tw < 360.0f ? tw : 360.0f, 50.0f, tw, anim);
+        } else {
+          plrui_kicker(vmVisto ? "Marcar como assistido" : "Desmarcar como assistido",
+                       tx, yc - 32.0f, 243, 242, 239, anim * 0.45f);
+          snprintf(cab, sizeof cab, i18n("T%dE%d · %s"), vmT, vmE, vmNome);
+          txt_desenhar_alpha(txt_linha_corta(TXT_G30B, cab, 243, 242, 239, 255, tw), tx, yc - 6.0f, anim);
+        } } }
     if (vmFeito) {
-      // A confirmacao ocupa a area das opcoes: check grande na cor de acento
-      // e a frase com o NUMERO que a acao mudou.
       float ar, ag, ab;
       char fr[120];
-      GfxRect ck={m.x+PAD,m.y+optTop+8.0f,44.0f,44.0f};
-      ajustes_acento(&ar,&ag,&ab);
-      gfx_cor((GfxRect){ck.x-8.0f,ck.y-8.0f,60.0f,60.0f},0.5f,ar,ag,ab,anim);
-      gfx_icone(ck,"check",focoTxt/255.0f,focoTxt/255.0f,focoTxt/255.0f,anim);
-      if (vmFeitoN < 1) snprintf(fr,sizeof fr,"%s",i18n("Nada a mudar: já estava assim"));
-      else if (vmFeitoVisto) snprintf(fr,sizeof fr,vmFeitoN==1?i18n("%d episódio marcado como assistido"):i18n("%d episódios marcados como assistidos"),vmFeitoN);
-      else snprintf(fr,sizeof fr,vmFeitoN==1?i18n("%d episódio desmarcado"):i18n("%d episódios desmarcados"),vmFeitoN);
-      txt_desenhar_alpha(txt_linha_corta(TXT_PLR_CORPO,fr,240,242,247,255,mw-PAD*2.0f-72.0f),
-                         m.x+PAD+72.0f,m.y+optTop+8.0f+(44.0f-28.0f)*.5f,anim);
+      int tinta = plrui_tinta();
+      GfxRect ck = { m.x + PAD, m.y + optTop + 8.0f, 44.0f, 44.0f };
+      ajustes_acento(&ar, &ag, &ab);
+      gfx_cor((GfxRect){ ck.x - 8.0f, ck.y - 8.0f, 60.0f, 60.0f }, 0.5f, ar, ag, ab, anim);
+      gfx_icone(ck, "pl_check", tinta / 255.0f, tinta / 255.0f, tinta / 255.0f, anim);
+      if (vmFeitoN < 1) snprintf(fr, sizeof fr, "%s", i18n("Nada a mudar: já estava assim"));
+      else if (vmFeitoVisto) snprintf(fr, sizeof fr, vmFeitoN == 1 ? i18n("%d episódio marcado como assistido") : i18n("%d episódios marcados como assistidos"), vmFeitoN);
+      else snprintf(fr, sizeof fr, vmFeitoN == 1 ? i18n("%d episódio desmarcado") : i18n("%d episódios desmarcados"), vmFeitoN);
+      txt_desenhar_alpha(txt_linha_corta(TXT_G23B, fr, 243, 242, 239, 255, MW - PAD * 2.0f - 72.0f),
+                         m.x + PAD + 72.0f, m.y + optTop + 16.0f, anim);
       if (SDL_GetTicks() >= vmFeitoAte) { vmAberto = 0; vmFeito = 0; }
-    } else
-    for(i=0;i<vmOpcoes();i++) {
-      GfxRect r={m.x+24,m.y+optTop+(float)i*OPT_PASSO,mw-48,OPT_H};
-      float f=(i==vmFoco)?1.0f:0.0f;
-      if (anim > .5f) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroVmOpcao, NULL, i, 0);
-      const char *nomeIcone;
-      char rot[120];
-      int quantos;
-      // O NUMERO NO ROTULO, e nao so o verbo: "marcar 7 episodios" e uma
-      // decisao diferente de "marcar 1", e a pessoa tem de ver qual das duas
-      // esta prestes a tomar. Sai do mapa, que e o mesmo que a acao vai usar.
-      // O MESMO montarLote da acao: contar de uma fonte e agir sobre outra
-      // faria o rotulo prometer um numero e o OK mudar outro.
-      // CONTADO UMA VEZ, na abertura (vmQuantos): a conta varre o mapa e o
-      // catalogo inteiros e deduplica, e fazer isso por opcao a 60 quadros
-      // por segundo era trabalho jogado fora — o lote nao muda com o menu
-      // aberto.
-      quantos=vmModoTemp?vmQuantos[VM_TEMP]:(i<VM_FONTES?vmQuantos[i]:0);
-      (void)ci;
-      if(vmModoTemp) {
-        // As duas frases do pedido do dono, e o numero junto: e a mesma regra
-        // de "Temporada inteira (N episodios)" — a pessoa ve o tamanho do
-        // gesto antes de aplicar.
-        snprintf(rot,sizeof rot,
-                 i==VT_MARCAR?i18n("Marcar temporada como assistida (%d)")
-                             :i18n("Desmarcar temporada (%d)"),quantos);
-        nomeIcone=i==VT_MARCAR?"visto":"naovisto";
-      } else if(i==VM_ESTE) {
-        // O ROTULO MUDA COM O SENTIDO. As duas metades do ternario eram
-        // identicas ("Este episódio" dos dois lados) e nenhuma passava por
-        // i18n — em ingles a linha saia em portugues.
-        snprintf(rot,sizeof rot,"%s",
-                 vmVisto?i18n("Marcar este episódio"):i18n("Desmarcar este episódio"));
-        nomeIcone=vmVisto?"visto":"naovisto";
-      } else if(i==VM_ATE) {
-        snprintf(rot,sizeof rot,
-                 quantos==1?i18n("Até aqui (%d episódio)")
-                          :i18n("Até aqui (%d episódios)"),quantos);
-        nomeIcone="avancar";
-      } else if(i==VM_TEMP) {
-        snprintf(rot,sizeof rot,
-                 quantos==1?i18n("Temporada inteira (%d episódio)")
-                          :i18n("Temporada inteira (%d episódios)"),quantos);
-        nomeIcone="episodios";
-      } else {
-        snprintf(rot,sizeof rot,"%s",i18n("Fontes deste episódio"));
-        nomeIcone="fontes";
-      }
-      // O mesmo botao primario do app: accent solido, tinta por contraste e
-      // uma luz curta atras do alvo, sem vidro, aro ou segunda moldura.
-      botao_pilula(r,rot,nomeIcone,f,1,1,anim);
+      return;
     }
-    // A DICA FICA ABAIXO DA ULTIMA OPCAO, com 22 de respiro e nao 8. Com 8 ela
-    // encostava na pilula "Fontes deste episódio" — na captura da TV as duas
-    // linhas leem como uma coisa so. O deslocamento sai da MESMA conta que
-    // dimensionou o cartao, entao mudar o numero de opcoes nao volta a
-    // desalinhar (foi assim que o rodape ja passou POR CIMA da terceira linha).
-    if (!vmFeito)
-    txt_bloco(TXT_CAPTION,"↑ ↓  Escolher   ·   OK  Aplicar   ·   Voltar  Fechar",
-              155,159,169,m.x+28,
-              m.y+optTop+(float)(vmOpcoes()-1)*OPT_PASSO+OPT_H+22.0f,
-              mw-56,26,anim*.86f,1); }
-  }
+    for (i = 0; i < vmOpcoes(); i++) {
+      GfxRect r = { m.x + PAD, m.y + optTop + (float)i * OPT_PASSO, MW - 2.0f * PAD, OPT_H };
+      int f = i == vmFoco, quantos;
+      const char *ic;
+      char rot[120];
+      if (anim > .5f) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroVmOpcao, NULL, i, 0);
+      // O NUMERO NO ROTULO: "marcar 7 episodios" e outra decisao que "marcar
+      // 1". Sai do MESMO montarLote da acao, contado uma vez na abertura.
+      quantos = vmModoTemp ? vmQuantos[VM_TEMP] : (i < VM_FONTES ? vmQuantos[i] : 0);
+      if (vmModoTemp) {
+        snprintf(rot, sizeof rot, i == VT_MARCAR ? i18n("Marcar temporada como assistida (%d)")
+                                                 : i18n("Desmarcar temporada (%d)"), quantos);
+        ic = i == VT_MARCAR ? "pl_eye" : "pl_eye-off";
+      } else if (i == VM_ESTE) {
+        snprintf(rot, sizeof rot, "%s", vmVisto ? i18n("Marcar este episódio") : i18n("Desmarcar este episódio"));
+        ic = vmVisto ? "pl_eye" : "pl_eye-off";
+      } else if (i == VM_ATE) {
+        snprintf(rot, sizeof rot, quantos == 1 ? i18n("Até aqui (%d episódio)") : i18n("Até aqui (%d episódios)"), quantos);
+        ic = "pl_skip-forward";
+      } else if (i == VM_TEMP) {
+        snprintf(rot, sizeof rot, quantos == 1 ? i18n("Temporada inteira (%d episódio)") : i18n("Temporada inteira (%d episódios)"), quantos);
+        ic = "pl_list-video";
+      } else {
+        snprintf(rot, sizeof rot, "%s", i18n("Fontes deste episódio"));
+        ic = "pl_layers";
+      }
+      if (f) plrui_linha_foco(r, 22.0f, anim);
+      gfx_icone((GfxRect){ r.x + 20.0f, r.y + (OPT_H - 26.0f) * 0.5f, 26.0f, 26.0f }, ic, 1, 1, 1, (f ? 0.95f : 0.6f) * anim);
+      { TxtLinha l = txt_linha_corta(TXT_G23B, rot, 243, 242, 239, f ? 255 : 219, r.w - 84.0f);
+        txt_desenhar_alpha(l, r.x + 20.0f + 26.0f + 18.0f, r.y + (OPT_H - (float)l.h) * 0.5f, anim); }
+    }
+    { const char *k[3] = { "\xe2\x86\x91 \xe2\x86\x93", "OK", "Voltar" };
+      const char *rt[3] = { "Escolher", "Aplicar", "Fechar" };
+      plrui_dicas(k, rt, 3, m.x + PAD, m.y + optTop + (float)vmOpcoes() * OPT_PASSO - 4.0f + 22.0f + 15.0f, 0, anim); } }
 }
 
 static void menuEvento(const SDL_Event *ev) {
@@ -453,6 +447,7 @@ static void menuEvento(const SDL_Event *ev) {
 
 void episodios_evento(const SDL_Event *ev) {
   if (!aberto) return;
+  revalidar();
   { SDL_Keycode ko = ev->key.keysym.sym;
     int ehOk = (ko == SDLK_RETURN || ko == SDLK_KP_ENTER || ko == SDLK_SPACE);
 
@@ -534,7 +529,11 @@ void episodios_evento(const SDL_Event *ev) {
   if (k == SDLK_UP) { if (grupo == 1 && foco > 0) foco--; else grupo--; }
   if (k == SDLK_DOWN) { if (grupo < 1) grupo++; else if (foco < n - 1) foco++; }
   if (grupo < -1) grupo = -1;
-  if (grupo == 0 && (k == SDLK_LEFT || k == SDLK_RIGHT)) {
+  // ESQUERDA/DIREITA TROCAM DE TEMPORADA TAMBEM COM O FOCO NUM EPISODIO (dono,
+  // 03/10): a lista e vertical, entao os lados nao tem outro uso ali. O foco
+  // continua na lista (no primeiro episodio da temporada nova); nas pontas
+  // (primeira/ultima temporada) nada acontece.
+  if (grupo >= 0 && (k == SDLK_LEFT || k == SDLK_RIGHT)) {
     int nova = temporada + (k == SDLK_RIGHT ? 1 : -1);
     if (nova >= 0 && nova < nt) {
       temporada = nova; foco = 0; scroll = 0;
@@ -566,6 +565,7 @@ void episodios_evento(const SDL_Event *ev) {
 void episodios_atualizar(float dt) {
   anim = anim_mola(anim, aberto ? 1 : 0, dt, NV_MOLA_TELA);
   if(!aberto && anim<.005f) return;
+  revalidar();
   desc_episodios_pendente();
   int n = nLinhas();
   // A LISTA SUMIU: NAO E "VOLTE PARA O COMECO", E "ESPERE" — issue #102.
@@ -579,13 +579,16 @@ void episodios_atualizar(float dt) {
     }
     // SEM MOLA no quadro em que a linha e encontrada: a lista chegou depois da
     // folha abrir, e animar daqui e o salto que o relato descreve.
+    // A PRIMEIRA LINHA E A ANTERIOR A QUE TOCA (mockup do Glass UI): a pessoa
+    // ve de onde veio e o que vem, e o foco fica na segunda linha.
     localizarAtual = 0; semMolaScroll = 1;
+    scroll = foco > 0 ? (float)(foco - 1) * EP_ROW : 0.0f;
   }
   if (foco >= n) foco = n > 0 ? n - 1 : 0;
   // O ALVO SEGUE O FOCO enquanto a lista existe — e assim que andar com o
   // direcional (ou trocar de aba) atualiza o que sera reencontrado depois.
   if (n) { const CatEp *l = epLinha(foco); if (l) alvoE = l->episodio; }
-  float area = NV_TELA_H - EP_TOP - 36;
+  float area = EP_VIS * EP_ROW;
   float max = n * EP_ROW - area;
   float alvo = scroll;
   if(foco*EP_ROW<scroll) alvo=foco*EP_ROW;
@@ -612,167 +615,203 @@ static void ponteiroEpTemporada(int i, int b) {
   desc_episodios(titulo, numTemporada(temporada));
 }
 
-void episodios_desenhar(void) {
-  if (anim < .005f) return;
-  float x = NV_TELA_W - EP_W + (1 - anim) * EP_W;
+// O CORPO DA ILHA: o mesmo desenho que a folha tinha — material, foco e
+// segmentado de plrui.h, sem contorno —, agora dentro do retangulo que a ilha
+// da. O que esta tocando leva o equalizador no acento; so a linha focada abre
+// a sinopse.
+static void equalizador(float x, float yb, float a) {
   float ar, ag, ab;
-  float tinta = ajustes_acento_tinta(&ar, &ag, &ab);
-  int focoTxt = (int)(tinta * 255.0f + 0.5f);
-  gfx_cor((GfxRect){0,0,NV_TELA_W,NV_TELA_H},0,.02f,.02f,.025f,.35f*anim);
-  gfx_cor((GfxRect){x,0,EP_W,NV_TELA_H},.025f,.038f,.041f,.052f,anim);
-  // A hierarquia vem de tipografia e superfícies, nao de um halo no topo:
-  // a luz colorida lavava o fundo e competia com a temporada e a linha focadas.
-  txt_desenhar_alpha(txt_linha(TXT_PAINEL_TITULO,"Episódios",240,241,243,255),x+40,44,anim);
-  int ptr = aberto && anim > .5f && !vmAberto && ponteiro_ativo();
-  if (ptr) {
-    ponteiro_alvo(0, 0, x, NV_TELA_H, NULL, ponteiroEpFora, 0, 0);
-    ponteiro_alvo(x, 0, EP_W, NV_TELA_H, NULL, NULL, 0, 0);
-    ponteiro_alvo(x+EP_W-146, 44, 110, 50, ponteiroEpFechar, NULL, 0, 0);
-  }
-  { int cor=grupo==-1?focoTxt:190;
-    // Acao ghost: sem caixa permanente, a superficie aparece apenas quando
-    // recebe foco, com o mesmo tom contido usado pela selecao da temporada.
-    if (grupo==-1)
-      gfx_cor((GfxRect){x+EP_W-146,44,110,50},.3f,
-              tinta>.5f?.15f+ar*.10f:.78f,
-              tinta>.5f?.065f+ag*.03f:.79f,
-              tinta>.5f?.09f+ab*.045f:.82f,anim);
-    txt_desenhar_alpha(txt_linha(TXT_PG_ROTULO,"Fechar",cor,cor,cor,255),x+EP_W-130,55,anim); }
-  gfx_recorte(x+36,120,EP_W-72,64);
-  int primeira = temporada > 1 ? temporada - 1 : 0;
-  for (int i = primeira; i < nTemporadas() && i < primeira+3; i++) {
-    float tx = x+40+(i-primeira)*212;
-    int sel = i == temporada;
-    if (ptr) ponteiro_alvo(tx, 120, 196, 64, NULL, ponteiroEpTemporada, i, 0);
-    int br=sel?focoTxt:210, bg=sel?focoTxt:210, bb=sel?focoTxt:210;
-    // A temporada e uma tab, nao um botao preenchido: o acento no texto e o
-    // traço curto mostram a selecao sem competir com as miniaturas da lista.
-    char s[48]; snprintf(s,sizeof s,i18n("Temporada %d"),numTemporada(i));
-    TxtLinha l=txt_linha(TXT_PG_ROTULO,s,br,bg,bb,255);
-    txt_desenhar_alpha(l,tx+(196-l.w)*.5f,138,anim);
-    if (sel) {
-      float trilho = l.w + 16.0f;
-      gfx_cor((GfxRect){tx+(196-trilho)*.5f,180,trilho,3},1.5f,ar,ag,ab,
-              anim*(grupo==0?1.0f:.62f));
-    }
-  }
-  gfx_sem_recorte();
-  gfx_recorte(x+36,EP_TOP,EP_W-72,NV_TELA_H-EP_TOP-32);
-  int n=nLinhas();
-  for (int i=0;i<n;i++) {
-    float y=EP_TOP+i*EP_ROW-scroll;
-    if (y+EP_ROW<EP_TOP || y>NV_TELA_H-32) continue;
-    const CatEp *ep=epLinha(i);
-    int sel=grupo==1 && i==foco;
-    GfxRect row={x+40,y,EP_W-80,EP_ROW-14};
-    GfxRect r=row;
-    if (ptr) {
-      float t = y < EP_TOP ? EP_TOP : y;
-      float b = y + row.h > NV_TELA_H - 32 ? NV_TELA_H - 32 : y + row.h;
-      if (b > t) ponteiro_alvo(row.x, t, row.w, b - t, ponteiroEpLinha, NULL, i, 0);
-    }
-    // Cada episodio recebe uma base escura, quase fundida ao painel; o foco
-    // sobe para ameixa. A diferenca curta preserva o ritmo dos cartoes sem
-    // empilhar bordas nem deixar o acento rosa dominar a folha.
-    if (sel) {
-      if (tinta < .5f) {
-        // Acento branco pede uma superficie clara: a tinta escura devolvida
-        // por ajustes_acento_tinta passa a ter contraste real, nao so teorico.
-        gfx_cor(row,.12f,.78f,.79f,.82f,.98f*anim);
-      } else {
-        gfx_cor(row,.12f,.088f+ar*.055f,.075f+ag*.035f,
-                .09f+ab*.045f,.98f*anim);
-      }
-    } else {
-      gfx_cor(row,.12f,.062f,.066f,.079f,.92f*anim);
-    }
-    r.x+=3; r.y+=3; r.w-=6; r.h-=6;
-    const CatItem *ci=cat_item(titulo);
-    const char *arte=ep->thumb[0]?ep->thumb:(ci?ci->backdrop:"");
-    GLuint tex=tex_obter_larg(arte,184);
-    // Still que nao existe (nem metahub nem TMDB): o fundo da serie, com o
-    // T%dE%d do selo por cima, em vez do quadro vazio. Ver detail.c.
-    if(!tex&&ep->thumb[0]&&tex_falhou(ep->thumb)&&ci){
-      const char *res=ci->backdrop[0]?ci->backdrop:ci->poster;
-      GLuint t3=res[0]?tex_obter_larg(res,184):0;
-      if(t3){arte=res;tex=t3;}
-    }
-    GfxRect tr={x+54,y+14,184,130};
-    gfx_cor(tr,.10f,sel?.16f:.145f,sel?.17f:.15f,sel?.20f:.17f,anim);
-    // DESFOCAR NAO ASSISTIDOS (#133), com a mesma regra do card do detalhe:
-    // so o que o mapa afirma como visto fica nitido — e o que esta tocando
-    // agora, que a pessoa ja esta vendo. Sem copia pronta, fica o fundo.
-    if(tex&&ajustes_desfocar_nao_assistidos()&&
-       !(ep->temporada==atualT&&ep->episodio==atualE)&&
-       !(ci&&vistoep_estado(ci->imdb,ep->temporada,ep->episodio)==1))
-      tex=gfx_desfocado(tex,arte);
-    if(tex){gfx_tex_aspect_atual=tex_aspecto(arte);gfx_rect(tr,tex,GFX_CARD,0,0,0,.10f,0,0,0,anim);gfx_tex_aspect_atual=0;}
-    char num[40];snprintf(num,sizeof num,i18n("T%dE%d"),ep->temporada,ep->episodio);
-    gfx_cor((GfxRect){tr.x+8,tr.y+92,72,30},.15f,
-            sel?.045f:.025f,sel?.048f:.025f,sel?.06f:.03f,.92f*anim);
-    { int badgeTxt = sel && tinta < .5f ? 242 : sel ? focoTxt : 240;
-      txt_desenhar_alpha(txt_linha(TXT_MINI,num,badgeTxt,badgeTxt,
-                                   sel && tinta < .5f ? 245 : badgeTxt,255),
-                         tr.x+15,tr.y+97,anim); }
-    float tx=x+260, w=EP_W-310;
-    txt_desenhar_alpha(txt_linha_corta(TXT_PAINEL_ITEM,ep->nome[0]?ep->nome:num,
-                                       sel?focoTxt:242,sel?focoTxt:243,
-                                       sel?focoTxt:245,255,w),tx,y+16,anim);
-    int atual=ep->temporada==atualT && ep->episodio==atualE;
-    // O ESTADO SAI DO MAPA, e nao mais da matriz [20][40] de extras.c. A
-    // matriz so guarda o "sim": ela nao distingue "nao viu" de "nao sei", e
-    // cortava em silencio a temporada 21 e o episodio 40. O mapa distingue, e
-    // e ele que as acoes de marcar em lote mudam — desenhar de uma fonte e
-    // agir sobre outra faria a linha nao mudar depois do gesto.
-    const CatItem *cim=cat_item(titulo);
-    int visto=cim?vistoep_estado(cim->imdb,ep->temporada,ep->episodio):-1;
-    char estado[96];
-    if(atual) snprintf(estado,sizeof estado,"Reproduzindo agora");
-    else if(visto==1) snprintf(estado,sizeof estado,i18n("✓ Assistido%s%s"),ep->duracao[0]?" · ":"",ep->duracao);
-    else snprintf(estado,sizeof estado,"%s%s%s",ep->data,ep->data[0]&&ep->duracao[0]?" · ":"",ep->duracao);
-    if (atual)
-      gfx_cor((GfxRect){tx-18,y+25,8,8},.5f,ar,ag,ab,.95f*anim);
-    { int er,eg,eb;
-      if (atual) { er=sel?focoTxt:(int)(ar*255.0f+0.5f); eg=sel?focoTxt:(int)(ag*255.0f+0.5f); eb=sel?focoTxt:(int)(ab*255.0f+0.5f); }
-      else if (visto==1) er=eg=eb=sel?focoTxt:198;
-      else er=eg=eb=sel?focoTxt:180;
-      TxtLinha le=txt_linha_corta(TXT_PG_FIM,estado,er,eg,eb,255,w);
-      txt_desenhar_alpha(le,tx,y+48,anim);
-      // Voto do TMDB por episodio (issue #87), no mesmo selo escuro que o card
-      // de episodio da pagina de detalhe usa para Trakt e TMDB.
-      if(ep->nota>0){
-        char valor[32];
-        snprintf(valor,sizeof valor,ajustes_idioma_ingles()?"TMDB %d.%d":"TMDB %d,%d",ep->nota/10,ep->nota%10);
-        TxtLinha ln=txt_linha(TXT_PG_FIM,valor,229,231,236,255);
-        GfxRect selo={tx+le.w+10,y+45,ln.w+14,26};
-        gfx_cor(selo,.18f,sel?.08f:.15f,sel?.085f:.15f,sel?.10f:.17f,.94f*anim);
-        txt_desenhar_alpha(ln,selo.x+7,y+48,anim);
-      } }
-    txt_bloco(TXT_PG_FIM,ep->sinopse,sel?focoTxt*.78f:186,sel?focoTxt*.80f:188,
-             sel?focoTxt*.84f:194,tx,y+78,w,25,anim,3);
-  }
-  if(!n) txt_bloco(TXT_PG_FIM,desc_episodios_carregando(titulo)?
-    "Carregando episódios…":"Episódios indisponíveis. Selecione a temporada e pressione OK para tentar novamente.",
-    196,198,204,x+56,EP_TOP+40,EP_W-112,28,anim,4);
-  gfx_sem_recorte();
-  if(n) {
-    char contador[48];snprintf(contador,sizeof contador,i18n("%d de %d episódios"),foco+1,n);
-    txt_desenhar_alpha(txt_linha(TXT_MINI,contador,170,173,181,255),x+40,NV_TELA_H-26,anim);
-  }
-  // DICA DO GESTO, escrita na tela. Pressao longa nao se descobre sozinha num
-  // D-pad — foi a licao do menu do cartaz, que ganhou a mesma linha.
-  if(n && grupo==1 && !vmAberto) {
-    txt_desenhar_alpha(txt_linha(TXT_MINI,"Segure OK para marcar como assistido",
-                                 174,177,186,255),x+300,NV_TELA_H-26,anim*.9f);
-  }
-  // A mesma dica na aba: o gesto da temporada tambem nao se descobre sozinho.
-  if(grupo==0 && !vmAberto) {
-    txt_desenhar_alpha(txt_linha(TXT_MINI,i18n("Segure OK para marcar a temporada"),
-                                 174,177,186,255),x+300,NV_TELA_H-26,anim*.9f);
-  }
+  static const float H[3] = { 6.0f, 12.0f, 8.0f };
+  int i;
+  ajustes_acento(&ar, &ag, &ab);
+  for (i = 0; i < 3; i++) gfx_cor((GfxRect){ x + i * 5.0f, yb - H[i], 3.0f, H[i] }, 0.0f, ar, ag, ab, a);
+}
 
-  menuDesenhar(x, EP_W, anim);
-  
+static float alturaLista(void) {
+  int n = nLinhas(), v = n < EP_VIS ? n : EP_VIS;
+  return v > 0 ? v * EP_ROW : EP_VAZIO;
+}
+static float alturaCorpo(void) {
+  float h = EP_PAD_Y + EP_TIT_H + 14.0f + EP_SEG_H + 14.0f + alturaLista() + 14.0f + EP_PE_H + EP_PAD_Y;
+  // Com o menu de visto aberto a ilha tem de caber o modal inteiro.
+  if (vmAberto && !vmSo) {
+    float m = VM_TOPO_ILHA - 64.0f + menuAltura() + 40.0f;
+    if (m > h) h = m;
+  }
+  return h;
+}
+
+static void linhaEp(int i, const CatItem *ci, float lx, float lw, float y, float topo, float base,
+                    int ptr, float a) {
+  const CatEp *ep = epLinha(i);
+  int sel = grupo == 1 && i == foco, vid = ajustes_vidro();
+  GfxRect row = { lx, y, lw, EP_ROW - 4.0f };
+  // A LISTA SOME NA BASE (mask-image do mockup): as linhas que entram no
+  // rodape apagam nos ultimos 70 px em vez de cortar seco.
+  float fade = anim_clamp((base - (y + 30.0f)) / 70.0f, 0.0f, 1.0f), ra = a * fade;
+  if (!ep) return;
+  if (ptr) {
+    float t = y < topo ? topo : y;
+    float b = y + row.h > base ? base : y + row.h;
+    if (b > t) ponteiro_alvo(row.x, t, row.w, b - t, ponteiroEpLinha, NULL, i, 0);
+  }
+  if (sel) plrui_linha_foco(row, 22.0f, ra);
+  const char *arte = ep->thumb[0] ? ep->thumb : (ci ? ci->backdrop : "");
+  GLuint tex = tex_obter_larg(arte, 240);
+  // Still que nao existe (nem metahub nem TMDB): o fundo da serie.
+  if (!tex && ep->thumb[0] && tex_falhou(ep->thumb) && ci) {
+    const char *res = ci->backdrop[0] ? ci->backdrop : ci->poster;
+    GLuint t3 = res[0] ? tex_obter_larg(res, 240) : 0;
+    if (t3) { arte = res; tex = t3; }
+  }
+  GfxRect tr = { lx + 12.0f, y + 10.0f, 240.0f, 135.0f };
+  int atual = ep->temporada == atualT && ep->episodio == atualE;
+  int visto = ci ? vistoep_estado(ci->imdb, ep->temporada, ep->episodio) : -1;
+  if (vid) gfx_cor(tr, 16.0f / 135.0f, 1, 1, 1, 0.06f * ra);
+  else gfx_cor(tr, 16.0f / 135.0f, 0.125f, 0.129f, 0.153f, ra);
+  // DESFOCAR NAO ASSISTIDOS (#133): so o que o mapa afirma como visto fica
+  // nitido — e o que esta tocando agora, que a pessoa ja esta vendo.
+  if (tex && ajustes_desfocar_nao_assistidos() && !atual && visto != 1) tex = gfx_desfocado(tex, arte);
+  if (tex) { gfx_tex_aspect_atual = tex_aspecto(arte); gfx_rect(tr, tex, GFX_CARD, 0, 0, 0, 16.0f / 135.0f, 0, 0, 0, ra); gfx_tex_aspect_atual = 0; }
+  // O PROGRESSO NA STILL: o ponto salvo deste episodio, branco; no que esta
+  // tocando, no acento.
+  { char chave[96]; ProgRegistro pr;
+    if (ci && visto != 1) {
+      prog_chave(chave, sizeof chave, ci->imdb, ep->temporada, ep->episodio);
+      if (prog_por_chave(chave, &pr) && pr.durSeg > 1.0 && pr.posSeg > 1.0) {
+        float f = (float)(pr.posSeg / pr.durSeg), ar, ag, ab;
+        if (f > 1.0f) f = 1.0f;
+        if (atual) ajustes_acento(&ar, &ag, &ab); else ar = ag = ab = 1.0f;
+        plrui_trilho((GfxRect){ tr.x + 10.0f, tr.y + tr.h - 14.0f, tr.w - 20.0f, 4.0f }, f, ar, ag, ab, ra);
+      } } }
+  // O ASSISTIDO e um disco com o check sobre a still.
+  if (visto == 1) {
+    GfxRect d = { tr.x + tr.w - 44.0f, tr.y + 10.0f, 34.0f, 34.0f };
+    if (vid) gfx_cor(d, 0.5f, 0.055f, 0.059f, 0.071f, 0.78f * ra);
+    else gfx_cor(d, 0.5f, 0.082f, 0.086f, 0.102f, ra);
+    gfx_icone((GfxRect){ d.x + 8.0f, d.y + 8.0f, 18.0f, 18.0f }, "pl_check", 1, 1, 1, ra);
+  }
+  { float tx = tr.x + tr.w + 20.0f, w = row.x + row.w - 16.0f - tx, ty = y + 14.0f;
+    char num[48], estado[96], dur[32];
+    snprintf(num, sizeof num, i18n("Episódio %d"), ep->episodio);
+    plrui_kicker(num, tx, ty, 243, 242, 239, ra * 0.42f);
+    ty += 22.0f;
+    { TxtLinha l = txt_linha_corta(TXT_ILHA_NOME, ep->nome[0] ? ep->nome : num, 243, 242, 239, sel ? 255 : 224, w);
+      txt_desenhar_alpha(l, tx, ty, ra); ty += (float)l.h + 6.0f; }
+    desc_duracao_txt(ep->duracao, dur, sizeof dur);   // "45 min" -> forma do idioma da UI
+    if (atual) {
+      float ar, ag, ab;
+      ajustes_acento(&ar, &ag, &ab);
+      equalizador(tx, ty + 15.0f, ra);
+      plrui_kicker("Reproduzindo agora", tx + 22.0f, ty + 1.0f, (int)(ar * 255), (int)(ag * 255), (int)(ab * 255), ra);
+    } else {
+      if (visto == 1) snprintf(estado, sizeof estado, "%s%s%s", i18n("Assistido"), dur[0] ? " \xc2\xb7 " : "", dur);
+      else snprintf(estado, sizeof estado, "%s%s%s", ep->data, ep->data[0] && dur[0] ? " \xc2\xb7 " : "", dur);
+      txt_desenhar_alpha(txt_linha_corta(TXT_ILHA_APOIO, estado, 243, 242, 239, 128, w), tx, ty, ra);
+    }
+    ty += 20.0f + 8.0f;
+    if (sel && ep->sinopse[0])
+      txt_bloco_corta(TXT_ILHA_APOIO, ep->sinopse, 243, 242, 239, tx, ty, w, 23.0f, ra * 0.5f, 2);
+  }
+}
+
+static void corpoIlha(GfxRect c, float a, void *u) {
+  const CatItem *ci;
+  GfxRect ilha = { c.x, c.y - 64.0f, c.w, c.h + 64.0f };
+  float x0 = c.x + EP_PAD_X, w = c.w - EP_PAD_X * 2.0f, y = c.y + EP_PAD_Y, topo, base;
+  int ptr, n, i;
+  (void)u;
+  revalidar();
+  ci = cat_item(titulo);
+  ptr = aberto && a > .5f && !vmAberto && ponteiro_ativo();
+  plrilha_rect(&ilha);
+  if (ptr) {
+    ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, ponteiroEpFora, 0, 0);
+    ponteiro_alvo(ilha.x, ilha.y, ilha.w, ilha.h, NULL, NULL, 0, 0);
+  }
+  // CABECALHO: kicker com a serie, "Episodios"; o fechar e um disco (grupo -1).
+  plrui_kicker(ci ? ci->titulo : "", x0 + 10.0f, y, 115, 115, 113, a);
+  txt_desenhar_alpha(txt_linha(TXT_ILHA_PERGUNTA, "Episódios", 243, 242, 239, 255), x0 + 10.0f, y + 22.0f, a);
+  { GfxRect d = { x0 + w - 10.0f - 56.0f, y + 4.0f, 56.0f, 56.0f };
+    int f = grupo == -1;
+    float k = f ? plrui_tinta() / 255.0f : 0.85f;
+    if (f) plrui_pilula_foco(d, a); else plrui_botao_repouso(d, a);
+    gfx_icone((GfxRect){ d.x + 16.0f, d.y + 16.0f, 24.0f, 24.0f }, "pl_x", k, k, k, a);
+    if (ptr) ponteiro_alvo(d.x, d.y, d.w, d.h, ponteiroEpFechar, NULL, 0, 0); }
+  y += EP_TIT_H + 14.0f;
+  // TEMPORADAS no segmentado, com a contagem de episodios das que a lista ja
+  // tem; uma janela que cabe na ilha, comecando antes da selecionada.
+  { const char *rot[8];
+    char nomes[8][40];
+    int cont[8], ns = 0, ini = temporada > 1 ? temporada - 1 : 0;
+    for (i = ini; i < nTemporadas() && ns < 4; i++) {
+      int t = numTemporada(i), k, cc = 0;
+      snprintf(nomes[ns], sizeof nomes[ns], i18n("Temporada %d"), t);
+      for (k = 0; k < cat_n_episodios(titulo); k++) { const CatEp *e = cat_episodio(titulo, k); if (e && e->temporada == t) cc++; }
+      rot[ns] = nomes[ns]; cont[ns] = cc > 0 ? cc : -1;
+      if (plrui_seg(rot, cont, ns + 1, -1, 0, -1.0f, 0, a) > w - 20.0f) break;
+      ns++;
+    }
+    { float sx = x0 + 10.0f, xx = sx + 5.0f;
+      plrui_seg(rot, cont, ns, temporada - ini, grupo == 0, sx, y, a);
+      if (ptr) for (i = 0; i < ns; i++) {
+        float sw = plrui_seg(&rot[i], &cont[i], 1, -1, 0, -1.0f, 0, a) - 10.0f;
+        ponteiro_alvo(xx, y + 5.0f, sw, 44.0f, NULL, ponteiroEpTemporada, ini + i, 0);
+        xx += sw + 4.0f;
+      } } }
+  y += EP_SEG_H + 14.0f;
+  topo = y; base = y + alturaLista();
+  n = nLinhas();
+  gfx_recorte(c.x, topo - 4.0f, c.w, base - topo + 4.0f);
+  for (i = 0; i < n; i++) {
+    float yl = topo + i * EP_ROW - scroll;
+    if (yl + EP_ROW < topo || yl > base) continue;
+    linhaEp(i, ci, x0, w, yl, topo, base, ptr, a);
+  }
+  if (!n) txt_bloco(TXT_ILHA_TEXTO, desc_episodios_carregando(titulo) ?
+    "Carregando episódios…" : "Episódios indisponíveis. Selecione a temporada e pressione OK para tentar novamente.",
+    196, 198, 204, x0 + 10.0f, topo + 12.0f, w - 20.0f, 30, a, 3);
+  gfx_recorte(ilha.x, ilha.y, ilha.w, ilha.h);   // de volta ao recorte da ilha
+  y = base + 14.0f;
+  // RODAPE sob um fio: "4 de 8 episodios" e a dica do gesto (pressao longa
+  // nao se descobre sozinha num D-pad).
+  gfx_cor((GfxRect){ x0, y, w, 1.0f }, 0.0f, 1, 1, 1, 0.07f * a);
+  { float yc = y + 16.0f + 15.0f;
+    if (n) {
+      char contador[48];
+      snprintf(contador, sizeof contador, i18n("%d de %d episódios"), foco + 1, n);
+      { TxtLinha l = txt_linha(TXT_ILHA_APOIO, contador, 243, 242, 239, 115);
+        txt_desenhar_alpha(l, x0 + 10.0f, yc - (float)l.h * 0.5f, a); }
+    }
+    if (!vmAberto && (grupo == 0 || (n && grupo == 1))) {
+      const char *k[1] = { "Segure OK" };
+      const char *rt[1] = { grupo == 0 ? "Marcar a temporada" : "Marcar como assistido" };
+      plrui_dicas(k, rt, 1, x0 + w - 10.0f, yc, 1, a);
+    } }
+  // O MENU DE VISTO: modal dentro da ilha, por cima da lista.
+  if (vmAberto && !vmSo) menuDesenhar(ilha, a);
+}
+
+static void episodios_desenharCorpo_(void);
+// Camada ampliada (escala.h): o corpo desenha na tela virtual.
+void episodios_desenhar(void) {
+  ESCALA_INI();
+  episodios_desenharCorpo_();
+  ESCALA_FIM();
+}
+static void episodios_desenharCorpo_(void) {
+  if (anim < .005f) return;
+  revalidar();
+  // O video fica sem veu cheio: so o degrade do lado da ilha, como nas faixas.
+  gfx_veu_css((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, plrilha_direita() ? 3 : 2, 1.38f, 1.0f, 0.42f * anim);
+  if (!aberto) return;   // fechando: a ilha encolhe com o ultimo corpo
+  { PlrIlhaPedido p;
+    memset(&p, 0, sizeof p);
+    p.w = EP_W;
+    p.h = alturaCorpo();
+    p.corpo = corpoIlha;
+    p.modal = vmAberto && !vmSo;
+    plrilha_pedir(&p); }
 }
 
 // --- O MENU SOZINHO, SOBRE OUTRA TELA ----------------------------------------
@@ -794,9 +833,27 @@ int  episodios_menu_modo_temporada(void) { return vmAberto && vmModoTemp; }
 int  episodios_menu_aberto(void) { return vmAberto && vmSo; }
 int  episodios_menu_aberto_qualquer(void) { return vmAberto; }
 void episodios_menu_evento(const SDL_Event *e) {
-  if (vmAberto && vmSo) menuEvento(e);
+  if (vmAberto && vmSo) { revalidar(); menuEvento(e); }
 }
+static void episodios_menu_desenharCorpo_(void);
+// Camada ampliada (escala.h): o corpo desenha na tela virtual.
 void episodios_menu_desenhar(void) {
-  if (vmAberto && vmSo) menuDesenhar(0.0f, (float)NV_TELA_W, 1.0f);
+  ESCALA_INI();
+  episodios_menu_desenharCorpo_();
+  ESCALA_FIM();
+}
+static void episodios_menu_desenharCorpo_(void) {
+  if (vmAberto && vmSo) revalidar();
+  if (vmAberto && vmSo) menuDesenhar((GfxRect){ 0.0f, 0.0f, (float)NV_TELA_W, (float)NV_TELA_H }, 1.0f);
 }
 int  episodios_menu_pediu_fontes(void) { int v = vmFontesPed; vmFontesPed = 0; return v; }
+
+#ifdef NV_SHOT_HOOKS
+// Capturas: o menu de visto do episodio em foco, como a pressao longa abre.
+void episodios_shot_menu(void) {
+  const CatEp *e = epLinha(foco);
+  if (e) menuAbrir(titulo, e->temporada, e->episodio, e->nome, 0);
+}
+// Capturas: o foco numa linha da lista.
+void episodios_shot_foco(int linha) { grupo = 1; foco = linha; }
+#endif

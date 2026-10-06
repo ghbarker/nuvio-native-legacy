@@ -24,6 +24,7 @@
 #include "gfx.h"
 #include "text.h"
 #include "tex_cache.h"
+#include "socialvis.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
@@ -169,10 +170,29 @@ int main(int argc, char **argv) {
     f = fopen(caminho, "w");
     assert(f);
     fprintf(f, "idioma 0\nselected_theme 2\n");
+    // NUVIO_SHOT_VIDRO=1: Interface de vidro ligada (V_LIGA: 0 = Ligado).
+    // NUVIO_SHOT_VIDRO=0: o material solido (vidroLocal 1).
+    if (getenv("NUVIO_SHOT_VIDRO"))
+      fprintf(f, "vidroLocal %d\n", *getenv("NUVIO_SHOT_VIDRO") == '0' ? 1 : 0);
     fclose(f);
+    // A MIGRACAO UNICA DA 2.0 (ajustes.c) desliga o vidro na primeira leitura;
+    // com NUVIO_SHOT_VIDRO pedido, ela ja conta como feita.
+    if (getenv("NUVIO_SHOT_VIDRO")) {
+      snprintf(caminho, sizeof caminho, "%s/aparencia-20.txt", dados_dir());
+      f = fopen(caminho, "w");
+      assert(f);
+      fputs("1\n", f);
+      fclose(f);
+    }
     ajustes_dir(dados_dir()); }
 
   montar(&d);
+  // O CARTAO DE AMIGOS le socialvis. Com -DNV_SOCIALVIS_DEMO (perfil_shot.sh)
+  // entram os amigos de exemplo de socialvis.c — tres, um vendo agora —, que
+  // e o caso do mockup; sem a flag o cartao sai no estado sem amigos.
+#ifdef NV_SOCIALVIS_DEMO
+  socialvis_demo(4);
+#endif
 
   // 1. CARREGANDO: o esqueleto tem de cair nas mesmas caixas do conteudo real.
   //    Compare esta captura com a seguinte — nada pode saltar de lugar.
@@ -193,10 +213,52 @@ int main(int argc, char **argv) {
   captura(nome);
 
   // 4. A segunda parada: direita ate o fim do mes passa para os destaques.
-  for (i = 0; i < 40; i++) tecla(SDLK_RIGHT);
+  // O dia em foco e o 19 (indice 18): 11 setas ate o dia 30 e a 12a passa
+  // para os destaques. (Com a terceira parada, setas a mais seguiriam ate o
+  // cartao Amigos.)
+  for (i = 0; i < 12; i++) tecla(SDLK_RIGHT);
   tecla(SDLK_DOWN);
   snprintf(nome, sizeof nome, "%s-destaques.bmp", prefixo);
   captura(nome);
+
+  // 4b. A TERCEIRA PARADA (2.0): direita no fim dos destaques vai ao cartao
+  //     Amigos, que vira superficie clara com o anel no primeiro rosto.
+  tecla(SDLK_RIGHT);
+  snprintf(nome, sizeof nome, "%s-amigos.bmp", prefixo);
+  captura(nome);
+
+#ifdef NV_SOCIALVIS_DEMO
+  // 4c. O DUELO com o Pedro (o amigo de exemplo com perfil do servidor). A
+  //     comparacao de exemplo SO existe aqui, na captura: a do app vem de
+  //     recomenda_amigo e nunca de numero fixo.
+  { SvPerfil pp;
+    int k = socialvis_amigo_indice("nuvio:pedro");
+    assert(k >= 0 && socialvis_perfil("nuvio:pedro", &pp));
+    pp.estado = SV_PERFIL_OK; pp.compartilha = 1;
+    pp.cmp[SV_CMP_MATCH].estado = SV_CMPE_OK; pp.cmp[SV_CMP_MATCH].pct = 82;
+    pp.cmp[SV_CMP_MATCH].iguais = 14; pp.cmp[SV_CMP_MATCH].total = 17;
+    pp.cmp[SV_CMP_COMUM].estado = SV_CMPE_OK;
+    pp.cmp[SV_CMP_COMUM].filmes = 9; pp.cmp[SV_CMP_COMUM].series = 5;
+    socialvis_definir_perfil_extra("nuvio:pedro", &pp);
+    for (i = 0; i < k; i++) tecla(SDLK_RIGHT);
+    snprintf(nome, sizeof nome, "%s-amigos-pedro.bmp", prefixo);
+    captura(nome); }
+  tecla(SDLK_RETURN);
+  snprintf(nome, sizeof nome, "%s-duelo.bmp", prefixo);
+  captura(nome);
+  tecla(SDLK_DOWN);
+  snprintf(nome, sizeof nome, "%s-duelo-cartazes.bmp", prefixo);
+  captura(nome);
+  // Um amigo SEM perfil do servidor: os numeros dele sao "—" com o motivo.
+  tecla(SDLK_UP); tecla(SDLK_LEFT);
+  snprintf(nome, sizeof nome, "%s-duelo-sem-dado.bmp", prefixo);
+  captura(nome);
+  // Voltar sai do duelo para o resumo, e nao da tela.
+  { SDL_Event e = { 0 };
+    e.type = SDL_KEYDOWN; e.key.keysym.sym = SDLK_ESCAPE;
+    perfil_evento(&e);
+    assert(perfil_aberto()); }
+#endif
 
   // 5. SEM IDENTIDADE E SEM GENERO: o caso do Trakt que so devolve historico.
   //    A banda de numeros nao pode desabar nem deslocar as secoes de baixo.

@@ -30,6 +30,8 @@ const char *ling_audio(void) { return ""; }
 void ling_conta_legenda(const char *v) { (void)v; }
 void ling_conta_legenda2(const char *v) { (void)v; }
 void ling_conta_audio(const char *v) { (void)v; }
+void selospacote_conta_do_blob(const char *blob) { (void)blob; }
+int selospacote_n(void) { return 0; }
 int   perfis_ativo(void) { return 1; }
 const char *addons_base_por_id(const char *id) { (void)id; return ""; }
 const char *addons_nome_por_id(const char *id) { (void)id; return ""; }
@@ -40,12 +42,17 @@ int  player_aberto(void) { return 0; }
 int  detail_aberto(void) { return 0; }
 int  trailer_aberto(void) { return 0; }
 int  trailer_tocando(void) { return 0; }
+int ctx_aberto(void) { return 0; }
 void ctx_abrir(int indice) { (void)indice; }
+void ctx_fileira(const char *c, const char *t) { (void)c; (void)t; }
+void ctx_dispensar_retomar(int on) { (void)on; }
+void ctx_abrir_fileira(const char *c, const char *t) { (void)c; (void)t; }
 void vertudo_abrir(const char *b, const char *t, const char *c, const char *ti) {
   (void)b; (void)t; (void)c; (void)ti;
 }
 void vertudo_colecao(const ColFolder *f) { (void)f; }
 const char *i18n(const char *s) { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 // A troca de ordenacao em Ajustes refaz a fileira pela descoberta; aqui a
 // montagem nao existe, entao o pedido so e contado.
 void desc_refazer_continuar(void) {}
@@ -190,3 +197,6 @@ int main(void) {
   puts("cwordem_home: tudo ok");
   return 0;
 }
+
+// Sem textura carregada nesta fixture de navegacao: usa proporcao padrao.
+float tex_aspecto(const char *caminho) { (void)caminho; return 0.0f; }

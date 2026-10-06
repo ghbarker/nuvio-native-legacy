@@ -20,11 +20,14 @@
 //
 // Inclui src/guia.c: desenharCard e a lista de canais sao estaticos, e semear
 // por dentro e o unico jeito de fotografar o cartao sem addon no ar.
+#include "badges.h"
 #include "../src/guia.c"
 #include "guialembrete.h"
 #include "gfx.h"
 #include "text.h"
 #include "tex_cache.h"
+#include "vidro_fundo.h"
+#include "shot_arte.h"
 #include <SDL2/SDL_image.h>
 #include <assert.h>
 
@@ -109,6 +112,26 @@ static void capturaTela(const char *nome, SDL_Window *win, int comCanais) {
   }
   (void)comCanais;
   printf("captura: %s\n", nome);
+}
+
+// The real drawer renderers against artwork; no add-on service is started.
+static void capturaPainel(const char *nome, SDL_Window *win, int addonsPane) {
+  int q,y;
+  for(q=0;q<70;q++) {
+    SDL_PumpEvents();txt_novo_quadro();tex_novo_quadro();tex_bombear(6);gfx_novo_quadro();
+    glClearColor(.03f,.03f,.035f,1);glClear(GL_COLOR_BUFFER_BIT);
+    if (vidroFundoAtivo()) vidroFundoDesenhar(); else shot_arte_desenhar(0);
+    if(addonsPane) desenharPainelAddons(1); else desenharPainelCategorias(1);
+    if(q==69) {
+      unsigned char *pix=malloc(1920*1080*4);
+      SDL_Surface *s=SDL_CreateRGBSurfaceWithFormat(0,1920,1080,32,SDL_PIXELFORMAT_RGBA32);assert(pix&&s);
+      glReadPixels(0,0,1920,1080,GL_RGBA,GL_UNSIGNED_BYTE,pix);
+      for(y=0;y<1080;y++) memcpy((char*)s->pixels+y*s->pitch,pix+(1079-y)*1920*4,1920*4);
+      assert(IMG_SavePNG(s,nome)==0);SDL_FreeSurface(s);free(pix);
+    }
+    SDL_GL_SwapWindow(win);
+  }
+  printf("capture: %s\n",nome);
 }
 
 static void poeCanal(int i, const char *nome, const char *logo) {
@@ -220,6 +243,13 @@ int main(int argc, char **argv) {
   SDL_Window *w;
   SDL_GLContext gl;
 
+  // genero de addon em Python (json.dumps escapa o nao-ASCII): a categoria
+  // saia "Notu00edcias" (medido em 01/10/2026). Ver tests/jscadeia.c.
+  { const char *m = "{\"genre\":[\"Not\\u00edcias\"]}";
+    char gen[64];
+    assert(lerStrEl(js_array(m, NULL, "genre"), gen, sizeof gen));
+    assert(!strcmp(gen, "Not\xc3\xad" "cias")); }
+
   assert(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == 0);
   IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -233,10 +263,42 @@ int main(int argc, char **argv) {
   SDL_GL_SetSwapInterval(0);
   glViewport(0, 0, 1920, 1080);
   gfx_tamanho_alvo(1920, 1080);
+  if (getenv("NUVIO_SHOT_VIDRO")) ajustes_definir_vidro(1);
+  if (getenv("NUVIO_SHOT_TOPO")) {
+    extern void ajustes_teste_vidro_env(void);
+    const char *dir = getenv("NUVIO_DADOS"); FILE *f;
+    assert(dir && *dir); snprintf(nome, sizeof nome, "%s/ajustes.txt", dir);
+    f = fopen(nome, "w"); assert(f);
+    fprintf(f, "idioma 0\nselected_theme %s\nvidroLocal %d\n",
+            getenv("NUVIO_SHOT_TEMA") ? getenv("NUVIO_SHOT_TEMA") : "2",
+            getenv("NUVIO_SHOT_SOLIDO") ? 1 : 0);
+    fclose(f);
+    ajustes_dir(dir); ajustes_teste_vidro_env();
+  }
   assert(gfx_iniciar());
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(64);
   gfx_icones_dir("deploy/app/art");
+  badges_carregar("deploy/app/art");   // marcas de resolucao no heroi; no app quem faz e home.c
+
+  if(getenv("NUVIO_GUIDE_PANELS")) {
+    extern void ajustes_teste_vidro_env(void);
+    const char *dir=getenv("NUVIO_DADOS");FILE *f;int i;
+    assert(dir&&*dir);snprintf(nome,sizeof nome,"%s/ajustes.txt",dir);f=fopen(nome,"w");assert(f);
+    fprintf(f,"idioma 0\nselected_theme 2\nvidroLocal %d\n",getenv("NUVIO_SHOT_SOLIDO")?1:0);fclose(f);
+    ajustes_dir(dir);ajustes_teste_vidro_env();vidroFundoPreparar();
+    semearGuia();catAnim=1;catFoco=1;focoLin=0;
+    snprintf(nome,sizeof nome,"%s-categories.png",saida);capturaPainel(nome,w,0);
+    paN=0;nRec=3;paFoco=0;
+    for(i=0;i<3;i++) {
+      snprintf(rec[i].nome,sizeof rec[i].nome,"%s",i==0?"FrostView":i==1?"Minha TV":"Canais ao vivo");
+      snprintf(rec[i].desc,sizeof rec[i].desc,"%s","Canais e programação ao vivo");
+      snprintf(rec[i].url,sizeof rec[i].url,"https://fixture.invalid/%d",i);
+    }
+    snprintf(nome,sizeof nome,"%s-addons.png",saida);capturaPainel(nome,w,1);
+    tex_encerrar();txt_encerrar();gfx_encerrar();SDL_GL_DeleteContext(gl);SDL_DestroyWindow(w);SDL_Quit();
+    return 0;
+  }
 
   poeCanal(0, "Canal Recortado HD", "tests/fixtures/logos/recortado.png");
   poeCanal(1, "Canal Recortado HD", "tests/fixtures/logos/recortado.png");
@@ -314,6 +376,22 @@ int main(int argc, char **argv) {
   capturaTela(nome, w, 1);
   focoTopo = 0; animTopo[G_TOPO_PREVIEW] = 0.0f;
 
+  // Barra de cima, cada botao em foco (W18): NUVIO_SHOT_TOPO=1; tema/material
+  // pelo ambiente (NUVIO_SHOT_TEMA = selected_theme, NUVIO_SHOT_SOLIDO).
+  if (getenv("NUVIO_SHOT_TOPO")) {
+    int k;
+    for (k = 0; k < G_TOPO_N; k++) {
+      int j;
+      for (j = 0; j < G_TOPO_N; j++) animTopo[j] = 0.0f;
+      focoTopo = 1; topoCol = k; animTopo[k] = 1.0f; focoAnelOk = 0;
+      snprintf(nome, sizeof nome, "%s-topo-%d.bmp", saida, k);
+      capturaTela(nome, w, 1);
+    }
+    focoTopo = 0;
+    { int j; for (j = 0; j < G_TOPO_N; j++) animTopo[j] = 0.0f; }
+    return 0;
+  }
+
   janelaDesl = 60; focoAnelOk = 0;
   snprintf(nome, sizeof nome, "%s-lista-adiante.bmp", saida);
   capturaTela(nome, w, 1);
@@ -322,6 +400,21 @@ int main(int argc, char **argv) {
   modoLista = 0; focoLin = 0; focoCol = 0; focoAnelOk = 0;
   snprintf(nome, sizeof nome, "%s-tela.bmp", saida);
   capturaTela(nome, w, 1);
+  // A DICA DE PRIMEIRA VEZ da ESQUERDA (dicaTalvez), por cima da mesma tela.
+  dicaDesde = SDL_GetTicks() - 1000u;
+  snprintf(nome, sizeof nome, "%s-tela-dica.bmp", saida);
+  capturaTela(nome, w, 1);
+  dicaDesde = 0;
+  // A BUSCA DO GUIA: canais pelo nome e programas pela grade.
+  buscaFazer("sport");
+  buscaEstado = 2; buscaAnim = 1.0f; buscaFoco = 1;
+  snprintf(nome, sizeof nome, "%s-busca.bmp", saida);
+  capturaTela(nome, w, 1);
+  buscaFazer("jornal");
+  buscaFoco = 0;
+  snprintf(nome, sizeof nome, "%s-busca-programa.bmp", saida);
+  capturaTela(nome, w, 1);
+  buscaEstado = 0; buscaAnim = 0.0f;
 
   // O CARTAO DO LEMBRETE por cima da tela (o que aparece em qualquer lugar
   // do app quando o programa comeca), e o aviso curto de quem ja esta no

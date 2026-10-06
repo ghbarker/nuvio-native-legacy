@@ -54,12 +54,19 @@
 #define FIL_CHAVE   192
 #define FIL_TITULO   96
 
-// Limite de fileiras da home. 7 e o pedido do dono; o teto continua sendo o
-// CAT_FIL_MAX (16) do web para este runtime, e abaixo de 3 a home deixa de ser
-// uma home.
+// Limite de fileiras da home. 7 e o pedido do dono; o teto e o CAT_FIL_MAX
+// (40, o do navegador de mesa), e abaixo de 3 a home deixa de ser uma home.
+// Era 16. Acima de FIL_LIMITE_SEGURO (o teto antigo, que rodou em TV de verdade)
+// a tela de Ajustes mostra o aviso de memoria e o modo seguro (seguro.h) passa
+// a vigiar a mudanca.
 #define FIL_LIMITE_MIN     3
-#define FIL_LIMITE_MAX    16
+#define FIL_LIMITE_MAX    40
 #define FIL_LIMITE_PADRAO  7
+// Ate aqui e o que sempre foi permitido sem aviso.
+#define FIL_LIMITE_SEGURO 16
+// Acima disto a mudanca entra no diario do modo seguro (reverte sozinha se o
+// app cair logo depois).
+#define FIL_LIMITE_VIGIADO 12
 
 // Formas de card que a home JA implementa (o enum TipoFileira de home.h). A
 // tela de Ajustes so oferece o que o desenho sabe fazer, e a traducao para
@@ -73,6 +80,20 @@ typedef enum {
   FIL_TIPO_TOP10,      // FILEIRA_TOP10    — ranking
   // Fica no fim para nao alterar os numeros ja gravados para os tipos acima.
   FIL_TIPO_DESTAQUE_QUADRADO, // FILEIRA_DESTAQUE_QUADRADO — 4:3 maior
+  // Issue #201: o ranking de numeral grande que a Dinamica so dava ao primeiro
+  // catalogo "Top"/"Em alta" em Automatico, agora escolhivel em qualquer
+  // fileira de catalogo e em qualquer layout. No fim pelo mesmo motivo.
+  FIL_TIPO_RANKING,           // FILEIRA_TOP10_NUM — numeral grande ao lado do cartaz
+  // A faixa deitada com o titulo dentro que a Dinamica alterna com o cartaz em
+  // Automatico. Desenhada em qualquer layout (home.c nao a prende a Dinamica);
+  // so nao tinha numero para ser escolhida. No fim pelo mesmo motivo.
+  FIL_TIPO_LARGA,             // FILEIRA_LARGA — 16:9 com o nome dentro do cartao
+  // Os dois tamanhos MAIORES do Destaque 4:3 (dono, 01/10: "o maior do tamanho
+  // dos cards da Apple TV"). A mesma forma (FILEIRA_DESTAQUE_QUADRADO), so mais
+  // larga e mais alta: o fator mora em fil_tipo_fator. No fim pelo mesmo
+  // motivo dos outros — o 6 gravado continua sendo o 4:3 de sempre.
+  FIL_TIPO_DESTAQUE_QUADRADO_M, // 4:3 x1,25 — dois cards e meio por tela
+  FIL_TIPO_DESTAQUE_QUADRADO_G, // 4:3 x1,5  — dois cards e um pedaco
   FIL_TIPO_N
 } FilTipo;
 
@@ -86,6 +107,9 @@ typedef enum {
 const char *fil_tipo_rotulo(int t);
 const char *fil_tam_rotulo(int t);
 float       fil_tam_escala(int t);
+// Fator de TAMANHO que a propria forma carrega: 1 em todas, menos nos dois
+// Destaques 4:3 maiores. Multiplica o fator de Tamanho da fileira (fil_escala).
+float       fil_tipo_fator(int t);
 
 // DE ONDE A FILEIRA VEIO. Sem isto a tela de Ajustes lista quinze nomes soltos
 // e nao ha como saber que "A24" e um grupo de colecoes, que "Popular" e um
@@ -131,9 +155,21 @@ void        fil_definir_hero_fonte(const char *chave);
 
 // --- limite ------------------------------------------------------------------
 int  fil_limite(void);
+// O que esta GRAVADO, sem o teto do perfil seguro. fil_limite() e o que a home
+// usa; a tela de Ajustes mostra e edita este, senao editar durante o perfil
+// seguro gravaria o teto de emergencia por cima da escolha da pessoa.
+int  fil_limite_gravado(void);
+// Teto SO desta sessao (0 = sem teto). O perfil seguro (seguro.h) usa para a
+// home montar menos fileiras sem tocar em fileirasui-p<N>.txt.
+void fil_definir_teto_sessao(int teto);
 // Ao BAIXAR o limite, as ligadas que ficaram alem dele viram "fora da home"
 // (ocultas), nao fila. Decisao do dono; ver o comentario na definicao.
 void fil_definir_limite(int n);
+// A SETA DA TELA DE AJUSTES (issue #197): cada passo so muda o numero; quem
+// ficou alem do valor FINAL vira "fora" em fil_confirmar_limite, chamado quando
+// a edicao da linha termina. Sem rajada em curso, confirmar nao faz nada.
+void fil_ajustar_limite(int n);
+void fil_confirmar_limite(void);
 
 // --- na home, na fila, fora --------------------------------------------------
 // A ORDEM E A FILA. As primeiras `limite` linhas ligadas, na ordem local, sao
@@ -143,8 +179,25 @@ void fil_definir_limite(int n);
 // outro jeito — e e assim que a fila sobrevive byte a byte ao arquivo antigo.
 typedef enum { FIL_NA_HOME = 0, FIL_NA_FILA, FIL_FORA } FilEstado;
 int  fil_estado(int i);
+// Reconcile the account collection identities immediately, including an empty
+// authoritative snapshot. Only removed collection rows are pruned; local
+// catalogue/app choices and styles on surviving collection IDs remain intact.
+void fil_colecoes_reconciliar(const char *const *chaves,
+                              const char *const *titulos,
+                              const int *ocultas, int n, int autoritativo);
+int fil_copiar_chaves(char (*saida)[FIL_CHAVE], int max);
+// Complete known-row projection of account order/visibility. Personal local
+// order and preferences survive; remote flags are kept only in memory.
+void fil_conta_reconciliar(const char *const *chaves, const int *ocultas,
+                           const int *emColecao, int n);
+void fil_colecao_catalogo_removido(const char *chave);
+void fil_colecao_catalogo_restaurado(const char *chave);
+// Scope only account-derived automatic flags; does not clear personal settings.
+int fil_conta_dono(const char *usuario);
+int  fil_estado_chave(const char *chave);   // -1 = desconhecida
 int  fil_n_na_home(void);
 int  fil_n_fila(void);
+int  fil_n_capacidade(void); // catalogue slots used, excluding app/collections
 // Liga e poe no fim do bloco ligado. Devolve o indice NOVO (a linha se move) e
 // escreve em `estado` onde ela caiu — NA_HOME quando coube, NA_FILA quando a
 // home estava cheia. Quem chama mostra "home cheia" nesse caso.
@@ -243,14 +296,55 @@ int         fil_linha_itens(int i);
 int         fil_linha_na_home(int i);
 int         fil_linha_vista(int i);
 // 0 quando a forma do card NAO e escolha desta fileira: "Continuar assistindo"
-// tira a forma de `continueWatchingCardStyle`, o feed dos amigos precisa do
-// card com autoria e um grupo de colecao desenha atalhos, nao titulos. Oferecer
-// os cinco tipos nelas seria oferecer um ajuste sem efeito.
+// tira a forma de `continueWatchingCardStyle` e o feed dos amigos precisa do
+// card com autoria. Um grupo de colecao ACEITA, mas so as formas dele
+// (paisagem, quadrado, pôster — ver fil_estilos).
 int         fil_aceita_tipo(int i);
 
 // --- mutacao (tela de Ajustes) ----------------------------------------------
 void fil_alternar(int i);
+// Numa colecao o ciclo e so o das formas dela (fil_estilos).
 void fil_ciclar_tipo(int i);
+
+// --- ESTILO DA FILEIRA pelo menu do cartaz (ctxmenu.c) ----------------------
+// O mesmo `tipo` que a tela de Ajustes grava, no mesmo fileirasui-p<N>.txt: as
+// duas telas leem e escrevem o mesmo campo, entao nunca discordam.
+//
+// As opcoes do menu para esta chave, na ordem de exibicao, com o rotulo em pt
+// (passa por i18n no desenho). Catalogo: TODAS as formas de FilTipo —
+// Automatico, Posteres, Paisagem pequena, media e grande, Faixa com titulo,
+// Destaque 4:3 (e o medio e o grande), Ranking numerado e empilhado. Colecao:
+// Automatico (a forma que a conta mandou), Paisagem, Quadrado, Poster
+// (FIL_TIPO_COLECAO/DESTAQUE_QUADRADO/CARTAZ). Fileira do app: 0 opcoes.
+int  fil_estilos(const char *chave, int *tipos, const char **rotulos, int max);
+
+// AS LINHAS DO MODAL DE ESTILO. Formas que so diferem em TAMANHO dividem uma
+// linha so (dono, 01/10: "Paisagem pequena/media/grande vira UM item"): a linha
+// diz o nome da forma e os tamanhos dela, do menor ao maior, e o modal escolhe
+// o tamanho com esquerda/direita. `nomes` e o nome inteiro de cada tamanho
+// ("Paisagem grande"), em pt — e o titulo da previa. fil_estilos e esta mesma
+// lista achatada, na mesma ordem.
+#define FIL_ESTILO_TAMS 3
+typedef struct {
+  const char *rotulo;
+  int n;
+  int tipos[FIL_ESTILO_TAMS];
+  const char *nomes[FIL_ESTILO_TAMS];
+} FilEstiloLinha;
+int  fil_estilo_linhas(const char *chave, FilEstiloLinha *linhas, int max);
+// Palavra do tamanho k (0 pequeno, 1 medio, 2 grande) em pt. O modal desenha
+// so a PRIMEIRA LETRA da traducao (P M G, S M L, K M G...).
+const char *fil_estilo_tam_palavra(int k);
+// Rotulo do tipo `t` PARA ESTA CHAVE: numa colecao o numero quer dizer outra
+// palavra (FIL_TIPO_CARTAZ e "Pôster", nao "Cartaz em pé").
+const char *fil_estilo_rotulo(const char *chave, int t);
+// Uma frase, em pt, que diz o que a forma `t` e NESTA chave (passa por i18n no
+// desenho). E a legenda da previa do modal de estilo (ctxmenu.c).
+const char *fil_estilo_ajuda(const char *chave, int t);
+const char *fil_linha_tipo_rotulo(int i);
+// Grava a forma da fileira. 0 quando a chave nao e conhecida, e fixa, ou o
+// tipo nao vale para ela.
+int  fil_definir_tipo(const char *chave, int t);
 void fil_ciclar_tam(int i);
 // Troca a linha com a vizinha e devolve o novo indice dela (o mesmo, se nao deu
 // para mover). E o gesto de "pegar e mover" da tela de reordenar.
@@ -278,6 +372,10 @@ void fil_ordenar_por_addon(void);
 int   fil_oculta(const char *chave);
 int   fil_tipo(const char *chave);    // FIL_TIPO_AUTO quando nao foi escolhido
 float fil_escala(const char *chave);  // 1.0 quando nao foi escolhido
+// O fator que a fileira teria COM a forma `t`: o Tamanho dela vezes o fator da
+// forma (fil_tipo_fator). E o que a previa do modal precisa — a forma em foco
+// ainda nao foi gravada. fil_escala(chave) == fil_escala_tipo(chave, tipo dela).
+float fil_escala_tipo(const char *chave, int t);
 
 // 1 quando existe ordem LOCAL gravada. Sem ela, fil_unir e a identidade e a
 // ordem da conta (catordem.c) continua valendo sozinha.
@@ -298,5 +396,12 @@ int  fil_unir(const char *const *chaves, int n, int *saida, int max);
 // Esquece a escolha e o registro. Chamar no logout junto do resto: a home e da
 // conta de quem saiu.
 void fil_esquecer(void);
+
+// LIMPEZA UNICA DO #197 (ver a definicao): desfaz, so no arquivo com o padrao
+// exato do defeito, a rajada do limite e os catalogos fora da cota que entraram
+// ligados. `contaLigadas` sao as chaves que a ordem da CONTA tem e nao desligou.
+// Roda uma vez por arquivo de perfil (marca "migracao 197"); devolve quantas
+// linhas mudaram.
+int fil_migrar_197(const char *const *contaLigadas, int n);
 
 #endif

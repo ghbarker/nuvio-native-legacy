@@ -34,7 +34,7 @@
 typedef struct {
   int  perfil;
   char chave[48];       // progress_key, igual ao web: "tt123_s4e9" ou "tt123"
-  char contentId[24];   // titulo puro, sem ":temp:ep"
+  char contentId[48];   // titulo puro, sem ":temp:ep" ("tt...", "kitsu:41370", "tmdb:t1399")
   char tipo[8];         // "movie" | "series"
   int  temporada, episodio;   // 0 quando filme
   double posSeg, durSeg;
@@ -54,6 +54,12 @@ void prog_content_id(char *dst, unsigned n, const char *imdb, int *temporada, in
 // Registros do PERFIL ATIVO, do mais recente para o mais antigo. Devolve quantos.
 int  prog_ler(ProgRegistro *saida, int max);
 
+// O item mais recente AINDA NAO TERMINADO de um perfil qualquer (ativo ou nao),
+// pelos mesmos limites de "Continuar assistindo": duracao >= 60 s, entre 1% e
+// `pctConcluido` (ajustes_cw_concluido), e fora do que a pessoa tirou da fileira
+// (prog_marcar_removido). Le so o disco/cache local. 1 se achou.
+int  prog_continuar_de_perfil(int perfil, int pctConcluido, ProgRegistro *saida);
+
 // Copia para `saida` o registro do perfil ativo com essa chave. 1 se havia.
 // Copia, e nao ponteiro: dois fios leem aqui, e um ponteiro para o cache
 // interno valeria so ate a proxima escrita do outro.
@@ -61,7 +67,8 @@ int  prog_por_chave(const char *chave, ProgRegistro *saida);
 
 // Escrita LOCAL (player ao fechar, botao do olho, pos-play). `imdb` pode ser
 // composto; temporada/episodio explicitos ganham dos que vierem no id.
-// Marca pendente e lastWatched = agora. Recusa durSeg <= 1 (ruido do player).
+// Marca pendente e lastWatched = agora. Recusa durSeg <= 1 (ruido do player),
+// tempos nao finitos ou que nao caibam em milissegundos inteiros para o sync.
 // Devolve 1 quando gravou.
 int  prog_gravar_local(const char *imdb, int temporada, int episodio,
                        double posSeg, double durSeg);
@@ -74,8 +81,13 @@ int  prog_aplicar_remoto(const ProgRegistro *r);
 // Pendentes do perfil ativo, para o push. Devolve quantos.
 int  prog_pendentes(ProgRegistro *saida, int max);
 
-// Depois de um push com sucesso: as chaves deixam de ser pendentes. So elas —
-// o player pode ter gravado outra linha durante a viagem.
+// Depois de um push com sucesso: somente os registros enviados que ainda
+// tem o mesmo instante, posicao e duracao deixam de ser pendentes. O perfil
+// vem da copia enviada, pois pode ter mudado durante a viagem.
+void prog_confirmar_empurrados(const ProgRegistro *enviados, int n);
+
+// Confirmacao imediata por chave, mantida para compatibilidade. Pedidos de
+// rede devem usar prog_confirmar_empurrados com sua copia anterior ao envio.
 void prog_marcar_empurrados(const char *const *chaves, int n);
 
 void prog_remover(const char *chave);

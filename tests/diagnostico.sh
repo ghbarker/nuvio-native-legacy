@@ -6,8 +6,10 @@
 # chegam em i18n() por variavel (painelTitulo, metrica, BOTAO_ROTULO...), e a
 # varredura so le literal dentro de txt_*. Foi assim que "Modo", "Artes" e
 # "Resultado geral" apareceram em portugues com o app em ingles (C9, 22/09).
-set -eu
+set -euo pipefail
 cd "$(dirname "$0")/.."
+bash tests/diagnostico_dispatch.sh
+bash tests/diagnostico_persistencia.sh
 
 cc tests/diagnostico.c src/perfiltv.c -Isrc -o /tmp/nuvio-diagnostico \
   -O1 -g -Wall -Wextra
@@ -32,7 +34,8 @@ spec = importlib.util.spec_from_file_location('v', 'tools/varredura-i18n.py')
 v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
 chaves = v.chaves_da_tabela()
 # Iguais nos dois idiomas: unidade, sigla, nome proprio.
-IGUAIS = {"MB", "px", "TMDB", "Trakt", "Metahub", "Logo", "dev", "manifest.json"}
+IGUAIS = {"MB", "px", "%sDV", "%s%s GB",   # selos do ranking do ciclo: sigla e unidade
+           "TMDB", "Trakt", "Metahub", "Logo", "dev", "manifest.json"}
 faltam = []
 for arq in ("src/diagnostico.c", "src/perfiltv.c"):
     txt = open(arq, encoding="utf-8").read()

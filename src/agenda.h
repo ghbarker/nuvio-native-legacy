@@ -97,6 +97,11 @@ typedef struct {
   // Primeiro genero (TMDB genres[0].name ou Cinemeta genres[0]). A tela so usa
   // quando o catalogo nao tem o item: com catalogo, o genero dele manda.
   char genero[48];
+  // ARTE DE PAISAGEM para a coluna da esquerda da Agenda (C1): o still do
+  // proximo episodio quando o TMDB ja tem, senao o backdrop da serie (TMDB ou
+  // `background` do Cinemeta), senao o backdrop do catalogo. "" = so o cartaz.
+  // Sai dos MESMOS corpos que o fio ja baixa: nenhum pedido novo.
+  char fundo[512];
 } AgItem;
 
 // Le o cache e os lembretes do perfil ativo. Chamar depois de dados_iniciar.
@@ -121,6 +126,10 @@ void agenda_registrar(const char *imdb, const char *titulo, const char *poster,
 void agenda_registrar_extra(const char *imdb, const char *sinopse,
                             const char *tipoEp, const char *rede,
                             const char *genero, int duracao, int temporadas);
+
+// A arte de paisagem (still do episodio ou backdrop) no MESMO registro.
+// Vazio nao apaga o que ja estava; sem registro nao cria.
+void agenda_registrar_fundo(const char *imdb, const char *url);
 
 // Registro guardado, ou NULL. O ponteiro vale ate a proxima escrita — copie
 // se for atravessar um quadro.
@@ -235,6 +244,37 @@ int  agenda_versao(void);
 typedef char *(*AgBaixar)(const char *url, int segundos,
                           const char *const *cab, int *status);
 void agenda_rede_teste(AgBaixar f);
+
+// --- historico de lancamentos (o modal da Agenda) ---------------------------
+//
+// Os episodios que foram ao ar DESDE QUE O LEMBRETE FOI LIGADO (sem lembrete:
+// os ultimos seis que ja sairam), com o que o mapa de vistos (vistoep.h) sabe
+// de cada um. A grade vem de UM pedido ao Cinemeta quando o modal abre — nunca
+// por linha da lista — e fica 30 min em memoria. Ver a nota em agenda.c.
+typedef struct {
+  int  temporada, episodio;
+  char nome[120];
+  char data[12];     // ISO do dia em que foi ao ar
+  int  visto;        // 1 visto, 0 nao visto, -1 ninguem sabe (vistoep_estado)
+} AgEp;
+
+enum { AG_HIST_NADA = 0, AG_HIST_BUSCANDO, AG_HIST_PRONTO, AG_HIST_FALHOU };
+
+// Dispara o pedido (uma serie por vez; repetir dentro da validade e gratis).
+void agenda_historico_pedir(const char *imdb);
+// A janela da serie, preenchida em `saida` (ate `max`, os mais novos quando
+// passa), em ordem de data. `*estado` recebe AG_HIST_*. FIO PRINCIPAL.
+int  agenda_historico(const char *imdb, AgEp *saida, int max, int *estado);
+// Indice do "proximo a assistir" na janela: o primeiro NAO visto; sem nenhum
+// confirmado, o primeiro desconhecido; -1 quando todos foram vistos.
+int  agenda_historico_proximo(const AgEp *eps, int n);
+// O dia em que o lembrete foi ligado ("" = sem lembrete). Arquivo de lembretes
+// de versao anterior, sem o campo: a data do episodio que ele anunciava.
+const char *agenda_lembrete_desde(const char *imdb);
+// A CONTA PURA, para tests/agenda.c: corpo do Cinemeta -> janela. `desde` vazio
+// = os ultimos seis. `visto` sai -1 (quem preenche e agenda_historico).
+int  agenda_historico_ler(const char *corpoCinemeta, const char *desde,
+                          const char *hoje, AgEp *saida, int max);
 
 // Apaga cache e lembretes de todos os perfis. Para o logout.
 void agenda_esquecer(void);

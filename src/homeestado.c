@@ -180,7 +180,7 @@ void homeestado_contexto(HomeContexto *c) {
   // impede aceitar snapshot de outra conta mesmo em caso de colisao do hash.
   snprintf(c->identidade, sizeof c->identidade, "owner=%zu:%s|p=%d|l=%d",
            u ? strlen(u) : 0, u ? u : "", c->perfil = perfis_ativo(),
-           ajustes_idioma_ingles());
+           ajustes_idioma());
   c->addons = hashAddons();
   c->ajustes = hashAjustes();
   c->fileiras = hashFileiras();
@@ -223,8 +223,12 @@ const char *homeestado_mudancas_texto(int m, char *buf, unsigned tam) {
   return buf;
 }
 
+// `snap=2` (#195): snapshot gravado ate a 1.6.2 podia ter perdido a chave de um
+// catalogo que falhou ou veio vazio naquela volta, e a montagem de entao so
+// pedia chave do snapshot. Mudar o texto recusa esses arquivos UMA vez; o
+// primeiro arranque monta sem snapshot e grava um no formato novo.
 static void contextoTexto(const HomeContexto *c, char *out, size_t tam) {
-  snprintf(out, tam, "%s|ad=%08x|cfg=%08x.%08x.%08x.%08x", c->identidade,
+  snprintf(out, tam, "%s|snap=2|ad=%08x|cfg=%08x.%08x.%08x.%08x", c->identidade,
            c->addons, c->ajustes, c->fileiras, c->ordemConta, c->colecoes);
 }
 

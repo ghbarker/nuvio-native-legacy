@@ -14,7 +14,18 @@ int main(void) {
   // Home: layout e arte do destaque.
   assert(valor[AJ_HERO_FUNDO] == 0);          // Automatico
   assert(valor[AJ_HERO_ARTE_DIF] == 1);       // Desligado: mesma foto do card
-  assert(valor[AJ_HERO_TRAILER] == 0);
+  assert(valor[AJ_HERO_TRAILER] == 1);        // Desligado de fabrica (30/09)
+  // Som e espera do trailer do destaque: mudo, 2,2 s (decimos), deste aparelho.
+  assert(valor[AJ_HERO_TRAILER_SOM] == 1);
+  assert(valor[AJ_HERO_TRAILER_ESPERA] == 22);
+  assert(ajustes_trailer_hero_espera_ms() == 2200);
+  assert(!strcmp(CHAVE[AJ_HERO_TRAILER_SOM], "trailerDestaqueSomLocal"));
+  assert(!strcmp(CHAVE[AJ_HERO_TRAILER_ESPERA], "trailerDestaqueEsperaLocal"));
+  assert(somenteDesteAparelho(AJ_HERO_TRAILER_SOM));
+  assert(somenteDesteAparelho(AJ_HERO_TRAILER_ESPERA));
+  // Separador decimal do idioma da interface: "2,2 s" ou "2.2 s".
+  assert(!strcmp(textoValor(AJ_HERO_TRAILER_ESPERA), "2,2 s") ||
+         !strcmp(textoValor(AJ_HERO_TRAILER_ESPERA), "2.2 s"));
   // A faixa que andava uma casa.
   assert(valor[AJ_RAIL] == 0);                // recolhida
   assert(valor[AJ_RAIL_MODERNA] == 1);        // desligada
@@ -38,10 +49,18 @@ int main(void) {
   assert(valor[AJ_LARGURA_DP] == 126);
   assert(valor[AJ_RAIO_DP] == 12);            // canto normal, nao pilula
   assert(valor[AJ_QUALIDADE_IMG] == 1);       // Padrao
-  assert(valor[AJ_IDIOMA] == 1);              // English (release publico)
+  assert(valor[AJ_IDIOMA] == 0);              // Automatico
+  assert(ajustes_idioma() == IDIOMA_EN);      // sem conta nem TV: English (release publico)
   assert(valor[AJ_ANIM] == 0);                // animacoes completas
   assert(valor[AJ_RESOLUCAO] == 0);           // 1080p
-  assert(valor[AJ_TEMA] == 0);
+  assert(!ajustes_4k() && !ajustes_720p());
+  valor[AJ_RESOLUCAO] = 1; assert(ajustes_4k() && !ajustes_720p());    // 4K: valor 1, como sempre
+  valor[AJ_RESOLUCAO] = 2; assert(!ajustes_4k() && ajustes_720p());    // 720p: valor novo no fim
+  valor[AJ_RESOLUCAO] = 0;
+  assert(ajustes_relogio_ligado() && ajustes_relogio_pos() == 0);   // relogio: ligado, automatico
+  assert(ajustes_selo_visto());   // selo de visto no cartaz: ligado (#212)
+  assert(valor[AJ_TEMA] == AJ_TEMA_DINAMICA && valor[AJ_FUNDO] == 2);   // aparencia de fabrica da 2.0: Da arte + Frost
+  assert(valor[AJ_COR_LOGO] == 0 && valor[AJ_VIDRO] == 1);               // Cor da logo ligada, vidro desligado
   // O "+" salva no Trakt. Este assert passava POR ACASO de 22/09 ate o #149:
   // o vetor estava sete casas curto (as linhas do Stalker e do Xtream), e o 1
   // que caia aqui era o do envio automatico. As duas pontas da faixa agora.
@@ -53,6 +72,22 @@ int main(void) {
   // com o aviso de memoria para TV de 1 GB. E a opcao vive neste aparelho.
   assert(valor[AJ_ITENS_FILEIRA] == 0 && ajustes_itens_fileira() == 12);
   assert(OPCOES[AJ_ITENS_FILEIRA].n == 3);
+  // Fileiras da home: 3 a 40 (o teto do catalogo), 7 de fabrica. Acima de 16 a
+  // tela pede confirmacao (riscoPedirConfirmacao); acima de 12 o diario do modo
+  // seguro vigia. O limite nunca passa do vetor de fileiras do catalogo.
+  assert(OPCOES[AJ_FIL_LIMITE].min == 3 && OPCOES[AJ_FIL_LIMITE].max == 40);
+  assert(FIL_LIMITE_MAX == CAT_FIL_MAX);
+  assert(FIL_LIMITE_PADRAO == 7 && FIL_LIMITE_SEGURO < FIL_LIMITE_MAX && FIL_LIMITE_VIGIADO < FIL_LIMITE_SEGURO);
+  fil_definir_limite(1);   assert(fil_limite_gravado() == FIL_LIMITE_MIN);
+  fil_definir_limite(999); assert(fil_limite_gravado() == FIL_LIMITE_MAX);
+  fil_definir_teto_sessao(12); assert(fil_limite() == 12 && fil_limite_gravado() == FIL_LIMITE_MAX);
+  fil_definir_teto_sessao(0);  assert(fil_limite() == FIL_LIMITE_MAX);
+  fil_definir_limite(FIL_LIMITE_PADRAO);
+  // Todo ajuste vigiado existe, tem chave unica e mora numa opcao de verdade.
+  { int i, j; for (i = 0; i < N_RISCOS; i++) {
+      assert(RISCOS[i].op >= 0 && RISCOS[i].op < AJ_N && strlen(RISCOS[i].chave) < SEG_CHAVE);
+      for (j = i + 1; j < N_RISCOS; j++) assert(strcmp(RISCOS[i].chave, RISCOS[j].chave));
+    } }
   assert(somenteDesteAparelho(AJ_ITENS_FILEIRA));
   // 23/09: tres fontes novas NO FIM de "Background do hero", com o mesmo
   // indice do contrato ARTEHERO_* (o gravado em heroFundoLocal).

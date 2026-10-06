@@ -19,7 +19,7 @@ if [ -z "$V" ]; then
   exit 1
 fi
 for modo in mt st; do
-  for f in index.html index.js index.wasm index.data; do
+  for f in index.html index.js index.wasm index.data fontes.js fontes.data; do
     if [ ! -s "$SITE/$V/$modo/$f" ]; then
       echo "vidaa-publicar.sh: falta $SITE/$V/$modo/$f — site incompleto, nada publicado" >&2
       exit 1

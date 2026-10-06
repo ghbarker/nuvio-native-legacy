@@ -44,6 +44,17 @@ int  menu_iniciar(void);
 void menu_abrir(void);
 // Fecha sem escolher: o destaque volta para o destino atual.
 void menu_fechar(void);
+// ABRE POR CIMA DE UMA CAMADA que continua viva embaixo (a pagina do titulo):
+// DIREITA/Voltar so devolvem o foco a ela; OK num destino (mesmo o atual) fica
+// em menu_escolheu para o app fechar a camada e navegar. `semRailFixa` 1 quando
+// a camada nao mostra a rail (a pagina do titulo): o painel nasce sem ela.
+void menu_abrir_sobre(int semRailFixa);
+// 1 desde menu_abrir_sobre ate a saida da barra assentar: e o que o app usa
+// para desenhar a barra por cima da camada (inclusive recolhendo).
+int  menu_sobre(void);
+// 1 uma vez quando a pessoa ESCOLHEU algo na barra (destino, rodape, pasta;
+// o Spotlight nao, ele abre por cima) — ao contrario de Voltar/DIREITA por cima. Consome a flag.
+int  menu_escolheu(void);
 
 // 1 enquanto a barra e dona do D-pad. Vira 0 no instante da escolha, ainda com
 // a animacao de saida rodando — e esse o sinal que o conteudo deve usar para
@@ -69,6 +80,54 @@ const char *menu_rotulo(int destino);
 // proposito: trocar de perfil nao e uma aba do app, e uma acao que devolve a
 // pessoa a tela de escolha.
 int  menu_pediu_trocar(void);
+// Layout Dinamica: indice de col_folder da pasta de Streaming escolhida na
+// barra (a fileira "Streaming" mora la nesse layout), uma vez; -1 sem pedido.
+// Quem le abre a colecao (vertudo_colecao), como OK na pasta da home.
+int  menu_pediu_colecao(void);
+// OK SEGURADO em "Buscar": abrir o Spotlight. Consome a flag.
+int  menu_pediu_spotlight(void);
+
+// --- O MENU DOS LAYOUTS CLASSICOS -------------------------------------------
+// MODERNA: uma ilha flutuante na margem da ilha do relogio (x NV_MENU_MODERNA_X,
+// centrada na altura e ampliada em20%): fechada a pilula vertical de icones, aberta o painel com
+// rotulos. PADRAO: o mesmo painel colado na borda esquerda e centrado na
+// altura (fechado, a mesma pilula estreita na borda). Na Moderna a ilha do
+// relogio se posiciona na margem do menu (ilha_posicionar). Devolve a borda
+// direita do menu em px da tela REAL (0 sem menu na tela, ou no layout
+// Dinamica, que tem a pilula abaixo). Abrindo ja devolve a largura aberta;
+// fechando, a que ainda esta na tela. A largura que o CONTEUDO reserva para a
+// rail fixa e ajustes_rail_largura_fixa (NV_MENU_RAIL_BORDA_* em layout.h).
+// O menu usa escala propria (90%, ampliada20% na Moderna), nao o Tamanho da
+// interface; tudo o que esta API devolve ja vem em px da tela REAL.
+#define NV_MENU_MODERNA_X 48.0f   // px da tela REAL
+float menu_barra_borda(void);
+
+// --- PILULA DO LAYOUT DINAMICA (barra estilo Apple TV) ----------------------
+// No layout Dinamica da home nao ha rail: fechada, a barra e uma pilula
+// "‹ (icone) Secao" no topo esquerdo, por cima do conteudo. Este canto e DELA.
+// Quem quiser algo no topo (ex.: a pilula de relogio/avisos) se posiciona AO
+// LADO (x >= x+w+NV_MENU_PILULA_VAO, mesmo y/h) ou ABAIXO (y >= y+h+vao).
+//   - menu_pilula_rect: 1 e o retangulo atual (inclui a seta "‹"; a largura
+//     muda com o rotulo da secao) quando o layout e Dinamica; 0 e tudo zero nos
+//     outros layouts (la o topo esquerdo esta livre).
+//   - menu_pilula_alfa: opacidade com que ela esta na tela neste quadro (0 com
+//     a pagina rolada para baixo ou enquanto o painel aberto a substitui).
+//   - menu_pilula_mostrar: quem e dono da tela diz se a pilula deve aparecer
+//     (0..1; negativo = some na hora); a barra anima ate la. app.c chama a cada quadro: so na HOME, e
+//     so com ela no topo (home_topo_fracao); 0 nas outras telas, que tem o
+//     proprio titulo nesse canto. Ou seja: fora da home o canto esta livre.
+#define NV_MENU_PILULA_X     40.0f
+#define NV_MENU_PILULA_Y     44.0f
+#define NV_MENU_PILULA_H     60.0f
+#define NV_MENU_PILULA_SETA  26.0f   // largura da seta antes da pilula
+#define NV_MENU_PILULA_VAO   16.0f
+int   menu_pilula_rect(float *x, float *y, float *w, float *h);
+// 1 no layout Dinamica: a pilula diz o nome da secao, entao as telas do menu
+// (Explorar, Busca, Biblioteca, Agenda, Perfil, Ajustes) NAO desenham o
+// proprio titulo grande — ele ficaria duplicado atras dela.
+int   menu_pilula_titulo(void);
+float menu_pilula_alfa(void);
+void  menu_pilula_mostrar(float alvo);
 
 void menu_evento(const SDL_Event *e);
 void menu_atualizar(float dt, Uint32 agora);

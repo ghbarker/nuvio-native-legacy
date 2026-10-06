@@ -27,11 +27,15 @@ int  detail_aberto(void) { return 0; }
 int  trailer_aberto(void) { return 0; }
 int  trailer_tocando(void) { return 0; }
 void ctx_abrir(int indice) { (void)indice; }
+void ctx_fileira(const char *c, const char *t) { (void)c; (void)t; }
+void ctx_dispensar_retomar(int on) { (void)on; }
+void ctx_abrir_fileira(const char *c, const char *t) { (void)c; (void)t; }
 void vertudo_abrir(const char *b, const char *t, const char *c, const char *ti) {
   (void)b; (void)t; (void)c; (void)ti;
 }
 void vertudo_colecao(const ColFolder *f) { (void)f; }
 const char *i18n(const char *s) { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 int  tex_falhou(const char *u) { (void)u; return 0; }
 char *dados_ler(const char *nome) { (void)nome; return NULL; }
 void dados_marcar_sujo(int leve) { (void)leve; }
@@ -90,3 +94,6 @@ int main(void) {
   puts("heroidentidade: tudo ok");
   return 0;
 }
+
+// Sem textura nesta fixture de identidade.
+float tex_aspecto(const char *url) { (void)url; return 0.0f; }

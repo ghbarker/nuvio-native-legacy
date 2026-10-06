@@ -26,6 +26,10 @@
 // addon e 8 s de corpo de ate 3 fontes reais de hosts diferentes, contados e
 // descartados; a conta que vira "ate X GB por filme" mora em vazao.c. Quando
 // ele rodou, os NUMEROS entram no relatorio (chaves vazao*), nunca url ou host.
+// Dois modos a mais, escolhidos no resultado do rapido quando ha mais de 3
+// fontes: o CICLO COMPLETO (todas, ate 40, uma por vez, 5 s cada) e o POR
+// ADD-ON (a melhor de cada add-on). Nesses o relatorio leva o host publico de
+// cada fonte (vazao_host_publico), nunca o link. A regra mora em vazao.c.
 //
 // A FONTE DO DESTAQUE (ajuste do usuario) NUNCA muda sozinha: a medicao por
 // fonte vira uma PROPOSTA escrita na tela, e so o botao "Aplicar sugestao"
@@ -43,6 +47,9 @@
 #include "layout.h"
 #include "perfiltv.h"
 #include "rede.h"
+#include "redemarca.h"
+#include "streamfitdiag.h"
+#include "player.h"
 #include "fonteauto.h"
 #include "streams.h"
 #include "vazao.h"
@@ -67,7 +74,7 @@
 #define NV_DIAG_AUTO_OPT 1
 #endif
 
-#define DIAG_MAX_ADDONS 16
+#define DIAG_MAX_ADDONS 32
 #define DIAG_MAX_ASSETS 12
 #define DIAG_TIMEOUT_S  6
 #define DIAG_SESSAO_MS (8u * 60u * 1000u)
@@ -105,7 +112,11 @@ typedef enum {
   DA_DESLIGADO,        // build com NV_DIAG_AUTO_OPT=0
   DA_CANCELADO,        // Voltar no meio: o anterior voltou
   DA_RESTAURADO_MANUAL, // a pessoa pediu o anterior
-  DA_RUIDO             // nao piorou, mas nao ganhou alem da margem: o anterior voltou
+  DA_RUIDO,            // nao piorou, mas nao ganhou alem da margem: o anterior voltou
+  DA_SEM_PERFIL,       // perfil aprovado nao gravou: o anterior voltou
+  DA_LIMITADO,         // o cache recusou todas as mudancas solicitadas
+  DA_ALTERADO,         // escolha local mudou durante a amostra: nao aprovar
+  DA_RESTAURADO_SESSAO // runtime restaurado, persistencia recusou a volta
 } DiagAplicacao;
 
 // O botao "Aplicar sugestao" da arte do destaque.
@@ -144,7 +155,7 @@ typedef struct {
   _Atomic int cancelado;
   _Atomic int sondasProntas;   // fio -> desenho: fases 1 e 2 acabaram
   _Atomic int passesProntos;   // desenho -> fio: comparacao decidida
-  _Atomic int experimento;     // candidato no ar, ainda sem veredito
+  _Atomic int experimento;     // 0 nenhum, 1 teste, 2 dono desenho, -1 timeout
   _Atomic int enviando;
   _Atomic int sugPronta;       // fio da sugestao terminou a medida
   SDL_Thread *fio, *fioEnvio, *fioSug;
@@ -192,7 +203,9 @@ typedef struct {
   // de memoria que justifica subir o orcamento (ptv_decidir).
   long despSessao;
   PtvMedida medFrio, medAntes, medDepois;
-  PtvPerfil perfAntes, perfCand;
+  PtvPerfil perfAntes, perfCand, perfTeste;
+  int travadoTeste;
+  int autoAntes, autoTeste;   // Automatico anterior e temporario, fora do manual
   int travadoMb;
   char *cfgAntes;         // o perfil aprovado que valia antes (ou NULL)
   DiagAplicacao aplicacao;
@@ -233,8 +246,8 @@ static int focoLinha;
 // de sobreviver a isso para entrar no relatorio. Um fio so, o mesmo padrao dos
 // outros (estado atomico, juntado em juntarFios, cancelado pelo Voltar); os dois
 // testes nunca rodam ao mesmo tempo, para um nao medir a rede ocupada pelo outro.
-#define VAZ_POR_ADDON   3    // candidatas guardadas por addon
-#define VAZ_MAX_CAND    24
+#define VAZ_POR_ADDON   3    // candidatas guardadas por addon (teste rapido)
+#define VAZ_MAX_CAND    160  // candidatas guardadas (ciclo completo) + as do debrid
 #define VAZ_TENTATIVAS  6    // urls tocadas no maximo (resolucao + medida)
 // Segundos de corpo por fonte. #ifndef so para tests/vazao.sh encurtar.
 #ifndef VAZ_JANELA_S
@@ -258,7 +271,9 @@ typedef struct {
   int medido;       // 0 = desligado ou sem fontes no manifesto
   int ms, http, ok;
   int fontes;       // streams na resposta
-  int candidatas;   // com link direto medivel
+  int candidatas;   // com link direto medivel guardadas
+  int mediveis;     // com link direto medivel na resposta (antes do teto)
+  int debrid;       // que exigiriam o debrid (torrent sem link, fora de cache)
 } VazAddon;
 
 typedef struct {
@@ -270,11 +285,16 @@ typedef struct {
   unsigned long ms;
 } VazFonte;
 
+// Link e cabecalhos em heap (e nao char[4096] x 160): a fonte do debrid tem link
+// de ate 4096 e o ciclo guarda dezenas. `medivel` 0 = exige o debrid: fica so
+// para ser LISTADA ("nao testada (debrid)"), sem link.
 typedef struct {
-  char url[4096];
-  char cab[512];
+  char *url, *cab;
   long pontos;
-  unsigned char acima;
+  unsigned char acima, medivel;
+  int addon, altura, dv;
+  long tamanhoMB;
+  char nome[64];
 } VazCand;
 
 typedef struct {
@@ -285,6 +305,7 @@ typedef struct {
   SDL_Thread *fio;
   int aberto;             // a tela mostra o teste no lugar do diagnostico
   int modo;               // FONTEAUTO_*, lido no fio de desenho
+  uint64_t rede;          // trustworthy network epoch captured on UI thread
   char titulo[VAZ_TITULOS][64];
   int nTitulo;
   VazAddon addon[DIAG_MAX_ADDONS];
@@ -292,6 +313,19 @@ typedef struct {
   VazCand cand[VAZ_MAX_CAND];
   int nCand;
   VazFonte fonte[VAZAO_FONTES_MAX];
+  // CICLO COMPLETO / POR ADD-ON. `cic[k]` esta escrito para k < nCic (o fio
+  // escreve, ai publica nCic — o desenho le sem trava). O modo do teste que
+  // rodou fica em `ciclo`; VCM_RAPIDO deixa tudo isto zerado.
+  VazCicloModo ciclo;
+  VazCicloRes cic[VAZ_CICLO_LISTA_MAX];
+  _Atomic int nCic;
+  int mediveisTotal;      // fontes com link direto, somadas dos add-ons
+  int debridTotal;        // fontes que exigiriam o debrid
+  VazSelecao sel;
+  VazAgenda agenda;
+  int nFila;
+  int rolagem;            // primeira linha do ranking na tela
+  int botao;              // botao focado no resultado (0 = testar de novo)
   int tentadas;
   int falhas[VR_N];
   int amostra[VAZAO_AMOSTRAS_MAX];
@@ -378,6 +412,10 @@ static const char *aplicacaoNome(DiagAplicacao a) {
     case DA_CANCELADO: return "cancelada";
     case DA_RESTAURADO_MANUAL: return "restaurada_manual";
     case DA_RUIDO: return "mantido_ruido";
+    case DA_SEM_PERFIL: return "sem_perfil";
+    case DA_LIMITADO: return "limitada";
+    case DA_ALTERADO: return "alterada_durante_teste";
+    case DA_RESTAURADO_SESSAO: return "restaurada_sessao";
     default: return "sem_acao";
   }
 }
@@ -605,41 +643,108 @@ static void perfilAtual(PtvPerfil *pf, int *travado, long *mem) {
   if (mem) *mem = m;
 }
 
+// Resultado e perfil EM USO, lido do cache. O candidato continua no relatorio
+// e na etapa de teste, mas nao pode aparecer como aplicado depois de rollback.
+static void perfilDoResultado(PtvPerfil *antes, PtvPerfil *atual) {
+  perfilAtual(atual, NULL, NULL);
+  *antes = d.aplicacao == DA_MANTIDO ? d.perfAntes : *atual;
+}
+
+static int perfilIgual(const PtvPerfil *a, const PtvPerfil *b) {
+  return a->texMb == b->texMb && a->fiosRede == b->fiosRede && a->heroiLarg == b->heroiLarg;
+}
+
 static const char *modoNome(void) {
   return d.modo == DIAG_DESEMPENHO ? "desempenho" : "qualidade";
 }
 
+static void restaurarAutomaticoTeste(void) {
+  // Uma escolha automatica nova tambem pode substituir o candidato. So
+  // devolva o automatico antigo se o temporario desta rodada ainda vigora.
+  if (tex_orcamento_auto_mb() == d.autoTeste)
+    tex_definir_orcamento_auto_mb(d.autoAntes);
+}
+
 static void restaurarAntes(void) {
-  aplicarPerfilTex(&d.perfAntes, d.travadoMb);
-  printf("[diagnostico] perfil anterior restaurado: %d MB, %d fios, heroi %d\n",
-         d.perfAntes.texMb, d.perfAntes.fiosRede, d.perfAntes.heroiLarg);
+  // A escolha manual pode ter chegado DEPOIS de aplicar o candidato. O
+  // setter conserva essa escolha ativa e devolve o automatico anterior por
+  // baixo dela, para que Automatico nao promova um perfil nunca aprovado.
+  restaurarAutomaticoTeste();
+  tex_definir_fios_rede(d.perfAntes.fiosRede);
+  tex_definir_teto_heroi(d.perfAntes.heroiLarg);
+  { PtvPerfil atual;
+    perfilAtual(&atual, NULL, NULL);
+    printf("[diagnostico] previous image profile restored: active %d MB, %d workers, hero %d px; automatic %d MB\n",
+           atual.texMb, atual.fiosRede, atual.heroiLarg, tex_orcamento_auto_mb()); }
   fflush(stdout);
 }
 
 // Quem pega o experimento o desfaz. Fio de desenho (Voltar, reteste pior) ou
 // fio do diagnostico (tela fora de cena): a troca atomica garante uma vez so.
 static int desfazerExperimento(void) {
-  if (atomic_exchange(&d.experimento, 0) != 1) return 0;
+  int esperado = 1;
+  // Estado 2 pertence ao desenho ate gravar ou restaurar. Um timeout do
+  // worker nao pode apagar esse estado nem restaurar durante a gravacao.
+  if (!atomic_compare_exchange_strong(&d.experimento, &esperado, 0)) return 0;
   restaurarAntes();
   dados_apagar("diagnostico-otimizacao.checkpoint");
   return 1;
+}
+
+// O timeout precisa disputar a MESMA reserva que o desenho. Marcar cancelado
+// antes de perder para estado 2 esconderia o resultado de um commit valido e
+// diria "nada mudou" apesar do novo perfil aprovado no disco.
+static int cancelarPorPrazo(void) {
+  int estado = atomic_load(&d.experimento);
+  if (atomic_load(&d.passesProntos) || (estado != 0 && estado != 1)) return 0;
+  if (!atomic_compare_exchange_strong(&d.experimento, &estado, -1)) return 0;
+  // Um veredito concluido publica passesProntos ANTES de liberar estado 2.
+  // Portanto, se o CAS viu 0 depois dessa liberacao, nao cancela o resultado.
+  if (atomic_load(&d.passesProntos)) {
+    atomic_store(&d.experimento, 0);
+    return 0;
+  }
+  atomic_store(&d.cancelado, 1);
+  if (estado == 1) {
+    restaurarAntes();
+    dados_apagar("diagnostico-otimizacao.checkpoint");
+    d.aplicacao = DA_CANCELADO;
+  }
+  atomic_store(&d.experimento, 0);
+  return 1;
+}
+
+static void finalizarVeredito(void) {
+  atomic_store(&d.passesProntos, 1);
+  atomic_store(&d.experimento, 0);
 }
 
 // Candidato no ar. 0 = nada aplicado (d.aplicacao diz por que).
 static int aplicarCandidato(void) {
   long mem = 0;
   char ck[256];
-  int ok;
+  int ok, esperado = 0;
+  // Preparar o candidato tambem e uma transacao do desenho: um timeout no
+  // passe ANTES nao pode restaurar e depois deixar aparecer um candidato.
+  if (!atomic_compare_exchange_strong(&d.experimento, &esperado, 2)) return 0;
+  if (atomic_load(&d.cancelado)) {
+    d.aplicacao = DA_CANCELADO;
+    finalizarVeredito();
+    return 0;
+  }
   perfilAtual(&d.perfAntes, &d.travadoMb, &mem);
+  d.autoAntes = tex_orcamento_auto_mb();
   ptv_candidato(ptv_plataforma(), mem,
                 d.modo == DIAG_DESEMPENHO ? PTV_DESEMPENHO : PTV_QUALIDADE,
                 d.travadoMb, &d.perfCand);
 #if !NV_DIAG_AUTO_OPT
   d.aplicacao = DA_DESLIGADO;
+  finalizarVeredito();
   return 0;
 #endif
-  if (!memcmp(&d.perfCand, &d.perfAntes, sizeof d.perfCand)) {
+  if (perfilIgual(&d.perfCand, &d.perfAntes)) {
     d.aplicacao = DA_IGUAL;
+    finalizarVeredito();
     return 0;
   }
   // CHECKPOINT ANTES DE MEXER: o candidato vive so em memoria ate o veredito,
@@ -655,12 +760,28 @@ static int aplicarCandidato(void) {
   if (!ok) {
     snprintf(d.erro, sizeof d.erro, "%s", "Não foi possível salvar o checkpoint");
     d.aplicacao = DA_SEM_CHECKPOINT;
+    finalizarVeredito();
     return 0;
   }
   aplicarPerfilTex(&d.perfCand, d.travadoMb);
+  d.autoTeste = tex_orcamento_auto_mb();
+  // A API do cache pode limitar ou recusar um pedido. O reteste comprova o
+  // perfil REAL desta rodada, nunca o numero pedido pelo candidato.
+  perfilAtual(&d.perfTeste, &d.travadoTeste, NULL);
+  if (perfilIgual(&d.perfTeste, &d.perfAntes)) {
+    restaurarAutomaticoTeste();
+    dados_apagar("diagnostico-otimizacao.checkpoint");
+    d.aplicacao = DA_LIMITADO;
+    printf("[diagnostico] image profile unchanged: requested %d/%d/%d, active %d/%d/%d\n",
+           d.perfCand.texMb, d.perfCand.fiosRede, d.perfCand.heroiLarg,
+           d.perfTeste.texMb, d.perfTeste.fiosRede, d.perfTeste.heroiLarg);
+    finalizarVeredito();
+    return 0;
+  }
   atomic_store(&d.experimento, 1);
-  printf("[diagnostico] candidato %s no ar: %d MB, %d fios, heroi %d (antes %d/%d/%d)\n",
-         modoNome(), d.perfCand.texMb, d.perfCand.fiosRede, d.perfCand.heroiLarg,
+  printf("[diagnostico] testing image profile: %d MB, %d workers, hero %d px (requested %d/%d/%d; previous %d/%d/%d)\n",
+         d.perfTeste.texMb, d.perfTeste.fiosRede, d.perfTeste.heroiLarg,
+         d.perfCand.texMb, d.perfCand.fiosRede, d.perfCand.heroiLarg,
          d.perfAntes.texMb, d.perfAntes.fiosRede, d.perfAntes.heroiLarg);
   fflush(stdout);
   return 1;
@@ -673,34 +794,79 @@ static int aplicarCandidato(void) {
 static void concluirComparacao(void) {
   const char *m = NULL;
   PtvDecisao dec;
+  PtvPerfil atual;
+  int travado, esperado = 1;
   if (atomic_load(&d.experimento) != 1) return;
-  dec = ptv_decidir(&d.perfAntes, &d.perfCand, &d.medAntes, &d.medDepois, d.despSessao, &m);
+  if (atomic_load(&d.cancelado)) {
+    if (desfazerExperimento()) d.aplicacao = DA_CANCELADO;
+    return;
+  }
+  // Claim the whole decision: rollback can win before this CAS, never while
+  // the main-thread owner persists its verdict or restores a failed write.
+  if (!atomic_compare_exchange_strong(&d.experimento, &esperado, 2)) return;
+  perfilAtual(&atual, &travado, NULL);
+  if (!perfilIgual(&atual, &d.perfTeste) || travado != d.travadoTeste) {
+    // Nao atribuir a amostra antiga a uma nova escolha do usuario, nem
+    // desfazer essa escolha para restaurar o perfil do inicio da rodada.
+    restaurarAutomaticoTeste();
+    dados_apagar("diagnostico-otimizacao.checkpoint");
+    d.aplicacao = DA_ALTERADO;
+    printf("[diagnostico] image profile changed during retest: active %d/%d/%d, tested %d/%d/%d; profile not saved\n",
+           atual.texMb, atual.fiosRede, atual.heroiLarg,
+           d.perfTeste.texMb, d.perfTeste.fiosRede, d.perfTeste.heroiLarg);
+    finalizarVeredito();
+    return;
+  }
+  dec = ptv_decidir(&d.perfAntes, &d.perfTeste, &d.medAntes, &d.medDepois, d.despSessao, &m);
   if (dec != PTV_DEC_APLICAR) {
-    desfazerExperimento();
+    restaurarAntes();
+    dados_apagar("diagnostico-otimizacao.checkpoint");
     d.aplicacao = dec == PTV_DEC_RESTAURAR ? DA_RESTAURADO_AUTO : DA_RUIDO;
     d.motivo = m;
   } else {
     char cfg[256];
-    atomic_store(&d.experimento, 0);
-    ptv_serializar(&d.perfCand, modoNome(), cfg, sizeof cfg);
-    dados_gravar("diagnostico-otimizacao.cfg", cfg);
-    dados_apagar("diagnostico-otimizacao.checkpoint");
-    d.aplicacao = DA_MANTIDO;
+    PtvPerfil persistida = d.perfTeste;
+    // O teste nao alterou memoria travada. Aprovar fios/heroi nao transforma
+    // o valor manual ativo no automatico; este continua sendo o anterior.
+    if (d.travadoMb) persistida.texMb = d.autoAntes;
+    if (!ptv_serializar(&persistida, modoNome(), cfg, sizeof cfg) ||
+        !dados_gravar("diagnostico-otimizacao.cfg", cfg)) {
+      // A gravacao atomica falhada conserva o .cfg anterior. Sem confirmar
+      // persistencia, a TV nao deve anunciar um perfil aprovado que sumira
+      // no proximo arranque.
+      restaurarAntes();
+      dados_apagar("diagnostico-otimizacao.checkpoint");
+      d.aplicacao = DA_SEM_PERFIL;
+      printf("[diagnostico] image profile save failed: previous profile restored\n");
+    } else {
+      dados_apagar("diagnostico-otimizacao.checkpoint");
+      d.aplicacao = DA_MANTIDO;
+    }
   }
-  printf("[diagnostico] reteste: antes %d ms/%d falhas/pior %d ms, depois %d ms/%d falhas/pior %d ms -> %s%s%s\n",
+  printf("[diagnostico] retest: before %d ms/%d failures/worst %d ms, after %d ms/%d failures/worst %d ms -> %s%s%s\n",
          d.medAntes.artesMs, d.medAntes.falhas, d.medAntes.piorQuadroMs,
          d.medDepois.artesMs, d.medDepois.falhas, d.medDepois.piorQuadroMs,
          aplicacaoNome(d.aplicacao), m ? ": " : "", m ? m : "");
+  { PtvPerfil ativo;
+    perfilAtual(&ativo, NULL, NULL);
+    printf("[diagnostico] active image profile: %d MB, %d workers, hero %d px\n",
+           ativo.texMb, ativo.fiosRede, ativo.heroiLarg); }
   fflush(stdout);
+  finalizarVeredito();
 }
 
 // "Restaurar anterior", depois de um perfil mantido.
 static void restaurarManual(void) {
-  if (d.aplicacao != DA_MANTIDO) return;
+  int ok;
+  if (d.aplicacao != DA_MANTIDO && d.aplicacao != DA_RESTAURADO_SESSAO) return;
+  // O botao e uma nova ordem explicita: restaura o automatico anterior
+  // mesmo se outro perfil automatico mudou depois de concluir a rodada.
+  tex_definir_orcamento_auto_mb(d.autoAntes);
   restaurarAntes();
-  if (d.cfgAntes) dados_gravar("diagnostico-otimizacao.cfg", d.cfgAntes);
-  else dados_apagar("diagnostico-otimizacao.cfg");
-  d.aplicacao = DA_RESTAURADO_MANUAL;
+  if (d.cfgAntes) ok = dados_gravar("diagnostico-otimizacao.cfg", d.cfgAntes);
+  else ok = dados_apagar("diagnostico-otimizacao.cfg");
+  d.aplicacao = ok ? DA_RESTAURADO_MANUAL : DA_RESTAURADO_SESSAO;
+  if (!ok) printf("[diagnostico] previous image profile restored for this session only: persistence failed\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -909,6 +1075,12 @@ static void concluirSugestao(void) {
 // ---------------------------------------------------------------------------
 // RELATORIO E FIO DO DIAGNOSTICO.
 
+static int candidatasMediveis(void) {
+  int i, n = 0;
+  for (i = 0; i < vz.nCand; i++) n += vz.cand[i].medivel;
+  return n;
+}
+
 static const char *vazaoNome(VazResultado r) {
   static const char *const NOMES[VR_N] = {
     "ok", "sem_addons", "sem_fontes", "aviso", "recusado", "sem_resposta",
@@ -919,15 +1091,17 @@ static const char *vazaoNome(VazResultado r) {
 
 static void montarRelatorio(void) {
   int texItens = 0, texPend = 0, texQuentes = 0, texSlots = 0;
-  int texMb = 0, fios = 0, fiosMax = 0, i;
+  int texMb = 0, texFixo = 0, fios = 0, fiosMax = 0, i;
   long texBytes = 0, texLimite = 0, memTotal = 0;
   char *p = d.relatorio;
   size_t left = sizeof d.relatorio;
   int wrote;
+  PtvPerfil ativo;
   tex_estatisticas(&texItens, &texPend, &texBytes, &texQuentes, NULL);
-  tex_orcamento_info(&texMb, &memTotal, NULL, &texSlots);
+  tex_orcamento_info(&texMb, &memTotal, &texFixo, &texSlots);
   texLimite = tex_orcamento_bytes();
   tex_threads_info(&fios, &fiosMax);
+  perfilAtual(&ativo, NULL, NULL);
   d.relatorio[0] = 0;
 #define ACRESCENTA(...) do { wrote = snprintf(p, left, __VA_ARGS__); \
     if (wrote > 0 && (size_t)wrote < left) { p += wrote; left -= (size_t)wrote; } } while (0)
@@ -938,9 +1112,22 @@ static void montarRelatorio(void) {
     d.streamMs, texItens, texPend, texQuentes, texBytes, texLimite, texMb,
     memTotal, fios, fiosMax, gargaloPrincipal(), aplicacaoNome(d.aplicacao),
     d.coberturaParcial ? "parcial" : "completa");
+  ACRESCENTA("platform=%s\n", ptv_plataforma_nome(ptv_plataforma()));
   ACRESCENTA("perfil_antes=%d|%d|%d\nperfil_candidato=%d|%d|%d\ntravado_mb=%d\n",
              d.perfAntes.texMb, d.perfAntes.fiosRede, d.perfAntes.heroiLarg,
              d.perfCand.texMb, d.perfCand.fiosRede, d.perfCand.heroiLarg, d.travadoMb);
+  ACRESCENTA("perfil_ativo=%d|%d|%d\n", ativo.texMb, ativo.fiosRede, ativo.heroiLarg);
+  ACRESCENTA("perfil_testado=%d|%d|%d\ntex_orcamento_origem=%s\ntex_orcamento_auto_mb=%d\ntex_teto_aparelho_mb=%d\n",
+             d.perfTeste.texMb, d.perfTeste.fiosRede, d.perfTeste.heroiLarg,
+             texFixo == 1 ? "build" : texFixo == 2 ? "environment" : texFixo == 3 ? "manual" : "automatic",
+             tex_orcamento_auto_mb(),
+             ptv_tex_teto_mb(ptv_plataforma(), memTotal));
+  { char *cfg = dados_ler("diagnostico-otimizacao.cfg");
+    PtvPerfil aprovado;
+    if (cfg && ptv_ler(cfg, &aprovado))
+      ACRESCENTA("perfil_aprovado=%d|%d|%d\n", aprovado.texMb, aprovado.fiosRede, aprovado.heroiLarg);
+    else ACRESCENTA("perfil_aprovado=none\n");
+    free(cfg); }
   ACRESCENTA("amostra_artes=%d\nartes_frio_ms=%d\nartes_antes_ms=%d\nartes_depois_ms=%d\nartes_falhas_antes=%d\nartes_falhas_depois=%d\npior_quadro_antes_ms=%d\npior_quadro_depois_ms=%d\ndespejos_quentes_depois=%d\nmotivo=%s\n",
              d.nArte, d.medFrio.artesMs, d.medAntes.artesMs, d.medDepois.artesMs,
              d.medAntes.falhas, d.medDepois.falhas, d.medAntes.piorQuadroMs,
@@ -979,28 +1166,52 @@ static void montarRelatorio(void) {
                a->catalog_ok, a->stream_ms, a->asset_ms,
                a->catalogo, a->stream, a->legenda);
   }
-  // TESTE DE VELOCIDADE, quando rodou nesta tela. SO NUMEROS: nenhuma url,
-  // host, token ou titulo — o addon e a fonte vao pelo NUMERO (o addon N e a
-  // N-esima linha addon= acima, quando o diagnostico tambem rodou).
+  // TESTE DE VELOCIDADE, quando rodou nesta tela. NUNCA URL: nem caminho, nem
+  // consulta, nem usuario:senha@ (a chave do debrid viaja ali). O teste rapido
+  // vai so por NUMEROS (o addon e a fonte pelo numero: o addon N e a N-esima
+  // linha addon= acima, quando o diagnostico tambem rodou). O CICLO acrescenta o
+  // HOST publico de cada fonte (vazao_host_publico: so host[:porta]) — e o que
+  // diz se a lentidao e do CDN —, sem o nome da fonte nem do arquivo.
   if (atomic_load(&vz.estado) == 2) {
     int nf = atomic_load(&vz.nFonte);
-    ACRESCENTA("vazao=v1\nvazao_resultado=%s\nvazao_modo=%s\nvazao_mediana_kbps=%d\nvazao_p20_kbps=%d\nvazao_otimo_kbps=%d\nvazao_maximo_kbps=%d\nvazao_amostras=%d\nvazao_fontes_medidas=%d\nvazao_fontes_tentadas=%d\nvazao_candidatas=%d\n",
-               vazaoNome(vz.resultado), vz.modo == FONTEAUTO_PRIMEIRA ? "primeira" : "melhor",
-               vz.resumo.medianaKbps, vz.resumo.p20Kbps, vz.resumo.otimoKbps,
-               vz.resumo.maximoKbps, vz.nAmostra, nf, vz.tentadas, vz.nCand);
+    if (vz.ciclo == VCM_RAPIDO)
+      ACRESCENTA("vazao=v1\nvazao_resultado=%s\nvazao_modo=%s\nvazao_mediana_kbps=%d\nvazao_p20_kbps=%d\nvazao_otimo_kbps=%d\nvazao_maximo_kbps=%d\nvazao_amostras=%d\nvazao_fontes_medidas=%d\nvazao_fontes_tentadas=%d\nvazao_candidatas=%d\n",
+                 vazaoNome(vz.resultado), vz.modo == FONTEAUTO_PRIMEIRA ? "primeira" : "melhor",
+                 vz.resumo.medianaKbps, vz.resumo.p20Kbps, vz.resumo.otimoKbps,
+                 vz.resumo.maximoKbps, vz.nAmostra, nf, vz.tentadas, candidatasMediveis());
+    else
+      ACRESCENTA("vazao=v1\nvazao_resultado=%s\nvazao_modo=%s\nvazao_ciclo=%s\nvazao_ciclo_janela_s=%d\nvazao_ciclo_fontes=tentadas:%d|medidas:%d|falhas:%d|debrid:%d|repetidas:%d|fora_limite:%d|sem_tempo:%d\n",
+                 vazaoNome(vz.resultado), vz.modo == FONTEAUTO_PRIMEIRA ? "primeira" : "melhor",
+                 vz.ciclo == VCM_ADDON ? "addon" : "completo", VAZ_CICLO_JANELA_S,
+                 vz.agenda.tentadas, vz.agenda.medidas, vz.agenda.falhas, vz.debridTotal,
+                 vz.sel.duplicadas, vz.sel.foraDoLimite, vz.agenda.restantes);
     ACRESCENTA("vazao_falhas=aviso:%d|recusado:%d|sem_resposta:%d|navegador:%d|curto:%d\n",
                vz.falhas[VR_AVISO], vz.falhas[VR_RECUSADO], vz.falhas[VR_SEM_RESPOSTA],
                vz.falhas[VR_NAVEGADOR], vz.falhas[VR_CURTO]);
-    for (i = 0; i < nf && left > 40; i++) {
+    for (i = 0; vz.ciclo == VCM_RAPIDO && i < nf && left > 40; i++) {
       const VazFonte *f = &vz.fonte[i];
       ACRESCENTA("vazao_fonte=%d|mediana_kbps=%d|p20_kbps=%d|segundos=%d|mb=%lld|http=%d\n",
                  i + 1, f->r.medianaKbps, f->r.p20Kbps, f->n, f->bytes / 1000000LL, f->http);
     }
+    for (i = 0; vz.ciclo != VCM_RAPIDO && i < atomic_load(&vz.nCic) && left > 40; i++) {
+      const VazCicloRes *x = &vz.cic[i];
+      static const char *const SIT[] = { "pendente", "ok", "falhou", "aviso", "repetido", "debrid" };
+      static const char *const SUF[] = { "sem_ref", "ok", "justo", "nao" };
+      ACRESCENTA("vazao_ciclo_fonte=%d|addon=%d|host=%s|altura=%d|mb=%ld|espera_ms=%d|mediana_kbps=%d|p20_kbps=%d|precisa_kbps=%d|toca=%s|http=%d|situacao=%s\n",
+                 i + 1, x->addon + 1, x->host[0] ? x->host : "-", x->altura, x->tamanhoMB,
+                 x->esperaMs, x->r.medianaKbps, x->r.p20Kbps, x->necessarioKbps,
+                 x->sit == VS_OK ? SUF[x->suf & 3] : "-", x->http,
+                 SIT[x->sit >= 0 && x->sit <= VS_DEBRID ? x->sit : 0]);
+    }
+    for (i = 0; vz.ciclo != VCM_RAPIDO && i < vz.nAddon && left > 40; i++) {
+      int usadas = 0, med = vazao_mediana_addon(vz.cic, atomic_load(&vz.nCic), i, &usadas);
+      if (usadas) ACRESCENTA("vazao_ciclo_addon=%d|mediana_kbps=%d|fontes_medidas=%d\n", i + 1, med, usadas);
+    }
     for (i = 0; i < vz.nAddon && left > 40; i++) {
       const VazAddon *a = &vz.addon[i];
       if (!a->medido) continue;
-      ACRESCENTA("vazao_addon=%d|ms=%d|http=%d|ok=%d|streams=%d|diretas=%d\n",
-                 i + 1, a->ms, a->http, a->ok, a->fontes, a->candidatas);
+      ACRESCENTA("vazao_addon=%d|ms=%d|http=%d|ok=%d|streams=%d|diretas=%d|mediveis=%d|debrid=%d\n",
+                 i + 1, a->ms, a->http, a->ok, a->fontes, a->candidatas, a->mediveis, a->debrid);
     }
   }
 #undef ACRESCENTA
@@ -1112,9 +1323,9 @@ static int diagnosticoWorker(void *arg) {
     while (!atomic_load(&d.passesProntos) && !atomic_load(&d.cancelado)) {
       if (SDL_GetTicks() - ini > DIAG_PASSES_MAX_MS) {
         // A tela saiu de cena no meio: sem veredito, o candidato nao fica.
-        atomic_store(&d.cancelado, 1);
-        if (desfazerExperimento()) d.aplicacao = DA_CANCELADO;
-        break;
+        // Se o desenho ja prepara ou confirma o perfil, espera seu veredito
+        // em vez de anunciar cancelamento sobre um commit aprovado.
+        if (cancelarPorPrazo()) break;
       }
       SDL_Delay(30);
     } }
@@ -1160,6 +1371,12 @@ static int envioWorker(void *arg) {
 //    resolve, e 8 s de corpo contados e descartados (rede_medir_vazao);
 // 3. a conta (vazao_resumir): mediana e p20 de todas as amostras por segundo.
 //
+// MODOS. O rapido (padrao) mede ate VAZAO_FONTES_MAX fontes de hosts diferentes
+// (VAZ_JANELA_S s cada). O "Ciclo completo" (vz.ciclo == VCM_COMPLETO) mede TODAS
+// as fontes de link direto, ate VAZ_CICLO_MAX, e o "Por add-on" (VCM_ADDON) a
+// melhor de cada add-on; os dois com VAZ_CICLO_JANELA_S s por fonte, UMA por
+// vez, e o resultado vira ranking em vz.cic (vazao.c tem a regra).
+//
 // SO LINK DIRETO: torrent sem url (so infoHash) exigiria mandar o debrid
 // resolver, e fonte marcada fora de cache mandaria o servico BAIXAR (#130).
 // Link de aviso (slate, downloading.mp4, clipe de erro) mediria o servidor de
@@ -1184,47 +1401,93 @@ static int candidataMedivel(const Stream *s) {
          !vazao_url_aviso(s->url);
 }
 
-// Ate VAZ_POR_ADDON fontes deste addon, na ordem em que o automatico as
-// tentaria. Devolve quantas entraram em vz.cand.
-static int coletarCandidatas(const Stream *lista, int n) {
+// EXIGIRIA O DEBRID: torrent sem link (so infoHash: o debrid teria de adicionar
+// o torrent) ou fonte que o proprio addon marca como fora de cache (abrir o
+// link manda o servico BAIXAR — #130). Nenhum dos dois e tocado por nenhum
+// modo do teste; o ciclo completo so os LISTA como "nao testada (debrid)".
+static int exigeDebrid(const Stream *s) {
+  return s->foraCache || (!s->url[0] && s->infoHash[0]);
+}
+
+static void liberarCandidatas(void) {
+  int i;
+  for (i = 0; i < vz.nCand; i++) { free(vz.cand[i].url); free(vz.cand[i].cab); }
+  vz.nCand = 0;
+}
+
+static void guardarCandidata(const Stream *s, int addon, long pontos, unsigned char acima,
+                             int medivel) {
+  VazCand *c;
+  if (vz.nCand >= VAZ_MAX_CAND) return;
+  c = &vz.cand[vz.nCand];
+  memset(c, 0, sizeof *c);
+  if (medivel) {
+    c->url = strdup(s->url);
+    c->cab = strdup(s->cabecalhos);
+    if (!c->url || !c->cab) { free(c->url); free(c->cab); c->url = c->cab = NULL; return; }
+  }
+  c->pontos = pontos;
+  c->acima = acima;
+  c->medivel = (unsigned char)medivel;
+  c->addon = addon;
+  c->altura = s->altura;
+  c->dv = s->dolbyVision;
+  c->tamanhoMB = s->tamanhoMB;
+  snprintf(c->nome, sizeof c->nome, "%s", s->rotulo);
+  vz.nCand++;
+}
+
+// Ate `limite` fontes MEDIVEIS deste addon, na ordem em que o automatico as
+// tentaria (o rapido guarda VAZ_POR_ADDON; o ciclo, ate VAZAO_CICLO_MAX), mais
+// as do debrid (guardadas so para listar, ate VAZ_CICLO_DEBRID_MAX no total).
+// Devolve quantas medíveis entraram em vz.cand.
+static int coletarCandidatas(const Stream *lista, int n, int addon, int limite) {
   long *pts;
   unsigned char *acima, *fora;
-  int fila[VAZ_POR_ADDON], nf, q, entrou = 0;
-  if (n < 1 || vz.nCand >= VAZ_MAX_CAND) return 0;
+  int *fila, nf, q, entrou = 0, medida = 0;
+  if (n < 1) return 0;
   pts = malloc(sizeof *pts * (size_t)n);
   acima = calloc((size_t)n, 1);
   fora = calloc((size_t)n, 1);
-  if (!pts || !acima || !fora) { free(pts); free(acima); free(fora); return 0; }
+  fila = malloc(sizeof *fila * (size_t)n);
+  if (!pts || !acima || !fora || !fila) { free(pts); free(acima); free(fora); free(fila); return 0; }
   for (q = 0; q < n; q++) {
     pts[q] = stream_pontos(&lista[q]);
     acima[q] = (unsigned char)!stream_cabe_no_teto(&lista[q]);
     fora[q] = (unsigned char)!candidataMedivel(&lista[q]);
+    if (!fora[q]) medida++;
   }
-  nf = fonteauto_fila(vz.modo, n, -1, pts, acima, fora, VAZ_POR_ADDON, fila);
-  for (q = 0; q < nf && vz.nCand < VAZ_MAX_CAND; q++) {
-    VazCand *c = &vz.cand[vz.nCand++];
-    snprintf(c->url, sizeof c->url, "%s", lista[fila[q]].url);
-    snprintf(c->cab, sizeof c->cab, "%s", lista[fila[q]].cabecalhos);
-    c->pontos = pts[fila[q]];
-    c->acima = acima[fila[q]];
-    entrou++;
+  vz.addon[addon].mediveis += medida;
+  nf = fonteauto_fila(vz.modo, n, -1, pts, acima, fora, limite < n ? limite : n, fila);
+  for (q = 0; q < nf; q++) {
+    int antes = vz.nCand;
+    guardarCandidata(&lista[fila[q]], addon, pts[fila[q]], acima[fila[q]], 1);
+    entrou += vz.nCand - antes;
   }
-  free(pts); free(acima); free(fora);
+  for (q = 0; q < n; q++) {
+    if (!exigeDebrid(&lista[q])) continue;
+    vz.addon[addon].debrid++;
+    vz.debridTotal++;
+    if (vz.debridTotal <= VAZ_CICLO_DEBRID_MAX)
+      guardarCandidata(&lista[q], addon, pts[q], acima[q], 0);
+  }
+  free(pts); free(acima); free(fora); free(fila);
   return entrou;
 }
 
 static void vazaoAddons(void) {
   RedeControle ctl;
   int t, i;
+  int limite = vz.ciclo == VCM_RAPIDO ? VAZ_POR_ADDON : VAZ_CICLO_MAX;
   ctl.max_bytes = DIAG_STREAM_MAX;
   ctl.cancelado = (volatile int *)&vz.cancelado;
-  for (t = 0; t < vz.nTitulo && !vz.nCand; t++) {
+  for (t = 0; t < vz.nTitulo && !vz.mediveisTotal; t++) {
     for (i = 0; i < vz.nAddon; i++) {
       VazAddon *a = &vz.addon[i];
       RedeMedida m;
       Stream *lista = NULL;
       char *corpo;
-      int n = 0;
+      int n = 0, antes;
       if (atomic_load(&vz.cancelado)) return;
       if (!addons_ativo(i) || (addons_sondado(i) && !addons_fornece(i, ADD_STREAM))) {
         if (t == 0) atomic_fetch_add(&vz.feitos, 1);
@@ -1243,10 +1506,12 @@ static void vazaoAddons(void) {
         a->ok = fontesRespondeu(corpo, &m);
       }
       if (n > a->fontes) a->fontes = n;
-      a->candidatas += coletarCandidatas(lista, n);
+      antes = a->mediveis;
+      a->candidatas += coletarCandidatas(lista, n, i, limite);
+      vz.mediveisTotal += a->mediveis - antes;
       if (t == 0) {
         printf("[vazao] addon %d: %d ms, HTTP %d, %d fontes, %d com link direto\n",
-               i + 1, a->ms, a->http, n, a->candidatas);
+               i + 1, a->ms, a->http, n, a->mediveis);
         fflush(stdout);
         atomic_fetch_add(&vz.feitos, 1);
       }
@@ -1265,120 +1530,290 @@ static VazResultado falhaDaMedida(const RedeVazao *r, int amostras) {
   return amostras > 0 ? VR_OK : VR_CURTO;
 }
 
-static int medirUmaFonte(const VazCand *c, char hosts[][96], int nHosts) {
-  char fim[4096], fim2[4096], copia[512], host[96];
+typedef enum { MN_OK, MN_FALHA, MN_AVISO, MN_REPETIDO, MN_CANCELADO } MnRes;
+
+static int fitVazCancelado(void *u) { (void)u; return atomic_load(&vz.cancelado); }
+
+// Por que uma fonte ficou sem medida, para o LOG (nunca vai para a tela).
+enum { MOT_HTTP, MOT_RESOLVEU, MOT_AVISO, MOT_REDIR };
+static void logMotivo(int ciclo, int n, int addon, int m) {
+  const char *quem = ciclo ? "ciclo" : "src";
+  switch (m) {
+    case MOT_RESOLVEU: printf("[vazao] %s %d (addon %d): o link nao resolveu\n", quem, n, addon); break;
+    case MOT_AVISO: printf("[vazao] %s %d (addon %d): link de aviso, nao medida\n", quem, n, addon); break;
+    case MOT_REDIR: printf("[vazao] %s %d (addon %d): redirecionou para aviso, descartada\n", quem, n, addon); break;
+    default: printf("[vazao] %s %d (addon %d): sem medida\n", quem, n, addon); break;
+  }
+}
+
+// UMA FONTE, do link ao numero: resolve como a verificacao de fonte resolve,
+// descarta aviso, (com `hosts`) pula host ja medido e baixa `janelaS`
+// segundos. So esta funcao toca a rede; o rapido e o ciclo a chamam.
+//   hostChave  "esquema://host" do link final (a chave de "hosts diferentes")
+//   hostPub    host publico do link FINAL (vazao_host_publico), para a tela
+//   *motivo  MOT_*: por que falhou, para o log (MOT_HTTP = ver r->status e r->erro)
+static MnRes medirNucleo(const VazCand *c, int janelaS, char hosts[][96], int nHosts,
+                         VazFonte *f, RedeVazao *r, char *hostChave, char *hostPub,
+                         size_t nhp, VazResultado *cat, int *motivo) {
+  char fim[4096], fim2[4096], copia[512], *host = hostChave;
   const char *vet[8];
   const char *const *cab = vetorCabecalhos(c->cab, copia, sizeof copia, vet, 8);
   const char *alvo = c->url;
-  VazFonte *f = &vz.fonte[atomic_load(&vz.nFonte)];
-  RedeVazao r;
   int n, k;
-  VazResultado cat;
-  vz.tentadas++;
+  *motivo = MOT_HTTP;
+  *cat = VR_OK;
+  if (hostPub && nhp) hostPub[0] = 0;
+  host[0] = 0;
+  memset(r, 0, sizeof *r);
   // RESOLVIDO COMO A VERIFICACAO DE FONTE RESOLVE (verificarUma em streams.c):
   // o link do addon redireciona para o CDN do debrid, e e esse final que diz
   // se e aviso e de qual host e. Fonte com proxyHeaders vai direto (a
   // resolucao nao manda cabecalho, e o CDN que confere Referer recusaria).
-  if (!cab) {
+  if (!cab && !vz.rede) {
     if (rede_url_final(c->url, DIAG_TIMEOUT_S, fim, sizeof fim)) alvo = fim;
     else {
 #ifdef __EMSCRIPTEN__
-      vz.falhas[VR_NAVEGADOR]++;
+      *cat = VR_NAVEGADOR;
 #else
-      vz.falhas[VR_SEM_RESPOSTA]++;
+      *cat = VR_SEM_RESPOSTA;
 #endif
-      printf("[vazao] fonte %d/%d: o link nao resolveu\n", vz.tentadas, VAZ_TENTATIVAS);
-      fflush(stdout);
-      return 0;
+      *motivo = MOT_RESOLVEU;
+      return MN_FALHA;
     }
   }
   if (vazao_url_aviso(alvo)) {
-    vz.falhas[VR_AVISO]++;
-    printf("[vazao] fonte %d/%d: link de aviso, nao medida\n", vz.tentadas, VAZ_TENTATIVAS);
-    fflush(stdout);
-    return 0;
+    *cat = VR_AVISO;
+    *motivo = MOT_AVISO;
+    return MN_AVISO;
   }
-  vazao_host(alvo, host, sizeof host);
+  vazao_host(alvo, host, 96);
   for (k = 0; k < nHosts; k++)
-    if (!strcmp(hosts[k], host)) return -1;   // host ja medido: a proxima
+    if (!strcmp(hosts[k], host)) return MN_REPETIDO;   // host ja medido: a proxima
+  if (hostPub && nhp) vazao_host_publico(alvo, hostPub, nhp);
   memset(f, 0, sizeof *f);
   vz.fonteIniMs = SDL_GetTicks();
-  n = rede_medir_vazao(alvo, cab, VAZ_JANELA_S, VAZ_INICIO_BYTE, VAZ_TETO_BYTES,
-                       (volatile int *)&vz.cancelado, f->kbps, VAZAO_SEG_MAX, &r,
-                       fim2, sizeof fim2);
+  if (vz.rede) {
+    StreamfitDiagControle ctl = { .rede = vz.rede, .cancelado = fitVazCancelado };
+    n = streamfitdiag_medir(alvo, cab, janelaS, VAZ_INICIO_BYTE, VAZ_TETO_BYTES,
+                            &ctl, f->kbps, VAZAO_SEG_MAX, r, fim2, sizeof fim2);
+    if (r->status == 416 && !r->cancelado)
+      n = streamfitdiag_medir(alvo, cab, janelaS, 0, VAZ_TETO_BYTES,
+                              &ctl, f->kbps, VAZAO_SEG_MAX, r, fim2, sizeof fim2);
+  } else n = rede_medir_vazao(alvo, cab, janelaS, VAZ_INICIO_BYTE, VAZ_TETO_BYTES,
+                              (volatile int *)&vz.cancelado, f->kbps, VAZAO_SEG_MAX, r,
+                              fim2, sizeof fim2);
   // 416: o arquivo e menor que o deslocamento. Do comeco, entao.
-  if (r.status == 416 && !r.cancelado)
-    n = rede_medir_vazao(alvo, cab, VAZ_JANELA_S, 0, VAZ_TETO_BYTES,
-                         (volatile int *)&vz.cancelado, f->kbps, VAZAO_SEG_MAX, &r,
+  if (!vz.rede && r->status == 416 && !r->cancelado)
+    n = rede_medir_vazao(alvo, cab, janelaS, 0, VAZ_TETO_BYTES,
+                         (volatile int *)&vz.cancelado, f->kbps, VAZAO_SEG_MAX, r,
                          fim2, sizeof fim2);
-  if (r.cancelado) { atomic_store(&vz.cancelado, 1); return 0; }
+  if (r->cancelado) return MN_CANCELADO;
   if (n > 0 && fim2[0] && vazao_url_aviso(fim2)) {
-    vz.falhas[VR_AVISO]++;
-    printf("[vazao] fonte %d/%d: redirecionou para aviso, descartada\n", vz.tentadas, VAZ_TENTATIVAS);
-    fflush(stdout);
-    return 0;
+    *cat = VR_AVISO;
+    *motivo = MOT_REDIR;
+    return MN_AVISO;
   }
-  cat = falhaDaMedida(&r, n);
-  if (cat != VR_OK) {
-    vz.falhas[cat]++;
-    printf("[vazao] fonte %d/%d: sem medida (HTTP %d, erro %d)\n", vz.tentadas,
-           VAZ_TENTATIVAS, r.status, r.erro);
-    fflush(stdout);
-    return 0;
-  }
+  *cat = falhaDaMedida(r, n);
+  if (*cat != VR_OK) return MN_FALHA;
   f->n = n;
-  f->http = r.status;
-  f->bytes = r.bytes;
-  f->ms = r.ms;
+  f->http = r->status;
+  f->bytes = r->bytes;
+  f->ms = r->ms;
   vazao_resumir(f->kbps, n, &f->r);
-  for (k = 0; k < n && vz.nAmostra < VAZAO_AMOSTRAS_MAX; k++) vz.amostra[vz.nAmostra++] = f->kbps[k];
-  snprintf(hosts[nHosts], 96, "%s", host);
+  if (fim2[0]) vazao_host(fim2, host, 96);
+  // O host mostrado e o do link que respondeu, depois dos redirecionamentos.
+  if (hostPub && nhp && fim2[0]) vazao_host_publico(fim2, hostPub, nhp);
+  return MN_OK;
+}
+
+// O TESTE RAPIDO: uma fonte, ate VAZAO_FONTES_MAX de hosts diferentes.
+static int medirUmaFonte(const VazCand *c, char hosts[][96], int nHosts) {
+  VazFonte *f = &vz.fonte[atomic_load(&vz.nFonte)];
+  VazFonte tmp;
+  RedeVazao r;
+  VazResultado cat;
+  int motivo;
+  char chave[96];
+  MnRes res;
+  int k;
+  vz.tentadas++;
+  res = medirNucleo(c, VAZ_JANELA_S, hosts, nHosts, &tmp, &r, chave, NULL, 0, &cat, &motivo);
+  if (res == MN_REPETIDO) return VS_HOST_REPETIDO;
+  if (res == MN_CANCELADO) { atomic_store(&vz.cancelado, 1); return VS_FALHOU; }
+  if (res != MN_OK) {
+    vz.falhas[cat]++;
+    logMotivo(0, vz.tentadas, c->addon + 1, motivo);
+    if (motivo == MOT_HTTP) printf("[vazao]   HTTP %d, erro %d\n", r.status, r.erro);
+    fflush(stdout);
+    return res == MN_AVISO ? VS_AVISO : VS_FALHOU;
+  }
+  *f = tmp;
+  for (k = 0; k < f->n && vz.nAmostra < VAZAO_AMOSTRAS_MAX; k++) vz.amostra[vz.nAmostra++] = f->kbps[k];
+  snprintf(hosts[nHosts], 96, "%s", chave);
   printf("[vazao] fonte %d/%d: %.1f Mbps mediana, p20 %.1f, %lu s, %lld MB\n",
          atomic_load(&vz.nFonte) + 1, VAZAO_FONTES_MAX, f->r.medianaKbps / 1000.0,
          f->r.p20Kbps / 1000.0, (f->ms + 500UL) / 1000UL, f->bytes / 1000000LL);
   fflush(stdout);
   atomic_fetch_add(&vz.nFonte, 1);
   atomic_fetch_add(&vz.feitos, 1);
-  return 1;
+  return VS_OK;
+}
+
+// A ordem em que as candidatas entram: a da fonte automatica (o ajuste do
+// usuario), sobre TODAS, para a selecao do ciclo ver cada add-on na ordem dele.
+// Preenche `it` (com o indice de vz.cand em `ind`) e devolve quantos.
+static int itensDoCiclo(VazItem *it, int *ind) {
+  long pts[VAZ_MAX_CAND];
+  unsigned char acima[VAZ_MAX_CAND];
+  int ord[VAZ_MAX_CAND], nf, q;
+  for (q = 0; q < vz.nCand; q++) { pts[q] = vz.cand[q].pontos; acima[q] = vz.cand[q].acima; }
+  nf = fonteauto_fila(vz.modo, vz.nCand, -1, pts, acima, NULL, VAZ_MAX_CAND, ord);
+  for (q = 0; q < nf; q++) {
+    const VazCand *c = &vz.cand[ord[q]];
+    ind[q] = ord[q];
+    it[q].addon = c->addon;
+    it[q].chave = c->url ? vazao_chave(c->url) : 0;
+    it[q].medivel = c->medivel;
+  }
+  return nf;
+}
+
+static char hostsRapido[VAZAO_FONTES_MAX][96];
+static int rapidoMedir(int i, void *u) {
+  (void)u;
+  return medirUmaFonte(&vz.cand[i], hostsRapido, atomic_load(&vz.nFonte));
+}
+static int vazCancelado(void *u) { (void)u; return atomic_load(&vz.cancelado); }
+static unsigned long vazAgora(void *u) { (void)u; return SDL_GetTicks(); }
+static void vazPasso(void *u, int feitos, int total) {
+  (void)u; (void)feitos; (void)total;
+  atomic_fetch_add(&vz.feitos, 1);
 }
 
 static void vazaoFontes(void) {
-  long pts[VAZ_MAX_CAND];
-  unsigned char acima[VAZ_MAX_CAND];
-  int fila[VAZ_MAX_CAND], nf, q;
-  char hosts[VAZAO_FONTES_MAX][96];
-  for (q = 0; q < vz.nCand; q++) { pts[q] = vz.cand[q].pontos; acima[q] = vz.cand[q].acima; }
-  nf = fonteauto_fila(vz.modo, vz.nCand, -1, pts, acima, NULL, VAZ_MAX_CAND, fila);
-  for (q = 0; q < nf; q++) {
-    int nFonte = atomic_load(&vz.nFonte);
-    if (nFonte >= VAZAO_FONTES_MAX || vz.tentadas >= VAZ_TENTATIVAS) break;
-    if (atomic_load(&vz.cancelado)) break;
-    // Orcamento: com uma fonte medida, nao comeca outra que passaria dos 45 s.
-    if (nFonte > 0 && SDL_GetTicks() - vz.inicioMs > VAZ_ORCAMENTO_MS) break;
-    medirUmaFonte(&vz.cand[fila[q]], hosts, nFonte);
+  VazItem it[VAZ_MAX_CAND];
+  int ind[VAZ_MAX_CAND], fila[VAZ_MAX_CAND], nIt, q, nf;
+  VazOps ops = { rapidoMedir, vazCancelado, vazAgora, NULL, NULL };
+  // Com uma fonte medida, nao comeca outra que passaria dos 45 s. `feitos`
+  // anda em medirUmaFonte (so as medidas contam para a barra do rapido).
+  VazPlano pl = { VAZAO_FONTES_MAX, VAZ_TENTATIVAS, VAZ_ORCAMENTO_MS, 1 };
+  nIt = itensDoCiclo(it, ind);
+  nf = vazao_selecionar(VCM_RAPIDO, it, nIt, VAZ_MAX_CAND, fila, &vz.sel);
+  // A fila carrega o indice de vz.cand, nao o de `it`.
+  for (q = 0; q < nf; q++) fila[q] = ind[fila[q]];
+  vazao_agendar(&pl, fila, nf, &ops, &vz.agenda);
+}
+
+// ---- CICLO COMPLETO E POR ADD-ON ------------------------------------------
+//
+// Uma fonte por vez (vazao_agendar), cada uma com VAZ_CICLO_JANELA_S de corpo e
+// VAZ_CICLO_ESPERA_MS para o 1o byte. Nada de host distinto: o ciclo quer cada
+// fonte, e duas do mesmo CDN podem ter velocidades bem diferentes.
+static int cicloMedir(int i, void *u) {
+  const VazCand *c = &vz.cand[i];
+  VazCicloRes *x;
+  VazFonte f;
+  RedeVazao r;
+  VazResultado cat;
+  int motivo;
+  char chave[96], pub[96];
+  MnRes res;
+  int k = atomic_load(&vz.nCic);
+  (void)u;
+  if (k >= VAZ_CICLO_LISTA_MAX) return VS_FALHOU;
+  x = &vz.cic[k];
+  memset(x, 0, sizeof *x);
+  x->addon = c->addon;
+  x->altura = c->altura;
+  x->dv = c->dv;
+  x->tamanhoMB = c->tamanhoMB;
+  snprintf(x->nome, sizeof x->nome, "%s", c->nome);
+  x->necessarioKbps = vazao_necessario_kbps(c->altura, c->tamanhoMB, VAZAO_FILME_S);
+  vz.tentadas++;
+  res = medirNucleo(c, VAZ_CICLO_JANELA_S, NULL, 0, &f, &r, chave, pub, sizeof pub, &cat, &motivo);
+  if (res == MN_CANCELADO) { atomic_store(&vz.cancelado, 1); return VS_FALHOU; }
+  snprintf(x->host, sizeof x->host, "%s", pub);
+  x->http = r.status;
+  x->esperaMs = (int)r.esperaMs;
+  if (res == MN_OK) {
+    x->sit = VS_OK;
+    x->r = f.r;
+    x->suf = vazao_suficiencia(&f.r, x->necessarioKbps);
+    printf("[vazao] ciclo %d: addon %d, %.1f Mbps (p20 %.1f), resposta %d ms\n", k + 1,
+           c->addon + 1, f.r.medianaKbps / 1000.0, f.r.p20Kbps / 1000.0, x->esperaMs);
+  } else {
+    vz.falhas[cat]++;
+    x->sit = res == MN_AVISO ? VS_AVISO : VS_FALHOU;
+    logMotivo(1, k + 1, c->addon + 1, motivo);
+    if (motivo == MOT_HTTP) printf("[vazao]   HTTP %d, erro %d\n", r.status, r.erro);
   }
+  fflush(stdout);
+  atomic_fetch_add(&vz.nCic, 1);
+  return x->sit;
+}
+
+static void vazaoCiclo(void) {
+  VazItem it[VAZ_MAX_CAND];
+  int ind[VAZ_MAX_CAND], fila[VAZ_MAX_CAND], nIt, q, nf;
+  VazOps ops = { cicloMedir, vazCancelado, vazAgora, vazPasso, NULL };
+  VazPlano pl = { 0, 0, VAZ_CICLO_ORCAMENTO_MS, 0 };
+  nIt = itensDoCiclo(it, ind);
+  nf = vazao_selecionar(vz.ciclo, it, nIt, VAZ_CICLO_MAX, fila, &vz.sel);
+  for (q = 0; q < nf; q++) fila[q] = ind[fila[q]];
+  vz.nFila = nf;
+  atomic_store(&vz.total, vz.nAddon + nf);
+  printf("[vazao] ciclo (%s): %d medidas, %d do debrid, %d repetidas, %d fora do limite\n",
+         vz.ciclo == VCM_ADDON ? "por addon" : "completo", nf, vz.sel.debrid,
+         vz.sel.duplicadas, vz.sel.foraDoLimite);
+  fflush(stdout);
+  rede_vazao_espera(VAZ_CICLO_ESPERA_MS);
+  vazao_agendar(&pl, fila, nf, &ops, &vz.agenda);
+  rede_vazao_espera(0);
+  // As do debrid entram no fim da lista, so com o nome: "nao testada (debrid)".
+  if (!atomic_load(&vz.cancelado))
+    for (q = 0; q < vz.nCand; q++) {
+      const VazCand *c = &vz.cand[q];
+      VazCicloRes *x;
+      int k = atomic_load(&vz.nCic);
+      if (c->medivel || k >= VAZ_CICLO_LISTA_MAX) continue;
+      x = &vz.cic[k];
+      memset(x, 0, sizeof *x);
+      x->addon = c->addon;
+      x->altura = c->altura;
+      x->dv = c->dv;
+      x->tamanhoMB = c->tamanhoMB;
+      x->sit = VS_DEBRID;
+      snprintf(x->nome, sizeof x->nome, "%s", c->nome);
+      atomic_store(&vz.nCic, k + 1);
+    }
 }
 
 static int vazaoWorker(void *arg) {
-  int k, maior = 0;
+  int k, maior = 0, medidas = 0;
   (void)arg;
   atomic_store(&vz.fase, 1);
   vazaoAddons();
   if (!atomic_load(&vz.cancelado)) {
     atomic_store(&vz.fase, 2);
-    vazaoFontes();
+    if (vz.ciclo == VCM_RAPIDO) vazaoFontes();
+    else vazaoCiclo();
   }
+  for (k = 0; k < atomic_load(&vz.nCic); k++) if (vz.cic[k].sit == VS_OK) medidas++;
   if (atomic_load(&vz.cancelado)) vz.resultado = VR_CANCELADO;
-  else if (vazao_resumir(vz.amostra, vz.nAmostra, &vz.resumo)) vz.resultado = VR_OK;
+  else if (vz.ciclo != VCM_RAPIDO ? medidas > 0
+                                  : vazao_resumir(vz.amostra, vz.nAmostra, &vz.resumo)) vz.resultado = VR_OK;
   else {
     int algum = 0;
     for (k = 0; k < vz.nAddon; k++) if (vz.addon[k].medido) algum = 1;
-    vz.resultado = !algum ? VR_SEM_ADDONS : !vz.nCand ? VR_SEM_FONTES : VR_SEM_RESPOSTA;
+    vz.resultado = !algum ? VR_SEM_ADDONS : !vz.mediveisTotal ? VR_SEM_FONTES : VR_SEM_RESPOSTA;
     // A falha que MAIS aconteceu diz o motivo; empate fica a primeira.
     for (k = VR_AVISO; k < VR_N; k++)
       if (vz.falhas[k] > maior) { maior = vz.falhas[k]; vz.resultado = (VazResultado)k; }
   }
-  if (vz.resultado == VR_OK)
+  if (vz.resultado == VR_OK && vz.ciclo != VCM_RAPIDO)
+    printf("[vazao] resultado do ciclo: %d fonte(s) medidas, %d do debrid nao testadas\n",
+           medidas, vz.debridTotal);
+  else if (vz.resultado == VR_OK)
     printf("[vazao] resultado: otimo %.1f Mbps, maximo %.1f Mbps (mediana %.1f, p20 %.1f, %d amostras, %d fonte(s))\n",
            vz.resumo.otimoKbps / 1000.0, vz.resumo.maximoKbps / 1000.0,
            vz.resumo.medianaKbps / 1000.0, vz.resumo.p20Kbps / 1000.0, vz.nAmostra,
@@ -1391,13 +1826,18 @@ static int vazaoWorker(void *arg) {
 }
 
 // Fio de desenho: copia o que o fio vai precisar (o catalogo recarrega, o
-// ajuste pode mudar) e o dispara.
-static void iniciarVazao(void) {
+// ajuste pode mudar) e o dispara. `modo`: o rapido (padrao) ou um dos dois do
+// ciclo.
+static void iniciarVazaoModo(VazCicloModo modo) {
   int i;
+  if (player_aberto() || player_mini_ativo()) return;
   if (atomic_load(&vz.estado) == 1 || atomic_load(&d.estado) == 1 || d.fioSug) return;
   if (vz.fio) { SDL_WaitThread(vz.fio, NULL); vz.fio = NULL; }
+  liberarCandidatas();
   memset(&vz, 0, sizeof vz);
   vz.aberto = 1;
+  vz.ciclo = modo;
+  vz.rede = redemarca_atual();
   vz.modo = ajustes_fonte_primeira() ? FONTEAUTO_PRIMEIRA : FONTEAUTO_MELHOR;
   // FILME do catalogo, que e o que /stream/movie/ responde; sem nenhum, um
   // classico que todo addon de fontes tem.
@@ -1409,7 +1849,8 @@ static void iniciarVazao(void) {
   snprintf(vz.titulo[vz.nTitulo++], sizeof vz.titulo[0], "%s", "tt0111161");
   vz.nAddon = addons_n();
   if (vz.nAddon > DIAG_MAX_ADDONS) vz.nAddon = DIAG_MAX_ADDONS;
-  atomic_store(&vz.total, vz.nAddon + VAZAO_FONTES_MAX);
+  // No ciclo o total das fontes so se sabe depois da fase dos add-ons.
+  atomic_store(&vz.total, vz.nAddon + (modo == VCM_RAPIDO ? VAZAO_FONTES_MAX : 0));
   vz.inicioMs = SDL_GetTicks();
   atomic_store(&vz.estado, 1);
   vz.fio = SDL_CreateThread(vazaoWorker, "nuvio-diag-vazao", NULL);
@@ -1418,6 +1859,41 @@ static void iniciarVazao(void) {
     atomic_store(&vz.estado, 3);
   }
 }
+
+static void iniciarVazao(void) { iniciarVazaoModo(VCM_RAPIDO); }
+
+void diagnostico_cancelar_vazao(void) {
+  if (atomic_load(&vz.estado) == 1) atomic_store(&vz.cancelado, 1);
+}
+
+// BOTOES DO RESULTADO DO TESTE DE VELOCIDADE. O ciclo completo e o "por
+// add-on" so aparecem com MAIS DE 3 fontes de link direto (com 3 ou menos o
+// rapido ja mediu todas as que ha, so que pulando host repetido); o "por
+// add-on" ainda pede pelo menos 2 add-ons com fonte, senao seria o mesmo teste.
+enum { VB_RAPIDO, VB_CICLO, VB_ADDON, VB_N };
+static const char *const VB_ROTULO[VB_N] = { "Testar de novo", "Ciclo completo", "Por add-on" };
+
+static int addonsComFonte(void) {
+  int i, n = 0;
+  for (i = 0; i < vz.nAddon; i++) n += vz.addon[i].mediveis > 0;
+  return n;
+}
+
+static int vazBotoes(int *lista) {
+  int n = 0;
+  lista[n++] = VB_RAPIDO;
+  if (vz.mediveisTotal > VAZAO_FONTES_MAX) {
+    lista[n++] = VB_CICLO;
+    if (addonsComFonte() > 1) lista[n++] = VB_ADDON;
+  }
+  return n;
+}
+
+static void acionarVazBotao(int b) {
+  iniciarVazaoModo(b == VB_CICLO ? VCM_COMPLETO : b == VB_ADDON ? VCM_ADDON : VCM_RAPIDO);
+}
+
+#define VAZ_LINHAS_RANKING 8
 
 // O teste acabou (fio de desenho). Com um relatorio de diagnostico ja
 // montado, ele e remontado com a vazao e o "Enviar de novo" aparece: o
@@ -1444,7 +1920,7 @@ static void juntarFios(int esperarTodos) {
 void diagnostico_iniciar(void) {
   // VOLTAR A TELA NO MEIO DE UM TESTE nao pode zerar o estado: o fio ainda
   // escreve em `d`. A barra lateral deixa sair durante o teste.
-  if (atomic_load(&d.estado) == 1 || d.fioSug || atomic_load(&d.enviando) ||
+  if (atomic_load(&d.estado) == 1 || atomic_load(&d.experimento) != 0 || d.fioSug || atomic_load(&d.enviando) ||
       atomic_load(&vz.estado) == 1) {
     sairTela = 0;
     // O atalho com um teste de velocidade JA rodando (a barra lateral deixa
@@ -1486,7 +1962,7 @@ void diagnostico_recuperar_checkpoint(void) {
   char *ck = dados_ler("diagnostico-otimizacao.checkpoint");
   char *cfg;
   if (ck) {
-    printf("[diagnostico] experimento interrompido na sessao anterior: candidato descartado\n");
+    printf("[diagnostico] previous image profile test interrupted: candidate discarded\n");
     dados_apagar("diagnostico-otimizacao.checkpoint");
     free(ck);
   }
@@ -1498,9 +1974,15 @@ void diagnostico_recuperar_checkpoint(void) {
     tex_orcamento_info(NULL, &mem, &fixo, NULL);
     if (ptv_ler(cfg, &pf)) {
       ptv_limitar(ptv_plataforma(), mem, &pf);
+      // Manual conserva seu valor ativo, mas Automatico deve continuar
+      // significando o perfil aprovado quando a pessoa voltar a ele.
+      if (fixo == 3) tex_definir_orcamento_auto_mb(pf.texMb);
       aplicarPerfilTex(&pf, fixo);
-      printf("[diagnostico] perfil aprovado aplicado: %d MB, %d fios, heroi %d\n",
-             pf.texMb, pf.fiosRede, pf.heroiLarg);
+      { PtvPerfil atual;
+        perfilAtual(&atual, NULL, NULL);
+        printf("[diagnostico] approved image profile loaded: requested %d/%d/%d, active %d/%d/%d, budget lock %d\n",
+               pf.texMb, pf.fiosRede, pf.heroiLarg,
+               atual.texMb, atual.fiosRede, atual.heroiLarg, fixo); }
     }
     free(cfg);
   }
@@ -1508,7 +1990,7 @@ void diagnostico_recuperar_checkpoint(void) {
 
 static void iniciarTeste(void) {
   int intro = d.intro, i, t, f;
-  if (atomic_load(&d.estado) == 1 || d.fioSug || atomic_load(&d.enviando)) return;
+  if (atomic_load(&d.estado) == 1 || atomic_load(&d.experimento) != 0 || d.fioSug || atomic_load(&d.enviando)) return;
   // Um teste por vez: o diagnostico mediria a rede ocupada pela vazao.
   if (atomic_load(&vz.estado) == 1) return;
   juntarFios(1);
@@ -1560,7 +2042,7 @@ static const char *const BOTAO_ROTULO[B_N] = {
 
 static int botaoVisivel(int b) {
   switch (b) {
-    case B_RESTAURAR: return d.aplicacao == DA_MANTIDO;
+    case B_RESTAURAR: return d.aplicacao == DA_MANTIDO || d.aplicacao == DA_RESTAURADO_SESSAO;
     case B_SUGESTAO: return d.sugEstado == DS_PROPOSTA;
     case B_REENVIAR: return (d.envioFalhou || d.vazaoPendente) && d.relatorio[0] &&
                             !atomic_load(&d.enviando);
@@ -1623,8 +2105,14 @@ void diagnostico_evento(const SDL_Event *e) {
         // Ajustes (app.c).
         if (soVelocidade) { soVelocidade = 0; sairTela = 1; }
       }
-    } else if ((k == SDLK_RETURN || k == SDLK_KP_ENTER) && ve != 1) {
-      iniciarVazao();
+    } else if (ve != 1) {
+      int lista[VB_N], n = vazBotoes(lista), tot = atomic_load(&vz.nCic);
+      if (vz.botao >= n) vz.botao = n - 1;
+      if (k == SDLK_LEFT && vz.botao > 0) vz.botao--;
+      else if (k == SDLK_RIGHT && vz.botao < n - 1) vz.botao++;
+      else if (k == SDLK_DOWN && vz.rolagem + VAZ_LINHAS_RANKING < tot) vz.rolagem++;
+      else if (k == SDLK_UP && vz.rolagem > 0) vz.rolagem--;
+      else if (k == SDLK_RETURN || k == SDLK_KP_ENTER) acionarVazBotao(lista[vz.botao]);
     }
     return;
   }
@@ -1710,17 +2198,15 @@ static void miniCartao(GfxRect r, int tipo, const char *rotulo) {
  * equivalentes aos SVGs da versao web, mas nao dependem de imagem ou fonte
  * externa para aparecer no primeiro quadro da TV. */
 static void painel(GfxRect r, float ar, float ag, float ab) {
-  gfx_cor(r, 22.0f / r.h, 0.055f, 0.065f, 0.085f, 0.97f);
-  gfx_luz_canto(r, 26.0f / r.h, 150.0f, -70.0f, 500.0f, ar, ag, ab, 0.11f);
-  gfx_cor((GfxRect){ r.x, r.y, r.w, 2.0f }, 1.0f, ar, ag, ab, 0.48f);
+  (void)ar; (void)ag; (void)ab;
+  ajustes_ui_ilha(r, 32, 0);
 }
 
 static void painelTitulo(GfxRect r, const char *titulo, const char *subtitulo) {
-  txt_desenhar(txt_linha_corta(TXT_BODY, i18n(titulo), 238, 242, 248, 255, r.w - 56.0f),
-               r.x + 28.0f, r.y + 22.0f);
+  ajustes_ui_kicker(titulo, r.x + 28.0f, r.y + 26.0f, 1);
   if (subtitulo)
-    txt_desenhar(txt_linha_corta(TXT_CAPTION, i18n(subtitulo), 154, 164, 178, 255, r.w - 56.0f),
-                 r.x + 28.0f, r.y + 58.0f);
+    txt_desenhar_alpha(txt_linha_corta(TXT_AJ_SUB, i18n(subtitulo), 243, 242, 239, 255, r.w - 56.0f),
+                       r.x + 28.0f, r.y + 52.0f, 0.62f);
 }
 
 static float limitePct(float n) {
@@ -1868,9 +2354,10 @@ void diagnostico_intro_atualizar(float dt, Uint32 agora) {
   (void)agora;
 }
 
+static void dgApresentacao(int primeiraAbertura);
 void diagnostico_intro_desenhar(Uint32 agora) {
   (void)agora;
-  if (introGlobal) desenharApresentacao(1);
+  if (introGlobal) dgApresentacao(1);
 }
 
 // "128 → 300 MB": o antes e o depois de um parametro, com a unidade traduzida.
@@ -1937,6 +2424,10 @@ static const char *textoAplicacao(int *cor) {
     case DA_CANCELADO: *cor = 2; return "Cancelado: configuração anterior restaurada";
     case DA_RESTAURADO_MANUAL: *cor = 1; return "Configuração anterior restaurada";
     case DA_RUIDO: *cor = 1; return "Diferença dentro do ruído: o perfil atual foi mantido";
+    case DA_SEM_PERFIL: *cor = 2; return "Não foi possível salvar o perfil: configuração anterior restaurada";
+    case DA_LIMITADO: *cor = 2; return "Perfil limitado pela configuração: nada foi alterado";
+    case DA_ALTERADO: *cor = 2; return "Configuração mudou durante o teste: perfil não salvo";
+    case DA_RESTAURADO_SESSAO: *cor = 2; return "Configuração anterior restaurada só nesta sessão: falha ao salvar";
     default: return "Nada foi aplicado";
   }
 }
@@ -2026,7 +2517,7 @@ static void desenharFontes(GfxRect r, float ar, float ag, float ab) {
 // dono (velocidade, otimo, maximo, dica), a direita de onde veio (tempo de
 // cada addon e vazao de cada fonte).
 
-static char sepDecimal(void) { return ajustes_idioma_ingles() ? '.' : ','; }
+static char sepDecimal(void) { return idioma_ponto_decimal(ajustes_idioma()) ? '.' : ','; }
 
 static const char *textoFalhaVazao(VazResultado r, const char **detalhe) {
   *detalhe = NULL;
@@ -2057,10 +2548,231 @@ static void linhaTamanho(char *dst, size_t n, const char *formatoTraduzido, int 
   snprintf(dst, n, formatoTraduzido, filme, ep);
 }
 
+// ---- CICLO COMPLETO / POR ADD-ON: painel de resumo e ranking ---------------
+
+// "4K · DV · 57,8 GB": o que se sabe da fonte pelo nome. Universal, sem i18n.
+static void selosDaFonte(char *dst, size_t n, const VazCicloRes *x) {
+  char gb[16];
+  size_t k = 0;
+  dst[0] = 0;
+  if (x->altura >= 2160) k += (size_t)snprintf(dst + k, n - k, "4K");
+  else if (x->altura > 0) k += (size_t)snprintf(dst + k, n - k, "%dp", x->altura);
+  if (x->dv && k < n) k += (size_t)snprintf(dst + k, n - k, "%sDV", k ? " · " : "");
+  if (x->tamanhoMB > 0 && k < n) {
+    vazao_fmt_gb(gb, sizeof gb, (double)x->tamanhoMB / 1024.0, sepDecimal());
+    snprintf(dst + k, n - k, "%s%s GB", k ? " · " : "", gb);
+  }
+}
+
+// Texto e cor do veredito de uma fonte: 0 verde, 1 amarelo, 2 vermelho, 3 cinza.
+static const char *veredito(const VazCicloRes *x, int *cor) {
+  *cor = 3;
+  switch (x->sit) {
+    case VS_OK:
+      if (x->suf == VSU_OK) { *cor = 0; return "Toca sem parar"; }
+      if (x->suf == VSU_JUSTO) { *cor = 1; return "Pode pausar"; }
+      if (x->suf == VSU_NAO) { *cor = 2; return "Insuficiente"; }
+      return "Sem referência";
+    case VS_DEBRID: return "Não testada (debrid)";
+    case VS_AVISO: *cor = 2; return "Link de aviso";
+    default: *cor = 2; return "Falhou";
+  }
+}
+
+static void corDoVeredito(int cor, int *r, int *g, int *b) {
+  static const int C[4][3] = { { 150, 224, 174 }, { 244, 214, 150 }, { 240, 150, 140 }, { 160, 168, 180 } };
+  *r = C[cor & 3][0]; *g = C[cor & 3][1]; *b = C[cor & 3][2];
+}
+
+static void desenharCicloResumo(GfxRect r, float ar, float ag, float ab, Uint32 agora) {
+  int ve = atomic_load(&vz.estado), tot = atomic_load(&vz.nCic), i, ok = 0, melhor = -1;
+  int fase = atomic_load(&vz.fase), feito = atomic_load(&vz.feitos), total = atomic_load(&vz.total);
+  char a[200], b[40];
+  float lw = r.w - 56.0f;
+  const char *titulo = vz.ciclo == VCM_ADDON ? "Por add-on" : "Ciclo completo";
+  for (i = 0; i < tot; i++) {
+    if (vz.cic[i].sit != VS_OK) continue;
+    ok++;
+    if (melhor < 0 || vz.cic[i].r.medianaKbps > vz.cic[melhor].r.medianaKbps) melhor = i;
+  }
+  if (ve == 1) {
+    float pct = total > 0 ? 100.0f * (float)feito / (float)total : 0.0f;
+    if (fase == 2 && vz.fonteIniMs && total > 0) {
+      float dentro = (float)(SDL_GetTicks() - vz.fonteIniMs) / (VAZ_CICLO_JANELA_S * 1000.0f);
+      if (dentro > 1.0f) dentro = 1.0f;
+      pct += 100.0f * dentro / (float)total;
+    }
+    if (pct > 99.0f) pct = 99.0f;
+    painelTitulo(r, titulo, fase <= 1 ? "Perguntando as fontes a cada add-on"
+                                      : "Baixando um trecho de cada fonte, uma por vez");
+    snprintf(a, sizeof a, "%d%%", (int)pct);
+    txt_desenhar(txt_linha(TXT_TITULO2, a, 246, 249, 255, 255), r.x + 28.0f, r.y + 100.0f);
+    barraProgresso((GfxRect){ r.x + 28.0f, r.y + 190.0f, r.w - 56.0f, 20.0f }, pct, ar, ag, ab, 1, agora);
+    snprintf(a, sizeof a, i18n("%d de %d"), feito < vz.nAddon ? feito : vz.nAddon, vz.nAddon);
+    metrica(r, r.y + 246.0f, "Add-ons", a, 214, 220, 230);
+    // "12 de 37": a fonte em curso conta (tot ainda nao a inclui).
+    snprintf(a, sizeof a, i18n("%d de %d"), fase == 2 && tot < vz.nFila ? tot + 1 : tot, vz.nFila);
+    metrica(r, r.y + 290.0f, "Fontes medidas", a, 214, 220, 230);
+    snprintf(a, sizeof a, i18n("Cada fonte é baixada por %d s, uma de cada vez, para não misturar as velocidades; os dados são descartados."),
+             VAZ_CICLO_JANELA_S);
+    txt_bloco(TXT_CAPTION, a, 170, 178, 190, r.x + 28.0f, r.y + r.h - 130.0f, lw, 30.0f, 1, 3);
+    return;
+  }
+  if (vz.resultado != VR_OK && !tot) {
+    const char *det, *txt = textoFalhaVazao(vz.resultado, &det);
+    painelTitulo(r, titulo, "Sem medida");
+    txt_bloco(TXT_BODY, i18n(txt), 244, 196, 150, r.x + 28.0f, r.y + 110.0f, lw, 36.0f, 1, 2);
+    if (det) txt_bloco(TXT_CAPTION, i18n(det), 190, 196, 206, r.x + 28.0f, r.y + 176.0f, lw, 30.0f, 1, 3);
+    return;
+  }
+  painelTitulo(r, titulo, vz.resultado == VR_CANCELADO ? "O teste foi cancelado."
+                                                        : "Mediana de cada add-on e ranking das fontes");
+  { float y = r.y + 96.0f;
+    if (melhor >= 0) {
+      vazao_fmt_mbps(b, sizeof b, vz.cic[melhor].r.medianaKbps, sepDecimal());
+      snprintf(a, sizeof a, i18n("%s Mbps"), b);
+      metrica(r, y, "Mais rápida", a, 170, 222, 190);
+      y += 40.0f;
+    }
+    snprintf(a, sizeof a, i18n("%d de %d"), ok, vz.nFila);
+    metrica(r, y, "Fontes medidas", a, 214, 220, 230);
+    y += 40.0f;
+    if (vz.debridTotal > 0) {
+      snprintf(a, sizeof a, "%d", vz.debridTotal);
+      metrica(r, y, "Não testadas (debrid)", a, 244, 214, 150);
+      y += 40.0f;
+    }
+    if (vz.sel.foraDoLimite > 0) {
+      snprintf(a, sizeof a, "%d", vz.sel.foraDoLimite);
+      metrica(r, y, "Fora do limite", a, 244, 214, 150);
+      y += 40.0f;
+    }
+    if (vz.agenda.restantes > 0 && vz.resultado != VR_CANCELADO) {
+      snprintf(a, sizeof a, "%d", vz.agenda.restantes);
+      metrica(r, y, "Não testadas (tempo)", a, 244, 214, 150);
+      y += 40.0f;
+    }
+    // Mediana de cada add-on (a mediana das medianas das fontes dele).
+    txt_desenhar(txt_linha(TXT_BODY, i18n("Mediana por add-on"), 238, 242, 248, 255), r.x + 28.0f, y + 12.0f);
+    y += 58.0f;
+    { int meds[DIAG_MAX_ADDONS], usa[DIAG_MAX_ADDONS], maior = 1, linhas = 0;
+      float fim = r.y + r.h - 130.0f;
+      for (i = 0; i < vz.nAddon; i++) {
+        meds[i] = vazao_mediana_addon(vz.cic, tot, i, &usa[i]);
+        if (meds[i] > maior) maior = meds[i];
+      }
+      for (i = 0; i < vz.nAddon && y + 32.0f <= fim; i++) {
+        float bx = r.x + 200.0f, bw = r.w * 0.22f;
+        TxtLinha t;
+        if (!usa[i]) continue;
+        linhas++;
+        txt_desenhar(txt_linha_corta(TXT_CAPTION, addons_nome(i), 190, 198, 210, 255, 160.0f), r.x + 28.0f, y + 2.0f);
+        gfx_cor((GfxRect){ bx, y + 8.0f, bw, 12.0f }, 0.5f, 0.10f, 0.12f, 0.15f, 1.0f);
+        gfx_cor((GfxRect){ bx, y + 8.0f, bw * (float)meds[i] / (float)maior, 12.0f }, 0.5f, ar, ag, ab, 0.95f);
+        vazao_fmt_mbps(b, sizeof b, meds[i], sepDecimal());
+        snprintf(a, sizeof a, i18n("%s Mbps · %d fonte(s)"), b, usa[i]);
+        t = txt_linha_corta(TXT_CAPTION, a, 210, 216, 226, 255, r.w - (bx - r.x) - bw - 48.0f);
+        txt_desenhar(t, r.x + r.w - 28.0f - t.w, y + 2.0f);
+        y += 34.0f;
+      }
+      if (!linhas)
+        txt_desenhar(txt_linha_corta(TXT_CAPTION, i18n("Nenhuma fonte medida."), 170, 178, 190, 255, lw),
+                     r.x + 28.0f, y);
+    } }
+  txt_bloco(TXT_CAPTION,
+            i18n(vz.debridTotal > 0
+                     ? "Fontes que exigem o debrid baixar o arquivo (fora de cache ou só torrent) não são testadas: isso criaria transferências e gastaria a cota."
+                     : "4K pede cerca de 25 Mbps, 1080p 8 e 720p 4; o tamanho do arquivo no nome refina a conta."),
+            160, 170, 182, r.x + 28.0f, r.y + r.h - 100.0f, lw, 30.0f, 1, 3);
+}
+
+static void desenharCicloRanking(GfxRect r, float ar, float ag, float ab) {
+  int ordem[VAZ_CICLO_LISTA_MAX], tot = atomic_load(&vz.nCic), i, pos = 0, max;
+  int ve = atomic_load(&vz.estado);
+  char a[200], b[40], selos[96];
+  painelTitulo(r, "Ranking das fontes", vz.ciclo == VCM_ADDON ? "Melhor fonte de cada add-on"
+                                                              : "Da mais rápida para a mais lenta");
+  if (tot < 1) {
+    txt_desenhar(txt_linha_corta(TXT_CAPTION, i18n(ve == 1 ? "Medindo…" : "Nenhuma fonte medida."),
+                                 170, 178, 190, 255, r.w - 56.0f), r.x + 28.0f, r.y + 98.0f);
+    return;
+  }
+  vazao_ordenar(vz.cic, tot, ordem);
+  for (i = 0; i < tot; i++) if (vz.cic[ordem[i]].sit == VS_OK) pos = i + 1;
+  max = tot - VAZ_LINHAS_RANKING;
+  if (max < 0) max = 0;
+  if (vz.rolagem > max) vz.rolagem = max;
+  for (i = vz.rolagem; i < tot && i < vz.rolagem + VAZ_LINHAS_RANKING; i++) {
+    const VazCicloRes *x = &vz.cic[ordem[i]];
+    float y = r.y + 96.0f + (float)(i - vz.rolagem) * 62.0f;
+    float esq1, esq2;
+    int cor, cr, cg, cb;
+    const char *vt = veredito(x, &cor);
+    TxtLinha t, mb = { 0 }, vd;
+    corDoVeredito(cor, &cr, &cg, &cb);
+    if (i > vz.rolagem)
+      gfx_cor((GfxRect){ r.x + 28.0f, y - 3.0f, r.w - 56.0f, 1.0f }, 1.0f, 0.20f, 0.23f, 0.29f, 0.7f);
+    // Direita: a vazao (ou o motivo de nao haver) e o veredito. Cada linha da
+    // esquerda ganha o que sobra DELA — a de baixo tem o veredito, mais largo.
+    if (x->sit == VS_OK) {
+      vazao_fmt_mbps(b, sizeof b, x->r.medianaKbps, sepDecimal());
+      snprintf(a, sizeof a, i18n("%s Mbps"), b);
+      mb = txt_linha_corta(TXT_BODY, a, 238, 242, 248, 255, r.w * 0.3f);
+      txt_desenhar(mb, r.x + r.w - 28.0f - mb.w, y);
+    }
+    vd = txt_linha_corta(TXT_CAPTION, i18n(vt), cr, cg, cb, 255, r.w * 0.3f);
+    txt_desenhar(vd, r.x + r.w - 28.0f - vd.w, y + 32.0f);
+    esq1 = r.w - 56.0f - (float)mb.w - 20.0f;
+    esq2 = r.w - 56.0f - (float)vd.w - 20.0f;
+    // Esquerda: "#1  Addon · nome da fonte" e, embaixo, selos, host e resposta.
+    if (x->sit == VS_OK) snprintf(a, sizeof a, "#%d  %s · %s", i + 1, addons_nome(x->addon), x->nome);
+    else snprintf(a, sizeof a, "%s · %s", addons_nome(x->addon), x->nome);
+    txt_desenhar(txt_linha_corta(TXT_CAPTION, a, 232, 236, 244, 255, x->sit == VS_OK ? esq1 : esq2),
+                 r.x + 28.0f, y + 2.0f);
+    selosDaFonte(selos, sizeof selos, x);
+    snprintf(a, sizeof a, "%s", selos);
+    if (x->host[0]) {
+      size_t k = strlen(a);
+      snprintf(a + k, sizeof a - k, "%s%s", k ? " · " : "", x->host);
+    }
+    if (x->sit == VS_OK) {
+      size_t k = strlen(a);
+      char ms[48];
+      snprintf(ms, sizeof ms, i18n("resposta %d ms"), x->esperaMs);
+      snprintf(a + k, sizeof a - k, "%s%s", k ? " · " : "", ms);
+    }
+    t = txt_linha_corta(TXT_CAPTION, a, 150, 160, 174, 255, esq2);
+    txt_desenhar(t, r.x + 28.0f, y + 32.0f);
+  }
+  if (tot > VAZ_LINHAS_RANKING) {
+    snprintf(a, sizeof a, i18n("linhas %d-%d de %d"), vz.rolagem + 1,
+             vz.rolagem + VAZ_LINHAS_RANKING < tot ? vz.rolagem + VAZ_LINHAS_RANKING : tot, tot);
+    txt_desenhar(txt_linha_corta(TXT_CAPTION, a, 150, 160, 174, 255, r.w - 56.0f), r.x + 28.0f, r.y + r.h - 34.0f);
+  }
+  (void)ar; (void)ag; (void)ab; (void)pos;
+}
+
+static void desenharVazBotoes(float y, float ar, float ag, float ab) {
+  int lista[VB_N], n = vazBotoes(lista), i;
+  float x = areaX();
+  if (vz.botao >= n) vz.botao = n - 1;
+  for (i = 0; i < n; i++) {
+    int foco = i == vz.botao;
+    TxtLinha t = txt_linha(TXT_BODY, i18n(VB_ROTULO[lista[i]]),
+                           foco ? 16 : 232, foco ? 18 : 236, foco ? 22 : 244, 255);
+    float w = (float)t.w + 64.0f;
+    if (foco) gfx_cor((GfxRect){ x, y, w, 60.0f }, 0.5f, ar, ag, ab, 1.0f);
+    else gfx_cor((GfxRect){ x, y, w, 60.0f }, 0.5f, 0.13f, 0.15f, 0.19f, 1.0f);
+    txt_desenhar(t, x + 32.0f, y + (60.0f - (float)t.h) * 0.5f);
+    x += w + 20.0f;
+  }
+}
+
 static void desenharVazaoResumo(GfxRect r, float ar, float ag, float ab, Uint32 agora) {
   int ve = atomic_load(&vz.estado);
   char a[200], b[32], c[32];
   float lw = r.w - 56.0f;
+  if (vz.ciclo != VCM_RAPIDO) { desenharCicloResumo(r, ar, ag, ab, agora); return; }
   if (ve == 1) {
     int feito = atomic_load(&vz.feitos), total = atomic_load(&vz.total);
     int fase = atomic_load(&vz.fase), nf = atomic_load(&vz.nFonte);
@@ -2186,17 +2898,54 @@ static void desenharVazao(float y0, float ar, float ag, float ab, Uint32 agora) 
   float x0 = areaX(), we = (areaW() - 20.0f) * (1080.0f / 1740.0f);
   GfxRect esq = { x0, y0, we, 640.0f };
   GfxRect dir = { x0 + we + 20.0f, y0, areaW() - 20.0f - we, 640.0f };
+  int ve = atomic_load(&vz.estado);
   painel(esq, ar, ag, ab);
   painel(dir, ar, ag, ab);
   desenharVazaoResumo(esq, ar, ag, ab, agora);
-  desenharVazaoOrigem(dir, ar, ag, ab);
-  txt_desenhar(txt_linha(TXT_CAPTION, i18n(atomic_load(&vz.estado) == 1 ? "Voltar cancela o teste"
-                                                                          : "OK testa de novo · Voltar fecha"),
+  if (vz.ciclo != VCM_RAPIDO) desenharCicloRanking(dir, ar, ag, ab);
+  else desenharVazaoOrigem(dir, ar, ag, ab);
+  if (ve != 1) desenharVazBotoes(y0 + 660.0f, ar, ag, ab);
+  txt_desenhar(txt_linha(TXT_CAPTION,
+                         i18n(ve == 1 ? "Voltar cancela o teste"
+                              : vz.ciclo != VCM_RAPIDO || vz.mediveisTotal > VAZAO_FONTES_MAX
+                                  ? "Esquerda/direita escolhe · OK inicia · cima/baixo rola · Voltar fecha"
+                                  : "OK testa de novo · Voltar fecha"),
                          172, 176, 184, 255),
-               x0, y0 + 668.0f);
+               x0, y0 + (ve != 1 ? 736.0f : 668.0f));
 }
 
+static void diagnosticoAntigo(Uint32 agora);
+#include "diagnostico_ilha.inc"
+
 void diagnostico_desenhar(Uint32 agora) {
+  // GLASS UI: as ilhas de diagnostico_ilha.inc sobre a arte, como Ajustes.
+  { int est = atomic_load(&d.estado);
+    ajustes_ui_fundo();
+    if (vz.aberto) {
+      if (vz.ciclo == VCM_RAPIDO && atomic_load(&vz.estado) != 1 && vz.resultado == VR_OK) dgVazaoResultado(agora);
+      else dgVazaoGenerico(agora);
+      return;
+    }
+    if (est == 0) {
+      if (d.intro) gfx_opacidade_grupo = 0.16f;   // a tela RECUA atras do modal
+      dgObjetivo();
+      gfx_opacidade_grupo = 1.0f;
+      if (d.intro) dgApresentacao(0);
+      return;
+    }
+    if (est == 1) { dgAndamento(agora); return; }
+    if (est == 2) {
+      if (d.intro) gfx_opacidade_grupo = 0.16f;
+      dgResultado();
+      gfx_opacidade_grupo = 1.0f;
+      if (d.intro) dgApresentacao(0);
+      return;
+    }
+  }
+  diagnosticoAntigo(agora);
+}
+
+static void diagnosticoAntigo(Uint32 agora) {
   int estado = atomic_load(&d.estado);
   int feito = atomic_load(&d.feitos), total = atomic_load(&d.total);
   int itens = 0, pend = 0, quentes = 0, fios = 0, fiosMax = 0;
@@ -2230,7 +2979,7 @@ void diagnostico_desenhar(Uint32 agora) {
       "Cada fonte de arte: catálogo, Metahub, TMDB, Trakt, Apple TV, fanart.tv, anime e logo",
       "As mesmas artes pelo cache, com o perfil atual",
       "Aplica o candidato e mede as mesmas artes de novo",
-      "Mantém se não piorou; senão volta sozinho ao anterior",
+      "Aplica só se ajudar; senão restaura o perfil anterior",
     };
     PtvPerfil atual, cand;
     int travado, i;
@@ -2253,7 +3002,7 @@ void diagnostico_desenhar(Uint32 agora) {
                 foco ? 24 : 178, foco ? 26 : 184, foco ? 30 : 194,
                 c.x + 24.0f, c.y + 72.0f, c.w - 48.0f, 30.0f, 1, 3);
     }
-    txt_desenhar(txt_linha(TXT_BODY, i18n("O que muda nesta TV"), 238, 242, 248, 255),
+    txt_desenhar(txt_linha(TXT_BODY, i18n("Candidato desta rodada"), 238, 242, 248, 255),
                  esq.x + 28.0f, esq.y + 326.0f);
     linhasDoPerfil(esq, esq.y + 372.0f, 40.0f, &atual, &cand);
     txt_bloco(TXT_CAPTION, i18n("Se o reteste da mesma amostra piorar, o perfil anterior volta sozinho e a tela diz o motivo."),
@@ -2388,7 +3137,7 @@ void diagnostico_desenhar(Uint32 agora) {
     metrica(bl, bl.y + 254.0f, "Fila de imagens", v, 176, 188, 202);
 
     txtAp = textoAplicacao(&cor);
-    painelTitulo(br, "O que foi aplicado", d.modo == DIAG_DESEMPENHO ? "Desempenho" : "Qualidade");
+    painelTitulo(br, "Agora nesta TV", d.modo == DIAG_DESEMPENHO ? "Desempenho" : "Qualidade");
     txt_desenhar(txt_linha_corta(TXT_BODY, i18n(txtAp), cor == 1 ? 170 : cor == 2 ? 244 : 214,
                                  cor == 1 ? 222 : cor == 2 ? 196 : 220, cor == 1 ? 190 : cor == 2 ? 150 : 230,
                                  255, br.w - 56.0f),
@@ -2396,18 +3145,9 @@ void diagnostico_desenhar(Uint32 agora) {
     if (d.motivo)
       txt_desenhar(txt_linha_corta(TXT_CAPTION, i18n(d.motivo), 240, 176, 150, 255, br.w - 56.0f),
                    br.x + 28.0f, br.y + 128.0f);
-    // O CANDIDATO TESTADO aparece como antes -> depois sempre que ele entrou
-    // no ar, tenha ficado ou nao: o veredito acima diz qual dos dois vale.
-    // Sem candidato (igual, sem amostra), so o que vale agora.
-    { int testado = d.aplicacao == DA_MANTIDO || d.aplicacao == DA_RESTAURADO_AUTO ||
-                    d.aplicacao == DA_RESTAURADO_MANUAL || d.aplicacao == DA_CANCELADO ||
-                    d.aplicacao == DA_RUIDO;
-      PtvPerfil atual_;
-      int tr_;
-      long m_;
-      perfilAtual(&atual_, &tr_, &m_);
-      if (testado) linhasDoPerfil(br, br.y + 158.0f, 32.0f, &d.perfAntes, &d.perfCand);
-      else linhasDoPerfil(br, br.y + 158.0f, 32.0f, &atual_, &atual_); }
+    { PtvPerfil antes_, atual_;
+      perfilDoResultado(&antes_, &atual_);
+      linhasDoPerfil(br, br.y + 158.0f, 32.0f, &antes_, &atual_); }
     if (d.medAntes.artesMs || d.medDepois.artesMs) {
       snprintf(v, sizeof v, "%d → %d ms", d.medAntes.artesMs, d.medDepois.artesMs);
       metrica(br, br.y + 254.0f, "Artes, mesma amostra", v, 214, 220, 230);
@@ -2439,5 +3179,6 @@ void diagnostico_encerrar(void) {
   if (d.fioEnvio) { SDL_WaitThread(d.fioEnvio, NULL); d.fioEnvio = NULL; }
   atomic_store(&vz.cancelado, 1);
   if (vz.fio) { SDL_WaitThread(vz.fio, NULL); vz.fio = NULL; }
+  liberarCandidatas();
   desfazerExperimento();
 }

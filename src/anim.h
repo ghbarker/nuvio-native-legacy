@@ -92,6 +92,15 @@ static inline float anim_suave(float t) {
   return t * t * (3.0f - 2.0f * t);
 }
 
+// Parte rapido e assenta devagar, sem passar do alvo (cubica de saida). Para
+// deslocamentos com relogio proprio que tem de chegar num tempo certo, como a
+// troca deslizada do destaque: sem repique, que num carrossel le como erro.
+static inline float anim_saida(float t) {
+  t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+  t = 1.0f - t;
+  return 1.0f - t * t * t;
+}
+
 // Progresso 0..1 com RELOGIO PROPRIO: anda `dt` segundos em direcao a `alvo`
 // gastando `ms` no percurso inteiro. Usada onde o tempo precisa bater com uma
 // medida (o veu do menu), e nao apenas "assentar rapido".
@@ -101,6 +110,39 @@ static inline float anim_rampa(float p, float alvo, float dt, float ms) {
   if (alvo > p) { p += passo; if (p > alvo) p = alvo; }
   else          { p -= passo; if (p < alvo) p = alvo; }
   return p;
+}
+
+// RETORNO DE BORDA: a seta que bate no fim (ultimo cartao, topo da pagina) nao
+// move o foco, e sem resposta nenhuma o controle parece ter falhado. Aqui um
+// deslocamento curto na direcao da tecla, que volta a zero com mola.
+//
+// DUAS FASES, porque a anim_mola2 zera a velocidade que se afasta do alvo e
+// um "impulso" puro nao sairia do lugar: a ida persegue `alvo` (= amplitude)
+// com a mola de 1a ordem, que parte rapido como uma batida; ao chegar perto
+// o alvo vira zero e a volta e a criticamente amortecida, sem overshoot.
+//
+// Parado (x == 0 e alvo == 0) o passo sai na primeira comparacao. Com a
+// politica reduzida nao ha movimento nenhum: bater nao arma e o passo zera.
+typedef struct { float x, v, alvo; } AnimBorda;
+#define ANIM_BORDA_IDA   32.0f   // rigidez da ida: ~90% em 70 ms
+#define ANIM_BORDA_VOLTA 11.5f   // w da volta, o mesmo NV_MOLA2_SCROLL do deslize
+static inline void anim_borda_bater(AnimBorda *b, float amplitude) {
+  if (anim_politica_reduzida) return;
+  b->alvo = amplitude;
+  b->v = 0.0f;
+}
+// 1 enquanto ha deslocamento a desenhar.
+static inline int anim_borda_passo(AnimBorda *b, float dt, int reduzida) {
+  if (b->x == 0.0f && b->alvo == 0.0f) return 0;
+  if (reduzida || anim_politica_reduzida) { b->x = b->v = b->alvo = 0.0f; return 0; }
+  if (b->alvo != 0.0f) {
+    b->x = b->x + (b->alvo - b->x) * (1.0f - expf(-ANIM_BORDA_IDA * dt));
+    if (fabsf(b->x) >= fabsf(b->alvo) * 0.9f) { b->alvo = 0.0f; b->v = 0.0f; }
+    return 1;
+  }
+  b->x = anim_mola2(&b->v, b->x, 0.0f, dt, ANIM_BORDA_VOLTA);
+  if (fabsf(b->x) < 0.25f) { b->x = b->v = 0.0f; return 0; }
+  return 1;
 }
 
 #endif

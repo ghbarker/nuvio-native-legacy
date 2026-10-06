@@ -287,6 +287,9 @@ int main(int argc, char **argv) {
   { char caminho[700]; FILE *f;
     const char *en = getenv("NUVIO_SHOT_EN");
     const char *temaEnv = getenv("NUVIO_SHOT_THEME");
+    // NUVIO_SHOT_FONTE, como no detail_secoes_shot: 3 = Montserrat, a fonte
+    // da TV do dono. A captura sai na fonte de quem vai julgar o resultado.
+    const char *fonteEnv = getenv("NUVIO_SHOT_FONTE");
     int ingles = (en && *en && *en != '0');
     int tema = temaEnv && *temaEnv ? atoi(temaEnv) : 2;
     if (tema < 0 || tema >= 12) tema = 2;
@@ -294,6 +297,7 @@ int main(int argc, char **argv) {
     f = fopen(caminho, "w");
     assert(f);
     fprintf(f, "idioma %d\nselected_theme %d\n", ingles, tema);
+    if (fonteEnv && *fonteEnv) fprintf(f, "fonteInterface %d\n", atoi(fonteEnv));
     fclose(f);
     ajustes_dir(dados_dir());
     printf("idioma: %s, acento: %d\n", ajustes_idioma_ingles() ? "en" : "pt", tema); }
@@ -356,6 +360,21 @@ int main(int argc, char **argv) {
   snprintf(nome, sizeof nome, "%s-cartao.bmp", saida);
   captura(nome, w);
 
+  // O MESMO CARTAO COM O TITULO NO CATALOGO E COM LOGO: o nome vira o logo
+  // (logotitulo.h). A captura de cima e a reserva — titulo fora do catalogo,
+  // logo do metahub sem rede — com o nome na mesma caixa.
+  { CatItem c[2];
+    memset(c, 0, sizeof c);
+    c[0] = *cat_item(0);
+    snprintf(c[1].imdb, sizeof c[1].imdb, "%s", "tt0111161");
+    snprintf(c[1].tipo, sizeof c[1].tipo, "%s", "movie");
+    snprintf(c[1].titulo, sizeof c[1].titulo, "%s", "Um Sonho de Liberdade");
+    snprintf(c[1].logo, sizeof c[1].logo, "%s", "deploy/app/art/logo/00.png");
+    cat_definir_tudo(c, 2, NULL, 0);
+    snprintf(nome, sizeof nome, "%s-cartao-logo.bmp", saida);
+    captura(nome, w);
+    cat_definir_tudo(c, 1, NULL, 0); }
+
   // O MESMO CARTAO COM UM AMIGO SEM FOTO. `cartaoItem` e trocado por dentro
   // (este teste inclui recomenda.c inteiro) porque mostrar_se_houver escolhe
   // sempre a mais NOVA nao lida, e a mais nova e justamente a que tem foto — o
@@ -380,8 +399,9 @@ int main(int argc, char **argv) {
   // REC_APARECER_NAO_PERGUNTADO porque nao ha `recomendacoes-aparecer.txt` em
   // NUVIO_DADOS. Esta captura e a prova de que a pergunta chega antes de
   // qualquer coisa — inclusive antes das quatro recomendacoes ja semeadas.
+  tecla(SDLK_UP);             // lista -> barra de opcoes
   tecla(SDLK_UP);
-  tecla(SDLK_RIGHT);
+  tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);   // Atividade -> Social (a Atividade entrou antes, 02/10)
   printf("consentimento na tela: %d (aparecer=%d)\n",
          recomenda_aparecer() == REC_APARECER_NAO_PERGUNTADO, aparecer);
   snprintf(nome, sizeof nome, "%s-social-consentimento.bmp", saida);
@@ -422,12 +442,14 @@ int main(int argc, char **argv) {
 
   spainel_fechar();
   spainel_abrir();
+  tecla(SDLK_UP);             // lista -> barra de opcoes
   tecla(SDLK_UP);
-  tecla(SDLK_RIGHT);
+  tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);   // Atividade -> Social (a Atividade entrou antes, 02/10)
   snprintf(nome, sizeof nome, "%s-social.bmp", saida);
   captura(nome, w);
 
   // E com o foco JA na lista, que e o estado em que a pessoa passa mais tempo.
+  tecla(SDLK_DOWN);           // a barra "Organizar" da Social
   tecla(SDLK_DOWN);
   tecla(SDLK_DOWN);
   snprintf(nome, sizeof nome, "%s-social-foco.bmp", saida);
@@ -474,7 +496,8 @@ int main(int argc, char **argv) {
       aparecer = lig ? REC_APARECER_SIM : REC_APARECER_NAO;
       spainel_fechar();
       spainel_abrir();
-      tecla(SDLK_UP); tecla(SDLK_RIGHT);
+      tecla(SDLK_UP); tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+      tecla(SDLK_DOWN);       // a barra "Organizar" da Social
       // Cinco descidas: tres recomendacoes, "Adicionar um amigo" e o
       // interruptor. A primeira leva o foco da linha de abas para a linha 0.
       tecla(SDLK_DOWN); tecla(SDLK_DOWN); tecla(SDLK_DOWN);
@@ -510,7 +533,8 @@ int main(int argc, char **argv) {
   aparecer = REC_APARECER_SIM;
   spainel_fechar();
   spainel_abrir();
-  tecla(SDLK_UP); tecla(SDLK_RIGHT);
+  tecla(SDLK_UP); tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+  tecla(SDLK_DOWN);           // a barra "Organizar" da Social
   tecla(SDLK_DOWN); tecla(SDLK_DOWN); tecla(SDLK_DOWN);
   tecla(SDLK_DOWN); tecla(SDLK_DOWN);
   snprintf(nome, sizeof nome, "%s-sw-reduzida.bmp", saida);
@@ -580,6 +604,30 @@ int main(int argc, char **argv) {
   teclaCtx(SDLK_DOWN); teclaCtx(SDLK_DOWN); teclaCtx(SDLK_DOWN);
   snprintf(nome, sizeof nome, "%s-ctx-opcoes.bmp", saida);
   captura(nome, w);
+
+  // O LOGO NO LUGAR DO NOME (logotitulo.h). A captura de cima e o caso SEM
+  // logo (o nome escrito na caixa reservada); estas duas sao com logo claro e
+  // com logo ESCURO, que tem de virar branco (tex_marca_escura).
+  { CatItem c = *cat_item(0);
+    char u[64];
+    int k, escuro = -1;
+    snprintf(c.logo, sizeof c.logo, "%s", "deploy/app/art/logo/00.png");
+    cat_definir_tudo(&c, 1, NULL, 0);
+    snprintf(nome, sizeof nome, "%s-ctx-logo.bmp", saida);
+    captura(nome, w);
+    for (k = 0; k < 40 && escuro < 0; k++) {
+      snprintf(u, sizeof u, "deploy/app/art/logo/%02d.png", k);
+      tex_obter_larg(u, 420.0f);
+      bombear(40);
+      if (tex_marca_escura(u) == 1) escuro = k;
+    }
+    printf("logo escuro do pacote: %d\n", escuro);
+    if (escuro >= 0) {
+      snprintf(c.logo, sizeof c.logo, "deploy/app/art/logo/%02d.png", escuro);
+      cat_definir_tudo(&c, 1, NULL, 0);
+      snprintf(nome, sizeof nome, "%s-ctx-logo-escuro.bmp", saida);
+      captura(nome, w);
+    } }
 
   // OK em "Recomendar a um amigo" FECHA o menu e abre a modal compartilhada
   // (recenviar.c). Daqui para baixo as teclas vao para ela — e e exatamente
@@ -654,7 +702,7 @@ int main(int argc, char **argv) {
   // a linha "Adicionar um amigo" SEM foco por causa disso.
   spainel_fechar();
   spainel_abrir();
-  tecla(SDLK_UP); tecla(SDLK_RIGHT);
+  tecla(SDLK_UP); tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);   // lista -> barra -> abas
   tecla(SDLK_DOWN);           // foco na linha "Adicionar um amigo"
   snprintf(nome, sizeof nome, "%s-social-vazio.bmp", saida);
   captura(nome, w);

@@ -33,7 +33,7 @@ static const struct { const char *cod, *nome; } NOMES[] = {
   { "cs", "Tcheco" },     { "cze", "Tcheco" },
   { "el", "Grego" },      { "gre", "Grego" },
   { "hu", "Húngaro" },    { "hun", "Húngaro" },
-  { "ro", "Romeno" },     { "rum", "Romeno" },
+  { "ro", "Romeno" },     { "rum", "Romeno" }, { "ron", "Romeno" },
   { "uk", "Ucraniano" },  { "ukr", "Ucraniano" },
   { "vi", "Vietnamita" }, { "vie", "Vietnamita" },
   { "id", "Indonésio" },  { "ind", "Indonésio" },
@@ -53,8 +53,10 @@ const char *ling_nome(const char *c) {
   // na MESMA expressao devolvem o mesmo ponteiro. O teste pegou isso valendo
   // "glg" == "cat", porque a comparacao acontecia depois das duas escritas.
   // Tambem afeta qualquer printf com dois idiomas.
+  // __atomic_fetch_add: a busca de legendas chama isto de um fio por addon, e
+  // um `giro++` simples deixava dois fios com a mesma posicao.
   { static char cx[4][16]; static int giro;
-    char *d = cx[giro++ & 3];
+    char *d = cx[__atomic_fetch_add(&giro, 1, __ATOMIC_RELAXED) & 3];
     size_t k;
     for (k = 0; c[k] && k + 1 < 16; k++)
       d[k] = (c[k] >= 'a' && c[k] <= 'z') ? (char)(c[k] - 32) : c[k];
@@ -66,7 +68,10 @@ const char *ling_nome(const char *c) {
 // etiquetada "pob", "por" ou "pt-BR". Pedir portugues e receber "nao ha
 // legenda" porque o arquivo diz "pob" seria absurdo para quem assiste — a
 // distincao regional importa na hora de ORDENAR, nao na de aceitar.
-static const char *familia(const char *c) {
+// `buf` (8 bytes) e do CHAMADOR: o resultado para codigo fora da tabela mora la.
+// Antes era um anel estatico compartilhado, e a busca de legendas chama isto de
+// um fio por addon — dois fios pegavam a mesma posicao e um lia o texto do outro.
+static const char *familia(const char *c, char *buf) {
   static const struct { const char *cod, *fam; } F[] = {
     { "pob","pt" },{ "por","pt" },{ "ptb","pt" },{ "pt-br","pt" },{ "pt_br","pt" },{ "br","pt" },
     { "eng","en" },{ "en-us","en" },{ "en_us","en" },{ "en-gb","en" },{ "en_gb","en" },
@@ -75,14 +80,13 @@ static const char *familia(const char *c) {
     { "rus","ru" },{ "ara","ar" },{ "hin","hi" },{ "dut","nl" },{ "nld","nl" },
     { "swe","sv" },{ "nor","no" },{ "dan","da" },{ "fin","fi" },{ "pol","pl" },
     { "tur","tr" },{ "heb","he" },{ "tha","th" },{ "cze","cs" },{ "gre","el" },
-    { "hun","hu" },{ "rum","ro" },{ "ukr","uk" },{ "vie","vi" },{ "ind","id" },
+    { "hun","hu" },{ "rum","ro" },{ "ron","ro" },{ "ukr","uk" },{ "vie","vi" },{ "ind","id" },
   };
   size_t i;
   for (i = 0; i < sizeof F / sizeof *F; i++)
     if (!strcasecmp(c, F[i].cod)) return F[i].fam;
   // "pt-BR" generico: o que vem antes do tracinho ja e a familia.
-  { static char base[4][8]; static int giro;
-    char *d = base[giro++ & 3];
+  { char *d = buf;
     size_t k;
     for (k = 0; c[k] && c[k] != '-' && c[k] != '_' && k + 1 < 8; k++)
       d[k] = (char)(c[k] >= 'A' && c[k] <= 'Z' ? c[k] + 32 : c[k]);
@@ -96,13 +100,70 @@ int ling_casa(const char *codigo, const char *pref) {
   if (!pref || !*pref) return 1;            // sem preferencia: passa tudo
   if (!codigo || !*codigo) return 0;
   if (!strcasecmp(codigo, pref)) return 1;
-  return !strcasecmp(familia(codigo), familia(pref));
+  { char a[8], b[8];
+    return !strcasecmp(familia(codigo, a), familia(pref, b)); }
+}
+
+// NORMALIZA a etiqueta de idioma que o addon manda. Um addon (AIOStreams)
+// manda "PORTUGUESE"/"Portuguese (Brazil)" em vez de codigo; Legenda.idioma
+// tem 8 bytes e o nome saia cortado ("PORTUGU", selo "PO") e, pior, nao casava
+// com a preferencia "pt". Codigo conhecido fica como veio (minusculo); nome
+// vira codigo pelo radical; o resto e cortado em 7 so como ultimo recurso.
+void ling_normalizar(const char *raw, char *out, unsigned tam) {
+  char t[64];
+  unsigned i, n = 0;
+  const char *c;
+  if (!out || !tam) return;
+  out[0] = 0;
+  if (!raw) return;
+  while (*raw == ' ') raw++;
+  for (i = 0; raw[i] && n + 1 < sizeof t; i++) t[n++] = (char)(raw[i] >= 'A' && raw[i] <= 'Z' ? raw[i] + 32 : raw[i]);
+  while (n && t[n - 1] == ' ') n--;
+  t[n] = 0;
+  for (i = 0; i < NOMES_N; i++)
+    if (!strcmp(t, NOMES[i].cod)) { snprintf(out, tam, "%s", t); return; }
+  if (n <= 5 && n >= 2 && (n < 4 || t[2] == '-' || t[2] == '_')) {   // "pt-br", "en_us", "zh-hant"
+    for (i = 0; i < n; i++) if (t[i] == ' ') break;
+    if (i == n) { if (n > 2 && t[2] == '_') t[2] = '-'; snprintf(out, tam, "%s", t); return; }
+  }
+  c = ling_do_nome(t);
+  if (c) { snprintf(out, tam, "%s", c); return; }
+  snprintf(out, tam, "%.7s", t);
+}
+
+// Selo de 2 a 5 letras para o rosto da linha: "PT-BR" para o portugues do
+// Brasil, "PT", "EN"... pela familia. Etiqueta que a tabela nao conhece: as 2
+// primeiras letras em caixa alta.
+const char *ling_selo(const char *cod) {
+  static char b[4][8];
+  static int giro;
+  char *d = b[__atomic_fetch_add(&giro, 1, __ATOMIC_RELAXED) & 3];
+  char fam[8];
+  const char *f;
+  size_t k;
+  if (!cod || !*cod) { d[0] = '?'; d[1] = 0; return d; }
+  if (!strcasecmp(cod, "pob") || !strcasecmp(cod, "pt-br") || !strcasecmp(cod, "pt_br") ||
+      !strcasecmp(cod, "ptb") || !strcasecmp(cod, "br")) return "PT-BR";
+  f = familia(cod, fam);
+  for (k = 0; f[k] && k < 2; k++) d[k] = (char)(f[k] >= 'a' && f[k] <= 'z' ? f[k] - 32 : f[k]);
+  d[k] = 0;
+  return d;
+}
+
+// O quanto `cod` serve a preferencia `pref`: 0 nao casa, 2 mesma familia, 3 o
+// melhor (portugues: o do Brasil ganha do de Portugal; o resto: codigo igual).
+int ling_afinidade(const char *cod, const char *pref) {
+  if (!pref || !*pref) return 1;
+  if (!cod || !*cod || !ling_casa(cod, pref)) return 0;
+  { char fam[8];
+    if (!strcmp(familia(pref, fam), "pt")) return !strcmp(ling_selo(cod), "PT-BR") ? 3 : 2; }
+  return !strcasecmp(cod, pref) ? 3 : 2;
 }
 
 // ------------------------------------------------------------ preferencias
 
 static char contaLeg[16], contaLeg2[16], contaAud[16];
-static char localLeg[16], localAud[16];
+static char localLeg[16], localAud[16], localLeg2[16];
 
 // As sentinelas do web viram vazio (= sem filtro) ou "none" (= nenhuma).
 // "DEVICE"/"DEFAULT"/"ORIGINAL" dizem "deixe o arquivo decidir", que deste lado
@@ -130,6 +191,7 @@ static void guardarLocal(char *dest, size_t n, const char *v) {
 }
 void ling_local_legenda(const char *v)  { guardarLocal(localLeg, sizeof localLeg, v); }
 void ling_local_audio(const char *v)    { guardarLocal(localAud, sizeof localAud, v); }
+void ling_local_legenda2(const char *v) { guardarLocal(localLeg2, sizeof localLeg2, v); }
 
 // A escolha desta TV ganha da conta. Quem mexeu no aparelho quis mexer AQUI, e
 // ver a proxima sincronizacao desfazer isso e o tipo de comportamento que faz a
@@ -158,8 +220,14 @@ static const char *emVigor(const char *local, const char *conta) {
   return local;
 }
 const char *ling_legenda(void)  { return emVigor(localLeg, contaLeg); }
-// A secundaria so existe na conta: a tela oferece uma escolha, nao duas.
-const char *ling_legenda2(void) { return localLeg[0] ? "" : contaLeg2; }
+// A SECUNDARIA (F04): Ajustes desta TV agora tem a linha dela. Escolhida
+// aqui, vale a regra da principal (emVigor). Em "Da conta" fica o
+// comportamento de antes: a da conta, a nao ser que a PRINCIPAL tenha sido
+// escolhida nesta TV (ai a conta nao manda em nenhuma das duas).
+const char *ling_legenda2(void) {
+  if (localLeg2[0]) return emVigor(localLeg2, contaLeg2);
+  return localLeg[0] ? "" : contaLeg2;
+}
 const char *ling_audio(void)    { return emVigor(localAud, contaAud); }
 
 // ------------------------------------------------------------ lista da UI
@@ -207,6 +275,80 @@ typedef char nv_checa_indice_original[
 int ling_opcao_n(void) { return (int)(sizeof OPCOES_COD / sizeof *OPCOES_COD); }
 const char *ling_opcao_codigo(int i) {
   return (i >= 0 && i < ling_opcao_n()) ? OPCOES_COD[i] : "";
+}
+
+// ------------------------------------------------------------ nome da faixa
+
+// `p` comeca uma PALAVRA em `ini`? Byte anterior que e letra ASCII ou parte de
+// um caractere UTF-8 (acentuado) conta como letra: "Design" nao e "sign".
+static int inicioPalavra(const char *ini, const char *p) {
+  unsigned char c;
+  if (p == ini) return 1;
+  c = (unsigned char)p[-1];
+  return !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c >= 0x80);
+}
+
+// Alguma palavra de `nome` COMECA com `radical` (sem caixa)?
+static int temRadical(const char *nome, const char *radical) {
+  size_t n = strlen(radical);
+  const char *p;
+  for (p = nome; *p; p++)
+    if (inicioPalavra(nome, p) && !strncasecmp(p, radical, n)) return 1;
+  return 0;
+}
+
+int ling_letreiro(const char *nome, int forcado) {
+  // "forçad" em bytes, e nao como literal: a varredura de i18n (tools/)
+  // acusaria um radical de busca como texto de tela sem traducao.
+  static const char FORCAD[] = { 'f', 'o', 'r', (char)0xc3, (char)0xa7, 'a', 'd', 0 };
+  static const char *const R[] = { "sign", "song", "forced", FORCAD, "letreiro" };
+  size_t i;
+  if (forcado) return 1;
+  if (!nome || !*nome) return 0;
+  // "Full + Songs", "Dialogue & Signs": a faixa inteira que TAMBEM traz as
+  // placas. Essa e a legenda de verdade, nao a de letreiros.
+  if (temRadical(nome, "full") || temRadical(nome, "dialog") || temRadical(nome, "complet"))
+    return 0;
+  for (i = 0; i < sizeof R / sizeof *R; i++)
+    if (temRadical(nome, R[i])) return 1;
+  return 0;
+}
+
+// Radicais em ASCII, a partir do comeco da palavra: "portugu" cobre
+// Português/Portuguese/Portugues, "ingl" cobre Inglês/Ingles. Os que comecam
+// com letra acentuada ("Árabe") ficam de fora — sem como casar sem caixa em
+// UTF-8, melhor nao casar do que casar errado.
+static const struct { const char *radical, *cod; } NOME_IDIOMA[] = {
+  { "brazil", "pob" }, { "brasil", "pob" }, { "portugu", "por" },
+  { "english", "eng" }, { "ingl", "eng" },
+  { "spanish", "spa" }, { "espa\xc3\xb1ol", "spa" }, { "espanol", "spa" }, { "espanhol", "spa" },
+  { "castellano", "spa" }, { "castilian", "spa" },
+  { "french", "fre" }, { "fran", "fre" },      // Français, Francês
+  { "german", "ger" }, { "deutsch", "ger" }, { "alem", "ger" },   // Alemão
+  { "italian", "ita" }, { "japanese", "jpn" }, { "japon", "jpn" },
+  { "korean", "kor" }, { "coreano", "kor" }, { "chin", "chi" },   // Chinese, Chinês
+  { "russian", "rus" }, { "russo", "rus" }, { "arabic", "ara" },
+  { "dutch", "dut" }, { "nederlands", "dut" }, { "holand", "dut" },
+  { "polish", "pol" }, { "polski", "pol" }, { "turkish", "tur" }, { "turco", "tur" },
+};
+
+const char *ling_do_nome(const char *nome) {
+  const char *achado = NULL;
+  size_t i;
+  if (!nome || !*nome) return NULL;
+  for (i = 0; i < sizeof NOME_IDIOMA / sizeof *NOME_IDIOMA; i++) {
+    const char *c = NOME_IDIOMA[i].cod;
+    if (!temRadical(nome, NOME_IDIOMA[i].radical)) continue;
+    if (!achado) { achado = c; continue; }
+    // "Brazilian Portuguese": mesma familia, fica o mais especifico (pob).
+    char fa[8], fc[8];
+    if (!strcasecmp(familia(achado, fa), familia(c, fc))) {
+      if (!strcmp(c, "pob")) achado = c;
+      continue;
+    }
+    return NULL;    // dois idiomas diferentes no nome: nao da para saber
+  }
+  return achado;
 }
 
 // ------------------------------------------------------------ legenda automatica

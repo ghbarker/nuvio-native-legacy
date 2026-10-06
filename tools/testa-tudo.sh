@@ -3,6 +3,8 @@
 #   *_shot / cinematic / director  -> precisam de arte e de GL, nao de logica
 #   webp-tizen, webp-vidaa-st      -> sobem um servidor e NUNCA saem (trava tudo)
 #   tizen-clock                    -> depende do relogio do alvo
+#   fluidez_perf_player            -> idem, custo de desenho do player por estado
+#   fluidez_perf_guia              -> idem, custo de desenho do Guia de TV por estado
 #   salvospainel_perf              -> medida por quadro para comparar arvores;
 #                                     nao passa nem falha (a trava e salvospainel.sh)
 # A EXCECAO DA home.sh SAIU. Ela falhava de proposito em nFileiras == 17 com
@@ -13,17 +15,33 @@
 # ".." porque este script mora em tools/, e a suite e relativa a RAIZ do
 # repositorio. Ele nasceu na raiz e o `cd` de la ficou para tras na mudanca:
 # o sintoma era `tests/*.sh: No such file or directory`.
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
+LOGS=$(mktemp -d "${TMPDIR:-/tmp}/nuvio-testes.XXXXXX") || exit 1
 falhou=0
+passaram=0
+pulados=0
+semProva=0
 for f in tests/*.sh; do
   n=$(basename "$f")
   case "$n" in
-    *_shot.sh|cinematic.sh|director.sh|webp-tizen.sh|webp-vidaa-st.sh|tizen-clock.sh|salvospainel_perf.sh) continue;;
+    *_shot.sh|cinematic.sh|director.sh|webp-tizen.sh|webp-vidaa-st.sh|tizen-clock.sh|salvospainel_perf.sh|fluidez_perf_player.sh|fluidez_perf_guia.sh) pulados=$((pulados + 1)); continue;;
   esac
-  if bash "$f" >/tmp/nvteste.log 2>&1; then
-    echo "ok    $n"
+  if bash "$f" >"$LOGS/$n.log" 2>&1; then
+    # SKIP (ex.: p2pmotor_real.sh sem o motor compilado) sai com 0 mas NAO
+    # provou nada: nao conta como passou.
+    if grep -Eq '(^|[^A-Za-z])SKIP([^A-Za-z]|$)' "$LOGS/$n.log"; then
+      echo "SKIP  $n (NAO verificado: $(grep -Em1 'SKIP' "$LOGS/$n.log" | cut -c1-90))"
+      semProva=$((semProva + 1)); continue
+    fi
+    if grep -Eq 'PULADO|pulados|sem resultado' "$LOGS/$n.log"; then
+      echo "ok*   $n (ver casos pulados no log)"
+    else
+      echo "ok    $n"
+    fi
+    passaram=$((passaram + 1))
   else
-    echo "FALHA $n"; tail -15 /tmp/nvteste.log; falhou=1
+    echo "FALHA $n"; tail -15 "$LOGS/$n.log"; falhou=$((falhou + 1))
   fi
 done
-exit $falhou
+echo "testes: $passaram passaram, $falhou falharam, $semProva SKIP sem prova, $pulados fora da suite; logs: $LOGS"
+[ "$falhou" -eq 0 ]

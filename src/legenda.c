@@ -7,6 +7,7 @@
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
+#include <math.h>
 
 static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 static LegendaCue *cues;
@@ -19,9 +20,18 @@ static unsigned geracao;
 static double maiorDur;
 
 static double tempo(const char *s) {
-  int h=0,m=0; double seg=0;
-  if (sscanf(s,"%d:%d:%lf",&h,&m,&seg)==3) return h*3600.0+m*60.0+seg;
-  if (sscanf(s,"%d:%lf",&m,&seg)==2) return m*60.0+seg;
+  double h=0,m=0,seg=0,t;
+  int usados=0;
+  if (sscanf(s,"%lf:%lf:%lf%n",&h,&m,&seg,&usados)==3) {
+    if (s[usados] && !isspace((unsigned char)s[usados])) return -1;
+    t=h*3600.0+m*60.0+seg;
+    return isfinite(t) && h>=0 && m>=0 && seg>=0 ? t : -1;
+  }
+  if (sscanf(s,"%lf:%lf%n",&m,&seg,&usados)==2) {
+    if (s[usados] && !isspace((unsigned char)s[usados])) return -1;
+    t=m*60.0+seg;
+    return isfinite(t) && m>=0 && seg>=0 ? t : -1;
+  }
   return -1;
 }
 
@@ -62,11 +72,14 @@ static LegendaCue *crescer(LegendaCue *v, int n, int *cap) {
   return nv ? nv : NULL;
 }
 
+static int cmpCue(const void *a, const void *b);
+
 // --- SRT / WebVTT ------------------------------------------------------------
 
-int legenda_extrair_srt(const char *corpo, LegendaCue **saida) {
+static int extrairSrt(const char *corpo,LegendaCue **saida,int *parcial) {
   char *buf,*p,*linha; int n=0,cap=128;
   LegendaCue *v;
+  if(parcial)*parcial=0;
   if (saida) *saida=NULL;
   if (!corpo || !saida) return 0;
   buf=strdup(corpo); if(!buf)return 0;
@@ -84,7 +97,7 @@ int legenda_extrair_srt(const char *corpo, LegendaCue **saida) {
     for(char *q=linha;*q;q++)if(*q==',')*q='.';
     for(char *q=seta;*q;q++)if(*q==',')*q='.';
     double ini=tempo(linha),fim=tempo(seta);
-    if(ini<0||fim<=ini)continue;
+    if(ini<0||fim<=ini){if(parcial)*parcial=1;continue;}
     char texto[768]={0}; size_t usado=0;
     while(*p) {
       char *nl=strchr(p,'\n'); if(nl)*nl++=0;
@@ -96,7 +109,7 @@ int legenda_extrair_srt(const char *corpo, LegendaCue **saida) {
       p=nl?nl:p+strlen(p);
     }
     entidade(texto); if(!texto[0])continue;
-    { LegendaCue *nv=crescer(v,n,&cap); if(!nv)break; v=nv; }
+    { LegendaCue *nv=crescer(v,n,&cap); if(!nv){if(parcial)*parcial=1;break;} v=nv; }
     memset(&v[n],0,sizeof v[n]);
     v[n].inicio=ini; v[n].fim=fim; v[n].cor=-1;
     v[n].posX=v[n].posY=-1.0f; v[n].ordem=n;
@@ -104,7 +117,14 @@ int legenda_extrair_srt(const char *corpo, LegendaCue **saida) {
   }
   free(buf);
   if(!n){free(v);return 0;}
+  // legenda_cues usa busca binaria e a mesma janela de duracao do ASS.
+  // SRT/VTT reordenado pelo servidor tambem precisa satisfazer esse contrato.
+  qsort(v,(size_t)n,sizeof *v,cmpCue);
   *saida=v;return n;
+}
+
+int legenda_extrair_srt(const char *corpo,LegendaCue **saida) {
+  return extrairSrt(corpo,saida,NULL);
 }
 
 // --- ASS / SSA ---------------------------------------------------------------
@@ -331,7 +351,7 @@ static int cmpCue(const void *a, const void *b) {
   return x->ordem - y->ordem;
 }
 
-int legenda_extrair_ass(const char *corpo, LegendaCue **saida) {
+static int extrairAss(const char *corpo,LegendaCue **saida,int *parcial) {
   char *buf,*p;
   LegendaCue *v;
   AssEstilo est[ASS_MAX_ESTILOS];
@@ -343,6 +363,7 @@ int legenda_extrair_ass(const char *corpo, LegendaCue **saida) {
   int temFmtEstilo=0;
   int cIni=1,cFim=2,cEstilo=3,cTexto=9;       /* colunas de Dialogue: */
 
+  if(parcial)*parcial=0;
   if (saida) *saida=NULL;
   if (!corpo || !saida) return 0;
   buf=strdup(corpo); if(!buf) return 0;
@@ -431,9 +452,9 @@ int legenda_extrair_ass(const char *corpo, LegendaCue **saida) {
       copiaCampo(campoAss(linha,cFim),fim,sizeof fim);
       copiaCampo(campoAss(linha,cEstilo),nomeEst,sizeof nomeEst);
       pt = campoAss(linha,cTexto);
-      if (!pt) continue;
+      if (!pt) {if(parcial)*parcial=1;continue;}
       a=tempo(trim(ini)); b=tempo(trim(fim));
-      if (a<0 || b<=a) continue;
+      if (a<0 || b<=a) {if(parcial)*parcial=1;continue;}
 
       memset(&c,0,sizeof c);
       c.cor=-1; c.posX=c.posY=-1.0f;
@@ -450,7 +471,7 @@ int legenda_extrair_ass(const char *corpo, LegendaCue **saida) {
       if (!texto[0]) continue;
       c.inicio=a; c.fim=b; c.resX=resX; c.resY=resY; c.ordem=n;
       snprintf(c.texto,sizeof c.texto,"%s",texto);
-      { LegendaCue *nv=crescer(v,n,&cap); if(!nv) break; v=nv; }
+      { LegendaCue *nv=crescer(v,n,&cap); if(!nv){if(parcial)*parcial=1;break;} v=nv; }
       v[n++]=c;
     }
   }
@@ -461,6 +482,10 @@ int legenda_extrair_ass(const char *corpo, LegendaCue **saida) {
   // inseridos depois da traducao sai fora de ordem com frequencia.
   qsort(v,(size_t)n,sizeof *v,cmpCue);
   *saida=v; return n;
+}
+
+int legenda_extrair_ass(const char *corpo,LegendaCue **saida) {
+  return extrairAss(corpo,saida,NULL);
 }
 
 int legenda_extrair(const char *corpo, LegendaCue **saida) {
@@ -481,8 +506,14 @@ int legenda_extrair(const char *corpo, LegendaCue **saida) {
 // ADIVINHAR, e a adivinhacao aqui e uma so: texto cirilico (Windows-1251) e
 // feito de PALAVRAS inteiras de bytes altos, enquanto o latino tem o acento
 // solto entre letras ASCII. Mais da metade dos bytes altos com vizinho alto ->
-// 1251; senao 1252. Grego, turco, arabe etc. em codepage proprio NAO estao
-// cobertos (sairiam como letras latinas erradas, nao quadrados).
+// 1251; senao 1252. Grego, turco etc. em codepage proprio NAO estao cobertos
+// (sairiam como letras latinas erradas, nao quadrados).
+//
+// ARABE (Windows-1256, #247 #261) tambem e feito de palavras de bytes altos, e
+// se separa do cirilico pela FAIXA: no 1256 as letras ficam em 0xC1-0xDF mais
+// seis soltas (lam, mim, nun, ha, waw, ya: E1 E3 E4 E5 E6 EC ED), e as posicoes
+// E0 E2 E7-EB EE EF sao letras francesas que quase nao aparecem. No 1251 essas
+// mesmas posicoes sao а в з и й к л о п, perto de metade de um texto russo.
 static const unsigned short CP1252_80[32] = {
   0x20AC,0xFFFD,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x0160,0x2039,0x0152,0xFFFD,0x017D,0xFFFD,
   0xFFFD,0x2018,0x2019,0x201C,0x201D,0x2022,0x2013,0x2014,0x02DC,0x2122,0x0161,0x203A,0x0153,0xFFFD,0x017E,0x0178 };
@@ -491,6 +522,16 @@ static const unsigned short CP1251_80[64] = {
   0x0452,0x2018,0x2019,0x201C,0x201D,0x2022,0x2013,0x2014,0xFFFD,0x2122,0x0459,0x203A,0x045A,0x045C,0x045B,0x045F,
   0x00A0,0x040E,0x045E,0x0408,0x00A4,0x0490,0x00A6,0x00A7,0x0401,0x00A9,0x0404,0x00AB,0x00AC,0x00AD,0x00AE,0x0407,
   0x00B0,0x00B1,0x0406,0x0456,0x0491,0x00B5,0x00B6,0x00B7,0x0451,0x2116,0x0454,0x00BB,0x0458,0x0405,0x0455,0x0457 };
+
+static const unsigned short CP1256_80[128] = {
+  0x20AC,0x067E,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x0679,0x2039,0x0152,0x0686,0x0698,0x0688,
+  0x06AF,0x2018,0x2019,0x201C,0x201D,0x2022,0x2013,0x2014,0x06A9,0x2122,0x0691,0x203A,0x0153,0x200C,0x200D,0x06BA,
+  0x00A0,0x060C,0x00A2,0x00A3,0x00A4,0x00A5,0x00A6,0x00A7,0x00A8,0x00A9,0x06BE,0x00AB,0x00AC,0x00AD,0x00AE,0x00AF,
+  0x00B0,0x00B1,0x00B2,0x00B3,0x00B4,0x00B5,0x00B6,0x00B7,0x00B8,0x00B9,0x061B,0x00BB,0x00BC,0x00BD,0x00BE,0x061F,
+  0x06C1,0x0621,0x0622,0x0623,0x0624,0x0625,0x0626,0x0627,0x0628,0x0629,0x062A,0x062B,0x062C,0x062D,0x062E,0x062F,
+  0x0630,0x0631,0x0632,0x0633,0x0634,0x0635,0x0636,0x00D7,0x0637,0x0638,0x0639,0x063A,0x0640,0x0641,0x0642,0x0643,
+  0x00E0,0x0644,0x00E2,0x0645,0x0646,0x0647,0x0648,0x00E7,0x00E8,0x00E9,0x00EA,0x00EB,0x0649,0x064A,0x00EE,0x00EF,
+  0x064B,0x064C,0x064D,0x064E,0x00F4,0x064F,0x0650,0x00F7,0x0651,0x00F9,0x0652,0x00FB,0x00FC,0x200E,0x200F,0x06D2 };
 
 static int poeUtf8(char *d, unsigned cp) {
   if (cp < 0x80)    { d[0]=(char)cp; return 1; }
@@ -542,18 +583,27 @@ char *legenda_utf8(const char *bytes, long n, const char **origem) {
       if (!out) return NULL;
       memcpy(out, b, (size_t)n); out[n] = 0;
     } else {
-      long altos = 0, colados = 0;
-      int cir;
+      long altos = 0, colados = 0, soRusso = 0, soltasArabe = 0;
+      int cir, ara;
       for (i = 0; i < n; i++)
-        if (b[i] >= 0xC0) { altos++; if ((i && b[i-1] >= 0xC0) || (i + 1 < n && b[i+1] >= 0xC0)) colados++; }
+        if (b[i] >= 0xC0) {
+          unsigned c = b[i];
+          altos++;
+          if ((i && b[i-1] >= 0xC0) || (i + 1 < n && b[i+1] >= 0xC0)) colados++;
+          if (c == 0xE0 || c == 0xE2 || (c >= 0xE7 && c <= 0xEB) || c == 0xEE || c == 0xEF) soRusso++;
+          else if (c == 0xE1 || (c >= 0xE3 && c <= 0xE6) || c == 0xEC || c == 0xED) soltasArabe++;
+        }
       cir = altos >= 8 && colados * 2 > altos;
-      o = cir ? "windows-1251" : "windows-1252";
+      ara = cir && soRusso * 10 < altos && soltasArabe * 10 >= altos;
+      if (ara) cir = 0;
+      o = ara ? "windows-1256" : cir ? "windows-1251" : "windows-1252";
       d = out = malloc((size_t)n * 3 + 1);
       if (!out) return NULL;
       for (i = 0; i < n; i++) {
         unsigned c = b[i], cp;
         if (!c) continue;
         if (c < 0x80) cp = c;
+        else if (ara) cp = CP1256_80[c - 0x80];
         else if (cir) cp = c >= 0xC0 ? 0x0410 + (c - 0xC0) : CP1251_80[c - 0x80];
         else cp = c < 0xA0 ? CP1252_80[c - 0x80] : c;
         d += poeUtf8(d, cp);
@@ -565,7 +615,7 @@ char *legenda_utf8(const char *bytes, long n, const char **origem) {
   return out;
 }
 
-typedef struct { char url[1400]; unsigned g; } Pedido;
+typedef struct { char url[1400]; unsigned g; LegendaBaixada pronto; void *u; } Pedido;
 static void *baixar(void *u) {
   Pedido *p=u; long nb=0; const char *cs="utf-8";
   char *bruto=rede_baixar_bin(p->url,20,&nb);
@@ -596,6 +646,9 @@ static void *baixar(void *u) {
     // trocou) apagava o libass da faixa nova.
     assrender_limpar();
   }
+  /* AutoSync (legsync.c): o mesmo corpo vira documento imutavel neste fio,
+   * fora do lock do overlay. Sempre chamado, para o dono soltar `u`. */
+  if (p->pronto) p->pronto(corpo, p->g, legenda_ligada_em(p->g), p->u);
   free(corpo);
   free(v);
   printf("[legenda] %s: %d blocos%s\n",ass?"ASS/SSA":"SubRip",n,n?"":" (falha)");
@@ -603,17 +656,22 @@ static void *baixar(void *u) {
   free(p);return NULL;
 }
 
-void legenda_carregar(const char *url) {
-  Pedido *p; pthread_t fio;
-  if(!url||!*url)return;
-  p=calloc(1,sizeof *p);if(!p)return;
+void legenda_carregar(const char *url) { legenda_carregar_com(url, NULL, NULL); }
+unsigned legenda_carregar_com(const char *url, LegendaBaixada pronto, void *u) {
+  Pedido *p; pthread_t fio; unsigned g;
+  if(!url||!*url){ if(pronto)pronto(NULL,0,0,u); return 0; }
+  p=calloc(1,sizeof *p);if(!p){ if(pronto)pronto(NULL,0,0,u); return 0; }
+  p->pronto=pronto;p->u=u;
   pthread_mutex_lock(&trava);
   ligada=1;p->g=++geracao;free(cues);cues=NULL;nCues=0;maiorDur=0;
   pthread_mutex_unlock(&trava);
   assrender_geracao(p->g);
   assrender_limpar_fontes();
   snprintf(p->url,sizeof p->url,"%s",url);
-  if(pthread_create(&fio,NULL,baixar,p)==0)pthread_detach(fio);else free(p);
+  g=p->g;
+  if(pthread_create(&fio,NULL,baixar,p)==0)pthread_detach(fio);
+  else { if(pronto)pronto(NULL,g,0,u); free(p); }
+  return g;
 }
 
 // O MESMO caminho de baixar(), sem rede: o corpo ja esta na mao. Serve ao
@@ -738,4 +796,132 @@ int legenda_texto(double posSeg,int atrasoMs,char *dst,size_t tam) {
   if(legenda_cues(posSeg,atrasoMs,&c,1)!=1)return 0;
   snprintf(dst,tam,"%s",c.texto);
   return 1;
+}
+
+struct LegendaDocumento {
+  pthread_mutex_t trava;
+  unsigned refs;
+  LegendaDocumentoInfo info;
+  LegendaCue *cues;
+  int n;
+  double maiorDur;
+  uint64_t hash;
+};
+
+static uint64_t documentoHash(uint64_t h, const void *bytes, size_t n) {
+  const unsigned char *p=bytes;
+  while(n--) { h ^= *p++; h *= UINT64_C(1099511628211); }
+  return h;
+}
+
+/* Takes ownership even on error; sort/hash never run under the overlay lock. */
+static LegendaDocumento *documentoAdotar(LegendaCue *v,int n,
+                                        const LegendaDocumentoInfo *info) {
+  LegendaDocumento *d; int i;
+  if (!info || !v || n<=0 || n>LEG_MAX_CUES ||
+      !isfinite(info->duracaoSeg) || info->duracaoSeg<0) {free(v);return NULL;}
+  for(i=0;i<n;i++)
+    if(!isfinite(v[i].inicio)||!isfinite(v[i].fim)||
+       v[i].inicio<0||v[i].fim<=v[i].inicio) {free(v);return NULL;}
+  d=calloc(1,sizeof *d); if(!d){free(v);return NULL;}
+  d->cues=v;
+  if(pthread_mutex_init(&d->trava,NULL)) {
+    free(v);free(d);return NULL;
+  }
+  d->info=*info;
+  d->info.idioma[sizeof d->info.idioma-1]=0;
+  d->info.origem[sizeof d->info.origem-1]=0;
+  d->info.identidade[sizeof d->info.identidade-1]=0;
+  d->n=n;d->refs=1;
+  qsort(d->cues,(size_t)n,sizeof *v,cmpCue);
+  d->hash=UINT64_C(14695981039346656037);
+  d->hash=documentoHash(d->hash,d->info.idioma,strlen(d->info.idioma));
+  d->hash=documentoHash(d->hash,d->info.origem,strlen(d->info.origem));
+  d->hash=documentoHash(d->hash,d->info.identidade,strlen(d->info.identidade));
+  for(i=0;i<n;i++) {
+    LegendaCue *c=&d->cues[i]; c->texto[sizeof c->texto-1]=0;
+    double dur=c->fim-c->inicio;
+    if(dur>d->maiorDur)d->maiorDur=dur;
+    d->hash=documentoHash(d->hash,&c->inicio,sizeof c->inicio);
+    d->hash=documentoHash(d->hash,&c->fim,sizeof c->fim);
+    d->hash=documentoHash(d->hash,c->texto,strlen(c->texto));
+  }
+  return d;
+}
+
+LegendaDocumento *legenda_documento_de_cues(const LegendaCue *v,int n,
+                                           const LegendaDocumentoInfo *info) {
+  if(!v||!info||n<=0||n>LEG_MAX_CUES)return NULL;
+  LegendaCue *copia=malloc((size_t)n*sizeof *v);if(!copia)return NULL;
+  memcpy(copia,v,(size_t)n*sizeof *v);
+  return documentoAdotar(copia,n,info);
+}
+
+LegendaDocumento *legenda_documento_criar(const char *corpo,
+                                        const LegendaDocumentoInfo *info) {
+  /* Keep a worker-side parse from duplicating an unbounded server response. */
+  if(!corpo || strnlen(corpo,16u*1024u*1024u+1)>16u*1024u*1024u)return NULL;
+  if(!info)return NULL;
+  LegendaCue *v=NULL;int parcial=0;
+  int n=legenda_eh_ass(corpo)?extrairAss(corpo,&v,&parcial):extrairSrt(corpo,&v,&parcial);
+  LegendaDocumentoInfo real=*info;
+  /* Legacy playback can render a valid prefix after OOM/malformed timings;
+   * AutoSync must never mistake that useful prefix for a complete reference. */
+  if(parcial)real.flags&=~LEGENDA_DOC_COMPLETO;
+  return documentoAdotar(v,n,&real);
+}
+
+LegendaDocumento *legenda_documento_bytes(const char *bytes,long n,
+                                         const LegendaDocumentoInfo *info) {
+  if(!bytes||n<=0||n>16L*1024L*1024L)return NULL;
+  char *corpo=legenda_utf8(bytes,n,NULL);
+  LegendaDocumento *d=legenda_documento_criar(corpo,info);
+  free(corpo);return d;
+}
+
+LegendaDocumento *legenda_documento_ativo(unsigned dono,
+                                         const LegendaDocumentoInfo *info) {
+  int n=0;LegendaCue *v;
+  pthread_mutex_lock(&trava);
+  if(ligada&&geracao==dono)n=nCues;
+  pthread_mutex_unlock(&trava);
+  if(n<=0||!info)return NULL;
+  v=malloc((size_t)n*sizeof *v);if(!v)return NULL;
+  pthread_mutex_lock(&trava);
+  if(!ligada||geracao!=dono||nCues!=n){pthread_mutex_unlock(&trava);free(v);return NULL;}
+  memcpy(v,cues,(size_t)n*sizeof *v);
+  pthread_mutex_unlock(&trava);
+  return documentoAdotar(v,n,info);
+}
+
+LegendaDocumento *legenda_documento_reter(LegendaDocumento *d) {
+  if(!d)return NULL;
+  pthread_mutex_lock(&d->trava);d->refs++;pthread_mutex_unlock(&d->trava);
+  return d;
+}
+void legenda_documento_liberar(LegendaDocumento *d) {
+  int fim;
+  if(!d)return;
+  pthread_mutex_lock(&d->trava);fim=!--d->refs;pthread_mutex_unlock(&d->trava);
+  if(fim){pthread_mutex_destroy(&d->trava);free(d->cues);free(d);}
+}
+const LegendaDocumentoInfo *legenda_documento_info(const LegendaDocumento *d) {
+  return d?&d->info:NULL;
+}
+const LegendaCue *legenda_documento_dados(const LegendaDocumento *d,int *n) {
+  if(n)*n=d?d->n:0;return d?d->cues:NULL;
+}
+uint64_t legenda_documento_hash(const LegendaDocumento *d) {return d?d->hash:0;}
+int legenda_documento_cues(const LegendaDocumento *d,double posSeg,
+                           int atrasoMs,LegendaCue *dst,int max) {
+  double t=posSeg+(double)atrasoMs/1000;int lo=0,hi,i,n=0;
+  if(!d||!dst||max<=0||!isfinite(t))return 0;
+  hi=d->n;
+  while(lo<hi){int m=(lo+hi)/2;if(d->cues[m].inicio<=t)lo=m+1;else hi=m;}
+  for(i=lo-1;i>=0&&n<max;i--){
+    if(d->cues[i].inicio<t-d->maiorDur)break;
+    if(t<=d->cues[i].fim)dst[n++]=d->cues[i];
+  }
+  for(i=0;i<n/2;i++){LegendaCue tmp=dst[i];dst[i]=dst[n-1-i];dst[n-1-i]=tmp;}
+  return n;
 }

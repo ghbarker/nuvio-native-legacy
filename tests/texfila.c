@@ -23,6 +23,7 @@ static void nv_tex_test_after_pop(void) {
 }
 
 #define NV_TEX_TEST_AFTER_POP nv_tex_test_after_pop
+#define NV_TEX_TEST_BEFORE_DISK_LOCK nv_tex_test_after_pop
 #include "../src/tex_cache.c"
 #include <assert.h>
 #include <stdio.h>
@@ -62,6 +63,22 @@ static void limparApi(void) {
   SDL_DestroyMutex(mtx);
   condLivre = condDec = cond = NULL;
   mtx = NULL;
+}
+
+static int lifecycleStarted, lifecycleClosed;
+static int protegerDuranteEncerramento(void *path) {
+  return discoProtegido((const char *)path, NULL);
+}
+static int encerrarDuranteProtecao(void *unused) {
+  (void)unused;
+  SDL_LockMutex(raceMtx);
+  lifecycleStarted = 1; SDL_CondBroadcast(raceCond);
+  SDL_UnlockMutex(raceMtx);
+  tex_encerrar();
+  SDL_LockMutex(raceMtx);
+  lifecycleClosed = 1; SDL_CondBroadcast(raceCond);
+  SDL_UnlockMutex(raceMtx);
+  return 0;
 }
 
 int main(void) {
@@ -106,6 +123,17 @@ int main(void) {
   { int esperado[4] = { 10, 11, 13, 15 };
     for (k = 0; k < 4; k++) assert(tirarFila(f, &ini, fim) == esperado[k]); }
   puts("ok  dois urgentes saem na ordem de chegada entre si");
+
+  // 5b. LOGO (nivel 2) fura ate o urgente de tela cheia (nivel 1); dois logos
+  //     seguem a ordem de chegada; o resto continua FIFO.
+  encher(f, &ini, &fim, ordem, 6);
+  itens[11].urgente = 1; itens[14].urgente = 2; itens[15].urgente = 2;
+  assert(tirarFila(f, &ini, fim) == 14);
+  assert(tirarFila(f, &ini, fim) == 15);
+  assert(tirarFila(f, &ini, fim) == 11);
+  { int esperado[3] = { 10, 12, 13 };
+    for (k = 0; k < 3; k++) assert(tirarFila(f, &ini, fim) == esperado[k]); }
+  puts("ok  logo (nivel 2) fura ate o fundo de tela cheia");
 
   // 6. A FILA QUE DEU A VOLTA no vetor circular. O bug classico deste tipo de
   //    codigo mora aqui: com ini > fim o "puxar para a frente" atravessa o zero.
@@ -240,6 +268,56 @@ int main(void) {
     unlink(path);
   }
   puts("ok  decoder ativo mantem uma unica entrada sob pedidos repetidos");
+
+  // 12. ENCERRAR COM DECODE PENDENTE TAMBEM LIBERA O CORPO COMPRIMIDO e as
+  // duas condicoes da fila. Uma reinicializacao comeca sem indices antigos.
+  prepararApi();
+  itens[0].bruto = malloc(1024); assert(itens[0].bruto);
+  itens[0].nBruto = 1024; itens[0].estado = PENDENTE;
+  filaIni = 3; filaFim = 4; decIni = 7; decFim = 8;
+  tex_encerrar();
+  assert(!itens[0].bruto && !itens[0].nBruto);
+  assert(!mtx && !cond && !condDec && !condLivre);
+  assert(filaIni == filaFim && decIni == decFim);
+  tex_encerrar(); // Encerramento repetido tambem e seguro.
+  puts("ok  encerrar solta bytes, condicoes e filas pendentes");
+
+  // 13. A PODA DO GRAVADOR SOBREVIVE AOS FIOS DE TEXTURA. Ela nao pode
+  // observar mtx vivo e depois tentar trava-lo quando o encerramento ja o
+  // destruiu. A barreira segura o callback precisamente nessa janela.
+  {
+    SDL_Thread *protection, *closing;
+    int protected = 0;
+    char path[600];
+    prepararApi();
+    raceMtx = SDL_CreateMutex(); raceCond = SDL_CreateCond();
+    assert(raceMtx && raceCond);
+    racePopped = raceRelease = lifecycleStarted = lifecycleClosed = 0;
+    snprintf(dirCache, sizeof dirCache, "/tmp/nuvio-texfila-cache");
+    snprintf(itens[0].caminho, sizeof itens[0].caminho, "https://teste/em-uso.jpg");
+    itens[0].estado = PENDENTE;
+    nomeDeCache(itens[0].caminho, path, sizeof path);
+    protection = SDL_CreateThread(protegerDuranteEncerramento, "tex-protect-close", path);
+    assert(protection);
+    SDL_LockMutex(raceMtx);
+    while (!racePopped) SDL_CondWait(raceCond, raceMtx);
+    SDL_UnlockMutex(raceMtx);
+    closing = SDL_CreateThread(encerrarDuranteProtecao, "tex-close-protect", NULL);
+    assert(closing);
+    SDL_LockMutex(raceMtx);
+    while (!lifecycleStarted) SDL_CondWait(raceCond, raceMtx);
+    if (!lifecycleClosed) SDL_CondWaitTimeout(raceCond, raceMtx, 100);
+    assert(!lifecycleClosed);
+    raceRelease = 1; SDL_CondSignal(raceCond);
+    SDL_UnlockMutex(raceMtx);
+    SDL_WaitThread(protection, &protected);
+    SDL_WaitThread(closing, NULL);
+    assert(protected && lifecycleClosed && !mtx);
+    assert(!discoProtegido(path, NULL));
+    SDL_DestroyCond(raceCond); SDL_DestroyMutex(raceMtx);
+    raceCond = NULL; raceMtx = NULL;
+  }
+  puts("ok  encerramento aguarda callback de poda antes de destruir a trava");
 
   puts("texfila: tudo ok");
   return 0;

@@ -1,4 +1,6 @@
+#include "imdbnota.h"
 #include "vertudo.h"
+#include "posterprov.h"
 #include "idioma.h"
 #include "badges.h"
 #include "descoberta.h"
@@ -8,12 +10,17 @@
 #include "tex_cache.h"
 #include "layout.h"
 #include "anim.h"
+#include "revela.h"
 #include "ajustes.h"
 #include "diretor.h"
 #include "addons.h"
 #include "nuvem.h"
+#include "fundo.h"
+#include "focoprof.h"
+#include "corviva.h"
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -46,6 +53,17 @@ static int source, tabFocus, tabCursor, timeline, ranked;
 static float tabAnim[COL_SOURCE_MAX];
 static int order[VT_MAX], orderN=-1;
 static char catalogId[96];
+// MICRO-ANIMACOES (revela.h): a arte chegando por cartaz e a onda da grade.
+// A onda e ARMADA quando uma grade nova e pedida (abrir, trocar de fonte) e
+// dispara no primeiro quadro que tem itens — rolar ou voltar do detalhe nao
+// a repete.
+static RevelaArte revArte[VT_MAX];
+static Uint32 ondaEm;
+static int ondaArmada;
+static void armarOnda(void) {
+  ondaArmada = 1; ondaEm = 0;
+  memset(revArte, 0, sizeof revArte);
+}
 // A fonte escolhida NAO TEM ENDERECO ainda: o addon dela nao esta instalado
 // nesta TV, ou a sonda de manifesto ainda nao respondeu. Ver openSource.
 static int semFonte;
@@ -66,13 +84,9 @@ static void corColecao(float *r,float *g,float *b) {
 // Mantem o acento reconhecivel, mas o mistura ao fundo para nao virar uma
 // faixa azul/branca solta sobre a arte. A excecao para tons quase brancos
 // preserva a leitura da tinta escura nos temas Branco e Grafite.
+// Desde os acentos de 03/10 e o proprio acento (ver botao_cor_foco).
 static void corFocoFonte(float *r, float *g, float *b) {
-  float ar, ag, ab, k = 0.74f;
-  ajustes_acento(&ar, &ag, &ab);
-  if (0.2126f * ar + 0.7152f * ag + 0.0722f * ab > 0.88f) k = 0.88f;
-  *r = 0.055f + (ar - 0.055f) * k;
-  *g = 0.058f + (ag - 0.058f) * k;
-  *b = 0.068f + (ab - 0.068f) * k;
+  ajustes_acento(r, g, b);
 }
 
 static void focoAbaFonte(GfxRect r, float f, float a) {
@@ -128,7 +142,7 @@ static void openSource(void) {
   const char *base=baseDaFonte(s);
   snprintf(catalogId,sizeof catalogId,"%s",s->catId);
   ranked=strstr(s->catId,"top100")||strstr(s->catId,"top250")||strstr(s->catId,"top10");
-  foco=0;scrollY=velY=0;orderN=-1;
+  foco=0;scrollY=velY=0;orderN=-1;armarOnda();
   // FONTE NAO-ADDON (issue #44): "tmdb"/"trakt" vinda do site. Nao tem base
   // de catalogo — o conteudo e pedido direto ao servico pelo
   // desc_vertudo_fonte. "Sem fonte" aqui quer dizer servico nao configurado
@@ -193,11 +207,18 @@ void vertudo_abrir(const char *base, const char *tipo, const char *catId,
   }
   snprintf(catalogId,sizeof catalogId,"%s",catId);
   ranked=strstr(catId,"top100")||strstr(catId,"top250")||strstr(catId,"top10");
+  armarOnda();
   desc_vertudo_abrir(base, tipo, catId);
 }
 
 int vertudo_aberta(void) { return aberta; }
+void vertudo_fechar_seco(void) { aberta = 0; anim = 0.0f; }
 int vertudo_pediu_abrir(void) { int v = pedAbrir; pedAbrir = -1; return v; }
+// ESQUERDA na coluna 0 da grade (ou na primeira aba da colecao): a barra
+// lateral abre POR CIMA da lista (dono, 03/10). Antes a coluna 0 voltava para
+// o ultimo da linha de cima. app.c le no mesmo evento.
+static int pedMenu;
+int vertudo_pediu_menu(void) { int v = pedMenu; pedMenu = 0; return v; }
 
 static int nItens(void) { return desc_vertudo_n(); }
 
@@ -208,7 +229,7 @@ void vertudo_evento(const SDL_Event *e) {
   if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
       e->key.keysym.scancode == NV_SCANCODE_BACK) { aberta = 0; return; }
   if(collection&&tabFocus) {
-    if(k==SDLK_LEFT&&tabCursor>0)tabCursor--;
+    if(k==SDLK_LEFT){ if(tabCursor>0)tabCursor--; else pedMenu=1; }
     if(k==SDLK_RIGHT&&tabCursor+1<collection->nSources)tabCursor++;
     if(k==SDLK_RETURN||k==SDLK_KP_ENTER){source=tabCursor;openSource();tabFocus=0;}
     if(k==SDLK_DOWN&&n>0)tabFocus=0;
@@ -216,9 +237,10 @@ void vertudo_evento(const SDL_Event *e) {
   }
   if(k==SDLK_UP&&foco<VT_COLS&&collection){tabFocus=1;tabCursor=source;return;}
   if((k==SDLK_RETURN||k==SDLK_KP_ENTER)&&desc_vertudo_erro()){desc_vertudo_mais();return;}
+  if (k == SDLK_LEFT && (n < 1 || foco % VT_COLS == 0)) { pedMenu = 1; return; }
   if (n < 1) return;
   if (k == SDLK_RIGHT && foco + 1 < n) foco++;
-  else if (k == SDLK_LEFT && foco > 0) foco--;
+  else if (k == SDLK_LEFT) foco--;
   else if (k == SDLK_DOWN) { if (foco + VT_COLS < n) foco += VT_COLS;
                              else foco = n - 1; }
   else if (k == SDLK_UP) { if (foco >= VT_COLS) foco -= VT_COLS; }
@@ -315,7 +337,7 @@ static void painel(float a) {
 
   // LOGO no lugar do titulo quando existe (max 264x82 no web); o nome escrito
   // com a fonte da interface so quando nao ha logo.
-  { GLuint tl = it.logo[0] ? tex_obter_larg(it.logo, 264.0f) : 0;
+  { GLuint tl = it.logo[0] ? tex_obter_logo_larg(it.logo, 264.0f) : 0;
     float ap = it.logo[0] ? tex_aspecto(it.logo) : 0.0f;
     if (tl && ap > 0.0f) {
       float wL = 264.0f, hL = wL / ap;
@@ -339,9 +361,10 @@ static void painel(float a) {
     y += t.h + 6.0f;
   }
   // Pastilha da nota, no amarelo do IMDb que o web usa (245,197,24).
-  if (it.nota > 0) {
+  int imdbRating = imdbnota_obter(it.imdb, it.nota, !strcmp(it.tipo,"series"));
+  if (imdbRating > 0) {
     char n[16];
-    snprintf(n, sizeof n, "%.1f", it.nota / 10.0f);
+    snprintf(n, sizeof n, "%.1f", imdbRating / 10.0f); idioma_decimal_texto(n, ajustes_idioma());
     { TxtLinha t = txt_linha(TXT_CAPTION, n, 23, 19, 10, 255);
       GfxRect r = { VT_PAN_X, y + 8.0f, t.w + 26.0f, t.h + 8.0f };
       gfx_cor(r, 8.0f / (t.h + 8.0f), 0.961f, 0.773f, 0.094f, 0.92f * a);
@@ -378,7 +401,22 @@ static const char *retratoLocal(const ColFolder *folder) {
 // o retrato vertical local quando o pacote ja o tem; o hero horizontal dessa
 // colecao e um placeholder neutro e so acrescenta uma camada sem informacao.
 // Usa os shaders e o cache existentes, sem blur ou novas texturas por frame.
+// FUNDO DA COLECAO: sempre Frost ou a arte borrada da pasta, nunca a arte crua
+// ("em colecoes deixa o fundo sempre frost ou blur", 04/10/2026). Ajustes >
+// Fundo = Frost fica Frost; senao a arte borrada (fundo.c), e sem a arte
+// ainda cai no Frost. A arte de cabecalho (editorial, retrato) vem POR CIMA.
+static void fundoColecao(float a) {
+  GfxRect tela={0,0,NV_TELA_W,NV_TELA_H};
+  GLuint t=0;
+  const char *art=collection?(collection->editorial&&collection->detailHero[0]
+                              ?collection->detailHero:col_banner(collection)):"";
+  int modo=fundo_modo()==FUNDO_FROST?FUNDO_FROST:FUNDO_BORRADA;
+  if(art&&art[0])t=tex_obter_hero(art);   /* a Borrada desfoca esta textura */
+  if(modo==FUNDO_BORRADA&&!t)modo=FUNDO_FROST;
+  fundo_desenhar_modo(modo,tela,0.0f,art,a);
+}
 static void themeBackground(float a) {
+  fundoColecao(a);
   if(collection) {
     if(collection->editorial) {
       GLuint art=tex_obter_hero(collection->detailHero);
@@ -410,14 +448,8 @@ static void themeBackground(float a) {
         gfx_tex_aspect_atual=0;
       }
     } else {
-      const char *art=collection->hero[0]?collection->hero:collection->cover;
-      GLuint tex=art[0]?tex_obter_hero(art):0;
-      if(tex) {
-        gfx_tex_aspect_atual=tex_aspecto(art);
-        gfx_rect((GfxRect){0,0,NV_TELA_W,620},tex,GFX_HERO_CHEIO,
-                 0,0,0,0,0,0,0,a*.38f);
-        gfx_tex_aspect_atual=0;
-      }
+      const char *art=col_banner(collection);
+      (void)art;   /* o banner agora e o fundo borrado (fundoColecao) */
     }
   }
 }
@@ -431,7 +463,7 @@ static void themeHeader(float a,float x0) {
   // composto. No cabeçalho da filmografia, o nome textual e o retrato limpo
   // deixam a identidade legível sem duplicar a mesma informação visual.
   GLuint logo=!ehDiretor&&collection&&!collection->editorial&&collection->logo[0]
-             ?tex_obter_larg(collection->logo,560):0;
+             ?tex_obter_logo_larg(collection->logo,560):0;
   float aspect=logo?tex_aspecto(collection->logo):0;
   if(logo&&aspect>0) {
     // Wordmark oficial, grande o bastante para leitura a distancia. O PNG
@@ -466,17 +498,25 @@ static void themeHeader(float a,float x0) {
     float larg[COL_SOURCE_MAX],pos[COL_SOURCE_MAX],px=0;
     static char rot[COL_SOURCE_MAX][180];
     int nAbas=collection->nSources;
+    // NOME DA ABA (01/10, pasta Netflix mostrava "streaming_netflix_movies ·
+    // Movies"): o nome legivel da fonte (titulo da conta, senao o do
+    // manifesto — #76) e NUNCA o id cru. Sem nome, ou com o mesmo nome da
+    // pasta ("Netflix" na pasta Netflix), so o tipo: "Filmes" / "Séries". O
+    // tipo so acompanha o nome quando duas abas teriam o mesmo texto.
+    static char nomeAba[COL_SOURCE_MAX][128];
     for(int i=0;i<nAbas;i++) {
       const ColSource *s=&collection->sources[i];
-      const char *nome=s->title;
-      // SEM TITULO NA CONTA, o nome vem do manifesto (#76): colecoes.c deixa o
-      // catId no lugar do titulo quando o export nao trouxe um, e "mdblist.13914"
-      // nao e nome de aba. Se o manifesto ainda nao passou, fica o id.
-      if(!nome[0]||!strcmp(nome,s->catId)) {
-        const char *m=desc_nome_catalogo(baseDaFonte(s),s->type,s->catId);
-        if(m[0]) nome=m;
-      }
-      snprintf(rot[i],sizeof rot[i],"%s · %s",nome,i18n(!strcmp(s->type,"series")?"Séries":"Filmes"));
+      col_nome_fonte(s,desc_nome_catalogo(baseDaFonte(s),s->type,s->catId),nomeAba[i],sizeof nomeAba[i]);
+      if(!strcasecmp(nomeAba[i],collection->title))nomeAba[i][0]=0;
+    }
+    for(int i=0;i<nAbas;i++) {
+      const ColSource *s=&collection->sources[i];
+      const char *tipo=i18n(!strcmp(s->type,"series")?"Séries":"Filmes");
+      int repete=0;
+      for(int j=0;j<nAbas&&nomeAba[i][0];j++) if(j!=i&&!strcmp(nomeAba[i],nomeAba[j]))repete=1;
+      if(!nomeAba[i][0])snprintf(rot[i],sizeof rot[i],"%s",tipo);
+      else if(repete)snprintf(rot[i],sizeof rot[i],"%s · %s",nomeAba[i],tipo);
+      else snprintf(rot[i],sizeof rot[i],"%s",nomeAba[i]);
       // Medida com a cor de repouso; a cor certa e reaplicada no desenho (o
       // cache de linhas guarda as duas).
       larg[i]=txt_linha_corta(TXT_HERO_META,rot[i],176,176,176,255,420).w+PAD*2;pos[i]=px;px+=larg[i]+GAP;
@@ -532,9 +572,13 @@ static void timelineCard(int i,float cy,float a,float x0) {
 
 void vertudo_desenhar(Uint32 agora) {
   float a = anim, x0 = ajustes_conteudo_x();
-  int n = nItens(), i;
-  (void)agora;
+  int n = nItens(), i, lin0;
   if (a < 0.01f) return;
+  if (ondaArmada && n > 0) { ondaEm = agora ? agora : 1u; ondaArmada = 0; }
+  if (ondaEm && revela_onda_fim(ondaEm, agora)) ondaEm = 0;
+  // A onda conta a fileira VISIVEL: a grade que abre rolada (a volta de uma
+  // colecao) entra pela primeira fileira da tela, nao pela zero.
+  lin0 = (int)(scrollY / (VT_CARD_H + VT_GAP_Y));
   { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
     gfx_cor(tela, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, a); }
   themeBackground(a);
@@ -551,6 +595,7 @@ void vertudo_desenhar(Uint32 agora) {
     float cy = VT_TOPO + (float)(i / VT_COLS) * (VT_CARD_H + VT_GAP_Y) - scrollY;
     CatItem it;
     GLuint t;
+    const char *arteCard;
     // MESMO raio dos cartazes da home: `posterCardCornerRadiusDp` (12dp x 2 =
     // 24px), fracao do MENOR lado porque o SDF do shader e normalizado. O
     // NV_RAIO_CARD fixo que estava aqui dava um canto diferente do resto do
@@ -558,34 +603,55 @@ void vertudo_desenhar(Uint32 agora) {
     float raio = ajustes_raio_poster_px() / VT_CARD_W;
     int sel = (i == foco);
     if (cy > NV_TELA_H || cy + VT_CARD_H + 40.0f < VT_TOPO - 12.0f) continue;
-    if(timeline){timelineCard(i,cy,a,x0);continue;}
+    // ONDA: cada cartaz sobe alguns pixels e ganha opacidade com atraso pela
+    // coluna e pela fileira visiveis (revela.h). So na primeira aparicao.
+    float entra = ondaEm ? revela_entra(ondaEm, revela_onda_atraso(i % VT_COLS,
+                                         i / VT_COLS - lin0), agora) : 1.0f;
+    float ac = a * entra;
+    if (ac < 0.005f) continue;
+    cy += (1.0f - entra) * NV_ENTRA_DY;
+    if(timeline){timelineCard(i,cy,ac,x0);continue;}
     if (!viewItem(i, &it)) continue;
-    { GfxRect r = { cx, cy, VT_CARD_W, VT_CARD_H };
-      if (sel && !tabFocus) {
-        GfxRect anel = { cx - 4, cy - 4, VT_CARD_W + 8, VT_CARD_H + 8 };
-        gfx_cor(anel, ajustes_raio_poster_px() / (VT_CARD_W + 8.0f), 1, 1, 1, a);
+    { GfxRect r0 = { cx, cy, VT_CARD_W, VT_CARD_H }, r = r0;
+      float aArte;
+      // SEM ANEL: o foco e o crescimento (focoprof.h), como nas outras grades,
+      // sem halo colorido. Antes o anel branco fixo ignorava os Ajustes.
+      if (sel && !tabFocus && !ajustes_borda_foco()) {
+        r = foco_zoom(r0, 1.0f);
       }
-      t = it.poster[0] ? tex_obter_larg(it.poster, VT_CARD_W)
-        : (it.backdrop[0] ? tex_obter_larg(it.backdrop, VT_CARD_W) : 0);
-      if (t) {
-        gfx_tex_aspect_atual = tex_aspecto(it.poster[0] ? it.poster : it.backdrop);
-        gfx_rect(r, t, GFX_CARD, sel ? 1.0f : 0.0f, 0, 0, raio, 0, 0, 0, a);
-        gfx_tex_aspect_atual = 0.0f;
-      } else {
+      if (sel && !tabFocus && ajustes_borda_foco()) {
+        // O ANEL DO APP: no acento e so com "Foco no cartaz" ligado (era branco
+        // fixo, a unica grade do app que nao seguia os Ajustes).
+        GfxRect anel = { cx - NV_ANEL_FOCO, cy - NV_ANEL_FOCO,
+                         VT_CARD_W + 2 * NV_ANEL_FOCO, VT_CARD_H + 2 * NV_ANEL_FOCO };
+        float ar, ag, ab; ajustes_acento(&ar, &ag, &ab);
+        if (ajustes_vidro()) gfx_vidro_cartao(r, ajustes_raio_poster_px() / VT_CARD_W, 1.0f, ac);
+        else gfx_cor(anel, (ajustes_raio_poster_px() + NV_ANEL_FOCO) / (VT_CARD_W + 2 * NV_ANEL_FOCO), ar, ag, ab, ac);
+      }
+      { const char *pp = posterprov_card_addon(it.origem, it.imdb, it.tmdb, it.tipo, it.poster);
+        arteCard = pp[0] ? pp : it.backdrop; }
+      t = arteCard[0] ? tex_obter_larg(arteCard, VT_CARD_W) : 0;
+      // Arte chegando esvanece sobre o esqueleto (revela.h), como na home.
+      aArte = i < VT_MAX ? revela_arte(&revArte[i], t != 0, agora) : 1.0f;
+      if (!t || aArte < 0.999f)
         // Esqueleto enquanto a arte nao chega — a mesma cor do resto do app.
         gfx_cor(r, raio, NV_COR_ESQUELETO_R, NV_COR_ESQUELETO_G,
-                NV_COR_ESQUELETO_B, a);
+                NV_COR_ESQUELETO_B, ac);
+      if (t) {
+        gfx_tex_aspect_atual = tex_aspecto(arteCard);
+        gfx_rect(r, t, GFX_CARD, sel ? 1.0f : 0.0f, 0, 0, raio, 0, 0, 0, ac * aArte);
+        gfx_tex_aspect_atual = 0.0f;
       } }
     { int c = sel ? 255 : 214;
       TxtLinha l = txt_linha_corta(TXT_DET_META2, it.titulo, c, c, c, 255,
                                    VT_CARD_W);
-      txt_desenhar_alpha(l, cx, cy + VT_CARD_H + 10.0f, a * (sel ? 1.0f : 0.86f)); }
+      txt_desenhar_alpha(l, cx, cy + VT_CARD_H + 10.0f, ac * (sel ? 1.0f : 0.86f)); }
     if(ranked) {
       char rank[8];snprintf(rank,sizeof rank,"%d",i+1);
       TxtLinha edge=txt_linha(TXT_RANK,rank,234,236,241,255),ink=txt_linha(TXT_RANK,rank,17,18,22,255);
       float x=cx-10,y=cy+VT_CARD_H-edge.h;
-      for(int dx=-2;dx<=2;dx+=2)for(int dy=-2;dy<=2;dy+=2)txt_desenhar_alpha(edge,x+dx,y+dy,a);
-      txt_desenhar_alpha(ink,x,y,a);
+      for(int dx=-2;dx<=2;dx+=2)for(int dy=-2;dy<=2;dy+=2)txt_desenhar_alpha(edge,x+dx,y+dy,ac);
+      txt_desenhar_alpha(ink,x,y,ac);
     }
   }
   if(!n&&desc_vertudo_carregando())for(int i=0;i<5;i++)

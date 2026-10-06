@@ -51,6 +51,10 @@ void desc_iniciar(void);
 // se um ciclo ja estiver no ar, o pedido fica guardado e roda ao fim dele, em
 // vez de ser descartado. Chamar do fio principal.
 void desc_repetir(void);
+// Igual a desc_repetir, mas a volta nao acende o alerta "Carregamento da Home"
+// da ilha: para o que a pessoa nao pediu (sync, remontagem interna). Se ja ha
+// uma volta visivel em curso ela continua visivel.
+void desc_repetir_silencioso(void);
 // Remonta porque a LISTA DE ADDONS mudou (sync). Mais barato que desc_repetir:
 // se a montagem em curso ainda nao leu a lista, ela ja vai ler a nova, e o
 // pedido e atendido por ela — sem jogar fora o Trakt que ela ja buscou. Se ja
@@ -60,9 +64,20 @@ void desc_repetir_addons(void);
 // #38). Fio proprio: remontar a fileira faz rede. Pedido repetido enquanto um
 // fio ja roda vira UMA rodada a mais no fim, nao uma fila.
 void desc_refazer_continuar(void);
+// 1 enquanto a home ainda esta sendo montada: a volta de catalogos no ar (ou
+// uma pedida para o fim dela) ou o "Continuar assistindo" sendo refeito. E o
+// que a troca de perfil espera antes de mostrar a home (app.c).
+int  desc_montando(void);
+// `ativo` aqui e so a volta VISIVEL (arranque ou pedida pela pessoa): o que
+// acende o alerta da ilha. O Continuar refeito e as voltas silenciosas nao.
+typedef struct { int ativo, fase, fileiras, falhas, addonsProntos, addonsTotal; unsigned ms; } DescHomeCarga;
+void desc_home_carga(DescHomeCarga *estado);
 // A metade LOCAL de "Tirar de Continuar assistindo": progresso, carimbo de
 // remocao e o card fora da fileira no mesmo quadro. Sem rede. Ver descoberta.c.
 int desc_tirar_continuar(const char *imdb, int temporada, int episodio);
+// O titulo que saiu do player no meio vai para a frente do "Continuar
+// assistindo" no mesmo quadro, sem rede (cwfrente.h). 1 = a fileira mudou.
+int desc_continuar_otimista(int indice);
 
 // Quantas fileiras A MAIS a home mostraria se o limite fosse ao maximo. 0
 // quando o limite nao esta cortando nada.
@@ -113,6 +128,12 @@ void desc_data_extenso(const char *iso, char *dst, size_t tam);
 // pacote guardam os generos em INGLES, e eles apareciam crus numa interface em
 // portugues. Genero fora da tabela sai como veio.
 const char *desc_genero_pt(const char *g);
+// Valores crus do TMDB/Trakt/Cinemeta que vao para a tela (ver descoberta.c).
+// desc_status_chave devolve a CHAVE em portugues (passe por i18n) ou NULL.
+const char *desc_status_chave(const char *raw, int serie);
+void desc_pais_txt(const char *lista, char *dst, size_t tam);
+void desc_duracao_min(int min, char *dst, size_t tam);
+void desc_duracao_txt(const char *cru, char *dst, size_t tam);
 
 // --- busca por titulo --------------------------------------------------------
 // Consulta o Cinemeta em filme e serie. NAO BLOQUEIA: dispara um fio e volta na
@@ -158,6 +179,10 @@ int  desc_busca_geracao(void);
 // Registro dos alvos, chamado pelo carregamento dos manifestos. `zerar` repoe
 // so o Cinemeta.
 void desc_alvos_busca_zerar(void);
+// A primeira volta espera os addons da conta em vez de montar a Home com a
+// lista vazia. `f` devolve 0 (nao espere: sem conta), 1 (espere: perfil ainda
+// nao escolhido) ou 2 (espere ate 10 s). Sem gancho, nao ha espera.
+void desc_espera_addons_definir(int (*f)(void));
 void desc_alvo_busca(const char *base, const char *tipo, const char *id,
                      const char *titulo, const char *addon);
 
@@ -216,6 +241,35 @@ int desc_episodios_carregando(int indiceItem);
 // devolve quantos episodios mudaram.
 int  desc_tmdb_notas_temporada(const char *json, CatEp *eps, int n,
                                int temporada);
+// O mesmo, escolhendo o que entra alem da nota (#176): DESC_EPT_SINOPSE,
+// DESC_EPT_NOME (nome traduzido; o generico "Episodio 3" nunca entra) e
+// DESC_EPT_SO_VAZIO (so preenche o que esta vazio, para nao pisar num texto que
+// veio do addon de metadados quando a pessoa o prefere).
+#define DESC_EPT_SINOPSE  1
+#define DESC_EPT_NOME     2
+#define DESC_EPT_SO_VAZIO 4
+int  desc_tmdb_notas_temporada_ex(const char *json, CatEp *eps, int n,
+                                  int temporada, int textos);
+// 1 quando `nome` e o rotulo sem traducao do TMDB ("Episode 3"). Pura.
+int  desc_nome_episodio_generico(const char *nome, int episodio);
+// Junta duas listas de episodios ORDENADAS por (temporada, episodio): para cada
+// episodio de `base` que `outro` tambem tem, `modo` DESC_MESCLA_TEXTO troca
+// nome e sinopse pelos do outro quando ele os tem; DESC_MESCLA_VAZIOS so
+// preenche o que a base nao tem (nome, sinopse, thumb, duracao). Pura.
+#define DESC_MESCLA_TEXTO  1
+#define DESC_MESCLA_VAZIOS 2
+void desc_mesclar_episodios(CatEp *base, int nb, const CatEp *outro, int no,
+                            int modo);
+// Localiza (titulo e sinopse) os itens de catalogo de indices `idx`, em fio
+// proprio e sem bloquear: fonte e o addon de metadados quando a pessoa o
+// prefere, ou o TMDB no idioma configurado (#176). Chamada barata e repetivel:
+// o que ja foi resolvido vem do cache.
+void desc_localizar_indices(const int *idx, int n);
+// Texto e arte localizados ja conhecidos (memoria + loc-texto.txt) aplicados ao
+// catalogo que veio do cache, sem rede (#213). Devolve quantos mudaram.
+int desc_localizar_catalogo_cache(void);
+// Esquece o texto localizado (memoria e arquivo). Logout.
+void desc_loc_apagar(void);
 // Casa o `cast` de /credits do TMDB com o elenco do item POR NOME (sem acento,
 // caixa nem pontuacao) e completa a lista com o resto do TMDB (#153). Pura;
 // devolve quantos nomes casaram.
@@ -225,6 +279,7 @@ int  desc_tmdb_elenco(const char *json, CatItem *d);
 int  desc_meta_tipos(const char *tipo, const char *saida[2]);
 void desc_meta_chave(char *dst, size_t n, const char *tipo, const char *id);
 int  desc_meta_tem_temporadas(const char *corpo);
+int  desc_meta_n_episodios(const char *corpo);
 
 // Busca o meta de um titulo que o catalogo NAO tem e o acrescenta ao fim.
 // Nao bloqueia. Serve ao credito de um ator e ao item de "Mais como este":
@@ -234,6 +289,9 @@ void desc_pedir_titulo(const char *imdb);
 // `tipo` e "movie" ou "tv". Resolve o IMDb por external_ids antes de pedir o
 // meta — uma chamada a mais, so quando o dono abre o credito.
 void desc_pedir_titulo_tmdb(long tmdbId, const char *tipo);
+// Abre JA, com o que o clique sabia (nome, ano, cartaz); a ficha chega depois.
+void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
+                               const char *titulo, const char *ano, const char *poster);
 // Indice do titulo que acabou de entrar, ou -1. CONSOME o resultado.
 int  desc_titulo_pronto(void);
 int  desc_titulo_buscando(void);

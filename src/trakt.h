@@ -47,9 +47,17 @@ int  trakt_cabecalhos(const char **cab, char *aut, size_t nAut,
 // pacote trazem chave — e ai quem chama esconde a secao em vez de tentar.
 int  trakt_cabecalhos_publicos(const char **cab, char *chave, size_t nChave);
 int  trakt_ativo(void);
+// Outros workers (extras) capturam ambas as geracoes antes da rede. Troca do
+// Trakt no mesmo perfil invalida resposta sem limpar provas da conta/local.
+unsigned long long trakt_credencial_geracao(void);
+int trakt_historico_aplicar(const char *imdb, const char *tipo, int visto,
+                            unsigned long long mapa, unsigned long long credencial);
 // 1 quando a ultima resposta do Trakt foi 401 para ESTE token. traktauth
 // observa isto para disparar a renovacao por refresh token.
 int  trakt_recusada(void);
+// Sessao confirmada morta: para os pedidos autenticados ate trakt_definir/esquecer.
+void trakt_sessao_morta(void);
+int  trakt_sessao_e_morta(void);
 
 // Credencial vinda da CONTA, no lugar do arquivo. O token sai de
 // sync_pull_provider_credentials (provider "trakt"); o clientId e do
@@ -106,6 +114,10 @@ int  trakt_perfil(PerfilDados *saida);
 // Ate agora o app so LIA o Trakt; sem isto, assistir aqui nao mexia no
 // "continue assistindo" dos outros aparelhos dele. Nao bloqueia: sai num fio.
 void trakt_marcar(const char *imdb, double posSeg, double durSeg);
+// Scrobble durante a reproducao (#179): /scrobble/start ("Now Watching") ao
+// tocar, /scrobble/pause ao pausar. `evento` e SCR_EV_* de traktscrobble.h.
+// Nao bloqueia; repeticoes (start ja em pe, pause sem start) sao descartadas.
+int  trakt_scrobble(int evento, const char *imdb, double posSeg, double durSeg);
 
 // Watchlist ("Minha Lista") e colecao ("Comprados") do dono. `qual` e
 // "watchlist" ou "collection". BLOQUEIA — chamar do fio de descoberta.
@@ -125,4 +137,13 @@ void trakt_watchlist(const char *imdb, int adicionar);
 // chegava ao Trakt.
 void trakt_assistido(const char *imdb, int marcar);
 
+// Le o corpo de /sync/watched/movies e marca cada filme como visto no
+// historico do catalogo (cat_visto). Devolve quantos entraram; -1 sem corpo,
+// sem array completo ou sem memoria, sem publicar parcialmente nesses casos.
+// O ciclo de trakt_continuar baixa TODAS as paginas antes de aplicar (#212).
+int trakt_ler_filmes_vistos(const char *corpo);
+
+// Nota de 1 a 10 em /sync/ratings (a reacao dos creditos, reacao.c). Nao
+// bloqueia; 0 quando o Trakt esta desligado ou o id nao e IMDb.
+int trakt_avaliar(const char *imdb, const char *tipo, int nota);
 #endif

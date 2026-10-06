@@ -1,0 +1,138 @@
+// The actual production source sheet with only platform boundaries stubbed.
+// No SDL initialization, drawing, network request, resolver or TV benchmark.
+#include "streams.h"
+static uint64_t fakeNow = UINT64_C(1700000000000);
+static uint64_t fixtureNow(void) { return fakeNow; }
+#define streamfit_agora_ms fixtureNow
+#define STREAMFIT_REDE_EXISTE 1 // Android behaviour; LG/TPK/WGT hide the no-network line
+#include "../src/streams.c"
+#undef streamfit_agora_ms
+#include <assert.h>
+static int streamfitpassiva_test_ok(int v) { return v; }
+
+Uint32 SDL_GetTicks(void) { return (Uint32)fakeNow; }
+float gfx_escala_ui(void) { return 1; }
+const char *i18n(const char *s) { return s; }
+int debrid_ativo(void) { return 0; }
+int p2p_ativo(void) { return 0; }
+int selospacote_ativo(void) { return -1; }
+unsigned selospacote_versao(void) { return 1; }
+int selospacote_casar(const char *const *p,int n,unsigned short *o,int m) { (void)p;(void)n;(void)o;(void)m;return 0; }
+const char *ajustes_qualidade(void) { return "Automatica"; }
+int ajustes_fonte_texto_addon(void) { return 0; }
+int video_pode_forcar_sdr(void) { return 0; }
+void video_forcar_sdr(void) {}
+int player_aberto(void) { return 0; }
+void plrui_decimal(char *s) { (void)s; }
+static char lastLookup[64]; static int lookups; static double lookupValue;
+static double catalogRuntime(const char *alvo) {
+  snprintf(lastLookup,sizeof lastLookup,"%s",alvo); lookups++;
+  return !strcmp(alvo,"tt3") ? lookupValue : 0; // answers only for its own id
+}
+void ondever_apps_atualizar(void) {}
+int ondever_n(const char *id) { (void)id;return 2; }
+int ondever_item(const char *id,int ix,OndeVer *o) { (void)id;(void)ix;(void)o;return 0; }
+int ondever_abrir(const char *nome) { (void)nome;return ONDE_INFO; }
+TxtLinha txt_linha(TxtEstilo estilo,const char *s,int r,int g,int b,int a) {
+  (void)estilo;(void)r;(void)g;(void)b;(void)a;TxtLinha l={0};l.w=(int)strlen(s)*8;return l;
+}
+static Stream source(int id,long mb,uint64_t exact,int h) {
+  Stream s={0};s.altura=h;s.mp4=1;s.fileIdx=-1;s.tamanhoMB=mb;s.tamanhoBytes=exact;
+  snprintf(s.url,sizeof s.url,"https://media.invalid/%d.mp4",id);
+  snprintf(s.provedor,sizeof s.provedor,"Addon");snprintf(s.rotulo,sizeof s.rotulo,"Source %d",id);
+  snprintf(s.arquivo,sizeof s.arquivo,"file-%d.mp4",id);return s;
+}
+static uint64_t sizeAt(int kbps) { return (uint64_t)kbps*1000*7200/8; }
+static void expect(const int *expected,int count) {
+  assert(nOrdem==count);for(int i=0;i<count;i++) assert(ordem[i]==expected[i]);
+}
+int main(void) {
+  Stream sources[5]={source(0,50000,sizeAt(50000),2160),source(1,10000,sizeAt(10000),2160),
+    source(2,10000,sizeAt(10000),2160),source(3,70000,0,2160),source(4,80000,sizeAt(50000),1080)};
+  int speed[8]={20000,20000,20000,20000,20000,20000,20000,20000};
+  streamfit_limpar();stream_definir_alvo("tt1");stream_fit_duracao("tt1",7200,SF_DUR_METADATA);
+  stream_definir_lista(sources,5);stream_folha_abrir();
+  const int original[]={0,3,1,2,4};expect(original,5);
+  assert(stream_fit_folha_estado(0,NULL)==SF_DESCONHECIDA);
+  streamfit_rede(1);assert(streamfit_diagnostico(1,"https://media.invalid/probe",speed,8,fakeNow)==8);
+  montar(automaticaDaFolha());expect(original,5); // open sheet freezes unknown
+  stream_folha_abrir();const int learned[]={3,1,2,0,4};expect(learned,5);
+  assert(stream_fit_folha_estado(0,NULL)==SF_PESADA && stream_fit_folha_estado(3,NULL)==SF_DESCONHECIDA);
+  assert(stream_n()==5 && stream_folha_n()==5 && stream_automatico()==0); // raw autoplay policy unchanged
+  int focused=2;foco=linhaDe(focused);grupo=1;
+  fakeNow++;int faster[8]={200000,200000,200000,200000,200000,200000,200000,200000};
+  assert(streamfit_diagnostico(1,"https://media.invalid/probe",faster,8,fakeNow)==8);
+  stream_fit_duracao("tt1",14400,SF_DUR_MEDIA); // cannot mutate an open sheet
+  montar(automaticaDaFolha());expect(learned,5);assert(filtrado(foco)==focused);
+  Stream late=source(5,20000,sizeAt(40000),2160);
+  stream_lista_acrescentar(&late,1,0);
+  stream_folha_atualizar(.016f,0);
+  const int incremental[]={3,1,2,0,5,4};expect(incremental,6);
+  assert(filtrado(foco)==focused && stream_fit_folha_estado(5,NULL)==SF_PESADA);
+  // A service tab never enters the source partition or source-index space.
+  filtro=-1;montar(automaticaDaFolha());const int services[]={-2,-3};expect(services,2);
+  filtro=0;montar(automaticaDaFolha());expect(incremental,6);
+  // Complete-list replacement keeps focus identity and uses the same photo.
+  stream_atualizar_lista(sources,5);assert(filtrado(foco)==focused);expect(learned,5);
+  stream_folha_abrir();assert(stream_fit_folha_estado(0,NULL)==SF_ADEQUADA);
+  // Real media duration has precedence over delayed metadata.
+  stream_fit_duracao("tt1",1,SF_DUR_METADATA);stream_folha_abrir();assert(fitFotoSeg==14400);
+  stream_definir_alvo("tt2:1:1");stream_definir_lista(sources,5);stream_folha_abrir();
+  assert(stream_fit_folha_estado(0,NULL)==SF_DESCONHECIDA); // episode has no runtime
+  stream_fit_duracao("tt2:1:1",NAN,SF_DUR_MEDIA);stream_folha_abrir();assert(fitFotoSeg==0);
+  streamfit_rede(2);stream_folha_abrir();assert(stream_fit_folha_estado(0,NULL)==SF_DESCONHECIDA);
+  // --- F03 runtime provenance per exact target ------------------------------
+  streamfit_rede(3);int pspeed[8]={8000,8000,8000,8000,8000,8000,8000,8000};
+  assert(streamfitpassiva_test_ok(streamfit_passiva(3,"https://media.invalid",pspeed,8,fakeNow)==8));
+  stream_fit_fonte_metadados(catalogRuntime);
+  // Catalog lookup is asked for the EXACT target and only when nothing was pushed.
+  lookupValue=7200;stream_definir_alvo("tt3");stream_definir_lista(sources,5);stream_folha_abrir();
+  assert(!strcmp(lastLookup,"tt3") && fitFotoSeg==7200 && fitFotoOrigem==SF_DUR_METADATA);
+  stream_definir_alvo("tt3:1:2");stream_definir_lista(sources,5);stream_folha_abrir();
+  assert(!strcmp(lastLookup,"tt3:1:2") && fitFotoSeg==0); // episode never borrows the title's
+  // Pushed metadata (TMDB sheet) beats the catalog; media beats both; the
+  // producers of different targets do not evict each other.
+  stream_definir_alvo("tt3");stream_fit_duracao("tt3",6000,SF_DUR_METADATA);
+  stream_fit_duracao("tt9",5400,SF_DUR_METADATA);
+  int before=lookups;stream_definir_lista(sources,5);stream_folha_abrir();
+  assert(fitFotoSeg==6000 && lookups==before);
+  stream_fit_duracao("tt3",6600,SF_DUR_MEDIA);stream_fit_duracao("tt3",9000,SF_DUR_METADATA);
+  stream_folha_abrir();assert(fitFotoSeg==6600 && fitFotoOrigem==SF_DUR_MEDIA);
+  // A new file clears ONLY the media duration; metadata of the target stays.
+  stream_fit_duracao("tt3",0,SF_DUR_MEDIA);stream_folha_abrir();assert(fitFotoSeg==9000);
+  stream_fit_duracao("tt3",0,SF_DUR_DESCONHECIDA);lookupValue=0;stream_folha_abrir();
+  assert(fitFotoSeg==0 && fitFotoOrigem==SF_DUR_DESCONHECIDA);
+  stream_definir_alvo("tt9");stream_definir_lista(sources,5);stream_folha_abrir();assert(fitFotoSeg==5400);
+  for(int k=0;k<20;k++){char id[16];snprintf(id,sizeof id,"tt%d",100+k);stream_fit_duracao(id,3000,SF_DUR_METADATA);}
+  stream_folha_abrir();assert(fitFotoSeg==0); // bounded store: the oldest target is evicted, never mixed
+  // --- F03 sheet text: origin, age, sustained, budget vs demand; explicit unknown
+  stream_definir_alvo("tt3");stream_fit_duracao("tt3",3600,SF_DUR_MEDIA);
+  Stream fitSources[3]={source(10,1000,(uint64_t)5000*1000*3600/8,1080),source(11,1000,(uint64_t)7000*1000*3600/8,1080),source(12,1000,0,1080)};
+  snprintf(fitSources[2].url,sizeof fitSources[2].url,"https://resolver.invalid/resolve/x");fitSources[2].tamanhoBytes=1000000;
+  fakeNow+=5*60000;stream_definir_lista(fitSources,3);stream_folha_abrir();
+  char txt[256];
+  assert(fitTexto(0,txt,sizeof txt)==SF_ADEQUADA);
+  assert(!strcmp(txt,"Reprodução recente · há 5 min · 8.0 Mbps sustentados · precisa ~5.0 de 6.0 Mbps disponíveis"));
+  assert(fitTexto(1,txt,sizeof txt)==SF_PESADA && fitPesada(1) && !fitPesada(0));
+  assert(fitTexto(2,txt,sizeof txt)==SF_DESCONHECIDA && !strcmp(txt,"Conexão: servidor ainda não medido"));
+  // Heavy rows keep their place inside the group (moved after the adequate/unknown).
+  { int seen0=linhaDe(0),seen1=linhaDe(1),seen2=linhaDe(2); assert(seen0>=0 && seen2>=0 && seen1>seen0 && seen1>seen2); }
+  // The focused row opens the connection line even when there is no file name.
+  { int r=linhaDe(2); lista[2].arquivo[0]=0; assert(!arquivoDa(&lista[2])[0]);
+    foco=r; grupo=1; abreFoco=1; nOrdem=r; float h=alturaLinha(2,-1);
+    assert(h>=FOLHA_LINHA_H+FOLHA_FIT_H-.01f); nOrdem=r+1; float o=alturaLinha(2,-1);
+    assert(o<FOLHA_LINHA_H+FOLHA_MARCA_H+.01f); montar(automaticaDaFolha()); }
+  stream_fit_duracao("tt3",0,SF_DUR_DESCONHECIDA);stream_folha_abrir();
+  assert(fitTexto(0,txt,sizeof txt)==SF_DESCONHECIDA && !strcmp(txt,"Conexão: duração do título desconhecida"));
+  fitSources[0].tamanhoBytes=0;stream_definir_lista(fitSources,3);stream_fit_duracao("tt3",3600,SF_DUR_MEDIA);stream_folha_abrir();
+  assert(fitTexto(0,txt,sizeof txt)==SF_DESCONHECIDA && !strcmp(txt,"Conexão: tamanho do arquivo não informado"));
+  streamfit_rede(0);stream_folha_abrir();
+  assert(fitTexto(1,txt,sizeof txt)==SF_DESCONHECIDA && !strcmp(txt,"Conexão: sem dados desta rede"));
+  stream_fit_fonte_metadados(NULL);
+  // The separate PRIMEIRA queue keeps the add-on's order and one probe.
+  long points[3]={1,99,99};int queue[3];unsigned char excluded[3]={0};
+  assert(fonteauto_fila(FONTEAUTO_PRIMEIRA,3,-1,points,NULL,excluded,3,queue)==3);
+  assert(queue[0]==0 && queue[1]==1 && queue[2]==2 && fonteauto_tentativas(FONTEAUTO_PRIMEIRA,9)==1);
+  stream_definir_lista(NULL,0);free(ordem);free(linhaY);free(linhaH);free(grupoTmp);free(grupoFitTmp);free(fitResultados);free(fitClasses);
+  puts("streamfit sheet: PASS (stable groups, raw identities, freeze, incremental/focus, OndeVer, first-source)");return 0;
+}

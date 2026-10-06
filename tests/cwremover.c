@@ -24,6 +24,7 @@
 // o caso de um primeiro arranque — a remocao e o que este teste cobra.
 #include "../src/homeestado.h"
 unsigned homeestado_geracao(void) { return 1; }
+unsigned recomenda_geracao(void) { return 1; }
 int homeestado_contexto_valido(void) { return 0; }
 int homeestado_tem_fileira(const char *chave) { (void)chave; return 0; }
 int homeestado_ordem_fileira(const char *chave) { (void)chave; return -1; }
@@ -32,16 +33,22 @@ int homeestado_identidade_geracao(unsigned g, char *dono, unsigned tamDono, int 
   (void)g; if (dono && tamDono) dono[0] = 0; if (perfil) *perfil = 0; return 0; }
 int arte_reserva_episodios(const char *imdb, const char *corpo) { (void)imdb; (void)corpo; return 0; }
 
+int ajustes_busca_cinemeta(void) { return 1; }
 #include "../src/descoberta.c"
+Uint32 SDL_GetTicks(void) { return 0; }
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "jellyfin_stub.inc"
 
 // --- DUBLES: so fazem descoberta.c linkar (o conjunto de tests/cateps.c) -----
 int         ajustes_idioma_ingles(void) { return 0; }
+int ajustes_idioma(void) { return 0; }
 int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_concluido(void)           { return 90; }  // Percentual assistido de fabrica
 int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
 const char *i18n(const char *s)         { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 const char *dados_dir(void)             { return ""; }
 const char *sessao_usuario(void)        { return ""; }
 int         perfis_ativo(void)          { return 1; }
@@ -52,6 +59,11 @@ void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
 int   ajustes_cw_fonte(void)               { return 0; }   // AJ_CWF_AMBAS
 int   ajustes_tmdb_ligado(void)            { return 0; }
 int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
 int   ajustes_tmdb_arte(void)              { return 0; }
 int   ajustes_tmdb_elenco(void)            { return 0; }
 int   ajustes_tmdb_cw(void)                { return 0; }
@@ -69,6 +81,7 @@ int   fil_oculta(const char *c)            { (void)c; return 0; }
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
 // catalogos fora da cota nao interessa a este teste.
 int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
 void fil_registrar_se_couber(const char *c, const char *t, const char *a,
                              const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
 void  fil_registrar(const char *c, const char *t, const char *a,
@@ -92,8 +105,15 @@ int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; return n; }
 int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
+// O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 int   trakt_e_a_seguir(const char *id)     { (void)id; return 0; }
+// "A seguir" da conta (#199): sem vistos aqui, e com o Trakt "no ar" o caminho
+// nem roda. So para linkar.
+int   trakt_ativo(void)                    { return 1; }
+int   ajustes_cw_do_episodio_mais_alto(void) { return 1; }
+int   contalib_sementes_a_seguir(ContaSemente *s, int m, int a) { (void)s; (void)m; (void)a; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   addons_n(void)                       { return 0; }
 const char *addons_base(int i)             { (void)i; return ""; }
@@ -111,10 +131,11 @@ int   arte_reserva_registrar(const char *url, const char *imdb, int poster) {
 // --- O "TRAKT" FALSO ---------------------------------------------------------
 // /sync/playback: tres filmes pausados. O teste mexe no paused_at de tt2.
 static long long pausadoTt2 = 900000;
+static int nFalsos = 3;   // o 6. teste (#205) acrescenta tt4 no meio de uma montagem
 int trakt_continuar(CatItem *s, int m) {
-  static const char *ids[3] = { "tt1", "tt2", "tt3" };
+  static const char *ids[4] = { "tt1", "tt2", "tt3", "tt4" };
   int i;
-  for (i = 0; i < 3 && i < m; i++) {
+  for (i = 0; i < nFalsos && i < m; i++) {
     memset(&s[i], 0, sizeof s[i]);
     snprintf(s[i].imdb, sizeof s[i].imdb, "%s", ids[i]);
     snprintf(s[i].titulo, sizeof s[i].titulo, "Filme %s", ids[i]);
@@ -260,6 +281,41 @@ int main(void) {
   assert(naContinuar("tt3"));
   conferirLista();
   puts("ok  registro local mais novo que a remocao traz de volta");
+
+  // 6. A REFACAO DO MEIO DA MONTAGEM FICA (#205). montar() calcula a fileira
+  //    no comeco e publica segundos depois; no meio, o sync trouxe tt4 e a
+  //    refacao o publicou. A publicacao de montar() nao pode devolver a
+  //    lista velha (na Q80A: 5 "a seguir" viravam 1 ate a refacao seguinte).
+  { CatItem lote[CONT_MAX + 2]; CatFileira fs[2]; int nc;
+    agora = 1003000;
+    nc = montarContinuar(lote, CONT_MAX);   // como montar(): o lote velho
+    cwGerMontar = cwGer;
+    assert(nc == 3);
+    memset(&lote[nc], 0, sizeof lote[0] * 2);
+    snprintf(lote[nc].imdb, sizeof lote[nc].imdb, "tt90");
+    snprintf(lote[nc + 1].imdb, sizeof lote[nc + 1].imdb, "tt91");
+    memset(fs, 0, sizeof fs);
+    snprintf(fs[0].chave, sizeof fs[0].chave, "continue_watching"); fs[0].n = nc;
+    snprintf(fs[1].chave, sizeof fs[1].chave, "lista"); fs[1].ini = nc; fs[1].n = 2;
+    nFalsos = 4;
+    fioContinuar(NULL);                     // a refacao do meio
+    assert(nContinuar() == 4 && naContinuar("tt4"));
+    publicarMontagem(lote, nc + 2, fs, 2);  // o fim de montar(), lote velho
+    assert(nContinuar() == 4 && naContinuar("tt4"));
+    conferirLista();
+    // E SEM REFACAO NO MEIO a lista de montar() vale: o ciclo novo calculou
+    // depois da ultima refacao, entao ele e o mais novo.
+    nFalsos = 3;
+    nc = montarContinuar(lote, CONT_MAX);
+    cwGerMontar = cwGer;
+    memset(&lote[nc], 0, sizeof lote[0] * 2);
+    snprintf(lote[nc].imdb, sizeof lote[nc].imdb, "tt90");
+    snprintf(lote[nc + 1].imdb, sizeof lote[nc + 1].imdb, "tt91");
+    fs[0].n = nc; fs[1].ini = nc;
+    publicarMontagem(lote, nc + 2, fs, 2);
+    assert(nContinuar() == 3 && !naContinuar("tt4"));
+    conferirLista(); }
+  puts("ok  refacao feita no meio da montagem nao e coberta pela publicacao do fim");
 
   puts("cwremover: tudo ok");
   return 0;

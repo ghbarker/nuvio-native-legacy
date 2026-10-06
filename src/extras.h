@@ -27,9 +27,15 @@ int  extras_votos_trakt(void);
 // metaDetailsScreen.js:3410). Todas menos IMDb e Trakt vem do mdbList, que
 // precisa da chave do dono em art/mdblist.txt; sem o arquivo elas ficam em 0 e
 // a fileira mostra so as duas que temos por conta propria.
+//
+// As quatro ultimas (usuarios do Metacritic, MyAnimeList, Roger Ebert e a nota
+// agregada do MDBList) so sao pedidas quando a pessoa as liga na linha do
+// titulo (ajustes_nota_titulo): cada fonte e um POST a mais, e ninguem paga
+// quatro viagens por algo que nao vai ver. No FIM do enum de proposito — o
+// indice e o do vetor de notas e o das marcas.
 typedef enum {
   EX_TRAKT, EX_IMDB, EX_TMDB, EX_TOMATOES, EX_AUDIENCE, EX_METACRITIC,
-  EX_LETTERBOXD, EX_NFONTES
+  EX_LETTERBOXD, EX_METAUSER, EX_MAL, EX_EBERT, EX_MDBSCORE, EX_NFONTES
 } ExFonte;
 
 // Le art/mdblist.txt. Sem ele o modulo funciona com Trakt e IMDb apenas.
@@ -65,6 +71,9 @@ int  extras_comentario_curtidas(int i);
 // Nota de QUEM COMENTOU (user_rating do Trakt), 0..10; 0 quando nao avaliou.
 // A referencia mostra "10/10  17 curtidas" no rodape do cartao.
 int  extras_comentario_nota(int i);
+// Idioma do comentario ("en") quando difere do da interface; "" caso contrario.
+const char *extras_comentario_lingua(int i);
+const char *extras_comentario_ep_lingua(int i);
 
 // COMENTARIOS DO EPISODIO, para o seletor "Série | Episódio" que a referencia
 // mostra acima dos cartoes.
@@ -119,6 +128,16 @@ int  extras_n_colecao(void);
 const char *extras_colecao_titulo(int i);
 const char *extras_colecao_ano(int i);
 long extras_colecao_tmdb(int i);
+// Arte e texto da colecao, para o mini card da pagina e a lista da saga. As
+// partes ja vem na ORDEM DA SAGA (data de lancamento; sem data no fim). URLs
+// absolutas do image.tmdb.org (poster w342, fundo w780), "" quando nao ha.
+// Nota da parte em DECIMOS (71 = 7.1), 0 = sem nota.
+const char *extras_colecao_capa(void);
+const char *extras_colecao_fundo(void);
+const char *extras_colecao_sinopse(void);
+const char *extras_colecao_poster(int i);
+const char *extras_colecao_sinopse_parte(int i);
+int  extras_colecao_nota(int i);
 
 // PRODUTORAS E REDES, para a fileira de logos da pagina de detalhe — no web e
 // o renderCompanySections ("Production"/"Network"). Vem do corpo principal
@@ -227,5 +246,9 @@ const char *extras_relacionado_imdb(int i);
 // Poster do relacionado (URL). Vem de `extended=images` do Trakt, que devolve o
 // caminho sem esquema — o https e acrescentado aqui.
 const char *extras_relacionado_poster(int i);
+#ifdef NV_SHOT_HOOKS
+void extras_shot_relacionados(const char *const *titulo, const char *const *ano,
+                              const char *const *poster, int n);
+#endif
 
 #endif

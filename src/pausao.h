@@ -60,10 +60,12 @@ enum { PAUSAO_LIVRE = 0,     // nao consumiu: trate a tecla normalmente
 
 // Uma vez por quadro, ANTES do desenho. `podeSubir` e a traducao de
 // canShowPauseOverlay (:7299) e quem a monta e o player, que e o unico que sabe
-// quais folhas estao abertas. `idx` e o item do catalogo em reproducao e
-// `linhaEp` a linha "T1 · E4 · Nome" que o player ja monta (vazia num filme).
+// quais folhas estao abertas. `idx` e o item do catalogo em reproducao, `imdb`
+// o id DELE (#190: o desenho confere que o indice ainda e aquele titulo, porque
+// o catalogo pode ser trocado entre este quadro e o desenho) e `linhaEp` a
+// linha "T1 · E4 · Nome" que o player ja monta (vazia num filme).
 void pausao_atualizar(float dt, Uint32 agora, int podeSubir, int idx,
-                      const char *linhaEp);
+                      const char *imdb, const char *linhaEp);
 
 // 1 do quadro em que o painel aparece ate o quadro em que some por completo.
 int  pausao_visivel(void);
@@ -71,19 +73,34 @@ int  pausao_visivel(void);
 // So chame com o painel de pe. Ver o enum acima.
 int  pausao_evento(const SDL_Event *e);
 
-// `baseY` e a linha ACIMA da qual o painel tem de caber inteiro — na pratica o
-// topo do que o player ja desenha (titulo e barra de progresso). O painel e
-// medido e ancorado por essa base, e nao por um y fixo: com um y fixo ele
-// brigava com a barra de tempo, que foi o defeito relatado. Os controles NAO
-// somem mais quando ele sobe; os dois convivem, empilhados.
-void pausao_desenhar(Uint32 agora, float baseY);
+// O que o player sabe e o painel nao: onde o filme parou e a cor de destaque
+// do player (ja com o contraste tratado por corFocoPlayer). `dur` <= 0 tira a
+// barra e o "termina as".
+typedef struct { float pos, dur; float fr, fg, fb; } PausaoCena;
 
-// Folga entre a base do painel e a barra de progresso. Sem ela o cartao encosta
-// no trilho e os dois leem como uma coisa so.
-#define PAUSAO_FOLGA 28.0f
+// O painel e uma CAMADA DE TELA CHEIA (1920x1080 em unidades de layout, seja
+// qual for o drawable): veu de ponta a ponta, selo "Pausado" e relogio no alto,
+// a ficha ancorada na margem inferior e, embaixo dela, a barra de onde o filme
+// parou (trilho de 4 px na margem do conteudo, o tempo na ponta direita). O quadro continua visivel por tras — so escurecido.
+//
+// HISTORICO: ate a 1.5.2 ele era uma faixa ancorada por `baseY` (o topo do que
+// o player ja desenhava), com veu so do topo do texto para baixo e texto em
+// 1160 de largura. O dono relatou: "quando o player ta parado, as infos que
+// mostra com o overlay nao pegam a tela inteira". Como os controles saem de
+// cena enquanto o painel esta de pe, ele nao precisa mais se esquivar deles.
+void pausao_desenhar(Uint32 agora, const PausaoCena *cena);
+
+// O selo "Pausado" do alto do painel, para quem mais mostra pausa (o OSD do
+// canal ao vivo). `direita` = 1 ancora pela borda direita em `x`. Devolve a
+// largura.
+#define PAUSAO_SELO_H 56.0f
+float pausao_selo(float x, float y, int direita, float a);
 
 // Fim da reproducao: zera o relogio e o painel. Sem isto o proximo filme
 // abriria com o cronometro do anterior ja meio andado.
 void pausao_fechar(void);
+// O item que o painel desenharia agora, ja conferido pelo titulo (-1 = nenhum).
+// Para teste (#190).
+int  pausao_indice(void);
 
 #endif

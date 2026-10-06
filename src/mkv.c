@@ -1,5 +1,6 @@
 #include "mkv.h"
 #include "rede.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -66,8 +67,12 @@ static long lerTam(const unsigned char *p, long resta, int *usou) {
   return (long)v;
 }
 
-static unsigned long lerUint(const unsigned char *p, long n) {
-  unsigned long v = 0;
+// 64 BITS DE PROPOSITO (unsigned long tem 32 na TV ARM de 32 bits). O
+// ChapterTimeStart vem em NANOSSEGUNDOS: 7405 s sao 7,4e12, e em 32 bits o
+// valor dava a volta a cada 4,29 s. Era o "creditos nomeados em 0s, ultimo
+// \"End Credits\" em 0s" do log da C9 (capitulo final de um filme de 7712 s).
+static uint64_t lerUint(const unsigned char *p, long n) {
+  uint64_t v = 0;
   long i;
   if (n < 1 || n > 8) return 0;
   for (i = 0; i < n; i++) v = (v << 8) | p[i];
@@ -94,6 +99,9 @@ static void lerTexto(const unsigned char *p, long n, char *dst, size_t tam) {
 #define ID_LANG_BCP47  0x22B59DUL     // LanguageBCP47 ("pt-BR"), mais novo
 #define ID_NAME        0x536EUL
 #define ID_CODECID     0x86UL
+#define ID_FLAGFORCED  0x55AAUL      // FlagForced: faixa so de letreiros/falas estrangeiras
+#define ID_AUDIO       0xE1UL        // Audio (mestre dentro da TrackEntry)
+#define ID_CHANNELS    0x9FUL        // Audio > Channels
 
 // Le os TrackEntry de dentro de um Tracks ja localizado.
 static int lerTracks(const unsigned char *p, long n, MkvFaixa *saida, int max) {
@@ -131,7 +139,24 @@ static int lerTracks(const unsigned char *p, long n, MkvFaixa *saida, int max) {
               lerTexto(v, ftam, f.idioma, sizeof f.idioma);
           }
           else if (fid == ID_NAME)    lerTexto(v, ftam, f.nome,  sizeof f.nome);
-          else if (fid == ID_CODECID) lerTexto(v, ftam, f.codec, sizeof f.codec); }
+          else if (fid == ID_CODECID) lerTexto(v, ftam, f.codec, sizeof f.codec);
+          else if (fid == ID_FLAGFORCED) f.forcado = lerUint(v, ftam) != 0;
+          // Channels mora um nivel abaixo, em Audio. O .tpk nao tem outra
+          // fonte para "5.1" (o Tizen.Multimedia.Player so da o idioma, #206).
+          else if (fid == ID_AUDIO) {
+            long r = 0;
+            while (r < ftam) {
+              int ai = 0, at = 0;
+              unsigned long aid = lerId(v + r, ftam - r, &ai);
+              long atam;
+              if (!aid) break;
+              atam = lerTam(v + r + ai, ftam - r - ai, &at);
+              if (atam < 0 || r + ai + at + atam > ftam) break;
+              r += ai + at;
+              if (aid == ID_CHANNELS) f.canais = (int)lerUint(v + r, atam);
+              r += atam;
+            }
+          } }
         q += ftam;
       }
       if (f.numero > 0) saida[achou++] = f;

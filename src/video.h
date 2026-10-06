@@ -34,6 +34,13 @@ int  video_registro_negado(void);
 // o transporte sai do prefixo da URL, e mandar o campo faz o load aceitar,
 // devolver mediaId e nunca buscar o arquivo — falha silenciosa.
 int  video_tocar(const char *url);
+#ifdef NV_ANDROID
+// Posicao absoluta em segundos, zero = inicio/default. O Kotlin configura o
+// MediaItem antes de prepare; o ack e da geracao desta abertura. Estado:
+// 0 aguardando, 1 aceito, -1 abertura normal (seek tardio como fallback).
+int  video_tocar_posicao(const char *url, double segundos);
+int  video_retomada_inicial_estado(void);
+#endif
 
 // Chamar UMA VEZ POR QUADRO. Hoje serve ao prazo do recuo de Dolby Vision
 // (ver o comentario em video.c): sem esta batida, um arquivo que a TV recusa
@@ -78,6 +85,10 @@ int  video_recorte_fonte(void);
 // o trailer (trailer.c): o pipeline prende o plano em mais de um ponto depois
 // do load e pode engolir um recorte pedido cedo.
 void video_recorte_reaplicar(void);
+// Tamanho da superficie (drawable) em que o destino do plano de video e lido; o
+// layout e 1920x1080 e o retangulo e escalado por isso (issue #176). Chamar uma
+// vez, depois de criar a janela. Ver video_escala.h.
+void video_escala_definir(int sw, int sh);
 
 // URL da reproducao corrente ("" quando nao ha). Existe para a folha de
 // faixas mandar o mkvass.c ler a legenda ASS de dentro do MESMO arquivo que
@@ -124,12 +135,55 @@ void video_definir_cabecalhos(const char *cabs);
 // transmitindo, e num MP4 ela e trabalho garantidamente perdido — o proprio
 // log dizia "nenhuma faixa lida" toda vez.
 void video_definir_mp4(int ehMp4);
+// RECONEXAO quando a rede cai no meio da reproducao (video_reconexao.h). Chamar
+// ANTES de video_tocar, como video_definir_dv; vale so para a proxima fonte
+// (video_tocar consome). Quem nao pede — trailer, canal ao vivo, que tem o
+// watchdog proprio em app.c — segue caindo em video_falhou na hora.
+void video_definir_reconexao(int sim);
+// MODO DO LOAD para o PROXIMO video_tocar (#158, LG C4: dado chega, VDEC
+// concedido, decoder nunca anuncia). 0 = o de sempre; 1 = sem o selectTrack
+// de video logo depois do load; 2 = o 1 e mais o payload enxuto de live
+// (mediaTransportType HLS/URI, sem useSeekableRanges/bufferControl). Vale UMA
+// vez (video_modo_live_consumir zera); so a webOS le. Ver video_modo.c.
+void video_definir_modo_live(int modo);
+int  video_modo_live_consumir(void);
+// Numero da tentativa (1..3) enquanto uma queda esta em curso, esperando ou
+// recarregando; 0 fora disso. Enquanto nao e 0, video_falhou fica em 0.
+int    video_reconectando(void);
 int    video_tocando(void);
+// Pausa comprovada pelo backend da sessao atual, nao a intencao local de
+// video_pausar. Alvos sem confirmacao confiavel devolvem 0.
+int    video_pausa_confirmada(void);
 int    video_pronto(void);   // 1 depois do loadCompleted
 int    video_ativo(void);    // 1 assim que ha mediaId — e o que abre o furo
 int    video_falhou(void);   // 1 depois de um errorText real na fonte atual
+// O ULTIMO ERRO REAL do pipeline na fonte atual, como o pipeline o disse
+// ("40403 server error:40403", "100 Playing error"); "" sem erro. Existe para
+// o cartao de erro do canal dizer o que o servidor respondeu em vez do
+// generico (#158). Vale ate o proximo video_tocar/video_parar.
+const char *video_erro_texto(void);
+// 1 depois que o decoder se anunciou (videoInfo do uMS) na fonte atual. Existe
+// para o watchdog de canal separar "abre devagar" de "chega dado e o decoder
+// nunca comeca" — o sintoma do #158, com bufferRange subindo e nenhum
+// videoInfo. Onde a plataforma nao da o sinal (Tizen), 1: nao afirma nada.
+int video_decoder_anunciou(void);
 int    video_audio_nao_suportado(void);  // uMS errorCode 200: video segue sem som
 int    video_terminou(void); // 1 depois do fim de fluxo (endOfStream) da fonte atual
+// 1 depois que OUTRO app tomou o video da TV nesta sessao (so o .tpk sabe:
+// "interrompido: ResourceConflict" do host). Pegajoso ate o fim da sessao.
+int    video_conflito_recurso(void);
+#ifdef NV_TPK
+void   video_tpk_log_host(const char *linha);   // tpk.c repassa cada linha do host
+// Zoom/recorte do plano de video (ROI), experimental (#241): liga/desliga em
+// execucao; o padrao e NV_TPK_ZOOM_ROI (0). Loga "[trailer] tpk zoom ROI: ...".
+void   video_tpk_zoom_roi_definir(int ligado);
+int    video_tpk_zoom_roi(void);
+// trailer.c marca que o que toca agora e um trailer (so ele pode ter ROI fora da tela).
+void   video_tpk_trailer_marcar(int sim);
+int    video_recorte_fonte_trailer(void);   // so o trailer: o ajuste em execucao
+#else
+static inline int video_recorte_fonte_trailer(void) { return video_recorte_fonte(); }
+#endif
 
 // --- faixas -----------------------------------------------------------------
 // Tudo isto sai do evento sourceInfo da assinatura do uMS: o addon nao informa
@@ -149,6 +203,9 @@ typedef struct {
   // cabecalho do MKV; vazio fora de MKV. A folha de faixas marca a legenda
   // ASS com isto (#92): e a faixa que o pipeline da TV desenha mal.
   char codec[24];
+  // Faixa so de LETREIROS ("Signs", "Songs", "Signs & Songs", FlagForced): nao
+  // traduz o dialogo. A folha rotula como tal e lista por ultimo.
+  int  letreiro;
 } VideoFaixa;
 
 int  video_n_audio(void);
@@ -204,6 +261,7 @@ typedef struct {
   int atrasoMs;   // negativo adianta
   int opacidade;  // 0..3 = texto 100/75/50/25%
   int familia;    // TxtFamilia; aplicada ao overlay externo (OpenSubtitles)
+  int negrito;    // 1 = peso negrito no overlay (so o que o app desenha)
 } VideoLegendaEstilo;
 
 #define VIDEO_LEG_NCORES 6
@@ -255,4 +313,25 @@ void video_forcar_sdr(void);
 
 void video_encerrar(void);
 
+// SO NO MAC (capturas tests/*_shot.c): o coto do pipeline passa a responder o
+// que estiver aqui — faixas, tamanho, HDR, Atmos, buffer — para as telas do
+// player serem desenhadas com dados de um video "de verdade". Zerado (o padrao)
+// e o mesmo coto mudo de sempre. Nos alvos de TV a funcao nao existe.
+#if defined(__APPLE__)
+typedef struct {
+  int nAudio, nLeg, audioAtual, legAtual;
+  VideoFaixa audio[8], leg[8];
+  int largura, altura, atmos, dv;
+  char hdr[16];
+  int pronto, reconectando;
+  unsigned bufferandoMs;
+  double pos, duracao, bufferFim;
+} VideoSimulacao;
+void video_simular(const VideoSimulacao *s);
+#endif
+
+// One-reply webOS LS2 request; callback runs on the GLib thread.
+#if !defined(NV_TPK) && !defined(NV_ANDROID)
+int video_luna(const char *uri, const char *payload, void (*callback)(const char *, void *), void *context);
+#endif
 #endif

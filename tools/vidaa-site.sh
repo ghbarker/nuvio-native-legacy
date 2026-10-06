@@ -22,7 +22,7 @@ SAIDA="${VIDAA_SAIDA:-build/vidaa-site}"
 # esperados. A presenca do .nuvio-build-stamp prova que tizen.sh foi rodado,
 # nao so que os dirs existem.
 for modo in mt st; do
-  for f in index.html index.js index.wasm index.data decodificador.js hls.min.js .nuvio-build-stamp; do
+  for f in index.html index.js index.wasm index.data fontes.js fontes.data decodificador.js hls.min.js .nuvio-build-stamp; do
     arquivo="$ENTRADA/$modo/$f"
     [ -f "$arquivo" ] || {
       echo "vidaa-site.sh: falta $modo/$f em $ENTRADA" >&2
@@ -104,7 +104,7 @@ echo "vidaa-site.sh: montando $VERSION_DIR"
 
 for modo in mt st; do
   # Os arquivos que DEVEM ir (nao a .nuvio-build-stamp, ni o resto).
-  for arquivo in index.html index.js index.wasm index.data decodificador.js hls.min.js; do
+  for arquivo in index.html index.js index.wasm index.data fontes.js fontes.data decodificador.js hls.min.js; do
     src="$ENTRADA/$modo/$arquivo"
     dst="$VERSION_DIR/$modo/$arquivo"
 

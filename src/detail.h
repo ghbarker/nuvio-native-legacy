@@ -10,8 +10,24 @@
 #include "home.h"
 
 void detail_abrir(const HomeItem *item);
+// Abre a FILMOGRAFIA de uma pessoa por cima da pagina ja aberta (o mesmo painel
+// do OK num rosto do elenco). Para o Spotlight: a pessoa achada no elenco de um
+// titulo abre a pagina dele e o painel dela na mesma tecla. Sem pagina aberta
+// nao faz nada; Voltar fecha o painel e deixa a pagina do titulo.
+void detail_mostrar_pessoa(long tmdb, const char *nome, const char *foto);
 int  detail_aberto(void);
-int  detail_pediu_menu(void);   // ESQUERDA na borda fechou a pagina pedindo a barra
+// Fecha a pagina pela mesma saida animada do Voltar (Spotlight: uma colecao ou
+// um catalogo escolhido com a pagina aberta abriria POR TRAS dela).
+void detail_fechar(void);
+// Fecha sem a mola de saida (o player saiu para a home: ilha_minimizar).
+void detail_fechar_seco(void);
+int  detail_relogio_oculto(void);  // 1 no carrossel de titulos (cartao com vizinhos), ainda sem esticar: a ilha do relogio some
+int  detail_pediu_social(void);   // 1 uma vez: CIMA no alto da pagina pediu o painel de Salvos/Avisos
+int  detail_pediu_menu(void);   // 1 uma vez: ESQUERDA na borda pediu o menu lateral (a pagina NAO fecha; Voltar e quem sai)
+// app.c, a cada quadro: 1 enquanto a barra lateral esta aberta POR CIMA da
+// pagina. O trailer do fundo fica mudo (sem fechar) e recupera o som depois.
+void detail_sob_menu(int sim);
+int  detail_sob_menu_ativo(void);
 // 0..1 de quanto o detalhe tomou a tela; a home usa para descer as fileiras.
 float detail_progresso(void);        // 1 enquanto a tela existe, inclusive saindo
 // 1 quando o cartao ja cobre a tela inteira e desenhar a home por baixo e
@@ -38,13 +54,18 @@ void detail_pedir_reproduzir(void);   // arma o pedido (OK no card de retomada)
 // app.c, nao esta tela: reabrir a si mesma no meio do proprio desenho e o tipo
 // de coisa que quebra em silencio.
 int  detail_pediu_abrir(void);
+// Chamar ANTES de abrir outro titulo com a pagina aberta: guarda o atual para o
+// Voltar retornar a ele em vez de fechar a pagina.
+void detail_volta_notar(int novo);
 
 // O botao do olho: marcar o titulo como ASSISTIDO. Nao e o mesmo que
 // detail_pediu_marcar, que e "adicionar a lista" — o olho caia no mesmo `else`
 // do botao de fontes e nunca marcou nada.
 int  detail_pediu_assistido(void);
+int  detail_pediu_amigos(char *imdb, size_t tam); // OK na ilha de amigos: o imdb do titulo, uma vez
 int  detail_pediu_marcar(void);       // botao "+"
 int  detail_pediu_fontes(void);       // OK segurado, ou o botao "..."
+int  detail_pediu_explorar(void);     // circular "Explorar": abrir a toca (explorar.h) neste titulo, uma vez
 // Botao secundario "Reproduzir desde o inicio", que so existe quando ha
 // progresso. Hoje ele tambem marca `detail_pediu_reproduzir`, porque o roteador
 // ainda nao sabe abrir o player ignorando o ponto salvo.
@@ -95,9 +116,9 @@ int  detail_pediu_do_inicio(void);
 // Abas de temporada: 269x80 em x=96, passo 321 (gap 52), raio 40, fonte 32/500.
 // A largura sai do texto + padding, e nao e constante: "Especiais" mede 219.
 #define NV_DETP_TEMP_Y      1160.0f
-#define NV_DETP_TEMP_H        83.0f   // MEDIDO na referencia (era 80)
-#define NV_DETP_TEMP_PADX     40.0f
-#define NV_DETP_TEMP_GAP      52.0f
+#define NV_DETP_TEMP_H        60.0f   // Compact season selector
+#define NV_DETP_TEMP_PADX     26.0f
+#define NV_DETP_TEMP_GAP      20.0f
 // Base do resumo da temporada ("12 episódios · 5 assistidos") ao TOPO das
 // pilulas. A folga vive na vaga do cabecalho "Temporadas" que foi retirado: o
 // grupo comeca em NV_DETP_G_TEMP (1080) e a pilula so em 1160, entao ha 80 px
@@ -347,7 +368,7 @@ int  detail_pediu_do_inicio(void);
 // dentro de desenhaElenco. Rosto fora da tela nao pede textura; a foto entra
 // quando a coluna entra. Subir o teto nao baixa mais fotos de uma vez.
 
-// TRAILERS. Card 520 de largura, miniatura 520x292 raio 24, passo 582.
+// TRAILERS. Card520 de largura, miniatura520x292 raio24, passo582.
 // O selo de play e um circulo de 96 a rgba(0,0,0,.48) com o triangulo de 44.
 #define NV_DETF_TR_W          520.0f
 #define NV_DETF_TR_PASSO      582.0f
@@ -385,7 +406,7 @@ int  detail_pediu_do_inicio(void);
 #define NV_DETF_DET_LINHA      68.0f   // passo vertical de uma linha
 #define NV_DETF_DET_W        1040.0f   // largura da tabela e da divisoria
 #define NV_DETF_DET_CHAVE_W   254.0f   // 24,4% de NV_DETF_DET_W (proporcao do Mac)
-#define NV_DETF_DET_MAXL          6    // Status, Lancamento, Duracao, Classif., Pais
+#define NV_DETF_DET_MAXL         10    // Status, Lancamento, Duracao, Classif., Pais + Wikidata
 
 void detail_evento(const SDL_Event *e);
 void detail_atualizar(float dt, Uint32 agora);

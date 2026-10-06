@@ -3,6 +3,7 @@
 // rasterizacao de texto e cara e o conteudo aqui muda pouco.
 #ifndef NV_TEXT_H
 #define NV_TEXT_H
+#include <stddef.h>
 #include "gl_compat.h"
 
 // Escala do tvOS. Cada estilo carrega tamanho E peso: no aparelho a diferenca
@@ -45,10 +46,129 @@ typedef enum {
   TXT_LEG_90, TXT_LEG_100, TXT_LEG_110, TXT_LEG_120,
   TXT_LEG_130, TXT_LEG_140, TXT_LEG_150, TXT_LEG_160,
   TXT_LEG_170, TXT_LEG_180, TXT_LEG_190, TXT_LEG_200,
+  // Numeral do Top 10 da home Dinamica (NV_TOP10_NUM_CORPO). No FIM, depois das
+  // legendas: TXT_LEG_* e contado por aritmetica a partir de TXT_LEG_50.
+  TXT_RANK_GRANDE,
+  // ESCALA DAS ILHAS (Glass UI, mockup "ilha" tela 3 — o painel Social): os
+  // corpos do CSS aprovado, em px de 1080p, que nenhum estilo acima tinha. O
+  // painel misturava CALLOUT 28, CAPTION 22 e MINI 15 e saia "parecido" com o
+  // mockup, nunca igual: o dono comparou lado a lado e viu (02/10, "o mockup
+  // ta bem mais polido que a build"). No FIM, pela mesma razao do RANK_GRANDE.
+  TXT_ILHA_TITULO,   // .ttl            40 / 700  ("Social")
+  TXT_ILHA_SECAO,    // .sec b          22 / 800  ("Hoje", "Esta semana")
+  TXT_ILHA_NOME,     // nome na linha / cabecalho do menu do cartaz 24 / 600-700
+  TXT_ILHA_CORPO,    // verbo na linha  24 / 400  ("te mandou")
+  TXT_ILHA_SEG,      // .sg             19 / 600  (abas segmentadas)
+  TXT_ILHA_SUB,      // titulo da linha 19 / 400
+  TXT_ILHA_NUM,      // .sg .n          16 / 400  (contagem da aba)
+  TXT_ILHA_HORA,     // quando          15 / 400  ("há 15 min")
+  TXT_ILHA_INICIAL,  // .av             20 / 700  (inicial no disco de 52)
+  // Spotlight e menu do cartaz (mockup telas 6 e 7): o nome numa linha de
+  // resultado (22/600, em Bold: a Inter embarcada nao tem 600), a meta do
+  // melhor resultado (19/400), o genero (17/400) e o apoio das linhas (16/400).
+  TXT_ILHA_ITEM, TXT_ILHA_META, TXT_ILHA_GENERO, TXT_ILHA_APOIO,
+  // A CONFIRMACAO da ilha (mockup tela 7): a pergunta em 36/700 e o texto
+  // corrido em 20/400. PERGUNTA e nao TITULO: o 40/700 do Social ja tem o nome.
+  TXT_ILHA_PERGUNTA, TXT_ILHA_TEXTO,
+  // O TRECHO EM DESTAQUE da frase da ilha do relogio ("Ana recomendou
+  // Fallout", ilha.c): o corpo do TXT_BODY (25) em Bold, porque o 600 do
+  // mockup em texto claro sobre o miolo escuro e Bold pela regra optica de
+  // text.c. No FIM, pela mesma razao do TXT_RANK_GRANDE.
+  TXT_ILHA_FORTE,
+  // AJUSTES NO GLASS UI (mockup ajustes-mockup.html, 03/10): os corpos que a
+  // escala das ilhas nao tinha. Indice 21/500, rotulo da linha 23/500, valor
+  // 20/500, chip Ligado 17/600, titulo do inspetor 32/700, tecla 14/700,
+  // estado 18/400, caixa alta 13/700, e os corpos minusculos da home em
+  // miniatura (9) e os numeros grandes dos paineis. ABAIXO DE ~24 px O CORPO E
+  // O DO MOCKUP + ~8%: a InterDisplay embarcada e mais estreita que a Inter do
+  // navegador (DESIGN.md §4: meca largura) — "Estilo, fileiras..." em 19 px
+  // media 399 px contra 442 no mockup.
+  TXT_AJ_ITEM, TXT_AJ_ROTULO, TXT_AJ_VALOR, TXT_AJ_CHIP, TXT_AJ_INSP,
+  TXT_AJ_KBD, TXT_AJ_ESTADO, TXT_AJ_CAPS13, TXT_AJ_MINI9, TXT_AJ_MINI9B,
+  TXT_AJ_VALOR18, TXT_AJ_NUM58, TXT_AJ_NUM64, TXT_AJ_NUM110, TXT_AJ_TIT28,
+  TXT_AJ_MINI12, TXT_AJ_MINI13, TXT_AJ_MINI14, TXT_AJ_16B,
+  TXT_AJ_SUB, TXT_AJ_SEG, TXT_AJ_18, TXT_AJ_SECAO, TXT_AJ_TEXTO, TXT_AJ_NOME,
+  // ESCALA DO PLAYER NO GLASS UI (mockup aprovado em 03/10, player-mockup.html):
+  // corpo e peso do CSS, com 600/800 em Bold pela regra optica de text.c.
+  // TXT_G<corpo><R|M|B> = Regular, Medium, Bold. No FIM do enum, como manda o
+  // comentario do TXT_RANK_GRANDE.
+  TXT_G14B,   // kbd das dicas                    14 / 700
+  TXT_G16B,   // rosto do idioma, rotulo da grade 16 / 600-800
+  TXT_G18R,   // apoio a direita ("AIOStreams")   18 / 400
+  TXT_G18M,   // o que falta no Seekr             18 / 500
+  TXT_G19M,   // "termina as" da pilula           19 / 500
+  TXT_G20B,   // tempo dos vizinhos no Seekr      20 / 600
+  TXT_G20M,   // valor a direita na linha         20 / 500
+  TXT_G21B,   // rotulo de botao (.pb, .btn)      21 / 600
+  TXT_G22M,   // linha do guia parental           22 / 500
+  TXT_G23B,   // linha do menu de visto           23 / 600
+  TXT_G26B,   // tempo do Seekr, "Abrindo fonte"  26 / 600-700
+  TXT_G28B,   // titulo do lembrete               28 / 700
+  TXT_G30B,   // "T1 E3" do OSD                   30 / 600
+  TXT_G30M,   // "· The Head" do OSD              30 / 500
+  TXT_G52B,   // programa no OSD do canal         52 / 700
+  // REGISTRO DO APP NO GLASS UI (logs-mockup.html, 03/10). TXT_MONO* sao a
+  // JetBrains Mono embarcada (fonts/JetBrainsMonoNL-*.ttf, a variante SEM ligaduras: o "->" do log tem de sair como dois caracteres): SO as linhas do log
+  // e o que a pessoa digita/le como codigo usam. Sem o arquivo, caem na fonte
+  // da interface. Os corpos sao os do CSS: a mono e a mesma fonte do mockup,
+  // entao nao leva o +8% da InterDisplay. TXT_LOG* sao os corpos Inter que a
+  // escala acima nao tinha. No FIM do enum, como manda o TXT_RANK_GRANDE.
+  TXT_MONO18,   // linha do log (.lgl)              18 / 400
+  TXT_MONO18B,  // numero da linha "quadros"        18 / 600
+  TXT_MONO16,   // area do log (.ar 15,5/500), host 16 / 400
+  TXT_MONO15,   // tempo da etapa, linha [tv]       15 / 400
+  TXT_MONO14,   // log no pacote (.pacote .lgl)     14 / 400
+  TXT_MONO13,   // area no pacote, etiquetas [tex]  13 / 400
+  TXT_MONO19,   // comando no painel vazio          19 / 400
+  TXT_LOG_N44,  // fps no inspetor                  44 / 800
+  TXT_LOG_T34,  // titulo do vazio e das dicas      34 / 700
+  TXT_LOG_COD,  // codigo do registro (ladrilhos)   88 / 800
+  TXT_LOG_19B,  // chip "Enviar agora", contagem    18 / 600
+  TXT_LOG_18B,  // numero forte no medidor          17 / 600
+  TXT_MONO14B,  // numero da linha "quadros" no pacote 14 / 600
+  TXT_LOG_T31,  // "Registro do app" ao lado do relogio 30 / 700
+  // NOVIDADES DA 1.8.0 E GUIA DE USO (mockups aprovados em 03/10). No FIM,
+  // como manda o comentario do TXT_RANK_GRANDE.
+  TXT_NOV_TITULO,   // .c-tit do cartao de novidades  50 / 700
+  TXT_G28R,   // "Você está na" do cartao da atualizacao (mockup 26/400; a
+              // InterDisplay e ~9% mais estreita que a Inter do navegador)
+  // AJUSTES V2 (ajustes-v2.html, aprovado em 03/10): o menu grande, a lista
+  // de 96 px e o inspetor de 40/26. Corpos medidos contra o mockup (a
+  // InterDisplay e mais estreita que a Inter do navegador). No FIM do enum.
+  TXT_V2_MENU,     // rotulo do menu de categorias (36/500)
+  TXT_V2_MENU_B,   // rotulo da categoria aberta/em foco (36/600)
+  TXT_V2_26,       // descricao, sub, meta, dicas grandes (24/400)
+  TXT_V2_TIT,      // titulo da lista e do editor (52/700)
+  TXT_V2_KICK,     // kicker da lista e do inspetor (18/700)
+  TXT_V2_CHIP,     // chip Ligado/Avancados (22/600)
+  TXT_V2_GRUPO,    // cabecalho de grupo (26/800)
+  TXT_V2_24,       // contagem do grupo, dicas do inspetor (22/400)
+  TXT_V2_ROT,      // rotulo da linha (32/500)
+  TXT_V2_28,       // valor da linha, ajuda do inspetor (28 e 26/400)
+  TXT_V2_SEG,      // segmentado e chips de grupo (24/600)
+  TXT_V2_INSP,     // titulo do inspetor (40/700)
+  TXT_V2_KBD20,    // tecla das dicas do resumo (20/700)
+  TXT_V2_KBD18,    // tecla das dicas do inspetor (18/700)
+  TXT_V2_NUM,      // contagem do resumo (52/800)
+  TXT_V2_NUM150,   // numero do editor (150/800)
+  TXT_V2_36B,      // unidade do editor (34/600)
+  TXT_V2_18,       // posicao na ordem da Home (17/400)
+  // Ajustes A3 (04/10): a lista compacta e o titulo da coluna da arte.
+  TXT_V2_LN,       // rotulo da linha compacta (24/500)
+  TXT_V2_LN_B,     // rotulo da linha em foco (24/600)
+  TXT_V2_A3TIT,    // titulo da opcao sob a arte (46/700)
+  // LISTA COM CAPA dos Salvos (painel lateral), ~17 % acima da escala da ilha.
+  TXT_ILHA_NOME_L, TXT_ILHA_SUB_L, TXT_ILHA_HORA_L,
+  // GUIA DA 2.0 (novidades20.c): "Nuvio 2.0" do hero (mockup 120/800) e o
+  // negrito das frases dos capitulos (24/600, par do TXT_V2_24).
+  TXT_W20_HERO, TXT_W20_24B,
+  TXT_DESC_HORA,   // relogio da tela de descanso (230, Montserrat ExtraLight; so digitos e ':')
   TXT_NFONTES
 } TxtEstilo;
 
-typedef struct { GLuint tex; int w, h; } TxtLinha;
+// w/h em unidades de layout. pw/ph = tamanho da textura em pixels, preenchido
+// so para linhas da camada ampliada (gfx_escala); 0 no caminho normal.
+typedef struct { GLuint tex; int w, h; int pw, ph; } TxtLinha;
 
 // A selecao de interface e legenda usa IDs compartilhados, mas preferencias
 // independentes. Preserve os IDs legados: ficam gravados em dados existentes.
@@ -70,6 +190,12 @@ extern const char *const TXT_FAMILIAS_PT[TXT_FAMILIA_N];
 // que o chamador escolheu para a legenda.
 void txt_definir_fonte_interface(TxtFamilia familia);
 TxtFamilia txt_fonte_interface(void);
+// Que fonte desenharia a linha `s` no estilo dado, em texto ("principal",
+// "inter", "reserva:CJK:/caminho"). Para teste e diagnostico; NULL = nenhuma.
+// Linha de legenda ja quebrada -> ordem visual, arabe moldado so se a fonte tem
+// as formas de apresentacao (bidi.c). Devolve como bidi_visual_utf8.
+int txt_bidi_legenda(TxtFamilia familia, TxtEstilo estilo, const char *in, char *out, size_t tam);
+const char *txt_fonte_da_linha(TxtFamilia familia, TxtEstilo estilo, const char *s);
 
 // Instrumentacao: quantas linhas foram RASTERIZADAS (nao vieram do cache) no
 // quadro e quanto tempo isso custou. Rasterizar texto e a operacao mais cara
@@ -80,6 +206,13 @@ extern int    txt_rasterizadas;
 // nao cabe no que a tela desenha, e o texto pisca.
 extern int    txt_despejos;
 extern double txt_ms;
+// Linhas recusadas por falta de orcamento de rasterizacao (voltaram vazias).
+// Leia a diferenca antes/depois de desenhar um bloco: zero = o bloco esta
+// inteiro na tela; diferente de zero = ainda faltam linhas (proximo quadro).
+extern int    txt_pendentes;
+// Largura em unidades de layout que txt_linha() daria, SEM rasterizar nem
+// gastar orcamento. Para medir/quebrar texto; nao desenha nada.
+int  txt_largura(TxtEstilo estilo, const char *s);
 
 // `dirRecursos` e a pasta que contem fonts/. No aparelho e a pasta do app; no
 // Mac, a pasta do pacote — sem esse parametro a fonte so era procurada ao lado
@@ -137,6 +270,14 @@ float txt_tracking(TxtEstilo estilo, const char *s, int r, int g, int b,
 // usada. Sem isso, qualquer texto de tamanho variavel (sinopse de episodio,
 // nome de titulo) vaza para a coluna vizinha — nao existe "escrever curto o
 // suficiente" quando o conteudo vem de fora.
+// Tamanho em bytes do proximo TOKEN de uma quebra de linha que comeca em `s` (0 se
+// `s` acaba, ou comeca em espaco ou \n): a palavra ate o espaco, ou UM caractere
+// CJK com a pontuacao que nao pode abrir linha. Quem quebra texto por conta
+// propria (agendaui.c) usa isto em vez de procurar o espaco, senao japones e
+// chines viram uma "palavra" so e estouram a coluna. Ao juntar tokens, so poe
+// espaco entre dois que vinham separados por espaco no texto.
+size_t txt_token_tam(const char *s);
+
 float txt_bloco(TxtEstilo estilo, const char *s, int r, int g, int b,
                 float x, float y, float larg, float leading, float alpha, int maxLinhas);
 

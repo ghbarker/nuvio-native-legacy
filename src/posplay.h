@@ -27,6 +27,7 @@
 void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
                        int ehSerie, int idxCatalogo, int janelaSerie);
 int  posplay_visivel(void);
+int  posplay_sobre_video(void);   // 1 = cartao de proximo episodio sobre o video cheio
 // A regra do FILME sozinha, sem estado: 1 quando os relacionados devem subir.
 // `creditosSeg` e o marcador (0 = nenhum). Nunca antes da metade da duracao;
 // marcador fora do ultimo quarto e recusado (#115). posplay_atualizar soma a
@@ -44,12 +45,22 @@ int  posplay_evento(const SDL_Event *e);
 // `baseY` e a linha ACIMA da qual o painel cabe inteiro — o topo do que o
 // player ja desenha. Ancorar pela base, e nao por um y fixo, e o que impede o
 // painel de cair em cima da barra de tempo.
+// 1 quando o still do proximo episodio deve sair desfocado (#177).
+int  posplay_desfocar_thumb(int idxCatalogo, int temporada, int episodio);
 void posplay_desenhar(Uint32 agora, float baseY);
+// O topo do que o painel ocupa (baseY quando ele nao esta no ar).
+float posplay_topo(float baseY);
 // Fecha e zera. Chamado quando o player abre outra coisa.
 void posplay_fechar(void);
+// O titulo do cartao, ja conferido pelo id (-1 = nenhum). Para teste (#190).
+int  posplay_indice(void);
 
 // Pedidos para o roteador, consumidos uma vez:
 // proximo episodio (temporada/episodio) ou titulo relacionado (indice).
 int  posplay_pediu_episodio(int *temporada, int *episodio);
 int  posplay_pediu_titulo(void);
+#ifdef NV_SHOT_HOOKS
+void posplay_shot(int idxCatalogo, int ehSerie, int t, int e, Uint32 fecha);
+#endif
+
 #endif

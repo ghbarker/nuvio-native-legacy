@@ -32,3 +32,30 @@ Total dos nove arquivos adicionais: 2.940.808 bytes.
 ## Empacotamento
 
 Os pipelines existentes incluem a pasta `deploy/app/fonts` no pacote nativo e no preload WebAssembly. As licenças devem acompanhar os arquivos de fonte. A inclusão dos arquivos no repositório não comprova instalação nem comportamento na TV.
+
+## Fonte CJK embarcada (japonês e chinês)
+
+A Inter não tem kana nem hanzi. `text.c` manda a linha para uma fonte de reserva quando falta qualquer caractere nela; na LG e no Mac a reserva vem do sistema, e no WASM da Samsung não existe fonte de sistema nenhuma. Por isso o pacote leva `DroidSansFallback-Subset.ttf`.
+
+- Origem: Droid Sans Fallback 2.54, copyright Google 2006, Apache License 2.0 (o texto está em `DroidSansFallback-LICENSE.txt`). Foi lida de `/usr/share/fonts/DroidSansFallback.ttf` de uma LG C9.
+- Modificada: subconjunto de 7.943 caracteres (ASCII, Latin-1, pontuação, kana, GB2312 nível 1, JIS X 0208 nível 1, Big5 de uso corrente e tudo o que as tabelas ja/zhcn/zhtw usam), sem hinting. Um subconjunto só dos textos da interface teria 0,34 MB; este tem 1,2 MB porque títulos e sinopses do TMDB em chinês ou japonês também aparecem com a interface em outro idioma.
+- Regerar: `python3 tools/fonte-cjk.py /tmp/DroidSansFallback.ttf` (precisa de fontTools).
+- Quem usa: só a reserva CJK, depois das fontes de sistema (`LG_Display_JP`, `DroidSansFallback`, `LG_Display-Regular`, `LG_Display_HK-Regular`; no Mac Hiragino/STHeiti). `tools/idiomas.py` confere que o que as tabelas ja/zh usam existe nela.
+- Ver o que o WASM desenha, no Mac: `NUVIO_SEM_RESERVA_DE_SISTEMA=1 bash tests/idioma_shot.sh /tmp/x 27,28,29`.
+
+| Arquivo | Bytes | SHA-256 |
+|---|---:|---|
+| `DroidSansFallback-Subset.ttf` | 1226652 | `7f4ff9c7ad1d4dd471e2f24ab27bc48b09d9dec0329a22b524f6664062eb7bc2` |
+
+## Fonte árabe embarcada
+
+A Samsung não traz fonte árabe e o texto saía em quadrados (#253, #258). O pacote leva `NotoNaskhArabic-Subset.ttf`, última da lista `ESC_ARABE` em `text.c`, depois das fontes de sistema (LG, Android, Mac).
+
+- Origem: Noto Naskh Arabic Regular 2.021, The Noto Project Authors, SIL OFL 1.1 (`NotoNaskhArabic-OFL.txt`), de github.com/notofonts/arabic.
+- Modificada: subconjunto com ASCII, U+0600–06FF, U+0750–077F e as formas de apresentação U+FB50–FDFF e U+FE70–FEFF, sem hinting e sem tabelas de layout. As formas de apresentação são obrigatórias: `src/bidi.c` faz a junção trocando cada letra por elas, não há HarfBuzz.
+- Regerar: `python3 tools/fonte-arabe.py /caminho/NotoNaskhArabic-Regular.ttf` (precisa de fontTools).
+- Conferir no Mac: `bash tests/text_familias.sh` (reabre o renderer com `NUVIO_SEM_RESERVA_DE_SISTEMA=1`).
+
+| Arquivo | Bytes | SHA-256 |
+|---|---:|---|
+| `NotoNaskhArabic-Subset.ttf` | 90372 | `a43af24c9307d838d89593fc86342ab024973ffa0d7f71bac76849afe2ce5675` |

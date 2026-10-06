@@ -13,6 +13,7 @@
 #define NV_STREAMS_H
 #include <SDL2/SDL.h>
 #include <stdint.h>
+#include "streamfit.h"
 
 // A lista cresce conforme a resposta dos addons; a UI virtualiza as linhas.
 
@@ -36,6 +37,10 @@ typedef struct {
   uint64_t badges;     // classificados uma vez, nunca regex no desenho
   int  mp4;             // 1 = MP4 progressivo; 0 = HLS ou outro
   long tamanhoMB;       // 0 quando desconhecido
+  // Per-file bytes declared by behaviorHints.videoSize, without rounding or
+  // text/season-pack heuristics. 0 = no trustworthy exact-size provenance.
+  // https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/stream.md
+  uint64_t tamanhoBytes;
   char descricao[2048];
   char arquivo[512];
   // O QUE O ADDON DECLARA COMO "a mesma fonte" entre episodios:
@@ -54,6 +59,11 @@ typedef struct {
   // verificacao, por debrid_resolver.
   char infoHash[48];
   int  fileIdx;         // -1 quando o addon nao disse
+  // "sources" do stream (Stremio): trackers e nos DHT do torrent, UMA entrada
+  // por linha ("tracker:udp://...", "dht:<hash>"). So serve ao P2P
+  // experimental (p2p.c), que os repassa ao servidor de streaming. 640 cobre
+  // uma dezena de trackers; o excedente e cortado numa entrada inteira.
+  char fontes[640];
   // CABECALHOS QUE O ADDON EXIGE, de behaviorHints.proxyHeaders.request, uma
   // linha "Nome: valor" por cabecalho (o mesmo formato que rede.h aceita).
   //
@@ -73,6 +83,13 @@ typedef struct {
   // em streams.c), e a escolha manual avisa na tela que o servico esta
   // baixando. Nao exclui nada: escolhida a dedo, toca como na 1.3.5.
   int  foraCache;
+  // PACOTE DE SELOS ATIVO (selospacote.h): os filtros que casaram com esta
+  // fonte, calculados UMA vez (quando a lista chega, ou quando o pacote muda;
+  // `selosPacoteVer` != selospacote_versao() manda recalcular), nunca no
+  // desenho. 16 = SELOS_MAX_CASADOS.
+  unsigned short selosPacote[16];
+  unsigned char  nSelosPacote;
+  unsigned       selosPacoteVer;
 } Stream;
 
 // Parser sem rede: o chamador libera *saida. Retorna -1 se a alocacao falhar.
@@ -80,10 +97,41 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida);
 void stream_definir_atual(int indice);
 int stream_atual(void);
 void stream_folha_contexto(const char *texto);
+// O nome do conteudo da lista (titulo do filme ou da serie), para o titulo de
+// cada linha no modo "Do Nuvio" ("Silo  Temporada 2 Episodio 5"). Chamar antes
+// de stream_folha_abrir; vazio cai no nome do addon.
+void stream_folha_nome(const char *nome);
+// Indice no catalogo do conteudo da folha (-1: canal ou nenhum), para a logo
+// do titulo no lugar do nome (Ajustes > Texto das fontes > Logo do titulo).
+void stream_folha_item(int indice);
+// Folha de um CANAL ao vivo: a resolucao e o codec saem do nome (UHD/FHD/HD/SD,
+// H.265...) e entram no agrupamento e nos selos. Filme nao muda.
+void stream_folha_canal(int sim);
+void stream_canal_enriquecer(Stream *s);
 int stream_folha_recarregar(void);
+// Abertura animada da folha (0..1): o player apaga o OSD por baixo dela.
+float stream_folha_anim(void);
 
 // Substitui a lista do titulo corrente. Chamar quando os addons responderem.
 void stream_definir_lista(const Stream *lista, int n);
+// Lista reaproveitada: conserva a idade da resposta original dos addons.
+// O cache de metadados nao pode dar validade nova a um link assinado antigo.
+void stream_definir_lista_idade(const Stream *lista, int n, Uint32 idade);
+// ACRESCENTA as fontes de UM addon a lista corrente, sem substitui-la (#221):
+// a busca publica cada addon que responde. Os indices de quem ja estava NAO
+// mudam (a verificacao em curso, a fonte tocando, a preferida e as excluidas
+// continuam valendo); a ORDEM DE EXIBICAO e por `ordemAddon` (o indice do
+// addon na lista instalada) e, dentro dele, a ordem que o addon mandou — a
+// mesma da lista inteira de antes. Com a folha aberta, o foco fica no mesmo
+// cartao e a rolagem compensa as linhas que entraram acima dele.
+void stream_lista_acrescentar(const Stream *lista, int n, int ordemAddon);
+// O addon (ordemAddon) de cada fonte, como entrou; 0 na lista inteira.
+int  stream_ordem_addon(int i);
+// A escolha automatica ja pode sair com a lista parcial? Ver
+// fonteauto_pode_decidir. `preferida` e o indice da lembrada nesta lista (-1).
+int  stream_auto_pode_decidir(int preferida, int prefPendente, int prazoPassou);
+// Candidatas que o automatico ainda pode tentar nesta lista (nao excluidas).
+int  stream_n_candidatas(void);
 
 // DE QUEM E A LISTA QUE ESTA EM MEMORIA — issue #101.
 //
@@ -108,12 +156,22 @@ int  stream_lista_do_alvo(const char *id);
 void stream_invalidar(const char *porque);
 int  stream_n(void);
 const Stream *stream_item(int i);
+// Fileira de selos do pacote ativo (ver selospacote.h) para fora da folha, como
+// o cartao "Abrindo fonte" do player: padrao em cinza `tom`, colorido em pecas.
+// `stream_selos_ha` diz se ha o que desenhar (a resolucao entra); 0 de largura
+// = nada, e quem chama usa a mascara de badges.h.
+int   stream_selos_ha(const Stream *s);
+float stream_selos_fileira(const Stream *s, float x, float y, float maxW, float h, float tom, float a);
 
 // Indice do stream que o modo automatico escolhe, ou -1 se a lista esta vazia.
 int  stream_automatico(void);
 // Exclui uma candidata que ja foi entregue ao player e travou no pipeline.
 // A exclusao vale so para a lista atual; uma resposta nova limpa a memoria.
 int  stream_automatico_excluir(int indice);
+// Exclui tambem as IRMAS da candidata (mesmo addon e mesmo rotulo), mas so
+// quando sobra outra candidata: quando o player nao conectou numa, as outras
+// costumam falhar igual.
+int  stream_automatico_excluir_irmas(int indice);
 
 // A FONTE LEMBRADA DESTE TITULO, quando ela existe nesta lista. Quem decide
 // qual e (provedor + trilha de audio) e fontepref.c; aqui ela e um indice que
@@ -146,6 +204,8 @@ Uint32 stream_idade_ms(void);
 // que vai tocar e conferida. As que falham saem da fila desta lista
 // (stream_automatico_excluir) e nao sao conferidas de novo.
 int  stream_primeira_boa(int tentativas);
+// Conferencia de uma URL avulsa, sem lista (bloqueia; chamar de fio proprio).
+int  stream_url_serve(const char *url, const char *cabecalhos);
 
 // 1 quando o texto da fonte diz "fora de cache" (ver Stream.foraCache).
 // Publica para o parser e o teste; a lista ja vem com o campo preenchido.
@@ -156,6 +216,8 @@ int  stream_texto_fora_de_cache(const char *texto);
 // titulo aberto: o teste de velocidade do diagnostico mede primeiro a fonte
 // que o automatico escolheria, com a mesma regra, sem copia-la.
 long stream_pontos(const Stream *s);
+// R9b: o que a tela mostra (1/0; -1 = desconhecido, o padrao, nao penaliza).
+void stream_definir_tela(int hdr, int dv);
 int  stream_cabe_no_teto(const Stream *s);
 
 // TORRENT SEM URL ESCOLHIDO A DEDO NA FOLHA. A escolha manual chamava
@@ -172,7 +234,13 @@ int  stream_cabe_no_teto(const Stream *s);
 //   1  -> `url` pronta (e gravada na linha, para a proxima vez)
 //   2  -> DEBRID_BAIXANDO: `servico` e `pct` dizem quem baixa e quanto falta
 //   0  -> nao deu; -1 -> lista trocada
+//   3  -> STREAM_P2P_FALHOU: o debrid nao resolveu (ou nao ha) e o servidor
+//         P2P experimental (p2p.h) tambem nao; o motivo esta em p2p_ultimo_erro()
+#define STREAM_P2P_FALHOU 3
 unsigned stream_lista_geracao(void);
+// Quantos torrents SEM url (so infoHash) ha na lista: os que so o P2P ou o
+// debrid tocam. Serve ao cartao "nenhuma fonte serve" dizer que ha P2P.
+int  stream_qtd_torrents(void);
 int  stream_resolver_escolhida(int i, unsigned geracao, char *url, unsigned nu,
                                char *servico, unsigned ns, int *pct);
 
@@ -200,6 +268,24 @@ int  stream_canal_prazo_longo(int idx);
 
 // --- folha de fontes (a lista que sobe por cima do player/detalhe) ---
 void stream_folha_abrir(void);
+// Root feeds an actual movie/episode metadata runtime or measured media
+// duration for this exact target. Never supply PLR_DUR_PADRAO, a season's
+// total runtime or a guessed "45 minutes". 0/unknown clears provenance.
+// Thread-safe; a sheet already open keeps its frozen duration/speed data.
+// SF_DUR_METADATA and SF_DUR_MEDIA are stored apart; 0 clears only the one
+// named, SF_DUR_DESCONHECIDA clears both. Media beats metadata of the target.
+void stream_fit_duracao(const char *alvo, double segundos, StreamfitDuracao origem);
+// Catalog runtime lookup used when the sheet opens and no pushed value
+// exists for the target. Called on the UI thread with the exact target id;
+// must answer 0 unless it can prove the runtime belongs to that id.
+void stream_fit_fonte_metadados(double (*fonte)(const char *alvo));
+// Frozen classification of an existing source while the sheet is open.
+// Returns unknown without evidence. For UI, demand is an estimate, not a
+// guarantee; the caller can display age, budget and diagnostic origin.
+StreamfitClasse stream_fit_folha_estado(int indice, StreamfitResultado *saida);
+// Medida de rede REAL do host de `s`, agora (cartao de "Abrindo fonte" expandido).
+// 0 = sem medida: l1/l2 vazias.
+int stream_fit_abrindo(const Stream *s, char *l1, size_t n1, char *l2, size_t n2);
 int  stream_folha_aberta(void);
 // QUANTAS LINHAS A FOLHA MOSTRA AGORA — issue #132 ("so 1 fonte listada"). A
 // folha lista a lista INTEIRA de stream_definir_lista; so os filtros que a

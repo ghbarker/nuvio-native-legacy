@@ -1,18 +1,25 @@
-# nuvio-native-legacy
+<picture>
+  <source media="(max-width: 640px)" srcset="docs/assets/nuvio-readme-banner-mobile.png">
+  <img src="docs/assets/nuvio-readme-banner.png" alt="Nuvio Native Legacy. A native TV client for LG webOS, Samsung Tizen and Android TV (experimental). Independent, unofficial fork." width="1600">
+</picture>
+
+<p align="center">
+  <a href="https://github.com/iqui27/nuvio-native-legacy/releases/latest"><strong>Download latest release</strong></a>
+  &nbsp;·&nbsp; <a href="INSTALL.md">Install guide</a>
+  &nbsp;·&nbsp; <a href="#reporting-a-problem">Report a problem</a>
+  &nbsp;·&nbsp; <a href="https://www.patreon.com/cw/CraaazyDevs"><strong>Support on Patreon ♥</strong></a>
+</p>
 
 I wanted Nuvio on my 2019 LG OLED (C9, webOS 4) and the web app was too heavy
 for it. So I rewrote the TV client in C, on top of SDL2 and GLES2, talking to
 the TV's own video pipeline. On the C9 the home screen runs at **60 fps with
-zero janks**. The same code also builds for **Samsung Tizen** as WebAssembly,
-and there's an experimental **Hisense VIDAA** build.
+zero janks**. The same code also runs **natively on Samsung Tizen** (TVs from
+2018 on), builds for Samsung as WebAssembly, and there's an experimental
+**Hisense VIDAA** build.
 
 This is an **unofficial fork**. It's not affiliated with NuvioMedia, and all the
 credit for Nuvio itself goes to them. It uses the same account, addons and
 settings as the official app: sign in once and your stuff is there.
-
-**[Latest release](https://github.com/iqui27/nuvio-native-legacy/releases/latest)**
-· [Install guide](INSTALL.md)
-· [Report a problem](#reporting-a-problem)
 
 ---
 
@@ -43,16 +50,22 @@ Developer Mode (`ares-install`) works too; the steps are in [INSTALL.md](INSTALL
 
 ### Samsung Tizen
 
-Download `NuvioTV-X.Y.Z-tizen.wgt` from the release. It ships **unsigned** on
-purpose: a distributor certificate locks the install to a fixed list of TVs, so
-you sign it with your own certificate (Tizen Studio, against your TV's DUID)
-and install it in Developer Mode. Samsung doesn't let an app install itself,
-so on Samsung the update card only tells you there's a new version.
+Two builds, both on every release. Install either with
+[Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung), which signs the
+package for your TV's DUID (packages ship **unsigned** on purpose: a
+distributor certificate would lock the install to a fixed list of TVs).
 
-Tizen **5.5 or newer**. Tizen 4 (2018 sets) doesn't run it yet (#96).
+#### Native `.tpk` (recommended if your TV is listed)
 
-#### Native `.tpk` (in progress)
+The same C app as on LG, running directly on the TV (OpenGL ES, no web engine
+underneath). Pick the file for your TV:
 
+| TV (year) | Tizen | File |
+|---|---|---|
+| 2018–2020 | 4.0 – 5.5 | `Nuvio-X.Y.Z-NuvioTpk40.tpk` |
+| 2021 | 6.0 | `Nuvio-X.Y.Z-NuvioTpk60.tpk` |
+| 2022–2023 | 6.5 – 7 | `Nuvio-X.Y.Z-NuvioTpk65.tpk` |
+| 2024+ | 8 – 9 | `Nuvio-X.Y.Z-NuvioTpk.tpk` |
 
 ### Hisense VIDAA
 
@@ -79,24 +92,34 @@ remote keys it did not recognize.
 **Install:** Open the TV browser and bookmark `https://nuvio-tv.henriquef29.workers.dev/tv/`,
 or sideload with developer mode using `tools/vidaa-instalar/instalar.py` (DNS spoofing method).
 
-## What works
 
-There's now a **native** Samsung build too: the same C app running directly on
-the TV (OpenGL ES, no web engine), packaged as a `.tpk`. It drops the browser
-layer the WebAssembly build sits on.
+Not sure which Tizen you have? Apps2Samsung shows it when it connects.
 
-- **Tizen 6.0+ (2021 and newer): working** — full app confirmed on Tizen 6.0.
-  Get it from the `native-tpk-preview.2` release (one file per Tizen version).
-- **Tizen 4.0/5.0/5.5 (2018-2020): experimental** — loading native code from
-  the app folder is blocked by the TV (UEP), so the build loads the library via
-  a `memfd` route instead. On real 2018/2019 sets the app now **loads and
-  renders**; a sign-in crash is being fixed. Release `native-tpk-tizen45.1`.
+- **Updates itself** (new in 1.5.4, so the first real run is the next
+  release): when a new release is out, the app
+  downloads the new native library, checks its SHA-256 against the release and
+  switches to it on the next launch — no reinstall. If a release changes the
+  app shell itself, the notes will say to reinstall. (Coming from a preview or
+  test build? Install 1.5.4 once by hand.)
+- On 2018–2020 sets the TV blocks native code loaded from the app folder, so
+  the app loads it straight into memory instead. A normal (Public) certificate
+  is enough; no Partner certificate needed.
+- Settings › Advanced › **Visual effects**: *Automatic* measures the TV in the
+  first seconds and turns off the heaviest effects if it can't keep up; you can
+  force *Full* or *Light*.
+- Samsung TVs don't support Dolby Vision; the player labels the source's HDR
+  type instead (HDR10, HDR10+, HDR).
 
-Install like the `.wgt`: sign with your TV's DUID (Apps2Samsung) and install in
-Developer Mode. Follow progress in the
-**[Samsung native project board](https://github.com/users/iqui27/projects/2)**,
-the [milestone](https://github.com/iqui27/nuvio-native-legacy/milestone/1), and
-[issue #137](https://github.com/iqui27/nuvio-native-legacy/issues/137).
+#### WebAssembly `.wgt`
+
+`NuvioTV-X.Y.Z-tizen.wgt`, for Tizen **5.5 or newer**. The same app compiled to
+WebAssembly, running in the TV's web engine. Samsung doesn't let a web app
+install itself, so here the update card only tells you there's a new version.
+Tizen 4 doesn't run the `.wgt` (#96) — use the native `NuvioTpk40` instead.
+
+Follow the Samsung work in the
+**[Samsung native project board](https://github.com/users/iqui27/projects/2)**
+and [issue #137](https://github.com/iqui27/nuvio-native-legacy/issues/137).
 
 ### Hisense VIDAA (experimental)
 
@@ -119,11 +142,12 @@ HTTPS page, and YouTube trailers only in the single-threaded build.
 | LG webOS 5+ | **Works**, reported by users (2020 CX up to 2024 B4). I don't have one. |
 | LG webOS 3.x | **Works**, reported by testers (webOS 3.4.3). Same package as everyone else. I don't have one. |
 | LG webOS 2.x | Loads according to firmware symbol dumps. Never run. |
-| Samsung Tizen 6+ (WebAssembly) | **Works**, many users. |
-| Samsung Tizen 6+ (native .tpk) | **Works** (preview), confirmed on Tizen 6.0. |
-| Samsung Tizen 5.5 (WebAssembly) | **Works**. |
-| Samsung Tizen 4/5 (native .tpk) | **Experimental** — loads on real sets, sign-in crash being fixed (#180). |
-| Samsung Tizen 4 (WebAssembly) | Not yet (#96). |
+| Samsung Tizen 8/9 (native .tpk) | **Works**, confirmed on three 2023–2024 sets. |
+| Samsung Tizen 6.5/7 (native .tpk) | Should work (same code as 6.0 and 8/9); few reports yet. |
+| Samsung Tizen 6.0 (native .tpk) | **Works**, confirmed. |
+| Samsung Tizen 4.0/5.0 (native .tpk) | **Works**, confirmed on two 4.0 and two 5.0 sets (2018–2019). |
+| Samsung Tizen 5.5+ (WebAssembly) | **Works**, many users. |
+| Samsung Tizen 4 (WebAssembly) | No (#96) — use the native `.tpk`. |
 | Hisense VIDAA | Experimental, untested. |
 
 On webOS 3, keep in mind that many of those sets can't decode H.265 or HDR, and
@@ -195,6 +219,23 @@ network threads and image sizes for another TV model.
 
 ---
 
+## Support development
+
+<a href="https://www.patreon.com/cw/CraaazyDevs">
+  <picture>
+    <source media="(max-width: 640px)" srcset="docs/assets/patreon-support-banner-mobile.png">
+    <img src="docs/assets/patreon-support-banner.png" alt="Support Nuvio Native Legacy by CraaazyDevs on Patreon. Built with care. Supported by the community. Support is optional." width="1600">
+  </picture>
+</a>
+
+This project grew out of wanting a smooth, beautiful Nuvio experience on my LG C9. It now reaches more TVs, with help from people testing builds and sharing feedback.
+
+If you’d like to support the time and care behind it, visit [CraaazyDevs on Patreon](https://www.patreon.com/cw/CraaazyDevs). Support is entirely optional. Bug reports, testing, and helping other users matter too.
+
+This is an independent, unofficial project, not affiliated with NuvioMedia. Credit for Nuvio goes to its original creators.
+
+---
+
 ## Reporting a problem
 
 1. Right after the problem happens, send the log from the app: **Settings ›
@@ -215,6 +256,8 @@ bash tools/arm.sh              # cross-compile for LG in Docker and deploy over 
 bash tools/arm.sh --ipk        # also produce the .ipk
 bash tools/tizen.sh            # build the Samsung target (WebAssembly)
 bash tools/tizen-wgt.sh        # package it as an unsigned .wgt
+bash tools/tpk.sh              # native Samsung: the four .tpk (Docker + .NET 8)
+bash tools/release-samsung.sh  # every Samsung package for a release, checked
 bash tools/hb-repo.sh <ipk> <dir>   # Homebrew Channel repo files for a release
 ```
 

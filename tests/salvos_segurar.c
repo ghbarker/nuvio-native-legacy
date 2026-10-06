@@ -22,6 +22,8 @@
 //
 //   bash tests/salvos_segurar.sh [pasta-das-capturas]
 #include "ajustes.h"
+#include "ajustes_ux.h"
+#include "idioma.h"
 #include "catalogo.h"
 #include "ctxmenu.h"
 #include "dados.h"
@@ -307,12 +309,13 @@ int main(int argc, char **argv) {
 
   printf("\natalho do teste de velocidade:\n");
   naTela = 1;
+  AjusteBuscaResultado velocidade[4];
+  int nVelocidade = ajustes_buscar("Teste de velocidade", velocidade, 4);
+  confere("busca encontra somente o atalho do teste de velocidade",
+          nVelocidade == 1 && !strcmp(velocidade[0].titulo, i18n("Teste de velocidade")));
+  if (nVelocidade == 1) ajustes_abrir_opcao(velocidade[0].op);
   ajustes_iniciar();
   quadros(w, 10);
-  toque(w, SDLK_ESCAPE);                       // coluna de categorias
-  for (i = 0; i < 12; i++) toque(w, SDLK_DOWN); // ate a ultima: Diagnostico
-  toque(w, SDLK_RETURN);
-  toque(w, SDLK_DOWN);                         // a linha de baixo
   capturaAssentada(w, "ajustes-velocidade.png", 60);
   toque(w, SDLK_RETURN);
   confere("OK em \"Teste de velocidade\" e o pedido que app.c le",

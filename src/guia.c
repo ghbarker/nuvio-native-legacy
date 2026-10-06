@@ -39,7 +39,11 @@
 // CONCORRENCIA: o fio escreve em s* (staging); quando termina sobe
 // `pendPronto` e o fio de desenho copia para os vetores publicados. Leitores
 // nunca tocam no staging — mesma disciplina do epg.c.
+#include "horafmt.h"
 #include "guia.h"
+#include "plrui.h"
+#include "badges.h"   /* marcas de resolucao no heroi */
+#include "aovivo.h"
 #include "fontecache.h"
 #include "ajustes.h"   /* ajustes_acento: cor do anel de foco */
 #include "epg.h"
@@ -49,6 +53,7 @@
 #include "descoberta.h"  /* desc_repetir: addon novo so entra com ciclo novo */
 #include "stalker.h"
 #include "xtream.h"
+#include "xtepg.h"     /* grade curta por canal do Xtream (#158) */
 #include "dados.h"
 #include "perfis.h"   /* perfis_ativo: o cache do guia e por perfil */
 #include "marco.h"
@@ -64,6 +69,9 @@
 #include "lembrete.h"   /* lembrete de programa futuro */
 #include "guialembrete.h"
 #include "streams.h"    /* Stream: url do preview vinda do fio */
+#include "livetv_regras.h" /* variantes FHD/HD/SD do mesmo canal */
+#include "teclado.h"       /* a busca do guia */
+#include "buscanorm.h"     /* guia_buscar_canais (Spotlight) */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -140,6 +148,7 @@
 // Botao AMARELO do controle da LG. SUPOSTO (ver o cabecalho do arquivo):
 // SDL_webOS.h enumera RED, GREEN, YELLOW, BLUE em sequencia e BLUE e 489.
 #define G_SCANCODE_YELLOW 488
+#define G_SCANCODE_GREEN  487   // vermelho 486, verde 487, amarelo 488, azul 489
 
 // --- layout do MODO LISTA -----------------------------------------------------
 // Regua de horas em G_TOPO; as linhas comecam 42 px abaixo dela. Coluna de
@@ -167,12 +176,12 @@
 // CHIPS e nao pilulas: 40 px de altura e 22 px de fonte, contra os 48/25 de
 // antes. O dono (21/09): "os botoes estao muito grandes perto do resto". A
 // linha do cabecalho e navegacao secundaria; o que pesa na tela e o heroi.
-#define G_TOPO_Y     40.0f
-#define G_TOPO_H     40.0f
+#define G_TOPO_Y     32.0f
+#define G_TOPO_H     48.0f
 #define G_CHIP_PAD   20.0f
 // CATEGORIAS e o primeiro chip: a porta VISIVEL do painel de categorias,
 // que antes so abria segurando a seta (ninguem descobre gesto que nao se ve).
-enum { G_TOPO_CATEGORIAS = 0, G_TOPO_CARTOES, G_TOPO_LISTA, G_TOPO_ADDONS,
+enum { G_TOPO_BUSCAR = 0, G_TOPO_CATEGORIAS, G_TOPO_CARTOES, G_TOPO_LISTA, G_TOPO_ADDONS, G_TOPO_DIAG,
        G_TOPO_PREVIEW, G_TOPO_N };
 
 // --- painel de addons ---------------------------------------------------------
@@ -561,17 +570,13 @@ static int sCatDe(const char *nome) {
   return sNCats++;
 }
 
-// Primeiro elemento de texto de um array JSON ("genre":["X"] -> "X").
+// Primeiro elemento de texto de um array JSON ("genre":["X"] -> "X"). Pelo
+// js_cadeia, e nao copia crua: addon em Python (json.dumps) escapa todo
+// caractere fora do ASCII, e "Not\u00edcias" virava a categoria
+// "Notu00edcias" (medido em 01/10/2026 com addon de teste).
 static int lerStrEl(const char *p, char *dst, int tam) {
-  int n = 0;
-  if (!p || *p != '"') return 0;
-  p++;
-  while (*p && *p != '"' && n < tam - 1) {
-    if (*p == '\\' && p[1]) p++;
-    dst[n++] = *p++;
-  }
-  dst[n] = 0;
-  return n > 0;
+  if (tam > 0) dst[0] = 0;
+  return js_cadeia(p, dst, (size_t)tam);
 }
 
 static int sCanalPorId(const char *id) {
@@ -665,6 +670,15 @@ static int sFalhas, falhas;
 // canais" e a tela "619 canais". XT_OK / XT_SEM_RESPOSTA / XT_RECUSOU de
 // xtream.h; `s` e do fio, o outro e a copia publicada, como `falhas`.
 static int sXtFalha, xtFalha;
+// O codigo HTTP da lista quando xtFalha == XT_HTTP (#158): 403, 429, 458...
+static int sXtHttp, xtHttp;
+
+// Texto do cabecalho com o aviso da conta Xtream; 0 quando nao ha aviso.
+// Usa nCanais/nCats, entao so vale depois deles declarados — por isso o
+// prototipo aqui e a definicao perto do desenho.
+static int xtAviso(char *sub, size_t tam);
+// Ver a definicao, junto do EPG por canal (#158).
+static void epgPaisesEscolher(void);
 
 static void sondaManifestos(void) {
   int a;
@@ -833,7 +847,7 @@ static void *fioGuia(void *u) {
   if (xtream_configurado()) {
     XtreamCanal *xt = malloc(sizeof *xt * G_MAX_CANAL);
     int n = xt ? xtream_canais(xt, G_MAX_CANAL) : 0, i;
-    if (xt) sXtFalha = xtream_ultima_falha();
+    if (xt) { sXtFalha = xtream_ultima_falha(); sXtHttp = xtream_ultimo_http(); }
     for (i = 0; i < n && sNCanais < G_MAX_CANAL; i++) {
       GCanal c;
       if (sCanalPorId(xt[i].id) >= 0) continue;
@@ -899,7 +913,10 @@ static void empacotar(void) {
     { int inv[G_MAX_CAT];
       for (a = 0; a < nCats; a++) inv[mapa[a]] = a;
       for (i = 0; i < nCanais; i++) if (canais[i].cat >= 0) canais[i].cat = inv[canais[i].cat]; } }
-  { GCanal tmp[G_MAX_CANAL];
+  // `tmp` e estatico: sao ~2 MB (900 canais x ~2,4 KB). Na pilha estourava o
+  // fio do SDL no Android (1 MB por padrao) e e grande demais para qualquer
+  // pilha. So o fio principal chama empacotar().
+  { static GCanal tmp[G_MAX_CANAL];
     int pos[G_MAX_CAT];
     for (i = 0; i < nCats; i++) catN[i] = 0;
     for (i = 0; i < nCanais; i++) if (canais[i].cat >= 0) catN[canais[i].cat]++;
@@ -1041,7 +1058,7 @@ static void publicar(void) {
   // REDE VAZIA NAO APAGA A LISTA QUE HA: sem resposta nenhuma (todos os addons
   // fora), a lista de ontem continua valendo mais que uma tela vazia.
   if (sNCanais == 0 && nCanais > 0) {
-    falhas = sFalhas; xtFalha = sXtFalha;
+    falhas = sFalhas; xtFalha = sXtFalha; xtHttp = sXtHttp;
     memcpy(sabe, sSabe, sizeof sSabe); nSabe = sNSabe;
     printf("[guia] rede sem canal nenhum: fica a lista que estava\n");
     fflush(stdout);
@@ -1051,7 +1068,7 @@ static void publicar(void) {
     if (nCanais > 0 && nova == assinaturaPublicada) {
       memcpy(sabe, sSabe, sizeof sSabe); nSabe = sNSabe;
       memcpy(fontes, sFontes, sizeof sFontes); nFontes = sNFontes;
-      falhas = sFalhas; xtFalha = sXtFalha;
+      falhas = sFalhas; xtFalha = sXtFalha; xtHttp = sXtHttp;
       printf("[guia] lista da rede igual a da tela: nao republicada\n");
       fflush(stdout);
       marco("guia: rede igual ao cache");
@@ -1066,7 +1083,7 @@ static void publicar(void) {
   // contagem das fileiras apenas.
   memcpy(fontes, sFontes, sizeof sFontes);
   nFontes = sNFontes;
-  falhas = sFalhas; xtFalha = sXtFalha;
+  falhas = sFalhas; xtFalha = sXtFalha; xtHttp = sXtHttp;
   memcpy(sabe, sSabe, sizeof sSabe);
   nSabe = sNSabe;
   (void)w;
@@ -1084,6 +1101,13 @@ static void publicar(void) {
   fflush(stdout);
   marco("guia: lista da rede publicada");
   if (nCanais > 0) cacheGravar();
+  // A lista nova pode trazer a dica de pais que faltava (#158).
+  epgPaisesEscolher();
+  // Da grade do provedor so interessam os canais desta lista (#158).
+  { static const char *ids[G_MAX_CANAL];
+    int k = 0;
+    for (i = 0; i < nCanais; i++) if (canais[i].epgId[0]) ids[k++] = canais[i].epgId;
+    epg_fonte_extra_ids(ids, k); }
 }
 
 static void iniciarCarga(void) {
@@ -1116,6 +1140,9 @@ void guia_carregar(void) {
   { char u[1100];
     if (!xtream_url_xmltv(u, sizeof u)) u[0] = 0;
     epg_fonte_extra(u); }
+  // Os paises da grade tambem ANTES da primeira carga (#158): com a lista do
+  // cache ja na tela, a dica do Xtream existe desde o primeiro quadro.
+  epgPaisesEscolher();
   epg_iniciar();
 }
 
@@ -1131,6 +1158,12 @@ static int   pediuCanal; static CatItem pedido;
 // "Categorias" (fica aberto, OK entra, Voltar fecha). catFoco e a linha em
 // foco DENTRO do painel — o guia so muda de secao ao confirmar.
 static int    catAberto, catFoco;
+// A LISTA DE CATEGORIAS FICA (dono, 01/10/2026): aberta por segurar a seta
+// (modo 1), ao soltar ela vira a lista navegavel (modo 2) em vez de entrar
+// sozinha. Cima/baixo andam, OK ou direita entram, esquerda/Voltar fecham;
+// sem tecla por G_CAT_OCIOSO_MS ela fecha sem mudar nada.
+#define G_CAT_OCIOSO_MS 8000u
+static Uint32 catUlt;
 static float  catAnim, catRol, catVelRol;
 static int    dirSeg;                 // SDLK_UP/DOWN segurado, 0 = solto
 static Uint32 dirDesde, dirTick, ultNavCat;
@@ -1259,6 +1292,56 @@ static GCanal *canalPorId(const char *id) {
   for (i = 0; i < nCanais; i++) if (!strcmp(canais[i].id, id)) return &canais[i];
   return NULL;
 }
+// VARIANTES DO MESMO CANAL (Live TV > Resolucao principal). No Xtream cada
+// resolucao e um canal da lista ("RO| CINEMAX FHD", "RO| CINEMAX HD"); o
+// nome-base (livetv_regras.h) junta os que sao o mesmo canal. O proprio canal
+// vem primeiro; os outros, na ordem da lista. So Xtream: no addon as
+// resolucoes ja chegam como fontes do mesmo canal.
+int guia_variantes(const char *id, GuiaVariante *out, int max) {
+  GCanal *c = canalPorId(id);
+  char base[160], outra[160];
+  int i, n = 0;
+  if (!c || max < 1 || !xtream_e_id(c->id)) return 0;
+  nv_nome_base(c->nome, base, sizeof base);
+  snprintf(out[n].id, sizeof out[n].id, "%s", c->id);
+  snprintf(out[n].nome, sizeof out[n].nome, "%s", c->nome);
+  out[n].altura = nv_res_do_texto(c->nome);
+  n++;
+  if (!base[0]) return n;
+  for (i = 0; i < nCanais && n < max; i++) {
+    if (&canais[i] == c || !xtream_e_id(canais[i].id)) continue;
+    nv_nome_base(canais[i].nome, outra, sizeof outra);
+    if (strcmp(base, outra)) continue;
+    snprintf(out[n].id, sizeof out[n].id, "%s", canais[i].id);
+    snprintf(out[n].nome, sizeof out[n].nome, "%s", canais[i].nome);
+    out[n].altura = nv_res_do_texto(canais[i].nome);
+    n++;
+  }
+  return n;
+}
+
+// OS CANAIS DO TESTE do diagnostico da Live TV: a fileira em foco (que pode
+// ser a de Favoritos), a partir do canal focado; sem foco valido, a primeira.
+int guia_canais_para_teste(GuiaVariante *out, char bases[][600], int max, char *grupo, size_t ng) {
+  int l = focoLin, c0 = focoCol, n = 0, k, total;
+  if (l < 0 || l >= nLinhas()) l = 0;
+  total = linhaN(l);
+  if (c0 < 0 || c0 >= total) c0 = 0;
+  if (grupo && ng) snprintf(grupo, ng, "%s", nLinhas() ? linhaNome(l) : "");
+  for (k = 0; k < total && n < max; k++) {
+    GCanal *g = linhaItem(l, (c0 + k) % total);
+    if (!g) continue;
+    snprintf(out[n].id, sizeof out[n].id, "%s", g->id);
+    snprintf(out[n].nome, sizeof out[n].nome, "%s", g->nome);
+    out[n].altura = nv_res_do_texto(g->nome);
+    if (bases) snprintf(bases[n], 600, "%s", g->base);
+    n++;
+  }
+  return n;
+}
+static int pedLivetvDiag;
+int guia_pediu_livetv_diag(void) { int v = pedLivetvDiag; pedLivetvDiag = 0; return v; }
+
 static char pedidoBase[600];
 static void previewPedir(GCanal *c) {
   if (!c || !c->id[0]) return;
@@ -1276,6 +1359,48 @@ static void previewParar(void) {
   pedPararPreview = 1;
 }
 
+// DICA DE PRIMEIRA VEZ: ESQUERDA LEVA AS OPCOES DO GUIA. Pedido do dono: a
+// barra de cima (Categorias, Cartoes/Lista, Addons, Preview) so e alcancada
+// por ESQUERDA no primeiro canal da fileira (no modo lista, com a grade no
+// "agora") ou por CIMA na primeira fileira, e ninguem descobre isso sozinho.
+// Uma pilula discreta sob a barra, nas primeiras G_DICA_VEZES aberturas do guia
+// completo ou ate a pessoa usar a ESQUERDA para subir uma vez; some em
+// G_DICA_MS ou na primeira tecla. A contagem fica em guia-dica.txt ("N" ou
+// "usou"), nesta TV.
+#define G_DICA_ARQ   "guia-dica.txt"
+#define G_DICA_VEZES 3
+#define G_DICA_MS    4000u
+static Uint32 dicaDesde;      // 0 = fora da tela
+static float  dicaAlfa, dicaDir, dicaA;
+static void desenharDica(void) {
+  float ar, ag, ab, da = dicaAlfa * dicaA;
+  TxtLinha t;
+  GfxRect p;
+  if (da <= 0.01f || focoTopo || overlay) return;
+  ajustes_acento(&ar, &ag, &ab);
+  t = txt_linha(TXT_CAPTION, i18n("← no primeiro canal: opções do guia"), 236, 238, 244, 255);
+  p = (GfxRect){ dicaDir - (float)t.w - 40.0f, G_TOPO_Y + G_TOPO_H + 16.0f, (float)t.w + 40.0f, 44.0f };
+  gfx_cor(p, 0.5f, 0.13f, 0.14f, 0.18f, 0.97f * da);
+  gfx_anel_fora(p, 0.5f, 0.0f, 2.0f, ar, ag, ab, 0.85f * da);
+  txt_desenhar_alpha(t, p.x + 20.0f, p.y + (p.h - (float)t.h) * 0.5f, da);
+}
+static void dicaGravar(const char *v) { dados_gravar(G_DICA_ARQ, v); }
+static void dicaUsou(void) {
+  if (dicaDesde) dicaDesde = 0;
+  dicaGravar("usou\n");
+}
+static void dicaTalvez(void) {
+  char *t = dados_ler(G_DICA_ARQ), buf[16];
+  int n = 0;
+  if (t && !strncmp(t, "usou", 4)) { free(t); return; }
+  if (t) { n = atoi(t); free(t); }
+  if (n >= G_DICA_VEZES) return;
+  snprintf(buf, sizeof buf, "%d\n", n + 1);
+  dicaGravar(buf);
+  dicaDesde = SDL_GetTicks();
+  if (!dicaDesde) dicaDesde = 1;
+}
+
 void guia_abrir(void) {
   guia_carregar();
   if (!previewLido) previewLer();
@@ -1284,6 +1409,8 @@ void guia_abrir(void) {
   previewPreso = 0; previewId[0] = 0;
   previewUltLin = previewUltCol = -1; previewFocoMudou = SDL_GetTicks();
   focoValido();
+  dicaAlfa = 0.0f;
+  dicaTalvez();
 }
 
 // O CANAL NO AR VEM PARA O GUIA. O app ja mandou o player encolher para o
@@ -1372,7 +1499,12 @@ const char *guia_canal_origem(void) { return pedidoBase; }
 static time_t janelaIni(time_t agoraT);
 static time_t instanteFoco(time_t agoraT);
 static int epgDo(GCanal *c);
+static int gAgora(GCanal *c, time_t t, EpgProg *p);   // ver a definicao (#158)
 static void pedirCanal(GCanal *c);
+static void buscaAbrir(void);
+static int buscaEvento(const SDL_Event *e);
+static void buscaAtualizar(float dt, Uint32 agora);
+static void buscaFechar(void);
 
 // O instante que o foco aponta, na grade cheia ou na faixa do mini guia.
 static time_t tFocoAgora(void) {
@@ -1383,10 +1515,8 @@ static time_t tFocoAgora(void) {
 
 // O programa da celula em foco (o que cobre tFocoAgora), 1 se ha.
 static int programaFocado(GCanal *c, EpgProg *p) {
-  int epg;
   if (!c) return 0;
-  epg = epgDo(c);
-  return epg >= 0 && epg_agora(epg, tFocoAgora(), p);
+  return gAgora(c, tFocoAgora(), p);
 }
 
 // OK NUMA CELULA DO FUTURO MARCA (OU DESMARCA) O LEMBRETE — programa que nao
@@ -1450,14 +1580,56 @@ static void pedirCanal(GCanal *c) {
 // que o addon os declara), entao o CH+/− percorre exatamente o que se ve na
 // tela. Da volta nas pontas: de "premiere" para "globo" direto e o jeito
 // antigo de zapear, nao um erro de foco.
-int guia_zap(const char *idAtual, int dir, CatItem *saida) {
+static int zapAlvo(const char *idAtual, int dir, CatItem *saida, int aplicar) {
   int i, alvo = 0;
   if (!saida || estado != G_PRONTO || nCanais < 1) return 0;
   for (i = 0; i < nCanais; i++)
     if (!strcmp(canais[i].id, idAtual ? idAtual : "")) { alvo = i; break; }
-  alvo = (alvo + dir + nCanais) % nCanais;
+  // `dir` pode ser um deslocamento maior que 1 (o zapping com debounce soma os
+  // toques) e 0 devolve o proprio canal (recarregar a fonte).
+  alvo = aovivo_ordem(nCanais, alvo, dir);
   canalParaItem(&canais[alvo], saida);
+  // A origem so muda quando o zap VAI tocar; o banner do zapping so espia.
+  if (aplicar) snprintf(pedidoBase, sizeof pedidoBase, "%s", canais[alvo].base);
   return 1;
+}
+int guia_zap(const char *idAtual, int dir, CatItem *saida) {
+  return zapAlvo(idAtual, dir, saida, 1);
+}
+int guia_zap_ver(const char *idAtual, int dir, CatItem *saida) {
+  return zapAlvo(idAtual, dir, saida, 0);
+}
+
+// Onde o canal esta na ordem do guia e de que categoria e: o numero que o OSD
+// do player mostra. 0 com a lista ainda nao carregada ou canal fora dela.
+int guia_info_canal(const char *id, int *numero, int *total, char *cat, size_t n) {
+  int i;
+  if (estado != G_PRONTO || nCanais < 1 || !id || !id[0]) return 0;
+  for (i = 0; i < nCanais; i++) if (!strcmp(canais[i].id, id)) break;
+  if (i >= nCanais) return 0;
+  if (numero) *numero = i + 1;
+  if (total) *total = nCanais;
+  if (cat && n) snprintf(cat, n, "%s", canais[i].cat >= 0 ? cats[canais[i].cat] : "");
+  return 1;
+}
+
+int guia_e_favorito(const char *id) {
+  if (!favLido) favLer();
+  return id && id[0] && favIndice(id) >= 0;
+}
+
+void guia_alternar_favorito(const char *id) {
+  GCanal *c = canalPorId(id);
+  if (!favLido) favLer();
+  if (c) favAlternar(c);
+}
+
+// O programa NO AR do canal `id` (a mesma consulta do cartao do guia, com a
+// XMLTV e a grade curta do Xtream). O ponteiro de titulo vale ate o proximo
+// epg_passo/xtepg_passo: quem guarda copia.
+int guia_programa_agora(const char *id, time_t t, EpgProg *p) {
+  GCanal *c = canalPorId(id);
+  return c && p && gAgora(c, t, p);
 }
 
 static void moverVertical(int dir) {
@@ -1487,6 +1659,7 @@ static void catAbrir(int modo, int dir) {
   if (nLinhas() < 1) return;
   if (!catAberto) catFoco = focoLin;
   catAberto = modo;
+  catUlt = SDL_GetTicks();
   if (dir) {
     catFoco += dir;
     if (catFoco < 0) catFoco = 0;
@@ -1602,8 +1775,12 @@ static void painelAplicar(int i) {
 // e o overhead que o dono viu no log como "recarrega tudo de novo, inclusive
 // os desativados"). Roda uma vez por visita, nao por tecla: o guia ja se
 // atualizou a cada tecla em painelAplicar.
+static int recargaDoPainel;   // ver guia_atualizando_lista
 static void painelFechar(void) {
   painel = 0;
+  // A recarga que o painel pediu continua depois que ele fecha: quem diz
+  // "Atualizando a lista de canais…" passa a ser a ilha (app.c).
+  if (paMexeu && (fioVivo || recarregarPend)) recargaDoPainel = 1;
   if (!paMexeu) return;
   paMexeu = 0;
   if (paLigou) {
@@ -1681,13 +1858,14 @@ static void sair(void) {
 
 void guia_evento(const SDL_Event *e) {
   if (!guia_visivel()) return;
+  if (buscaEvento(e)) return;
 
   if (e->type == SDL_KEYUP) {
     SDL_Keycode k = e->key.keysym.sym;
     if (k == SDLK_UP || k == SDLK_DOWN) {
       dirSeg = 0;
-      // Soltou a seta que abriu o painel: entra onde o foco dele parou.
-      if (catAberto == 1) catConfirmar();
+      // Soltou a seta que abriu o painel: a lista fica, com o foco onde parou.
+      if (catAberto == 1) { catAberto = 2; catUlt = SDL_GetTicks(); }
     }
     if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
       if (okDesde && !okLongo) acaoOk();
@@ -1698,6 +1876,8 @@ void guia_evento(const SDL_Event *e) {
   if (e->type != SDL_KEYDOWN) return;
   SDL_Keycode k = e->key.keysym.sym;
   Uint32 agora = SDL_GetTicks();
+  // A dica sai na primeira tecla; a tecla segue valendo.
+  dicaDesde = 0;
 
   if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
       k == SDLK_DELETE || e->key.keysym.scancode == NV_SCANCODE_BACK) {
@@ -1740,6 +1920,7 @@ void guia_evento(const SDL_Event *e) {
 
   // O painel de categorias captura as setas e o OK enquanto aberto.
   if (catAberto) {
+    catUlt = agora;
     if (k == SDLK_UP || k == SDLK_DOWN) {
       int dir = k == SDLK_DOWN ? 1 : -1;
       if (catAberto == 1) {
@@ -1755,6 +1936,11 @@ void guia_evento(const SDL_Event *e) {
     return;
   }
 
+  // VERDE abre o diagnostico da Live TV (`d` no teclado do Mac). Fora da
+  // faixa: por cima do video ela e o zapping, e a tela nova pararia o canal.
+  if (!overlay && (e->key.keysym.scancode == G_SCANCODE_GREEN || k == SDLK_d)) {
+    pedLivetvDiag = 1; return;
+  }
   // AMARELO alterna lista e cartoes de qualquer lugar. `l` no teclado do Mac
   // e o equivalente de bancada, como `s` e do azul.
   if (e->key.keysym.scancode == G_SCANCODE_YELLOW || k == SDLK_l) {
@@ -1783,8 +1969,10 @@ void guia_evento(const SDL_Event *e) {
     if (k == SDLK_RIGHT) { if (topoCol + 1 < G_TOPO_N) topoCol++; return; }
     if (k == SDLK_DOWN)  { focoTopo = 0; return; }
     if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
-      if (topoCol == G_TOPO_CATEGORIAS) catAbrir(2, 0);
+      if (topoCol == G_TOPO_BUSCAR) buscaAbrir();
+      else if (topoCol == G_TOPO_CATEGORIAS) catAbrir(2, 0);
       else if (topoCol == G_TOPO_ADDONS) painelAbrir();
+      else if (topoCol == G_TOPO_DIAG) pedLivetvDiag = 1;
       else if (topoCol == G_TOPO_PREVIEW) {
         previewLigado = !previewLigado;
         previewGravar();
@@ -1833,17 +2021,121 @@ void guia_evento(const SDL_Event *e) {
   // toda". BAIXO no cabecalho volta para a linha em que estava.
   if (modoLista) {
     if (k == SDLK_LEFT)  { if (janelaDesl > 0) janelaDesl -= G_L_PASSO_MIN;
-                           else { focoTopo = 1; topoCol = G_TOPO_LISTA; } return; }
+                           else { focoTopo = 1; topoCol = G_TOPO_LISTA; dicaUsou(); } return; }
     if (k == SDLK_RIGHT) { if (janelaDesl < G_L_DESL_MAX) janelaDesl += G_L_PASSO_MIN; return; }
   } else {
     if (k == SDLK_LEFT)  { if (focoCol > 0) focoCol--;
-                           else { focoTopo = 1; topoCol = G_TOPO_CARTOES; } return; }
+                           else { focoTopo = 1; topoCol = G_TOPO_CARTOES; dicaUsou(); } return; }
     if (k == SDLK_RIGHT) { if (focoCol + 1 < linhaN(focoLin)) focoCol++; return; }
   }
   if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
     if (!okDesde) { okDesde = agora; okLongo = 0; }
     return;
   }
+}
+
+// Ver o prototipo, junto de xtFalha.
+static int xtAviso(char *sub, size_t tam) {
+  XtreamConta c;
+  long long agora = (long long)time(NULL);
+  int a;
+  if (!xtream_conta(&c)) return 0;
+  a = xtream_conta_aviso(&c, agora);
+  switch (a) {
+    case XA_EXPIRADA:
+      snprintf(sub, tam, i18n("%d canais · %d categorias · assinatura Xtream vencida"), nCanais, nCats);
+      return 1;
+    case XA_DESATIVADA: case XA_RECUSOU:
+      snprintf(sub, tam, i18n("%d canais · %d categorias · conta Xtream desativada"), nCanais, nCats);
+      return 1;
+    case XA_TELAS_CHEIAS:
+      snprintf(sub, tam, i18n("%d canais · %d categorias · telas do Xtream em uso (%d de %d)"),
+               nCanais, nCats, c.conexoes, c.maxConexoes);
+      return 1;
+    case XA_VENCE_LOGO:
+      snprintf(sub, tam, i18n("%d canais · %d categorias · o Xtream vence em %d dia(s)"),
+               nCanais, nCats, (int)((c.expira - agora) / 86400) + 1);
+      return 1;
+    default: return 0;
+  }
+}
+
+// --- de que pais vem a grade (#158) ---------------------------------------
+// A ESCOLHA MANUAL (Ajustes > Conteudo > Guia TV) manda. No automatico, nesta
+// ordem, ate tres paises:
+//   1. o prefixo de pais dos canais e das categorias do Xtream ("RO: Pro TV",
+//      "RO | SPORT", "|RO| Antena 1") ou o nome do pais na categoria
+//      ("ROMANIA"), quando cobre pelo menos 5% dos canais do Xtream (e 10
+//      canais). E a dica mais especifica que existe: diz de onde vem a lista
+//      que a pessoa assina, e nao de onde e a pessoa.
+//   2. a regiao do idioma dos metadados ("ro-RO" -> RO, "pt-BR" -> BR);
+//   3. o idioma do app (portugues = as cinco de sempre, romeno = RO).
+// Nada disso = as cinco de sempre (epg_paises_definir("")), que e o que quem
+// nunca mexeu ja via.
+typedef struct { const char *palavra, *pais; } GPaisPalavra;
+static const GPaisPalavra PAIS_PALAVRA[] = {
+  { "romania", "RO" }, { "rom\xc3\xa2nia", "RO" }, { "romana", "RO" }, { "romanian", "RO" },
+  { "portugal", "PT" }, { "brasil", "BR" }, { "brazil", "BR" }, { "espana", "ES" },
+  { "espa\xc3\xb1""a", "ES" }, { "spain", "ES" }, { "italia", "IT" }, { "italy", "IT" },
+  { "france", "FR" }, { "deutschland", "DE" }, { "germany", "DE" }, { "turkey", "TR" },
+  { "turkiye", "TR" }, { "greece", "GR" }, { "bulgaria", "BG" }, { "hungary", "HU" },
+  { "magyar", "HU" }, { "serbia", "RS" }, { "croatia", "HR" }, { "hrvatska", "HR" },
+  { "netherlands", "NL" }, { "nederland", "NL" }, { "albania", "AL" }, { "mexico", "MX" },
+  { "argentina", "AR" }, { "united kingdom", "UK" },
+};
+
+static const char *paisDoTexto(const char *t, char buf[4]) {
+  char low[96];
+  size_t i;
+  int k;
+  epg_sem_prefixo(t, buf);
+  if (buf[0] && epg_pais_existe(buf)) return buf;
+  for (i = 0; t[i] && i < sizeof low - 1; i++)
+    low[i] = (char)((t[i] >= 'A' && t[i] <= 'Z') ? t[i] + 32 : t[i]);
+  low[i] = 0;
+  for (k = 0; k < (int)(sizeof PAIS_PALAVRA / sizeof PAIS_PALAVRA[0]); k++)
+    if (strstr(low, PAIS_PALAVRA[k].palavra)) return PAIS_PALAVRA[k].pais;
+  return NULL;
+}
+
+static void epgPaisesEscolher(void) {
+  char lista[24] = "";
+  const char *manual = ajustes_epg_pais();
+  int n = 0;
+  #define ADD(c) do { if ((c) && (c)[0] && n < 3 && !strstr(lista, (c)) && epg_pais_existe(c)) { \
+      if (lista[0]) strcat(lista, ","); strncat(lista, (c), 2); n++; } } while (0)
+  if (manual[0]) { epg_paises_definir(manual); return; }
+  { // 1. dicas da lista do Xtream
+    char cod[8][3]; int cont[8], nc = 0, nXt = 0, i, j;
+    for (i = 0; i < nCanais; i++) {
+      char b[4]; const char *p;
+      if (!xtream_e_id(canais[i].id)) continue;
+      nXt++;
+      p = paisDoTexto(canais[i].nome, b);
+      if (!p && canais[i].cat >= 0 && canais[i].cat < nCats) p = paisDoTexto(cats[canais[i].cat], b);
+      if (!p) continue;
+      for (j = 0; j < nc && strcmp(cod[j], p); j++) {}
+      if (j == nc) { if (nc == 8) continue; snprintf(cod[nc], 3, "%s", p); cont[nc++] = 0; }
+      cont[j]++;
+    }
+    for (;;) {                                   // maior contagem primeiro
+      int m = -1;
+      for (j = 0; j < nc; j++) if (cont[j] > 0 && (m < 0 || cont[j] > cont[m])) m = j;
+      if (m < 0) break;
+      if (cont[m] >= 10 && cont[m] * 20 >= nXt) ADD(cod[m]);
+      cont[m] = 0;
+    } }
+  { // 2. regiao do idioma dos metadados
+    const char *t = ajustes_tmdb_idioma();
+    if (t && strlen(t) == 5 && t[2] == '-') { char r[3] = { t[3], t[4], 0 }; if (!strcmp(r, "GB")) snprintf(r, 3, "UK"); ADD(r); } }
+  // 3. idioma do app
+  if (ajustes_idioma() == IDIOMA_RO) ADD("RO");
+  #undef ADD
+  // Portugues (e o pt-BR que o "da interface" devolve) cai nas cinco de sempre
+  // sem precisar dizer: BR sozinho seria menos do que quem ja usa tinha.
+  if (!strcmp(lista, "BR") || !strcmp(lista, "PT") || !strcmp(lista, "BR,PT") || !strcmp(lista, "PT,BR"))
+    lista[0] = 0;
+  epg_paises_definir(lista);
 }
 
 // --- EPG por canal ---------------------------------------------------------------
@@ -1859,12 +2151,50 @@ static int epgDo(GCanal *c) {
   return c->epg;
 }
 
+// A GRADE DE UM CANAL, venha de onde vier (#158): primeiro a XMLTV (epg.c:
+// provedor, epgshare01 do pais), e, para canal Xtream que nao casou nela, a
+// grade curta do proprio painel (xtepg.c). Pedir e barato e so acontece para
+// o canal que esta sendo desenhado. Sem grade ainda (-1, EPG carregando) o
+// pedido tambem sai: a XMLTV pode demorar um minuto, a curta vem em um
+// segundo, e quando a XMLTV casar ela passa na frente.
+static int xtCurta(GCanal *c) {
+  if (!xtream_e_id(c->id)) return 0;
+  xtepg_querer(c->id);
+  return 1;
+}
+static int gAgora(GCanal *c, time_t t, EpgProg *p) {
+  int epg = epgDo(c);
+  if (epg >= 0) return epg_agora(epg, t, p);
+  return xtCurta(c) && xtepg_agora(c->id, t, p);
+}
+static int gProximo(GCanal *c, time_t t, int k, EpgProg *p) {
+  int epg = epgDo(c);
+  if (epg >= 0) return epg_proximo(epg, t, k, p);
+  return xtCurta(c) && xtepg_proximo(c->id, t, k, p);
+}
+static int gTemGrade(GCanal *c) {
+  return epgDo(c) >= 0 || (xtream_e_id(c->id) && xtepg_tem(c->id));
+}
+static int gFaixa(GCanal *c, time_t de, time_t ate, EpgProg *out, int cap) {
+  int epg = epgDo(c);
+  if (epg >= 0) return epg_faixa(epg, de, ate, out, cap);
+  return xtCurta(c) ? xtepg_faixa(c->id, de, ate, out, cap) : 0;
+}
+
 // Quando a grade EPG e (re)publicada, os indices guardados morrem — a troca
 // inteira do vetor torna todo -1 de novo.
 static int epgRev, epgEraPronto;
 static void epgPasso(void) {
   int pronto = epg_estado() == EPG_PRONTO;
+  // Trocou o pais em Ajustes com o guia aberto: refaz a escolha (o epg_passo
+  // abaixo ve a troca e recarrega).
+  { static char ultimo[4] = "?";
+    if (strcmp(ultimo, ajustes_epg_pais())) {
+      snprintf(ultimo, sizeof ultimo, "%s", ajustes_epg_pais());
+      epgPaisesEscolher();
+    } }
   epg_passo();
+  xtepg_passo();
   if (pronto && !epgEraPronto) {
     epgRev++;
     for (int i = 0; i < nCanais; i++) canais[i].epg = -1;
@@ -1897,8 +2227,13 @@ static float paItemY(int i) {
 }
 #define G_PA_LISTA_Y 200.0f
 
+int guia_atualizando_lista(void) {
+  return recargaDoPainel && !painel && (fioVivo || recarregarPend);
+}
+
 void guia_atualizar(float dt, Uint32 agora) {
   entrada = anim_mola(entrada, guia_visivel() ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
+  if (recargaDoPainel && !fioVivo && !recarregarPend && !pendPronto) recargaDoPainel = 0;
   if (pendPronto) {
     publicar(); estado = G_PRONTO; pendPronto = 0; fioVivo = 0; focoValido();
     if (painel) painelMontar();   // sabe[] mudou: quem nao fornece canal sai
@@ -1922,7 +2257,8 @@ void guia_atualizar(float dt, Uint32 agora) {
     previewUltLin = focoLin; previewUltCol = focoCol;
     if (c && c->id[0] && strcmp(c->id, previewId)) previewPedir(c);
   }
-  if (!guia_visivel()) return;
+  if (!guia_visivel()) { buscaFechar(); return; }
+  buscaAtualizar(dt, agora);
 
   for (int i = 0; i < G_TOPO_N; i++)
     animTopo[i] = anim_mola(animTopo[i], focoTopo && topoCol == i ? 1.0f : 0.0f,
@@ -1992,7 +2328,8 @@ void guia_atualizar(float dt, Uint32 agora) {
   if (dirSeg && agora - dirTick > G_REP_MS) dirSeg = 0;
   // O firmware nao garante KEYUP: silencio de G_REP_MS na seta que abriu o
   // painel por segurar vale como soltura.
-  if (catAberto == 1 && !dirSeg) catConfirmar();
+  if (catAberto == 1 && !dirSeg) { catAberto = 2; catUlt = agora; }
+  if (catAberto == 2 && catUlt && agora - catUlt > G_CAT_OCIOSO_MS) catFechar();
   catAnim = anim_mola(catAnim, catAberto ? 1.0f : 0.0f, dt, 12.0f);
   if (catAberto || catAnim > 0.01f) {
     float areaH = G_CAT_BASE - G_CAT_TOPO;
@@ -2033,7 +2370,7 @@ void guia_atualizar(float dt, Uint32 agora) {
 // --- desenho ---------------------------------------------------------------------
 static void fmtHora(time_t t, char *dst, size_t n) {
   struct tm lt; localtime_r(&t, &lt);
-  strftime(dst, n, "%H:%M", &lt);
+  hora_tela(dst, n, &lt);
 }
 
 // O cartao de canal: logo + nome em cima, "agora" com barra de progresso e o
@@ -2117,11 +2454,13 @@ static void iniciaisDe(const char *nome, char *dst, size_t tam) {
 // SEM TEXTURA (baixando, ou o servidor de logo falhou: o log da C9 mostra
 // "corpo curto" do 24horas.cc e do imgur, e "sem corpo" do watchplay) o lugar
 // e um azulejo ESCURO discreto com as iniciais do canal. Nunca um bloco claro.
-static void logoNaCaixa(const GCanal *c, GfxRect cx, float maxW, float maxH,
-                        float tom, float a) {
+// PUBLICO (guia.h) desde 29/09/2026: o OSD do player ao vivo, o banner do
+// zapping e o cartao de erro desenham a marca do canal por AQUI, para o canal
+// ter a mesma cara no guia e no player (sem azulejo, branco quando recortado).
+void guia_logo_desenhar(const char *logo, const char *nome, GfxRect cx,
+                        float maxW, float maxH, float tom, float a) {
   GLuint t = 0;
   float ap = 0.0f, w, h, fr, fg, fb;
-  const char *logo = c ? c->logo : NULL;
   if (logo && logo[0]) {
     t = tex_obter_larg(logo, cx.w);
     ap = tex_aspecto(logo);
@@ -2132,7 +2471,7 @@ static void logoNaCaixa(const GCanal *c, GfxRect cx, float maxW, float maxH,
     GfxRect az = { cx.x + (cx.w - lado) * 0.5f, cx.y + (cx.h - lado) * 0.5f, lado, lado };
     int claro = tom < 0.5f;   // superficie clara (cartao em foco): azulejo claro
     TxtLinha l;
-    iniciaisDe(c ? c->nome : "", ini, sizeof ini);
+    iniciaisDe(nome ? nome : "", ini, sizeof ini);
     if (claro) gfx_cor(az, 0.22f, 0.0f, 0.0f, 0.0f, 0.10f * a);
     else       gfx_cor(az, 0.22f, 1.0f, 1.0f, 1.0f, 0.075f * a);
     if (ini[0]) {
@@ -2159,6 +2498,10 @@ static void logoNaCaixa(const GCanal *c, GfxRect cx, float maxW, float maxH,
       gfx_rect(lr, t, GFX_TEXTO, 0, 0, 0, 0.0f, 1, 1, 1, a);
   }
 }
+static void logoNaCaixa(const GCanal *c, GfxRect cx, float maxW, float maxH,
+                        float tom, float a) {
+  guia_logo_desenhar(c ? c->logo : NULL, c ? c->nome : "", cx, maxW, maxH, tom, a);
+}
 
 static void desenharLogo(const GCanal *c, GfxRect cx, float lado, float tom,
                          float a) {
@@ -2170,9 +2513,9 @@ static void desenharCard(GCanal *c, float x, float y, float foco, float a,
   GfxRect r = { x, y, G_CARD_W, G_CARD_H };
   float lum = anim_mistura(0.075f, 0.16f, foco);
   EpgProg ag, px;
-  int epg = epgDo(c);
-  int temAgora = epg >= 0 && epg_agora(epg, agoraT, &ag);
-  int temProx  = epg >= 0 && epg_proximo(epg, agoraT, 0, &px);
+  int temAgora = gAgora(c, agoraT, &ag);
+  int temProx  = gProximo(c, agoraT, 0, &px);
+  int epg = gTemGrade(c) ? 0 : -1;
 
   // FOCO = O CARTAO PREENCHIDO NA COR DO FUNDO DO LOGO, sem anel. Pedido do
   // dono (16/09), olhando a captura do guia: "quando ta selecionado ficar com
@@ -2214,7 +2557,7 @@ static void desenharCard(GCanal *c, float x, float y, float foco, float a,
   // AGORA.
   { float ly = y + 118.0f;
     if (temAgora) {
-      char h1[8], h2[8], faixa[40];
+      char h1[12], h2[12], faixa[40];
       fmtHora(ag.ini, h1, sizeof h1); fmtHora(ag.fim, h2, sizeof h2);
       snprintf(faixa, sizeof faixa, "%s %s\xe2\x80\x93%s", i18n("AGORA"), h1, h2);
       { TxtLinha l = escuro ? txt_linha_corta(TXT_MINI, faixa, 30, 50, 90, 255, r.w - 28.0f)
@@ -2251,7 +2594,7 @@ static void desenharCard(GCanal *c, float x, float y, float foco, float a,
   // A SEGUIR, numa linha so.
   { char linha[300];
     if (temProx) {
-      char h1[8]; fmtHora(px.ini, h1, sizeof h1);
+      char h1[12]; fmtHora(px.ini, h1, sizeof h1);
       snprintf(linha, sizeof linha, "%s %s  \xc2\xb7  %s",
                i18n("A seguir"), h1, px.titulo);
     } else {
@@ -2270,7 +2613,9 @@ static void desenharCard(GCanal *c, float x, float y, float foco, float a,
 // --- heroi "agora" ---------------------------------------------------------------
 // Selo AO VIVO: pilula vermelha, texto branco. Devolve a largura, para a linha
 // de meta continuar ao lado dele.
-static float seloAoVivo(float x, float y, float a) {
+// PUBLICO (guia.h) desde 29/09/2026, pelo mesmo motivo de guia_logo_desenhar:
+// o selo do OSD ao vivo e ESTE selo, e nao um parecido.
+float guia_selo_ao_vivo(float x, float y, float a) {
   TxtLinha t = txt_linha(TXT_PG_ROTULO, i18n("AO VIVO"), 255, 255, 255, 255);
   GfxRect r = { x, y, (float)t.w + 26.0f, 32.0f };
   gfx_cor(r, 0.5f, 0.84f, 0.15f, 0.19f, a);
@@ -2280,7 +2625,7 @@ static float seloAoVivo(float x, float y, float a) {
 
 // Etiqueta discreta (categoria): vidro translucido, texto secundario. A
 // categoria era texto AZUL solto embaixo do nome, e competia com o titulo.
-static float etiqueta(const char *s, float x, float y, float maxW, float a) {
+float guia_etiqueta(const char *s, float x, float y, float maxW, float a) {
   TxtLinha t;
   GfxRect r;
   if (!s || !s[0]) return 0.0f;
@@ -2361,6 +2706,14 @@ static int descMolde(const char *d, GDesc *o) {
   return 1;
 }
 
+const char *guia_desc_livre(const char *desc, char *buf, size_t n) {
+  GDesc d;
+  if (!desc || !desc[0] || !buf || !n) return "";
+  if (!descMolde(desc, &d)) return desc;
+  snprintf(buf, n, "%s", d.resto);
+  return buf;
+}
+
 // O HEROI: a ficha do canal focado a esquerda e o preview 16:9 a direita.
 //
 // `tFoco` e o instante que o foco aponta: agora, ou o comeco da janela quando
@@ -2382,8 +2735,8 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
   EpgProg p;
   if (!c) return;
   ajustes_acento(&ar, &ag, &ab);
-  epg = epgDo(c);
-  tem = epg >= 0 && epg_agora(epg, tFoco, &p);
+  tem = gAgora(c, tFoco, &p);
+  epg = gTemGrade(c) ? 0 : -1;
   noAr = tem && p.ini <= agoraT && agoraT < p.fim;
 
   // PREVIEW. O plano de video vive ATRAS da superficie GL; o furo e o que o
@@ -2409,7 +2762,7 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
     // Fio de 1,5 px: o video le como parte da interface, e nao como buraco.
     gfx_rect(pv, 0, GFX_ANEL, 0, 1.5f / pv.h, 0, raio, 1, 1, 1, 0.16f * a);
     // Selo sobre o video: GL opaco por cima do furo aparece por cima do plano.
-    { float sw = seloAoVivo(pv.x + 20.0f, pv.y + pv.h - 52.0f, a);
+    { float sw = guia_selo_ao_vivo(pv.x + 20.0f, pv.y + pv.h - 52.0f, a);
       if (pc != c) {
         TxtLinha t = txt_linha_corta(TXT_PG_ROTULO, pc->nome, 245, 246, 250, 255, pv.w - sw - 80.0f);
         GfxRect r = { pv.x + 20.0f + sw + 8.0f, pv.y + pv.h - 52.0f, (float)t.w + 24.0f, 32.0f };
@@ -2457,7 +2810,7 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
       txt_desenhar_alpha(n, tx, ey + (34.0f - (float)n.h) * 0.5f, ha);
       tx += (float)n.w + 16.0f;
     }
-    tx += etiqueta(cat, tx, ey, 320.0f, ha);
+    tx += guia_etiqueta(cat, tx, ey, 320.0f, ha);
     if (c->fav) {
       TxtLinha s = txt_linha(TXT_DET_META2, "\xe2\x98\x85", 255, 214, 90, 255);
       txt_desenhar_alpha(s, tx + 12.0f, ey + (34.0f - (float)s.h) * 0.5f, ha);
@@ -2471,7 +2824,7 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
                  x, y - 4.0f, w, 66.0f, ha, 2) + 10.0f;
 
   // META: selo + faixa de horario + quanto falta, e a barra de progresso.
-  { char meta[160], h1[8], h2[8];
+  { char meta[160], h1[12], h2[12];
     float mx = x;
     meta[0] = 0;
     if (tem) {
@@ -2492,7 +2845,7 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
     } else if (epg == -2) {
       snprintf(meta, sizeof meta, "%s", i18n("Sem grade de programação"));
     }
-    if (noAr || !tem) mx += seloAoVivo(x, y, ha) + 16.0f;
+    if (noAr || !tem) mx += guia_selo_ao_vivo(x, y, ha) + 16.0f;
     if (meta[0]) {
       TxtLinha t = txt_linha_corta(TXT_DET_META, meta, 196, 198, 206, 255, x + w - mx);
       txt_desenhar_alpha(t, mx, y + (32.0f - (float)t.h) * 0.5f, ha);
@@ -2537,13 +2890,16 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
     if (molde && (d.nq > 0 || d.fontes > 0)) {
       float bx = x;
       int k;
+      // QUALIDADES COMO MARCA (dono, 29/09/2026): eram caixas de texto com
+      // contorno ("4K", "FHD", "HD", "SD"); agora sao as marcas de resolucao
+      // do app (badges.h), as mesmas do OSD ao vivo e da folha de fontes.
+      // Nome que nao e resolucao conhecida vai no selo neutro da tabela unica.
       for (k = 0; k < d.nq; k++) {
-        TxtLinha t = txt_linha(TXT_PG_ROTULO, d.q[k], 222, 224, 230, 255);
-        GfxRect r = { bx, y, (float)t.w + 20.0f, 30.0f };
-        gfx_cor(r, 0.2f, 1, 1, 1, 0.06f * ha);
-        gfx_rect(r, 0, GFX_ANEL, 0, 1.5f / r.h, 0, 0.2f, 1, 1, 1, 0.32f * ha);
-        txt_desenhar_alpha(t, r.x + 10.0f, r.y + (r.h - (float)t.h) * 0.5f, ha);
-        bx += r.w + 8.0f;
+        int fm = marca_resolucao(d.q[k]);
+        if (fm >= 0)
+          bx += marca_formato((FormatoMarca)fm, bx, y + 2.0f, 26.0f, 0.86f, 0.87f, 0.90f, ha) + 18.0f;
+        else
+          bx += badge_desenhar(bx, y + 1.0f, d.q[k], BADGE_NEUTRO, ha) + BADGE_GAP;
       }
       if (d.fontes > 0) {
         char f[48];
@@ -2565,8 +2921,8 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
 
   // A SEGUIR, ancorado na base do heroi (alinhado a base do preview).
   { EpgProg q;
-    if (epg >= 0 && epg_proximo(epg, tFoco, 0, &q)) {
-      char hh[8];
+    if (gProximo(c, tFoco, 0, &q)) {
+      char hh[12];
       TxtLinha l = txt_linha(TXT_PG_ROTULO, i18n("A SEGUIR"), 140, 143, 152, 255);
       TxtLinha hr, tt;
       float lx = x;
@@ -2622,12 +2978,23 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
 //     quina. Agora os cantos ficam fora da tela (borda reta) e o fio de 1,2 px
 //     a 6% do cartao de novidades marca a borda.
 #define G_CAT_FADE 60.0f
+// As gavetas do guia usam a mesma folha do Glass UI. O miolo de vidro aplica
+// Opacidade e Frost; o ramo solido permanece opaco quando a interface de vidro
+// esta desligada.
+static void materialPainelGuia(GfxRect p, float raioPx, float a) {
+  float raio = raioPx / (p.h > 1.0f ? p.h : 1.0f);
+  gfx_rect((GfxRect){ p.x - 18.0f, p.y - 8.0f, p.w + 36.0f, p.h + 40.0f },
+           0, GFX_SOMBRA, 1.0f, 0, 0, 0.5f, 0, 0, 0, 0.38f * a);
+  if (ajustes_vidro()) gfx_vidro_folha(p, raio, a);
+  else gfx_cor(p, raio, 0.071f, 0.075f, 0.086f, 0.98f * a);
+}
+
 static void desenharPainelCategorias(float a) {
   float e = catAnim, ar, ag, ab;
   float x0 = -G_CAT_W * 0.18f * (1.0f - e);   // desliza ~80 px enquanto aparece
   float ea = e * a;
   float areaH = G_CAT_BASE - G_CAT_TOPO, maxY, acima, abaixo;
-  int nl = nLinhas(), i, tf = ajustes_tinta_foco();
+  int nl = nLinhas(), i, tf = 243;
   if (e < 0.01f || nl < 1) return;
   ajustes_acento(&ar, &ag, &ab);
   maxY = (float)nl * G_CAT_ROW - areaH;
@@ -2636,14 +3003,12 @@ static void desenharPainelCategorias(float a) {
   // e o que liga o esmaecimento de cada borda.
   acima  = catRol / G_CAT_ROW;          acima  = acima  < 0 ? 0 : (acima  > 1 ? 1 : acima);
   abaixo = (maxY - catRol) / G_CAT_ROW; abaixo = abaixo < 0 ? 0 : (abaixo > 1 ? 1 : abaixo);
-  gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, 0.62f * ea);
+  gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, (ajustes_vidro() ? 0.30f : 0.42f) * ea);
   // O painel passa 40 px das bordas de cima e de baixo: os cantos ficam fora
   // da tela e o que se ve e uma borda reta de alto a baixo. Com o canto
   // arredondado DENTRO da tela, o fundo aparecia pela quina.
   { GfxRect p = { x0 - 40.0f, -40.0f, G_CAT_W + 40.0f, NV_TELA_H + 80.0f };
-    gfx_cor(p, 28.0f / p.h, 0.070f, 0.072f, 0.080f, ea);
-    gfx_luz_canto(p, 28.0f / p.h, p.w * 0.30f, -p.w * 0.25f, p.w * 1.45f, ar, ag, ab, 0.06f * ea);
-    gfx_rect(p, 0, GFX_ANEL, 0, 1.2f / p.h, 0, 28.0f / p.h, 1, 1, 1, 0.06f * ea); }
+    materialPainelGuia(p, 28.0f, ea); }
   // Titulo, linhas e rodape na MESMA coluna de texto (x0 + 56): antes o titulo
   // e o rodape ficavam a 48 e o texto das linhas a 56, e a borda esquerda do
   // bloco nao fechava.
@@ -2667,7 +3032,7 @@ static void desenharPainelCategorias(float a) {
     la = (1.0f - (1.0f - ft) * acima) * (1.0f - (1.0f - fb) * abaixo) * ea;
     if (la < 0.01f) continue;
     snprintf(n, sizeof n, "%d", linhaN(i));
-    if (foc) gfx_cor(r, 12.0f / r.h, ar, ag, ab, la);
+    if (foc) plrui_linha_foco(r, 20.0f, la);
     else if (atual) gfx_cor(r, 12.0f / r.h, 1, 1, 1, 0.06f * la);
     // A barra da secao atual: 4x22 com raio de 2 px. Com raio 0,5 (da altura)
     // num retangulo de 4 px o SDF saia um grao oval colado na borda da linha.
@@ -2783,21 +3148,25 @@ static float desenharTopo(float a) {
   const char *rot[G_TOPO_N];
   float w[G_TOPO_N], xs[G_TOPO_N], x, ar, ag, ab, seg0;
   int i;
+  rot[G_TOPO_BUSCAR] = i18n("Buscar");
   rot[G_TOPO_CATEGORIAS] = i18n("Categorias");
   rot[G_TOPO_CARTOES] = i18n("Cartões");
   rot[G_TOPO_LISTA]   = i18n("Lista");
   rot[G_TOPO_ADDONS]  = i18n("Addons");
+  // DIAGNOSTICO na barra (dono, 01/10: o controle do Android nao tem a tecla
+  // VERDE). O verde continua como atalho onde existe.
+  rot[G_TOPO_DIAG]    = i18n("Diagnóstico");
   rot[G_TOPO_PREVIEW] = previewLigado ? i18n("Preview: sim") : i18n("Preview: não");
   ajustes_acento(&ar, &ag, &ab);
   for (i = 0; i < G_TOPO_N; i++)
     w[i] = (float)txt_linha(TXT_PG_ROTULO, rot[i], 255, 255, 255, 255).w
            + 2.0f * G_CHIP_PAD
-           + (i == G_TOPO_PREVIEW ? 20.0f : i == G_TOPO_CATEGORIAS ? 26.0f : 0.0f);
+           + (i == G_TOPO_PREVIEW ? 20.0f : (i == G_TOPO_CATEGORIAS || i == G_TOPO_BUSCAR) ? 26.0f : 0.0f);
 
   // Relogio na margem direita, na altura dos chips.
-  { time_t tt = time(NULL); struct tm lt; char hora[8];
+  { time_t tt = time(NULL); struct tm lt; char hora[12];
     TxtLinha t;
-    localtime_r(&tt, &lt); strftime(hora, sizeof hora, "%H:%M", &lt);
+    localtime_r(&tt, &lt); hora_tela(hora, sizeof hora, &lt);
     t = txt_linha(TXT_CALLOUT, hora, 236, 237, 242, 255);
     x = G_AREA_DIR - (float)t.w;
     txt_desenhar_alpha(t, x, G_TOPO_Y + (G_TOPO_H - (float)t.h) * 0.5f, a);
@@ -2812,7 +3181,8 @@ static float desenharTopo(float a) {
   seg0 = xs[G_TOPO_CARTOES];
   // Trilho do controle segmentado.
   { GfxRect tr = { seg0, G_TOPO_Y, w[G_TOPO_CARTOES] + w[G_TOPO_LISTA], G_TOPO_H };
-    gfx_cor(tr, 0.5f, 1, 1, 1, 0.07f * a); }
+    if (ajustes_vidro()) gfx_cor(tr, 0.5f, 1, 1, 1, 0.06f * a);
+    else gfx_cor(tr, 0.5f, 0.114f, 0.118f, 0.137f, a); }
 
   for (i = 0; i < G_TOPO_N; i++) {
     float f = animTopo[i];
@@ -2824,25 +3194,39 @@ static float desenharTopo(float a) {
     int ct;
     if (seg) {
       // Segmento: so o escolhido tem superficie, 3 px para dentro do trilho.
-      if (sel) gfx_cor((GfxRect){ r.x + 3.0f, r.y + 3.0f, r.w - 6.0f, r.h - 6.0f },
-                       0.5f, 1, 1, 1, 0.17f * a);
+      GfxRect ir = { r.x + 3.0f, r.y + 3.0f, r.w - 6.0f, r.h - 6.0f };
+      if (f > 0.5f) plrui_pilula_foco(ir, a);
+      else if (sel) {
+        if (ajustes_vidro()) gfx_cor(ir, 0.5f, 1, 1, 1, 0.14f * a);
+        else gfx_cor(ir, 0.5f, 0.204f, 0.212f, 0.243f, a);
+      }
     } else {
-      gfx_cor(r, 0.5f, 1, 1, 1, (sel ? 0.14f : 0.07f) * a);
+      // CHIP do Glass UI: branco 8% em repouso, ligado 14%, foco = pilula
+      // cheia no acento (sem anel).
+      if (f > 0.5f) plrui_pilula_foco(r, a);
+      else if (sel) { if (ajustes_vidro()) gfx_cor(r, 0.5f, 1, 1, 1, 0.14f * a);
+                      else gfx_cor(r, 0.5f, 0.204f, 0.212f, 0.243f, a); }
+      else plrui_botao_repouso(r, a);
     }
-    if (f > 0.01f) {
-      gfx_cor(r, 0.5f, 1, 1, 1, 0.10f * f * a);
-      gfx_anel_fora(r, 0.5f, 0.0f, 3.0f, ar, ag, ab, f * a);
-    }
-    ct = (f > 0.5f || sel) ? 245 : 168;
-    { TxtLinha t = txt_linha(TXT_PG_ROTULO, rot[i], ct, ct + 1, ct + 5 > 255 ? 255 : ct + 5, 255);
+    ct = f > 0.5f ? ajustes_tinta_foco() : sel ? 245 : 168;
+    { // ct+1 estourava 255 -> 0 no canal verde (tinta branca = magenta no foco).
+      TxtLinha t = txt_linha(TXT_PG_ROTULO, rot[i], ct, ct < 255 ? ct + 1 : 255,
+                             ct + 5 > 255 ? 255 : ct + 5, 255);
       float tx = r.x + (r.w - (float)t.w) * 0.5f;
       if (i == G_TOPO_PREVIEW) {
         // Ponto de estado: verde ligado, cinza desligado. O texto ja diz,
         // o ponto e o que se le de relance.
         GfxRect d = { r.x + G_CHIP_PAD, r.y + (r.h - 10.0f) * 0.5f, 10.0f, 10.0f };
-        if (previewLigado) gfx_cor(d, 0.5f, 0.30f, 0.84f, 0.46f, a);
+        if (f > 0.5f) { float k = (float)ct / 255.0f; gfx_cor(d, 0.5f, k, k, k, a); }
+        else if (previewLigado) gfx_cor(d, 0.5f, 0.30f, 0.84f, 0.46f, a);
         else               gfx_cor(d, 0.5f, 0.42f, 0.43f, 0.47f, a);
         tx = d.x + 20.0f;
+      } else if (i == G_TOPO_BUSCAR) {
+        // A lupa do menu lateral: o chip se le como busca antes do texto.
+        float c = (float)ct / 255.0f;
+        gfx_icone((GfxRect){ r.x + G_CHIP_PAD - 2.0f, r.y + (r.h - 20.0f) * 0.5f, 20.0f, 20.0f },
+                  "menu_search", c, c, c, a);
+        tx = r.x + G_CHIP_PAD + 26.0f;
       } else if (i == G_TOPO_CATEGORIAS) {
         // Tres tracos de "lista": o chip se le como menu antes do texto.
         float c = (float)ct / 255.0f, gx = r.x + G_CHIP_PAD, gy = r.y + (r.h - 14.0f) * 0.5f;
@@ -2853,7 +3237,23 @@ static float desenharTopo(float a) {
       }
       txt_desenhar_alpha(t, tx, r.y + (r.h - (float)t.h) * 0.5f, a); }
   }
-  return xs[G_TOPO_CATEGORIAS];
+  // A DICA DA ESQUERDA (ver dicaTalvez): pilula sob a barra, alinhada pela
+  // direita com o ultimo chip, com um bico apontando para ela. Entra e sai em
+  // 250 ms; com Animacoes reduzidas, aparece e some sem esmaecer.
+  if (dicaDesde) {
+    Uint32 d = SDL_GetTicks() - dicaDesde;
+    float alvo = d < G_DICA_MS ? 1.0f : 0.0f;
+    if (d >= G_DICA_MS + 250u) dicaDesde = 0;
+    if (ajustes_animacoes_reduzidas()) dicaAlfa = alvo;
+    else dicaAlfa = d < 250u ? (float)d / 250.0f
+                  : d < G_DICA_MS ? 1.0f : 1.0f - (float)(d - G_DICA_MS) / 250.0f;
+    if (dicaAlfa < 0.0f) dicaAlfa = 0.0f;
+  } else dicaAlfa = 0.0f;
+  // So a geometria aqui; o desenho e o ultimo do guia (desenharDica), por
+  // cima do preview e dos cartoes.
+  dicaDir = xs[G_TOPO_PREVIEW] + w[G_TOPO_PREVIEW];
+  dicaA = a;
+  return xs[G_TOPO_BUSCAR];
 }
 
 // --- modo lista ---------------------------------------------------------------------
@@ -2880,7 +3280,7 @@ static void desenharReguaEm(float a, time_t ini, float yR) {
   float ppm = G_L_FAIXA_W / (float)G_L_JANELA_MIN;
   int i, n = G_L_JANELA_MIN / G_L_PASSO_MIN;
   for (i = 0; i < n; i++) {
-    char h[8];
+    char h[12];
     float x = G_L_FAIXA_X + (float)(i * G_L_PASSO_MIN) * ppm;
     TxtLinha t;
     fmtHora(ini + (time_t)i * G_L_PASSO_MIN * 60, h, sizeof h);
@@ -2923,54 +3323,50 @@ static void desenharLinhaLista(GCanal *c, float y, int focada, float a,
                                time_t agoraT, time_t ini, time_t tFoco,
                                int passo, float agoraX, GfxRect *alvo) {
   float h = gCel;
-  float raioC = 12.0f / h, raioB = 10.0f / h;
+  float raioB = 10.0f / h;
   time_t fimJ = ini + (time_t)G_L_JANELA_MIN * 60;
   float ppm = G_L_FAIXA_W / (float)G_L_JANELA_MIN;
   GfxRect col = { G_AREA_X, y, G_L_COL, h };
-  int epg = epgDo(c);
+  // Grade da XMLTV ou, no Xtream, a curta (#158): ver gFaixa.
+  int epg = (epgDo(c) >= 0 || (xtCurta(c) && xtepg_tem(c->id))) ? 0 : -1;
 
   if (passo == 0) {
-    float l = focada ? G_SUP_COL_FOCO : G_SUP_COL;
-    gfx_cor(col, raioC, l, l, l, a);   // cinza NEUTRO: sem desvio de cor
+    // GLASS UI: a coluna do canal nao tem superficie propria; o foco e a
+    // superficie da LINHA inteira (desenhada por quem chama). So o logo
+    // ganha uma placa.
+    GfxRect pl = { G_AREA_X + 8.0f, y + (h - 52.0f) * 0.5f, 96.0f, 52.0f };
+    gfx_cor(pl, 0.28f, 1, 1, 1, (focada ? 0.12f : 0.07f) * a);
     if (gIdNoAr[0] && !strcmp(c->id, gIdNoAr)) {
       float ar, ag, ab;
       ajustes_acento(&ar, &ag, &ab);
-      gfx_cor((GfxRect){ col.x - 14.0f, col.y + (h - 28.0f) * 0.5f, 4.0f, 28.0f }, 0.5f,
+      gfx_cor((GfxRect){ col.x - 4.0f, col.y + (h - 28.0f) * 0.5f, 4.0f, 28.0f }, 0.5f,
               ar, ag, ab, a);
     }
   } else {
     char num[16];
     TxtLinha n;
-    int cn = focada ? 196 : 128;
     snprintf(num, sizeof num, "%d", (int)(c - canais) + 1);
-    n = txt_linha(TXT_DET_META2, num, cn, cn + 2, cn + 8, 255);
-    // Numero alinhado pela DIREITA a 48 px: 1, 12 e 312 terminam na mesma
-    // coluna, como na grade impressa.
-    txt_desenhar_alpha(n, G_AREA_X + 48.0f - (float)n.w, y + (h - (float)n.h) * 0.5f, a);
-    { GfxRect cx = { G_AREA_X + 62.0f, y + 10.0f, 92.0f, h - 20.0f };
-      logoNaCaixa(c, cx, 84.0f, 42.0f, G_LOGO_CLARO, a); }
-    { float nx = G_AREA_X + 168.0f;
-      float tw = G_L_COL - 168.0f - 16.0f - (c->fav ? 30.0f : 0.0f);
-      int ct = focada ? 250 : 212, cb = ct + 4 > 255 ? 255 : ct + 4;
-      // Nome em ATE DUAS linhas: "Canal Recortado HD" cortado em "Canal…"
-      // nao diz qual canal e. Uma linha quando cabe, centrada na celula.
-      TxtLinha t = txt_linha(TXT_CW_TITULO, c->nome, ct, ct, cb, 255);
-      if ((float)t.w <= tw)
-        txt_desenhar_alpha(t, nx, y + (h - (float)t.h) * 0.5f, a);
-      else
-        txt_bloco(TXT_CW_TITULO, c->nome, ct, ct, cb, nx, y + (h - 60.0f) * 0.5f - 2.0f,
-                  tw, 30.0f, a, 2);
+    n = txt_linha(TXT_ILHA_HORA, num, 115, 114, 113, 255);
+    { GfxRect cx = { G_AREA_X + 14.0f, y + (h - 44.0f) * 0.5f, 84.0f, 44.0f };
+      logoNaCaixa(c, cx, 76.0f, 36.0f, G_LOGO_CLARO, a); }
+    { float nx = G_AREA_X + 120.0f;
+      float tw = G_L_COL - 120.0f - 16.0f - (c->fav ? 30.0f : 0.0f);
+      int ct = focada ? 255 : 222;
+      TxtLinha t = txt_linha_corta(TXT_ILHA_NOME, c->nome, ct, ct, ct - 4, 255, tw);
+      float bloco = (float)t.h + (float)n.h - 2.0f;
+      txt_desenhar_alpha(t, nx, y + (h - bloco) * 0.5f, a);
+      txt_desenhar_alpha(n, nx, y + (h - bloco) * 0.5f + (float)t.h - 2.0f, a);
       if (c->fav) {
-        TxtLinha s = txt_linha(TXT_DET_META2, "\xe2\x98\x85", 255, 214, 90, 255);
-        txt_desenhar_alpha(s, G_AREA_X + G_L_COL - 16.0f - (float)s.w,
-                           y + (h - (float)s.h) * 0.5f, a);
+        TxtLinha st = txt_linha(TXT_DET_META2, "\xe2\x98\x85", 255, 214, 90, 255);
+        txt_desenhar_alpha(st, G_AREA_X + G_L_COL - 16.0f - (float)st.w,
+                           y + (h - (float)st.h) * 0.5f, a);
       } }
   }
   if (alvo) *alvo = col;
 
   if (epg >= 0) {
     EpgProg ps[16];
-    int n = epg_faixa(epg, ini, fimJ, ps, 16), k, desenhou = 0;
+    int n = gFaixa(c, ini, fimJ, ps, 16), k, desenhou = 0;
     if (n > 16) n = 16;
     for (k = 0; k < n; k++) {
       time_t i0 = ps[k].ini > ini ? ps[k].ini : ini;
@@ -2984,15 +3380,23 @@ static void desenharLinhaLista(GCanal *c, float y, int focada, float a,
       desenhou = 1;
       if (foc && alvo) *alvo = b;
       if (passo == 0) {
-        float l = foc ? G_SUP_FOCO : atual ? G_SUP_NO_AR : G_SUP_FUTURO;
-        if (focada && !foc) l += 0.018f;
-        gfx_cor(b, raioB, l, l, l, a);
+        // Superficie branca em alfa: foco 18%, no ar 8%, futuro 4%.
+        float l = foc ? 0.18f : atual ? 0.08f : 0.04f;
+        gfx_cor(b, raioB, 1, 1, 1, l * a);
+        if (atual && ps[k].fim > ps[k].ini) {
+          float f = anim_clamp((float)(agoraT - ps[k].ini) / (float)(ps[k].fim - ps[k].ini), 0.0f, 1.0f);
+          float ar3, ag3, ab3, bw = b.w - 28.0f;
+          ajustes_acento(&ar3, &ag3, &ab3);
+          gfx_cor((GfxRect){ b.x + 14.0f, b.y + h - 5.0f, bw, 3.0f }, 0.5f, 1, 1, 1, 0.14f * a);
+          if (bw * f > 1.0f)
+            gfx_cor((GfxRect){ b.x + 14.0f, b.y + h - 5.0f, bw * f, 3.0f }, 0.5f, ar3, ag3, ab3, a);
+        }
         continue;
       }
       // Rotulo so onde cabe: a regra da casa e desenhar MENOS rotulos, nunca
       // fonte menor. Titulo acima de 64 px, horario acima de 150.
       if (b.w > 64.0f) {
-        int ct = foc ? 255 : atual ? 238 : 204;
+        int ct = foc ? 255 : atual ? 238 : 150;
         // O titulo do programa que comecou antes da janela comeca na borda
         // visivel dela. Texto vem DEPOIS do veu do passado, entao o do
         // programa no ar continua claro mesmo nascendo antes da linha agora.
@@ -3015,16 +3419,10 @@ static void desenharLinhaLista(GCanal *c, float y, int focada, float a,
           // Celula baixa (faixa): so o titulo, centrado, e a barra do quanto
           // ja passou no programa do ar — a regua em cima diz os horarios.
           txt_desenhar_alpha(t, tx, y + (h - (float)t.h) * 0.5f - 2.0f, a);
-          if (atual && ps[k].fim > ps[k].ini) {
-            float f = anim_clamp((float)(agoraT - ps[k].ini) / (float)(ps[k].fim - ps[k].ini), 0.0f, 1.0f);
-            float bw = b.w - 28.0f;
-            gfx_cor((GfxRect){ tx, y + h - 9.0f, bw, 3.0f }, 0.5f, 1, 1, 1, 0.16f * a);
-            gfx_cor((GfxRect){ tx, y + h - 9.0f, bw * f, 3.0f }, 0.5f, 1, 1, 1, 0.75f * a);
-          }
         } else
         txt_desenhar_alpha(t, tx, y + 7.0f, a);
         if (b.w > 120.0f && h >= 70.0f) {
-          char h1[8], h2[8], faixa[24];
+          char h1[12], h2[12], faixa[24];
           int cm = foc ? 200 : 146;
           TxtLinha m;
           fmtHora(ps[k].ini, h1, sizeof h1); fmtHora(ps[k].fim, h2, sizeof h2);
@@ -3066,18 +3464,18 @@ static void desenharLinhaLista(GCanal *c, float y, int focada, float a,
 static void desenharPainelAddons(float a) {
   float x = G_PA_X + G_PA_MARG, w = G_PA_W - 2.0f * G_PA_MARG;
   float ar, ag, ab, y0 = G_PA_LISTA_Y;
-  int n = paN, i;
+  int n = paN, i, vidro = ajustes_vidro();
+  int tf = 243;
   ajustes_acento(&ar, &ag, &ab);
 
   { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
-    gfx_cor(tela, 0.0f, 0, 0, 0, 0.45f * a); }
+    gfx_cor(tela, 0.0f, 0, 0, 0, (vidro ? 0.30f : 0.42f) * a); }
   // PAINEL FLUTUANTE como o de Salvos e a barra lateral (21/09/2026): solto
   // 24 px do topo e da base, cantos de 28 px pelo menor lado, translucido,
   // UMA luz difusa na cor de realce pelo canto superior direito, presa aos
   // cantos (GFX_LUZ). O veu de tela cheia acima ja e a primeira camada.
   { GfxRect p = { G_PA_X, 24.0f, G_PA_W, NV_TELA_H - 48.0f };
-    gfx_cor(p, 28.0f / G_PA_W, 0.055f, 0.058f, 0.068f, 0.94f * a);
-    gfx_luz_canto(p, 28.0f / G_PA_W, G_PA_W * 0.9f, -G_PA_W * 0.1f, G_PA_W * 0.65f, ar, ag, ab, 0.22f * a); }
+    materialPainelGuia(p, 28.0f, a); }
 
   { TxtLinha t = txt_linha(TXT_HEADLINE, i18n("Addons de canais"), 240, 242, 248, 255);
     txt_desenhar_alpha(t, x, 64.0f, a); }
@@ -3104,16 +3502,11 @@ static void desenharPainelAddons(float a) {
   for (i = 0; i < painelN(); i++) {
     float yi = y0 + paItemY(i) - paRol;
     GfxRect row = { x, yi, w, (i < n ? G_PA_ROW : G_PA_ROW_REC) - 8.0f };
-    float raio = 12.0f / row.h;
     int f = i == paFoco;
     if (yi + row.h < y0 - 8.0f || yi > NV_TELA_H - 80.0f) continue;
-    // Linha em repouso e linha em foco: as mesmas de addonsui.c. A em foco
-    // ganha o brilho difuso por tras (0,9x a altura de folga), a luz das
-    // pilulas do menu lateral.
-    gfx_cor(row, raio, NV_COR_FOCO_R, NV_COR_FOCO_G, NV_COR_FOCO_B, 0.34f * a);
-    if (f) { GfxRect luz = { row.x - row.h * 0.9f, row.y - row.h * 0.9f, row.w + row.h * 1.8f, row.h * 2.8f };
-             gfx_rect(luz, 0, GFX_SOMBRA, 1.0f, 0, 0, 0.5f, ar, ag, ab, 0.35f * a); }
-    if (f) gfx_cor(row, raio, ar, ag, ab, a);
+    // A linha em repouso faz parte da folha; apenas o foco recebe
+    // a superficie clara comum das listas, sem brilho ou bloco de accent.
+    if (f) plrui_linha_foco(row, 20.0f, a);
     if (i < n) {
       int ai = paIdx[i];
       int sc = sabeCanal(addons_base(ai));
@@ -3124,11 +3517,11 @@ static void desenharPainelAddons(float a) {
                                 : i18n("Ainda não conferido pelo guia");
       GfxRect pill = { x + w - 24.0f - 136.0f, yi + (row.h - 40.0f) * 0.5f, 136.0f, 40.0f };
       float txtW = pill.x - 24.0f - (x + 24.0f);
-      { int tf = ajustes_tinta_foco();
+      {
         TxtLinha t = f ? txt_linha_corta(TXT_BODY, addons_nome(ai), tf, tf, tf, 255, txtW)
                        : txt_linha_corta(TXT_BODY, addons_nome(ai), 240, 241, 245, 255, txtW);
         txt_desenhar_alpha(t, x + 24.0f, yi + 12.0f, a); }
-      { TxtLinha t = f ? txt_linha_corta(TXT_CAPTION, sub, 60, 62, 70, 255, txtW)
+      { TxtLinha t = f ? txt_linha_corta(TXT_CAPTION, sub, 190, 192, 200, 255, txtW)
                        : txt_linha_corta(TXT_CAPTION, sub, 150, 153, 162, 255, txtW);
         txt_desenhar_alpha(t, x + 24.0f, yi + 48.0f, a); }
       // LIGADO = pilula preenchida; DESLIGADO = so o anel. Preenchimento e o
@@ -3141,10 +3534,9 @@ static void desenharPainelAddons(float a) {
                          : txt_linha(TXT_CAPTION, i18n("Ligado"), 20, 21, 25, 255);
           txt_desenhar_alpha(t, pill.x + (pill.w - t.w) * 0.5f, pill.y + (pill.h - t.h) * 0.5f, a); }
       } else {
-        float c = f ? 0.12f : 0.72f;
+        float c = 0.72f;
         gfx_rect(pill, 0, GFX_ANEL, 0, 0.05f, 0, 0.5f, c, c, c + 0.02f, 0.9f * a);
-        { TxtLinha t = f ? txt_linha(TXT_CAPTION, i18n("Desligado"), 40, 42, 50, 255)
-                         : txt_linha(TXT_CAPTION, i18n("Desligado"), 190, 192, 200, 255);
+        { TxtLinha t = txt_linha(TXT_CAPTION, i18n("Desligado"), 190, 192, 200, 255);
           txt_desenhar_alpha(t, pill.x + (pill.w - t.w) * 0.5f, pill.y + (pill.h - t.h) * 0.5f, a); }
       }
     } else {
@@ -3164,7 +3556,7 @@ static void desenharPainelAddons(float a) {
       TxtLinha selo = txt_linha(TXT_CAPTION2, i18n("Destaque"), 20, 21, 25, 255);
       float seloW = destaque ? selo.w + 20.0f : 0.0f;
       { float nomeW = txtW - (destaque ? seloW + 12.0f : 0.0f);
-        TxtLinha t = f ? txt_linha_corta(TXT_BODY, rc->nome, ajustes_tinta_foco(), ajustes_tinta_foco(), ajustes_tinta_foco(), 255, nomeW)
+        TxtLinha t = f ? txt_linha_corta(TXT_BODY, rc->nome, tf, tf, tf, 255, nomeW)
                        : txt_linha_corta(TXT_BODY, rc->nome, 240, 241, 245, 255, nomeW);
         txt_desenhar_alpha(t, x + 24.0f, yi + 12.0f, a);
         if (destaque) {
@@ -3182,18 +3574,18 @@ static void desenharPainelAddons(float a) {
       } else if (rc->desc[0]) {
         // Em ingles usa a quarta coluna se existir; senao a portuguesa, que e
         // melhor que linha vazia.
-        const char *desc = (ajustes_idioma_ingles() && rc->descEn[0]) ? rc->descEn : rc->desc;
-        if (f) txt_bloco(TXT_CAPTION, desc, 60, 62, 70,     x + 24.0f, yi + 46.0f, txtW, 27.0f, a, 2);
+        const char *desc = (ajustes_idioma() != IDIOMA_PT && ajustes_idioma() != IDIOMA_PTPT && rc->descEn[0]) ? rc->descEn : rc->desc;
+        if (f) txt_bloco(TXT_CAPTION, desc, 190, 192, 200,     x + 24.0f, yi + 46.0f, txtW, 27.0f, a, 2);
         else   txt_bloco(TXT_CAPTION, desc, 150, 153, 162,  x + 24.0f, yi + 46.0f, txtW, 27.0f, a, 2);
       }
       if (inst) {
-        TxtLinha t = f ? txt_linha(TXT_CAPTION, i18n("Instalado"), ajustes_tinta_foco2(), ajustes_tinta_foco2(), ajustes_tinta_foco2(), 255)
+        TxtLinha t = f ? txt_linha(TXT_CAPTION, i18n("Instalado"), 190, 192, 200, 255)
                        : txt_linha(TXT_CAPTION, i18n("Instalado"), 150, 153, 162, 255);
         txt_desenhar_alpha(t, pill.x + pill.w - t.w, pill.y + (pill.h - t.h) * 0.5f, a);
       } else {
-        float c = f ? ajustes_tinta_foco() / 255.0f : 0.72f;
+        float c = f ? tf / 255.0f : 0.72f;
         gfx_rect(pill, 0, GFX_ANEL, 0, 0.05f, 0, 0.5f, c, c, c + 0.02f, 0.9f * a);
-        { TxtLinha t = f ? txt_linha(TXT_CAPTION, i18n("Instalar"), ajustes_tinta_foco(), ajustes_tinta_foco(), ajustes_tinta_foco(), 255)
+        { TxtLinha t = f ? txt_linha(TXT_CAPTION, i18n("Instalar"), tf, tf, tf, 255)
                          : txt_linha(TXT_CAPTION, i18n("Instalar"), 240, 241, 245, 255);
           txt_desenhar_alpha(t, pill.x + (pill.w - t.w) * 0.5f, pill.y + (pill.h - t.h) * 0.5f, a); }
       }
@@ -3220,7 +3612,7 @@ static void desenharPainelAddons(float a) {
 // O anel que desliza. `alvo` em coordenadas de CONTEUDO (y + rolagem): a mola
 // persegue o alvo com o dt do relogio do desenho, e a rolagem e subtraida so
 // na hora de pintar — rolar a grade nao faz o anel "correr atras" da celula.
-static void desenharAnelFoco(float a, Uint32 agora, float rol) {
+__attribute__((unused)) static void desenharAnelFoco(float a, Uint32 agora, float rol) {
   float dt, ar, ag, ab;
   GfxRect r;
   if (!focoAnelTem) { focoAnelOk = 0; return; }
@@ -3286,14 +3678,16 @@ static void desenharBanda(float a, Uint32 agora) {
   if (nLinhas() < 1 || !linhaItem(focoLin, focoCol)) return;
   ajustes_acento(&ar, &ag, &ab);
 
-  // Degrade: oito faixas sem sobreposicao, alfa subindo em curva. Meia tela
-  // de preenchimento uma vez so.
-  { float y = topo - 160.0f, hh = (NV_TELA_H - y) / 8.0f;
-    for (k = 0; k < 8; k++) {
-      float t = (float)(k + 1) / 8.0f;
-      gfx_cor((GfxRect){ 0.0f, y + hh * (float)k, NV_TELA_W, hh + 1.0f }, 0.0f,
-              0.02f, 0.02f, 0.025f, (0.10f + 0.84f * t * t) * a);
-    } }
+  // Uma rampa continua em vez de oito faixas de alfa constante: aquelas
+  // criavam emendas horizontais por definicao. GFX_VEU_BAIXO aplica nv_dither por
+  // fragmento; manter a mesma cor e o teto de alfa (0,94). O plano de video
+  // continua visivel no topo, e a base sustenta o texto da grade.
+  // GLASS UI (mockup do player de 03/10, "aovivo-guia"): a banda vira uma
+  // ILHA baixa a 40 das bordas sobre o veu leve (era um veu de 94% da
+  // metade da tela), com o titulo, as dicas em teclas e a linha focada em
+  // superficie — o anel de acento em volta da celula sai.
+  gfx_veu_css((GfxRect){ 0, NV_TELA_H - 300.0f, NV_TELA_W, 300.0f }, 0, 1.0f, 1.0f, 0.60f * a);
+  plrui_material((GfxRect){ 40.0f, topo - 26.0f, NV_TELA_W - 80.0f, NV_TELA_H - 40.0f - (topo - 26.0f) }, 36.0f, 0, a);
 
   // Quem entra: sobe ate dois a partir do foco e completa descendo.
   { int l = focoLin, c = focoCol;
@@ -3308,16 +3702,25 @@ static void desenharBanda(float a, Uint32 agora) {
       ll[0] = l2; cc[0] = c2; n++;
     } }
 
-  { TxtLinha t = txt_linha(TXT_PG_ROTULO, i18n("Guia de canais"), 200, 202, 210, 255);
-    TxtLinha d = txt_linha(TXT_CAPTION,
-        i18n("OK troca de canal  ·  Azul: guia completo  ·  Voltar fecha"), 150, 153, 162, 255);
-    txt_desenhar_alpha(t, G_AREA_X, topo + 6.0f, a);
-    txt_desenhar_alpha(d, G_AREA_DIR - (float)d.w, topo + 6.0f, a); }
+  { TxtLinha t = txt_linha(TXT_G30B, "Guia de canais", 243, 242, 239, 255);
+    const char *k[3] = { "OK",
+#ifdef NV_ANDROID
+      "CH+",
+#else
+      "Azul",
+#endif
+      "Voltar" }, *r[3] = { "Troca de canal", "Guia completo", "Fechar" };
+    txt_desenhar_alpha(t, G_AREA_X, topo - 2.0f, a);
+    plrui_dicas(k, r, 3, G_AREA_DIR, topo - 2.0f + (float)t.h * 0.5f, 1, a); }
   desenharReguaEm(a, ini, yR);
 
   gCel = G_B_CEL;
   gIdNoAr = player_id_canal();
   focoAnelTem = 0;
+  for (k = 0; k < n; k++)
+    if (ll[k] == focoLin && cc[k] == focoCol)
+      plrui_linha_foco((GfxRect){ G_AREA_X - 14.0f, y0 + (float)k * G_B_ROW - 5.0f,
+                                  G_AREA_W + 28.0f, G_B_ROW - 2.0f }, 22.0f, a);
   for (passo = 0; passo < 2; passo++) {
     for (k = 0; k < n; k++) {
       int foc = ll[k] == focoLin && cc[k] == focoCol;
@@ -3337,9 +3740,10 @@ static void desenharBanda(float a, Uint32 agora) {
   }
   gCel = G_L_CEL;
   gIdNoAr = "";
-  desenharAnelFoco(a, agora, 0.0f);
+  (void)agora;
+  focoAnelOk = 0;   // na banda o foco e a superficie da linha, sem anel
   if (agoraVis) {
-    char hora[8];
+    char hora[12];
     int tf = ajustes_tinta_foco();
     TxtLinha t;
     GfxRect pl;
@@ -3349,6 +3753,228 @@ static void desenharBanda(float a, Uint32 agora) {
     gfx_cor(pl, 0.5f, ar, ag, ab, a);
     txt_desenhar_alpha(t, pl.x + 10.0f, pl.y + (pl.h - (float)t.h) * 0.5f, a);
   }
+}
+
+// --- BUSCA DO GUIA ------------------------------------------------------------------
+// Pedido do dono (01/10/2026): "Buscar" na barra de cima. O teclado do app
+// (teclado.h, com espaco) colhe o texto; a busca procura CANAL pelo nome (sem
+// acento nem caixa, livetv_regras.h) ou pelo numero, e PROGRAMA na grade de
+// agora ate G_BUSCA_HORAS a frente. O resultado e uma lista com duas secoes:
+//   Canais    — OK abre o canal;
+//   Programas — OK no que esta no ar abre o canal; no futuro, leva o guia ao
+//               canal com a grade naquela hora (modo lista), onde o OK marca o
+//               lembrete como em qualquer celula do futuro.
+#define G_BUSCA_CANAIS   24
+#define G_BUSCA_PROGS    40
+#define G_BUSCA_HORAS     6
+#define G_BUSCA_ROW      76.0f
+#define G_BUSCA_W       1180.0f
+static int buscaEstado;        // 0 fechada, 1 teclado, 2 resultado
+static char buscaTexto[TECLADO_MAX + 1];
+static int buscaNC, buscaNP, buscaFoco;
+static int buscaCanal[G_BUSCA_CANAIS];
+static struct { int canal; time_t ini, fim; char titulo[112]; } buscaProg[G_BUSCA_PROGS];
+static float buscaRol, buscaAnim;
+
+static void buscaAbrir(void) {
+  buscaEstado = 1;
+  teclado_abrir_com("Buscar no guia", "Nome ou número do canal, ou o nome de um programa",
+                    TECLADO_MAX, "abcdefghijklmnopqrstuvwxyz0123456789 ", buscaTexto);
+}
+static int buscaN(void) { return buscaNC + buscaNP; }
+
+static void buscaFazer(const char *q) {
+  char agulha[TECLADO_MAX + 1];
+  int i, numero = 0, soDigito = 1;
+  time_t agoraT = time(NULL);
+  const char *p;
+  snprintf(buscaTexto, sizeof buscaTexto, "%s", q ? q : "");
+  nv_dobrar(buscaTexto, agulha, sizeof agulha);
+  // Espacos das pontas fora.
+  { size_t n = strlen(agulha), k = 0;
+    while (n && agulha[n - 1] == ' ') agulha[--n] = 0;
+    while (agulha[k] == ' ') k++;
+    if (k) memmove(agulha, agulha + k, strlen(agulha + k) + 1); }
+  buscaNC = buscaNP = 0; buscaFoco = 0; buscaRol = 0.0f;
+  if (!agulha[0]) return;
+  for (p = agulha; *p; p++) if (*p < '0' || *p > '9') soDigito = 0;
+  if (soDigito) numero = atoi(agulha);
+  for (i = 0; i < nCanais && buscaNC < G_BUSCA_CANAIS; i++)
+    if ((numero && i + 1 == numero) || nv_contem_dobrado(canais[i].nome, agulha))
+      buscaCanal[buscaNC++] = i;
+  // PROGRAMAS: a grade de cada canal entre agora e G_BUSCA_HORAS a frente. Os
+  // que estao no ar primeiro; depois por horario.
+  if (!soDigito || strlen(agulha) > 3)
+    for (i = 0; i < nCanais && buscaNP < G_BUSCA_PROGS; i++) {
+      EpgProg ps[24];
+      int n = gFaixa(&canais[i], agoraT, agoraT + G_BUSCA_HORAS * 3600, ps, 24), k;
+      for (k = 0; k < n && buscaNP < G_BUSCA_PROGS; k++) {
+        if (!ps[k].titulo || !nv_contem_dobrado(ps[k].titulo, agulha)) continue;
+        buscaProg[buscaNP].canal = i;
+        buscaProg[buscaNP].ini = ps[k].ini; buscaProg[buscaNP].fim = ps[k].fim;
+        snprintf(buscaProg[buscaNP].titulo, sizeof buscaProg[buscaNP].titulo, "%s", ps[k].titulo);
+        buscaNP++;
+      }
+    }
+  { int a, b;   // ordem: no ar antes, depois o que comeca primeiro
+    for (a = 1; a < buscaNP; a++)
+      for (b = a; b > 0; b--) {
+        int vivoA = buscaProg[b - 1].ini <= agoraT, vivoB = buscaProg[b].ini <= agoraT;
+        if (vivoA > vivoB || (vivoA == vivoB && buscaProg[b - 1].ini <= buscaProg[b].ini)) break;
+        { __typeof__(buscaProg[0]) t = buscaProg[b]; buscaProg[b] = buscaProg[b - 1]; buscaProg[b - 1] = t; }
+      } }
+  printf("[guia] busca: %d canal(is), %d programa(s)\n", buscaNC, buscaNP);
+  fflush(stdout);
+}
+
+static void buscaFechar(void) { buscaEstado = 0; }
+
+// OK num resultado.
+static void buscaAgir(void) {
+  if (buscaFoco < buscaNC) {
+    GCanal *c = &canais[buscaCanal[buscaFoco]];
+    buscaFechar();
+    guia_focar_id(c->id);
+    pedirCanal(c);
+    return;
+  }
+  if (buscaFoco - buscaNC < buscaNP) {
+    int k = buscaFoco - buscaNC;
+    GCanal *c = &canais[buscaProg[k].canal];
+    time_t agoraT = time(NULL);
+    buscaFechar();
+    guia_focar_id(c->id);
+    if (buscaProg[k].ini <= agoraT) { pedirCanal(c); return; }
+    // FUTURO: a grade em lista, adiantada ate a meia hora do programa.
+    { long min = (long)(buscaProg[k].ini - (agoraT / 1800) * 1800) / 60;
+      int passo = (int)(min / G_L_PASSO_MIN) * G_L_PASSO_MIN;
+      if (!modoLista) alternarModo();
+      janelaDesl = passo < 0 ? 0 : passo > G_L_DESL_MAX ? G_L_DESL_MAX : passo; }
+  }
+}
+
+// 1 = a tecla era da busca.
+static int buscaEvento(const SDL_Event *e) {
+  SDL_Keycode k;
+  if (buscaEstado == 1) { teclado_evento(e); return 1; }
+  if (buscaEstado != 2) return 0;
+  if (e->type != SDL_KEYDOWN) return 1;
+  k = e->key.keysym.sym;
+  if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
+      e->key.keysym.scancode == NV_SCANCODE_BACK) { buscaFechar(); return 1; }
+  if (k == SDLK_UP) { if (buscaFoco > -1) buscaFoco--; return 1; }
+  if (k == SDLK_DOWN) { if (buscaFoco + 1 < buscaN()) buscaFoco++; return 1; }
+  if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
+    if (buscaFoco < 0) buscaAbrir();      // a linha "Nova busca"
+    else buscaAgir();
+    return 1;
+  }
+  return 1;
+}
+
+static void buscaAtualizar(float dt, Uint32 agora) {
+  buscaAnim = anim_mola(buscaAnim, buscaEstado == 2 ? 1.0f : 0.0f, dt, 12.0f);
+  if (buscaEstado == 1) {
+    int r;
+    teclado_atualizar(dt, agora);
+    r = teclado_resultado();
+    if (r == TECLADO_PRONTO) { buscaFazer(teclado_texto()); buscaEstado = 2; }
+    else if (r == TECLADO_CANCELOU) buscaEstado = buscaN() ? 2 : 0;
+  }
+  if (buscaEstado == 2) {
+    // A linha em foco fica a vista: a lista rola por ela.
+    float y = (float)(buscaFoco + 1) * G_BUSCA_ROW + (buscaFoco >= buscaNC ? 56.0f : 0.0f);
+    float area = NV_TELA_H - 300.0f;
+    float alvo = y - area * 0.5f;
+    if (alvo < 0.0f) alvo = 0.0f;
+    buscaRol += (alvo - buscaRol) * (dt * 12.0f > 1.0f ? 1.0f : dt * 12.0f);
+  }
+}
+
+static void buscaDesenhar(Uint32 agora) {
+  float ea = buscaAnim, ar, ag, ab, x0 = (NV_TELA_W - G_BUSCA_W) * 0.5f, y;
+  int i, tf = ajustes_tinta_foco();
+  time_t agoraT = time(NULL);
+  char b[200];
+  (void)tf;
+  if (buscaEstado == 1) teclado_desenhar(agora);
+  if (ea < 0.01f) return;
+  ajustes_acento(&ar, &ag, &ab);
+  gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, 0.80f * ea);
+  { GfxRect p = { x0 - 40.0f, 40.0f, G_BUSCA_W + 80.0f, NV_TELA_H - 80.0f };
+    gfx_cor(p, 28.0f / p.h, 0.070f, 0.072f, 0.080f, ea);
+    gfx_luz_canto(p, 28.0f / p.h, p.w * 0.30f, -p.w * 0.25f, p.w * 1.45f, ar, ag, ab, 0.06f * ea); }
+  snprintf(b, sizeof b, i18n("Busca: “%s”"), buscaTexto);
+  txt_desenhar_alpha(txt_linha_corta(TXT_HEADLINE, b, 242, 243, 247, 255, G_BUSCA_W), x0, 72.0f, ea);
+  if (!buscaN())
+    txt_desenhar_alpha(txt_linha_corta(TXT_BODY, i18n("Nada encontrado nos canais nem na grade das próximas horas."),
+                                       180, 184, 194, 255, G_BUSCA_W), x0, 136.0f, ea);
+  gfx_recorte(x0 - 20.0f, 130.0f, G_BUSCA_W + 40.0f, NV_TELA_H - 230.0f);
+  y = 140.0f - buscaRol;
+  // "Nova busca": foco -1.
+  { GfxRect r = { x0, y, G_BUSCA_W, G_BUSCA_ROW - 10.0f };
+    int foc = buscaFoco == -1;
+    if (foc) gfx_cor(r, 14.0f / r.h, ar, ag, ab, ea);
+    gfx_icone((GfxRect){ r.x + 20.0f, r.y + (r.h - 26.0f) * 0.5f, 26.0f, 26.0f }, "menu_search",
+              foc ? 0.06f : 0.9f, foc ? 0.07f : 0.9f, foc ? 0.08f : 0.92f, ea);
+    txt_desenhar_alpha(txt_linha(TXT_BODY, i18n("Nova busca"), foc ? 16 : 232, foc ? 18 : 236, foc ? 22 : 244, 255),
+                       r.x + 62.0f, r.y + 18.0f, ea);
+    y += G_BUSCA_ROW; }
+  for (i = 0; i < buscaN(); i++) {
+    int foc = buscaFoco == i;
+    GfxRect r;
+    if (i == 0 && buscaNC) {
+      snprintf(b, sizeof b, i18n("Canais · %d"), buscaNC);
+      txt_desenhar_alpha(txt_linha(TXT_CAPTION, b, 150, 154, 164, 255), x0, y + 20.0f, ea);
+      y += 56.0f;
+    }
+    if (i == buscaNC && buscaNP) {
+      snprintf(b, sizeof b, i18n("Programas · %d"), buscaNP);
+      txt_desenhar_alpha(txt_linha(TXT_CAPTION, b, 150, 154, 164, 255), x0, y + 20.0f, ea);
+      y += 56.0f;
+    }
+    r = (GfxRect){ x0, y, G_BUSCA_W, G_BUSCA_ROW - 10.0f };
+    if (r.y > NV_TELA_H || r.y + r.h < 120.0f) { y += G_BUSCA_ROW; continue; }
+    if (foc) gfx_cor(r, 14.0f / r.h, ar, ag, ab, ea);
+    else gfx_cor(r, 14.0f / r.h, 1, 1, 1, 0.04f * ea);
+    if (i < buscaNC) {
+      const GCanal *c = &canais[buscaCanal[i]];
+      char n[16];
+      guia_logo_desenhar(c->logo, c->nome, (GfxRect){ r.x + 14.0f, r.y + 6.0f, 92.0f, r.h - 12.0f },
+                         92.0f, r.h - 16.0f, 0.965f, ea);
+      snprintf(n, sizeof n, "%d", buscaCanal[i] + 1);
+      txt_desenhar_alpha(txt_linha(TXT_CAPTION, n, foc ? 30 : 150, foc ? 32 : 153, foc ? 38 : 162, 255),
+                         r.x + 124.0f, r.y + 22.0f, ea);
+      txt_desenhar_alpha(txt_linha_corta(TXT_BODY, c->nome, foc ? 16 : 236, foc ? 18 : 238, foc ? 22 : 244, 255,
+                                         G_BUSCA_W - 260.0f), r.x + 190.0f, r.y + 16.0f, ea);
+    } else {
+      int k = i - buscaNC, vivo = buscaProg[k].ini <= agoraT;
+      const GCanal *c = &canais[buscaProg[k].canal];
+      char h1[12], h2[12], quando[64];
+      struct tm lt;
+      localtime_r(&buscaProg[k].ini, &lt); hora_tela(h1, sizeof h1, &lt);
+      localtime_r(&buscaProg[k].fim, &lt); hora_tela(h2, sizeof h2, &lt);
+      if (vivo) snprintf(quando, sizeof quando, "%s", i18n("Ao vivo"));
+      else {
+        long m = (long)(buscaProg[k].ini - agoraT) / 60;
+        if (m < 60) snprintf(quando, sizeof quando, i18n("daqui a %ld min"), m);
+        else snprintf(quando, sizeof quando, i18n("daqui a %ld h %02ld"), m / 60, m % 60);
+      }
+      txt_desenhar_alpha(txt_linha_corta(TXT_BODY, buscaProg[k].titulo, foc ? 16 : 236, foc ? 18 : 238,
+                                         foc ? 22 : 244, 255, G_BUSCA_W - 360.0f), r.x + 24.0f, r.y + 8.0f, ea);
+      snprintf(b, sizeof b, "%s · %s–%s", c->nome, h1, h2);
+      txt_desenhar_alpha(txt_linha_corta(TXT_CAPTION, b, foc ? 40 : 150, foc ? 42 : 154, foc ? 48 : 164, 255,
+                                         G_BUSCA_W - 360.0f), r.x + 24.0f, r.y + 40.0f, ea);
+      { TxtLinha q = vivo ? txt_linha(TXT_CAPTION, quando, 200, 30, 40, 255)
+                          : txt_linha(TXT_CAPTION, quando, foc ? 30 : 190, foc ? 32 : 196, foc ? 38 : 206, 255);
+        if (vivo && !foc) guia_selo_ao_vivo(r.x + r.w - 24.0f - 120.0f, r.y + (r.h - 32.0f) * 0.5f, ea);
+        else txt_desenhar_alpha(q, r.x + r.w - 24.0f - (float)q.w, r.y + (r.h - (float)q.h) * 0.5f, ea); }
+    }
+    y += G_BUSCA_ROW;
+  }
+  gfx_sem_recorte();
+  txt_desenhar_alpha(txt_linha(TXT_CAPTION, i18n("OK abre  ·  ↑↓ escolhe  ·  Voltar fecha"), 128, 130, 138, 255),
+                     x0, NV_TELA_H - 84.0f, ea);
 }
 
 void guia_desenhar(Uint32 agora) {
@@ -3372,11 +3998,14 @@ void guia_desenhar(Uint32 agora) {
   // que agora sao do heroi.
   { float chipsX = desenharTopo(a);
     char sub[160];
-    TxtLinha t = txt_linha(TXT_HEADLINE,
+    TxtLinha t = txt_linha(TXT_ILHA_TITULO,
                            overlay ? i18n("Guia de canais") : i18n("Guia TV"),
-                           242, 243, 247, 255);
-    float sx = G_AREA_X + (float)t.w + 24.0f;
+                           243, 242, 239, 255);
+    float sx = G_AREA_X + (float)t.w + 20.0f;
     txt_desenhar_alpha(t, G_AREA_X, G_TOPO_Y + (G_TOPO_H - (float)t.h) * 0.5f, a);
+    // KICKER do contexto, como o "HOJE" do mockup do guia por cima do canal.
+    sx += plrui_kicker("Ao vivo", sx, G_TOPO_Y + (G_TOPO_H - 18.0f) * 0.5f + 2.0f,
+                       115, 114, 113, a) + 22.0f;
     if (estado == G_BAIXANDO && nCanais > 0)   // lista do cache na tela, rede atras
       snprintf(sub, sizeof sub, i18n("%d canais · %d categorias · atualizando…"), nCanais, nCats);
     else if (estado == G_BAIXANDO)
@@ -3384,21 +4013,29 @@ void guia_desenhar(Uint32 agora) {
     else if (falhas && !nCanais)
       snprintf(sub, sizeof sub, "%s",
                i18n("Os addons de canais não responderam."));
+    else if (xtFalha == XT_HTTP && !nCanais)
+      snprintf(sub, sizeof sub, i18n("O Xtream respondeu com erro HTTP %d."), xtHttp);
     else if (xtFalha && !nCanais)
       snprintf(sub, sizeof sub, "%s", xtFalha == XT_RECUSOU
                ? i18n("O Xtream recusou o usuário e a senha.")
+               : xtFalha == XT_PAGINA
+               ? i18n("O Xtream devolveu uma página da web em vez da lista.")
                : i18n("A lista do Xtream não respondeu."));
     else if (estado == G_FALHOU || (fontesOk && !nFontes))
       snprintf(sub, sizeof sub, "%s",
                i18n("Nenhum canal: sem addon de canais e sem portal IPTV."));
     // A falha do Xtream toma o lugar da contagem simples, e so ela: os canais
     // dos addons continuam na tela e funcionam, o que falta e o portal.
-    else if (xtFalha == XT_SEM_RESPOSTA)
+    else if (xtFalha == XT_SEM_RESPOSTA || xtFalha == XT_PAGINA || xtFalha == XT_HTTP)
       snprintf(sub, sizeof sub, i18n("%d canais · %d categorias · a lista do Xtream não respondeu"),
                nCanais, nCats);
     else if (xtFalha == XT_RECUSOU)
       snprintf(sub, sizeof sub, i18n("%d canais · %d categorias · o Xtream recusou o usuário e a senha"),
                nCanais, nCats);
+    // A CONTA XTREAM, quando ha o que dizer (#158): vencida, desativada,
+    // telas cheias ou vencendo. E a causa de "nenhum canal toca" que se sabe
+    // ANTES de tentar um canal. Lido do que o fio do guia guardou, sem rede.
+    else if (xtream_configurado() && xtAviso(sub, sizeof sub)) { }
     else
       snprintf(sub, sizeof sub, i18n("%d canais · %d categorias · segure %s para pular seção"),
                nCanais, nCats, "\xe2\x86\x91\xe2\x86\x93");
@@ -3426,6 +4063,10 @@ void guia_desenhar(Uint32 agora) {
     float ar, ag, ab;
     ajustes_acento(&ar, &ag, &ab);
     if (fimY > G_L_BASE) fimY = G_L_BASE;
+    // A GRADE E UMA ILHA (Glass UI, extrapolada do mockup aovivo-guia): o
+    // mesmo material, regua e linhas dentro, foco = superficie da linha.
+    plrui_material((GfxRect){ G_AREA_X - 40.0f, G_TOPO - 18.0f, G_AREA_W + 80.0f,
+                              G_L_BASE + 6.0f - (G_TOPO - 18.0f) }, 28.0f, 0, a);
     desenharRegua(a, ini);
     gfx_recorte(0.0f, G_L_TOPO - 8.0f, NV_TELA_W, G_L_BASE - G_L_TOPO + 8.0f);
     for (passo = 0; passo < 2; passo++) {
@@ -3452,6 +4093,9 @@ void guia_desenhar(Uint32 agora) {
           int foc = l == focoLin && i == focoCol && !focoTopo;
           GfxRect alvo;
           if (y + G_L_ROW < G_L_TOPO - 8.0f || y > G_L_BASE) continue;
+          if (foc && passo == 0)
+            plrui_linha_foco((GfxRect){ G_AREA_X - 14.0f, y - 4.0f, G_AREA_W + 28.0f, G_L_CEL + 8.0f },
+                             22.0f, a * dim);
           desenharLinhaLista(linhaItem(l, i), y, foc, a * dim, agoraT, ini, tFoco,
                              passo, agoraX, foc ? &alvo : NULL);
           if (foc && passo == 0) {
@@ -3465,15 +4109,12 @@ void guia_desenhar(Uint32 agora) {
       // tambem por baixo do texto: por cima, ela riscava o titulo do
       // programa no ar bem no meio.
       if (passo == 0 && agoraVis) {
-        if (agoraX > G_L_FAIXA_X)
-          gfx_cor((GfxRect){ G_L_FAIXA_X, G_L_TOPO - 8.0f, agoraX - G_L_FAIXA_X,
-                             fimY - G_L_TOPO + 8.0f }, 0.0f,
-                  NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 0.50f * a);
         gfx_cor((GfxRect){ agoraX - 1.0f, G_L_TOPO - 8.0f, 2.0f, fimY - G_L_TOPO + 8.0f },
                 0.0f, ar, ag, ab, 0.85f * a);
       }
     }
-    desenharAnelFoco(a, agora, rolL);
+    focoAnelOk = 0;   // Glass UI: foco e superficie, sem anel
+    (void)agora;
     // A grade SOME nas bordas em vez de ser cortada a faca, e so do lado em
     // que ha mais canal: tres faixas da cor do fundo, 12 px cada. Sao tres
     // retangulos pequenos por borda, nao um degrade de tela.
@@ -3481,18 +4122,20 @@ void guia_desenhar(Uint32 agora) {
       float fa = (overlay ? 0.94f : 1.0f) * a;
       for (k = 0; k < 3; k++) {
         float al = (0.25f + 0.25f * (float)k) * fa;
+        float fr = ajustes_vidro() ? 0.054f : 0.082f, fg = ajustes_vidro() ? 0.058f : 0.086f,
+              fb = ajustes_vidro() ? 0.069f : 0.102f;
         if (maisAbaixo)
-          gfx_cor((GfxRect){ 0.0f, G_L_BASE - G_L_FADE + 12.0f * (float)k, NV_TELA_W, 12.0f },
-                  0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, al);
+          gfx_cor((GfxRect){ G_AREA_X - 40.0f, G_L_BASE - G_L_FADE + 12.0f * (float)k, G_AREA_W + 80.0f, 12.0f },
+                  0.0f, fr, fg, fb, al);
         if (maisAcima)
-          gfx_cor((GfxRect){ 0.0f, G_L_TOPO - 8.0f + G_L_FADE - 12.0f * (float)(k + 1),
-                             NV_TELA_W, 12.0f },
-                  0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, al);
+          gfx_cor((GfxRect){ G_AREA_X - 40.0f, G_L_TOPO - 8.0f + G_L_FADE - 12.0f * (float)(k + 1),
+                             G_AREA_W + 80.0f, 12.0f },
+                  0.0f, fr, fg, fb, al);
       } }
     gfx_sem_recorte();
     // A cabeca da linha "agora": a hora numa pilula na regua.
     if (agoraVis) {
-      char hora[8];
+      char hora[12];
       TxtLinha t;
       GfxRect pl;
       int tf = ajustes_tinta_foco();
@@ -3538,7 +4181,15 @@ void guia_desenhar(Uint32 agora) {
     // mesma tela, quem configurou um portal e nao viu canal nenhum leria uma
     // frase que fala de outra coisa — e quem nao tem addon nem sabe que a
     // segunda porta existe.
-    const char *msg = xtFalha == XT_SEM_RESPOSTA
+    char msgHttp[240];
+    const char *msg;
+    snprintf(msgHttp, sizeof msgHttp,
+             i18n("O servidor Xtream respondeu com erro HTTP %d. O guia tenta de novo a cada 10 segundos enquanto esta tela estiver aberta."),
+             xtHttp);
+    msg = xtFalha == XT_HTTP ? msgHttp
+      : xtFalha == XT_PAGINA
+      ? i18n("O servidor Xtream devolveu uma página da web em vez da lista de canais. Tente mais tarde; se continuar, fale com o provedor.")
+      : xtFalha == XT_SEM_RESPOSTA
       ? i18n("A lista de canais do Xtream não respondeu agora. O guia tenta de novo a cada 10 segundos enquanto esta tela estiver aberta.")
       : xtFalha == XT_RECUSOU
       ? i18n("O Xtream recusou o usuário e a senha. Confira o cadastro em Ajustes › Conta.")
@@ -3570,22 +4221,82 @@ void guia_desenhar(Uint32 agora) {
   // No modo lista ESQUERDA/DIREITA ganharam funcao (a janela de tempo) e a
   // barra tem de dizer. O amarelo nao aparece aqui de proposito: o controle
   // segmentado do cabecalho e o caminho que se ve, e a barra ja esta longa.
+#ifdef NV_ANDROID
+#define GUIA_FECHA_L i18n("OK troca de canal  ·  segure OK = favorito  ·  \xe2\x86\x90\xe2\x86\x92 adianta a grade  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar ou CH+ fecha")
+#define GUIA_FECHA_G i18n("OK troca de canal  ·  segure OK = favorito  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar ou CH+ fecha")
+#else
+#define GUIA_FECHA_L i18n("OK troca de canal  ·  segure OK = favorito  ·  \xe2\x86\x90\xe2\x86\x92 adianta a grade  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar ou Azul fecha")
+#define GUIA_FECHA_G i18n("OK troca de canal  ·  segure OK = favorito  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar ou Azul fecha")
+#endif
   { const char *dica = modoLista
       ? (overlay
-         ? i18n("OK troca de canal  ·  segure OK = favorito  ·  \xe2\x86\x90\xe2\x86\x92 adianta a grade  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar ou Azul fecha")
+         ? GUIA_FECHA_L
          : i18n("OK assiste  ·  segure OK = favorito  ·  \xe2\x86\x90\xe2\x86\x92 adianta a grade  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar sai"))
       : (overlay
-         ? i18n("OK troca de canal  ·  segure OK = favorito  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar ou Azul fecha")
+         ? GUIA_FECHA_G
          : i18n("OK assiste  ·  segure OK = favorito  ·  segure \xe2\x86\x91\xe2\x86\x93 pula seção  ·  Voltar sai"));
     TxtLinha t = txt_linha_corta(TXT_CAPTION, dica, 128, 130, 138, 255,
                                  G_AREA_W);
-    txt_desenhar_alpha(t, G_AREA_X, NV_TELA_H - 48.0f, a); }
+    txt_desenhar_alpha(t, G_AREA_X, NV_TELA_H - 48.0f, a);
+    // O VERDE do diagnostico da Live TV, na ponta direita quando cabe — so na
+    // LG, que tem a tecla. No Android e no navegador o caminho e o botao
+    // Diagnostico da barra de cima.
+#if !defined(NV_ANDROID) && !defined(__EMSCRIPTEN__) && !defined(NV_TPK)
+    if (!overlay) {
+      TxtLinha v = txt_linha(TXT_CAPTION, i18n("Verde: diagnóstico da Live TV"), 128, 130, 138, 255);
+      if ((float)t.w + 48.0f + (float)v.w <= G_AREA_W)
+        txt_desenhar_alpha(v, G_AREA_X + G_AREA_W - (float)v.w, NV_TELA_H - 48.0f, a);
+    }
+#endif
+    }
 
+  desenharDica();
   desenharPainelCategorias(a);
+  buscaDesenhar(agora);
   if (painel) desenharPainelAddons(a);
   // O CANAL NO AR ENCOLHENDO para o preview: o furo segue o degrau da janela
   // do player por cima de tudo, e o video "pousa" no preview.
   { float x, y, w, h;
     if (aberta && player_janela_animando(&x, &y, &w, &h))
       gfx_furo_raio((GfxRect){ x, y, w, h }, G_PREVIEW_RAIO / (h > 1.0f ? h : 1.0f)); }
+}
+
+// --- Spotlight (spotlight.c) ---------------------------------------------------
+// Varre a lista PUBLICADA, que so o fio de desenho le — o mesmo fio que chama
+// isto. Sem cache de nome normalizado: com 900 canais sao 900 normalizacoes de
+// ~20 bytes por letra digitada, a mesma ordem de custo do refiltrar da busca
+// (o catalogo inteiro por letra).
+// A LISTA DE ONTEM SEM IR A REDE. O Spotlight so via canal com o guia
+// carregado NESTA sessao (estado G_PRONTO): quem abria o app e buscava um
+// canal sem ter passado pelo guia nao achava nenhum, e com a lista do cache na
+// tela e a rede atras (G_BAIXANDO) tambem nao. O cache e o mesmo que o guia
+// mostra NA HORA ao abrir (cacheLer); ler aqui nao dispara carga nem EPG.
+void guia_preparar_busca(void) {
+  if (!favLido) favLer();   // como guia_carregar: empacotar monta os favoritos
+  if (!cacheLido) { cacheLido = 1; if (estado == G_PARADO && nCanais == 0) cacheLer(); }
+}
+
+int guia_buscar_canais(const char *alvoNorm, int *indices, int max) {
+  int i, n = 0;
+  char nome[300];
+  if (!alvoNorm || !alvoNorm[0] || !indices || max <= 0) return 0;
+  // `canais` e a lista PUBLICADA (so o fio de desenho escreve, em publicar e
+  // cacheLer); o fio de carga mexe em sCanais. Ter canal basta.
+  if (nCanais < 1) return 0;
+  for (i = 0; i < nCanais && n < max; i++) {
+    busca_normalizar(canais[i].nome, nome, sizeof nome);
+    if (strstr(nome, alvoNorm)) indices[n++] = i;
+  }
+  return n;
+}
+
+int guia_canal_campos(int i, const char **id, const char **nome, const char **logo,
+                      const char **cat, const char **base) {
+  if (i < 0 || i >= nCanais) return 0;
+  if (id) *id = canais[i].id;
+  if (nome) *nome = canais[i].nome;
+  if (logo) *logo = canais[i].logo;
+  if (cat) *cat = canais[i].cat >= 0 ? cats[canais[i].cat] : "";
+  if (base) *base = canais[i].base;
+  return 1;
 }

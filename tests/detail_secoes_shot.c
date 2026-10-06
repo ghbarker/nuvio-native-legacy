@@ -70,11 +70,29 @@
 #define extras_relacionado_ano    fx_relacionado_ano
 #define extras_relacionado_poster fx_relacionado_poster
 #define extras_n_colecao        fx_n_colecao
+#define extras_colecao_nome     fx_colecao_nome
+#define extras_colecao_titulo   fx_colecao_titulo
+#define extras_colecao_ano      fx_colecao_ano
+#define extras_colecao_tmdb     fx_colecao_tmdb
+#define extras_colecao_capa     fx_colecao_capa
+#define extras_colecao_fundo    fx_colecao_fundo
+#define extras_colecao_sinopse  fx_colecao_sinopse
+#define extras_colecao_poster   fx_colecao_poster
+#define extras_colecao_sinopse_parte fx_colecao_sinopse_parte
+#define extras_colecao_nota     fx_colecao_nota
 #define extras_n_estudios       fx_n_estudios
 #define extras_estudio_nome     fx_estudio_nome
 #define extras_estudio_logo     fx_estudio_logo
 #define extras_n_trailers       fx_n_trailers
 #define extras_nota_trakt       fx_nota_trakt
+#define extras_comentario_lingua fx_com_lingua
+// Ficha do TMDB do filme de ensaio: os valores CRUS (ingles) que a rede manda,
+// para a captura provar a traducao de status/pais/duracao (fix/detalhe-traducao).
+#define extras_ficha_status       fx_ficha_status
+#define extras_ficha_lancamento   fx_ficha_lancamento
+#define extras_ficha_duracao      fx_ficha_duracao
+#define extras_ficha_paises       fx_ficha_paises
+#define extras_ficha_classificacao fx_ficha_classificacao
 
 #include "../src/detail.c"
 
@@ -133,22 +151,67 @@ const char *fx_com_usuario(int i)  { return COM_USU[i]; }
 const char *fx_com_texto(int i)    { return COM_TXT[i]; }
 int fx_com_curtidas(int i)         { return COM_CUR[i]; }
 int fx_com_nota(int i)             { return COM_NOTA[i]; }
+// O 2o comentario esta em outro idioma que o da interface: leva a etiqueta.
+const char *fx_com_lingua(int i)   { return i == 1 ? "en" : ""; }
+const char *fx_ficha_status(void)        { return "Released"; }
+const char *fx_ficha_lancamento(void)    { return "1999-03-31"; }
+int         fx_ficha_duracao(void)       { return 136; }
+const char *fx_ficha_paises(void)        { return "United States of America, Australia"; }
+const char *fx_ficha_classificacao(void) { return "R"; }
 static int extrasCardsLigados;
+static int relacionadosFixtureN = 3;
 static const char *const REL_TIT[] = { "The Second Chapter", "Night Archive", "The Glass Shore" };
 static const char *const REL_ANO[] = { "2024", "2025", "2026" };
 static const char *const REL_PO[] = {
   "deploy/app/art/poster/00.jpg", "deploy/app/art/poster/07.jpg",
   "deploy/app/art/poster/19.jpg" };
 static const char *const EST_NOME[] = { "Northlight Pictures", "A24 Television", "Nuvio Studios" };
-int fx_n_relacionados(void)   { return extrasCardsLigados ? 3 : 0; }
-const char *fx_relacionado_titulo(int i) { return REL_TIT[i]; }
-const char *fx_relacionado_ano(int i) { return REL_ANO[i]; }
-const char *fx_relacionado_poster(int i) { return REL_PO[i]; }
-int fx_n_colecao(void)        { return 0; }
+int fx_n_relacionados(void)   { return extrasCardsLigados ? relacionadosFixtureN : 0; }
+const char *fx_relacionado_titulo(int i) { return REL_TIT[i % 3]; }
+const char *fx_relacionado_ano(int i) { return REL_ANO[i % 3]; }
+const char *fx_relacionado_poster(int i) { return REL_PO[i % 3]; }
+// COLECAO DE ENSAIO (#194): so a captura 18 liga. Tres partes, o proprio
+// filme entre elas, como o TMDB devolve.
+static int colecaoLigada;
+static const char *const COL_TIT[] = { "The Matrix", "The Matrix Reloaded", "The Matrix Revolutions" };
+static const char *const COL_ANO[] = { "1999", "2003", "2003" };
+int fx_n_colecao(void)        { return colecaoLigada ? 3 : 0; }
+const char *fx_colecao_nome(void) { return colecaoLigada ? "The Matrix Collection" : ""; }
+const char *fx_colecao_titulo(int i) { return COL_TIT[i]; }
+const char *fx_colecao_ano(int i) { return COL_ANO[i]; }
+long fx_colecao_tmdb(int i) { return 603 + i; }
+// Arte local (sem rede): backdrop 1280x720 e tres cartazes do pacote. A
+// sinopse da 3a parte e comprida de proposito, para estourar as tres linhas.
+// colecaoSemFundo = a reserva do card sem backdrop (so a escada de cartazes).
+static int colecaoSemFundo;
+static const char *const COL_PO[] = {
+  "deploy/app/art/poster/03.jpg", "deploy/app/art/poster/11.jpg",
+  "deploy/app/art/poster/15.jpg" };
+static const char *const COL_SIN[] = {
+  "Sinopse curta de enchimento da primeira parte.",
+  "Segunda parte, com uma sinopse de enchimento de duas linhas para ver a "
+  "quebra dentro da linha da lista sem encostar na borda da direita.",
+  "Terceira parte com uma sinopse de enchimento bem comprida, que passa das "
+  "tres linhas permitidas e por isso tem de terminar em reticencias em vez de "
+  "vazar para a linha de baixo ou sair do cartao, que e exatamente o caso que "
+  "esta frase existe para exercitar na captura." };
+static const int COL_NOTA[] = { 82, 70, 67 };
+const char *fx_colecao_capa(void) { return colecaoLigada ? "deploy/app/art/poster/03.jpg" : ""; }
+const char *fx_colecao_fundo(void) {
+  return colecaoLigada && !colecaoSemFundo ? "deploy/app/art/05.jpg" : "";
+}
+const char *fx_colecao_sinopse(void) {
+  return colecaoLigada ? "Sinopse de enchimento da colecao inteira, com o "
+                         "tamanho de um paragrafo do TMDB." : "";
+}
+const char *fx_colecao_poster(int i) { return COL_PO[i]; }
+const char *fx_colecao_sinopse_parte(int i) { return COL_SIN[i]; }
+int fx_colecao_nota(int i) { return COL_NOTA[i]; }
 int fx_n_estudios(void)       { return extrasCardsLigados ? 3 : 0; }
 const char *fx_estudio_nome(int i) { return EST_NOME[i]; }
 const char *fx_estudio_logo(int i) { (void)i; return ""; }
-int fx_n_trailers(void)       { return 0; }
+static int trailerBotaoLigado;
+int fx_n_trailers(void)       { return trailerBotaoLigado ? 1 : 0; }
 int fx_nota_trakt(void)       { return 82; }
 
 // SO a serie de ensaio tem temporadas. O filme devolve zero, que e o estado
@@ -290,19 +353,20 @@ static void montarCatalogo(void) {
   snprintf(itens[1].titulo, sizeof itens[1].titulo, "Filme de Ensaio");
   snprintf(itens[1].imdb, sizeof itens[1].imdb, IMDB_FILME);
   snprintf(itens[1].tipo, sizeof itens[1].tipo, "movie");
-  snprintf(itens[1].genero, sizeof itens[1].genero, "Filme · Ficção científica");
-  snprintf(itens[1].meta, sizeof itens[1].meta, "1999 · 2 h 16 min");
+  snprintf(itens[1].genero, sizeof itens[1].genero, "Filme  \xc2\xb7  Ficção científica  \xc2\xb7  Ação");
+  snprintf(itens[1].meta, sizeof itens[1].meta, "1999  \xc2\xb7  136 min");   // Cinemeta: minutos em ingles
   snprintf(itens[1].sinopse, sizeof itens[1].sinopse,
            "Sinopse de enchimento do filme, tambem comprida o bastante para o "
            "bloco de texto do heroi ficar com a altura que tem num titulo de "
            "verdade.");
   snprintf(itens[1].classificacao, sizeof itens[1].classificacao, "14");
-  snprintf(itens[1].pais, sizeof itens[1].pais, "Estados Unidos");
+  snprintf(itens[1].pais, sizeof itens[1].pais, "United States, Australia");   // Cinemeta: ingles
   // Arte DIFERENTE da serie, de proposito: se as duas fossem a mesma, uma
   // captura trocada passaria despercebida.
   snprintf(itens[1].backdrop, sizeof itens[1].backdrop,
            "deploy/app/art/07.jpg");
   itens[1].nota = 87;
+  itens[1].tmdb = 603;   // = a 1a parte da colecao de ensaio ("Você está aqui")
   for (i = 0; i < 6; i++) {
     snprintf(itens[1].elenco[i].nome, sizeof itens[1].elenco[i].nome,
              "Elenco de Ensaio %d", i + 1);
@@ -440,6 +504,9 @@ int main(int argc, char **argv) {
   glViewport(0, 0, 1920, 1080);
   gfx_tamanho_alvo(1920, 1080);
   assert(gfx_iniciar());
+  // Icones (a estrela da nota na lista da colecao): caminho ABSOLUTO, como o app.
+  { char ic[1024];
+    if (realpath("deploy/app/art", ic)) gfx_icones_dir(ic); }
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(16);
   ajustes_iniciar();
@@ -454,7 +521,117 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // NUVIO_SHOT_IDIOMA=N (IDIOMA_* de idiomacod.h: 0 pt, 1 en ... 24 el, 27 ja, 28 zhcn): a
+  // captura sai no idioma da interface, escrito onde o app o le (ajustes.txt).
+  // NUVIO_SHOT_VIDRO=1: Interface de vidro ligada (V_LIGA: 0 = Ligado).
+  { const char *lg = getenv("NUVIO_SHOT_IDIOMA");
+    const int vidro = getenv("NUVIO_SHOT_VIDRO") != NULL;
+    const int semAnel = getenv("NUVIO_SHOT_SEM_ANEL") != NULL;
+    const char *fonte = getenv("NUVIO_SHOT_FONTE");   // 3 = Montserrat, a fonte da TV do dono
+    if ((lg && *lg) || vidro || semAnel || fonte) {
+      char caminho[600]; FILE *f;
+      snprintf(caminho, sizeof caminho, "%s/ajustes.txt", dd);
+      f = fopen(caminho, "w"); assert(f);
+      if (lg && *lg) fprintf(f, "idioma %d\n", atoi(lg));
+      if (vidro) fprintf(f, "vidroLocal 0\n");
+      if (fonte) fprintf(f, "fonteInterface %d\n", atoi(fonte));
+      if (semAnel) fprintf(f, "bordaFocoCartaz 1\n");   // R3: foco sem anel (V_LIGA: 1 = Desligado)
+      fclose(f);
+      ajustes_dir(dd); } }
+
   montarCatalogo();
+
+  // NV_ORDER_ONLY: Notas first below the hero on movies, right under the
+  // episodes on series; D-pad order and late-arrival anchoring follow it.
+  if (getenv("NV_ORDER_ONLY")) {
+    extrasCardsLigados = 1; relacionadosFixtureN = 10;
+    for (int item = 0; item < 2; item++) {
+      const char *k = item ? "movie" : "series";
+      SDL_Event ev = {0}; ev.type = SDL_KEYDOWN;
+      abrir(item, item ? SEC_NOTAS : SEC_EPISODIOS, 0);
+      assert(secaoN(SEC_NOTAS) > 0);
+      if (item) {
+        assert(topoSec[SEC_NOTAS] == NV_DETF_HERO_FIM);
+        assert(topoSec[SEC_ELENCO] > topoSec[SEC_NOTAS]);
+        assert(topoSec[SEC_RELACIONADOS] > topoSec[SEC_NOTAS]);
+      } else {
+        assert(conteudoSec[SEC_NOTAS] > conteudoSec[SEC_EPISODIOS]);
+        assert(topoSec[SEC_ABAS_INFO] >= conteudoSec[SEC_NOTAS] + alturaSecao(SEC_NOTAS));
+        assert(topoSec[SEC_ELENCO] > topoSec[SEC_NOTAS]);
+        // Numeros da temporada logo depois das Notas, antes das abas.
+        assert(topoSec[SEC_AUD_ARCO] >= conteudoSec[SEC_NOTAS] + alturaSecao(SEC_NOTAS));
+        assert(topoSec[SEC_ABAS_INFO] >= topoSec[SEC_AUD_ARCO] + alturaSecao(SEC_AUD_ARCO));
+      }
+      // D-pad: down from the episodes (series) / from Notas (movie) walks the order.
+      if (!item) {
+        ev.key.keysym.sym = SDLK_DOWN; detail_evento(&ev);
+        assert(foco.fileira == SEC_NOTAS);
+        for (int q = 0; q < 90; q++) { SDL_Delay(16); quadros(1); }
+        snprintf(nome, sizeof nome, "%s-series-notas-below-episodes.png", saida);
+        gravar(nome);
+        // Baixo anda na grade de blocos das Notas e sai para os Numeros da
+        // temporada, depois para as abas/elenco.
+        for (int q = 0; q < 8 && foco.fileira == SEC_NOTAS; q++) detail_evento(&ev);
+        assert(foco.fileira == SEC_AUD_ARCO);
+        detail_evento(&ev);
+        assert(foco.fileira == SEC_ABAS_INFO || foco.fileira == SEC_ELENCO);
+        ev.key.keysym.sym = SDLK_UP; detail_evento(&ev);
+        assert(foco.fileira == SEC_AUD_ARCO);
+        detail_evento(&ev); assert(foco.fileira == SEC_NOTAS);
+        foco.coluna = 0;
+        detail_evento(&ev); assert(foco.fileira == SEC_EPISODIOS);
+      } else {
+        for (int q = 0; q < 90; q++) { SDL_Delay(16); quadros(1); }
+        snprintf(nome, sizeof nome, "%s-movie-notas-first.png", saida);
+        gravar(nome);
+        ev.key.keysym.sym = SDLK_DOWN;
+        for (int q = 0; q < 8 && foco.fileira == SEC_NOTAS; q++) detail_evento(&ev);
+        assert(foco.fileira == SEC_ELENCO);
+        ev.key.keysym.sym = SDLK_UP; detail_evento(&ev);
+        assert(foco.fileira == SEC_NOTAS);
+      }
+      // Hero: down lands on the first focusable row of the new order.
+      nivel = 0; foco.fileira = 0; ev.key.keysym.sym = SDLK_DOWN; detail_evento(&ev);
+      (void)k;
+    }
+    puts("PASS: Notas order (movie first, series after episodes)");
+    SDL_GL_DeleteContext(gl); SDL_DestroyWindow(janela); SDL_Quit(); return 0;
+  }
+
+  if (getenv("NV_ROWS_ONLY")) {
+    extrasCardsLigados = 1; relacionadosFixtureN = 10;
+    for (int item = 0; item < 2; item++) {
+      abrir(item, SEC_ELENCO, 0);
+      assert(!abaDisponivel(ABA_RELACIONADOS));
+      assert(secaoN(SEC_ELENCO) > 0 && secaoN(SEC_RELACIONADOS) == 10);
+      float castBottom = item == 0 ? baseDaAbaAtiva()
+          : conteudoSec[SEC_ELENCO] + alturaSecao(SEC_ELENCO);
+      assert(topoSec[SEC_RELACIONADOS] >= castBottom);
+      for (int q = 0; q < 20; q++) { SDL_Delay(16); quadros(1); }
+      snprintf(nome, sizeof nome, "%s-%s-cast.png", saida, item ? "movie" : "series");
+      gravar(nome);
+      SDL_Event ev = {0}; ev.type = SDL_KEYDOWN; ev.key.keysym.sym = SDLK_DOWN;
+      detail_evento(&ev);
+      assert(foco.fileira == SEC_RELACIONADOS);
+      assert(relNaLista());
+      for (int q = 0; q < 45; q++) { SDL_Delay(16); quadros(1); }
+      snprintf(nome, sizeof nome, "%s-%s-recommendations.png", saida, item ? "movie" : "series");
+      gravar(nome);
+      ev.key.keysym.sym = SDLK_RIGHT;
+      for (int q = 0; q < 8; q++) detail_evento(&ev);
+      assert(foco.coluna == 8);
+      for (int q = 0; q < 45; q++) { SDL_Delay(16); quadros(1); }
+      assert(scrollSec[SEC_RELACIONADOS] > 0);
+      assert(alturaAlvo(SEC_RELACIONADOS) >= REL_CARD_H);
+      snprintf(nome, sizeof nome, "%s-%s-recommendations-scrolled.png", saida, item ? "movie" : "series");
+      gravar(nome);
+      ev.key.keysym.sym = SDLK_UP; detail_evento(&ev);
+      assert(foco.fileira == SEC_ELENCO);
+      assert(!relNaLista());
+    }
+    puts("PASS: cast and recommendations have separate stacked rows and D-pad focus");
+    SDL_GL_DeleteContext(gl); SDL_DestroyWindow(janela); SDL_Quit(); return 0;
+  }
 
   // --- 1. SERIE, foco nas ABAS: a banda de audiencia aparece logo abaixo e
   //        mostra a CHAMADA, porque ninguem entrou nela ainda.
@@ -465,28 +642,15 @@ int main(int argc, char **argv) {
   snprintf(nome, sizeof nome, "%s-1-serie-chamada.png", saida);
   gravar(nome);
 
-  // --- 2. SERIE, foco na primeira banda: o arco de qualidade.
+  // --- 2. SERIE, foco no bloco "Numeros da temporada": os tres cartoes, E1.
   abrir(0, SEC_AUD_ARCO, 0);
-  snprintf(nome, sizeof nome, "%s-2-serie-arco.png", saida);
+  snprintf(nome, sizeof nome, "%s-2-serie-numeros-e1.png", saida);
   gravar(nome);
 
-  // --- 3. Uma descida: o radar entra nos mesmos 33% da tela.
-  foco.fileira = SEC_AUD_RADAR; foco.coluna = 0;
-  quadros(90);
-  snprintf(nome, sizeof nome, "%s-3-serie-radar.png", saida);
-  gravar(nome);
-
-  // --- 4. Outra descida: a impressao digital, com o primeiro episodio escolhido.
-  foco.fileira = SEC_AUD_DIGITAL; foco.coluna = 0;
-  quadros(90);
-  snprintf(nome, sizeof nome, "%s-4-serie-digital-e1.png", saida);
-  gravar(nome);
-
-  // --- 5. D-pad andado ate o episodio 8: o destaque e o rodape de numeros
-  //        crus tem de acompanhar.
+  // --- 5. D-pad andado ate o episodio 8: o destaque acompanha nos tres cartoes.
   foco.coluna = 7;
   quadros(60);
-  snprintf(nome, sizeof nome, "%s-5-serie-digital-e8.png", saida);
+  snprintf(nome, sizeof nome, "%s-5-serie-numeros-e8.png", saida);
   gravar(nome);
 
   // --- 6. SERIE, foco nas FRASES, caso VAZIO — o que acontece em 10 de 12
@@ -576,7 +740,11 @@ int main(int argc, char **argv) {
   { char caminho[600]; FILE *f;
     snprintf(caminho, sizeof caminho, "%s/ajustes.txt", dd);
     f = fopen(caminho, "w"); assert(f);
-    fputs("selected_theme 2\n", f); fclose(f);
+    fputs("selected_theme 2\n", f);
+    if (getenv("NUVIO_SHOT_SEM_ANEL")) fputs("bordaFocoCartaz 1\n", f);
+    { const char *lg = getenv("NUVIO_SHOT_IDIOMA");
+      if (lg && *lg) fprintf(f, "idioma %d\n", atoi(lg)); }
+    fclose(f);
     ajustes_dir(dd); }
   extrasCardsLigados = 1;
   abrir(1, SEC_RELACIONADOS, 1);
@@ -586,6 +754,95 @@ int main(int argc, char **argv) {
   // --- 14. SERIE, Studios em foco: surface de vidro no accent ativo.
   abrir(0, SEC_ESTUDIOS, 1);
   snprintf(nome, sizeof nome, "%s-14-serie-studios-accent.png", saida);
+  gravar(nome);
+
+  // --- 15. FILME, Studios em foco: a fileira ao lado das outras, para julgar
+  //         cabecalho, margem, raio e foco contra o resto da pagina.
+  abrir(1, SEC_ESTUDIOS, 1);
+  snprintf(nome, sizeof nome, "%s-15-filme-studios-accent.png", saida);
+  gravar(nome);
+
+  // --- 16. FILME, foco no elenco com a pagina rolada ate Studios: a fileira
+  //         em repouso ao lado da fileira focada de outro tipo.
+  abrir(1, SEC_ELENCO, 0);
+  parado = 1;
+  scrollY = conteudoSec[SEC_ESTUDIOS] - 620.0f;
+  quadros(40);
+  snprintf(nome, sizeof nome, "%s-16-filme-studios-repouso.png", saida);
+  gravar(nome);
+
+  // --- 17. FILME, foco nos DETALHES (Status, Lancamento, Duracao, Classificacao,
+  //         Pais de origem, Direcao): os valores crus do TMDB em ingles tem de
+  //         sair no idioma da interface.
+  abrir(1, SEC_DETALHES, 0);
+  parado = 1;
+  scrollY = conteudoSec[SEC_DETALHES] - 300.0f;
+  quadros(40);
+  snprintf(nome, sizeof nome, "%s-17-filme-detalhes.png", saida);
+  gravar(nome);
+
+  // --- 18. FILME, foco na COLECAO (#194): o MINI CARD — backdrop da colecao,
+  //         nome, "3 filmes · 1999–2003" e a escada de cartazes, focado.
+  colecaoLigada = 1;
+  abrir(1, SEC_COLECAO, 0);
+  quadros(60);
+  snprintf(nome, sizeof nome, "%s-18-filme-colecao.png", saida);
+  gravar(nome);
+
+  // --- 19. A TELA DE LISTA: OK no card, depois um BAIXO — a 2a parte em foco
+  //         e a 1a (o titulo aberto) com "Você está aqui".
+  { SDL_Event ev; memset(&ev, 0, sizeof ev);
+    // O OK da pagina age no SOLTAR (desce + sobe), como na TV.
+    ev.type = SDL_KEYDOWN; ev.key.keysym.sym = SDLK_RETURN;
+    detail_evento(&ev);
+    ev.type = SDL_KEYUP;
+    detail_evento(&ev);
+    quadros(5);
+    ev.type = SDL_KEYDOWN; ev.key.keysym.sym = SDLK_DOWN;
+    detail_evento(&ev); }
+  quadros(90);
+  assert(colListaAberta && colListaFoco == 1);
+  snprintf(nome, sizeof nome, "%s-19-filme-colecao-lista.png", saida);
+  gravar(nome);
+
+  // --- 20. VOLTAR fecha a lista e devolve a pagina no mesmo card; e a
+  //         reserva SEM backdrop (so a escada sobre a superficie neutra).
+  { SDL_Event ev; memset(&ev, 0, sizeof ev);
+    ev.type = SDL_KEYDOWN; ev.key.keysym.sym = SDLK_ESCAPE;
+    detail_evento(&ev); }
+  assert(!colListaAberta && aberto && foco.fileira == SEC_COLECAO);
+  colecaoSemFundo = 1;
+  quadros(60);
+  snprintf(nome, sizeof nome, "%s-20-filme-colecao-sem-fundo.png", saida);
+  gravar(nome);
+
+  // --- 21/22. O OLHO DO HERO (#212): sem progresso, so pelo historico de
+  //            titulo (o que o Trakt manda por /sync/watched/movies). Antes o
+  //            olho lia `progresso >= 90` e ficava riscado em todo filme.
+  { extern void cat_historico_definir_id(const char *imdb, const char *tipo, int visto);
+    colecaoSemFundo = 0;
+    abrir(1, SEC_ELENCO, 0);
+    nivel = 0;
+    quadros(60);
+    snprintf(nome, sizeof nome, "%s-21-filme-olho-nao-visto.png", saida);
+    gravar(nome);
+    cat_historico_definir_id(IMDB_FILME, "movie", 1);
+    assert(cat_visto(cat_item(1)));
+    quadros(30);
+    snprintf(nome, sizeof nome, "%s-22-filme-olho-visto.png", saida);
+    gravar(nome); }
+
+  // --- 23/24. #234: o botao "Assistir trailer" (ultimo circular) em repouso e
+  //            em foco, com a dica do nome acima.
+  trailerBotaoLigado = 1;
+  abrir(1, SEC_ELENCO, 0);
+  nivel = 0; botao = 0;
+  quadros(60);
+  snprintf(nome, sizeof nome, "%s-23-filme-botao-trailer.png", saida);
+  gravar(nome);
+  botao = nBotoesTodos() - 1; for (int w = 0; w < 12; w++) { quadros(5); SDL_Delay(150); }
+  quadros(40);
+  snprintf(nome, sizeof nome, "%s-24-filme-botao-trailer-foco.png", saida);
   gravar(nome);
 
   SDL_GL_DeleteContext(gl);

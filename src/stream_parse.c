@@ -6,6 +6,64 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <limits.h>
+#include <math.h>
+
+// Addons tambem mandam numeros como strings. Evita conversao indefinida de
+// infinito ou expoentes enormes a int/long, preservando tamanho desconhecido.
+static long tamanhoMB(double valor) {
+  return isfinite(valor) && valor > 0 && valor < (double)LONG_MAX ? (long)valor : 0;
+}
+
+// Find only a direct property of this exact object. JSON strings and nested
+// objects are skipped; proxyHeaders/request cannot masquerade as videoSize.
+static const char *valorRaiz(const char *p, const char *fim, const char *nome) {
+  int depth = 0;
+  size_t n = strlen(nome);
+  if (!p || p >= fim || *p != '{') return NULL;
+  while (p < fim) {
+    if (*p == '"') {
+      const char *ini = ++p;
+      while (p < fim && *p != '"') {
+        if (*p == '\\' && p + 1 < fim) p++;
+        p++;
+      }
+      if (p >= fim) return NULL;
+      const char *apos = p + 1;
+      while (apos < fim && isspace((unsigned char)*apos)) apos++;
+      if (depth == 1 && (size_t)(p - ini) == n && !memcmp(ini, nome, n) && apos < fim && *apos == ':') {
+        apos++; while (apos < fim && isspace((unsigned char)*apos)) apos++;
+        return apos < fim ? apos : NULL;
+      }
+    } else if (*p == '{' || *p == '[') depth++;
+    else if (*p == '}' || *p == ']') { if (--depth == 0) break; }
+    p++;
+  }
+  return NULL;
+}
+
+// Decimal integers only, parsed without double rounding. Numeric strings
+// are accepted for compatibility, but fractions/exponents/overflow are
+// unavailable for fit. Legacy display size remains separate below.
+static uint64_t bytesExatos(const char *obj, const char *fim) {
+  const char *bh = valorRaiz(obj, fim, "behaviorHints"), *p, *bf;
+  uint64_t valor = 0;
+  int quoted;
+  if (!bh || *bh != '{' || !(bf = js_fim(bh)) || bf > fim) return 0;
+  p = valorRaiz(bh, bf, "videoSize");
+  if (!p) return 0;
+  quoted = *p == '"'; if (quoted) p++;
+  if (p >= bf || !isdigit((unsigned char)*p)) return 0;
+  if (!quoted && *p == '0' && p + 1 < bf && isdigit((unsigned char)p[1])) return 0;
+  while (p < bf && isdigit((unsigned char)*p)) {
+    unsigned d = (unsigned)(*p++ - '0');
+    if (valor > (STREAMFIT_BYTES_MAX - d) / 10) return 0;
+    valor = valor * 10 + d;
+  }
+  if (quoted) { if (p >= bf || *p++ != '"') return 0; }
+  while (p < bf && isspace((unsigned char)*p)) p++;
+  return p < bf && (*p == ',' || *p == '}') ? valor : 0;
+}
 
 static int contem(const char *s, const char *termo) {
   for (; *s; s++) if (!strncasecmp(s, termo, strlen(termo))) return 1;
@@ -99,6 +157,44 @@ int stream_texto_fora_de_cache(const char *t) {
       || contem(t, " download]") || contem(t, "uncached");
 }
 
+// "sources": ["tracker:udp://...", "dht:<hash>"] de um stream de torrent, uma
+// entrada por linha em `dst`. So as que o servidor de streaming do Stremio
+// entende (prefixo tracker: ou dht:); uma URL solta de tracker ganha o prefixo.
+// A entrada que nao cabe inteira fica de fora (nunca cortada no meio: um
+// tracker pela metade e endereco torto). \/ vira / (JSON escapa a barra).
+static void lerFontesP2P(const char *ini, const char *fim, char *dst, unsigned tam) {
+  const char *q = strstr(ini, "\"sources\"");
+  unsigned u = 0;
+  dst[0] = 0;
+  if (!q || q >= fim) return;
+  q += 9;
+  while (q < fim && (*q == ' ' || *q == ':' || *q == '\n' || *q == '\t')) q++;
+  if (q >= fim || *q != '[') return;
+  q++;
+  while (q < fim && *q != ']') {
+    char e[300];
+    unsigned k = 0;
+    if (*q != '"') { q++; continue; }
+    q++;
+    while (q < fim && *q != '"' && k + 1 < sizeof e) {
+      if (*q == '\\' && q + 1 < fim) q++;      // \/ -> /
+      e[k++] = *q++;
+    }
+    e[k] = 0;
+    while (q < fim && *q != '"') q++;          // entrada maior que o buffer: pula o resto
+    if (q < fim) q++;
+    if (!strncmp(e, "tracker:", 8) || !strncmp(e, "dht:", 4) ||
+        !strncmp(e, "udp://", 6) || !strncmp(e, "http://", 7) || !strncmp(e, "https://", 8)) {
+      char ent[320];
+      int L = snprintf(ent, sizeof ent, "%s%s",
+                       strncmp(e, "tracker:", 8) && strncmp(e, "dht:", 4) ? "tracker:" : "", e);
+      if (L > 0 && u + (unsigned)L + 2 <= tam) {
+        u += (unsigned)snprintf(dst + u, tam - u, "%s%s", u ? "\n" : "", ent);
+      }
+    }
+  }
+}
+
 int stream_extrair(const char *json, const char *provedor, Stream **saida) {
   const char *p, *fim;
   int n = 0, cap = 0;
@@ -121,7 +217,10 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
       s.url[0] = 0;
       if (!js_texto(p, fim, "infoHash", s.infoHash, sizeof s.infoHash) && cr && cr < fim)
         js_texto(cr, fim, "infoHash", s.infoHash, sizeof s.infoHash);
-      s.fileIdx = (int)js_num(p, fim, "fileIdx", -1);
+      double indice = js_num(p, fim, "fileIdx", -1);
+      if (isfinite(indice) && indice >= 0 && indice <= INT_MAX)
+        s.fileIdx = (int)indice;
+      if (s.infoHash[0]) lerFontesP2P(p, fim, s.fontes, sizeof s.fontes);
     }
     // Nao tocar URL cortada; sem url e sem hash nao ha o que tocar.
     if ((s.infoHash[0] || !strncmp(s.url, "http", 4)) &&
@@ -171,8 +270,10 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
       // cuidado de token() com DVDRip — o mesmo cuidado ja se aplica aqui).
       s.av1 = token(texto, "av1") || contem(texto, "av01");
       s.foraCache = stream_texto_fora_de_cache(texto);
+      s.tamanhoBytes = bytesExatos(p, fim);
       double bytes = js_num(p, fim, "videoSize", 0);
-      if (bytes > 0) s.tamanhoMB = (long)(bytes / (1024.0 * 1024.0));
+      if (s.tamanhoBytes) s.tamanhoMB = tamanhoMB((double)s.tamanhoBytes / 1048576.0);
+      else if (bytes > 0) s.tamanhoMB = tamanhoMB(bytes / (1024.0 * 1024.0));
       else {
         const char *u = strstr(texto, " GB");
         double escala = 1024;
@@ -180,7 +281,7 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
         if (u) {
           const char *ini = u;
           while (ini > texto && (isdigit((unsigned char)ini[-1]) || ini[-1] == '.')) ini--;
-          if (ini < u) s.tamanhoMB = (long)(atof(ini) * escala);
+          if (ini < u) s.tamanhoMB = tamanhoMB(atof(ini) * escala);
         }
       }
       if (n == cap) {

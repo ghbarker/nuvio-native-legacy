@@ -82,6 +82,7 @@
 #if defined(__EMSCRIPTEN__) && !defined(NV_VIDAA)
 
 #include "video.h"
+#include "video_reconexao.h"
 #include "linguas.h"
 #include "idioma.h"
 #include "marco.h"
@@ -378,6 +379,13 @@ EM_JS(double, nv_av, (const char *cmd, const char *txt,
       else   { p3.play();  S.tocando = 1; }
     } catch (e) { return 0; }
     return 1;
+  }
+
+  if (op === "pausa_confirmada") {
+    var pp = pl();
+    if (!pp || !S.aberto || !S.pronto || S.erro || S.fim) return 0;
+    try { return pp.getState() === "PAUSED" ? 1 : 0; }
+    catch (e) { return 0; }
   }
 
   if (op === "buscar") {
@@ -792,10 +800,22 @@ static int    tocando, pronto;
 static double posSeg, durSeg;
 static int    vidW, vidH;
 static int    houveErro;
+static char   erroTexto[96];   // ver logarErro e video_erro_texto
 
 static char   urlAtual[1024];
 static int    fonteMp4;
 static int    dvPedido;      // afirmacao do addon; sem uso no AVPlay (ver hdr)
+
+// RECONEXAO (video_reconexao.h). O onerror so e lido aqui, no video_bombear,
+// entao a maquina roda inteira no fio principal.
+static NvReconexao recon;
+static int    reconProxima, reconPermitida, reconIniciou;
+static int    reconAudio = -1, reconLeg = -1, reconFaixasPend;
+static double reconBuscar = -1.0;
+// As listas como estavam na queda. O AVPlay nao da idioma: o rotulo veio da
+// sonda do MKV (aplicarIdiomasDoMkv), e o recarregar releria "Audio 1".
+static VideoFaixa reconFxA[NV_FAIXA_MAX], reconFxL[NV_FAIXA_MAX];
+static int    reconNA, reconNL;
 
 // URLs de addons podem conter credenciais, tokens ou assinaturas na query.
 // O diagnóstico precisa correlacionar duas operações sem despejar a fonte no
@@ -868,8 +888,11 @@ int video_tocar(const char *url) {
   // capitulos herdaria os creditos do filme de antes.
   creditosNomeado = creditosUltimo = 0.0;
   snprintf(urlAtual, sizeof urlAtual, "%s", url);
+  nv_recon_zerar(&recon);
+  reconPermitida = reconProxima; reconProxima = 0; reconIniciou = 0;
+  reconAudio = reconLeg = -1; reconFaixasPend = 0; reconBuscar = -1.0;
   nAudio = nLeg = 0; audioAtual = 0; legAtual = -1; faixasLidas = 0;
-  posSeg = durSeg = 0; vidW = vidH = 0; houveErro = 0;
+  posSeg = durSeg = 0; vidW = vidH = 0; houveErro = 0; erroTexto[0] = 0;
   seekEm = 0;
   // Sonda de MKV so faz sentido em MKV. Num MP4 e descida garantidamente
   // perdida pela MESMA conexao que esta transmitindo — o log da LG dizia
@@ -1019,11 +1042,14 @@ static void lerInfoFluxo(void) {
 // A razao que o AVPlay deu (S.erro no JS: o objeto do onerror, ou o
 // "open:/prepare:/play:" que os catch gravam). 200 bytes cobrem a mensagem do
 // AVPlay sem despejar pilha no log.
+// Guarda o comeco da razao do AVPlay em erroTexto (video_erro_texto): e o que
+// cabe no cartao de erro do canal.
 static void logarErro(const char *onde) {
   char buf[200];
   buf[0] = 0;
   if (avChamar("erro", NULL, 0, 0, 0, 0, buf, (int)sizeof buf) < 1 || !buf[0]) return;
   buf[sizeof buf - 1] = 0;
+  snprintf(erroTexto, sizeof erroTexto, "%s", buf);
   printf("[video] avplay erro (%s): %s\n", onde, buf);
   fflush(stdout);
 }
@@ -1093,6 +1119,18 @@ static void lerFaixas(void) {
   }
   printf("[video] faixas: %d audio, %d legenda\n", nAudio, nLeg);
   fflush(stdout);
+  // Recarregar de reconexao: o MESMO arquivo, entao as listas guardadas valem
+  // quando a contagem bate; e as faixas que a pessoa tinha, nao a preferencia.
+  if (reconFaixasPend) {
+    reconFaixasPend = 0;
+    if (nAudio == reconNA) memcpy(faixaAudio, reconFxA, sizeof faixaAudio);
+    if (nLeg == reconNL)   memcpy(faixaLeg, reconFxL, sizeof faixaLeg);
+    if (reconAudio > 0 && reconAudio < nAudio) video_escolher_audio(reconAudio);
+    if (reconLeg >= 0 && reconLeg < nLeg) video_escolher_legenda(reconLeg);
+    printf("[video] reconexao: faixas devolvidas (audio %d, legenda %d)\n", reconAudio, reconLeg);
+    fflush(stdout);
+    return;
+  }
   escolherAudioPreferido();
 }
 
@@ -1133,6 +1171,22 @@ void video_bombear(void) {
     { char m[48]; snprintf(m, sizeof m, "seek para %ds", (int)seekAlvo); marco(m); }
   }
 
+  // RECONEXAO: a espera venceu, abre a MESMA fonte. `ativo` fica em 1 mesmo
+  // se o open recusar: e assim que o erro dele chega ao ramo abaixo e conta
+  // como a tentativa seguinte.
+  if (temAvplay && nv_recon_vencida(&recon, SDL_GetTicks())) {
+    char m[64];
+    snprintf(m, sizeof m, "reconectando: alvo %.0fs, tentativa %d", recon.alvo, recon.tentativa);
+    marco(m);
+    pronto = tocando = 0; estavaPronto = 0; faixasLidas = 0;
+    nAudio = nLeg = 0; audioAtual = 0; legAtual = -1; posSeg = 0; seekEm = 0;
+    reconFaixasPend = 1;
+    reconBuscar = recon.alvo;
+    AVS("abrir", urlAtual);
+    ativo = 1;
+    avChamar("rect", NULL, janX, janY, janW, janH, NULL, 0);
+  }
+
   if (!temAvplay || !ativo) return;
 
   memset(est, 0, sizeof est);
@@ -1143,10 +1197,31 @@ void video_bombear(void) {
   pronto   = est[EST_PRONTO]  != 0;
   if (est[EST_LARG] > 0) vidW = (int)est[EST_LARG];
   if (est[EST_ALT]  > 0) vidH = (int)est[EST_ALT];
-  if (est[EST_ERRO] != 0 && !houveErro) {
-    houveErro = 1;
-    marco("avplay: onerror");
+  if (pronto && posSeg > 0.5) reconIniciou = 1;
+  if (pronto && reconBuscar < 0) nv_recon_progresso(&recon, posSeg);
+  // Esperando a reconexao, o erro da sessao morta segue no estado ate o
+  // proximo open: nao e erro novo.
+  if (est[EST_ERRO] != 0 && !houveErro && !recon.pendente) {
+    int antes = recon.tentativa;
     logarErro("onerror");
+    if (reconPermitida && urlAtual[0] && (reconIniciou || recon.tentativa) &&
+        nv_recon_erro(&recon, nv_recon_rede_avplay(erroTexto), SDL_GetTicks(), posSeg)) {
+      char m[96];
+      if (!antes) {
+        reconAudio = audioAtual; reconLeg = legAtual;
+        memcpy(reconFxA, faixaAudio, sizeof reconFxA); reconNA = nAudio;
+        memcpy(reconFxL, faixaLeg, sizeof reconFxL);   reconNL = nLeg;
+      }
+      snprintf(m, sizeof m, "conexao caiu (%.40s): tentativa %d/%d, espera %us",
+               erroTexto, recon.tentativa, NV_RECON_MAX,
+               nv_recon_espera_ms(recon.tentativa) / 1000u);
+      marco(m);
+      tocando = 0;
+    } else {
+      if (recon.esgotou) marco("reconexao: desistiu depois de 3 tentativas");
+      houveErro = 1;
+      marco("avplay: onerror");
+    }
   }
 
   if (pronto && !estavaPronto) {
@@ -1155,6 +1230,11 @@ void video_bombear(void) {
     lerInfoFluxo();
   }
   if (pronto && !faixasLidas) lerFaixas();
+  // A posicao da queda, depois das faixas (trocar faixa pode reiniciar o decode).
+  if (reconBuscar >= 0.0 && pronto) {
+    if (reconBuscar > 1.0) video_buscar(reconBuscar);
+    reconBuscar = -1.0;
+  }
 
   // SONDA DE MKV. Gatilho diferente do da LG e explicado no bloco de
   // `mkvPendente`: sem bufferRange, o sinal de que ha banda sobrando e o tempo
@@ -1178,6 +1258,8 @@ void video_sondar_mkv_agora(void) {
 }
 
 void video_parar(void) {
+  nv_recon_zerar(&recon);
+  reconFaixasPend = 0; reconBuscar = -1.0;
   seekEm = 0; mkvPendente = 0;
   if (temAvplay) AV0("parar");
   ativo = tocando = pronto = 0;
@@ -1190,11 +1272,20 @@ void video_parar(void) {
 // embed do YouTube); o volume fica por conta da TV.
 void video_volume(int pct) { (void)pct; }
 void video_recorte_reaplicar(void) {}
+// Tizen: o AVPlay recebe o retangulo em unidades de tela 1920x1080 do proprio
+// firmware, sem relacao com o drawable do GL; nada a escalar (#176 e so LG).
+void video_escala_definir(int sw, int sh) { (void)sw; (void)sh; }
 
 void video_pausar(int pausado) {
   if (!temAvplay || !ativo) return;
-  AVN("pausar", pausado ? 1 : 0);
-  tocando = !pausado;
+  if (AVN("pausar", pausado ? 1 : 0) >= 1) tocando = !pausado;
+}
+
+int video_pausa_confirmada(void) {
+  // Le o estado REAL do AVPlay; setVolume nao existe neste backend. Um
+  // p.pause que levantou excecao nao pode autorizar audio escondido na Home.
+  return temAvplay && ativo && pronto && !houveErro && !video_reconectando() &&
+         avChamar("pausa_confirmada", NULL, 0, 0, 0, 0, NULL, 0) >= 1;
 }
 
 void video_buscar(double segundos) {
@@ -1361,6 +1452,10 @@ double video_duracao(void)    { return durSeg; }
 double video_buffer_fim(void) { return 0; }
 // O AVPlay nao expoe o par bufferingStart/End; sem sinal, nunca afirma travo.
 unsigned video_bufferando_ms(void) { return 0; }
+void video_definir_reconexao(int sim) { reconProxima = sim ? 1 : 0; }
+int  video_reconectando(void) {
+  return nv_recon_ativa(&recon) && (recon.pendente || !pronto) ? recon.tentativa : 0;
+}
 int    video_tocando(void)    { return tocando; }
 int    video_pronto(void)     { return pronto; }
 int    video_ativo(void)      { return ativo; }
@@ -1368,11 +1463,14 @@ int    video_ativo(void)      { return ativo; }
 // video.c (webOS): app.c usa isto no watchdog de canal para pular a fonte
 // morta sem esperar o prazo. Sem esta definicao o alvo Tizen nem linkava.
 int    video_falhou(void)     { return houveErro; }
+const char *video_erro_texto(void) { return houveErro ? erroTexto : ""; }
+int    video_decoder_anunciou(void) { return 1; }
 // O AVPlay nao separa "audio nao suportado" de erro geral; sem sinal proprio.
 int    video_audio_nao_suportado(void) { return 0; }
 // O trailer deste alvo nao passa pelo AVPlay (ver trailer.c); nao ha fim a
 // contar aqui.
 int    video_terminou(void)   { return 0; }
+int    video_conflito_recurso(void) { return 0; }
 
 double video_creditos(void) {
   double dur;

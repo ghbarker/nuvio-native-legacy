@@ -21,7 +21,9 @@
 typedef enum {
   TELA_LOGIN, TELA_ESCOLHA_PERFIL,
   TELA_HOME, TELA_EXPLORAR, TELA_GUIA, TELA_BUSCA, TELA_BIBLIOTECA, TELA_PERFIL, TELA_AJUSTES, TELA_DIAGNOSTICO,
-  TELA_PLAYER, TELA_SOCIAL, TELA_ADDONS, TELA_AGENDA
+  TELA_PLAYER, TELA_SOCIAL, TELA_ADDONS, TELA_AGENDA,
+  TELA_LIVETV_DIAG,  // diagnostico da Live TV (livetvdiag.c)
+  TELA_PLUGINS       // plugins Nuvio (pluginsui.c, F09)
 } Tela;
 
 int  app_iniciar(const char *dirArte);
@@ -29,7 +31,19 @@ void app_evento(const SDL_Event *e);
 void app_atualizar(float dt, Uint32 agora);
 void app_desenhar(Uint32 agora);
 int  app_quer_sair(void);
+// Nome curto da tela em cena ("home", "player", "episodios"...), para o log.
+const char *app_tela_nome(void);
+// 1 quando CH+/CH- trocam de canal: guia aberto, ou um canal tocando (tela
+// cheia ou no canto). Fora disso, no Android, CH+ e CH- fazem o papel das
+// teclas AZUL e VERMELHA, que o controle nao tem (main.c).
+int  app_zap_ativo(void);
 void app_encerrar(void);
+
+// 1 = a home e o que esta na frente (sem detalhe, player, login ou escolha de
+// perfil por cima). E a amostra do nivel de GPU (gpunivel.h).
+int  app_na_home(void);
+// A tela atual e o login (a abertura dissolve o logo sobre o fundo dele).
+int  app_no_login(void);
 
 // Porta de teste: abre o titulo (imdb) como se viesse de uma recomendacao.
 void app_abrir_titulo(const char *imdb);

@@ -1,6 +1,7 @@
 #ifndef NV_LEGENDA_H
 #define NV_LEGENDA_H
 #include <stddef.h>
+#include <stdint.h>
 
 // Quantos blocos podem estar no ar AO MESMO TEMPO.
 //
@@ -45,6 +46,11 @@ typedef struct {
 
 /* OpenSubtitles e desenhado pela UI, acima do plano de video. */
 void legenda_carregar(const char *url);
+/* O mesmo, avisando `pronto` no fio do download (corpo UTF-8 ou NULL, a
+ * geracao do pedido e se ela ainda e a dona do overlay). `pronto` e chamado
+ * exatamente uma vez, inclusive em falha, e nao pode tocar a UI. */
+typedef void (*LegendaBaixada)(const char *corpo, unsigned geracao, int vigente, void *u);
+unsigned legenda_carregar_com(const char *url, LegendaBaixada pronto, void *u);
 void legenda_desligar(void);
 // Liga com um corpo ja em memoria (parser sincrono). Ver a nota em legenda.c.
 void legenda_definir_corpo(const char *corpo);
@@ -84,5 +90,40 @@ int legenda_extrair_srt(const char *corpo, LegendaCue **saida);
 int legenda_extrair_ass(const char *corpo, LegendaCue **saida);
 /* 1 quando o corpo se parece com ASS/SSA. */
 int legenda_eh_ass(const char *corpo);
+
+/* Immutable subtitle documents, independent of the currently drawn overlay.
+ * Build once on a worker, retain while analysing/drawing, release when done.
+ * `identidade` must identify the subtitle track/file, never contain a signed
+ * URL or credentials. A partial mkvass batch MUST NOT set COMPLETO. */
+typedef struct LegendaDocumento LegendaDocumento;
+enum {
+  LEGENDA_DOC_COMPLETO = 1u << 0,
+  LEGENDA_DOC_FORCED = 1u << 1,
+  LEGENDA_DOC_SINAIS = 1u << 2
+};
+typedef struct {
+  char idioma[24], origem[96], identidade[128];
+  uint64_t sessao;
+  unsigned flags;
+  double duracaoSeg; /* media duration when known; zero = unknown */
+} LegendaDocumentoInfo;
+LegendaDocumento *legenda_documento_criar(const char *corpo,
+                                        const LegendaDocumentoInfo *info);
+/* Uses the existing UTF-8/UTF-16/Windows charset conversion before parsing. */
+LegendaDocumento *legenda_documento_bytes(const char *bytes, long n,
+                                         const LegendaDocumentoInfo *info);
+LegendaDocumento *legenda_documento_de_cues(const LegendaCue *v, int n,
+                                           const LegendaDocumentoInfo *info);
+/* Copy the current overlay only if `geracao` still owns it. Does not change
+ * selection/libass. Caller supplies accurate source/language/completeness. */
+LegendaDocumento *legenda_documento_ativo(unsigned geracao,
+                                         const LegendaDocumentoInfo *info);
+LegendaDocumento *legenda_documento_reter(LegendaDocumento *doc);
+void legenda_documento_liberar(LegendaDocumento *doc);
+const LegendaDocumentoInfo *legenda_documento_info(const LegendaDocumento *doc);
+const LegendaCue *legenda_documento_dados(const LegendaDocumento *doc, int *n);
+uint64_t legenda_documento_hash(const LegendaDocumento *doc);
+int legenda_documento_cues(const LegendaDocumento *doc, double posSeg,
+                          int atrasoMs, LegendaCue *dst, int max);
 
 #endif

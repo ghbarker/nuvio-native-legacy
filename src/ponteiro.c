@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
+#if (!defined(__APPLE__) && !defined(__EMSCRIPTEN__) && !defined(NV_TPK) && !defined(NV_ANDROID)) || \
+    defined(NV_PONT_WEBOS_TESTE)
 #include <dlfcn.h>
 #define NV_PONT_WEBOS 1
 #endif
@@ -16,8 +17,10 @@
 #define PONT_SC_CURSOR_HIDE 485
 
 #define PONT_MAX_ALVOS   512
-// Parado este tempo, o cursor some. O do sistema no webOS dorme sozinho
-// tambem (SDL_WEBOS_CURSOR_SLEEP_TIME); este e o do app.
+// Parado este tempo, o cursor some — no webOS o do sistema junto, pedido por
+// SDL_webOSCursorVisibility (ver ponteiro_quadro). O SDL_webOS.h tambem tem o
+// hint SDL_WEBOS_CURSOR_SLEEP_TIME, mas sem unidade documentada e sem medida
+// na TV; nao e usado.
 #define PONT_DORME_MS    4000
 // Janela em que um OK de tecla e um clique sao O MESMO aperto. Nao esta
 // provado se o webOS manda os dois quando o cursor esta na tela; se mandar,
@@ -27,6 +30,18 @@
 // o foco. Ver `conteudoMexeuEm`.
 #define PONT_ASSENTA_MS  150
 #define PONT_RODA_MS      70
+// DEPOIS DE UMA SETA o cursor so volta com um gesto de verdade. Apertar a seta
+// balanca o Magic Remote; esse tremor chegava como movimento, reacendia o
+// cursor e o hover refocava o alvo sob ele (no player, o de tela cheia, que
+// reabre a barra). Movimento nos primeiros PONT_SETA_JANELA_MS e ignorado; depois
+// dele o cursor precisa se afastar PONT_SETA_LIMIAR px (logicos, em linha reta)
+// do ponto onde a mao voltou a mexer. Uma pausa maior que PONT_SETA_PAUSA_MS
+// recomeca a conta: tremor esparso nao soma.
+#define PONT_SETA_JANELA_MS 350
+#define PONT_SETA_LIMIAR    32.0f
+#define PONT_SETA_PAUSA_MS  300
+#define PONT_TOQUE_LIMIAR   32.0f  // deslocamento logico maximo de um tap
+#define PONT_DEDOS_MAX      16
 
 static PonteiroAlvo lista[2][PONT_MAX_ALVOS];
 static int nLista[2];
@@ -60,6 +75,36 @@ static Uint32 rodaEm = 0;
 
 static int logouTipo[8];
 
+// Escondido por uma seta: o movimento tem de vencer a janela e o limiar.
+static int escondidoSeta = 0;
+static Uint32 setaEm = 0, setaMovEm = 0;
+static float setaAx, setaAy;
+static int setaAncora = 0;
+// Nos que pedimos ao compositor para esconder a seta dele (webOS).
+static int sistemaEscondido = 0;
+
+#ifdef NV_ANDROID
+static int toqueDisponivel = 1;
+#else
+static int toqueDisponivel;
+#endif
+typedef struct { SDL_TouchID toque; SDL_FingerID dedo; } Dedo;
+static Dedo dedos[PONT_DEDOS_MAX];
+static int nDedos, dedosExcedentes, toqueCancelado;
+static float toqueX, toqueY;
+static Ident toqueAlvo;
+static int toqueSemAlvos;
+
+static void pararInercia(void);
+static int arrModo;
+static void cancelarToque(void) {
+  pararInercia();
+  arrModo = 0;
+  nDedos = dedosExcedentes = 0;
+  toqueCancelado = 1;
+  toqueAlvo.ok = 0;
+}
+
 #ifdef NV_PONT_WEBOS
 static SDL_bool (*cursorSistema)(SDL_bool) = NULL;
 #endif
@@ -68,10 +113,14 @@ static Uint32 agoraMs(void) { return relogio ? relogio() : SDL_GetTicks(); }
 
 void ponteiro_teste_relogio(Uint32 (*fn)(void)) { relogio = fn; }
 void ponteiro_teste_janela(int w, int h) { janelaW = w; janelaH = h; }
+void ponteiro_teste_toque(int ligado) { toqueDisponivel = ligado != 0; cancelarToque(); }
+#ifdef NV_PONT_WEBOS
+void ponteiro_teste_cursor_sistema(SDL_bool (*fn)(SDL_bool)) { cursorSistema = fn; }
+#endif
 
 float ponteiro_x(void) { return px; }
 float ponteiro_y(void) { return py; }
-int ponteiro_ativo(void) { return visivel; }
+int ponteiro_ativo(void) { return visivel || toqueDisponivel; }
 
 // DIAGNOSTICO DE ENTRADA (#99, segunda volta). Na C9 chegaram os avisos
 // 484/485 e a rodinha, e NENHUM movimento nem clique. Para saber o que o SDL
@@ -147,7 +196,12 @@ void ponteiro_diag(const SDL_Event *e) {
 void ponteiro_iniciar(void) {
   nLista[0] = nLista[1] = 0;
   visivel = 0;
+  escondidoSeta = 0; sistemaEscondido = 0;
   memset(&hover, 0, sizeof hover);
+  cancelarToque();
+#ifndef NV_ANDROID
+  toqueDisponivel = SDL_GetNumTouchDevices() > 0;
+#endif
   { SDL_Window *w = SDL_GL_GetCurrentWindow();
     int ww = 0, wh = 0, dw = 0, dh = 0;
     if (w) { SDL_GetWindowSize(w, &ww, &wh); SDL_GL_GetDrawableSize(w, &dw, &dh); }
@@ -178,8 +232,34 @@ static void esconder(const char *porque) {
   (void)porque;
 #ifdef NV_PONT_WEBOS
   // Mesmo gesto do RetroArch: seta apertada, cursor do sistema fora tambem.
-  if (cursorSistema) cursorSistema(SDL_FALSE);
+  // Vale para o "parado" tambem: sem isto a seta do sistema ficaria na tela
+  // com o hover ja desligado.
+  if (cursorSistema) { cursorSistema(SDL_FALSE); sistemaEscondido = 1; }
 #endif
+}
+
+// O cursor volta (movimento que venceu o limiar, clique, 484 legitimo).
+static void reaparecer(void) {
+  escondidoSeta = 0;
+  if (!visivel) { visivel = 1; hover.ok = 0; }
+#ifdef NV_PONT_WEBOS
+  // Fomos nos que escondemos a seta do sistema: devolve-la. (Se o compositor ja
+  // a mostrou sozinho, pedir de novo nao muda nada.)
+  if (sistemaEscondido && cursorSistema) cursorSistema(SDL_TRUE);
+#endif
+  sistemaEscondido = 0;
+}
+
+// Movimento enquanto escondido pela seta: ainda e tremor?
+static int tremorDaSeta(Uint32 agora) {
+  if (!escondidoSeta) return 0;
+  if (agora - setaEm < PONT_SETA_JANELA_MS) return 1;
+  if (!setaAncora || agora - setaMovEm > PONT_SETA_PAUSA_MS) {
+    setaAncora = 1; setaAx = px; setaAy = py;
+  }
+  setaMovEm = agora;
+  { float dx = px - setaAx, dy = py - setaAy;
+    return dx * dx + dy * dy < PONT_SETA_LIMIAR * PONT_SETA_LIMIAR; }
 }
 
 static void primeiro(int tipo, const char *nome, int x, int y) {
@@ -253,24 +333,203 @@ static void mover(void) {
   if (v[i].focar) { rastro("foco", &v[i], nLista[pronto]); v[i].focar(v[i].a, v[i].b); }
 }
 
+static int dedoIndice(const SDL_TouchFingerEvent *e) {
+  for (int i = 0; i < nDedos; i++)
+    if (dedos[i].toque == e->touchId && dedos[i].dedo == e->fingerId) return i;
+  return -1;
+}
+
+static int converterToque(const SDL_TouchFingerEvent *e) {
+  if (!isfinite(e->x) || !isfinite(e->y)) return 0;
+  // SDL ja normalizou pela janela. O viewport ocupa a superficie inteira;
+  // DPI e janela menor nao mudam a coordenada no layout 1920x1080.
+  px = fminf(fmaxf(e->x, 0.0f) * NV_TELA_W, NV_TELA_W - 1.0f);
+  py = fminf(fmaxf(e->y, 0.0f) * NV_TELA_H, NV_TELA_H - 1.0f);
+  return 1;
+}
+
+// ARRASTAR (#216, segunda volta). Um dedo que passa do limiar deixa de ser
+// toque e vira um destes dois gestos:
+//   - ROLAGEM: o eixo e decidido no limiar (o maior deslocamento) e cada
+//     PONT_PASSO_* px logicos andados vira UMA seta, como a rodinha — a tela
+//     rola pelo mesmo caminho das setas, sem saber que houve dedo. Sentido
+//     "natural" do celular: dedo para cima = conteudo sobe = seta para BAIXO.
+//     Soltar com velocidade continua andando (inercia), freando sozinho.
+//   - ARRASTO DE ALVO: alvo marcado por ponteiro_alvo_arrastavel (a barra de
+//     tempo do player) recebe o `ativar` a cada movimento, com ponteiro_x()
+//     atualizado e ponteiro_toque() = 1. Nao rola nada.
+#define PONT_PASSO_V      150.0f   // px logicos por seta, vertical
+#define PONT_PASSO_H      210.0f   // px logicos por seta, horizontal
+#define PONT_INERCIA_MIN  0.45f    // px/ms para a soltura ganhar inercia
+#define PONT_INERCIA_PARA 0.06f    // px/ms abaixo disto a inercia acaba
+#define PONT_INERCIA_TAU  260.0f   // ms: constante do freio exponencial
+#define PONT_INERCIA_MAXP 2        // setas por quadro, no maximo
+enum { ARR_NADA = 0, ARR_ROLA, ARR_ALVO };
+static int arrEixoY;
+static float arrAcum, arrUltX, arrUltY, arrVel;
+static Uint32 arrUltMs;
+static PonteiroAlvo arrAlvo;
+static int inercia;
+static float inVel, inAcum;
+static int inEixoY;
+static Uint32 inUltMs;
+static void (*entregarToque)(const SDL_Event *);
+static int porToque;   // 1 durante focar/ativar disparados por dedo
+
+int ponteiro_toque(void) { return porToque; }
+int ponteiro_tem_toque(void) { return toqueDisponivel; }
+
+static void alvoPorToque(const PonteiroAlvo *al, int focar, int ativar) {
+  porToque = 1;
+  if (focar && al->focar) al->focar(al->a, al->b);
+  if (ativar && al->ativar) al->ativar(al->a, al->b);
+  porToque = 0;
+}
+
+// Anda o acumulado em setas. Positivo = o dedo andou para a direita/baixo.
+static float rolarPassos(float acum, int eixoY, int teto) {
+  float passo = eixoY ? PONT_PASSO_V : PONT_PASSO_H;
+  int n = 0;
+  while ((acum >= passo || acum <= -passo) && (!teto || n < teto)) {
+    SDL_Keycode k = eixoY ? (acum > 0 ? SDLK_UP : SDLK_DOWN)
+                          : (acum > 0 ? SDLK_LEFT : SDLK_RIGHT);
+    acum += acum > 0 ? -passo : passo;
+    if (entregarToque) {
+      tecla(entregarToque, SDL_KEYDOWN, k);
+      tecla(entregarToque, SDL_KEYUP, k);
+    }
+    n++;
+  }
+  return acum;
+}
+
+static void pararInercia(void) { inercia = 0; inVel = inAcum = 0.0f; }
+
+static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
+  const SDL_TouchFingerEvent *t = &e->tfinger;
+  int dedo = dedoIndice(t);
+  Uint32 agora = agoraMs();
+  toqueDisponivel = 1;
+  entregarToque = entregar;
+  if (e->type == SDL_FINGERDOWN) {
+    if (dedo >= 0) return 1;
+    // Dedo novo segura a lista que ainda corria: e o gesto de parar a rolagem.
+    pararInercia();
+    if (nDedos == PONT_DEDOS_MAX) { dedosExcedentes++; toqueCancelado = 1; return 1; }
+    dedos[nDedos++] = (Dedo){t->touchId, t->fingerId};
+    if (nDedos > 1 || dedosExcedentes) { toqueCancelado = 1; arrModo = ARR_NADA; return 1; }
+    toqueCancelado = !converterToque(t);
+    toqueX = px; toqueY = py;
+    arrUltX = px; arrUltY = py; arrUltMs = agora; arrVel = 0.0f; arrAcum = 0.0f;
+    arrModo = ARR_NADA;
+    toqueAlvo.ok = 0;
+    toqueSemAlvos = nLista[pronto] == 0;
+    if (!toqueCancelado) {
+      int i = ponteiro_achar(lista[pronto], nLista[pronto], px, py);
+      if (i >= 0) { guardar(&toqueAlvo, &lista[pronto][i]); arrAlvo = lista[pronto][i]; }
+    }
+    // Nao foca nem entrega OK no DOWN: arrastar nao pode abrir um titulo.
+    return 1;
+  }
+  if (dedo < 0) {
+    if (e->type == SDL_FINGERUP && dedosExcedentes) dedosExcedentes--;
+    return 1;
+  }
+  if (!converterToque(t)) { toqueCancelado = 1; arrModo = ARR_NADA; }
+  else if (!toqueCancelado && nDedos == 1 && !dedosExcedentes) {
+    float dx = px - toqueX, dy = py - toqueY;
+    if (arrModo == ARR_NADA &&
+        dx * dx + dy * dy > PONT_TOQUE_LIMIAR * PONT_TOQUE_LIMIAR) {
+      if (toqueAlvo.ok && arrAlvo.arrasta) {
+        arrModo = ARR_ALVO;
+        alvoPorToque(&arrAlvo, 1, 0);
+      } else {
+        arrModo = ARR_ROLA;
+        arrEixoY = fabsf(dy) >= fabsf(dx);
+        arrAcum = 0.0f;
+        arrUltX = toqueX; arrUltY = toqueY;
+      }
+    }
+    if (arrModo == ARR_ROLA) {
+      float d = arrEixoY ? py - arrUltY : px - arrUltX;
+      Uint32 dt = agora - arrUltMs;
+      arrAcum = rolarPassos(arrAcum + d, arrEixoY, 0);
+      // Velocidade suavizada: o ultimo trecho pesa mais, mas um evento
+      // isolado (dois no mesmo ms) nao vira um pico infinito.
+      if (dt > 0) arrVel = 0.6f * (d / (float)dt) + 0.4f * arrVel;
+      arrUltX = px; arrUltY = py; arrUltMs = agora;
+    } else if (arrModo == ARR_ALVO) {
+      alvoPorToque(&arrAlvo, 0, 1);
+    }
+  }
+  if (e->type != SDL_FINGERUP) return 1;
+  // Um segundo dedo cancela o gesto inteiro, mesmo se ele sair primeiro.
+  if (nDedos == 1 && !dedosExcedentes && !toqueCancelado && arrModo == ARR_ROLA) {
+    // Parado antes de soltar (mais de 90 ms sem andar) nao tem inercia.
+    if (fabsf(arrVel) >= PONT_INERCIA_MIN && agora - arrUltMs < 90) {
+      inercia = 1; inVel = arrVel; inAcum = arrAcum; inEixoY = arrEixoY; inUltMs = agora;
+    }
+  } else if (nDedos == 1 && !dedosExcedentes && !toqueCancelado && arrModo == ARR_NADA) {
+    int i = ponteiro_achar(lista[pronto], nLista[pronto], px, py);
+    PonteiroAlvo al;
+    if (i >= 0 && mesmo(&toqueAlvo, &lista[pronto][i])) {
+      al = lista[pronto][i];
+      rastro("toque", &al, nLista[pronto]);
+      alvoPorToque(&al, 1, 1);
+      if (!al.ativar && al.focar) {
+        tecla(entregar, SDL_KEYDOWN, SDLK_RETURN);
+        tecla(entregar, SDL_KEYUP, SDLK_RETURN);
+      }
+    } else if (toqueSemAlvos && nLista[pronto] == 0) {
+      tecla(entregar, SDL_KEYDOWN, SDLK_RETURN);
+      tecla(entregar, SDL_KEYUP, SDLK_RETURN);
+    }
+  }
+  memmove(dedos + dedo, dedos + dedo + 1, (size_t)(--nDedos - dedo) * sizeof *dedos);
+  if (!nDedos && !dedosExcedentes) { toqueAlvo.ok = 0; arrModo = ARR_NADA; }
+  return 1;
+}
+
+// Inercia da rolagem: chamada por quadro (ponteiro_quadro).
+static void inerciaQuadro(Uint32 agora) {
+  Uint32 dt;
+  if (!inercia) return;
+  dt = agora - inUltMs;
+  if (dt > 100) dt = 100;   // quadro travado nao vira um salto de dez setas
+  inUltMs = agora;
+  inAcum += inVel * (float)dt;
+  inVel *= expf(-(float)dt / PONT_INERCIA_TAU);
+  inAcum = rolarPassos(inAcum, inEixoY, PONT_INERCIA_MAXP);
+  if (fabsf(inVel) < PONT_INERCIA_PARA) pararInercia();
+}
+
 int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
   Uint32 agora = agoraMs();
   switch (e->type) {
+    case SDL_FINGERDOWN: case SDL_FINGERMOTION: case SDL_FINGERUP:
+      return eventoToque(e, entregar);
+    case SDL_APP_WILLENTERBACKGROUND:
+      cancelarToque();
+      return 0;
+    case SDL_WINDOWEVENT:
+      if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST) cancelarToque();
+      return 0;
     case SDL_MOUSEMOTION:
-      if (e->motion.which == SDL_TOUCH_MOUSEID) return 0;
+      if (e->motion.which == SDL_TOUCH_MOUSEID) return 1;
       converter(e->motion.windowID, e->motion.x, e->motion.y);
       primeiro(0, "movimento", e->motion.x, e->motion.y);
+      if (tremorDaSeta(agora)) return 1;
       ultimoMov = agora;
-      if (!visivel) { visivel = 1; hover.ok = 0; }
+      reaparecer();
       mover();
       return 1;
 
     case SDL_MOUSEBUTTONDOWN: {
-      if (e->button.which == SDL_TOUCH_MOUSEID) return 0;
+      if (e->button.which == SDL_TOUCH_MOUSEID) return 1;
       converter(e->button.windowID, e->button.x, e->button.y);
       primeiro(1, "clique", e->button.x, e->button.y);
       ultimoMov = agora;
-      visivel = 1;
+      reaparecer();
       if (e->button.button == SDL_BUTTON_RIGHT) {
         // Nao ha botao direito no Magic Remote; no Mac ele e o Voltar, que e
         // o que falta para testar sem teclado.
@@ -303,7 +562,7 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
     }
 
     case SDL_MOUSEBUTTONUP:
-      if (e->button.which == SDL_TOUCH_MOUSEID) return 0;
+      if (e->button.which == SDL_TOUCH_MOUSEID) return 1;
       converter(e->button.windowID, e->button.x, e->button.y);
       if (voltarPendente && e->button.button == SDL_BUTTON_RIGHT) {
         voltarPendente = 0; tecla(entregar, SDL_KEYUP, SDLK_AC_BACK); return 1;
@@ -321,6 +580,7 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
       return 1;
 
     case SDL_MOUSEWHEEL: {
+      if (e->wheel.which == SDL_TOUCH_MOUSEID) return 1;
       int dy = e->wheel.y, dx = e->wheel.x;
       primeiro(2, "rodinha", dx, dy);
       if (e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED) { dy = -dy; dx = -dx; }
@@ -346,8 +606,30 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
           primeiro(sc == PONT_SC_CURSOR_SHOW ? 3 : 4,
                    sc == PONT_SC_CURSOR_SHOW ? "cursor-mostrou" : "cursor-escondeu",
                    sc, 0);
-          if (sc == PONT_SC_CURSOR_HIDE) { visivel = 1; esconder("sistema"); }
-          else { visivel = 1; ultimoMov = agora; hover.ok = 0; }
+          if (sc == PONT_SC_CURSOR_HIDE) {
+            visivel = 1; esconder("sistema");
+            // O sistema ja escondeu a dele: nada a devolver depois.
+            sistemaEscondido = 0;
+          } else if (escondidoSeta && agora - setaEm < PONT_SETA_JANELA_MS) {
+            // O compositor reacendeu a seta dele com o tremor de quem apertou
+            // a seta: continua escondido do nosso lado e pede para apagar a dele
+            // de novo. O movimento que vencer o limiar a devolve.
+#ifdef NV_PONT_WEBOS
+            if (cursorSistema) { cursorSistema(SDL_FALSE); sistemaEscondido = 1; }
+#endif
+          } else if (escondidoSeta) {
+            // 484 LONGE DA SETA (#204): a mao pegou o controle. Apagar a seta do
+            // sistema aqui travou o ponteiro na TV do relato (PowerVR BXE-4-32,
+            // 1,2 GB; log da 1.6.3 a 1.6.5): cada 484 era respondido com outro
+            // apagar (485 uns 40 ms depois), nenhum movimento chegava com ela
+            // apagada, o limiar nunca vencia — 12 tentativas numa sessao, 0
+            // cliques. Na 1.6.1 (sem este ramo) o 485 vinha 0,5 a 17 s depois.
+            // A seta do sistema fica; o nosso hover segue esperando o limiar.
+#ifdef NV_PONT_WEBOS
+            if (sistemaEscondido && cursorSistema) cursorSistema(SDL_TRUE);
+#endif
+            sistemaEscondido = 0;
+          } else { reaparecer(); ultimoMov = agora; hover.ok = 0; }
         }
         return 1;
       }
@@ -364,8 +646,12 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
         return 0;
       }
       if (e->type == SDL_KEYDOWN &&
-          (k == SDLK_UP || k == SDLK_DOWN || k == SDLK_LEFT || k == SDLK_RIGHT))
+          (k == SDLK_UP || k == SDLK_DOWN || k == SDLK_LEFT || k == SDLK_RIGHT)) {
+        // Toda seta rearma a janela, mesmo com o cursor ja escondido: quem
+        // navega de seta em seta nao pode ver o cursor voltar entre elas.
         esconder("seta");
+        escondidoSeta = 1; setaEm = agora; setaAncora = 0;
+      }
       return 0;
     }
     default:
@@ -375,13 +661,15 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
 
 void ponteiro_quadro(Uint32 agora) {
   nLista[escreve] = 0;
-#ifndef NV_PONT_WEBOS
-  // No webOS quem faz o cursor dormir e o sistema, e ele avisa com o 485; um
-  // relogio proprio aqui desligaria o hover com a seta ainda na tela.
-  if (visivel && agora - ultimoMov > PONT_DORME_MS && !okPendente) esconder("parado");
-#else
-  (void)agora;
+  inerciaQuadro(agora);
+  // No webOS o relogio proprio so vale com SDL_webOSCursorVisibility: e ela
+  // que apaga a seta do sistema junto (esconder). Sem ela, desligar o hover
+  // aqui deixaria a seta na tela sem funcionar; ai fica o sono do sistema,
+  // que avisa com o 485.
+#ifdef NV_PONT_WEBOS
+  if (!cursorSistema) return;
 #endif
+  if (visivel && agora - ultimoMov > PONT_DORME_MS && !okPendente) esconder("parado");
 }
 
 // Fecha o quadro: a lista que o desenho acabou de montar passa a ser a que os
@@ -413,15 +701,23 @@ static void fecharQuadro(void) {
 void ponteiro_alvo(float x, float y, float w, float h,
                    PonteiroFn focar, PonteiroFn ativar, int a, int b) {
   PonteiroAlvo *al;
-  if (!visivel) return;
+  if (!ponteiro_ativo()) return;
   if (w <= 0 || h <= 0 || nLista[escreve] >= PONT_MAX_ALVOS) return;
   al = &lista[escreve][nLista[escreve]++];
+  // Alvo registrado de dentro de uma camada ampliada (gfx_escala): a lista
+  // guarda a tela REAL, a mesma em que o cursor anda.
+  { float e = gfx_escala(); x *= e; y *= e; w *= e; h *= e; }
   al->x = x; al->y = y; al->w = w; al->h = h;
   al->focar = focar; al->ativar = ativar; al->a = a; al->b = b;
+  al->arrasta = 0;
+}
+
+void ponteiro_alvo_arrastavel(void) {
+  if (nLista[escreve] > 0) lista[escreve][nLista[escreve] - 1].arrasta = 1;
 }
 
 void ponteiro_camada(void) {
-  if (!visivel) return;
+  if (!ponteiro_ativo()) return;
   nLista[escreve] = 0;
 }
 

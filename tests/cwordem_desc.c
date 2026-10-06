@@ -10,6 +10,7 @@
 // o caso de um primeiro arranque — a remocao e o que este teste cobra.
 #include "../src/homeestado.h"
 unsigned homeestado_geracao(void) { return 1; }
+unsigned recomenda_geracao(void) { return 1; }
 int homeestado_contexto_valido(void) { return 0; }
 int homeestado_tem_fileira(const char *chave) { (void)chave; return 0; }
 int homeestado_ordem_fileira(const char *chave) { (void)chave; return -1; }
@@ -18,14 +19,19 @@ int homeestado_identidade_geracao(unsigned g, char *dono, unsigned tamDono, int 
   (void)g; if (dono && tamDono) dono[0] = 0; if (perfil) *perfil = 0; return 0; }
 int arte_reserva_episodios(const char *imdb, const char *corpo) { (void)imdb; (void)corpo; return 0; }
 
+int ajustes_busca_cinemeta(void) { return 1; }
 #include "../src/descoberta.c"
+Uint32 SDL_GetTicks(void) { return 0; }
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "jellyfin_stub.inc"
 
 // --- DUBLES: so fazem descoberta.c linkar (o conjunto de tests/cateps.c) -----
 int         ajustes_idioma_ingles(void) { return 0; }
+int ajustes_idioma(void) { return 0; }
 const char *i18n(const char *s)         { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 const char *dados_dir(void)             { return ""; }
 const char *sessao_usuario(void)        { return ""; }
 int         perfis_ativo(void)          { return 1; }
@@ -37,6 +43,11 @@ static int fonteTeste;          // 0 = AJ_CWF_AMBAS, 2 = so o Trakt
 int   ajustes_cw_fonte(void)               { return fonteTeste; }
 int   ajustes_tmdb_ligado(void)            { return 0; }
 int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
 int   ajustes_tmdb_arte(void)              { return 0; }
 int   ajustes_tmdb_elenco(void)            { return 0; }
 int   ajustes_tmdb_cw(void)                { return 0; }
@@ -49,11 +60,14 @@ int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int 
 int   fil_addon_novo(const char *id, const char *base) { (void)id; (void)base; return 0; }
 int   addons_perfil_da_lista(void)         { return 0; }
 int   addons_ativo(int i)                  { (void)i; return 1; }
+int   addons_fornece(int i, int oque)     { (void)i; (void)oque; return 0; }
+int   addons_sondado(int i)              { (void)i; return 0; }
 int   fil_limite(void)                     { return 16; }
 int   fil_oculta(const char *c)            { (void)c; return 0; }
 // Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
 // catalogos fora da cota nao interessa a este teste.
 int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
 void fil_registrar_se_couber(const char *c, const char *t, const char *a,
                              const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
 void  fil_registrar(const char *c, const char *t, const char *a,
@@ -74,8 +88,12 @@ int   simkl_ativo(void)                    { return 0; }
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
-int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; return n; }
+// O enfeite falso: para o "a seguir" DA CONTA (#199) faz o que trakt.c faz —
+// anota a estreia e descarta a serie que acabou (ver CONTA abaixo).
+int   trakt_enfeitar_lote(CatItem *s, int n);
 int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
+// O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   addons_n(void)                       { return 0; }
@@ -93,6 +111,8 @@ int   arte_reserva_registrar(const char *url, const char *imdb, int poster) {
 
 static int modoTeste = CWO_PADRAO, naoExibidosTeste = 1;
 int ajustes_cw_ordem(void)                { return modoTeste; }
+static int concluidoTeste = 90;         // Percentual assistido; 90 de fabrica
+int   ajustes_cw_concluido(void)           { return concluidoTeste; }
 int ajustes_cw_mostrar_nao_exibidos(void) { return naoExibidosTeste; }
 
 // --- O "TRAKT" FALSO ---------------------------------------------------------
@@ -147,8 +167,9 @@ int trakt_continuar(CatItem *s, int m) {
     const Falso *f = &tabela[i];
     memset(&s[i], 0, sizeof s[i]);
     snprintf(s[i].imdb, sizeof s[i].imdb, "%s", f->id);
-    snprintf(s[i].tipo, sizeof s[i].tipo, "%s", f->seguir ? "series" : "movie");
-    if (f->seguir) sscanf(strchr(f->id, ':') + 1, "%d:%d", &s[i].temporada, &s[i].episodio);
+    // Id composto e episodio de serie, "a seguir" ou pausado.
+    snprintf(s[i].tipo, sizeof s[i].tipo, "%s", strchr(f->id, ':') ? "series" : "movie");
+    if (strchr(f->id, ':')) sscanf(strchr(f->id, ':') + 1, "%d:%d", &s[i].temporada, &s[i].episodio);
     s[i].progresso = f->prog;
     s[i].retomadoMs = f->quando;
     // O que trakt.c faz no enfeite, com o `released` do Cinemeta.
@@ -159,6 +180,61 @@ int trakt_continuar(CatItem *s, int m) {
   return i;
 }
 int   trakt_continuar_falhou(void)        { return traktFalhouTeste; }
+
+// --- "A SEGUIR" DA CONTA (issue #199) -----------------------------------------
+// Sem Trakt/Simkl no ar, as sementes vem dos vistos da conta. Por semente: o
+// episodio sugerido, quando o episodio-ancora foi visto, a estreia (dias a
+// partir de agora) e se o Cinemeta confirma que ele existe.
+//   ttT:4:10  Ted Lasso, estreia daqui a 6 dias          (futuro)
+//   ttM:1:4   MobLand, foi ao ar ontem
+//   tt7000001:1:9  serie JA PAUSADA na conta              (fica fora)
+//   ttX:9:1   serie que acabou: o Cinemeta nao tem         (fica fora)
+static int traktAtivoTeste = 1, contaSementesTeste;
+int trakt_ativo(void) { return traktAtivoTeste; }
+int ajustes_cw_do_episodio_mais_alto(void) { return 1; }
+typedef struct { const char *id; int t, e; long long visto, estreiaDias; int existe; } SemFalsa;
+static const SemFalsa CONTA[] = {
+  { "ttT",       4, 10, 900950,  6, 1 },
+  { "ttM",       1,  4, 900940, -1, 1 },
+  { "tt7000001", 1,  9, 900930, -2, 1 },
+  { "ttX",       9,  1, 900920,  0, 0 },
+};
+#define NCONTA ((int)(sizeof CONTA / sizeof *CONTA))
+int contalib_sementes_a_seguir(ContaSemente *s, int m, int a) {
+  int i;
+  (void)a;
+  if (!contaSementesTeste) return 0;
+  for (i = 0; i < NCONTA && i < m; i++) {
+    snprintf(s[i].id, sizeof s[i].id, "%s", CONTA[i].id);
+    s[i].temporada = CONTA[i].t;
+    s[i].episodio = CONTA[i].e;
+    s[i].vistoMs = CONTA[i].visto;
+  }
+  return i;
+}
+static int consultadas;
+int trakt_enfeitar_lote(CatItem *s, int n) {
+#ifdef CWLOCAL_ENFEITAR
+  return cwlocal_enfeitar_lote(s, n);
+#else
+  int r, w = 0, k;
+  for (r = 0; r < n; r++) {
+    int fica = 1;
+    if (cwo_conta_a_seguir(s[r].imdb)) {
+      consultadas++;
+      for (k = 0; k < NCONTA; k++) {
+        char id[40];
+        snprintf(id, sizeof id, "%s:%d:%d", CONTA[k].id, CONTA[k].t, CONTA[k].e);
+        if (strcmp(id, s[r].imdb)) continue;
+        fica = CONTA[k].existe;
+        if (fica) cwo_marcar_estreia(id, agoraMs + CONTA[k].estreiaDias * DIA);
+      }
+    }
+    if (fica) s[w++] = s[r];
+  }
+  return w;
+#endif
+}
 
 static long long relogioProg(void) { return 1000000; }
 
@@ -297,6 +373,106 @@ int main(void) {
     nc = montarContinuar(lote, CONT_MAX);
     assert(nc == 0);
     puts("ok  trakt respondeu vazio: a fileira esvazia");
+    fonteTeste = 0; }
+
+  // PAUSADO VELHO DO TRAKT x EPISODIO MAIS NOVO VISTO AQUI. ttP: o Trakt ainda
+  // tem o S1E3 pausado (40%), mas esta TV terminou o S1E5 depois: o item vira
+  // a semente S1E5 terminada (o card passa ao proximo), e o S1E3 nao volta.
+  // ttQ: o Trakt esta ADIANTE (S2E1) do S1E9 visto aqui: fica como veio.
+  { static const Falso NOVO[] = {
+      { "ttP:1:3", 0, 40, 700000, 0 },
+      { "ttQ:2:1", 0, 30, 690000, 0 },
+    };
+    CatItem lote[CONT_MAX];
+    ProgRegistro r;
+    int nc;
+    memset(&r, 0, sizeof r);
+    snprintf(r.contentId, sizeof r.contentId, "ttP");
+    r.temporada = 1; r.episodio = 5; r.posSeg = 3000; r.durSeg = 3000;
+    r.lastWatchedMs = 950000;
+    assert(prog_aplicar_remoto(&r));
+    snprintf(r.contentId, sizeof r.contentId, "ttQ");
+    r.temporada = 1; r.episodio = 9; r.lastWatchedMs = 940000;
+    assert(prog_aplicar_remoto(&r));
+    tabela = NOVO;
+    nTabela = 2;
+    fonteTeste = 2;
+    modoTeste = CWO_PADRAO;
+    nc = montarContinuar(lote, CONT_MAX);
+    assert(nc == 2);
+    assert(!strcmp(lote[0].imdb, "ttP:1:5") && lote[0].temporada == 1 &&
+           lote[0].episodio == 5 && lote[0].progresso == 100);
+    assert(!strcmp(lote[1].imdb, "ttQ:2:1") && lote[1].progresso == 30);
+    puts("ok  trakt velho: S1E3 nao volta por cima do S1E5 visto aqui; o adiante fica");
+    fonteTeste = 0; nTabela = 0; }
+
+  // PERCENTUAL ASSISTIDO: 92% conta como assistido com o padrao (90) e como em
+  // andamento com 95.
+  { CatItem lote[CONT_MAX];
+    ProgRegistro r;
+    int nc, k, achou;
+    memset(&r, 0, sizeof r);
+    snprintf(r.contentId, sizeof r.contentId, "ttR");
+    r.temporada = 1; r.episodio = 1; r.posSeg = 2760; r.durSeg = 3000;  // 92%
+    r.lastWatchedMs = 960000;
+    assert(prog_aplicar_remoto(&r));
+    fonteTeste = 1;
+    nc = montarContinuar(lote, CONT_MAX);
+    for (k = 0, achou = 0; k < nc; k++) if (!strncmp(lote[k].imdb, "ttR", 3)) achou = 1;
+    assert(!achou);
+    concluidoTeste = 95;
+    nc = montarContinuar(lote, CONT_MAX);
+    assert(nc > 0 && !strcmp(lote[0].imdb, "ttR:1:1") && lote[0].progresso == 92);
+    puts("ok  percentual assistido: 92% sai com 90 e fica com 95");
+    concluidoTeste = 90; fonteTeste = 0; }
+
+  // #199: SO A CONTA, SEM TRAKT NEM SIMKL. As 12 pausadas da conta (Brothers
+  // S1E4 e tt7000001..11) continuam no disco; os vistos da conta semeiam o "a
+  // seguir". Os dois mais novos entram no lugar dos pausados mais velhos.
+  { CatItem lote[CONT_MAX];
+    int nc, k;
+    fonteTeste = 1;               // AJ_CWF_CONTA
+    traktAtivoTeste = 0;
+    contaSementesTeste = 1;
+    modoTeste = CWO_PADRAO;
+    naoExibidosTeste = 1;
+    consultadas = 0;
+    nc = montarContinuar(lote, CONT_MAX);
+    assert(nc == 12);
+    assert(!strcmp(lote[0].imdb, "ttT:4:10") && !strcmp(lote[1].imdb, "ttM:1:4"));
+    assert(lote[0].progresso == 0 && lote[0].temporada == 4 && lote[0].episodio == 10);
+    // A semente da serie ja pausada nem vai ao Cinemeta; a que acabou vai e sai.
+    assert(consultadas == 3);
+    for (k = 0; k < nc; k++)
+      assert(strncmp(lote[k].imdb, "ttX", 3) && strcmp(lote[k].imdb, "tt7000001:1:9"));
+    assert(cwo_conta_a_seguir("ttT:4:10") && cwo_conta_a_seguir("ttM:1:4"));
+    assert(!cwo_e_futuro("ttT:4:10"));
+    puts("ok  #199 conta: a seguir dos vistos entra, pausado e serie acabada ficam fora");
+
+    // Ordenacao "Separar futuros": Ted Lasso (estreia em 6 dias) vira futuro.
+    modoTeste = CWO_SEPARAR;
+    nc = montarContinuar(lote, CONT_MAX);
+    assert(nc == 12 && !strcmp(lote[11].imdb, "ttT:4:10"));
+    assert(cwo_e_futuro("ttT:4:10") && !cwo_e_futuro("ttM:1:4"));
+    puts("ok  #199 conta separar: o nao lancado vai para Proximos episodios");
+
+    // "Mostrar nao exibidos" desligado: o futuro sai, o que ja foi ao ar fica.
+    naoExibidosTeste = 0;
+    modoTeste = CWO_PADRAO;
+    nc = montarContinuar(lote, CONT_MAX);
+    assert(nc == 12 && !strcmp(lote[0].imdb, "ttM:1:4"));
+    for (k = 0; k < nc; k++) assert(strncmp(lote[k].imdb, "ttT", 3));
+    puts("ok  #199 conta nao exibidos desligado: so o nao lancado sai");
+    naoExibidosTeste = 1;
+
+    // Com o Trakt no ar o "a seguir" e dele: os vistos da conta nao semeiam.
+    traktAtivoTeste = 1;
+    consultadas = 0;
+    nc = montarContinuar(lote, CONT_MAX);
+    assert(consultadas == 0 && !cwo_conta_a_seguir("ttT:4:10"));
+    for (k = 0; k < nc; k++) assert(strncmp(lote[k].imdb, "ttT", 3) && strncmp(lote[k].imdb, "ttM", 3));
+    puts("ok  #199 com Trakt no ar: os vistos da conta nao semeiam");
+    contaSementesTeste = 0;
     fonteTeste = 0; }
   puts("cwordem_desc: tudo ok");
   return 0;

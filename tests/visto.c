@@ -36,6 +36,7 @@ const char *nuvem_simkl_app(void) { return "nuvio"; }
 const char *nuvem_trakt_cliente(void) { return "cli-trakt"; }
 void nuvem_url_escapar(const char *v, char *dst, unsigned tam) { snprintf(dst, tam, "%s", v); }
 const char *i18n(const char *s) { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
 int sessao_logada(void) { return logada; }
 int perfis_ativo(void) { return 2; }
 const char *dados_cliente_id(void) { return "cliente-teste"; }
@@ -45,8 +46,15 @@ int dados_apagar(const char *n) { (void)n; return 1; }
 int cat_indice_por_imdb(const char *imdb) { (void)imdb; return -1; }
 void cat_aplicar_progresso(int i, double p, double d, int t, int e) { (void)i; (void)p; (void)d; (void)t; (void)e; }
 void cat_historico_definir_id(const char *i, const char *t, int v) { (void)i; (void)t; (void)v; }
+unsigned long long cat_historico_geracao(void) { return 1; }
+int cat_historico_definir_se_geracao(const char *i, const char *t, int v,
+                                     unsigned long long g) {
+  if (g != 1) return 0;
+  cat_historico_definir_id(i, t, v); return 1;
+}
 const char *cat_tipo_por_imdb(const char *imdb) { (void)imdb; return "series"; }
 int ajustes_tmdb_cw(void) { return 0; }
+const char *ajustes_tmdb_idioma(void) { return "en-US"; }
 const char *desc_chave_tmdb(void) { return ""; }
 const char *desc_tmdb_idioma(void) { return "pt-BR"; }
 void rede_avisar_401(void (*f)(const char *url)) { (void)f; }

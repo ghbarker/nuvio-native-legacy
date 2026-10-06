@@ -12,6 +12,14 @@
 #define NV_TEX_CACHE_H
 #include "gl_compat.h"
 
+// TETO DA URL DE ARTE (#200). 512 cortava calado a URL de cartaz que o
+// AIOMetadata monta para o PostersPlus: o modelo da pessoa tem ~690 bytes e,
+// com as chaves do TMDB e do MDBList preenchidas, ~720 — o `logo_language=ru`
+// estava no byte ~517 e caia fora, e o servico, sem idioma, desenhava o cartaz
+// em ingles (MEDIDO: a mesma URL sem o parametro devolve o cartaz ingles). O
+// CatItem.poster usa o mesmo teto (catalogo.h).
+#define NV_TEX_URL_MAX 1024
+
 int  tex_iniciar(int max_itens);
 
 // Pasta onde as imagens vindas de URL sao guardadas em disco. Sem ela,
@@ -56,6 +64,10 @@ struct SDL_Surface *tex_reduzir(struct SDL_Surface *src, int lw, int lh);
 GLuint tex_obter_larg(const char *caminho, float largLayout);
 // Entrega a textura menor ja existente enquanto a maior e reprocessada.
 GLuint tex_obter_larg_qualquer(const char *caminho, float largLayout);
+// Para LOGO DE TITULO: igual as duas acima, mas o pedido fura a fila de rede e
+// a de decode (ate a frente do fundo de tela cheia). Ver tex_cache.c.
+GLuint tex_obter_logo_larg(const char *caminho, float largLayout);
+GLuint tex_obter_logo_larg_qualquer(const char *caminho, float largLayout);
 
 // Como tex_obter_larg, para arte QUE SO VALE POR UM INSTANTE: o quadro de uma
 // sequencia animada, que a tela mostra por 67 ms e troca. O cache a despeja
@@ -139,6 +151,9 @@ int  tex_cor_fundo(const char *caminho, float *r, float *g, float *b);
 // mesma medida de tex_marca_escura, exposta crua: o guia a usa para escolher
 // um azulejo ESCURO sob logo claro (o Paramount+ branco sumia no claro).
 int  tex_luminancia(const char *caminho);
+// 1 se a textura carregada tem alfa 255 em TODO pixel (conferido no decode);
+// 0 se tem transparencia, nao carregou ou nao se sabe.
+int  tex_opaca(const char *caminho);
 
 // Chamar uma vez por quadro, na thread de desenho: sobe para a GPU o que a
 // thread de decode terminou. Devolve quantas subiu.
@@ -154,7 +169,16 @@ int tex_bombear(int max_por_quadro);
 // por quem mede (main.c).
 extern int    tex_upl_n;
 extern long   tex_upl_bytes;
+// Pedidos que foram do indice do cache de disco direto ao decode, sem esperar
+// a fila de rede (discoDireto), e downloads poupados pela memoria de arte
+// inexistente (404 lembrado / host em prazo estourado).
+extern int    tex_disco_direto;
+int tex_negativas_poupadas(void);
 extern int    tex_n_busca;
+// PEDIDOS QUE VOLTARAM SEM TEXTURA (arte ainda a caminho; a que falhou de vez
+// nao conta). So sobe, nunca zera: quem desenha uma vez so (o fundo parado do
+// painel de Salvos) compara antes e depois para saber se a copia saiu inteira.
+extern unsigned tex_n_falta;
 extern double tex_ms_busca;
 void tex_novo_quadro(void);
 
@@ -182,10 +206,19 @@ void tex_threads_info(int *usadas, int *disponiveis);
 // Teto escolhido em Ajustes, em MB, aplicado ao vivo e travado pelo que a RAM
 // da TV suporta; 0 volta ao automatico. `fixo` passa a 3 quando esta em vigor.
 void tex_definir_orcamento_mb(int mb);
+// Aviso de pressao de memoria do sistema (Android onTrimMemory, de qualquer fio):
+// baixa o teto por 30 s e o proximo quadro despeja arte fria ate caber.
+// `tex_pressao_pct` e a tabela nivel -> % do teto que fica (100 = sem efeito).
+void tex_pressao_memoria(int nivel);
+int  tex_pressao_pct(int nivel);
 // O valor que "Automatico" significa: o perfil aprovado pelo diagnostico, ou
 // o padrao do aparelho com 0. Travado pelo teto da RAM; nao passa por cima de
 // Ajustes, de NV_TEX_MB_FIXO nem de NUVIO_TEX_MB.
 void tex_definir_orcamento_auto_mb(int mb);
+// Padrao automatico realmente guardado, mesmo sob um valor manual ativo.
+// Permite desfazer um experimento sem promover seu candidato depois que a
+// pessoa voltar de uma escolha manual para Automatico.
+int tex_orcamento_auto_mb(void);
 // PARAMETROS DO PERFIL QUE MUDAM AO VIVO, sem reiniciar (ver perfiltv.h):
 // quantos fios de rede de arte ficam ativos (1..criados; o excedente espera)
 // e o teto de decodificacao do heroi (0 = so a regra de qualidade). O teto do
