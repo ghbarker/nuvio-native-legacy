@@ -1345,14 +1345,22 @@ int stream_primeira_boa(int tentativas) {
   // TOCAR ENQUANTO CONFERE: a primeira da fila so e aberta no player desde ja
   // quando ja tem link tocavel (nada de torrent a resolver no debrid antes) e
   // o ajuste esta ligado. A conferencia dela segue logo abaixo, a mesma.
-  c.rodada = fa_rodada_atual();
+  // NA PILHA NAO: fonteparalela() volta ao primeiro que serve (ou aos 20 s) e os
+  // fios que ainda conferem seguem rodando com este ponteiro. `c` morria com a
+  // funcao e eles liam pilha devolvida (SIGSEGV em verificarOuParar, #323).
+  // Sao 24 bytes por auto-play, de proposito nunca liberados: nao ha como saber
+  // quando o ultimo fio detached terminou.
+  Conferencia *cp = malloc(sizeof *cp);
+  if (!cp) return -1;
+  *cp = c;
+  cp->rodada = fa_rodada_atual();
   if (ajustes_fonte_tocar_conferindo()) {
     pthread_mutex_lock(&verTrava);
-    if (listaGeracao == c.geracao && fila[0] < n && lista[fila[0]].url[0] &&
+    if (listaGeracao == cp->geracao && fila[0] < n && lista[fila[0]].url[0] &&
         !soP2P(&lista[fila[0]]))
-      c.antecipada = fila[0];
+      cp->antecipada = fila[0];
     pthread_mutex_unlock(&verTrava);
-    if (c.antecipada >= 0) fa_publicar(c.rodada, c.antecipada, c.geracao);
+    if (cp->antecipada >= 0) fa_publicar(cp->rodada, cp->antecipada, cp->geracao);
   }
   marco("fonte: verificacao inicio");
   tVerif = SDL_GetTicks();
@@ -1365,7 +1373,7 @@ int stream_primeira_boa(int tentativas) {
   kk = 0;
   if (ajustes_fonte_conferir_varias() && nf >= 2 && modo == FONTEAUTO_MELHOR) {
     pthread_mutex_lock(&verTrava);
-    if (listaGeracao == c.geracao)
+    if (listaGeracao == cp->geracao)
       kk = fonteparalela_prefixo(fila, nf, 3, prontaNoDebrid, NULL);
     pthread_mutex_unlock(&verTrava);
   }
@@ -1373,15 +1381,15 @@ int stream_primeira_boa(int tentativas) {
     int t1 = 0, t2 = 0;
     printf("[fonte] conferencia paralela %d\n", kk);
     fflush(stdout);
-    escolhida = fonteparalela(fila, nf, kk, verificarOuParar, falhouUma, &c, &t1, 20000);
+    escolhida = fonteparalela(fila, nf, kk, verificarOuParar, falhouUma, cp, &t1, 20000);
     tocadas = t1;
-    if (escolhida < 0 && !c.abortou && nf > kk) {
-      escolhida = fonteauto_primeira(fila + kk, nf - kk, verificarOuParar, falhouUma, &c, &t2);
+    if (escolhida < 0 && !cp->abortou && nf > kk) {
+      escolhida = fonteauto_primeira(fila + kk, nf - kk, verificarOuParar, falhouUma, cp, &t2);
       tocadas += t2;
     }
   } else
-  escolhida = fonteauto_primeira(fila, nf, verificarOuParar, falhouUma, &c, &tocadas);
-  if (c.abortou) escolhida = -1;
+  escolhida = fonteauto_primeira(fila, nf, verificarOuParar, falhouUma, cp, &tocadas);
+  if (cp->abortou) escolhida = -1;
   marco(escolhida >= 0 ? "fonte: verificacao ok" : "fonte: verificacao sem resultado");
   // QUANTO CUSTOU A VERIFICACAO, DEBRID INCLUIDO (#202): o log so tinha a conta
   // das candidatas. Entre a decisao e o primeiro quadro e a maior fatia do
@@ -1390,7 +1398,7 @@ int stream_primeira_boa(int tentativas) {
          (unsigned)(SDL_GetTicks() - tVerif), tocadas);
   printf("[fonte] verificacao (%s): %d de %d candidata(s) conferida(s)%s\n",
          modo == FONTEAUTO_PRIMEIRA ? "primeira da lista" : "melhor fonte",
-         tocadas, nf, c.abortou ? ", lista trocada no meio" : "");
+         tocadas, nf, cp->abortou ? ", lista trocada no meio" : "");
   if (escolhida >= 0) { printf("[fonte] %d ok\n", escolhida); logarEscolha(escolhida, pref, modo == FONTEAUTO_PRIMEIRA); }
   { FonteRegraCfg c = regraCfg();
     if (escolhida >= 0 && (fonteregra_ativa(&c) || ordemUso)) {
