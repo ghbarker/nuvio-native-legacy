@@ -1,4 +1,5 @@
 #include "intro.h"
+#include "introauto.h"
 #include "rede.h"
 #include "js.h"
 #include "credfonte.h"
@@ -24,9 +25,13 @@ static const struct { const char *chave; int tipo; } CHAVES[] = {
 };
 
 int intro_extrair(const char *j,IntroTrecho *out,int max){
-  size_t k;int n=0;
+  size_t k;int n=0,docValido;const char *jf,*fecha;
   if(!j||!out||max<1)return 0;
+  jf=j+strlen(j);fecha=ia_valor(j,jf,0);
+  docValido=fecha&&ia_espaco(fecha,jf)==jf&&*ia_espaco(j,jf)=='{';
   for(k=0;k<sizeof CHAVES/sizeof CHAVES[0];k++){
+    const char *autoIni=NULL,*autoFim=NULL;
+    int grupoValido=docValido&&ia_campo(j,jf,CHAVES[k].chave,&autoIni,&autoFim)&&*autoIni=='[';
     // ARRAY e nao objeto: o TheIntroDB devolve uma LISTA por chave, porque um
     // episodio pode ter mais de um trecho do mesmo tipo. O servico anterior
     // mandava um objeto so, e por isso o leitor antigo usava strstr + js_fim.
@@ -45,6 +50,9 @@ int intro_extrair(const char *j,IntroTrecho *out,int max){
       out[n].inicio=a/1000.0;
       out[n].fim=(b<0)?0.0:b/1000.0;
       out[n].tipo=CHAVES[k].tipo;
+      { double iniAuto,fimAuto;
+        out[n].automatico=grupoValido&&p>autoIni&&f<autoFim&&introauto_json(p,f,&iniAuto,&fimAuto)&&
+          iniAuto==out[n].inicio&&fimAuto==out[n].fim; }
       n++;
     }
   }

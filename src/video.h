@@ -40,6 +40,9 @@ int  video_tocar(const char *url);
 // 0 aguardando, 1 aceito, -1 abertura normal (seek tardio como fallback).
 int  video_tocar_posicao(const char *url, double segundos);
 int  video_retomada_inicial_estado(void);
+// Geracao, controle e seek confirmados pelo Media3.
+// 1 VOD tocando e buscavel, 2 fim confirmado, 0 indisponivel/pendente.
+int  video_automatico_estado(double *posConfirmada);
 #endif
 
 // Chamar UMA VEZ POR QUADRO. Hoje serve ao prazo do recuo de Dolby Vision

@@ -72,6 +72,7 @@ static void avisarCascaAberto(int v) { (void)v; }
 #include "mkvass.h"
 #include "relogio.h"
 #include "intro.h"
+#include "introauto.h"
 #include "credfonte.h"
 #include "credaprende.h"
 #include "seekr.h"
@@ -205,6 +206,11 @@ static int   idx = 0;
 #define PLR_SCR_TOCOU_S 5.0f   // #179: reproducao continua antes do /scrobble/start
 static int   tocando = 1;
 static int retomandoSalto; // seek requested playback; buffering is not user pause
+#ifdef NV_ANDROID
+static IntroAuto introAuto;
+static char introAutoUrl[4096];
+static double introAutoScrubDe;
+#endif
 // Uma unica sessao VOD pausada, por no maximo dois minutos. Nao abre conexao
 // especulativa: e o pipeline que ja estava exibindo este titulo.
 //
@@ -1221,6 +1227,9 @@ void player_aspecto_ciclar(void) {
 }
 
 void player_abrir(int indiceCatalogo, const char *url) {
+#ifdef NV_ANDROID
+  introauto_zerar(&introAuto);introAutoUrl[0]=0;introAutoScrubDe=0.0;
+#endif
   player_descartar_retido();
   // O trailer usa o mesmo plano de video (LG) — solta antes de o player
   // carregar a fonte, senao o load novo pisa no mediaId do trailer.
@@ -2476,6 +2485,9 @@ static void avTecla(SDL_Keycode k) {
 static void saltar(int dir, int repeticao) {
   int novo = 0;
   if (!scrubbing) {
+#ifdef NV_ANDROID
+    introAutoScrubDe=video_pos();
+#endif
     scrubbing = 1;
     scrubPassos = 0;
     scrubTocava = tocando || retomandoSalto;
@@ -2500,6 +2512,9 @@ static void saltar(int dir, int repeticao) {
 // Fim do avanco: manda a posicao escolhida e devolve o estado de antes.
 static void terminarSalto(void) {
   if (!scrubbing) return;
+#ifdef NV_ANDROID
+  introauto_voltar(&introAuto,introAutoScrubDe,posSeg);
+#endif
   scrubbing = 0;
   retomandoSalto = scrubTocava;
   pausao_fechar();
@@ -3053,6 +3068,35 @@ void player_atualizar(float dt, Uint32 agora) {
   // PÓS-REPRODUÇÃO: o proximo episodio ou os relacionados, no fim do titulo.
   { const CatItem *ci = item();
     int eSerie = ci && !strcmp(ci->tipo, "series");
+#ifdef NV_ANDROID
+    double posConfirmada=-1.0;
+    int estadoAuto=video_automatico_estado(&posConfirmada);
+    int livre=comVideo&&video_ativo()&&video_pronto()&&retomadaAplicada&&duracaoReal&&
+      !ehCanal()&&!scrubbing&&!saindo&&!erroFonte&&!esperandoFonte&&
+      !pedFontes&&!pedFaixas&&!stream_folha_aberta()&&!faixas_aberta()&&
+      !episodios_aberto()&&!episodios_menu_aberto_qualquer()&&!pausao_visivel();
+    if(livre&&estadoAuto==1){
+      const char *u=video_url_atual();
+      unsigned tipos=(ajustes_auto_abertura()?(1u<<INTRO_ABERTURA):0u)|
+        (ajustes_auto_resumo()?(1u<<INTRO_RESUMO):0u)|
+        (ajustes_auto_creditos()?(1u<<INTRO_CREDITOS):0u);
+      IntroTrecho v[8];double fim;
+      if(!introAutoUrl[0])snprintf(introAutoUrl,sizeof introAutoUrl,"%s",u);
+      // Outra fonte pode ser outro corte, mesmo com duracao semelhante.
+      else if(strcmp(introAutoUrl,u))introAuto.fonteIncompativel=1;
+      int nt=intro_trechos(v,8);
+      if(introauto_decidir(&introAuto,v,nt,posConfirmada,video_duracao(),!eSerie,tipos,1,&fim)){
+        video_buscar(fim); // Endpoint exato preserva a cena seguinte.
+        printf("[intro] automatico: %.3fs -> %.3fs\n",posConfirmada,fim);fflush(stdout);
+        estadoAuto=0; // o instantaneo de antes do seek nao vale para autoplay
+      }
+    }
+    posplay_automatico(livre?estadoAuto:0,posConfirmada);
+#else
+    // O caminho legado conserva seu relogio. As tres opcoes de seek ficam inativas.
+    posplay_automatico((tocando||(comVideo&&video_terminou()))&&!scrubbing&&
+      !esperandoFonte&&!erroFonte&&!saindo&&(!comVideo||!video_bufferando_ms()),-1.0);
+#endif
     // Canal ao vivo nao tem "fim": sem a guarda, o relogio reserva cruzaria os
     // 90% em ~1h42 de exibicao e abriria o painel de relacionados no meio da
     // programacao.
@@ -3679,6 +3723,9 @@ static void ponteiroBuscar(int a, int b) {
     // de PLR_SCRUB_FIM_MS sem movimento).
     if (!scrubbing) {
       scrubbing = 1; scrubPassos = 0; scrubTocava = tocando || retomandoSalto;
+#ifdef NV_ANDROID
+      introAutoScrubDe=video_pos();
+#endif
     pausao_fechar();
       if (tocando && comVideo) { video_pausar(1); tocando = 0; }
     }
@@ -3688,6 +3735,9 @@ static void ponteiroBuscar(int a, int b) {
     return;
   }
   posSeg = f * duracaoSeg;
+#ifdef NV_ANDROID
+  introauto_voltar(&introAuto,video_pos(),posSeg);
+#endif
   if (comVideo) video_buscar(posSeg);
 }
 static void ponteiroSkip(int a, int b) { (void)a; (void)b; skipFoco = 1; barraFoco = 1; acordar(); }

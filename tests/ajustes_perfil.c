@@ -30,6 +30,8 @@ int main(void) {
   valor[AJ_HERO] = 1;
   valor[AJ_RESOLUCAO] = RES_4K;
   valor[AJ_ADDONS_PRINCIPAL] = 0;
+  valor[AJ_AUTO_ABERTURA]=0;valor[AJ_AUTO_RESUMO]=1;
+  valor[AJ_AUTO_CREDITOS]=0;valor[AJ_AUTO_PROXIMO]=1;
   ajustes_perfil_guardar(1);
 
   // O perfil 2 mexe nas duas coisas.
@@ -40,6 +42,8 @@ int main(void) {
   valor[AJ_HERO] = 0;
   valor[AJ_RESOLUCAO] = 0;
   valor[AJ_ADDONS_PRINCIPAL] = 1;
+  valor[AJ_AUTO_ABERTURA]=1;valor[AJ_AUTO_RESUMO]=0;
+  valor[AJ_AUTO_CREDITOS]=1;valor[AJ_AUTO_PROXIMO]=0;
   ajustes_perfil_guardar(2);
 
   // Volta ao 1: o destaque dele volta, a TV continua como esta.
@@ -49,12 +53,18 @@ int main(void) {
   assert(valor[AJ_ADDONS_PRINCIPAL] == 1);   // ajuste desta TV, nao do perfil
   assert(valor[AJ_CW_FONTE] == AJ_CWF_SIMKL && valor[AJ_SALVOS_DEST] == AJ_SALVOS_SIMKL);
   assert(!ajustes_hist_conta() && !ajustes_social());
+  assert(ajustes_auto_abertura()&&!ajustes_auto_resumo()&&ajustes_auto_creditos()&&!ajustes_auto_proximo());
+  // ajustes.txt sobrevive ao reinicio; a copia nao depende de sincronizacao.
+  for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++)valor[i]=valorPadrao[i];
+  ajustes_dir(dir);
+  assert(ajustes_auto_abertura()&&!ajustes_auto_resumo()&&ajustes_auto_creditos()&&!ajustes_auto_proximo());
 
   // E o 2 de novo.
   assert(ajustes_perfil_restaurar(2) == 1);
   assert(valor[AJ_HERO] == 0);
   assert(valor[AJ_CW_FONTE] == AJ_CWF_CONTA && valor[AJ_SALVOS_DEST] == AJ_SALVOS_LOCAL);
   assert(ajustes_hist_conta() && ajustes_social());
+  assert(!ajustes_auto_abertura()&&ajustes_auto_resumo()&&!ajustes_auto_creditos()&&ajustes_auto_proximo());
 
   // Perfil nunca usado aqui: nada muda.
   valor[AJ_HERO] = 1;
@@ -86,9 +96,29 @@ int main(void) {
   assert(valor[AJ_QUALIDADE_IMG] == 1);
   assert(valor[AJ_GPU_EFEITOS] == 1);
   assert(valor[AJ_HERO] == 0);  // Person preference still follows the account.
+  { const char *b="{\"autoAberturaLocal\":0,\"autoResumoLocal\":1,\"autoCreditosLocal\":0,\"autoProximoLocal\":1}";
+    ajustes_aplicar_blob(b);
+    assert(!ajustes_auto_abertura()&&ajustes_auto_resumo()&&!ajustes_auto_creditos()&&ajustes_auto_proximo());
+    char *out=NULL;
+    assert(!ajustes_mesclar_blob(b,&out));assert(!out); }
+  // Perfil antigo sem as novas chaves nao recebe os skips do anterior.
+  dados_gravar("ajustes-p4.txt","heroSectionEnabled 1\n");
+  assert(ajustes_perfil_restaurar(4));
+  assert(!ajustes_auto_abertura()&&!ajustes_auto_resumo()&&!ajustes_auto_creditos()&&ajustes_auto_proximo());
+  // Mesmo fallback do sync: principal -> perfil novo, outras escolhas ficam.
+  assert(ajustes_perfil_restaurar(1));
+  ajustes_auto_restaurar(5);
+  assert(valor[AJ_HERO]==1);
+  assert(!ajustes_auto_abertura()&&!ajustes_auto_resumo()&&!ajustes_auto_creditos()&&ajustes_auto_proximo());
 
   // Logout: nenhuma copia sobra.
+  valor[AJ_AUTO_ABERTURA]=valor[AJ_AUTO_RESUMO]=valor[AJ_AUTO_CREDITOS]=0;
+  valor[AJ_AUTO_PROXIMO]=1;
   ajustes_perfil_esquecer();
+  assert(!ajustes_auto_abertura()&&!ajustes_auto_resumo()&&!ajustes_auto_creditos()&&ajustes_auto_proximo());
+  valor[AJ_AUTO_ABERTURA]=0;valor[AJ_AUTO_PROXIMO]=1;
+  ajustes_dir(dir);
+  assert(!ajustes_auto_abertura()&&!ajustes_auto_resumo()&&!ajustes_auto_creditos()&&ajustes_auto_proximo());
   assert(ajustes_perfil_restaurar(1) == 0);
   assert(ajustes_perfil_restaurar(2) == 0);
 

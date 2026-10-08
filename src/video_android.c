@@ -36,6 +36,7 @@
 #include "audsync.h"
 #include "cacheboost.h"
 #include "velocidade.h"
+#include "video_auto.h"
 #include <SDL2/SDL.h>
 #include <jni.h>
 #include <stdio.h>
@@ -50,6 +51,7 @@
 static jclass    gCls;      // GlobalRef: FindClass de fio do SDL nao acha classe do app
 static jmethodID mAbrir, mParar, mPausar, mBuscar, mVolume, mJanela, mEscolher;
 static jmethodID mAbrirPosicao;
+static jmethodID mBuscarConfirmado,mPausarConfirmado;
 // F07 (optional, like abrirPosicao): cache(mb) and ganho(pct). A shell without
 // them simply has no seek cache and no boost.
 static jmethodID mCache, mGanho;
@@ -76,6 +78,10 @@ static int resolverMetodos(JNIEnv *env) {
   if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); mGanho = NULL; }
   mVelocidade = (*env)->GetStaticMethodID(env, gCls, "velocidade", "(I)V");
   if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); mVelocidade = NULL; }
+  mBuscarConfirmado = (*env)->GetStaticMethodID(env, gCls, "buscarConfirmado", "(III)V");
+  if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); mBuscarConfirmado = NULL; }
+  mPausarConfirmado = (*env)->GetStaticMethodID(env, gCls, "pausarConfirmado", "(III)V");
+  if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); mPausarConfirmado = NULL; }
   return mAbrir && mParar && mPausar && mBuscar && mVolume && mJanela && mEscolher;
 }
 
@@ -255,6 +261,7 @@ static volatile Uint32 bufferDesde, tocandoDesde;
 static volatile const char *hdrAtual = "none";
 static volatile int dvAtual, atmosAtual;
 static unsigned sessao;
+static VideoAuto automatico;
 // F07: the player arms the next video_tocar with its cache limit
 // (cacheboost_backend_cache); trailers never arm, so they stay uncached and
 // at 100%. `cacheSessao` survives the reconnection reopens of that video.
@@ -394,6 +401,24 @@ JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativePos(JNIEnv *
   (void)env; (void)cls;
   posMs = ms;
 }
+JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeAutomatico(JNIEnv *env,jclass cls,
+    jint geracao,jint controle,jint busca,jint estado,jint ms,jint flags) {
+  (void)env;(void)cls;
+  pthread_mutex_lock(&travaRetomada);
+  videoauto_relatar(&automatico,(unsigned)geracao,(unsigned)controle,(unsigned)busca,
+                    estado,ms,flags,SDL_GetTicks());
+  pthread_mutex_unlock(&travaRetomada);
+}
+int video_automatico_estado(double *pos) {
+  int estado;
+  if(!mAbrirPosicao||!mBuscarConfirmado||!mPausarConfirmado||!ativo||falhou||
+     video_reconectando())return 0;
+  pthread_mutex_lock(&travaRetomada);
+  estado=videoauto_estado(&automatico,SDL_GetTicks(),pos);
+  pthread_mutex_unlock(&travaRetomada);
+  if(estado==1&&bufferando)return 0;
+  return estado;
+}
 
 JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeRetomada(JNIEnv *env, jclass cls, jint geracao, jint aceita) {
   (void)env; (void)cls;
@@ -413,6 +438,7 @@ static unsigned novaRetomada(int estado) {
   pthread_mutex_lock(&travaRetomada);
   if (++sessao == 0) sessao++;
   geracao = sessao; retomadaInicialEstado = estado;
+  videoauto_abrir(&automatico,geracao);
   pthread_mutex_unlock(&travaRetomada);
   return geracao;
 }
@@ -589,7 +615,7 @@ void video_bombear(void) {
   if (prontoLoad && reconBuscarMs < 0) nv_recon_progresso(&recon, pos);
   // O seek do recarregar sai com o player ja tocando.
   if (reconBuscarMs >= 0 && prontoLoad && tocando) {
-    kInt(mBuscar, reconBuscarMs);
+    video_buscar(reconBuscarMs / 1000.0);
     printf("[video] reconexao: retomado em %ds\n", reconBuscarMs / 1000);
     fflush(stdout);
     reconBuscarMs = -1;
@@ -629,7 +655,21 @@ void video_parar(void) {
   ativo = prontoLoad = primeiroQuadro = tocando = 0;
   pausaPedida = pausaVista = 0;
 }
-void video_pausar(int p) { pausaVista = 0; pausaPedida = p ? 1 : 0; kInt(mPausar, p ? 1 : 0); }
+static void controleConfirmado(jmethodID metodo,int valor,int busca) {
+  JNIEnv *env;unsigned geracao,serial;
+  pthread_mutex_lock(&travaRetomada);
+  geracao=sessao;serial=videoauto_pedir(&automatico,SDL_GetTicks(),busca);
+  if(!busca)automatico.pausado=valor?1:0;
+  pthread_mutex_unlock(&travaRetomada);
+  env=ambiente();if(!env||!metodo)return;
+  (*env)->CallStaticVoidMethod(env,gCls,metodo,(jint)valor,(jint)geracao,(jint)serial);
+  fimChamada(env);
+}
+void video_pausar(int p) {
+  pausaVista = 0; pausaPedida = p ? 1 : 0;
+  controleConfirmado(mPausarConfirmado,p ? 1 : 0,0);
+  if(!mPausarConfirmado)kInt(mPausar,p ? 1 : 0);
+}
 int video_pausa_confirmada(void) {
   return pausaPedida && pausaVista && !tocando && ativo && prontoLoad && primeiroQuadro &&
          !falhou && !terminou && !video_reconectando();
@@ -637,8 +677,10 @@ int video_pausa_confirmada(void) {
 
 void video_volume(int pct) { kInt(mVolume, pct); }
 void video_buscar(double s) {
+  if(!isfinite(s)||s<0.0||s>INT_MAX/1000.0)return;
   posMs = (int)(s * 1000.0);   // a barra nao pode voltar enquanto o seek corre
-  kInt(mBuscar, posMs);
+  controleConfirmado(mBuscarConfirmado,posMs,1);
+  if(!mBuscarConfirmado)kInt(mBuscar,posMs);
   terminou = 0;
 }
 // `encaixa` = 1: o quadro ENCAIXA no retangulo mantendo a proporcao (tarja),

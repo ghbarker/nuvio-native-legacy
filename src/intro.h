@@ -26,7 +26,7 @@
 // `fim` ZERO QUER DIZER "ATE O FIM DA MIDIA", que e como a API representa o
 // `end_ms: null` dos creditos. Quem consome tem de tratar esse caso — ver
 // intro_ativo.
-typedef struct { double inicio,fim; int tipo; } IntroTrecho;
+typedef struct { double inicio,fim; int tipo; int automatico; } IntroTrecho;
 enum { INTRO_ABERTURA=1, INTRO_RESUMO=2, INTRO_CREDITOS=3 };
 // `temporada` e `episodio` ZERO = filme: a consulta sai so com o imdb.
 void intro_pedir(const char *imdb,int temporada,int episodio);

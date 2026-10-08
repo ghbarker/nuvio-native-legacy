@@ -121,6 +121,7 @@ object NvPlayer {
     @JvmStatic external fun nativeFaixasFim(selAudio: Int, selLeg: Int)
     @JvmStatic external fun nativeLegenda(texto: String, durMs: Int)
     @JvmStatic external fun nativePos(ms: Int)
+    @JvmStatic external fun nativeAutomatico(geracao: Int, controle: Int, busca: Int, estado: Int, ms: Int, flags: Int)
     @JvmStatic external fun nativeHdr(hdr: String, dv: Int, atmos: Int)
     @JvmStatic external fun nativeRetomada(geracao: Int, aceita: Int)
     @JvmStatic external fun nativeFitPassiva(rede: Long, geracao: Int, origem: String, kbps: IntArray, fimMs: Long)
@@ -146,6 +147,7 @@ object NvPlayer {
     private var cacheMidia: CacheMidia? = null
     private var cacheEstado = CacheSessao.DESLIGADO
     private var cacheTiques = 0
+    private val puloAuto = PuloAutomatico()
     // Volume of this open (0..200) and the processor of its audio sink.
     private var ganhoPct = 100
     // With bitstream (passthrough) the processor is bypassed by the sink, so
@@ -248,6 +250,28 @@ object NvPlayer {
         val pedido = pedidos.get()
         principal.post { if (pedido == pedidos.get()) player?.seekTo(ms.coerceAtLeast(0).toLong()) }
     }
+    @JvmStatic fun buscarConfirmado(ms: Int, geracao: Int, serial: Int) {
+        val pedido = pedidos.get()
+        principal.post {
+            val p = player
+            if (p == null || pedido != pedidos.get() || pedido != pedidoAtivo || geracao != geracaoNative) return@post
+            // Uma pausa posterior nao descarta o seek.
+            val alvo = ms.coerceAtLeast(0).toLong()
+            if (!puloAuto.buscar(geracao, sessao, serial, alvo, SystemClock.elapsedRealtime())) return@post
+            try {
+                p.seekTo(alvo)
+            } catch (e: Exception) { puloAuto.recusar(); Log.w(TAG, "seek recusado: $e") }
+        }
+    }
+    @JvmStatic fun pausarConfirmado(pausa: Int, geracao: Int, serial: Int) {
+        val pedido = pedidos.get()
+        principal.post {
+            val p = player
+            if (p == null || pedido != pedidos.get() || pedido != pedidoAtivo || geracao != geracaoNative ||
+                !puloAuto.pausar(geracao, sessao, serial, pausa != 0)) return@post
+            p.playWhenReady = pausa == 0
+        }
+    }
     @JvmStatic fun volume(pct: Int) { principal.post { player?.volume = pct.coerceIn(0, 100) / 100f } }
     // F07: cache limit for the NEXT opens (MB, 0 = off) and the session volume
     // 0..200 (above 100 only while the audio is PCM).
@@ -270,6 +294,7 @@ object NvPlayer {
                           inicioMs: Int, geracao: Int, pedido: Int) {
         val act = activity
         if (act == null) { confirmarRetomada(geracao, false); return }
+        val tocarDepois = if (reabrindo) player?.playWhenReady ?: true else true
         liberar()
         novaSuperficie(act)
         pedidoAtivo = pedido
@@ -282,6 +307,7 @@ object NvPlayer {
         inicioAtualMs = inicioMs
         geracaoNative = geracao
         abriuEm = SystemClock.elapsedRealtime()
+        puloAuto.abrir(geracao, minha, abriuEm, tocarDepois)
         if (!reabrindo) retentou = false
         try {
             val http = DefaultHttpDataSource.Factory()
@@ -393,7 +419,7 @@ object NvPlayer {
             // Legenda desligada ate o app escolher: quem desenha e o C.
             p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
-            val ouv = ouvinte(minha); val ana = analitico(minha)
+            val ouv = ouvinte(minha, p, geracao, pedido); val ana = analitico(minha)
             ouvinteAtual = ouv; analiticoAtual = ana
             p.addListener(ouv)
             p.addAnalyticsListener(ana)
@@ -422,10 +448,11 @@ object NvPlayer {
                     p.setMediaItem(mediaItem)
                 }
             } else p.setMediaItem(mediaItem)
+            puloAuto.preparado(geracao, minha, inicioMs.toLong(), inicioAceito || inicioMs == 0)
             confirmarRetomada(geracao, inicioAceito)
-            p.playWhenReady = true
+            p.playWhenReady = puloAuto.tocar
             p.prepare()
-            principal.postDelayed(tique(minha), TIQUE_MS)
+            principal.postDelayed(tique(minha, p, geracao, pedido), TIQUE_MS)
         } catch (e: Exception) {
             confirmarRetomada(geracao, false)
             Log.w(TAG, "abrir: $e")
@@ -436,6 +463,7 @@ object NvPlayer {
     // Sobe a sessao e solta tudo; qualquer callback pendente do player velho
     // morre na conferencia do numero.
     private fun liberar() {
+        puloAuto.suspender()
         sessao++
         medidor.encerrar()
         val p = player
@@ -526,11 +554,30 @@ object NvPlayer {
     }
 
     // Tique de 250 ms: a posicao que o C le sem esperar ninguem.
-    private fun tique(minha: Int): Runnable = object : Runnable {
+    private fun relatarAutomatico(minha: Int, p: ExoPlayer, geracao: Int, pedido: Int) {
+        if (!atual(minha) || p !== player || geracao != geracaoNative || pedido != pedidoAtivo) return
+        val pos = p.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong())
+        val agora = SystemClock.elapsedRealtime()
+        // O primeiroQuadro C pode ser do player anterior; exigir evidencia desta instancia.
+        // Audio sem video conserva a tolerancia de video_pronto.
+        val tocando = p.isPlaying && p.playbackState == Player.STATE_READY &&
+            (quadroVisto || agora - abriuEm >= 3000L)
+        val fim = p.playbackState == Player.STATE_ENDED
+        if (!puloAuto.observar(geracao, minha, agora, pos, tocando, fim)) return
+        var flags = 0
+        if (tocando) flags = flags or 1
+        if (p.isCurrentMediaItemSeekable) flags = flags or 2
+        if (p.isCurrentMediaItemLive) flags = flags or 4
+        if (fim) flags = flags or 8
+        try { nativeAutomatico(geracao, puloAuto.controle, puloAuto.busca, puloAuto.estado, pos.toInt(), flags) }
+        catch (e: UnsatisfiedLinkError) { } // casca/lib anteriores continuam manuais
+    }
+
+    private fun tique(minha: Int, p: ExoPlayer, geracao: Int, pedido: Int): Runnable = object : Runnable {
         override fun run() {
-            if (!atual(minha)) return
-            val p = player ?: return
+            if (!atual(minha) || p !== player || geracao != geracaoNative || pedido != pedidoAtivo) return
             try { nativePos(p.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()) } catch (e: UnsatisfiedLinkError) { }
+            relatarAutomatico(minha, p, geracao, pedido)
             if (cacheMidia != null && cacheEstado == CacheSessao.ATIVO && ++cacheTiques >= CACHE_RELATO_TIQUES) {
                 cacheTiques = 0
                 relatarCache(minha)
@@ -726,7 +773,12 @@ object NvPlayer {
 
     // --- eventos do player ----------------------------------------------------
 
-    private fun ouvinte(minha: Int) = object : Player.Listener {
+    private fun ouvinte(minha: Int, origem: ExoPlayer, geracao: Int, pedido: Int) = object : Player.Listener {
+        override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
+            if (!atual(minha) || origem !== player || geracao != geracaoNative || pedido != pedidoAtivo) return
+            if (reason == Player.DISCONTINUITY_REASON_SEEK)
+                puloAuto.descontinuidade(geracao, minha, newPosition.positionMs)
+        }
         override fun onPlaybackStateChanged(state: Int) {
             if (!atual(minha)) return
             val p = player ?: return
@@ -741,7 +793,7 @@ object NvPlayer {
                         if (p.isPlaying) ev(EV_TOCANDO)
                     }
                 }
-                Player.STATE_ENDED -> ev(EV_FIM)
+                Player.STATE_ENDED -> { ev(EV_FIM); relatarAutomatico(minha, origem, geracao, pedido) }
                 else -> {}
             }
             medirEstado(p)
@@ -817,6 +869,10 @@ object NvPlayer {
                 error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
             if (decoder && cedo && !retentou) {
                 retentou = true
+                puloAuto.suspender()
+                try { nativeAutomatico(geracao, puloAuto.controle, puloAuto.busca, 0,
+                    origem.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(), 0) }
+                catch (e: UnsatisfiedLinkError) { }
                 val u = urlAtual
                 val c = cabAtual
                 val inicio = player?.currentPosition?.takeIf { it > 0 }?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt()

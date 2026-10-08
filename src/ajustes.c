@@ -475,6 +475,8 @@ typedef enum {
   AJ_FONTE_AQUECER,
   AJ_FONTE_CONFERIR_VARIAS,
   AJ_FONTE_PREPARAR,
+  // Preferencias locais por perfil.
+  AJ_AUTO_ABERTURA, AJ_AUTO_RESUMO, AJ_AUTO_CREDITOS, AJ_AUTO_PROXIMO,
   AJ_N
 } OpcaoId;
 
@@ -1289,6 +1291,10 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Aquecer conexões ao abrir o título", V_LIGA, 2),   // local: fonteAquecerLocal
   ESC("Conferir várias fontes ao mesmo tempo", V_LIGA, 2),   // local: fonteConferirVariasLocal
   ESC("Preparar a fonte ao abrir o título", V_LIGA, 2),   // local: fontePrepararLocal
+  ESC("Pular abertura automaticamente", V_LIGA, 2),
+  ESC("Pular resumo automaticamente", V_LIGA, 2),
+  ESC("Pular créditos automaticamente", V_LIGA, 2),
+  ESC("Próximo episódio automaticamente", V_LIGA, 2),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1508,6 +1514,7 @@ static const char *CHAVE[] = {
   "fonteAquecerLocal",
   "fonteConferirVariasLocal",
   "fontePrepararLocal",
+  "autoAberturaLocal", "autoResumoLocal", "autoCreditosLocal", "autoProximoLocal",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -1823,6 +1830,10 @@ int ajustes_fonte_tocar_conferindo(void) { return lig(AJ_FONTE_TOCAR_CONFERINDO)
 int ajustes_fonte_aquecer(void) { return lig(AJ_FONTE_AQUECER); }
 int ajustes_fonte_conferir_varias(void) { return lig(AJ_FONTE_CONFERIR_VARIAS); }
 int ajustes_fonte_preparar(void) { return lig(AJ_FONTE_PREPARAR); }
+int ajustes_auto_abertura(void) { return lig(AJ_AUTO_ABERTURA); }
+int ajustes_auto_resumo(void) { return lig(AJ_AUTO_RESUMO); }
+int ajustes_auto_creditos(void) { return lig(AJ_AUTO_CREDITOS); }
+int ajustes_auto_proximo(void) { return lig(AJ_AUTO_PROXIMO); }
 int ajustes_fonte_escopo(void)      { int v = valor[AJ_FONTE_ESCOPO]; return v < 0 || v > 2 ? 0 : v; }
 int ajustes_fonte_regex_modo(void)  { int v = valor[AJ_FONTE_REGEX]; return v < 0 || v > 2 ? 0 : v; }
 int ajustes_fonte_usar_outros(void) { return lig(AJ_FONTE_OUTROS); }
@@ -2921,6 +2932,7 @@ void ajustes_dir(const char *dir) {
   FILE *f;
   char caminho[600], linha[96];
   if (!dir || !*dir) return;
+  for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++)valor[i]=valorPadrao[i];
   snprintf(dirAjustes, sizeof dirAjustes, "%s", dir);
   fonteregra_carregar();
   fanartCarregar();
@@ -3774,6 +3786,7 @@ int ajustes_aplicar_blob(const char *json) {
 // que uma chave a menos.
 static int somenteDesteAparelho(int op) {
   if (op == AJ_ICONE_APP || op == AJ_LOGO_APP || op == AJ_ABERTURA) return 1;
+  if (op >= AJ_AUTO_ABERTURA && op <= AJ_AUTO_PROXIMO) return 1;
   switch (op) {
     // LAYOUT/APARELHO: nao sobem nem que o blob tenha a chave.
     // A regra que separa: se o valor descreve ESTA TV (RAM, painel, rede,
@@ -3890,7 +3903,8 @@ static int somenteDesteAparelho(int op) {
 // onde o historico vai e se o social existe. Entram na copia por perfil
 // (ajustes-p<N>.txt) e continuam FORA do blob (somenteDesteAparelho).
 static int perfilLocal(int i) {
-  return i == AJ_CW_FONTE || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL;
+  return i == AJ_CW_FONTE || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL ||
+         (i >= AJ_AUTO_ABERTURA && i <= AJ_AUTO_PROXIMO);
 }
 
 static int dePerfil(int i) {
@@ -3903,6 +3917,25 @@ static int dePerfil(int i) {
 
 static void nomePerfil(char *dst, size_t tam, int perfil) {
   snprintf(dst, tam, "ajustes-p%d.txt", perfil);
+}
+
+void ajustes_auto_restaurar(int perfil) {
+  char nome[32],*t,*l;int anteriores[4];
+  for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++){
+    anteriores[i-AJ_AUTO_ABERTURA]=valor[i];valor[i]=valorPadrao[i];
+  }
+  nomePerfil(nome,sizeof nome,perfil);t=perfil>0?dados_ler(nome):NULL;
+  for(l=t;l&&*l;){
+    char chave[64],*fim=strchr(l,'\n');int v;
+    if(fim)*fim=0;
+    if(sscanf(l,"%63s %d",chave,&v)==2)
+      for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++)
+        if(!strcmp(CHAVE[i],chave)){valor[i]=limita(i,v);break;}
+    l=fim?fim+1:NULL;
+  }
+  free(t);
+  for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++)
+    if(anteriores[i-AJ_AUTO_ABERTURA]!=valor[i]){gravar();break;}
 }
 
 void ajustes_perfil_guardar(int perfil) {
@@ -3932,6 +3965,9 @@ int ajustes_perfil_restaurar(int perfil) {
   nomePerfil(nome, sizeof nome, perfil);
   t = dados_ler(nome);
   if (!t) return 0;
+  // Chaves novas de um perfil antigo comecam no padrao.
+  for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++)
+    if(valor[i]!=valorPadrao[i]){valor[i]=valorPadrao[i];mudou++;}
   for (l = t; l && *l; ) {
     char chave[64], *fim = strchr(l, '\n');
     int v, i;
@@ -3965,6 +4001,9 @@ void ajustes_perfil_esquecer(void) {
   // cobre com folga. Apagar arquivo que nao existe nao custa nada.
   for (i = 1; i <= 32; i++) { nomePerfil(nome, sizeof nome, i); dados_apagar(nome); }
   fonteregra_perfil_esquecer();
+  // Logout: outra conta pode reutilizar os mesmos indices de perfil.
+  for(i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++)valor[i]=valorPadrao[i];
+  gravar();
 }
 
 // Onde esta o valor de `chave` dentro de [ini,fim): *vi aponta o primeiro
@@ -4720,6 +4759,12 @@ static int inativa(int op) {
     // fonte ao reproduzir", mas app.c (autoParcialPronto) ainda usa o prazo
     // quando ha fonte lembrada para o titulo, mesmo escolhendo a mao.
     case AJ_CACHE_SEEK:  return !cacheSeekExiste();
+    case AJ_AUTO_ABERTURA: case AJ_AUTO_RESUMO: case AJ_AUTO_CREDITOS:
+#ifdef NV_ANDROID
+      return 0;
+#else
+      return 1;
+#endif
     case AJ_DTS_AC3:     return !dtsConversaoExiste();
     // Som: na Samsung (.wgt) o trailer e sempre mudo (trailerfonte_com_som).
     case AJ_HERO_TRAILER_SOM:
@@ -4923,6 +4968,12 @@ static const char *ajudaOpcao(int op) {
     case AJ_AUD_LINGUA: return "Faixa de áudio escolhida quando o arquivo tem mais de uma. Se o idioma não existir no arquivo, o player usa a primeira.";
     case AJ_PAUSA_OVERLAY: return "Ao pausar, sobe uma ficha com a sinopse e os dados do que você está vendo.";
     case AJ_REACAO_CREDITOS: return "Nos créditos de um filme, ou no fim de uma temporada, um cartão pequeno pergunta o que você achou. Some sozinho em 8 s. Com o Trakt ligado, a resposta vira nota lá.";
+    case AJ_AUTO_ABERTURA: case AJ_AUTO_RESUMO:
+      return "Pula o trecho quando há um marcador válido. Só no Android TV; preferência deste perfil nesta TV. O botão manual continua disponível.";
+    case AJ_AUTO_CREDITOS:
+      return "Só no Android TV. Pula créditos com início e fim conhecidos, preservando as cenas depois deles. Sem um fim válido, use o botão manual. Preferência deste perfil nesta TV.";
+    case AJ_AUTO_PROXIMO:
+      return "Conta os últimos cinco segundos antes de reproduzir o próximo episódio. Voltar cancela a contagem. Desligado mantém o cartão e a escolha manual. Preferência deste perfil nesta TV.";
     case AJ_STALKER_PORTAL: return "Os canais do portal entram no Guia de TV, junto com os dos addons. Endereço sem http:// e sem barra no fim: meu-portal.exemplo.tv:8080";
     case AJ_STALKER_MAC: return "O MAC que o provedor cadastrou para você. É credencial: vale como senha, e só aparece nesta tela mascarado.";
     case AJ_STALKER_LIMPAR: return "Apaga o portal e o MAC deste perfil, e os canais dele somem do Guia. Sair da conta também apaga.";
@@ -6491,6 +6542,9 @@ static const char *textoValor(int op) {
     return (v >= 0 && v < nLingua && V_LINGUA[v]) ? V_LINGUA[v] : "Da conta";
   }
   if (op == AJ_CACHE_SEEK && !cacheSeekExiste()) return "Não disponível nesta TV";
+#ifndef NV_ANDROID
+  if (op >= AJ_AUTO_ABERTURA && op <= AJ_AUTO_CREDITOS) return "Não disponível nesta TV";
+#endif
   if (op == AJ_DTS_AC3 && !dtsConversaoExiste()) return "Não disponível nesta TV";
   if (op == AJ_SELOS_PACOTE) {
     int v = valor[op];
@@ -6902,6 +6956,7 @@ static AjPreview familiaPreviaOpcao(int op) {
     case AJ_FONTE_PRIORIDADE: case AJ_FONTE_HDR:
     case AJ_SELOS_PACOTE:
     case AJ_REACAO_CREDITOS:
+    case AJ_AUTO_ABERTURA: case AJ_AUTO_RESUMO: case AJ_AUTO_CREDITOS: case AJ_AUTO_PROXIMO:
     case AJ_FONTE_PRAZO: case AJ_TAM_MAX: case AJ_TAM_MIN: case AJ_PROPORCAO_PADRAO: case AJ_DTS_AC3:
     case AJ_FONTE_ESCOPO: case AJ_FONTE_ADDONS_PERM: case AJ_FONTE_PLUGINS_PERM: case AJ_FONTE_OUTROS:
     case AJ_FONTE_REGEX: case AJ_FONTE_REGEX_PADRAO: case AJ_FONTE_REGEX_MODELO:

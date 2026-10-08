@@ -103,6 +103,25 @@ int main(void) {
   assert(intro_extrair(NULL, v, 8) == 0);
   assert(intro_extrair("{\"credits\":[{\"start_ms\":1000,\"end_ms\":2000}]}", v, 0) == 0);
   puts("ok  404, vazio, lixo e max=0 devolvem zero sem estourar");
+  // Automacao estrita preserva a leitura manual tolerante.
+  n=intro_extrair("{\"intro\":[{\"start_ms\":0,\"end_ms\":30000}],"
+                 "\"credits\":[{\"start_ms\":90000,\"end_ms\":100000}]}",v,8);
+  assert(n==2&&v[0].automatico&&v[1].automatico);
+  n=intro_extrair("{\"intro\":[{\"start_ms\":null,\"end_ms\":30000},"
+                 "{\"start_ms\":\"1000\",\"end_ms\":\"2000\"}],"
+                 "\"credits\":[{\"start_ms\":90000,\"end_ms\":null}]}",v,8);
+  assert(n==3&&!v[0].automatico&&!v[1].automatico&&!v[2].automatico);
+  n=intro_extrair("{\"intro\":[{\"start_ms\":0,\"end_ms\":30000}]",v,8);
+  assert(n==1&&!v[0].automatico); // documento truncado
+  n=intro_extrair("{\"nested\":{\"intro\":[{\"start_ms\":0,\"end_ms\":30000}]}}",v,8);
+  assert(n==1&&!v[0].automatico); // marcador nao e da raiz do provedor
+  n=intro_extrair("{\"intro\":[{\"start_ms\":0,\"end_ms\":30000}],\"intro\":[]}",v,8);
+  assert(n==1&&!v[0].automatico); // chave duplicada
+  n=intro_extrair("{\"intro\":[{\"start_ms\":0,\"\\u0073tart_ms\":1000,\"end_ms\":30000}]}",v,8);
+  assert(n==1&&!v[0].automatico); // endpoint escapado equivalente
+  n=intro_extrair("{\"intro\":[{\"start_ms\":0,\"end_ms\":30000}],\"\\u0069ntro\":[]}",v,8);
+  assert(n==1&&!v[0].automatico); // grupo escapado equivalente
+  puts("ok  automatico estrito, controles manuais preservados");
 
   // JANELA RECUSADA / ACEITA (#202): creditos "ate o fim" com inicio cedo
   // demais deixavam o botao 25-30 min na tela.

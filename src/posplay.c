@@ -81,6 +81,8 @@ static int    dispensado;
 static float  anim;
 static Uint32 fecharEm;              // 0 = sem contagem
 static int    pedT, pedE, pedTitulo = -1;
+static int    pedAutomatico,autoEstado=1;
+static double autoPos=-1.0;
 static int    proxT, proxE;          // proximo episodio, quando ha
 static char   proxNome[120];
 
@@ -111,15 +113,29 @@ void posplay_fechar(void) {
   visivel = 0; fecharEm = 0; foco = 0;
   durVista = 0.0; durEstavel = 0.0;   // titulo novo: a duracao comeca de novo
   pedT = pedE = 0; pedTitulo = -1;
+  pedAutomatico=0;autoEstado=1;autoPos=-1.0;
   dispensado = 0;   // titulo novo: a dispensa do anterior nao vale mais
 }
 
+static void cancelarAutomatico(void) {
+  fecharEm=0;
+  if(pedAutomatico){
+    pedT=pedE=pedAutomatico=0;
+    visivel=serie&&proxT>0;dispensado=0; // escolha manual continua no cartao
+  }
+}
 int posplay_pediu_episodio(int *t, int *e) {
+  if(pedAutomatico&&!ajustes_auto_proximo()){cancelarAutomatico();return 0;}
   if (!pedT) return 0;
   if (t) *t = pedT;
   if (e) *e = pedE;
   pedT = pedE = 0;
+  pedAutomatico=0;
   return 1;
+}
+void posplay_automatico(int estado,double pos) {
+  autoEstado=estado;autoPos=pos;
+  if(!estado)cancelarAutomatico();
 }
 int posplay_pediu_titulo(void) { int v = pedTitulo; pedTitulo = -1; return v; }
 
@@ -223,6 +239,9 @@ int posplay_regra_filme(double posSeg, double durSeg, double creditosSeg) {
 void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
                        int ehSerie, int idxCatalogo, int janelaSerie) {
   int deveAparecer = 0;
+  if(!ajustes_auto_proximo()||!autoEstado){
+    cancelarAutomatico();
+  }
   // DUAS FONTES DE MARCADOR, nesta ordem e por este motivo: o capitulo do
   // Matroska vem do PROPRIO arquivo que esta tocando, entao ele descreve esta
   // copia; o TheIntroDB descreve o LANCAMENTO, e uma copia com abertura
@@ -322,9 +341,9 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
   // Conta o que RESTA de verdade, e nao 5 s a partir de agora: os creditos
   // comecam muito antes do fim em algumas series, e um relogio fixo
   // dispararia no meio deles.
-  if (visivel && serie && !fecharEm) {
+  if (visivel && serie && !fecharEm && ajustes_auto_proximo() && autoEstado) {
     // #202: a 1,5x os segundos do arquivo passam mais depressa que os do relogio.
-    double resta = vel_tempo_real(durSeg - posSeg, player_velocidade_efetiva());
+    double resta = vel_tempo_real(durSeg - (autoPos>=0.0?autoPos:posSeg), player_velocidade_efetiva());
     if (resta <= (double)PP_CONTAGEM_S) {
       if (resta < 0.0) resta = 0.0;
       fecharEm = agora + (Uint32)(resta * 1000.0);
@@ -333,8 +352,10 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
   }
 
   // A contagem so vale para o proximo episodio.
-  if (visivel && fecharEm && agora >= fecharEm) {
+  if (visivel && fecharEm && agora >= fecharEm && ajustes_auto_proximo() && autoEstado &&
+      (autoPos<0.0 || autoEstado==2 || autoPos>=durSeg)) {
     pedT = proxT; pedE = proxE;
+    pedAutomatico=1;
     esconder();
   }
 }
@@ -362,7 +383,7 @@ int posplay_evento(const SDL_Event *e) {
   }
   if (serie) {
     if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
-      player_aprender_creditos(); pedT = proxT; pedE = proxE; esconder(); return 1;
+      player_aprender_creditos(); pedT = proxT; pedE = proxE; pedAutomatico=0; esconder(); return 1;
     }
     return 0;
   }

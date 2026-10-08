@@ -11,6 +11,16 @@
 #include <assert.h>
 
 int main(void) {
+  assert(!ajustes_auto_abertura()&&!ajustes_auto_resumo()&&!ajustes_auto_creditos());
+  assert(ajustes_auto_proximo());
+  for(int i=AJ_AUTO_ABERTURA;i<=AJ_AUTO_PROXIMO;i++){
+    assert(somenteDesteAparelho(i)&&dePerfil(i)&&OPCOES[i].n==2);
+    assert(valor[i]==(i==AJ_AUTO_PROXIMO?0:1));
+  }
+  assert(!strcmp(CHAVE[AJ_AUTO_ABERTURA],"autoAberturaLocal"));
+  assert(!strcmp(CHAVE[AJ_AUTO_RESUMO],"autoResumoLocal"));
+  assert(!strcmp(CHAVE[AJ_AUTO_CREDITOS],"autoCreditosLocal"));
+  assert(!strcmp(CHAVE[AJ_AUTO_PROXIMO],"autoProximoLocal"));
   // Home: layout e arte do destaque.
   assert(valor[AJ_HERO_FUNDO] == 0);          // Automatico
   assert(valor[AJ_HERO_ARTE_DIF] == 1);       // Desligado: mesma foto do card

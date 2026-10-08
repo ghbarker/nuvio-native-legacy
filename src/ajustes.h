@@ -9,6 +9,13 @@
 // Os valores sao gravados em <dir>/ajustes.txt, uma chave por linha.
 #ifndef NV_AJUSTES_H
 #define NV_AJUSTES_H
+// Escolhas locais por perfil, com indices de V_LIGA.
+int ajustes_auto_abertura(void);
+int ajustes_auto_resumo(void);
+int ajustes_auto_creditos(void);
+int ajustes_auto_proximo(void);
+// Depois da heranca do principal: somente as quatro preferencias locais.
+void ajustes_auto_restaurar(int perfil);
 #include <SDL2/SDL.h>
 #include "idiomacod.h"
 #include "gfx.h"
