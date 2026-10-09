@@ -21,6 +21,7 @@ const CatItem *cat_item(int i) { (void)i; return NULL; }
 void ctx_fileira(const char *c, const char *t) { (void)c; (void)t; }
 void ctx_dispensar_retomar(int on) { (void)on; }
 void ctx_abrir_cartaz(int i, GfxRect r, const char *a) { (void)i; (void)r; (void)a; }
+void ctx_evento(const SDL_Event *e) { (void)e; }
 int desc_titulo_buscando(void) { return 0; }
 void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
                                const char *titulo, const char *ano, const char *poster) {
@@ -159,6 +160,13 @@ static void pressaoLonga(void) {
     dedo(SDL_FINGERUP, 1, .08f, .14f);
     CONFERE(!nEntregues && !nFocar, "coordenada invalida, foco perdido ou background cancelam longo");
   }
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  CONFERE(tecla(SDL_KEYDOWN, SDLK_RIGHT, 0) == 0, "seta real continua passando");
+  relogio += NV_HOLD_MS; quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!nEntregues && !nFocar, "navegar no controle cancela o dedo pendente");
 
   prepararHold(homeComFolha);
   dedo(SDL_FINGERDOWN, 1, 1450.0f / 1920.0f, 500.0f / 1080.0f);

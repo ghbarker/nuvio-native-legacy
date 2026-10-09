@@ -2397,7 +2397,13 @@ void detail_evento(const SDL_Event *e) {
   // Nas Recomendacoes o resto da pagina segue como estava (OK no KEYDOWN arma o
   // okDesceEm); aqui so se mede o limiar, que detail_atualizar dispara.
   { int r = ctxhold_evento(&holdLista, e, listaAceitaMenu());
-    if (r == CTXH_LONGO) { menuNaLista(); return; }
+    if (r == CTXH_LONGO) {
+      okDesceEm = 0;
+      if (!menuNaLista()) {
+        if (colListaAberta) abrirParteColecao(); else if (pessoaAberta) abrirCredito();
+      }
+      return;
+    }
     if (colListaAberta || pessoaAberta) {
       if (r == CTXH_CONSUMIDO) return;
       if (r == CTXH_TOQUE) {

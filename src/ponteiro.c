@@ -413,6 +413,11 @@ static float rolarPassos(float acum, int eixoY, int teto) {
 
 static void pararInercia(void) { inercia = 0; inVel = inAcum = 0.0f; }
 
+static void invalidarToque(void) {
+  if (!nDedos || toqueLongo) return;
+  toqueCancelado = 1; arrModo = ARR_NADA; pararInercia();
+}
+
 // Ate o limiar nenhum OK foi entregue: arrastar, outro dedo ou uma camada
 // nova podem cancelar sem transformar a soltura num clique. No limiar o
 // gesto fica consumido e entrega um par completo pela mesma rota do teclado.
@@ -574,6 +579,7 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
 
     case SDL_MOUSEBUTTONDOWN: {
       if (e->button.which == SDL_TOUCH_MOUSEID) return 1;
+      invalidarToque();
       converter(e->button.windowID, e->button.x, e->button.y);
       primeiro(1, "clique", e->button.x, e->button.y);
       ultimoMov = agora;
@@ -629,6 +635,7 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
 
     case SDL_MOUSEWHEEL: {
       if (e->wheel.which == SDL_TOUCH_MOUSEID) return 1;
+      invalidarToque();
       int dy = e->wheel.y, dx = e->wheel.x;
       primeiro(2, "rodinha", dx, dy);
       if (e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED) { dy = -dy; dx = -dx; }
@@ -681,6 +688,7 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
         }
         return 1;
       }
+      if (e->type == SDL_KEYDOWN) invalidarToque();
       if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
         if (e->type == SDL_KEYDOWN) {
           if (e->key.repeat) return engolirOkSolto;

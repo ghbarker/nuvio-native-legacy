@@ -917,7 +917,7 @@ void busca_evento(const SDL_Event *e) {
   // OK NUM RESULTADO DECIDE NA SOLTURA, como a pilula: toque abre o titulo,
   // segurar abre o menu do cartaz.
   switch (ctxhold_evento(&holdRes, e, resultadoAceitaMenu())) {
-    case CTXH_LONGO: menuNoResultado(); return;
+    case CTXH_LONGO: if (!menuNoResultado()) abrirResultado(); return;
     case CTXH_CONSUMIDO: return;
     case CTXH_TOQUE: abrirResultado(); return;
     default: break;

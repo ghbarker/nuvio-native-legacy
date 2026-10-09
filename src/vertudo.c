@@ -309,7 +309,7 @@ void vertudo_evento(const SDL_Event *e) {
   int n = nItens(), k;
   if (!aberta) return;
   switch (ctxhold_evento(&hold, e, celulaAceitaMenu())) {
-    case CTXH_LONGO: menuNoFocado(); return;
+    case CTXH_LONGO: if (!menuNoFocado()) abrirFocado(); return;
     case CTXH_CONSUMIDO: return;
     case CTXH_TOQUE: abrirFocado(); return;
     default: break;
