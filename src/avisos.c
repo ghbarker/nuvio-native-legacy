@@ -33,6 +33,7 @@
 #define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
 #include "escala.h"
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,6 +104,10 @@ static int   aberto, foco;
 static Uint32 okDesde;              // OK afundado numa linha da central (soltarOk)
 static void soltarOk(int longo);
 static float entrada, rol;
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueAvisos;
+static int toqueAvisosRolar(const PonteiroRolagem *e);
+#endif
 static int   toastN;
 static long long recAnunciada = -1;   // id da ultima recomendacao dita na ilha
 static int   vistosSujos;
@@ -1036,7 +1041,12 @@ void avisos_atualizar(float dt, Uint32 agora) {
 int  avisos_aberto(void) { return aberto; }
 // A CENTRAL ABERTA LE TUDO: os avisos dela saem da ilha (os que diziam o
 // assunto e o "N avisos novos" que juntou o resto).
-void avisos_abrir(void)  { aberto = 1; foco = 0; rol = 0.0f; toastN = 0; ilha_retirar_grupo(); }
+void avisos_abrir(void)  {
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueAvisos);
+#endif
+  aberto = 1; foco = 0; rol = 0.0f; toastN = 0; ilha_retirar_grupo();
+}
 const char *avisos_pediu_abrir(void) {
   static char saida[24];
   if (!pediuAbrir[0]) return NULL;
@@ -1053,6 +1063,15 @@ static void ponteiroLinha(int i, int b) {
   if (!aberto || cartao || i == foco || i < 0 || i >= avisos_lista_linhas()) return;
   foco = i; okDesde = 0;
 }
+#ifdef NV_TOUCH_PREVIEW
+static int toqueAvisosRolar(const PonteiroRolagem *e) {
+  int r;
+  if (!aberto || cartao) return 0;
+  r = toquerol_evento(&toqueAvisos, e);
+  if (r) okDesde = 0;
+  return r;
+}
+#endif
 int avisos_teste_foco(void) { return aberto ? foco : -1; }
 
 static void fechar(void) {
@@ -1075,6 +1094,9 @@ static void soltarOk(int longo) {
 }
 
 int avisos_evento(const SDL_Event *e) {
+#ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e)) toquerol_limpar(&toqueAvisos);
+#endif
   SDL_Keycode k;
   int sc;
   if (cartao) return cartaoEvento(e);
@@ -1683,6 +1705,14 @@ static void avisos_desenharCorpo_(Uint32 agora) {
   { float areaH = NV_TELA_H - 80.0f - AVP_TOPO;
     float fim = avisos_lista_y(foco, foco) + avisos_lista_altura_linha(foco, foco);
     float alvo = fim > areaH ? fim - areaH : 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+    int nl = avisos_lista_linhas();
+    float total = nl > 0 ? avisos_lista_y(nl - 1, foco) + avisos_lista_altura_linha(nl - 1, foco) : 0;
+    toquerol_vincular(&toqueAvisos, (GfxRect){AVP_X + dx, AVP_TOPO, AVP_W, areaH}, gfx_escala(),
+                     0, total - areaH, 1, &rol);
+    if (aberto && !cartao && a > .99f) ponteiro_rolagem(toqueAvisosRolar);
+    if (!toqueAvisos.livre)
+#endif
     rol += (alvo - rol) * 0.25f; }
   // A linha da ilha tem 22 de recuo proprio: a caixa dela sai 22 para fora,
   // e o texto continua na prumada do titulo do painel.

@@ -23,6 +23,13 @@
 #define NV_AMIGOSFIL_H
 #include <SDL2/SDL.h>
 #include <stddef.h>
+#ifdef NV_TOUCH_PREVIEW
+#include "ponteiro.h"
+int amigosfil_rolagem(const PonteiroRolagem *e);
+void amigosfil_retomar_foco(int *coluna);
+void amigosfil_ponteiro(PonteiroFn focar);
+void amigosfil_focar(int coluna, int cartao);
+#endif
 
 // Colunas que a home navega: rostos + "Adicionar"; 1 (o convite) sem amigos.
 int  amigosfil_n_colunas(void);

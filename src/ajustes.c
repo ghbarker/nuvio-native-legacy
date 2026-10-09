@@ -80,7 +80,7 @@
 // Layout, text measurement, drawing and pointer targets share this factor.
 #undef NV_VTELA_W
 #undef NV_VTELA_H
-#define NV_VTELA_W (1920.0f / ajustes_tamanho_ajustes())
+#define NV_VTELA_W (NV_LAYOUT_REAL_W / ajustes_tamanho_ajustes())
 #define NV_VTELA_H (1080.0f / ajustes_tamanho_ajustes())
 #define AJ_ESCALA_INI() float ajEscalaAnt_ = gfx_escala(); gfx_escala_sair(ajustes_tamanho_ajustes())
 #define AJ_ESCALA_FIM() gfx_escala_sair(ajEscalaAnt_)
@@ -1812,6 +1812,57 @@ static float scrollY = 0.0f;
 // cauda exponencial, a MESMA curva que a home mede. A de 1a ordem que estava
 // aqui partia na velocidade maxima e o primeiro quadro ja saltava 12%.
 static float velY = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+enum { AJT_MENU, AJT_INDICE, AJT_LISTA, AJT_EDITOR, AJT_DIFS, AJT_SUB, AJT_FONTES, AJT_FILEIRAS, AJT_N };
+typedef struct { GfxRect r; float *offset, maximo, escala; int id; } AjToqueRegiao;
+static AjToqueRegiao ajToqueRegioes[AJT_N];
+static int ajToqueN, ajToqueAtivo = -1, ajToqueLivre[AJT_N], ajToqueChave[AJT_N];
+static float ajToqueOffset[AJT_N];
+static int ajPontInline;
+static int ajSubToqueChave;
+static void ajToqueLimpar(void) {
+  memset(ajToqueLivre, 0, sizeof ajToqueLivre); ajToqueAtivo = -1;
+}
+static void ajToqueCamada(void) { ajToqueN = 0; }
+static int ajToqueRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    if (!e->eixoY) return 0;
+    for (int i = ajToqueN - 1; i >= 0; i--) {
+      AjToqueRegiao *r = &ajToqueRegioes[i];
+      if (e->x >= r->r.x && e->x < r->r.x + r->r.w && e->y >= r->r.y && e->y < r->r.y + r->r.h) {
+        ajToqueAtivo = r->id; ajToqueLivre[r->id] = 1; return 1;
+      }
+    }
+    return 0;
+  }
+  if (e->fase == PONT_ROL_MOVER || e->fase == PONT_ROL_INERCIA) {
+    for (int i = ajToqueN - 1; i >= 0; i--) if (ajToqueRegioes[i].id == ajToqueAtivo) {
+      AjToqueRegiao *r = &ajToqueRegioes[i];
+      float antes = *r->offset;
+      *r->offset = anim_clamp(antes - e->delta / r->escala, 0.0f, r->maximo);
+      return fabsf(*r->offset - antes) > 0.001f;
+    }
+    return 0;
+  }
+  if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) ajToqueAtivo = -1;
+  return 1;
+}
+// Guarda a escala durante o desenho: no fio de eventos a escala ja voltou a 1.
+static float ajToqueRegistrar(int id, GfxRect r, float *offset, float maximo, float alvo, int chave) {
+  float s = gfx_escala();
+  if (ajToqueChave[id] != chave) {
+    ajToqueLivre[id] = 0; ajToqueChave[id] = chave;
+    if (ajToqueAtivo == id) ajToqueAtivo = -1;
+  }
+  if (!ajToqueLivre[id]) *offset = alvo;
+  maximo = fmaxf(0.0f, maximo); *offset = anim_clamp(*offset, 0.0f, maximo);
+  if (ajToqueN < AJT_N && s > 0.0f && r.w > 0.0f && r.h > 0.0f) {
+    ajToqueRegioes[ajToqueN++] = (AjToqueRegiao){ {r.x * s, r.y * s, r.w * s, r.h * s}, offset, maximo, s, id };
+    ponteiro_rolagem(ajToqueRolar);
+  }
+  return *offset;
+}
+#endif
 static float paginaA = 1.0f;   // entrada da pagina da categoria (0..1)
 static int sair = 0;
 
@@ -4399,6 +4450,9 @@ int ajustes_iniciar(void) {
   // linhas), e quem veio da 1.3.9 com o autoplay nascido ligado recebe o
   // reset unico em ajustes_dir() (marca trailer-1310.txt).
   scrollY = 0.0f; velY = 0.0f; sair = 0; sairArmado = 0;
+#ifdef NV_TOUCH_PREVIEW
+  ajToqueLimpar(); ajToqueCamada(); memset(ajToqueOffset, 0, sizeof ajToqueOffset);
+#endif
   // Reabre na categoria em que estava, com o foco no indice (ver focoIndice).
   if (secAtual < 0 || secAtual >= nSecoes) secAtual = 0;
   focoIndice = 1; uxChipAv = 0;
@@ -6444,6 +6498,9 @@ static const char *uxCaminho(int op);
 static const char *uxBloco(int op);
 static void eventoTela(const SDL_Event *e);
 void ajustes_evento(const SDL_Event *e) {
+#ifdef NV_TOUCH_PREVIEW
+  if (e->type == SDL_KEYDOWN) ajToqueLimpar();
+#endif
   AJ_ESCALA_INI();
   if (guiaAberto) { guiaEvento(e); AJ_ESCALA_FIM(); return; }
   if (apoioAberto) { apoioEvento(e); AJ_ESCALA_FIM(); return; }
@@ -6786,6 +6843,9 @@ void ajustes_atualizar(float dt, Uint32 agora) {
     if (secAgora != secVista) {
       if (secVista >= 0) paginaA = 0.0f;
       secVista = secAgora; scrollY = 0.0f; velY = 0.0f; alvo = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+      ajToqueLivre[AJT_LISTA] = 0;
+#endif
     } }
   paginaA = ajustes_animacoes_reduzidas() ? 1.0f : anim_rampa(paginaA, 1.0f, dt, 220.0f);
   // GLASS UI: a linha em foco fica no MEIO da janela (a lista some nos 80 px
@@ -6799,8 +6859,12 @@ void ajustes_atualizar(float dt, Uint32 agora) {
     if (topo - alvo < 0.0f) alvo = topo; }
   if (alvo < 0.0f) alvo = 0.0f;
   // (O "cabecalho inteiro ou nenhum" saiu: o cabecalho agora e fixo na folha.)
-  scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
-                                ajustes_animacoes_reduzidas());
+#ifdef NV_TOUCH_PREVIEW
+  if (ajToqueLivre[AJT_LISTA]) velY = 0.0f;
+  else
+#endif
+    scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
+                                  ajustes_animacoes_reduzidas());
   aj2Atualizar(dt);
   AJ_ESCALA_FIM();
 }
@@ -7376,6 +7440,9 @@ static int ajQuadroPlugins;  // captura: a de plugins (foco + 1)
 static void ajDesenharTudo(Uint32 agora);
 // Own Settings scale: the virtual canvas and the active drawing factor agree.
 void ajustes_desenhar(Uint32 agora) {
+#ifdef NV_TOUCH_PREVIEW
+  ajToqueCamada();
+#endif
   AJ_ESCALA_INI();
   ajDesenharTudo(agora);
   AJ_ESCALA_FIM();
@@ -7399,7 +7466,11 @@ static void ajDesenharTudo(Uint32 agora) {
   // atropelam. Ela ja ocupa a tela toda em 100%.
   // Ponteiro (#99): a folha de fileiras tem o teclado; sem alvo proprio, o
   // clique e o OK (ponteiro.h, CAMADAS) — a rail de tras nao pode engoli-lo.
-  if (filAberta) { ponteiro_camada(); ESCALA_REAL_INI(); desenhaFileiras(); ESCALA_REAL_FIM(); }
+  if (filAberta) { ponteiro_camada();
+#ifdef NV_TOUCH_PREVIEW
+    ajToqueCamada();
+#endif
+    ESCALA_REAL_INI(); desenhaFileiras(); ESCALA_REAL_FIM(); }
   if (riscoFolha) desenhaRiscoFolha();
   if (frAberta == 3) desenhaFolhaOrdem();
   else if (frAberta) desenhaFolhaPermitidos();

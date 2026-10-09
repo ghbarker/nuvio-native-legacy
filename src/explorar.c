@@ -33,6 +33,7 @@
 #include "anim.h"
 #include "ajustes.h"
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include "idioma.h"
 #include "idiomacod.h"
 #include "layout.h"
@@ -41,7 +42,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef NV_TOUCH_PREVIEW
+#define EX_DIR          (NV_TELA_W - 80.0f)
+#else
 #define EX_DIR          1840.0f     // borda direita do conteudo
+#endif
 #define EX_TOPO         232.0f
 #define EX_DICA_Y       1012.0f
 #define EX_TEX_LARG     220.0f
@@ -90,6 +95,36 @@ static int clAberto = -1;             // posicao do clima aberto (climas.c[])
 static int caLinha, caCol[2];         // clima aberto: 0 = descobrir, 1 = vistos
 static int caIdx[2][MAPA_CLIMA_ITENS], caN[2];
 static float caRolar[2];
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueCa[2];
+static int toqueCaAtiva = -1;
+static ToqueRolagem toqueVz[MAPA_VIZ_GRUPOS];
+static float toqueVzOffset[MAPA_VIZ_GRUPOS];
+static int toqueVzAtiva = -1, toqueVzUltima = -1;
+static int toqueExplorarRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    toqueCaAtiva = toqueVzAtiva = -1;
+    if (modo == MODO_CLIMA) {
+      for (int i = 0; i < 2; i++) if (toquerol_evento(&toqueCa[i], e)) { toqueCaAtiva = i; return 1; }
+    } else if (modo == MODO_VIZ) {
+      for (int i = 0; i < MAPA_VIZ_GRUPOS; i++) if (toquerol_evento(&toqueVz[i], e)) {
+        toqueVzAtiva = toqueVzUltima = i; return 1;
+      }
+    }
+    return 0;
+  }
+  int r = toqueCaAtiva >= 0 ? toquerol_evento(&toqueCa[toqueCaAtiva], e)
+        : toqueVzAtiva >= 0 ? toquerol_evento(&toqueVz[toqueVzAtiva], e) : 0;
+  if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) toqueCaAtiva = toqueVzAtiva = -1;
+  return r;
+}
+static void explorarAlvoFileira(float x, float y, float w, float h, float x0, float x1,
+                               PonteiroFn focar, int linha, int col) {
+  float fim = fminf(x + w, x1);
+  x = fmaxf(x, x0);
+  if (fim > x) ponteiro_alvo(x, y, fim - x, h, focar, NULL, linha, col);
+}
+#endif
 
 static MapaVizinhos viz;
 static unsigned vizRev;
@@ -234,6 +269,9 @@ static void abrirClima(int pos) {
   caLinha = 0;
   caCol[0] = caCol[1] = 0;
   caRolar[0] = caRolar[1] = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  for (int i = 0; i < 2; i++) toquerol_limpar(&toqueCa[i]);
+#endif
   climaSeparar();
   mapa_clima_abrir(climas.c[pos].id);
   trocarModo(MODO_CLIMA);
@@ -247,6 +285,12 @@ static const MapaObra *climaObraFocada(void) {
 // --- vizinhanca -----------------------------------------------------------------
 
 static void pedirPasso(const ExPasso *p) {
+#ifdef NV_TOUCH_PREVIEW
+  for (int i = 0; i < MAPA_VIZ_GRUPOS; i++) {
+    toquerol_limpar(&toqueVz[i]); toqueVz[i].offset = NULL; toqueVzOffset[i] = 0.0f;
+  }
+  toqueVzAtiva = toqueVzUltima = -1;
+#endif
   mapa_vizinhos_pedir(&p->obra, p->pessoa, p->tema);
 }
 
@@ -279,6 +323,19 @@ static void vizAjustarFoco(void) {
   if (vzLinha >= 0 && vzCol >= viz.g[g[vzLinha]].n) vzCol = viz.g[g[vzLinha]].n - 1;
   if (vzCol < 0) vzCol = 0;
 }
+#ifdef NV_TOUCH_PREVIEW
+static float vizRolarFileira(int grupo, int linha, float largura) {
+  float max = fmaxf(0.0f, viz.g[grupo].n * (EX_VZ_CARD + EX_VZ_GAP) - EX_VZ_GAP - largura);
+  float *offset = &toqueVzOffset[grupo];
+  if (!toqueVz[grupo].livre && vzLinha == linha) {
+    float x = vzCol * (EX_VZ_CARD + EX_VZ_GAP);
+    if (x < *offset) *offset = x;
+    if (x + EX_VZ_CARD > *offset + largura) *offset = x + EX_VZ_CARD - largura;
+  }
+  *offset = anim_clamp(*offset, 0.0f, max);
+  return max;
+}
+#endif
 
 static void comecarToca(const MapaObra *o, int org) {
   memset(trilha, 0, sizeof trilha);
@@ -435,8 +492,28 @@ static void eventoViz(SDL_Keycode k) {
 }
 
 void explorar_evento(const SDL_Event *e) {
-  SDL_Keycode k;
   if (!e || e->type != SDL_KEYDOWN) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e)) {
+    for (int i = 0; i < 2; i++) {
+      if (modo == MODO_CLIMA && toqueCa[i].livre && caN[i] > 0) {
+        float w = i == 1 && caN[0] > 0 ? EX_CB_W : EX_CA_W;
+        int c = (int)(caRolar[i] / (w + EX_CAR_GAP));
+        caCol[i] = c < caN[i] ? c : caN[i] - 1;
+      }
+      toquerol_limpar(&toqueCa[i]);
+    }
+    if (modo == MODO_VIZ && toqueVzUltima >= 0 && toqueVz[toqueVzUltima].livre) {
+      int g[MAPA_VIZ_GRUPOS], n = gruposVisiveis(g);
+      for (int i = 0; i < n; i++) if (g[i] == toqueVzUltima) {
+        vzLinha = i; vzCol = (int)(toqueVzOffset[g[i]] / (EX_VZ_CARD + EX_VZ_GAP));
+        vizAjustarFoco(); break;
+      }
+    }
+    for (int i = 0; i < MAPA_VIZ_GRUPOS; i++) toquerol_limpar(&toqueVz[i]);
+  }
+#endif
+  SDL_Keycode k;
   k = e->key.keysym.sym;
   if (k == SDLK_ESCAPE || k == SDLK_AC_BACK || k == SDLK_BACKSPACE || k == SDLK_DELETE) {
     if (e->key.repeat) return;
@@ -461,11 +538,18 @@ static void ponteiroClimas(int i, int b) {
   clFoco = i; focoT = 0.0f;
 }
 static void ponteiroClima(int linha, int col) {
+#ifdef NV_TOUCH_PREVIEW
+  if (linha >= 0 && linha < 2) toquerol_limpar(&toqueCa[linha]);
+#endif
   if (modo != MODO_CLIMA || linha < 0 || linha > 1 || col < 0 || col >= caN[linha]) return;
   if (linha == caLinha && caCol[linha] == col) return;
   caLinha = linha; caCol[linha] = col; focoT = 0.0f;
 }
 static void ponteiroViz(int linha, int col) {
+#ifdef NV_TOUCH_PREVIEW
+  int g[MAPA_VIZ_GRUPOS], n = gruposVisiveis(g);
+  if (linha >= 0 && linha < n) toquerol_limpar(&toqueVz[g[linha]]);
+#endif
   if (modo != MODO_VIZ || (linha == vzLinha && (linha < 0 || col == vzCol))) return;
   vzLinha = linha; vzCol = linha < 0 ? 0 : col;
   if (linha >= 0) vizAjustarFoco();
@@ -588,6 +672,12 @@ static void fileiraClima(int linha, float y, float w, float h, float a) {
   float x0 = ajustes_conteudo_x(), x;
   int i, focada = linha == caLinha;
   if (caN[linha] <= 0) return;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_vincular(&toqueCa[linha], (GfxRect){x0, y, EX_DIR - x0, h}, gfx_escala(),
+                   0.0f, caN[linha] * (w + EX_CAR_GAP) - EX_CAR_GAP - (EX_DIR - x0), 0, &caRolar[linha]);
+  ponteiro_rolagem(toqueExplorarRolar);
+  gfx_recorte(x0, 0.0f, EX_DIR - x0, NV_TELA_H);
+#endif
   x = x0 - caRolar[linha];
   for (i = 0; i < caN[linha]; i++, x += w + EX_CAR_GAP) {
     const MapaObra *o = &c->itens[caIdx[linha][i]];
@@ -595,7 +685,11 @@ static void fileiraClima(int linha, float y, float w, float h, float a) {
     float f = sel ? focoT : 0.0f;
     GfxRect r = { x, y, w, h };
     if (x + w < 0.0f || x > NV_TELA_W) continue;
+#ifdef NV_TOUCH_PREVIEW
+    explorarAlvoFileira(r.x, r.y, r.w, r.h, x0, EX_DIR, ponteiroClima, linha, i);
+#else
     ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroClima, NULL, linha, i);
+#endif
     if (sel) r = crescer(r, 0.06f * f);
     cartaz(o->poster, r, f, a);
     if (sel) {
@@ -603,6 +697,9 @@ static void fileiraClima(int linha, float y, float w, float h, float a) {
       txt_desenhar_alpha(t, x, r.y + r.h + 12.0f, a);
     }
   }
+#ifdef NV_TOUCH_PREVIEW
+  gfx_sem_recorte();
+#endif
 }
 
 static void desenharClima(void) {
@@ -761,14 +858,30 @@ static void desenharGrupos(float a) {
         TxtLinha s = txt_linha_corta(TXT_CAPTION2, gr->sub, tr, tg, tb, 255, EX_DIR - x0 - l.w - 30.0f);
         txt_desenhar_alpha(s, x + l.w + 18.0f, y + (l.h - s.h) * 0.6f, ae);
       } }
+#ifdef NV_TOUCH_PREVIEW
+    float largura = EX_DIR - x0;
+    float max = vizRolarFileira(g[li], li, largura);
+    toquerol_vincular(&toqueVz[g[li]], (GfxRect){x0 - 10.0f, y + 44.0f, largura + 14.0f, EX_VZ_PH + 20.0f},
+                     gfx_escala(), 0.0f, max, 0, &toqueVzOffset[g[li]]);
+    ponteiro_rolagem(toqueExplorarRolar);
+    gfx_recorte(x0 - 10.0f, 0.0f, largura + 14.0f, NV_TELA_H);
+    x -= toqueVzOffset[g[li]];
+#endif
     for (i = 0; i < gr->n; i++, x += EX_VZ_CARD + EX_VZ_GAP) {
       const MapaVizItem *it = &gr->itens[i];
       int sel = vzLinha == li && vzCol == i;
       float f = sel ? focoT : 0.0f, ty;
       GfxRect p = { x, y + 54.0f, EX_VZ_PW, EX_VZ_PH };
       char pq[140];
+#ifdef NV_TOUCH_PREVIEW
+      if (x - 10.0f > EX_DIR + 4.0f) break;
+      if (x + EX_VZ_CARD + 4.0f < x0 - 10.0f) continue;
+      explorarAlvoFileira(x - 10.0f, p.y - 10.0f, EX_VZ_CARD + 14.0f, EX_VZ_PH + 20.0f,
+                         x0 - 10.0f, EX_DIR + 4.0f, ponteiroViz, li, i);
+#else
       if (x + EX_VZ_CARD > EX_DIR + 4.0f) break;
       ponteiro_alvo(x - 10.0f, p.y - 10.0f, EX_VZ_CARD + 14.0f, EX_VZ_PH + 20.0f, ponteiroViz, NULL, li, i);
+#endif
       if (sel) {
         GfxRect fundo = { x - 10.0f, p.y - 10.0f, EX_VZ_CARD + 14.0f, EX_VZ_PH + 20.0f };
         painel(fundo, 14.0f / fundo.h, ae * f * 0.8f);
@@ -783,6 +896,9 @@ static void desenharGrupos(float a) {
       txt_bloco_corta(TXT_CAPTION2, pq, tr, tg, tb, x + EX_VZ_PW + 14.0f, ty,
                       EX_VZ_CARD - EX_VZ_PW - 18.0f, 26.0f, ae * (sel ? 1.0f : 0.85f), 3);
     }
+#ifdef NV_TOUCH_PREVIEW
+    gfx_sem_recorte();
+#endif
   }
 }
 
@@ -848,12 +964,20 @@ void explorar_atualizar(float dt, Uint32 agora) {
       float max = (float)caN[k] * (w + EX_CAR_GAP) - EX_CAR_GAP - visivel;
       if (alvo > max) alvo = max;
       if (alvo < 0.0f) alvo = 0.0f;
-      caRolar[k] = reduzida ? alvo : anim_mola(caRolar[k], alvo, dt, 10.0f);
+#ifdef NV_TOUCH_PREVIEW
+      if (toqueCa[k].livre) caRolar[k] = anim_clamp(caRolar[k], 0.0f, fmaxf(0.0f, max));
+      else
+#endif
+        caRolar[k] = reduzida ? alvo : anim_mola(caRolar[k], alvo, dt, 10.0f);
     }
   }
 }
 
 void explorar_desenhar(Uint32 agora) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueCa[0].offset = toqueCa[1].offset = NULL;
+  for (int i = 0; i < MAPA_VIZ_GRUPOS; i++) toqueVz[i].offset = NULL;
+#endif
   (void)agora;
   desenharFundo();
   if (modo == MODO_CLIMAS) desenharClimas();

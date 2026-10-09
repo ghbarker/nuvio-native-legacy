@@ -34,6 +34,7 @@
 #include "layout.h"
 #include "player.h"
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include "proxyts.h"
 #include "rede.h"
 #include "streams.h"
@@ -59,6 +60,11 @@
 #define LTD_PAUSA_MS     1000u   // o provedor solta a conexao entre um pedido e outro
 #define LTD_TRECHO_B     786431L
 #define LTD_LINHA        70.0f   // altura de cada canal na lista
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueLtd;
+static float toqueLtdOffset;
+static int toqueLtdRolar(const PonteiroRolagem *e) { return toquerol_evento(&toqueLtd, e); }
+#endif
 
 enum { F_HLS = 0, F_TS = 1 };
 enum { E_PARADO, E_REDE, E_PLAYER, E_PRONTO };
@@ -624,6 +630,9 @@ static void comecar(void) {
 }
 
 void livetvdiag_iniciar(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLtdOffset = 0.0f; toquerol_limpar(&toqueLtd);
+#endif
   L.sair = 0;
   // O PREVIEW DO GUIA solta o pipeline: o teste precisa dele, e a conta de
   // 1 tela nao aguenta o preview e o teste juntos.
@@ -912,13 +921,27 @@ static void desenharCanais(GfxRect r, float ar, float ag, float ab) {
   if (L.n) snprintf(sub, sizeof sub, i18n("%d canais de “%s”, um de cada vez"), L.n, L.grupo);
   else snprintf(sub, sizeof sub, "%s", i18n("Abra o guia numa fileira com canais e volte aqui."));
   titulo(r, "Canais testados", sub);
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_vincular(&toqueLtd, (GfxRect){r.x + 32.0f, r.y + 90.0f, r.w - 64.0f, r.h - 106.0f}, gfx_escala(),
+                   0.0f, L.n * (LTD_LINHA + 4.0f) - (r.h - 106.0f), 1, &toqueLtdOffset);
+  ponteiro_rolagem(toqueLtdRolar);
+  gfx_recorte(r.x, r.y + 90.0f, r.w, r.h - 106.0f);
+#endif
   for (i = 0; i < L.n; i++) {
     const LtdItem *it = &L.it[i];
     GfxRect ln = { r.x + 32.0f, r.y + 90.0f + (float)i * (LTD_LINHA + 4.0f), r.w - 64.0f, LTD_LINHA };
+#ifdef NV_TOUCH_PREVIEW
+    ln.y -= toqueLtdOffset;
+#endif
     int cor, atual = i == L.atual && L.estado != E_PRONTO;
     float x = ln.x + 20, yc = ln.y + ln.h * 0.5f;
     TxtLinha tn, tr;
+#ifdef NV_TOUCH_PREVIEW
+    if (ln.y > r.y + r.h - 16) break;
+    if (ln.y + ln.h < r.y + 90.0f) continue;
+#else
     if (ln.y + ln.h > r.y + r.h - 16) break;
+#endif
     textoResultado(it, res, sizeof res, det, sizeof det, &cor);
     if (atual) ajustes_ui_foco_linha(ln, 22);
     ajustes_ui_neutro((GfxRect){ x, yc - 21, 42, 42 }, 12, 0.07f);
@@ -940,6 +963,9 @@ static void desenharCanais(GfxRect r, float ar, float ag, float ab) {
       gfx_cor((GfxRect){ px, yc - 4.5f, 9, 9 }, 0.5f, ar, ag, ab, 1);
     }
   }
+#ifdef NV_TOUCH_PREVIEW
+  gfx_sem_recorte();
+#endif
 }
 
 static void desenharTeste(GfxRect r, float ar, float ag, float ab, Uint32 agora) {

@@ -1,5 +1,6 @@
 #include "faixas.h"
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include "idioma.h"
 #include "player.h"
 #include "video.h"
@@ -45,6 +46,14 @@ static int velFoco, velPedidaUi = VEL_NORMAL;
 // nao. Guardar quantas linhas foram roladas e o suficiente porque a altura da
 // linha e fixa.
 static int rolagem[3];
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueAudio;
+static float toqueAudioOffset;
+static int toqueAudioRolar(const PonteiroRolagem *e) {
+  if (!aberta || faixas_estilo_topo()) return 0;
+  return toquerol_evento(&toqueAudio, e);
+}
+#endif
 // Quantas linhas cabem no painel. Calculada no desenho (depende da altura
 // escolhida ali) e lida pelo tratamento de tecla, que roda antes.
 static int visiveis = 8;
@@ -454,6 +463,9 @@ void faixas_abrir_em(int col) {
       if (foco[c] >= n) foco[c] = n > 0 ? n - 1 : 0;
       if (foco[c] < 0)  foco[c] = 0;
     rolagem[c] = 0;
+#ifdef NV_TOUCH_PREVIEW
+    toquerol_limpar(&toqueAudio); toqueAudioOffset = 0;
+#endif
     } }
   // No track list yet (the audio list arrives after the first frames): the
   // volume row is the only thing to focus.
@@ -959,6 +971,12 @@ static void passoAtrasoEstilo(int d) {
 }
 
 void faixas_evento(const SDL_Event *e) {
+#ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e)) {
+    rolagem[0] = (int)(toqueAudioOffset / 92.0f);
+    toquerol_limpar(&toqueAudio);
+  }
+#endif
   SDL_Keycode k;
   if (!aberta || e->type != SDL_KEYDOWN) return;
   k = e->key.keysym.sym;
@@ -1499,12 +1517,37 @@ static void corpoLista(GfxRect c, float a) {
     else { linhaVolume(x0, y, w, a); y += IL_LN_H + VOL_VAO; }
   }
   visiveis = IL_VIS_COL(col);
+#ifdef NV_TOUCH_PREVIEW
+  if (!toqueAudio.livre) {
+#endif
   ajustarRolagem();
+#ifdef NV_TOUCH_PREVIEW
+    toqueAudioOffset = rolagem[col] * (IL_LN_H + IL_LN_VAO);
+  }
+  { float passo = IL_LN_H + IL_LN_VAO;
+    float area = fminf(n, visiveis) * passo - (n > 0 ? IL_LN_VAO : 0);
+    GfxRect ilha;
+    toquerol_vincular(&toqueAudio, (GfxRect){x0, y, w, area}, gfx_escala(),
+                     0, n * passo - IL_LN_VAO - area, 1, &toqueAudioOffset);
+    if (aberta && a > 0.99f) ponteiro_rolagem(toqueAudioRolar);
+    gfx_recorte(x0, y, w, area);
+    for (i = 0; i < n; i++) {
+      float ry = y + i * passo - toqueAudioOffset;
+      if (ry + IL_LN_H < y || ry > y + area) continue;
+      if (!modo && a > 0.99f) ponteiro_alvo_faixa(x0, ry, w, IL_LN_H, y, y + area, ponteiroFaixa, NULL, i, 0);
+      linhaLista(col, i, x0, ry, w, a);
+    }
+    if (plrilha_rect(&ilha)) gfx_recorte(ilha.x, ilha.y, ilha.w, ilha.h);
+    else gfx_recorte(c.x, c.y, c.w, c.h);
+    r = 0; fim = n < visiveis ? n : visiveis;
+  }
+#else
   r = rolagem[col]; fim = r + visiveis; if (fim > n) fim = n;
   for (i = r; i < fim; i++) {
     if (!modo && a > 0.99f) ponteiro_alvo(x0, y + (i - r) * (IL_LN_H + IL_LN_VAO), w, IL_LN_H, ponteiroFaixa, NULL, i, 0);
     linhaLista(col, i, x0, y + (i - r) * (IL_LN_H + IL_LN_VAO), w, a);
   }
+#endif
   if (!n) txt_bloco(TXT_ILHA_TEXTO, "Nenhuma faixa disponível nesta fonte.", 160, 160, 158, x0 + 10.0f, y + 12.0f, w - 20.0f, 28, a, 2);
   y += (n ? (fim - r) * IL_LN_H + (fim - r - 1) * IL_LN_VAO : 60.0f) + 14.0f;
   // RODAPE: "2 de 4" e as dicas do codigo, sob um fio de 1 px.

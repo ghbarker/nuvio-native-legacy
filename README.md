@@ -1,4 +1,4 @@
-**Android touch preview:** [Download Nuvio Touch](https://github.com/ghbarker/nuvio-native-legacy/releases/tag/touch-preview.2). Based on 2.0.3, with tap, swipe and long-press controls. Preview 2 fills the usable landscape screen and adds smooth dragging to Home, Search, Library and See all. It installs alongside the regular app. Built-in torrent playback and new Trakt/Simkl sign-ins are unavailable in this build.
+**Android touch preview:** [Download Nuvio Touch](https://github.com/ghbarker/nuvio-native-legacy/releases/tag/touch-preview.3). Based on 2.0.3. Opens full screen, with direct dragging across lists and menus, including settings, profiles and playback controls. Finger swipes no longer send TV arrow clicks. It installs alongside the regular app and updates earlier touch previews without clearing their data. Built-in torrent playback and new Trakt/Simkl sign-ins are unavailable in this build.
 
 <picture>
   <source media="(max-width: 640px)" srcset="docs/assets/nuvio-readme-banner-mobile.png">

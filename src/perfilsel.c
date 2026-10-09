@@ -163,13 +163,30 @@ static int concluido, sair, repetir;
 // a tela fica de pe com o indicador girando no cartao escolhido enquanto app.c
 // monta a home nova por tras. Ver perfilsel_preparar.
 static int preparando;
+static int pinDe = -1;
+#ifdef NV_TOUCH_PREVIEW
+static float psToqueX, psToqueMaximo, psToquePasso;
+static int psToqueLivre;
+static GfxRect psToqueRegiao;
+static int psToqueRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    if (e->eixoY || preparando || pinDe >= 0 || psToqueMaximo <= 0.0f || e->x < psToqueRegiao.x || e->x >= psToqueRegiao.x + psToqueRegiao.w || e->y < psToqueRegiao.y || e->y >= psToqueRegiao.y + psToqueRegiao.h) return 0;
+    psToqueLivre = 1; return 1;
+  }
+  if (e->fase == PONT_ROL_MOVER || e->fase == PONT_ROL_INERCIA) {
+    float antes = psToqueX;
+    psToqueX = anim_clamp(psToqueX - e->delta, 0.0f, psToqueMaximo);
+    return fabsf(psToqueX - antes) > 0.001f;
+  }
+  return 1;
+}
+#endif
 static Uint32 preparandoDesde;
 static float animFoco[CONTA_PERFIL_MAX];
 static float animEntrada;        // 0..1: a tela sobe e aparece uma vez so
 static float animPin;            // 0..1: o veu e o teclado do PIN
 
 // Estado do PIN: -1 = nenhum perfil pedindo PIN.
-static int pinDe = -1;
 static char pin[PS_PIN_MAX + 1];
 static int pinFoco;              // indice na grade 3x4; ver PS_PIN_*
 static int pinErrado, pinRede;
@@ -770,6 +787,9 @@ static float ambDesenhar(float a) {
 
 void perfilsel_iniciar(void) {
   int i;
+#ifdef NV_TOUCH_PREVIEW
+  psToqueX = 0.0f; psToqueLivre = 0;
+#endif
   concluido = sair = repetir = 0;
   preparando = 0;
   pinDe = -1;
@@ -907,7 +927,12 @@ static void eventoPin(SDL_Keycode k) {
 
 static void perfilFocar(int slot, int indice) {
   const ContaPerfil *p = perfis_item(slot);
-  if (!preparando && pinDe < 0 && p && p->indice == indice) foco = slot;
+  if (!preparando && pinDe < 0 && p && p->indice == indice) {
+#ifdef NV_TOUCH_PREVIEW
+    psToqueLivre = 0;
+#endif
+    foco = slot;
+  }
 }
 static void perfilAtivar(int slot, int indice) {
   const ContaPerfil *p = perfis_item(slot);
@@ -931,6 +956,13 @@ void perfilsel_evento(const SDL_Event *e) {
   SDL_Keycode k;
   int m = perfis_n();
   if (e->type != SDL_KEYDOWN) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (psToqueLivre && psToquePasso > 0.0f && m > 0) {
+    foco = (int)((psToqueX + (NV_TELA_W - 2.0f * NV_MARGEM_X) * 0.35f) / psToquePasso);
+    if (foco >= m) foco = m - 1;
+  }
+  psToqueLivre = 0;
+#endif
   // A escolha ja foi feita: tecla nenhuma muda o cartao enquanto a home do
   // perfil e preparada. O teto de tempo em app.c garante que isto acaba.
   if (preparando) return;
@@ -1384,6 +1416,21 @@ void perfilsel_desenhar(Uint32 agora) {
   vao = vaoDe(m, d);
   largura = (float)m * d + (float)(m - 1) * vao;
   x = (NV_TELA_W - largura) * 0.5f;
+#ifdef NV_TOUCH_PREVIEW
+  psToqueMaximo = fmaxf(0.0f, largura - (NV_TELA_W - 2.0f * NV_MARGEM_X));
+  psToquePasso = d + vao;
+  psToqueX = anim_clamp(psToqueX, 0.0f, psToqueMaximo);
+  if (psToqueMaximo > 0.0f) {
+    if (!psToqueLivre) {
+      float esq = foco * psToquePasso, dir = esq + d, util = NV_TELA_W - 2.0f * NV_MARGEM_X;
+      if (dir - psToqueX > util) psToqueX = dir - util;
+      if (esq - psToqueX < 0.0f) psToqueX = esq;
+    }
+    x = NV_MARGEM_X - psToqueX;
+    psToqueRegiao = (GfxRect){NV_MARGEM_X, PS_FILA_Y - 40.0f, NV_TELA_W - 2.0f * NV_MARGEM_X, 560.0f};
+    if (!preparando && pinDe < 0) ponteiro_rolagem(psToqueRolar);
+  }
+#endif
 
   for (i = 0; i < m; i++) {
     const ContaPerfil *p = perfis_item(i);

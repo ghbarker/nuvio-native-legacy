@@ -37,6 +37,10 @@ static int paginas;
 int desc_vertudo_n(void) { return 80; }
 void desc_vertudo_mais(void) { paginas++; }
 void lst_itens_mais(void) { paginas++; }
+#if defined(TESTE_HOME)
+int amigosfil_rolagem(const PonteiroRolagem *e) { (void)e; return 0; }
+void amigosfil_retomar_foco(int *coluna) { (void)coluna; }
+#endif
 
 static void perto(float real, float esperado) { assert(fabsf(real - esperado) < 0.01f); }
 

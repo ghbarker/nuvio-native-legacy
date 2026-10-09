@@ -346,6 +346,9 @@ static void aj2RodapeA3(GfxRect fr, const AjDica *d, int nd, float a) {
   float wd = aj2DicasLinha(d, nd, x, yc, TXT_V2_KBD18, 34, 38, 10, TXT_V2_24, 8, 22, 0, a), wa = 0;
   int dicas = 1;
   gfx_cor((GfxRect){ fr.x + 28.0f, fr.y + fr.h - AJ_A3_RODAPE, fr.w - 56.0f, 1 }, 0, 1, 1, 1, 0.07f * a);
+#ifdef NV_TOUCH_PREVIEW
+  if (ajPontInline) { ajToqueBotoes(x + w, yc, a); return; }
+#endif
   if (uxAviso[0] && !(uxEditor && (uxRestaurar || uxAvisoRisco || uxEditor == 2))) {
     TxtLinha t = ajTxtC(TXT_V2_24, uxAviso, w - 34.0f);
     wa = t.w + 34.0f;
@@ -378,6 +381,13 @@ static void ajDesenharFolha(void) {
   aj2CabecalhoA3(fr, s->titulo, 20.0f, aPag);
   topo = AJ_TOPO;
   base = AJ_BASE;
+#ifdef NV_TOUCH_PREVIEW
+  if (ajPontLista) {
+    float total = 0.0f;
+    for (int k = secIni[sec]; k < secFim(sec); k++) total += alturaItem(k);
+    ajToqueRegistrar(AJT_LISTA, (GfxRect){fr.x, topo, fr.w, base - topo}, &scrollY, total - (base - topo), scrollY, sec);
+  }
+#endif
   gfx_recorte(fr.x, topo, fr.w, base - topo);
   y = topo - scrollY;
   for (i = secIni[sec] + 1; i < secFim(sec); i++) {
@@ -388,11 +398,19 @@ static void ajDesenharFolha(void) {
         ajDesenharGrupo(i, y, ajMascara(y + 20.0f + 15.6f, topo, base) * aPag);
       } else if (TELA[i].tipo == IT_MAIS) {
         float yy = y + 14.0f + AJ2_LN_GAP;
-        if (ajPontLista) ponteiro_alvo_faixa(fr.x + 18.0f, yy, fr.w - 36.0f, AJ2_LN_H, topo, base, ajPonteiroItem, NULL, i, 0);
+        if (ajPontLista
+#ifdef NV_TOUCH_PREVIEW
+            && !ajPontInline
+#endif
+           ) ponteiro_alvo_faixa(fr.x + 18.0f, yy, fr.w - 36.0f, AJ2_LN_H, topo, base, ajPonteiroItem, NULL, i, 0);
         ajDesenharMais(i, yy, animItem[i], ajMascara(yy + AJ2_LN_H * 0.5f, topo, base) * anim_suave(paginaA));
       } else if (TELA[i].tipo == IT_OPC) {
         float lh = ajLinhaH(i), yy = y + AJ2_LN_GAP;
-        if (ajPontLista) ponteiro_alvo_faixa(fr.x + 18.0f, yy, fr.w - 36.0f, lh, topo, base, ajPonteiroItem, NULL, i, 0);
+        if (ajPontLista
+#ifdef NV_TOUCH_PREVIEW
+            && !ajPontInline
+#endif
+           ) ponteiro_alvo_faixa(fr.x + 18.0f, yy, fr.w - 36.0f, lh, topo, base, ajPonteiroItem, NULL, i, 0);
         // A superficie de foco nao some com o texto (editor por cima): o
         // alfa da mascara vai inteiro, o do texto em ajDesenharLinha.
         ajDesenharLinha(i, yy, animItem[i], ajMascara(yy + (lh > AJ2_LN_H + 0.5f ? AJ2_LN_LINHA1 * 0.5f : lh * 0.5f), topo, base) * anim_suave(paginaA));
@@ -706,6 +724,9 @@ static void ajPontEdPasso(int d, int b) {
 }
 static void aj2RodapeEditor(GfxRect m, float colW, const AjDica *d, int n) {
   float y = m.y + m.h - 40 - 64;
+#ifdef NV_TOUCH_PREVIEW
+  if (ajPontEditor) ajToqueBotoes(m.x + m.w - 52.0f, y + 32.0f, 1.0f);
+#endif
   if (uxTemPadrao(uxOp)) {
     TxtLinha t = uxRodape ? ajTxtT(TXT_V2_SEG, "Restaurar padrão") : ajTxt(TXT_V2_SEG, "Restaurar padrão");
     float w = 24 + 24 + 10 + t.w + 24;
@@ -716,6 +737,9 @@ static void aj2RodapeEditor(GfxRect m, float colW, const AjDica *d, int n) {
     else ajIcone("aj_rotate-ccw-clock", m.x + 52 + 24, y + 20, 24, 0.85f);
     txt_desenhar_alpha(t, m.x + 52 + 58, y + (64 - t.h) * 0.5f, uxRodape ? 1.0f : 0.85f);
   }
+#ifdef NV_TOUCH_PREVIEW
+  if (ajPontEditor) return;
+#endif
   { float w = aj2DicasLinha(d, n, 0, 0, TXT_V2_KBD18, 36, 40, 11, TXT_V2_24, 10, 24, 0, 1);
     aj2DicasLinha(d, n, m.x + 52 + colW - w, y + 32, TXT_V2_KBD18, 36, 40, 11, TXT_V2_24, 10, 24, 1, 1); }
 }
@@ -854,13 +878,32 @@ static void aj2EditorEscolha(GfxRect m) {
   primeiro = uxPendente - vis / 2;
   if (primeiro + vis > n) primeiro = n - vis;
   if (primeiro < 0) primeiro = 0;
+#ifdef NV_TOUCH_PREVIEW
+  { float base = m.y + m.h - 40 - 64 - 24;
+    if (ajPontEditor) {
+      float off = ajToqueRegistrar(AJT_EDITOR, (GfxRect){lx, y0, lw, base - y0}, &ajToqueOffset[AJT_EDITOR],
+                                  n * 100.0f - (base - y0), primeiro * 100.0f, uxOp);
+      primeiro = 0; vis = n; y = y0 - off;
+    }
+    gfx_recorte(lx, y0, lw, base - y0);
+  }
+#endif
   for (i = primeiro; i < n && i < primeiro + vis; i++) {
+#ifdef NV_TOUCH_PREVIEW
+    if (y + 96 < y0 || y >= m.y + m.h - 40 - 64 - 24) { y += 100; continue; }
+#endif
     char t[160];
     int foco = !uxRodape && i == uxPendente;
     GfxRect r = { lx, y, lw, 96 };
     int fv;
     uxValorTexto(uxOp, i, t, sizeof t);
-    if (ajPontEditor) ponteiro_alvo(r.x, r.y, r.w, r.h, ajPontEdValor, NULL, i, 0);
+    if (ajPontEditor) {
+#ifdef NV_TOUCH_PREVIEW
+      ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y0, m.y + m.h - 40 - 64 - 24, ajPontEdValor, NULL, i, 0);
+#else
+      ponteiro_alvo(r.x, r.y, r.w, r.h, ajPontEdValor, NULL, i, 0);
+#endif
+    }
     if (foco) ajFocoLinha(r, 28, 1, 1);
     fv = marcaDoValor(uxOp, o->valores ? o->valores[i] : NULL);
     if (fv >= 0) marca_formato((FormatoMarca)fv, r.x + 30, r.y + 26, 44, 1, 1, 1, foco ? 0.9f : 0.6f);
@@ -885,6 +928,9 @@ static void aj2EditorEscolha(GfxRect m) {
     }
     y += 100;
   }
+#ifdef NV_TOUCH_PREVIEW
+  gfx_sem_recorte();
+#endif
   if (pw > 0) aj2PreviaPendente(m.x + m.w - 52 - pw, y0, pw);
   { AjDica d[3] = { { "↑ ↓", "Escolher" }, { "OK", "Confirmar" }, { "Voltar", "Cancelar" } };
     aj2RodapeEditor(m, lw, d, 3); }
@@ -911,6 +957,13 @@ static void aj2DesenharDiferencas(void) {
   GfxRect fr = aj2ListaR();
   float topo = AJ_TOPO, base = AJ_BASE + AJ_A3_RODAPE, y = topo + 8.0f;
   int primeiro = uxDifFoco > 9 ? uxDifFoco - 9 : 0, i;
+#ifdef NV_TOUCH_PREVIEW
+  if (ajPontLista) {
+    float off = ajToqueRegistrar(AJT_DIFS, (GfxRect){fr.x, topo, fr.w, base - topo}, &ajToqueOffset[AJT_DIFS],
+                                uxNDifs * 78.0f - (base - topo), primeiro * 78.0f, 0);
+    primeiro = 0; y = topo + 8.0f - off;
+  }
+#endif
   float x = fr.x + 18, w = fr.w - 36;
   ajIlha(fr, 40.0f, 1, 0);
   aj2CabecalhoA3(fr, "Diferentes do padrão", 0, 1);
@@ -924,6 +977,9 @@ static void aj2DesenharDiferencas(void) {
     char atual[160], padrao[160], det[300];
     int op = uxDifs[i], foco = !focoIndice && i == uxDifFoco;
     GfxRect r = { x, y, w, 76 };
+#ifdef NV_TOUCH_PREVIEW
+    if (y + 76 < topo) { y += 78; continue; }
+#endif
     float xd = x + w - 22, a = ajMascara(y + 38, topo, base), yc = y + 38;
     TxtLinha la, lp, lr, ls;
     if (y > base) break;
@@ -1019,8 +1075,16 @@ static void ajDesenharTela(void) {
   int modal = ajModalAberto();
   Aj2Pose p = aj2PoseAgora();
   float g0;
+#ifdef NV_TOUCH_PREVIEW
+  ajPontInline = 0;
+#endif
   ajFundo();
   if (filAberta) return;   // a folha de fileiras ocupa a tela (desenhada depois)
+#ifdef NV_TOUCH_PREVIEW
+  ajPontInline = !modal && uxOp >= 0 && ajEditandoLinha(uxOp) &&
+                p.lA > 0.997f && fabsf(p.lS - 1.0f) < 0.002f && fabsf(p.lDx) < 0.5f;
+  if (ajPontInline) { ponteiro_camada(); ajToqueCamada(); }
+#endif
   if (modal) gfx_opacidade_grupo = 0.16f;
   g0 = gfx_opacidade_grupo;
   aj2DesenharMenu(&p);
@@ -1036,6 +1100,9 @@ static void ajDesenharTela(void) {
   }
   // A LISTA nasce da linha da categoria: escala em torno dela.
   ajPontLista = !modal && !uxEditor && p.lA > 0.997f && fabsf(p.lS - 1.0f) < 0.002f && fabsf(p.lDx) < 0.5f;
+#ifdef NV_TOUCH_PREVIEW
+  if (ajPontInline) ajPontLista = 1;
+#endif
   if (p.lA > 0.003f && uxIndice >= 1) {
     GfxRect fr = aj2ListaR();
     float oy = p.lOy > 0 ? p.lOy : aj2GradeOrigemY(uxIndice);
@@ -1047,7 +1114,15 @@ static void ajDesenharTela(void) {
   }
   // O editor e os modais tem o teclado: os alvos de tras deixam de valer e,
   // sem alvo proprio, o clique e o OK (ponteiro.h, CAMADAS).
-  if (modal || uxEditor) ponteiro_camada();
+  if (modal || (uxEditor
+#ifdef NV_TOUCH_PREVIEW
+                && !ajPontInline
+#endif
+               )) { ponteiro_camada();
+#ifdef NV_TOUCH_PREVIEW
+    ajToqueCamada();
+#endif
+  }
   if (aj2EditorPainel()) aj2EdVisto = 1;
   else if (p.eA <= 0.003f) aj2EdVisto = 0;
   ajPontEditor = aj2EditorPainel() && !(uxRestaurar || uxAvisoRisco) && !riscoFolha && !frAberta &&
@@ -1102,6 +1177,10 @@ static void ajRosto(const char *nome, float x, float y, float lado, float raio, 
 }
 static void ajDesenharAddons(int foco);
 void ajustes_desenhar_addons(int foco) {
+#ifdef NV_TOUCH_PREVIEW
+  ajToqueCamada();
+  ajSubToqueChave = 1;
+#endif
   AJ_ESCALA_INI();
   ajDesenharAddons(foco);
   AJ_ESCALA_FIM();
@@ -1141,6 +1220,15 @@ static void ajSubLista(const AjSubLinha *L, int n, int foco, const AjDica *d, in
   alvo = foco * AJ_SUB_PASSO - (base - topo - AJ_SUB_PASSO) * 0.5f;
   if (alvo > n * AJ_SUB_PASSO - (base - topo)) alvo = n * AJ_SUB_PASSO - (base - topo);
   if (alvo < 0) alvo = 0;
+#ifdef NV_TOUCH_PREVIEW
+  { static int anterior = -1, tipoAnterior = -1;
+    int tipo = focar == addonsui_ponteiro ? 1 : 2;
+    if (tipo != tipoAnterior || foco != anterior) ajToqueLivre[AJT_SUB] = 0;
+    anterior = foco; tipoAnterior = tipo;
+  }
+  alvo = ajToqueRegistrar(AJT_SUB, (GfxRect){fr.x, topo, fr.w, base - topo}, &ajToqueOffset[AJT_SUB],
+                          n * AJ_SUB_PASSO - (base - topo), alvo, ajSubToqueChave);
+#endif
   gfx_recorte(fr.x, topo, fr.w, base - topo);
   y = topo - alvo;
   for (i = 0; i < n; i++, y += AJ_SUB_PASSO) {
@@ -1257,6 +1345,11 @@ static void desenhaFolhaPermitidos(void) {
   alvo = frFoco * 84.0f - (base - topo - 80.0f) * 0.5f;
   if (alvo > n * 84.0f - (base - topo)) alvo = n * 84.0f - (base - topo);
   if (alvo < 0) alvo = 0;
+#ifdef NV_TOUCH_PREVIEW
+  ajToqueCamada();
+  alvo = ajToqueRegistrar(AJT_FONTES, (GfxRect){m.x, topo, m.w, base - topo}, &ajToqueOffset[AJT_FONTES],
+                          n * 84.0f - (base - topo), alvo, frAberta);
+#endif
   gfx_recorte(m.x, topo, m.w, base - topo);
   y = topo - alvo;
   for (i = 0; i < n; i++, y += 84) {
@@ -1318,6 +1411,11 @@ static void desenhaFolhaOrdem(void) {
   alvo = frFoco * 84.0f - (base - topo - 80.0f) * 0.5f;
   if (alvo > n * 84.0f - (base - topo)) alvo = n * 84.0f - (base - topo);
   if (alvo < 0) alvo = 0;
+#ifdef NV_TOUCH_PREVIEW
+  ajToqueCamada();
+  alvo = ajToqueRegistrar(AJT_FONTES, (GfxRect){m.x, topo, m.w, base - topo}, &ajToqueOffset[AJT_FONTES],
+                          n * 84.0f - (base - topo), alvo, frAberta);
+#endif
   gfx_recorte(m.x, topo, m.w, base - topo);
   y = topo - alvo;
   for (i = 0; i < n; i++, y += 84) {
@@ -1383,6 +1481,10 @@ static void ajPlugHost(const char *url, char *dst, size_t tam) {
 }
 static void ajDesenharPlugins(const AjPluginsVista *v);
 void ajustes_desenhar_plugins(const AjPluginsVista *v) {
+#ifdef NV_TOUCH_PREVIEW
+  ajToqueCamada();
+  ajSubToqueChave = 2 + v->nivel * 400 + v->repo;
+#endif
   AJ_ESCALA_INI();
   ajDesenharPlugins(v);
   AJ_ESCALA_FIM();

@@ -52,6 +52,7 @@
 #include "idioma.h"
 #include "posterprov.h"
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include "sistexto.h"
 #include "celbotao.h"
 #define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
@@ -62,7 +63,7 @@
 #define SP_ESCALA_MIN 1.3f
 #undef NV_TELA_W
 #undef NV_TELA_H
-#define NV_TELA_W (1920.0f / escala_min(SP_ESCALA_MIN))
+#define NV_TELA_W (NV_LAYOUT_REAL_W / escala_min(SP_ESCALA_MIN))
 #define NV_TELA_H (1080.0f / escala_min(SP_ESCALA_MIN))
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,6 +187,9 @@ static char  montada[SP_MAX_TXT];  // consulta da ultima remontagem
 static int   ultimoRemoto = -1, ultimoBuscando = -1, ultimaGeracao = -1;
 static unsigned ultimaGerPessoa;
 static float scrollY, scrollAlvo, velY;
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueSpot;
+#endif
 static float animTecla[SP_KB_MAX_FIL + 1][SP_KB_COLS];
 static float animCampo;
 static SpotPedido pedido;
@@ -193,6 +197,13 @@ static int   temPedido;
 static int   okPress, okLongo;
 static Uint32 okDesde;
 static float nivelVoz;             // nivel do som suavizado (st_nivel)
+#ifdef NV_TOUCH_PREVIEW
+static int toqueSpotRolar(const PonteiroRolagem *e) {
+  int r = toquerol_evento(&toqueSpot, e);
+  if (toqueSpot.livre) { scrollAlvo = scrollY; velY = 0.0f; okPress = okLongo = 0; }
+  return r;
+}
+#endif
 
 // Soma do que cada alvo de busca ja devolveu para o termo corrente: a resposta
 // de um addon lento chega depois da tecla e tem de aparecer sozinha.
@@ -782,6 +793,9 @@ static void montarGuia(const char *q) {
 }
 
 static void remontar(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (strcmp(montada, consulta)) toquerol_limpar(&toqueSpot);
+#endif
   char alvo[SP_MAX_TXT * 2];
   char chaveFoco[96] = "";
   static char chavesAntes[SP_MAX_LIN][96];
@@ -955,6 +969,9 @@ void spot_abrir(int voz) {
 }
 
 static void spotAbrirBase(int voz, int tecladoAuto) {
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueSpot);
+#endif
   kbMontar();
   if (!modoAjustes) guia_preparar_busca();
   aberto = 1;
@@ -1181,6 +1198,9 @@ static void kbMover(int dx, int dy) {
 static void focarTecla(int f, int c) { painel = P_TECLADO; kbF = f; kbC = c; }
 static void focarLinha(int i, int b) {
   (void)b;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueSpot);
+#endif
   if (i >= 0 && i < nLin && focavel(lin[i].tipo)) { painel = P_LISTA; focoL = i; }
 }
 static void focarCampo(int a, int b) { (void)b; painel = a == 2 ? P_CEL : a ? P_MIC : P_CAMPO; }
@@ -1194,6 +1214,13 @@ static void descerDaBarra(void) {
 void spot_evento(const SDL_Event *e) {
   SDL_Keycode k;
   if (!aberto) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e) && toqueSpot.livre) {
+    for (int i = 0; i < nLin; i++)
+      if (focavel(lin[i].tipo) && lin[i].y + lin[i].h > scrollY) { focoL = i; painel = P_LISTA; break; }
+    toquerol_limpar(&toqueSpot);
+  }
+#endif
   // Teclado da TV aberto: o texto (e o Backspace) ja entraram no valor inteiro.
   if (st_evento(e)) return;
   if (e->type == SDL_TEXTINPUT) {
@@ -1381,6 +1408,10 @@ void spot_atualizar(float dt, Uint32 agora) {
   if (painel != P_LISTA) okPress = okLongo = 0;
   // Rolagem: so o necessario para a linha focada caber (com o cabecalho do
   // grupo dela visivel, quando ele e a linha de cima).
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueSpot.livre) { scrollAlvo = scrollY; velY = 0.0f; }
+  else
+#endif
   if (painel == P_LISTA && focoL >= 0) {
     float topo = lin[focoL].y, base = topo + lin[focoL].h, vis = listaVisivel();
     if (focoL > 0 && lin[focoL - 1].tipo == L_CAB) topo = lin[focoL - 1].y;
@@ -1388,7 +1419,10 @@ void spot_atualizar(float dt, Uint32 agora) {
     if (base - scrollAlvo > vis) scrollAlvo = base - vis;
   } else if (painel != P_LISTA) scrollAlvo = 0.0f;
   if (scrollAlvo < 0.0f) scrollAlvo = 0.0f;
-  scrollY = anim_mola2(&velY, scrollY, scrollAlvo, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+  if (!toqueSpot.livre)
+#endif
+    scrollY = anim_mola2(&velY, scrollY, scrollAlvo, dt, NV_MOLA2_SCROLL);
 }
 
 // --- Desenho -----------------------------------------------------------------------
@@ -1744,7 +1778,14 @@ static void desenhaLinha(int i, float x, float y, float a) {
     }
     return;
   }
-  if (ponteiro_ativo()) ponteiro_alvo(r.x, r.y, r.w, r.h, focarLinha, NULL, i, 0);
+  if (ponteiro_ativo()) {
+#ifdef NV_TOUCH_PREVIEW
+    ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, toqueSpot.regiao.y,
+                       toqueSpot.regiao.y + toqueSpot.regiao.h, focarLinha, NULL, i, 0);
+#else
+    ponteiro_alvo(r.x, r.y, r.w, r.h, focarLinha, NULL, i, 0);
+#endif
+  }
   // Foco: SUPERFICIE UM DEGRAU MAIS CLARA (Glass UI, a .row.foco do mockup):
   // branco a 12 % no vidro, cinza opaco no solido, raio 22. Sem contorno e sem
   // bloco cheio no acento — o dono pediu foco so por superficie. O texto nao
@@ -1874,6 +1915,11 @@ static void desenhaLista(float dy, float a) {
   float topo = SP_CORPO_Y + SP_CPAD_T + dy;
   float vis = corpoH - SP_CPAD_T - SP_CPAD_B - SP_RODAPE_H;
   if (vis <= 2.0f) return;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_vincular(&toqueSpot, (GfxRect){listaX, topo, listaW, vis}, gfx_escala(),
+                   0.0f, fmaxf(0.0f, alturaLista() - vis), 1, &scrollY);
+  ponteiro_rolagem(toqueSpotRolar);
+#endif
   gfx_recorte(listaX - 30.0f, topo - 8.0f, listaW + 60.0f, vis + 4.0f);
   for (i = 0; i < nLin; i++) {
     float y = topo + lin[i].y - scrollY;

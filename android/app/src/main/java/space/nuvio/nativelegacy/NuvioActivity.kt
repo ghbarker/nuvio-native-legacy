@@ -44,6 +44,7 @@ import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import org.libsdl.app.SDLActivity
 import java.io.File
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -64,6 +65,27 @@ class NuvioActivity : SDLActivity() {
     override fun getLibraries(): Array<String> = arrayOf("SDL2", "main")
 
     private var camadaVideo: FrameLayout? = null
+    private var touchInsetLeft = 0
+    private var touchInsetTop = 0
+    private var touchInsetRight = 0
+
+    private fun telaCheiaTouch() {
+        if (!BuildConfig.NUVIO_TOUCH_PREVIEW) return
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        if (Build.VERSION.SDK_INT >= 28) {
+            val modo = if (Build.VERSION.SDK_INT >= 30)
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            else WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            if (window.attributes.layoutInDisplayCutoutMode != modo) {
+                window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = modo }
+            }
+        }
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
 
     // Vigia do arranque (#266, ArranqueVigia.kt) e o que ele le do C (android.c).
     private var vigia: ArranqueVigia? = null
@@ -111,18 +133,14 @@ class NuvioActivity : SDLActivity() {
         NvPlayer.iniciar(this, camada)
     }
 
-    // SDL, video and keyboard share the full safe window rectangle. Keeping
+    // SDL and video fill the window, including the camera cutout edges. Keeping
     // mLayout intact also keeps SDL's touch coordinates relative to the video.
     private fun prepararViewportTouch() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        var esquerda = 0
-        var cima = 0
-        var direita = 0
-        var baixo = 0
         val raizTouch = object : FrameLayout(this) {
             override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                 val r = TouchViewport.fit(View.MeasureSpec.getSize(widthMeasureSpec),
-                    View.MeasureSpec.getSize(heightMeasureSpec), esquerda, cima, direita, baixo)
+                    View.MeasureSpec.getSize(heightMeasureSpec), 0, 0, 0, 0)
                 if (r != null) {
                     val atual = mLayout.layoutParams as FrameLayout.LayoutParams
                     if (atual.width != r.width || atual.height != r.height ||
@@ -139,19 +157,19 @@ class NuvioActivity : SDLActivity() {
         (mLayout.parent as? ViewGroup)?.removeView(mLayout)
         raizTouch.addView(mLayout, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        ViewCompat.setOnApplyWindowInsetsListener(raizTouch) { v, ins ->
+        ViewCompat.setOnApplyWindowInsetsListener(raizTouch) { _, ins ->
             val barras = ins.getInsets(WindowInsetsCompat.Type.systemBars())
             val recorte = ins.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.displayCutout())
-            esquerda = maxOf(barras.left, recorte.left)
-            cima = maxOf(barras.top, recorte.top)
-            direita = maxOf(barras.right, recorte.right)
-            baixo = maxOf(barras.bottom, recorte.bottom)
-            v.requestLayout()
+            touchInsetLeft = maxOf(barras.left, recorte.left)
+            touchInsetTop = maxOf(barras.top, recorte.top)
+            touchInsetRight = maxOf(barras.right, recorte.right)
+            posicionarCampoTouch()
             ins
         }
         setContentView(raizTouch)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
         ViewCompat.requestApplyInsets(raizTouch)
+        telaCheiaTouch()
     }
 
     private external fun nativeToqueCancelou()
@@ -455,7 +473,13 @@ class NuvioActivity : SDLActivity() {
 
     override fun onResume() {
         super.onResume()
+        telaCheiaTouch()
         vigia?.frente(true)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) telaCheiaTouch()
     }
 
     // [android] pausa / parada: quanto o fio da interface ficou em cada passo
@@ -682,7 +706,21 @@ class NuvioActivity : SDLActivity() {
             mLayout.addView(c, ViewGroup.LayoutParams(1, 1))
         }
         campo = c
+        posicionarCampoTouch()
         return c
+    }
+
+    private fun posicionarCampoTouch() {
+        if (!BuildConfig.NUVIO_TOUCH_PREVIEW) return
+        val c = campo ?: return
+        val p = c.layoutParams as? RelativeLayout.LayoutParams ?: return
+        fun dp(value: Int) = (value * resources.displayMetrics.density + 0.5f).toInt()
+        val left = dp(16) + touchInsetLeft
+        val right = dp(16) + touchInsetRight
+        val top = dp(12) + touchInsetTop
+        if (p.leftMargin == left && p.rightMargin == right && p.topMargin == top) return
+        p.leftMargin = left; p.rightMargin = right; p.topMargin = top
+        c.layoutParams = p
     }
 
     private fun fecharCampo(ev: String?) {
@@ -695,6 +733,7 @@ class NuvioActivity : SDLActivity() {
         if (BuildConfig.NUVIO_TOUCH_PREVIEW) c.visibility = View.GONE
         c.clearFocus()
         mSurface?.requestFocus()
+        telaCheiaTouch()
         if (ev != null) { log("teclado fechou (${ev[0]})"); eventos.add(ev) }
     }
 

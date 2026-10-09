@@ -48,6 +48,7 @@
 #include "fontecache.h"
 #include "ajustes.h"   /* ajustes_acento: cor do anel de foco */
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include "epg.h"
 #include "rede.h"
 #include "addons.h"
@@ -1312,6 +1313,31 @@ static int   painel, paFoco, paMexeu;
 // que re-baixava TODOS os manifestos (inclusive de addons desligados) por nada.
 static int   paLigou;
 static float paRol, paVelRol;
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueGradeY, toqueLista, toqueTempo, toqueCat, toqueAddon, toqueBusca;
+static ToqueRolagem toqueGradeX[G_MAX_CAT + 1];
+static int toqueLinha = -1;
+static float toqueTempoMin, toquePpm;
+static ToqueRolagem *toqueAtual;
+static int toqueGuiaRolar(const PonteiroRolagem *e);
+static int toqueCategoriaRolar(const PonteiroRolagem *e);
+static int toqueAddonRolar(const PonteiroRolagem *e);
+static int toqueBuscaRolar(const PonteiroRolagem *e);
+static void toqueGuiaRetomar(void);
+static void toqueLimpar(void) {
+  toquerol_limpar(&toqueGradeY); toquerol_limpar(&toqueLista); toquerol_limpar(&toqueTempo);
+  toquerol_limpar(&toqueCat); toquerol_limpar(&toqueAddon); toquerol_limpar(&toqueBusca);
+  for (int l = 0; l <= G_MAX_CAT; l++) toquerol_limpar(&toqueGradeX[l]);
+  toqueLinha = -1;
+  toqueAtual = NULL;
+}
+#endif
+static float tempoDesloc(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueTempo.livre) return toqueTempoMin;
+#endif
+  return (float)janelaDesl;
+}
 // Linha do painel que falhou ao instalar (-1 = nenhuma) e o motivo, para a
 // frase ser a certa: "a conta esta cheia" e "nao foi possivel" sao coisas
 // diferentes para quem esta no sofa.
@@ -1477,6 +1503,9 @@ static void dicaTalvez(void) {
 }
 
 void guia_abrir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLimpar();
+#endif
   guia_carregar();
   if (!previewLido) previewLer();
   aberta = 1; querSair = 0; entrada = 0.0f;
@@ -1516,6 +1545,9 @@ void guia_preview_rect(float *x, float *y, float *w, float *h) {
 #define G_B_OCIOSO_MS 6000u
 static Uint32 bandaUlt;
 void guia_overlay_abrir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLimpar();
+#endif
   guia_carregar();
   overlay = 1; entrada = 0.0f;
   overlayDesde = bandaUlt = SDL_GetTicks();
@@ -1586,7 +1618,7 @@ static void buscaFechar(void);
 // O instante que o foco aponta, na grade cheia ou na faixa do mini guia.
 static time_t tFocoAgora(void) {
   time_t t = time(NULL);
-  if (overlay) return janelaDesl > 0 ? janelaIni(t) + 10 * 60 : t;
+  if (overlay) return tempoDesloc() > 0 ? janelaIni(t) + 10 * 60 : t;
   return instanteFoco(t);
 }
 
@@ -1735,6 +1767,9 @@ static void saltarCat(int dir) {
 static void catAbrir(int modo, int dir) {
   if (nLinhas() < 1) return;
   if (!catAberto) catFoco = focoLin;
+#ifdef NV_TOUCH_PREVIEW
+  if (!catAberto) toquerol_limpar(&toqueCat);
+#endif
   catAberto = modo;
   catUlt = SDL_GetTicks();
   if (dir) {
@@ -1773,6 +1808,9 @@ static void moverLista(int dir) {
 }
 
 static void alternarModo(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLimpar();
+#endif
   modoLista = !modoLista;
   modoGravar();
   // O canal focado e o mesmo; so a rolagem recomeca do lugar certo para o
@@ -1811,6 +1849,9 @@ static void painelMontar(void) {
 static int painelN(void) { return paN + nRec; }
 
 static void painelAbrir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueAddon);
+#endif
   recLer();
   painel = 1; paFoco = 0; paMexeu = 0; paLigou = 0; paRol = 0.0f; paVelRol = 0.0f;
   paErro = -1;
@@ -1958,6 +1999,9 @@ static void sair(void) {
 
 void guia_evento(const SDL_Event *e) {
   if (!guia_visivel()) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e)) toqueGuiaRetomar();
+#endif
   if (buscaEvento(e)) return;
 
   if (e->type == SDL_KEYUP) {
@@ -2395,7 +2439,10 @@ void guia_atualizar(float dt, Uint32 agora) {
     if (maxY < 0.0f) maxY = 0.0f;
     if (alvo > maxY) alvo = maxY;
     if (alvo < 0.0f) alvo = 0.0f;
-    rolL = anim_mola2(&velL, rolL, alvo, dt, NV_MOLA_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueLista.livre)
+#endif
+      rolL = anim_mola2(&velL, rolL, alvo, dt, NV_MOLA_SCROLL);
   }
   if (painel) {
     float areaH = NV_TELA_H - 80.0f - G_PA_LISTA_Y;
@@ -2404,7 +2451,10 @@ void guia_atualizar(float dt, Uint32 agora) {
     if (maxY < 0.0f) maxY = 0.0f;
     if (alvo > maxY) alvo = maxY;
     if (alvo < 0.0f) alvo = 0.0f;
-    paRol = anim_mola2(&paVelRol, paRol, alvo, dt, NV_MOLA_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueAddon.livre)
+#endif
+      paRol = anim_mola2(&paVelRol, paRol, alvo, dt, NV_MOLA_SCROLL);
   }
 
   epgPasso();
@@ -2448,8 +2498,14 @@ void guia_atualizar(float dt, Uint32 agora) {
     if (maxY < 0.0f) maxY = 0.0f;
     if (alvo > maxY) alvo = maxY;
     if (alvo < 0.0f) alvo = 0.0f;
-    if (catAnim < 0.02f) { catRol = alvo; catVelRol = 0.0f; }
-    else catRol = anim_mola2(&catVelRol, catRol, alvo, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueCat.livre) {
+#endif
+      if (catAnim < 0.02f) { catRol = alvo; catVelRol = 0.0f; }
+      else catRol = anim_mola2(&catVelRol, catRol, alvo, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+    }
+#endif
   }
 
   // OK segurado = favorito.
@@ -2468,13 +2524,19 @@ void guia_atualizar(float dt, Uint32 agora) {
     if (maxY < 0.0f) maxY = 0.0f;
     if (alvo > maxY) alvo = maxY;
     if (alvo < 0.0f) alvo = 0.0f;
-    rolY = anim_mola2(&velY, rolY, alvo, dt, NV_MOLA_SCROLL); }
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueGradeY.livre)
+#endif
+      rolY = anim_mola2(&velY, rolY, alvo, dt, NV_MOLA_SCROLL); }
   // Rolagem horizontal da fileira em foco.
   { int l = focoLin;
     float passo = G_CARD_W + G_GAP_X;
     float alvo = (float)focoCol * passo - G_AREA_W * 0.5f + G_CARD_W * 0.5f;
     if (alvo < 0.0f) alvo = 0.0f;
-    rolX[l] = anim_mola(rolX[l], alvo, dt, 14.0f); }
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueGradeX[l].livre)
+#endif
+      rolX[l] = anim_mola(rolX[l], alvo, dt, 14.0f); }
 }
 
 // --- desenho ---------------------------------------------------------------------
@@ -3108,6 +3170,12 @@ static void desenharPainelCategorias(float a) {
   int nl = nLinhas(), i, tf = 243;
   if (e < 0.01f || nl < 1) return;
   if (catAberto) ponteiro_camada();
+#ifdef NV_TOUCH_PREVIEW
+  if (catAberto) {
+    toquerol_vincular(&toqueCat, (GfxRect){ 0, G_CAT_TOPO, G_CAT_W, areaH }, gfx_escala(), 0.0f, fmaxf(0.0f, nl * G_CAT_ROW - areaH), 1, &catRol);
+    ponteiro_rolagem(toqueCategoriaRolar);
+  }
+#endif
   ajustes_acento(&ar, &ag, &ab);
   maxY = (float)nl * G_CAT_ROW - areaH;
   if (maxY < 0.0f) maxY = 0.0f;
@@ -3272,16 +3340,26 @@ static void ponteiroTopo(int i, int b) {
 }
 static void ponteiroCanal(int l, int i) {
   if (guiaCamadaAberta() || l < 0 || l >= nLinhas() || i < 0 || i >= linhaN(l)) return;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueGradeY); toquerol_limpar(&toqueLista);
+  toquerol_limpar(&toqueGradeX[l]);
+#endif
   focoTopo = 0; focoLin = l; focoCol = i;
 }
 static void ponteiroCategoria(int i, int b) {
   (void)b;
   if (!catAberto || i < 0 || i >= nLinhas()) return;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueCat);
+#endif
   catFoco = i;
 }
 static void ponteiroAddon(int i, int b) {
   (void)b;
   if (!painel || i < 0 || i >= painelN()) return;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueAddon);
+#endif
   paFoco = i;
 }
 
@@ -3403,7 +3481,7 @@ static float desenharTopo(float a) {
 // deslocamento pedido com DIREITA. Regua em meias horas porque e assim que a
 // grade de TV sempre foi lida; o olho ja sabe onde procurar.
 static time_t janelaIni(time_t agoraT) {
-  return (agoraT / 1800) * 1800 + (time_t)janelaDesl * 60;
+  return (agoraT / 1800) * 1800 + (time_t)(tempoDesloc() * 60.0f);
 }
 
 // O instante que o foco aponta: agora, ou DEZ MINUTOS depois do comeco da
@@ -3412,7 +3490,7 @@ static time_t janelaIni(time_t agoraT) {
 // costuma cair no restinho do programa anterior (01:32-02:02 numa janela que
 // abre as 02:00), e o anel abracava uma lasca de 20 px.
 static time_t instanteFoco(time_t agoraT) {
-  if (!modoLista || janelaDesl <= 0) return agoraT;
+  if (!modoLista || tempoDesloc() <= 0) return agoraT;
   return janelaIni(agoraT) + 10 * 60;
 }
 
@@ -3421,11 +3499,22 @@ static void desenharRegua(float a, time_t ini) { desenharReguaEm(a, ini, G_TOPO)
 static void desenharReguaEm(float a, time_t ini, float yR) {
   float ppm = G_L_FAIXA_W / (float)G_L_JANELA_MIN;
   int i, n = G_L_JANELA_MIN / G_L_PASSO_MIN;
+#ifdef NV_TOUCH_PREVIEW
+  time_t reguaIni = (ini / (G_L_PASSO_MIN * 60)) * (G_L_PASSO_MIN * 60);
+  n++;
+#endif
   for (i = 0; i < n; i++) {
     char h[12];
     float x = G_L_FAIXA_X + (float)(i * G_L_PASSO_MIN) * ppm;
     TxtLinha t;
+#ifdef NV_TOUCH_PREVIEW
+    time_t tick = reguaIni + (time_t)i * G_L_PASSO_MIN * 60;
+    x = G_L_FAIXA_X + (float)(tick - ini) / 60.0f * ppm;
+    if (x < G_L_FAIXA_X || x >= G_AREA_DIR) continue;
+    fmtHora(tick, h, sizeof h);
+#else
     fmtHora(ini + (time_t)i * G_L_PASSO_MIN * 60, h, sizeof h);
+#endif
     t = txt_linha(TXT_DET_META2, h, 160, 163, 172, 255);
     // Rotulo logo a direita do tique, como nas grades de referencia: o tique
     // marca o instante, o rotulo le junto dele.
@@ -3611,6 +3700,14 @@ static void desenharPainelAddons(float a) {
   ajustes_acento(&ar, &ag, &ab);
 
   ponteiro_camada();
+#ifdef NV_TOUCH_PREVIEW
+  if (painel) {
+    float area = NV_TELA_H - 80.0f - y0;
+    float fim = painelN() > 0 ? paItemY(painelN() - 1) + (nRec > 0 ? G_PA_ROW_REC : G_PA_ROW) : 0.0f;
+    toquerol_vincular(&toqueAddon, (GfxRect){ G_PA_X, y0, G_PA_W, area }, gfx_escala(), 0.0f, fmaxf(0.0f, fim - area), 1, &paRol);
+    ponteiro_rolagem(toqueAddonRolar);
+  }
+#endif
   { GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
     gfx_cor(tela, 0.0f, 0, 0, 0, (vidro ? 0.30f : 0.42f) * a); }
   // PAINEL FLUTUANTE como o de Salvos e a barra lateral (21/09/2026): solto
@@ -3821,7 +3918,7 @@ static int vizinhoLista(int *l, int *c, int dir) {
 static void desenharBanda(float a, Uint32 agora) {
   time_t agoraT = time(NULL);
   time_t ini = janelaIni(agoraT);
-  time_t tFoco = janelaDesl > 0 ? ini + 10 * 60 : agoraT;
+  time_t tFoco = tempoDesloc() > 0 ? ini + 10 * 60 : agoraT;
   float topo = NV_TELA_H - 36.0f - (float)G_B_LINHAS * G_B_ROW - 42.0f - 44.0f;
   float yR = topo + 44.0f, y0 = yR + 42.0f, fimY = y0 + (float)G_B_LINHAS * G_B_ROW - 8.0f;
   int ll[G_B_LINHAS], cc[G_B_LINHAS], n = 0, k, passo, subiu = 0;
@@ -3830,6 +3927,12 @@ static void desenharBanda(float a, Uint32 agora) {
                             * (G_L_FAIXA_W / (float)G_L_JANELA_MIN) : 0.0f;
   float ar, ag, ab;
   if (nLinhas() < 1 || !linhaItem(focoLin, focoCol)) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (!toqueTempo.livre) toqueTempoMin = (float)janelaDesl;
+  toquePpm = G_L_FAIXA_W / G_L_JANELA_MIN;
+  toquerol_vincular(&toqueTempo, (GfxRect){ G_L_FAIXA_X, yR, G_L_FAIXA_W, fimY - yR }, gfx_escala(), 0.0f, G_L_DESL_MAX, 0, &toqueTempoMin);
+  ponteiro_rolagem(toqueGuiaRolar);
+#endif
   ajustes_acento(&ar, &ag, &ab);
 
   // Uma rampa continua em vez de oito faixas de alfa constante: aquelas
@@ -3880,6 +3983,9 @@ static void desenharBanda(float a, Uint32 agora) {
       int foc = ll[k] == focoLin && cc[k] == focoCol;
       GfxRect alvo;
       float y = y0 + (float)k * G_B_ROW;
+#ifdef NV_TOUCH_PREVIEW
+      if (passo == 0 && a > 0.99f) ponteiro_alvo(G_AREA_X, y, G_AREA_W, G_B_ROW, ponteiroCanal, NULL, ll[k], cc[k]);
+#endif
       desenharLinhaLista(linhaItem(ll[k], cc[k]), y, foc, a, agoraT, ini, tFoco,
                          passo, agoraX, foc ? &alvo : NULL);
       if (foc && passo == 0) { focoAnelAlvo = alvo; focoAnelTem = 1; }
@@ -3931,6 +4037,9 @@ static struct { int canal; time_t ini, fim; char titulo[112]; } buscaProg[G_BUSC
 static float buscaRol, buscaAnim;
 
 static void buscaAbrir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueBusca);
+#endif
   buscaEstado = 1;
   teclado_abrir_com("Buscar no guia", "Nome ou número do canal, ou o nome de um programa",
                     TECLADO_MAX, "abcdefghijklmnopqrstuvwxyz0123456789 ", buscaTexto);
@@ -3939,6 +4048,9 @@ static int buscaN(void) { return buscaNC + buscaNP; }
 static void ponteiroBuscaItem(int i, int b) {
   (void)b;
   if (buscaEstado != 2 || i < -1 || i >= buscaN()) return;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueBusca);
+#endif
   buscaFoco = i;
 }
 
@@ -3955,6 +4067,9 @@ static void buscaFazer(const char *q) {
     while (agulha[k] == ' ') k++;
     if (k) memmove(agulha, agulha + k, strlen(agulha + k) + 1); }
   buscaNC = buscaNP = 0; buscaFoco = 0; buscaRol = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueBusca);
+#endif
   if (!agulha[0]) return;
   for (p = agulha; *p; p++) if (*p < '0' || *p > '9') soDigito = 0;
   if (soDigito) numero = atoi(agulha);
@@ -4046,7 +4161,10 @@ static void buscaAtualizar(float dt, Uint32 agora) {
     float area = NV_TELA_H - 300.0f;
     float alvo = y - area * 0.5f;
     if (alvo < 0.0f) alvo = 0.0f;
-    buscaRol += (alvo - buscaRol) * (dt * 12.0f > 1.0f ? 1.0f : dt * 12.0f);
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueBusca.livre)
+#endif
+      buscaRol += (alvo - buscaRol) * (dt * 12.0f > 1.0f ? 1.0f : dt * 12.0f);
   }
 }
 
@@ -4059,6 +4177,14 @@ static void buscaDesenhar(Uint32 agora) {
   if (buscaEstado == 1) teclado_desenhar(agora);
   if (ea < 0.01f) return;
   if (buscaEstado == 2) ponteiro_camada();
+#ifdef NV_TOUCH_PREVIEW
+  if (buscaEstado == 2) {
+    float area = NV_TELA_H - 230.0f;
+    float fim = (buscaN() + 1) * G_BUSCA_ROW + (buscaNC > 0 ? 56.0f : 0.0f) + (buscaNP > 0 ? 56.0f : 0.0f);
+    toquerol_vincular(&toqueBusca, (GfxRect){ x0, 130.0f, G_BUSCA_W, area }, gfx_escala(), 0.0f, fmaxf(0.0f, fim + 10.0f - area), 1, &buscaRol);
+    ponteiro_rolagem(toqueBuscaRolar);
+  }
+#endif
   ajustes_acento(&ar, &ag, &ab);
   gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, 0.80f * ea);
   { GfxRect p = { x0 - 40.0f, 40.0f, G_BUSCA_W + 80.0f, NV_TELA_H - 80.0f };
@@ -4141,6 +4267,111 @@ static void buscaDesenhar(Uint32 agora) {
                      x0, NV_TELA_H - 84.0f, ea);
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static int toqueGuiaRolar(const PonteiroRolagem *e) {
+  PonteiroRolagem local = *e;
+  if (e->fase == PONT_ROL_INICIO) {
+    toqueAtual = NULL; toqueLinha = -1;
+    if (modoLista || overlay) {
+      if (!e->eixoY) toqueAtual = &toqueTempo;
+      else if (!overlay) toqueAtual = &toqueLista;
+    } else if (e->eixoY) toqueAtual = &toqueGradeY;
+    else {
+      for (int l = 0; l < nLinhas(); l++)
+        if (toquerol_evento(&toqueGradeX[l], e)) { toqueLinha = l; toqueAtual = &toqueGradeX[l]; break; }
+      if (!toqueAtual) return 0;
+    }
+  }
+  if (!toqueAtual) return 0;
+  if (toqueAtual == &toqueTempo) {
+    if (toquePpm <= 0.0f) return 0;
+    local.delta /= toquePpm;
+  }
+  int r = toquerol_evento(toqueAtual, &local);
+  if (r) {
+    okDesde = 0; dirSeg = 0;
+    if (e->fase == PONT_ROL_INICIO && !e->eixoY) {
+      if (modoLista && !overlay) toqueLista.livre = 1;
+      else if (!overlay) toqueGradeY.livre = 1;
+    }
+    if (e->fase == PONT_ROL_INICIO) velY = velL = 0.0f;
+    if (overlay) bandaUlt = SDL_GetTicks();
+  }
+  return r;
+}
+static int toqueCategoriaRolar(const PonteiroRolagem *e) {
+  int r = toquerol_evento(&toqueCat, e);
+  if (r) { catUlt = SDL_GetTicks(); catVelRol = 0.0f; dirSeg = 0; }
+  return r;
+}
+static int toqueAddonRolar(const PonteiroRolagem *e) {
+  int r = toquerol_evento(&toqueAddon, e);
+  if (r && e->fase == PONT_ROL_INICIO) paVelRol = 0.0f;
+  return r;
+}
+static int toqueBuscaRolar(const PonteiroRolagem *e) { return toquerol_evento(&toqueBusca, e); }
+static void toqueGuiaRetomar(void) {
+  if (buscaEstado == 2) {
+    if (toqueBusca.livre) {
+      float ponto = buscaRol + toqueBusca.regiao.h * 0.35f, y = G_BUSCA_ROW;
+      buscaFoco = -1;
+      for (int i = 0; i < buscaN(); i++) {
+        if (i == 0 && buscaNC) y += 56.0f;
+        if (i == buscaNC && buscaNP) y += 56.0f;
+        buscaFoco = i;
+        if (y + G_BUSCA_ROW >= ponto) break;
+        y += G_BUSCA_ROW;
+      }
+    }
+    toquerol_limpar(&toqueBusca); return;
+  }
+  if (catAberto) {
+    if (toqueCat.livre) catFoco = (int)((catRol + toqueCat.regiao.h * 0.35f) / G_CAT_ROW);
+    if (catFoco >= nLinhas()) catFoco = nLinhas() - 1;
+    if (catFoco < 0) catFoco = 0;
+    toquerol_limpar(&toqueCat); return;
+  }
+  if (painel) {
+    if (toqueAddon.livre) {
+      float ponto = paRol + toqueAddon.regiao.h * 0.35f;
+      paFoco = 0;
+      while (paFoco + 1 < painelN() && paItemY(paFoco + 1) <= ponto) paFoco++;
+    }
+    toquerol_limpar(&toqueAddon); return;
+  }
+  if (toqueLista.livre && nLinhas() > 0) {
+    float ponto = rolL + toqueLista.regiao.h * 0.35f, y = 0.0f;
+    for (int l = 0; l < nLinhas(); l++) {
+      float h = G_L_HEAD + linhaN(l) * G_L_ROW;
+      if (ponto < y + h || l + 1 == nLinhas()) {
+        focoLin = l; focoCol = (int)((ponto - y - G_L_HEAD) / G_L_ROW);
+        if (focoCol >= linhaN(l)) focoCol = linhaN(l) - 1;
+        if (focoCol < 0) focoCol = 0;
+        break;
+      }
+      y += h;
+    }
+    focoTopo = 0;
+  }
+  if (toqueGradeY.livre && nLinhas() > 0) {
+    focoLin = (int)((rolY + toqueGradeY.regiao.h * 0.35f) / G_PASSO_Y);
+    if (focoLin >= nLinhas()) focoLin = nLinhas() - 1;
+    if (focoCol >= linhaN(focoLin)) focoCol = linhaN(focoLin) - 1;
+    if (focoCol < 0) focoCol = 0;
+    focoTopo = 0;
+  }
+  if (toqueLinha >= 0 && toqueLinha < nLinhas() && toqueGradeX[toqueLinha].livre) {
+    focoLin = toqueLinha;
+    focoCol = (int)((rolX[focoLin] + toqueGradeX[focoLin].regiao.w * 0.35f) / (G_CARD_W + G_GAP_X));
+    if (focoCol >= linhaN(focoLin)) focoCol = linhaN(focoLin) - 1;
+    if (focoCol < 0) focoCol = 0;
+    focoTopo = 0;
+  }
+  if (toqueTempo.livre) janelaDesl = (int)((toqueTempoMin + G_L_PASSO_MIN * 0.5f) / G_L_PASSO_MIN) * G_L_PASSO_MIN;
+  toqueLimpar();
+}
+#endif
+
 void guia_desenhar(Uint32 agora) {
   time_t agoraT = time(NULL);
   time_t tFoco = instanteFoco(agoraT);
@@ -4149,6 +4380,21 @@ void guia_desenhar(Uint32 agora) {
   if (a < 0.01f || !guia_visivel()) return;
   if (overlay) { desenharBanda(a, agora); return; }
   temLinhas = (estado == G_PRONTO || estado == G_BAIXANDO) && nLinhas() > 0;
+#ifdef NV_TOUCH_PREVIEW
+  if (temLinhas) {
+    float area = G_L_BASE - (modoLista ? G_L_TOPO : G_TOPO);
+    if (modoLista) {
+      toquerol_vincular(&toqueLista, (GfxRect){ G_AREA_X, G_L_TOPO, G_AREA_W, area }, gfx_escala(), 0.0f, fmaxf(0.0f, listaAltura() + G_L_FADE - area), 1, &rolL);
+      if (!toqueTempo.livre) toqueTempoMin = (float)janelaDesl;
+      toquePpm = G_L_FAIXA_W / G_L_JANELA_MIN;
+      toquerol_vincular(&toqueTempo, (GfxRect){ G_L_FAIXA_X, G_TOPO, G_L_FAIXA_W, G_L_BASE - G_TOPO }, gfx_escala(), 0.0f, G_L_DESL_MAX, 0, &toqueTempoMin);
+    } else {
+      toquerol_vincular(&toqueGradeY, (GfxRect){ G_AREA_X, G_TOPO, G_AREA_W, area }, gfx_escala(), 0.0f, fmaxf(0.0f, nLinhas() * G_PASSO_Y - area), 1, &rolY);
+      for (int k = 0; k <= G_MAX_CAT; k++) toqueGradeX[k].offset = NULL;
+    }
+    ponteiro_rolagem(toqueGuiaRolar);
+  }
+#endif
 
   // Fundo: opaco na tela cheia, quase opaco no overlay (o video continua
   // tocando atras — ve-se o movimento nas bordas, que e o que diz "a TV nao
@@ -4330,6 +4576,11 @@ void guia_desenhar(Uint32 agora) {
       int n = linhaN(l);
       float dim = 1.0f;
       if (y > G_L_BASE || y + G_PASSO_Y < G_TOPO - 8.0f) continue;
+#ifdef NV_TOUCH_PREVIEW
+      { float topo = fmaxf(y + G_HEAD_H, G_TOPO), base = fminf(y + G_HEAD_H + G_CARD_H, G_L_BASE);
+        toquerol_vincular(&toqueGradeX[l], (GfxRect){ G_AREA_X, topo, G_AREA_W, fmaxf(0.0f, base - topo) }, gfx_escala(), 0.0f,
+                          fmaxf(0.0f, (n - 1) * (G_CARD_W + G_GAP_X) + G_CARD_W - G_AREA_W), 0, &rolX[l]); }
+#endif
       { char cab[140];
         snprintf(cab, sizeof cab, "%s  \xc2\xb7  %d", linhaNome(l), n);
         TxtLinha t = txt_linha_corta(TXT_ROW_TITULO, cab,

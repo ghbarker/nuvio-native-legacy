@@ -30,8 +30,9 @@
 //     barra de tempo do player, o fundo que fecha uma folha) chama ele em vez
 //     do OK.
 //   - RODINHA vira seta: cima/baixo, e esquerda/direita na rodinha lateral.
-//   - DEDO (#216): tocar = focar + OK; arrastar rola (vira setas, com
-//     inercia na soltura); arrastar sobre alvo arrastavel chama o ativar.
+//   - DEDO (#216): tocar = focar + OK; arrastar entrega deltas a camada,
+//     com inercia na soltura. No preview, arrasto sem camada rolavel e
+//     consumido; nas TVs conserva as setas. Alvo arrastavel chama o ativar.
 //     Segurar sem arrastar confirma um OK longo uma vez no limiar; soltar
 //     depois disso nao vira outro clique.
 //   - SETA DO CONTROLE esconde o cursor; ele volta com um movimento de
@@ -107,7 +108,8 @@ void ponteiro_camada(void);
 // INERCIA/FIM. Retornar 0 em INERCIA para no limite; nos demais eventos, fora
 // INICIO, o retorno e ignorado. CANCELAR encerra uma captura invalidada.
 // Capturado nunca vira seta nem OK. ponteiro_camada descarta o registro de
-// tras. As telas do preview registram; sem registro vale a rolagem por setas.
+// tras. No preview, sem registro ou com INICIO recusado o arrasto e consumido
+// sem navegacao nem clique. Nas TVs, conserva a rolagem por setas.
 void ponteiro_rolagem(PonteiroRolagemFn fn);
 // O mesmo alvo, recortado a faixa vertical [y0, y1) — a janela de uma grade
 // que rola por baixo de um cabecalho fixo. O pedaco do cartao que a rolagem

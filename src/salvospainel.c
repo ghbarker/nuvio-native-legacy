@@ -36,6 +36,7 @@
 #include "layout.h"
 #include "ajustes.h"
 #include "ponteiro.h"
+#include "rolagemtoque.h"
 #include "idioma.h"
 #include "botoes.h"
 #include "socialvis.h"
@@ -496,6 +497,14 @@ static int pilIni;     // 0 = a pilula ainda nao tem posicao (cola no alvo)
 #define SP_TITULO_DESLIZE 28.0f
 // Velocidade da rolagem de 2a ordem (anim_mola2): partida macia, como na home.
 static float velY;
+#ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toquePainel, toquePop, toqueEditar;
+static float toqueEditarOffset;
+static float toquePainelMax(void);
+static int toquePainelRolar(const PonteiroRolagem *e);
+static int toquePopRolar(const PonteiroRolagem *e);
+static int toqueEditarRolar(const PonteiroRolagem *e);
+#endif
 static float animFoco[SP_MAX];
 // POSICAO DA BOLA DO INTERRUPTOR, 0 = desligado, 1 = ligado. E estado PROPRIO
 // e nao uma leitura direta de recomenda_aparecer() por um motivo que e a razao
@@ -1385,6 +1394,9 @@ static void trocarAba(int nova) {
   aba = nova;
   foco = SP_FOCO_ABAS;
   scrollY = 0.0f; velY = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toquePainel);
+#endif
   memset(animFoco, 0, sizeof animFoco);
   editLapis = 0;
   if (aba == SP_ABA_AGENDA) { agenda_atualizar_seguidas(); reconstruirAgenda(); }
@@ -1561,6 +1573,9 @@ static void popAbrir(int tipo) {
   // "Excluir" nunca nasce com o foco: OK duas vezes sem ler cancela.
   if (tipo == POP_EXCLUIR) popFoco = 0;
   popRol = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toquePop);
+#endif
   popEntrada = 0.0f;
   memset(popAnim, 0, sizeof popAnim);
 }
@@ -1740,6 +1755,9 @@ void spainel_abrir(void) {
   if (aberto) return;
   deIlha = 0;
   aberto = 1;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toquePainel); toquerol_limpar(&toquePop);
+#endif
   foco = 0;
   okDesde = 0;
   menuId[0] = menuProximo[0] = 0;
@@ -2228,6 +2246,9 @@ static int nLigadas(void) {
 static void abrirEditar(void) {
   trocaIniciar(1);
   editando = 1; editLin = 0; editCol = 0; editLapis = 0;
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueEditar); toqueEditarOffset = 0;
+#endif
 }
 static void fecharEditar(void) {
   trocaIniciar(-1);
@@ -2238,16 +2259,8 @@ static void fecharEditar(void) {
   editLapis = 1;
   scrollY = 0.0f; velY = 0.0f;
 }
-static void editarTecla(SDL_Keycode k) {
+static void editarAtivar(void) {
   int ids[SP_ABA_N], n = editIds(ids);
-  if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE || k == SDLK_DELETE) {
-    fecharEditar(); return;
-  }
-  if (k == SDLK_UP) { if (editLin > 0) editLin--; if (editLin >= n) editCol = 0; return; }
-  if (k == SDLK_DOWN) { if (editLin < n) editLin++; if (editLin >= n) editCol = 0; return; }
-  if (k == SDLK_LEFT) { if (editCol > 0) editCol--; return; }
-  if (k == SDLK_RIGHT) { if (editLin < n && editCol < 2) editCol++; return; }
-  if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE) {
     int id;
     if (editLin >= n) { fecharEditar(); return; }
     id = ids[editLin];
@@ -2264,7 +2277,17 @@ static void editarTecla(SDL_Keycode k) {
         abasGravar();
       }
     }
+}
+static void editarTecla(SDL_Keycode k) {
+  int ids[SP_ABA_N], n = editIds(ids);
+  if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE || k == SDLK_DELETE) {
+    fecharEditar(); return;
   }
+  if (k == SDLK_UP) { if (editLin > 0) editLin--; if (editLin >= n) editCol = 0; return; }
+  if (k == SDLK_DOWN) { if (editLin < n) editLin++; if (editLin >= n) editCol = 0; return; }
+  if (k == SDLK_LEFT) { if (editCol > 0) editCol--; return; }
+  if (k == SDLK_RIGHT) { if (editLin < n && editCol < 2) editCol++; return; }
+  if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE) editarAtivar();
 }
 
 // Troca de aba pelas setas com o foco NA LISTA: o foco cai no mesmo indice da
@@ -2275,6 +2298,9 @@ static void trocarAbaDaLista(int d) {
   if (aba == nova && nVisiveis() > 0) foco = antes < nVisiveis() ? antes : 0;
 }
 void spainel_evento(const SDL_Event *e) {
+#ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e)) { toquerol_limpar(&toquePainel); toquerol_limpar(&toquePop); toquerol_limpar(&toqueEditar); }
+#endif
   SDL_Keycode k;
   if (!aberto) return;
   // O CARTAO "O QUE ACHOU?" de uma rec ("Ja assisti") e modal sobre o painel,
@@ -2587,6 +2613,9 @@ void spainel_atualizar(float dt, Uint32 agora) {
     }
     if (topoR + POP_LINHA_H - alvoR > janela) alvoR = topoR + POP_LINHA_H - janela;
     if (topoR < alvoR) alvoR = topoR;
+#ifdef NV_TOUCH_PREVIEW
+    if (!toquePop.livre)
+#endif
     popRol = ajustes_animacoes_reduzidas() ? alvoR : anim_mola(popRol, alvoR, dt, NV_MOLA_FOCO);
   }
   // Rola o MINIMO para a linha focada caber inteira, como a grade da
@@ -2616,6 +2645,10 @@ void spainel_atualizar(float dt, Uint32 agora) {
     if (topo - alvo < 0.0f) alvo = topo;
   }
   if (alvo < 0.0f) alvo = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  if (toquePainel.livre) { scrollY = toquerol_clamp(scrollY, 0, toquePainelMax()); velY = 0; }
+  else
+#endif
   scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
                                 ajustes_animacoes_reduzidas());
 }
@@ -3270,6 +3303,40 @@ static float abasLargura(int todasContagens) {
 // (spPont, em desenharPainel) e sem escolha, teclado ou edicao por cima.
 static int spPont;
 static int spPontVale(void) { return aberto && !pop && !tecladoPara && !editando && !ctx_aberto(); }
+#ifdef NV_TOUCH_PREVIEW
+static float toquePainelMax(void) {
+  int n = nVisiveis(), i = n - 1;
+  float fim = 0;
+  if (aba == SP_ABA_SALVOS) {
+    fim = alturaConteudo;
+    if (expIdx() >= 0) fim += sorg_estilo() == SORG_ESTILO_LISTA ? expExtra() : expExtraBloco();
+  } else if (n > 0) {
+    fim = topoDe(i);
+    if (aba == SP_ABA_SOCIAL) fim += socialAlt(i);
+    else if (aba == SP_ABA_ATIVIDADE) fim += SPA_H;
+    else if (aba == SP_ABA_AGENDA) fim += SPS_H_ACAO;
+    else if (aba == SP_ABA_AVISOS) fim += avisos_lista_altura_linha(i, foco);
+  }
+  return fmaxf(0, fim + 2 * SP_FOCO_AR - (SP_LISTA_BASE - listaTopo()));
+}
+static int toquePainelRolar(const PonteiroRolagem *e) {
+  int r;
+  if (!spPontVale()) return 0;
+  r = toquerol_evento(&toquePainel, e);
+  if (r) { velY = 0; okDesde = 0; }
+  return r;
+}
+static int toquePopRolar(const PonteiroRolagem *e) {
+  if (!aberto || !pop) return 0;
+  return toquerol_evento(&toquePop, e);
+}
+static int toqueEditarRolar(const PonteiroRolagem *e) {
+  if (!aberto || !editando) return 0;
+  return toquerol_evento(&toqueEditar, e);
+}
+static void toquePopFocar(int i, int b) { (void)b; if (i >= 0 && i < popN) popFoco = i; }
+static void toquePopOk(int i, int b) { toquePopFocar(i, b); popOk(); }
+#endif
 static void ponteiroAbasFoco(int i, int lapis) {
   (void)i;
   if (!spPontVale() || !temAbas() || (foco == SP_FOCO_ABAS && editLapis == lapis)) return;
@@ -3488,6 +3555,11 @@ static void desenhaPop(float a) {
   // numa coluna so, como num menu, e nao em degraus.
   { int k; algumIcone = 0; for (k = 0; k < popN; k++) if (popL[k].icone) algumIcone = 1; }
   gfx_recorte(x, y + topoL - 8.0f, w, janela + 16.0f);
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_vincular(&toquePop, (GfxRect){x, y + topoL, w, janela}, gfx_escala(),
+                   0, popN * (POP_LINHA_H + POP_LINHA_VAO) - POP_LINHA_VAO - janela, 1, &popRol);
+  if (e > .99f) ponteiro_rolagem(toquePopRolar);
+#endif
   for (i = 0; i < popN; i++) {
     float ry = y + topoL + (float)i * (POP_LINHA_H + POP_LINHA_VAO) - popRol;
     float f = popAnim[i], v = focoTexto(f), tx = x + 44.0f;
@@ -3495,6 +3567,9 @@ static void desenhaPop(float a) {
     float tinta = ajustes_acento_tinta(NULL, NULL, NULL);
     GfxRect r = { x + 20.0f, ry, w - 40.0f, POP_LINHA_H };
     if (ry + POP_LINHA_H < y + topoL - 8.0f || ry > y + topoL + janela + 8.0f) continue;
+#ifdef NV_TOUCH_PREVIEW
+    if (e > .99f) ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y + topoL, y + topoL + janela, toquePopFocar, toquePopOk, i, 0);
+#endif
     if (f > 0.01f) superficieItem(r, SP_LINHA_RAIO / POP_LINHA_H, f, e);
     if (popL[i].icone) {
       float ic = anim_mistura(200.0f / 255.0f, tinta, v);
@@ -4327,9 +4402,26 @@ static void desenhaAgendaVazia(float dx, float y, float a) {
 // acento); aba desligada fica a 40 %. Sem mola: a folha tem cinco linhas.
 #define SPE_LIN_H 82.0f
 #define SPE_BTN   56.0f
+#ifdef NV_TOUCH_PREVIEW
+static void toqueEditarFocar(int i, int b) { editLin = i; editCol = b; }
+static void toqueEditarOk(int i, int b) { toqueEditarFocar(i, b); editarAtivar(); }
+#endif
 static void desenhaEditar(float dx, float a) {
   int ids[SP_ABA_N], n = editIds(ids), i, c;
   float y = SP_LISTA_Y + SP_FOCO_AR + 6.0f, tinta = ajustes_acento_tinta(NULL, NULL, NULL);
+#ifdef NV_TOUCH_PREVIEW
+  float topo = SP_LISTA_Y + SP_FOCO_AR + 6.0f, base = SP_LISTA_BASE;
+  float maximo = fmaxf(0, n * SPE_LIN_H + 18 + NV_CTRL_H - (base - topo));
+  if (!toqueEditar.livre) {
+    float fim = editLin >= n ? n * SPE_LIN_H + 18 + NV_CTRL_H : (editLin + 1) * SPE_LIN_H;
+    toqueEditarOffset = toquerol_clamp(fim - (base - topo), 0, maximo);
+  }
+  toquerol_vincular(&toqueEditar, (GfxRect){SP_X + dx, topo, SP_W, base - topo}, gfx_escala(),
+                   0, maximo, 1, &toqueEditarOffset);
+  if (aberto && entrada > .999f && trocaT > .999f) ponteiro_rolagem(toqueEditarRolar);
+  gfx_recorte(SP_X + dx, topo, SP_W, base - topo);
+  y -= toqueEditarOffset;
+#endif
   int tf = ajustes_tinta_foco();
   for (i = 0; i < n; i++) {
     int id = ids[i], lig = abaLiga[id];
@@ -4341,6 +4433,9 @@ static void desenhaEditar(float dx, float a) {
     txt_desenhar_alpha(t, x0 + 48.0f, y + (SPE_LIN_H - t.h) * 0.5f, a * al);
     for (c = 0; c < 3; c++) {
       GfxRect r = { xb + (float)c * (SPE_BTN + 8.0f), y + (SPE_LIN_H - SPE_BTN) * 0.5f, SPE_BTN, SPE_BTN };
+#ifdef NV_TOUCH_PREVIEW
+      if (aberto && entrada > .999f && trocaT > .999f) ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, toqueEditarFocar, toqueEditarOk, i, c);
+#endif
       int foc = (i == editLin && c == editCol);
       float ic = foc ? (float)tf / 255.0f : tinta;
       int sem = (c == 1 && i == 0) || (c == 2 && i == n - 1) || (c == 0 && lig && nLigadas() <= 1);
@@ -4356,6 +4451,9 @@ static void desenhaEditar(float dx, float a) {
     int foc = editLin >= n;
     float w = (float)t.w + 44.0f;
     GfxRect r = { SP_X + dx + SP_PAD, y + 18.0f, w, NV_CTRL_H };
+#ifdef NV_TOUCH_PREVIEW
+    if (aberto && entrada > .999f && trocaT > .999f) ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, toqueEditarFocar, toqueEditarOk, n, 0);
+#endif
     botaoSup(r, 0.5f, foc ? 1.0f : 0.0f, a);
     txt_desenhar_alpha(foc ? tb : t, r.x + 22.0f, r.y + (r.h - (float)t.h) * 0.5f, a * (foc ? 1.0f : 0.85f)); }
 }
@@ -4387,7 +4485,7 @@ static int veuNoFundo;
 // e pintada fora da camada ampliada.
 static void veuInteiro(void) {
   ESCALA_REAL_INI();
-  gfx_cor((GfxRect){ 0, 0, 1920.0f, 1080.0f }, 0.0f, 0, 0, 0, SP_VEU * entrada);
+  gfx_cor((GfxRect){ 0, 0, NV_LAYOUT_REAL_W, 1080.0f }, 0.0f, 0, 0, 0, SP_VEU * entrada);
   ESCALA_REAL_FIM();
 }
 
@@ -4694,6 +4792,11 @@ static void desenharPainel(Uint32 agora) {
     if (temAbas() && !editando) desenhaAbas(x, a, SP_W - SP_ABAS_X - SP_PAD - (float)t.w - 28.0f); }
   x = xp + xl; a *= al;   // dai para baixo e o corpo, que desliza na troca
   if (editando) { desenhaEditar(x, a); gfx_sem_recorte(); return; }
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_vincular(&toquePainel, (GfxRect){SP_X + x, listaTopo(), SP_W, SP_LISTA_BASE - listaTopo()},
+                   gfx_escala(), 0, toquePainelMax(), 1, &scrollY);
+  if (spPont) ponteiro_rolagem(toquePainelRolar);
+#endif
   if (temBarra()) desenhaBarra(x, a);
 
   if (aba == SP_ABA_ATIVIDADE) {

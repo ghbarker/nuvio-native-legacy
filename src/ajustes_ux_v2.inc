@@ -302,6 +302,10 @@ static void aj2MenuAtualizar(float dt) {
     if (ty < alvo) alvo = ty;
     if (alvo > fim - janela + AJ2_MENU_FADE) alvo = fim - janela + AJ2_MENU_FADE;
     if (alvo < 0) alvo = 0;
+#ifdef NV_TOUCH_PREVIEW
+    if (ajToqueLivre[AJT_MENU]) aj2MRolV = 0.0f;
+    else
+#endif
     if (!aj2MIni || red) { aj2MRol = alvo; aj2MRolV = 0; }
     else aj2MRol = anim_mola2(&aj2MRolV, aj2MRol, alvo, dt, 16.0f); }
   // A superficie de foco e uma peca so: segue a linha nova com a mesma mola.
@@ -322,6 +326,22 @@ static float aj2MenuMascara(float yc, float base) {
   a = (base - yc) / AJ2_MENU_FADE;
   return a < 0 ? 0 : a > 1 ? 1 : a;
 }
+#ifdef NV_TOUCH_PREVIEW
+static int ajModalAberto(void);
+static void aj2MenuToqueFocar(int j, int chip) {
+  if (uxEditor) return;
+  focoIndice = 1; uxCabLayout = 0; uxTopo = -1; sairArmado = 0; uxChipAv = 0;
+  if (chip) uxTopo = AJ2_T_AV;
+  else if (j == 0) uxTopo = AJ2_T_BUSCA;
+  else if (j == 1) { uxIndice = 1; uxListarDiferencas(); }
+  else if (j - 2 < nSecoes) { focarSecao(j - 2); uxIndice = j; }
+}
+static GfxRect aj2MenuToqueRect(GfxRect r, GfxRect m, const Aj2Pose *p) {
+  float cy = m.y + m.h * 0.5f;
+  return (GfxRect){m.x + (r.x - m.x) * p->mS + p->mDx,
+                   cy + (r.y - cy) * p->mS, r.w * p->mS, r.h * p->mS};
+}
+#endif
 static void aj2DesenharMenu(const Aj2Pose *p) {
   GfxRect m = aj2MenuR();
   int j, n = nSecoes + 2, f = aj2MenuFocado();
@@ -330,6 +350,13 @@ static void aj2DesenharMenu(const Aj2Pose *p) {
   if (n > AJ2_NMENU) n = AJ2_NMENU;
   if (p->mA <= 0.003f) return;
   aj2MenuMedir();
+#ifdef NV_TOUCH_PREVIEW
+  if (!ajModalAberto() && !uxEditor && p->mA > 0.1f && p->mS > 0.0f) {
+    GfxRect r = aj2MenuToqueRect((GfxRect){m.x, topo, m.w, base - topo}, m, p);
+    ajToqueRegistrar(AJT_MENU, r, &aj2MRol, aj2MenuY(n - 1) + aj2MH[n - 1] - (base - topo) + AJ2_MENU_FADE, aj2MRol, 0);
+    if (ajToqueN) ajToqueRegioes[ajToqueN - 1].escala *= p->mS;
+  }
+#endif
   ajustes_acento(&ar, &ag, &ab);
   gfx_opacidade_grupo = grupo * p->mA;
   gfx_transformar(m.x, m.y + m.h * 0.5f, p->mS, p->mDx, 0);
@@ -366,6 +393,15 @@ static void aj2DesenharMenu(const Aj2Pose *p) {
       // as avancadas ligadas. E o estado que fica quando o foco sai.
       int ativa = c == 2 ? lig_ : sel;
       GfxRect r = { cx, cy, w, AJ2_MENU_CHIP };
+#ifdef NV_TOUCH_PREVIEW
+      if (!ajModalAberto() && !uxEditor && p->mA > 0.1f && (c != 2 || rot > 0.003f) && cy + r.h > topo && cy < base) {
+        GfxRect hit = r;
+        if (hit.y < topo) { hit.h -= topo - hit.y; hit.y = topo; }
+        if (hit.y + hit.h > base) hit.h = base - hit.y;
+        hit = aj2MenuToqueRect(hit, m, p);
+        ponteiro_alvo(hit.x, hit.y, hit.w, hit.h, aj2MenuToqueFocar, NULL, c, c == 2);
+      }
+#endif
       xl[l] += w + 10.0f;
       if (c == 2 && rot <= 0.003f) continue;   // recolhido: a terceira nao cabe na coluna
       if (mkc > 0.003f) {
@@ -405,6 +441,13 @@ static void aj2DesenharMenu(const Aj2Pose *p) {
     float rx = m.x + AJ2_MENU_PAD, mk, al, lc;
     if (j < 2) continue;
     if (y > base || y + h < topo) continue;
+#ifdef NV_TOUCH_PREVIEW
+    if (!ajModalAberto() && !uxEditor && p->mA > 0.1f) {
+      GfxRect hit = {rx, fmaxf(y, topo), m.w - 2 * AJ2_MENU_PAD, fminf(y + h, base) - fmaxf(y, topo)};
+      hit = aj2MenuToqueRect(hit, m, p);
+      ponteiro_alvo(hit.x, hit.y, hit.w, hit.h, aj2MenuToqueFocar, NULL, j, 0);
+    }
+#endif
     if (aj2GrupoIni(j - 2)) {
       float ty = y - AJ2_MENU_GT + 6.0f, mt = aj2MenuMascara(ty + 10.0f, base);
       if (p->mRot > 0.003f && mt > 0.003f) ajKickerAcento(aj2GrupoNome(aj2Grupo(j - 2)), rx + 28.0f, ty, mt * p->mRot);
@@ -856,6 +899,10 @@ static void aj2LAtualizar(float dt) {
     if (alvo < 0) alvo = 0;
   } else if (total > jan && focoIndice && uxTopo >= 0) alvo = 0;
   else if (total > jan) alvo = aj2LRol;
+#ifdef NV_TOUCH_PREVIEW
+  if (ajToqueLivre[AJT_INDICE]) aj2LRol = anim_clamp(aj2LRol, 0.0f, fmaxf(0.0f, total - jan));
+  else
+#endif
   if (ajustes_animacoes_reduzidas()) aj2LRol = alvo;
   else { float k = dt * 14.0f; aj2LRol += (alvo - aj2LRol) * (k > 1 ? 1 : k); }
 }
@@ -979,6 +1026,13 @@ static void aj2DesenharGrade(float a) {
   }
   ajIlha(g, 40.0f, 1, 0);
   if (a >= 0.999f && !ajModalAberto() && !uxEditor) {
+#ifdef NV_TOUCH_PREVIEW
+    if (aj2Lista()) {
+      float total; aj2LYRel(0, &total);
+      ajToqueRegistrar(AJT_INDICE, (GfxRect){g.x, aj2LTopo(), g.w, aj2LBase() - aj2LTopo()},
+                       &aj2LRol, total - (aj2LBase() - aj2LTopo()), aj2LRol, 0);
+    }
+#endif
     for (t = 0; t < AJ2_T_N; t++) { GfxRect r = aj2TopoR(t); ponteiro_alvo(r.x, r.y, r.w, r.h, aj2PonteiroTopo, NULL, t, 0); }
     if (aj2Lista()) for (s = 0; s < n; s++) {
       GfxRect r = aj2LLinhaR(s);

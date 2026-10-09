@@ -422,6 +422,33 @@ static int ajEmLinha(int op) {
 static int ajEditandoLinha(int op) {
   return uxEditor == 1 && !uxRestaurar && !uxAvisoRisco && uxOp == op && ajEmLinha(op);
 }
+#ifdef NV_TOUCH_PREVIEW
+static void ajToqueInlineValor(int v, int op) {
+  if (!ajPontInline || !ajEditandoLinha(op) || v < 0 || v >= nValores(op)) return;
+  uxPendente = v; uxRodape = 0;
+}
+static void ajToqueConfirmar(int a, int b) {
+  (void)a; (void)b;
+  if (uxEditor == 1 && !uxRestaurar && !uxAvisoRisco) { uxRodape = 0; uxAplicar(); }
+}
+static void ajToqueCancelar(int a, int b) { (void)a; (void)b; if (uxEditor) uxCancelar(); }
+static void ajToqueEscolhaAlvo(GfxRect r, int v, int op, float topo, float base) {
+  if (ajPontInline && ajEditandoLinha(op))
+    ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, NULL, ajToqueInlineValor, v, op);
+}
+static void ajToqueBotoes(float direita, float yc, float a) {
+  const char *rot[2] = { "Confirmar", "Cancelar" };
+  for (int i = 0; i < 2; i++) {
+    TxtLinha t = i == 0 ? ajTxtT(TXT_V2_SEG, rot[i]) : ajTxt(TXT_V2_SEG, rot[i]);
+    GfxRect r = { direita - t.w - 40.0f, yc - 24.0f, t.w + 40.0f, 48.0f };
+    if (i == 0) ajPilulaAcento(r, 24.0f, a);
+    else ajNeutro(r, 24.0f, 0.10f, AJ_CHIP_SOL, a);
+    txt_desenhar_alpha(t, r.x + 20.0f, yc - t.h * 0.5f, a);
+    ponteiro_alvo(r.x, r.y, r.w, r.h, NULL, i == 0 ? ajToqueConfirmar : ajToqueCancelar, 0, 0);
+    direita = r.x - 12.0f;
+  }
+}
+#endif
 // AS LINHAS QUE ABREM (v2): a primeira linha fica com 70,4 (16 + 38,4 + 16),
 // 20 de vao (o gap do flex que quebra) e o que vem embaixo — a regua da cor
 // de destaque editando, os tres cartoes do Fundo em foco e, sem inspetor
@@ -535,7 +562,12 @@ static void aj2Regua(GfxRect ln, float y, float a) {
     }
     for (k = 0; k < n; k++) {
       int v = L[k];
-      if (f < 2) { aj2Bolinha(v, bx + 28.0f + k * 72.0f, cy, v == alvo, v == sel && v != alvo, a); continue; }
+      if (f < 2) {
+#ifdef NV_TOUCH_PREVIEW
+        ajToqueEscolhaAlvo((GfxRect){bx + k * 72.0f, cy - 32.0f, 64, 64}, v, AJ_TEMA, AJ_TOPO, AJ_BASE);
+#endif
+        aj2Bolinha(v, bx + 28.0f + k * 72.0f, cy, v == alvo, v == sel && v != alvo, a); continue;
+      }
       // Pilula da dinamica: disco com o DESENHO do que ela faz, tingido na cor
       // que ela tiraria da arte agora, e o nome. Antes eram a mesma miniatura
       // da arte em todas (nao dizia qual era qual) mais um ponto de cor, e a
@@ -548,6 +580,9 @@ static void aj2Regua(GfxRect ln, float y, float a) {
         TxtLinha t = ajTxtC(TXT_V2_SEG, nome, maxT);
         float w = 7 + 42 + 10 + t.w + 18, c1[3], c2[3];
         GfxRect p = { px, cy - 28.0f, w, 56 };
+#ifdef NV_TOUCH_PREVIEW
+        ajToqueEscolhaAlvo(p, v, AJ_TEMA, AJ_TOPO, AJ_BASE);
+#endif
         int foc = v == alvo;
         if (foc) {
           gfx_cor(p, 0.5f, 1, 1, 1, 0.16f * a);
@@ -1017,6 +1052,9 @@ static float aj2Seg(int op, int n, int sel, int ed, float xDir, float yc, float 
     int ac = i == sel && ed;
     TxtLinha t = ac ? ajTxtT(TXT_V2_SEG, ajRotSeg(op, i)) : ajTxt(TXT_V2_SEG, ajRotSeg(op, i));
     float iw = t.w + 44.0f, al = 0.55f;
+#ifdef NV_TOUCH_PREVIEW
+    ajToqueEscolhaAlvo((GfxRect){x, yc - ih * 0.5f, iw, ih}, i, op, AJ_TOPO, AJ_BASE);
+#endif
     if (i == sel) al = 1;
     txt_desenhar_alpha(t, x + 22, yc - t.h * 0.5f, al * a);
     x += iw + 4.0f;
@@ -1045,6 +1083,9 @@ static void aj2CartoesFundo(GfxRect ln, float y, float a) {
   for (i = 0; i < 3; i++) {
     float cx = ln.x + 30.0f + i * (cw + gap), mw = cw - 20.0f, mh = mw * 9.0f / 16.0f;
     TxtLinha t = ajTxtC(TXT_V2_SEG, N[i], cw - 50.0f);
+#ifdef NV_TOUCH_PREVIEW
+    ajToqueEscolhaAlvo((GfxRect){cx, y, cw, 10 + mh + 10 + 29 + 10}, i, AJ_FUNDO, AJ_TOPO, AJ_BASE);
+#endif
     if (i == sel) ajNeutro((GfxRect){ cx, y, cw, 10 + mh + 10 + 29 + 10 }, 20, 0.12f, 0.204f, 0.212f, 0.243f, a);
     aj2MiniFundo(i, cx + 10, y + 10, mw, (i == sel ? 1.0f : 0.7f) * a);
     if (i == sel) {

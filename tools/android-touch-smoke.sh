@@ -64,11 +64,17 @@ PY
 }
 adb exec-out screencap -p > "$OUT/open.png"
 viewport=$(adb logcat -d --pid="$PID" | sed -n 's/.*touch viewport=\([0-9]*,[0-9]*,[0-9]*,[0-9]*\).*/\1/p' | tail -1)
-python3 - "$viewport" <<'PY'
+adb shell wm size > "$OUT/display-size.txt"
+adb shell dumpsys window > "$OUT/window-start.txt"
+python3 - "$viewport" "$OUT/display-size.txt" <<'PY'
+from pathlib import Path
+import re
 import sys
 assert sys.argv[1], 'smoke: viewport nao foi registrado'
 x, y, w, h = map(int, sys.argv[1].split(','))
-assert w > 0 and h > 0 and w / h > 1.9, 'smoke: viewport ainda limitado a 16:9 no telefone largo'
+sizes = re.findall(r'(\d+)x(\d+)', Path(sys.argv[2]).read_text())
+dw, dh = map(int, sizes[-1])
+assert (x, y, w, h) == (0, 0, max(dw, dh), min(dw, dh)), 'smoke: app nao preenche a tela inteira'
 print(f'smoke: viewport de telefone largo {w}x{h} em {x},{y}')
 PY
 # login.c: o botao do e-mail muda de altura entre QR pronto, erro e pedido

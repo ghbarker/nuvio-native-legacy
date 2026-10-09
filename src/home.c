@@ -1522,7 +1522,8 @@ static int toqueHomeRolar(const PonteiroRolagem *e) {
         if (e->y >= y && e->y < y + h) { toqueFileira = r; break; }
         y += h + fileiraGap();
       }
-      if (toqueFileira < 0 || fileiras[toqueFileira].tipo == FILEIRA_SOCIAL) return 0;
+      if (toqueFileira < 0) return 0;
+      if (fileiras[toqueFileira].tipo == FILEIRA_SOCIAL && !amigosfil_rolagem(e)) return 0;
       toqueLivreX[toqueFileira] = 1; velX[toqueFileira] = 0.0f;
       memset(&bordaFil[toqueFileira], 0, sizeof bordaFil[toqueFileira]);
     }
@@ -1535,12 +1536,17 @@ static int toqueHomeRolar(const PonteiroRolagem *e) {
     if (e->eixoY) { s = &scrollY; minimo = -empurraHero(); maximo = toqueHomeMaxY(); }
     else {
       if (toqueFileira < 0 || toqueFileira >= nFileiras) return 0;
+      if (fileiras[toqueFileira].tipo == FILEIRA_SOCIAL) return amigosfil_rolagem(e);
       s = &scrollX[toqueFileira]; minimo = 0.0f; maximo = toqueHomeMaxX(toqueFileira);
     }
     antes = *s; *s = anim_clamp(*s - e->delta, minimo, maximo);
     return fabsf(*s - antes) > 0.001f;
   }
-  if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) toqueFileira = -1;
+  if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) {
+    if (!e->eixoY && toqueFileira >= 0 && toqueFileira < nFileiras && fileiras[toqueFileira].tipo == FILEIRA_SOCIAL)
+      amigosfil_rolagem(e);
+    toqueFileira = -1;
+  }
   return 1;
 }
 // O controle retoma da parte visivel, sem devolver a pagina ao foco que ficou
@@ -1560,6 +1566,7 @@ static void toqueHomeRetomarFoco(void) {
   }
   for (int r = 0; r < nFileiras; r++) if (toqueLivreX[r] && foco.nColunas[r] > 0) {
     int c = (int)((scrollX[r] + (NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT) * 0.35f) / passoFil(r));
+    if (fileiras[r].tipo == FILEIRA_SOCIAL) { c = foco.colunaLembrada[r]; amigosfil_retomar_foco(&c); }
     if (c >= foco.nColunas[r]) c = foco.nColunas[r] - 1;
     if (c < 0) c = 0;
     foco.colunaLembrada[r] = c;
@@ -4303,6 +4310,13 @@ static void ponteiroHero(int a, int b) {
   heroUltTecla = SDL_GetTicks();
   sairPerguntadoEm = 0;
 }
+#ifdef NV_TOUCH_PREVIEW
+static int ponteiroSocialFileira;
+static void ponteiroSocial(int coluna, int cartao) {
+  ponteiroCard(ponteiroSocialFileira, coluna);
+  amigosfil_focar(coluna, cartao);
+}
+#endif
 // So a parte VISIVEL do card: acima do viewport das fileiras (o gfx_recorte
 // de home_desenhar) o card esta cortado e por baixo mora o destaque.
 static void alvoCard(float x, float y, float w, float h, int r, int c) {
@@ -5646,6 +5660,10 @@ void home_desenhar(Uint32 agora) {
         txt_desenhar(lp, px, py);
       }
       if (tipo == FILEIRA_SOCIAL) {
+#ifdef NV_TOUCH_PREVIEW
+        ponteiroSocialFileira = r;
+        amigosfil_ponteiro(ponteiroSocial);
+#endif
         amigosfil_desenhar(ajustes_conteudo_x() + bordaX(r), cardY, alturaFil(r), corte,
                            foco.fileira == r && !focoHero, foco.coluna, agora);
         if (foco.fileira == r && !focoHero) temItemFoco = 0;

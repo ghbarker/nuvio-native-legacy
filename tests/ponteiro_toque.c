@@ -217,9 +217,14 @@ static void rolagemContinua(void) {
   dedoPx(SDL_FINGERDOWN, 1, 150, 700);
   relogio += 200; dedoPx(SDL_FINGERMOTION, 1, 150, 500);
   relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 500);
+#ifdef NV_TOUCH_PREVIEW
+  CONFERE(fases(PONT_ROL_INICIO) == 1 && !fases(PONT_ROL_MOVER) && !nEntregues && !nFocar,
+          "preview consome arrasto recusado sem seta nem clique");
+#else
   CONFERE(fases(PONT_ROL_INICIO) == 1 && !fases(PONT_ROL_MOVER) &&
           conta(SDLK_DOWN) == 1 && !conta(SDLK_RETURN),
           "consumidor que recusa conserva caminho legado de setas");
+#endif
 
   prepararContinuo(barraContinua); nArrasto = 0;
   dedoPx(SDL_FINGERDOWN, 1, 500, 930);
@@ -238,6 +243,43 @@ static void rolagemContinua(void) {
           fabsf(distancia(PONT_ROL_MOVER) - 128.0f) < .01f,
           "origem e delta horizontal seguem largura logica runtime do telefone");
   layout_tela_definir(1920, 1080);
+#endif
+}
+
+static void arrastoSemNavegacao(void) {
+#ifdef NV_TOUCH_PREVIEW
+  for (int c = 0; c < 5; c++) {
+    void (*alvos)(void) = c == 0 ? home : c == 1 ? NULL : c == 2 ? continuo :
+                           c == 3 ? continuoSemAlvos : homeComFolha;
+    prepararContinuo(alvos);
+    aceitaRolagem = 0;
+    dedoPx(SDL_FINGERDOWN, 1, 150, 150);
+    relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 150, 750);
+    // Uma camada que aparece depois do limiar nao transforma o mesmo dedo
+    // em captura nova. Nem voltar ao alvo de partida reabilita tap ou hold.
+    for (int i = 0; i < 70; i++) quadro(continuo);
+    dedoPx(SDL_FINGERMOTION, 1, 150, 150);
+    relogio += NV_HOLD_MS + 1; quadro(continuo);
+    dedoPx(SDL_FINGERUP, 1, 150, 150);
+    for (int i = 0; i < 120; i++) quadro(continuo);
+    CONFERE(!nEntregues && !nFocar && !nAtivar && !fases(PONT_ROL_MOVER) &&
+            !fases(PONT_ROL_INERCIA) && fases(PONT_ROL_INICIO) == (c == 2 || c == 3),
+            "arrasto sem handler, recusado ou em modal nao navega, segura, clica ou ganha embalo");
+  }
+  preparar(home);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 150);
+  relogio += 16; dedoPx(SDL_FINGERUP, 1, 950, 150);
+  for (int i = 0; i < 120; i++) quadro(home);
+  CONFERE(!nEntregues && !nFocar, "swipe horizontal recebido so na soltura tambem e consumido");
+  tocar(150, 150);
+  CONFERE(nEntregues == 2 && nFocar == 1, "tap seguinte a swipe sem handler continua funcionando");
+  zerar();
+  SDL_Event e; SDL_zero(e); e.type = SDL_MOUSEWHEEL; e.wheel.y = -1;
+  relogio += 100;
+  CONFERE(ponteiro_evento(&e, entregar) == 1 && conta(SDLK_DOWN) == 1,
+          "rodinha real conserva navegacao por seta no preview");
+  CONFERE(tecla(SDL_KEYDOWN, SDLK_RIGHT, 0) == 0 && tecla(SDL_KEYUP, SDLK_RIGHT, 0) == 0,
+          "setas reais do controle continuam passando no preview");
 #endif
 }
 
@@ -441,7 +483,8 @@ int main(void) {
   dedo(SDL_FINGERDOWN, 1, 1.01f, 1.01f); dedo(SDL_FINGERUP, 1, 1.01f, 1.01f);
   CONFERE(nEntregues == 2 && ponteiro_x() == 1919.0f && ponteiro_y() == 1079.0f,
           "bordas finitas limitadas ao viewport");
-  // ROLAGEM: dedo sobe 400 px logicos devagar = duas setas para BAIXO, sem OK.
+#ifndef NV_TOUCH_PREVIEW
+  // Nas TVs, dedo sobe 400 px logicos devagar = duas setas para BAIXO.
   preparar(home);
   dedo(SDL_FINGERDOWN, 1, 150.0f / 1920.0f, 700.0f / 1080.0f);
   for (int y = 680; y >= 300; y -= 20) { relogio += 40; dedo(SDL_FINGERMOTION, 1, 150.0f / 1920.0f, y / 1080.0f); }
@@ -487,6 +530,7 @@ int main(void) {
     for (int i = 0; i < 60; i++) quadro(home);
     CONFERE(conta(SDLK_DOWN) == antes, "tocar de novo para a inercia"); }
   dedo(SDL_FINGERUP, 1, 150.0f / 1920.0f, 560.0f / 1080.0f);
+#endif
   // ARRASTO DE ALVO: a barra recebe o ativar a cada movimento, nada rola.
   preparar(barra);
   nArrasto = 0;
@@ -504,6 +548,7 @@ int main(void) {
   CONFERE(nFocar == 1 && focoA == 5 && conta(SDLK_RETURN) == 1, "tap no fundo foca e da OK");
   pressaoLonga();
   rolagemContinua();
+  arrastoSemNavegacao();
   printf("ponteiro toque: %s\n", falhas ? "FALHOU" : "PASS");
   return falhas ? 1 : 0;
 }

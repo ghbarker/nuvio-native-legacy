@@ -379,7 +379,7 @@ static int converterToque(const SDL_TouchFingerEvent *e) {
 #define PONT_INERCIA_PARA 0.06f    // px/ms abaixo disto a inercia acaba
 #define PONT_INERCIA_TAU  260.0f   // ms: constante do freio exponencial
 #define PONT_INERCIA_MAXP 2        // setas por quadro, no maximo
-enum { ARR_NADA = 0, ARR_ROLA, ARR_ALVO, ARR_CONTINUO };
+enum { ARR_NADA = 0, ARR_ROLA, ARR_ALVO, ARR_CONTINUO, ARR_CONSUMIDO };
 static int arrEixoY;
 static float arrAcum, arrUltX, arrUltY, arrVel;
 static Uint32 arrUltMs;
@@ -530,7 +530,13 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
         arrModo = ARR_ALVO;
         alvoPorToque(&arrAlvo, 1, 0);
       } else {
+#ifdef NV_TOUCH_PREVIEW
+        // Sem conteudo rolavel neste ponto, o arrasto continua consumido:
+        // nunca vira navegacao do controle nem clique na soltura.
+        arrModo = ARR_CONSUMIDO;
+#else
         arrModo = ARR_ROLA;
+#endif
         arrEixoY = fabsf(dy) >= fabsf(dx);
         arrAcum = 0.0f;
         arrUltX = toqueX; arrUltY = toqueY;
