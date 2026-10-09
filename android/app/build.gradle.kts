@@ -67,6 +67,13 @@ android {
     // assembleRelease nem e chamado (tools/android.sh).
     val ks = System.getenv("NUVIO_KEYSTORE")
     signingConfigs {
+        if (touchPreview) getByName("debug") {
+            // Use the restored preview key even when Android uses another user directory.
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (ks != null) create("release") {
             storeFile = file(ks)
             storePassword = System.getenv("NUVIO_KEYSTORE_PASS")
