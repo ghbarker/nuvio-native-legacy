@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.net.ConnectivityManager
 import android.net.Network
@@ -38,6 +39,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.RelativeLayout
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -588,7 +590,8 @@ class NuvioActivity : SDLActivity() {
     private fun log(m: String) = Log.i("nuvio", "[texto] $m")
 
     // --- Teclado do sistema -------------------------------------------------
-    // Um EditText de 1 px, invisivel, recebe o foco e chama o IME. O texto
+    // Na TV, um EditText de 1 px invisivel recebe o foco e chama o IME. No
+    // preview touch, o mesmo campo fica visivel acima do teclado. O texto
     // INTEIRO (com a composicao em andamento) vai ao C a cada mudanca: o campo
     // desenhado pelo app e um espelho deste.
     private var campo: CampoIme? = null
@@ -612,7 +615,7 @@ class NuvioActivity : SDLActivity() {
     private fun criarCampo(): CampoIme {
         campo?.let { return it }
         val c = CampoIme(this)
-        c.alpha = 0f
+        c.alpha = if (BuildConfig.NUVIO_TOUCH_PREVIEW) 1f else 0f
         c.isFocusable = true
         c.isFocusableInTouchMode = true
         c.setSingleLine(true)
@@ -655,7 +658,27 @@ class NuvioActivity : SDLActivity() {
             }
             v.onApplyWindowInsets(ins)
         }
-        mLayout.addView(c, ViewGroup.LayoutParams(1, 1))
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW) {
+            fun dp(value: Int) = (value * resources.displayMetrics.density + 0.5f).toInt()
+            c.textSize = 18f
+            c.setTextColor(Color.WHITE)
+            c.setPadding(dp(16), dp(8), dp(16), dp(8))
+            c.minHeight = dp(56)
+            c.background = GradientDrawable().apply {
+                setColor(Color.rgb(28, 31, 38))
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1).coerceAtLeast(1), Color.rgb(125, 170, 255))
+            }
+            c.elevation = dp(8).toFloat()
+            c.visibility = View.GONE
+            mLayout.addView(c, RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                addRule(RelativeLayout.ALIGN_PARENT_TOP)
+                leftMargin = dp(16); rightMargin = dp(16); topMargin = dp(12)
+            })
+        } else {
+            mLayout.addView(c, ViewGroup.LayoutParams(1, 1))
+        }
         campo = c
         return c
     }
@@ -667,6 +690,7 @@ class NuvioActivity : SDLActivity() {
         campoImeVisto = false
         (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
             .hideSoftInputFromWindow(c.windowToken, 0)
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW) c.visibility = View.GONE
         c.clearFocus()
         mSurface?.requestFocus()
         if (ev != null) { log("teclado fechou (${ev[0]})"); eventos.add(ev) }
@@ -698,6 +722,10 @@ class NuvioActivity : SDLActivity() {
             campoAberto = true
             campoImeVisto = false
             teclaDesceuNoCampo = 0
+            if (BuildConfig.NUVIO_TOUCH_PREVIEW) {
+                c.visibility = View.VISIBLE
+                c.bringToFront()
+            }
             c.requestFocus()
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             val ok = imm.showSoftInput(c, InputMethodManager.SHOW_IMPLICIT)

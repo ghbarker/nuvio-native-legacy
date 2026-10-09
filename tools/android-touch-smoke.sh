@@ -73,6 +73,25 @@ if [ "$IME" != 1 ]; then
   echo "smoke: toque nao abriu o teclado do e-mail" >&2
   exit 1
 fi
+adb shell input text 'touch-preview@example.invalid'
+sleep 1
+adb shell uiautomator dump /sdcard/nuvio-touch-editor.xml >/dev/null
+adb pull /sdcard/nuvio-touch-editor.xml "$OUT/editor.xml" >/dev/null
+python3 - "$OUT/editor.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+fields = [n for n in ET.parse(sys.argv[1]).iter('node')
+          if n.get('class') == 'android.widget.EditText'
+          and n.get('package') == 'space.nuvio.nativelegacy.touch']
+assert len(fields) == 1, 'smoke: campo Android visivel nao encontrado'
+field = fields[0]
+assert field.get('focused') == 'true', 'smoke: campo nao tem foco'
+assert field.get('text', '').endswith('touch-preview@example.invalid'), 'smoke: digitacao nao chegou ao campo'
+x1, y1, x2, y2 = map(int, re.findall(r'\d+', field.get('bounds', '')))
+assert x2 - x1 >= 100 and y2 - y1 >= 30 and y2 < 540, 'smoke: campo pequeno ou coberto pelo teclado'
+print('smoke: texto digitado visivel acima do teclado')
+PY
 adb exec-out screencap -p > "$OUT/email-ime.png"
 adb shell input keyevent KEYCODE_BACK
 sleep 2
