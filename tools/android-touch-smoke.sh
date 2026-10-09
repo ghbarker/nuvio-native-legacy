@@ -15,13 +15,17 @@ adb shell settings put secure show_ime_with_hard_keyboard 1
 adb install -r "$APK"
 adb shell am force-stop "$PKG"
 adb logcat -c
+capturar_saida() {
+  adb logcat -d > "$OUT/logcat.txt" || true
+  adb exec-out screencap -p > "$OUT/last.png" || true
+}
+trap capturar_saida EXIT
 adb shell am start -W -n "$PKG/space.nuvio.nativelegacy.NuvioActivity" > "$OUT/start.txt"
 # A abertura inclui SDL/fontes e pode pedir o catalogo. O processo precisa
 # continuar vivo e com a Activity em primeiro plano depois dessa espera.
 sleep 20
-PID=$(adb shell pidof "$PKG" | tr -d '\r')
+PID=$(adb shell pidof "$PKG" | tr -d '\r' || true)
 [ -n "$PID" ] || { adb logcat -d > "$OUT/logcat.txt"; echo "smoke: app fechou na abertura" >&2; exit 1; }
-trap 'adb logcat -d --pid="$PID" > "$OUT/logcat.txt" || true' EXIT
 # O aviso de tela cheia do Android pode cobrir os alvos no primeiro arranque.
 # Se ainda apareceu, fecha o botao do sistema antes de testar os toques do app.
 adb shell uiautomator dump /sdcard/nuvio-touch-window.xml >/dev/null
