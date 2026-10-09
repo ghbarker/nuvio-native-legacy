@@ -12,6 +12,8 @@ grep -qx '16384' "$OUT/page-size.txt" || { echo "smoke: emulador nao usa paginas
 adb shell wm size "${NUVIO_TOUCH_SCREEN:-2340x1080}"
 adb shell settings put secure immersive_mode_confirmations confirmed
 adb shell settings put secure show_ime_with_hard_keyboard 1
+# Let first-boot services finish before starting the app and the keyboard.
+sleep 30
 adb install -r "$APK"
 adb shell am force-stop "$PKG"
 adb logcat -c

@@ -126,7 +126,7 @@ jobs:
           target: google_apis_ps16k
           profile: pixel_2
           cores: 4
-          ram-size: 4096
+          ram-size: 6144
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: bash tools/android-touch-smoke.sh build/android-touch/*-touch-x86_64.apk
@@ -175,7 +175,7 @@ jobs:
           target: google_apis_ps16k
           profile: pixel_2
           cores: 4
-          ram-size: 4096
+          ram-size: 6144
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: bash tools/android-touch-smoke.sh build/android-touch/*-touch-x86_64.apk
