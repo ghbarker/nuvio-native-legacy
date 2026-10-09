@@ -271,6 +271,13 @@ static Uint32      fileirasVistasEm;
 static int          tPrimeiraFileiraPintada = -1;
 static float scrollX[MAX_FIL];
 static float scrollY = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+static int toqueLivreY, toqueLivreX[MAX_FIL], toqueFileira = -1;
+static void toqueHomeLimpar(void) {
+  toqueLivreY = 0; toqueFileira = -1;
+  memset(toqueLivreX, 0, sizeof toqueLivreX);
+}
+#endif
 // Pastas da fileira "Streaming" que o layout Dinamica levou para a barra.
 static int streamBarra[MAX_CARDS], nStreamBarra;
 // Velocidades das molas de 2a ordem do deslize. Ficam ao lado da posicao
@@ -1491,6 +1498,77 @@ static float alvoScrollFil(int r, int col, float atual, float abre) {
   return alvo;
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static float toqueHomeMaxY(void) {
+  float fim = topoFileiras();
+  for (int r = 0; r < nFileiras; r++)
+    fim += NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r) + (r + 1 < nFileiras ? fileiraGap() : 0.0f);
+  return fmaxf(-empurraHero(), fim - NV_TELA_H + 48.0f);
+}
+static float toqueHomeMaxX(int r) {
+  int n = fileiras[r].n + (fileiras[r].verTudo ? 1 : 0);
+  float extra = r == expFileira ? fmaxf(0.0f, alturaFil(r) * NV_EXP_ASPECTO - larguraFil(r)) * expAbre : 0.0f;
+  float util = NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT;
+  return fmaxf(0.0f, (n - 1) * passoFil(r) + larguraFil(r) + xOffTipo(fileiras[r].tipo) + extra - util);
+}
+static int toqueHomeRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    float y = topoFileiras() - scrollY;
+    if (e->x < ajustes_conteudo_x() || e->x >= NV_TELA_W || e->y < corteFileiras() || e->y >= NV_TELA_H || nFileiras < 1) return 0;
+    toqueFileira = -1;
+    if (!e->eixoY) {
+      for (int r = 0; r < nFileiras; r++) {
+        float h = NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r);
+        if (e->y >= y && e->y < y + h) { toqueFileira = r; break; }
+        y += h + fileiraGap();
+      }
+      if (toqueFileira < 0 || fileiras[toqueFileira].tipo == FILEIRA_SOCIAL) return 0;
+      toqueLivreX[toqueFileira] = 1; velX[toqueFileira] = 0.0f;
+      memset(&bordaFil[toqueFileira], 0, sizeof bordaFil[toqueFileira]);
+    }
+    toqueLivreY = 1; velY = 0.0f;
+    memset(&bordaPag, 0, sizeof bordaPag);
+    return 1;
+  }
+  if (e->fase == PONT_ROL_MOVER || e->fase == PONT_ROL_INERCIA) {
+    float *s, antes, minimo, maximo;
+    if (e->eixoY) { s = &scrollY; minimo = -empurraHero(); maximo = toqueHomeMaxY(); }
+    else {
+      if (toqueFileira < 0 || toqueFileira >= nFileiras) return 0;
+      s = &scrollX[toqueFileira]; minimo = 0.0f; maximo = toqueHomeMaxX(toqueFileira);
+    }
+    antes = *s; *s = anim_clamp(*s - e->delta, minimo, maximo);
+    return fabsf(*s - antes) > 0.001f;
+  }
+  if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) toqueFileira = -1;
+  return 1;
+}
+// O controle retoma da parte visivel, sem devolver a pagina ao foco que ficou
+// fora da tela durante o gesto. Tocar um card continua escolhendo aquele card.
+static void toqueHomeRetomarFoco(void) {
+  if (toqueLivreY && nFileiras > 0) {
+    float y = topoFileiras() - scrollY, melhor = 1e9f;
+    int escolhido = foco.fileira;
+    for (int r = 0; r < nFileiras; r++) {
+      float h = NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r);
+      float d = fabsf(y + h * 0.5f - (corteFileiras() + NV_TELA_H) * 0.5f);
+      if (d < melhor) { melhor = d; escolhido = r; }
+      y += h + fileiraGap();
+    }
+    focoHero = 0; foco.fileira = escolhido;
+    foco.coluna = foco.colunaLembrada[escolhido];
+  }
+  for (int r = 0; r < nFileiras; r++) if (toqueLivreX[r] && foco.nColunas[r] > 0) {
+    int c = (int)((scrollX[r] + (NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT) * 0.35f) / passoFil(r));
+    if (c >= foco.nColunas[r]) c = foco.nColunas[r] - 1;
+    if (c < 0) c = 0;
+    foco.colunaLembrada[r] = c;
+    if (foco.fileira == r) foco.coluna = c;
+  }
+  toqueHomeLimpar();
+}
+#endif
+
 // FilTipo (escolha em Ajustes) -> TipoFileira (forma que o desenho conhece).
 // A traducao vive aqui porque este e o unico arquivo que sabe o que cada forma
 // mede; fileiras.h nao pode incluir home.h sem fechar um ciclo de headers.
@@ -1770,6 +1848,9 @@ int home_iniciar(const char *dirArte) {
 
 void home_evento(const SDL_Event *e) {
   if (e->type == SDL_QUIT) { sair = 1; return; }
+#ifdef NV_TOUCH_PREVIEW
+  if (e->type == SDL_KEYDOWN) toqueHomeRetomarFoco();
+#endif
 
   // MODO CINEMA: a primeira tecla devolve a UI (o trailer segue, como no
   // detalhe). Esquerda/direita/baixo NAO se perdem: sao navegacao, e o destaque
@@ -2220,6 +2301,10 @@ static void sincronizarFileiras(void) {
   static Fileira antigas[MAX_FIL];
   int nAntigas = nFileiras;
   memcpy(antigas, fileiras, sizeof antigas);
+#ifdef NV_TOUCH_PREVIEW
+  int livresAntes[MAX_FIL], toqueAntes = toqueFileira;
+  memcpy(livresAntes, toqueLivreX, sizeof livresAntes);
+#endif
   int temDestaque = 0;
   int destaqueIndice = -1;
   nProxHome = 0;
@@ -2603,10 +2688,17 @@ static void sincronizarFileiras(void) {
   memset(revArte, 0, sizeof revArte);
   memset(velX, 0, sizeof velX);
   memset(scrollX, 0, sizeof scrollX);
+#ifdef NV_TOUCH_PREVIEW
+  memset(toqueLivreX, 0, sizeof toqueLivreX); toqueFileira = -1;
+#endif
   memset(bordaFil, 0, sizeof bordaFil);
   for (r = 0; r < nFileiras; r++)
     for (int a = 0; a < nAntigas; a++)
       if (!strcmp(fileiras[r].chave, antigas[a].chave)) {
+#ifdef NV_TOUCH_PREVIEW
+        toqueLivreX[r] = livresAntes[a];
+        if (a == toqueAntes) toqueFileira = r;
+#endif
         if(fileiras[r].tipo==FILEIRA_TOP10 && antigas[a].tipo==FILEIRA_TOP10 &&
            !antigas[a].stackN && antigas[a].verTudo && fileiras[r].stackN) {
           fileiras[r].n=fileiras[r].stackN;
@@ -2648,6 +2740,9 @@ int home_tem_fileiras(void) { return nFileiras > 0; }
 // reaplicaria por chave (Continuar assistindo, Em alta...) no perfil novo.
 void home_ir_topo(void) {
   int r;
+#ifdef NV_TOUCH_PREVIEW
+  toqueHomeLimpar();
+#endif
   focoHero = 1;
   foco.fileira = 0;
   foco.coluna = 0;
@@ -2984,7 +3079,14 @@ void home_atualizar(float dt, Uint32 agora) {
                      : anim_mola(animFoco[r][c], alvo, dt,
                                  alvo > animFoco[r][c] ? NV_MOLA_FOCO : NV_MOLA_DESFOCO);
     }
-    if (r == foco.fileira) {
+#ifdef NV_TOUCH_PREVIEW
+    if (toqueLivreX[r]) scrollX[r] = anim_clamp(scrollX[r], 0.0f, toqueHomeMaxX(r));
+#endif
+    if (r == foco.fileira
+#ifdef NV_TOUCH_PREVIEW
+        && !toqueLivreX[r]
+#endif
+       ) {
       // Roda so o necessario para o item focado caber na area util. Deslocar
       // proporcional a coluna, como estava, jogava o primeiro card para fora da
       // tela assim que o foco ia para o segundo — some conteudo a esquerda sem
@@ -3029,8 +3131,12 @@ void home_atualizar(float dt, Uint32 agora) {
       alvoY += NV_LEGACY_ROW_HEAD_H + alturaTotalFil(i) + fileiraGap();
     if (layoutHome() == HOME_LAYOUT_DINAMICA) alvoY = dinRolagemCentrada(r, alvoY);
   }
-  scrollY = anim_mola2_reduzida(&velY, scrollY, alvoY, dt,
-                                NV_MOLA2_SCROLL, motionReduzido);
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueLivreY) scrollY = anim_clamp(scrollY, -empurraHero(), toqueHomeMaxY());
+  else
+#endif
+    scrollY = anim_mola2_reduzida(&velY, scrollY, alvoY, dt,
+                                  NV_MOLA2_SCROLL, motionReduzido);
   for (int r = 0; r < nFileiras && r < MAX_FIL; r++)
     (void)anim_borda_passo(&bordaFil[r], dt, motionReduzido);
   (void)anim_borda_passo(&bordaPag, dt, motionReduzido);
@@ -3149,7 +3255,7 @@ static void desenhaFundoDin(Uint32 agora) {
 // Rect da ARTE do hero no ultimo quadro. A tela de detalhe le isto para
 // comecar o backdrop dela EXATAMENTE onde a arte ja estava, em vez de aparecer
 // do nada: o fundo e o mesmo do titulo, entao ele nao deve piscar nem crescer.
-static GfxRect heroArteRect = { 0, 0, NV_TELA_W, NV_TELA_H };
+static GfxRect heroArteRect = { 0, 0, NV_TELA_BASE_W, NV_TELA_BASE_H };
 int home_streaming_barra(const int **pastas) {
   if (pastas) *pastas = streamBarra;
   return layoutHome() == HOME_LAYOUT_DINAMICA ? nStreamBarra : 0;
@@ -4180,6 +4286,9 @@ static void desenhaFundo(Uint32 agora) {
 // sair desarmada). O OK do clique chega depois, pelo caminho de sempre.
 static void ponteiroCard(int r, int c) {
   if (r < 0 || r >= nFileiras || c < 0 || c >= foco.nColunas[r]) return;
+#ifdef NV_TOUCH_PREVIEW
+  toqueHomeLimpar();
+#endif
   focoHero = 0;
   foco.fileira = r; foco.coluna = c; foco.colunaLembrada[r] = c;
   heroUltTecla = SDL_GetTicks();
@@ -4187,6 +4296,9 @@ static void ponteiroCard(int r, int c) {
 }
 static void ponteiroHero(int a, int b) {
   (void)a; (void)b;
+#ifdef NV_TOUCH_PREVIEW
+  toqueHomeLimpar();
+#endif
   focoHero = 1;
   heroUltTecla = SDL_GetTicks();
   sairPerguntadoEm = 0;
@@ -5386,6 +5498,9 @@ void home_desenhar(Uint32 agora) {
   // DESENHAM: nem fileiras, nem cartazes, nem o aviso de "cabem mais fileiras".
   const float cinema = trailercinema_t(&heroCinema);
   const int fileirasOcultas = cinema >= 0.996f;
+#ifdef NV_TOUCH_PREVIEW
+  if (!fileirasOcultas) ponteiro_rolagem(toqueHomeRolar);
+#endif
   descida += cinema * NV_CINEMA_DESCE;   // detalhe assentado: nada da home aparece
 
   // VIEWPORT DAS FILEIRAS. `.home-modern-rows-viewport` (components.css:6929) e
@@ -5448,6 +5563,10 @@ void home_desenhar(Uint32 agora) {
       float fatia = anim_clamp(base / 480.0f, 0, 1);
       if (fatia > fade) fade = fatia;
     }
+#ifdef NV_TOUCH_PREVIEW
+    if (toqueLivreY)
+      fade = anim_clamp((y + NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r) - corte) / 80.0f, 0.0f, 1.0f);
+#endif
     gfx_opacidade_grupo=fade*fade*(3-2*fade)*(1.0f-cinema);
     const float grupoFil = gfx_opacidade_grupo;
     { int n = fileiras[r].n;

@@ -61,6 +61,14 @@ PY
   adb shell input tap "$x" "$y"
 }
 adb exec-out screencap -p > "$OUT/open.png"
+viewport=$(adb logcat -d --pid="$PID" | sed -n 's/.*touch viewport=\([0-9]*,[0-9]*,[0-9]*,[0-9]*\).*/\1/p' | tail -1)
+python3 - "$viewport" <<'PY'
+import sys
+assert sys.argv[1], 'smoke: viewport nao foi registrado'
+x, y, w, h = map(int, sys.argv[1].split(','))
+assert w > 0 and h > 0 and w / h > 1.9, 'smoke: viewport ainda limitado a 16:9 no telefone largo'
+print(f'smoke: viewport de telefone largo {w}x{h} em {x},{y}')
+PY
 # login.c: o botao do e-mail muda de altura entre QR pronto, erro e pedido
 # pendente. Nenhum destes pontos envia credenciais. O campo e-mail fica em 406.
 IME=0
@@ -70,7 +78,7 @@ for y in 928 470 384; do
   tap_logico 960 406
   sleep 2
   adb shell dumpsys input_method > "$OUT/ime.txt"
-  if grep -E 'mInputShown=true|mIsInputViewShown=true' "$OUT/ime.txt" >/dev/null; then IME=1; break; fi
+  if grep -E 'mInputShown=true' "$OUT/ime.txt" >/dev/null; then IME=1; break; fi
 done
 if [ "$IME" != 1 ]; then
   adb exec-out screencap -p > "$OUT/email-failed.png"
@@ -100,7 +108,9 @@ adb exec-out screencap -p > "$OUT/email-ime.png"
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 adb shell dumpsys input_method > "$OUT/ime-back.txt"
-if grep -E 'mInputShown=true|mIsInputViewShown=true' "$OUT/ime-back.txt" >/dev/null; then
+# Android 16's IME-service dump can retain mIsInputViewShown=true after its
+# window has closed. The system manager's mInputShown is the current state.
+if grep -E 'mInputShown=true' "$OUT/ime-back.txt" >/dev/null; then
   echo "smoke: Voltar nao fechou o teclado" >&2
   exit 1
 fi

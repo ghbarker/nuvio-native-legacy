@@ -84,6 +84,163 @@ static void temporada(void) {
   ponteiro_alvo(100, 100, 200, 100, NULL, ativar, 2, 3);
   ponteiro_alvo_segurar(focoTemporada);
 }
+static PonteiroRolagem rolagens[256];
+static int nRolagens, aceitaRolagem, paraNoLimite, nOutraRolagem;
+static int rolagem(const PonteiroRolagem *e) {
+  if (nRolagens < 256) rolagens[nRolagens++] = *e;
+  if (e->fase == PONT_ROL_INICIO) return aceitaRolagem;
+  return e->fase != PONT_ROL_INERCIA || !paraNoLimite;
+}
+static int outraRolagem(const PonteiroRolagem *e) { nOutraRolagem++; return rolagem(e); }
+static void continuo(void) { home(); ponteiro_rolagem(rolagem); }
+static void continuoSemAlvos(void) { ponteiro_rolagem(rolagem); }
+static void outraCamada(void) { home(); ponteiro_rolagem(outraRolagem); }
+static void continuoComFolha(void) { continuo(); homeComFolha(); }
+static void barraContinua(void) { barra(); ponteiro_rolagem(rolagem); }
+static void prepararContinuo(void (*alvos)(void)) {
+  preparar(alvos);
+  nRolagens = nOutraRolagem = paraNoLimite = 0; aceitaRolagem = 1;
+}
+static void dedoPx(Uint32 tipo, Sint64 id, float x, float y) {
+  dedo(tipo, id, x / NV_TELA_W, y / NV_TELA_H);
+}
+static int fases(int fase) {
+  int n = 0;
+  for (int i = 0; i < nRolagens; i++) if (rolagens[i].fase == fase) n++;
+  return n;
+}
+static float distancia(int fase) {
+  float d = 0.0f;
+  for (int i = 0; i < nRolagens; i++) if (rolagens[i].fase == fase) d += rolagens[i].delta;
+  return d;
+}
+static void petelecoContinuo(void) {
+  dedoPx(SDL_FINGERDOWN, 1, 150, 700);
+  for (int y = 660; y >= 460; y -= 40) { relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 150, (float)y); }
+  relogio += 8; dedoPx(SDL_FINGERUP, 1, 150, 460);
+}
+static void rolagemContinua(void) {
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 240);
+  CONFERE(!nRolagens && !nFocar && !nEntregues, "movimento pequeno ainda nao captura nem abre");
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 210);
+  CONFERE(fases(PONT_ROL_INICIO) == 1 && fases(PONT_ROL_MOVER) == 1 &&
+          fabsf(distancia(PONT_ROL_MOVER) + 50.0f) < .01f &&
+          rolagens[0].eixoY == 1 && fabsf(rolagens[0].x - 150) < .01f &&
+          fabsf(rolagens[0].y - 260) < .01f && !nEntregues && !nFocar,
+          "captura continua entrega origem e deslocamento inteiro imediato, sem seta ou foco");
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 180);
+  CONFERE(fabsf(distancia(PONT_ROL_MOVER) + 80.0f) < .01f,
+          "conteudo acompanha trechos menores que um passo de seta");
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 180);
+  for (int i = 0; i < 30; i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_SOLTAR) == 1 && fases(PONT_ROL_FIM) == 1 &&
+          !fases(PONT_ROL_INERCIA) && !nEntregues && !nFocar,
+          "parar antes da soltura encerra sem inercia nem clique");
+
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += 40; dedoPx(SDL_FINGERMOTION, 1, 70, 215);
+  relogio += 40; dedoPx(SDL_FINGERMOTION, 1, 50, 500);
+  relogio += 40; dedoPx(SDL_FINGERMOTION, 1, 150, 260);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 260);
+  { int eixo = 1;
+    for (int i = 0; i < nRolagens; i++) if (rolagens[i].eixoY) eixo = 0;
+    CONFERE(eixo && fabsf(distancia(PONT_ROL_MOVER)) < .01f && !nEntregues && !nFocar,
+            "eixo horizontal fica travado; retornar ao inicio nao transforma arrasto em tap"); }
+  for (int i = 0; i < 2; i++) {
+    SDL_Event e; SDL_zero(e);
+    e.type = i ? SDL_MOUSEBUTTONUP : SDL_MOUSEBUTTONDOWN;
+    e.button.which = SDL_TOUCH_MOUSEID; e.button.button = SDL_BUTTON_LEFT;
+    e.button.x = 75; e.button.y = 130;
+    CONFERE(ponteiro_evento(&e, entregar) == 1, "mouse SDL derivado do swipe e consumido");
+  }
+  CONFERE(!nEntregues && !nFocar, "mouse SDL depois de soltar arrasto nao abre titulo");
+
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 180);
+  quadro(continuoSemAlvos);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 260);
+  CONFERE(fases(PONT_ROL_MOVER) == 2 && fases(PONT_ROL_SOLTAR) == 1 &&
+          !fases(PONT_ROL_CANCELAR) && !nEntregues && !nFocar,
+          "alvos que rolaram para fora nao apagam captura nem deixam soltura virar tap");
+
+  prepararContinuo(continuo);
+  petelecoContinuo();
+  for (int i = 0; i < 180; i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_SOLTAR) == 1 && fases(PONT_ROL_INERCIA) > 1 &&
+          fases(PONT_ROL_FIM) == 1 && distancia(PONT_ROL_INERCIA) < -100.0f &&
+          distancia(PONT_ROL_INERCIA) > -5000.0f && !nEntregues && !nFocar,
+          "peteleco continua com deltas finitos e termina uma vez sem setas");
+  { int finito = 1;
+    for (int i = 0; i < nRolagens; i++)
+      if (!isfinite(rolagens[i].delta) || !isfinite(rolagens[i].velocidade)) finito = 0;
+    CONFERE(finito, "velocidade e deltas continuos sempre finitos"); }
+
+  prepararContinuo(continuo);
+  petelecoContinuo();
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += NV_HOLD_MS + 50; quadro(continuo);
+  dedoPx(SDL_FINGERUP, 1, 150, 260);
+  CONFERE(fases(PONT_ROL_CANCELAR) == 1 && !fases(PONT_ROL_INERCIA) && !nEntregues && !nFocar,
+          "tocar para parar o embalo nao abre card nem menu ao soltar ou segurar");
+  tocar(150, 260);
+  CONFERE(nEntregues == 2 && nFocar == 1, "tap novo depois de parar embalo abre normalmente");
+
+  prepararContinuo(continuo);
+  petelecoContinuo(); paraNoLimite = 1;
+  for (int i = 0; i < 60; i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_INERCIA) == 1 && fases(PONT_ROL_FIM) == 1,
+          "consumidor para inercia no limite sem continuar emitindo deltas");
+
+  for (int c = 0; c < 4; c++) {
+    SDL_Event e;
+    prepararContinuo(continuo);
+    dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+    relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 180);
+    if (c == 0) quadro(continuoComFolha);
+    else if (c == 1) quadro(outraCamada);
+    else if (c == 2) dedoPx(SDL_FINGERDOWN, 2, 160, 180);
+    else { SDL_zero(e); e.type = SDL_WINDOWEVENT; e.window.event = SDL_WINDOWEVENT_SIZE_CHANGED;
+      ponteiro_evento(&e, entregar); }
+    dedoPx(SDL_FINGERUP, 1, 150, 260);
+    dedoPx(SDL_FINGERUP, 2, 160, 180);
+    CONFERE(fases(PONT_ROL_CANCELAR) == 1 && !fases(PONT_ROL_SOLTAR) && !nEntregues &&
+            !nFocar && !nOutraRolagem,
+            "camada, consumidor, segundo dedo ou resize cancelam captura sem soltar como clique");
+  }
+
+  prepararContinuo(continuo);
+  aceitaRolagem = 0;
+  dedoPx(SDL_FINGERDOWN, 1, 150, 700);
+  relogio += 200; dedoPx(SDL_FINGERMOTION, 1, 150, 500);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 500);
+  CONFERE(fases(PONT_ROL_INICIO) == 1 && !fases(PONT_ROL_MOVER) &&
+          conta(SDLK_DOWN) == 1 && !conta(SDLK_RETURN),
+          "consumidor que recusa conserva caminho legado de setas");
+
+  prepararContinuo(barraContinua); nArrasto = 0;
+  dedoPx(SDL_FINGERDOWN, 1, 500, 930);
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 700, 930);
+  dedoPx(SDL_FINGERUP, 1, 700, 930);
+  CONFERE(nArrasto > 0 && !nRolagens && !nEntregues,
+          "barra arrastavel tem prioridade sobre rolagem continua");
+
+#ifdef NV_TOUCH_PREVIEW
+  layout_tela_definir(2560, 1080);
+  prepararContinuo(continuo);
+  dedo(SDL_FINGERDOWN, 1, .25f, .4f);
+  relogio += 80; dedo(SDL_FINGERMOTION, 1, .30f, .4f);
+  relogio += 200; dedo(SDL_FINGERUP, 1, .30f, .4f);
+  CONFERE(fabsf(rolagens[0].x - 640.0f) < .01f &&
+          fabsf(distancia(PONT_ROL_MOVER) - 128.0f) < .01f,
+          "origem e delta horizontal seguem largura logica runtime do telefone");
+  layout_tela_definir(1920, 1080);
+#endif
+}
+
 static void pressaoLonga(void) {
   Uint32 inicio;
   SDL_Event e;
@@ -346,6 +503,7 @@ int main(void) {
   zerar(); nFocar = 0; tocar(800, 300);
   CONFERE(nFocar == 1 && focoA == 5 && conta(SDLK_RETURN) == 1, "tap no fundo foca e da OK");
   pressaoLonga();
+  rolagemContinua();
   printf("ponteiro toque: %s\n", falhas ? "FALHOU" : "PASS");
   return falhas ? 1 : 0;
 }

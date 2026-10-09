@@ -111,7 +111,7 @@ class NuvioActivity : SDLActivity() {
         NvPlayer.iniciar(this, camada)
     }
 
-    // SDL, video and keyboard share one safe 16:9 content rectangle. Keeping
+    // SDL, video and keyboard share the full safe window rectangle. Keeping
     // mLayout intact also keeps SDL's touch coordinates relative to the video.
     private fun prepararViewportTouch() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -140,10 +140,12 @@ class NuvioActivity : SDLActivity() {
         raizTouch.addView(mLayout, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         ViewCompat.setOnApplyWindowInsetsListener(raizTouch) { v, ins ->
-            val seguros = ins.getInsetsIgnoringVisibility(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            esquerda = seguros.left; cima = seguros.top
-            direita = seguros.right; baixo = seguros.bottom
+            val barras = ins.getInsets(WindowInsetsCompat.Type.systemBars())
+            val recorte = ins.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.displayCutout())
+            esquerda = maxOf(barras.left, recorte.left)
+            cima = maxOf(barras.top, recorte.top)
+            direita = maxOf(barras.right, recorte.right)
+            baixo = maxOf(barras.bottom, recorte.bottom)
             v.requestLayout()
             ins
         }

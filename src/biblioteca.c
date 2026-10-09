@@ -323,6 +323,10 @@ static RevelaArte revArte[BIB_MAX_LINHAS][BIB_COLUNAS_MAX];
 static Uint32 ondaEm;
 static int ondaArmada;
 static float scrollY = 0.0f;
+static Uint32 okDesde;
+#ifdef NV_TOUCH_PREVIEW
+static int toqueLivre;
+#endif
 // Velocidade da mola de 2a ordem da rolagem (anim_mola2): partida macia e
 // cauda exponencial, a MESMA curva que a home mede. A de 1a ordem que estava
 // aqui partia na velocidade maxima e o primeiro quadro ja saltava 12%.
@@ -469,6 +473,38 @@ static float gradeY(void) {
 }
 static int nLinhas(void) { return (nCelulas + colunas() - 1) / colunas(); }
 
+#ifdef NV_TOUCH_PREVIEW
+static float toqueBibliotecaMax(void) {
+  int linhas = nLinhas();
+  if (linhas > BIB_MAX_LINHAS) linhas = BIB_MAX_LINHAS;
+  return linhas > 0 ? fmaxf(0.0f, gradeY() + (linhas - 1) * passoLinha() + alturaLinha() - BIB_GRADE_BASE) : 0.0f;
+}
+static int toqueBibliotecaRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    if (!e->eixoY || e->x < bibX() || e->x >= bibX() + bibW() || e->y < gradeY() || e->y >= BIB_GRADE_BASE || nCelulas < 1 || teclado_aberto()) return 0;
+    toqueLivre = 1; velY = 0.0f; okDesde = 0;
+    return 1;
+  }
+  if (e->fase == PONT_ROL_MOVER || e->fase == PONT_ROL_INERCIA) {
+    float antes = scrollY;
+    scrollY = anim_clamp(scrollY - e->delta, 0.0f, toqueBibliotecaMax());
+    if (estado() == EST_ITENS && scrollY >= toqueBibliotecaMax() - 2.0f * passoLinha()) lst_itens_mais();
+    return fabsf(scrollY - antes) > 0.001f;
+  }
+  return 1;
+}
+static void toqueBibliotecaRetomarFoco(void) {
+  if (toqueLivre && nCelulas > 0) {
+    int r = (int)((scrollY + (BIB_GRADE_BASE - gradeY()) * 0.35f) / passoLinha());
+    int i = r * colunas() + foco.coluna;
+    if (i >= nCelulas) i = nCelulas - 1;
+    if (i < 0) i = 0;
+    foco.fileira = gradeIni() + i / colunas(); foco.coluna = i % colunas();
+  }
+  toqueLivre = 0;
+}
+#endif
+
 static int ehSerie(const CatItem *ci) {
   return ci && (!strcmp(ci->tipo, "series") || ci->nTemporadas > 0
                 || ci->temporada > 0);
@@ -520,6 +556,9 @@ static void remapear(int preservar) {
     return;
   }
   scrollY = 0.0f; velY = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   memset(animFoco, 0, sizeof animFoco); memset(revArte, 0, sizeof revArte);
   ondaArmada = 1; ondaEm = 0;
 }
@@ -924,7 +963,6 @@ static void menuNaCelula(int i) {
 // O OK da grade e medido: KEYDOWN arma, KEYUP decide (toque x pressao longa), e
 // biblioteca_atualizar dispara o menu no limiar com o dedo ainda no botao — a
 // mesma mecanica da home (home.c), com o mesmo NV_HOLD_MS. Setas cancelam.
-static Uint32 okDesde;
 
 static void eventoAberta(SDL_Keycode k) {
   if (foco.fileira == 0) {
@@ -954,6 +992,9 @@ void biblioteca_evento(const SDL_Event *e) {
   // as teclas. Deixar a grade responder por baixo foi o defeito que a busca de
   // codigo de amigo ja teve.
   if (teclado_aberto()) { teclado_evento(e); return; }
+#ifdef NV_TOUCH_PREVIEW
+  if (e->type == SDL_KEYDOWN) toqueBibliotecaRetomarFoco();
+#endif
   { SDL_Keycode kk = e->key.keysym.sym;
     int ehOk = kk == SDLK_RETURN || kk == SDLK_KP_ENTER || kk == SDLK_SPACE;
     // SOLTAR O OK: se ele foi armado numa celula e o menu nao abriu, foi toque.
@@ -1126,7 +1167,11 @@ void biblioteca_atualizar(float dt, Uint32 agora) {
     alvo = 0.0f;
   }
   if (alvo < 0.0f) alvo = 0.0f;
-  scrollY = anim_mola2(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueLivre) scrollY = anim_clamp(scrollY, 0.0f, toqueBibliotecaMax());
+  else
+#endif
+    scrollY = anim_mola2(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL);
 }
 
 // ---------------------------------------------------------------- desenho
@@ -1344,16 +1389,25 @@ static float larguraSeletor(void) {
 // biblioteca_evento; o OK do clique chega depois, pelo caminho de sempre (aba
 // escolhe, seletor cicla, celula abre ou, segurado, abre o menu do cartaz).
 static void ponteiroModo(int a, int b) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   (void)b;
   if (estado() == EST_ITENS || a < 0 || a >= BIB_N_MODOS) return;
   foco.fileira = BIB_FIL_MODO; foco.coluna = a;
 }
 static void ponteiroPicker(int p, int b) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   (void)b;
   if (estado() == EST_ITENS || p < 0 || p > 2) return;
   pickSel = p; foco.fileira = BIB_FIL_PICK; foco.coluna = p;
 }
 static void ponteiroAcao(int a, int b) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   (void)b;
   if (estado() != EST_ITENS || a < 0 || a > 2) return;
   acaoSel = a; foco.fileira = 0; foco.coluna = a;
@@ -1362,6 +1416,9 @@ static void ponteiroCelula(int i, int b) {
   int nc = colunas();
   (void)b;
   if (i < 0 || i >= nCelulas || nc < 1) return;
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   foco.fileira = gradeIni() + i / nc; foco.coluna = i % nc;
 }
 
@@ -2161,6 +2218,9 @@ static void barraHold(GfxRect r, float a) {
 void biblioteca_desenhar(Uint32 agora) {
   int linhas, r, c, nc = colunas();
   float passoC, passoL, gy, gcy;
+#ifdef NV_TOUCH_PREVIEW
+  if (!teclado_aberto()) ponteiro_rolagem(toqueBibliotecaRolar);
+#endif
   // Mesmo ajuste, mesma disciplina da home: o rebordo claro do GFX_CARD e
   // ligado aqui e DEVOLVIDO no fim, porque a variavel e global e as outras
   // telas desenham card tambem.

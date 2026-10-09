@@ -58,6 +58,9 @@ static int vtColunas(void);
 
 static int   aberta, foco, pedAbrir = -1;
 static float anim, scrollY, velY;
+#ifdef NV_TOUCH_PREVIEW
+static int toqueLivre;
+#endif
 static char  titulo[96];
 static const ColFolder *collection;
 static int source, tabFocus, tabCursor, timeline, ranked;
@@ -163,6 +166,9 @@ static void openSource(void) {
   snprintf(catalogId,sizeof catalogId,"%s",s->catId);
   ranked=strstr(s->catId,"top100")||strstr(s->catId,"top250")||strstr(s->catId,"top10");
   foco=0;scrollY=velY=0;orderN=-1;armarOnda();
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   // FONTE NAO-ADDON (issue #44): "tmdb"/"trakt" vinda do site. Nao tem base
   // de catalogo — o conteudo e pedido direto ao servico pelo
   // desc_vertudo_fonte. "Sem fonte" aqui quer dizer servico nao configurado
@@ -217,6 +223,9 @@ void vertudo_colecao(const ColFolder *folder) {
 void vertudo_abrir(const char *base, const char *tipo, const char *catId,
                    const char *tit) {
   aberta = 1; foco = 0; scrollY = 0.0f; velY = 0.0f; pedAbrir = -1;
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   memset(tabAnim, 0, sizeof tabAnim);
   snprintf(titulo, sizeof titulo, "%s", tit ? tit : "");
   collection=col_por_catalogo(base,tipo,catId);timeline=collection&&!strcmp(collection->group,"Directors");
@@ -305,9 +314,43 @@ static int celulaAceitaMenu(void) {
   return viewItem(foco, &it);
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static float toqueVertudoMax(void) {
+  int linhas = (nItens() + VT_COLS - 1) / VT_COLS;
+  return fmaxf(0.0f, VT_TOPO + linhas * (VT_CARD_H + VT_GAP_Y) - NV_TELA_H + 120.0f);
+}
+static int toqueVertudoRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    if (!e->eixoY || e->x < ajustes_conteudo_x() || e->x >= VT_PAN_X || e->y < VT_TOPO - 12.0f || e->y >= NV_TELA_H || nItens() < 1) return 0;
+    toqueLivre = 1; velY = 0.0f; ctxhold_cancelar(&hold);
+    return 1;
+  }
+  if (e->fase == PONT_ROL_MOVER || e->fase == PONT_ROL_INERCIA) {
+    float antes = scrollY;
+    scrollY = anim_clamp(scrollY - e->delta, 0.0f, toqueVertudoMax());
+    if (scrollY + NV_TELA_H >= VT_TOPO + nItens() / VT_COLS * (VT_CARD_H + VT_GAP_Y) - 2.0f * (VT_CARD_H + VT_GAP_Y)) desc_vertudo_mais();
+    return fabsf(scrollY - antes) > 0.001f;
+  }
+  return 1;
+}
+static void toqueVertudoRetomarFoco(void) {
+  if (toqueLivre && nItens() > 0) {
+    int linha = (int)((scrollY + NV_TELA_H * 0.30f - VT_TOPO) / (VT_CARD_H + VT_GAP_Y));
+    if (linha < 0) linha = 0;
+    foco = linha * VT_COLS + foco % VT_COLS;
+    if (foco >= nItens()) foco = nItens() - 1;
+    tabFocus = 0;
+  }
+  toqueLivre = 0;
+}
+#endif
+
 void vertudo_evento(const SDL_Event *e) {
   int n = nItens(), k;
   if (!aberta) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (e->type == SDL_KEYDOWN) toqueVertudoRetomarFoco();
+#endif
   switch (ctxhold_evento(&hold, e, celulaAceitaMenu())) {
     case CTXH_LONGO: if (!menuNoFocado()) abrirFocado(); return;
     case CTXH_CONSUMIDO: return;
@@ -377,7 +420,11 @@ void vertudo_atualizar(float dt, Uint32 agora) {
   if (maxY < 0.0f) maxY = 0.0f;
   if (alvo < 0.0f) alvo = 0.0f;
   if (alvo > maxY) alvo = maxY;
-  scrollY = anim_mola2(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueLivre) scrollY = anim_clamp(scrollY, 0.0f, maxY);
+  else
+#endif
+    scrollY = anim_mola2(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL);
 }
 
 // PAINEL DA DIREITA: o que a grade sozinha nao diz — sinopse, generos, nota.
@@ -534,11 +581,17 @@ static void themeBackground(float a) {
 static void ponteiroAba(int i, int b) {
   (void)b;
   if (!collection || i < 0 || i >= collection->nSources) return;
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   tabFocus = 1; tabCursor = i;
 }
 static void ponteiroCartaz(int i, int b) {
   (void)b;
   if (i < 0 || i >= nItens()) return;
+#ifdef NV_TOUCH_PREVIEW
+  toqueLivre = 0;
+#endif
   tabFocus = 0; foco = i;
   if (foco >= nItens() - VT_COLS * 2) desc_vertudo_mais();
 }
@@ -664,6 +717,9 @@ void vertudo_desenhar(Uint32 agora) {
   float a = anim, x0 = ajustes_conteudo_x();
   int n = nItens(), i, lin0;
   if (a < 0.01f) return;
+#ifdef NV_TOUCH_PREVIEW
+  ponteiro_rolagem(toqueVertudoRolar);
+#endif
   if (ondaArmada && n > 0) { ondaEm = agora ? agora : 1u; ondaArmada = 0; }
   if (ondaEm && revela_onda_fim(ondaEm, agora)) ondaEm = 0;
   // A onda conta a fileira VISIVEL: a grade que abre rolada (a volta de uma

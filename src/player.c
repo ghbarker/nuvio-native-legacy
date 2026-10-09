@@ -3902,7 +3902,7 @@ static void desenharLegendaPrincipal(float *topoPilha){
 // barraFoco, skipFoco) e todos acordam os controles: mexer a mao sobre o
 // video e o "toque" que faz a barra subir. Clicar no video (fora dos
 // controles) e o OK dos controles escondidos: Play/Pause.
-static float barraPtrX, barraPtrW = NV_TELA_W;
+static float barraPtrX, barraPtrW = NV_TELA_BASE_W;
 static int ponteiroNoPlayer(void) {
   // "O que achou?" com os controles escondidos e dono das teclas
   // (reacao_evento): o alvo de tela inteira do player cobriria as pilulas dele.

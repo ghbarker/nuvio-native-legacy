@@ -1,6 +1,7 @@
 package space.nuvio.nativelegacy
 
-// Geometry only: the Activity applies these bounds to the shared SDL/video parent.
+// Fill the safe window; the native canvas uses its aspect to keep a uniform scale.
+// The Activity applies the same physical bounds to SDL, video and text entry.
 internal object TouchViewport {
     data class Bounds(val left: Int, val top: Int, val width: Int, val height: Int)
 
@@ -8,16 +9,6 @@ internal object TouchViewport {
         val safeWidth = width - left - right
         val safeHeight = height - top - bottom
         if (safeWidth <= 0 || safeHeight <= 0) return null
-        val contentWidth: Int
-        val contentHeight: Int
-        if (safeWidth.toLong() * 9 <= safeHeight.toLong() * 16) {
-            contentWidth = safeWidth
-            contentHeight = (safeWidth.toLong() * 9 / 16).toInt().coerceAtLeast(1)
-        } else {
-            contentHeight = safeHeight
-            contentWidth = (safeHeight.toLong() * 16 / 9).toInt().coerceAtLeast(1)
-        }
-        return Bounds(left + (safeWidth - contentWidth) / 2, top + (safeHeight - contentHeight) / 2,
-            contentWidth, contentHeight)
+        return Bounds(left, top, safeWidth, safeHeight)
     }
 }

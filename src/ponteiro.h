@@ -52,6 +52,17 @@
 
 typedef void (*PonteiroFn)(int a, int b);
 
+enum {
+  PONT_ROL_INICIO, PONT_ROL_MOVER, PONT_ROL_SOLTAR,
+  PONT_ROL_INERCIA, PONT_ROL_FIM, PONT_ROL_CANCELAR
+};
+typedef struct {
+  int fase, eixoY;             // eixo travado: 1 vertical, 0 horizontal
+  float delta, velocidade;     // sentido do dedo: px logicos e px/ms
+  float x, y;                 // origem do DOWN, na tela logica atual
+} PonteiroRolagem;
+typedef int (*PonteiroRolagemFn)(const PonteiroRolagem *e);
+
 typedef struct {
   float x, y, w, h;
   PonteiroFn focar;    // hover (e antes do OK do clique). Pode ser NULL.
@@ -89,6 +100,15 @@ int  ponteiro_ativo(void);
 void ponteiro_alvo(float x, float y, float w, float h,
                    PonteiroFn focar, PonteiroFn ativar, int a, int b);
 void ponteiro_camada(void);
+// Rolagem continua da camada atual, registrada durante o desenho. INICIO
+// recebe delta/velocidade zero: retornar 1 captura o gesto. MOVER entrega o
+// deslocamento completo desde o DOWN e depois cada trecho no eixo travado;
+// subtraia delta do offset para o conteudo acompanhar o dedo. SOLTAR precede
+// INERCIA/FIM. Retornar 0 em INERCIA para no limite; nos demais eventos, fora
+// INICIO, o retorno e ignorado. CANCELAR encerra uma captura invalidada.
+// Capturado nunca vira seta nem OK. ponteiro_camada descarta o registro de
+// tras. As telas do preview registram; sem registro vale a rolagem por setas.
+void ponteiro_rolagem(PonteiroRolagemFn fn);
 // O mesmo alvo, recortado a faixa vertical [y0, y1) — a janela de uma grade
 // que rola por baixo de um cabecalho fixo. O pedaco do cartao que a rolagem
 // escondeu nao recebe o ponteiro (por cima dele mora o cabecalho). E o caminho

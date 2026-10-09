@@ -14,5 +14,8 @@ case "$(uname -s)" in
   *) flags+=(-DNV_LINUX_DESKTOP -Wl,--gc-sections);;
 esac
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
-cc "${flags[@]}" tests/ponteiro_toque.c src/ponteiro.c src/ctxlista.c -lm -o "$dir/teste"
+sources=(tests/ponteiro_toque.c src/ponteiro.c src/ctxlista.c src/layout.c)
+cc "${flags[@]}" "${sources[@]}" -lm -o "$dir/teste"
 "$dir/teste"
+cc "${flags[@]}" -DNV_TOUCH_PREVIEW "${sources[@]}" -lm -o "$dir/preview"
+"$dir/preview"

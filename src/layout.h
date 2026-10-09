@@ -8,8 +8,16 @@
 #ifndef NV_LAYOUT_H
 #define NV_LAYOUT_H
 
-#define NV_TELA_W        1920.0f
-#define NV_TELA_H        1080.0f
+#define NV_TELA_BASE_W   1920.0f
+#define NV_TELA_BASE_H   1080.0f
+#ifdef NV_TOUCH_PREVIEW
+extern float nv_layout_w;
+void layout_tela_definir(int width, int height);
+#define NV_TELA_W        nv_layout_w
+#else
+#define NV_TELA_W        NV_TELA_BASE_W
+#endif
+#define NV_TELA_H        NV_TELA_BASE_H
 
 // O shell legacy usa uma rail de 72dp (144px no canvas 1080p) e inicia o
 // conteúdo 104px depois dela, como no CSS .home-main + --home-content-start.

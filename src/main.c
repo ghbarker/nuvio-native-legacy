@@ -496,7 +496,7 @@ static void teclasInjetadas(void (*entregar)(const SDL_Event *)) {
 
 // Tamanho do buffer de onde a captura le. Definido no arranque, junto com o
 // viewport.
-static int capW = (int)NV_TELA_W, capH = (int)NV_TELA_H;
+static int capW = (int)NV_TELA_BASE_W, capH = (int)NV_TELA_BASE_H;
 
 // PORTA DE TESTE DO MOTOR P2P: "p2p:<infoHash>" no pedido de video resolve o
 // torrent pelo motor embutido (num fio: metadados, pares, primeiros bytes) e
@@ -1253,6 +1253,9 @@ int main(int argc, char **argv) {
   // Em tela retina o drawable e maior que a janela; sem ajustar o viewport, o
   // desenho ocupa um quarto da tela.
   SDL_GL_GetDrawableSize(win, &dw, &dh);
+#ifdef NV_TOUCH_PREVIEW
+  layout_tela_definir(dw, dh);
+#endif
   glViewport(0, 0, dw, dh);
   gfx_tamanho_alvo(dw, dh);
   capW = dw; capH = dh;
@@ -1594,6 +1597,8 @@ int main(int argc, char **argv) {
           SDL_GL_GetDrawableSize(win, &novoW, &novoH);
           if (novoW > 0 && novoH > 0 && (novoW != dw || novoH != dh)) {
             dw = novoW; dh = novoH;
+            layout_tela_definir(dw, dh);
+            gpun_redimensionar(dw, dh);
             glViewport(0, 0, dw, dh);
             gfx_tamanho_alvo(dw, dh);
             video_escala_definir(dw, dh);

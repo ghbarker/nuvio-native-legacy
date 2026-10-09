@@ -370,6 +370,20 @@ void gpun_descartar_cor(int padrao) {
   if (descarte) descarte(GL_FRAMEBUFFER, 1, &a);
 }
 
+void gpun_redimensionar(int w, int h) {
+#ifdef NV_TOUCH_PREVIEW
+  if (w <= 0 || h <= 0 || (w == telaW && h == telaH)) return;
+  if (intLigado) glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  if (intFbo) glDeleteFramebuffers(1, &intFbo);
+  if (intTex) glDeleteTextures(1, &intTex);
+  intFbo = intTex = 0;
+  intW = intH = intFalhou = intLigado = 0;
+  telaW = w; telaH = h;
+#else
+  (void)w; (void)h;
+#endif
+}
+
 static int intPreparar(void) {
   GLint ant = 0;
   GLenum st;

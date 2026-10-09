@@ -213,7 +213,7 @@ object NvPlayer {
         novaSuperficie(activity)
         // A camada so tem tamanho depois do layout: reaplica a janela quando mudar.
         camada.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, or2, ob ->
-            if (r - l != or2 - ol || b - t != ob - ot) aplicarJanela()
+            if (r - l != or2 - ol || b - t != ob - ot) reaplicarJanela()
         }
         try { nativeIniciar() } catch (e: UnsatisfiedLinkError) {
             Log.w(TAG, "nativeIniciar sem a lib ainda; o C acha a classe pelo ClassLoader da Activity: $e")
@@ -626,17 +626,28 @@ object NvPlayer {
         aplicarJanela()
     }
 
+    private fun larguraLogica(): Float {
+        val c = camada
+        return if (BuildConfig.NUVIO_TOUCH_PREVIEW && c != null && c.width > 0 && c.height > 0)
+            TELA_H.toFloat() * c.width / c.height else TELA_W.toFloat()
+    }
+
+    private fun reaplicarJanela() {
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW && !temJanela) aplicarEncaixe() else aplicarJanela()
+    }
+
     // Sem janela pedida ainda: o quadro inteiro encaixado (letterbox) na tela.
     private fun aplicarEncaixe() {
         if (temJanela) return
+        val largura = larguraLogica()
         if (videoW > 0 && videoH > 0) {
-            val esc = minOf(TELA_W.toFloat() / videoW, TELA_H.toFloat() / videoH)
+            val esc = minOf(largura / videoW, TELA_H.toFloat() / videoH)
             jw = (videoW * esc + 0.5f).toInt()
             jh = (videoH * esc + 0.5f).toInt()
-            jx = (TELA_W - jw) / 2
+            jx = ((largura - jw) / 2).toInt()
             jy = (TELA_H - jh) / 2
         } else {
-            jx = 0; jy = 0; jw = TELA_W; jh = TELA_H
+            jx = 0; jy = 0; jw = Math.round(largura); jh = TELA_H
         }
         aplicarJanela()
     }
@@ -650,7 +661,7 @@ object NvPlayer {
             val m = c.resources.displayMetrics
             cw = m.widthPixels; ch = m.heightPixels
         }
-        val ex = cw.toFloat() / TELA_W
+        val ex = cw.toFloat() / larguraLogica()
         val ey = ch.toFloat() / TELA_H
         // As BORDAS arredondam e o tamanho sai da diferenca: tela cheia cai
         // exatamente em 0,0,cw,ch, sem fresta.

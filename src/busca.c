@@ -181,6 +181,14 @@ static int    filNova[BU_MAX_FILEIRAS];
 static Uint32 filEntraEm[BU_MAX_FILEIRAS];
 static float scrollY = 0.0f, scrollAlvo = 0.0f;
 static float scrollX[BU_MAX_FILEIRAS];
+#ifdef NV_TOUCH_PREVIEW
+static int toqueLivreY, toqueLivreX[BU_MAX_FILEIRAS], toqueFileira = -1;
+static void toqueBuscaLimpar(void) {
+  toqueLivreY = 0; toqueFileira = -1;
+  memset(toqueLivreX, 0, sizeof toqueLivreX);
+}
+static void toqueBuscaRetomarFoco(void);
+#endif
 // Velocidade da mola de 2a ordem da rolagem (anim_mola2): partida macia e
 // cauda exponencial, a MESMA curva que a home mede. A de 1a ordem que estava
 // aqui partia na velocidade maxima e o primeiro quadro ja saltava 12%.
@@ -594,6 +602,13 @@ montado:
   { char chaveAntes[BU_MAX_FILEIRAS][96];
     Uint32 entraAntes[BU_MAX_FILEIRAS];
     int novaAntes[BU_MAX_FILEIRAS];
+#ifdef NV_TOUCH_PREVIEW
+    int livresAntes[BU_MAX_FILEIRAS], toqueAntes = toqueFileira;
+    float scrollAntes[BU_MAX_FILEIRAS];
+    memcpy(livresAntes, toqueLivreX, sizeof livresAntes);
+    memcpy(scrollAntes, scrollX, sizeof scrollAntes);
+    memset(toqueLivreX, 0, sizeof toqueLivreX); toqueFileira = -1;
+#endif
     memcpy(chaveAntes, filChave, sizeof chaveAntes);
     memcpy(entraAntes, filEntraEm, sizeof entraAntes);
     memcpy(novaAntes, filNova, sizeof novaAntes);
@@ -605,7 +620,14 @@ montado:
       filNova[r] = 1;
       for (int k = 0; k < BU_MAX_FILEIRAS; k++)
         if (chaveAntes[k][0] && !strcmp(chaveAntes[k], filChave[r])) {
-          filNova[r] = novaAntes[k]; filEntraEm[r] = entraAntes[k]; break;
+          filNova[r] = novaAntes[k]; filEntraEm[r] = entraAntes[k];
+#ifdef NV_TOUCH_PREVIEW
+          if (mesmaConsulta && livresAntes[k]) {
+            toqueLivreX[r] = 1; scrollX[r] = scrollAntes[k]; velX[r] = 0.0f;
+          }
+          if (mesmaConsulta && k == toqueAntes) toqueFileira = r;
+#endif
+          break;
         }
     } }
 
@@ -625,6 +647,9 @@ montado:
   if (nFil == 0 && painel == 1) painel = 0;
   memset(animRes, 0, sizeof animRes); memset(revRes, 0, sizeof revRes);
   if (!mesmaConsulta) {
+#ifdef NV_TOUCH_PREVIEW
+    toqueBuscaLimpar();
+#endif
     memset(scrollX, 0, sizeof scrollX); memset(velX, 0, sizeof velX);
     scrollY = scrollAlvo = 0.0f; velY = 0.0f;
   }
@@ -756,17 +781,29 @@ static void campoOk(void) {
   else if (campoFoco == 2) st_voz_iniciar(ST_BUSCA);
   else st_ime_abrir(ST_BUSCA, consulta, BU_MAX_CONSULTA - 1);
 }
-static void focarCampoPonteiro(int a, int b) { (void)b; painel = 0; campoFoco = a; }
+static void focarCampoPonteiro(int a, int b) {
+  (void)b;
+#ifdef NV_TOUCH_PREVIEW
+  toqueBuscaLimpar();
+#endif
+  painel = 0; campoFoco = a;
+}
 
 // PONTEIRO (#99) NO TECLADO E NOS RESULTADOS: a tecla ou o titulo sob o cursor
 // ganha o foco pelas mesmas variaveis das setas; o OK do clique digita a tecla
 // ou abre o titulo, pelo caminho de sempre.
 static void ponteiroTecla(int f, int c) {
   if (f < 0 || f > kbFil || c < 0 || c >= KB_COLUNAS[f]) return;
+#ifdef NV_TOUCH_PREVIEW
+  toqueBuscaLimpar();
+#endif
   painel = 0; campoFoco = 0; focoKb.fileira = f; focoKb.coluna = c; focoKb.colunaLembrada[f] = c;
 }
 static void ponteiroResultado(int r, int c) {
   if (r < 0 || r >= nFil || c < 0 || c >= fil[r].n) return;
+#ifdef NV_TOUCH_PREVIEW
+  toqueBuscaLimpar();
+#endif
   painel = 1; focoRes.fileira = r; focoRes.coluna = c; focoRes.colunaLembrada[r] = c;
 }
 
@@ -815,6 +852,9 @@ static GfxRect retanguloTecla(int fileira, int coluna) {
 
 // --- Ciclo de vida -----------------------------------------------------------
 int busca_iniciar(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toqueBuscaLimpar();
+#endif
   layoutCir = 0;
   kbMontar();
   focus_iniciar(&focoKb, kbFil + 1, KB_COLUNAS);
@@ -901,6 +941,9 @@ static int menuNoResultado(void) {
 
 void busca_evento(const SDL_Event *e) {
   if (e->type == SDL_QUIT) { sair = 1; return; }
+#ifdef NV_TOUCH_PREVIEW
+  if (e->type == SDL_KEYDOWN) toqueBuscaRetomarFoco();
+#endif
   if (st_evento(e)) return;   // teclado da TV: o valor inteiro vem por sistexto
   // TEXTO DE TECLADO FISICO OU IME (#176): o que nao e ASCII (cirilico, ș, ț,
   // ă...) chega como SDL_TEXTINPUT. O ASCII fica com o SDL_KEYDOWN abaixo — o
@@ -1113,6 +1156,68 @@ static float filTopo(int r) {
   return y;
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static float toqueBuscaMaxY(void) {
+  return nFil > 0 ? fmaxf(0.0f, filTopo(nFil - 1) + filAlt(nFil - 1) - BU_RES_AREA_H) : 0.0f;
+}
+static float toqueBuscaMaxX(int r) {
+  int n = fil[r].n;
+  float fim;
+  if (n < 1 || fil[r].melhor) return 0.0f;
+  fim = fil[r].pessoas ? pessX[n - 1] + pessW[n - 1]
+                      : (n - 1) * buPasso() + buCartazW();
+  return fmaxf(0.0f, fim - (BU_DIR - BU_RES_X));
+}
+static int toqueBuscaRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    if (e->x < BU_RES_X || e->x >= BU_DIR || e->y < BU_RES_Y - 20.0f || e->y >= BU_RES_Y + BU_RES_AREA_H || nFil < 1) return 0;
+    toqueFileira = -1;
+    if (!e->eixoY) {
+      for (int r = 0; r < nFil; r++) {
+        float y = BU_RES_Y + filTopo(r) - scrollY;
+        if (e->y >= y && e->y < y + filAlt(r)) { toqueFileira = r; break; }
+      }
+      if (toqueFileira < 0) return 0;
+      toqueLivreX[toqueFileira] = 1; velX[toqueFileira] = 0.0f;
+    }
+    toqueLivreY = 1; velY = 0.0f; scrollAlvo = scrollY;
+    ctxhold_cancelar(&holdRes);
+    return 1;
+  }
+  if (e->fase == PONT_ROL_MOVER || e->fase == PONT_ROL_INERCIA) {
+    float *s, antes, maximo;
+    if (e->eixoY) { s = &scrollY; maximo = toqueBuscaMaxY(); }
+    else {
+      if (toqueFileira < 0 || toqueFileira >= nFil) return 0;
+      s = &scrollX[toqueFileira]; maximo = toqueBuscaMaxX(toqueFileira);
+    }
+    antes = *s; *s = anim_clamp(*s - e->delta, 0.0f, maximo);
+    if (e->eixoY) scrollAlvo = scrollY;
+    return fabsf(*s - antes) > 0.001f;
+  }
+  if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) toqueFileira = -1;
+  return 1;
+}
+static void toqueBuscaRetomarFoco(void) {
+  if (toqueLivreY && nFil > 0) {
+    float ponto = scrollY + BU_RES_AREA_H * 0.35f;
+    int r = 0;
+    while (r + 1 < nFil && filTopo(r) + filAlt(r) < ponto) r++;
+    painel = 1; focoRes.fileira = r; focoRes.coluna = focoRes.colunaLembrada[r];
+  }
+  for (int r = 0; r < nFil; r++) if (toqueLivreX[r] && fil[r].n > 0) {
+    float ponto = scrollX[r] + (BU_DIR - BU_RES_X) * 0.35f;
+    int c = (int)(ponto / buPasso());
+    if (fil[r].pessoas) { c = 0; while (c + 1 < fil[r].n && pessX[c] + pessW[c] < ponto) c++; }
+    if (c >= fil[r].n) c = fil[r].n - 1;
+    if (c < 0) c = 0;
+    focoRes.colunaLembrada[r] = c;
+    if (focoRes.fileira == r) focoRes.coluna = c;
+  }
+  toqueBuscaLimpar();
+}
+#endif
+
 void busca_atualizar(float dt, Uint32 agora) {
   // TECLADO/VOZ DO SISTEMA (sistexto.h): o texto vem inteiro e substitui o campo.
   { char t[BU_MAX_CONSULTA * 2];
@@ -1208,8 +1313,14 @@ void busca_atualizar(float dt, Uint32 agora) {
     int r = focoRes.fileira;
     float topo = filTopo(r);
     float base = topo + filAlt(r);
-    if (topo - scrollAlvo < 0.0f)             scrollAlvo = topo;
-    if (base - scrollAlvo > BU_RES_AREA_H)    scrollAlvo = base - BU_RES_AREA_H;
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueLivreY) {
+#endif
+      if (topo - scrollAlvo < 0.0f)             scrollAlvo = topo;
+      if (base - scrollAlvo > BU_RES_AREA_H)    scrollAlvo = base - BU_RES_AREA_H;
+#ifdef NV_TOUCH_PREVIEW
+    }
+#endif
 
     // Rolagem horizontal da fileira em foco, mesma regra da home.
     float util = BU_DIR - BU_RES_X;
@@ -1223,12 +1334,24 @@ void busca_atualizar(float dt, Uint32 agora) {
     if (dir - alvoX > util) alvoX = dir - util;
     if (esq - alvoX < 0.0f) alvoX = esq;
     if (alvoX < 0.0f) alvoX = 0.0f;
-    scrollX[r] = anim_mola2(&velX[r], scrollX[r], alvoX, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueLivreX[r])
+#endif
+      scrollX[r] = anim_mola2(&velX[r], scrollX[r], alvoX, dt, NV_MOLA2_SCROLL);
   } else {
+#ifdef NV_TOUCH_PREVIEW
+    if (!toqueLivreY)
+#endif
     scrollAlvo = 0.0f;
   }
   if (scrollAlvo < 0.0f) scrollAlvo = 0.0f;
-  scrollY = anim_mola2(&velY, scrollY, scrollAlvo, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TOUCH_PREVIEW
+  for (int r = 0; r < nFil; r++) if (toqueLivreX[r])
+    scrollX[r] = anim_clamp(scrollX[r], 0.0f, toqueBuscaMaxX(r));
+  if (toqueLivreY) scrollY = scrollAlvo = anim_clamp(scrollY, 0.0f, toqueBuscaMaxY());
+  else
+#endif
+    scrollY = anim_mola2(&velY, scrollY, scrollAlvo, dt, NV_MOLA2_SCROLL);
 }
 
 // --- Desenho -----------------------------------------------------------------
@@ -1618,6 +1741,9 @@ static void desenhaResultados(Uint32 agora) {
 }
 
 void busca_desenhar(Uint32 agora) {
+#ifdef NV_TOUCH_PREVIEW
+  ponteiro_rolagem(toqueBuscaRolar);
+#endif
   ajustes_ui_fundo();
   // O .fundo da pagina no mockup (preto 70% em cima, 92% a 60%): os resultados
   // e o teclado leem sobre a arte sem competir com ela.

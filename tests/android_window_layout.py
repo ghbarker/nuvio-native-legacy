@@ -13,16 +13,22 @@ import tempfile
 
 root = Path(__file__).resolve().parents[1]
 source = (root / 'android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt').read_text()
-start = source.index('    private fun aplicarJanela() {')
-brace = source.index('{', start)
-depth = 1
-end = brace + 1
-while depth:
-    depth += (source[end] == '{') - (source[end] == '}')
-    end += 1
-method = source[start:end]
+def method(name):
+    start = source.index(f'    private fun {name}(')
+    brace = source.index('{', start)
+    depth = 1
+    end = brace + 1
+    while depth:
+        depth += (source[end] == '{') - (source[end] == '}')
+        end += 1
+    return source[start:end]
+
+
+methods = '\n'.join(method(name) for name in (
+    'larguraLogica', 'reaplicarJanela', 'aplicarEncaixe', 'aplicarJanela'))
 fixture = r'''
 object Gravity { const val TOP = 48; const val START = 8388611 }
+object BuildConfig { var NUVIO_TOUCH_PREVIEW = false }
 object Counts { var allocations = 0; var assignments = 0; var recreations = 0 }
 object FrameLayout {
     class LayoutParams(var width: Int, var height: Int) {
@@ -48,8 +54,11 @@ object PlayerFixture {
     var camada: Layer? = Layer(1920, 1080)
     var superficie: Surface? = Surface()
     var jx = 0; var jy = 0; var jw = 1920; var jh = 1080
+    var temJanela = true; var videoW = 0; var videoH = 0
     fun recriarSuperficie(delay: Long) { check(delay == 350L); Counts.recreations++ }
     fun apply() = aplicarJanela()
+    fun resize() = reaplicarJanela()
+    fun width() = larguraLogica()
 METHOD
 }
 fun main() {
@@ -83,19 +92,47 @@ fun main() {
     check(lp.leftMargin == 10 && lp.width == 200)
     p.superficie = null; p.apply()
     check(Counts.assignments == 7 && Counts.recreations == 7)
-    println("android_window_layout: repeated requests, resize, replacement, external mutation and retry ok")
+    // Preview's X/Y scale stays uniform on a wide phone. Default windows
+    // follow new bounds; cinematic video can use the entire matching display.
+    BuildConfig.NUVIO_TOUCH_PREVIEW = true
+    p.camada = Layer(2400, 1080); p.superficie = Surface(); p.temJanela = false
+    check(p.width() == 2400f)
+    p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 0 && lp.topMargin == 0 && lp.width == 2400 && lp.height == 1080)
+    p.camada!!.width = 2340; p.videoW = 1920; p.videoH = 1080; p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 210 && lp.topMargin == 0 && lp.width == 1920 && lp.height == 1080)
+    p.camada!!.width = 2400; p.videoW = 2400; p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 0 && lp.topMargin == 0 && lp.width == 2400 && lp.height == 1080)
+    p.camada!!.width = 2200; p.camada!!.height = 1000
+    p.videoW = 2376; p.videoH = 1080; p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 0 && lp.topMargin == 0 && lp.width == 2200 && lp.height == 1000)
+    // A crop/window from C retains its coordinates while the parent changes.
+    p.temJanela = true; p.jx = 100; p.jy = 200; p.jw = 400; p.jh = 300
+    p.camada!!.width = 3000; p.camada!!.height = 1500; p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 139 && lp.topMargin == 278 && lp.width == 555 && lp.height == 416)
+    check(p.jx == 100 && p.jy == 200 && p.jw == 400 && p.jh == 300)
+    p.camada!!.width = 0; check(p.width() == 1920f)
+    p.camada = null; check(p.width() == 1920f)
+    println("android_window_layout: TV guards and uniform preview default/video/crop resize ok")
 }
-'''.replace('METHOD', method)
+'''.replace('METHOD', methods)
 cache = Path.home() / '.gradle/caches/modules-2/files-2.1'
 def jar(group, artifact, version):
     matches = list((cache / group / artifact / version).glob('*/*.jar'))
     if not matches:
         raise SystemExit(f'Missing cached {artifact}:{version}; run Android Gradle build first')
     return str(matches[0])
-stdlib = jar('org.jetbrains.kotlin', 'kotlin-stdlib', '2.0.21')
-classpath = ':'.join([
-    jar('org.jetbrains.kotlin', 'kotlin-compiler-embeddable', '2.0.21'), stdlib,
-    jar('org.jetbrains.kotlin', 'kotlin-script-runtime', '2.0.21'),
+compiler_version = os.environ.get('NUVIO_TEST_KOTLIN_VERSION', '2.0.21')
+stdlib = jar('org.jetbrains.kotlin', 'kotlin-stdlib', compiler_version)
+classpath = os.pathsep.join([
+    jar('org.jetbrains.kotlin', 'kotlin-compiler-embeddable', compiler_version), stdlib,
+    jar('org.jetbrains.kotlin', 'kotlin-script-runtime', compiler_version),
+    jar('org.jetbrains.kotlin', 'kotlin-reflect', '1.6.10'),
     jar('org.jetbrains.intellij.deps', 'trove4j', '1.0.20200330'),
     jar('org.jetbrains.kotlinx', 'kotlinx-coroutines-core-jvm', '1.6.4'),
     jar('org.jetbrains', 'annotations', '13.0'),
@@ -112,4 +149,4 @@ with tempfile.TemporaryDirectory(prefix='nuvio-window-layout-') as work:
     subprocess.run([java, '-cp', classpath, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler',
                     '-no-stdlib', '-no-reflect', '-classpath', stdlib,
                     '-jvm-target', '17', '-d', str(target), str(file)], check=True)
-    subprocess.run([java, '-cp', f'{target}:{stdlib}', 'WindowFixtureKt'], check=True)
+    subprocess.run([java, '-cp', os.pathsep.join([str(target), stdlib]), 'WindowFixtureKt'], check=True)

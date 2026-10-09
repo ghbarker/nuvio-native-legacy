@@ -16,11 +16,14 @@ fun main() {
         check(TouchViewport.fit(w, h, l, t, r, b) == expected)
     }
     expect(1920, 1080, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 1920, 1080))
-    expect(2400, 1080, 0, 0, 0, 0, TouchViewport.Bounds(240, 0, 1920, 1080))
-    expect(2560, 1600, 0, 0, 0, 0, TouchViewport.Bounds(0, 80, 2560, 1440))
-    expect(2340, 1080, 100, 0, 20, 0, TouchViewport.Bounds(250, 0, 1920, 1080))
-    expect(2400, 1080, 0, 0, 0, 80, TouchViewport.Bounds(311, 0, 1777, 1000))
-    expect(2400, 1080, 80, 24, 0, 24, TouchViewport.Bounds(323, 24, 1834, 1032))
+    expect(2400, 1080, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 2400, 1080))
+    expect(2560, 1600, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 2560, 1600))
+    expect(2340, 1080, 100, 0, 20, 0, TouchViewport.Bounds(100, 0, 2220, 1080))
+    expect(2400, 1080, 0, 0, 0, 80, TouchViewport.Bounds(0, 0, 2400, 1000))
+    expect(2400, 1080, 80, 24, 0, 24, TouchViewport.Bounds(80, 24, 2320, 1032))
+    // Hiding system bars removes their padding; the physical cutout stays protected.
+    expect(2400, 1080, 80, 24, 0, 80, TouchViewport.Bounds(80, 24, 2320, 976))
+    expect(2400, 1080, 80, 0, 0, 0, TouchViewport.Bounds(80, 0, 2320, 1080))
     check(TouchViewport.fit(0, 1080, 0, 0, 0, 0) == null)
     check(TouchViewport.fit(1920, 0, 0, 0, 0, 0) == null)
     check(TouchViewport.fit(100, 100, 50, 0, 50, 0) == null)
@@ -28,12 +31,11 @@ fun main() {
     for (w in listOf(801, 1921, 2341, 2561)) {
         for (h in listOf(601, 1081, 1601)) {
             val v = TouchViewport.fit(w, h, 31, 7, 19, 23)!!
-            check(v.left >= 31 && v.top >= 7)
-            check(v.left + v.width <= w - 19 && v.top + v.height <= h - 23)
-            check(kotlin.math.abs(v.width * 9 - v.height * 16) < 16)
+            check(v.left == 31 && v.top == 7)
+            check(v.left + v.width == w - 19 && v.top + v.height == h - 23)
         }
     }
-    println("android_touch_viewport: TV, wide phone, tablet, cutout, system bars and odd sizes ok")
+    println("android_touch_viewport: full safe phone/tablet bounds, cutout, shown/hidden bars and odd sizes ok")
 }
 '''
 cache = Path.home() / '.gradle/caches/modules-2/files-2.1'

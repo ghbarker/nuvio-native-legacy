@@ -78,7 +78,10 @@ jobs:
       - name: Touch input regression
         run: |
           bash tests/ponteiro_toque.sh
+          bash tests/catalogo_toque.sh
           python3 tests/android_apk_pages.py
+          cc -DNV_TOUCH_PREVIEW -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
+          /tmp/nuvio-layout-touch
       - name: ARM phone APK
         run: bash tools/android-touch.sh
       - name: Emulator APK
@@ -86,7 +89,9 @@ jobs:
           NUVIO_TOUCH_ABIS: x86_64
         run: bash tools/android-touch.sh
       - name: Touch viewport regression
-        run: python3 tests/android_touch_viewport.py
+        run: |
+          python3 tests/android_touch_viewport.py
+          python3 tests/android_window_layout.py
       - uses: actions/cache/save@v4
         if: steps.native-cache.outputs.cache-hit != 'true'
         with:
