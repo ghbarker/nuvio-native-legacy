@@ -418,6 +418,8 @@ static void invalidarToque(void) {
   toqueCancelado = 1; arrModo = ARR_NADA; pararInercia();
 }
 
+void ponteiro_cancelar_toque(void) { cancelarToque(); }
+
 // Ate o limiar nenhum OK foi entregue: arrastar, outro dedo ou uma camada
 // nova podem cancelar sem transformar a soltura num clique. No limiar o
 // gesto fica consumido e entrega um par completo pela mesma rota do teclado.
@@ -565,7 +567,9 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
       cancelarToque();
       return 0;
     case SDL_WINDOWEVENT:
-      if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST) cancelarToque();
+      if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST ||
+          e->window.event == SDL_WINDOWEVENT_RESIZED ||
+          e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED) cancelarToque();
       return 0;
     case SDL_MOUSEMOTION:
       if (e->motion.which == SDL_TOUCH_MOUSEID) return 1;

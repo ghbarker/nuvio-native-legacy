@@ -173,7 +173,12 @@ static double rssMB(void) {
   if (!f) return 0.0;
   if (fscanf(f, "%ld %ld", &paginas, &res) != 2) res = 0;
   fclose(f);
+#if defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
+  long tamanhoPagina = sysconf(_SC_PAGESIZE);
+  return tamanhoPagina > 0 ? (double)res * tamanhoPagina / 1048576.0 : 0.0;
+#else
   return (double)res * 4096.0 / 1048576.0;
+#endif
 #endif
 }
 
@@ -1556,6 +1561,12 @@ int main(int argc, char **argv) {
     // Enquanto o detalhe existe ele fica com o teclado inteiro: a home
     // continua desenhada por baixo, mas nao deve reagir ao D-pad.
     while (SDL_PollEvent(&e)) {
+#if defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
+      if (android_toque_cancelado(&e)) {
+        ponteiro_cancelar_toque();
+        continue;
+      }
+#endif
       ponteiro_diag(&e);
       // PROTECAO DE OLED (esmaecer.h): toda acao da pessoa acorda a tela, e a
       // tecla que acorda so acorda — nao age.
@@ -1578,6 +1589,7 @@ int main(int argc, char **argv) {
 #if defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
         if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
             e.window.event == SDL_WINDOWEVENT_RESIZED) {
+          ponteiro_evento(&e, app_evento);
           int novoW = 0, novoH = 0;
           SDL_GL_GetDrawableSize(win, &novoW, &novoH);
           if (novoW > 0 && novoH > 0 && (novoW != dw || novoH != dh)) {

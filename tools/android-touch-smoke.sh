@@ -7,7 +7,10 @@ OUT=build/android-touch/smoke
 PKG=space.nuvio.nativelegacy.touch
 mkdir -p "$OUT"
 adb wait-for-device
+adb shell getconf PAGE_SIZE > "$OUT/page-size.txt"
+grep -qx '16384' "$OUT/page-size.txt" || { echo "smoke: emulador nao usa paginas de 16KB" >&2; exit 1; }
 adb shell wm size "${NUVIO_TOUCH_SCREEN:-2340x1080}"
+adb shell settings put secure immersive_mode_confirmations confirmed
 adb shell settings put secure show_ime_with_hard_keyboard 1
 adb install -r "$APK"
 adb shell am force-stop "$PKG"
@@ -19,6 +22,27 @@ sleep 20
 PID=$(adb shell pidof "$PKG" | tr -d '\r')
 [ -n "$PID" ] || { adb logcat -d > "$OUT/logcat.txt"; echo "smoke: app fechou na abertura" >&2; exit 1; }
 trap 'adb logcat -d --pid="$PID" > "$OUT/logcat.txt" || true' EXIT
+# O aviso de tela cheia do Android pode cobrir os alvos no primeiro arranque.
+# Se ainda apareceu, fecha o botao do sistema antes de testar os toques do app.
+adb shell uiautomator dump /sdcard/nuvio-touch-window.xml >/dev/null
+adb pull /sdcard/nuvio-touch-window.xml "$OUT/window.xml" >/dev/null
+CONFIRM=$(python3 - "$OUT/window.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+for node in ET.parse(sys.argv[1]).iter('node'):
+    if node.get('resource-id') == 'com.android.systemui:id/ok':
+        coords = list(map(int, re.findall(r'\d+', node.get('bounds', ''))))
+        if len(coords) == 4:
+            print((coords[0] + coords[2]) // 2, (coords[1] + coords[3]) // 2)
+            break
+PY
+)
+if [ -n "$CONFIRM" ]; then
+  read -r x y <<< "$CONFIRM"
+  adb shell input tap "$x" "$y"
+  sleep 2
+fi
 tap_logico() {
   local viewport ponto x y
   viewport=$(adb logcat -d --pid="$PID" | sed -n 's/.*touch viewport=\([0-9]*,[0-9]*,[0-9]*,[0-9]*\).*/\1/p' | tail -1)
@@ -44,10 +68,19 @@ for y in 928 470 384; do
   adb shell dumpsys input_method > "$OUT/ime.txt"
   if grep -E 'mInputShown=true|mIsInputViewShown=true' "$OUT/ime.txt" >/dev/null; then IME=1; break; fi
 done
-[ "$IME" = 1 ] || { echo "smoke: toque nao abriu o teclado do e-mail" >&2; exit 1; }
+if [ "$IME" != 1 ]; then
+  adb exec-out screencap -p > "$OUT/email-failed.png"
+  echo "smoke: toque nao abriu o teclado do e-mail" >&2
+  exit 1
+fi
 adb exec-out screencap -p > "$OUT/email-ime.png"
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+adb shell dumpsys input_method > "$OUT/ime-back.txt"
+if grep -E 'mInputShown=true|mIsInputViewShown=true' "$OUT/ime-back.txt" >/dev/null; then
+  echo "smoke: Voltar nao fechou o teclado" >&2
+  exit 1
+fi
 adb exec-out screencap -p > "$OUT/ime-back.png"
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 3

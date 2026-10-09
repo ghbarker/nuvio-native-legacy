@@ -56,11 +56,13 @@ jobs:
           printf '%s' "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
           chmod 600 "$HOME/.android/debug.keystore"
           echo "NUVIO_PROPERTIES=$GITHUB_WORKSPACE/build/android-touch/preview.properties" >> "$GITHUB_ENV"
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: native-cache
         with:
           path: ~/.cache/nuvio-android
-          key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'android/app/src/main/cpp/CMakeLists.txt') }}
-      - uses: actions/cache@v4
+          key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'tools/android/ffmpeg-touch.sh', 'android/app/src/main/cpp/CMakeLists.txt') }}
+      - uses: actions/cache/restore@v4
+        id: gradle-cache
         with:
           path: |
             ~/.gradle/caches
@@ -68,7 +70,9 @@ jobs:
           key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: android-touch-gradle-${{ runner.os }}-
       - name: Touch input regression
-        run: bash tests/ponteiro_toque.sh
+        run: |
+          bash tests/ponteiro_toque.sh
+          python3 tests/android_apk_pages.py
       - name: ARM phone APK
         run: bash tools/android-touch.sh
       - name: Emulator APK
@@ -77,6 +81,18 @@ jobs:
         run: bash tools/android-touch.sh
       - name: Touch viewport regression
         run: python3 tests/android_touch_viewport.py
+      - uses: actions/cache/save@v4
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/nuvio-android
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - uses: actions/cache/save@v4
+        if: steps.gradle-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
           name: Nuvio-touch-preview-${{ github.sha }}
@@ -91,9 +107,9 @@ jobs:
       - name: Phone emulator smoke
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 36
           arch: x86_64
-          target: google_apis
+          target: google_apis_ps16k
           profile: pixel_2
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true

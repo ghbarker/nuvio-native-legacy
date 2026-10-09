@@ -27,6 +27,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.system.Os
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.Gravity
 import android.view.SurfaceHolder
 import android.view.View
@@ -147,6 +148,16 @@ class NuvioActivity : SDLActivity() {
         setContentView(raizTouch)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
         ViewCompat.requestApplyInsets(raizTouch)
+    }
+
+    private external fun nativeToqueCancelou()
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // SDL turns CANCEL into finger UP. Queue the cancellation first so
+        // taking over a system gesture cannot confirm the pending tap/hold.
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW && !mBrokenLibraries &&
+            ev.actionMasked == MotionEvent.ACTION_CANCEL) nativeToqueCancelou()
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun reabrirEmProcessoNovo() {

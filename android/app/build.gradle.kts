@@ -10,6 +10,10 @@ val cache = file(System.getProperty("user.home") + "/.cache/nuvio-android")
 val sdlSrc = (findProperty("nuvio.sdlSrc") as String?) ?: "$cache/src"
 val estagio = (findProperty("nuvio.estagio") as String?) ?: "${raiz}/build/android"
 val touchPreview = (findProperty("nuvio.touchPreview") as String?)?.toBooleanStrict() ?: false
+val touchFfmpegAar = (findProperty("nuvio.ffmpegAar") as String?)?.let { file(it) }
+require(!touchPreview || touchFfmpegAar?.isFile == true) {
+    "Touch preview requires -Pnuvio.ffmpegAar from tools/android-touch.sh"
+}
 val abis = ((findProperty("nuvio.abis") as String?) ?: "arm64-v8a,armeabi-v7a")
     .split(',').map { it.trim() }.distinct()
 require(abis.isNotEmpty() && abis.all { it in setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") }) {
@@ -45,6 +49,7 @@ android {
                     "-DNUVIO_TOUCH_PREVIEW=${if (touchPreview) "ON" else "OFF"}",
                     "-DNUVIO_P2P_MOTOR=${(findProperty("nuvio.p2pMotor") as String?) ?: ""}",
                 )
+                if (touchPreview) arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
             }
         }
     }
@@ -124,6 +129,12 @@ dependencies {
     // ele a fonte toca muda (evento 9). Compilado e publicado pela Jellyfin no
     // Maven Central, na mesma versao do Media3. So entra quando a plataforma
     // nao serve (EXTENSION_RENDERER_MODE_ON no NvPlayer).
-    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+    if (touchPreview) {
+        // Published 1.8.0+1 classes/32-bit JNI; selected 64-bit JNI rebuilt for 16KB pages.
+        implementation(files(touchFfmpegAar!!))
+        implementation("androidx.media3:media3-decoder:1.8.0")
+    } else {
+        implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+    }
     implementation("androidx.core:core-ktx:1.13.1")
 }

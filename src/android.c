@@ -15,6 +15,33 @@
 
 #define AND_TAG "nuvio"
 
+#ifdef NV_TOUCH_PREVIEW
+static SDL_atomic_t toqueCancelEvento;
+
+int android_toque_cancelado(const SDL_Event *e) {
+  int tipo = SDL_AtomicGet(&toqueCancelEvento);
+  return tipo > 0 && e->type == (Uint32)tipo;
+}
+
+JNIEXPORT void JNICALL
+Java_space_nuvio_nativelegacy_NuvioActivity_nativeToqueCancelou(JNIEnv *env, jobject act) {
+  SDL_Event e;
+  int tipo;
+  (void)env; (void)act;
+  if (!SDL_WasInit(SDL_INIT_EVENTS)) return;
+  // Chamado apenas pelo fio da interface Android; o fio SDL so le o tipo.
+  tipo = SDL_AtomicGet(&toqueCancelEvento);
+  if (!tipo) {
+    Uint32 novo = SDL_RegisterEvents(1);
+    tipo = novo == (Uint32)-1 ? -1 : (int)novo;
+    SDL_AtomicSet(&toqueCancelEvento, tipo);
+  }
+  if (tipo <= 0) return;
+  SDL_zero(e); e.type = (Uint32)tipo;
+  SDL_PushEvent(&e);
+}
+#endif
+
 // A linha de modelo que o host .tpk escreve (tizen-tpk/Program.cs, LogaTv):
 //   [tv] modelo=<modelo> host=<host> dotnet=<...> tela=<WxH>
 // Aqui o "host" e o Android e nao ha .NET. NUVIO_TV_INFO vem do NuvioActivity:

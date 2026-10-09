@@ -39,6 +39,8 @@ for u in https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2
   [ -d "$d" ] || curl -fsSL --retry 3 "$u" | tar xz -C "$CACHE/src"
 done
 if [ "${NUVIO_TOUCH_SKIP_DEPS:-0}" != "1" ]; then bash tools/android/deps.sh "${ABIS[@]}"; fi
+FFMPEG_AAR="$EST/media3-ffmpeg-touch.aar"
+bash tools/android/ffmpeg-touch.sh "$FFMPEG_AAR" "${ABIS[@]}"
 
 rm -rf "$EST/assets" "$EST/jnilibs"
 mkdir -p "$EST/assets/fonts" "$EST/assets/licencas"
@@ -65,6 +67,7 @@ done < "$ENVF"
 
 bash android/gradlew -p android --console=plain --max-workers=2 \
   -Pnuvio.touchPreview=true -Pnuvio.abis="$ABI_PROP" \
+  -Pnuvio.ffmpegAar="$FFMPEG_AAR" \
   -Pnuvio.sdlSrc="$CACHE/src" -Pnuvio.estagio="$EST" assembleDebug
 APK="$EST/Nuvio-$VER-touch-${ABI_PROP//,/-}.apk"
 cp android/app/build/outputs/apk/debug/app-debug.apk "$APK"
@@ -85,4 +88,5 @@ AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
 BADGING=$("$AAPT" dump badging "$APK")
 PKG=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" <<< "$BADGING")
 [ "$PKG" = space.nuvio.nativelegacy.touch ] || { echo "android-touch.sh: applicationId de teste incorreto" >&2; exit 1; }
+python3 tools/android-apk-pages.py "$APK"
 echo "android-touch.sh: $APK ($(du -h "$APK" | cut -f1))"

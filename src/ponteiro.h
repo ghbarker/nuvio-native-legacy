@@ -63,6 +63,8 @@ typedef struct {
 } PonteiroAlvo;
 
 void ponteiro_iniciar(void);
+// Cancela o gesto de dedo no fio de eventos, antes de uma soltura do sistema.
+void ponteiro_cancelar_toque(void);
 // Diagnostico: loga eventos que nao sao tecla (ver ponteiro.c). Todo evento.
 void ponteiro_diag(const SDL_Event *e);
 

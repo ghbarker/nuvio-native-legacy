@@ -82,6 +82,12 @@ target_include_directories(main PRIVATE "${NUVIO_RAIZ}/src" "${CMAKE_BINARY_DIR}
 target_compile_definitions(main PRIVATE NV_ANDROID)
 if(NUVIO_TOUCH_PREVIEW)
   target_compile_definitions(main PRIVATE NV_TOUCH_PREVIEW)
+  if(ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "x86_64")
+    # NDK r27 also needs common-page-size for a 16KB-aligned RELRO end.
+    foreach(t main SDL2)
+      target_link_options(${t} PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,-z,common-page-size=16384")
+    endforeach()
+  endif()
 endif()
 target_compile_options(main PRIVATE -O2 -Wno-unused-result)
 

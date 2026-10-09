@@ -3,7 +3,7 @@
 # libjpeg.so (libjpeg-turbo, ABI 6.2) e libwebp.so, para arm64-v8a e armeabi-v7a.
 # O nucleo faz dlopen delas (rede.c, jpegrapido.c, webp.c), entao precisam ter
 # SONAME sem versao: o APK so empacota lib*.so.
-# Idempotente: pula o que ja existe no prefix. Saida: ~/.cache/nuvio-android/prefix/<abi>/{lib,include}
+# Idempotente: pula builds com a mesma receita e NDK. Saida: ~/.cache/nuvio-android/prefix/<abi>/{lib,include}
 # Uso: bash tools/android/deps.sh [abi...]     FORCAR=1 reconstroi tudo.
 set -euo pipefail
 
@@ -29,6 +29,9 @@ READELF="$TC/bin/llvm-readelf"; NM="$TC/bin/llvm-nm"
 CACHE="${NUVIO_ANDROID_CACHE:-$HOME/.cache/nuvio-android}"
 SRC="$CACHE/src"; BUILD="$CACHE/build"; PREFIX="$CACHE/prefix"
 mkdir -p "$SRC" "$BUILD"
+# Uma .so existente pode ter sido ligada com flags antigas. A assinatura
+# invalida tambem caches locais, alem da chave de cache da build no CI.
+ASSINATURA="$(cksum < "${BASH_SOURCE[0]}") $(cksum < "$NDK/source.properties")"
 JOBS="${NUVIO_ANDROID_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}"
 ABIS=("$@"); [ ${#ABIS[@]} -gt 0 ] || ABIS=(arm64-v8a armeabi-v7a)
 triple() {
@@ -57,14 +60,16 @@ baixar "libwebp-$WEBP_V.tar.gz" "https://storage.googleapis.com/downloads.webmpr
 # SONAME sem versao: ultimo -soname na linha vence no lld.
 cmk() {  # cmk <abi> <srcdir> <builddir> <soname|""> [args...]
   local abi="$1" s="$2" b="$3" so="$4"; shift 4
-  local lf="-Wl,--exclude-libs,ALL -Wl,-z,max-page-size=16384"
+  local lf="-Wl,--exclude-libs,ALL -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
   [ -n "$so" ] && lf="$lf -Wl,-soname,$so"
   rm -rf "$b"
   "$CMAKE" -S "$s" -B "$b" -G Ninja -DCMAKE_MAKE_PROGRAM="$NINJA" \
     -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
     -DANDROID_ABI="$abi" -DANDROID_PLATFORM=android-24 -DANDROID_STL=none \
+    -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="${CFLAGS_EXTRA:--fPIC -fvisibility=hidden}" \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_SHARED_LINKER_FLAGS="$lf" \
+    -DCMAKE_MODULE_LINKER_FLAGS="$lf" -DCMAKE_EXE_LINKER_FLAGS="$lf" \
     -DCMAKE_INSTALL_PREFIX="${CMK_PREFIX:-$PREFIX/$abi}" "$@" >"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
   "$CMAKE" --build "$b" -j"$JOBS" >>"$b.log" 2>&1 || { tail -40 "$b.log"; exit 1; }
   "$CMAKE" --install "$b" >>"$b.log" 2>&1
@@ -82,7 +87,10 @@ so_unica() {  # so_unica <prefix-lib> <nome>
 
 for abi in "${ABIS[@]}"; do
   P="$PREFIX/$abi"; mkdir -p "$P/lib" "$P/include"
-  [ -n "${FORCAR:-}" ] && rm -f "$P/lib/libcurl.so" "$P/lib/libjpeg.so" "$P/lib/libwebp.so" "$P/lib/libmbedtls.a"
+  if [ -n "${FORCAR:-}" ] || [ "$(cat "$P/android-deps.build" 2>/dev/null || true)" != "$ASSINATURA" ]; then
+    rm -f "$P/lib/libcurl.so" "$P/lib/libjpeg.so" "$P/lib/libwebp.so" \
+      "$P/lib/libmbedtls.a" "$P/lib/libmbedx509.a" "$P/lib/libmbedcrypto.a" "$P/android-deps.build"
+  fi
 
   # O nucleo faz TLS em 4 fios ao mesmo tempo (tex_cache, descoberta, sync).
   # Sem MBEDTLS_THREADING_C o estado global do PSA (TLS 1.3 do mbedTLS 3.6) e
@@ -152,7 +160,8 @@ for abi in "${ABIS[@]}"; do
     # .so unica com sharpyuv dentro (o dlopen so acha libwebp.so); a .a fica privada
     # para nao colidir com a libwebp.a que o SDL_image usa em $P/lib.
     TRIPLE=$(triple "$abi")
-    "$TC/bin/clang" --target=$TRIPLE -shared -o "$P/lib/libwebp.so" -Wl,-soname,libwebp.so -Wl,-z,max-page-size=16384 \
+    "$TC/bin/clang" --target=$TRIPLE -shared -o "$P/lib/libwebp.so" -Wl,-soname,libwebp.so \
+      -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384 \
       -Wl,--whole-archive "$WS/lib/libwebp.a" "$WS/lib/libsharpyuv.a" -Wl,--no-whole-archive -lm
     mkdir -p "$P/include/webp"; cp "$WS"/include/webp/*.h "$P/include/webp/" 2>/dev/null || true
     rm -rf "$WS"; reduzir "$P/lib/libwebp.so"
@@ -175,7 +184,7 @@ conferir() {  # conferir <abi> <lib> <sym...>
   echo "$abi $n: $(du -k "$f" | cut -f1) KB, $("$READELF" -d "$f" | grep -E 'SONAME' | sed 's/.*\[\(.*\)\]/SONAME \1/')"
   echo "   NEEDED: $("$READELF" -d "$f" | grep NEEDED | sed 's/.*\[\(.*\)\]/\1/' | tr '\n' ' ')"
   dyn="$("$NM" -D --defined-only "$f" | awk '{print $NF}' | sed 's/@.*//')"
-  for s in "$@"; do echo "$dyn" | grep -qx "$s" || faltam="$faltam $s"; done
+  for s in "$@"; do grep -qx "$s" <<< "$dyn" || faltam="$faltam $s"; done
   [ -z "$faltam" ] && echo "   simbolos OK ($#)" || { echo "   FALTAM:$faltam"; falhou=1; }
 }
 for abi in "${ABIS[@]}"; do
@@ -190,4 +199,6 @@ for abi in "${ABIS[@]}"; do
     jpeg_read_scanlines jpeg_finish_decompress jpeg_destroy_decompress jpeg_calc_output_dimensions
   conferir "$abi" libwebp.so WebPGetInfo WebPDecodeRGBA WebPFree WebPInitDecoderConfigInternal WebPDecode WebPFreeDecBuffer
 done
-[ $falhou -eq 0 ] && echo "deps.sh: OK" || { echo "deps.sh: FALHOU"; exit 1; }
+[ $falhou -eq 0 ] || { echo "deps.sh: FALHOU"; exit 1; }
+for abi in "${ABIS[@]}"; do printf '%s\n' "$ASSINATURA" > "$PREFIX/$abi/android-deps.build"; done
+echo "deps.sh: OK"

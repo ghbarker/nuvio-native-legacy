@@ -150,15 +150,18 @@ static void pressaoLonga(void) {
   dedo(SDL_FINGERUP, 1, .08f, .14f);
   CONFERE(!nEntregues && !nFocar, "camada nova no limiar cancela, mesmo voltando ao alvo antigo");
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 6; i++) {
     prepararHold(home);
     dedo(SDL_FINGERDOWN, 1, .08f, .14f);
     if (!i) dedo(SDL_FINGERMOTION, 1, NAN, .14f);
-    else { SDL_zero(e); e.type = i == 1 ? SDL_WINDOWEVENT : SDL_APP_WILLENTERBACKGROUND;
-      e.window.event = SDL_WINDOWEVENT_FOCUS_LOST; ponteiro_evento(&e, entregarHold); }
+    else if (i == 5) ponteiro_cancelar_toque();
+    else { SDL_zero(e); e.type = i == 2 ? SDL_APP_WILLENTERBACKGROUND : SDL_WINDOWEVENT;
+      e.window.event = i == 3 ? SDL_WINDOWEVENT_RESIZED :
+                       i == 4 ? SDL_WINDOWEVENT_SIZE_CHANGED : SDL_WINDOWEVENT_FOCUS_LOST;
+      ponteiro_evento(&e, entregarHold); }
     relogio += NV_HOLD_MS + 1000; quadro(home);
     dedo(SDL_FINGERUP, 1, .08f, .14f);
-    CONFERE(!nEntregues && !nFocar, "coordenada invalida, foco perdido ou background cancelam longo");
+    CONFERE(!nEntregues && !nFocar, "invalido, foco, background, resize ou cancelamento do host cancelam longo");
   }
 
   prepararHold(home);
@@ -167,6 +170,17 @@ static void pressaoLonga(void) {
   relogio += NV_HOLD_MS; quadro(home);
   dedo(SDL_FINGERUP, 1, .08f, .14f);
   CONFERE(!nEntregues && !nFocar, "navegar no controle cancela o dedo pendente");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += 10;
+  ponteiro_cancelar_toque();
+  dedo(SDL_FINGERUP, 1, .08f, .14f);  // o UP que SDL fabrica de ACTION_CANCEL
+  CONFERE(!nEntregues && !nFocar && !toquesDedo && !menusDedo,
+          "cancelamento do host antes do UP sintetico nao confirma tap curto");
+  tocar(150, 150);
+  CONFERE(nEntregues == 2 && nFocar == 1 && toquesDedo == 1 && !menusDedo,
+          "tap seguinte funciona sem reiniciar apos cancelamento do host");
 
   prepararHold(homeComFolha);
   dedo(SDL_FINGERDOWN, 1, 1450.0f / 1920.0f, 500.0f / 1080.0f);

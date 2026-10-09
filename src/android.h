@@ -8,6 +8,11 @@
 // espelha stdout/stderr no logcat (tag "nuvio") sem tirar nada do arquivo, e
 // pede ao SDL que o Voltar chegue ao app em vez de fechar a Activity.
 void android_iniciar(void);
+#ifdef NV_TOUCH_PREVIEW
+#include <SDL2/SDL.h>
+// Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.
+int android_toque_cancelado(const SDL_Event *e);
+#endif
 // Pede ao Android uma superficie de w x h pixels (SurfaceHolder.setFixedSize)
 // e espera ela chegar, ANTES do SDL_CreateWindow: no Android a janela do SDL
 // tem o tamanho da superficie, nao o pedido. Usado pelo ajuste 4K. Devolve 1
