@@ -2398,11 +2398,8 @@ void detail_evento(const SDL_Event *e) {
   // okDesceEm); aqui so se mede o limiar, que detail_atualizar dispara.
   { int r = ctxhold_evento(&holdLista, e, listaAceitaMenu());
     if (r == CTXH_LONGO) {
-      okDesceEm = 0;
-      if (!menuNaLista()) {
-        if (colListaAberta) abrirParteColecao(); else if (pessoaAberta) abrirCredito();
-      }
-      return;
+      if (menuNaLista()) { okDesceEm = 0; return; }
+      r = CTXH_TOQUE;
     }
     if (colListaAberta || pessoaAberta) {
       if (r == CTXH_CONSUMIDO) return;

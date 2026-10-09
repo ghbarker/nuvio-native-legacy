@@ -1573,6 +1573,8 @@ int main(int argc, char **argv) {
       // Teclado do sistema (entrada_texto.h): ve o texto ANTES de qualquer tela.
       texto_sistema_observar(&e);
       if (e.type == SDL_WINDOWEVENT) {
+        if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+          ponteiro_evento(&e, app_evento);
 #if defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
         if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
             e.window.event == SDL_WINDOWEVENT_RESIZED) {
