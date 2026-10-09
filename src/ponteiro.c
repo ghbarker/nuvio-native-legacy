@@ -46,6 +46,11 @@
 static PonteiroAlvo lista[2][PONT_MAX_ALVOS];
 static int nLista[2];
 static PonteiroRolagemFn listaRolagem[2];
+#ifdef NV_TOUCH_PREVIEW
+typedef struct { float largura; PonteiroBordaFn ativar; } Borda;
+static Borda listaBorda[2], toqueBorda;
+#define PONT_BORDA_PUXAR 72.0f
+#endif
 static int escreve = 0;          // a que o desenho deste quadro preenche
 static int pronto  = 1;          // a do quadro anterior, que o hit-test le
 
@@ -112,6 +117,9 @@ static void cancelarToque(void) {
   toqueCancelado = 1;
   toqueAlvo.ok = 0;
   toqueLongo = 0;
+#ifdef NV_TOUCH_PREVIEW
+  toqueBorda = (Borda){0};
+#endif
 }
 
 #ifdef NV_PONT_WEBOS
@@ -209,6 +217,9 @@ void ponteiro_iniciar(void) {
   cancelarToque();
   nLista[0] = nLista[1] = 0;
   listaRolagem[0] = listaRolagem[1] = NULL;
+#ifdef NV_TOUCH_PREVIEW
+  listaBorda[0] = listaBorda[1] = (Borda){0};
+#endif
   visivel = 0;
   escondidoSeta = 0; sistemaEscondido = 0;
   memset(&hover, 0, sizeof hover);
@@ -379,7 +390,7 @@ static int converterToque(const SDL_TouchFingerEvent *e) {
 #define PONT_INERCIA_PARA 0.06f    // px/ms abaixo disto a inercia acaba
 #define PONT_INERCIA_TAU  260.0f   // ms: constante do freio exponencial
 #define PONT_INERCIA_MAXP 2        // setas por quadro, no maximo
-enum { ARR_NADA = 0, ARR_ROLA, ARR_ALVO, ARR_CONTINUO, ARR_CONSUMIDO };
+enum { ARR_NADA = 0, ARR_ROLA, ARR_ALVO, ARR_CONTINUO, ARR_CONSUMIDO, ARR_BORDA };
 static int arrEixoY;
 static float arrAcum, arrUltX, arrUltY, arrVel;
 static Uint32 arrUltMs;
@@ -508,6 +519,10 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
     arrModo = ARR_NADA;
     toqueAlvo.ok = 0;
     toqueRolagem = listaRolagem[pronto];
+#ifdef NV_TOUCH_PREVIEW
+    toqueBorda = listaBorda[pronto];
+    if (toqueX >= toqueBorda.largura) toqueBorda.ativar = NULL;
+#endif
     toqueSemAlvos = nLista[pronto] == 0;
     if (!toqueCancelado) {
       int i = ponteiro_achar(lista[pronto], nLista[pronto], px, py);
@@ -529,6 +544,11 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
       if (toqueAlvo.ok && arrAlvo.arrasta) {
         arrModo = ARR_ALVO;
         alvoPorToque(&arrAlvo, 1, 0);
+#ifdef NV_TOUCH_PREVIEW
+      } else if (toqueBorda.ativar && toqueBorda.ativar == listaBorda[pronto].ativar &&
+                 dx > fabsf(dy) * 1.5f) {
+        arrModo = ARR_BORDA;
+#endif
       } else {
 #ifdef NV_TOUCH_PREVIEW
         // Sem conteudo rolavel neste ponto, o arrasto continua consumido:
@@ -566,6 +586,14 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
       }
     } else if (arrModo == ARR_ALVO) {
       alvoPorToque(&arrAlvo, 0, 1);
+#ifdef NV_TOUCH_PREVIEW
+    } else if (arrModo == ARR_BORDA && dx >= PONT_BORDA_PUXAR && dx > fabsf(dy) * 1.5f) {
+      PonteiroBordaFn fn = toqueBorda.ativar;
+      arrModo = ARR_CONSUMIDO;
+      if (fn && fn == listaBorda[pronto].ativar) {
+        porToque = 1; fn(); porToque = 0;
+      }
+#endif
     }
     longoToque(agora);
   }
@@ -797,6 +825,9 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
 void ponteiro_quadro(Uint32 agora) {
   nLista[escreve] = 0;
   listaRolagem[escreve] = NULL;
+#ifdef NV_TOUCH_PREVIEW
+  listaBorda[escreve] = (Borda){0};
+#endif
   if (!inRolagem) inerciaQuadro(agora);
   // No webOS o relogio proprio so vale com SDL_webOSCursorVisibility: e ela
   // que apaga a seta do sistema junto (esconder). Sem ela, desligar o hover
@@ -816,6 +847,10 @@ static void fecharQuadro(void) {
   escreve ^= 1;
   nLista[escreve] = 0;
   listaRolagem[escreve] = NULL;
+#ifdef NV_TOUCH_PREVIEW
+  listaBorda[escreve] = (Borda){0};
+  if (nDedos && toqueBorda.ativar && toqueBorda.ativar != listaBorda[pronto].ativar) invalidarToque();
+#endif
   if (nDedos && toqueRolagem && toqueRolagem != listaRolagem[pronto]) invalidarToque();
   if (inRolagem) {
     if (inRolagem != listaRolagem[pronto]) pararInercia();
@@ -876,11 +911,24 @@ void ponteiro_camada(void) {
   if (!ponteiro_ativo()) return;
   nLista[escreve] = 0;
   listaRolagem[escreve] = NULL;
+#ifdef NV_TOUCH_PREVIEW
+  listaBorda[escreve] = (Borda){0};
+#endif
 }
 
 void ponteiro_rolagem(PonteiroRolagemFn fn) {
   if (ponteiro_ativo()) listaRolagem[escreve] = fn;
 }
+#ifdef NV_TOUCH_PREVIEW
+void ponteiro_borda_esquerda(float largura, PonteiroBordaFn ativar) {
+  if (ponteiro_ativo()) listaBorda[escreve] = (Borda){fmaxf(0.0f, largura) * gfx_escala(), ativar};
+}
+int ponteiro_borda_registrada(void) { return listaBorda[escreve].ativar != NULL; }
+void ponteiro_borda_ativar(void) {
+  PonteiroBordaFn fn = listaBorda[pronto].ativar;
+  if (fn) fn();
+}
+#endif
 
 void ponteiro_desenhar(void) {
   float g, d, sobre;

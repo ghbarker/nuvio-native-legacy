@@ -889,7 +889,15 @@ static void teDesenhar(Uint32 agora) {
   float a = anim_suave(anim), dy, x, y, ew;
   int f, c, i;
   teMedir();
-  if (anim < 0.01f) return;
+  if (anim < 0.01f) {
+#ifdef NV_TOUCH_PREVIEW
+    if (aberto && ponteiro_ativo()) {
+      ponteiro_camada();
+      ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, NULL, 0, 0);
+    }
+#endif
+    return;
+  }
   dy = (1.0f - a) * 36.0f;
   if (aberto && ponteiro_ativo()) {
     ponteiro_camada();

@@ -578,6 +578,38 @@ static float escalaDoAjuste(void) {
 // arquivo sempre usou: tests/homelayouts_shot.sh compara o quadro byte a byte.
 static int layoutHome(void) { return ajustes_home_layout(); }
 
+// A tela larga de um telefone precisa deixar uma fileira ao alcance sem
+// ocupar quase toda a altura com o destaque. Tablets e a edicao para TV
+// conservam suas medidas; a arte de fundo continua no mesmo enquadramento.
+static int heroCompactoTelefone(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_TELA_W / NV_TELA_H >= 1.95f;
+#else
+  return 0;
+#endif
+}
+static float alturaTextoHeroDin(void) {
+  return NV_DIN_HERO_H * (heroCompactoTelefone() ? 0.75f : 1.0f);
+}
+static float repousoFileirasDin(void) {
+  return NV_DIN_REPOUSO_FIL * (heroCompactoTelefone() ? 0.75f : 1.0f);
+}
+static float heroVisivelToque(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (heroCompactoTelefone() && toqueLivreY) {
+    if (layoutHome() == HOME_LAYOUT_MODERNA) {
+      float repouso = (NV_SHELF_TOP + NV_HOME_HERO_EMPURRA) * 0.75f - NV_SHELF_TOP;
+      return anim_clamp(-scrollY / repouso, 0.0f, 1.0f);
+    }
+    if (layoutHome() == HOME_LAYOUT_PADRAO)
+      // A ficha de colecao tambem ocupa este banner. Ela deve sumir antes
+      // de a primeira fileira chegar ao rodape fixo de sua legenda.
+      return anim_clamp(1.0f - scrollY / 64.0f, 0.0f, 1.0f);
+  }
+#endif
+  return 1.0f;
+}
+
 // Onde a fileira EM FOCO ancora o titulo dela. E tambem a referencia do
 // esvanecer das de cima (o `fade` de home_desenhar).
 static float topoFileiras(void) {
@@ -594,11 +626,20 @@ static float topoFileiras(void) {
 // a fileira que sai NAO passar por cima dele; a Dinamica nao corta — a fileira
 // some pelo esvanecer e o destaque ja subiu.
 static float corteFileiras(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (heroCompactoTelefone() && toqueLivreY) {
+    if (!ajustes_hero_ligado()) return 132.0f;
+    if (layoutHome() == HOME_LAYOUT_PADRAO)
+      return fmaxf(132.0f, NV_PAD_BANNER_Y + NV_PAD_BANNER_H + 8.0f - scrollY);
+    if (layoutHome() == HOME_LAYOUT_DINAMICA) return 132.0f;
+    return 132.0f + (NV_SHELF_TOP - 132.0f) * heroVisivelToque();
+  }
+#endif
   switch (layoutHome()) {
     case HOME_LAYOUT_PADRAO:
       return ajustes_hero_ligado() ? NV_PAD_BANNER_Y + NV_PAD_BANNER_H + 8.0f : 0.0f;
     case HOME_LAYOUT_DINAMICA: return 0.0f;
-    default:                   return NV_SHELF_TOP - 96.0f;
+    default:                   return NV_SHELF_TOP - (heroCompactoTelefone() ? 0.0f : 96.0f);
   }
 }
 // Quanto as fileiras DESCEM com o foco no destaque (a rolagem vale menos isto).
@@ -609,8 +650,10 @@ static float empurraHero(void) {
   int heroOn = ajustes_hero_ligado();
   switch (layoutHome()) {
     case HOME_LAYOUT_PADRAO:   return 0.0f;
-    case HOME_LAYOUT_DINAMICA: return heroOn ? NV_DIN_REPOUSO_FIL - NV_DIN_TOPO_FIL : 0.0f;
-    default:                   return NV_HOME_HERO_EMPURRA;
+    case HOME_LAYOUT_DINAMICA: return heroOn ? repousoFileirasDin() - NV_DIN_TOPO_FIL : 0.0f;
+    default:                   return heroCompactoTelefone()
+                                      ? (NV_SHELF_TOP + NV_HOME_HERO_EMPURRA) * 0.75f - NV_SHELF_TOP
+                                      : NV_HOME_HERO_EMPURRA;
   }
 }
 // Rolagem em que o destaque da Dinamica esta TODO na tela: y do topo dele.
@@ -620,7 +663,11 @@ static float dinHeroY(void) {
   return y > 0.0f ? 0.0f : y;
 }
 static GfxRect padBannerRect(void) {
-  return (GfxRect){ 0.0f, NV_PAD_BANNER_Y, NV_TELA_W, NV_PAD_BANNER_H };
+  float y = NV_PAD_BANNER_Y;
+#ifdef NV_TOUCH_PREVIEW
+  if (heroCompactoTelefone() && toqueLivreY) y -= scrollY;
+#endif
+  return (GfxRect){ 0.0f, y, NV_TELA_W, NV_PAD_BANNER_H };
 }
 // O numeral do Top 10 mora ANTES do cartaz: a fileira comeca deslocada por esta
 // faixa (e o passo dela ja a inclui, em gapDe).
@@ -1514,7 +1561,8 @@ static float toqueHomeMaxX(int r) {
 static int toqueHomeRolar(const PonteiroRolagem *e) {
   if (e->fase == PONT_ROL_INICIO) {
     float y = topoFileiras() - scrollY;
-    if (e->x < ajustes_conteudo_x() || e->x >= NV_TELA_W || e->y < corteFileiras() || e->y >= NV_TELA_H || nFileiras < 1) return 0;
+    float topoToque = heroCompactoTelefone() ? 132.0f : corteFileiras();
+    if (e->x < ajustes_conteudo_x() || e->x >= NV_TELA_W || e->y < topoToque || e->y >= NV_TELA_H || nFileiras < 1) return 0;
     toqueFileira = -1;
     if (!e->eixoY) {
       for (int r = 0; r < nFileiras; r++) {
@@ -3337,6 +3385,38 @@ static HeroCopyLayout heroCopyLayout(float base, float hSin, int hasMeta,
   return p;
 }
 
+// Mantem titulo, ficha e acao legiveis no destaque compacto. Uma sinopse
+// longa perde primeiro a ultima linha; informacao opcional so cede espaco
+// quando nao cabe acima do limite do cabecalho. A altura real do nome sem
+// logo tambem participa da conta, em vez de desenhar acima de seu slot.
+static HeroCopyLayout heroCopyTelefone(float base, float *hSin, int hasMeta,
+                                       int hasSec, float *captionH, float logoH,
+                                       float btnH, float btnGap, float minTop,
+                                       float slot, float *friendsH, float minLogo) {
+  HeroCopyLayout p;
+  *hSin = fminf(*hSin, 2.0f * NV_LD_HERO_SIN);
+  for (;;) {
+    p = heroCopyLayout(base, *hSin, hasMeta, hasSec, *captionH, logoH,
+                       btnH, btnGap, minTop, slot, *friendsH);
+    float bottom = p.logo + p.logoHeight;
+    if (bottom - minTop >= minLogo) {
+      p.logoHeight = fminf(logoH, bottom - minTop);
+      if (p.logoHeight < minLogo) p.logoHeight = minLogo;
+      p.logo = bottom - p.logoHeight;
+      return p;
+    }
+    if (*hSin > NV_LD_HERO_SIN) *hSin -= NV_LD_HERO_SIN;
+    else if (*friendsH > 0.0f) *friendsH = 0.0f;
+    else if (*hSin > 0.0f) *hSin = 0.0f;
+    else if (*captionH > 0.0f) *captionH = 0.0f;
+    else {
+      p.logoHeight = fmaxf(minLogo, logoH);
+      p.logo = bottom - p.logoHeight;
+      return p;
+    }
+  }
+}
+
 // PONTOS DE PAGINA DO DESTAQUE (dono, 06/10): um ponto por titulo, o atual
 // vira uma pilula mais larga, e as setas < > dos lados. `xDir` e a borda
 // direita do conjunto, `yc` o centro vertical. A posicao do realce anda com
@@ -3530,6 +3610,24 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
   float friendsH = temAmigos ? NV_AMIGOS_HERO_H : 0.0f;
   HeroCopyLayout copy = heroCopyLayout(base, hSin, metaLinha[0] != 0, temSec,
                                       captionH, logoH, btnH, btnGap, minTop, slot, friendsH);
+  TxtLinha tituloTelefone = {0};
+  if (heroCompactoTelefone()) {
+    float minLogo = 48.0f;
+    if (!tlogo && mostraNomeLogo && ci && ci->titulo[0]) {
+      tituloTelefone = txt_linha_corta(TXT_TITULO2, ci->titulo, 255, 255, 255, 255, maxWLogo);
+      minLogo = (float)tituloTelefone.h;
+    }
+    minTop = 132.0f;
+    if (lay == HOME_LAYOUT_PADRAO)
+      minTop += base - (NV_PAD_BANNER_H - NV_PAD_TEXTO_BASE);
+    else if (lay == HOME_LAYOUT_DINAMICA)
+      minTop += base - (alturaTextoHeroDin() - NV_DIN_TEXTO_BASE);
+    copy = heroCopyTelefone(base, &hSin, metaLinha[0] != 0, temSec, &captionH,
+                            logoH * 0.75f, btnH, btnGap, minTop, slot, &friendsH, minLogo);
+    sinLinhas = hSin > 0.0f ? (int)ceilf(hSin / NV_LD_HERO_SIN) : 0;
+    temAmigos = friendsH > 0.0f;
+    caption = captionH > 0.0f;
+  }
   logoH = copy.logoHeight;
   float ySin = copy.synopsis, ySec = copy.secondary, yMeta = copy.meta;
   float logoY = copy.logo - cin * NV_CINEMA_DESCE;
@@ -3574,7 +3672,8 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
     // que ja sairam do detalhe. Sem nome, o hero fica so com a arte, que ja
     // basta, e o texto aparece quando o dado chegar.
     if (ci && ci->titulo[0]) {
-      TxtLinha tit = txt_linha_corta(TXT_TITULO1, ci->titulo, 255, 255, 255, 255, maxWLogo);
+      TxtLinha tit = heroCompactoTelefone() ? tituloTelefone
+                   : txt_linha_corta(TXT_TITULO1, ci->titulo, 255, 255, 255, 255, maxWLogo);
       txt_desenhar_alpha(tit, x, logoY + logoH - (float)tit.h,
                          aTexto * (1.0f - cin));
       // Sem logo, o nome pequeno entra embaixo (o mesmo do detalhe).
@@ -3640,7 +3739,7 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
     }
   }
 
-  if (sinopse[0] && aCopy > 0.004f)
+  if (sinopse[0] && (!heroCompactoTelefone() || hSin > 0.0f) && aCopy > 0.004f)
     txt_bloco_corta(TXT_HERO_SIN, sinopse, 255, 255, 255, x, ySin, sinW,
                     NV_LD_HERO_SIN, aCopy, sinLinhas);
   return copy.action;
@@ -3650,6 +3749,20 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
 // (desce e apaga); a arte fica parada, porque e a mesma arte que o detalhe vai
 // usar. Era isso que faltava para a abertura ler como rearranjo de layout e
 // nao como troca de tela.
+static void ponteiroHero(int a, int b);
+static float heroBaseCopia(int lay, GfxRect r, float empurra, float descida) {
+  if (lay == HOME_LAYOUT_PADRAO) return r.y + r.h - NV_PAD_TEXTO_BASE + descida;
+  if (lay == HOME_LAYOUT_DINAMICA) return r.y + alturaTextoHeroDin() - NV_DIN_TEXTO_BASE + descida;
+  return NV_SHELF_TOP - NV_HERO_COPY_GAP - 24.0f + empurra + descida;
+}
+#ifdef NV_TOUCH_PREVIEW
+static void alvoAcaoHero(GfxRect r, float saida, float cin, float alpha) {
+  float primeira = topoFileiras() - scrollY;
+  if (saida <= 0.001f && cin <= 0.005f && alpha > 0.25f &&
+      r.y >= 132.0f && r.y + r.h <= fminf(NV_TELA_H, primeira - 24.0f))
+    ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroHero, NULL, 0, 0);
+}
+#endif
 static void desenhaHero(Uint32 agora, float saida) {
   (void)agora;
   const int motionReduzido = ajustes_animacoes_reduzidas();
@@ -3710,13 +3823,13 @@ static void desenhaHero(Uint32 agora, float saida) {
     vitVeu = 0.92f; vitAncora = 0.28f; vitDissolve = 1.0f; vitRaio = 0.0f;
     // O veu de baixo comeca no MESMO y absoluto que tinha com a arte de 780
     // (0,38 x 780): o texto le igual, e a arte segue escurecendo ate a base.
-    vitVeuIni = 0.38f * NV_DIN_HERO_H / NV_DIN_ARTE_H;
+    vitVeuIni = 0.38f * alturaTextoHeroDin() / NV_DIN_ARTE_H;
     logoH = NV_DIN_LOGO_H; sinW = 760.0f;
     btnH = NV_HERO_BOTAO_COMPACTO_H; btnGap = 22.0f;
   }
 
   if(lay==HOME_LAYOUT_MODERNA && foco.fileira>=0 && foco.fileira<nFileiras && fileiras[foco.fileira].tipo==FILEIRA_SOCIAL) {
-    float x=ajustes_conteudo_x(),a=1-saida;
+    float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
     const Fileira *s=&fileiras[foco.fileira];
     const CatItem *p=(fileiraItemIndice(s, foco.coluna) >= 0)
                     ?cat_item_exato(fileiraItemIndice(s, foco.coluna)):NULL;
@@ -3787,7 +3900,7 @@ static void desenhaHero(Uint32 agora, float saida) {
       if(folder->editorial) {
         /* Art is authored for this rectangle, not cropped as a movie backdrop.
            The neutral canvas continues below it; no art behind the shelves. */
-        float x=ajustes_conteudo_x(),a=1-saida;
+        float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
         GLuint art=tex_obter_hero(folder->hero);
         GfxRect header={0,0,1920,500};
         if(folder->editorial==2&&tex_aspecto(folder->hero)>0) {
@@ -3826,7 +3939,7 @@ static void desenhaHero(Uint32 agora, float saida) {
         else gfx_rect(r,t,modoHero,0,0,0,0,0,0,0,aArte);
         gfx_tex_aspect_atual=0;}
       heroArteRect=r;
-      float x=ajustes_conteudo_x(),a=1-saida;
+      float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
       TxtLinha group=txt_linha(TXT_HERO_META,folder->group,201,206,218,255);
       txt_desenhar_alpha(group,x,NV_COLLECTION_HERO_GROUP_Y,a);
       if (ehDiretor) {
@@ -4159,7 +4272,7 @@ static void desenhaHero(Uint32 agora, float saida) {
   gfx_tex_aspect_atual = 0.0f;
   heroArteRect = r;
 
-  float aTexto = (1.0f - saida) * aVis;
+  float aTexto = (1.0f - saida) * aVis * heroVisivelToque();
   // MODO CINEMA: o bloco desce NV_CINEMA_DESCE enquanto apaga (o do detalhe) e
   // so o logo fica. `aCopy` e a opacidade do que SOME; o logo segue `aTexto`.
   float cin = trailercinema_t(&heroCinema);
@@ -4170,18 +4283,16 @@ static void desenhaHero(Uint32 agora, float saida) {
   // Logo, actions, then the real information and compact synopsis. Keep
   // each layout's bottom boundary; use the measured copy for the action Y.
   float empurra = scrollY < 0.0f ? -scrollY : 0.0f;
-  float aBotao = anim_clamp(empurra / NV_HOME_HERO_EMPURRA, 0.0f, 1.0f);
-  float base = NV_SHELF_TOP - NV_HERO_COPY_GAP + descidaCopy
-             + empurra - 24.0f;
+  float empurraMax = lay == HOME_LAYOUT_MODERNA ? empurraHero() : NV_HOME_HERO_EMPURRA;
+  float aBotao = anim_clamp(empurra / empurraMax, 0.0f, 1.0f);
+  float base = heroBaseCopia(lay, r, empurra, descidaCopy);
   // Padrao e Dinamica ancoram o bloco na BASE DO PROPRIO DESTAQUE (e o botao
   // sempre existe, com o foco ou sem ele): o texto anda com a arte, e nao com
   // as fileiras como na Moderna.
   if (lay == HOME_LAYOUT_PADRAO) {
     aBotao = 1.0f;
-    base = r.y + r.h - NV_PAD_TEXTO_BASE + descidaCopy;
   } else if (lay == HOME_LAYOUT_DINAMICA) {
     aBotao = aVis;
-    base = r.y + NV_DIN_HERO_H - NV_DIN_TEXTO_BASE + descidaCopy;
   }
   base += bordaPag.x;   // retorno de borda do Cima no destaque
   // Moderna: without the button the logo hugs the text (owner 03/10).
@@ -4209,7 +4320,7 @@ static void desenhaHero(Uint32 agora, float saida) {
       const char *rot = i18n("Ver título");
       // Em cinema o botao e o contador nao se desenham (o itemFoco la embaixo
       // segue valendo: a tecla que devolve a UI nao pode abrir o titulo errado).
-      float aBtn = aBotao * (1.0f - cin);
+      float aBtn = aBotao * (1.0f - cin) * heroVisivelToque();
       if (aBtn > 0.004f) {
         // Nos layouts novos o botao existe SEMPRE; so aceso (na cor de realce)
         // com o foco no destaque. Na Moderna ele so aparece com o foco la.
@@ -4228,6 +4339,11 @@ static void desenhaHero(Uint32 agora, float saida) {
         float bw = lb.w + 38.0f * 2;   // NV_DETW2_BTN_PADX, igual ao detalhe
         float by = actionY;
         GfxRect bt = { x, by, bw, bh };
+#ifdef NV_TOUCH_PREVIEW
+        // O botao pode ficar abaixo do alvo amplo do destaque. Seu proprio
+        // retangulo mantem o toque correto, sem cobrir a primeira fileira.
+        alvoAcaoHero(bt, saida, cin, aBtn);
+#endif
 
         // Raio = metade da ALTURA: o raio do gfx_cor e fracao da altura do
         // retangulo, entao 0,5 e a pilula exata em qualquer largura.
@@ -5487,9 +5603,9 @@ void home_desenhar(Uint32 agora) {
   desenhaFundo(agora);
   float pd = detail_progresso();
   if (ajustes_hero_ligado()) desenhaHero(agora, pd);
-  if (ajustes_hero_ligado()) {
+  if (ajustes_hero_ligado() && heroVisivelToque() > 0.25f) {
     float heroBaixo = layoutHome() == HOME_LAYOUT_DINAMICA
-                    ? dinHeroY() + NV_DIN_HERO_H : corteFileiras();
+                    ? dinHeroY() + alturaTextoHeroDin() : corteFileiras();
     if (heroBaixo > 0.0f)
       ponteiro_alvo(0, 0, NV_TELA_W, heroBaixo, ponteiroHero, NULL, 0, 0);
   }

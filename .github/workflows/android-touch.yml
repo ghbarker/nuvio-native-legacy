@@ -78,6 +78,7 @@ jobs:
       - name: Touch input regression
         run: |
           bash tests/ponteiro_toque.sh
+          bash tests/app_sidebar_toque.sh
           bash tests/catalogo_toque.sh
           bash tests/social_toque.sh
           bash tests/media_toque.sh

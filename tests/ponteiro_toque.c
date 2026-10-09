@@ -1,6 +1,8 @@
 // #216: dedo real, sem SDL host, video ou dispositivo. Eventos SDL normalizados.
 #define main ponteiro_roteiro_mouse
+#define gfx_escala ponteiro_escala_identidade
 #include "ponteiro.c"
+#undef gfx_escala
 #undef main
 #include <math.h>
 #include "ctxlista.h"
@@ -10,6 +12,9 @@
 #include "descoberta.h"
 #include "idioma.h"
 #include "ilha.h"
+
+static float escalaToque = 1.0f;
+float gfx_escala(void) { return escalaToque; }
 
 // Dependencias inertes da lista: a decisao do gesto vem de src/ctxlista.c.
 int ctx_aberto(void) { return 0; }
@@ -283,6 +288,211 @@ static void arrastoSemNavegacao(void) {
 #endif
 }
 
+// Borda registrada pela camada desenhada: o gesto usa o dispatcher real,
+// sem imitar sua escolha de eixo, limiar, cancelamento ou prioridade.
+#ifdef NV_TOUCH_PREVIEW
+static int aberturasBorda, aberturasOutraBorda, bordaPorToque;
+static void abrirBorda(void) { aberturasBorda++; bordaPorToque = ponteiro_toque(); }
+static void abrirOutraBorda(void) { aberturasOutraBorda++; }
+static void borda(void) { continuo(); ponteiro_borda_esquerda(120.0f, abrirBorda); }
+static void bordaOutra(void) { continuo(); ponteiro_borda_esquerda(120.0f, abrirOutraBorda); }
+static void bordaComFolha(void) { borda(); homeComFolha(); }
+static void bordaComSeek(void) {
+  borda();
+  ponteiro_alvo(0, 900, 500, 60, NULL, arrastoBarra, 0, 0);
+  ponteiro_alvo_arrastavel();
+}
+static void ativarBordaDireta(int a, int b) { (void)a; (void)b; ponteiro_borda_ativar(); }
+static void bordaComPilula(void) {
+  borda();
+  ponteiro_alvo(0, 0, 28, NV_TELA_H, NULL, ativarBordaDireta, 0, 0);
+}
+static void bordaAmpliada(void) {
+  escalaToque = 1.5f;
+  borda();
+  escalaToque = 1.0f;
+}
+static void prepararBorda(void (*alvos)(void)) {
+  prepararContinuo(alvos);
+  aberturasBorda = aberturasOutraBorda = bordaPorToque = nArrasto = 0;
+}
+static void bordaSemEfeitos(void) {
+  CONFERE(!nEntregues && !nFocar && !nAtivar && !nRolagens,
+          "borda nao fabrica tecla, tap, foco ou rolagem de conteudo");
+}
+static void registroBorda(void) {
+  prepararBorda(bordaComPilula);
+  CONFERE(!ponteiro_borda_registrada(), "consulta le quadro em desenho, nao registro antigo pronto");
+  dedoPx(SDL_FINGERDOWN, 1, 10, 500);
+  CONFERE(!aberturasBorda, "pilula direta nao abre no DOWN");
+  dedoPx(SDL_FINGERUP, 1, 10, 500);
+  CONFERE(aberturasBorda == 1 && bordaPorToque,
+          "tap direto roteia ao callback pronto uma vez como toque");
+  bordaSemEfeitos();
+
+  quadro(bordaComFolha);
+  ponteiro_borda_ativar();
+  CONFERE(aberturasBorda == 1, "camada modal limpa callback pronto e bloqueia ativacao direta antiga");
+  prepararBorda(borda);
+  ponteiro_quadro(relogio);
+  CONFERE(!ponteiro_borda_registrada(), "inicio do quadro nao conserva elegibilidade anterior");
+  ponteiro_borda_esquerda(120, abrirBorda);
+  CONFERE(ponteiro_borda_registrada(), "registro torna rail elegivel no quadro em desenho");
+  ponteiro_camada();
+  CONFERE(!ponteiro_borda_registrada(), "modal elimina elegibilidade antes de desenhar rail");
+  ponteiro_desenhar();
+  ponteiro_borda_ativar();
+  CONFERE(!aberturasBorda, "fechar quadro da modal elimina ativacao direta sem teclas");
+  bordaSemEfeitos();
+
+  prepararBorda(borda);
+  ponteiro_quadro(relogio);
+  ponteiro_borda_esquerda(120, abrirOutraBorda);
+  CONFERE(ponteiro_borda_registrada(), "provedor novo registrado vale para o desenho");
+  ponteiro_borda_ativar();
+  CONFERE(aberturasBorda == 1 && !aberturasOutraBorda,
+          "ativacao usa provedor visivel pronto antes da troca de quadro");
+  ponteiro_desenhar();
+  ponteiro_borda_ativar();
+  CONFERE(aberturasBorda == 1 && aberturasOutraBorda == 1,
+          "ativacao muda para o novo provedor somente depois do quadro pronto");
+  bordaSemEfeitos();
+}
+static void gestoBorda(void) {
+  registroBorda();
+  // Registro repetido da mesma camada nao cancela um arrasto lento; abertura
+  // exige deslocamento suficiente e nao depende de velocidade ou do UP.
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  relogio += 80; dedoPx(SDL_FINGERMOTION, 1, 80, 502);
+  quadro(borda);
+  relogio += 80; dedoPx(SDL_FINGERMOTION, 1, 110, 504);
+  CONFERE(!aberturasBorda, "borda lenta ainda nao abre abaixo de 72 px");
+  relogio += 80; dedoPx(SDL_FINGERMOTION, 1, 130, 506);
+  CONFERE(aberturasBorda == 1 && bordaPorToque, "borda lenta abre durante movimento como toque");
+  relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 600, 508);
+  quadro(borda);
+  relogio += NV_HOLD_MS + 100; quadro(borda);
+  dedoPx(SDL_FINGERMOTION, 1, 40, 500);
+  dedoPx(SDL_FINGERUP, 1, 40, 500);
+  for (int i = 0; i < 120; i++) quadro(borda);
+  CONFERE(aberturasBorda == 1, "borda abre uma vez sem clique longo ou embalo na soltura");
+  bordaSemEfeitos();
+
+  for (int soUp = 0; soUp < 2; soUp++) {
+    prepararBorda(borda);
+    dedoPx(SDL_FINGERDOWN, 1, 35, 500);
+    relogio += 8;
+    if (!soUp) dedoPx(SDL_FINGERMOTION, 1, 400, 501);
+    dedoPx(SDL_FINGERUP, 1, 400, 501);
+    for (int i = 0; i < 120; i++) quadro(borda);
+    CONFERE(aberturasBorda == 1, "borda rapida e movimento so no UP abrem uma vez");
+    bordaSemEfeitos();
+  }
+
+  // Arrasto curto ja passou do limiar de tap, mas nao atingiu o de abertura.
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  relogio += 30; dedoPx(SDL_FINGERMOTION, 1, 100, 500);
+  relogio += 100; dedoPx(SDL_FINGERUP, 1, 100, 500);
+  CONFERE(!aberturasBorda, "borda abaixo do limiar nao abre");
+  bordaSemEfeitos();
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 110, 150);
+  relogio += 30; dedoPx(SDL_FINGERUP, 1, 120, 150);
+  CONFERE(!aberturasBorda && nFocar == 1 && conta(SDLK_RETURN) == 1,
+          "tap curto iniciado na borda conserva a acao do alvo");
+
+  // A borda so disputa o gesto horizontal para a direita iniciado nela.
+  // O mesmo consumidor continua recebendo os outros eixos e origens.
+  for (int c = 0; c < 3; c++) {
+    float x = c == 0 ? 100.0f : c == 1 ? 40.0f : 200.0f;
+    float fimX = c == 0 ? 35.0f : c == 1 ? 45.0f : 450.0f;
+    float fimY = c == 1 ? 250.0f : 500.0f;
+    prepararBorda(borda);
+    dedoPx(SDL_FINGERDOWN, 1, x, 500);
+    relogio += 50; dedoPx(SDL_FINGERMOTION, 1, fimX, fimY);
+    relogio += 200; dedoPx(SDL_FINGERUP, 1, fimX, fimY);
+    CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1 &&
+            fases(PONT_ROL_MOVER) == 1 && fases(PONT_ROL_FIM) == 1 &&
+            rolagens[0].eixoY == (c == 1) && !nEntregues && !nFocar,
+            "reverso, vertical da borda e horizontal do meio preservam conteudo");
+    CONFERE(fabsf(distancia(PONT_ROL_MOVER) - (c == 1 ? fimY - 500.0f : fimX - x)) < .01f,
+            "conteudo recebe o deslocamento completo fora do gesto da borda");
+  }
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 45, 430);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 420);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 420);
+  CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1 && rolagens[0].eixoY,
+          "rolagem capturada no eixo vertical nao vira abertura ao mudar de rumo");
+
+  prepararBorda(bordaComSeek);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 930);
+  relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 200, 930);
+  dedoPx(SDL_FINGERUP, 1, 200, 930);
+  CONFERE(nArrasto >= 1 && arrastoToque && !aberturasBorda && !nRolagens && !nEntregues,
+          "seek arrastavel tem prioridade mesmo com DOWN na borda");
+
+  // Cancelamento antes do limiar: modal, troca de provedor, registro ausente
+  // ou quadro vazio, foco/background/resize, dedo extra e cancelamento do host.
+  for (int c = 0; c < 10; c++) {
+    SDL_Event e; SDL_zero(e);
+    prepararBorda(borda);
+    dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+    relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 80, 500);
+    if (c == 0) quadro(bordaComFolha);
+    else if (c == 1) quadro(bordaOutra);
+    else if (c == 2) quadro(continuo);
+    else if (c == 3) quadro(NULL);
+    else if (c == 4) dedoPx(SDL_FINGERDOWN, 2, 60, 500);
+    else if (c == 5) ponteiro_cancelar_toque();
+    else if (c == 6) tecla(SDL_KEYDOWN, SDLK_RIGHT, 0);
+    else {
+      e.type = c == 8 ? SDL_APP_WILLENTERBACKGROUND : SDL_WINDOWEVENT;
+      e.window.event = c == 9 ? SDL_WINDOWEVENT_SIZE_CHANGED : SDL_WINDOWEVENT_FOCUS_LOST;
+      ponteiro_evento(&e, entregar);
+    }
+    quadro(borda); // Voltar ao registro original nao rearma o dedo cancelado.
+    relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 500);
+    dedoPx(SDL_FINGERUP, 1, 400, 500);
+    dedoPx(SDL_FINGERUP, 2, 60, 500);
+    for (int i = 0; i < 30; i++) quadro(borda);
+    CONFERE(!aberturasBorda && !aberturasOutraBorda,
+            "camada, registro, foco ou multifinger cancelam borda antes da abertura");
+    bordaSemEfeitos();
+  }
+  prepararBorda(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  quadro(borda);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 500);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 500);
+  CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1,
+          "registro que nasce depois do DOWN nao captura um gesto antigo");
+
+  layout_tela_definir(2400, 1080);
+  prepararBorda(bordaAmpliada);
+  dedoPx(SDL_FINGERDOWN, 1, 170, 500); // Dentro de 120 * 1,5; fora de 120.
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 240, 500);
+  CONFERE(!aberturasBorda, "limiar de abertura continua 72 px na tela base");
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 245, 500);
+  dedoPx(SDL_FINGERUP, 1, 245, 500);
+  CONFERE(aberturasBorda == 1 && fabsf(ponteiro_x() - 245.0f) < .01f,
+          "largura runtime 2400 e faixa ampliada usam coordenadas base corretas");
+  bordaSemEfeitos();
+  prepararBorda(bordaAmpliada);
+  dedoPx(SDL_FINGERDOWN, 1, 181, 500);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 500);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 500);
+  CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1,
+          "origem fora da faixa ampliada continua horizontal do conteudo");
+  layout_tela_definir(1920, 1080);
+}
+#else
+static void gestoBorda(void) {}
+#endif
+
 static void pressaoLonga(void) {
   Uint32 inicio;
   SDL_Event e;
@@ -549,6 +759,7 @@ int main(void) {
   pressaoLonga();
   rolagemContinua();
   arrastoSemNavegacao();
+  gestoBorda();
   printf("ponteiro toque: %s\n", falhas ? "FALHOU" : "PASS");
   return falhas ? 1 : 0;
 }

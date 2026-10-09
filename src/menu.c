@@ -719,6 +719,9 @@ void menu_desenhar(Uint32 agora) {
   gfx_escala_sair(ant);
 }
 static void menu_desenharCorpo_(Uint32 agora) {
+#ifdef NV_TOUCH_PREVIEW
+  if (!aberto && !ponteiro_borda_registrada()) return;
+#endif
   (void)agora;
   if (tvAtivo()) { tvDesenhar(); return; }
   // Rail fixa sempre presente, como no shell legacy: a pilula estreita, so
@@ -1072,7 +1075,14 @@ static void tvSombra(float a) {
     gfx_cor((GfxRect){ x, 0, 20, NV_TELA_H }, 0.0f, 0, 0, 0, 0.22f * a * (1.0f - i / 16.0f));
 }
 
-static void tvPonteiroPilula(int a, int b) { (void)a; (void)b; menu_abrir(); }
+static void tvPonteiroPilula(int a, int b) {
+  (void)a; (void)b;
+#ifdef NV_TOUCH_PREVIEW
+  ponteiro_borda_ativar();
+#else
+  menu_abrir();
+#endif
+}
 
 static void tvDesenhar(void) {
   float s = tvAbre < 0.0f ? 0.0f : (tvAbre > 1.0f ? 1.0f : tvAbre);
@@ -1093,7 +1103,11 @@ static void tvDesenhar(void) {
         ponteiro_alvo(NV_MENU_PILULA_X, P.y, P.x + P.w - NV_MENU_PILULA_X, P.h,
                       NULL, tvPonteiroPilula, 0, 0);
       else
+#ifdef NV_TOUCH_PREVIEW
+        ponteiro_alvo(0, 0, 28.0f, NV_TELA_H, NULL, tvPonteiroPilula, 0, 0);
+#else
         ponteiro_alvo(0, 0, 28.0f, NV_TELA_H, tvPonteiroPilula, NULL, 0, 0);
+#endif
     }
     if (pa <= 0.01f) return;
   }
