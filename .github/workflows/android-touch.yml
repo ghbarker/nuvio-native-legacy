@@ -105,6 +105,8 @@ jobs:
           path: build/android-touch/*.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Release build memory
+        run: bash android/gradlew -p android --stop
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -117,6 +119,8 @@ jobs:
           arch: x86_64
           target: google_apis_ps16k
           profile: pixel_2
+          cores: 4
+          ram-size: 4096
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: bash tools/android-touch-smoke.sh build/android-touch/*-touch-x86_64.apk
@@ -164,6 +168,8 @@ jobs:
           arch: x86_64
           target: google_apis_ps16k
           profile: pixel_2
+          cores: 4
+          ram-size: 4096
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: bash tools/android-touch-smoke.sh build/android-touch/*-touch-x86_64.apk
