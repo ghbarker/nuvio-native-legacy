@@ -79,6 +79,7 @@ jobs:
         run: |
           bash tests/ponteiro_toque.sh
           bash tests/catalogo_toque.sh
+          bash tests/gpun_touch.sh
           python3 tests/android_apk_pages.py
           cc -DNV_TOUCH_PREVIEW -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
           /tmp/nuvio-layout-touch
