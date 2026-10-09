@@ -66,7 +66,7 @@
 // CIMA da primeira fileira do teclado — e OK nele chama o teclado da TV; o
 // microfone (Falar) e o celular entram dentro do campo, no fim.
 #define BU_MARG        96.0f
-#define BU_COL_W      520.0f
+#define BU_COL_W      buColW()
 #define BU_COL_GAP     56.0f
 #define BU_CAMPO_H     76.0f
 #define BU_ILHA_GAP    22.0f
@@ -74,6 +74,15 @@
 #define BU_CAMPO_PADX  28.0f
 static float buX(void)   { return ajustes_rail_largura_fixa() + BU_MARG; }
 static float buDir(void) { return NV_TELA_W - BU_MARG; }
+static int buRetrato(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_TELA_H > NV_TELA_W;
+#else
+  return 0;
+#endif
+}
+static float buColW(void) { return buRetrato() ? buDir() - buX() : 520.0f; }
+static float buResY(void);
 // A coluna da esquerda desce quando a pilula da Dinamica ocupa o canto.
 static float buTopoEsq(void) {
   float px, py, pw, ph;
@@ -96,8 +105,8 @@ static float buTopoEsq(void) {
 #define BU_MAX_CONSULTA 48
 
 // --- Coluna da direita --------------------------------------------------------
-#define BU_RES_X       (buX() + BU_COL_W + BU_COL_GAP)
-#define BU_RES_Y       64.0f
+#define BU_RES_X       (buRetrato() ? buX() : buX() + BU_COL_W + BU_COL_GAP)
+#define BU_RES_Y       buResY()
 #define BU_DIR         buDir()
 #define BU_RES_AREA_H  (NV_TELA_H - 48.0f - BU_RES_Y)
 // 32 fixas, e nao FOCUS_MAX_FILEIRAS: aquele teto subiu para a grade da
@@ -251,6 +260,11 @@ static int  kbN;                           // teclas de letra do layout ativo
 static int  kbFil = 6;                     // fileiras de letra do layout ativo
 static int  kbTemLayout;                   // a tecla de layout aparece?
 static int  KB_COLUNAS[BU_KB_MAX_FIL + 1] = { 6, 6, 6, 6, 6, 6, 3 };
+static float buResY(void) {
+  if (!buRetrato()) return 64.0f;
+  return BU_KB_Y + 2.0f * BU_KB_PAD + (kbFil + 1) * BU_TECLA_W
+       + kbFil * BU_TECLA_GAP + 92.0f;
+}
 
 // O idioma dos metadados usa cirilico? (ru, uk, be, bg, sr, mk)
 static int idiomaCirilico(void) {

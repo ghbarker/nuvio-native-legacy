@@ -25,7 +25,7 @@ def method(name):
 
 
 methods = '\n'.join(method(name) for name in (
-    'larguraLogica', 'reaplicarJanela', 'aplicarEncaixe', 'aplicarJanela'))
+    'larguraLogica', 'alturaLogica', 'reaplicarJanela', 'aplicarEncaixe', 'aplicarJanela'))
 fixture = r'''
 object Gravity { const val TOP = 48; const val START = 8388611 }
 object BuildConfig { var NUVIO_TOUCH_PREVIEW = false }
@@ -59,6 +59,7 @@ object PlayerFixture {
     fun apply() = aplicarJanela()
     fun resize() = reaplicarJanela()
     fun width() = larguraLogica()
+    fun height() = alturaLogica()
 METHOD
 }
 fun main() {
@@ -116,6 +117,23 @@ fun main() {
     lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
     check(lp.leftMargin == 139 && lp.topMargin == 278 && lp.width == 555 && lp.height == 416)
     check(p.jx == 100 && p.jy == 200 && p.jw == 400 && p.jh == 300)
+    // Portrait uses the same short-edge scale as C, including embedded video.
+    p.camada = Layer(1080, 2340); p.temJanela = false
+    check(p.width() == 1080f && p.height() == 2340f)
+    p.videoW = 1920; p.videoH = 1080; p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 0 && lp.topMargin == 866 && lp.width == 1080 && lp.height == 608)
+    p.temJanela = true; p.jx = 96; p.jy = 132; p.jw = 888; p.jh = 500; p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 96 && lp.topMargin == 132 && lp.width == 888 && lp.height == 500)
+    p.camada = Layer(1440, 3120); p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 128 && lp.topMargin == 176 && lp.width == 1184 && lp.height == 667)
+    // Returning to landscape does not lose the crop requested by C.
+    p.camada = Layer(3120, 1440); p.resize()
+    lp = p.superficie!!.layoutParams as FrameLayout.LayoutParams
+    check(lp.leftMargin == 128 && lp.topMargin == 176 && lp.width == 1184 && lp.height == 667)
+    check(p.jx == 96 && p.jy == 132 && p.jw == 888 && p.jh == 500)
     p.camada!!.width = 0; check(p.width() == 1920f)
     p.camada = null; check(p.width() == 1920f)
     println("android_window_layout: TV guards and uniform preview default/video/crop resize ok")

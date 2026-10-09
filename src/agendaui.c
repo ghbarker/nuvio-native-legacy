@@ -197,7 +197,7 @@ static float agEscala(void) { return escForcada > 0.0f ? escForcada : escala_min
 #undef NV_TELA_W
 #undef NV_TELA_H
 #define NV_TELA_W (NV_LAYOUT_REAL_W / agEscala())
-#define NV_TELA_H (1080.0f / agEscala())
+#define NV_TELA_H (NV_LAYOUT_REAL_H / agEscala())
 
 // --- AS MEDIDAS DO MOCKUP APROVADO (Glass UI "ilha", tela 8; out/2026) -----
 //

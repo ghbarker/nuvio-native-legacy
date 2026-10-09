@@ -468,7 +468,7 @@ static float aj2PreviaPendente(float x, float y, float w) {
 // Modal centrado na tela virtual, e no maximo do tamanho dela menos 40 de cada
 // lado (escala.h). Em 100% os numeros fixos de cada modal ja sao os centrados.
 static void ajCentraModal(GfxRect *m) {
-  if (ajustes_tamanho_ajustes() == 1.0f) return;
+  if (ajustes_tamanho_ajustes() == 1.0f && !ajRetrato()) return;
   if (m->w > NV_VTELA_W - 80.0f) m->w = NV_VTELA_W - 80.0f;
   if (m->h > NV_VTELA_H - 80.0f) m->h = NV_VTELA_H - 80.0f;
   m->x = (NV_VTELA_W - m->w) * 0.5f;
@@ -489,7 +489,7 @@ static void ajConfirmacao(const char *kick, int alerta, const char *pergunta, co
   hTxt = txt_bloco(TXT_AJ_TEXTO, texto, 0, 0, 0, 0, -4000, m.w - 88, 30, 0, 6);
   m.h = 44 + 22 + 8 + 44 + 14 + hTxt + (de ? 22 + 24 : 0) + 34 + 60 + 44;
   m.y = m.h < 480 ? 300 : (NV_VTELA_H - m.h) * 0.5f;
-  if (ajustes_tamanho_ajustes() != 1.0f) { ajCentraModal(&m); x = m.x + 44; }
+  if (ajustes_tamanho_ajustes() != 1.0f || ajRetrato()) { ajCentraModal(&m); x = m.x + 44; }
   ajIlha(m, 36, 1, 1);
   y = m.y + 44;
   if (alerta) { gfx_icone((GfxRect){ x, y - 2, 22, 22 }, "aj_triangle-alert", 0.961f, 0.784f, 0.298f, 1); ajKicker(kick, x + 34, y, 1); }
@@ -609,11 +609,13 @@ static int ajVinculoTeste;
 static void desenhaVinculo(const char *servico, const char *codigo,
                            const char *endereco, const char *falha, int esperando) {
   GfxRect m = { 410, 230, 1100, 620 };
+  if (ajRetrato()) m.h = 1040.0f;
   float x, y;
   char t[96];
   ajCentraModal(&m);
   ajIlha(m, 36, 1, 1);
   x = m.x + 56 + 356 + 56; y = m.y + 50;
+  if (ajRetrato()) { x = m.x + 56; y += 396.0f; }
   ajKicker("Fontes e addons", x, y, 1);
   y += 22 + 4;
   snprintf(t, sizeof t, i18n("Conectar %s"), servico);
@@ -632,6 +634,7 @@ static void desenhaVinculo(const char *servico, const char *codigo,
   }
   qrVinTex(endereco);
   { GfxRect tile = { m.x + 56, m.y + (m.h - 356) * 0.5f, 356, 356 };
+    if (ajRetrato()) { tile.x = m.x + (m.w - 356.0f) * 0.5f; tile.y = m.y + 40.0f; }
     gfx_cor(tile, 28.0f / 356, 1, 1, 1, 1);
     if (texQrVin) {
       gfx_tex_aspect_atual = 0.0f;
@@ -727,6 +730,7 @@ static void aj2RodapeEditor(GfxRect m, float colW, const AjDica *d, int n) {
 #ifdef NV_TOUCH_PREVIEW
   if (ajPontEditor) ajToqueBotoes(m.x + m.w - 52.0f, y + 32.0f, 1.0f);
 #endif
+  if (ajRetrato()) y -= 76.0f;
   if (uxTemPadrao(uxOp)) {
     TxtLinha t = uxRodape ? ajTxtT(TXT_V2_SEG, "Restaurar padrão") : ajTxt(TXT_V2_SEG, "Restaurar padrão");
     float w = 24 + 24 + 10 + t.w + 24;
@@ -789,6 +793,9 @@ static float aj2PreviaEditor(int op, float x, float y, float w) {
   if (op == AJ_FIL_LIMITE) return aj2OrdemHome(x, y, w);
   return ajPreviaEditor(op, x, y, w);
 }
+static float aj2EditorBase(GfxRect m) {
+  return m.y + m.h - 40.0f - 64.0f - 24.0f - (ajRetrato() ? 76.0f : 0.0f);
+}
 static void aj2EditorNumero(GfxRect m) {
   const Opcao *o = &OPCOES[uxOp];
   float y, lx, lw, ar, ag, ab, pw = 520.0f;
@@ -808,13 +815,17 @@ static void aj2EditorNumero(GfxRect m) {
     TxtLinha big, u = ajTxt(TXT_V2_36B, uni), ls;
     char sv[96];
     if (uxOp == AJ_HERO_TRAILER_ESPERA) snprintf(v, sizeof v, "%d,%d", uxPendente / 10, uxPendente % 10);
-    big = ajTxt(TXT_V2_NUM150, v);
+    big = ajTxt(ajRetrato() ? TXT_V2_TIT : TXT_V2_NUM150, v);
     if (ajVid()) gfx_cor(r, 30.0f / r.h, 1, 1, 1, uxRodape ? 0.0f : 0.12f);
     else ajFocoLinha(r, 30, uxRodape ? 0 : 1, 1);
     txt_desenhar(big, tx - 4, cy - big.h * 0.5f);
     snprintf(sv, sizeof sv, i18n("salvo: %s"), salvo);
     ls = ajTxt(TXT_V2_26, sv);
     { float bx = tx - 4 + big.w + 30, bh = 43.6f + 6 + 29;
+      if (ajRetrato()) {
+        float livre = fmaxf(1.0f, r.x + r.w - 168.0f - bx);
+        u = ajTxtC(TXT_V2_36B, uni, livre); ls = ajTxtC(TXT_V2_26, sv, livre);
+      }
       txt_desenhar(u, bx, cy - bh * 0.5f + (43.6f - u.h) * 0.5f);
       txt_desenhar_alpha(ls, bx, cy - bh * 0.5f + 43.6f + 6 + (29 - ls.h) * 0.5f, 0.5f); }
     if (ajPontEditor) {
@@ -859,7 +870,7 @@ static void aj2EditorNumero(GfxRect m) {
     y += 22; y += aj2Ef("aj_triangle-alert", t, lx, y, lw, 1);
   }
   { const char *ef = uxOp == AJ_FIL_LIMITE ? NULL : efeitoOpcao(uxOp);
-    if (ef && ef[0] && y + 12 + 80 <= m.y + m.h - 40 - 64 - 20) {
+    if (ef && ef[0] && y + 12 + 80 <= aj2EditorBase(m) + 4.0f) {
       y += 12; y += aj2Ef("aj_info", i18n(ef), lx, y, lw, 1); } }
   if (pw > 0) aj2PreviaPendente(m.x + m.w - 52 - pw, aj2CabecalhoEditor(m), pw);
   { AjDica d[3] = { { "← →", "Ajustar" }, { "OK", "Confirmar" }, { "Voltar", "Cancelar" } };
@@ -873,13 +884,13 @@ static void aj2EditorEscolha(GfxRect m) {
   y0 = y;
   if (m.w - 104 - pw - 56 < 560) pw = 0;
   lx = m.x + 52; lw = pw > 0 ? m.w - 104 - pw - 56 : m.w - 104;
-  vis = (int)((m.y + m.h - 40 - 64 - 24 - y) / 100.0f);
+  vis = (int)((aj2EditorBase(m) - y) / 100.0f);
   if (vis < 3) vis = 3;
   primeiro = uxPendente - vis / 2;
   if (primeiro + vis > n) primeiro = n - vis;
   if (primeiro < 0) primeiro = 0;
 #ifdef NV_TOUCH_PREVIEW
-  { float base = m.y + m.h - 40 - 64 - 24;
+  { float base = aj2EditorBase(m);
     if (ajPontEditor) {
       float off = ajToqueRegistrar(AJT_EDITOR, (GfxRect){lx, y0, lw, base - y0}, &ajToqueOffset[AJT_EDITOR],
                                   n * 100.0f - (base - y0), primeiro * 100.0f, uxOp);
@@ -890,7 +901,7 @@ static void aj2EditorEscolha(GfxRect m) {
 #endif
   for (i = primeiro; i < n && i < primeiro + vis; i++) {
 #ifdef NV_TOUCH_PREVIEW
-    if (y + 96 < y0 || y >= m.y + m.h - 40 - 64 - 24) { y += 100; continue; }
+    if (y + 96 < y0 || y >= aj2EditorBase(m)) { y += 100; continue; }
 #endif
     char t[160];
     int foco = !uxRodape && i == uxPendente;
@@ -899,7 +910,7 @@ static void aj2EditorEscolha(GfxRect m) {
     uxValorTexto(uxOp, i, t, sizeof t);
     if (ajPontEditor) {
 #ifdef NV_TOUCH_PREVIEW
-      ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y0, m.y + m.h - 40 - 64 - 24, ajPontEdValor, NULL, i, 0);
+      ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y0, aj2EditorBase(m), ajPontEdValor, NULL, i, 0);
 #else
       ponteiro_alvo(r.x, r.y, r.w, r.h, ajPontEdValor, NULL, i, 0);
 #endif

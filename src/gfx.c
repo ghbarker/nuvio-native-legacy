@@ -3152,12 +3152,12 @@ void gfx_snap_comecar(void) {
 // o sintoma do dono e a home sumida atras do Social.
 int gfx_snap_vazio(int *maxCanal) {
   static unsigned char lin[1100 * 4];
-  int k, i, mx = 0;
+  int k, i, mx = 0, n = snapW < 1100 ? snapW : 1100;
   if (!snapFbo || !snapAtivo) return 0;
   for (k = 0; k < 3; k++) {
     int y = snapH * (k == 0 ? 3 : k == 1 ? 5 : 7) / 10;
-    glReadPixels(0, y, 1100 < snapW ? 1100 : snapW, 1, GL_RGBA, GL_UNSIGNED_BYTE, lin);
-    for (i = 0; i < 1100 * 4; i += 4) {
+    glReadPixels(0, y, n, 1, GL_RGBA, GL_UNSIGNED_BYTE, lin);
+    for (i = 0; i < n * 4; i += 4) {
       if (lin[i] > mx) mx = lin[i];
       if (lin[i + 1] > mx) mx = lin[i + 1];
       if (lin[i + 2] > mx) mx = lin[i + 2];
@@ -3187,6 +3187,9 @@ void gfx_snap_desenhar(void) {
 }
 
 void gfx_snap_encerrar(void) {
+#ifdef NV_TOUCH_PREVIEW
+  snapGeracao++;
+#endif
   if (snapFbo) glDeleteFramebuffers(1, &snapFbo);
   if (snapTex) glDeleteTextures(1, &snapTex);
   snapFbo = snapTex = 0;

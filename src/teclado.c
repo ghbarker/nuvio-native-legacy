@@ -49,7 +49,12 @@
 // PADRAO ocupa 6 (36 caracteres); o do portal IPTV precisa de ponto, dois
 // pontos e hifen alem de a-z0-9, e nao cabe em 36. Quem abre escolhe o
 // alfabeto, e a modal se ajusta — as fileiras de verdade sao `nFileiras`.
+#ifdef NV_TOUCH_PREVIEW
+#define TE_FILEIRAS_MAX 16
+#else
 #define TE_FILEIRAS_MAX 8
+#endif
+#define TE_FILEIRAS_TV_MAX 8
 #define TE_FILEIRAS_PAD 7          // 6 de a-z0-9 + 1 de apagar/limpar/pronto
 #define TE_PASSO     (TE_TECLA + TE_GAP)
 
@@ -153,7 +158,24 @@ static float gradeH(void) {
 #define TE_ILHA_PY   48.0f
 #define TE_COL_GAP   56.0f
 #define TE_EXTRA_H   56.0f
+static int teRetrato(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_TELA_H > NV_TELA_W;
+#else
+  return 0;
+#endif
+}
+static int teColsMaxTela(void) {
+  if (teRetrato()) {
+    int n = (int)((NV_TELA_W - 80.0f - 2 * TE_ILHA_PX + TE_GAP) / TE_PASSO);
+    return n < 3 ? 3 : n > TE_COLS_MAX ? TE_COLS_MAX : n;
+  }
+  return TE_COLS_MAX;
+}
+static int teFileirasMax(void) { return teRetrato() ? TE_FILEIRAS_MAX : TE_FILEIRAS_TV_MAX; }
+static int colsTelaMontada;
 static float teEsqW0(void) {
+  if (teRetrato()) return NV_TELA_W - 80.0f - 2 * TE_ILHA_PX;
   float w = 1340.0f - 2 * TE_ILHA_PX - TE_COL_GAP - gradeW();
   float teto = NV_TELA_W - 80.0f - 2 * TE_ILHA_PX - TE_COL_GAP - gradeW();
   if (w > teto) w = teto;
@@ -180,18 +202,34 @@ static int   medido, segNFilas = 1, dicasFilas = 1, segFila[3];
 static float ewMed, esqHMed, segPad = TE_SEG_PAD, qrH, qrHAnt;
 static TxtEstilo segEst = TXT_AJ_SEG;
 static float teEsqW(void) { return medido ? ewMed : teEsqW0(); }
-static float teW(void) { return 2 * TE_ILHA_PX + teEsqW() + TE_COL_GAP + gradeW(); }
+static float teEsqH(void) {
+  return medido ? esqHMed : 22 + 48 + 10 + 57 + 30 + 76 + 22 + 55 + 16 + 50 + 40 + 30;
+}
+static float teGradeH(void) {
+  return (float)(nFileiras - 1) * TE_PASSO - TE_GAP + 20.0f + TE_EXTRA_H;
+}
+static float teW(void) {
+  if (teRetrato()) return 2 * TE_ILHA_PX + fmaxf(teEsqW(), gradeW());
+  return 2 * TE_ILHA_PX + teEsqW() + TE_COL_GAP + gradeW();
+}
 static float teX(void) { return (NV_TELA_W - teW()) * 0.5f; }
-static float teGradeX(void) { return teX() + TE_ILHA_PX + teEsqW() + TE_COL_GAP; }
+static float teGradeX(void) {
+  if (teRetrato()) return teX() + (teW() - gradeW()) * 0.5f;
+  return teX() + TE_ILHA_PX + teEsqW() + TE_COL_GAP;
+}
 static float teH(void) {
-  float grade = (float)(nFileiras - 1) * TE_PASSO - TE_GAP + 20.0f + TE_EXTRA_H;
+  float grade = teGradeH();
   // A coluna da esquerda tem altura propria (titulo, dica, campo, modos e
   // as dicas na base): com um alfabeto curto (hexadecimal, 3 fileiras) a
   // grade sozinha deixaria as dicas em cima do texto.
-  float esq = medido ? esqHMed : 22 + 48 + 10 + 57 + 30 + 76 + 22 + 55 + 16 + 50 + 40 + 30;
+  float esq = teEsqH();
+  if (teRetrato()) return 2 * TE_ILHA_PY + esq + TE_COL_GAP + grade;
   return 2 * TE_ILHA_PY + (grade > esq ? grade : esq);
 }
 static float teY(void) { return (NV_TELA_H - teH()) * 0.5f; }
+static float teGradeY(void) {
+  return teY() + TE_ILHA_PY + (teRetrato() ? teEsqH() + TE_COL_GAP : 0.0f);
+}
 static const char *alfa(void) { return alfabetoAtual ? alfabetoAtual : ALFABETO; }
 static char  texto[TECLADO_LONGO + 1];
 static int   n, maxN, resultado;
@@ -288,6 +326,7 @@ static void teMontar(int email) {
   memset(nCel, 0, sizeof nCel);
   emCamadas = camada = caixa = nTeclasCam = 0;
   nAtalhos = email ? TE_N_ATALHOS : 0;
+  colsTelaMontada = teColsMaxTela();
   if (!email)
     for (p = a; *p; p++)
       if (isupper((unsigned char)*p) && strchr(a, tolower((unsigned char)*p))) { emCamadas = 1; break; }
@@ -297,10 +336,10 @@ static void teMontar(int email) {
     // 13 (a-m / n-z / 0-9@._ / -+) + atalhos: 6 fileiras, a altura do padrao.
     nCols = TE_COLS;
     if (email) nCols = TE_COLS_LONGO;
-    else if (letras > (TE_FILEIRAS_MAX - 1) * TE_COLS) {
+    else if (letras > (TE_FILEIRAS_TV_MAX - 1) * TE_COLS) {
       nCols = TE_COLS_LONGO;
-      if (letras > (TE_FILEIRAS_MAX - 1) * nCols)
-        nCols = (letras + TE_FILEIRAS_MAX - 2) / (TE_FILEIRAS_MAX - 1);
+      if (letras > (TE_FILEIRAS_TV_MAX - 1) * nCols)
+        nCols = (letras + TE_FILEIRAS_TV_MAX - 2) / (TE_FILEIRAS_TV_MAX - 1);
       if (nCols > TE_COLS_MAX) nCols = TE_COLS_MAX;
     }
     // Fileiras de caractere = quantas o alfabeto pede, arredondando para cima,
@@ -309,7 +348,8 @@ static void teMontar(int email) {
     // a ULTIMA fileira de caractere pode ser parcial (39 simbolos em 6 colunas
     // deixam tres na setima), e nCel[] e o que impede o foco de entrar em
     // celula vazia.
-    teto = TE_FILEIRAS_MAX - 1 - (email ? 1 : 0);
+    if (nCols > colsTelaMontada) nCols = colsTelaMontada;
+    teto = teFileirasMax() - 1 - (email ? 1 : 0);
     f = teEncher(0, 0, a, letras, teto);
     if (f < 1) f = 1;
     nFileiras = f + 1 + (email ? 1 : 0);
@@ -327,7 +367,8 @@ static void teMontar(int email) {
       else if (ns < (int)sizeof sim && !memchr(sim, c, (size_t)ns)) sim[ns++] = (char)c;
     }
     nCols = TE_COLS_CAMADA;
-    teto = TE_FILEIRAS_MAX - 2;
+    if (nCols > colsTelaMontada) nCols = colsTelaMontada;
+    teto = teFileirasMax() - 2;
     f0 = teEncher(0, 0, dig, nd, teto);
     f0 = teEncher(0, f0, let, nl, teto);
     // Os sinais rapidos: o que couber depois da ultima letra.
@@ -348,6 +389,35 @@ static void teMontar(int email) {
     if (espaco) teclaCam[nTeclasCam++] = TE_K_ESPACO;
     nFileiras = (f0 > f1 ? f0 : f1) + 2; }
 }
+#ifdef NV_TOUCH_PREVIEW
+typedef struct { int tipo, coluna; char letra; } TeFocoAntes;
+static TeFocoAntes teGuardarFoco(int f, int c) {
+  TeFocoAntes r = { f < 0 ? -1 : ehChar(f) ? 0 : f == nFileiras - 1 ? 2 : 1, c, 0 };
+  if (r.tipo == 0 && c >= 0 && c < nCel[camada][f]) r.letra = celula[camada][f][c];
+  return r;
+}
+static void teRestaurarFoco(TeFocoAntes r, int *f, int *c) {
+  *c = r.coluna;
+  if (r.tipo < 0) { *f = -1; return; }
+  if (r.tipo == 0) {
+    for (int y = 0; y < fileirasChar(); y++) for (int x = 0; x < nCel[camada][y]; x++)
+      if (celula[camada][y][x] == r.letra) { *f = y; *c = x; return; }
+    *f = *c = 0;
+  } else *f = r.tipo == 2 ? nFileiras - 1 : fileirasChar();
+}
+static void teRefluir(void) {
+  if (colsTelaMontada == teColsMaxTela()) return;
+  TeFocoAntes foco = teGuardarFoco(fileira, coluna), volta = teGuardarFoco(voltaF, voltaC);
+  int cam = camada, cx = caixa, email = nAtalhos != 0;
+  teMontar(email);
+  camada = cam; caixa = cx;
+  teRestaurarFoco(foco, &fileira, &coluna);
+  teRestaurarFoco(volta, &voltaF, &voltaC);
+  if (colunaAntes >= nCols) colunaAntes = nCols - 1;
+  memset(focoAnim, 0, sizeof focoAnim);
+  medido = 0;
+}
+#endif
 static void abrirImeAgora(void);
 void teclado_tipo(int tipo) {
   tipoIme = tipo == TECLADO_TIPO_EMAIL ? ST_IME_EMAIL : tipo == TECLADO_TIPO_SENHA ? ST_IME_SENHA : ST_IME_TEXTO;
@@ -556,7 +626,7 @@ static int camDeColuna(int c) {
 
 static GfxRect retangulo(int f, int c) {
   GfxRect r;
-  r.y = teY() + TE_ILHA_PY + (float)f * TE_PASSO;
+  r.y = teGradeY() + (float)f * TE_PASSO;
   r.h = TE_TECLA;
   if (ehChar(f)) {
     r.x = teGradeX() + (float)c * TE_PASSO;
@@ -565,7 +635,7 @@ static GfxRect retangulo(int f, int c) {
     // apagar / limpar / (mostrar) / CONCLUIR: o ultimo e 1,3 vez os outros.
     int k = colunasDe(f), i;
     float unid = (gradeW() - (float)(k - 1) * TE_GAP) / ((float)(k - 1) + 1.3f);
-    r.y = teY() + TE_ILHA_PY + (float)(nFileiras - 1) * TE_PASSO - TE_GAP + 20.0f;
+    r.y = teGradeY() + (float)(nFileiras - 1) * TE_PASSO - TE_GAP + 20.0f;
     r.h = TE_EXTRA_H;
     r.x = teGradeX();
     for (i = 0; i < c; i++) r.x += unid + TE_GAP;
@@ -802,9 +872,13 @@ static float teChipsLarg(TxtEstilo e, float pad, const char **rot, int a, int b)
   return w;
 }
 static void teMedir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  teRefluir();
+#endif
   const char *rot[3];
   int col[3], k = teModos(rot, col), i;
   float base = teEsqW0(), teto = NV_TELA_W - 80.0f - 2 * TE_ILHA_PX - TE_COL_GAP - gradeW();
+  if (teRetrato()) teto = NV_TELA_W - 80.0f - 2 * TE_ILHA_PX;
   float ew, segNeed = k ? teChipsLarg(TXT_AJ_SEG, TE_SEG_PAD, rot, 0, k) : 0.0f;
   float wA[3], wB[3], dicaMax = 0, h;
   const char *lc[3] = { "Digitar pelo celular", "Falar", "Teclado da TV" };
@@ -853,6 +927,7 @@ static void teMedir(void) {
       // sempre, ate o que a tela deixa — celb escolhe o arranjo que cabe.
       float frase = txt_bloco(TXT_ILHA_GENERO, TE_FRASE_CEL, 243, 242, 239, 0, 0, ew, 25.0f, 0.0f, 3);
       float teto = NV_TELA_H - 48.0f - 2 * TE_ILHA_PY - h - 16.0f - base;
+      if (teRetrato()) teto -= teGradeH() + TE_COL_GAP;
       qrH = celb_embutido(CELB_TECLADO) ? celb_embutido_altura(CELB_TECLADO, ew, teto) : 0.0f;
       if (qrH > 0) qrHAnt = qrH;   // fechando, a altura encolhe a partir da ultima
       h += 16.0f + anim_mistura(frase, qrHAnt, anim_suave(animQr));
@@ -1021,7 +1096,8 @@ static void teDesenhar(Uint32 agora) {
     } }
   // Dicas na base da coluna.
   { const char *av = st_dono() == ST_TECLADO ? st_aviso() : "";
-    float by = teY() + dy + teH() - TE_ILHA_PY - 30.0f;
+    float by = teRetrato() ? teY() + dy + TE_ILHA_PY + teEsqH() - 30.0f
+                          : teY() + dy + teH() - TE_ILHA_PY - 30.0f;
     if (av[0]) {
       TxtLinha t = txt_linha_corta(TXT_ILHA_GENERO, av, 240, 196, 140, 255, ew);
       txt_desenhar_alpha(t, x, by + (30 - t.h) * 0.5f, a);

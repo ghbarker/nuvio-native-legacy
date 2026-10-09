@@ -4576,6 +4576,18 @@ void app_atualizar(float dt, Uint32 agora) {
   }
 
   cwRetidoSincronizar();
+#ifdef NV_TOUCH_PREVIEW
+  { static float guiaW, guiaH;
+    if (guiaW != NV_TELA_W || guiaH != NV_TELA_H) {
+      guiaW = NV_TELA_W; guiaH = NV_TELA_H;
+      if (player_mini_no_guia_ativo()) {
+        float x, y, w, h;
+        guia_preview_rect(&x, &y, &w, &h);
+        player_mini_no_guia(x, y, w, h);
+      }
+    }
+  }
+#endif
   player_atualizar(dt, agora);
   // A barra por cima da pagina: o trailer do fundo fica mudo enquanto ela
   // esta aberta (detail_sob_menu). O pedido de barra da pagina e lido em
@@ -5044,6 +5056,14 @@ void app_desenhar(Uint32 agora) {
   // ainda chegava aparecer. Nada de congelar com video no ar (o PiP pinta o
   // furo) nem com o painel de Salvos, que usa o mesmo FBO.
   { static int pronto, refeitas, regCongelado;
+#ifdef NV_TOUCH_PREVIEW
+    static float fundoW, fundoH;
+    static unsigned fundoGeracao;
+    if (fundoW != NV_TELA_W || fundoH != NV_TELA_H || fundoGeracao != gfx_snap_geracao()) {
+      pronto = refeitas = regCongelado = 0;
+      fundoW = NV_TELA_W; fundoH = NV_TELA_H;
+    }
+#endif
     static unsigned revPronta;
     static Uint32 desde;
     static const Uint32 REFAZ[] = { 400, 1500, 4000 };
@@ -5086,7 +5106,11 @@ void app_desenhar(Uint32 agora) {
       }
       if (regCongelado) gfx_snap_desenhar();
     } else desenharTelas(agora);
-    if (!registro_aberto()) regCongelado = 0; }
+    if (!registro_aberto()) regCongelado = 0;
+#ifdef NV_TOUCH_PREVIEW
+    fundoGeracao = gfx_snap_geracao();
+#endif
+  }
   // O explicador fica ACIMA de qualquer tela (menos do painel de log, que e
   // ferramenta de diagnostico): ele e a primeira coisa que a pessoa ve depois
   // desta atualizacao, e nada pode aparecer por cima dele.

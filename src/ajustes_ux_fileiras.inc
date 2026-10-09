@@ -142,6 +142,19 @@ static void ajCelula(float x, float yc, float w, const char *t, float al, int fo
 #define AJF_PAINEL_W 560.0f
 
 static void ajFilPainel(GfxRect pr, int n, int lim);
+typedef struct { GfxRect ilha, painel; float cx, cw, estado, card, tamanho; } AjFilMedidas;
+static AjFilMedidas ajFilMedir(void) {
+  AjFilMedidas m;
+  float x = 48.0f + ajustes_rail_largura_fixa();
+  float topo = AJI_TOPO * ajustes_tamanho_ajustes(), margem = AJI_MARGEM * ajustes_tamanho_ajustes();
+  m.ilha = (GfxRect){x, topo, NV_TELA_W - 48.0f - x, NV_TELA_H - topo - margem};
+  m.painel = (GfxRect){m.ilha.x + m.ilha.w - 24 - AJF_PAINEL_W, m.ilha.y + 24, AJF_PAINEL_W, m.ilha.h - 48};
+  if (ajRetrato()) m.painel.x = m.ilha.x + m.ilha.w;
+  m.cx = m.ilha.x + 30; m.cw = m.painel.x - 30 - m.cx;
+  float fator = ajRetrato() ? fmaxf(0.0f, (m.cw - 28.0f) * 0.5f) / 630.0f : 1.0f;
+  m.estado = 200.0f * fator; m.card = 230.0f * fator; m.tamanho = 200.0f * fator;
+  return m;
+}
 
 #ifdef NV_TOUCH_PREVIEW
 static float ajFilToqueAltura(int i) {
@@ -189,15 +202,13 @@ static void ajFilToqueAba(int aba, int b) {
 #endif
 
 static void desenhaFileiras(void) {
-  const float topoTela = AJI_TOPO * ajustes_tamanho_ajustes();
-  const float margemTela = AJI_MARGEM * ajustes_tamanho_ajustes();
   // #359: a ilha comeca depois da rail fixa, como o resto de Ajustes (ajX0):
   // em x 48 a pilula do menu cobria o titulo e o icone das linhas. Desenhado
   // em px da tela REAL (ESCALA_REAL), entao soma a rail sem dividir.
-  const float x0 = 48.0f + ajustes_rail_largura_fixa();
-  GfxRect ilha = { x0, topoTela, NV_TELA_W - 48.0f - x0, NV_TELA_H - topoTela - margemTela };
-  GfxRect pr = { ilha.x + ilha.w - 24 - AJF_PAINEL_W, ilha.y + 24, AJF_PAINEL_W, ilha.h - 48 };
-  float cx = ilha.x + 30, cw = pr.x - 30 - cx;   // coluna da lista
+  AjFilMedidas m = ajFilMedir();
+  GfxRect ilha = m.ilha, pr = m.painel;
+  float cx = m.cx, cw = m.cw;
+  float campos = m.estado + m.card + m.tamanho;
   float hx = cx + 14, y, topo, base, segL = cx + cw;
   int n, lim = fil_limite(), i;
   filMontarLista();
@@ -212,6 +223,7 @@ static void desenhaFileiras(void) {
   { char a0[48], a1[48], n0[32], n1[32];
     const char *rot[2], *num[2];
     float bx = cx + cw - 14, by = ilha.y + 36 + 22 + 46 + 8 + 24 - 56;
+    if (ajRetrato()) by += 56.0f;
     int fAtualizar = (filAba == 0 && filFoco == n) || (filAba == 1 && filFoco == n + 1);
     int fAgrupar = filAba == 1 && filFoco == n;
     snprintf(a0, sizeof a0, "%s", i18n("Na Home")); snprintf(a1, sizeof a1, "%s", i18n("Fora da Home"));
@@ -226,7 +238,7 @@ static void desenhaFileiras(void) {
     if (fAtualizar && !filNaBarra) { ajPilulaAcento((GfxRect){ bx, by, 56, 56 }, 28, 1); ajIconeT("aj_rotate-cw", bx + 17, by + 17, 22, 1); }
     else { ajNeutro((GfxRect){ bx, by, 56, 56 }, 28, 0.08f, AJ_CHIP_SOL, 1); ajIcone("aj_rotate-cw", bx + 17, by + 17, 22, 0.85f); }
     if (filAba == 1) {
-      const char *r = filForaAgrupada ? "Por addon" : "Alfabética";
+      const char *r = filForaAgrupada ? (ajRetrato() ? "Addon" : "Por addon") : (ajRetrato() ? "A–Z" : "Alfabética");
       TxtLinha t = (fAgrupar && !filNaBarra) ? ajTxtT(TXT_AJ_SEG, r) : ajTxt(TXT_AJ_SEG, r);
       float w = 22 + 20 + 10 + t.w + 22;
       bx -= 10 + w;
@@ -251,16 +263,16 @@ static void desenhaFileiras(void) {
 #endif
       segL = bx; } }
   { TxtLinha s = ajTxtC(TXT_AJ_ESTADO, filAba == 0 ? "Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos"
-                                                   : "OK adiciona: entra na Home se couber, senão entra na fila", segL - hx - 24);
-    txt_desenhar_alpha(s, hx, ilha.y + 36 + 22 + 46 + 8, 0.55f); }
-  topo = ilha.y + 36 + 22 + 46 + 8 + 24 + 22;
+                                                   : "OK adiciona: entra na Home se couber, senão entra na fila", ajRetrato() ? cw - 28.0f : segL - hx - 24);
+    txt_desenhar_alpha(s, hx, ilha.y + 36 + 22 + 46 + 8 + (ajRetrato() ? 92.0f : 0.0f), 0.55f); }
+  topo = ilha.y + 36 + 22 + 46 + 8 + 24 + 22 + (ajRetrato() ? 92.0f : 0.0f);
   base = ilha.y + ilha.h - 20;
   // CABECALHO DAS COLUNAS (so na aba Na Home)
   if (filAba == 0 && n > 0) {
     float x = cx + cw - 14;
-    x -= 200; ajCaps(TXT_AJ_CAPS13, "Tamanho", 1.68f, x + 16, topo, 0.38f);
-    x -= 230; ajCaps(TXT_AJ_CAPS13, "Card", 1.68f, x + 16, topo, 0.38f);
-    x -= 200; ajCaps(TXT_AJ_CAPS13, "Estado", 1.68f, x + 16, topo, 0.38f);
+    x -= m.tamanho; ajCaps(TXT_AJ_CAPS13, "Tamanho", 1.68f, x + 16, topo, 0.38f);
+    x -= m.card; ajCaps(TXT_AJ_CAPS13, "Card", 1.68f, x + 16, topo, 0.38f);
+    x -= m.estado; ajCaps(TXT_AJ_CAPS13, "Estado", 1.68f, x + 16, topo, 0.38f);
     ajCaps(TXT_AJ_CAPS13, "Fileira", 1.68f, cx + 92, topo, 0.38f);
     topo += 17 + 8;
   } else topo += 4;
@@ -344,10 +356,10 @@ static void desenhaFileiras(void) {
       PonteiroFn soltar = filPegou ? ajFilToqueSoltar : NULL;
       ponteiro_alvo_faixa(cx, y, cw, rh, topo, base, ajFilToqueFocar, soltar, i, 0);
       if (filAba == 0 && idx != AJ_FIL_DESTAQUE) {
-        float xc = cx + cw - 14.0f - 630.0f;
-        ponteiro_alvo_faixa(xc, y, 200, rh, topo, base, ajFilToqueFocar, soltar, i, 1);
-        ponteiro_alvo_faixa(xc + 200, y, 230, rh, topo, base, ajFilToqueFocar, soltar, i, 2);
-        ponteiro_alvo_faixa(xc + 430, y, 200, rh, topo, base, ajFilToqueFocar, soltar, i, 3);
+        float xc = cx + cw - 14.0f - campos;
+        ponteiro_alvo_faixa(xc, y, m.estado, rh, topo, base, ajFilToqueFocar, soltar, i, 1);
+        ponteiro_alvo_faixa(xc + m.estado, y, m.card, rh, topo, base, ajFilToqueFocar, soltar, i, 2);
+        ponteiro_alvo_faixa(xc + m.estado + m.card, y, m.tamanho, rh, topo, base, ajFilToqueFocar, soltar, i, 3);
       }
     }
 #endif
@@ -359,12 +371,14 @@ static void desenhaFileiras(void) {
     { float yc = y + rh * 0.5f, x = cx + 18;
       const char *ic;
       if (idx == AJ_FIL_DESTAQUE) {
-        TxtLinha t = ajTxt(TXT_AJ_ITEM, "Destaque do topo"), s = ajTxt(TXT_ILHA_GENERO, "O que aparece no destaque da Home");
-        TxtLinha v = ajTxtC(TXT_AJ_VALOR18, heroFonteRotulo(), 480);
+        float nomeW = cw - campos - 122.0f;
+        TxtLinha t = ajRetrato() ? ajTxtC(TXT_AJ_ITEM, "Destaque do topo", nomeW) : ajTxt(TXT_AJ_ITEM, "Destaque do topo");
+        TxtLinha s = ajRetrato() ? ajTxtC(TXT_ILHA_GENERO, "O que aparece no destaque da Home", nomeW) : ajTxt(TXT_ILHA_GENERO, "O que aparece no destaque da Home");
+        TxtLinha v = ajTxtC(TXT_AJ_VALOR18, heroFonteRotulo(), ajRetrato() ? campos - 32.0f : 480);
         ajIcone("aj_panel-top", x + 30 + 4, yc - 12, 24, 0.6f);
         txt_desenhar_alpha(t, x + 30 + 40, yc - (t.h + 2 + s.h) * 0.5f, foco ? 1.0f : 0.86f);
         txt_desenhar_alpha(s, x + 30 + 40, yc - (t.h + 2 + s.h) * 0.5f + t.h + 2, 0.42f);
-        txt_desenhar_alpha(v, cx + cw - 14 - 630 + 16, yc - v.h * 0.5f, foco ? 0.85f : 0.55f);
+        txt_desenhar_alpha(v, cx + cw - 14 - campos + 16, yc - v.h * 0.5f, foco ? 0.85f : 0.55f);
         if (foco) { ajIcone("aj_chevron-right", cx + cw - 14 - 24, yc - 12, 24, 0.7f); }
         y += rh + 4;
         continue;
@@ -382,7 +396,7 @@ static void desenhaFileiras(void) {
       ajIcone(ic, x + 4, yc - 12, 24, 0.6f);
       x += 4 + 24 + 6 + 6;
       { char sb[160];
-        float wt = filAba == 0 ? cx + cw - 14 - 630 - x - 10 : cx + cw - 14 - 260 - x;
+        float wt = filAba == 0 ? cx + cw - 14 - campos - x - 10 : cx + cw - 14 - 260 - x;
         TxtLinha t, s;
         ajSubFileira(idx, sb, sizeof sb);
         if (filAba == 1) {
@@ -398,10 +412,10 @@ static void desenhaFileiras(void) {
         txt_desenhar_alpha(s, x, yc - (t.h + 2 + s.h) * 0.5f + t.h + 2, 0.42f); }
       if (filAba == 0) {
         int naFila = filSep >= 0 && i >= filSep, aceita = fil_aceita_tipo(idx);
-        float xc = cx + cw - 14 - 630;
-        ajCelula(xc, yc, 200, foco && filCampo == 1 ? "Remover" : naFila ? "Na fila" : "Na Home", 0.55f, foco && filCampo == 1 && !filPegou);
-        ajCelula(xc + 200, yc, 230, aceita ? fil_linha_tipo_rotulo(idx) : "Fixo", aceita ? 0.55f : 0.35f, foco && filCampo == 2 && !filPegou);
-        ajCelula(xc + 430, yc, 200, fil_tam_rotulo(fil_linha_tam(idx)), 0.55f, foco && filCampo == 3 && !filPegou);
+        float xc = cx + cw - 14 - campos;
+        ajCelula(xc, yc, m.estado, foco && filCampo == 1 ? "Remover" : naFila ? "Na fila" : "Na Home", 0.55f, foco && filCampo == 1 && !filPegou);
+        ajCelula(xc + m.estado, yc, m.card, aceita ? fil_linha_tipo_rotulo(idx) : "Fixo", aceita ? 0.55f : 0.35f, foco && filCampo == 2 && !filPegou);
+        ajCelula(xc + m.estado + m.card, yc, m.tamanho, fil_tam_rotulo(fil_linha_tam(idx)), 0.55f, foco && filCampo == 3 && !filPegou);
       } else if (foco) {
         TxtLinha t = ajTxtT(TXT_AJ_CHIP, "Adicionar à Home");
         float w = 18 + 20 + 10 + t.w + 18, bx = cx + cw - 22 - w;
@@ -433,7 +447,7 @@ static void desenhaFileiras(void) {
     ajIlha(pil, 24, 1, 1);
     txt_desenhar(l, pil.x + 24, pil.y + (48 - l.h) * 0.5f);
   }
-  ajFilPainel(pr, n, lim);
+  if (!ajRetrato()) ajFilPainel(pr, n, lim);
 }
 
 // As formas de card na proporcao de home.c, com arte; a escolhida acesa.

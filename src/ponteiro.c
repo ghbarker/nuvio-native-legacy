@@ -49,12 +49,13 @@ static PonteiroRolagemFn listaRolagem[2];
 #ifdef NV_TOUCH_PREVIEW
 typedef struct { float largura; PonteiroBordaFn ativar; } Borda;
 static Borda listaBorda[2], toqueBorda;
+static int toqueQuadroPronto;
 #define PONT_BORDA_PUXAR 72.0f
 #endif
 static int escreve = 0;          // a que o desenho deste quadro preenche
 static int pronto  = 1;          // a do quadro anterior, que o hit-test le
 
-static float px = NV_TELA_BASE_W * 0.5f, py = NV_TELA_H * 0.5f;
+static float px = NV_TELA_BASE_W * 0.5f, py = NV_TELA_BASE_H * 0.5f;
 static int visivel = 0;
 static Uint32 ultimoMov = 0;
 static int janelaW = 0, janelaH = 0;
@@ -219,6 +220,7 @@ void ponteiro_iniciar(void) {
   listaRolagem[0] = listaRolagem[1] = NULL;
 #ifdef NV_TOUCH_PREVIEW
   listaBorda[0] = listaBorda[1] = (Borda){0};
+  toqueQuadroPronto = 0;
 #endif
   visivel = 0;
   escondidoSeta = 0; sistemaEscondido = 0;
@@ -665,11 +667,18 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
   Uint32 agora = agoraMs();
   switch (e->type) {
     case SDL_FINGERDOWN: case SDL_FINGERMOTION: case SDL_FINGERUP:
+#ifdef NV_TOUCH_PREVIEW
+      if (!toqueQuadroPronto) return 1;
+#endif
       return eventoToque(e, entregar);
     case SDL_APP_WILLENTERBACKGROUND:
       cancelarToque();
       return 0;
     case SDL_WINDOWEVENT:
+#ifdef NV_TOUCH_PREVIEW
+      if (e->window.event == SDL_WINDOWEVENT_RESIZED ||
+          e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED) toqueQuadroPronto = 0;
+#endif
       if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST ||
           e->window.event == SDL_WINDOWEVENT_RESIZED ||
           e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED) cancelarToque();
@@ -849,6 +858,7 @@ static void fecharQuadro(void) {
   listaRolagem[escreve] = NULL;
 #ifdef NV_TOUCH_PREVIEW
   listaBorda[escreve] = (Borda){0};
+  toqueQuadroPronto = 1;
   if (nDedos && toqueBorda.ativar && toqueBorda.ativar != listaBorda[pronto].ativar) invalidarToque();
 #endif
   if (nDedos && toqueRolagem && toqueRolagem != listaRolagem[pronto]) invalidarToque();
@@ -925,6 +935,7 @@ void ponteiro_borda_esquerda(float largura, PonteiroBordaFn ativar) {
 }
 int ponteiro_borda_registrada(void) { return listaBorda[escreve].ativar != NULL; }
 void ponteiro_borda_ativar(void) {
+  if (!toqueQuadroPronto) return;
   PonteiroBordaFn fn = listaBorda[pronto].ativar;
   if (fn) fn();
 }

@@ -57,7 +57,7 @@
         <activity
             android:name=".NuvioActivity"
             android:exported="true"
-            android:screenOrientation="landscape"
+            android:screenOrientation="${nuvioOrientation}"
             android:launchMode="singleTask"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|navigation|density|locale|layoutDirection|fontScale|colorMode|touchscreen|mcc|mnc|fontWeightAdjustment|grammaticalGender"
             android:resizeableActivity="false" />

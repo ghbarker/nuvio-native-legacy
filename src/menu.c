@@ -46,7 +46,7 @@ static float menuEscala(void) {
 #undef NV_TELA_W
 #undef NV_TELA_H
 #define NV_TELA_W (NV_LAYOUT_REAL_W / NV_MENU_ESCALA)
-#define NV_TELA_H (1080.0f / NV_MENU_ESCALA)
+#define NV_TELA_H (NV_LAYOUT_REAL_H / NV_MENU_ESCALA)
 
 // O MENU DOS LAYOUTS CLASSICOS (dono, 03/10, sobre o mockup "Glass UI — ilha",
 // design/glass-ilha/glass-ilha.html, telas 1 e 2):

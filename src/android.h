@@ -12,6 +12,8 @@ void android_iniciar(void);
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.
 int android_toque_cancelado(const SDL_Event *e);
+// Orientacao do player em tela cheia; mini/trailer ficam com a navegacao.
+void android_player_tela_cheia(int ativa);
 #endif
 // Pede ao Android uma superficie de w x h pixels (SurfaceHolder.setFixedSize)
 // e espera ela chegar, ANTES do SDL_CreateWindow: no Android a janela do SDL

@@ -57,6 +57,9 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 static void avisarCascaAberto(int v) { EM_ASM({ window.nvPlayerAberto = $0; }, v); }
+#elif defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
+#include "android.h"
+static void avisarCascaAberto(int v) { android_player_tela_cheia(v); }
 #else
 static void avisarCascaAberto(int v) { (void)v; }
 #endif
@@ -1212,6 +1215,17 @@ static void aplicarAspecto(void) {
                        (int)(o.w + 0.5f), (int)(o.h + 0.5f)); }
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static void playerTelaAtualizar(void) {
+  static float largura, altura;
+  if (!comVideo || retido) return;
+  if (largura != NV_LAYOUT_REAL_W || altura != NV_LAYOUT_REAL_H) {
+    largura = NV_LAYOUT_REAL_W; altura = NV_LAYOUT_REAL_H;
+    aplicarAspecto();
+  }
+}
+#endif
+
 void player_aspecto_definir(int modo) {
   if (modo < 0 || modo >= PLR_ASP_N) modo = PLR_ASP_ORIGINAL;
   aspecto = modo;
@@ -1990,6 +2004,9 @@ void player_minimizar(void) {
   PlrRect r;
   if (!player_minimizavel()) { player_encerrar(); return; }
   mini = 1; pediuSair = 0; visivel = 0;
+#if defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
+  android_player_tela_cheia(0);
+#endif
   pausao_fechar(); episodios_fechar(); posplay_fechar();
   r = miniDestino();
   video_janela((int)(r.x + 0.5f), (int)(r.y + 0.5f),
@@ -2924,6 +2941,9 @@ static void introTmdbTardio(Uint32 agora) {
 }
 
 void player_atualizar(float dt, Uint32 agora) {
+#ifdef NV_TOUCH_PREVIEW
+  playerTelaAtualizar();
+#endif
   if (retido) { player_validar_retido(agora); return; }
   // DV EM MKV NASCE NO PONTO SALVO: enquanto a retomada nao foi pedida ao
   // player da TV, a troca para o caminho do DV espera (video.c, iniciarDts le o

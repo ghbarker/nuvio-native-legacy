@@ -39,7 +39,7 @@ jobs:
       - name: Build tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil libsdl2-dev
+          sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil libsdl2-dev libsdl2-image-dev
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
       - name: Public application configuration
         env:
@@ -82,9 +82,13 @@ jobs:
           bash tests/catalogo_toque.sh
           bash tests/social_toque.sh
           bash tests/media_toque.sh
+          bash tests/player_touch_resize.sh
+          bash tests/home_trailer_resize.sh
           bash tests/menus_toque.sh
+          bash tests/entrada_retrato.sh
           bash tests/utilidades_toque.sh
           bash tests/gpun_touch.sh
+          bash tests/snap_retrato.sh
           python3 tests/android_apk_pages.py
           cc -DNV_TOUCH_PREVIEW -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
           /tmp/nuvio-layout-touch
@@ -98,6 +102,7 @@ jobs:
         run: |
           python3 tests/android_touch_viewport.py
           python3 tests/android_window_layout.py
+          python3 tests/android_orientation.py
       - uses: actions/cache/save@v4
         if: steps.native-cache.outputs.cache-hit != 'true'
         with:

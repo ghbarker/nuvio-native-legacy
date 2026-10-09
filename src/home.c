@@ -577,29 +577,54 @@ static float escalaDoAjuste(void) {
 // fileiras (home_desenhar). MODERNA devolve exatamente as constantes que este
 // arquivo sempre usou: tests/homelayouts_shot.sh compara o quadro byte a byte.
 static int layoutHome(void) { return ajustes_home_layout(); }
+static int homeRetratoTelefone(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_TELA_H / NV_TELA_W >= 1.7f;
+#else
+  return 0;
+#endif
+}
+static float homeLarguraUtil(void) {
+  return fmaxf(120.0f, NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT);
+}
+static float homeTextoLargura(float largura) {
+  return homeRetratoTelefone()
+       ? fmaxf(1.0f, fminf(largura, NV_TELA_W - ajustes_conteudo_x() - 48.0f))
+       : largura;
+}
+static float escalaPosterTelefone(void) {
+  return homeRetratoTelefone() ? homeLarguraUtil() * 0.28f / NV_CARD_W : 1.0f;
+}
 
 // A tela larga de um telefone precisa deixar uma fileira ao alcance sem
 // ocupar quase toda a altura com o destaque. Tablets e a edicao para TV
 // conservam suas medidas; a arte de fundo continua no mesmo enquadramento.
 static int heroCompactoTelefone(void) {
 #ifdef NV_TOUCH_PREVIEW
-  return NV_TELA_W / NV_TELA_H >= 1.95f;
+  return homeRetratoTelefone() || NV_TELA_W / NV_TELA_H >= 1.95f;
 #else
   return 0;
 #endif
 }
 static float alturaTextoHeroDin(void) {
+  if (homeRetratoTelefone()) return 600.0f;
   return NV_DIN_HERO_H * (heroCompactoTelefone() ? 0.75f : 1.0f);
 }
 static float repousoFileirasDin(void) {
+  if (homeRetratoTelefone()) return 620.0f;
   return NV_DIN_REPOUSO_FIL * (heroCompactoTelefone() ? 0.75f : 1.0f);
+}
+static float empurraHeroModerna(void) {
+  if (homeRetratoTelefone()) return 620.0f - NV_SHELF_TOP;
+  return heroCompactoTelefone()
+       ? (NV_SHELF_TOP + NV_HOME_HERO_EMPURRA) * 0.75f - NV_SHELF_TOP
+       : NV_HOME_HERO_EMPURRA;
 }
 static float heroVisivelToque(void) {
 #ifdef NV_TOUCH_PREVIEW
   if (heroCompactoTelefone() && toqueLivreY) {
     if (layoutHome() == HOME_LAYOUT_MODERNA) {
-      float repouso = (NV_SHELF_TOP + NV_HOME_HERO_EMPURRA) * 0.75f - NV_SHELF_TOP;
-      return anim_clamp(-scrollY / repouso, 0.0f, 1.0f);
+      return anim_clamp(-scrollY / empurraHeroModerna(), 0.0f, 1.0f);
     }
     if (layoutHome() == HOME_LAYOUT_PADRAO)
       // A ficha de colecao tambem ocupa este banner. Ela deve sumir antes
@@ -614,6 +639,7 @@ static float heroVisivelToque(void) {
 // esvanecer das de cima (o `fade` de home_desenhar).
 static float topoFileiras(void) {
   int heroOn = ajustes_hero_ligado();
+  if (homeRetratoTelefone() && !heroOn) return NV_DIN_TOPO_FIL;
   switch (layoutHome()) {
     case HOME_LAYOUT_PADRAO:
       return heroOn ? NV_PAD_TOPO_FIL : NV_DIN_TOPO_FIL - 10.0f;
@@ -626,6 +652,7 @@ static float topoFileiras(void) {
 // a fileira que sai NAO passar por cima dele; a Dinamica nao corta — a fileira
 // some pelo esvanecer e o destaque ja subiu.
 static float corteFileiras(void) {
+  if (homeRetratoTelefone() && !ajustes_hero_ligado()) return 132.0f;
 #ifdef NV_TOUCH_PREVIEW
   if (heroCompactoTelefone() && toqueLivreY) {
     if (!ajustes_hero_ligado()) return 132.0f;
@@ -648,12 +675,11 @@ static float corteFileiras(void) {
 // foco", que e o quanto o destaque sobe ao descer.
 static float empurraHero(void) {
   int heroOn = ajustes_hero_ligado();
+  if (homeRetratoTelefone() && !heroOn) return 0.0f;
   switch (layoutHome()) {
     case HOME_LAYOUT_PADRAO:   return 0.0f;
     case HOME_LAYOUT_DINAMICA: return heroOn ? repousoFileirasDin() - NV_DIN_TOPO_FIL : 0.0f;
-    default:                   return heroCompactoTelefone()
-                                      ? (NV_SHELF_TOP + NV_HOME_HERO_EMPURRA) * 0.75f - NV_SHELF_TOP
-                                      : NV_HOME_HERO_EMPURRA;
+    default:                   return empurraHeroModerna();
   }
 }
 // Rolagem em que o destaque da Dinamica esta TODO na tela: y do topo dele.
@@ -692,6 +718,7 @@ static float escalaCartazPadrao(void) {
   float teto = (NV_TELA_H - topoFileiras() - NV_LEGACY_ROW_HEAD_H - NV_PAD_CARTAZ_FOLGA)
              / NV_PAD_CARTAZ_H;
   float e = escalaDoAjuste();
+  if (homeRetratoTelefone()) e *= homeLarguraUtil() * 0.28f / NV_PAD_CARTAZ_W;
   return e < teto ? e : teto;
 }
 
@@ -703,9 +730,9 @@ static float escalaCartazPadrao(void) {
 // pôster.
 static void medidaColecao(int forma, float *w, float *h) {
   float pw = cartazPadrao() ? escalaCartazPadrao() * NV_PAD_CARTAZ_W
-                            : escalaDoAjuste() * NV_CARD_W;
+                            : escalaDoAjuste() * escalaPosterTelefone() * NV_CARD_W;
   float ph = cartazPadrao() ? escalaCartazPadrao() * NV_PAD_CARTAZ_H
-                            : escalaDoAjuste() * NV_CARD_H;
+                            : escalaDoAjuste() * escalaPosterTelefone() * NV_CARD_H;
   switch (forma) {
     case COL_FORMA_QUADRADO: *w = ph;  *h = ph;  break;
     case COL_FORMA_POSTER:   *w = pw;  *h = ph;  break;
@@ -719,7 +746,7 @@ static float larguraDe(TipoFileira t) {
     // Opção editorial já existente: card panorâmico 16:9.
     case FILEIRA_DESTAQUE: return layoutHome() == HOME_LAYOUT_DINAMICA
                                 ? NV_DIN_DEST_W : NV_DESTAQUE_EDITORIAL_W;
-    case FILEIRA_TOP10_NUM: return NV_CARD_W;
+    case FILEIRA_TOP10_NUM: return NV_CARD_W * escalaPosterTelefone();
     case FILEIRA_LARGA:    return NV_DIN_LARGA_W;
     // Opção adicional da referência: maior e quase quadrada, em 4:3.
     case FILEIRA_DESTAQUE_QUADRADO: return NV_DESTAQUE_QUADRADO_W;
@@ -731,7 +758,7 @@ static float larguraDe(TipoFileira t) {
     case FILEIRA_CATALOGOS: return 360.0f;
     default:               if (cartazPadrao())
                              return escalaCartazPadrao() * NV_PAD_CARTAZ_W;
-                           return escalaDoAjuste() *
+                           return escalaDoAjuste() * escalaPosterTelefone() *
                              (ajustes_posteres_deitados() ? NV_CARD_LAND_W
                                                           : NV_CARD_W);
   }
@@ -1207,7 +1234,7 @@ static float alturaDe(TipoFileira t) {
     case FILEIRA_CONTINUE: return NV_DESTAQUE_H;
     case FILEIRA_DESTAQUE: return layoutHome() == HOME_LAYOUT_DINAMICA
                                 ? NV_DIN_DEST_H : NV_DESTAQUE_EDITORIAL_H;
-    case FILEIRA_TOP10_NUM: return NV_CARD_H;
+    case FILEIRA_TOP10_NUM: return NV_CARD_H * escalaPosterTelefone();
     case FILEIRA_LARGA:    return NV_DIN_LARGA_H;
     case FILEIRA_DESTAQUE_QUADRADO: return NV_DESTAQUE_QUADRADO_H;
     case FILEIRA_COLECAO: return 270.0f;
@@ -1218,7 +1245,7 @@ static float alturaDe(TipoFileira t) {
     case FILEIRA_CATALOGOS: return 203.0f;
     default:               if (cartazPadrao())
                              return escalaCartazPadrao() * NV_PAD_CARTAZ_H;
-                           return escalaDoAjuste() *
+                           return escalaDoAjuste() * escalaPosterTelefone() *
                              (ajustes_posteres_deitados() ? NV_CARD_LAND_H
                                                           : NV_CARD_H);
   }
@@ -1440,6 +1467,12 @@ static float escalaFil(int r) {
   if (r >= 0 && r < MAX_FIL && fileiras[r].fator > 1.0f &&
       fileiras[r].tipo == FILEIRA_DESTAQUE_QUADRADO)
     e = limita43(fileiras[r].fator, e);
+  if (homeRetratoTelefone() && r >= 0 && r < MAX_FIL) {
+    float w = fileiras[r].stackN ? 680.0f : larguraDe(fileiras[r].tipo);
+    if (fileiras[r].tipo == FILEIRA_CATALOGOS) { float h; medidaColecao(fileiras[r].forma, &w, &h); }
+    float limite = (homeLarguraUtil() - xOffTipo(fileiras[r].tipo)) * 0.9f;
+    if (w > 0.0f && e * w > limite) e = limite / w;
+  }
   return e;
 }
 static float larguraFil(int r) {
@@ -1461,6 +1494,20 @@ static float alturaFil(int r) {
 // foi o mesmo defeito que o titulo de fileira ja tinha tido sobre os cards.
 static float alturaTotalFil(int r) {
   return alturaFil(r) + (temRotulo(fileiras[r].tipo) ? NV_POSTER_COPY_H : 0.0f);
+}
+static float alfaFileiraHome(int r, float y, float topo, float corte) {
+  float fade = anim_clamp((y - (topo - 80.0f)) / 80.0f, 0.0f, 1.0f);
+  if (layoutHome() == HOME_LAYOUT_DINAMICA) {
+    float meia = 0.5f * (NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r));
+    fade = anim_clamp((y + meia) / meia, 0.0f, 1.0f);
+    float fatia = anim_clamp((y + NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r)) / 480.0f, 0.0f, 1.0f);
+    if (fatia > fade) fade = fatia;
+  }
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueLivreY || homeRetratoTelefone())
+    fade = anim_clamp((y + NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r) - corte) / 80.0f, 0.0f, 1.0f);
+#endif
+  return fade;
 }
 static float passoFil(int r)       { return larguraFil(r) + gapDe(fileiras[r].tipo); }
 
@@ -3079,7 +3126,7 @@ void home_atualizar(float dt, Uint32 agora) {
   }
   }
   // Relogio da expansao. Zera a cada movimento; conta so com o foco parado.
-  if (ajustes_expandir_poster()) {
+  if (ajustes_expandir_poster() && !homeRetratoTelefone()) {
     if (foco.fileira != expFileira || foco.coluna != expColuna) {
       expFileira = foco.fileira; expColuna = foco.coluna;
       expDesde = agora;
@@ -3473,9 +3520,9 @@ static void desenhaPontosHero(float xDir, float yc, int n, int atual, float a) {
 // desenho e pelos pedidos antecipados (heroPedirLogo): o MESMO teto cai no
 // MESMO item do cache, sem promocao nem segundo decode.
 static float heroLogoMaxW(int lay, int cheio) {
-  if (lay == HOME_LAYOUT_PADRAO) return NV_PAD_LOGO_MAX_W;
-  if (lay == HOME_LAYOUT_DINAMICA) return NV_DIN_LOGO_MAX_W;
-  return cheio ? NV_LOGO_HERO_CHEIO_MAX_W : NV_LOGO_HERO_MAX_W;
+  if (lay == HOME_LAYOUT_PADRAO) return homeTextoLargura(NV_PAD_LOGO_MAX_W);
+  if (lay == HOME_LAYOUT_DINAMICA) return homeTextoLargura(NV_DIN_LOGO_MAX_W);
+  return homeTextoLargura(cheio ? NV_LOGO_HERO_CHEIO_MAX_W : NV_LOGO_HERO_MAX_W);
 }
 
 // O LOGO DO TITULO JUNTO COM A ARTE (07/10, TCL Android 2.0.2). O logo so era
@@ -3755,7 +3802,21 @@ static float heroBaseCopia(int lay, GfxRect r, float empurra, float descida) {
   if (lay == HOME_LAYOUT_DINAMICA) return r.y + alturaTextoHeroDin() - NV_DIN_TEXTO_BASE + descida;
   return NV_SHELF_TOP - NV_HERO_COPY_GAP - 24.0f + empurra + descida;
 }
+static GfxRect heroEditorialRect(int editorial, float aspect) {
+  float largura = homeRetratoTelefone() ? NV_TELA_W : 1920.0f;
+  GfxRect r = {0, 0, largura, homeRetratoTelefone() ? largura * (500.0f / 1920.0f) : 500.0f};
+  if (editorial == 2 && aspect > 0.0f) {
+    r.w = fminf(largura, 500.0f * aspect);
+    r.h = r.w / aspect; r.x = largura - r.w;
+  }
+  return r;
+}
 #ifdef NV_TOUCH_PREVIEW
+static void heroTrailerAtualizaRect(GfxRect r, float saida) {
+  if (saida <= 0.001f && heroTrailerItem >= 0 && heroTrailerItem == heroAtual &&
+      trailer_aberto() && !trailer_cheia() && trailer_dono() == TRAILER_DONO_HOME)
+    trailer_rect(r);
+}
 static void alvoAcaoHero(GfxRect r, float saida, float cin, float alpha) {
   float primeira = topoFileiras() - scrollY;
   if (saida <= 0.001f && cin <= 0.005f && alpha > 0.25f &&
@@ -3780,7 +3841,7 @@ static void desenhaHero(Uint32 agora, float saida) {
   // A fileira de AMIGOS tambem: o destaque dela e outra tela (fundo social,
   // autoria, ficha) desenhada para a arte inteira; na faixa a arte parava no
   // meio e sobrava o fundo social dos lados (dono, 05/10).
-  int cheio = ajustes_hero_cheio() ||
+  int cheio = homeRetratoTelefone() || ajustes_hero_cheio() ||
               (lay == HOME_LAYOUT_MODERNA &&
                (focoHero || (foco.fileira >= 0 && foco.fileira < nFileiras &&
                              fileiras[foco.fileira].tipo == FILEIRA_SOCIAL)));
@@ -3828,6 +3889,7 @@ static void desenhaHero(Uint32 agora, float saida) {
     btnH = NV_HERO_BOTAO_COMPACTO_H; btnGap = 22.0f;
   }
 
+  sinW = homeTextoLargura(sinW);
   if(lay==HOME_LAYOUT_MODERNA && foco.fileira>=0 && foco.fileira<nFileiras && fileiras[foco.fileira].tipo==FILEIRA_SOCIAL) {
     float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
     const Fileira *s=&fileiras[foco.fileira];
@@ -3863,7 +3925,7 @@ static void desenhaHero(Uint32 agora, float saida) {
       if(nome&&acaoTr[0])snprintf(autoria,sizeof autoria,"%s  ·  %s",nome,acaoTr);
       else if(nome)snprintf(autoria,sizeof autoria,"%s",nome);
       else snprintf(autoria,sizeof autoria,"%s",acaoTr);
-      txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,autoria,210,210,221,255,680),x,146,a);
+      txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,autoria,210,210,221,255,homeTextoLargura(680)),x,146,a);
 
       const char *urlPl=p->logo[0]?artehero_url_logo_larg(p->logo,520):NULL;
       GLuint tl=urlPl?tex_obter_larg(urlPl,520):0;
@@ -3873,19 +3935,21 @@ static void desenhaHero(Uint32 agora, float saida) {
         gfx_rect((GfxRect){x,208,w,h},tl,tex_marca_escura(urlPl)?GFX_MARCA:GFX_TEXTO,
                  0,0,0,0,1,1,1,a);
       } else if(p->titulo[0]) {
-        txt_desenhar_alpha(txt_linha_corta(TXT_TITULO1,p->titulo,244,243,247,255,680),x,208,a);
+        txt_desenhar_alpha(txt_linha_corta(TXT_TITULO1,p->titulo,244,243,247,255,homeTextoLargura(680)),x,208,a);
       }
       if(p->direcao[0])
-        txt_desenhar_alpha(txt_linha_corta(TXT_CALLOUT,p->direcao,230,231,238,255,680),x,326,a);
+        txt_desenhar_alpha(txt_linha_corta(TXT_CALLOUT,p->direcao,230,231,238,255,homeTextoLargura(680)),x,326,a);
       if(p->meta[0])
-        txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,p->meta,190,194,205,255,680),x,364,a);
+        txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,p->meta,190,194,205,255,homeTextoLargura(680)),x,364,a);
       if(p->sinopse[0])
-        txt_bloco(TXT_HERO_SIN,p->sinopse,229,231,237,x,402,700,31,a,2);
+        txt_bloco(TXT_HERO_SIN,p->sinopse,229,231,237,x,402,homeTextoLargura(700),31,a,2);
     } else {
       // Sem a marca do Trakt: a fonte nao aparece na home (amigosfil.h).
       txt_desenhar_alpha(txt_linha(TXT_HERO_META,"SUA COMUNIDADE",210,191,199,255),x,154,a);
-      txt_desenhar_alpha(txt_linha(TXT_TITULO1,"Boas histórias conectam.",244,243,247,255),x,226,a);
-      txt_bloco(TXT_HERO_SIN,"Descubra o que seus amigos estão vendo.\nUma nova recomendação pode começar aqui.",187,190,202,x,330,740,36,a,2);
+      txt_desenhar_alpha(homeRetratoTelefone()
+        ? txt_linha_corta(TXT_TITULO1,"Boas histórias conectam.",244,243,247,255,homeTextoLargura(900))
+        : txt_linha(TXT_TITULO1,"Boas histórias conectam.",244,243,247,255),x,226,a);
+      txt_bloco(TXT_HERO_SIN,"Descubra o que seus amigos estão vendo.\nUma nova recomendação pode começar aqui.",187,190,202,x,330,homeTextoLargura(740),36,a,2);
     }
     heroArteRect=r;
     return;
@@ -3902,21 +3966,16 @@ static void desenhaHero(Uint32 agora, float saida) {
            The neutral canvas continues below it; no art behind the shelves. */
         float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
         GLuint art=tex_obter_hero(folder->hero);
-        GfxRect header={0,0,1920,500};
-        if(folder->editorial==2&&tex_aspecto(folder->hero)>0) {
-          float aspect=tex_aspecto(folder->hero);
-          header.w=fminf(1920,header.h*aspect);header.h=header.w/aspect;
-          header.x=1920-header.w;
-        }
+        GfxRect header=heroEditorialRect(folder->editorial, folder->editorial==2 ? tex_aspecto(folder->hero) : 0.0f);
         if(art)gfx_rect(header,art,folder->editorial==2?GFX_EDITORIAL:GFX_TEXTO,0,0,0,0,1,1,1,a);
         heroArteRect=header;
         int director=!strcasecmp(folder->group,"Directors");
         const char *section=director?"DIRETORES":!strcmp(folder->group,"Streaming")?"STREAMING":!strcmp(folder->group,"Themes")?"TEMAS":!strcmp(folder->group,"Genres")?"GÊNEROS":"COLEÇÕES";
         txt_desenhar_alpha(txt_linha(TXT_HERO_META,section,190,193,200,255),x,122,a);
-        txt_bloco(TXT_TITULO1,folder->title,244,243,247,x,183,860,72,a,2);
+        txt_bloco(TXT_TITULO1,folder->title,244,243,247,x,183,homeTextoLargura(860),72,a,2);
         char caption[160];
         snprintf(caption,sizeof caption,"%s  ·  %d %s",i18n(director?"Filmografia":"Seleção de cinema e séries"),folder->nSources,i18n(folder->nSources==1?"lista":"listas"));
-        txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,caption,190,193,200,255,860),x,358,a);
+        txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,caption,190,193,200,255,homeTextoLargura(860)),x,358,a);
         txt_desenhar_alpha(txt_linha(TXT_HERO_META,"OK para explorar",224,225,230,255),x,406,a);
         return;
       }
@@ -3952,28 +4011,29 @@ static void desenhaHero(Uint32 agora, float saida) {
           // presenca visual do exemplo aprovado, sem parecer uma foto espremida.
           GfxRect pr=cheio ? (GfxRect){840.0f,-20.0f,1080.0f,1120.0f}
                            : (GfxRect){980.0f,-15.0f,940.0f,700.0f};
+          if (homeRetratoTelefone()) pr = (GfxRect){NV_TELA_W * 0.4f, -20.0f, NV_TELA_W * 0.7f, 1120.0f};
           gfx_tex_aspect_atual=tex_aspecto(foto);
           gfx_rect(pr,retrato,GFX_RETRATO,0,0,0,0,0,0,0,aArte);
           gfx_tex_aspect_atual=0.0f;
         }
-        TxtLinha name=txt_linha_corta(TXT_TITULO1,folder->title,244,243,247,255,780);
+        TxtLinha name=txt_linha_corta(TXT_TITULO1,folder->title,244,243,247,255,homeTextoLargura(780));
         txt_desenhar_alpha(name,x,NV_COLLECTION_HERO_LOGO_Y,a);
         const char *meta=diretor_meta(folder->title);
         if (meta[0])
-          txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,meta,201,206,218,255,780),
+          txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,meta,201,206,218,255,homeTextoLargura(780)),
                              x,NV_COLLECTION_HERO_LOGO_Y+92.0f,a);
         const char *con=diretor_conhecido(folder->title);
         if (con[0]) {
           char linha[300];
           snprintf(linha,sizeof linha,i18n("Conhecido por  %s"),con);
-          txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,linha,220,224,233,255,780),
+          txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,linha,220,224,233,255,homeTextoLargura(780)),
                              x,NV_COLLECTION_HERO_LOGO_Y+136.0f,a);
         }
         char caption[96];
         snprintf(caption, sizeof caption, i18n("%d %s · OK para explorar"),
                  folder->nSources, i18n(folder->nSources == 1 ? "lista" : "listas"));
         txt_desenhar_alpha(txt_linha_corta(TXT_HERO_SIN, caption,
-                                           205, 210, 221, 255, 780),
+                                           205, 210, 221, 255, homeTextoLargura(780)),
                            x, NV_COLLECTION_HERO_CAPTION_Y, a);
         return;
       }
@@ -3993,7 +4053,7 @@ static void desenhaHero(Uint32 agora, float saida) {
                  0,0,0,0,.96f,.97f,.98f,a);
         fimTitulo=NV_COLLECTION_HERO_LOGO_Y+h;
       } else {
-        TxtLinha name=txt_linha_corta(TXT_TITULO1,folder->title,241,243,247,255,700);
+        TxtLinha name=txt_linha_corta(TXT_TITULO1,folder->title,241,243,247,255,homeTextoLargura(700));
         txt_desenhar_alpha(name,x,NV_COLLECTION_HERO_LOGO_Y,a);
         fimTitulo=NV_COLLECTION_HERO_LOGO_Y+name.h;
       }
@@ -4019,7 +4079,9 @@ static void desenhaHero(Uint32 agora, float saida) {
           yCap=yy;
         }
       }
-      TxtLinha sub=txt_linha(TXT_HERO_SIN,caption,205,210,221,255);txt_desenhar_alpha(sub,x,yCap,a);
+      TxtLinha sub=homeRetratoTelefone()
+        ?txt_linha_corta(TXT_HERO_SIN,caption,205,210,221,255,homeTextoLargura(900))
+        :txt_linha(TXT_HERO_SIN,caption,205,210,221,255);txt_desenhar_alpha(sub,x,yCap,a);
       return;
     }
   }
@@ -4271,6 +4333,9 @@ static void desenhaHero(Uint32 agora, float saida) {
     gfx_rect(r, 0, modoHero, 0, 1.0f, 0, 0.0f, 0, 0, 0, aTrailer);
   gfx_tex_aspect_atual = 0.0f;
   heroArteRect = r;
+#ifdef NV_TOUCH_PREVIEW
+  heroTrailerAtualizaRect(r, saida);
+#endif
 
   float aTexto = (1.0f - saida) * aVis * heroVisivelToque();
   // MODO CINEMA: o bloco desce NV_CINEMA_DESCE enquanto apaga (o do detalhe) e
@@ -5672,31 +5737,9 @@ void home_desenhar(Uint32 agora) {
                                  focoHero ? -1 : foco.fileira * 64 + foco.coluna, agora);
   for (int r = 0; r < (fileirasOcultas ? 0 : nFileiras); r++) {
     TipoFileira tipo = fileiras[r].tipo;
-    float fade=anim_clamp((y-(topoFil-80))/80,0,1);
-    // Dinamica: as fileiras de cima do foco FICAM (rolagem centrada); so a que
-    // sai pela borda de cima apaga, e pela metade dela, nao pelo titulo — senao
-    // cartoes ainda na tela sumiriam junto com o titulo cortado.
-    if (layoutHome() == HOME_LAYOUT_DINAMICA) {
-      float meia = 0.5f * (NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r));
-      fade = anim_clamp((y + meia) / meia, 0, 1);
-    }
-    // A FILEIRA DE CIMA ESPIA (dono: "quando desce, a fileira de cima some —
-    // nao deveria mostrar um pedaco dela?"). O esvanecer acima se mede pelo
-    // CENTRO da fileira (Dinamica). Se a de
-    // cima e ALTA (destaque 4:3, ranking), o centro dela ja esta fora da tela
-    // quando a de baixo ganha o foco e a metade de baixo — que continua na
-    // tela — saia com opacidade zero: um vazio preto no alto. Medido pela BASE,
-    // a fatia que sobra aparece, mais fraca quanto menos sobra (0 com a base
-    // fora da tela). Nunca escurece o que o calculo de cima ja deixava claro.
-    if (layoutHome() == HOME_LAYOUT_DINAMICA) {
-      float base = y + NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r);
-      float fatia = anim_clamp(base / 480.0f, 0, 1);
-      if (fatia > fade) fade = fatia;
-    }
-#ifdef NV_TOUCH_PREVIEW
-    if (toqueLivreY)
-      fade = anim_clamp((y + NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r) - corte) / 80.0f, 0.0f, 1.0f);
-#endif
+    // No retrato a visibilidade acompanha o recorte real, inclusive antes
+    // do primeiro gesto; a memoria do foco nao esconde fileiras acessiveis.
+    float fade=alfaFileiraHome(r, y, topoFil, corte);
     gfx_opacidade_grupo=fade*fade*(3-2*fade)*(1.0f-cinema);
     const float grupoFil = gfx_opacidade_grupo;
     { int n = fileiras[r].n;

@@ -629,7 +629,13 @@ object NvPlayer {
     private fun larguraLogica(): Float {
         val c = camada
         return if (BuildConfig.NUVIO_TOUCH_PREVIEW && c != null && c.width > 0 && c.height > 0)
-            TELA_H.toFloat() * c.width / c.height else TELA_W.toFloat()
+            TELA_H.toFloat() * c.width / minOf(c.width, c.height) else TELA_W.toFloat()
+    }
+
+    private fun alturaLogica(): Float {
+        val c = camada
+        return if (BuildConfig.NUVIO_TOUCH_PREVIEW && c != null && c.width > 0 && c.height > 0)
+            TELA_H.toFloat() * c.height / minOf(c.width, c.height) else TELA_H.toFloat()
     }
 
     private fun reaplicarJanela() {
@@ -640,14 +646,15 @@ object NvPlayer {
     private fun aplicarEncaixe() {
         if (temJanela) return
         val largura = larguraLogica()
+        val altura = alturaLogica()
         if (videoW > 0 && videoH > 0) {
-            val esc = minOf(largura / videoW, TELA_H.toFloat() / videoH)
+            val esc = minOf(largura / videoW, altura / videoH)
             jw = (videoW * esc + 0.5f).toInt()
             jh = (videoH * esc + 0.5f).toInt()
             jx = ((largura - jw) / 2).toInt()
-            jy = (TELA_H - jh) / 2
+            jy = ((altura - jh) / 2).toInt()
         } else {
-            jx = 0; jy = 0; jw = Math.round(largura); jh = TELA_H
+            jx = 0; jy = 0; jw = Math.round(largura); jh = Math.round(altura)
         }
         aplicarJanela()
     }
@@ -662,7 +669,7 @@ object NvPlayer {
             cw = m.widthPixels; ch = m.heightPixels
         }
         val ex = cw.toFloat() / larguraLogica()
-        val ey = ch.toFloat() / TELA_H
+        val ey = ch.toFloat() / alturaLogica()
         // As BORDAS arredondam e o tamanho sai da diferenca: tela cheia cai
         // exatamente em 0,0,cw,ch, sem fresta.
         val x0 = Math.round(jx * ex)

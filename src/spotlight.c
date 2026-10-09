@@ -64,7 +64,7 @@
 #undef NV_TELA_W
 #undef NV_TELA_H
 #define NV_TELA_W (NV_LAYOUT_REAL_W / escala_min(SP_ESCALA_MIN))
-#define NV_TELA_H (1080.0f / escala_min(SP_ESCALA_MIN))
+#define NV_TELA_H (NV_LAYOUT_REAL_H / escala_min(SP_ESCALA_MIN))
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>

@@ -642,7 +642,7 @@ static GfxRect aj2GradeR(void) {
 static float aj2GradeColW(void) { return (aj2GradeR().w - 2 * AJ2_G_PAD - 2 * AJ2_G_VAO) / 3.0f; }
 static int aj2GradeLinha(int s) { int k = 0; while (s - k > 0 && aj2Grupo(s - k - 1) == aj2Grupo(s)) k++; return k; }
 static float aj2GradeChipY(void) { return aj2GradeR().y + 45.0f; }
-static float aj2GradeDescY(void) { return aj2GradeChipY() + AJ2_G_CHIP + 32.0f; }
+static float aj2GradeDescY(void) { return aj2GradeChipY() + AJ2_G_CHIP + 32.0f + (ajRetrato() ? AJ2_G_CHIP + 20.0f : 0.0f); }
 static float aj2GradeCabY(void) { return aj2GradeDescY() + AJ2_G_DESC + 22.0f; }
 static float aj2GradeCartaoH(void) {
   GfxRect g = aj2GradeR();
@@ -676,7 +676,19 @@ static float aj2TopoLargura(int t) {
   aj2TopoTexto(t, b, sizeof b, d, sizeof d);
   return 30 + 34 + 16 + (float)txt_largura(t == AJ2_T_BUSCA ? TXT_V3_CHIP_R : TXT_V3_CHIP, b) + (d[0] ? 8 + (float)txt_largura(TXT_V3_CHIP_R, d) : 0) + 32;
 }
+static GfxRect aj2TopoRetratoR(int t) {
+  GfxRect g = aj2GradeR();
+  float x = g.x + AJ2_G_PAD, y = aj2GradeChipY(), fim = g.x + g.w - AJ2_G_PAD;
+  float w = (fim - x - 20.0f) * 0.5f;
+  if (t <= AJ2_T_LAYOUT) {
+    int col = t == AJ2_T_AV || t == AJ2_T_LAYOUT;
+    int lin = t == AJ2_T_PERFIL || t == AJ2_T_LAYOUT;
+    return (GfxRect){x + col * (w + 20.0f), y + lin * (AJ2_G_CHIP + 20.0f), w, AJ2_G_CHIP};
+  }
+  return (GfxRect){x, aj2GradeDescY() + (t == AJ2_T_TOUR ? 0.0f : AJ2_G_DESC + 20.0f), fim - x, AJ2_G_DESC};
+}
 static GfxRect aj2TopoR(int t) {
+  if (ajRetrato()) return aj2TopoRetratoR(t);
   GfxRect g = aj2GradeR();
   float cw = aj2GradeColW(), x = g.x + AJ2_G_PAD, y = aj2GradeChipY(), fim = g.x + g.w - AJ2_G_PAD;
   float wb = cw + (cw + AJ2_G_VAO) / 3.0f, wa = aj2TopoLargura(AJ2_T_AV), wp = aj2TopoLargura(AJ2_T_PERFIL);
@@ -740,7 +752,7 @@ static float aj2LayoutSegLado(TxtEstilo e, float ico, int i) { return 22.0f + ic
 static float aj2LayoutSegW(TxtEstilo e, float ico) { return 12.0f + aj2LayoutSegLado(e, ico, 0) + aj2LayoutSegLado(e, ico, 1); }
 static void aj2LayoutSeg(GfxRect r0, TxtEstilo e, float ico, float k) {
   GfxRect r = aj2GradeSuperficie(r0, r0.h * 0.5f, k, 3.0f, 0.35f);
-  int lista = ajustes_layout_lista(), i;
+  int lista = valor[AJ_LAYOUT_AJUSTES] == 1, i;
   float x = r.x + 6.0f, w0 = aj2LayoutSegW(e, ico), esc = r.w / (w0 > 1 ? w0 : 1);
   for (i = 0; i < 2; i++) {
     float lw = aj2LayoutSegLado(e, ico, i) * esc, yc = r.y + r.h * 0.5f, xi = x + 22.0f * esc;
@@ -851,7 +863,7 @@ static void aj2GradeCartaoDesenhar(int s, float f) {
 #define AJ2_L_ICO   56.0f
 static float aj2LRol, aj2LRh = AJ2_L_RMAX;
 static int aj2Lista(void) { return ajustes_layout_lista(); }
-static float aj2LTopo(void) { return aj2GradeDescY() + AJ2_G_DESC + 8.0f; }
+static float aj2LTopo(void) { return aj2GradeDescY() + AJ2_G_DESC + 8.0f + (ajRetrato() ? AJ2_G_DESC + 20.0f : 0.0f); }
 static float aj2LBase(void) { GfxRect g = aj2GradeR(); return g.y + g.h - AJ2_L_PE; }
 static float aj2LTextoX(GfxRect r) { return r.x + 22.0f + AJ2_L_ICO + 26.0f; }
 static const char *aj2LDesc(int sec) {
@@ -976,6 +988,7 @@ static void aj2DesenharIdxLista(void) {
   }
   if (foco >= 0 && foco < n) { GfxRect r = aj2LLinhaR(foco); aj2LLinha(foco, aj2GF[foco + 2], aj2LMascara(r.y + aj2LRh * 0.5f)); }
   gfx_sem_recorte();
+  if (ajRetrato()) return;
   // O pe: um fio, o que o alvo do alto faz (a esquerda) e as teclas (a direita).
   { AjDica d[2] = { { "OK", "Abrir" }, { "Voltar", "Sair dos ajustes" } };
     float yc = g.y + g.h - AJ2_L_PE * 0.5f - 4.0f, x = g.x + AJ2_G_PAD + 24.0f, fim = g.x + g.w - AJ2_G_PAD - 24.0f;
@@ -1100,6 +1113,12 @@ static GfxRect aj2PaginaR(void) {
   float x = aj2X0();
   return (GfxRect){ x, AJ2_TOPO, NV_VTELA_W - AJ2_MARGEM - x, AJ_CAB_PAGINA - 22.0f };
 }
+#ifdef NV_TOUCH_PREVIEW
+static void aj2PonteiroCabLayout(int a, int b) {
+  (void)a; (void)b;
+  if (!uxEditor && uxIndice >= 2) { focoIndice = 0; uxCabLayout = 1; }
+}
+#endif
 static void aj2DesenharPagina(float t) {
   GfxRect h = aj2PaginaR(), c = uxIndice >= 2 ? aj2IdxCartao(uxIndice - 2) : aj2TopoR(AJ2_T_AV);
   float k = aj2Suave(t < 0 ? 0 : t > 1 ? 1 : t), ar, ag, ab, tinta = ajTinta() / 255.0f;
@@ -1139,14 +1158,15 @@ static void aj2DesenharPagina(float t) {
     snprintf(vb, sizeof vb, "%d", uxNDifs); q[0] = 0;
   }
   x = h.x + 28.0f;
-  { GfxRect tr = { x, h.y + (h.h - tile) * 0.5f, tile, tile };
+  float meio = h.y + (ajRetrato() ? 57.0f : h.h * 0.5f);
+  { GfxRect tr = { x, meio - tile * 0.5f, tile, tile };
     gfx_rect((GfxRect){ tr.x - 12, tr.y, tr.w + 24, tr.h + 30 }, 0, GFX_SOMBRA, 1.0f, 0, 0, 0.5f, ar, ag, ab, 0.35f);
     gfx_cor(tr, 22.0f / tile, ar, ag, ab, 1);
     gfx_icone((GfxRect){ tr.x + 19, tr.y + 19, 38, 38 }, ic, tinta, tinta, tinta, 1); }
   x += tile + 26.0f;
   // a direita: o valor de agora e quantas opcoes
   direita = h.x + h.w - 36.0f;
-  { float wq = 0, wv = 0;
+  if (!ajRetrato()) { float wq = 0, wv = 0;
     TxtLinha lq = ajTxt(TXT_V2_24, q), lv = ajTxtC(TXT_V2_28, vb, h.w * 0.30f);
     if (q[0]) wq = lq.w;
     if (vb[0]) wv = lv.w;
@@ -1157,12 +1177,17 @@ static void aj2DesenharPagina(float t) {
   // linha chega nele; OK (ou o lado) troca o arranjo na hora.
   if (uxIndice >= 2) {
     float sw = aj2LayoutSegW(TXT_V2_24, 26.0f), sh = 60.0f;
-    aj2LayoutSeg((GfxRect){ direita - sw, h.y + (h.h - sh) * 0.5f, sw, sh }, TXT_V2_24, 26.0f, aj2Suave(aj2CabF));
-    direita -= sw + 36.0f;
+    GfxRect seg = { direita - sw, ajRetrato() ? h.y + h.h - sh - 10.0f : h.y + (h.h - sh) * 0.5f, sw, sh };
+    aj2LayoutSeg(seg, TXT_V2_24, 26.0f, aj2Suave(aj2CabF));
+#ifdef NV_TOUCH_PREVIEW
+    if (t > 0.997f && !uxEditor)
+      ponteiro_alvo(seg.x, seg.y, seg.w, seg.h, aj2PonteiroCabLayout, NULL, 0, 0);
+#endif
+    if (!ajRetrato()) direita -= sw + 36.0f;
   }
-  ajKickerAcento(i18n(kick), x + 2.0f, h.y + h.h * 0.5f - 44.0f, 1);
+  ajKickerAcento(i18n(kick), x + 2.0f, meio - 44.0f, 1);
   { TxtLinha tt = ajTxtC(TXT_V2_TIT, nome, direita - x);
-    txt_desenhar(tt, x, h.y + h.h * 0.5f - 18.0f); }
+    txt_desenhar(tt, x, meio - 18.0f); }
   gfx_opacidade_grupo = grupo;
 }
 

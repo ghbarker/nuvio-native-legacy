@@ -25,11 +25,22 @@
 #include <assert.h>
 
 float nv_layout_w = 2400.0f;
+float nv_layout_h = 1080.0f;
 float gfx_escala_ui(void) { return 1.0f; }
 void ctxhold_cancelar(CtxHold *h) { memset(h, 0, sizeof *h); }
 int ctx_aberto(void) { return 0; }
 #if defined(TESTE_DETAIL)
-int trailer_cheia(void) { return 0; }
+static int testeTrailerAberto, testeTrailerCheia, testeTrailerDono, testeTrailerWindows;
+static GfxRect testeTrailerRect;
+int trailer_cheia(void) { return testeTrailerCheia; }
+int trailer_aberto(void) { return testeTrailerAberto; }
+int trailer_dono(void) { return testeTrailerDono; }
+void trailer_rect(GfxRect r) { testeTrailerRect = r; testeTrailerWindows++; }
+int ajustes_home_layout(void) { return HOME_LAYOUT_DINAMICA; }
+TxtLinha txt_linha(TxtEstilo estilo, const char *texto, int r, int g, int b, int a) {
+  (void)estilo; (void)texto; (void)r; (void)g; (void)b; (void)a;
+  return (TxtLinha){0, 1600, 32};
+}
 #endif
 #if defined(TESTE_LEGENDAS)
 int faixas_estilo_topo(void) { return 0; }
@@ -84,6 +95,61 @@ int main(void) {
   colListaAberta = 1; exercitar(&toqueColecao, &colListaScroll, toqueColecaoRolar, 1);
   colListaAberta = 0; pessoaAberta = 1;
   exercitar(&toquePessoa, &toquePessoaOffset, toquePessoaRolar, 1);
+  nv_layout_w = 1080; nv_layout_h = 2340; pg = scrollY = 0;
+  assert(detalheRetrato() && !acoesAgrupadas());
+  perto(larguraTextoHero(), 888); perto(larguraLogoHero(), 888); perto(larguraDetalhes(), 888);
+  perto(corpoAlpha(.8f), .8f); assert(!corpoOculto(0) && !corpoOculto(1));
+  float bx = 96, cy = 500;
+  GfxRect ac[7];
+  ac[0] = heroAcaoRect(&bx, &cy, larguraPrimario("long label"), NV_DETW2_BTN_H);
+  bx += ac[0].w + NV_DETW2_BTN_GAP;
+  ac[1] = heroAcaoRect(&bx, &cy, larguraSecundario("long label"), NV_DETW2_BTN_H);
+  bx += ac[1].w + NV_DETW2_BTN_GAP;
+  for (int i = 2; i < 7; i++) {
+    ac[i] = heroAcaoRect(&bx, &cy, NV_DETW2_CIRC, NV_DETW2_CIRC);
+    bx += ac[i].w + NV_DETW2_BTN_GAP;
+  }
+  for (int i = 0; i < 7; i++) {
+    assert(ac[i].x >= 96 && ac[i].x + ac[i].w <= 984);
+    assert(ac[i].y >= 464 && ac[i].y + ac[i].h <= 626);
+    for (int j = 0; j < i; j++)
+      assert(ac[i].x >= ac[j].x + ac[j].w || ac[i].y >= ac[j].y + ac[j].h);
+  }
+  GfxRect quote = frasesColuna(96, 1200, 0, 0);
+  GfxRect facts = frasesColuna(96, 1200, 740, 1);
+  perto(quote.w, 888); perto(facts.w, 888); perto(facts.x, 96); perto(facts.y, 1988);
+  assert(pessoaColunas() == 2);
+  for (int i = 0; i < 30; i++) {
+    float x = PES_COL_X + i % pessoaColunas() * (PES_CARD_W + PES_CARD_GAP);
+    assert(x >= PES_COL_X && x + PES_CARD_W <= 984);
+  }
+  GfxRect parts = colecaoListaRect();
+  perto(parts.x, 96); perto(parts.y, 480); perto(parts.w, 888); perto(parts.h, 1800);
+  float textW = parts.w - 13 - COLL_PO_W - 32 - 32;
+  assert(textW > 600); /* current-part badge leaves positive title width */
+  perto(colecaoTopo(), 480);
+  trailerDetalheTela(); assert(!testeTrailerWindows);
+  testeTrailerAberto = 1; testeTrailerDono = 0;
+  trailerDetalheTela(); assert(testeTrailerWindows == 1);
+  perto(testeTrailerRect.w, 1080); perto(testeTrailerRect.h, 2340);
+  testeTrailerDono = TRAILER_DONO_HOME; trailerDetalheTela(); assert(testeTrailerWindows == 1);
+  testeTrailerCheia = 1; trailerDetalheTela(); assert(testeTrailerWindows == 2);
+  testeTrailerCheia = 0; testeTrailerDono = TRAILER_DONO_DETALHE;
+  trailerDetalheTela(); assert(testeTrailerWindows == 3);
+  testeTrailerAberto = 0;
+  /* Redraw after playback rotation keeps the same document and free offset. */
+  scrollY = 237.5f; toqueDetalhe.livre = 1; int oldIdx = idx;
+  toquerol_vincular(&toqueDetalhe, (GfxRect){0,0,1080,2340}, 1, 0, 800, 1, &scrollY);
+  nv_layout_w = 2340; nv_layout_h = 1080;
+  toquerol_vincular(&toqueDetalhe, (GfxRect){0,0,2340,1080}, 1, 0, 2060, 1, &scrollY);
+  assert(idx == oldIdx && toqueDetalhe.livre); perto(scrollY, 237.5f);
+  assert(!detalheRetrato() && acoesAgrupadas());
+  perto(larguraTextoHero(), 1040); perto(larguraLogoHero(), 1000); perto(larguraDetalhes(), 1040);
+  pg = 0; scrollY = 0; perto(corpoAlpha(.8f), 0); assert(corpoOculto(0));
+  quote = frasesColuna(96, 1200, 0, 0); facts = frasesColuna(96, 1200, 740, 1);
+  perto(quote.w, 1040); perto(facts.x, 1232); perto(facts.y, 1200); perto(facts.w, 1012);
+  assert(pessoaColunas() == 6); parts = colecaoListaRect();
+  perto(parts.x, 620); perto(parts.y, 120); perto(parts.w, 1624); perto(parts.h, 900);
 #elif defined(TESTE_EPISODIOS)
   aberto = 1; vmAberto = 0; pedidoE = 0; foco = 3; vmSegurando = 1; velScroll = 123;
   exercitar(&toqueEp, &scroll, toqueEpRolar, 1);

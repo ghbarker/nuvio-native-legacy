@@ -412,9 +412,15 @@ static float bibX(void) {
   ajustes_area_conteudo(NV_BIB_X, NV_TELA_W - NV_BIB_DIR, &x, NULL);
   return x;
 }
+static float bibDireita(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (NV_TELA_W < NV_TELA_H) return NV_TELA_W - NV_BIB_X;
+#endif
+  return NV_BIB_DIR;
+}
 static float bibW(void) {
   float w;
-  ajustes_area_conteudo(NV_BIB_X, NV_TELA_W - NV_BIB_DIR, NULL, &w);
+  ajustes_area_conteudo(NV_BIB_X, NV_TELA_W - bibDireita(), NULL, &w);
   return w;
 }
 // O TOPO (modos, chips, botoes, titulo, resumo e selo) NASCE A 120% E ACOMPANHA
@@ -427,7 +433,7 @@ static float bibW(void) {
 static float bibHS(void) { return escala_min(BIB_TOPO_ESCALA_MIN); }
 static float hdrX(void) { return bibX() / bibHS(); }
 static float hdrW(void) { return bibW() / bibHS(); }
-static float hdrDir(void) { return NV_BIB_DIR / bibHS(); }
+static float hdrDir(void) { return bibDireita() / bibHS(); }
 // Cartazes: o cartaz fica nos 268 medidos e sai uma coluna (6 -> 5 com a rail
 // fixa: 5 x 268 + 4 x 24 = 1436 nos 1584). Encolher o cartaz para manter seis
 // mudaria o raio, a borda e a arte pedida — e o dono ja aprovou esse tamanho.
@@ -441,13 +447,23 @@ static int colunasCartaz(void) {
   int n = (int)((bibW() + BIB_CARD_GAP) / (BIB_CARD_W + BIB_CARD_GAP));
   return n < 1 ? 1 : n > BIB_COLUNAS_MAX ? BIB_COLUNAS_MAX : n;
 }
+static int colunasLista(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (NV_TELA_W < NV_TELA_H) {
+    int n = (int)((bibW() + BIB_LC_PASSO - BIB_LC_W) / BIB_LC_PASSO);
+    return n < 1 ? 1 : n > BIB_LC_COLS ? BIB_LC_COLS : n;
+  }
+#endif
+  return BIB_LC_COLS;
+}
 static float larguraCartaoLista(void) {
-  float w = (bibW() - (BIB_LC_COLS - 1) * (BIB_LC_PASSO - BIB_LC_W)) / BIB_LC_COLS;
+  int n = colunasLista();
+  float w = (bibW() - (n - 1) * (BIB_LC_PASSO - BIB_LC_W)) / n;
   return w < BIB_LC_W ? w : BIB_LC_W;
 }
 static int colunas(void) {
   if (exibicao == VIS_LISTA) return 1;
-  return estado() == EST_LISTAS ? BIB_LC_COLS : colunasCartaz();
+  return estado() == EST_LISTAS ? colunasLista() : colunasCartaz();
 }
 static float passoColuna(void) {
   return estado() == EST_LISTAS ? larguraCartaoLista() + (BIB_LC_PASSO - BIB_LC_W)

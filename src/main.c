@@ -1602,6 +1602,8 @@ int main(int argc, char **argv) {
             glViewport(0, 0, dw, dh);
             gfx_tamanho_alvo(dw, dh);
             video_escala_definir(dw, dh);
+            gfx_snap_encerrar();
+            gfx_snap_iniciar((int)NV_TELA_W, (int)NV_TELA_H);
             capW = dw; capH = dh;
             printf("[touch] drawable=%dx%d\n", dw, dh);
           }

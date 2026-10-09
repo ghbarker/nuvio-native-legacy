@@ -4531,6 +4531,14 @@ static const Uint32 SP_FUNDO_REFAZ_MS[] = { 400, 1500, 4000 };
 #define SP_FUNDO_FALTA_MAX  80     /* ~12 s de tentativas por invalidacao */
 void spainel_fundo(int podeParar, unsigned rev, void (*fundo)(void *), void *ctx) {
   static int pronto, refeitas, faltou, tentativas, copiaPreta;
+#ifdef NV_TOUCH_PREVIEW
+  static float fundoW, fundoH;
+  static unsigned fundoGeracao;
+  if (fundoW != NV_LAYOUT_REAL_W || fundoH != NV_LAYOUT_REAL_H || fundoGeracao != gfx_snap_geracao()) {
+    pronto = refeitas = faltou = tentativas = copiaPreta = 0;
+    fundoW = NV_LAYOUT_REAL_W; fundoH = NV_LAYOUT_REAL_H;
+  }
+#endif
   static unsigned revPronto;
   static Uint32 desde, pintadoEm;
   int parado = podeParar && aberto && entrada >= 0.999f && gfx_snap_ok();
@@ -4600,6 +4608,9 @@ void spainel_fundo(int podeParar, unsigned rev, void (*fundo)(void *), void *ctx
       fflush(stdout);
     }
     gfx_snap_terminar();
+#ifdef NV_TOUCH_PREVIEW
+    fundoGeracao = gfx_snap_geracao();
+#endif
     if (copiaPreta) { veuNoFundo = 0; pronto = 0; if (fundo) fundo(ctx); return; }
     gfx_snap_desenhar();
     if (!refeitas) desde = SDL_GetTicks();

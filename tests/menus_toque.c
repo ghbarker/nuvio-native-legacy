@@ -23,6 +23,7 @@ static struct tm *menus_localtime_r(const time_t *t, struct tm *out) {
 #include <assert.h>
 
 float nv_layout_w = 2400.0f;
+float nv_layout_h = 1080.0f;
 static void perto(float real, float esperado) { assert(fabsf(real - esperado) < 0.01f); }
 
 #if defined(TESTE_AJUSTES)
@@ -55,10 +56,94 @@ int fil_linha_vista(int i) { (void)i; return 0; }
 int fil_linha_na_home(int i) { (void)i; return 1; }
 void desc_remontar_fileiras(void) { remontagensTeste++; }
 void desc_repetir(void) { assert(!"unexpected network request"); }
+static void dentroAjustes(GfxRect r) {
+  assert(r.x >= 0 && r.y >= 0 && r.w > 0 && r.h > 0);
+  assert(r.x + r.w <= NV_VTELA_W + 0.01f && r.y + r.h <= NV_VTELA_H + 0.01f);
+}
+static void testaAjustesRetrato(void) {
+  const float alturas[] = {1920, 2340};
+  int layoutSalvo = valor[AJ_LAYOUT_AJUSTES], escalaSalva = valor[AJ_TAMANHO_AJUSTES];
+  valor[AJ_LAYOUT_AJUSTES] = 0;
+  for (int h = 0; h < 2; h++) {
+    nv_layout_w = 1080; nv_layout_h = alturas[h];
+    for (int s = 0; s < 3; s++) {
+      valor[AJ_TAMANHO_AJUSTES] = s;
+      assert(ajRetrato() && ajustes_layout_lista() && !aj2TemInsp());
+      assert(valor[AJ_LAYOUT_AJUSTES] == 0);
+      perto(NV_VTELA_H * ajustes_tamanho_ajustes(), alturas[h]);
+      GfxRect grade = aj2GradeR(), lista = aj2ListaR(), editor = aj2EditorR(), pagina = aj2PaginaR();
+      dentroAjustes(grade); dentroAjustes(lista); dentroAjustes(editor); dentroAjustes(pagina);
+      perto(lista.x, grade.x); perto(editor.x, grade.x);
+      assert(editor.w > 800 && lista.w > 800 && pagina.y + pagina.h < lista.y);
+      GfxRect topo[AJ2_T_N];
+      for (int t = 0; t < AJ2_T_N; t++) {
+        topo[t] = aj2TopoRetratoR(t); dentroAjustes(topo[t]);
+        assert(topo[t].x >= grade.x && topo[t].x + topo[t].w <= grade.x + grade.w);
+        for (int j = 0; j < t; j++)
+          assert(topo[t].x >= topo[j].x + topo[j].w || topo[j].x >= topo[t].x + topo[t].w ||
+                 topo[t].y >= topo[j].y + topo[j].h || topo[j].y >= topo[t].y + topo[t].h);
+      }
+      assert(aj2LTopo() >= topo[AJ2_T_RESOLVER].y + topo[AJ2_T_RESOLVER].h);
+      assert(aj2LBase() > aj2LTopo() + 500);
+      // Choices stop before the restore row, which is above Confirm/Cancel.
+      float botoes = editor.y + editor.h - 104;
+      assert(aj2EditorBase(editor) + 24 <= botoes - 76);
+      assert(aj2EditorBase(editor) > editor.y + 250);
+      GfxRect modal = {560, 300, 800, 600}; ajCentraModal(&modal); dentroAjustes(modal);
+      perto(modal.x + modal.w * 0.5f, NV_VTELA_W * 0.5f);
+      perto(modal.y + modal.h * 0.5f, NV_VTELA_H * 0.5f);
+      // Fileiras uses raw full-screen units and keeps all three action cells
+      // beside an actual readable title column, with the preview out of way.
+      AjFilMedidas f = ajFilMedir();
+      assert(f.ilha.x >= 0 && f.ilha.x + f.ilha.w <= NV_TELA_W);
+      assert(f.ilha.y + f.ilha.h <= NV_TELA_H);
+      perto(f.painel.x, f.ilha.x + f.ilha.w);
+      assert(f.cw - f.estado - f.card - f.tamanho - 122 > 250);
+      assert(f.estado > 100 && f.card > 100 && f.tamanho > 100);
+      float camposX = f.cx + f.cw - 14 - f.estado - f.card - f.tamanho;
+      assert(camposX > f.cx && camposX + f.estado + f.card + f.tamanho < NV_TELA_W);
+      // The drawn scale is cached; event time is unscaled after the draw.
+      ajToqueLimpar(); ajToqueCamada(); escalaTeste = ajustes_tamanho_ajustes();
+      float off = 0, desenho = escalaTeste;
+      ajToqueRegistrar(AJT_LISTA, lista, &off, 500, 0, s + 30);
+      PonteiroRolagem e = {PONT_ROL_INICIO, 1, 0, 0,
+          (lista.x + 60) * desenho, (lista.y + 60) * desenho};
+      assert(ajToqueRolar(&e)); escalaTeste = 1;
+      e.fase = PONT_ROL_MOVER; e.delta = -13.5f * desenho; ajToqueRolar(&e); perto(off, 13.5f);
+      e.fase = PONT_ROL_FIM; ajToqueRolar(&e); perto(off, 13.5f);
+      assert(valor[AJ_LAYOUT_AJUSTES] == 0);
+    }
+  }
+  nv_layout_w = 1080; nv_layout_h = 1728; valor[AJ_TAMANHO_AJUSTES] = 2;
+  assert(!ajRetrato() && !ajustes_layout_lista());
+  nv_layout_w = 2400; nv_layout_h = 1080;
+  assert(!ajRetrato() && !ajustes_layout_lista());
+  perto(aj2EditorR().x, aj2X0() + AJ2_EDITOR_DX);
+  valor[AJ_LAYOUT_AJUSTES] = layoutSalvo; valor[AJ_TAMANHO_AJUSTES] = escalaSalva;
+}
 #elif defined(TESTE_MENU)
 int ajustes_home_layout(void) { return HOME_LAYOUT_MODERNA; }
 #elif defined(TESTE_PERFIL)
 static SvAmigo amigosTeste[3];
+static int recomendaTeste = 1;
+static float perfilEscalaTeste = 1.5f, alvoCorpoTopo, alvoCorpoFim;
+static PonteiroRolagemFn perfilRolarRegistrado;
+int recomenda_ativo(void) { return recomendaTeste; }
+float gfx_escala(void) { return perfilEscalaTeste; }
+void ponteiro_rolagem(PonteiroRolagemFn fn) { perfilRolarRegistrado = fn; }
+void ponteiro_alvo(float x, float y, float w, float h, PonteiroFn focar,
+                   PonteiroFn ativar, int a, int b) {
+  (void)x; (void)y; (void)w; (void)h; (void)focar; (void)ativar; (void)a; (void)b;
+  assert(!"portrait body target missing clip");
+}
+void ponteiro_alvo_faixa(float x, float y, float w, float h, float topo, float fim,
+                         PonteiroFn focar, PonteiroFn ativar, int a, int b) {
+  (void)x; (void)y; (void)w; (void)h; (void)focar; (void)ativar; (void)a; (void)b;
+  alvoCorpoTopo = topo; alvoCorpoFim = fim;
+}
+int menu_pilula_rect(float *x, float *y, float *w, float *h) {
+  (void)x; (void)y; (void)w; (void)h; return 0;
+}
 float ajustes_conteudo_x(void) { return 104.0f; }
 int socialvis_n_amigos(void) { return 3; }
 const SvAmigo *socialvis_amigo(int i) { return i >= 0 && i < 3 ? &amigosTeste[i] : NULL; }
@@ -129,6 +214,7 @@ int main(void) {
   ajToqueInlineValor(nValores(AJ_TEMA), AJ_TEMA); assert(uxPendente == 2);
   uxAvisoRisco = 1; ajToqueInlineValor(3, AJ_TEMA); assert(uxPendente == 2);
   perto(NV_VTELA_W, 2400.0f / ajustes_tamanho_ajustes());
+  testaAjustesRetrato();
 #elif defined(TESTE_MENU)
   aberto = 1; tvToqueRegiao = (GfxRect){100, 200, 500, 600};
   tvToqueEscala = 1.5f; tvToqueMaximo = 500; tvRolar = 0; tvRolarV = 10;
@@ -159,6 +245,46 @@ int main(void) {
   preparando = 0; pinDe = 2; assert(!psToqueRolar(&e));
   pinDe = -1; psToqueMaximo = 0; assert(!psToqueRolar(&e));
 #elif defined(TESTE_PERFIL)
+  nv_layout_w = 1080; nv_layout_h = 2340;
+  for (int i = 0; i < nNumeros(); i++) {
+    GfxRect r = rNumero(i);
+    assert(r.x >= PF_X && r.x + r.w <= NV_TELA_W);
+    assert(r.w > 400);
+    if (i >= 2) assert(r.y > rNumero(i - 2).y + PF_NUM_H);
+  }
+  for (int i = 0; i < 3; i++) {
+    GfxRect r = rCartao(i);
+    perto(r.w, PF_W);
+    if (i) assert(r.y > rCartao(i - 1).y + alturaCartoes());
+    assert(r.y + r.h < PF_CONTEUDO_H);
+  }
+  assert(rCartao(0).y > rNumero(4).y + PF_NUM_H);
+  recomendaTeste = 0;
+  assert(rCartao(0).y > rNumero(3).y + PF_NUM_H);
+  assert(rDuelo(2).y > rDuelo(0).y + PF_DUELO_H);
+  assert(rCartazes().y > rDuelo(3).y + PF_DUELO_H);
+  recomendaTeste = 1; modo = PF_RESUMO; temDados = 1; secao = 0;
+  nv_layout_h = 1728;
+  pfToquePreparar(); assert(perfilRolarRegistrado == pfToqueRolar && pfToque.maximo > 0);
+  e = (PonteiroRolagem){PONT_ROL_INICIO, 1, 0, 0,
+                        (PF_X + 100) * perfilEscalaTeste, (PF_NUM_Y + 100) * perfilEscalaTeste};
+  assert(perfilRolarRegistrado(&e));
+  perfilEscalaTeste = 1;
+  e.fase = PONT_ROL_MOVER; e.delta = -37.5f;
+  pfToqueRolar(&e); perto(pfScroll, 25); assert(secao == 0);
+  e.fase = PONT_ROL_FIM; pfToqueRolar(&e); pfToquePreparar(); perto(pfScroll, 25);
+  e.fase = PONT_ROL_INERCIA; e.delta = -1e6f; pfToqueRolar(&e); perto(pfScroll, pfToque.maximo);
+  GfxRect fim = rCartao(2); assert(fim.y + fim.h <= PF_CONTEUDO_H + .01f);
+  pfAlvoCorpo(PF_X, 20, 100, 200, NULL, NULL, 0, 0);
+  perto(alvoCorpoTopo, PF_NUM_Y - 16); perto(alvoCorpoFim, PF_CONTEUDO_H);
+  e.fase = PONT_ROL_INICIO; e.y = 100; assert(!pfToqueRolar(&e));
+  pfToqueLimpar(); secao = 2; pfToquePreparar();
+  assert(pfScroll > 0 && rCartao(2).y + rCartao(2).h <= PF_CONTEUDO_H + .01f);
+  nv_layout_w = 2400; nv_layout_h = 1080; recomendaTeste = 1;
+  pfToquePreparar(); perto(pfScroll, 0);
+  perto(rNumero(4).y, PF_NUM_Y);
+  perto(rCartao(0).w, PF_CAL_W); perto(rCartao(2).y, PF_CARD_Y);
+  perto(rDuelo(3).y, rDuelo(0).y);
   modo = PF_DUELO; temDados = 1; amigo = 0; dLinha = 0;
   for (int i = 0; i < 3; i++) snprintf(amigosTeste[i].id, sizeof amigosTeste[i].id, "friend%d", i);
   toqueDueloAmigo(1, 0); assert(amigo == 1 && !pedirAmigo);

@@ -144,7 +144,7 @@ static int uxAlternarDireto(int op) {
 // #339: o arranjo dos Ajustes, trocado de onde estiver (pilula do indice,
 // segmentado do cabecalho da categoria ou a linha em Aparencia; mesma chave).
 static int uxAlternarLayout(void) {
-  int novo = ajustes_layout_lista() ? 0 : 1;
+  int novo = valor[AJ_LAYOUT_AJUSTES] == 1 ? 0 : 1;
   if (definirValorDireto(AJ_LAYOUT_AJUSTES, novo)) uxNotificar("Ajuste salvo nesta TV.");
   else uxNotificar("Não foi possível salvar. O valor anterior foi mantido.");
   return 1;
@@ -224,7 +224,7 @@ static int uxEvento(SDL_Keycode k) {
   // Painel, a Esquerda sai para o indice como em qualquer linha); Baixo volta
   // para a linha de onde veio, que segue a mesma.
   if (uxCabLayout && !focoIndice) {
-    int lista = ajustes_layout_lista();
+    int lista = valor[AJ_LAYOUT_AJUSTES] == 1;
     if (uxOk(k) || (k == SDLK_RIGHT && !lista) || (k == SDLK_LEFT && lista)) return uxAlternarLayout();
     if (uxVoltar(k) || k == SDLK_LEFT) { uxCabLayout = 0; focoIndice = 1; sairArmado = 0; return 1; }
     if (k == SDLK_DOWN) uxCabLayout = 0;

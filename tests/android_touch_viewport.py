@@ -18,6 +18,8 @@ fun main() {
     expect(1920, 1080, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 1920, 1080))
     expect(2400, 1080, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 2400, 1080))
     expect(2560, 1600, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 2560, 1600))
+    expect(1080, 2340, 0, 0, 0, 0, TouchViewport.Bounds(0, 0, 1080, 2340))
+    expect(1080, 2340, 0, 96, 0, 0, TouchViewport.Bounds(0, 96, 1080, 2244))
     expect(2340, 1080, 100, 0, 20, 0, TouchViewport.Bounds(100, 0, 2220, 1080))
     expect(2400, 1080, 0, 0, 0, 80, TouchViewport.Bounds(0, 0, 2400, 1000))
     expect(2400, 1080, 80, 24, 0, 24, TouchViewport.Bounds(80, 24, 2320, 1032))
@@ -136,7 +138,7 @@ fun main() {
         val assignments = a.window.assignments
         repeat(10) { a.fullscreen() }
         check(a.window.assignments == assignments)
-        for ((w, h) in listOf(2340 to 1080, 2560 to 1600, 2400 to 1080)) {
+        for ((w, h) in listOf(2340 to 1080, 2560 to 1600, 2400 to 1080, 1080 to 2340, 1600 to 2560)) {
             for (bars in listOf(Insets(0, 0, 0), Insets(0, 24, 80), Insets(80, 24, 0))) {
                 ViewCompat.listener!!(a.root!!, WindowInsetsCompat(bars, Insets(96, 0, 0)))
                 a.root!!.onMeasure(w, h)
@@ -145,7 +147,7 @@ fun main() {
                 check(a.touchInsetLeft == 96 && a.touchInsetRight == bars.right)
             }
         }
-        check(a.fieldPositions == 9)
+        check(a.fieldPositions == 15)
     }
     BuildConfig.NUVIO_TOUCH_PREVIEW = false
     val tv = ActivityFixture(); tv.fullscreen()

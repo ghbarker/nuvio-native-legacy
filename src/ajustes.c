@@ -81,7 +81,14 @@
 #undef NV_VTELA_W
 #undef NV_VTELA_H
 #define NV_VTELA_W (NV_LAYOUT_REAL_W / ajustes_tamanho_ajustes())
-#define NV_VTELA_H (1080.0f / ajustes_tamanho_ajustes())
+#define NV_VTELA_H (NV_LAYOUT_REAL_H / ajustes_tamanho_ajustes())
+static int ajRetrato(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_LAYOUT_REAL_H / NV_LAYOUT_REAL_W >= 1.7f;
+#else
+  return 0;
+#endif
+}
 #define AJ_ESCALA_INI() float ajEscalaAnt_ = gfx_escala(); gfx_escala_sair(ajustes_tamanho_ajustes())
 #define AJ_ESCALA_FIM() gfx_escala_sair(ajEscalaAnt_)
 
@@ -155,7 +162,7 @@ static int focoEscuro(void) { return tintaFoco() < 128; }   // superficie do foc
 #define AJ_TOPO        (112.0f / ajustes_tamanho_ajustes() + AJ_CAB_PAGINA + AJ_A3_CAB)
 // 2.0.2: o cabecalho da pagina da categoria (o cartao da grade crescido), acima
 // da arte e da lista; o titulo saiu de dentro da ilha da lista.
-#define AJ_CAB_PAGINA  136.0f
+#define AJ_CAB_PAGINA  (ajRetrato() ? 224.0f : 136.0f)
 #define AJ_BASE        (NV_VTELA_H - 40.0f / ajustes_tamanho_ajustes() - AJ_A3_RODAPE)
 #define AJ_A3_CAB       28.0f
 #define AJ_A3_RODAPE    72.0f
@@ -2107,7 +2114,7 @@ float ajustes_tamanho_ajustes(void) {
 #endif
   return v >= 0 && v < 3 ? F[v] : 0.8f;
 }
-int ajustes_layout_lista(void) { return valor[AJ_LAYOUT_AJUSTES] == 1; }
+int ajustes_layout_lista(void) { return ajRetrato() || valor[AJ_LAYOUT_AJUSTES] == 1; }
 int ajustes_esconder_logo_trailer(void) { return lig(AJ_LOGO_TRAILER); }
 int ajustes_trailer_zoom_tpk(void) { return lig(AJ_TRAILER_ZOOM_TPK); }   // 1 = Ligado
 #ifdef NV_ANDROID

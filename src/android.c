@@ -18,6 +18,24 @@
 #ifdef NV_TOUCH_PREVIEW
 static SDL_atomic_t toqueCancelEvento;
 
+void android_player_tela_cheia(int ativa) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  jobject act;
+  jclass cls;
+  jmethodID metodo;
+  if (!env) return;
+  act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return;
+  cls = (*env)->GetObjectClass(env, act);
+  if (cls) {
+    metodo = (*env)->GetMethodID(env, cls, "orientarPlayer", "(Z)V");
+    if (metodo) (*env)->CallVoidMethod(env, act, metodo, ativa ? JNI_TRUE : JNI_FALSE);
+    (*env)->DeleteLocalRef(env, cls);
+  }
+  if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+  (*env)->DeleteLocalRef(env, act);
+}
+
 int android_toque_cancelado(const SDL_Event *e) {
   int tipo = SDL_AtomicGet(&toqueCancelEvento);
   return tipo > 0 && e->type == (Uint32)tipo;

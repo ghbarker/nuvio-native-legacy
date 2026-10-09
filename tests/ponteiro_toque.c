@@ -487,6 +487,42 @@ static void gestoBorda(void) {
   relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 500);
   CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1,
           "origem fora da faixa ampliada continua horizontal do conteudo");
+  layout_tela_definir(1080, 2340);
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 1800);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 140, 1802);
+  dedoPx(SDL_FINGERUP, 1, 140, 1802);
+  CONFERE(aberturasBorda == 1 && fabsf(ponteiro_y() - 1802.0f) < .01f,
+          "borda retrato tambem funciona abaixo da antiga altura 1080");
+  bordaSemEfeitos();
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 300, 1800);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 300, 1700);
+  CONFERE(!aberturasBorda && fabsf(distancia(PONT_ROL_MOVER) + 100.0f) < .01f,
+          "arrasto retrato tem a distancia real do dedo sem setas");
+  SDL_Event giro; SDL_zero(giro);
+  giro.type = SDL_WINDOWEVENT; giro.window.event = SDL_WINDOWEVENT_SIZE_CHANGED;
+  ponteiro_evento(&giro, entregar);
+  layout_tela_definir(2340, 1080);
+  dedoPx(SDL_FINGERUP, 1, 300, 800);
+  CONFERE(fases(PONT_ROL_CANCELAR) == 1 && !nEntregues && !nFocar,
+          "girar durante arrasto cancela sem ativar titulo na nova orientacao");
+  dedoPx(SDL_FINGERDOWN, 2, 150, 150);
+  dedoPx(SDL_FINGERUP, 2, 150, 150);
+  dedoPx(SDL_FINGERDOWN, 3, 40, 500);
+  dedoPx(SDL_FINGERUP, 3, 300, 500);
+  ponteiro_borda_ativar();
+  CONFERE(!nEntregues && !nFocar && !aberturasBorda,
+          "eventos enfileirados depois do resize ignoram o quadro antigo sem RETURN");
+  ponteiro_quadro(relogio);
+  dedoPx(SDL_FINGERDOWN, 4, 150, 150);
+  dedoPx(SDL_FINGERUP, 4, 150, 150);
+  CONFERE(!nEntregues, "comecar o desenho ainda nao publica os novos alvos");
+  quadro(borda);
+  dedoPx(SDL_FINGERDOWN, 5, 150, 150);
+  dedoPx(SDL_FINGERUP, 5, 150, 150);
+  CONFERE(nEntregues == 2 && nFocar == 1,
+          "novo quadro publica alvos e taps voltam a funcionar depois do giro");
   layout_tela_definir(1920, 1080);
 }
 #else

@@ -21,6 +21,7 @@
 #include "rolagemtoque.h"
 
 float nv_layout_w = 2400.0f;
+float nv_layout_h = 1080.0f;
 float gfx_escala(void) { return 1.0f; }
 float gfx_escala_ui(void) { return 1.0f; }
 int teclado_aberto(void) { return 0; }

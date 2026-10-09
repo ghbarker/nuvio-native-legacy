@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -68,6 +69,33 @@ class NuvioActivity : SDLActivity() {
     private var touchInsetLeft = 0
     private var touchInsetTop = 0
     private var touchInsetRight = 0
+    @Volatile private var playerTelaCheiaTouch = false
+
+    private fun aplicarOrientacaoTouch() {
+        if (!BuildConfig.NUVIO_TOUCH_PREVIEW) return
+        val orientacao = if (playerTelaCheiaTouch)
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        else ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+        if (requestedOrientation != orientacao) requestedOrientation = orientacao
+    }
+
+    // Called by the SDL thread only for the full-screen player. Trailer,
+    // retained-video and guide/PiP surfaces keep the browsing orientation.
+    fun orientarPlayer(telaCheia: Boolean) {
+        if (!BuildConfig.NUVIO_TOUCH_PREVIEW) return
+        playerTelaCheiaTouch = telaCheia
+        runOnUiThread { aplicarOrientacaoTouch() }
+    }
+
+    // A fixed SDL window chooses orientation from its initial width/height.
+    // Keep its later callbacks from overriding the preview's player policy.
+    override fun setOrientationBis(w: Int, h: Int, resizable: Boolean, hint: String) {
+        if (!BuildConfig.NUVIO_TOUCH_PREVIEW) {
+            super.setOrientationBis(w, h, resizable, hint)
+            return
+        }
+        runOnUiThread { aplicarOrientacaoTouch() }
+    }
 
     private fun telaCheiaTouch() {
         if (!BuildConfig.NUVIO_TOUCH_PREVIEW) return
@@ -113,6 +141,7 @@ class NuvioActivity : SDLActivity() {
         jaCriada = true
         prepararAmbiente()
         super.onCreate(savedInstanceState)
+        aplicarOrientacaoTouch()
         if (BuildConfig.NUVIO_TOUCH_PREVIEW && !mBrokenLibraries) prepararViewportTouch()
         // Antes de tudo que pode falhar daqui para baixo: o vigia so precisa
         // do fio da interface livre.
@@ -473,6 +502,7 @@ class NuvioActivity : SDLActivity() {
 
     override fun onResume() {
         super.onResume()
+        aplicarOrientacaoTouch()
         telaCheiaTouch()
         vigia?.frente(true)
     }

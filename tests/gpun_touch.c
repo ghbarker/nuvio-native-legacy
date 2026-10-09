@@ -90,6 +90,13 @@ int main(void) {
   assert(targetW == 2340 && targetH == 1080);
   gpun_quadro_fim();
   assert(viewportW == 3120 && viewportH == 1440);
+  layout_tela_definir(1440, 3120);
+  gpun_redimensionar(1440, 3120);
+  gpun_quadro_inicio();
+  assert(targetW == 1080 && targetH == 2340);
+  gpun_quadro_fim();
+  assert(viewportW == 1440 && viewportH == 3120);
+  assert(fabsf(copied.w - 1080.0f) < 0.01f && copied.h == 2340.0f);
   puts("gpun_touch: resize recreates both internal modes and preserves GPU selection PASS");
   return 0;
 }

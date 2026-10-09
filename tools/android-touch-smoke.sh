@@ -9,7 +9,9 @@ mkdir -p "$OUT"
 adb wait-for-device
 adb shell getconf PAGE_SIZE > "$OUT/page-size.txt"
 grep -qx '16384' "$OUT/page-size.txt" || { echo "smoke: emulador nao usa paginas de 16KB" >&2; exit 1; }
-adb shell wm size "${NUVIO_TOUCH_SCREEN:-2340x1080}"
+adb shell wm size "${NUVIO_TOUCH_SCREEN:-1080x2340}"
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 0
 adb shell settings put secure immersive_mode_confirmations confirmed
 adb shell settings put secure show_ime_with_hard_keyboard 1
 # Let first-boot services finish before starting the app and the keyboard.
@@ -62,11 +64,11 @@ PY
   read -r x y <<< "$ponto"
   adb shell input tap "$x" "$y"
 }
-adb exec-out screencap -p > "$OUT/open.png"
-viewport=$(adb logcat -d --pid="$PID" | sed -n 's/.*touch viewport=\([0-9]*,[0-9]*,[0-9]*,[0-9]*\).*/\1/p' | tail -1)
-adb shell wm size > "$OUT/display-size.txt"
-adb shell dumpsys window > "$OUT/window-start.txt"
-python3 - "$viewport" "$OUT/display-size.txt" <<'PY'
+conferir_viewport() {
+  local viewport
+  viewport=$(adb logcat -d --pid="$PID" | sed -n 's/.*touch viewport=\([0-9]*,[0-9]*,[0-9]*,[0-9]*\).*/\1/p' | tail -1)
+  adb shell wm size > "$OUT/display-size.txt"
+  python3 - "$viewport" "$OUT/display-size.txt" "$1" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -74,9 +76,27 @@ assert sys.argv[1], 'smoke: viewport nao foi registrado'
 x, y, w, h = map(int, sys.argv[1].split(','))
 sizes = re.findall(r'(\d+)x(\d+)', Path(sys.argv[2]).read_text())
 dw, dh = map(int, sizes[-1])
-assert (x, y, w, h) == (0, 0, max(dw, dh), min(dw, dh)), 'smoke: app nao preenche a tela inteira'
-print(f'smoke: viewport de telefone largo {w}x{h} em {x},{y}')
+expected = (min(dw, dh), max(dw, dh)) if sys.argv[3] == 'portrait' else (max(dw, dh), min(dw, dh))
+assert (x, y, w, h) == (0, 0, *expected), 'smoke: app nao preenche a tela inteira na orientacao pedida'
+print(f'smoke: viewport {sys.argv[3]} {w}x{h} em {x},{y}')
 PY
+}
+conferir_viewport portrait
+adb exec-out screencap -p > "$OUT/open-portrait.png"
+adb shell dumpsys window > "$OUT/window-portrait.txt"
+adb shell settings put system user_rotation 1
+sleep 4
+conferir_viewport landscape
+adb exec-out screencap -p > "$OUT/open.png"
+adb shell dumpsys window > "$OUT/window-start.txt"
+adb shell settings put system user_rotation 0
+sleep 4
+conferir_viewport portrait
+adb exec-out screencap -p > "$OUT/return-portrait.png"
+adb shell settings put system user_rotation 1
+sleep 4
+conferir_viewport landscape
+[ "$(adb shell pidof "$PKG" | tr -d '\r')" = "$PID" ] || { echo 'smoke: rotacao recriou o processo' >&2; exit 1; }
 # login.c: o botao do e-mail muda de altura entre QR pronto, erro e pedido
 # pendente. Nenhum destes pontos envia credenciais. O campo e-mail fica em 406.
 IME=0
@@ -142,7 +162,10 @@ import sys
 
 for path in sorted(Path(sys.argv[1]).glob('*.png')):
     img = Image.open(path).convert('RGB')
-    assert img.width > img.height, f'{path}: tela nao esta em paisagem'
+    if 'portrait' in path.stem:
+        assert img.height > img.width, f'{path}: tela nao esta em retrato'
+    else:
+        assert img.width > img.height, f'{path}: tela nao esta em paisagem'
     # Barra do sistema nao prova que o canvas do app chegou a desenhar.
     inner = img.crop((img.width // 10, img.height // 10, img.width * 9 // 10, img.height * 9 // 10))
     colors = inner.resize((160, 90)).getcolors(14400)

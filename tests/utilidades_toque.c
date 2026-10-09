@@ -30,6 +30,7 @@ static struct tm *utilidades_localtime_r(const time_t *t, struct tm *out) {
 #include <assert.h>
 
 float nv_layout_w = 2400.0f;
+float nv_layout_h = 1080.0f;
 #if defined(TESTE_AGENDA)
 static Noticia manchetesTeste[8];
 static float escalaAgendaTeste = 1.5f;

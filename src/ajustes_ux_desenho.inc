@@ -368,7 +368,7 @@ static GfxRect aj2InspR(void) {
   return (GfxRect){ aj2ArteX(), AJ2_CORPO, aj2ArteW(), NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
 static GfxRect aj2EditorR(void) {
-  float x = aj2X0() + AJ2_EDITOR_DX;
+  float x = aj2X0() + (ajRetrato() ? 0.0f : AJ2_EDITOR_DX);
   return (GfxRect){ x, AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - x, NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
 // Onde a lista comeca (o fim do cabecalho: 42 + kicker 21,8 + 4 + titulo 62,9

@@ -5,6 +5,7 @@
 #include <assert.h>
 
 float nv_layout_w = 2400.0f;
+float nv_layout_h = 1080.0f;
 static int loginOk = 1, perfilOk = 1, mini, player, detalhe, lista, contexto;
 static int menu, menuSobre, modalTela, modalDetalhe, modalLista, abertura = -1;
 enum { TESTE_CENTRAL, TESTE_ILHA, TESTE_CELULAR, TESTE_SALVOS, TESTE_REGISTRO,

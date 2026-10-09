@@ -33,6 +33,7 @@ android {
     defaultConfig {
         applicationId = if (touchPreview) "space.nuvio.nativelegacy.touch" else "space.nuvio.nativelegacy"
         manifestPlaceholders["nuvioAppLabel"] = if (touchPreview) "Nuvio Touch" else "@string/app_name"
+        manifestPlaceholders["nuvioOrientation"] = if (touchPreview) "fullUser" else "landscape"
         buildConfigField("boolean", "NUVIO_TOUCH_PREVIEW", touchPreview.toString())
         minSdk = 24
         targetSdk = 35
