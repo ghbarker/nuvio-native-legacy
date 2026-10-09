@@ -148,7 +148,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$APK_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
-          gh run download "$APK_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'Nuvio-touch-preview-*' --dir build/android-touch
+          APK_NAME=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$APK_RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("Nuvio-touch-preview-")) | .name')
+          test -n "$APK_NAME"
+          gh run download "$APK_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$APK_NAME" --dir build/android-touch
+          test -n "$(rg --files build/android-touch -g '*-touch-x86_64.apk')"
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
