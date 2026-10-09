@@ -1968,7 +1968,10 @@ void guia_evento(const SDL_Event *e) {
       if (catAberto == 1) { catAberto = 2; catUlt = SDL_GetTicks(); }
     }
     if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
-      if (okDesde && !okLongo) acaoOk();
+      if (okDesde && !okLongo) {
+        if (ponteiro_ok_longo()) { GCanal *c = linhaItem(focoLin, focoCol); if (c) favAlternar(c); }
+        else acaoOk();
+      }
       okDesde = 0; okLongo = 0;
     }
     return;

@@ -1819,7 +1819,7 @@ void home_evento(const SDL_Event *e) {
         okHold = 0.0f;
         return;
       }
-      Uint32 dur = okDesde ? SDL_GetTicks() - okDesde : 0;
+      Uint32 dur = ponteiro_ok_longo() ? NV_HOLD_MS : (okDesde ? SDL_GetTicks() - okDesde : 0);
       // O DESTAQUE RESPONDE AO OK ANTES DAS FILEIRAS. Toque curto abre a pagina
       // do titulo; segurar abre o menu do cartaz, como em qualquer card.
       if (focoHero) {

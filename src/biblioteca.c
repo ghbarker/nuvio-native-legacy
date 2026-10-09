@@ -962,7 +962,10 @@ void biblioteca_evento(const SDL_Event *e) {
     if (e->type == SDL_KEYUP && ehOk) {
       Uint32 desde = okDesde;
       okDesde = 0;
-      if (desde) okNaCelula(celulaEmFoco());
+      if (desde) {
+        if (ponteiro_ok_longo()) menuNaCelula(celulaEmFoco());
+        else okNaCelula(celulaEmFoco());
+      }
       return;
     }
     if (e->type == SDL_KEYDOWN && ehOk && !e->key.repeat) {

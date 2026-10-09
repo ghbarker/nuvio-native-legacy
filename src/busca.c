@@ -917,6 +917,7 @@ void busca_evento(const SDL_Event *e) {
   // OK NUM RESULTADO DECIDE NA SOLTURA, como a pilula: toque abre o titulo,
   // segurar abre o menu do cartaz.
   switch (ctxhold_evento(&holdRes, e, resultadoAceitaMenu())) {
+    case CTXH_LONGO: menuNoResultado(); return;
     case CTXH_CONSUMIDO: return;
     case CTXH_TOQUE: abrirResultado(); return;
     default: break;
@@ -929,7 +930,7 @@ void busca_evento(const SDL_Event *e) {
     if (e->type == SDL_KEYDOWN) {
       if (!okPress) { okPress = 1; okLongo = 0; okDesde = SDL_GetTicks(); }
     } else if (e->type == SDL_KEYUP && okPress) {
-      Uint32 dur = SDL_GetTicks() - okDesde;
+      Uint32 dur = ponteiro_ok_longo() ? NV_HOLD_MS : SDL_GetTicks() - okDesde;
       okPress = 0; okDesde = 0;
       if (okLongo) okLongo = 0;
       else if (dur >= NV_HOLD_MS) recentesRemover();

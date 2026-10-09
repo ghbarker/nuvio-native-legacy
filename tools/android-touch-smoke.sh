@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Instala, abre e exercita entrada/rotacao no emulador; deixa capturas e logs.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+APK="${1:?passe o APK x86_64 de android-touch.sh}"
+OUT=build/android-touch/smoke
+PKG=space.nuvio.nativelegacy.touch
+mkdir -p "$OUT"
+adb wait-for-device
+adb shell wm size "${NUVIO_TOUCH_SCREEN:-2340x1080}"
+adb shell settings put secure show_ime_with_hard_keyboard 1
+adb install -r "$APK"
+adb shell am force-stop "$PKG"
+adb logcat -c
+adb shell am start -W -n "$PKG/space.nuvio.nativelegacy.NuvioActivity" > "$OUT/start.txt"
+# A abertura inclui SDL/fontes e pode pedir o catalogo. O processo precisa
+# continuar vivo e com a Activity em primeiro plano depois dessa espera.
+sleep 20
+PID=$(adb shell pidof "$PKG" | tr -d '\r')
+[ -n "$PID" ] || { adb logcat -d > "$OUT/logcat.txt"; echo "smoke: app fechou na abertura" >&2; exit 1; }
+trap 'adb logcat -d --pid="$PID" > "$OUT/logcat.txt" || true' EXIT
+tap_logico() {
+  local viewport ponto x y
+  viewport=$(adb logcat -d --pid="$PID" | sed -n 's/.*touch viewport=\([0-9]*,[0-9]*,[0-9]*,[0-9]*\).*/\1/p' | tail -1)
+  [ -n "$viewport" ] || { echo "smoke: viewport nao foi registrado" >&2; exit 1; }
+  ponto=$(python3 - "$viewport" "$1" "$2" <<'PY'
+import sys
+x, y, w, h = map(int, sys.argv[1].split(','))
+print(round(x + float(sys.argv[2]) * w / 1920), round(y + float(sys.argv[3]) * h / 1080))
+PY
+  )
+  read -r x y <<< "$ponto"
+  adb shell input tap "$x" "$y"
+}
+adb exec-out screencap -p > "$OUT/open.png"
+# login.c: o botao do e-mail muda de altura entre QR pronto, erro e pedido
+# pendente. Nenhum destes pontos envia credenciais. O campo e-mail fica em 406.
+IME=0
+for y in 928 470 384; do
+  tap_logico 960 "$y"
+  sleep 1
+  tap_logico 960 406
+  sleep 2
+  adb shell dumpsys input_method > "$OUT/ime.txt"
+  if grep -E 'mInputShown=true|mIsInputViewShown=true' "$OUT/ime.txt" >/dev/null; then IME=1; break; fi
+done
+[ "$IME" = 1 ] || { echo "smoke: toque nao abriu o teclado do e-mail" >&2; exit 1; }
+adb exec-out screencap -p > "$OUT/email-ime.png"
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+adb exec-out screencap -p > "$OUT/ime-back.png"
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 3
+sleep 2
+adb exec-out screencap -p > "$OUT/rotate.png"
+adb logcat -d --pid="$PID" > "$OUT/logcat.txt"
+adb shell dumpsys activity activities > "$OUT/activity.txt"
+[ "$(adb shell pidof "$PKG" | tr -d '\r')" = "$PID" ] || { echo "smoke: processo mudou ou fechou" >&2; exit 1; }
+grep -E '(mResumedActivity|ResumedActivity).*space\.nuvio\.nativelegacy\.touch' "$OUT/activity.txt" >/dev/null || {
+  echo "smoke: Activity nao esta em primeiro plano" >&2; exit 1; }
+if grep -E 'FATAL EXCEPTION|Fatal signal|UnsatisfiedLinkError|ANR in space\.nuvio\.nativelegacy\.touch' "$OUT/logcat.txt"; then
+  echo "smoke: falha no processo do app" >&2; exit 1
+fi
+python3 - "$OUT" <<'PY'
+from pathlib import Path
+from PIL import Image
+import sys
+
+for path in sorted(Path(sys.argv[1]).glob('*.png')):
+    img = Image.open(path).convert('RGB')
+    assert img.width > img.height, f'{path}: tela nao esta em paisagem'
+    # Barra do sistema nao prova que o canvas do app chegou a desenhar.
+    inner = img.crop((img.width // 10, img.height // 10, img.width * 9 // 10, img.height * 9 // 10))
+    colors = inner.resize((160, 90)).getcolors(14400)
+    assert colors is None or len(colors) >= 8, f'{path}: conteudo vazio ou uniforme'
+    print(f'{path}: {img.width}x{img.height}, conteudo renderizado')
+PY
+echo "smoke: instalacao, toque no e-mail, teclado, Voltar e rotacao sem queda; capturas em $OUT"

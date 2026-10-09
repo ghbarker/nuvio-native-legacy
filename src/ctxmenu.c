@@ -628,7 +628,7 @@ static void abrirComum(int indice) {
   // A longa ja consumiu o gesto na home. Limpar a sentinela aqui evita que o
   // KEYUP seguinte seja reaproveitado como uma selecao dentro da modal.
   holdPronto = 0;
-  esperandoSoltura = 1;   // o OK que abriu ainda esta afundado; ver a nota acima
+  esperandoSoltura = !ponteiro_ok_longo();   // dedo ja entregou o par completo
   idx = indice; foco = 0; aberto = 1;
   dispensarOp = dispensarPend; dispensarPend = 0;
   detalhesOk = detalhesPend; detalhesPend = 0;

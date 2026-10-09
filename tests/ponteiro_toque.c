@@ -3,12 +3,37 @@
 #include "ponteiro.c"
 #undef main
 #include <math.h>
+#include "ctxlista.h"
+#include "layout.h"
+#include "catalogo.h"
+#include "ctxmenu.h"
+#include "descoberta.h"
+#include "idioma.h"
+#include "ilha.h"
+
+// Dependencias inertes da lista: a decisao do gesto vem de src/ctxlista.c.
+int ctx_aberto(void) { return 0; }
+const char *i18n(const char *s) { return s; }
+void ilha_atividade(const char *s, float p) { (void)s; (void)p; }
+int cat_n(void) { return 0; }
+int cat_indice_por_imdb(const char *s) { (void)s; return -1; }
+const CatItem *cat_item(int i) { (void)i; return NULL; }
+void ctx_fileira(const char *c, const char *t) { (void)c; (void)t; }
+void ctx_dispensar_retomar(int on) { (void)on; }
+void ctx_abrir_cartaz(int i, GfxRect r, const char *a) { (void)i; (void)r; (void)a; }
+int desc_titulo_buscando(void) { return 0; }
+void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
+                               const char *titulo, const char *ano, const char *poster) {
+  (void)imdb; (void)tmdb; (void)tipo; (void)titulo; (void)ano; (void)poster;
+}
+
+static void (*entregaDedo)(const SDL_Event *) = entregar;
 
 static void dedo(Uint32 tipo, Sint64 id, float x, float y) {
   SDL_Event e; SDL_zero(e);
   e.type = tipo; e.tfinger.touchId = 3; e.tfinger.fingerId = id;
   e.tfinger.x = x; e.tfinger.y = y;
-  CONFERE(ponteiro_evento(&e, entregar) == 1, "evento de dedo consumido");
+  CONFERE(ponteiro_evento(&e, entregaDedo) == 1, "evento de dedo consumido");
 }
 static void tocar(float x, float y) {
   dedo(SDL_FINGERDOWN, 1, x / 1920.0f, y / 1080.0f);
@@ -16,6 +41,7 @@ static void tocar(float x, float y) {
 }
 static void preparar(void (*alvos)(void)) {
   ponteiro_iniciar(); ponteiro_teste_toque(1);
+  entregaDedo = entregar;
   quadro(alvos); zerar(); nFocar = nAtivar = 0;
 }
 static int conta(SDL_Keycode k) {
@@ -32,7 +58,136 @@ static void barra(void) {
   ponteiro_alvo_arrastavel();
 }
 static void canto(void) { ponteiro_alvo(1900, 1060, 20, 20, focar, NULL, 1, 1); }
+
+static CtxHold holdDedo;
+static int menusDedo, toquesDedo, flagsLongos, focosLongos;
+static void entregarHold(const SDL_Event *e) {
+  int r;
+  entregar(e);
+  if (ponteiro_ok_longo()) flagsLongos++;
+  r = ctxhold_evento(&holdDedo, e, 1);
+  if (r == CTXH_LONGO) menusDedo++;
+  if (r == CTXH_TOQUE) toquesDedo++;
+}
+static void prepararHold(void (*alvos)(void)) {
+  preparar(alvos);
+  memset(&holdDedo, 0, sizeof holdDedo);
+  menusDedo = toquesDedo = flagsLongos = focosLongos = 0;
+  entregaDedo = entregarHold;
+}
+static void focoTemporada(int a, int b) {
+  focar(a, b);
+  if (ponteiro_toque()) focosLongos++;
+}
+static void temporada(void) {
+  ponteiro_alvo(100, 100, 200, 100, NULL, ativar, 2, 3);
+  ponteiro_alvo_segurar(focoTemporada);
+}
+static void pressaoLonga(void) {
+  Uint32 inicio;
+  SDL_Event e;
+  prepararHold(home);
+  inicio = relogio;
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio = inicio + NV_HOLD_MS - 1;
+  quadro(home);
+  CONFERE(!nEntregues && !nFocar, "antes do limiar nao existe OK nem foco");
+  relogio = inicio + NV_HOLD_MS;
+  quadro(home);
+  CONFERE(nEntregues == 2 && nFocar == 1 && menusDedo == 1 && !toquesDedo &&
+          flagsLongos == 2 && !holdDedo.armado,
+          "limiar confirma um par OK longo pelo ctxhold real, sem abrir curto");
+  CONFERE(!ponteiro_ok_longo(), "marca longa so existe durante a entrega");
+  for (int i = 0; i < 60; i++) quadro(home);
+  dedo(SDL_FINGERMOTION, 1, .5f, .5f);
+  dedo(SDL_FINGERUP, 1, .5f, .5f);
+  CONFERE(nEntregues == 2 && menusDedo == 1 && nFocar == 1,
+          "segurar mais, arrastar e soltar depois do limiar nao repetem nem rolam");
+  tocar(150, 150);
+  CONFERE(toquesDedo == 1 && menusDedo == 1 && flagsLongos == 2,
+          "proximo tap e curto e nao herda a marca longa");
+
+  prepararHold(home);
+  inicio = relogio;
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS;
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(menusDedo == 1 && nEntregues == 2, "soltura apos limiar sem quadro tambem confirma longo");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS - 1;
+  dedo(SDL_FINGERMOTION, 1, .08f + 40.0f / 1920.0f, .14f);
+  relogio += 1000; quadro(home);
+  dedo(SDL_FINGERMOTION, 1, .08f, .14f);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!conta(SDLK_RETURN) && !nFocar && !menusDedo,
+          "arrasto antes do limiar cancela longo mesmo retornando ao inicio");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += 200;
+  dedo(SDL_FINGERMOTION, 1, .08f + 10.0f / 1920.0f, .14f);
+  relogio += 600; quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f + 10.0f / 1920.0f, .14f);
+  CONFERE(menusDedo == 1 && nEntregues == 2, "tremor pequeno mantem pressao longa");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS - 1;
+  dedo(SDL_FINGERDOWN, 2, .09f, .14f);
+  dedo(SDL_FINGERUP, 2, .09f, .14f);
+  relogio += 1000; quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!nEntregues && !nFocar, "segundo dedo cancela longo antes de confirmar");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS;
+  quadro(homeComFolha);
+  quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!nEntregues && !nFocar, "camada nova no limiar cancela, mesmo voltando ao alvo antigo");
+
+  for (int i = 0; i < 3; i++) {
+    prepararHold(home);
+    dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+    if (!i) dedo(SDL_FINGERMOTION, 1, NAN, .14f);
+    else { SDL_zero(e); e.type = i == 1 ? SDL_WINDOWEVENT : SDL_APP_WILLENTERBACKGROUND;
+      e.window.event = SDL_WINDOWEVENT_FOCUS_LOST; ponteiro_evento(&e, entregarHold); }
+    relogio += NV_HOLD_MS + 1000; quadro(home);
+    dedo(SDL_FINGERUP, 1, .08f, .14f);
+    CONFERE(!nEntregues && !nFocar, "coordenada invalida, foco perdido ou background cancelam longo");
+  }
+
+  prepararHold(homeComFolha);
+  dedo(SDL_FINGERDOWN, 1, 1450.0f / 1920.0f, 500.0f / 1080.0f);
+  relogio += NV_HOLD_MS; quadro(homeComFolha);
+  dedo(SDL_FINGERUP, 1, 1450.0f / 1920.0f, 500.0f / 1080.0f);
+  CONFERE(!nEntregues && !nAtivar, "anteparo absorve pressao longa");
+  dedo(SDL_FINGERDOWN, 1, 150.0f / 1920.0f, 500.0f / 1080.0f);
+  relogio += NV_HOLD_MS; quadro(homeComFolha);
+  CONFERE(!nEntregues && !nAtivar, "acao propria nao ganha OK longo implicitamente");
+  dedo(SDL_FINGERUP, 1, 150.0f / 1920.0f, 500.0f / 1080.0f);
+  CONFERE(!nEntregues && nAtivar == 1, "acao propria continua confirmando somente na soltura");
+
+  prepararHold(temporada);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS; quadro(temporada);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(menusDedo == 1 && focosLongos == 1 && focoA == 2 && !nAtivar,
+          "alvo proprio opta por foco longo sem disparar ativar nem repetir na soltura");
+  tocar(150, 150);
+  CONFERE(nAtivar == 1, "tap no alvo optante preserva seu ativar proprio");
+
+  prepararHold(NULL);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS; quadro(NULL);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(menusDedo == 1 && nEntregues == 2, "camada sem alvos mantem OK longo puro");
+}
 int main(void) {
+  ponteiro_roteiro_mouse();
   ponteiro_teste_relogio(agora);
   // Janela 960x540 e drawable diferente nao mudam coords normalizadas SDL.
   ponteiro_teste_janela(960, 540);
@@ -168,6 +323,7 @@ int main(void) {
   // Fora da barra o fundo do player: toque = focar (e OK, sem ativar proprio).
   zerar(); nFocar = 0; tocar(800, 300);
   CONFERE(nFocar == 1 && focoA == 5 && conta(SDLK_RETURN) == 1, "tap no fundo foca e da OK");
+  pressaoLonga();
   printf("ponteiro toque: %s\n", falhas ? "FALHOU" : "PASS");
   return falhas ? 1 : 0;
 }

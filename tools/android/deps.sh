@@ -12,9 +12,15 @@ CURL_V=8.22.0
 JPEG_V=3.1.4.1
 WEBP_V=1.6.0
 
-NDK="${ANDROID_NDK_HOME:-$HOME/Library/Android/sdk/ndk/27.2.12479018}"
-TC="$NDK/toolchains/llvm/prebuilt/darwin-x86_64"
-CMAKE_SDK="$HOME/Library/Android/sdk/cmake/3.22.1/bin"
+case "$(uname -s)" in
+  Darwin) HOST=darwin-x86_64; SDK_DEFAULT="$HOME/Library/Android/sdk" ;;
+  Linux) HOST=linux-x86_64; SDK_DEFAULT="$HOME/Android/Sdk" ;;
+  *) echo "deps.sh: execute no macOS ou Linux com o Android NDK" >&2; exit 1 ;;
+esac
+SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$SDK_DEFAULT}}"
+NDK="${ANDROID_NDK_HOME:-$SDK/ndk/27.2.12479018}"
+TC="$NDK/toolchains/llvm/prebuilt/$HOST"
+CMAKE_SDK="$SDK/cmake/3.22.1/bin"
 if [ -x "$CMAKE_SDK/cmake" ]; then CMAKE="$CMAKE_SDK/cmake"; NINJA="$CMAKE_SDK/ninja"; else CMAKE="$(command -v cmake)"; NINJA="$(command -v ninja)"; fi
 [ -f "$NDK/build/cmake/android.toolchain.cmake" ] || { echo "NDK nao encontrado em $NDK" >&2; exit 1; }
 [ -x "$CMAKE" ] && [ -x "$NINJA" ] || { echo "cmake/ninja ausentes" >&2; exit 1; }
@@ -23,8 +29,18 @@ READELF="$TC/bin/llvm-readelf"; NM="$TC/bin/llvm-nm"
 CACHE="${NUVIO_ANDROID_CACHE:-$HOME/.cache/nuvio-android}"
 SRC="$CACHE/src"; BUILD="$CACHE/build"; PREFIX="$CACHE/prefix"
 mkdir -p "$SRC" "$BUILD"
-JOBS="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+JOBS="${NUVIO_ANDROID_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}"
 ABIS=("$@"); [ ${#ABIS[@]} -gt 0 ] || ABIS=(arm64-v8a armeabi-v7a)
+triple() {
+  case "$1" in
+    arm64-v8a) echo aarch64-linux-android24 ;;
+    armeabi-v7a) echo armv7a-linux-androideabi24 ;;
+    x86_64) echo x86_64-linux-android24 ;;
+    x86) echo i686-linux-android24 ;;
+    *) echo "deps.sh: ABI desconhecida: $1" >&2; return 1 ;;
+  esac
+}
+for abi in "${ABIS[@]}"; do triple "$abi" >/dev/null; done
 
 baixar() {  # baixar <arquivo> <url> ; extrai em $SRC/<dir>
   local arq="$1" url="$2" dir="$3"
@@ -75,8 +91,9 @@ for abi in "${ABIS[@]}"; do
   # mbedtls_config.h, e nao por -D, para curl e mbedTLS verem as MESMAS structs.
   CFG="$SRC/mbedtls-$MBEDTLS_V/include/mbedtls/mbedtls_config.h"
   if grep -q '^//#define MBEDTLS_THREADING_C' "$CFG"; then
-    sed -i '' -e 's|^//#define MBEDTLS_THREADING_C$|#define MBEDTLS_THREADING_C|' \
+    sed -i.bak -e 's|^//#define MBEDTLS_THREADING_C$|#define MBEDTLS_THREADING_C|' \
               -e 's|^//#define MBEDTLS_THREADING_PTHREAD$|#define MBEDTLS_THREADING_PTHREAD|' "$CFG"
+    rm -f "$CFG.bak"
     rm -f "$PREFIX"/*/lib/libmbedtls.a "$PREFIX"/*/lib/libcurl.so
   fi
   # ENTROPIA DE /dev/urandom (#266 Shield, #332 BRAVIA). O mbedTLS 3.6 so usa
@@ -86,7 +103,8 @@ for abi in "${ABIS[@]}"; do
   # psa_crypto_init/ctr_drbg_seed (curl_global_init) leem. /dev/urandom nunca
   # bloqueia num aparelho ja ligado; e o que o proprio bionic (arc4random) usa.
   if ! grep -q '^#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/urandom"$' "$CFG"; then
-    sed -i '' -e 's|^//#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/random"$|#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/urandom"|' "$CFG"
+    sed -i.bak -e 's|^//#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/random"$|#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/urandom"|' "$CFG"
+    rm -f "$CFG.bak"
     grep -q '^#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/urandom"$' "$CFG" || { echo "deps.sh: nao achei MBEDTLS_PLATFORM_DEV_RANDOM em $CFG" >&2; exit 1; }
     rm -f "$PREFIX"/*/lib/libmbedtls.a "$PREFIX"/*/lib/libcurl.so
   fi
@@ -119,7 +137,7 @@ for abi in "${ABIS[@]}"; do
     CFLAGS_EXTRA="-fPIC" cmk "$abi" "$SRC/libjpeg-turbo-$JPEG_V" "$BUILD/jpeg-$abi" "libjpeg.so" \
       -DENABLE_SHARED=ON -DENABLE_STATIC=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=OFF -DWITH_TURBOJPEG=OFF \
       -DWITH_JAVA=OFF -DWITH_TOOLS=OFF -DWITH_TESTS=OFF -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON \
-      -DCMAKE_ASM_FLAGS="--target=$( [ "$abi" = arm64-v8a ] && echo aarch64-linux-android24 || echo armv7a-linux-androideabi24 )"
+      -DCMAKE_ASM_FLAGS="--target=$(triple "$abi")"
     so_unica "$P/lib" jpeg; reduzir "$P/lib/libjpeg.so"
   fi
 
@@ -133,7 +151,7 @@ for abi in "${ABIS[@]}"; do
       -DWEBP_BUILD_WEBPMUX=OFF -DWEBP_BUILD_EXTRAS=OFF -DWEBP_BUILD_LIBWEBPMUX=OFF
     # .so unica com sharpyuv dentro (o dlopen so acha libwebp.so); a .a fica privada
     # para nao colidir com a libwebp.a que o SDL_image usa em $P/lib.
-    case "$abi" in arm64-v8a) TRIPLE=aarch64-linux-android24;; *) TRIPLE=armv7a-linux-androideabi24;; esac
+    TRIPLE=$(triple "$abi")
     "$TC/bin/clang" --target=$TRIPLE -shared -o "$P/lib/libwebp.so" -Wl,-soname,libwebp.so -Wl,-z,max-page-size=16384 \
       -Wl,--whole-archive "$WS/lib/libwebp.a" "$WS/lib/libsharpyuv.a" -Wl,--no-whole-archive -lm
     mkdir -p "$P/include/webp"; cp "$WS"/include/webp/*.h "$P/include/webp/" 2>/dev/null || true

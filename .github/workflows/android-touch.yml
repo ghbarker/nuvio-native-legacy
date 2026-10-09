@@ -1,0 +1,104 @@
+name: Android touch preview
+
+on:
+  push:
+    branches: [mobile-touch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-touch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # A build de teste e so do fork; nao inicia releases no repositorio original.
+    if: github.repository != 'iqui27/nuvio-native-legacy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NUVIO_ANDROID_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil libsdl2-dev
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Public application configuration
+        env:
+          NUVIO_TOUCH_CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+          NUVIO_TOUCH_DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
+        run: |
+          mkdir -p build/android-touch
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          body = os.environ.get('NUVIO_TOUCH_CORE_PROPERTIES', '')
+          if not body:
+              raise SystemExit('Set NUVIO_TOUCH_CORE_PROPERTIES for this preview build')
+          path = Path('build/android-touch/preview.properties')
+          path.write_text(body)
+          path.chmod(0o600)
+          PY
+          test -n "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" || { echo 'Set NUVIO_TOUCH_DEBUG_KEYSTORE_B64 for repeatable preview updates'; exit 1; }
+          mkdir -p "$HOME/.android"
+          printf '%s' "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+          echo "NUVIO_PROPERTIES=$GITHUB_WORKSPACE/build/android-touch/preview.properties" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/nuvio-android
+          key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'android/app/src/main/cpp/CMakeLists.txt') }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-touch-gradle-${{ runner.os }}-
+      - name: Touch input regression
+        run: bash tests/ponteiro_toque.sh
+      - name: ARM phone APK
+        run: bash tools/android-touch.sh
+      - name: Emulator APK
+        env:
+          NUVIO_TOUCH_ABIS: x86_64
+        run: bash tools/android-touch.sh
+      - name: Touch viewport regression
+        run: python3 tests/android_touch_viewport.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-touch-preview-${{ github.sha }}
+          path: build/android-touch/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Phone emulator smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tools/android-touch-smoke.sh build/android-touch/*-touch-x86_64.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-touch-smoke-${{ github.sha }}
+          path: build/android-touch/smoke/
+          if-no-files-found: warn
+          retention-days: 14

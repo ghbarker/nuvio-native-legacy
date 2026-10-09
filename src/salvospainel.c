@@ -2289,7 +2289,7 @@ void spainel_evento(const SDL_Event *e) {
   // que fechou o menu do cartaz, ou o que abriu o painel por outra porta.
   if (e->type == SDL_KEYUP) {
     if (okDesde && teclaOk(e->key.keysym.sym)) {
-      Uint32 dur = SDL_GetTicks() - okDesde;
+      Uint32 dur = ponteiro_ok_longo() ? NV_HOLD_MS : SDL_GetTicks() - okDesde;
       okDesde = 0;
       if (dur >= NV_HOLD_MS) abrirMenu();
       else abrirLinha();

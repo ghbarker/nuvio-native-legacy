@@ -2397,6 +2397,7 @@ void detail_evento(const SDL_Event *e) {
   // Nas Recomendacoes o resto da pagina segue como estava (OK no KEYDOWN arma o
   // okDesceEm); aqui so se mede o limiar, que detail_atualizar dispara.
   { int r = ctxhold_evento(&holdLista, e, listaAceitaMenu());
+    if (r == CTXH_LONGO) { menuNaLista(); return; }
     if (colListaAberta || pessoaAberta) {
       if (r == CTXH_CONSUMIDO) return;
       if (r == CTXH_TOQUE) {
@@ -2526,7 +2527,7 @@ void detail_evento(const SDL_Event *e) {
     // caia em nenhum caso. Passar os botoes para o nivel 0 (que e onde o web os
     // poe) descobriu o defeito que ja existia.
     if (!okDesceEm) return;
-    dur = SDL_GetTicks() - okDesceEm;
+    dur = ponteiro_ok_longo() ? NV_HOLD_MS : SDL_GetTicks() - okDesceEm;
     okDesceEm = 0;
     if (nivel == 0 && focoAmigos) {
       // A lista do que cada amigo achou, AQUI (dono, 06/10/2026), e nao mais a

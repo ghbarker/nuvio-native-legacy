@@ -32,6 +32,8 @@
 //   - RODINHA vira seta: cima/baixo, e esquerda/direita na rodinha lateral.
 //   - DEDO (#216): tocar = focar + OK; arrastar rola (vira setas, com
 //     inercia na soltura); arrastar sobre alvo arrastavel chama o ativar.
+//     Segurar sem arrastar confirma um OK longo uma vez no limiar; soltar
+//     depois disso nao vira outro clique.
 //   - SETA DO CONTROLE esconde o cursor; ele volta com um movimento de
 //     verdade (janela curta e limiar de distancia: o tremor de quem aperta a
 //     seta nao conta). Parado alguns segundos ele some sozinho.
@@ -57,6 +59,7 @@ typedef struct {
                        // Os dois NULL = anteparo: absorve o clique, nao faz nada.
   int a, b;
   int arrasta;         // ponteiro_alvo_arrastavel: o dedo arrasta, nao rola
+  PonteiroFn segurar;  // foco proprio antes do OK longo de um alvo com ativar
 } PonteiroAlvo;
 
 void ponteiro_iniciar(void);
@@ -94,6 +97,12 @@ void ponteiro_alvo_faixa(float x, float y, float w, float h, float y0, float y1,
 // sobre ele chama o `ativar` a cada movimento, em vez de rolar a tela. E a
 // barra de tempo do player.
 void ponteiro_alvo_arrastavel(void);
+// Alvo com ativar proprio: opcionalmente permite OK longo por dedo usando
+// este foco (a aba de temporada, por exemplo). Nao altera clique nem hover.
+void ponteiro_alvo_segurar(PonteiroFn focar);
+// 1 somente durante o par RETURN que confirma um dedo segurado. As telas
+// decidem pelo caminho do OK longo; teclado e mouse mantem seu relogio.
+int  ponteiro_ok_longo(void);
 // 1 enquanto focar/ativar estao rodando por causa de um DEDO (e nao do Magic
 // Remote). O player usa para tocar = mostrar controles e arrastar = procurar.
 int  ponteiro_toque(void);

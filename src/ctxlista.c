@@ -7,6 +7,7 @@
 #include "descoberta.h"
 #include "layout.h"
 #include "anim.h"
+#include "ponteiro.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -38,6 +39,7 @@ int ctxhold_evento(CtxHold *h, const SDL_Event *e, int celulaAceita) {
   // fechou a barra lateral ou o menu solta sobre esta tela.
   if (!h->armado) return CTXH_NADA;
   ctxhold_cancelar(h);
+  if (ponteiro_ok_longo()) return CTXH_LONGO;
   return CTXH_TOQUE;
 }
 

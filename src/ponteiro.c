@@ -94,6 +94,9 @@ static int nDedos, dedosExcedentes, toqueCancelado;
 static float toqueX, toqueY;
 static Ident toqueAlvo;
 static int toqueSemAlvos;
+static Uint32 toqueDesde;
+static float toqueUltX, toqueUltY;
+static int toqueLongo, okLongoToque;
 
 static void pararInercia(void);
 static int arrModo;
@@ -103,6 +106,7 @@ static void cancelarToque(void) {
   nDedos = dedosExcedentes = 0;
   toqueCancelado = 1;
   toqueAlvo.ok = 0;
+  toqueLongo = 0;
 }
 
 #ifdef NV_PONT_WEBOS
@@ -381,6 +385,7 @@ static int porToque;   // 1 durante focar/ativar disparados por dedo
 
 int ponteiro_toque(void) { return porToque; }
 int ponteiro_tem_toque(void) { return toqueDisponivel; }
+int ponteiro_ok_longo(void) { return okLongoToque; }
 
 static void alvoPorToque(const PonteiroAlvo *al, int focar, int ativar) {
   porToque = 1;
@@ -408,6 +413,41 @@ static float rolarPassos(float acum, int eixoY, int teto) {
 
 static void pararInercia(void) { inercia = 0; inVel = inAcum = 0.0f; }
 
+// Ate o limiar nenhum OK foi entregue: arrastar, outro dedo ou uma camada
+// nova podem cancelar sem transformar a soltura num clique. No limiar o
+// gesto fica consumido e entrega um par completo pela mesma rota do teclado.
+static void longoToque(Uint32 agora) {
+  int i;
+  PonteiroAlvo al;
+  if (nDedos != 1 || dedosExcedentes || toqueCancelado || toqueLongo ||
+      arrModo != ARR_NADA || !entregarToque) return;
+  i = ponteiro_achar(lista[pronto], nLista[pronto], toqueUltX, toqueUltY);
+  if (i >= 0 && mesmo(&toqueAlvo, &lista[pronto][i])) {
+    al = lista[pronto][i];
+    if (!al.segurar && (!al.focar || al.ativar || al.arrasta)) return;
+  } else if (toqueSemAlvos && nLista[pronto] == 0) {
+    memset(&al, 0, sizeof al);
+  } else {
+    // Sair um pouco do retangulo ainda pode virar arrasto. So uma identidade
+    // que sumiu da camada cancela o gesto; iniciar no vazio tambem pode rolar.
+    if (toqueAlvo.ok) {
+      for (i = 0; i < nLista[pronto]; i++)
+        if (mesmo(&toqueAlvo, &lista[pronto][i])) return;
+      toqueCancelado = 1;
+    } else if (toqueSemAlvos) toqueCancelado = 1;
+    return;
+  }
+  if (agora - toqueDesde < NV_HOLD_MS) return;
+  toqueLongo = 1;
+  px = toqueUltX; py = toqueUltY;
+  if (al.segurar) { porToque = 1; al.segurar(al.a, al.b); porToque = 0; }
+  else alvoPorToque(&al, 1, 0);
+  okLongoToque = 1;
+  tecla(entregarToque, SDL_KEYDOWN, SDLK_RETURN);
+  tecla(entregarToque, SDL_KEYUP, SDLK_RETURN);
+  okLongoToque = 0;
+}
+
 static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
   const SDL_TouchFingerEvent *t = &e->tfinger;
   int dedo = dedoIndice(t);
@@ -423,6 +463,7 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
     if (nDedos > 1 || dedosExcedentes) { toqueCancelado = 1; arrModo = ARR_NADA; return 1; }
     toqueCancelado = !converterToque(t);
     toqueX = px; toqueY = py;
+    toqueUltX = px; toqueUltY = py; toqueDesde = agora; toqueLongo = 0;
     arrUltX = px; arrUltY = py; arrUltMs = agora; arrVel = 0.0f; arrAcum = 0.0f;
     arrModo = ARR_NADA;
     toqueAlvo.ok = 0;
@@ -439,7 +480,8 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
     return 1;
   }
   if (!converterToque(t)) { toqueCancelado = 1; arrModo = ARR_NADA; }
-  else if (!toqueCancelado && nDedos == 1 && !dedosExcedentes) {
+  else if (!toqueCancelado && !toqueLongo && nDedos == 1 && !dedosExcedentes) {
+    toqueUltX = px; toqueUltY = py;
     float dx = px - toqueX, dy = py - toqueY;
     if (arrModo == ARR_NADA &&
         dx * dx + dy * dy > PONT_TOQUE_LIMIAR * PONT_TOQUE_LIMIAR) {
@@ -464,15 +506,16 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
     } else if (arrModo == ARR_ALVO) {
       alvoPorToque(&arrAlvo, 0, 1);
     }
+    longoToque(agora);
   }
   if (e->type != SDL_FINGERUP) return 1;
   // Um segundo dedo cancela o gesto inteiro, mesmo se ele sair primeiro.
-  if (nDedos == 1 && !dedosExcedentes && !toqueCancelado && arrModo == ARR_ROLA) {
+  if (nDedos == 1 && !dedosExcedentes && !toqueCancelado && !toqueLongo && arrModo == ARR_ROLA) {
     // Parado antes de soltar (mais de 90 ms sem andar) nao tem inercia.
     if (fabsf(arrVel) >= PONT_INERCIA_MIN && agora - arrUltMs < 90) {
       inercia = 1; inVel = arrVel; inAcum = arrAcum; inEixoY = arrEixoY; inUltMs = agora;
     }
-  } else if (nDedos == 1 && !dedosExcedentes && !toqueCancelado && arrModo == ARR_NADA) {
+  } else if (nDedos == 1 && !dedosExcedentes && !toqueCancelado && !toqueLongo && arrModo == ARR_NADA) {
     int i = ponteiro_achar(lista[pronto], nLista[pronto], px, py);
     PonteiroAlvo al;
     if (i >= 0 && mesmo(&toqueAlvo, &lista[pronto][i])) {
@@ -488,6 +531,8 @@ static int eventoToque(const SDL_Event *e, void (*entregar)(const SDL_Event *)) 
       tecla(entregar, SDL_KEYUP, SDLK_RETURN);
     }
   }
+  dedo = dedoIndice(t);  // o callback pode ter reiniciado a tela/entrada
+  if (dedo < 0) return 1;
   memmove(dedos + dedo, dedos + dedo + 1, (size_t)(--nDedos - dedo) * sizeof *dedos);
   if (!nDedos && !dedosExcedentes) { toqueAlvo.ok = 0; arrModo = ARR_NADA; }
   return 1;
@@ -699,6 +744,7 @@ static void fecharQuadro(void) {
     // identidade vai embora — guardada, ela travaria o hover para sempre.
     if (!achou) { conteudoMexeuEm = agora; hover.ok = 0; }
   }
+  longoToque(agora);
 }
 
 void ponteiro_alvo(float x, float y, float w, float h,
@@ -713,6 +759,7 @@ void ponteiro_alvo(float x, float y, float w, float h,
   al->x = x; al->y = y; al->w = w; al->h = h;
   al->focar = focar; al->ativar = ativar; al->a = a; al->b = b;
   al->arrasta = 0;
+  al->segurar = NULL;
 }
 
 void ponteiro_alvo_faixa(float x, float y, float w, float h, float y0, float y1,
@@ -725,6 +772,10 @@ void ponteiro_alvo_faixa(float x, float y, float w, float h, float y0, float y1,
 
 void ponteiro_alvo_arrastavel(void) {
   if (nLista[escreve] > 0) lista[escreve][nLista[escreve] - 1].arrasta = 1;
+}
+
+void ponteiro_alvo_segurar(PonteiroFn focar) {
+  if (nLista[escreve] > 0) lista[escreve][nLista[escreve] - 1].segurar = focar;
 }
 
 void ponteiro_camada(void) {

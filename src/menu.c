@@ -480,7 +480,9 @@ void menu_evento(const SDL_Event *e) {
       (e->key.keysym.sym == SDLK_RETURN || e->key.keysym.sym == SDLK_KP_ENTER)) {
     int longo = buscaLongo;
     buscaOk = buscaLongo = 0;
-    if (!longo && linha == MENU_BUSCAR) escolher();
+    if (ponteiro_ok_longo() && linha == MENU_BUSCAR) {
+      pediuSpot = 1; aberto = 0; linha = destino;
+    } else if (!longo && linha == MENU_BUSCAR) escolher();
     return;
   }
   if (e->type != SDL_KEYDOWN) return;

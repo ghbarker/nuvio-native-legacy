@@ -561,7 +561,7 @@ void episodios_evento(const SDL_Event *ev) {
       }
       if (ev->type == SDL_KEYUP) {
         int foiAqui = vmSegurando;
-        Uint32 dur = foiAqui ? SDL_GetTicks() - vmDesde : 0;
+        Uint32 dur = ponteiro_ok_longo() ? NV_HOLD_MS : (foiAqui ? SDL_GetTicks() - vmDesde : 0);
         vmSegurando = 0;
         if (!foiAqui) return;
         if (dur >= NV_HOLD_MS) { menuAbrirTemporada(titulo, numTemporada(temporada), 0); return; }
@@ -586,7 +586,7 @@ void episodios_evento(const SDL_Event *ev) {
         // subida no mesmo milissegundo dao dur=0, que e legitimo. Foi assim na
         // primeira versao, e tests/player.sh pegou na primeira rodada.
         int foiAqui = vmSegurando;
-        Uint32 dur = foiAqui ? SDL_GetTicks() - vmDesde : 0;
+        Uint32 dur = ponteiro_ok_longo() ? NV_HOLD_MS : (foiAqui ? SDL_GetTicks() - vmDesde : 0);
         vmSegurando = 0;
         if (!foiAqui) return;
         if (dur >= NV_HOLD_MS) {
@@ -854,6 +854,7 @@ static void corpoIlha(GfxRect c, float a, void *u) {
       if (ptr) for (i = 0; i < ns; i++) {
         float sw = plrui_seg(&rot[i], &cont[i], 1, -1, 0, -1.0f, 0, a) - 10.0f;
         ponteiro_alvo(xx, y + 5.0f, sw, 44.0f, NULL, ponteiroEpTemporada, ini + i, 0);
+        ponteiro_alvo_segurar(ponteiroEpTemporada);
         xx += sw + 4.0f;
       } } }
   y += EP_SEG_H + 14.0f;

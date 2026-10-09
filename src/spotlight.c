@@ -1219,6 +1219,7 @@ void spot_evento(const SDL_Event *e) {
     } else if (okPress) {
       okPress = 0;
       if (okLongo) okLongo = 0;
+      else if (ponteiro_ok_longo()) removerRecente(focoL);
       else acionar(focoL);
     }
     return;

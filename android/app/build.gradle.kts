@@ -9,6 +9,12 @@ val raiz = rootProject.projectDir.parentFile                         // raiz do 
 val cache = file(System.getProperty("user.home") + "/.cache/nuvio-android")
 val sdlSrc = (findProperty("nuvio.sdlSrc") as String?) ?: "$cache/src"
 val estagio = (findProperty("nuvio.estagio") as String?) ?: "${raiz}/build/android"
+val touchPreview = (findProperty("nuvio.touchPreview") as String?)?.toBooleanStrict() ?: false
+val abis = ((findProperty("nuvio.abis") as String?) ?: "arm64-v8a,armeabi-v7a")
+    .split(',').map { it.trim() }.distinct()
+require(abis.isNotEmpty() && abis.all { it in setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") }) {
+    "nuvio.abis must be a comma-separated list of Android ABIs"
+}
 
 // Versao: fonte unica e deploy/app/appinfo.json (mesma do env.sh).
 val versao = Regex("\"version\"\\s*:\\s*\"([^\"]+)\"")
@@ -21,12 +27,14 @@ android {
     ndkVersion = "27.2.12479018"
 
     defaultConfig {
-        applicationId = "space.nuvio.nativelegacy"
+        applicationId = if (touchPreview) "space.nuvio.nativelegacy.touch" else "space.nuvio.nativelegacy"
+        manifestPlaceholders["nuvioAppLabel"] = if (touchPreview) "Nuvio Touch" else "@string/app_name"
+        buildConfigField("boolean", "NUVIO_TOUCH_PREVIEW", touchPreview.toString())
         minSdk = 24
         targetSdk = 35
         versionCode = vx * 10000 + vy * 100 + vz
         versionName = versao
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += abis }
         externalNativeBuild {
             cmake {
                 arguments += listOf(
@@ -34,11 +42,14 @@ android {
                     "-DNUVIO_RAIZ=$raiz",
                     "-DNUVIO_SDL_SRC=$sdlSrc",
                     "-DNUVIO_ENV_CMAKE=$estagio/nuvio-env.cmake",
+                    "-DNUVIO_TOUCH_PREVIEW=${if (touchPreview) "ON" else "OFF"}",
                     "-DNUVIO_P2P_MOTOR=${(findProperty("nuvio.p2pMotor") as String?) ?: ""}",
                 )
             }
         }
     }
+
+    buildFeatures { buildConfig = true }
 
     externalNativeBuild {
         cmake {

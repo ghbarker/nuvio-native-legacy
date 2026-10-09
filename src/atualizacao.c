@@ -532,6 +532,9 @@ static void limparNotas(const char *md, char *dst, size_t tam) {
 // anterior achou, entao tudo e lido em variaveis LOCAIS e so copiado para as
 // globais sob o mutex, e so quando a release e mais nova que a instalada.
 static int fioConsulta(void *arg) {
+#ifdef NV_TOUCH_PREVIEW
+  (void)arg; return 0;
+#endif
   char *corpo;
   static char body[8192];          // so um fio de consulta por vez (emCurso)
   char tag[48] = "";
@@ -802,6 +805,9 @@ static void apkFalhou(void) {
 }
 
 static int fioInstalarApk(void *arg) {
+#ifdef NV_TOUCH_PREVIEW
+  (void)arg; return 0;
+#endif
   char dir[600] = "", nome[96], rel[128], arq[600] = "", hex[65] = "", ver[32], hash[80];
   char *buf = NULL;
   long n = 0;
@@ -953,8 +959,8 @@ static int podeReconsultar(void) {
 }
 
 void atualizacao_verificar(void) {
-#ifdef NV_DTS_DEBUG
-  return; /* Debug IPKs are installed explicitly, outside production updates. */
+#if defined(NV_DTS_DEBUG) || defined(NV_TOUCH_PREVIEW)
+  return; /* Isolated builds are installed explicitly. */
 #endif
   static long ultChamada;
   long rel = (long)time(NULL);
@@ -977,7 +983,7 @@ void atualizacao_verificar(void) {
 }
 
 void atualizacao_procurar_agora(void) {
-#ifdef NV_DTS_DEBUG
+#if defined(NV_DTS_DEBUG) || defined(NV_TOUCH_PREVIEW)
   return;
 #endif
   if (!mtx) mtx = SDL_CreateMutex();

@@ -1573,6 +1573,21 @@ int main(int argc, char **argv) {
       // Teclado do sistema (entrada_texto.h): ve o texto ANTES de qualquer tela.
       texto_sistema_observar(&e);
       if (e.type == SDL_WINDOWEVENT) {
+#if defined(NV_ANDROID) && defined(NV_TOUCH_PREVIEW)
+        if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
+            e.window.event == SDL_WINDOWEVENT_RESIZED) {
+          int novoW = 0, novoH = 0;
+          SDL_GL_GetDrawableSize(win, &novoW, &novoH);
+          if (novoW > 0 && novoH > 0 && (novoW != dw || novoH != dh)) {
+            dw = novoW; dh = novoH;
+            glViewport(0, 0, dw, dh);
+            gfx_tamanho_alvo(dw, dh);
+            video_escala_definir(dw, dh);
+            capW = dw; capH = dh;
+            printf("[touch] drawable=%dx%d\n", dw, dh);
+          }
+        }
+#endif
         // Ultimo sinal de vida na marca de sessao (avisos_sinal): e o que diz,
         // na abertura seguinte, se a sessao que "nao se despediu" tinha ido
         // para segundo plano antes de morrer.

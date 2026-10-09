@@ -36,7 +36,7 @@
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
 
     <application
-        android:label="@string/app_name"
+        android:label="${nuvioAppLabel}"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
         android:allowBackup="false"
@@ -73,7 +73,7 @@
              inicial (launcher de celular) ou um favorito do Android TV que
              guarde o componente pode sumir e precisar ser fixado de novo. -->
         <activity-alias
-            android:name=".Icone_original"
+            android:name="${applicationId}.Icone_original"
             android:targetActivity=".NuvioActivity"
             android:enabled="true"
             android:exported="true"
@@ -86,7 +86,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_fenix"
+            android:name="${applicationId}.Icone_fenix"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -99,7 +99,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_nverde"
+            android:name="${applicationId}.Icone_nverde"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -112,7 +112,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_tvlaranja"
+            android:name="${applicationId}.Icone_tvlaranja"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -125,7 +125,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_npixel"
+            android:name="${applicationId}.Icone_npixel"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -138,7 +138,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_tricolor"
+            android:name="${applicationId}.Icone_tricolor"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -151,7 +151,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_arco"
+            android:name="${applicationId}.Icone_arco"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -164,7 +164,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_tvviva"
+            android:name="${applicationId}.Icone_tvviva"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -177,7 +177,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_cluberetro"
+            android:name="${applicationId}.Icone_cluberetro"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -190,7 +190,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".Icone_arcaden"
+            android:name="${applicationId}.Icone_arcaden"
             android:targetActivity=".NuvioActivity"
             android:enabled="false"
             android:exported="true"
@@ -208,7 +208,7 @@
         <!-- Entrega o APK baixado (dados/atualizacao) ao instalador do sistema. -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="space.nuvio.nativelegacy.atualizacao"
+            android:authorities="${applicationId}.atualizacao"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

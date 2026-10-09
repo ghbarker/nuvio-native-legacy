@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.net.ConnectivityManager
@@ -26,14 +27,20 @@ import android.text.TextWatcher
 import android.util.Log
 import android.system.Os
 import android.view.KeyEvent
+import android.view.Gravity
 import android.view.SurfaceHolder
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
 import org.libsdl.app.SDLActivity
 import java.io.File
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -81,6 +88,7 @@ class NuvioActivity : SDLActivity() {
         jaCriada = true
         prepararAmbiente()
         super.onCreate(savedInstanceState)
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW && !mBrokenLibraries) prepararViewportTouch()
         // Antes de tudo que pode falhar daqui para baixo: o vigia so precisa
         // do fio da interface livre.
         if (!mBrokenLibraries) vigia = ArranqueVigia(this).also { it.iniciar() }
@@ -98,6 +106,47 @@ class NuvioActivity : SDLActivity() {
         mSurface.setZOrderMediaOverlay(true)
         mSurface.holder.setFormat(PixelFormat.TRANSLUCENT)
         NvPlayer.iniciar(this, camada)
+    }
+
+    // SDL, video and keyboard share one safe 16:9 content rectangle. Keeping
+    // mLayout intact also keeps SDL's touch coordinates relative to the video.
+    private fun prepararViewportTouch() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        var esquerda = 0
+        var cima = 0
+        var direita = 0
+        var baixo = 0
+        val raizTouch = object : FrameLayout(this) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                val r = TouchViewport.fit(View.MeasureSpec.getSize(widthMeasureSpec),
+                    View.MeasureSpec.getSize(heightMeasureSpec), esquerda, cima, direita, baixo)
+                if (r != null) {
+                    val atual = mLayout.layoutParams as FrameLayout.LayoutParams
+                    if (atual.width != r.width || atual.height != r.height ||
+                        atual.leftMargin != r.left || atual.topMargin != r.top) {
+                        atual.width = r.width; atual.height = r.height
+                        atual.gravity = Gravity.TOP or Gravity.LEFT
+                        atual.leftMargin = r.left; atual.topMargin = r.top
+                        Log.i("Nuvio", "touch viewport=${r.left},${r.top},${r.width},${r.height}")
+                    }
+                }
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            }
+        }.apply { setBackgroundColor(Color.BLACK) }
+        (mLayout.parent as? ViewGroup)?.removeView(mLayout)
+        raizTouch.addView(mLayout, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        ViewCompat.setOnApplyWindowInsetsListener(raizTouch) { v, ins ->
+            val seguros = ins.getInsetsIgnoringVisibility(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            esquerda = seguros.left; cima = seguros.top
+            direita = seguros.right; baixo = seguros.bottom
+            v.requestLayout()
+            ins
+        }
+        setContentView(raizTouch)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+        ViewCompat.requestApplyInsets(raizTouch)
     }
 
     private fun reabrirEmProcessoNovo() {
@@ -207,6 +256,9 @@ class NuvioActivity : SDLActivity() {
     // janela: fixa o buffer da SDLSurface em w x h e espera a superficie nova
     // chegar (ate 2 s). Devolve true se ela veio nesse tamanho.
     fun pedirSuperficie(w: Int, h: Int): Boolean {
+        // SDL normalizes touches against the holder buffer dimensions. On a
+        // phone that buffer must follow the viewport's physical view size.
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW) return false
         val chegou = CountDownLatch(1)
         var ok = false
         runOnUiThread {
@@ -237,6 +289,7 @@ class NuvioActivity : SDLActivity() {
     // 1 = instalador aberto, 2 = falta a permissao "instalar apps desta fonte"
     // (abre a tela dela), 0 = falhou. Nao bloqueia: o resultado e do sistema.
     fun instalarApk(caminho: String): Int {
+        if (BuildConfig.NUVIO_TOUCH_PREVIEW) return 0
         return try {
             val arq = File(caminho)
             if (!arq.isFile) return 0
@@ -247,7 +300,7 @@ class NuvioActivity : SDLActivity() {
                 )
                 return 2
             }
-            val uri = FileProvider.getUriForFile(this, "space.nuvio.nativelegacy.atualizacao", arq)
+            val uri = FileProvider.getUriForFile(this, "$packageName.atualizacao", arq)
             instalando = true
             startActivity(
                 Intent(Intent.ACTION_VIEW)

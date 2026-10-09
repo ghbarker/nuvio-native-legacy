@@ -1081,7 +1081,7 @@ int avisos_evento(const SDL_Event *e) {
   if (e->type == SDL_KEYUP && aberto && okDesde) {
     k = e->key.keysym.sym;
     if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE)
-      soltarOk(SDL_GetTicks() - okDesde >= NV_HOLD_MS);
+      soltarOk(ponteiro_ok_longo() || SDL_GetTicks() - okDesde >= NV_HOLD_MS);
     return 1;
   }
   if (e->type != SDL_KEYDOWN) return aberto;
