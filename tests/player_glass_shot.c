@@ -906,12 +906,26 @@ int main(int argc, char **argv) {
       player_shot_video(1);
       parental_shot(rot, gr, 4);
       quadros(80);
+      assert(plrilha_corpo_alfa() > .98f);
       salvar(off ? "guia-off-aberta" : "guia-morph-aberta");
-      quadros(668);   // 748 quadros: a janela de 12 s fecha em ~753
+      // Wait for the production advisory to begin closing. Its duration is
+      // six seconds now; a fixed twelve-second delay missed the whole morph.
+      // Observe the real body instead of duplicating its private timer.
+      { int frames = 0;
+        while (plrilha_corpo_alfa() > .98f && frames < 1200) { quadros(1); frames++; }
+        assert(frames < 1200);
+      }
       { int k; for (k = 0; k < 5; k++) { quadros(5);
+          if (!k) { GfxRect r; assert(plrilha_rect(&r) && r.w > 8 && r.h > 8); }
           { char n[48]; snprintf(n, sizeof n, "%s-%d", off ? "guia-off-saindo" : "guia-morph-voo", k); salvar(n); } } }
-      if (!off) { quadros(45); salvar("guia-morph-hora"); }
+      if (!off) {
+        GfxRect r;
+        quadros(20);   // still inside the production hour's 800 ms hold
+        assert(plrilha_rect(&r) && r.h <= 96.0f && plrilha_corpo_alfa() < .02f);
+        salvar("guia-morph-hora");
+      }
       quadros(150);
+      { GfxRect r; assert(!plrilha_rect(&r)); }
       salvar(off ? "guia-off-fora" : "guia-morph-fora");
       player_shot_video(0); parental_shot(NULL, NULL, 0);
       ajustes_shot_valor("relogioTelaLocal", 0);

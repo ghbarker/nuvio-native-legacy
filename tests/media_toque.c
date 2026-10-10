@@ -48,6 +48,8 @@ int faixas_estilo_topo(void) { return 0; }
 #endif
 #if defined(TESTE_SALVOS)
 static GfxRect veuTeste;
+int reacao_painel_aberta(void) { return 0; }
+int ctx_inline_painel_ativo(void) { return 0; }
 int ajustes_vidro(void) { return 0; }
 float gfx_escala(void) { return 1.0f; }
 void gfx_escala_sair(float s) { (void)s; }

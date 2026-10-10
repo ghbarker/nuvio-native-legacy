@@ -35,6 +35,8 @@ jobs:
             capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
           - group: account
             capture: '--fixtures perfil pessoas recenviar spainel_abas spainel_acordeao avisos_toast avisos_dispensar'
+          - group: saved-controls
+            capture: '--fixtures spainel_abas spainel_acordeao --cases 1080x2340@1.5 2340x1080@1.5'
           - group: system
             capture: '--fixtures central registro diagnostico livetvdiag ilha3'
           - group: introductions

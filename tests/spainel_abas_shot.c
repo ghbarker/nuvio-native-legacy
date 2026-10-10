@@ -46,6 +46,7 @@ const char *shot_simklauth_token(void) { return contasNaTv ? "simkl-shot" : ""; 
 #include "reacao.h"
 #include "recresp.h"
 #include "socialvis.h"
+#include "ponteiro.h"
 #include "tex_cache.h"
 #include "text.h"
 #include "shot_arte.h"
@@ -94,6 +95,9 @@ static void quadros(int n, const char *bmp) {
     txt_novo_quadro();
     tex_novo_quadro();
     gfx_novo_quadro();
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    ponteiro_quadro(agora);
+#endif
     glClearColor(NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     if (desenho == D_PERFIL) amigoperfil_desenhar(agora);
@@ -102,6 +106,9 @@ static void quadros(int n, const char *bmp) {
       if (desenho == D_PAINEL) spainel_desenhar(agora);
       if (desenho == D_PAINEL && ctx_aberto()) ctx_desenhar(agora);
     }
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    ponteiro_desenhar();
+#endif
     if (bmp && i == n - 1) gravarBmp(bmp);
     SDL_GL_SwapWindow(janela);
     SDL_Delay(4);
@@ -136,6 +143,82 @@ static void painelTecla(SDL_Keycode k) {
   e.type = SDL_KEYUP;
   spainel_evento(&e);
 }
+
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static void controlesAlvos(int esperado) {
+  const PonteiroAlvo *alvos;
+  int n = ponteiro_teste_lista(&alvos), foco = spainel_foco_indice(), achados = 0;
+  for (int i = 0; i < n; i++) {
+    const PonteiroAlvo *p = &alvos[i];
+    if (p->a != foco || !p->ativar || p->b < 3) continue;
+    assert(p->w > 0 && p->h > 0 && p->x >= -.01f && p->y >= -.01f);
+    assert(p->x + p->w <= NV_TELA_W + .01f && p->y + p->h <= NV_TELA_H + .01f);
+    printf("controle social: foco=%d coluna=%d x=%.2f y=%.2f w=%.2f h=%.2f\n",
+           foco, p->b % 3, p->x, p->y, p->w, p->h);
+    achados++;
+  }
+  assert(achados == esperado);
+}
+
+/* Seed only the included offline model. These views never confirm a request
+ * or account operation, and no recommendation worker is started. */
+static void controlesSociais(const char *saida) {
+  static const char *servicos[] = { "trakt", "simkl", "letterboxd" };
+  char bmp[800];
+  int ligado, k;
+  assert(mtx && !fioLigado && !fio);
+  for (ligado = 0; ligado <= 1; ligado++) {
+    spainel_fechar(); quadros(45, NULL);
+    SDL_LockMutex(mtx);
+    aparecer = REC_APARECER_SIM;
+    alcance = 0; alcancePendente = -2;
+    contasNaTv = 1; identRecurso = 1; identSimklOff = 0;
+    identSimklLig = ligado;
+    snprintf(identTrakt, sizeof identTrakt, "%s", ligado ? "nome-longo-da-conta-trakt" : "");
+    snprintf(identLbUsuario, sizeof identLbUsuario, "%s", ligado ? "usuario-letterboxd-longo" : "");
+    memset(identOpP, 0, sizeof identOpP);
+    nContatos = 0; nItens = 0; nPedidos = 1;
+    memset(pedidosRec, 0, sizeof pedidosRec);
+    snprintf(pedidosRec[0].pub, sizeof pedidosRec[0].pub, "%s", "pedido-local");
+    snprintf(pedidosRec[0].apelido, sizeof pedidosRec[0].apelido, "%s", "nome-longo-do-amigo");
+    snprintf(pedidosRec[0].nome, sizeof pedidosRec[0].nome, "%s", "Um nome de amigo longo para testar os controles");
+    snprintf(pedidosRec[0].relacao, sizeof pedidosRec[0].relacao, "%s", "recebido");
+    SDL_UnlockMutex(mtx);
+    spainel_abrir(); spainel_ir_aba(2); quadros(90, NULL);
+    if (!ligado) {
+      focar("alcance");
+      for (k = 0; k < 3; k++) {
+        if (k) painelTecla(SDLK_RIGHT);
+        quadros(60, NULL);
+        snprintf(bmp, sizeof bmp, "%s-qa-privacidade-%d.bmp", saida, k);
+        quadros(1, bmp);
+        controlesAlvos(3);
+        assert(recomenda_alcance() == 0);
+      }
+      focar("pedido");
+      for (k = 0; k < 2; k++) {
+        if (k) painelTecla(SDLK_RIGHT);
+        quadros(60, NULL);
+        snprintf(bmp, sizeof bmp, "%s-qa-pedido-%s.bmp", saida, k ? "recusar" : "aceitar");
+        quadros(1, bmp);
+        controlesAlvos(2);
+        assert(recomenda_n_pedidos() == 1);
+      }
+    }
+    for (k = 0; k < 3; k++) {
+      focar("trakt");
+      for (int col = 0; col < k; col++) painelTecla(SDLK_RIGHT);
+      assert(!strcmp(spainel_foco_social(), servicos[k]));
+      quadros(90, NULL);
+      snprintf(bmp, sizeof bmp, "%s-qa-conta-%s-%s.bmp", saida,
+               servicos[k], ligado ? "ligada" : "disponivel");
+      quadros(1, bmp);
+      controlesAlvos(1);
+    }
+    assert(!fioLigado && !fio && !identPedido);
+  }
+}
+#endif
 
 static void ajusta(void) {
   char cam[700];
@@ -216,6 +299,9 @@ int main(int argc, char **argv) {
   assert(janela);
   gl = SDL_GL_CreateContext(janela);
   assert(gl);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  ponteiro_iniciar(); ponteiro_teste_toque(1);
+#endif
   SDL_GL_SetSwapInterval(0);
   glViewport(0, 0, 1920, 1080);
   gfx_tamanho_alvo(1920, 1080);
@@ -357,6 +443,10 @@ int main(int argc, char **argv) {
   spainel_abrir(); quadros(90, NULL);
   snprintf(bmp, sizeof bmp, "%s-8-reaberto.bmp", saida);
   quadros(1, bmp);
+
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  controlesSociais(saida);
+#endif
 
   SDL_GL_DeleteContext(gl);
   SDL_DestroyWindow(janela);

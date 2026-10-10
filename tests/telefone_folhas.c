@@ -168,6 +168,8 @@ static void rodar(void) {
 }
 #elif defined(TESTE_SALVOS)
 static int estiloTeste;
+int sorg_ordem(void) { return SORG_ORDEM_SALVOU; }
+int sorg_grupo(void) { return SORG_GRUPO_PROGRESSO; }
 const AgItem *agenda_lista(int i) { (void)i;assert(0);return NULL; }
 int agendaui_painel_grupo_de(const AgItem *a) { (void)a;assert(0);return 0; }
 int avisos_lista_linhas(void) { assert(0);return 0; }
@@ -178,9 +180,13 @@ int sorg_categoria_id(int i) { (void)i;return 0; }
 int sorg_categoria_indice(int i) { (void)i;return -1; }
 const char *sorg_categoria_nome_id(int i) { (void)i;return ""; }
 float ctx_inline_t(void) { return 0; }
+int ctx_inline_painel_ativo(void) { return 0; }
+int ctx_inline_foco_rect(float w,float h,GfxRect *r) { (void)w;(void)h;(void)r;assert(0);return 0; }
+void ctx_inline_recorte(GfxRect r) { (void)r;assert(0); }
 float ctx_inline_altura(float w,float h) { (void)w;return h; }
 void ctx_inline_desenhar(float x,float y,float w,float h,float a) { (void)x;(void)y;(void)w;(void)h;(void)a;assert(0); }
 int ctx_aberto(void) { return 0; }
+int reacao_painel_aberta(void) { return 0; }
 int ajustes_tinta_foco2(void) { return 0; }
 void gfx_veu_base(GfxRect r,float raio,float p,float a) { (void)p;gfx_cor(r,raio,1,1,1,a); }
 float avisos_lista_y(int i,int f) { (void)i;(void)f;assert(0);return 0; }
