@@ -663,6 +663,10 @@ void trocaarte_desenhar(const char *logoPagina) {
   int v[TA_MAX], n, i, p;
   if (a <= 0.005f) return;
   ponteiro_camada();
+  // A transicao ainda cobre o detalhe quando os controles ja apagaram.
+  // O anteparo evita que um toque no vazio vire RETURN na pagina de baixo.
+  if (telefoneui_ativo())
+    ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, NULL, 0, 0);
   pthread_mutex_lock(&trava);
   n = visiveis(aba, v);
   p = posDe(v, n, foco[aba]);

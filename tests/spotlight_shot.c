@@ -47,6 +47,7 @@
 #include "addons.h"
 #include "descoberta.h"
 #include "sistexto.h"
+#include "telefoneui.h"
 #include "shot_arte.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -291,6 +292,27 @@ int main(int argc, char **argv) {
   assert(!spot_aberto());
 
   // TECLADO DO APP (sem teclado do sistema): so com OK no campo.
+  if (telefoneui_ativo()) {
+    // O telefone usa o IME. O teste da ponte injeta o texto inteiro e o
+    // Concluir; o teclado desenhado do app continua sendo exercitado na TV.
+    st_teste_ligar(1);
+    spot_abrir(0);
+    assert(st_dono() == ST_SPOT && st_estado() == ST_DIGITANDO);
+    assert(!spot_teclado_app_aberto() && spot_foco_campo() == 1);
+    tecla(SDLK_RETURN);
+    assert(st_dono() == ST_SPOT && st_estado() == ST_DIGITANDO);
+    assert(!spot_teclado_app_aberto() && spot_foco_campo() == 1);
+    st_teste_evento("Tthe "); quadro();
+    assert(!strcmp(spot_consulta(), "the "));
+    st_teste_evento("Tthe"); quadro();
+    assert(!strcmp(spot_consulta(), "the"));
+    captura(saida, "teclado-nativo");
+    st_teste_evento("Dthe"); quadro();
+    assert(st_estado() == ST_PARADO && spot_linha_focada() >= 0);
+    assert(!spot_teclado_app_aberto());
+    fechar(); assert(!spot_aberto() && st_dono() == ST_DONO_NENHUM);
+    st_teste_ligar(0);
+  } else {
   spot_abrir(0);
   assert(!spot_teclado_app_aberto());
   tecla(SDLK_RETURN);
@@ -308,6 +330,7 @@ int main(int argc, char **argv) {
   { int i; for (i = 0; i < 6; i++) tecla(SDLK_RIGHT); }   // passa da ultima coluna
   assert(spot_linha_focada() >= 0 && !spot_teclado_app_aberto());
   fechar();
+  }
 
   // Pessoa: "chri" acha Christian Bale no elenco do Prestige.
   spot_abrir(0);

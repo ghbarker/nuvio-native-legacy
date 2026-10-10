@@ -60,6 +60,7 @@
 #include "layout.h"
 #include "corviva.h"
 #include "trocaarte.h"
+#include "telefoneui.h"
 #include "detmais.h"
 #include "catalogo.h"
 #include "artehero.h"
@@ -301,6 +302,11 @@ static float animFoco[N_SECOES][N_ITENS];
 static float scrollSec[N_SECOES];    // rolagem HORIZONTAL de cada fileira
 static float scrollY = 0.0f;         // rolagem VERTICAL do documento
 static float corpoAlpha(float entrada) { return detalheRetrato() ? entrada : pg; }
+// No telefone o documento ja aparece no topo; a grade de arte precisa ser
+// a unica camada de conteudo durante a entrada e a saida tambem.
+static int corpoSobArte(void) {
+  return telefoneui_ativo() && trocaarte_visivel() > 0.005f;
+}
 static int corpoOculto(int serie) {
   return !detalheRetrato() && !serie && pg <= .01f && scrollY < 1.0f;
 }
@@ -2389,6 +2395,10 @@ static void executarMais(int dm) {
 }
 
 void detail_evento(const SDL_Event *e) {
+  if (corpoSobArte()) {
+    if (trocaarte_aberto()) trocaarte_evento(e);
+    return;
+  }
 #ifdef NV_TOUCH_PREVIEW
   if (toquerol_navegacao(e)) {
     toquerol_limpar(&toqueDetalhe); toquerol_limpar(&toqueColecao); toquerol_limpar(&toquePessoa);
@@ -3134,7 +3144,7 @@ static void trailerDetalheTela(void) {
 }
 static int toqueDetalheRolar(const PonteiroRolagem *e) {
   int r = 0;
-  if (!aberto || saindo || pessoaAberta || colListaAberta || trailer_cheia()) return 0;
+  if (!aberto || saindo || pessoaAberta || colListaAberta || trailer_cheia() || corpoSobArte()) return 0;
   if (e->eixoY) r = toquerol_evento(&toqueDetalhe, e);
   else {
     if (e->fase == PONT_ROL_INICIO) {
@@ -6576,6 +6586,7 @@ static float desenhaFrases(float x, float y, float a) {
 // PONTEIRO (#99). r < 0 = botao `c` do hero (nivel 0); senao secao r, coluna
 // c (nivel 1) — as mesmas variaveis que as setas mexem em detail_evento.
 static void ponteiroDetalhe(int r, int c) {
+  if (corpoSobArte()) return;
   if (r < 0 && c == DET_PTR_AMIGOS) { nivel = 0; focoAmigos = 1; return; }
   if (r < 0) {
     focoAmigos = 0;
@@ -6674,6 +6685,7 @@ static void menuDeVisto(Uint32 agora) {
 }
 
 static void desenhaSecao(int r, float a, Uint32 agora) {
+  if (corpoSobArte()) return;
   int n = secaoN(r);
   // Aba de informacao que nao seja "Criador e elenco": o web TROCA o conteudo
   // da secao (avaliacoes por episodio, fileira de similares, trailer). Nenhum
@@ -7318,6 +7330,7 @@ void detail_desenhar(Uint32 agora) {
     if (ta > 0.005f) trocaarte_desenhar(logoDe(idx)); }
 
 
+  if (corpoSobArte()) return;
   if (corpoOculto(ehSerie())) {
     if (pessoaAberta) { ponteiro_camada(); desenhaPessoa(s); }
     if (colListaAberta) { ponteiro_camada(); desenhaListaColecao(s); }

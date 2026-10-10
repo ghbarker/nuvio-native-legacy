@@ -32,6 +32,7 @@ int ctx_aberto(void) { return 0; }
 #if defined(TESTE_DETAIL)
 static int testeTrailerAberto, testeTrailerCheia, testeTrailerDono, testeTrailerWindows;
 static GfxRect testeTrailerRect;
+float trocaarte_visivel(void) { return 0; }
 int trailer_cheia(void) { return testeTrailerCheia; }
 int trailer_aberto(void) { return testeTrailerAberto; }
 int trailer_dono(void) { return testeTrailerDono; }

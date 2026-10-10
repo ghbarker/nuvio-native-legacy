@@ -62,6 +62,23 @@ def main():
     archive = output / 'libphone-review.a'
     run(['ar', 'rcs', str(archive), *map(str, source_objects)])
     results = []
+    if 'trocaarte' in args.fixtures:
+        for name in ['detail_arte_body', 'detail_arte_input_review']:
+            binary, log = output / name, output / (name + '.log')
+            data = output / (name + '-data')
+            data.mkdir(exist_ok=True)
+            try:
+                with log.open('w') as stream:
+                    run(['cc', *flags, *cflags, f'tests/{name}.c',
+                         str(archive), *libraries, '-ldl', '-pthread', '-lm',
+                         '-Wl,--gc-sections', '-o', str(binary)],
+                        stdout=stream, stderr=subprocess.STDOUT)
+                    run([str(binary)], env=dict(os.environ, NUVIO_DADOS=str(data)),
+                        stdout=stream, stderr=subprocess.STDOUT, timeout=60)
+                results.append({'fixture': name, 'status': 'passed', 'log': log.name})
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+                results.append({'fixture': name, 'status': 'regression failed',
+                                'error': str(error), 'log': log.name})
     for name in args.fixtures:
         print(f'Capturing {name}', flush=True)
         if not re.fullmatch(r'[a-z0-9_]+', name):
@@ -167,7 +184,7 @@ def main():
     (output / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
     for result in results:
         print(result['fixture'], result.get('case', ''), result['status'])
-    return 0 if all(r['status'] == 'captured' for r in results) else 1
+    return 0 if all(r['status'] in ('captured', 'passed') for r in results) else 1
 
 if __name__ == '__main__':
     sys.exit(main())

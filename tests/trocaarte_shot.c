@@ -91,6 +91,7 @@ static void quadros(int n) {
   int i;
   for (i = 0; i < n; i++) {
     SDL_PumpEvents();
+    if (telefoneui_ativo()) ponteiro_quadro(SDL_GetTicks());
     tex_bombear(4);
     detail_atualizar(1.0f / 60.0f, SDL_GetTicks());
     txt_novo_quadro();
@@ -99,6 +100,7 @@ static void quadros(int n) {
     glClearColor(NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     detail_desenhar(SDL_GetTicks());
+    if (telefoneui_ativo()) ponteiro_desenhar();
     if (i < n - 1) SDL_GL_SwapWindow(janela);
     SDL_Delay(4);
   }
@@ -112,6 +114,40 @@ static void tecla(SDL_Keycode k) {
   e.type = SDL_KEYUP;
   detail_evento(&e);
   quadros(2);
+}
+
+// A grade do telefone tem outra quantidade de colunas. Preparar a cena pelo
+// foco de teste faz o viewport chegar ao item; a captura precisa publicar um
+// alvo real dele, e o callback dele recebe o foco antes do RETURN de verdade.
+static void telefoneArteFocar(int a, int pos) {
+  const PonteiroAlvo *v;
+  trocaarte_teste_foco(a, pos);
+  quadros(90);
+  int n = ponteiro_teste_lista(&v), achou = 0;
+  for (int i = 0; i < n; i++) if (v[i].focar && v[i].a == a && v[i].b == pos) {
+    assert(v[i].w > 0 && v[i].h > 0);
+    assert(v[i].x >= 0 && v[i].y >= 0);
+    assert(v[i].x + v[i].w <= NV_TELA_W * gfx_escala() + .1f &&
+           v[i].y + v[i].h <= NV_TELA_H * gfx_escala() + .1f);
+    v[i].focar(v[i].a, v[i].b); achou++;
+  }
+  assert(achou == 1);
+}
+static void telefoneArteAba(int aba) {
+  const PonteiroAlvo *v;
+  int n = ponteiro_teste_lista(&v), achou = 0;
+  for (int i = 0; i < n; i++) if (v[i].focar && v[i].a == -1 && v[i].b == aba) {
+    v[i].focar(v[i].a, v[i].b); achou++;
+  }
+  assert(achou == 1); quadros(2);
+}
+static void telefoneArteIdioma(void) {
+  const PonteiroAlvo *v;
+  int n = ponteiro_teste_lista(&v), achou = 0;
+  for (int i = 0; i < n; i++) if (v[i].focar && v[i].a == -2) {
+    v[i].focar(v[i].a, v[i].b); achou++;
+  }
+  assert(achou == 1); quadros(2);
 }
 
 static void abrirPagina(void) {
@@ -177,6 +213,7 @@ int main(int argc, char **argv) {
   glViewport(0, 0, 1920, 1080);
   gfx_tamanho_alvo(1920, 1080);
   assert(gfx_iniciar());
+  if (telefoneui_ativo()) { ponteiro_iniciar(); ponteiro_teste_toque(1); }
   assert(txt_iniciar("deploy/app", 1));
   assert(realpath("deploy/app/art", abs));
   gfx_icones_dir(abs);
@@ -207,7 +244,8 @@ int main(int argc, char **argv) {
   gravar(nome);
 
   // PREVIA: tres para a direita, e o fundo da pagina e o da miniatura.
-  tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+  if (telefoneui_ativo()) telefoneArteFocar(0, 3);
+  else { tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); }
   quadros(90);
   snprintf(nome, sizeof nome, "%s-2-fundos-previa.png", saida);
   gravar(nome);
@@ -216,14 +254,17 @@ int main(int argc, char **argv) {
     assert(!strcmp(arteDe(idx), "deploy/app/art/21.jpg")); }
 
   // SEGUNDA LINHA.
-  tecla(SDLK_DOWN);
+  if (telefoneui_ativo()) telefoneArteFocar(0, 5); else tecla(SDLK_DOWN);
   quadros(90);
   snprintf(nome, sizeof nome, "%s-3-fundos-linha2.png", saida);
   gravar(nome);
 
   // ABA LOGOS: cima ate as abas, direita, baixo, e um logo para a direita.
-  tecla(SDLK_UP); tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_DOWN);
-  tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+  if (telefoneui_ativo()) telefoneArteFocar(1, 2);
+  else {
+    tecla(SDLK_UP); tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_DOWN);
+    tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+  }
   quadros(90);
   snprintf(nome, sizeof nome, "%s-4-logos-previa.png", saida);
   gravar(nome);
@@ -237,7 +278,8 @@ int main(int argc, char **argv) {
   // FUNDO: reabre, escolhe o quarto e confere a pagina depois do OK.
   abrirTroca();
   injetar();
-  tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+  if (telefoneui_ativo()) telefoneArteFocar(0, 4);
+  else { tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); }
   quadros(60);
   tecla(SDLK_RETURN);
   assert(!trocaarte_aberto());
@@ -255,7 +297,8 @@ int main(int argc, char **argv) {
   gravar(nome);
 
   // AUTOMATICO: volta tudo. Esquerda ate o primeiro e OK.
-  { int k; for (k = 0; k < 6; k++) tecla(SDLK_LEFT); }
+  if (telefoneui_ativo()) telefoneArteFocar(0, 0);
+  else { int k; for (k = 0; k < 6; k++) tecla(SDLK_LEFT); }
   tecla(SDLK_RETURN);
   assert(arteesc_fundo("ensaio:1") == NULL);
   quadros(60);
@@ -300,7 +343,8 @@ int main(int argc, char **argv) {
   trocaarte_teste_candidato_iso(0, "deploy/app/art/12.jpg", "TMDB", "-");
   trocaarte_teste_candidato_iso(0, "deploy/app/art/21.jpg", "TMDB · EN", "en");
   trocaarte_teste_candidato_iso(0, "deploy/app/art/30.jpg", "TMDB · KO", "ko");
-  tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT);
+  if (telefoneui_ativo()) { quadros(2); telefoneArteAba(1); telefoneArteIdioma(); }
+  else { tecla(SDLK_UP); tecla(SDLK_RIGHT); tecla(SDLK_RIGHT); }
   quadros(60);
   snprintf(nome, sizeof nome, "%s-7-chip-idioma.png", saida);
   gravar(nome);
@@ -308,7 +352,8 @@ int main(int argc, char **argv) {
   quadros(60);
   snprintf(nome, sizeof nome, "%s-8-filtro-ar.png", saida);
   gravar(nome);
-  tecla(SDLK_LEFT); tecla(SDLK_LEFT);
+  if (telefoneui_ativo()) telefoneArteAba(0);
+  else { tecla(SDLK_LEFT); tecla(SDLK_LEFT); }
   quadros(60);
   snprintf(nome, sizeof nome, "%s-9-fundos-ar.png", saida);
   gravar(nome);
@@ -318,7 +363,7 @@ int main(int argc, char **argv) {
   // VOLTAR NAO GRAVA NADA.
   abrirTroca();
   injetar();
-  tecla(SDLK_RIGHT);
+  if (telefoneui_ativo()) telefoneArteFocar(0, 1); else tecla(SDLK_RIGHT);
   quadros(30);
   tecla(SDLK_ESCAPE);
   assert(!trocaarte_aberto());
