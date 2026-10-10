@@ -19,7 +19,9 @@ def main():
     parser.add_argument('--output', default='build/phone-review')
     parser.add_argument('--fixtures', nargs='+', default=[
         'ajustes', 'busca', 'vertudo', 'biblioteca', 'explorar', 'agenda',
-        'detail_secoes', 'detalhe_glass', 'pipintro', 'recintro', 'novidades_cartao'])
+        'detail_secoes', 'detalhe_glass', 'pipintro', 'novidades20', 'novidades_cartao',
+        'spotlight', 'perfil', 'pessoas', 'recenviar', 'central', 'registro',
+        'diagnostico', 'livetvdiag', 'trocaarte', 'ilha3', 'player_glass'])
     parser.add_argument('--cases', nargs='+', default=['1080x2340@1', '2340x1080@1.5'])
     parser.add_argument('--all-settings', action='store_true')
     args = parser.parse_args()

@@ -1939,7 +1939,7 @@ static float alturaSecao(int r) {
     case SEC_FRASES:    return frasesAberta ? frasesAlt : CHAMADA_H;
     case SEC_NOTAS:     return notasui_fontes_altura(notasDados());
     case SEC_NOTAS_EP:  return 0.0f;
-    case SEC_PROGTEMP:  return tgraf_altura();
+    case SEC_PROGTEMP:  return tgraf_altura_dados(tgraf_dados(idx));
   }
   return 0.0f;
 }

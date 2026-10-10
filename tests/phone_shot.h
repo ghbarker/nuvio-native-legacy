@@ -33,6 +33,16 @@ static void phone_shot_target(int width, int height) {
   (void)width; (void)height;
   gfx_tamanho_alvo(phone_shot_w, phone_shot_h);
 }
+static void phone_shot_texture(GLenum target, GLint level, GLint internal,
+                                GLsizei w, GLsizei h, GLint border, GLenum format,
+                                GLenum type, const void *pixels) {
+  if (!pixels && w == 1920 && h == 1080) { w = phone_shot_w; h = phone_shot_h; }
+  glTexImage2D(target, level, internal, w, h, border, format, type, pixels);
+}
+static void phone_shot_renderbuffer(GLenum target, GLenum internal, GLsizei w, GLsizei h) {
+  if (w == 1920 && h == 1080) { w = phone_shot_w; h = phone_shot_h; }
+  glRenderbufferStorage(target, internal, w, h);
+}
 static int phone_shot_save(const char *path) {
   int width = 0, height = 0, result;
   SDL_Surface *surface;
@@ -70,6 +80,8 @@ int __wrap_st_ime_disponivel(void) { return 1; }
 #define SDL_CreateWindow phone_shot_create
 #define glViewport phone_shot_viewport
 #define gfx_tamanho_alvo phone_shot_target
+#define glTexImage2D phone_shot_texture
+#define glRenderbufferStorage phone_shot_renderbuffer
 #define glReadPixels phone_shot_read
 #undef SDL_SaveBMP
 #define SDL_SaveBMP(surface, path) phone_shot_save(path)

@@ -5,6 +5,7 @@
 #include <assert.h>
 
 float nv_layout_w=1080,nv_layout_h=2340,gfx_tex_aspect_atual;
+float nv_cor_fundo_viva[3]={.04f,.045f,.06f};
 static float rail, fonte=12;
 static ColFolder pasta;
 static ColSource fontes[COL_SOURCE_MAX];
