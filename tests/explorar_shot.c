@@ -48,6 +48,15 @@ int explorar_teste_subview_resumo(float v[6]);
 int explorar_teste_subview_alvo(const PonteiroAlvo *a);
 int explorar_teste_subview_texto(int linha,int col,int tipo,char *s,size_t n);
 static unsigned climasMedidos;
+static int pendentesAntesQuadro;
+static void confereTextoQuadro(void) {
+  /* txt_pendentes counts refusals over the whole process. Only this draw
+     and its comparison probes must fit the current frame's text budget. */
+  if(txt_pendentes!=pendentesAntesQuadro)
+    fprintf(stderr,"[shot] current frame deferred %d text requests (lifetime %d)\n",
+            txt_pendentes-pendentesAntesQuadro,txt_pendentes);
+  assert(txt_pendentes==pendentesAntesQuadro);
+}
 static void confereCards(void) {
   if(!telefoneui_ativo())return;
   static MapaClimas cl; unsigned rev=0;
@@ -86,7 +95,7 @@ static void confereCards(void) {
            i,card[2],card[3],card[4],maior.h);
   }
   assert(medidos>0);
-  assert(!txt_pendentes);
+  confereTextoQuadro();
 }
 static void dedoClima(Uint32 tipo,float x,float y) {
   SDL_Event e={0};e.type=tipo;e.tfinger.touchId=41;e.tfinger.fingerId=1;
@@ -113,6 +122,9 @@ static void quadros(int n, const char *nome) {
     ponteiro_quadro(SDL_GetTicks());
 #endif
     SDL_PumpEvents();
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    pendentesAntesQuadro=txt_pendentes;
+#endif
     txt_novo_quadro();
 #if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
     // Warm the comparison probes over ordinary frames, so native assertions
@@ -304,7 +316,7 @@ static int confereSubview(void) {
     assert(alvos[i].x>=0 && alvos[i].y>=p[3]-.1f && alvos[i].w>0 && alvos[i].h>0);
     assert(alvos[i].x+alvos[i].w<=NV_TELA_W+.1f && alvos[i].y+alvos[i].h<=p[4]+.1f);
   }
-  assert(!txt_pendentes);
+  confereTextoQuadro();
   return medidos;
 }
 static void moverPagina(float destino) {
