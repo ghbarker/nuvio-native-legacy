@@ -15,6 +15,7 @@
 #include "escala.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefonecartao.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -375,8 +376,8 @@ static int vis[REG_MAX * 2];
 static unsigned char visCtx[REG_MAX * 2];
 static int nVis;
 #ifdef NV_TOUCH_PREVIEW
-static ToqueRolagem toqueRegistro, toqueEtapas;
-static float toqueRegistroOffset, toqueEtapasOffset;
+static ToqueRolagem toqueRegistro, toqueEtapas, toqueAreas;
+static float toqueRegistroOffset, toqueEtapasOffset, toqueAreasOffset;
 static ToqueRolagem *toqueRegAtiva;
 #endif
 static void filtrar(void) {
@@ -424,6 +425,7 @@ static void seguir(void) {
 static int toqueRegistroRolar(const PonteiroRolagem *e) {
   if (e->fase == PONT_ROL_INICIO) {
     toqueRegAtiva = NULL;
+    if (telefoneui_ativo() && toquerol_evento(&toqueAreas, e)) { toqueRegAtiva = &toqueAreas; return 1; }
     if (toquerol_evento(&toqueEtapas, e)) toqueRegAtiva = &toqueEtapas;
     else if (toquerol_evento(&toqueRegistro, e)) toqueRegAtiva = &toqueRegistro;
     if (toqueRegAtiva) { pausado = 1; marcaPausa = marcaLida; return 1; }
@@ -483,6 +485,9 @@ static void passoAoVivo(void) {
 int registro_aberto(void) { return aberto; }
 
 static void abrir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  toquerol_limpar(&toqueAreas); toqueAreasOffset = 0;
+#endif
   aberto = 1;
   area = RG_TUDO; segEd = 0; pausado = 0; foco = -1; detalhe = 0; focoEnviar = 0;
   novas = 0; focoEtapa = 0;
@@ -550,7 +555,7 @@ int registro_evento(const SDL_Event *e) {
       if (foco >= nVis) foco = nVis - 1;
       segEd = 0;
     }
-    toquerol_limpar(&toqueRegistro); toquerol_limpar(&toqueEtapas);
+    toquerol_limpar(&toqueRegistro); toquerol_limpar(&toqueEtapas); toquerol_limpar(&toqueAreas);
   }
 #endif
   int ehTecla = (e->type == SDL_KEYDOWN || e->type == SDL_KEYUP || e->type == SDL_TEXTINPUT);
@@ -646,7 +651,7 @@ void registro_desenhar(void) {
 }
 static void registro_desenharCorpo_(void) {
 #ifdef NV_TOUCH_PREVIEW
-  toqueRegistro.offset = toqueEtapas.offset = NULL;
+  toqueRegistro.offset = toqueEtapas.offset = toqueAreas.offset = NULL;
 #endif
   if (!aberto && !aviso) return;
   // RECORTE DESLIGADO ANTES DE DESENHAR: se uma tela esquecer o recorte ligado,

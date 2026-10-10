@@ -107,6 +107,11 @@ jobs:
           bash tests/livetvdiag_phone.sh
           bash tests/livetvdiag_actions_review.sh
           bash tests/biblioteca_content_review.sh
+          bash tests/social_log_phone.sh
+          bash tests/social_log_actions_review.sh
+          bash tests/home_rows_review.sh
+          bash tests/settings_visibility_review.sh
+          bash tests/faixas_estilo_phone.sh
           python3 tests/android_apk_pages.py
           cc -DNV_TOUCH_PREVIEW -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
           /tmp/nuvio-layout-touch

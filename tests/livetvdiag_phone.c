@@ -147,7 +147,8 @@ static void dados(void) {
   memset(&L,0,sizeof L);L.n=6;L.estado=E_PRONTO;L.recModo=M_B;L.rec.confianca=6;L.rec.semDecoder=2;L.rec.dezBits=1;
   L.rec.resolucao=2;L.rec.formato=1;L.rec.espera=1;L.rec.kbpsMediana=25000;L.redeMedida=1;L.kbps=25000;L.kbpsPior=12000;L.latenciaMs=1200;
   L.xtConfig=L.contaLida=L.conta.valido=1;L.conta.maxConexoes=L.conta.conexoes=1;L.conta.formatosDeclarados=1;L.conta.temTs=1;
-  strcpy(L.conta.status,"A long provider account status with translated wording");strcpy(L.grupo,"A channel group name with many words");L.tocouModo[M_P]=1;
+  snprintf(L.conta.status,sizeof L.conta.status,"Active");strcpy(L.grupo,"A channel group name with many words");L.tocouModo[M_P]=1;
+  L.conta.expira = 1830297599;
   L.aplicado=L.enviou=1;
   for(int i=0;i<6;i++) { snprintf(L.it[i].nome,sizeof L.it[i].nome,"Channel %d: an intentionally long channel name with several translated words to wrap",i);L.it[i].pronto=1;L.it[i].xt=1;L.it[i].f[F_HLS].servido=1;L.it[i].f[F_HLS].kbps=20000;L.it[i].f[F_HLS].altura=1080;strcpy(L.it[i].f[F_HLS].codec,"H264 · AAC · a long codec annotation"); }
   ltdPhoneReiniciar();nBotoesTeste=0;windowCalls=holeCalls=0;cortando=0;

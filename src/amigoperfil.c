@@ -13,6 +13,7 @@
 #include "badges.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -198,6 +199,16 @@ static void tituloFila(float x, float y, const char *t, float a) {
 }
 
 static void vazioFila(float x, float y, const char *t, float a) {
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) {
+    float w = fminf(4.0f * (AP_PW + AP_PGAP) - AP_PGAP, NV_TELA_W - 40 - x);
+    float h = txt_bloco_corta(TXT_CAPTION, t, 140, 138, 150, 0, 0, w - 48, 30, 0, 0);
+    h = fmaxf(90, h + 32);
+    gfx_cor((GfxRect){x, y, w, h}, 18 / h, 1, 1, 1, .04f * a);
+    txt_bloco_corta(TXT_CAPTION, t, 140, 138, 150, x + 24, y + 16, w - 48, 30, a, 0);
+    return;
+  }
+#endif
   TxtLinha l = txt_linha_corta(TXT_CAPTION, t, 140, 138, 150, 255, 4.0f * (AP_PW + AP_PGAP) - AP_PGAP - 48.0f);
   gfx_cor((GfxRect){ x, y, 4.0f * (AP_PW + AP_PGAP) - AP_PGAP, 90.0f }, 18.0f / 90.0f,
           1.0f, 1.0f, 1.0f, 0.04f * a);

@@ -1,6 +1,7 @@
 #include "faixas.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include "idioma.h"
 #include "player.h"
 #include "video.h"
@@ -1592,9 +1593,60 @@ static void ponteiroAtrasoPasso(int d, int b) {
 }
 static void ponteiroAba(int estilo, int b) { (void)b; faixas_aba_estilo(estilo); }
 
+#ifdef NV_TOUCH_PREVIEW
+static void celulaEstiloTelefone(int i, GfxRect r, float a) {
+  int sel = coluna == FX_COL_ESTILO && i == foco[FX_COL_ESTILO];
+  int pres = estiloPreservadoAss(i), pont = a > .99f && ponteiro_ativo();
+  float x = r.x + 20, w = r.w - 40;
+  if (sel) plrui_linha_foco(r, 22, a);
+  if (pont) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEstilo, NULL, i, 0);
+  if (i == FX_N_ESTILO - 1) {
+    int compacto = r.w < 154;
+    float tx = compacto ? r.x + 10 : r.x + 54, tw = compacto ? r.w - 20 : r.w - 74;
+    float h = txt_bloco_corta(TXT_G20B, EST_ROT[i], 243, 242, 239, 0, 0, tw, 24, 0, compacto ? 2 : 3);
+    gfx_icone((GfxRect){compacto ? r.x + (r.w - 22) * .5f : r.x + 20,
+                       compacto ? r.y + 8 : r.y + (r.h - 22) * .5f, 22, 22},
+              "pl_rotate-ccw", 1, 1, 1, (sel ? 1 : .75f) * a);
+    txt_bloco_corta(TXT_G20B, EST_ROT[i], 243, 242, 239, tx,
+                    compacto ? r.y + 36 : r.y + (r.h - h) * .5f, tw, 24, a, compacto ? 2 : 3);
+    return;
+  }
+  char v[48];
+  int atraso = i == 7 && sel, estreito = atraso && r.w < 132;
+  int cor = i == 2 && !pres, c = pres ? 120 : sel ? 255 : 217;
+  valorEstilo(i, v, sizeof v);
+  float lh = txt_bloco_corta(TXT_G16B, EST_ROT[i], 243, 242, 239, 0, 0, w, 20, 0, estreito ? 1 : 2);
+  TxtLinha lv = txt_linha_corta(TXT_ILHA_SECAO, v, c, c, c - 2, 255,
+                               w - (cor ? 30 : 0) - (atraso && !estreito ? 88 : 0));
+  float vh = atraso && !estreito ? fmaxf(lv.h, 34) : lv.h;
+  float total = lh + 6 + vh + (estreito ? 38 : 0), y = r.y + (r.h - total) * .5f;
+  txt_bloco_corta(TXT_G16B, EST_ROT[i], 243, 242, 239, x, y, w, 20, a * .5f, estreito ? 1 : 2);
+  float yv = y + lh + 6;
+  if (cor) {
+    int cr,cg,cb; corLegenda(player_leg_estilo()->cor, &cr,&cg,&cb);
+    gfx_cor((GfxRect){x,yv+(vh-20)*.5f,20,20},.5f,cr/255.0f,cg/255.0f,cb/255.0f,a);
+    x += 30;
+  }
+  if (atraso && !estreito) x += 44;
+  txt_desenhar_alpha(lv, estreito ? r.x + (r.w - lv.w) * .5f : x, yv + (vh - lv.h) * .5f, a);
+  if (atraso) {
+    for (int d = 0; d < 2; d++) {
+      GfxRect disc = {estreito ? (d ? r.x + r.w - 4 - 34 : r.x + 4) : (d ? x + lv.w + 10 : r.x + 20),
+                      estreito ? yv + vh + 4 : yv + (vh - 34) * .5f, 34, 34};
+      gfx_cor(disc,.5f,1,1,1,.1f*a);
+      gfx_icone((GfxRect){disc.x+7,disc.y+7,20,20},d ? "pl_chevron-right" : "pl_chevron-left",1,1,1,a);
+      if (pont && !pres) ponteiro_alvo(disc.x,disc.y,disc.w,disc.h,NULL,ponteiroAtrasoPasso,d ? 1 : -1,0);
+    }
+  }
+}
+#endif
+
 // Uma celula do ESTILO: rotulo em cima, valor embaixo; o Atraso focado ganha
 // os discos < > (ESQUERDA/DIREITA mudam 0,25 s); "Restaurar padrao" e acao.
 static void celulaEstilo(int i, GfxRect r, float a) {
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) { celulaEstiloTelefone(i, r, a); return; }
+#endif
   int sel = coluna == FX_COL_ESTILO && i == foco[FX_COL_ESTILO];
   int pres = estiloPreservadoAss(i);
   int pont = a > 0.99f && ponteiro_ativo();   // so com a barra assentada

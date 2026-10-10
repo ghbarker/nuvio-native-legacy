@@ -33,6 +33,7 @@
 #include "anim.h"
 #include "revela.h"
 #include "layout.h"
+#include "telefoneui.h"
 #include "ajustes.h"
 #include "cwordem.h"
 #include "catalogo.h"
@@ -5106,6 +5107,9 @@ static void desenhaNumeral(int pos, float px, float py, float h, float vao, floa
 // A pilha do ranking empilhado: ate seis cartazes num card so. `s` e a escala
 // da previa (1 na fileira).
 static void desenhaPilha(int idxCat, int stackN, float px, float py, float h, float s) {
+  // Compact phone rows reduce the artwork offsets along with the target.
+  // The preview already supplies its scale; default/large rows retain it.
+  if (telefoneui_ativo()) s = fminf(s, h / alturaDe(FILEIRA_TOP10));
   // Sem placa de fundo: os cartazes empilhados ja formam o card.
   int count=stackN<6?stackN:6;
   for(int k=0;k<count;k++) {

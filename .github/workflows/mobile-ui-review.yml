@@ -10,6 +10,9 @@ jobs:
     if: github.repository != 'iqui27/nuvio-native-legacy'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    concurrency:
+      group: mobile-ui-${{ github.ref }}-${{ matrix.group }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -36,6 +39,8 @@ jobs:
             capture: '--fixtures pipintro novidades20 novidades_cartao'
           - group: player
             capture: '--fixtures player_glass --cases 2340x1080@1.5'
+          - group: subtitle-style
+            capture: '--fixtures faixas_estilo --cases 2340x1080@1.5'
     steps:
       - uses: actions/checkout@v4
       - name: Drawing tools

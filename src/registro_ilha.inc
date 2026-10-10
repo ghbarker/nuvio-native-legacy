@@ -165,13 +165,42 @@ static float rgSeg(int comNumeros, float x, float yc) {
     q[i] = comNumeros ? (ac ? rgTT(TXT_ILHA_GENERO, num[i]) : rgT(TXT_ILHA_GENERO, num[i])) : (TxtLinha){ 0 };
     w += t[i].w + 40.0f + (i ? 4.0f : 0.0f) + (comNumeros ? 9.0f + q[i].w : 0.0f);
   }
+#ifdef NV_TOUCH_PREVIEW
+  float limite = w;
+  if (telefoneui_ativo()) {
+    float estado = 0, selx = 5, selw = 0;
+    if (comNumeros) {
+      char p[64];
+      if (pausado) {
+        if (novas > 0) snprintf(p, sizeof p, i18n("Pausado · %d novas"), novas);
+        else snprintf(p, sizeof p, "%s", i18n("Pausado"));
+        estado = 16 + 18 + 10 + txt_largura(TXT_AJ_CHIP, p) + 16;
+      } else estado = 56 + 14 + 16 + txt_largura(TXT_AJ_CHIP, "Ao vivo") + 20;
+    }
+    limite = fmaxf(120, fminf(w, RP_X + RP_W - 30 - x - (comNumeros ? estado + 16 : 0)));
+    for (i = 0; i < area; i++) selx += t[i].w + 44 + (comNumeros ? 9 + q[i].w : 0);
+    selw = t[area].w + 40 + (comNumeros ? 9 + q[area].w : 0);
+    if (!toqueAreas.livre) {
+      if (selx < toqueAreasOffset) toqueAreasOffset = selx - 5;
+      if (selx + selw > toqueAreasOffset + limite - 5) toqueAreasOffset = selx + selw - limite + 5;
+    }
+    toqueAreasOffset = fmaxf(0, fminf(toqueAreasOffset, fmaxf(0, w - limite)));
+    toquerol_vincular(&toqueAreas, (GfxRect){x, yc - h * .5f, limite, h}, gfx_escala(), 0, w - limite, 0, &toqueAreasOffset);
+    ponteiro_rolagem(toqueRegistroRolar);
+    gfx_recorte(x, yc - h * .5f, limite, h);
+    x -= toqueAreasOffset;
+  }
+#endif
   rgNeutro((GfxRect){ x, yc - h * 0.5f, w, h }, h * 0.5f, 0.06f, 0.114f, 0.118f, 0.137f, 1);
   x += 5.0f;
   for (i = 0; i < RG_N; i++) {
     int ac = i == area && segEd;
     float iw = t[i].w + 40.0f + (comNumeros ? 9.0f + q[i].w : 0.0f), al = 0.55f;
 #ifdef NV_TOUCH_PREVIEW
-    ponteiro_alvo(x, yc - ih * 0.5f, iw, ih, toqueRegArea, NULL, i, 0);
+    if (telefoneui_ativo()) {
+      float esquerda = fmaxf(x, x0), direita = fminf(x + iw, x0 + limite);
+      if (direita > esquerda) ponteiro_alvo(esquerda, yc - ih * .5f, direita - esquerda, ih, toqueRegArea, NULL, i, 0);
+    } else ponteiro_alvo(x, yc - ih * 0.5f, iw, ih, toqueRegArea, NULL, i, 0);
 #endif
     if (ac) { rgPilulaAcento((GfxRect){ x, yc - ih * 0.5f, iw, ih }, ih * 0.5f, 1); al = 1; }
     else if (i == area) { rgNeutro((GfxRect){ x, yc - ih * 0.5f, iw, ih }, ih * 0.5f, 0.14f, 0.204f, 0.212f, 0.243f, 1); al = 1; }
@@ -179,6 +208,9 @@ static float rgSeg(int comNumeros, float x, float yc) {
     if (comNumeros) txt_desenhar_alpha(q[i], x + 20 + t[i].w + 9, yc - q[i].h * 0.5f + 1, ac ? 0.6f : 0.35f);
     x += iw + 4.0f;
   }
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) { gfx_sem_recorte(); return limite; }
+#endif
   return x - x0;
 }
 
