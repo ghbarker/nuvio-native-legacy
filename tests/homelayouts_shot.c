@@ -248,6 +248,22 @@ static PonteiroFn pastaFnFocada(HomeItem normal,int row) {
   }
   assert(0);return NULL;
 }
+static void pastaPosicionarDeitada(PonteiroAlvo alvo,float top) {
+  float delta=top-alvo.y;
+  /* A nearby row already meets the measured comparison below. A tiny
+     positioning gesture stays below ponteiro's 32px drag threshold and
+     becomes a tap on the folder; leave a margin above that threshold. */
+  int arrastar=fabsf(delta)>48.0f;
+  printf("[shot] wide positioning: current y %.3f, desired y %.3f, delta %.3f, SDL drag %d\n",
+         alvo.y,top,delta,arrastar);fflush(stdout);
+  if(arrastar) {
+    float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80);
+    pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+    pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
+    SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);
+  }
+  quadros(4,NULL);
+}
 static void pastaCompararDeitada(const char *saida,int lay,int vidro,float *wideW,float *wideH) {
   char bmp[900];
   pastaModoDeitado=1;ajusta(lay,vidro);
@@ -269,9 +285,7 @@ static void pastaCompararDeitada(const char *saida,int lay,int vidro,float *wide
   assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
   float gap=(lay==HOME_LAYOUT_MODERNA?NV_FILEIRA_GAP_LAND:NV_PAD_FILEIRA_GAP)*ajustes_espaco_fileiras();
   float top=fminf(156+2*NV_LEGACY_ROW_HEAD_H+*wideH*escalaNormal+gap,NV_TELA_H-h-24);
-  float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80),delta=top-alvo.y;
-  pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
-  SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);quadros(4,NULL);
+  pastaPosicionarDeitada(alvo,top);
   alvo=pastaAlvo(fn,row);PonteiroAlvo titulo=pastaAlvo(fn,rowNormal);
   float tituloTop=alvo.y-NV_LEGACY_ROW_HEAD_H-*wideH*escalaNormal-gap;
   float vis=*wideH*escalaNormal-fmaxf(0,132-tituloTop);
