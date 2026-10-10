@@ -35,6 +35,10 @@ void ponteiro_rolagem(PonteiroRolagemFn fn) { rolarRegistrado = fn; }
 int selospacote_n(void) { return 0; }
 int txt_largura(TxtEstilo estilo, const char *s) { (void)estilo; return (int)strlen(s) * 10; }
 const char *i18n(const char *s) { return s; }
+float txt_bloco(TxtEstilo estilo, const char *s, int r, int g, int b, float x, float y, float w, float h, float a, int maxLinhas) {
+  (void)estilo; (void)s; (void)r; (void)g; (void)b; (void)x; (void)y; (void)w; (void)a; (void)maxLinhas;
+  return h;
+}
 const char *atualizacao_nova(void) { return NULL; }
 const char *fil_linha_addon(int i) { return i < 2 ? "addon A" : "addon B"; }
 int fil_n(void) { return 5; }
@@ -60,21 +64,47 @@ static void dentroAjustes(GfxRect r) {
   assert(r.x >= 0 && r.y >= 0 && r.w > 0 && r.h > 0);
   assert(r.x + r.w <= NV_VTELA_W + 0.01f && r.y + r.h <= NV_VTELA_H + 0.01f);
 }
+static void testaBarraRetrato(void) {
+  int rail = valor[AJ_RAIL], moderna = valor[AJ_RAIL_MODERNA], layout = valor[AJ_HOME_LAYOUT];
+  for (int l = 0; l < HOME_LAYOUT_N; l++) {
+    valor[AJ_HOME_LAYOUT] = l;
+    for (int r = 0; r < 2; r++) for (int m = 0; m < 2; m++) {
+      valor[AJ_RAIL] = r; valor[AJ_RAIL_MODERNA] = m;
+      nv_layout_w = 2400; nv_layout_h = 1080;
+      int recolhida = ajustes_rail_recolhida();
+      float largura = ajustes_rail_largura_fixa();
+      assert(recolhida == (m == 0 ? 0 : r == 0));
+      nv_layout_w = 1080; nv_layout_h = 2340;
+      assert(ajustes_rail_recolhida()); perto(ajustes_rail_largura_fixa(), 0);
+      perto(ajustes_conteudo_x(), NV_CONTENT_PAD);
+      float x, w; ajustes_area_conteudo(96, 96, &x, &w);
+      perto(x, 96); perto(x + w * 0.5f, nv_layout_w * 0.5f);
+      assert(valor[AJ_RAIL] == r && valor[AJ_RAIL_MODERNA] == m && valor[AJ_HOME_LAYOUT] == l);
+      nv_layout_h = 1920;
+      assert(ajustes_rail_recolhida()); perto(ajustes_rail_largura_fixa(), 0);
+      nv_layout_h = 1728; /* A wider tablet keeps its sidebar preference. */
+      assert(ajustes_rail_recolhida() == recolhida); perto(ajustes_rail_largura_fixa(), largura);
+      nv_layout_w = 2400; nv_layout_h = 1080;
+      assert(ajustes_rail_recolhida() == recolhida); perto(ajustes_rail_largura_fixa(), largura);
+    }
+  }
+  valor[AJ_RAIL] = rail; valor[AJ_RAIL_MODERNA] = moderna; valor[AJ_HOME_LAYOUT] = layout;
+}
 static void testaAjustesRetrato(void) {
   const float alturas[] = {1920, 2340};
   int layoutSalvo = valor[AJ_LAYOUT_AJUSTES], escalaSalva = valor[AJ_TAMANHO_AJUSTES];
-  valor[AJ_LAYOUT_AJUSTES] = 0;
+  valor[AJ_LAYOUT_AJUSTES] = 1;
   for (int h = 0; h < 2; h++) {
     nv_layout_w = 1080; nv_layout_h = alturas[h];
     for (int s = 0; s < 3; s++) {
       valor[AJ_TAMANHO_AJUSTES] = s;
       assert(ajRetrato() && ajustes_layout_lista() && !aj2TemInsp());
-      assert(valor[AJ_LAYOUT_AJUSTES] == 0);
+      assert(valor[AJ_LAYOUT_AJUSTES] == 1);
       perto(NV_VTELA_H * ajustes_tamanho_ajustes(), alturas[h]);
       GfxRect grade = aj2GradeR(), lista = aj2ListaR(), editor = aj2EditorR(), pagina = aj2PaginaR();
       dentroAjustes(grade); dentroAjustes(lista); dentroAjustes(editor); dentroAjustes(pagina);
       perto(lista.x, grade.x); perto(editor.x, grade.x);
-      assert(editor.w > 800 && lista.w > 800 && pagina.y + pagina.h < lista.y);
+      assert(editor.w > 740 && lista.w > 740 && pagina.y + pagina.h < lista.y);
       GfxRect topo[AJ2_T_N];
       for (int t = 0; t < AJ2_T_N; t++) {
         topo[t] = aj2TopoRetratoR(t); dentroAjustes(topo[t]);
@@ -111,15 +141,57 @@ static void testaAjustesRetrato(void) {
       assert(ajToqueRolar(&e)); escalaTeste = 1;
       e.fase = PONT_ROL_MOVER; e.delta = -13.5f * desenho; ajToqueRolar(&e); perto(off, 13.5f);
       e.fase = PONT_ROL_FIM; ajToqueRolar(&e); perto(off, 13.5f);
-      assert(valor[AJ_LAYOUT_AJUSTES] == 0);
+      assert(valor[AJ_LAYOUT_AJUSTES] == 1);
     }
   }
+  valor[AJ_LAYOUT_AJUSTES] = 0;
   nv_layout_w = 1080; nv_layout_h = 1728; valor[AJ_TAMANHO_AJUSTES] = 2;
   assert(!ajRetrato() && !ajustes_layout_lista());
   nv_layout_w = 2400; nv_layout_h = 1080;
   assert(!ajRetrato() && !ajustes_layout_lista());
   perto(aj2EditorR().x, aj2X0() + AJ2_EDITOR_DX);
   valor[AJ_LAYOUT_AJUSTES] = layoutSalvo; valor[AJ_TAMANHO_AJUSTES] = escalaSalva;
+}
+static void testaPainelListaTelefone(void) {
+  int layout = valor[AJ_LAYOUT_AJUSTES], tamanho = valor[AJ_TAMANHO_AJUSTES], secoes = nSecoes;
+  nSecoes = AJ_MAX_SECOES;
+  for (int h = 0; h < 2; h++) for (int s = 0; s < 3; s++) for (int lista = 0; lista < 2; lista++) {
+    nv_layout_w = 1080; nv_layout_h = h ? 2340 : 1920;
+    valor[AJ_TAMANHO_AJUSTES] = s; valor[AJ_LAYOUT_AJUSTES] = lista;
+    assert(ajustes_layout_lista() == lista && aj2TemInsp() == !lista);
+    perto(ajustes_tamanho_ajustes(), (s == 0 ? 0.8f : s == 1 ? 0.9f : 1.0f) * 1.25f);
+    GfxRect g = aj2GradeR(), l = aj2ListaR(), ed = aj2EditorR();
+    dentroAjustes(g); dentroAjustes(l); dentroAjustes(ed);
+    perto(g.x + g.w * 0.5f, NV_VTELA_W * 0.5f);
+    perto(l.x + l.w * 0.5f, NV_VTELA_W * 0.5f);
+    assert(l.w > 740 && l.h > 580);
+    if (!lista) {
+      GfxRect insp = aj2InspR(); dentroAjustes(insp);
+      assert(insp.y + insp.h + 24 <= l.y + 0.01f);
+      perto(insp.x + insp.w * 0.5f, NV_VTELA_W * 0.5f);
+    } else perto(l.y, AJ2_CORPO);
+    aj2LRol = 0; focoIndice = 1; uxTopo = -1; uxIndice = 2;
+    ajToqueLimpar(); aj2LAtualizar(0.1f);
+    assert(aj2LRh == 128 && AJ2_LN_H == 96);
+    float total; aj2LYRel(0, &total);
+    assert(total > aj2LBase() - aj2LTopo());
+    GfxRect primeiro = lista ? aj2LLinhaR(0) : aj2GradeCartao(0);
+    perto(primeiro.x + primeiro.w * 0.5f, NV_VTELA_W * 0.5f);
+    assert(primeiro.h >= 128);
+    escalaTeste = ajustes_tamanho_ajustes();
+    ajToqueRegistrar(AJT_INDICE, (GfxRect){g.x, aj2LTopo(), g.w, aj2LBase() - aj2LTopo()}, &aj2LRol,
+                     total - (aj2LBase() - aj2LTopo()), 0, 0);
+    PonteiroRolagem e = {PONT_ROL_INICIO, 1, 0, 0, (g.x + 60) * escalaTeste, (aj2LTopo() + 90) * escalaTeste};
+    assert(ajToqueRolar(&e)); e.fase = PONT_ROL_MOVER; e.delta = -200 * escalaTeste;
+    assert(ajToqueRolar(&e)); e.fase = PONT_ROL_FIM; ajToqueRolar(&e);
+    float scroll = aj2LRol; assert(scroll > 0);
+    aj2LAtualizar(0.1f); perto(aj2LRol, scroll);
+    GfxRect movido = lista ? aj2LLinhaR(0) : aj2GradeCartao(0);
+    perto(movido.y, primeiro.y - scroll);
+    assert(valor[AJ_LAYOUT_AJUSTES] == lista && valor[AJ_TAMANHO_AJUSTES] == s);
+  }
+  nSecoes = secoes; valor[AJ_LAYOUT_AJUSTES] = layout; valor[AJ_TAMANHO_AJUSTES] = tamanho;
+  nv_layout_w = 2400; nv_layout_h = 1080; escalaTeste = 1;
 }
 #elif defined(TESTE_MENU)
 int ajustes_home_layout(void) { return HOME_LAYOUT_MODERNA; }
@@ -215,6 +287,8 @@ int main(void) {
   uxAvisoRisco = 1; ajToqueInlineValor(3, AJ_TEMA); assert(uxPendente == 2);
   perto(NV_VTELA_W, 2400.0f / ajustes_tamanho_ajustes());
   testaAjustesRetrato();
+  testaBarraRetrato();
+  testaPainelListaTelefone();
 #elif defined(TESTE_MENU)
   aberto = 1; tvToqueRegiao = (GfxRect){100, 200, 500, 600};
   tvToqueEscala = 1.5f; tvToqueMaximo = 500; tvRolar = 0; tvRolarV = 10;

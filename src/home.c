@@ -584,12 +584,23 @@ static int homeRetratoTelefone(void) {
   return 0;
 #endif
 }
+static float homeConteudoX(void) {
+  // Retrato usa a barra como camada. Se ainda houver uma rail visivel,
+  // espelha sua reserva para centralizar sem desenhar por baixo dela.
+  if (homeRetratoTelefone())
+    return ajustes_rail_largura_fixa() > 0.0f ? fmaxf(48.0f, ajustes_conteudo_x()) : 48.0f;
+  return ajustes_conteudo_x();
+}
+static float homeMargemDireita(void) {
+  return homeRetratoTelefone() ? homeConteudoX() : NV_HOME_SAFE_RIGHT;
+}
+static float homeConteudoDireita(void) { return NV_TELA_W - homeMargemDireita(); }
 static float homeLarguraUtil(void) {
-  return fmaxf(120.0f, NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT);
+  return fmaxf(120.0f, homeConteudoDireita() - homeConteudoX());
 }
 static float homeTextoLargura(float largura) {
   return homeRetratoTelefone()
-       ? fmaxf(1.0f, fminf(largura, NV_TELA_W - ajustes_conteudo_x() - 48.0f))
+       ? fmaxf(1.0f, fminf(largura, homeLarguraUtil()))
        : largura;
 }
 static float escalaPosterTelefone(void) {
@@ -1510,6 +1521,9 @@ static float alfaFileiraHome(int r, float y, float topo, float corte) {
   return fade;
 }
 static float passoFil(int r)       { return larguraFil(r) + gapDe(fileiras[r].tipo); }
+static float homeFileiraX(int r, int c) {
+  return homeConteudoX() + (float)c * passoFil(r) - scrollX[r] + bordaX(r);
+}
 
 // ROLAGEM CENTRADA DA DINAMICA (dono, 01/10: "o foco fica na fileira do meio e
 // a lista rola por baixo, como o Apple TV"). `off` e a soma das fileiras acima
@@ -1579,7 +1593,7 @@ static float alvoScrollFil(int r, int col, float atual, float abre) {
   float passo = passoFil(r);
   float esq   = (float)col * passo;
   float dir   = esq + larguraFil(r) + xOffTipo(fileiras[r].tipo);
-  float util  = NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT;
+  float util  = homeLarguraUtil();
   float folga = sobraDireitaFoco(r, abre);
   float alvo  = atual;
   if (dir + folga - alvo > util) alvo = dir + folga - util;
@@ -1602,14 +1616,15 @@ static float toqueHomeMaxY(void) {
 static float toqueHomeMaxX(int r) {
   int n = fileiras[r].n + (fileiras[r].verTudo ? 1 : 0);
   float extra = r == expFileira ? fmaxf(0.0f, alturaFil(r) * NV_EXP_ASPECTO - larguraFil(r)) * expAbre : 0.0f;
-  float util = NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT;
+  float util = homeLarguraUtil();
   return fmaxf(0.0f, (n - 1) * passoFil(r) + larguraFil(r) + xOffTipo(fileiras[r].tipo) + extra - util);
 }
 static int toqueHomeRolar(const PonteiroRolagem *e) {
   if (e->fase == PONT_ROL_INICIO) {
     float y = topoFileiras() - scrollY;
     float topoToque = heroCompactoTelefone() ? 132.0f : corteFileiras();
-    if (e->x < ajustes_conteudo_x() || e->x >= NV_TELA_W || e->y < topoToque || e->y >= NV_TELA_H || nFileiras < 1) return 0;
+    float direita = homeRetratoTelefone() ? homeConteudoDireita() : NV_TELA_W;
+    if (e->x < homeConteudoX() || e->x >= direita || e->y < topoToque || e->y >= NV_TELA_H || nFileiras < 1) return 0;
     toqueFileira = -1;
     if (!e->eixoY) {
       for (int r = 0; r < nFileiras; r++) {
@@ -1660,7 +1675,7 @@ static void toqueHomeRetomarFoco(void) {
     foco.coluna = foco.colunaLembrada[escolhido];
   }
   for (int r = 0; r < nFileiras; r++) if (toqueLivreX[r] && foco.nColunas[r] > 0) {
-    int c = (int)((scrollX[r] + (NV_TELA_W - ajustes_conteudo_x() - NV_HOME_SAFE_RIGHT) * 0.35f) / passoFil(r));
+    int c = (int)((scrollX[r] + homeLarguraUtil() * 0.35f) / passoFil(r));
     if (fileiras[r].tipo == FILEIRA_SOCIAL) { c = foco.colunaLembrada[r]; amigosfil_retomar_foco(&c); }
     if (c >= foco.nColunas[r]) c = foco.nColunas[r] - 1;
     if (c < 0) c = 0;
@@ -3819,6 +3834,7 @@ static void heroTrailerAtualizaRect(GfxRect r, float saida) {
 }
 static void alvoAcaoHero(GfxRect r, float saida, float cin, float alpha) {
   float primeira = topoFileiras() - scrollY;
+  if (homeRetratoTelefone() && (r.x < homeConteudoX() || r.x + r.w > homeConteudoDireita())) return;
   if (saida <= 0.001f && cin <= 0.005f && alpha > 0.25f &&
       r.y >= 132.0f && r.y + r.h <= fminf(NV_TELA_H, primeira - 24.0f))
     ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroHero, NULL, 0, 0);
@@ -3891,7 +3907,7 @@ static void desenhaHero(Uint32 agora, float saida) {
 
   sinW = homeTextoLargura(sinW);
   if(lay==HOME_LAYOUT_MODERNA && foco.fileira>=0 && foco.fileira<nFileiras && fileiras[foco.fileira].tipo==FILEIRA_SOCIAL) {
-    float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
+    float x=homeConteudoX(),a=(1-saida)*heroVisivelToque();
     const Fileira *s=&fileiras[foco.fileira];
     const CatItem *p=(fileiraItemIndice(s, foco.coluna) >= 0)
                     ?cat_item_exato(fileiraItemIndice(s, foco.coluna)):NULL;
@@ -3964,7 +3980,7 @@ static void desenhaHero(Uint32 agora, float saida) {
       if(folder->editorial) {
         /* Art is authored for this rectangle, not cropped as a movie backdrop.
            The neutral canvas continues below it; no art behind the shelves. */
-        float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
+        float x=homeConteudoX(),a=(1-saida)*heroVisivelToque();
         GLuint art=tex_obter_hero(folder->hero);
         GfxRect header=heroEditorialRect(folder->editorial, folder->editorial==2 ? tex_aspecto(folder->hero) : 0.0f);
         if(art)gfx_rect(header,art,folder->editorial==2?GFX_EDITORIAL:GFX_TEXTO,0,0,0,0,1,1,1,a);
@@ -3998,7 +4014,7 @@ static void desenhaHero(Uint32 agora, float saida) {
         else gfx_rect(r,t,modoHero,0,0,0,0,0,0,0,aArte);
         gfx_tex_aspect_atual=0;}
       heroArteRect=r;
-      float x=ajustes_conteudo_x(),a=(1-saida)*heroVisivelToque();
+      float x=homeConteudoX(),a=(1-saida)*heroVisivelToque();
       TxtLinha group=txt_linha(TXT_HERO_META,folder->group,201,206,218,255);
       txt_desenhar_alpha(group,x,NV_COLLECTION_HERO_GROUP_Y,a);
       if (ehDiretor) {
@@ -4362,7 +4378,7 @@ static void desenhaHero(Uint32 agora, float saida) {
   base += bordaPag.x;   // retorno de borda do Cima no destaque
   // Moderna: without the button the logo hugs the text (owner 03/10).
   float slotBtn = (lay == HOME_LAYOUT_MODERNA) ? aBotao : 1.0f;
-  float x = ajustes_conteudo_x();
+  float x = homeConteudoX();
   // TROCA DESLIZADA: o bloco do titulo que sai anda junto com a arte dele, e o
   // do que entra vem colado atras, na mesma distancia (a largura da arte).
   if (deslizando && cAnt && cAnt != ci)
@@ -4429,7 +4445,7 @@ static void desenhaHero(Uint32 agora, float saida) {
         // trocando o destaque; as setas aqui sao so a dica.
         if (btnFoco) {
           int p = heroPosDe(heroIntencao());
-          desenhaPontosHero(NV_TELA_W - ajustes_conteudo_x(), by + bh * 0.5f,
+          desenhaPontosHero(homeRetratoTelefone() ? homeConteudoDireita() : NV_TELA_W - homeConteudoX(), by + bh * 0.5f,
                             n, p < 0 ? 0 : p, aBtn);
         }
       }
@@ -4504,6 +4520,11 @@ static void alvoCard(float x, float y, float w, float h, int r, int c) {
   float topo = corteFileiras();
   if (!ponteiro_ativo()) return;
   if (y < topo) { h -= topo - y; y = topo; }
+  if (homeRetratoTelefone()) {
+    float dir = fminf(x + w, homeConteudoDireita());
+    x = fmaxf(x, homeConteudoX()); w = dir - x;
+    if (w <= 0.0f || h <= 0.0f) return;
+  }
   ponteiro_alvo(x, y, w, h, ponteiroCard, NULL, r, c);
 }
 
@@ -4519,7 +4540,7 @@ static void desenhaAtalhos(int r, float y) {
   // o cache nos ~4 quadros de tela que cabem entre dois passos de 67 ms.
   static int seqIndice=-1;static GLuint seqTex;
   for (int c = 0; c < fileiras[r].n; c++) {
-    float x = ajustes_conteudo_x() + c * passoFil(r) - scrollX[r] + bordaX(r);
+    float x = homeFileiraX(r, c);
     if (x + w < 0 || x > NV_TELA_W) continue;
     float f = animFoco[r][c], raio = raioDe(w, h);
     GfxRect card = {x, y, w, h};
@@ -5715,13 +5736,13 @@ void home_desenhar(Uint32 agora) {
   // texto, o hero sozinho com o resto da tela vazia le como travamento — e ela
   // nao teria como adivinhar que foi ela quem apagou a home.
   if (nFileiras < 1 && !fileirasOcultas) {
-    float tx = ajustes_conteudo_x();
+    float tx = homeConteudoX();
     TxtLinha t = txt_linha(TXT_ROW_TITULO, "Nenhuma fileira ativa", 240, 241, 245, 255);
     txt_desenhar(t, tx, topoFil);
     txt_bloco(TXT_CAPTION,
               "Ative fileiras em Ajustes, na categoria Fileiras da Home.",
               183, 186, 194, tx, topoFil + t.h + 14.0f,
-              NV_TELA_W - tx - NV_HOME_SAFE_RIGHT, 34, 1, 2);
+              homeConteudoDireita() - tx, 34, 1, 2);
   }
   // ENTRADA EM CASCATA. Reentra quando as fileiras ficaram fora da tela por
   // um tempo — MAS NAO na volta do detalhe: ali elas ja sobem de volta pela
@@ -5791,14 +5812,14 @@ void home_desenhar(Uint32 agora) {
         }
       }
       TxtLinha tl = txt_linha_corta(TXT_ROW_TITULO, rotFil, 245, 246, 249, 255,
-                                    NV_TELA_W - ajustes_conteudo_x() - 180);
-      txt_desenhar(tl, ajustes_conteudo_x(), y);
+                                    homeRetratoTelefone() ? homeLarguraUtil() - 76.0f : NV_TELA_W - homeConteudoX() - 180.0f);
+      txt_desenhar(tl, homeConteudoX(), y);
       // A FONTE (Trakt, Simkl...) NAO APARECE NA FILEIRA DE AMIGOS: a pessoa
       // quer saber quem viu e o que achou, nao de onde veio o dado. Ela fica
       // so no perfil do amigo (amigoperfil.c). Era a marca do Trakt aqui.
       if(!strncmp(fileiras[r].catId,"ai_",3)) {
         TxtLinha ai=txt_linha(TXT_HERO_META,"AI-powered",183,192,219,255);
-        txt_desenhar(ai,ajustes_conteudo_x()+tl.w+22,y+(tl.h-ai.h)*.5f);
+        txt_desenhar(ai,homeConteudoX()+tl.w+22,y+(tl.h-ai.h)*.5f);
       }
       if (foco.fileira == r && !focoHero && tipo != FILEIRA_SOCIAL) {
         char pos[32];
@@ -5813,7 +5834,7 @@ void home_desenhar(Uint32 agora) {
         char posTr[32];
         snprintf(posTr, sizeof posTr, "%s", foco.coluna < fileiras[r].n ? pos : i18n(pos));
         TxtLinha lp = txt_linha(TXT_HERO_META, posTr, 238, 240, 245, 255);
-        float px = NV_TELA_W - NV_HOME_SAFE_RIGHT - lp.w, py = y + (tl.h - lp.h)*.5f;
+        float px = homeConteudoDireita() - lp.w, py = y + (tl.h - lp.h)*.5f;
         gfx_cor((GfxRect){ px - 16.0f, py - 6.0f, lp.w + 32.0f, lp.h + 12.0f }, 0.5f,
                 0.04f, 0.045f, 0.055f, 0.62f);
         txt_desenhar(lp, px, py);
@@ -5823,7 +5844,7 @@ void home_desenhar(Uint32 agora) {
         ponteiroSocialFileira = r;
         amigosfil_ponteiro(ponteiroSocial);
 #endif
-        amigosfil_desenhar(ajustes_conteudo_x() + bordaX(r), cardY, alturaFil(r), corte,
+        amigosfil_desenhar(homeConteudoX() + bordaX(r), cardY, alturaFil(r), corte,
                            foco.fileira == r && !focoHero, foco.coluna, agora);
         if (foco.fileira == r && !focoHero) temItemFoco = 0;
         y += NV_LEGACY_ROW_HEAD_H + alturaTotalFil(r) + fileiraGap();
@@ -5846,8 +5867,7 @@ void home_desenhar(Uint32 agora) {
         float f = animFoco[r][c];
         float esc = 1.0f + escalaDe(tipo) * f;
         float w = lw * esc, h = artH * esc;
-        float cx = ajustes_conteudo_x() + c * passo - scrollX[r] + lw * 0.5f
-                 + xOffTipo(tipo) + bordaX(r);
+        float cx = homeFileiraX(r, c) + lw * 0.5f + xOffTipo(tipo);
         float cy = cardY + artH * 0.5f;
         if (cx > -lw * 1.5f && cx < NV_TELA_W + lw) {
           float px = cx - w * 0.5f, py = cy - h * 0.5f;
@@ -5912,8 +5932,8 @@ void home_desenhar(Uint32 agora) {
             empurra = (artH * escF * NV_EXP_ASPECTO - lw * escF) * expAbre;
           }
           if (abre > 0.0f) w = lw * esc + (larguraAberta - lw * esc) * abre;
-          float cx = ajustes_conteudo_x() + c * passo - scrollX[r] + lw * 0.5f
-                   + empurra + (w - lw * esc) * 0.5f + xOffTipo(tipo) + bordaX(r);
+          float cx = homeFileiraX(r, c) + lw * 0.5f
+                   + empurra + (w - lw * esc) * 0.5f + xOffTipo(tipo);
           // Sem levantamento: no web o card focado nao sai do lugar. O que
           // desloca aqui e so a cascata de entrada, e so enquanto ela dura.
           float cy = cardY + artH * 0.5f + (1.0f - entra) * NV_ENTRA_DY;
@@ -6150,11 +6170,11 @@ void home_desenhar(Uint32 agora) {
                fora == 1 ? i18n("Cabe %d fileira a mais aqui")
                          : i18n("Cabem %d fileiras a mais aqui"), fora);
       TxtLinha l = txt_linha(TXT_CAPTION, aviso, 196, 199, 208, 255);
-      txt_desenhar_alpha(l, ajustes_conteudo_x(), y, 0.92f * (1.0f - cinema));
+      txt_desenhar_alpha(l, homeConteudoX(), y, 0.92f * (1.0f - cinema));
       { TxtLinha c = txt_linha(TXT_CAPTION2,
                                "Ajustes  ·  Fileiras da Home  ·  Limite de fileiras",
                                150, 152, 160, 255);
-        txt_desenhar_alpha(c, ajustes_conteudo_x(), y + l.h + 6.0f, 0.92f * (1.0f - cinema)); }
+        txt_desenhar_alpha(c, homeConteudoX(), y + l.h + 6.0f, 0.92f * (1.0f - cinema)); }
     } }
 
   // PERGUNTA DE SAIDA. Fica por cima de tudo e some sozinha em 3 s; o segundo

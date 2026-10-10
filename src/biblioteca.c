@@ -430,10 +430,22 @@ static float bibW(void) {
 // canto esquerdo e a mesma largura reais de bibX/bibW — e a grade comeca
 // DEPOIS do topo ampliado (gradeYBase). So biblioteca_desenhar liga a escala.
 #define BIB_TOPO_ESCALA_MIN 1.2f
+static int bibRetrato(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_TELA_W < NV_TELA_H;
+#else
+  return 0;
+#endif
+}
 static float bibHS(void) { return escala_min(BIB_TOPO_ESCALA_MIN); }
 static float hdrX(void) { return bibX() / bibHS(); }
 static float hdrW(void) { return bibW() / bibHS(); }
 static float hdrDir(void) { return bibDireita() / bibHS(); }
+static float bibControleMax(void) { return (hdrW() - BIB_FAIXA_GAP * 2.0f) / 3.0f; }
+static float pickerY(void) {
+  return BIB_FAIXA_Y + (BIB_SEG_H - BIB_CHIP_H) * 0.5f
+       + (bibRetrato() ? BIB_SEG_H + BIB_FAIXA_GAP : 0.0f);
+}
 // Cartazes: o cartaz fica nos 268 medidos e sai uma coluna (6 -> 5 com a rail
 // fixa: 5 x 268 + 4 x 24 = 1436 nos 1584). Encolher o cartaz para manter seis
 // mudaria o raio, a borda e a arte pedida — e o dono ja aprovou esse tamanho.
@@ -485,7 +497,9 @@ static float passoLinha(void) {
   return BIB_LINHA_PASSO;
 }
 static float gradeY(void) {
-  return (estado() == EST_ITENS ? BIB_GRADE_Y_ABERTA : BIB_GRADE_Y_TITULOS) * bibHS();
+  float y = estado() == EST_ITENS ? BIB_GRADE_Y_ABERTA : BIB_GRADE_Y_TITULOS;
+  if (bibRetrato() && estado() != EST_ITENS) y += BIB_SEG_H + BIB_FAIXA_GAP;
+  return y * bibHS();
 }
 static int nLinhas(void) { return (nCelulas + colunas() - 1) / colunas(); }
 
@@ -1394,7 +1408,8 @@ static float larguraModo(int a) {
   float w = (float)txt_linha(TXT_ROW_TITULO, ROT_MODO[a], 140, 140, 140, 255).w * BIB_ESC_MODO;
   textoModo(a, num, sizeof num);
   if (num[0]) w += 9.0f + (float)txt_linha(TXT_CAPTION2, num, 93, 93, 93, 255).w * BIB_ESC_N;
-  return w + BIB_SEG_ITEM_PADX * 2.0f;
+  w += BIB_SEG_ITEM_PADX * 2.0f;
+  return bibRetrato() ? fminf(w, (hdrW() - BIB_SEG_PAD * 2.0f - BIB_SEG_ITEM_GAP * (BIB_N_MODOS - 1)) / BIB_N_MODOS) : w;
 }
 static float larguraSeletor(void) {
   float w = BIB_SEG_PAD * 2.0f + BIB_SEG_ITEM_GAP * (BIB_N_MODOS - 1);
@@ -1463,13 +1478,19 @@ static void desenhaModos(void) {
     }
     t  = v > 0.5f ? ajustes_tinta_foco() : sel ? 255 : 140;
     tn = v > 0.5f ? ajustes_tinta_foco2() : sel ? 118 : 93;
-    l = txt_linha(TXT_ROW_TITULO, ROT_MODO[a], t, t, t, 255);
+    textoModo(a, num, sizeof num);
+    ln = (TxtLinha){0};
+    if (bibRetrato()) {
+      float util = r.w - BIB_SEG_ITEM_PADX * 2.0f;
+      if (num[0]) ln = txt_linha_corta(TXT_CAPTION2, num, tn, tn, tn, 255, util * .4f / BIB_ESC_N);
+      l = txt_linha_corta(TXT_ROW_TITULO, ROT_MODO[a], t, t, t, 255,
+                          (util - (num[0] ? 9.0f + (float)ln.w * BIB_ESC_N : 0.0f)) / BIB_ESC_MODO);
+    } else l = txt_linha(TXT_ROW_TITULO, ROT_MODO[a], t, t, t, 255);
     txtEsc(l, r.x + BIB_SEG_ITEM_PADX, r.y + (r.h - (float)l.h * BIB_ESC_MODO) * 0.5f,
            BIB_ESC_MODO, 1.0f);
-    textoModo(a, num, sizeof num);
     if (num[0]) {
       // Na linha de BASE do nome (align-items: baseline), nao no meio dele.
-      ln = txt_linha(TXT_CAPTION2, num, tn, tn, tn, 255);
+      if (!bibRetrato()) ln = txt_linha(TXT_CAPTION2, num, tn, tn, tn, 255);
       txtEsc(ln, r.x + BIB_SEG_ITEM_PADX + (float)l.w * BIB_ESC_MODO + 9.0f,
              r.y + (r.h + (float)l.h * BIB_ESC_MODO) * 0.5f - (float)ln.h * BIB_ESC_N - 1.0f,
              BIB_ESC_N, 1.0f);
@@ -1477,8 +1498,9 @@ static void desenhaModos(void) {
     x += w + BIB_SEG_ITEM_GAP;
   }
   // O fio vertical entre o seletor e os filtros (1 x 34, branco a 12%).
-  gfx_cor((GfxRect){ c.x + c.w + BIB_FAIXA_GAP, c.y + (c.h - 34.0f) * 0.5f, 1.0f, 34.0f },
-          0.0f, 1, 1, 1, .12f);
+  if (!bibRetrato())
+    gfx_cor((GfxRect){ c.x + c.w + BIB_FAIXA_GAP, c.y + (c.h - 34.0f) * 0.5f, 1.0f, 34.0f },
+            0.0f, 1, 1, 1, .12f);
 }
 
 static void pickerTexto(int p, const char **rot, const char **val) {
@@ -1497,13 +1519,14 @@ static void pickerTexto(int p, const char **rot, const char **val) {
 static float pickerLargura(int p) {
   const char *rot, *val;
   pickerTexto(p, &rot, &val);
-  return (float)txt_linha(TXT_CAPTION2, rot, 117, 117, 117, 255).w * BIB_ESC_ROT + 6.0f
+  float w = (float)txt_linha(TXT_CAPTION2, rot, 117, 117, 117, 255).w * BIB_ESC_ROT + 6.0f
        + (float)txt_linha(TXT_HERO_SEC, val, 245, 245, 245, 255).w * BIB_ESC_VAL
        + BIB_CHIP_PADX * 2.0f;
+  return bibRetrato() ? fminf(w, bibControleMax()) : w;
 }
 
 static float pickerX(int p) {
-  float x = hdrX() + larguraSeletor() + BIB_FAIXA_GAP * 2.0f + 1.0f;
+  float x = hdrX() + (bibRetrato() ? 0.0f : larguraSeletor() + BIB_FAIXA_GAP * 2.0f + 1.0f);
   int i;
   for (i = 0; i < p; i++) x += pickerLargura(i) + BIB_FAIXA_GAP;
   return x;
@@ -1512,7 +1535,7 @@ static float pickerX(int p) {
 static void desenhaPicker(int p, float f) {
   const char *rot, *val;
   float w = pickerLargura(p);
-  GfxRect r = { pickerX(p), BIB_FAIXA_Y + (BIB_SEG_H - BIB_CHIP_H) * 0.5f, w, BIB_CHIP_H };
+  GfxRect r = { pickerX(p), pickerY(), w, BIB_CHIP_H };
   float v = anim_clamp(f, 0.0f, 1.0f);
   ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroPicker, NULL, p, 0);
   // Repouso: o vidro dos filtros (branco a 6%) ou, no solido, o #15161a do
@@ -1530,8 +1553,15 @@ static void desenhaPicker(int p, float f) {
     TxtLinha tr, tv;
     float x = r.x + BIB_CHIP_PADX;
     pickerTexto(p, &rot, &val);
-    tr = txt_linha(TXT_CAPTION2, rot, rotulo, rotulo, rotulo, 255);
-    tv = txt_linha(TXT_HERO_SEC, val, valor, valor, valor, 255);
+    if (bibRetrato()) {
+      float util = r.w - BIB_CHIP_PADX * 2.0f;
+      tr = txt_linha_corta(TXT_CAPTION2, rot, rotulo, rotulo, rotulo, 255, util * .45f / BIB_ESC_ROT);
+      tv = txt_linha_corta(TXT_HERO_SEC, val, valor, valor, valor, 255,
+                           (util - (float)tr.w * BIB_ESC_ROT - 6.0f) / BIB_ESC_VAL);
+    } else {
+      tr = txt_linha(TXT_CAPTION2, rot, rotulo, rotulo, rotulo, 255);
+      tv = txt_linha(TXT_HERO_SEC, val, valor, valor, valor, 255);
+    }
     txtEsc(tr, x, r.y + (r.h - (float)tr.h * BIB_ESC_ROT) * 0.5f, BIB_ESC_ROT, 1.0f);
     x += (float)tr.w * BIB_ESC_ROT + 6.0f;
     txtEsc(tv, x, r.y + (r.h - (float)tv.h * BIB_ESC_VAL) * 0.5f, BIB_ESC_VAL, 1.0f); }
@@ -1542,8 +1572,9 @@ static void desenhaPicker(int p, float f) {
 // do texto) — eram tres pilulas de 520/520/300 x 72, o dobro de qualquer botao
 // do mockup.
 static float larguraAcao(const char *rot) {
-  return (float)txt_linha(TXT_HERO_SEC, rot, 245, 245, 245, 255).w * BIB_ESC_VAL
-       + BIB_CHIP_PADX * 2.0f + 8.0f;
+  float w = (float)txt_linha(TXT_HERO_SEC, rot, 245, 245, 245, 255).w * BIB_ESC_VAL
+          + BIB_CHIP_PADX * 2.0f + 8.0f;
+  return bibRetrato() ? fminf(w, bibControleMax()) : w;
 }
 static void desenhaAcoes(void) {
   float x = hdrX();
@@ -1564,7 +1595,9 @@ static void desenhaAcoes(void) {
     r.w = larguraAcao(rot);
     ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroAcao, NULL, a, 0);
     cor = pilula(r, 0.5f, animPick[a], ligada);
-    { TxtLinha l = txt_linha(TXT_HERO_SEC, rot, cor, cor, cor, 255);
+    { TxtLinha l = bibRetrato()
+        ? txt_linha_corta(TXT_HERO_SEC, rot, cor, cor, cor, 255, (r.w - BIB_CHIP_PADX * 2.0f) / BIB_ESC_VAL)
+        : txt_linha(TXT_HERO_SEC, rot, cor, cor, cor, 255);
       txtEsc(l, r.x + (r.w - (float)l.w * BIB_ESC_VAL) * 0.5f,
              r.y + (r.h - (float)l.h * BIB_ESC_VAL) * 0.5f, BIB_ESC_VAL, 1.0f); }
     x += r.w + BIB_FAIXA_GAP;

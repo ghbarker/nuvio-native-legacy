@@ -114,21 +114,31 @@
 #define G_AREA_X   NV_MARGEM_X
 #define G_AREA_W   (NV_TELA_W - 2.0f * NV_MARGEM_X)
 #define G_AREA_DIR (G_AREA_X + G_AREA_W)
-#define G_HERO_Y   108.0f
+static int gRetrato(void) {
+#ifdef NV_TOUCH_PREVIEW
+  return NV_TELA_W < NV_TELA_H;
+#else
+  return 0;
+#endif
+}
+static float gTopoFim = 80.0f;
+static void gTopoMedir(void);
+#define G_HERO_Y   (gRetrato() ? gTopoFim + 28.0f : 108.0f)
 // PREVIEW: 800x450 e 41,7% da largura, 16:9 exato. Os MESMOS numeros furam a
 // superficie GL (desenharHero) e posicionam o plano de video (a sessao "mini
 // no guia" do player recebe estes numeros por guia_preview_rect) — um lugar
 // so, senao o furo e o video desencontram.
-#define G_PREVIEW_W 800.0f
-#define G_PREVIEW_H 450.0f
+#define G_PREVIEW_W (gRetrato() ? G_AREA_W : 800.0f)
+#define G_PREVIEW_H (G_PREVIEW_W * (9.0f / 16.0f))
 #define G_PREVIEW_X (G_AREA_DIR - G_PREVIEW_W)
-#define G_PREVIEW_Y G_HERO_Y
+#define G_INFO_H    450.0f
+#define G_PREVIEW_Y (gRetrato() ? G_HERO_Y + G_INFO_H + 24.0f : G_HERO_Y)
 #define G_PREVIEW_RAIO 16.0f          // px; vira fracao do menor lado no uso
 // Ficha do canal a esquerda do preview, com 48 de respiro ate ele.
 #define G_INFO_X   G_AREA_X
-#define G_INFO_W   (G_PREVIEW_X - 48.0f - G_INFO_X)
+#define G_INFO_W   (gRetrato() ? G_AREA_W : G_PREVIEW_X - 48.0f - G_INFO_X)
 // Topo da grade (regua do modo lista, primeira fileira do modo cartoes).
-#define G_TOPO     (G_HERO_Y + G_PREVIEW_H + 22.0f)
+#define G_TOPO     (G_PREVIEW_Y + G_PREVIEW_H + 22.0f)
 #define G_CARD_W   330.0f
 #define G_CARD_H   226.0f
 #define G_GAP_X     20.0f
@@ -189,6 +199,28 @@
 // que antes so abria segurando a seta (ninguem descobre gesto que nao se ve).
 enum { G_TOPO_BUSCAR = 0, G_TOPO_CATEGORIAS, G_TOPO_CARTOES, G_TOPO_LISTA, G_TOPO_ADDONS, G_TOPO_DIAG,
        G_TOPO_PREVIEW, G_TOPO_N };
+
+#ifdef NV_TOUCH_PREVIEW
+static GfxRect gTopoRects[G_TOPO_N];
+/* Chips share their visual and tap rectangles. Keep the display-mode pair
+   together while the remaining controls wrap inside the portrait gutters. */
+static void gTopoDistribuir(const float *larguras) {
+  float x = G_AREA_X, y = G_TOPO_Y + G_TOPO_H + 52.0f;
+  for (int i = 0; i < G_TOPO_N; i++) {
+    float w = fminf(larguras[i], G_AREA_W * 0.5f);
+    float grupo = w;
+    if (i == G_TOPO_CARTOES)
+      grupo += fminf(larguras[G_TOPO_LISTA], G_AREA_W * 0.5f);
+    if (i != G_TOPO_LISTA && x > G_AREA_X && x + grupo > G_AREA_DIR) {
+      x = G_AREA_X;
+      y += G_TOPO_H + 12.0f;
+    }
+    gTopoRects[i] = (GfxRect){x, y, w, G_TOPO_H};
+    x += w + (i == G_TOPO_CARTOES ? 0.0f : 12.0f);
+  }
+  gTopoFim = y + G_TOPO_H;
+}
+#endif
 
 // --- painel de addons ---------------------------------------------------------
 #define G_PA_W      720.0f
@@ -1479,8 +1511,13 @@ static void desenharDica(void) {
   GfxRect p;
   if (da <= 0.01f || focoTopo || overlay) return;
   ajustes_acento(&ar, &ag, &ab);
-  t = txt_linha(TXT_CAPTION, i18n("← no primeiro canal: opções do guia"), 236, 238, 244, 255);
-  p = (GfxRect){ dicaDir - (float)t.w - 40.0f, G_TOPO_Y + G_TOPO_H + 16.0f, (float)t.w + 40.0f, 44.0f };
+  t = gRetrato()
+    ? txt_linha_corta(TXT_CAPTION, i18n("← no primeiro canal: opções do guia"), 236, 238, 244, 255, G_AREA_W - 40.0f)
+    : txt_linha(TXT_CAPTION, i18n("← no primeiro canal: opções do guia"), 236, 238, 244, 255);
+  p = (GfxRect){ dicaDir - (float)t.w - 40.0f,
+                 (gRetrato() ? gTopoFim : G_TOPO_Y + G_TOPO_H) + 16.0f,
+                 (float)t.w + 40.0f, 44.0f };
+  if (gRetrato() && p.x < G_AREA_X) p.x = G_AREA_X;
   gfx_cor(p, 0.5f, 0.13f, 0.14f, 0.18f, 0.97f * da);
   gfx_anel_fora(p, 0.5f, 0.0f, 2.0f, ar, ag, ab, 0.85f * da);
   txt_desenhar_alpha(t, p.x + 20.0f, p.y + (p.h - (float)t.h) * 0.5f, da);
@@ -1537,6 +1574,7 @@ int guia_pediu_parar_preview(void) { int v = pedPararPreview; pedPararPreview = 
 int guia_pediu_restaurar(void)     { int v = pedRestaurar; pedRestaurar = 0; return v; }
 int guia_pediu_guia_cheio(void)    { int v = pedGuiaCheio; pedGuiaCheio = 0; return v; }
 void guia_preview_rect(float *x, float *y, float *w, float *h) {
+  gTopoMedir();
   *x = G_PREVIEW_X; *y = G_PREVIEW_Y; *w = G_PREVIEW_W; *h = G_PREVIEW_H;
 }
 
@@ -2380,6 +2418,7 @@ int guia_atualizando_lista(void) {
 }
 
 void guia_atualizar(float dt, Uint32 agora) {
+  if (guia_visivel()) gTopoMedir();
   entrada = anim_mola(entrada, guia_visivel() ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
   int prontoPend = atomic_load_explicit(&pendPronto, memory_order_acquire);
   if (recargaDoPainel && !fioVivo && !recarregarPend && !prontoPend) recargaDoPainel = 0;
@@ -2901,7 +2940,7 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
   float raio = G_PREVIEW_RAIO / G_PREVIEW_H;
   float ha = a * heroA;
   float x = G_INFO_X, w = G_INFO_W, y = G_HERO_Y;
-  float proxY = G_HERO_Y + G_PREVIEW_H - 34.0f;
+  float proxY = G_HERO_Y + G_INFO_H - 34.0f;
   float ar, ag, ab;
   int epg, tem = 0, noAr = 0;
   EpgProg p;
@@ -3363,10 +3402,7 @@ static void ponteiroAddon(int i, int b) {
   paFoco = i;
 }
 
-static float desenharTopo(float a) {
-  const char *rot[G_TOPO_N];
-  float w[G_TOPO_N], xs[G_TOPO_N], x, ar, ag, ab, seg0;
-  int i;
+static void gTopoRotulos(const char **rot) {
   rot[G_TOPO_BUSCAR] = i18n("Buscar");
   rot[G_TOPO_CATEGORIAS] = i18n("Categorias");
   rot[G_TOPO_CARTOES] = i18n("Cartões");
@@ -3376,11 +3412,34 @@ static float desenharTopo(float a) {
   // VERDE). O verde continua como atalho onde existe.
   rot[G_TOPO_DIAG]    = i18n("Diagnóstico");
   rot[G_TOPO_PREVIEW] = previewLigado ? i18n("Preview: sim") : i18n("Preview: não");
-  ajustes_acento(&ar, &ag, &ab);
-  for (i = 0; i < G_TOPO_N; i++)
+}
+
+static void gTopoLarguras(const char **rot, float *w) {
+  for (int i = 0; i < G_TOPO_N; i++)
     w[i] = (float)txt_linha(TXT_PG_ROTULO, rot[i], 255, 255, 255, 255).w
            + 2.0f * G_CHIP_PAD
            + (i == G_TOPO_PREVIEW ? 20.0f : (i == G_TOPO_CATEGORIAS || i == G_TOPO_BUSCAR) ? 26.0f : 0.0f);
+}
+
+static void gTopoMedir(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (gRetrato()) {
+    const char *rot[G_TOPO_N];
+    float w[G_TOPO_N];
+    gTopoRotulos(rot);
+    gTopoLarguras(rot, w);
+    gTopoDistribuir(w);
+  }
+#endif
+}
+
+static float desenharTopo(float a) {
+  const char *rot[G_TOPO_N];
+  float w[G_TOPO_N], xs[G_TOPO_N], x, ar, ag, ab, seg0, tituloDir;
+  int i;
+  gTopoRotulos(rot);
+  gTopoLarguras(rot, w);
+  ajustes_acento(&ar, &ag, &ab);
 
   // Relogio na margem direita, na altura dos chips.
   { time_t tt = time(NULL); struct tm lt; char hora[12];
@@ -3390,6 +3449,7 @@ static float desenharTopo(float a) {
     x = G_AREA_DIR - (float)t.w;
     txt_desenhar_alpha(t, x, G_TOPO_Y + (G_TOPO_H - (float)t.h) * 0.5f, a);
     x -= 36.0f; }
+  tituloDir = x;
 
   // Da direita para a esquerda: Preview, Addons, e o par segmentado.
   for (i = G_TOPO_N - 1; i >= 0; i--) {
@@ -3397,9 +3457,18 @@ static float desenharTopo(float a) {
     xs[i] = x;
     x -= (i == G_TOPO_LISTA) ? 0.0f : 12.0f;
   }
+#ifdef NV_TOUCH_PREVIEW
+  if (gRetrato()) for (i = 0; i < G_TOPO_N; i++) {
+    xs[i] = gTopoRects[i].x;
+    w[i] = gTopoRects[i].w;
+  }
+#endif
   seg0 = xs[G_TOPO_CARTOES];
   // Trilho do controle segmentado.
   { GfxRect tr = { seg0, G_TOPO_Y, w[G_TOPO_CARTOES] + w[G_TOPO_LISTA], G_TOPO_H };
+#ifdef NV_TOUCH_PREVIEW
+    if (gRetrato()) tr.y = gTopoRects[G_TOPO_CARTOES].y;
+#endif
     if (ajustes_vidro()) gfx_cor(tr, 0.5f, 1, 1, 1, 0.06f * a);
     else gfx_cor(tr, 0.5f, 0.114f, 0.118f, 0.137f, a); }
 
@@ -3410,6 +3479,9 @@ static float desenharTopo(float a) {
             : i == G_TOPO_CATEGORIAS ? catAberto != 0
             : seg ? ((i == G_TOPO_LISTA) == modoLista) : 0;
     GfxRect r = { xs[i], G_TOPO_Y, w[i], G_TOPO_H };
+#ifdef NV_TOUCH_PREVIEW
+    if (gRetrato()) r = gTopoRects[i];
+#endif
     int ct;
     if (!overlay && a > 0.99f) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroTopo, NULL, i, 0);
     if (seg) {
@@ -3430,8 +3502,13 @@ static float desenharTopo(float a) {
     }
     ct = f > 0.5f ? ajustes_tinta_foco() : sel ? 245 : 168;
     { // ct+1 estourava 255 -> 0 no canal verde (tinta branca = magenta no foco).
-      TxtLinha t = txt_linha(TXT_PG_ROTULO, rot[i], ct, ct < 255 ? ct + 1 : 255,
-                             ct + 5 > 255 ? 255 : ct + 5, 255);
+      float iconeW = i == G_TOPO_PREVIEW ? 20.0f
+                   : (i == G_TOPO_CATEGORIAS || i == G_TOPO_BUSCAR) ? 26.0f : 0.0f;
+      TxtLinha t = gRetrato()
+        ? txt_linha_corta(TXT_PG_ROTULO, rot[i], ct, ct < 255 ? ct + 1 : 255,
+                          ct + 5 > 255 ? 255 : ct + 5, 255, r.w - 2.0f * G_CHIP_PAD - iconeW)
+        : txt_linha(TXT_PG_ROTULO, rot[i], ct, ct < 255 ? ct + 1 : 255,
+                    ct + 5 > 255 ? 255 : ct + 5, 255);
       float tx = r.x + (r.w - (float)t.w) * 0.5f;
       if (i == G_TOPO_PREVIEW) {
         // Ponto de estado: verde ligado, cinza desligado. O texto ja diz,
@@ -3473,7 +3550,7 @@ static float desenharTopo(float a) {
   // cima do preview e dos cartoes.
   dicaDir = xs[G_TOPO_PREVIEW] + w[G_TOPO_PREVIEW];
   dicaA = a;
-  return xs[G_TOPO_BUSCAR];
+  return gRetrato() ? tituloDir : xs[G_TOPO_BUSCAR];
 }
 
 // --- modo lista ---------------------------------------------------------------------
@@ -4379,6 +4456,7 @@ void guia_desenhar(Uint32 agora) {
   int l, i, temLinhas;
   if (a < 0.01f || !guia_visivel()) return;
   if (overlay) { desenharBanda(a, agora); return; }
+  gTopoMedir();
   temLinhas = (estado == G_PRONTO || estado == G_BAIXANDO) && nLinhas() > 0;
 #ifdef NV_TOUCH_PREVIEW
   if (temLinhas) {
@@ -4456,9 +4534,12 @@ void guia_desenhar(Uint32 agora) {
     else
       snprintf(sub, sizeof sub, i18n("%d canais · %d categorias · segure %s para pular seção"),
                nCanais, nCats, "\xe2\x86\x91\xe2\x86\x93");
-    { TxtLinha st = txt_linha_corta(TXT_DET_META2, sub, 150, 153, 162, 255,
-                                    chipsX - 40.0f - sx);
-      txt_desenhar_alpha(st, sx, G_TOPO_Y + (G_TOPO_H - (float)st.h) * 0.5f + 2.0f, a); } }
+    { float subX = gRetrato() ? G_AREA_X : sx;
+      TxtLinha st = txt_linha_corta(TXT_DET_META2, sub, 150, 153, 162, 255,
+                                    gRetrato() ? G_AREA_W : chipsX - 40.0f - sx);
+      float subY = gRetrato() ? G_TOPO_Y + G_TOPO_H + 8.0f
+                              : G_TOPO_Y + (G_TOPO_H - (float)st.h) * 0.5f + 2.0f;
+      txt_desenhar_alpha(st, subX, subY, a); } }
 
   if (temLinhas) desenharHero(a, agoraT, tFoco);
 

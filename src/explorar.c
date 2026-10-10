@@ -43,7 +43,11 @@
 #include <string.h>
 
 #ifdef NV_TOUCH_PREVIEW
-#define EX_DIR          (NV_TELA_W - 80.0f)
+static float explorarDireita(void) {
+  float margem = NV_TELA_H / NV_TELA_W >= 1.7f ? ajustes_conteudo_x() : 80.0f;
+  return NV_TELA_W - margem;
+}
+#define EX_DIR          explorarDireita()
 #else
 #define EX_DIR          1840.0f     // borda direita do conteudo
 #endif

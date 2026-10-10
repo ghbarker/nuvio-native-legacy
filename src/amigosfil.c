@@ -104,7 +104,23 @@ static float rostoX(int i, float x0, float alt) {
   for (j = 0; j < i && j < SV_AMIGOS_MAX; j++) x += empurra(j, alt);
   return x;
 }
+static float amigosfilDireita(void) {
 #ifdef NV_TOUCH_PREVIEW
+  if (NV_TELA_H / NV_TELA_W >= 1.7f) {
+    float margem = ajustes_rail_largura_fixa() > 0.0f ? fmaxf(48.0f, ajustes_conteudo_x()) : 48.0f;
+    return NV_TELA_W - margem;
+  }
+#endif
+  return NV_TELA_W - NV_HOME_SAFE_RIGHT;
+}
+#ifdef NV_TOUCH_PREVIEW
+static void amigosfilToqueVincular(float x0, float y, float alt, float corte, int n) {
+  float direita = amigosfilDireita();
+  float maxX = fmaxf(0.0f, rostoX(n, x0, alt) + scroll + AF_D + 30.0f - direita);
+  float topo = fmaxf(y, corte), base = fminf(y + alt, NV_TELA_H);
+  toquerol_vincular(&toque, (GfxRect){x0, topo, fmaxf(0.0f, direita - x0), fmaxf(0.0f, base - topo)},
+                   gfx_escala(), 0.0f, n > 0 ? maxX : 0.0f, 0, &scroll);
+}
 void amigosfil_retomar_foco(int *coluna) {
   if (toque.livre && coluna) {
     float ponto = toque.regiao.x + toque.regiao.w * 0.35f, melhor = 1e9f;
@@ -203,7 +219,7 @@ int amigosfil_pediu_perfil(char *id, size_t tam) {
 int amigosfil_pediu_ajustes(void) { int v = temAjustes; temAjustes = 0; return v; }
 
 static float alvoScroll(int coluna, float x0, float alt) {
-  float alvo, util = NV_TELA_W - NV_HOME_SAFE_RIGHT;
+  float alvo, util = amigosfilDireita();
   const SvAmigo *a = socialvis_amigo(coluna);
   int j;
   // Um rosto inteiro antes do focado fica a vista, e o painel aberto inteiro
@@ -269,7 +285,7 @@ void amigosfil_atualizar(float dt, int focada, int *colunaP) {
 }
 
 static void desenhaConvite(float x0, float y, float alt, int focada, Uint32 agora) {
-  float w = NV_TELA_W - NV_HOME_SAFE_RIGHT - x0, h = alt - 24.0f;
+  float w = amigosfilDireita() - x0, h = alt - 24.0f;
   float f = focada ? 1.0f : 0.0f, raio = 26.0f / h;
   GfxRect r;
   const char *cod = recomenda_meu_codigo();
@@ -332,9 +348,7 @@ void amigosfil_desenhar(float x0, float y, float alt, float corte, int focada,
   if (ultX0 < 0.0f && focada) scroll = alvoScroll(coluna, x0, alt);
   ultX0 = x0; ultAlt = alt;
 #ifdef NV_TOUCH_PREVIEW
-  { float maxX = fmaxf(0.0f, rostoX(n, x0, alt) + scroll + AF_D + 30.0f - (NV_TELA_W - NV_HOME_SAFE_RIGHT));
-    float topo = fmaxf(y, corte), base = fminf(y + alt, NV_TELA_H);
-    toquerol_vincular(&toque, (GfxRect){ x0, topo, NV_TELA_W - NV_HOME_SAFE_RIGHT - x0, fmaxf(0.0f, base - topo) }, gfx_escala(), 0.0f, n > 0 ? maxX : 0.0f, 0, &scroll); }
+  amigosfilToqueVincular(x0, y, alt, corte, n);
 #endif
   if (n < 1) {
 #ifdef NV_TOUCH_PREVIEW

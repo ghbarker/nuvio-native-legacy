@@ -316,7 +316,7 @@ static GfxRect ajInspR(void) { return (GfxRect){ ajInspX(), AJI_MARGEM, NV_VTELA
 // 48/172/300 px and screen margins at 40 px. The global UI zoom is independent.
 #define AJ2_S          ajustes_tamanho_ajustes()
 #define AJ2_TOPO       (112.0f / AJ2_S)
-#define AJ2_MARGEM     (40.0f / AJ2_S)
+#define AJ2_MARGEM     ((ajRetrato() ? 48.0f : 40.0f) / AJ2_S)
 // 770 (era 660): os nomes inteiros em Montserrat, a fonte mais larga que a TV
 // oferece — "Languages and subtitles" em 44/600 mede 563 e a linha tira 198.
 #define AJ2_MENU_W     730.0f
@@ -329,10 +329,10 @@ static GfxRect ajInspR(void) { return (GfxRect){ ajInspX(), AJI_MARGEM, NV_VTELA
 #define AJ2_EDITOR_DX  (252.0f / AJ2_S)   // 300
 static float aj2X0(void) { return (48.0f + ajustes_rail_largura_fixa()) / AJ2_S; }
 // A3: linhas compactas (58 + 2 de vao, rotulo 24), o dobro de linhas na tela.
-#define AJ2_LN_H        60.0f   // 2.0.3: 48 px no mockup v3 a 80%
+#define AJ2_LN_H        (ajRetrato() ? 96.0f : 60.0f)
 #define AJ2_LN_GAP       2.0f
-#define AJ2_LN_SUB      76.0f   // linha com a segunda linha ("Depende de: ...")
-#define AJ2_LN_LINHA1   60.0f   // a primeira linha de uma linha que abre
+#define AJ2_LN_SUB      (ajRetrato() ? 120.0f : 76.0f)
+#define AJ2_LN_LINHA1   AJ2_LN_H
 #define AJ2_LN_BEN      31.0f   // cada linha da frase de beneficio (2.0.3)
 static float aj2N1;
 static GfxRect aj2MenuR(void) {
@@ -342,11 +342,12 @@ static GfxRect aj2MenuR(void) {
 }
 // #339: "Lista" tira a coluna da arte: a lista toma a largura e a explicacao
 // da opcao em foco abre embaixo da linha (o caminho de 120%, que ja era assim).
-static int aj2TemInsp(void) { return ajustes_tamanho_ajustes() < 1.19f && !ajustes_layout_lista(); }
+static int aj2TemInsp(void) { return (ajRetrato() || ajustes_tamanho_ajustes() < 1.19f) && !ajustes_layout_lista(); }
 // A LARGURA DA LISTA DA V2 (1000 em 80-100%). Nao desenha mais nada: e a regua
 // de ajSegmentada (quem e segmentado e quem abre editor), mantida para que a
 // A3 nao mude a navegacao de nenhuma opcao.
 static float aj2ListaWRef(void) {
+  if (ajRetrato()) return NV_VTELA_W - AJ2_MARGEM - aj2X0();
   float x = aj2X0() + AJ2_LISTA_DX;
   float w = aj2TemInsp() ? AJ2_LISTA_W : NV_VTELA_W - AJ2_MARGEM - x;
   if (aj2TemInsp() && x + w + 24.0f + 440.0f > NV_VTELA_W - AJ2_MARGEM) w = NV_VTELA_W - AJ2_MARGEM - 464.0f - x;
@@ -359,12 +360,21 @@ static float aj2ListaWRef(void) {
 #define AJ2_CORPO (AJ2_TOPO + AJ_CAB_PAGINA)   // 2.0.2: abaixo do cabecalho da pagina
 static float aj2ArteX(void) { return aj2X0(); }
 static float aj2ArteW(void) { return (NV_VTELA_W - AJ2_MARGEM - aj2ArteX()) * 0.44f; }
+static float aj2InspRetratoH(void) {
+  float w = fminf(560.0f, NV_VTELA_W - AJ2_MARGEM - aj2ArteX());
+  return w * 9.0f / 16.0f + 124.0f;
+}
 static GfxRect aj2ListaR(void) {
+  if (ajRetrato()) {
+    float x = aj2ArteX(), y = AJ2_CORPO + (aj2TemInsp() ? aj2InspRetratoH() + 24.0f : 0.0f);
+    return (GfxRect){x, y, NV_VTELA_W - AJ2_MARGEM - x, NV_VTELA_H - y - AJ2_MARGEM};
+  }
   float x = ajustes_layout_lista() ? aj2ArteX() : aj2ArteX() + aj2ArteW() + 36.0f;
   return (GfxRect){ x, AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - x, NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
 // O "inspetor" da A3 e a coluna da arte (sem ilha).
 static GfxRect aj2InspR(void) {
+  if (ajRetrato()) return (GfxRect){aj2ArteX(), AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - aj2ArteX(), aj2InspRetratoH()};
   return (GfxRect){ aj2ArteX(), AJ2_CORPO, aj2ArteW(), NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
 static GfxRect aj2EditorR(void) {
@@ -1122,7 +1132,7 @@ static void ajDesenharLinha(int item, float y, float f, float a) {
   // A3: o segmentado da opcao em foco fica sobre a arte (ajDesenharInspetor);
   // a linha mostra o valor, como as outras escolhas.
   // Sem a arte (#339 "Lista", 120%), o segmentado da escolha em foco fica na linha.
-  if ((tipo == AJL_TOG && ed) || (!aj2TemInsp() && ajSegmentada(op) && !desligada && (ed || emFoco))) {
+  if ((tipo == AJL_TOG && ed) || ((!aj2TemInsp() || ajRetrato()) && ajSegmentada(op) && !desligada && (ed || emFoco))) {
     int n = nValores(op);
     if (n > 3) n = 3;
     cauda = aj2Seg(op, n, ed ? uxPendente : valor[op], ed, xDir, yc, aTx);

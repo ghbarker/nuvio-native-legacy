@@ -24,6 +24,8 @@ static struct tm *utilidades_localtime_r(const time_t *t, struct tm *out) {
 #include "../src/livetvdiag.c"
 #elif defined(TESTE_REGISTRO)
 #include "../src/registro.c"
+#elif defined(TESTE_GUIA)
+#include "../src/guia.c"
 #else
 #error escolha TESTE_* utilidade
 #endif
@@ -31,6 +33,13 @@ static struct tm *utilidades_localtime_r(const time_t *t, struct tm *out) {
 
 float nv_layout_w = 2400.0f;
 float nv_layout_h = 1080.0f;
+#if defined(TESTE_GUIA)
+const char *i18n(const char *s) { return s; }
+TxtLinha txt_linha(TxtEstilo estilo, const char *s, int r, int g, int b, int a) {
+  (void)estilo; (void)r; (void)g; (void)b; (void)a;
+  return (TxtLinha){.w = (int)strlen(s) * 12, .h = 24};
+}
+#endif
 #if defined(TESTE_AGENDA)
 static Noticia manchetesTeste[8];
 static float escalaAgendaTeste = 1.5f;
@@ -40,6 +49,8 @@ void ponteiro_rolagem(PonteiroRolagemFn fn) { rolagemAgendaTeste = fn; }
 const Noticia *noticias_item(const char *imdb, int i) { (void)imdb; return i >= 0 && i < 8 ? &manchetesTeste[i] : NULL; }
 #endif
 #if defined(TESTE_EXPLORAR)
+static float railExplorarTeste;
+float ajustes_conteudo_x(void) { return NV_CONTENT_PAD + railExplorarTeste; }
 static PonteiroAlvo ultimoAlvo;
 static int alvos;
 void ponteiro_alvo(float x, float y, float w, float h, PonteiroFn focar, PonteiroFn ativar, int a, int b) {
@@ -76,7 +87,53 @@ static void exercitar(ToqueRolagem *r, float *offset, PonteiroRolagemFn fn, int 
 }
 
 int main(void) {
-#if defined(TESTE_SPOTLIGHT)
+#if defined(TESTE_GUIA)
+  const float alturas[] = {1920, 2340};
+  focoLin = 2; focoCol = 3; rolY = 27.5f; rolL = 33.25f;
+  for (int h = 0; h < 2; h++) {
+    float x, y, w, altura;
+    nv_layout_w = 1080; nv_layout_h = alturas[h];
+    guia_preview_rect(&x, &y, &w, &altura);
+    assert(gRetrato());
+    perto(G_INFO_X + G_INFO_W * .5f, NV_TELA_W * .5f);
+    perto(G_INFO_W, 920);
+    perto(x, G_PREVIEW_X); perto(y, G_PREVIEW_Y);
+    perto(w, G_PREVIEW_W); perto(altura, G_PREVIEW_H);
+    perto(x + w * .5f, NV_TELA_W * .5f);
+    perto(w / altura, 16.0f / 9.0f);
+    assert(G_HERO_Y > gTopoFim);
+    assert(y >= G_HERO_Y + G_INFO_H + 24);
+    assert(G_TOPO > y + altura && G_L_BASE - G_L_TOPO > G_CARD_H);
+    for (int i = 0; i < G_TOPO_N; i++) {
+      GfxRect r = gTopoRects[i];
+      assert(r.x >= G_AREA_X && r.x + r.w <= G_AREA_DIR);
+      assert(r.y >= G_TOPO_Y + G_TOPO_H + 52 && r.y + r.h <= gTopoFim);
+      for (int j = 0; j < i; j++) {
+        GfxRect q = gTopoRects[j];
+        assert(r.x >= q.x + q.w || q.x >= r.x + r.w ||
+               r.y >= q.y + q.h || q.y >= r.y + r.h);
+      }
+    }
+    perto(gTopoRects[G_TOPO_CARTOES].y, gTopoRects[G_TOPO_LISTA].y);
+    perto(gTopoRects[G_TOPO_CARTOES].x + gTopoRects[G_TOPO_CARTOES].w,
+          gTopoRects[G_TOPO_LISTA].x);
+    /* Very long translations cannot displace a control or split the pair. */
+    float longos[G_TOPO_N] = {1300, 1200, 1400, 1300, 1800, 1600, 1700};
+    gTopoDistribuir(longos);
+    for (int i = 0; i < G_TOPO_N; i++)
+      assert(gTopoRects[i].x >= G_AREA_X && gTopoRects[i].x + gTopoRects[i].w <= G_AREA_DIR);
+    perto(gTopoRects[G_TOPO_CARTOES].y, gTopoRects[G_TOPO_LISTA].y);
+    /* The video API refreshes after a rotation; old wrapped bounds cannot leak. */
+    nv_layout_w = 1920; nv_layout_h = 1080;
+    guia_preview_rect(&x, &y, &w, &altura);
+    assert(!gRetrato()); perto(x, 1040); perto(y, 108); perto(w, 800); perto(altura, 450);
+    perto(G_INFO_W, 912); perto(G_TOPO, 580);
+    nv_layout_w = 2400;
+    guia_preview_rect(&x, &y, &w, &altura);
+    perto(x, 1520); perto(y, 108); perto(w, 800); perto(altura, 450);
+  }
+  assert(focoLin == 2 && focoCol == 3); perto(rolY, 27.5f); perto(rolL, 33.25f);
+#elif defined(TESTE_SPOTLIGHT)
   focoL = 3; temPedido = 0; okPress = okLongo = 1; velY = 123;
   exercitar(&toqueSpot, &scrollY, toqueSpotRolar, 1);
   assert(focoL == 3 && !temPedido && !okPress && !okLongo && !velY);
@@ -113,6 +170,30 @@ int main(void) {
   assert(alvos == antes);
   nv_layout_w = 1920; perto(EX_DIR, 1840);
   nv_layout_w = 2400; perto(EX_DIR, 2320);
+  const float alturas[] = {1920, 2340};
+  const float rails[] = {0, 48, 113.6f};
+  for (int h = 0; h < 2; h++) {
+    nv_layout_w = 1080; nv_layout_h = alturas[h];
+    for (int b = 0; b < 3; b++) {
+      railExplorarTeste = rails[b];
+      float x = ajustes_conteudo_x(), largura = EX_DIR - x;
+      perto(x + largura * 0.5f, NV_TELA_W * 0.5f);
+      assert(vzX() < EX_DIR && EX_DIR <= NV_TELA_W);
+      float card = (largura - EX_CL_GAP * (EX_CL_COLS - 1)) / EX_CL_COLS;
+      assert(card > 0); perto(x + card * EX_CL_COLS + EX_CL_GAP * (EX_CL_COLS - 1), EX_DIR);
+      /* The current window width also determines the horizontal endpoint. */
+      viz.g[2].n = MAPA_VIZ_ITENS; toqueVz[2].livre = 1;
+      toqueVzOffset[2] = 1e6f;
+      float fim = viz.g[2].n * (EX_VZ_CARD + EX_VZ_GAP) - EX_VZ_GAP;
+      perto(vizRolarFileira(2, 0, EX_DIR - vzX()), fim - (EX_DIR - vzX()));
+      explorarAlvoFileira(EX_DIR - 100, 200, 246, 146, x, EX_DIR, ponteiroViz, 0, 4);
+      perto(ultimoAlvo.x + ultimoAlvo.w, EX_DIR);
+    }
+  }
+  nv_layout_w = 1080; nv_layout_h = 1728; railExplorarTeste = 113.6f;
+  perto(EX_DIR, 1000); /* Ordinary portrait tablet retains the original inset. */
+  nv_layout_w = 2400; nv_layout_h = 1080; perto(EX_DIR, 2320);
+  railExplorarTeste = 0;
 #elif defined(TESTE_AGENDA)
   foco = 3; calEvento = 2; ctxAberto = 0; pediuAbrir[0] = 0;
   exercitar(&toqueAgenda, &scrollY, toqueAgendaRolar, 1);

@@ -2112,9 +2112,10 @@ float ajustes_tamanho_ajustes(void) {
 #ifdef AJUSTES_TESTE
   if (ajEscalaTestePct) return ajEscalaTestePct / 100.0f;
 #endif
-  return v >= 0 && v < 3 ? F[v] : 0.8f;
+  float s = v >= 0 && v < 3 ? F[v] : 0.8f;
+  return ajRetrato() ? s * 1.25f : s;
 }
-int ajustes_layout_lista(void) { return ajRetrato() || valor[AJ_LAYOUT_AJUSTES] == 1; }
+int ajustes_layout_lista(void) { return valor[AJ_LAYOUT_AJUSTES] == 1; }
 int ajustes_esconder_logo_trailer(void) { return lig(AJ_LOGO_TRAILER); }
 int ajustes_trailer_zoom_tpk(void) { return lig(AJ_TRAILER_ZOOM_TPK); }   // 1 = Ligado
 #ifdef NV_ANDROID
@@ -2258,7 +2259,12 @@ void ajustes_textura_quadro(void) {
 // moderna DESLIGA o recolhimento, e nao o contrario. Copiado de
 // normalizeLayoutPreferences para nao inventar precedencia.
 int ajustes_rail_moderna(void)        { return lig(AJ_RAIL_MODERNA); }
-int ajustes_rail_recolhida(void)      { return ajustes_rail_moderna() ? 0 : lig(AJ_RAIL); }
+int ajustes_rail_recolhida(void) {
+  // No telefone em retrato, o menu sobrepoe a pagina. A preferencia salva
+  // continua valendo quando a tela volta para paisagem.
+  if (ajRetrato()) return 1;
+  return ajustes_rail_moderna() ? 0 : lig(AJ_RAIL);
+}
 int ajustes_rail_moderna_blur(void)   { return lig(AJ_RAIL_BLUR); }
 int ajustes_hero_ligado(void)         { return lig(AJ_HERO); }
 int ajustes_hero_cheio(void)          { return lig(AJ_HERO_CHEIO); }

@@ -269,7 +269,7 @@ static int uxEvento(SDL_Keycode k) {
         if (t <= AJ2_T_AV) uxTopo = AJ2_T_TOUR;
         else if (t == AJ2_T_PERFIL || t == AJ2_T_LAYOUT) uxTopo = AJ2_T_RESOLVER;
         else {
-          int g = t == AJ2_T_TOUR || ajustes_layout_lista() ? 0 : 2, dest = ini[g] < nSecoes ? ini[g] : 0;
+          int g = t == AJ2_T_TOUR || ajustes_layout_lista() || ajRetrato() ? 0 : 2, dest = ini[g] < nSecoes ? ini[g] : 0;
           uxVeioBusca = 0; focarSecao(dest); uxIndice = dest + 2;
         }
       } else if (k == SDLK_UP) {
@@ -284,7 +284,7 @@ static int uxEvento(SDL_Keycode k) {
       // #339 "Lista": uma coluna so. Cima/Baixo andam por todas as categorias,
       // Cima na primeira sobe para "O que o Nuvio faz?", Esquerda sai e a
       // Direita nao tem para onde ir.
-      if (ajustes_layout_lista()) {
+      if (ajustes_layout_lista() || ajRetrato()) {
         if (k == SDLK_UP) {
           if (sec > 0) dest = sec - 1;
           else { uxTopo = AJ2_T_TOUR; uxVeioBusca = 0; return 1; }

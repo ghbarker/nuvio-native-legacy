@@ -12,7 +12,7 @@ case "$(uname -s)" in
   *) flags+=(-DNV_LINUX_DESKTOP -Wl,--gc-sections) ;;
 esac
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
-for tela in SPOTLIGHT EXPLORAR AGENDA NOTAS DIAGNOSTICO LIVETV REGISTRO; do
+for tela in SPOTLIGHT EXPLORAR AGENDA NOTAS DIAGNOSTICO LIVETV REGISTRO GUIA; do
   cc "${flags[@]}" -DTESTE_"$tela" tests/utilidades_toque.c -lm -o "$dir/$tela"
   "$dir/$tela"
 done

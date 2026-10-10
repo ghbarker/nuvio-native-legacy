@@ -22,7 +22,14 @@
 
 float nv_layout_w = 2400.0f;
 float nv_layout_h = 1080.0f;
+#if defined(TESTE_AMIGOS)
+static float escalaAmigosTeste = 1.0f, railAmigosTeste;
+float gfx_escala(void) { return escalaAmigosTeste; }
+float ajustes_rail_largura_fixa(void) { return railAmigosTeste; }
+float ajustes_conteudo_x(void) { return NV_CONTENT_PAD + railAmigosTeste; }
+#else
 float gfx_escala(void) { return 1.0f; }
+#endif
 float gfx_escala_ui(void) { return 1.0f; }
 int teclado_aberto(void) { return 0; }
 const char *recomenda_meu_codigo(void) { return "abcdef"; }
@@ -107,6 +114,37 @@ int main(void) {
   e.fase = PONT_ROL_FIM; amigosfil_rolagem(&e); assert(toque.livre);
   int c = 0; amigosfil_retomar_foco(&c); assert(!toque.livre && c >= 0 && c < 6);
   toque.livre = 1; amigosfil_focar(3, 1); assert(!toque.livre && colAnt == 3 && dentro == 1);
+  const float alturas[] = {1920, 2340};
+  const float rails[] = {0, 48, 113.6f};
+  for (int h = 0; h < 2; h++) {
+    nv_layout_w = 1080; nv_layout_h = alturas[h];
+    for (int b = 0; b < 3; b++) {
+      railAmigosTeste = rails[b]; escalaAmigosTeste = 1.5f;
+      float x = railAmigosTeste > 0 ? NV_CONTENT_PAD + railAmigosTeste : 48;
+      perto(amigosfilDireita(), NV_TELA_W - x);
+      scroll = 0; ultX0 = x; ultAlt = 240; toquerol_limpar(&toque);
+      amigosfilToqueVincular(x, 300, 240, 132, 5);
+      perto(toque.regiao.x + toque.regiao.w * .5f, NV_TELA_W * .5f);
+      perto(toque.regiao.x + toque.regiao.w, amigosfilDireita());
+      e = (PonteiroRolagem){PONT_ROL_INICIO, 0, 0, 0, (x + 20) * escalaAmigosTeste, 400 * escalaAmigosTeste};
+      assert(amigosfil_rolagem(&e));
+      escalaAmigosTeste = 1; e.fase = PONT_ROL_MOVER; e.delta = -37.5f;
+      assert(amigosfil_rolagem(&e)); perto(scroll, 25); assert(colAnt == 3 && dentro == 1);
+      e.fase = PONT_ROL_INERCIA; e.delta = -1e6f; amigosfil_rolagem(&e);
+      perto(rostoX(5, x, 240) + AF_D + 30, amigosfilDireita());
+      assert(!amigosfil_rolagem(&e));
+      e.fase = PONT_ROL_INICIO; e.x = (x - 1) * 1.5f; assert(!amigosfil_rolagem(&e));
+      e.x = amigosfilDireita() * 1.5f; assert(!amigosfil_rolagem(&e));
+      amigosfilToqueVincular(x, 300, 240, 132, 0); assert(toque.maximo == 0);
+    }
+  }
+  nv_layout_w = 2400; nv_layout_h = 1080; railAmigosTeste = 113.6f;
+  perto(amigosfilDireita(), NV_TELA_W - NV_HOME_SAFE_RIGHT);
+  nv_layout_w = 1080; nv_layout_h = 1728;
+  perto(amigosfilDireita(), NV_TELA_W - NV_HOME_SAFE_RIGHT);
+  railAmigosTeste = 0; nv_layout_w = 2400; nv_layout_h = 1080;
+  toquerol_vincular(&toque, vista, 2, 0, 1000, 0, &scroll);
+  e = (PonteiroRolagem){PONT_ROL_INICIO, 0, 0, 0, 400, 400};
 #elif defined(TESTE_ENVIAR)
   aberto = 1; pagina = RE_PAG_AMIGOS; nCtts = 12; toquePasso = RE_L_PESSOA + RE_L_GAP;
   toquerol_vincular(&toque, vista, 2, 0, 10, 1, &rolar);

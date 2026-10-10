@@ -72,8 +72,6 @@
 #define BU_ILHA_GAP    22.0f
 #define BU_KB_PAD      20.0f
 #define BU_CAMPO_PADX  28.0f
-static float buX(void)   { return ajustes_rail_largura_fixa() + BU_MARG; }
-static float buDir(void) { return NV_TELA_W - BU_MARG; }
 static int buRetrato(void) {
 #ifdef NV_TOUCH_PREVIEW
   return NV_TELA_H > NV_TELA_W;
@@ -81,6 +79,10 @@ static int buRetrato(void) {
   return 0;
 #endif
 }
+static int buRetratoTelefone(void) { return buRetrato() && NV_TELA_H / NV_TELA_W >= 1.7f; }
+static float buMargem(void) { return buRetratoTelefone() ? 48.0f : BU_MARG; }
+static float buX(void)   { return ajustes_rail_largura_fixa() + buMargem(); }
+static float buDir(void) { return NV_TELA_W - (buRetratoTelefone() ? buX() : BU_MARG); }
 static float buColW(void) { return buRetrato() ? buDir() - buX() : 520.0f; }
 static float buResY(void);
 // A coluna da esquerda desce quando a pilula da Dinamica ocupa o canto.
@@ -1423,7 +1425,8 @@ static void desenhaCampo(Uint32 agora) {
       gfx_opacidade_grupo = g;
     }
     if (temIme && ponteiro_ativo())
-      ponteiro_alvo(c.x, c.y, fim + 4.0f - c.x, c.h, focarCampoPonteiro, NULL, 1, 0);
+      ponteiro_alvo(c.x, c.y, (buRetrato() ? fminf(fim + 4.0f, c.x + c.w) : fim + 4.0f) - c.x,
+                    c.h, focarCampoPonteiro, NULL, 1, 0);
     if (temCel)
       celb_botao(CELB_BUSCA, (GfxRect){ cx, my, d, d }, painel == 0 && campoFoco == 3,
                  focarCampoPonteiro, 3, 0, 1.0f);
@@ -1447,10 +1450,11 @@ static void desenhaCampo(Uint32 agora) {
                 "menu_search", ci, ci, ci + 0.01f, 1.0f); }
     { float tx = c.x + BU_CAMPO_PADX + 28.0f + 16.0f;
       float maxW = fim - tx - 14.0f;
+      if (buRetrato()) gfx_recorte(tx - 8.0f, c.y + 4.0f, fim - tx, c.h - 8.0f);
       if (nConsulta) {
         TxtLinha l = txt_linha_corta(TXT_CALLOUT, consulta, BU_TX, maxW);
         txt_desenhar(l, tx, c.y + (c.h - l.h) * 0.5f);
-        tx += l.w + 2.0f;
+        tx += (buRetrato() ? fminf((float)l.w, maxW) : (float)l.w) + 2.0f;
       } else {
         const char *av = st_dono() == ST_BUSCA ? st_aviso() : "";
         const char *ph = vozBusca() ? i18n("Ouvindo…") : av[0] ? i18n(av) : "Buscar filmes e séries";
@@ -1460,6 +1464,7 @@ static void desenhaCampo(Uint32 agora) {
       }
       if (painel == 0 && (nConsulta > 0 || campoFoco == 1) && (agora / 500) % 2 == 0)
         gfx_cor((GfxRect){ nConsulta ? tx + 2.0f : tx - 6.0f, c.y + (c.h - 30.0f) * 0.5f, 2.0f, 30.0f }, 0.5f, ar, ag, ab, 1.0f);
+      if (buRetrato()) gfx_sem_recorte();
     }
   }
 }

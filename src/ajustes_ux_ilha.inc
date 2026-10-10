@@ -128,6 +128,22 @@ static void ajDesenharInspetor(void) {
   int categoria = focoIndice || focoOp < 0;
   int op = categoria ? -1 : focoOp;
   if (!aj2TemInsp()) return;
+  if (ajRetrato()) {
+    float pw = fminf(w, 560.0f), px = x + (w - pw) * 0.5f;
+    int salvo = op >= 0 ? valor[op] : 0, ed = op >= 0 && ajEditandoLinha(op);
+    if (ed && op != AJ_FUNDO) valor[op] = uxPendente;
+    gfx_recorte(ir.x, ir.y, ir.w, ir.h);
+    ajCenaTroca(AJ_TROCA_INSPETOR, secAtual, op, px, y, pw, 0);
+    if (op >= 0) valor[op] = salvo;
+    y += pw * 9.0f / 16.0f + 16.0f;
+    const char *titulo = naMais ? "Mais opções" : categoria ? TELA[secIni[secAtual]].titulo : rotuloOpcao(op);
+    TxtLinha t = ajTxtC(TXT_V3_LN_B, titulo, w);
+    txt_desenhar_alpha(t, x, y, 1);
+    y += 40.0f;
+    ajBloco(TXT_V3_SUB, categoria ? SECAO_AJUDA[secAtual] : uxResumo(op), x, y, w, 30.0f, 0.70f, 2);
+    gfx_sem_recorte();
+    return;
+  }
   { int opPv = op >= 0 ? op : -1;
     // Categoria em foco (cabecalho ou menu): a imagem da categoria, nao a
     // previa da primeira opcao dela.
@@ -1034,6 +1050,25 @@ static void aj2DesenharDiferencas(void) {
 static void aj2InspetorDiferencas(void) {
   GfxRect ir = aj2InspR();
   if (!aj2TemInsp()) return;
+  if (ajRetrato()) {
+    if (!uxNDifs) return;
+    int op = uxDifs[uxDifFoco], salvo = valor[op];
+    float w = fminf(560.0f, ir.w), x = ir.x + (ir.w - w) * 0.5f, cw = (w - 16.0f) * 0.5f;
+    gfx_recorte(ir.x, ir.y, ir.w, ir.h);
+    for (int i = 0; i < 2; i++) {
+      valor[op] = i == 0 ? uxValorPadrao(op) : salvo;
+      ajPreviaCompacta(op, x + i * (cw + 16.0f), ir.y + 4.0f, cw);
+      TxtLinha t = ajTxtC(TXT_V3_SUB, i == 0 ? "Padrão" : "Atual", cw);
+      txt_desenhar_alpha(t, x + i * (cw + 16.0f), ir.y + 4.0f + cw * 9.0f / 16.0f + 10.0f, 0.65f);
+    }
+    valor[op] = salvo;
+    float y = ir.y + 4.0f + cw * 9.0f / 16.0f + 52.0f;
+    TxtLinha t = ajTxtC(TXT_V3_LN_B, rotuloOpcao(op), ir.w);
+    txt_desenhar_alpha(t, ir.x, y, 1);
+    ajBloco(TXT_V3_SUB, uxResumo(op), ir.x, y + 40.0f, ir.w, 30.0f, 0.70f, 2);
+    gfx_sem_recorte();
+    return;
+  }
   // A3: a coluna da arte, sem ilha (como a das categorias).
   if (uxNDifs) {
     int op = uxDifs[uxDifFoco], salvo = valor[op], i;
@@ -1276,6 +1311,18 @@ static void ajSubLista(const AjSubLinha *L, int n, int foco, const AjDica *d, in
 // kicker, o titulo e o texto da linha em foco.
 static float ajSubInspetor(int op, const char *kick, const char *titulo, const char *texto) {
   GfxRect ir = aj2InspR();
+  if (ajRetrato()) {
+    if (!aj2TemInsp()) return ir.y + ir.h;
+    float pw = fminf(560.0f, ir.w), px = ir.x + (ir.w - pw) * 0.5f, y = ir.y + 4.0f;
+    gfx_recorte(ir.x, ir.y, ir.w, ir.h);
+    ajCenaTroca(AJ_TROCA_INSPETOR, uxSecaoDe(op), op, px, y, pw, 0);
+    y += pw * 9.0f / 16.0f + 16.0f;
+    TxtLinha t = ajTxtC(TXT_V3_LN_B, titulo, ir.w);
+    txt_desenhar_alpha(t, ir.x, y, 1);
+    if (texto && texto[0]) ajBloco(TXT_V3_SUB, texto, ir.x, y + 40.0f, ir.w, 30.0f, 0.70f, 2);
+    gfx_sem_recorte();
+    return ir.y + ir.h;
+  }
   float x = ir.x, w = ir.w, y = ir.y + 4.0f;
   y += ajCenaTroca(AJ_TROCA_INSPETOR, uxSecaoDe(op), op, x, y, w, 0) + 30.0f;
   ajKickerAcento(kick, x + 2.0f, y, 1);
@@ -1581,6 +1628,7 @@ static void ajDesenharPlugins(const AjPluginsVista *v) {
       PlugScraper sc;
       if (plugins_scraper(v->repo, foco - 1, &sc)) {
         y = ajSubInspetor(AJ_PLUGINS, k, sc.nome, "");
+        if (ajRetrato()) return;
         y += aj2Meta(i18n("Nesta TV"), i18n(sc.ativo ? "Ligado" : "Desligado"), ir.x, y, ir.w, 1);
         aj2Meta(i18n("Tipo"), i18n(sc.filme && sc.serie ? "Filmes e séries" : sc.filme ? "Filmes" : "Séries"), ir.x, y, ir.w, 1);
       }
