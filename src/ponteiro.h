@@ -77,6 +77,9 @@ typedef struct {
 void ponteiro_iniciar(void);
 // Cancela o gesto de dedo no fio de eventos, antes de uma soltura do sistema.
 void ponteiro_cancelar_toque(void);
+// Cancela somente uma ativacao pendente do alvo com este foco. Gestos de
+// outra camada, arrastos e toques longos ja consumidos ficam como estavam.
+int ponteiro_cancelar_alvo(PonteiroFn focar);
 // Diagnostico: loga eventos que nao sao tecla (ver ponteiro.c). Todo evento.
 void ponteiro_diag(const SDL_Event *e);
 

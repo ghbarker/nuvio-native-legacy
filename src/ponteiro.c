@@ -464,6 +464,13 @@ static void invalidarToque(void) {
 
 void ponteiro_cancelar_toque(void) { cancelarToque(); }
 
+int ponteiro_cancelar_alvo(PonteiroFn focar) {
+  if (!focar || nDedos != 1 || toqueCancelado || toqueLongo ||
+      arrModo != ARR_NADA || !toqueAlvo.ok || toqueAlvo.focar != focar) return 0;
+  cancelarToque();
+  return 1;
+}
+
 // Ate o limiar nenhum OK foi entregue: arrastar, outro dedo ou uma camada
 // nova podem cancelar sem transformar a soltura num clique. No limiar o
 // gesto fica consumido e entrega um par completo pela mesma rota do teclado.

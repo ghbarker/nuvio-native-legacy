@@ -690,6 +690,68 @@ static void pressaoLonga(void) {
   dedo(SDL_FINGERUP, 1, .08f, .14f);
   CONFERE(menusDedo == 1 && nEntregues == 2, "camada sem alvos mantem OK longo puro");
 }
+static void cancelarAlvo(void) {
+  preparar(home);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "sem dedo nao cancela alvo");
+  dedo(SDL_FINGERDOWN,1,150.0f/1920,150.0f/1080);
+  CONFERE(!ponteiro_cancelar_alvo(NULL) && !ponteiro_cancelar_alvo(ativar), "outro foco nao cancela ativacao pendente");
+  dedo(SDL_FINGERUP,1,150.0f/1920,150.0f/1080);
+  CONFERE(nFocar==1 && conta(SDLK_RETURN)==1, "toque nao relacionado continua ativando");
+  preparar(home);
+  dedo(SDL_FINGERDOWN,1,150.0f/1920,150.0f/1080);
+  CONFERE(ponteiro_cancelar_alvo(focar)==1, "mesmo foco cancela ativacao pendente");
+  quadro(home);dedo(SDL_FINGERUP,1,150.0f/1920,150.0f/1080);
+  CONFERE(!nFocar && !nEntregues, "soltura antiga nao ativa indice substituido");
+  tocar(150,150);
+  CONFERE(nFocar==1 && conta(SDLK_RETURN)==1, "novo toque continua ativando apos cancelamento");
+  preparar(homeComFolha);
+  dedo(SDL_FINGERDOWN,1,150.0f/1920,500.0f/1080);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao de baixo nao cancela acao da folha");
+  quadro(homeComFolha);dedo(SDL_FINGERUP,1,150.0f/1920,500.0f/1080);
+  CONFERE(nAtivar==1 && ativA==99, "acao propria da folha sobrevive publicacao");
+  preparar(home);
+  dedo(SDL_FINGERDOWN,1,1000.0f/1920,800.0f/1080);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "vazio nao pertence ao foco publicado");
+  dedo(SDL_FINGERUP,1,1000.0f/1920,800.0f/1080);
+  CONFERE(!nFocar && !nEntregues, "soltura no vazio continua inerte");
+
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN,1,150,260);
+  relogio += 20; dedoPx(SDL_FINGERMOTION,1,150,210);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao nao cancela arrasto capturado");
+  relogio += 20; dedoPx(SDL_FINGERMOTION,1,150,180);
+  relogio += 200; dedoPx(SDL_FINGERUP,1,150,180);
+  for (int i=0;i<30;i++) quadro(continuo);
+  CONFERE(fabsf(distancia(PONT_ROL_MOVER)+80.0f)<.01f &&
+          fases(PONT_ROL_SOLTAR)==1 && fases(PONT_ROL_FIM)==1 &&
+          !fases(PONT_ROL_CANCELAR) && !nEntregues && !nFocar,
+          "arrasto sobrevive publicacao e termina sem clique");
+
+  prepararContinuo(continuo);
+  petelecoContinuo();
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao nao cancela inercia");
+  for (int i=0;i<180;i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_INERCIA)>1 && fases(PONT_ROL_FIM)==1 &&
+          !fases(PONT_ROL_CANCELAR) && !nEntregues && !nFocar,
+          "inercia sobrevive publicacao e termina uma vez");
+
+  prepararHold(home);
+  dedoPx(SDL_FINGERDOWN,1,150,150);
+  relogio += NV_HOLD_MS; quadro(home);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao nao reconsome pressao longa");
+  dedoPx(SDL_FINGERUP,1,150,150);
+  CONFERE(menusDedo==1 && !toquesDedo && !nAtivar,
+          "pressao longa permanece consumida sem segundo toque");
+
+  preparar(home);
+  dedoPx(SDL_FINGERDOWN,1,150,150);
+  dedoPx(SDL_FINGERDOWN,2,160,150);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao deixa multifinger cancelado");
+  dedoPx(SDL_FINGERUP,2,160,150);
+  dedoPx(SDL_FINGERUP,1,150,150);
+  CONFERE(!nEntregues && !nFocar, "multifinger permanece sem ativacao");
+}
+
 int main(void) {
   ponteiro_roteiro_mouse();
   ponteiro_teste_relogio(agora);
@@ -833,6 +895,7 @@ int main(void) {
   rolagemContinua();
   arrastoSemNavegacao();
   gestoBorda();
+  cancelarAlvo();
 #ifdef NV_TOUCH_PREVIEW
   cursorDepoisDoToque();
 #endif
