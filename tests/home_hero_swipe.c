@@ -29,6 +29,7 @@ float ajustes_espaco_fileiras(void) { return 1; }
 float ajustes_espaco_titulos(void) { return 1; }
 int ajustes_hero_fonte(void) { return 0; }
 int ajustes_hero_arte_diferente(void) { return 0; }
+int ajustes_cw_thumb_episodio(void) { return 0; }
 unsigned fil_revisao(void) { return 1; }
 const char *fil_hero_fonte(void) { return ""; }
 int amigosfil_indice_cat(int i) { (void)i; return -1; }
@@ -108,6 +109,30 @@ int main(void) {
   int casos = 0;
   for (int t = 0; t < 4; t++) for (layoutTeste=0;layoutTeste<3;layoutTeste++) {
     float w=telas[t][0], h=telas[t][1];
+    for(int cheio=0;cheio<2;cheio++) {
+      preparar(w,h,1); heroArteRect=heroArtworkRect(layoutTeste,cheio);
+      moverDedo(w*.75f,w*.75f-324,160);
+      float anterior, atual;
+      toqueHeroDeslocamentos(heroArteRect.w,&anterior,&atual);
+      perto(anterior*heroArteRect.w,-324);
+      perto((atual-anterior)*heroArteRect.w,heroArteRect.w);
+      perto(toqueHero.largura,heroArteRect.w);
+      dedo(SDL_FINGERUP,1,w*.75f-324,300);
+      assert(toqueHero.confirmar); perto(toqueHero.destino,-heroArteRect.w);
+      terminar(); assert(heroAtual==5 && !teclas && !focos); casos++;
+    }
+    /* Row focus can publish narrow art before capture expands the main hero.
+       That width change must preserve the finger's pixels and snap endpoint. */
+    preparar(w,h,1); heroArteRect=heroArtworkRect(layoutTeste,0);
+    moverDedo(w*.75f,w*.75f-324,160);
+    dedo(SDL_FINGERUP,1,w*.75f-324,300);
+    float anterior, atual;
+    GfxRect expandido=heroArtworkRect(layoutTeste,1);
+    toqueHeroDeslocamentos(expandido.w,&anterior,&atual);
+    perto(anterior*expandido.w,-324);
+    perto((atual-anterior)*expandido.w,expandido.w);
+    perto(toqueHero.destino,-expandido.w);
+    terminar(); assert(heroAtual==5 && !teclas); casos++;
     preparar(w,h,1);
     moverDedo(w*.75f,w*.45f,160);
     assert(toqueHero.estado == 1 && toqueHero.alvo == 5); perto(toqueHero.x,-w*.30f);

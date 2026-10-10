@@ -1631,6 +1631,30 @@ static float toqueHomeMaxX(int r) {
 }
 static void toqueHeroCancelar(void) { memset(&toqueHero, 0, sizeof toqueHero); }
 
+static void toqueHeroDeslocamentos(float largura, float *anterior, float *atual) {
+  // The shader and title copy use the width drawn in this frame. It can
+  // expand when a swipe moves focus from a row into the main hero.
+  if (toqueHero.largura != largura) {
+    toqueHero.largura = largura;
+    if (toqueHero.estado == 2) {
+      toqueHero.inicio = toqueHero.x;
+      toqueHero.destino = toqueHero.confirmar ? -toqueHero.direcao * largura : 0;
+      toqueHero.tempo = 0;
+    }
+  }
+  *anterior = toqueHero.x / largura;
+  *atual = *anterior + (toqueHero.direcao > 0 ? 1.0f : -1.0f);
+}
+
+#ifdef NV_SHOT_HOOKS
+static float heroToqueDesenho[5];
+int home_teste_hero_deslocamento(float valores[5]) {
+  if (!toqueHero.estado) return 0;
+  if (valores) memcpy(valores, heroToqueDesenho, sizeof heroToqueDesenho);
+  return 1;
+}
+#endif
+
 static int toqueHeroVizinho(int direcao) {
   int pos = heroPosDe(toqueHero.origem), n = heroNLista();
   if (n < 2) return -1;
@@ -1687,7 +1711,7 @@ static int toqueHeroRolar(const PonteiroRolagem *e) {
     const CatItem *origem = cat_item_exato(heroAtual);
     if (!origem) return 0;
     toqueHero.estado = 1; toqueHero.origem = heroAtual; toqueHero.alvo = -1;
-    toqueHero.largura = NV_TELA_W;
+    toqueHero.largura = heroArteRect.w;
     toqueHero.telaW = NV_TELA_W; toqueHero.telaH = NV_TELA_H;
     toqueHero.desde = SDL_GetTicks();
     snprintf(toqueHero.imdb, sizeof toqueHero.imdb, "%s", origem->imdb);
@@ -4425,8 +4449,12 @@ static void desenhaHero(Uint32 agora, float saida) {
 #ifdef NV_TOUCH_PREVIEW
   if (toqueHero.estado) {
     deslizando = 1;
-    dAnt = toqueHero.x / toqueHero.largura;
-    dAtu = dAnt + (toqueHero.direcao > 0 ? 1.0f : -1.0f);
+    toqueHeroDeslocamentos(r.w, &dAnt, &dAtu);
+#ifdef NV_SHOT_HOOKS
+    heroToqueDesenho[0] = dAnt * r.w;
+    heroToqueDesenho[2] = dAtu * r.w - toqueHero.direcao * r.w;
+    heroToqueDesenho[4] = r.w;
+#endif
   }
 #endif
   GLuint tAnt = ((heroSai > 0.0f || deslizando) && arteB) ? tex_obter_hero(arteB) : 0;
@@ -4574,6 +4602,14 @@ static void desenhaHero(Uint32 agora, float saida) {
   // Moderna: without the button the logo hugs the text (owner 03/10).
   float slotBtn = (lay == HOME_LAYOUT_MODERNA) ? aBotao : 1.0f;
   float x = homeConteudoX();
+  float xAnterior = x + dAnt * r.w;
+  float xAtual = x + dAtu * r.w;
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if (toqueHero.estado) {
+    heroToqueDesenho[1] = xAnterior - x;
+    heroToqueDesenho[3] = xAtual - x - toqueHero.direcao * r.w;
+  }
+#endif
   // TROCA DESLIZADA: o bloco do titulo que sai anda junto com a arte dele, e o
   // do que entra vem colado atras, na mesma distancia (a largura da arte).
   if (deslizando && cAnt && (cAnt != ci
@@ -4581,7 +4617,7 @@ static void desenhaHero(Uint32 agora, float saida) {
                            || toqueHero.estado
 #endif
                            ))
-    desenhaCopiaHero(cAnt, 0, x + dAnt * r.w, base, lay, cheio, logoH, sinW,
+    desenhaCopiaHero(cAnt, 0, xAnterior, base, lay, cheio, logoH, sinW,
                      sinLinhas, aTexto, aCopy, cin, btnH, btnGap, slotBtn);
   float actionY = 0;
 #ifdef NV_TOUCH_PREVIEW
@@ -4593,7 +4629,7 @@ static void desenhaHero(Uint32 agora, float saida) {
 #else
                     1,
 #endif
-                    x + dAtu * r.w, base, lay, cheio, logoH, sinW,
+                    xAtual, base, lay, cheio, logoH, sinW,
                     sinLinhas, aTexto, aCopy, cin, btnH, btnGap, slotBtn);
 #ifdef NV_TOUCH_PREVIEW
   // During a drag/snap the copy moves but its stationary buttons cannot be

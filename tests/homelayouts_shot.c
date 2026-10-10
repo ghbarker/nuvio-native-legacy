@@ -40,6 +40,7 @@
 #include "ponteiro.h"
 #include <unistd.h>
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -170,6 +171,9 @@ static void ajusta(int layout, int vidro) {
              "modernLandscapePostersEnabled 1\nselected_theme %d\n",
           layout, vidro ? 0 : 1, getenv("NV_TEMA") ? atoi(getenv("NV_TEMA")) : 0);
   if (getenv("NV_AJ")) fprintf(a, "%s\n", getenv("NV_AJ"));   // ex.: "heroSectionEnabled 1"
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if (getenv("NV_HERO_SWIPE")) fprintf(a,"modernHeroFullScreenBackdropEnabled 0\n");
+#endif
   fclose(a);
   ajustes_dir(dirDados);
   // O roteamento de app.c (app_atualizar), que este teste nao roda.
@@ -179,6 +183,13 @@ static void ajusta(int layout, int vidro) {
 }
 
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+int home_teste_hero_deslocamento(float valores[5]);
+static void heroDelta(float esperado) {
+  float desenhado[5]; assert(home_teste_hero_deslocamento(desenhado));
+  for(int i=0;i<4;i++)assert(fabsf(desenhado[i]-esperado)<.1f);
+  printf("[shot] actual hero draw: finger %.3f, old art/copy %.3f/%.3f, next art/copy %.3f/%.3f, width %.3f\n",
+         esperado,desenhado[0],desenhado[1],desenhado[2],desenhado[3],desenhado[4]);
+}
 static void heroDedo(Uint32 tipo, float x, float y) {
   SDL_Event e = {0}; e.type = tipo; e.tfinger.touchId=41; e.tfinger.fingerId=1;
   e.tfinger.x=x/NV_TELA_W; e.tfinger.y=y/NV_TELA_H;
@@ -192,12 +203,19 @@ static void heroSwipes(const char *saida) {
   ponteiro_iniciar(); ponteiro_teste_toque(1);
   for(int lay=0;lay<3;lay++) {
     ajusta(lay,0); home_ir_topo(); quadros(120,NULL);
+    if(lay==HOME_LAYOUT_MODERNA && NV_TELA_W>NV_TELA_H) {
+      tecla(SDLK_DOWN); quadros(120,NULL);
+      float px,py,pw,ph; home_hero_rect(&px,&py,&pw,&ph);
+      assert(pw<NV_TELA_W*.75f);
+      printf("[shot] narrow initial hero: x %.3f width %.3f, canvas %.3f\n",px,pw,NV_TELA_W);
+    }
     HomeItem origem, atual;
     assert(home_item_focado(&origem));
     float x0=NV_TELA_W*.75f, x1=NV_TELA_W*.39f, y=300;
     heroCapturar(saida,lay,"0-inicial");
     heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
     heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"1-arrasto-esquerda");
+    heroDelta(x1-x0);
     assert(!home_pediu_abrir() && !home_pediu_tocar());
     heroDedo(SDL_FINGERUP,x1,y); quadros(4,NULL);
     heroCapturar(saida,lay,"2-assentando-esquerda"); quadros(40,NULL);
@@ -209,6 +227,7 @@ static void heroSwipes(const char *saida) {
     x0=NV_TELA_W*.3f; x1=NV_TELA_W*.66f;
     heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
     heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"4-arrasto-direita");
+    heroDelta(x1-x0);
     heroDedo(SDL_FINGERUP,x1,y); quadros(40,NULL);
     heroCapturar(saida,lay,"5-anterior");
     assert(home_item_focado(&atual) && atual.indice==origem.indice);
