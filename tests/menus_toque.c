@@ -51,9 +51,6 @@ void gfx_luz_canto(GfxRect r, float raio, float cx, float cy, float alcance, flo
 }
 float gfx_escala(void) { return escalaTeste; }
 void ponteiro_rolagem(PonteiroRolagemFn fn) { rolarRegistrado = fn; }
-int perfis_n(void) { return 0; }
-const ContaPerfil *perfis_item(int i) { (void)i; return NULL; }
-int perfis_ativo(void) { return 1; }
 int cat_n(void) { return 0; }
 const CatItem *cat_item(int i) { (void)i; return NULL; }
 int home_item_focado(HomeItem *out) { (void)out; return 0; }
@@ -241,8 +238,10 @@ static void testaAjustesTelaCheia(void) {
     perto(lista.x + lista.w, NV_VTELA_W); perto(lista.y + lista.h, NV_VTELA_H);
     perto(pagina.y, 0); perto(AJ_TOPO, lista.y + AJ_A3_CAB);
     assert(AJ_BASE > AJ_TOPO + 250);
-    for (int t = 0; t < AJ2_T_N; t++) {
-      GfxRect botao = aj2TopoR(t); dentroAjustes(botao);
+    // The portrait geometry wraps the controls independently of account labels.
+    // The landscape label formatter reads live providers and belongs to UI tests.
+    if (ajRetrato()) for (int t = 0; t < AJ2_T_N; t++) {
+      GfxRect botao = aj2TopoRetratoR(t); dentroAjustes(botao);
       assert(botao.x >= grade.x + AJ2_G_PAD - 0.01f);
       assert(botao.x + botao.w <= grade.x + grade.w - AJ2_G_PAD + 0.01f);
       assert(botao.y >= 40);
