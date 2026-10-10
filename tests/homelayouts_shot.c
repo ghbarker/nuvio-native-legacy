@@ -206,12 +206,28 @@ static int pastaFocar(TipoFileira tipo,const char *titulo) {
   }
   fprintf(stderr,"folder comparison row missing: %s\n",titulo);assert(0);return -1;
 }
-static PonteiroAlvo pastaAlvo(PonteiroFn fn,int row) {
+static PonteiroAlvo pastaAlvoCol(PonteiroFn fn,int row,int col) {
   const PonteiroAlvo *v;
   int n=ponteiro_teste_lista(&v);
-  for(int i=0;i<n;i++)if(v[i].focar==fn&&v[i].a==row&&v[i].b==0)return v[i];
-  fprintf(stderr,"folder comparison target missing: row %d\n",row);assert(0);
+  for(int i=0;i<n;i++)if(v[i].focar==fn&&v[i].a==row&&v[i].b==col)return v[i];
+  fprintf(stderr,"folder comparison target missing: row %d column %d\n",row,col);assert(0);
   return (PonteiroAlvo){0};
+}
+static PonteiroAlvo pastaAlvo(PonteiroFn fn,int row) { return pastaAlvoCol(fn,row,0); }
+static HomeItem pastaPosterAssentar(void) {
+  HomeItem normal;assert(home_item_focado(&normal));
+  if (NV_TELA_W>NV_TELA_H && ajustes_expandir_poster() && !ajustes_posteres_deitados()) {
+    /* Exercise the formerly timing-dependent reference with the real idle
+       expansion fully active. No setting or production state is changed. */
+    Uint32 limite=SDL_GetTicks()+(Uint32)(ajustes_expandir_poster_atraso()*1000)+5000;
+    while (fabsf(normal.rect.w-normal.rect.h*(16.0f/9.0f))>=.15f && SDL_GetTicks()<limite) {
+      quadros(1,NULL);assert(home_item_focado(&normal));
+    }
+    printf("[shot] idle expanded reference: focused %.3fx%.3f, expected width %.3f\n",
+           normal.rect.w,normal.rect.h,normal.rect.h*(16.0f/9.0f));fflush(stdout);
+    assert(fabsf(normal.rect.w-normal.rect.h*(16.0f/9.0f))<.15f);
+  }
+  return normal;
 }
 static void pastaDedo(Uint32 tipo,float x,float y) {
   SDL_Event e={0};e.type=tipo;e.tfinger.touchId=71;e.tfinger.fingerId=1;
@@ -233,15 +249,30 @@ static void pastasComparar(const char *saida,const char *camadas) {
     for(int vidro=0;vidro<2;vidro++) {
       ajusta(lay,vidro);
       int rowPoster=pastaFocar(FILEIRA_NORMAL,"Em alta");
-      HomeItem normal;assert(home_item_focado(&normal));
+      HomeItem normal=pastaPosterAssentar();
       float zoom=ajustes_borda_foco()?1:1.06f;
       float escalaPoster=fil_escala("trend_series");
-      float pw=normal.rect.w/zoom/escalaPoster,ph=normal.rect.h/zoom/escalaPoster;
+      float ph=normal.rect.h/zoom/escalaPoster;
       PonteiroFn fn=NULL;
       const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v);
       for(int i=0;i<n;i++)if(v[i].a==rowPoster&&v[i].b==0&&v[i].focar &&
         fabsf(v[i].x-normal.rect.x)<.1f&&fabsf(v[i].w-normal.rect.w)<.1f)fn=v[i].focar;
       assert(fn);
+      PonteiroAlvo focado=pastaAlvo(fn,rowPoster);
+      assert(fabsf(focado.x-normal.rect.x)<.15f && fabsf(focado.y-normal.rect.y)<.15f &&
+             fabsf(focado.w-normal.rect.w)<.15f && fabsf(focado.h-normal.rect.h)<.15f);
+      /* A focused landscape-phone poster can already have expanded into
+         its backdrop after the real idle delay. Measure the ordinary width
+         from the explicitly unfocused neighbor, whose art keeps its shape. */
+      PonteiroAlvo fechado=pastaAlvoCol(fn,rowPoster,1);
+      assert(fabsf(fechado.h-ph*escalaPoster)<.15f);
+      float pw=fechado.w/escalaPoster;
+      /* Test-only negative control: the old expanded focused-width basis
+         must still fail the adjacent ordinary-poster assertion below. */
+      if(getenv("NV_FOLDER_OLD_REFERENCE"))pw=normal.rect.w/zoom/escalaPoster;
+      printf("[shot] ordinary reference: focused %.3fx%.3f, unfocused column1 %.3fx%.3f, row %d, UI%.0f\n",
+             normal.rect.w,normal.rect.h,fechado.w,fechado.h,rowPoster,gfx_escala_ui()*100);
+      fflush(stdout);
       snprintf(bmp,sizeof bmp,"%s-folders-L%d-g%d-0-ordinary-posters.bmp",saida,lay,vidro);
       quadros(1,bmp);
       for(int forma=0;forma<3;forma++) {
@@ -274,6 +305,9 @@ static void pastasComparar(const char *saida,const char *camadas) {
         assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
         float posterTop=alvo.y-NV_LEGACY_ROW_HEAD_H-ph*escalaPoster-copia-gap;
         float posterVis=ph*escalaPoster-fmaxf(0,132-posterTop);
+        printf("[shot] adjacent measured: folder %.3f,%.3f %.3fx%.3f, poster %.3f,%.3f %.3fx%.3f, expected poster %.3fx%.3f\n",
+               alvo.x,alvo.y,alvo.w,alvo.h,poster.x,poster.y,poster.w,poster.h,pw*escalaPoster,posterVis);
+        fflush(stdout);
         assert(fabsf(poster.w-pw*escalaPoster)<.15f&&fabsf(poster.h-posterVis)<.15f);
         assert(poster.h>=ph*escalaPoster*.7f);
         assert(poster.y>=132&&poster.y+poster.h<alvo.y);
