@@ -15,19 +15,27 @@ static struct tm *mini_localtime_r(const time_t *t, struct tm *out) {
 float nv_layout_w=1080,nv_layout_h=2340;
 static int permitido=1,orientation=-1,orientationCalls,stops,windows,layers,nTargets,draws;
 static int vw=1920,vh=1080;
-static PonteiroAlvo targets[8];
+static PonteiroAlvo targets[64];
 static GfxRect window;
+static float testScale=1, testUI=1.5f;
+static int testClipOn;
+static GfxRect testClip;
 static int pode(void) { return permitido; }
 static void bounds(GfxRect r) {
+  if(testClipOn) {
+    float right=fminf(r.x+r.w,testClip.x+testClip.w),bottom=fminf(r.y+r.h,testClip.y+testClip.h);
+    r.x=fmaxf(r.x,testClip.x);r.y=fmaxf(r.y,testClip.y);r.w=right-r.x;r.h=bottom-r.y;
+    if(r.w<=0||r.h<=0)return;
+  }
   assert(r.w>=0&&r.h>=0&&r.x>=-.01f&&r.y>=-.01f);
-  assert(r.x+r.w<=nv_layout_w+.01f&&r.y+r.h<=nv_layout_h+.01f);
+  assert(r.x+r.w<=nv_layout_w/testScale+.01f&&r.y+r.h<=nv_layout_h/testScale+.01f);
 }
-float gfx_escala(void) { return 1; }
-float gfx_escala_ui(void) { return 1.5f; }
+float gfx_escala(void) { return testScale; }
+float gfx_escala_ui(void) { return testUI; }
 int video_largura(void) { return vw; }
 int video_altura(void) { return vh; }
 int video_recorte_fonte(void) { return 0; }
-void video_janela(int x,int y,int w,int h) { windows++;window=(GfxRect){x,y,w,h};bounds(window); }
+void video_janela(int x,int y,int w,int h) { windows++;window=(GfxRect){x,y,w,h};assert(x>=0&&y>=0&&w>=0&&h>=0&&x+w<=nv_layout_w+1&&y+h<=nv_layout_h+1); }
 void video_janela_fonte(int sx,int sy,int sw,int sh,int x,int y,int w,int h) {
   (void)sx;(void)sy;(void)sw;(void)sh;video_janela(x,y,w,h);
 }
@@ -62,7 +70,7 @@ double intro_creditos_janela(double d) { (void)d;return 0; }
 void android_player_tela_cheia(int v) { orientation=v;orientationCalls++; }
 void ponteiro_camada(void) { layers++;nTargets=0; }
 void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int u,int v) {
-  assert(nTargets<8);bounds((GfxRect){x,y,w,h});
+  assert(nTargets<64);bounds((GfxRect){x,y,w,h});
   targets[nTargets++]=(PonteiroAlvo){x,y,w,h,f,a,u,v,0,NULL};
 }
 const char *i18n(const char *s) { return s; }
@@ -72,6 +80,8 @@ void plrui_botao_repouso(GfxRect r,float a) { (void)a;bounds(r); }
 void plrui_limpar_sep(char *s) { (void)s; }
 void gfx_furo_raio(GfxRect r,float raio) { (void)raio;bounds(r);draws++; }
 void gfx_cor(GfxRect r,float raio,float cr,float cg,float cb,float a) { (void)raio;(void)cr;(void)cg;(void)cb;(void)a;bounds(r); }
+void gfx_recorte(float x,float y,float w,float h) { testClip=(GfxRect){x,y,w,h};testClipOn=1; }
+void gfx_sem_recorte(void) { testClipOn=0; }
 void gfx_icone(GfxRect r,const char *id,float cr,float cg,float cb,float a) { (void)id;gfx_cor(r,0,cr,cg,cb,a); }
 TxtLinha txt_linha(TxtEstilo e,const char *s,int r,int g,int b,int a) {
   (void)e;(void)r;(void)g;(void)b;(void)a;return (TxtLinha){0,(int)strlen(s)*12,28};
@@ -121,4 +131,5 @@ int main(void) {
   nv_layout_w=1728;nv_layout_h=1080;abrir();player_mini_desenhar(5000);assert(!nTargets&&!layers);
   nv_layout_w=1080;nv_layout_h=2340;abrir();player_mini_toque_guarda(NULL);player_mini_desenhar(5000);assert(!nTargets&&!layers);
   puts("player_mini_toque: real drawing/callbacks, current guard, aspect, restore/close orientation, Guide/tablet/TV PASS");
+  return 0;
 }

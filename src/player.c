@@ -624,6 +624,13 @@ const CatEp *player_proximo_episodio(void) {
 // este canal agora"). Vazio = as frases genericas. Ja traduzido por quem
 // chama; txt_linha tenta traduzir de novo, nao acha chave e deixa como esta.
 static char erroTitulo[160], erroDica[160];
+#ifdef NV_TOUCH_PREVIEW
+static int (*modalToqueGuarda)(void);
+static int avToqueQuadro, avToqueErro, avToqueElegivel;
+static char avToqueCanal[sizeof itemCanal.imdb];
+void player_toque_modal_guarda(int (*pode)(void)) { modalToqueGuarda = pode; }
+static int modalToquePode(void) { return !modalToqueGuarda || modalToqueGuarda(); }
+#endif
 // "Fonte 2 de 3": a tentativa do automatico VOD (app.c, tentarProximaFonteVOD).
 static int tentativaN, tentativaM;
 // ABRINDO A FONTE, COMPACTO POR PADRAO (dono, 05/10): o cartao nasce enxuto —
@@ -638,6 +645,10 @@ static float abrindoFundo;   // o preto da abertura, que sai junto com o cartao
 static Uint32 abrindoFundoUlt;
 // O botao em foco no modal do erro: 0 = Abrir Fontes, 1 = Voltar.
 static int erroBotao;
+static void erroEscolher(int i) {
+  if (i == 0) pedFontes = 1;
+  else { saindo = 1; pediuSair = 1; }
+}
 void player_definir_tentativa(int n, int max) { tentativaN = n; tentativaM = max; }
 void player_erro_fonte(void) {
   esperandoFonte = 0; erroFonte = 1; visivel = 0; tocando = 0; soBarra = 0;
@@ -1284,6 +1295,9 @@ void player_aspecto_ciclar(void) {
 }
 
 void player_abrir(int indiceCatalogo, const char *url) {
+#ifdef NV_TOUCH_PREVIEW
+  avToqueCanal[0] = 0;
+#endif
   player_descartar_retido();
   // O trailer usa o mesmo plano de video (LG) — solta antes de o player
   // carregar a fonte, senao o load novo pisa no mediaId do trailer.
@@ -2746,8 +2760,7 @@ void player_evento(const SDL_Event *e) {
     if (k == SDLK_LEFT) erroBotao = 0;
     else if (k == SDLK_RIGHT) erroBotao = 1;
     else if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE) {
-      if (erroBotao == 0) pedFontes = 1;
-      else { saindo = 1; pediuSair = 1; }
+      erroEscolher(erroBotao);
     }
     return;
   }
@@ -4263,14 +4276,62 @@ static void corpoCarregando(GfxRect r, float a, void *u) {
 
 // O MODAL DO ERRO: o motivo (36/700), a dica e os dois botoes. ESQUERDA e
 // DIREITA andam, OK aciona (player_evento).
+static float erroLargura(void) {
+  return telefoneui_largura(880, NV_VTELA_W, 96);
+}
+
+#ifdef NV_TOUCH_PREVIEW
+static int avToquePode(int erro) {
+  return telefoneui_ativo() && aberto && !mini && !saindo && ehCanal() &&
+         erroFonte == erro && modalToquePode() && !stream_folha_aberta() &&
+         !faixas_aberta() && !episodios_aberto() && !zapEst.pend &&
+         (erro || anim * entrada > .99f);
+}
+static void avToqueAcao(int acao, int erro, int quadro) {
+  int ids[AV_B_N], n, i;
+  if (quadro != avToqueQuadro || erro != avToqueErro ||
+      strcmp(avToqueCanal, player_id_canal()) || !avToquePode(erro)) return;
+  if (erro) {
+    if (acao != AV_B_RECARREGAR && acao != AV_B_FONTE && acao != AV_B_GUIA) return;
+  } else {
+    n = avBotoes(ids);
+    for (i = 0; i < n && ids[i] != acao; i++) {}
+    if (i == n) return;
+    botaoAV = i;
+  }
+  avAtivar(acao);
+  acordar();
+}
+static void avToquePreparar(int erro) {
+  int elegivel = avToquePode(erro), mudou = avToqueErro != erro || strcmp(avToqueCanal, player_id_canal());
+  if (mudou) aovivo_toque_reiniciar();
+  if (!avToqueQuadro || mudou || avToqueElegivel != elegivel)
+    avToqueQuadro = avToqueQuadro == 0x7fffffff ? 1 : avToqueQuadro + 1;
+  avToqueErro = erro;
+  avToqueElegivel = elegivel;
+  snprintf(avToqueCanal, sizeof avToqueCanal, "%s", player_id_canal());
+  aovivo_toque_definir(elegivel ? avToqueAcao : NULL, avToqueQuadro);
+}
+#endif
+#ifdef NV_TOUCH_PREVIEW
+static int erroToquePode(void) {
+  return telefoneui_ativo() && aberto && !mini && !saindo && erroFonte && !ehCanal() &&
+         modalToquePode() && !stream_folha_aberta() && !faixas_aberta() && !episodios_aberto();
+}
+static void erroToqueAcao(int i, int b) {
+  (void)b;
+  if (!erroToquePode() || i < 0 || i > 1) return;
+  erroBotao = i; erroEscolher(i);
+}
+#endif
 static float alturaErro(void) {
   TxtLinha t = txt_linha(TXT_ILHA_PERGUNTA, "Ag", 0, 0, 0, 255);
   float h = 18.0f + 4.0f;
   const char *tit = erroTitulo[0] ? erroTitulo : "Não foi possível abrir a fonte";
   const char *dica = erroDica[0] ? erroDica : "Abra Fontes para escolher outra opção ou recarregar.";
-  h += txt_bloco_corta(TXT_ILHA_PERGUNTA, tit, 0, 0, 0, 0, 0, 880.0f - 72.0f, (float)t.h + 7.0f, 0.0f, 3);
-  h += 14.0f + txt_bloco_corta(TXT_ILHA_TEXTO, dica, 0, 0, 0, 0, 0, 880.0f - 72.0f, 30.0f, 0.0f, 3);
-  return h + 28.0f + 60.0f + 34.0f;
+  h += txt_bloco_corta(TXT_ILHA_PERGUNTA, tit, 0, 0, 0, 0, 0, erroLargura() - 72.0f, (float)t.h + 7.0f, 0.0f, 3);
+  h += 14.0f + txt_bloco_corta(TXT_ILHA_TEXTO, dica, 0, 0, 0, 0, 0, erroLargura() - 72.0f, 30.0f, 0.0f, 3);
+  return h + 28.0f + (telefoneui_ativo() ? 76 : 60) + 34.0f;
 }
 static void corpoErro(GfxRect r, float a, void *u) {
   float x = r.x + 36.0f, w = r.w - 72.0f, y = r.y + 18.0f + 4.0f;
@@ -4282,6 +4343,25 @@ static void corpoErro(GfxRect r, float a, void *u) {
   y += 14.0f;
   y += txt_bloco_corta(TXT_ILHA_TEXTO, dica, 158, 157, 155, x, y, w, 30.0f, a, 3);
   y += 28.0f;
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) {
+    int pont = a > .99f && erroToquePode();
+    if (pont) {
+      ponteiro_camada();
+      ponteiro_alvo(0, 0, NV_VTELA_W, NV_VTELA_H, NULL, NULL, 0, 0);
+    }
+    for (int i = 0; i < 2; i++) {
+      GfxRect b = {x + i * (w + 12) * .5f, y, (w - 12) * .5f, 76};
+      int foco = erroBotao == i, tinta = foco ? plrui_tinta() : 225;
+      const char *rot = i18n(i ? "Voltar" : "Abrir Fontes");
+      if (foco) plrui_pilula_foco(b, a); else plrui_botao_repouso(b, a);
+      float th = txt_bloco_corta(TXT_G21B, rot, tinta, tinta, tinta, 0, 0, b.w - 32, 28, 0, 2);
+      txt_bloco_corta(TXT_G21B, rot, tinta, tinta, tinta, b.x + 16, b.y + (b.h - th) * .5f, b.w - 32, 28, a, 2);
+      if (pont) ponteiro_alvo(b.x, b.y, b.w, b.h, NULL, erroToqueAcao, i, 0);
+    }
+    return;
+  }
+#endif
   x += plrui_botao(x, y, "Abrir Fontes", "pl_layers", erroBotao == 0 ? 1.0f : 0.0f, a) + 12.0f;
   plrui_botao(x, y, "Voltar", NULL, erroBotao == 1 ? 1.0f : 0.0f, a);
 }
@@ -4551,6 +4631,9 @@ void player_desenhar(Uint32 agora) {
   if (erroFonte && ehCanal()) {
     // Cartao no estilo do ao vivo: a marca do canal e a causa (provedor, conta)
     // que o app ja calculou em erroTitulo/erroDica.
+#ifdef NV_TOUCH_PREVIEW
+    avToquePreparar(1);
+#endif
     aovivo_erro_desenhar(itemCanal.titulo, itemCanal.poster, erroTitulo, erroDica, entrada);
   } else if (erroFonte) {
     // A FONTE NAO ABRIU: a ilha do canto vira o MODAL (o mesmo das
@@ -4563,7 +4646,7 @@ void player_desenhar(Uint32 agora) {
     memset(&pd, 0, sizeof pd);
     pd.icone = "aj_triangle-alert"; pd.corIcone = 1;
     pd.texto = i18n("Fonte");
-    pd.w = 880.0f; pd.h = alturaErro();
+    pd.w = erroLargura(); pd.h = alturaErro();
     pd.corpo = corpoErro; pd.modal = 1;
     plrilha_pedir(&pd);
   }
@@ -4770,6 +4853,9 @@ void player_desenhar(Uint32 agora) {
       desenharLegendaExterna();
       if (!zapEst.pend) {
         avMontarOsd(&o);
+#ifdef NV_TOUCH_PREVIEW
+        avToquePreparar(0);
+#endif
         aovivo_osd_desenhar(&o, a);
         // A HORA E A ILHA DO PLAYER, como no filme: Fontes, Audio, Legendas
         // e Informacoes crescem dela (o OSD do canal tinha pilula propria).

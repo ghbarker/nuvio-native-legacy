@@ -104,6 +104,7 @@ jobs:
           bash tests/telefone_folhas.sh
           bash tests/playback_actions_review.sh
           bash tests/player_mini_toque.sh
+          bash tests/player_touch_frames_review.sh
           bash tests/livetvdiag_phone.sh
           bash tests/livetvdiag_actions_review.sh
           bash tests/biblioteca_content_review.sh

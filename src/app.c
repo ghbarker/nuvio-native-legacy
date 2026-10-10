@@ -4990,8 +4990,8 @@ static int relogioCabe(void) {
 }
 
 #ifdef NV_TOUCH_PREVIEW
-static int miniToquePermitido(void) {
-  if (!app_central_pode() || player_aberto() || menu_aberto() || spainel_aberto() ||
+static int playerToquePermitido(void) {
+  if (!app_central_pode() || menu_aberto() || spainel_aberto() ||
       central_aberta() || ilha_modal_aberto() || celb_aberto() || ctx_aberto() ||
       recenviar_aberto() || pessoas_aberto() || stream_folha_aberta() ||
       faixas_aberta() || episodios_aberto() || guia_overlay_aberta() || avisos_aberto() ||
@@ -4999,6 +4999,10 @@ static int miniToquePermitido(void) {
   if (tela == TELA_DIAGNOSTICO && diagnostico_apresentacao_aberta()) return 0;
   if (tela == TELA_AJUSTES && !ajustes_relogio_cabe()) return 0;
   if (tela == TELA_AGENDA && agendaui_menu_aberto()) return 0;
+  return 1;
+}
+static int miniToquePermitido(void) {
+  if (player_aberto() || !playerToquePermitido()) return 0;
   // In the Guide its own preview and modal controls own the video rectangle.
   return tela != TELA_GUIA;
 }
@@ -5133,6 +5137,7 @@ void app_desenhar(Uint32 agora) {
   // desta atualizacao, e nada pode aparecer por cima dele.
 #ifdef NV_TOUCH_PREVIEW
   player_mini_toque_guarda(miniToquePermitido);
+  player_toque_modal_guarda(playerToquePermitido);
 #endif
   player_mini_desenhar(agora);
   CAMADA_SE(sintro_aberto());

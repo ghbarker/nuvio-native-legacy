@@ -41,8 +41,10 @@ int main(void) {
   int checks=0;
   for(unsigned p=0;p<sizeof pages/sizeof *pages;p++) {
     inicio(pages[p]);assert(miniToquePermitido());
+    assert(playerToquePermitido());
     for(int b=0;b<TESTE_BLOQUEIOS_N;b++) {
       inicio(pages[p]);bloqueios[b]=1;assert(!miniToquePermitido());checks++;
+      assert(!playerToquePermitido());
     }
     for(int b=0;b<BLOQ_OUTROS_N;b++) {
       inicio(pages[p]);outros[b]=1;
@@ -51,9 +53,11 @@ int main(void) {
         b==BLOQ_AGENDA?pages[p]==TELA_AGENDA:
         b==BLOQ_DIAGLOCAL?pages[p]==TELA_DIAGNOSTICO:1;
       assert(miniToquePermitido()==!expected);checks++;
+      assert(playerToquePermitido()==!expected);
     }
     inicio(pages[p]);contexto=1;assert(!miniToquePermitido());
     inicio(pages[p]);player=1;assert(!miniToquePermitido());
+    assert(playerToquePermitido());
     inicio(pages[p]);loginOk=0;assert(!miniToquePermitido());
     inicio(pages[p]);perfilOk=0;assert(!miniToquePermitido());
     /* Detail and See-all are regular browsing layers, not blocking modals. */
@@ -61,5 +65,15 @@ int main(void) {
     inicio(pages[p]);lista=1;assert(miniToquePermitido());
   }
   inicio(TELA_GUIA);assert(!miniToquePermitido());
+  assert(playerToquePermitido());
+  inicio(TELA_PLAYER);player=1;assert(playerToquePermitido());
+  for(int b=0;b<TESTE_BLOQUEIOS_N;b++) {
+    inicio(TELA_PLAYER);player=1;bloqueios[b]=1;assert(!playerToquePermitido());
+  }
+  for(int b=0;b<BLOQ_OUTROS_N;b++) {
+    inicio(TELA_PLAYER);player=1;outros[b]=1;if(b==BLOQ_MENU)menu=1;
+    int expected=b!=BLOQ_AJUSTES&&b!=BLOQ_AGENDA&&b!=BLOQ_DIAGLOCAL;
+    assert(playerToquePermitido()==!expected);
+  }
   printf("app_mini_toque: %d current overlay checks, browsing/detail/See-all and Guide priority PASS\n",checks);
 }

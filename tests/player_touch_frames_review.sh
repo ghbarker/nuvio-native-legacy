@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-dir=$(mktemp -d "${TMPDIR:-/tmp}/nuvio-player-mini.XXXXXX")
+dir=$(mktemp -d "${TMPDIR:-/tmp}/nuvio-player-touch-frames.XXXXXX")
 trap 'rm -rf "$dir"' EXIT
-flags=(-O2 -g -Isrc -DSDL_MAIN_HANDLED -DNV_LINUX_DESKTOP -ffunction-sections -fdata-sections)
+flags=(-O2 -g -Isrc -DSDL_MAIN_HANDLED -DNV_LINUX_DESKTOP -DNV_TOUCH_PREVIEW -ffunction-sections -fdata-sections)
 if command -v pkg-config >/dev/null && pkg-config --exists sdl2; then
-  read -r -a sdl_flags <<< "$(pkg-config --cflags sdl2)"; flags+=("${sdl_flags[@]}")
+  read -r -a includes <<< "$(pkg-config --cflags sdl2)"; flags+=("${includes[@]}")
 else flags+=(-I/opt/homebrew/include -I/opt/homebrew/include/SDL2); fi
 case "$(uname -s)" in
   Darwin) flags+=(-Wl,-dead_strip) ;;
@@ -13,7 +13,5 @@ case "$(uname -s)" in
   *) flags+=(-Wl,--gc-sections) ;;
 esac
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
-for module in player_mini_toque app_mini_toque player_error_toque aovivo_phone_toque; do
-  "${CC:-cc}" "${flags[@]}" "tests/$module.c" -lm -o "$dir/$module"
-  "$dir/$module"
-done
+"${CC:-cc}" "${flags[@]}" tests/player_touch_frames_review.c -lm -o "$dir/test"
+"$dir/test"
