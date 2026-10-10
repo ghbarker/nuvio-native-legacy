@@ -89,6 +89,7 @@ jobs:
           bash tests/home_trailer_resize.sh
           bash tests/menus_toque.sh
           bash tests/entrada_retrato.sh
+          bash tests/sistexto_valor.sh
           bash tests/utilidades_toque.sh
           bash tests/gpun_touch.sh
           bash tests/snap_retrato.sh
