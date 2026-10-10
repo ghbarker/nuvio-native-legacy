@@ -15,6 +15,7 @@
 #include "gfx.h"
 #include "text.h"
 #include "tex_cache.h"
+#include "telefoneui.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
@@ -87,7 +88,9 @@ static void quadros(int n) {
     if (atividade) ilha_atividade(atividade, -1.0f);
     ilha_relogio_visivel(relogio);
     // A margem do mockup: pilula em x 96 (esquerda) ou a 64 da borda direita.
-    if (direita) ilha_ancorar(1920 - 64, 36, 1); else ilha_ancorar(96, 36, 0);
+    if (direita && telefoneui_ativo()) ilha_posicionar(1);
+    else if (direita) ilha_ancorar(1920 - 64, 36, 1);
+    else ilha_ancorar(96, 36, 0);
     ilha_desenhar(agora);
     SDL_GL_SwapWindow(win);
     SDL_Delay(16);

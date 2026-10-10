@@ -13,6 +13,7 @@
 #include "tex_cache.h"
 #include "catalogo.h"
 #include "sistexto.h"
+#include "ponteiro.h"
 #include "spotpessoa.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -48,13 +49,50 @@ static void quadro(void) {
   tex_novo_quadro();
   tex_bombear(12);
   gfx_novo_quadro();
+#ifdef NV_TEST_PHONE_SHOT_H
+  ponteiro_quadro(SDL_GetTicks());
+#endif
   busca_atualizar(1.0f / 60.0f, SDL_GetTicks());
   glClearColor(0.051f, 0.051f, 0.051f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   busca_desenhar(SDL_GetTicks());
   rail_shot_desenhar(MENU_BUSCAR);
+#ifdef NV_TEST_PHONE_SHOT_H
+  ponteiro_desenhar();
+#endif
   SDL_GL_SwapWindow(janela);
 }
+
+static void entrarPainel(void) {
+#ifdef NV_TEST_PHONE_SHOT_H
+  /* Native input has no app-keyboard columns to cross. */
+  assert(busca_foco_campo() == 1);
+  tecla(SDLK_DOWN);
+#else
+  for (int i = 0; i < 6; i++) tecla(SDLK_RIGHT);
+#endif
+}
+
+#ifdef NV_TEST_PHONE_SHOT_H
+static void tocarPessoa(int fileira, int coluna) {
+  const PonteiroAlvo *v;
+  int n = ponteiro_teste_lista(&v), found = -1;
+  for (int i = 0; i < n; i++)
+    if (v[i].focar && !v[i].ativar && v[i].a == fileira && v[i].b == coluna)
+      found = i;
+  assert(found >= 0);
+  PonteiroAlvo alvo = v[found];
+  float x = alvo.x + alvo.w * .5f, y = alvo.y + alvo.h * .5f;
+  assert(x >= 0 && x < phone_shot_w && y >= 0 && y < phone_shot_h);
+  SDL_Event e; SDL_zero(e);
+  e.type = SDL_FINGERDOWN; e.tfinger.touchId = 3; e.tfinger.fingerId = 1;
+  e.tfinger.x = x / phone_shot_w; e.tfinger.y = y / phone_shot_h;
+  assert(ponteiro_evento(&e, busca_evento));
+  quadro();
+  e.type = SDL_FINGERUP;
+  assert(ponteiro_evento(&e, busca_evento));
+}
+#endif
 
 // `ms` > 0: grava depois de tantos milissegundos de quadros, e nao depois de
 // 45 quadros — para fotografar uma animacao no meio (a onda dos resultados).
@@ -108,6 +146,10 @@ int main(int argc, char **argv) {
   ajustes_iniciar();
   if (getenv("NUVIO_SHOT_SOLIDO")) ajustes_aplicar_blob("{\"vidro\":false}");
   busca_iniciar();
+#ifdef NV_TEST_PHONE_SHOT_H
+  ponteiro_iniciar(); ponteiro_teste_toque(1);
+  ponteiro_teste_janela(phone_shot_w, phone_shot_h);
+#endif
 
   snprintf(nome, sizeof nome, "%s-vazio.bmp", saida);
   captura(nome);
@@ -132,7 +174,7 @@ int main(int argc, char **argv) {
   captura(nome);
   // Da tecla "a" (coluna 0) ate a ultima coluna e mais um: a ponte leva as
   // pilulas. Depois desce uma linha, para o foco cair no meio da lista.
-  { int i; for (i = 0; i < 6; i++) tecla(SDLK_RIGHT); }
+  entrarPainel();
   snprintf(nome, sizeof nome, "%s-recentes-foco.bmp", saida);
   captura(nome);
   tecla(SDLK_DOWN);
@@ -216,8 +258,12 @@ int main(int argc, char **argv) {
   busca_iniciar();
   snprintf(nome, sizeof nome, "%s-populares.bmp", saida);
   capturaEm(nome, 900);
+#ifdef NV_TEST_PHONE_SHOT_H
+  entrarPainel();
+#else
   tecla(SDLK_RIGHT);   /* ultima coluna do teclado nao: so a ponte */
-  { int i; for (i = 0; i < 6; i++) tecla(SDLK_RIGHT); }
+  entrarPainel();
+#endif
   snprintf(nome, sizeof nome, "%s-populares-foco.bmp", saida);
   capturaEm(nome, 500);
   { static const char *termos[] = { "dune", "the office", "matrix", "stranger things", "cidade de deus" };
@@ -226,8 +272,19 @@ int main(int argc, char **argv) {
   busca_iniciar();
   snprintf(nome, sizeof nome, "%s-populares-recentes.bmp", saida);
   capturaEm(nome, 900);
-  { int i; for (i = 0; i < 6; i++) tecla(SDLK_RIGHT); }   /* pilulas */
+  entrarPainel();                                         /* pilulas */
   tecla(SDLK_DOWN);                                       /* desce aos Populares */
+#ifdef NV_TEST_PHONE_SHOT_H
+  /* Recent pills can wrap into more rows on a phone. Follow the real focus
+     until the first poster is reached, without selecting a recent query. */
+  for (int i = 0; i < 16; i++) {
+    HomeItem item;
+    quadro();
+    if (busca_item_focado(&item)) break;
+    tecla(SDLK_DOWN);
+  }
+  { HomeItem item; assert(busca_item_focado(&item)); }
+#endif
   snprintf(nome, sizeof nome, "%s-populares-recentes-foco.bmp", saida);
   capturaEm(nome, 500);
   buscasrec_limpar();
@@ -240,7 +297,7 @@ int main(int argc, char **argv) {
   snprintf(nome, sizeof nome, "%s-resultados.bmp", saida);
   capturaEm(nome, 1200);
   // Foco no melhor resultado e depois num cartaz da fileira de baixo.
-  { int i; for (i = 0; i < 6; i++) tecla(SDLK_RIGHT); }
+  entrarPainel();
   snprintf(nome, sizeof nome, "%s-resultados-foco.bmp", saida);
   capturaEm(nome, 500);
   tecla(SDLK_DOWN); tecla(SDLK_RIGHT);
@@ -254,7 +311,12 @@ int main(int argc, char **argv) {
   tecla(SDLK_RIGHT);
   snprintf(nome, sizeof nome, "%s-pessoas-foco2.bmp", saida);
   capturaEm(nome, 500);
+#ifdef NV_TEST_PHONE_SHOT_H
+  /* Seeded layout: Best result, first title row, then the People row. */
+  tocarPessoa(2, 1);
+#else
   tecla(SDLK_RETURN);
+#endif
   { SpotPedido pp;
     assert(busca_pediu_pessoa(&pp));
     assert(pp.tipo == SPOT_PESSOA && pp.indice < 0 && pp.tmdb == 1245);

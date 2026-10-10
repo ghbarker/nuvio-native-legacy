@@ -17,6 +17,7 @@ int main(void) {
   montarTela();valor[AJ_AVANCADAS]=0;recomendaTeste=0;apoiador=0;
   int op,sec,n=0,cineCatalog=-1;const char *key,*rot;
   for(int i=0;i<AJ_N_TELA;i++)if(TELA[i].tipo==IT_OPC&&TELA[i].op>=0&&TELA[i].op<AJ_N) {
+    assert(ajustes_teste_opcao_visivel(TELA[i].op)==visivel(i));
     if(TELA[i].op==AJ_BUSCA_CINEMETA)cineCatalog=n;
     n++;
   }
@@ -25,13 +26,17 @@ int main(void) {
   for(int addon=0;addon<=1;addon++)for(int valorCine=0;valorCine<=1;valorCine++) {
     temCinemeta=addon;valor[AJ_BUSCA_CINEMETA]=valorCine;
     assert(visivel(cine)==(addon||valorCine));
+    assert(ajustes_teste_opcao_visivel(AJ_BUSCA_CINEMETA)==(addon||valorCine));
     assert(ajustes_busca_cinemeta()==!valorCine);
     /* Inventory still enumerates the slot when the normal menu hides it. */
     assert(ajustes_teste_cena_item(cineCatalog,&op,&sec,&key,&rot));
     assert(op==AJ_BUSCA_CINEMETA&&!strcmp(key,"buscaCinemetaLocal")&&!strcmp(rot,"Buscar no Cinemeta"));
   }
-  assert(!visivel(icon));apoiador=1;assert(visivel(icon));
+  assert(!visivel(icon)&&!ajustes_teste_opcao_visivel(AJ_ICONE_APP));
+  apoiador=1;assert(visivel(icon)&&ajustes_teste_opcao_visivel(AJ_ICONE_APP));
   assert(!visivel(indice(AJ_PERFIL_PESQ))&&!visivel(indice(AJ_PERFIL_EDITAR)));
   recomendaTeste=1;assert(visivel(indice(AJ_PERFIL_PESQ))&&visivel(indice(AJ_PERFIL_EDITAR)));
-  printf("settings_visibility_review: %d registered slots; Cinemeta/addon/value, supporter and social visibility PASS\n",n);
+  assert(ajustes_teste_opcao_visivel(AJ_PERFIL_PESQ)&&ajustes_teste_opcao_visivel(AJ_PERFIL_EDITAR));
+  assert(!ajustes_teste_opcao_visivel(-1)&&!ajustes_teste_opcao_visivel(AJ_N));
+  printf("settings_visibility_review: %d registered slots mapped to actual rows; Cinemeta/addon/value, supporter and social visibility PASS\n",n);
 }

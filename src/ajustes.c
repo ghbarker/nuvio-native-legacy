@@ -7546,7 +7546,7 @@ int ajustes_teste_focar_opcao(int op) {
   return 0;
 }
 
-// Inventario das previas: a i-esima opcao visivel da TELA (op, categoria,
+// Inventario das previas: a i-esima opcao registrada na TELA (op, categoria,
 // chave do disco e rotulo) e a cena dela desenhada sozinha num instante fixo.
 int ajustes_teste_cena_item(int i, int *op, int *sec, const char **chave, const char **rot) {
   int k, n = 0;
@@ -7562,7 +7562,11 @@ int ajustes_teste_cena_item(int i, int *op, int *sec, const char **chave, const 
   return 0;
 }
 int ajustes_teste_opcao_visivel(int op) {
-  return op >= 0 && op < AJ_N && visivel(op);
+  if (op < 0 || op >= AJ_N) return 0;
+  montarTela();
+  for (int i = 0; i < AJ_N_TELA; i++)
+    if (TELA[i].tipo == IT_OPC && TELA[i].op == op) return visivel(i);
+  return 0;
 }
 void ajustes_teste_cena_desenhar(int op, float t, float x, float y, float w) {
   ajcTesteT = t;
