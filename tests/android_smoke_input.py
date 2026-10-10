@@ -9,14 +9,14 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 source = Path("tools/android-touch-smoke.sh").read_text(encoding="utf-8")
-names = ("ime_mostrado", "abrir_campo_email", "aguardar_campo_email", "digitar_fresco")
+names = ("ime_mostrado", "abrir_campo_email", "aguardar_ime_pronto", "aguardar_campo_email", "digitar_fresco")
 functions = {}
 for name in names:
     match = re.search(rf"^{name}\(\) \{{\n.*?^\}}", source, re.M | re.S)
     assert match, name
     functions[name] = match.group(0)
 assert "assert field.get('text', '') == 'touch-preview@example.invalid'" in source
-assert "aguardar_campo_email\ndigitar_fresco 'touch-preview@example.invalid'" in source
+assert "aguardar_campo_email\naguardar_ime_pronto\ndigitar_fresco 'touch-preview@example.invalid'" in source
 bash = os.environ.get("BASH") or shutil.which("bash")
 assert bash, "bash required"
 
@@ -52,6 +52,10 @@ ready_after=3
 pulls=0
 xml=unfocused
 ime=0
+window_probes=0
+window_ready_after=3
+ime_missing=''
+ime_ready=0
 open_first=1
 open_never=0
 taps=''
@@ -63,7 +67,19 @@ tap_logico() {
 }
 adb() {
   case "$1 $2 $3" in
-    'shell dumpsys input_method') printf 'mInputShown=%s\n' "$([ "$ime" = 1 ] && echo true || echo false)" ;;
+    'shell dumpsys input_method')
+      window_probes=$((window_probes+1))
+      visible=false;started=false;shown=false;ime_ready=0
+      if [ "$window_probes" -ge "$window_ready_after" ]; then
+        visible=true;started=true;shown=true;ime_ready=1
+      fi
+      case "$ime_missing" in
+        window) visible=false;ime_ready=0 ;;
+        started) started=false;ime_ready=0 ;;
+        shown) shown=false;ime_ready=0 ;;
+      esac
+      printf 'Input Method Manager Service state:\n  mCurId=example.keyboard/example.keyboard.IME\n  mInputShown=%s\n\n' "$([ "$ime" = 1 ] && echo true || echo false)"
+      printf 'Input method service state for example.keyboard.IME@123:\n  mWindowVisible=%s\n  mInputViewStarted=%s\n  mIsInputViewShown=%s\n  packageName=%s\n\n' "$visible" "$started" "$shown" "$PKG" ;;
     'shell uiautomator dump') : ;;
     'pull /sdcard/nuvio-touch-editor-ready.xml '*)
       pulls=$((pulls+1))
@@ -71,6 +87,7 @@ adb() {
       cp "$OUT/$xml.xml" "$3" ;;
     'shell input text')
       [ "$pulls" -ge "$ready_after" ] || { echo 'typing before editor ready' >&2; return 1; }
+      [ "$ime_ready" = 1 ] || { echo 'typing before IME window ready' >&2; return 1; }
       injections=$((injections+1))
       timestamp=$clock
       [ "$timestamp" -gt "$last_timestamp" ] || { echo 'timestamps not fresh' >&2; return 1; }
@@ -100,9 +117,22 @@ if abrir_campo_email; then echo 'missing keyboard accepted' >&2; exit 1; fi
 open_never=0;ime=1
 aguardar_campo_email
 [ "$pulls" = 3 ]
+window_probes=0
+aguardar_ime_pronto
+[ "$window_probes" = 3 ]
 digitar_fresco 'touch-preview@example.invalid'
 [ "$typed" = 'touch-preview@example.invalid' ]
 [ "$injections" = 29 ] && [ "$stale" = 0 ]
+# Requesting input is not enough: every actual IME service flag is required.
+for ime_missing in window started shown; do
+  window_probes=0;window_ready_after=1
+  if aguardar_ime_pronto 2>/dev/null; then echo 'incomplete IME accepted' >&2; exit 1; fi
+  [ "$window_probes" = 20 ]
+done
+ime_missing='';window_probes=0;window_ready_after=99
+if aguardar_ime_pronto 2>/dev/null; then echo 'never-ready IME accepted' >&2; exit 1; fi
+[ "$window_probes" = 20 ]
+window_ready_after=3
 # Covered, unfocused and absent XML must never be accepted as a ready field.
 for invalid in covered unfocused absent other nonempty; do
   xml=$invalid;ready_after=99;pulls=0
@@ -124,8 +154,48 @@ done
     rejected = subprocess.run([bash, "-c", boundary + early + checks],
                               env=environment, capture_output=True, text=True)
     assert rejected.returncode != 0, "missing editor readiness must fail"
+    early_ime = actual.replace(functions["aguardar_ime_pronto"], 'aguardar_ime_pronto() { return 0; }')
+    rejected = subprocess.run([bash, "-c", boundary + early_ime + checks],
+                              env=environment, capture_output=True, text=True)
+    assert rejected.returncode != 0, "missing IME window readiness must fail"
     print("android_smoke_input: actual helpers wait for focused visible field, avoid keyboard tap, "
           "deliver fresh timestamped characters; strict text and negative controls PASS")
+
+    ime_validator = re.search(r'python3 - "\$OUT/ime-ready\.txt" "\$PKG" <<\x27PY\x27\n(.*?)^PY$',
+                              source, re.M | re.S).group(1)
+    def ime_state(name="example.keyboard.IME", package="space.nuvio.nativelegacy",
+                  window="true", started="true", shown="true"):
+        return (f"Input method service state for {name}@123:\n"
+                f"  mWindowVisible={window} mDecorViewVisible=true\n"
+                f"  mInputViewStarted={started}\n"
+                f"  mIsInputViewShown={shown}\n"
+                f"  packageName={package}\n\n")
+    manager = ("Input Method Manager Service state:\n"
+               "  mCurId=example.keyboard/example.keyboard.IME\n  mInputShown=true\n\n")
+    cold = ime_state(window="false", started="false", shown="false")
+    ime_cases = [
+        ("ready", manager + ime_state(), True),
+        ("requested-only", manager + cold, False),
+        ("window-not-visible", manager + ime_state(window="false"), False),
+        ("view-not-started", manager + ime_state(started="false"), False),
+        ("view-not-shown", manager + ime_state(shown="false"), False),
+        ("wrong-editor", manager + ime_state(package="example.other"), False),
+        ("wrong-service", manager + ime_state(name="example.other.IME"), False),
+        ("another-ime-ready", manager + cold + ime_state(name="example.other.IME"), False),
+        ("split-flags", manager + ime_state(started="false", shown="false") +
+         ime_state(name="example.other.IME", window="false"), False),
+        ("duplicate-active", manager + ime_state() + ime_state(), False),
+        ("manager-hidden", manager.replace("mInputShown=true", "mInputShown=false") +
+         "Input method client state for example.client:\n  mInputShown=true\n\n" + ime_state(), False),
+        ("missing-current", manager.replace("mCurId=example.keyboard/example.keyboard.IME", "") + ime_state(), False),
+    ]
+    for label, dump, wanted in ime_cases:
+        path = directory / ("ime-" + label + ".txt")
+        path.write_text(dump)
+        result = subprocess.run([sys.executable, "-c", ime_validator, str(path),
+                                 "space.nuvio.nativelegacy"], capture_output=True, text=True)
+        assert (result.returncode == 0) == wanted, label + ": " + result.stderr
+    print("android_smoke_input: 12 actual IME readiness validators reject cold, incomplete, wrong-editor and unrelated-service states PASS")
 
     # Execute the actual inline XML validators from the shipped smoke driver.
     # The subprocesses use only controlled hierarchy files, not Android/IME.

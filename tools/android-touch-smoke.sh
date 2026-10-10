@@ -159,6 +159,42 @@ abrir_campo_email() {
   done
   return 1
 }
+aguardar_ime_pronto() {
+  local tentativa
+  # mInputShown confirma o pedido antes de o Gboard terminar o primeiro
+  # arranque. Uma tecla nesse intervalo pode estourar o prazo do IME e ser
+  # entregue novamente pelo fallback do Android. Espere a janela real.
+  for tentativa in {1..20}; do
+    adb shell dumpsys input_method > "$OUT/ime-ready.txt"
+    if python3 - "$OUT/ime-ready.txt" "$PKG" <<'PY'
+from pathlib import Path
+import re
+import sys
+dump = Path(sys.argv[1]).read_text()
+manager = re.split(r'(?m)^Input method (?:client|service) state for ', dump, maxsplit=1)[0]
+current = re.search(r'(?m)^\s*mCurId=([^\s]+)', manager)
+if not current or re.findall(r'\bmInputShown=(true|false)\b', manager) != ['true']:
+    sys.exit(1)
+component = current.group(1).split('/', 1)
+if len(component) != 2:
+    sys.exit(1)
+ime_class = component[0] + component[1] if component[1].startswith('.') else component[1]
+sections = re.findall(r'^Input method service state for ([^@:\n]+)(?:@[^:\n]+)?:\n(.*?)(?=^Input method (?:client|service) state for |\Z)', dump, re.M | re.S)
+active = [body.split('\n\n', 1)[0] for name, body in sections if name == ime_class]
+if len(active) != 1:
+    sys.exit(1)
+state = active[0]
+ready = all(re.findall(r'\b' + key + r'=(true|false)\b', state) == ['true']
+            for key in ('mWindowVisible', 'mInputViewStarted', 'mIsInputViewShown'))
+ready = ready and re.findall(r'\bpackageName=([^\s]+)', state) == [sys.argv[2]]
+sys.exit(0 if ready else 1)
+PY
+    then return 0; fi
+    sleep 1
+  done
+  echo 'smoke: IME pediu abertura mas a janela de entrada nao ficou pronta' >&2
+  return 1
+}
 aguardar_campo_email() {
   local tentativa
   for tentativa in 1 2 3 4 5; do
@@ -201,6 +237,7 @@ if ! abrir_campo_email; then
   exit 1
 fi
 aguardar_campo_email
+aguardar_ime_pronto
 digitar_fresco 'touch-preview@example.invalid'
 sleep 1
 adb shell uiautomator dump /sdcard/nuvio-touch-editor.xml >/dev/null
