@@ -20,6 +20,12 @@ jobs:
             capture: '--fixtures ajustes --cases 1080x2340@1 --all-settings --settings-layout 1'
           - group: browsing
             capture: '--fixtures homelayouts busca biblioteca explorar vertudo agenda guia'
+          - group: home-shapes
+            capture: '--fixtures homelayouts --home-variant shapes'
+          - group: home-ranking
+            capture: '--fixtures homelayouts --home-variant ranking'
+          - group: home-folders
+            capture: '--fixtures homelayouts --home-variant folders'
           - group: detail
             capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
           - group: account

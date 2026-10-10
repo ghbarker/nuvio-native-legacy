@@ -85,7 +85,7 @@ const char *i18n(const char *s) {
   if(!strcmp(s,"Agenda"))return "Upcoming episodes and reminders";
   if(!strcmp(s,"Avisos"))return "Notifications and recommendations";
   if(!strcmp(s,"Sem HDR"))return "Force standard dynamic range";
-  if(!strcmp(s,"Só MP4"))return "Only compatible MP4 containers";
+  if(!strcmp(s,"SÃ³ MP4"))return "Only compatible MP4 containers";
   if(!strcmp(s,"Em cache"))return "Available in the provider cache";
   if(!strcmp(s,"Dublado"))return "Includes a matching dubbed language";
   if(!strcmp(s,"O app fechou sozinho"))return "The application closed unexpectedly during your previous session. The application closed unexpectedly during your previous session. The application closed unexpectedly during your previous session. The application closed unexpectedly during your previous session.";
@@ -172,6 +172,7 @@ const AgItem *agenda_lista(int i) { (void)i;assert(0);return NULL; }
 int agendaui_painel_grupo_de(const AgItem *a) { (void)a;assert(0);return 0; }
 int avisos_lista_linhas(void) { assert(0);return 0; }
 int sorg_estilo(void) { return estiloTeste; }
+int sorg_social(void) { assert(0); return 0; }
 int sorg_n_categorias(void) { return 0; }
 int sorg_categoria_id(int i) { (void)i;return 0; }
 int sorg_categoria_indice(int i) { (void)i;return -1; }

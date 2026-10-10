@@ -84,6 +84,7 @@
 #include "ajustes.h"
 #include "ctxmenu.h"
 #include "escala.h"
+#include "telefoneui.h"
 #include "ponteiro.h"
 
 // Tinta do texto sobre o foco: em vidro o foco e so contorno sobre superficie
@@ -2068,6 +2069,24 @@ static void desenhaCartaoLista(const LstLista *l, GfxRect r, float f, float a) {
   if (!l) return;
   tintaSecundaria(cor, &sr, &sg, &sb);
   subtituloLista(l, sub, sizeof sub);
+  if (telefoneui_ativo()) {
+    int fixada = lst_fixada(l);
+    TxtLinha fx = fixada ? txt_linha_corta(TXT_CAPTION2, i18n("FIXADA"), cor, cor, cor, 255, larg * .45f)
+                        : (TxtLinha){0};
+    TxtLinha medida = txt_linha(TXT_CAPTION2, sub, sr, sg, sb, 255);
+    float rodapeH = fmaxf(medida.h, fx.h), rodapeY = r.y + r.h - BIB_LC_PAD - rodapeH;
+    float marca = seloFonte(l, r.x + BIB_LC_PAD, rodapeY, rodapeH, cor, a);
+    float apoioX = r.x + BIB_LC_PAD + (marca > 0 ? marca + 12 : 0);
+    float apoioW = r.x + r.w - BIB_LC_PAD - apoioX - (fixada ? fx.w + 12 : 0);
+    TxtLinha apoio = txt_linha_corta(TXT_CAPTION2, sub, sr, sg, sb, 255, apoioW);
+    int linhas = (int)floorf((rodapeY - y - 6) / BIB_LC_ENTRE);
+    if (linhas < 1) linhas = 1;
+    if (linhas > 2) linhas = 2;
+    txt_bloco(TXT_CALLOUT, l->titulo, cor, cor, cor, r.x + BIB_LC_PAD, y, larg, BIB_LC_ENTRE, a, linhas);
+    txt_desenhar_alpha(apoio, apoioX, rodapeY, a * .95f);
+    if (fixada) txt_desenhar_alpha(fx, r.x + r.w - BIB_LC_PAD - fx.w, rodapeY, a * .95f);
+    return;
+  }
   { float wMarca = seloFonte(l, r.x + BIB_LC_PAD, y, 22.0f, cor, a);
     if (wMarca > 0.0f) y += 28.0f; }
   // TITULO EM ATE DUAS LINHAS. Com quatro cartoes de 414 o nome ja saia cortado
@@ -2103,6 +2122,15 @@ static void desenhaLinhaLista(const LstLista *l, float y, float f, float a) {
     if (w > 0.0f) tx += w + 26.0f; }
   { TxtLinha s2 = txt_linha_corta(TXT_CAPTION2, sub, sr, sg, sb, 255, 340.0f);
     float xDir = r.x + bibW() - 24.0f;
+    if (telefoneui_ativo() && lst_fixada(l)) {
+      TxtLinha fx = txt_linha_corta(TXT_CAPTION2, i18n("FIXADA"), cor, cor, cor, 255, (xDir - tx) * .25f);
+      float fxX = xDir - s2.w - 24 - fx.w;
+      TxtLinha t = txt_linha_corta(TXT_CALLOUT, l->titulo, cor, cor, cor, 255, fxX - 24 - tx);
+      txt_desenhar_alpha(t, tx, y + (BIB_LL_H - t.h) * .5f, a);
+      txt_desenhar_alpha(fx, fxX, y + (BIB_LL_H - fx.h) * .5f, a * .95f);
+      txt_desenhar_alpha(s2, xDir - s2.w, y + (BIB_LL_H - s2.h) * .5f, a * .95f);
+      return;
+    }
     TxtLinha t = txt_linha_corta(TXT_CALLOUT, l->titulo, cor, cor, cor, 255,
                                  xDir - (float)s2.w - 60.0f - tx);
     txt_desenhar_alpha(t, tx, y + (BIB_LL_H - (float)t.h) * 0.5f, a);

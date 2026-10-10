@@ -16,3 +16,5 @@ for module in ILHA POSPLAY DIAG ARTE; do
   cc "${flags[@]}" -DTESTE_"$module" tests/telefone_dialogos.c -lm -lpthread -o "$dir/teste"
   "$dir/teste"
 done
+cc "${flags[@]}" tests/diagnostico_phone_colors.c -lm -lpthread -o "$dir/cores"
+"$dir/cores"

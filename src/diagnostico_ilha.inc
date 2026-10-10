@@ -806,7 +806,9 @@ static float dgPhoneBotao(const char *rot, int tipo, int i, int foco, float y, f
   GfxRect r = {48, y, W - 96, 60};
   if (draw) {
     if (foco) plrui_pilula_foco(r, 1); else plrui_botao_repouso(r, 1);
-    TxtLinha l = txt_linha_corta(TXT_ILHA_ITEM, i18n(rot), DG_TX, r.w - 40);
+    int tinta = ajustes_tinta_foco();
+    TxtLinha l = foco ? txt_linha_corta(TXT_ILHA_ITEM, i18n(rot), tinta, tinta, tinta, 255, r.w - 40)
+                     : txt_linha_corta(TXT_ILHA_ITEM, i18n(rot), DG_TX, r.w - 40);
     txt_desenhar_alpha(l, r.x + 20, y + (60 - l.h) * .5f, 1);
     if (!d.intro) ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, NULL, dgPhoneAcao, tipo, i);
   }

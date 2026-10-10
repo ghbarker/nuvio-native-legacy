@@ -32,6 +32,7 @@ static GfxRect recorte, botoesTeste[32];
 static int alvoA[32], alvoB[32];
 static int cortando, nBotoesTeste, ultimoPoster, nTextos;
 static float limiteTexto;
+static int tintaFocoTeste, corTextoR, corTextoG, corTextoB;
 static float telaW(void) { return nv_layout_w / escala; }
 static float telaH(void) { return nv_layout_h / escala; }
 static void limites(GfxRect r, int clipping) {
@@ -58,7 +59,7 @@ void gfx_rect(GfxRect r, GLuint t, GfxModo m, float f, float px, float py, float
 void gfx_icone(GfxRect r, const char *s, float cr, float cg, float cb, float a) { (void)s; gfx_cor(r, 0, cr, cg, cb, a); }
 void gfx_anel(GfxRect r, float raio, float esp, float cr, float cg, float cb, float a) { (void)esp; gfx_cor(r, raio, cr, cg, cb, a); }
 int txt_largura(TxtEstilo e, const char *s) { (void)e; return (int)strlen(s) * 12; }
-TxtLinha txt_linha(TxtEstilo e, const char *s, int r, int g, int b, int a) { (void)r; (void)g; (void)b; (void)a; return (TxtLinha){0,txt_largura(e,s),28}; }
+TxtLinha txt_linha(TxtEstilo e, const char *s, int r, int g, int b, int a) { corTextoR=r;corTextoG=g;corTextoB=b;(void)a; return (TxtLinha){0,txt_largura(e,s),28}; }
 TxtLinha txt_linha_corta(TxtEstilo e, const char *s, int r, int g, int b, int a, float w) {
   assert(w > 0); TxtLinha t = txt_linha(e,s,r,g,b,a); if(t.w>w)t.w=(int)w; return t;
 }
@@ -79,7 +80,7 @@ Uint32 SDL_GetTicks(void) { return 5000; }
 int ajustes_idioma(void) { return 0; }
 int ajustes_idioma_ingles(void) { return 1; }
 int ajustes_vidro(void) { return 0; }
-int ajustes_tinta_foco(void) { return 0; }
+int ajustes_tinta_foco(void) { return tintaFocoTeste; }
 float ajustes_acento_tinta(float *r,float *g,float *b) { if(r)*r=.4f;if(g)*g=.7f;if(b)*b=1;return 0; }
 int ajustes_relogio_12h(void) { return 0; }
 float txt_tracking(TxtEstilo e,const char *s,int r,int g,int b,float x,float y,float spacing,float a) {

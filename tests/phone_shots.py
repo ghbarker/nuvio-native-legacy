@@ -25,6 +25,7 @@ def main():
         'diagnostico', 'livetvdiag', 'trocaarte', 'ilha3', 'player_glass'])
     parser.add_argument('--cases', nargs='+', default=['1080x2340@1', '2340x1080@1.5'])
     parser.add_argument('--all-settings', action='store_true')
+    parser.add_argument('--home-variant', choices=['shapes', 'ranking', 'folders'])
     parser.add_argument('--settings-layout', nargs='+', type=int, choices=[0, 1], default=[0, 1])
     args = parser.parse_args()
     output = (ROOT / args.output).resolve()
@@ -36,7 +37,7 @@ def main():
     flags = ['-O1', '-g', '-DNV_LINUX_DESKTOP', '-DNV_TOUCH_PREVIEW',
              '-DAJUSTES_TESTE', '-DNV_SHOT_HOOKS', '-DCENTRAL_TESTE',
              '-DREGISTRO_TESTE', '-DAVISOS_TESTE_ENVIO', '-DDESEMPENHO_TESTE',
-             '-DTELEMETRIA_TESTE', '-DSDL_MAIN_HANDLED', '-ffunction-sections',
+             '-DTELEMETRIA_TESTE', '-DNV_SOCIALVIS_DEMO', '-DSDL_MAIN_HANDLED', '-ffunction-sections',
              '-fdata-sections', '-Isrc', '-Itests']
     cflags = shlex.split(subprocess.check_output(
         ['pkg-config', '--cflags', 'sdl2', 'SDL2_image', 'SDL2_ttf', 'glesv2', 'egl', 'zlib'], text=True))
@@ -89,16 +90,28 @@ def main():
             data_name = {'detail_secoes': 'nuvio-detsec-dados',
                          'detalhe_glass': 'nuvio-detglass-dados',
                          'trocaarte': 'nuvio-trocaarte-dados',
+                         'homelayouts': 'nuvio-homelayouts-shot',
                          'spainel_abas': 'nuvio-abas-shot'}.get(name, 'data')
             data = folder / data_name
             data.mkdir(exist_ok=True)
             environment = dict(os.environ, NUVIO_DADOS=str(data), NUVIO_TESTE_DIR=str(data),
                                NUVIO_PHONE_SHOT_W=width, NUVIO_PHONE_SHOT_H=height,
                                NUVIO_TAMANHO_UI=scale, LIBGL_ALWAYS_SOFTWARE='1')
+            fixture_args = []
+            if name == 'homelayouts' and args.home_variant:
+                fixture_args = ['1']
+                if args.home_variant == 'shapes':
+                    environment['NV_TIPOS'] = 'pop_movie=1,trend_series=2,drama_movie=3,comedia_movie=4,ficcao_movie=8'
+                elif args.home_variant == 'ranking':
+                    environment['NV_TIPOS'] = 'pop_movie=5,trend_series=6,drama_movie=7,comedia_movie=9,ficcao_movie=10'
+                else:
+                    environment.update(NV_COL='1', NV_COL_PACOTE='1', NV_AMIGOS='1',
+                                       NV_MENU='1', NV_MENU_ABRIR='1')
             log = folder / 'capture.log'
+            destination = folder / (name + '.png' if name == 'avisos_toast' else name)
             try:
                 with log.open('w') as stream:
-                    run([str(binary), str(folder / name)], env=environment,
+                    run([str(binary), str(destination), *fixture_args], env=environment,
                         stdout=stream, stderr=subprocess.STDOUT, timeout=600)
                 pngs = sorted(folder.rglob('*.png'))
                 if not pngs:
