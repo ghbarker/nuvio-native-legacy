@@ -609,7 +609,7 @@ static float escalaPosterTelefone(void) {
 
 // A tela larga de um telefone precisa deixar uma fileira ao alcance sem
 // ocupar quase toda a altura com o destaque. Tablets e a edicao para TV
-// conservam suas medidas; a arte de fundo continua no mesmo enquadramento.
+// conservam suas medidas.
 static int heroCompactoTelefone(void) {
 #ifdef NV_TOUCH_PREVIEW
   return homeRetratoTelefone() || NV_TELA_W / NV_TELA_H >= 1.95f;
@@ -3812,6 +3812,45 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
 // usar. Era isso que faltava para a abertura ler como rearranjo de layout e
 // nao como troca de tela.
 static void ponteiroHero(int a, int b);
+static GfxRect heroArtworkRect(int lay, int cheio) {
+  if (lay == HOME_LAYOUT_PADRAO) return padBannerRect();
+  GfxRect r = lay == HOME_LAYOUT_DINAMICA
+            ? (GfxRect){0, dinHeroY(), NV_TELA_W, NV_DIN_ARTE_H}
+            : cheio ? (GfxRect){0, 0, NV_TELA_W, NV_HERO_CHEIO_H}
+                    : (GfxRect){NV_HERO_ARTE_X, 0, NV_HERO_ARTE_W, NV_HERO_ARTE_H};
+#ifdef NV_TOUCH_PREVIEW
+  if (heroCompactoTelefone()) {
+    if (lay == HOME_LAYOUT_DINAMICA) r.h = repousoFileirasDin() - 20.0f;
+    else {
+      float repouso = NV_SHELF_TOP + empurraHeroModerna() - 20.0f;
+      float primeira = topoFileiras() - scrollY - 20.0f;
+      r.h = fminf(r.h, fminf(repouso, fmaxf(132.0f, primeira)));
+      if (homeRetratoTelefone()) { r.x = 0.0f; r.w = NV_TELA_W; }
+      else r.w = fminf(r.w, NV_TELA_W - r.x);
+    }
+  }
+#endif
+  return r;
+}
+
+static GfxRect heroArtworkOverlayRect(GfxRect r, GfxRect hero) {
+#ifdef NV_TOUCH_PREVIEW
+  if (heroCompactoTelefone()) {
+    float x = fmaxf(r.x, hero.x), y = fmaxf(r.y, hero.y);
+    float dir = fminf(r.x + r.w, hero.x + hero.w);
+    float base = fminf(r.y + r.h, hero.y + hero.h);
+    if (r.w <= 0.0f || r.h <= 0.0f || dir <= x || base <= y)
+      return (GfxRect){x, y, 0, 0};
+    float escala = fminf(1.0f, fminf((dir - x) / r.w, (base - y) / r.h));
+    float w = r.w * escala, h = r.h * escala;
+    return (GfxRect){dir - w, y, w, h};
+  }
+#else
+  (void)hero;
+#endif
+  return r;
+}
+
 static float heroBaseCopia(int lay, GfxRect r, float empurra, float descida) {
   if (lay == HOME_LAYOUT_PADRAO) return r.y + r.h - NV_PAD_TEXTO_BASE + descida;
   if (lay == HOME_LAYOUT_DINAMICA) return r.y + alturaTextoHeroDin() - NV_DIN_TEXTO_BASE + descida;
@@ -3863,8 +3902,7 @@ static void desenhaHero(Uint32 agora, float saida) {
                              fileiras[foco.fileira].tipo == FILEIRA_SOCIAL)));
   // Em tela cheia o bloco sobe 70px (ver layout.h).
   GfxModo modoHero = cheio ? GFX_HERO_CHEIO : GFX_HERO;
-  GfxRect r = cheio ? (GfxRect){ 0, 0, NV_TELA_W, NV_HERO_CHEIO_H }
-                    : (GfxRect){ NV_HERO_ARTE_X, 0, NV_HERO_ARTE_W, NV_HERO_ARTE_H };
+  GfxRect r = heroArtworkRect(lay, cheio);
   // LAYOUTS NOVOS. O destaque deles e sempre "de titulo" (a arte do titulo em
   // foco) e nunca o de colecao/social da Moderna, que sao telas cheias de
   // outro assunto. Medidas do bloco de texto: a Moderna as le das constantes
@@ -3877,17 +3915,16 @@ static void desenhaHero(Uint32 agora, float saida) {
     // TELA CHEIA NA LARGURA (dono, 30/09): sem cartao, sem canto. A arte vai de
     // borda a borda e do topo da tela e se DISSOLVE na base para o fundo, onde
     // comecam as fileiras (o texto fica no trecho ainda opaco, com o veu).
-    cheio = 0; modoHero = GFX_VITRINE; r = padBannerRect();
+    cheio = 0; modoHero = GFX_VITRINE;
     vitVeu = 0.92f; vitAncora = 0.30f; vitDissolve = 1.0f; vitRaio = 0.0f;
     vitVeuIni = 0.0f;
     logoH = NV_PAD_LOGO_H; sinW = NV_PAD_SIN_W; sinLinhas = 3;
     btnH = NV_HERO_BOTAO_COMPACTO_H; btnGap = 22.0f;
   } else if (lay == HOME_LAYOUT_DINAMICA) {
     cheio = 0; modoHero = GFX_VITRINE;
-    dinY = dinHeroY();
+    dinY = r.y;
     // A ARTE E A TELA INTEIRA (dono, 30/09: "como a Apple TV"); o texto fica
     // na zona de NV_DIN_HERO_H, acima da fileira que espia por baixo.
-    r = (GfxRect){ 0.0f, dinY, NV_TELA_W, NV_DIN_ARTE_H };
     // A arte apaga enquanto sobe (de NV_DIN_ARTE_FADE_A ate _B de rolagem): ela
     // e uma tela inteira e, sem isso, a ponta dela ficaria atras da primeira
     // fileira ancorada em cima.
@@ -3900,7 +3937,7 @@ static void desenhaHero(Uint32 agora, float saida) {
     vitVeu = 0.92f; vitAncora = 0.28f; vitDissolve = 1.0f; vitRaio = 0.0f;
     // O veu de baixo comeca no MESMO y absoluto que tinha com a arte de 780
     // (0,38 x 780): o texto le igual, e a arte segue escurecendo ate a base.
-    vitVeuIni = 0.38f * alturaTextoHeroDin() / NV_DIN_ARTE_H;
+    vitVeuIni = 0.38f * alturaTextoHeroDin() / r.h;
     logoH = NV_DIN_LOGO_H; sinW = 760.0f;
     btnH = NV_HERO_BOTAO_COMPACTO_H; btnGap = 22.0f;
   }
@@ -3982,8 +4019,10 @@ static void desenhaHero(Uint32 agora, float saida) {
            The neutral canvas continues below it; no art behind the shelves. */
         float x=homeConteudoX(),a=(1-saida)*heroVisivelToque();
         GLuint art=tex_obter_hero(folder->hero);
-        GfxRect header=heroEditorialRect(folder->editorial, folder->editorial==2 ? tex_aspecto(folder->hero) : 0.0f);
-        if(art)gfx_rect(header,art,folder->editorial==2?GFX_EDITORIAL:GFX_TEXTO,0,0,0,0,1,1,1,a);
+        GfxRect header=heroArtworkOverlayRect(heroEditorialRect(folder->editorial,
+                      folder->editorial==2 ? tex_aspecto(folder->hero) : 0.0f), r);
+        if(art && header.w>0 && header.h>0)
+          gfx_rect(header,art,folder->editorial==2?GFX_EDITORIAL:GFX_TEXTO,0,0,0,0,1,1,1,a);
         heroArteRect=header;
         int director=!strcasecmp(folder->group,"Directors");
         const char *section=director?"DIRETORES":!strcmp(folder->group,"Streaming")?"STREAMING":!strcmp(folder->group,"Themes")?"TEMAS":!strcmp(folder->group,"Genres")?"GÊNEROS":"COLEÇÕES";
@@ -4028,8 +4067,10 @@ static void desenhaHero(Uint32 agora, float saida) {
           GfxRect pr=cheio ? (GfxRect){840.0f,-20.0f,1080.0f,1120.0f}
                            : (GfxRect){980.0f,-15.0f,940.0f,700.0f};
           if (homeRetratoTelefone()) pr = (GfxRect){NV_TELA_W * 0.4f, -20.0f, NV_TELA_W * 0.7f, 1120.0f};
+          pr = heroArtworkOverlayRect(pr, r);
           gfx_tex_aspect_atual=tex_aspecto(foto);
-          gfx_rect(pr,retrato,GFX_RETRATO,0,0,0,0,0,0,0,aArte);
+          if (pr.w > 0 && pr.h > 0)
+            gfx_rect(pr,retrato,GFX_RETRATO,0,0,0,0,0,0,0,aArte);
           gfx_tex_aspect_atual=0.0f;
         }
         TxtLinha name=txt_linha_corta(TXT_TITULO1,folder->title,244,243,247,255,homeTextoLargura(780));

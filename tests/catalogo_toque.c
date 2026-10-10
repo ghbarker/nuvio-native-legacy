@@ -103,11 +103,41 @@ static int imeBuscaTeste, vozBuscaTeste, celBuscaTeste, alvosCampo, textosCampo,
 static int fonteLargaTeste, pilulaBuscaTeste, recorteBuscaAtivo;
 static GfxRect campoBuscaTeste, clipBuscaTeste, cursorBuscaTeste;
 static char avisoBuscaTeste[160];
+static int resultadosBuscaTeste, alvosResultadosTeste, desenhosResultadosTeste, recentesBuscaTeste;
+static CatItem itensBuscaTeste[BU_MAX_POR_FIL];
+static GfxRect alvosBuscaTeste[128];
+static GfxRect ultimoRotuloBusca;
+static int pedidosImeBusca;
+float gfx_tex_aspect_atual, gfx_varre_atual;
+const CatItem *cat_item(int i) { return i >= 0 && i < BU_MAX_POR_FIL ? &itensBuscaTeste[i] : NULL; }
+const char *posterprov_card_addon(const char *origem, const char *imdb, long tmdb, const char *tipo, const char *url) {
+  (void)origem; (void)imdb; (void)tmdb; (void)tipo; return url;
+}
+GLuint tex_obter_larg(const char *url, float w) { (void)url; (void)w; return 0; }
+float tex_aspecto(const char *url) { (void)url; return 1.5f; }
+int tex_falhou(const char *url) { (void)url; return 0; }
+int focus_indice(const Foco *f, int r, int c) { return f->fileira == r && f->coluna == c; }
+int buscasrec_n(void) { return recentesBuscaTeste; }
+const char *buscasrec_termo(int i) { (void)i; return "A long recent query that must stay inside the phone results viewport"; }
+static void desenhoBusca(GfxRect r) {
+  if (!resultadosBuscaTeste) return;
+  assert(recorteBuscaAtivo && r.w >= 0 && r.h >= 0);
+  assert(clipBuscaTeste.x >= 0 && clipBuscaTeste.x + clipBuscaTeste.w <= NV_TELA_W + .01f);
+  assert(clipBuscaTeste.y >= 0 && clipBuscaTeste.y + clipBuscaTeste.h <= NV_TELA_H + .01f);
+  desenhosResultadosTeste++;
+}
 float gfx_opacidade_grupo = 1;
 int menu_pilula_rect(float *x, float *y, float *w, float *h) {
   *x = 40; *y = 44; *w = 300; *h = 60; return pilulaBuscaTeste;
 }
 int st_ime_disponivel(void) { return imeBuscaTeste; }
+int st_ime_abrir(int dono, const char *inicial, int max) {
+  assert(dono == ST_BUSCA && inicial == consulta && max == BU_MAX_CONSULTA-1);
+  pedidosImeBusca++; return 1;
+}
+int st_voz_iniciar(int dono) { (void)dono; return 0; }
+void st_fechar(int dono) { (void)dono; }
+int celb_abrir(int dono, const char *titulo) { (void)dono; (void)titulo; return 0; }
 int st_voz_disponivel(void) { return vozBuscaTeste; }
 int celb_disponivel(void) { return celBuscaTeste; }
 int st_dono(void) { return ST_BUSCA; }
@@ -118,14 +148,23 @@ const char *i18n(const char *s) { return s; }
 int ajustes_tinta_foco(void) { return 24; }
 void ajustes_acento(float *r, float *g, float *b) { *r = 1; *g = .6f; *b = .2f; }
 void ajustes_ui_ilha(GfxRect r, float raio, int modal) {
-  (void)raio; (void)modal; campoBuscaTeste = r;
+  (void)raio; (void)modal;
+  if (resultadosBuscaTeste) desenhoBusca(r); else campoBuscaTeste = r;
 }
 void ajustes_ui_foco_linha(GfxRect r, float raio) { (void)r; (void)raio; }
 void ajustes_ui_neutro(GfxRect r, float raio, float a) { (void)r; (void)raio; (void)a; }
 int ponteiro_ativo(void) { return 1; }
 void ponteiro_alvo(float x, float y, float w, float h, PonteiroFn focar,
                    PonteiroFn ativar, int a, int b) {
-  (void)y; (void)h; (void)ativar; (void)a; (void)b;
+  (void)ativar; (void)a; (void)b;
+  if (resultadosBuscaTeste) {
+    assert(focar == ponteiroResultado || focar == ponteiroRecente);
+    assert(w > 0 && h > 0 && x >= BU_RES_X - .01f && x + w <= BU_DIR + .01f);
+    assert(y >= BU_RES_Y - 20 - .01f && y + h <= NV_TELA_H - 48 + .01f);
+    assert(alvosResultadosTeste < 128);
+    alvosBuscaTeste[alvosResultadosTeste++] = (GfxRect){x,y,w,h};
+    return;
+  }
   assert(focar == focarCampoPonteiro);
   if (buRetrato()) assert(x >= campoBuscaTeste.x && x + w <= campoBuscaTeste.x + campoBuscaTeste.w);
   alvosCampo++;
@@ -136,11 +175,15 @@ void celb_botao(int dono, GfxRect r, int focado, PonteiroFn focar, int a, int b,
 }
 void gfx_recorte(float x, float y, float w, float h) {
   clipBuscaTeste = (GfxRect){x,y,w,h}; recorteBuscaAtivo = 1; recortesCampo++;
-  assert(w > 0 && x >= campoBuscaTeste.x && x + w <= campoBuscaTeste.x + campoBuscaTeste.w);
+  assert(w > 0);
+  if (resultadosBuscaTeste) {
+    assert(x == BU_RES_X && x + w <= BU_DIR + .01f && y + h <= NV_TELA_H - 48 + .01f);
+  } else assert(x >= campoBuscaTeste.x && x + w <= campoBuscaTeste.x + campoBuscaTeste.w);
 }
 void gfx_sem_recorte(void) { assert(recorteBuscaAtivo); recorteBuscaAtivo = 0; }
 void gfx_cor(GfxRect r, float raio, float cr, float cg, float cb, float ca) {
   (void)raio; (void)cr; (void)cg; (void)cb; (void)ca;
+  desenhoBusca(r);
   if (r.w == 2 && r.h == 30) {
     cursorBuscaTeste = r;
     if (buRetrato()) assert(recorteBuscaAtivo && r.x + r.w <= clipBuscaTeste.x + clipBuscaTeste.w);
@@ -148,8 +191,12 @@ void gfx_cor(GfxRect r, float raio, float cr, float cg, float cb, float ca) {
 }
 void gfx_rect(GfxRect r, GLuint tex, GfxModo modo, float foco, float parx, float pary, float raio,
                 float cr, float cg, float cb, float ca) {
-  (void)r; (void)tex; (void)modo; (void)foco; (void)parx; (void)pary; (void)raio;
+  (void)tex; (void)modo; (void)foco; (void)parx; (void)pary; (void)raio;
   (void)cr; (void)cg; (void)cb; (void)ca;
+  desenhoBusca(r);
+}
+void gfx_esqueleto(GfxRect r, float raio, float cr, float cg, float cb, float ca) {
+  (void)raio; (void)cr; (void)cg; (void)cb; (void)ca; desenhoBusca(r);
 }
 void gfx_icone(GfxRect r, const char *nome, float cr, float cg, float cb, float ca) {
   (void)r; (void)nome; (void)cr; (void)cg; (void)cb; (void)ca;
@@ -157,10 +204,23 @@ void gfx_icone(GfxRect r, const char *nome, float cr, float cg, float cb, float 
 TxtLinha txt_linha_corta(TxtEstilo estilo, const char *s, int r, int g, int b, int a, float maxW) {
   (void)estilo; (void)r; (void)g; (void)b; (void)a;
   assert(maxW > 0);
+  if (resultadosBuscaTeste) {
+    GLuint marca = estilo == TXT_ILHA_NOME && s == itensBuscaTeste[BU_MAX_POR_FIL-1].titulo ? 2 : 0;
+    return (TxtLinha){marca, (int)fminf(strlen(s)*(fonteLargaTeste ? 40 : 24),maxW),30,0,0};
+  }
   return (TxtLinha){0, fonteLargaTeste ? (int)maxW + 180 : (int)fminf(strlen(s)*24, maxW), 30, 0, 0};
 }
+TxtLinha txt_linha(TxtEstilo estilo, const char *s, int r, int g, int b, int a) {
+  (void)estilo; (void)r; (void)g; (void)b; (void)a;
+  return (TxtLinha){0, (int)strlen(s)*24,30,0,0};
+}
 void txt_desenhar(TxtLinha l, float x, float y) {
-  (void)y; textosCampo++;
+  if (resultadosBuscaTeste) {
+    GfxRect r = {x,y,(float)l.w,(float)l.h};
+    if (l.tex == 2) ultimoRotuloBusca = r;
+    desenhoBusca(r); return;
+  }
+  textosCampo++;
   if (buRetrato()) assert(recorteBuscaAtivo && x < clipBuscaTeste.x + clipBuscaTeste.w && l.w > 0);
 }
 void txt_desenhar_alpha(TxtLinha l, float x, float y, float a) { (void)a; txt_desenhar(l,x,y); }
@@ -188,6 +248,75 @@ void ponteiro_alvo(float x, float y, float w, float h, PonteiroFn focar,
 #endif
 
 static void perto(float real, float esperado) { assert(fabsf(real - esperado) < 0.01f); }
+
+#if defined(TESTE_BUSCA)
+static void testaResultadosBuscaTelefone(void) {
+  const float telas[][2] = {{1080,1920},{1080,2340},{2340,1080},{2520,1080}};
+  for (int d = 0; d < 4; d++) for (int fonte = 0; fonte < 2; fonte++) for (int rail = 0; rail < 2; rail++) {
+    nv_layout_w = telas[d][0]; nv_layout_h = telas[d][1];
+    imeBuscaTeste = 1; vozBuscaTeste = celBuscaTeste = 0; buscaRailTeste = rail ? 140 : 0;
+    fonteLargaTeste = fonte; pilulaBuscaTeste = 0; resultadosBuscaTeste = 0;
+    nConsulta = 0; consulta[0] = 0; avisoBuscaTeste[0] = 0;
+    assert(buTecladoNativo()); desenhaCampo(0);
+    perto(BU_RES_X, buX()); perto(BU_RES_Y, buTopoEsq() + BU_CAMPO_H + 44);
+    perto(campoBuscaTeste.x, BU_RES_X); perto(campoBuscaTeste.x + campoBuscaTeste.w, BU_DIR);
+    assert(BU_RES_AREA_H > 700 && BU_CAMPO_H >= 100 && buCartazW() >= 200);
+    int desenhosAntes = textosCampo; desenhaTeclado(); assert(textosCampo == desenhosAntes);
+    pedidosImeBusca = 0; focarCampoPonteiro(1,0); campoOk();
+    assert(pedidosImeBusca == 1 && campoFoco == 1 && painel == 0);
+    memset(fil,0,sizeof fil); memset(pess,0,sizeof pess); memset(animRes,0,sizeof animRes);
+    memset(scrollX,0,sizeof scrollX); memset(filEntraEm,0,sizeof filEntraEm);
+    memset(filNova,0,sizeof filNova); toqueBuscaLimpar(); scrollY = scrollAlvo = 0;
+    sugestao = 0; nFil = 6; nPess = BU_MAX_PESS; recentesBuscaTeste = 0;
+    nConsulta = 3; snprintf(consulta,sizeof consulta,"abc");
+    fil[0].melhor = 1; fil[0].n = 1;
+    fil[1].pessoas = 1; fil[1].n = BU_MAX_PESS; fil[2].n = BU_MAX_POR_FIL;
+    for (int r = 3; r < nFil; r++) fil[r].n = BU_MAX_POR_FIL;
+    for (int r = 0; r < nFil; r++) {
+      fil[r].titulo = "A very long catalogue title that must not push its source outside the phone screen";
+      fil[r].origem = "A similarly long addon name";
+      for (int c = 0; c < fil[r].n; c++) { fil[r].itens[c] = c; animRes[r][c] = 1; }
+    }
+    for (int c = 0; c < BU_MAX_POR_FIL; c++) {
+      memset(&itensBuscaTeste[c],0,sizeof itensBuscaTeste[c]);
+      snprintf(itensBuscaTeste[c].titulo,sizeof itensBuscaTeste[c].titulo,"A long title for poster %d",c);
+      snprintf(itensBuscaTeste[c].meta,sizeof itensBuscaTeste[c].meta,"2026 · Movie");
+      snprintf(itensBuscaTeste[c].genero,sizeof itensBuscaTeste[c].genero,"Adventure");
+    }
+    for (int c = 0; c < BU_MAX_PESS; c++) snprintf(pess[c].nome,sizeof pess[c].nome,"A long performer name %d",c);
+    resultadosBuscaTeste = 1; alvosResultadosTeste = desenhosResultadosTeste = 0;
+    painel = 1; focoRes.fileira = 2; focoRes.coluna = 0; pedido = -1;
+    desenhaResultados(1000);
+    assert(!recorteBuscaAtivo && alvosResultadosTeste >= 4 && desenhosResultadosTeste >= 10);
+    PonteiroRolagem e = {PONT_ROL_INICIO,0,0,0,BU_RES_X+100,BU_RES_Y+filTopo(2)+filKickH(2)+20};
+    assert(toqueBuscaRolar(&e)); e.fase = PONT_ROL_MOVER; e.delta = -37.5f;
+    assert(toqueBuscaRolar(&e)); perto(scrollX[2],37.5f); assert(pedido == -1);
+    e.delta = -1e6f; toqueBuscaRolar(&e); perto(scrollX[2],toqueBuscaMaxX(2));
+    alvosResultadosTeste = 0; desenhaResultados(1100); assert(alvosResultadosTeste > 0 && !recorteBuscaAtivo);
+    /* Stale landscape scroll offsets cannot leave a blank portrait page. */
+    scrollY = scrollAlvo = 100000;
+    for (int r = 1; r < nFil; r++) scrollX[r] = 100000;
+    ultimoRotuloBusca = (GfxRect){0};
+    alvosResultadosTeste = 0; desenhaResultados(1200);
+    perto(scrollY,toqueBuscaMaxY()); perto(scrollX[2],toqueBuscaMaxX(2));
+    assert(alvosResultadosTeste > 0 && !recorteBuscaAtivo);
+    assert(ultimoRotuloBusca.h > 0 && ultimoRotuloBusca.y + ultimoRotuloBusca.h <= NV_TELA_H - 48 + .01f);
+    /* Recent-only and empty states use the same cropped viewport. */
+    nFil = 0; nConsulta = 0; consulta[0] = 0; recentesBuscaTeste = BUSCASREC_MAX;
+    scrollY = scrollAlvo = 0; alvosResultadosTeste = 0; desenhaResultados(1300);
+    assert(nRecLayout == BUSCASREC_MAX+1 && alvosResultadosTeste > 0 && !recorteBuscaAtivo);
+    e = (PonteiroRolagem){PONT_ROL_INICIO,1,0,0,BU_RES_X+50,BU_RES_Y+60};
+    assert(toqueBuscaRolar(&e)); e.fase = PONT_ROL_MOVER; e.delta = -1e6f;
+    toqueBuscaRolar(&e); perto(scrollY,toqueBuscaMaxY());
+    alvosResultadosTeste = 0; desenhaResultados(1400); assert(alvosResultadosTeste > 0 && !recorteBuscaAtivo);
+    recentesBuscaTeste = 0; nConsulta = 3; desenhaResultados(1500); assert(!recorteBuscaAtivo);
+    resultadosBuscaTeste = 0;
+  }
+  nv_layout_w = 2400; nv_layout_h = 1080; buscaRailTeste = 0; imeBuscaTeste = 0;
+  fonteLargaTeste = 0; recentesBuscaTeste = 0; nConsulta = 0; consulta[0] = 0;
+  scrollY = scrollAlvo = 0; memset(scrollX,0,sizeof scrollX); memset(fil,0,sizeof fil); nFil = 0;
+}
+#endif
 
 #if defined(TESTE_HOME)
 static void testaHeroTelefone(void) {
@@ -530,7 +659,8 @@ int main(void) {
   buscaRailTeste = 140; desenhaCampo(0);
   perto(campoBuscaTeste.x + campoBuscaTeste.w*.5f, NV_TELA_W*.5f);
   buscaRailTeste = 0; fonteLargaTeste = 0; pilulaBuscaTeste = 0;
-  nv_layout_w = 2340; nv_layout_h = 1080; recortesCampo = 0;
+  imeBuscaTeste = 0;
+  nv_layout_w = 1920; nv_layout_h = 1080; recortesCampo = 0;
   desenhaCampo(0); assert(!recortesCampo);
   perto(campoBuscaTeste.x, 96); perto(campoBuscaTeste.w, 520);
   nv_layout_w = 1080; nv_layout_h = 2340; desenhaCampo(0);
@@ -552,6 +682,7 @@ int main(void) {
   toqueBuscaRolar(&e); perto(scrollY, 37.5f);
   assert(focoRes.fileira == 0 && focoRes.coluna == 0);
   toqueBuscaRetomarFoco(); scrollY = scrollAlvo = 0;
+  testaResultadosBuscaTelefone();
   nv_layout_w = 2400; nv_layout_h = 1080;
   perto(BU_COL_W, 520); perto(BU_RES_X, buX() + 576); perto(BU_RES_Y, 64);
   e.fase = PONT_ROL_INICIO; e.eixoY = 1; e.y = BU_RES_Y + 100;
