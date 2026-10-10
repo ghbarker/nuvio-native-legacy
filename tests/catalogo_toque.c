@@ -13,6 +13,7 @@
 #endif
 #include "../src/ctxlista.h"
 #include <assert.h>
+#include <stdio.h>
 
 float nv_layout_w = 2400.0f;
 static int testMobile = 1;
@@ -263,7 +264,15 @@ void ponteiro_alvo(float x, float y, float w, float h, PonteiroFn focar,
 }
 #endif
 
-static void perto(float real, float esperado) { assert(fabsf(real - esperado) < 0.01f); }
+static void pertoEm(float real, float esperado, int linha, const char *expressao,
+                    const char *expectativa) {
+  if (!(fabsf(real - esperado) < 0.01f))
+    fprintf(stderr, "catalogo_toque:%d: %s = %.6f; esperado %s = %.6f (modo=%s tela=%.0fx%.0f)\n",
+            linha, expressao, real, expectativa, esperado,
+            testMobile ? "Mobile" : "TV", nv_layout_w, nv_layout_h);
+  assert(fabsf(real - esperado) < 0.01f);
+}
+#define perto(real, esperado) pertoEm((real), (esperado), __LINE__, #real, #esperado)
 
 #if defined(TESTE_BUSCA)
 static void testaResultadosBuscaTelefone(void) {
@@ -495,13 +504,15 @@ static void testaHomeRetrato(void) {
     heroTeste = 0; toqueHomeLimpar(); perto(topoFileiras(), 150); perto(corteFileiras(), 132); perto(empurraHero(), 0);
     heroTeste = 1;
   }
-  // TV mode retains its original layout and card dimensions.
+  // TV mode retains its original layout and card dimensions. The mocked
+  // canvas deliberately varies to prove that shape cannot enable Mobile.
   testMobile = 0;
   nv_layout_w = 1080; nv_layout_h = 1728; layoutTeste = HOME_LAYOUT_MODERNA;
   toqueHomeLimpar(); assert(!homeRetratoTelefone());
   perto(topoFileiras() + empurraHero(), 999); perto(larguraFil(0), NV_CARD_W);
   nv_layout_w = 2400; nv_layout_h = 1080;
-  perto(topoFileiras() + empurraHero(), 749.25f); perto(larguraFil(0), NV_CARD_W);
+  assert(!heroCompactoTelefone());
+  perto(topoFileiras() + empurraHero(), 999); perto(larguraFil(0), NV_CARD_W);
 }
 
 static void testaHomeMargensRetrato(void) {

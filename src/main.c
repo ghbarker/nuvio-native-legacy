@@ -507,12 +507,40 @@ static int resolucaoDaTv(void) {
 #endif
 }
 #ifdef NV_TOUCH_UI
+static Uint32 tvViewportMudouEm;
+static int tvViewportMudou, tvModoMudou;
+static void resolucaoTvViewportMudou(Uint32 agora, int mudouModo) {
+  tvViewportMudouEm = agora;
+  tvViewportMudou = 1;
+  if (mudouModo) tvModoMudou = 1;
+}
+#endif
+// Android restores its fixed TV holder asynchronously. After a live change,
+// allow one report interval to settle, then require a whole unchanged TV
+// interval. Every report still harvests/resets GPU stats, including skipped
+// reports, so a Mobile or resize window cannot decide the TV's saved verdict.
+static int resolucaoTvJanela(Uint32 agora, Uint32 inicio, int w, int h, int pedidoW, int pedidoH) {
+#ifdef NV_TOUCH_UI
+  if (!resolucaoDaTv()) return 0;
+  if (tvViewportMudou && agora - tvViewportMudouEm < agora - inicio + 3000u) return 0;
+  // An initial TV launch may discover that 4K was refused. After toggling,
+  // the smaller drawable can instead be Mobile's holder awaiting restoration.
+  if (tvModoMudou && pedidoW > (int)NV_TELA_BASE_W &&
+      (w != pedidoW || h != pedidoH)) return 0;
+  return 1;
+#else
+  (void)agora; (void)inicio; (void)w; (void)h; (void)pedidoW; (void)pedidoH;
+  return 1;
+#endif
+}
+#ifdef NV_TOUCH_UI
 static void interfaceViewport(SDL_Window *win, int *width, int *height, int *modo) {
   int novoW = 0, novoH = 0;
   int novoModo = layout_modo_mobile();
   SDL_GL_GetDrawableSize(win, &novoW, &novoH);
   if (novoW <= 0 || novoH <= 0 ||
       (novoW == *width && novoH == *height && novoModo == *modo)) return;
+  resolucaoTvViewportMudou(SDL_GetTicks(), novoModo != *modo);
   *width = novoW; *height = novoH; *modo = novoModo;
   layout_tela_definir(novoW, novoH);
   ponteiro_cancelar_toque();
@@ -2071,9 +2099,10 @@ int main(int argc, char **argv) {
       // the extension exists; the line is what tells a 17 ms frame from a 30 ms
       // one when both show as "33" to the CPU.
       { double gMed = 0, gPior, gUlt, gP90 = gputempo_p90(); int gN = gputempo_colher(&gMed, &gPior, &gUlt);
+        int janelaTv = resolucaoTvJanela(agora, ultRelato, dw, dh, pedeW, pedeH);
         if (gN > 0) printf("[gpu-tempo] med=%.1fms pior=%.1fms ult=%.1fms n=%d\n", gMed, gPior, gUlt, gN);
         // AUTOMATIC 4K (resolucao.h): probe, then watch. Same validity rule as below.
-        if (autoPediu && resolucaoDaTv()) {
+        if (autoPediu && janelaTv) {
           static ResAuto ra; static int iniciou, avisouSem;
           if (!iniciou) { iniciou = 1; ra.estado = autoEst == RES_AUTO_4K ? RES_AUTO_4K : RES_AUTO_SONDAR; }
           if (dw <= (int)NV_TELA_W) {
@@ -2103,7 +2132,7 @@ int main(int argc, char **argv) {
         }
         // 4K WATCH (resolucao.h): the person picked 4K and the TV granted it.
         // Only the interface counts: no player, no opening, 10 s of warm-up.
-        if (pediu4k && resolucaoDaTv() && dw > (int)NV_TELA_W && !gpun_alvo_1080_ativo()) {
+        if (pediu4k && janelaTv && dw > (int)NV_TELA_W && !gpun_alvo_1080_ativo()) {
           static ResVigia vigia4k;
           double fpsJan = quadros * 1000.0 / (double)(agora - ultRelato);
           int valida = SDL_GetTicks() > 10000u && !abertura_ativa() &&

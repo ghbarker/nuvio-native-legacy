@@ -59,6 +59,8 @@ def main():
     mode_source = objects / 'mobile-mode-init.c'
     mode_source.write_text(
         '#include "layout.h"\n'
+        # The Android option catalog runs with a desktop renderer and has no JNI bridge.
+        'void android_interface_modo(int mobile) { (void)mobile; }\n'
         '__attribute__((constructor)) static void phone_review_mode(void) {\n'
         '  layout_modo_definir(1);\n'
         '}\n')

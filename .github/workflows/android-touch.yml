@@ -21,10 +21,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  native-pr:
-    if: github.event_name == 'pull_request'
+  native:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Native test tools
@@ -33,18 +32,88 @@ jobs:
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev python3-pil
       - name: Runtime mode and input regressions
         run: |
-          bash tests/interface_mode.sh
-          bash tests/telefoneui_mode.sh
-          cc -Isrc tests/layout_mode_tv.c src/layout.c -o /tmp/nuvio-layout-tv
-          /tmp/nuvio-layout-tv
-          bash tests/ponteiro_toque.sh
-          bash tests/app_sidebar_toque.sh
-          bash tests/settings_phone_list_routes.sh
-          bash tests/player_touch_resize.sh
-          bash tests/home_hero_swipe.sh
-          python3 tests/android_apk_pages.py
-          python3 tests/android_smoke_rotation.py
-          python3 tests/android_smoke_input.py
+          failures=()
+          run_check() {
+            local label="$1"
+            shift
+            echo "::group::$label"
+            if "$@"; then
+              echo "PASS: $label"
+            else
+              failures+=("$label")
+              echo "::error::$label failed"
+            fi
+            echo '::endgroup::'
+          }
+          for script in \
+            tests/ponteiro_toque.sh \
+            tests/app_sidebar_toque.sh \
+            tests/catalogo_toque.sh \
+            tests/home_hero_swipe.sh \
+            tests/agenda_phone.sh \
+            tests/busca_people_phone.sh \
+            tests/social_toque.sh \
+            tests/media_toque.sh \
+            tests/player_touch_resize.sh \
+            tests/home_trailer_resize.sh \
+            tests/menus_toque.sh \
+            tests/settings_phone_list_routes.sh \
+            tests/entrada_retrato.sh \
+            tests/sistexto_valor.sh \
+            tests/teclado_phone_native.sh \
+            tests/utilidades_toque.sh \
+            tests/gpun_touch.sh \
+            tests/snap_retrato.sh \
+            tests/account_mobile.sh \
+            tests/ctxmenu_retrato.sh \
+            tests/spotlight_retrato.sh \
+            tests/spotlight_clip_phone.sh \
+            tests/vertudo_retrato.sh \
+            tests/telefone_blocos.sh \
+            tests/account_actions_review.sh \
+            tests/account_support_review.sh \
+            tests/guia_drawers_review.sh \
+            tests/explorar_desenho_review.sh \
+            tests/vertudo_grid_review.sh \
+            tests/phone_cards.sh \
+            tests/telefone_dialogos.sh \
+            tests/telefone_folhas.sh \
+            tests/playback_actions_review.sh \
+            tests/player_mini_toque.sh \
+            tests/player_touch_frames_review.sh \
+            tests/salvospainel_phone_content.sh \
+            tests/saved_touch_frames_review.sh \
+            tests/saved_social_phone.sh \
+            tests/saved_social_touch_review.sh \
+            tests/livetvdiag_phone.sh \
+            tests/livetvdiag_actions_review.sh \
+            tests/biblioteca_content_review.sh \
+            tests/social_log_phone.sh \
+            tests/social_log_actions_review.sh \
+            tests/home_rows_review.sh \
+            tests/settings_visibility_review.sh \
+            tests/faixas_estilo_phone.sh \
+            tests/pessoas_phone_focus.sh \
+            tests/pausao_phone.sh \
+            tests/interface_mode.sh \
+            tests/telefoneui_mode.sh
+          do
+            run_check "$script" bash "$script"
+          done
+          run_check TV-layout bash -c 'cc -Isrc tests/layout_mode_tv.c src/layout.c -o /tmp/nuvio-layout-tv && exec /tmp/nuvio-layout-tv'
+          run_check Mobile-layout bash -c 'cc -DNV_TOUCH_UI -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch && exec /tmp/nuvio-layout-touch'
+          for script in \
+            tests/android_apk_pages.py \
+            tests/android_smoke_rotation.py \
+            tests/android_smoke_input.py \
+            tests/tv_resolution_window.py
+          do
+            run_check "$script" python3 "$script"
+          done
+          if (( ${#failures[@]} )); then
+            printf 'Failed regression: %s\n' "${failures[@]}" >&2
+            exit 1
+          fi
 
   preview:
     # Debug packages use this fork's test configuration/key, never release keys.
@@ -103,64 +172,6 @@ jobs:
             ~/.gradle/wrapper
           key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: android-touch-gradle-${{ runner.os }}-
-      - name: Touch input regression
-        run: |
-          bash tests/ponteiro_toque.sh
-          bash tests/app_sidebar_toque.sh
-          bash tests/catalogo_toque.sh
-          bash tests/home_hero_swipe.sh
-          bash tests/agenda_phone.sh
-          bash tests/busca_people_phone.sh
-          bash tests/social_toque.sh
-          bash tests/media_toque.sh
-          bash tests/player_touch_resize.sh
-          bash tests/home_trailer_resize.sh
-          bash tests/menus_toque.sh
-          bash tests/settings_phone_list_routes.sh
-          bash tests/entrada_retrato.sh
-          bash tests/sistexto_valor.sh
-          bash tests/teclado_phone_native.sh
-          bash tests/utilidades_toque.sh
-          bash tests/gpun_touch.sh
-          bash tests/snap_retrato.sh
-          bash tests/account_mobile.sh
-          bash tests/ctxmenu_retrato.sh
-          bash tests/spotlight_retrato.sh
-          bash tests/spotlight_clip_phone.sh
-          bash tests/vertudo_retrato.sh
-          bash tests/telefone_blocos.sh
-          bash tests/account_actions_review.sh
-          bash tests/account_support_review.sh
-          bash tests/guia_drawers_review.sh
-          bash tests/explorar_desenho_review.sh
-          bash tests/vertudo_grid_review.sh
-          bash tests/phone_cards.sh
-          bash tests/telefone_dialogos.sh
-          bash tests/telefone_folhas.sh
-          bash tests/playback_actions_review.sh
-          bash tests/player_mini_toque.sh
-          bash tests/player_touch_frames_review.sh
-          bash tests/salvospainel_phone_content.sh
-          bash tests/saved_touch_frames_review.sh
-          bash tests/saved_social_phone.sh
-          bash tests/saved_social_touch_review.sh
-          bash tests/livetvdiag_phone.sh
-          bash tests/livetvdiag_actions_review.sh
-          bash tests/biblioteca_content_review.sh
-          bash tests/social_log_phone.sh
-          bash tests/social_log_actions_review.sh
-          bash tests/home_rows_review.sh
-          bash tests/settings_visibility_review.sh
-          bash tests/faixas_estilo_phone.sh
-          bash tests/pessoas_phone_focus.sh
-          bash tests/pausao_phone.sh
-          python3 tests/android_apk_pages.py
-          bash tests/interface_mode.sh
-          bash tests/telefoneui_mode.sh
-          cc -Isrc tests/layout_mode_tv.c src/layout.c -o /tmp/nuvio-layout-tv
-          /tmp/nuvio-layout-tv
-          cc -DNV_TOUCH_UI -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
-          /tmp/nuvio-layout-touch
       - name: ARM phone APK
         run: bash tools/android-touch.sh
       - name: Standard package ARM debug APK
