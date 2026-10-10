@@ -61,6 +61,9 @@ jobs:
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev xvfb python3-pil
       - name: Native phone captures
         run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py ${{ matrix.capture }}
+      - name: Schedule label native negative control
+        if: matrix.group == 'feedback-pages'
+        run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/agenda_label_native_negative.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -70,4 +73,7 @@ jobs:
             build/phone-review/**/*.log
             build/phone-review/**/*.tsv
             build/phone-review/results.json
+            build/phone-label-negative/**/*.log
+            build/phone-label-negative/results.json
+            build/phone-label-negative/negative-control.json
           retention-days: 14

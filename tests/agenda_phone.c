@@ -20,7 +20,7 @@ static PonteiroFn focosTeste[256];
 static int aTeste[256], bTeste[256], clipLigado;
 static AgItem itens[AG_MAX];
 static struct { char texto[512]; int s; } linhasTeste[4096];
-static int nLinhasTeste;
+static int nLinhasTeste, cortesRotulo;
 
 static float larguraTela(void) { return NV_TELA_W; }
 static float alturaTela(void) { return NV_TELA_H; }
@@ -77,7 +77,13 @@ static int fonteTeste(TxtEstilo e) {
     case TXT_AJ_ESTADO:return 18;default:return 28;
   }
 }
-int txt_largura(TxtEstilo e,const char *s) { return (int)(strlen(s)*fonteTeste(e)*.52f); }
+int txt_largura(TxtEstilo e,const char *s) {
+  /* InterDisplay-Medium at 30 px: retain its exact-fit boundary rather than
+   * hiding the native List truncation behind an arbitrary approximate width. */
+  if(e==TXT_G30M && !strcmp(s,"Lista"))return 64;
+  if(e==TXT_G30M && !strcmp(s,"Mês"))return 57;
+  return (int)(strlen(s)*fonteTeste(e)*.52f);
+}
 size_t txt_token_tam(const char *s) { size_t n=0;while(s[n]&&s[n]!=' '&&s[n]!='\n')n++;return n; }
 TxtLinha txt_linha(TxtEstilo e,const char *s,int r,int g,int b,int a) {
   (void)r;(void)g;(void)b;(void)a;assert(nLinhasTeste<4095);
@@ -85,7 +91,12 @@ TxtLinha txt_linha(TxtEstilo e,const char *s,int r,int g,int b,int a) {
   linhasTeste[t].s=fonteTeste(e);return (TxtLinha){t,txt_largura(e,s),(int)(fonteTeste(e)*1.25f)};
 }
 TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float w) {
-  assert(w>0);TxtLinha l=txt_linha(e,s,r,g,b,a);if(l.w>w)l.w=(int)w;return l;
+  assert(w>0);TxtLinha l=txt_linha(e,s,r,g,b,a);
+  if(l.w>w) {
+    if(e==TXT_G30M && (!strcmp(s,"Lista")||!strcmp(s,"Mês")))cortesRotulo++;
+    l.w=(int)w;
+  }
+  return l;
 }
 void txt_desenhar_alpha(TxtLinha l,float x,float y,float a) { gfx_rect((GfxRect){x,y,l.w,l.h},l.tex,GFX_TEXTO,0,0,0,0,1,1,1,a); }
 float txt_tracking(TxtEstilo e,const char *s,int r,int g,int b,float x,float y,float a,float esp) {
@@ -149,12 +160,13 @@ int main(void) {
     assert(L.artW>0);perto(L.pnY*escalaTeste,112);
 #endif
     for(int pos=0;pos<3;pos++) {
-      nAlvos=nTextos=nArtes=nLinhasTeste=0;clipLigado=0;
+      nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=0;clipLigado=0;
 #ifdef NV_TOUCH_PREVIEW
       toqueCalendario.offset=NULL;
 #endif
       scrollY=pos==0?0:pos==1?fmaxf(0,alturaDoc()-L.lsH)*.463f:fmaxf(0,alturaDoc()-L.lsH);
       cabecalhoIlha(&L);desenhaLista(&L);assert(!clipLigado && nAlvos>2 && nTextos>3);
+      assert(cortesRotulo==0);
       int primeiro=-1,ultimo=-1;
       for(int i=0;i<nAlvos;i++)if(focosTeste[i]==ponteiroLinha) {
         if(primeiro<0)primeiro=aTeste[i];ultimo=aTeste[i];
@@ -183,7 +195,8 @@ int main(void) {
 #ifdef NV_TOUCH_PREVIEW
     toqueCalOffset=0;toquerol_limpar(&toqueCalendario);
 #endif
-    nAlvos=nTextos=nArtes=nLinhasTeste=0;desenhaBarraCalendario(agX(),agFim());assert(nAlvos==5);
+    nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=0;desenhaBarraCalendario(agX(),agFim());assert(nAlvos==5);
+    assert(cortesRotulo==0);
     for(int i=0;i<5;i++)for(int j=0;j<i;j++) {
       GfxRect a=alvosTeste[i],b=alvosTeste[j];
       assert(a.x+a.w<=b.x+.03f||b.x+b.w<=a.x+.03f||a.y+a.h<=b.y+.03f||b.y+b.h<=a.y+.03f);

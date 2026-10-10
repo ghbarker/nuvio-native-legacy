@@ -123,6 +123,9 @@ static void ajustesDeTeste(int idiomaIngles, int animReduzidas) {
   ajustes_dir(dados_dir());
 }
 static int oQue;
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+int agendaui_teste_rotulos(int *vistos, float medidas[4]);
+#endif
 
 static void tecla(SDL_Keycode k) {
   SDL_Event e;
@@ -211,6 +214,17 @@ static void captura(const char *nome, SDL_Window *win) {
         assert(p->x + p->w <= NV_TELA_W + .03f && p->y + p->h <= NV_TELA_H + .03f);
       }
       if (i == 89) printf("Agenda phone targets inside %gx%g: %d, %s\n",(double)NV_TELA_W,(double)NV_TELA_H,n,nome);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+      if (i == 89) {
+        int vistos; float medidas[4];
+        int inteiros = agendaui_teste_rotulos(&vistos, medidas);
+        if (vistos) {
+          assert(vistos == 3 && inteiros == 3);
+          printf("Agenda native List/Month labels uncut: %.3f/%.3f, %.3f/%.3f, %s\n",
+                 medidas[0], medidas[1], medidas[2], medidas[3], nome);
+        }
+      }
+#endif
     }
 #endif
     if (i == 89) {

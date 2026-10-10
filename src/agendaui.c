@@ -1302,6 +1302,15 @@ static float altLinha(TxtEstilo e, int c) {
   return h > 0.0f ? h : 28.0f;
 }
 static float escDe(float realPx, float S) { return P(realPx) / S; }
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static int agRotulosVistos, agRotulosInteiros;
+static float agRotulosMedidas[4];
+int agendaui_teste_rotulos(int *vistos, float medidas[4]) {
+  *vistos = agRotulosVistos;
+  memcpy(medidas, agRotulosMedidas, sizeof agRotulosMedidas);
+  return agRotulosInteiros;
+}
+#endif
 // Uma linha cortada em `larg` e desenhada em `realPx`. Devolve a largura na
 // tela; `x` < 0 so mede.
 static float txC1(TxtEstilo e, float S, const char *s, int r, int g, int b,
@@ -1310,6 +1319,20 @@ static float txC1(TxtEstilo e, float S, const char *s, int r, int g, int b,
   TxtLinha l;
   if (!s || !s[0]) return 0.0f;
   l = txt_linha_corta(e, s, r, g, b, 255, larg / esc);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if (x >= 0 && agColunaUnica() && e == TXT_G30M) {
+    int k = !strcmp(s, i18n("Lista")) ? 0 : !strcmp(s, i18n("Mês")) ? 1 : -1;
+    if (k >= 0) {
+      TxtLinha inteira = txt_linha(e, s, r, g, b, 255);
+      int bit = 1 << k;
+      agRotulosVistos |= bit;
+      agRotulosMedidas[k * 2] = inteira.w;
+      agRotulosMedidas[k * 2 + 1] = larg / esc;
+      if (l.tex && l.tex == inteira.tex) agRotulosInteiros |= bit;
+      else agRotulosInteiros &= ~bit;
+    }
+  }
+#endif
   if (x >= 0.0f) txtEsc(l, x, y, esc, a);
   return (float)l.w * esc;
 }
@@ -1639,8 +1662,11 @@ static float segC1(float xDir, float yc, int desenhar) {
   acentoInt(&ar, &ag, &ab);
   h = hC1(estilo, fonte, corpo, 17) + 2.0f * padY;
   if (telefone && h < P(agTelefonePx(120))) h = P(agTelefonePx(120));
-  for (k = 0; k < 2; k++)
+  for (k = 0; k < 2; k++) {
     w[k] = txC1(estilo, fonte, rot[k], 17, 17, 17, -1.0f, 0, corpo, P(300), 1.0f) + 2.0f * padX;
+    // Um pixel da fonte evita que o arredondamento da escala corte o rotulo.
+    if (telefone) w[k] += escDe(corpo, fonte);
+  }
   total = pad * 2.0f + w[0] + gap + w[1];
   if (!desenhar) return total;
   { GfxRect tr = { xDir - total, yc - h * 0.5f - pad, total, h + pad * 2.0f };
@@ -3179,6 +3205,9 @@ static void desenharNaEscala(Uint32 agora) {
 // O desenho publico liga a escala (piso de 120%) e o layout mede pela tela
 // virtual — o mesmo modulo que mede e o que liga, como pede escala.h.
 void agendaui_desenhar(Uint32 agora) {
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  agRotulosVistos = agRotulosInteiros = 0;
+#endif
 #ifdef NV_TOUCH_PREVIEW
   toqueAgenda.offset = toqueNoticia.offset = toqueCalendario.offset = toqueManchetes.offset = toqueModal.offset = NULL;
 #endif
