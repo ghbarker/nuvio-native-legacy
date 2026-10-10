@@ -103,12 +103,16 @@ static void capturaTela(const char *nome, SDL_Window *win, int comCanais) {
     if (textoVazioShot) {
       /* An unusually long translated explanation exercises the production
          empty renderer at both scroll edges without querying a provider. */
+      assert(guiaVazioTelefone() && !guiaCamadaAberta());
       gfx_cor(toqueVazio.regiao, 0, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1);
       ponteiro_camada();
       rolVazio = vazioShotFinal ? 1e6f : 0;
       desenharVazioTelefone(textoVazioShot, 1, 1);
       assert(toqueVazio.maximo > 0);
       assert(rolVazio == (vazioShotFinal ? toqueVazio.maximo : 0));
+      if (!i) fprintf(stderr, "PASS: long setup body %.0f px, scroll %.0f/%.0f (%s)\n",
+                      toqueVazio.regiao.h, rolVazio, toqueVazio.maximo,
+                      vazioShotFinal ? "bottom" : "top");
     }
     if (guiaVazioTelefone() && !guiaCamadaAberta()) {
       float topo = gRetrato() ? gTopoFim : G_TOPO_Y + G_TOPO_H;
@@ -550,10 +554,13 @@ int main(int argc, char **argv) {
     snprintf(nome, sizeof nome, "%s-addons-sem-resposta.bmp", saida);capturaTela(nome,w,0);
     painel=0;addons_esquecer();nSabe=0;
 
-    char texto[6000];
+    char texto[24000];
     const char *frase=i18n("O guia se enche por dois caminhos: um addon de canais (como o FrostView TV) instalado na conta, ou um portal IPTV cadastrado em Ajustes › Conta.");
+    /* Sixteen soft-wrapped repeats may fit a tall or wide phone. Explicit
+       paragraph breaks make this stress document overflow both orientations. */
+    assert((strlen(frase) + 1) * 64 < sizeof texto);
     texto[0]=0;
-    for(int k=0;k<16;k++) { strncat(texto,frase,sizeof texto-strlen(texto)-1);strncat(texto," ",sizeof texto-strlen(texto)-1); }
+    for(int k=0;k<64;k++) { strncat(texto,frase,sizeof texto-strlen(texto)-1);strncat(texto,"\n",sizeof texto-strlen(texto)-1); }
     textoVazioShot=texto;vazioShotFinal=0;
     snprintf(nome,sizeof nome,"%s-setup-texto-longo-topo.bmp",saida);capturaTela(nome,w,0);
     vazioShotFinal=1;

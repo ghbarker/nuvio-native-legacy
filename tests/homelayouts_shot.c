@@ -70,6 +70,11 @@ static const Fil FILS[] = {
 static SDL_Window *janela;
 static const char *dirDados;
 static double fillUlt, fillVisUlt, modoUlt[GFX_NMODOS]; static int rectUlt;
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static int heroPaginaConfere;
+static float heroPaginaEsperada[3];
+static void heroPaginaVerificar(void);
+#endif
 
 static void gravar(const char *bmp) {
   unsigned char *pix = malloc(1920 * 1080 * 4);
@@ -103,6 +108,9 @@ static void quadros(int n, const char *bmp) {
     glClear(GL_COLOR_BUFFER_BIT);
     gfx_ambiente(1.0f);
     home_desenhar(agora);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    if (heroPaginaConfere) heroPaginaVerificar();
+#endif
     ctx_atualizar(1.0f / 60.0f, agora);
     ctx_desenhar(agora);
     // NV_MENU=1: a barra por cima, como app.c (no Dinamica, a pilula do topo).
@@ -185,6 +193,12 @@ static void ajusta(int layout, int vidro) {
 
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
 int home_teste_hero_deslocamento(float valores[5]);
+int home_teste_pagina(float valores[3]);
+static void heroPaginaVerificar(void) {
+  float atual[3]; assert(home_teste_pagina(atual));
+  assert(fabsf(atual[0]-heroPaginaEsperada[0])<.1f);
+  assert(fabsf(atual[1]-heroPaginaEsperada[1])<.1f);
+}
 static void heroDelta(float esperado) {
   float desenhado[5]; assert(home_teste_hero_deslocamento(desenhado));
   for(int i=0;i<4;i++)assert(fabsf(desenhado[i]-esperado)<.1f);
@@ -203,6 +217,7 @@ static void heroCapturar(const char *saida,int layout,const char *estado) {
 static void heroSwipes(const char *saida) {
   ponteiro_iniciar(); ponteiro_teste_toque(1);
   for(int lay=0;lay<3;lay++) {
+    heroPaginaConfere=0;
     ajusta(lay,0); home_ir_topo(); quadros(120,NULL);
     assert(!ajustes_hero_cheio());
     if(lay==HOME_LAYOUT_MODERNA && NV_TELA_W>NV_TELA_H) {
@@ -215,6 +230,7 @@ static void heroSwipes(const char *saida) {
     assert(home_item_focado(&origem));
     float x0=NV_TELA_W*.75f, x1=NV_TELA_W*.39f, y=300;
     heroCapturar(saida,lay,"0-inicial");
+    assert(home_teste_pagina(heroPaginaEsperada)); heroPaginaConfere=1;
     heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
     heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"1-arrasto-esquerda");
     heroDelta(x1-x0);
@@ -245,10 +261,16 @@ static void heroSwipes(const char *saida) {
     quadros(40,NULL); heroCapturar(saida,lay,"7-cancelado");
     assert(home_item_focado(&atual) && atual.indice==origem.indice);
     assert(!home_pediu_abrir() && !home_pediu_tocar());
+    printf("[shot] horizontal hero L%d: page offset %.3f and drawn first-row Y %.3f unchanged through left/right, short return and cancel\n",
+           lay,heroPaginaEsperada[0],heroPaginaEsperada[1]);
+    heroPaginaConfere=0;
+    float pagina[3]; assert(home_teste_pagina(pagina) && pagina[2]==1);
+    tecla(SDLK_UP);
+    assert(home_teste_pagina(pagina) && pagina[2]==0);
     heroDedo(SDL_FINGERDOWN,NV_TELA_W*.55f,y);
     heroDedo(SDL_FINGERUP,NV_TELA_W*.55f,y);
     assert(home_pediu_abrir());
-    printf("[shot] hero swipe L%d: left/right identity, short return, cancel and tap passed\n",lay);
+    printf("[shot] hero swipe L%d: left/right identity, short return, cancel, TV key recovery and tap passed\n",lay);
   }
 }
 #endif

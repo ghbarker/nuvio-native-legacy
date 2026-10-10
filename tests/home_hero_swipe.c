@@ -34,6 +34,7 @@ unsigned fil_revisao(void) { return 1; }
 const char *fil_hero_fonte(void) { return ""; }
 int amigosfil_indice_cat(int i) { (void)i; return -1; }
 int amigosfil_rolagem(const PonteiroRolagem *e) { (void)e; return 0; }
+void amigosfil_retomar_foco(int *c) { (void)c; }
 float fil_tipo_fator(int t) { (void)t; return 1; }
 const char *artehero_url_escolhida(const CatItem *c) { (void)c; return NULL; }
 const char *artehero_url_destaque(const CatItem *c, int f, int d) { (void)f; (void)d; return c->backdrop; }
@@ -72,6 +73,7 @@ static void dedo(Uint32 tipo, Sint64 id, float x, float y) {
 static void passo(float ms) {
   relogioTeste += (Uint32)ms;
   toqueHeroAtualizar(ms / 1000, relogioTeste, 0, 0);
+  scrollY=homeScrollYPasso(-empurraHero(),ms/1000,0);
   publicar();
 }
 static void terminar(void) { for (int i = 0; i < 30; i++) passo(16); assert(!toqueHero.estado); }
@@ -109,6 +111,75 @@ int main(void) {
   int casos = 0;
   for (int t = 0; t < 4; t++) for (layoutTeste=0;layoutTeste<3;layoutTeste++) {
     float w=telas[t][0], h=telas[t][1];
+    for(int soltar=0;soltar<3;soltar++) {
+      preparar(w,h,1); focoHero=0; scrollY=0; velY=140;
+      float visivel=heroVisivelToque(), corte=corteFileiras();
+      float pagina=topoFileiras()-scrollY;
+      float dx=soltar==1 ? w*.08f : w*.35f;
+      moverDedo(w*.75f,w*.75f-dx,160);
+      assert(focoHero && toqueHeroYPreso && !toqueLivreY); perto(velY,0);
+      for(int i=0;i<5;i++) {
+        passo(16); perto(scrollY,0); perto(topoFileiras()-scrollY,pagina);
+        perto(heroVisivelToque(),visivel); perto(corteFileiras(),corte);
+      }
+      if(soltar==2)ponteiro_cancelar_toque();
+      else { relogioTeste+=120; dedo(SDL_FINGERUP,1,w*.75f-dx,300); }
+      terminar(); assert(toqueHeroYPreso && !teclas);
+      assert(heroAtual==(soltar==0 ? 5 : 1));
+      for(int i=0;i<80;i++) { passo(16); perto(scrollY,0); perto(topoFileiras()-scrollY,pagina); }
+      toqueHomeRetomarFoco(); assert(!toqueHeroYPreso && focoHero);
+      float retomado=homeScrollYPasso(-empurraHero(),.016f,0);
+      if(empurraHero()>0)assert(retomado<0); else perto(retomado,0);
+      casos++;
+    }
+    /* A retained page is bounded again after rotation or window resize,
+       including after the hero has finished its snap. */
+    for(int terminado=0;terminado<2;terminado++) {
+      preparar(w,h,1); nFileiras=6;
+      for(int r=1;r<nFileiras;r++)fileiras[r]=fileiras[0];
+      heroSetNFil=nFileiras;
+      moverDedo(w*.75f,w*.40f,160);
+      if(terminado) { dedo(SDL_FINGERUP,1,w*.40f,300); terminar(); }
+      assert(toqueHeroYPreso && !toqueLivreY);
+      float antes=scrollY;
+      nv_layout_w=terminado ? w*.8f : h;
+      nv_layout_h=terminado ? h*.75f : w;
+      float limitado=anim_clamp(antes,-empurraHero(),toqueHomeMaxY());
+      passo(16); assert(!toqueHero.estado && toqueHeroYPreso);
+      assert(heroAtual==(terminado ? 5 : 1)); perto(scrollY,limitado);
+      perto(heroVisivelToque(),1);
+      for(int i=0;i<80;i++) { passo(16); perto(scrollY,limitado); }
+      casos++;
+    }
+    /* A new vertical finger gesture releases the horizontal page pin. */
+    preparar(w,h,1); focoHero=0; scrollY=0; nFileiras=6;
+    for(int r=1;r<nFileiras;r++)fileiras[r]=fileiras[0];
+    heroSetNFil=nFileiras;
+    moverDedo(w*.75f,w*.40f,160); ponteiro_cancelar_toque();
+    dedo(SDL_FINGERUP,1,w*.40f,300); assert(toqueHeroYPreso);
+    dedo(SDL_FINGERDOWN,1,w*.6f,300); relogioTeste+=80;
+    dedo(SDL_FINGERMOTION,1,w*.6f,180);
+    assert(!toqueHeroYPreso && toqueLivreY); perto(scrollY,120);
+    dedo(SDL_FINGERUP,1,w*.6f,180); assert(!teclas); casos++;
+    /* Same-canvas content and row-size changes also re-bound the held page;
+       changing Home's layout can reduce the permitted negative offset. */
+    for(int mudanca=0;mudanca<3;mudanca++) {
+      preparar(w,h,1); nFileiras=6;
+      for(int r=1;r<nFileiras;r++)fileiras[r]=fileiras[0];
+      heroSetNFil=nFileiras;
+      if(mudanca<2) { focoHero=0; scrollY=0; }
+      moverDedo(w*.75f,w*.40f,160); ponteiro_cancelar_toque();
+      float antes=scrollY; int layoutAntes=layoutTeste;
+      if(mudanca==0)nFileiras=1;
+      else if(mudanca==1)
+        for(int r=0;r<nFileiras;r++)fileiras[r].escala=.1f;
+      else layoutTeste=(layoutTeste+1)%3;
+      float limitado=anim_clamp(antes,-empurraHero(),toqueHomeMaxY());
+      for(int i=0;i<80;i++) { passo(16); perto(scrollY,limitado); }
+      assert(toqueHeroYPreso && !toqueLivreY && !teclas);
+      perto(toqueHeroPaginaMin,-empurraHero()); perto(toqueHeroPaginaMax,toqueHomeMaxY());
+      layoutTeste=layoutAntes; casos++;
+    }
     for(int cheio=0;cheio<2;cheio++) {
       preparar(w,h,1); heroArteRect=heroArtworkRect(layoutTeste,cheio);
       moverDedo(w*.75f,w*.75f-324,160);

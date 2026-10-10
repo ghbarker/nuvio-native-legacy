@@ -274,8 +274,12 @@ static float scrollX[MAX_FIL];
 static float scrollY = 0.0f;
 #ifdef NV_TOUCH_PREVIEW
 static int toqueLivreY, toqueLivreX[MAX_FIL], toqueFileira = -1;
+static int toqueHeroYPreso;
+static float toqueHeroPaginaW, toqueHeroPaginaH;
+static float toqueHeroPaginaMin, toqueHeroPaginaMax;
 static void toqueHomeLimpar(void) {
   toqueLivreY = 0; toqueFileira = -1;
+  toqueHeroYPreso = 0;
   memset(toqueLivreX, 0, sizeof toqueLivreX);
 }
 #endif
@@ -1648,6 +1652,16 @@ static void toqueHeroDeslocamentos(float largura, float *anterior, float *atual)
 
 #ifdef NV_SHOT_HOOKS
 static float heroToqueDesenho[5];
+static float heroPaginaDesenhoY;
+static int heroPaginaDesenhoValido;
+int home_teste_pagina(float valores[3]) {
+  if (!heroPaginaDesenhoValido) return 0;
+  if (valores) {
+    valores[0] = scrollY; valores[1] = heroPaginaDesenhoY;
+    valores[2] = toqueHeroYPreso;
+  }
+  return 1;
+}
 int home_teste_hero_deslocamento(float valores[5]) {
   if (!toqueHero.estado) return 0;
   if (valores) memcpy(valores, heroToqueDesenho, sizeof heroToqueDesenho);
@@ -1716,6 +1730,11 @@ static int toqueHeroRolar(const PonteiroRolagem *e) {
     toqueHero.desde = SDL_GetTicks();
     snprintf(toqueHero.imdb, sizeof toqueHero.imdb, "%s", origem->imdb);
     focoHero = 1; toqueFileira = -1;
+    // Horizontal title movement keeps the page where the finger found it.
+    // The vertical-gesture flag also fades the hero; that gesture has not begun.
+    toqueHeroYPreso = 1; velY = 0;
+    toqueHeroPaginaW = NV_TELA_W; toqueHeroPaginaH = NV_TELA_H;
+    toqueHeroPaginaMin = -empurraHero(); toqueHeroPaginaMax = toqueHomeMaxY();
     heroDesejado = -1; heroDirDesejado = 0;
     heroPendente = heroAtual; heroPendenteEm = toqueHero.desde;
     heroSai = 0; heroEntra = 1; heroDesliza = 1;
@@ -1776,7 +1795,7 @@ static int toqueHomeRolar(const PonteiroRolagem *e) {
       toqueLivreX[toqueFileira] = 1; velX[toqueFileira] = 0.0f;
       memset(&bordaFil[toqueFileira], 0, sizeof bordaFil[toqueFileira]);
     }
-    toqueLivreY = 1; velY = 0.0f;
+    toqueLivreY = 1; toqueHeroYPreso = 0; velY = 0.0f;
     memset(&bordaPag, 0, sizeof bordaPag);
     return 1;
   }
@@ -1824,6 +1843,24 @@ static void toqueHomeRetomarFoco(void) {
   toqueHomeLimpar();
 }
 #endif
+
+static float homeScrollYPasso(float alvo, float dt, int reduzido) {
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueHeroYPreso) {
+    float minimo = -empurraHero(), maximo = toqueHomeMaxY();
+    if (toqueHeroPaginaW != NV_TELA_W || toqueHeroPaginaH != NV_TELA_H ||
+        toqueHeroPaginaMin != minimo || toqueHeroPaginaMax != maximo) {
+      scrollY = anim_clamp(scrollY, minimo, maximo);
+      toqueHeroPaginaW = NV_TELA_W; toqueHeroPaginaH = NV_TELA_H;
+      toqueHeroPaginaMin = minimo; toqueHeroPaginaMax = maximo;
+    }
+    return scrollY;
+  }
+  if (toqueLivreY)
+    return anim_clamp(scrollY, -empurraHero(), toqueHomeMaxY());
+#endif
+  return anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL, reduzido);
+}
 
 // FilTipo (escolha em Ajustes) -> TipoFileira (forma que o desenho conhece).
 // A traducao vive aqui porque este e o unico arquivo que sabe o que cada forma
@@ -3402,12 +3439,7 @@ void home_atualizar(float dt, Uint32 agora) {
       alvoY += NV_LEGACY_ROW_HEAD_H + alturaTotalFil(i) + fileiraGap();
     if (layoutHome() == HOME_LAYOUT_DINAMICA) alvoY = dinRolagemCentrada(r, alvoY);
   }
-#ifdef NV_TOUCH_PREVIEW
-  if (toqueLivreY) scrollY = anim_clamp(scrollY, -empurraHero(), toqueHomeMaxY());
-  else
-#endif
-    scrollY = anim_mola2_reduzida(&velY, scrollY, alvoY, dt,
-                                  NV_MOLA2_SCROLL, motionReduzido);
+  scrollY = homeScrollYPasso(alvoY, dt, motionReduzido);
   for (int r = 0; r < nFileiras && r < MAX_FIL; r++)
     (void)anim_borda_passo(&bordaFil[r], dt, motionReduzido);
   (void)anim_borda_passo(&bordaPag, dt, motionReduzido);
@@ -5937,6 +5969,9 @@ int home_cartao_foco_por_cima(int indice) {
 }
 
 void home_desenhar(Uint32 agora) {
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  heroPaginaDesenhoValido = 0;
+#endif
   amigostitulo_atualizar();   // barato: so remonta quando o feed social mudou
   // O REBORDO DO CARTAZ EM FOCO e ajuste da pessoa, e ele mora no shader do
   // GFX_CARD (nao e um retangulo desenhado por cima): por isso vai por uma
@@ -6076,6 +6111,9 @@ void home_desenhar(Uint32 agora) {
       TxtLinha tl = txt_linha_corta(TXT_ROW_TITULO, rotFil, 245, 246, 249, 255,
                                     homeRetratoTelefone() ? homeLarguraUtil() - 76.0f : NV_TELA_W - homeConteudoX() - 180.0f);
       txt_desenhar(tl, homeConteudoX(), y);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+      if (r == 0) { heroPaginaDesenhoY = y; heroPaginaDesenhoValido = 1; }
+#endif
       // A FONTE (Trakt, Simkl...) NAO APARECE NA FILEIRA DE AMIGOS: a pessoa
       // quer saber quem viu e o que achou, nao de onde veio o dado. Ela fica
       // so no perfil do amigo (amigoperfil.c). Era a marca do Trakt aqui.
