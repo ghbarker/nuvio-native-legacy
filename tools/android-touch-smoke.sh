@@ -86,6 +86,13 @@ assert (x, y, w, h) == (0, 0, *expected), 'smoke: app nao preenche a tela inteir
 print(f'smoke: viewport {sys.argv[3]} {w}x{h} em {x},{y}')
 PY
 }
+pedir_rotacao() {
+  # UiAutomation pode restaurar a rotacao anterior ou liberar o sensor ao
+  # desconectar. Reafirma o bloqueio e a direcao em cada pedido, incluindo
+  # o primeiro retrato depois de selecionar Mobile.
+  adb shell settings put system accelerometer_rotation 0
+  adb shell settings put system user_rotation "$1"
+}
 # A clean standard APK starts in TV mode. Seed only the local mode preference
 # to exercise persisted Mobile without account credentials or another APK.
 conferir_viewport landscape
@@ -114,16 +121,11 @@ PY
   adb logcat -d --pid="$PID" | grep -F "[interface] modo=$modo" >/dev/null
 }
 definir_modo_gravado 1
+pedir_rotacao 0
+sleep 4
 conferir_viewport portrait
 adb exec-out screencap -p > "$OUT/open-portrait.png"
 adb shell dumpsys window > "$OUT/window-portrait.txt"
-pedir_rotacao() {
-  # uiautomator pode restaurar USER_ROTATION_FREE ao desconectar. Nesse modo
-  # user_rotation nao gira a tela: o sensor manda. Reafirma o bloqueio para
-  # cada orientacao pedida, sem mudar a verificacao do viewport real do app.
-  adb shell settings put system accelerometer_rotation 0
-  adb shell settings put system user_rotation "$1"
-}
 pedir_rotacao 1
 sleep 4
 conferir_viewport landscape

@@ -250,18 +250,17 @@ static PonteiroFn pastaFnFocada(HomeItem normal,int row) {
 }
 static void pastaPosicionarDeitada(PonteiroAlvo alvo,float top) {
   float delta=top-alvo.y;
-  /* A nearby row already meets the measured comparison below. A tiny
-     positioning gesture stays below ponteiro's 32px drag threshold and
-     becomes a tap on the folder; leave a margin above that threshold. */
-  int arrastar=fabsf(delta)>48.0f;
-  printf("[shot] wide positioning: current y %.3f, desired y %.3f, delta %.3f, SDL drag %d\n",
-         alvo.y,top,delta,arrastar);fflush(stdout);
-  if(arrastar) {
-    float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80);
-    pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);
-    pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
-    SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);
-  }
+  /* Activate the real scroll viewport even when the requested movement is
+     small: otherwise the preceding row remains behind the fixed banner.
+     Cross ponteiro's 32px drag threshold, then finish at the requested point. */
+  float primeiro=fabsf(delta)>48.0f?delta:(delta<0?-64.0f:64.0f);
+  printf("[shot] wide positioning: current y %.3f, desired y %.3f, delta %.3f, initial SDL drag %.3f\n",
+         alvo.y,top,delta,primeiro);fflush(stdout);
+  float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80);
+  pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+  pastaDedo(SDL_FINGERMOTION,x,y+primeiro);quadros(1,NULL);
+  if(primeiro!=delta) { pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL); }
+  SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);
   quadros(4,NULL);
 }
 static void pastaCompararDeitada(const char *saida,int lay,int vidro,float *wideW,float *wideH) {

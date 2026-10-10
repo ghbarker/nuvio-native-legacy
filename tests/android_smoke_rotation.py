@@ -1,7 +1,7 @@
 """Run the production smoke rotation command through an inert adb boundary.
 
-UiAutomation can leave automatic rotation enabled; each explicit rotation
-must restore the locked mode before setting its requested direction. This
+UiAutomation can leave automatic rotation enabled or restore landscape;
+each rotation must restore the locked mode and requested direction. This
 test executes the actual shell function, without an emulator or APK.
 """
 from pathlib import Path
@@ -16,7 +16,10 @@ source = Path("tools/android-touch-smoke.sh").read_text(encoding="utf-8")
 function = re.search(r"^pedir_rotacao\(\) \{\n.*?^\}", source, re.M | re.S)
 assert function, "missing production rotation command"
 calls = re.findall(r"^pedir_rotacao ([013])$", source, re.M)
-assert calls == ["1", "0", "1", "3"], calls
+assert calls == ["0", "1", "0", "1", "3"], calls
+first_mobile = source.index("definir_modo_gravado 1\n")
+first_portrait = source.index("conferir_viewport portrait\n", first_mobile)
+assert re.findall(r"^pedir_rotacao ([013])$", source[first_mobile:first_portrait], re.M) == ["0"]
 assert "assert (x, y, w, h) == (0, 0, *expected)" in source
 # No requested direction may bypass the production rotation function after
 # the first uiautomator dump (initial setup before the dump is independent).
@@ -27,7 +30,7 @@ assert bash, "bash is required to execute the actual rotation function"
 script = r'''
 set -eu
 mode=free
-rotation=0
+rotation=1
 locks=0
 requests=0
 adb() {
@@ -40,12 +43,12 @@ adb() {
   esac
 }
 ''' + function.group(0) + r'''
-for direction in 1 0 1 3; do
+for direction in 0 1 0 1 3; do
   mode=free # the UiAutomation disconnect state observed in the failed smoke
   pedir_rotacao "$direction"
   [ "$rotation" = "$direction" ]
 done
-[ "$locks" = 4 ] && [ "$requests" = 4 ]
+[ "$locks" = 5 ] && [ "$requests" = 5 ]
 echo 'android_smoke_rotation: production command restores locked mode for every requested orientation; exact viewport assertion preserved PASS'
 '''
 subprocess.run([bash, "-c", script], check=True)
