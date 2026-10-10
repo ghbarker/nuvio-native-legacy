@@ -109,21 +109,67 @@ conferir_viewport landscape
 [ "$(adb shell pidof "$PKG" | tr -d '\r')" = "$PID" ] || { echo 'smoke: rotacao recriou o processo' >&2; exit 1; }
 # login.c: o botao do e-mail muda de altura entre QR pronto, erro e pedido
 # pendente. Nenhum destes pontos envia credenciais. O campo e-mail fica em 406.
-IME=0
-for y in 928 470 384; do
-  tap_logico 960 "$y"
-  sleep 1
-  tap_logico 960 406
-  sleep 2
+ime_mostrado() {
   adb shell dumpsys input_method > "$OUT/ime.txt"
-  if grep -E 'mInputShown=true' "$OUT/ime.txt" >/dev/null; then IME=1; break; fi
-done
-if [ "$IME" != 1 ]; then
+  grep -E 'mInputShown=true' "$OUT/ime.txt" >/dev/null
+}
+abrir_campo_email() {
+  local y
+  for y in 928 470 384; do
+    tap_logico 960 "$y"
+    sleep 1
+    # A primeira acao pode abrir o campo. O segundo toque cairia numa tecla
+    # do IME ja visivel, em vez de no campo que antes ocupava este ponto.
+    if ime_mostrado; then return 0; fi
+    tap_logico 960 406
+    sleep 2
+    if ime_mostrado; then return 0; fi
+  done
+  return 1
+}
+aguardar_campo_email() {
+  local tentativa
+  for tentativa in 1 2 3 4 5; do
+    if adb shell uiautomator dump /sdcard/nuvio-touch-editor-ready.xml >/dev/null &&
+       adb pull /sdcard/nuvio-touch-editor-ready.xml "$OUT/editor-ready.xml" >/dev/null &&
+       python3 - "$OUT/editor-ready.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+fields = [n for n in ET.parse(sys.argv[1]).iter('node')
+          if n.get('class') == 'android.widget.EditText'
+          and n.get('package') == 'space.nuvio.nativelegacy.touch']
+if len(fields) != 1 or fields[0].get('focused') != 'true':
+    sys.exit(1)
+coords = list(map(int, re.findall(r'\d+', fields[0].get('bounds', ''))))
+if len(coords) != 4:
+    sys.exit(1)
+x1, y1, x2, y2 = coords
+sys.exit(0 if x2-x1 >= 100 and y2-y1 >= 30 and y2 < 540 else 1)
+PY
+    then return 0; fi
+    sleep 1
+  done
+  echo 'smoke: campo Android visivel e focado nao ficou pronto' >&2
+  return 1
+}
+digitar_fresco() {
+  local texto="$1" i
+  # `input text` cria os eventos da palavra com o mesmo instante. Um IME
+  # lento pode entregar os primeiros e deixar os demais antigos demais.
+  # Cada comando curto cria eventos novos, como a digitacao real.
+  for ((i=0; i<${#texto}; i++)); do
+    adb shell input text "${texto:i:1}"
+    sleep 0.1
+  done
+}
+if ! abrir_campo_email; then
   adb exec-out screencap -p > "$OUT/email-failed.png"
   echo "smoke: toque nao abriu o teclado do e-mail" >&2
   exit 1
 fi
-adb shell input text 'touch-preview@example.invalid'
+aguardar_campo_email
+digitar_fresco 'touch-preview@example.invalid'
 sleep 1
 adb shell uiautomator dump /sdcard/nuvio-touch-editor.xml >/dev/null
 adb pull /sdcard/nuvio-touch-editor.xml "$OUT/editor.xml" >/dev/null
