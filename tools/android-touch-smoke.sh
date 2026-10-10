@@ -139,7 +139,7 @@ import xml.etree.ElementTree as ET
 fields = [n for n in ET.parse(sys.argv[1]).iter('node')
           if n.get('class') == 'android.widget.EditText'
           and n.get('package') == 'space.nuvio.nativelegacy.touch']
-if len(fields) != 1 or fields[0].get('focused') != 'true':
+if len(fields) != 1 or fields[0].get('focused') != 'true' or fields[0].get('text', '') != '':
     sys.exit(1)
 coords = list(map(int, re.findall(r'\d+', fields[0].get('bounds', ''))))
 if len(coords) != 4:
@@ -183,7 +183,7 @@ fields = [n for n in ET.parse(sys.argv[1]).iter('node')
 assert len(fields) == 1, 'smoke: campo Android visivel nao encontrado'
 field = fields[0]
 assert field.get('focused') == 'true', 'smoke: campo nao tem foco'
-assert field.get('text', '').endswith('touch-preview@example.invalid'), 'smoke: digitacao nao chegou ao campo'
+assert field.get('text', '') == 'touch-preview@example.invalid', 'smoke: digitacao exata nao chegou ao campo'
 x1, y1, x2, y2 = map(int, re.findall(r'\d+', field.get('bounds', '')))
 assert x2 - x1 >= 100 and y2 - y1 >= 30 and y2 < 540, 'smoke: campo pequeno ou coberto pelo teclado'
 print('smoke: texto digitado visivel acima do teclado')

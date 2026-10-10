@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 source = Path("tools/android-touch-smoke.sh").read_text(encoding="utf-8")
 names = ("ime_mostrado", "abrir_campo_email", "aguardar_campo_email", "digitar_fresco")
@@ -14,7 +15,7 @@ for name in names:
     match = re.search(rf"^{name}\(\) \{{\n.*?^\}}", source, re.M | re.S)
     assert match, name
     functions[name] = match.group(0)
-assert "assert field.get('text', '').endswith('touch-preview@example.invalid')" in source
+assert "assert field.get('text', '') == 'touch-preview@example.invalid'" in source
 assert "aguardar_campo_email\ndigitar_fresco 'touch-preview@example.invalid'" in source
 bash = os.environ.get("BASH") or shutil.which("bash")
 assert bash, "bash required"
@@ -32,6 +33,9 @@ with tempfile.TemporaryDirectory(prefix="nuvio-smoke-input-") as tmp:
     (directory / "other.xml").write_text(
         (directory / "ready.xml").read_text(encoding="utf-8").replace(
             "space.nuvio.nativelegacy.touch", "example.other"), encoding="utf-8")
+    (directory / "nonempty.xml").write_text(
+        (directory / "ready.xml").read_text(encoding="utf-8").replace(
+            'text=""', 'text="t"'), encoding="utf-8")
     environment = os.environ.copy()
     environment.update(TEST_OUT=directory.as_posix(), TEST_PYTHON=Path(sys.executable).as_posix())
     boundary = r'''
@@ -99,7 +103,7 @@ digitar_fresco 'touch-preview@example.invalid'
 [ "$typed" = 'touch-preview@example.invalid' ]
 [ "$injections" = 29 ] && [ "$stale" = 0 ]
 # Covered, unfocused and absent XML must never be accepted as a ready field.
-for invalid in covered unfocused absent other; do
+for invalid in covered unfocused absent other nonempty; do
   xml=$invalid;ready_after=99;pulls=0
   if aguardar_campo_email 2>/dev/null; then echo 'invalid editor accepted' >&2; exit 1; fi
   [ "$pulls" = 5 ]
@@ -121,3 +125,57 @@ done
     assert rejected.returncode != 0, "missing editor readiness must fail"
     print("android_smoke_input: actual helpers wait for focused visible field, avoid keyboard tap, "
           "deliver fresh timestamped characters; strict text and negative controls PASS")
+
+    # Execute the actual inline XML validators from the shipped smoke driver.
+    # The subprocesses use only controlled hierarchy files, not Android/IME.
+    validators = {}
+    for name in ("editor-ready", "editor"):
+        found = re.findall(rf'python3 - "\$OUT/{name}\.xml" <<\x27PY\x27\n(.*?)^PY$', source, re.M | re.S)
+        assert len(found) == 1, name + " exactly one live validator"
+        validators[name] = found[0]
+
+    expected = "touch-preview@example.invalid"
+    assert len(expected) == 29
+    valid = {"class": "android.widget.EditText", "package": "space.nuvio.nativelegacy.touch",
+             "focused": "true", "bounds": "[42,32][2298,137]"}
+    cases = []
+    for name, text in (("editor-ready", ""), ("editor", expected)):
+        cases.append((name, "valid", [dict(valid, text=text)], True))
+        for label, changes in (("wrong-package", {"package": "example.other"}),
+                               ("unfocused", {"focused": "false"}),
+                               ("covered", {"bounds": "[42,700][2298,805]"}),
+                               ("narrow", {"bounds": "[42,32][100,137]"}),
+                               ("short", {"bounds": "[42,32][2298,50]"}),
+                               ("invalid-bounds", {"bounds": "invalid"}),
+                               ("wrong-class", {"class": "android.widget.TextView"})):
+            cases.append((name, label, [dict(valid, text=text, **changes)], False))
+        cases.append((name, "absent", [], False))
+        cases.append((name, "duplicate-field", [dict(valid, text=text), dict(valid, text=text)], False))
+    cases.extend((
+        ("editor-ready", "nonempty-leading-t", [dict(valid, text="t")], False),
+        ("editor-ready", "nonempty-expected-email", [dict(valid, text=expected)], False),
+        ("editor", "prefix-duplicate", [dict(valid, text="t"+expected)], False),
+        ("editor", "missing-internal-character", [dict(valid, text=expected[:8]+expected[9:])], False),
+        ("editor", "repeated-internal-character", [dict(valid, text=expected[:9]+expected[8:])], False),
+        ("editor", "suffix-junk", [dict(valid, text=expected+"t")], False),
+    ))
+    for name, label, nodes, wanted in cases:
+        hierarchy = ET.Element("hierarchy")
+        for attributes in nodes: ET.SubElement(hierarchy, "node", attributes)
+        path = directory / (name+"-"+label+".xml")
+        ET.ElementTree(hierarchy).write(path, encoding="utf-8", xml_declaration=True)
+        result = subprocess.run([sys.executable, "-c", validators[name], str(path)],
+                                capture_output=True, text=True)
+        assert (result.returncode == 0) == wanted, name+" "+label+": "+result.stdout+result.stderr
+    # Restore only the old suffix validator in a disposable code string. The
+    # captured bb regression must be accepted by that old check and rejected
+    # by the live exact check above, proving this negative control is useful.
+    old_suffix = validators["editor"].replace(
+        "field.get('text', '') == 'touch-preview@example.invalid'",
+        "field.get('text', '').endswith('touch-preview@example.invalid')")
+    assert old_suffix != validators["editor"]
+    result = subprocess.run([sys.executable, "-c", old_suffix,
+                             str(directory/"editor-prefix-duplicate.xml")], capture_output=True, text=True)
+    assert result.returncode == 0, "old suffix mutant must reproduce false acceptance"
+    print(f"android_smoke_input: {len(cases)} extracted live empty-ready/exact-email validators "
+          "PASS; old suffix control reproduces prefix false acceptance; no Android device run")
