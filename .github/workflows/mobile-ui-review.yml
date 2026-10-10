@@ -37,6 +37,8 @@ jobs:
             capture: '--fixtures agenda guia --cases 1080x2340@1.5 2340x1080@1.5'
           - group: feedback-catalog
             capture: '--fixtures explorar vertudo homelayouts --home-variant folders --cases 1080x2340@1.5 2340x1080@1.5'
+          - group: phone-input
+            capture: '--fixtures teclado_phone_native --cases 1080x2340@1 1080x2340@1.5 2340x1080@1 2340x1080@1.5'
           - group: detail
             capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
           - group: account
