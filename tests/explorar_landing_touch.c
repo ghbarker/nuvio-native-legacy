@@ -10,30 +10,38 @@
 float gfx_opacidade_grupo=1;
 static Uint32 relogioTeste=1000;
 static int abriuClima=-1, teclasTeste, menusTeste;
+static MapaObra passoPedido;
+static char detalhePedido[128];
+static MapaVizinhos publicarViz;
+static MapaClimas publicarClimas;
+static int publicarVizPendente,publicarClimasPendente;
 static Uint32 relogioFixture(void){return relogioTeste;}
 void mapa_clima_abrir(int id){abriuClima=id;}
-void mapa_vizinhos_pedir(const MapaObra *o,long p,const char *t){(void)o;(void)p;(void)t;}
-int mapa_vizinhos_copiar(MapaVizinhos *v,unsigned *r){(void)v;(void)r;return 0;}
+void mapa_vizinhos_pedir(const MapaObra *o,long p,const char *t){passoPedido=*o;(void)p;(void)t;}
+int mapa_vizinhos_copiar(MapaVizinhos *v,unsigned *r){if(!publicarVizPendente)return 0;*v=publicarViz;(*r)++;publicarVizPendente=0;return 1;}
 void mapa_climas_pedir(void){}
-int mapa_climas_copiar(MapaClimas *c,unsigned *r){(void)c;(void)r;return 0;}
+int mapa_climas_copiar(MapaClimas *c,unsigned *r){if(!publicarClimasPendente)return 0;*c=publicarClimas;(*r)++;publicarClimasPendente=0;return 1;}
 int desc_titulo_buscando(void){return 0;}
 void desc_pedir_titulo_tmdb(long id,const char*t){(void)id;(void)t;}
-void desc_pedir_titulo(const char *id){(void)id;}
+void desc_pedir_titulo(const char *id){snprintf(detalhePedido,sizeof detalhePedido,"%s",id);}
 static void evento(const SDL_Event *e){if(e->type==SDL_KEYDOWN)teclasTeste++;explorar_evento(e);}
 static void menuTeste(void){menusTeste++;}
 static void quadro(void){
   relogioTeste+=16;ponteiro_quadro(relogioTeste);clipped=0;phase=0;
-  desenharClimas();ponteiro_borda_esquerda(30,menuTeste);ponteiro_desenhar();
+  explorar_atualizar(1.0f/60,relogioTeste);explorar_desenhar(relogioTeste);
+  ponteiro_borda_esquerda(30,menuTeste);ponteiro_desenhar();
 }
 static void dedo(Uint32 tipo,float x,float y,int id){
   SDL_Event e={0};e.type=tipo;e.tfinger.touchId=7;e.tfinger.fingerId=id;
   e.tfinger.x=x/NV_TELA_W;e.tfinger.y=y/NV_TELA_H;
   assert(ponteiro_evento(&e,evento));
 }
-static void perto(float a,float b){assert(fabsf(a-b)<.1f);}
+static void perto(float a,float b){if(fabsf(a-b)>=.1f)fprintf(stderr,"expected %.3f, actual %.3f mode%d canvas%.0fx%.0f ui%.2f\n",b,a,modo,nv_layout_w,nv_layout_h,uiScale);assert(fabsf(a-b)<.1f);}
 static void preparar(float w,float h,float fonte){
   nv_layout_w=w;nv_layout_h=h;fontWide=fonte;modo=MODO_CLIMAS;clFoco=0;
   entrada=focoT=1;clRolar=0;toqueCl=(ToqueRolagem){0};sair=pediuAbrir=0;
+  exPagina=caPagina=0;toquePagina=(ToqueRolagem){0};exNavegar=toquePaginaAtiva=0;
+  exPaginaRestaurar=publicarVizPendente=publicarClimasPendente=0;
   toqueCaAtiva=toqueVzAtiva=-1;abriuClima=-1;teclasTeste=menusTeste=0;
   ponteiro_iniciar();ponteiro_teste_toque(1);ponteiro_teste_janela((int)w,(int)h);
   ponteiro_teste_relogio(relogioFixture);quadro();
@@ -42,6 +50,7 @@ static void arrastar(float x,float y,float dx,float dy){
   dedo(SDL_FINGERDOWN,x,y,1);relogioTeste+=100;dedo(SDL_FINGERMOTION,x+dx,y+dy,1);
   relogioTeste+=160;dedo(SDL_FINGERUP,x+dx,y+dy,1);quadro();
 }
+#ifndef EXPLORAR_LANDING_EMBED
 int main(void){
   const float telas[][2]={{1080,1920},{1080,2340},{2340,1080},{2520,1080}};
   climas.n=MAPA_CLIMA_N;
@@ -101,3 +110,4 @@ int main(void){
   printf("explorar_landing_touch: %d actual pointer/geometry/tap/cancel/TV-recovery cases, %d violations\n",casos,failures);
   return failures?1:0;
 }
+#endif

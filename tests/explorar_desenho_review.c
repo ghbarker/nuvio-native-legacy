@@ -8,6 +8,7 @@
 
 float nv_layout_w=1080,nv_layout_h=2340,gfx_tex_aspect_atual;
 static float fontWide=1;
+static float uiScale=1, activeScale=1;
 static int longWordFixture;
 static int fullBlockGlyphs;
 static GfxRect clip;
@@ -18,6 +19,7 @@ static void problem(const char *what,float x,float y,float w,float h) {
   failures++;
 }
 static void drawn(GfxRect r) {
+  r.x*=activeScale;r.y*=activeScale;r.w*=activeScale;r.h*=activeScale;
   if (clipped) {
     float x=fmaxf(r.x,clip.x),y=fmaxf(r.y,clip.y);
     float w=fminf(r.x+r.w,clip.x+clip.w)-x,h=fminf(r.y+r.h,clip.y+clip.h)-y;
@@ -33,7 +35,17 @@ int ajustes_idioma(void){return 0;}
 int ajustes_animacoes_reduzidas(void){return 1;}
 float ajustes_conteudo_x(void){return 104;}
 void ajustes_acento(float*r,float*g,float*b){*r=.6f;*g=.7f;*b=.8f;}
-float gfx_escala(void){return 1;}
+float gfx_escala(void){return activeScale;}
+float gfx_escala_ui(void){return uiScale;}
+float gfx_escala_entrar(void){float antes=activeScale;activeScale=uiScale;return antes;}
+void gfx_escala_sair(float antes){activeScale=antes;}
+int gfx_efeitos_leves(void){return 0;}
+int gfx_snap_ok(void){return 0;}
+int gfx_snap_ativo(void){return 0;}
+unsigned gfx_snap_geracao(void){return 0;}
+void gfx_snap_comecar(void){}
+void gfx_snap_terminar(void){}
+void gfx_snap_desenhar(void){}
 int menu_pilula_titulo(void){return 0;}
 int cat_n(void){return 20;}
 const CatItem *cat_item(int i){(void)i;return NULL;}
@@ -50,11 +62,12 @@ void gfx_vidro_foco(GfxRect r,float rad,float f,float a){(void)rad;(void)f;if(a>
 void gfx_vidro_cartao(GfxRect r,float rad,float f,float a){(void)rad;(void)f;if(a>0)drawn(r);}
 void gfx_vidro_pilula_cheia(GfxRect r,float rad,float f,float a){(void)rad;(void)f;if(a>0)drawn(r);}
 int gfx_vidro_tinta(float f){(void)f;return 24;}
-void gfx_recorte(float x,float y,float w,float h){clip=(GfxRect){x,y,w,h};clipped=1;}
+void gfx_recorte(float x,float y,float w,float h){clip=(GfxRect){x*activeScale,y*activeScale,w*activeScale,h*activeScale};clipped=1;}
 void gfx_sem_recorte(void){clipped=0;}
 #ifndef EXPLORAR_REVIEW_POINTER_REAL
 void ponteiro_rolagem(PonteiroRolagemFn f){assert(f==toqueExplorarRolar);}
 void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int j){
+  x*=activeScale;y*=activeScale;w*=activeScale;h*=activeScale;
   assert(nTargets<80);targets[nTargets++]=(PonteiroAlvo){x,y,w,h,f,a,i,j};
   if(x<0||y<0||x+w>NV_TELA_W+.01f||y+h>NV_TELA_H+.01f)problem("target outside",x,y,w,h);
 }
@@ -79,6 +92,7 @@ float txt_bloco_corta(TxtEstilo e,const char*s,int r,int g,int b,float x,float y
 }
 size_t txt_token_tam(const char*s){size_t n=0;while(s[n]&&s[n]!=' '&&s[n]!='\n')n++;return n;}
 float txt_bloco(TxtEstilo e,const char*s,int r,int g,int b,float x,float y,float w,float lead,float a,int max){
+  if(telefoneui_ativo() && modo!=MODO_CLIMAS && a>0)assert(font(e)>=38);
   float atual=0;int linhas=0;const char*p=s;
   fullBlockGlyphs=0;
   while(*p){if(*p==' '){p++;continue;}if(*p=='\n'){if(atual>0){linhas++;atual=0;}p++;continue;}size_t n=txt_token_tam(p);char palavra[256];assert(n<sizeof palavra);

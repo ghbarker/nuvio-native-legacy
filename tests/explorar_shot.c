@@ -39,6 +39,14 @@ static const char *saida = "/tmp/nuvio-explorar";
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
 int explorar_teste_clima_card(int indice,float valores[9]);
 int explorar_teste_climas_rolagem(float valores[2]);
+int explorar_teste_subview(float v[8]);
+int explorar_teste_subview_card(int linha,int col,float v[14]);
+int explorar_teste_subview_botao(float v[4]);
+int explorar_teste_subview_hero(float v[4]);
+int explorar_teste_subview_cabecalho(float v[4]);
+int explorar_teste_subview_resumo(float v[6]);
+int explorar_teste_subview_alvo(const PonteiroAlvo *a);
+int explorar_teste_subview_texto(int linha,int col,int tipo,char *s,size_t n);
 static unsigned climasMedidos;
 static void confereCards(void) {
   if(!telefoneui_ativo())return;
@@ -86,6 +94,7 @@ static void dedoClima(Uint32 tipo,float x,float y) {
   assert(ponteiro_evento(&e,explorar_evento));
 }
 static void rolarClimas(int capturar);
+static void rolarSubview(const char *meio,const char *fim);
 #endif
 
 static void tecla(SDL_Keycode k) {
@@ -254,6 +263,141 @@ static void focoPublicado(char *dst, size_t n, int *grupos) {
   for (g = 0; g < MAPA_VIZ_GRUPOS; g++) if (v.g[g].n > 0) (*grupos)++;
 }
 
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static int confereSubview(void) {
+  float p[8];assert(explorar_teste_subview(p));
+  assert(p[1]>=0 && p[1]<=p[2]+.1f && p[3]>=0 && p[4]<=NV_TELA_H);
+  assert(fabsf(p[5]-gfx_escala_ui())<.01f);
+  float cab[4];
+  if(!menu_pilula_titulo()) {
+    assert(explorar_teste_subview_cabecalho(cab));
+    assert(cab[0]>=0 && cab[1]>=0 && cab[0]+cab[2]<=NV_TELA_W+.1f && cab[1]+cab[3]<p[3]);
+  } else assert(!explorar_teste_subview_cabecalho(cab));
+  int medidos=0;
+  for(int l=0;l<4;l++)for(int i=0;i<24;i++) {
+    float r[14];if(!explorar_teste_subview_card(l,i,r))continue;medidos++;
+    assert(r[0]<r[13] && r[0]+r[2]>r[12] && r[1]<p[4] && r[1]+r[3]>p[3]);
+    assert(r[9]>=38*p[5] && r[11]>0 && r[2]<=r[13]-r[12]+.1f);
+    char titulo[512];assert(explorar_teste_subview_texto(l,i,0,titulo,sizeof titulo));
+    float esperado=txt_bloco(TXT_HEADLINE,i18n(titulo),240,241,245,0,0,r[11]/p[5],48,0,0)*p[5];
+    assert(fabsf(r[7]-esperado)<.1f);
+    if((int)p[0]==2) {
+      char pq[512];assert(explorar_teste_subview_texto(l,i,1,pq,sizeof pq));
+      esperado=txt_bloco(TXT_HEADLINE,i18n(pq),170,176,196,0,0,r[11]/p[5],48,0,0)*p[5];
+      assert(fabsf(r[8]-esperado)<.1f && r[7]+12*p[5]+r[8]+24*p[5]<=r[3]+.1f);
+      assert(r[4]>=160*p[5] && r[5]>=240*p[5]);
+    } else {
+      assert(r[4]>140*p[5] && r[5]+16*p[5]+r[7]<=r[3]+.1f);
+    }
+  }
+  if((int)p[0]==2) {
+    float hero[4];assert(explorar_teste_subview_hero(hero));
+    for(int k=0;k<3;k++) {
+      char texto[512];assert(explorar_teste_subview_texto(-1,0,k,texto,sizeof texto));
+      float h=txt_bloco(k==0?TXT_TITULO3:TXT_HEADLINE,i18n(texto),k==0?246:k==1?186:160,
+                       k==0?246:k==1?190:166,k==0?248:k==1?202:182,0,0,hero[3]/p[5],k==0?58:48,0,0)*p[5];
+      assert(fabsf(hero[k]-h)<.1f);
+    }
+  }
+  const PonteiroAlvo *alvos;int n=ponteiro_teste_lista(&alvos);
+  for(int i=0;i<n;i++)if(explorar_teste_subview_alvo(&alvos[i])) {
+    assert(alvos[i].x>=0 && alvos[i].y>=p[3]-.1f && alvos[i].w>0 && alvos[i].h>0);
+    assert(alvos[i].x+alvos[i].w<=NV_TELA_W+.1f && alvos[i].y+alvos[i].h<=p[4]+.1f);
+  }
+  assert(!txt_pendentes);
+  return medidos;
+}
+static void moverPagina(float destino) {
+  float p[8];assert(explorar_teste_subview(p));
+  for(int i=0;i<20 && fabsf(destino-p[1])>.1f;i++) {
+    float dy=fmaxf(-(p[4]-p[3])*.55f,fminf((p[4]-p[3])*.55f,p[1]-destino));
+    float x=NV_TELA_W*.6f,y=(p[3]+p[4])*.5f-dy*.5f;
+    dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+    dedoClima(SDL_FINGERMOTION,x,y+dy);SDL_Delay(160);
+    dedoClima(SDL_FINGERUP,x,y+dy);quadros(2,NULL);
+    assert(explorar_teste_subview(p));
+  }
+  assert(fabsf(p[1]-destino)<.1f);
+}
+static void rolarSubview(const char *meio,const char *fim) {
+  if(!telefoneui_ativo())return;
+  float p[8],cabAntes[4];assert(explorar_teste_subview(p));confereSubview();
+  int modoAntes=(int)p[0],grupos=0;char focoAntes[128]="";
+  if(modoAntes==2)focoPublicado(focoAntes,sizeof focoAntes,&grupos);
+  int temCab=explorar_teste_subview_cabecalho(cabAntes);
+  if(p[2]>0) {
+    float passo=fminf(150,p[2]-p[1]),x=NV_TELA_W*.6f,y=p[4]-60;
+    float cardAntes[14],resumoAntes[6];int linha=-1,coluna=-1;
+    for(int l=0;l<4 && linha<0;l++)for(int c=0;c<24;c++)if(explorar_teste_subview_card(l,c,cardAntes) &&
+      cardAntes[1]+cardAntes[3]>p[3]+passo){linha=l;coluna=c;break;}
+    int temResumo=explorar_teste_subview_resumo(resumoAntes);
+    float antes=p[1];dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+    dedoClima(SDL_FINGERMOTION,x,y-passo);
+    float durante[8];assert(explorar_teste_subview(durante));assert(fabsf(durante[1]-antes-passo)<.1f);
+    quadros(2,NULL);confereSubview();
+    if(linha>=0) {
+      float depois[14];assert(explorar_teste_subview_card(linha,coluna,depois));
+      assert(fabsf(depois[1]-cardAntes[1]+passo)<.1f && fabsf(depois[0]-cardAntes[0])<.1f);
+    }
+    if(temResumo) {
+      float depois[6];assert(explorar_teste_subview_resumo(depois));
+      assert(fabsf(depois[1]-resumoAntes[1]+passo)<.1f && fabsf(depois[5]-resumoAntes[5]+passo)<.1f);
+      assert(fabsf(depois[0]-resumoAntes[0])<.1f && fabsf(depois[4]-resumoAntes[4])<.1f);
+    }
+    SDL_Delay(160);dedoClima(SDL_FINGERUP,x,y-passo);quadros(3,NULL);
+    assert(explorar_teste_subview(durante));assert(fabsf(durante[1]-antes-passo)<.1f && (int)durante[0]==modoAntes);
+    if(temCab) {
+      float cabDepois[4];assert(explorar_teste_subview_cabecalho(cabDepois));
+      for(int i=0;i<4;i++)assert(fabsf(cabDepois[i]-cabAntes[i])<.1f);
+    }
+    float curto=fminf(80,p[2]-durante[1]),antesCancelar=durante[1];
+    if(curto>0) {
+      dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(100);dedoClima(SDL_FINGERMOTION,x,y-curto);
+      ponteiro_cancelar_toque();dedoClima(SDL_FINGERUP,x,y-curto);quadros(3,NULL);
+      assert(explorar_teste_subview(durante));
+      assert(fabsf(durante[1]-antesCancelar-curto)<.1f && (int)durante[0]==modoAntes);
+    }
+  }
+  moverPagina(p[2]*.5f);quadros(60,meio);confereSubview();
+  moverPagina(p[2]);quadros(60,NULL);assert(confereSubview()>0);
+  /* Test horizontal movement on the final visible row, using actual rendered
+     coordinates and the real map row count; short rows have no overflow. */
+  int ultima=-1;float r[14];
+  for(int l=0;l<4;l++)if(explorar_teste_subview_card(l,0,r))ultima=l;
+  if(ultima>=0 && modoAntes==2) {
+    static MapaVizinhos v;unsigned rev=0;assert(mapa_vizinhos_copiar(&v,&rev));
+    int linha=-1,n=0;for(int g=0;g<4;g++)if(v.g[g].n>0){if(++linha==ultima)n=v.g[g].n;}
+    assert(explorar_teste_subview_card(ultima,0,r));
+    float max=fmaxf(0,n*(r[2]+24*p[5])-24*p[5]-(r[13]-r[12]));
+    if(max>120) {
+      float x=(fmaxf(r[0],r[12])+fminf(r[0]+r[2],r[13]))*.5f;
+      float y=(fmaxf(r[1],p[3])+fminf(r[1]+r[3],p[4]))*.5f,antesX=r[0];
+      dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(100);dedoClima(SDL_FINGERMOTION,x-120,y);quadros(2,NULL);
+      float novo[14];assert(explorar_teste_subview_card(ultima,0,novo));assert(fabsf(novo[0]-antesX+120)<.1f);
+      SDL_Delay(160);dedoClima(SDL_FINGERUP,x-120,y);quadros(3,NULL);confereSubview();
+      float novoP[8];assert(explorar_teste_subview(novoP));assert(novoP[1]==p[2] && (int)novoP[0]==modoAntes);
+    }
+  }
+  quadros(60,fim);confereSubview();
+  if(modoAntes==2) {char focoDepois[128];focoPublicado(focoDepois,sizeof focoDepois,&grupos);assert(!strcmp(focoAntes,focoDepois));}
+  int abriu=-1;assert(!explorar_pediu_abrir(&abriu));
+  const PonteiroAlvo *alvos;int n=ponteiro_teste_lista(&alvos),tocou=0;
+  for(int i=0;i<n;i++)if(explorar_teste_subview_alvo(&alvos[i]) && alvos[i].a>=0 && alvos[i].h>=40) {
+    PonteiroAlvo alvo=alvos[i];char esperado[512];assert(explorar_teste_subview_texto(alvo.a,alvo.b,0,esperado,sizeof esperado));
+    float x=alvo.x+alvo.w*.5f,y=alvo.y+alvo.h*.5f;
+    dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(20);dedoClima(SDL_FINGERUP,x,y);quadros(70,NULL);
+    char focoDepois[128];focoPublicado(focoDepois,sizeof focoDepois,&grupos);assert(!strcmp(esperado,focoDepois));
+    tecla(SDLK_ESCAPE);quadros(70,NULL);float voltou[8];assert(explorar_teste_subview(voltou));
+    assert((int)voltou[0]==modoAntes && fabsf(voltou[1]-p[2])<.1f);
+    if(modoAntes==2){focoPublicado(focoDepois,sizeof focoDepois,&grupos);assert(!strcmp(focoAntes,focoDepois));}
+    tocou=1;break;
+  }
+  assert(tocou);
+  moverPagina(0);quadros(3,NULL);confereSubview();
+  printf("[shot] Explore phone subview mode%d ui%.2f: complete real-font labels, fixed header, vertical finger delta, horizontal row delta, release identity and middle/end captures passed (page max %.1f)\n",modoAntes,p[5],p[2]);
+}
+#endif
+
 int main(int argc, char **argv) {
   SDL_Window *win;
   SDL_GLContext gl;
@@ -323,9 +467,15 @@ int main(int argc, char **argv) {
 #endif
   tecla(SDLK_RETURN);
   quadros(70, "2-clima");
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  rolarSubview("2a-clima-meio","2b-clima-fim");
+#endif
 
   tecla(SDLK_RETURN);
   quadros(70, "3-vizinhanca");
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  rolarSubview("3a-vizinhanca-meio","3b-vizinhanca-fim");
+#endif
   focoPublicado(raiz, sizeof raiz, &grupos);
   assert(raiz[0] && grupos >= 2);
 
@@ -337,6 +487,9 @@ int main(int argc, char **argv) {
   tecla(SDLK_RIGHT);
   tecla(SDLK_RETURN);
   quadros(70, "4-trilha");
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  rolarSubview("4a-trilha-meio","4b-trilha-fim");
+#endif
   focoPublicado(passo2, sizeof passo2, &grupos);
   assert(strcmp(passo2, passo1) && strcmp(passo2, raiz));
 
@@ -351,12 +504,24 @@ int main(int argc, char **argv) {
     assert(mapa_obra_do_catalogo(2, &o));
     explorar_abrir_titulo(&o); }
   quadros(70, "6-detalhe");
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  rolarSubview("6a-detalhe-meio","6b-detalhe-fim");
+#endif
   focoPublicado(volta, sizeof volta, &grupos);
   assert(!strcmp(volta, "Prisoners"));
   // Voltar no primeiro degrau devolve a pagina do titulo.
   tecla(SDLK_ESCAPE);
   { int idx = -1;
     assert(explorar_pediu_abrir(&idx) && idx == 2); }
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if(telefoneui_ativo()) {
+    int ingles=ajustes_idioma_ingles();shotIdioma(!ingles);explorar_iniciar();quadros(70,NULL);
+    tecla(SDLK_RETURN);quadros(70,NULL);rolarSubview(NULL,NULL);
+    tecla(SDLK_RETURN);quadros(70,NULL);rolarSubview(NULL,NULL);
+    shotIdioma(ingles);
+    printf("[shot] Explore subviews complete real-font labels and continuous page/row gestures passed in English and Portuguese\n");
+  }
+#endif
 
   printf("explorar_shot: raiz=%s -> %s -> %s; capturas gravadas\n", raiz, passo1, passo2);
   explorar_encerrar();
