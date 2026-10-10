@@ -21,6 +21,13 @@ static int aTeste[256], bTeste[256], clipLigado;
 static AgItem itens[AG_MAX];
 static struct { char texto[512]; int s; } linhasTeste[4096];
 static int nLinhasTeste, cortesRotulo;
+typedef struct { GfxRect r; int tipo; float raio, param, cr, cg, cb, a; } Pintura;
+static Pintura pinturasTeste[4096];
+static int nPinturas, paresSeletor;
+static void pintura(GfxRect r,int tipo,float raio,float param,float cr,float cg,float cb,float a) {
+  if(a<=0)return;assert(nPinturas<4096);
+  pinturasTeste[nPinturas++]=(Pintura){r,tipo,raio,param,cr,cg,cb,a};
+}
 
 static float larguraTela(void) { return NV_TELA_W; }
 static float alturaTela(void) { return NV_TELA_H; }
@@ -44,7 +51,7 @@ float gfx_escala_entrar(void) { float ant=escalaTeste; escalaTeste=uiTeste; retu
 void gfx_recorte(float x,float y,float w,float h) { clipTeste=(GfxRect){x,y,w,h}; conferir(clipTeste,0); clipLigado=1; }
 void gfx_sem_recorte(void) { clipLigado=0; }
 void gfx_cor(GfxRect r,float raio,float cr,float cg,float cb,float a) {
-  (void)raio;(void)cr;(void)cg;(void)cb; if(a>0)conferir(r,1);
+  pintura(r,1,raio,0,cr,cg,cb,a);if(a>0)conferir(r,1);
 }
 void gfx_rect(GfxRect r,GLuint t,GfxModo m,float f,float px,float py,float raio,float cr,float cg,float cb,float a) {
   (void)f;(void)px;(void)py;
@@ -53,10 +60,10 @@ void gfx_rect(GfxRect r,GLuint t,GfxModo m,float f,float px,float py,float raio,
   if(m==GFX_CARD && a>0 && nArtes<64)artesTeste[nArtes++]=r;
 }
 void gfx_icone(GfxRect r,const char *s,float cr,float cg,float cb,float a) { (void)s;gfx_cor(r,0,cr,cg,cb,a); }
-void gfx_anel(GfxRect r,float raio,float esp,float cr,float cg,float cb,float a) { (void)esp;gfx_cor(r,raio,cr,cg,cb,a); }
+void gfx_anel(GfxRect r,float raio,float esp,float cr,float cg,float cb,float a) { pintura(r,4,raio,esp,cr,cg,cb,a);gfx_cor(r,raio,cr,cg,cb,a); }
 void gfx_vidro_folha(GfxRect r,float raio,float a) { gfx_cor(r,raio,1,1,1,a); }
-void gfx_vidro_painel(GfxRect r,float raio,float f,float a) { (void)f;gfx_cor(r,raio,1,1,1,a); }
-void gfx_vidro_foco(GfxRect r,float raio,float f,float a) { (void)f;gfx_cor(r,raio,1,1,1,a); }
+void gfx_vidro_painel(GfxRect r,float raio,float f,float a) { pintura(r,2,raio,f,0,0,0,a);gfx_cor(r,raio,1,1,1,a); }
+void gfx_vidro_foco(GfxRect r,float raio,float f,float a) { pintura(r,3,raio,f,0,0,0,a);gfx_cor(r,raio,1,1,1,a); }
 void gfx_sombra_sob(GfxRect r,float f,float px,float raio,float cr,float cg,float cb,float a,GfxRect p,float pr,float pa) {
   (void)r;(void)f;(void)px;(void)raio;(void)cr;(void)cg;(void)cb;(void)a;(void)p;(void)pr;(void)pa;
 }
@@ -131,6 +138,59 @@ int agenda_pode_lembrar(const char *s) { (void)s;return 1; }
 int agenda_atualizando(void) { return 0; }
 void agenda_quando(const char *s,char *d,size_t n) { snprintf(d,n,"%s",s); }
 int noticias_n(const char *s) { (void)s;return 0; }
+#ifdef NV_TOUCH_PREVIEW
+static void zerarDesenho(void) {
+  nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=nPinturas=0;clipLigado=0;
+}
+static int pinturasDoAlvo(GfxRect alvo,Pintura dst[8]) {
+  int n=0;
+  for(int i=0;i<nPinturas;i++) {
+    GfxRect r=pinturasTeste[i].r;
+    if(fabsf(r.x-alvo.x)<.03f&&fabsf(r.y-alvo.y)<.03f&&
+       fabsf(r.w-alvo.w)<.03f&&fabsf(r.h-alvo.h)<.03f) {
+      assert(n<8);dst[n++]=pinturasTeste[i];
+    }
+  }
+  return n;
+}
+static void testarSeletor(const AgC1 *L) {
+  for(int focado=0;focado<3;focado++) {
+    Pintura desenho[2][2][8];int cont[2][2];GfxRect alvos[2][2];
+    for(int vista=0;vista<2;vista++) {
+      zerarDesenho();vistaMes=vista;
+      int ativo=vista?AG_CAB_MES:AG_CAB_LISTA, inativo=vista?AG_CAB_LISTA:AG_CAB_MES;
+      focoCabecalho=focado==1?ativo:focado==2?inativo:0;
+      calAno=2026;calMes=9;
+      if(vista)desenhaBarraCalendario(agX(),agFim());else cabecalhoIlha(L);
+      assert(nAlvos==(vista?5:2) && cortesRotulo==0);
+      for(int k=0;k<2;k++) {
+        assert(focosTeste[k]==ponteiroCab&&aTeste[k]==k+1&&bTeste[k]==0);
+        alvos[vista][k]=alvosTeste[k];
+        perto(alvosTeste[k].w*escalaTeste,180*uiTeste);
+        perto(alvosTeste[k].h*escalaTeste,112*uiTeste);
+        cont[vista][k]=pinturasDoAlvo(alvosTeste[k],desenho[vista][k]);
+        assert(cont[vista][k]>0 && desenho[vista][k][0].tipo==(vidroTeste?2:1));
+        perto(desenho[vista][k][0].raio,.5f);
+      }
+      perto(alvosTeste[0].y,alvosTeste[1].y);
+      perto((alvosTeste[1].x-alvosTeste[0].x-alvosTeste[0].w)*escalaTeste,12*uiTeste);
+    }
+    /* Compare actual paint primitives by active/inactive role, including the
+     * glass strength, focus outline, radius, colors and opacity. */
+    for(int k=0;k<2;k++) {
+      int par=1-k;assert(cont[0][k]==cont[1][par]);
+      perto(alvos[0][k].w,alvos[1][par].w);perto(alvos[0][k].h,alvos[1][par].h);
+      for(int i=0;i<cont[0][k];i++) {
+        Pintura a=desenho[0][k][i],b=desenho[1][par][i];assert(a.tipo==b.tipo);
+        perto(a.raio,b.raio);perto(a.param,b.param);perto(a.cr,b.cr);
+        perto(a.cg,b.cg);perto(a.cb,b.cb);perto(a.a,b.a);
+      }
+    }
+    paresSeletor++;
+  }
+  vistaMes=focoCabecalho=0;zerarDesenho();
+}
+#endif
 int main(void) {
   for(int i=0;i<AG_MAX;i++) {
     snprintf(itens[i].imdb,sizeof itens[i].imdb,"tt%08d",i);
@@ -155,12 +215,13 @@ int main(void) {
 #ifdef NV_TOUCH_PREVIEW
     assert(agColunaUnica());perto(agLinhaH()*escalaTeste,184*uiTeste);
     perto(agGrupoH()*escalaTeste,72*uiTeste);assert(L.artW==0);
+    testarSeletor(&L);
 #else
     assert(!agColunaUnica());perto(agLinhaH()*escalaTeste,116);perto(agGrupoH()*escalaTeste,51);
     assert(L.artW>0);perto(L.pnY*escalaTeste,112);
 #endif
     for(int pos=0;pos<3;pos++) {
-      nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=0;clipLigado=0;
+      nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=nPinturas=0;clipLigado=0;
 #ifdef NV_TOUCH_PREVIEW
       toqueCalendario.offset=NULL;
 #endif
@@ -174,7 +235,7 @@ int main(void) {
       }
       assert(primeiro>=0);if(pos==2)assert(ultimo==nItens-1);
 #ifdef NV_TOUCH_PREVIEW
-      GfxRect primeira=alvosTeste[0];assert(primeira.h*escalaTeste>=120*uiTeste-.04f);
+      GfxRect primeira=alvosTeste[0];perto(primeira.h*escalaTeste,112*uiTeste);
       float antes=scrollY;
       PonteiroRolagem e={PONT_ROL_INICIO,1,0,0,(toqueAgenda.regiao.x+4)*escalaTeste,(toqueAgenda.regiao.y+4)*escalaTeste};
       assert(toqueAgendaRolar(&e));e.fase=PONT_ROL_MOVER;e.delta=-31.25f;
@@ -182,7 +243,7 @@ int main(void) {
       e.fase=PONT_ROL_SOLTAR;assert(toqueAgendaRolar(&e));e.fase=PONT_ROL_FIM;assert(toqueAgendaRolar(&e));
       assert(toqueAgenda.livre);toquerol_limpar(&toqueAgenda);
       /* The renderer's actual title and two metadata rows stay inside a full card. */
-      nTextos=nArtes=nLinhasTeste=0;gfx_recorte(L.pnX,L.lsY,L.pnW,L.lsH);
+      nTextos=nArtes=nLinhasTeste=nPinturas=0;gfx_recorte(L.pnX,L.lsY,L.pnW,L.lsH);
       linhaC1(&L,itens,L.lsY,1);assert(nTextos>=2 && nArtes==1);
       perto(artesTeste[0].w*escalaTeste,200*uiTeste);perto(artesTeste[0].h*escalaTeste,112*uiTeste);
       perto(textosTeste[0].h*escalaTeste,60*42.f/48*uiTeste);
@@ -195,14 +256,14 @@ int main(void) {
 #ifdef NV_TOUCH_PREVIEW
     toqueCalOffset=0;toquerol_limpar(&toqueCalendario);
 #endif
-    nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=0;desenhaBarraCalendario(agX(),agFim());assert(nAlvos==5);
+    nAlvos=nTextos=nArtes=nLinhasTeste=cortesRotulo=nPinturas=0;desenhaBarraCalendario(agX(),agFim());assert(nAlvos==5);
     assert(cortesRotulo==0);
     for(int i=0;i<5;i++)for(int j=0;j<i;j++) {
       GfxRect a=alvosTeste[i],b=alvosTeste[j];
       assert(a.x+a.w<=b.x+.03f||b.x+b.w<=a.x+.03f||a.y+a.h<=b.y+.03f||b.y+b.h<=a.y+.03f);
     }
     for(int pos=0;pos<3;pos++) {
-      nAlvos=nTextos=nArtes=nLinhasTeste=0;clipLigado=0;
+      nAlvos=nTextos=nArtes=nLinhasTeste=nPinturas=0;clipLigado=0;
 #ifdef NV_TOUCH_PREVIEW
       toqueAgenda.offset=NULL;
       if(pos) { toqueCalendario.livre=1;toqueCalOffset=pos==1?toqueCalendario.maximo*.463f:toqueCalendario.maximo; }
@@ -220,5 +281,8 @@ int main(void) {
     }
   }
   printf("PASS: %d real Agenda list/calendar layouts, clipped actions, readable phone rows and direct finger deltas.\n",casos);
+#ifdef NV_TOUCH_PREVIEW
+  assert(paresSeletor==48);printf("PASS: %d actual phone selector paint/target pairs match List and Month.\n",paresSeletor);
+#endif
   return 0;
 }

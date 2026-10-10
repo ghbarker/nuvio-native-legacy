@@ -80,6 +80,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -220,6 +221,22 @@ static void captura(const char *nome, SDL_Window *win) {
         int inteiros = agendaui_teste_rotulos(&vistos, medidas);
         if (vistos) {
           assert(vistos == 3 && inteiros == 3);
+          if (!agendaui_menu_aberto()) {
+            int seletor_compativel = 0;
+            for (int k = 0; k < 2 && k < n; k++) {
+              const PonteiroAlvo *p = alvos + k;
+              if (p->focar && !p->ativar && p->a == k + 1 && p->b == 0 &&
+                  fabsf(p->w - 180 * gfx_escala_ui()) < .1f &&
+                  fabsf(p->h - 112 * gfx_escala_ui()) < .1f)
+                seletor_compativel |= 1 << k;
+            }
+            assert(seletor_compativel == 3);
+            assert(fabsf(alvos[0].y - alvos[1].y) < .1f);
+            assert(fabsf(alvos[1].x - alvos[0].x - alvos[0].w - 12 * gfx_escala_ui()) < .1f);
+            printf("Agenda native shared List/Month pills: %gx%g, gap %g, %s\n",
+                   (double)alvos[0].w, (double)alvos[0].h,
+                   (double)(alvos[1].x - alvos[0].x - alvos[0].w), nome);
+          }
           printf("Agenda native List/Month labels uncut: %.3f/%.3f, %.3f/%.3f, %s\n",
                  medidas[0], medidas[1], medidas[2], medidas[3], nome);
         }
@@ -271,10 +288,10 @@ static void arrastoTelefone(void) {
 static void tocarMesTelefone(void) {
   const PonteiroAlvo *v;
   int n = ponteiro_teste_lista(&v), achou = -1;
-  /* The List/Month segmented controls precede all title rows. */
+  /* The List/Month buttons precede all title rows. */
   for(int i=0;i<n;i++)if(v[i].focar&&!v[i].ativar&&v[i].a==2&&v[i].b==0) { achou=i;break; }
   assert(achou>=0);
-  PonteiroAlvo p=v[achou];assert(p.h>=120*gfx_escala_ui()-.1f);
+  PonteiroAlvo p=v[achou];assert(fabsf(p.h-112*gfx_escala_ui())<.1f);
   SDL_Event e;SDL_zero(e);e.type=SDL_FINGERDOWN;e.tfinger.touchId=3;e.tfinger.fingerId=1;
   e.tfinger.x=(p.x+p.w*.5f)/NV_TELA_W;e.tfinger.y=(p.y+p.h*.5f)/NV_TELA_H;
   assert(ponteiro_evento(&e,agendaui_evento));e.type=SDL_FINGERUP;

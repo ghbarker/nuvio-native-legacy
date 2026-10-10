@@ -1708,7 +1708,8 @@ static void ilhaC1(GfxRect p) {
   gfx_luz_canto(p, raio, p.w * .25f, -p.h * .25f, p.w * .9f, 1, 1, 1, vid ? .06f : .04f);
 }
 
-// O cabecalho da ilha: a contagem a esquerda e o segmentado a direita.
+// O cabecalho da ilha: a contagem a esquerda e o seletor a direita.
+static void seletorAgendaTelefone(float x, float xDir, float y);
 static void cabecalhoIlha(const AgC1 *L) {
   char sub[200];
   int i, n = agenda_n(), comData = 0;
@@ -1725,7 +1726,7 @@ static void cabecalhoIlha(const AgC1 *L) {
   if (agColunaUnica()) {
     blocoC1(TXT_G28R, 28, sub, L->pnX + P(22), L->pnY + P(agTelefonePx(24)),
             agTelefonePx(28), L->pnW - P(44), agTelefonePx(40), 2, AG_INK2, 1);
-    segC1(L->pnX + L->pnW - P(22), L->pnY + P(agTelefonePx(176)), 1);
+    seletorAgendaTelefone(L->pnX + P(22), L->pnX + L->pnW - P(22), L->pnY + P(agTelefonePx(120)));
     return;
   }
   txC1(TXT_AJ_ESTADO, 18, sub, AG_INK2, L->pnX + P(22),
@@ -2752,20 +2753,25 @@ static void botaoAgenda(GfxRect r, const char *rotulo, int ativo, int foco,
                      r.y + (r.h - t.h) * 0.5f, 1.0f);
 }
 
+static void seletorAgendaTelefone(float x, float xDir, float y) {
+  float gap = P(agTelefonePx(12)), h = P(agTelefonePx(112));
+  float w = fminf(P(agTelefonePx(180)), (xDir - x - gap) * .5f);
+  GfxRect lista = {xDir - w * 2 - gap, y, w, h};
+  GfxRect mes = {xDir - w, y, w, h};
+  if (!ctxAberto) {
+    ponteiro_alvo(lista.x, lista.y, lista.w, lista.h, ponteiroCab, NULL, AG_CAB_LISTA, 0);
+    ponteiro_alvo(mes.x, mes.y, mes.w, mes.h, ponteiroCab, NULL, AG_CAB_MES, 0);
+  }
+  botaoAgenda(lista, i18n("Lista"), !vistaMes, focoCabecalho == AG_CAB_LISTA,
+              !vistaMes && focoCabecalho != AG_CAB_LISTA);
+  botaoAgenda(mes, i18n("Mês"), vistaMes, focoCabecalho == AG_CAB_MES,
+              vistaMes && focoCabecalho != AG_CAB_MES);
+}
+
 static void desenhaBarraCalendario(float x, float xDir) {
   if (agColunaUnica()) {
-    float gap = P(agTelefonePx(12)), h = P(agTelefonePx(112));
-    float y = P(agTelefonePx(192)), w = fminf(P(agTelefonePx(180)), (xDir - x - gap) * .5f);
-    GfxRect lista = {xDir - w * 2 - gap, y, w, h};
-    GfxRect mes = {xDir - w, y, w, h};
-    if (!ctxAberto) {
-      ponteiro_alvo(lista.x, lista.y, lista.w, lista.h, ponteiroCab, NULL, AG_CAB_LISTA, 0);
-      ponteiro_alvo(mes.x, mes.y, mes.w, mes.h, ponteiroCab, NULL, AG_CAB_MES, 0);
-    }
-    botaoAgenda(lista, i18n("Lista"), !vistaMes, focoCabecalho == AG_CAB_LISTA,
-                !vistaMes && focoCabecalho != AG_CAB_LISTA);
-    botaoAgenda(mes, i18n("Mês"), vistaMes, focoCabecalho == AG_CAB_MES,
-                vistaMes && focoCabecalho != AG_CAB_MES);
+    float h = P(agTelefonePx(112)), gap = P(agTelefonePx(12)), y;
+    seletorAgendaTelefone(x, xDir, P(agTelefonePx(192)));
     if (vistaMes) {
       char rot[96], cru[96];
       float seta = P(agTelefonePx(112));

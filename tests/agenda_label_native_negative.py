@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""In an isolated test checkout, prove the real-font label assertion detects
-the old exact-fit truncation. Keep the failing capture evidence, restore the
+"""In an isolated test checkout, prove the real selector-target assertion
+detects the old compact phone List control. Keep failing evidence, restore the
 Agenda source, and require independent positive captures as well.
 """
 from pathlib import Path
@@ -12,8 +12,9 @@ import subprocess
 import sys
 
 
-ALLOWANCE = b'if (telefone) w[k] += escDe(corpo, fonte);'
-DISABLED = b'/* phone label allowance disabled for native negative control */'
+SELECTOR = b'seletorAgendaTelefone(L->pnX + P(22), L->pnX + L->pnW - P(22), L->pnY + P(agTelefonePx(120)));'
+COMPACT_SELECTOR = b'segC1(L->pnX + L->pnW - P(22), L->pnY + P(agTelefonePx(176)), 1);'
+ASSERTION = 'seletor_compativel == 3'
 CASE = '1080x2340@1'
 CAPTURE_LOG = 'agenda/1080x2340-ui1/capture.log'
 
@@ -39,9 +40,9 @@ def validate_failure(output, returncode):
             'A missing error or timeout is not the required assertion failure')
     require('SIGABRT' in error, 'Expected the native assertion to terminate the capture with SIGABRT')
     log = (output / CAPTURE_LOG).read_text(encoding='utf-8', errors='replace')
-    assertion = r'agenda_shot\.c:\d+: captura: Assertion [\x60\x27\x22]vistos == 3 && inteiros == 3[\x60\x27\x22] failed'
+    assertion = r'agenda_shot\.c:\d+: captura: Assertion [\x60\x27\x22]' + re.escape(ASSERTION) + r'[\x60\x27\x22] failed'
     require(re.search(assertion, log) is not None,
-            'Native capture did not fail on the exact uncut List/Month label assertion')
+            'Native capture did not fail on the exact shared List/Month selector assertion')
     return result
 
 
@@ -49,16 +50,17 @@ def run_negative(root):
     root = Path(root).resolve()
     source = root / 'src/agendaui.c'
     original = source.read_bytes()
-    require(original.count(ALLOWANCE) == 1, 'Expected exactly one phone label allowance statement')
+    require(original.count(SELECTOR) == 1, 'Expected exactly one phone List selector call')
     output = root / 'build/phone-label-negative'
     # Refuse stale results; the preserved evidence must come from this run.
     output.mkdir(parents=True, exist_ok=False)
-    mutant = original.replace(ALLOWANCE, DISABLED, 1)
+    mutant = original.replace(SELECTOR, COMPACT_SELECTOR, 1)
     receipt = {
         'source': 'src/agendaui.c',
         'original_sha256': hashlib.sha256(original).hexdigest(),
         'mutation_count': 1,
-        'expected_assertion': 'vistos == 3 && inteiros == 3',
+        'mutation': 'Restore the original compact phone List selector call',
+        'expected_assertion': ASSERTION,
         'case': CASE,
         'font': 'shipped Inter (0)',
         'language': 'Portuguese',
@@ -83,7 +85,7 @@ def run_negative(root):
         (output / 'negative-control.json').write_text(
             json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
         require(restored == original, 'Agenda source did not restore byte-for-byte')
-    print('PASS: zero-allowance native Agenda capture failed on the exact label '
+    print('PASS: compact List selector native capture failed on the exact selector '
           'assertion; source restored byte-for-byte. Independent positive captures are also required.')
 
 
@@ -91,5 +93,5 @@ if __name__ == '__main__':
     try:
         run_negative(Path(__file__).resolve().parents[1])
     except Exception as error:
-        print(f'FAIL: native Agenda label negative control: {error}', file=sys.stderr)
+        print(f'FAIL: native Agenda selector negative control: {error}', file=sys.stderr)
         sys.exit(1)
