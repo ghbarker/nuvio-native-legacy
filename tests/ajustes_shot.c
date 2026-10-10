@@ -66,6 +66,7 @@ static const char *const AJ_IDS[] = {
 
 extern int ajustes_teste_focar_opcao(int op);
 extern int ajustes_teste_cena_item(int i, int *op, int *sec, const char **chave, const char **rot);
+extern int ajustes_teste_opcao_visivel(int op);
 extern void ajustes_teste_cena_desenhar(int op, float t, float x, float y, float w);
 extern void ajustes_teste_ux_captura(int cenario);
 extern void atualizacao_teste_estado(int busca, const char *tag);
@@ -303,17 +304,22 @@ int main(int argc, char **argv) {
     snprintf(manifestPath, sizeof manifestPath, "%s-options.tsv", saida);
     FILE *manifest = fopen(manifestPath, "w");
     assert(manifest);
-    fprintf(manifest, "option\tsection\tkey\tlabel\timage\n");
+    fprintf(manifest, "option\tsection\tkey\tlabel\timage\tvisible\n");
     quadrosCaptura = 60;
     for (n = 0; ajustes_teste_cena_item(n, &op, &sec, &chave, &rot); n++) {
       assert(chave && chave[0]);
       snprintf(id, sizeof id, "op:%s", chave);
       assert(ajustes_teste_quadro(id));
       if (getenv("NUVIO_SHOT_LAYOUT")) ajustes_teste_layout(atoi(getenv("NUVIO_SHOT_LAYOUT")));
+      if (getenv("NUVIO_SHOT_AJUSTES_ESCALA")) {
+        int percentual = atoi(getenv("NUVIO_SHOT_AJUSTES_ESCALA"));
+        ajustes_teste_escala(percentual);
+        assert(fabsf(ajustes_tamanho_ajustes() - percentual / 100.0f) < .001f);
+      }
       if (getenv("NUVIO_SHOT_FONTE")) ajustes_teste_fonte_interface(atoi(getenv("NUVIO_SHOT_FONTE")));
       snprintf(nome, sizeof nome, "%s-option-%03d-%s.png", saida, n, chave);
       captura(nome, w);
-      fprintf(manifest, "%d\t%d\t%s\t%s\t%s\n", op, sec, chave, rot, nome);
+      fprintf(manifest, "%d\t%d\t%s\t%s\t%s\t%d\n", op, sec, chave, rot, nome, ajustes_teste_opcao_visivel(op));
     }
     fclose(manifest);
     printf("full Settings catalog: %d options\n", n);

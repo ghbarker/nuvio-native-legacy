@@ -32,7 +32,7 @@ void video_janela_fonte(int sx,int sy,int sw,int sh,int x,int y,int w,int h) {
   (void)sx;(void)sy;(void)sw;(void)sh;video_janela(x,y,w,h);
 }
 void video_parar(void) { stops++; }
-void fontevolta_esquecer(void) {}
+void fontevolta_esquecer(const char *porque) { (void)porque; }
 int video_pronto(void) { return 0; }
 int video_falhou(void) { return 0; }
 const char *video_url_atual(void) { return ""; }

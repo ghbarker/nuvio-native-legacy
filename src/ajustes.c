@@ -7561,6 +7561,9 @@ int ajustes_teste_cena_item(int i, int *op, int *sec, const char **chave, const 
   }
   return 0;
 }
+int ajustes_teste_opcao_visivel(int op) {
+  return op >= 0 && op < AJ_N && visivel(op);
+}
 void ajustes_teste_cena_desenhar(int op, float t, float x, float y, float w) {
   ajcTesteT = t;
   ajCenaGerada(uxSecaoDe(op), op, x, y, w);
