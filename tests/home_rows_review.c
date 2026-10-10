@@ -2,14 +2,42 @@
 #define TESTE_HOME 1
 #define TESTE_HOME_ROWS_REVIEW 1
 #define SDL_MAIN_HANDLED 1
+#define gfx_escala_ui homeRowsEscalaPadrao
 #define main home_gesture_fixture_main
 #include "catalogo_toque.c"
 #undef main
+#undef gfx_escala_ui
+#include "../src/gifcolecao.c"
 
 static CatItem pilhaItens[6];
 static GfxRect pilhaLimite;
 static int pilhaDesenhos, pilhaFalhas;
+static ColFolder pastaTeste;
+static int pastaDesenhando, pastaDesenhos, pastaCasos;
+static float uiTeste = 1;
 float gfx_tex_aspect_atual;
+float gfx_escala_ui(void) { return uiTeste; }
+const ColFolder *col_folder(int i) { assert(i == 0); return &pastaTeste; }
+const char *col_capa(const ColFolder *p) { assert(p == &pastaTeste); return p->cover; }
+GLuint tex_obter_passageira(const char *u,float w) { (void)u;(void)w;return 0; }
+int tex_magica(const char *u,unsigned char m[4]) { (void)u;memset(m,0,4);return 0; }
+const char *tex_arquivo(const char *u) { (void)u;return NULL; }
+int gif_pode_animar(void) { return 0; }
+int gif_animado(const char *p) { (void)p;return 0; }
+GLuint gif_textura(const char *p,int w) { (void)p;(void)w;return 0; }
+int gif_recusou(const char *p) { (void)p;return 0; }
+void gif_parar(void) { }
+int ajustes_animacoes_reduzidas(void) { return 1; }
+int ajustes_vidro(void) { return 0; }
+float ajustes_raio_poster_px(void) { return 24; }
+void ajustes_acento(float *r,float *g,float *b) { *r=1;*g=.6f;*b=.2f; }
+int ajustes_profundidade(void) { return 0; }
+int ajustes_profundidade_posters(void) { return 0; }
+float ajustes_profundidade_borda(void) { return 0; }
+float ajustes_profundidade_brilho(void) { return 0; }
+float ajustes_profundidade_cobertura(void) { return 0; }
+void gfx_brilho_topo(GfxRect r,float raio,float alcance,float cr,float cg,float cb,float a) { (void)r;(void)raio;(void)alcance;(void)cr;(void)cg;(void)cb;(void)a; }
+void gfx_vidro_cartao(GfxRect r,float raio,float f,float a) { (void)r;(void)raio;(void)f;(void)a; }
 const CatItem *cat_item(int i) { return i>=0 && i<6 ? &pilhaItens[i] : NULL; }
 int cat_n(void) {return 6;}
 const char *posterprov_card_addon(const char *o,const char *i,long t,const char *tipo,const char *url) {(void)o;(void)i;(void)t;(void)tipo;return url;}
@@ -28,10 +56,80 @@ void gfx_cor(GfxRect r,float raio,float cr,float cg,float cb,float a) {(void)r;(
 void gfx_rect(GfxRect r,GLuint tex,GfxModo modo,float f,float px,float py,float raio,float cr,float cg,float cb,float a) {
   (void)tex;(void)f;(void)px;(void)py;(void)raio;(void)cr;(void)cg;(void)cb;(void)a;
   if(modo!=GFX_CARD)return;
+  if(pastaDesenhando) {
+    /* The real folder renderer must use the measured row rectangle. Its
+       registered target is precisely the visible part of that artwork. */
+    float x=homeRetratoTelefone()?fmaxf(r.x,homeConteudoX()):r.x;
+    float direita=homeRetratoTelefone()?fminf(r.x+r.w,homeConteudoDireita()):r.x+r.w;
+    float y=fmaxf(r.y,corteFileiras());
+    assert(alvosCard==1);
+    perto(alvoCartao.x,x);perto(alvoCartao.y,y);
+    perto(alvoCartao.w,direita-x);perto(alvoCartao.h,r.y+r.h-y);
+    perto(r.w,larguraFil(0));perto(r.h,alturaFil(0));
+    assert(r.w>0&&r.h>0&&raio>=0&&raio<=.5f);
+    pastaDesenhos++;
+    return;
+  }
   pilhaDesenhos++;
   if(r.x<pilhaLimite.x-.01f || r.x+r.w>pilhaLimite.x+pilhaLimite.w+.01f || r.y<pilhaLimite.y-.01f || r.y+r.h>pilhaLimite.y+pilhaLimite.h+.01f) {
     printf("stack art outside target: %.1f,%.1f %.1fx%.1f; target %.1f,%.1f %.1fx%.1f\n",r.x,r.y,r.w,r.h,pilhaLimite.x,pilhaLimite.y,pilhaLimite.w,pilhaLimite.h);pilhaFalhas++;
   }
+}
+static void testaPastas(void) {
+  const float telas[][2]={{1080,1920},{1080,2340},{2340,1080},{2520,1080},{1920,1080},{1728,1080},{1080,1728}};
+  const float ui[]={1,1.2f,1.3f,1.5f}, tamanhos[]={.85f,1,1.2f};
+  const int posterDp[]={72,126,200};
+  snprintf(pastaTeste.cover,sizeof pastaTeste.cover,"folder.jpg");
+  nFileiras=1;focoHero=0;foco.fileira=-1;scrollY=0;
+  memset(scrollX,0,sizeof scrollX);memset(animFoco,0,sizeof animFoco);
+  for(int t=0;t<7;t++)for(int u=0;u<4;u++)for(int l=0;l<3;l++)
+    for(int rail=0;rail<2;rail++)for(int dp=0;dp<3;dp++)for(int z=0;z<3;z++) {
+      nv_layout_w=telas[t][0];nv_layout_h=telas[t][1];uiTeste=ui[u];
+      layoutTeste=l;railTeste=rail?140:0;posterDpTeste=posterDp[dp];
+      /* Home paints in the raw canvas at every global UI size. Its row
+         preference still scales artwork, with the existing portrait cap. */
+      assert(gfx_escala_ui()==ui[u]);
+      fileiras[0]=(Fileira){.tipo=FILEIRA_NORMAL,.escala=1,.n=1};
+      float posterW=larguraFil(0),posterH=alturaFil(0);
+      for(int forma=0;forma<COL_FORMA_N;forma++) {
+        fileiras[0]=(Fileira){.tipo=FILEIRA_CATALOGOS,.forma=forma,.escala=tamanhos[z],.n=1};
+        float w=larguraFil(0),h=alturaFil(0),w0,h0;
+        medidaColecao(forma,&w0,&h0);
+        float esperadoH=posterH*tamanhos[z];
+        float esperadoW=forma==COL_FORMA_POSTER?posterW*tamanhos[z]
+                       :forma==COL_FORMA_QUADRADO?esperadoH:esperadoH*360/203;
+        if(homeRetratoTelefone()&&esperadoW>homeLarguraUtil()*.9f) {
+          esperadoH*=homeLarguraUtil()*.9f/esperadoW;
+          esperadoW=homeLarguraUtil()*.9f;
+        }
+        if(telefoneui_ativo()||forma!=COL_FORMA_PAISAGEM) {
+          /* This fails on the old fixed-height landscape folder, and
+             compares against actual ordinary poster measurements. */
+          if(fabsf(w-esperadoW)>=.01f||fabsf(h-esperadoH)>=.01f)
+            printf("folder size mismatch: %.0fx%.0f UI%.0f layout%d rail%d dp%d row%.2f shape%d actual %.3fx%.3f expected %.3fx%.3f; ordinary poster %.3fx%.3f\n",
+                   nv_layout_w,nv_layout_h,ui[u]*100,l,rail,posterDp[dp],tamanhos[z],forma,w,h,esperadoW,esperadoH,posterW,posterH);
+          perto(w,esperadoW);perto(h,esperadoH);
+        } else { perto(w,360*tamanhos[z]);perto(h,203*tamanhos[z]); }
+        if(forma==COL_FORMA_PAISAGEM)perto(w/h,360.0f/203);
+        else if(forma==COL_FORMA_QUADRADO)perto(w,h);
+        else perto(w/h,w0/h0);
+        if(homeRetratoTelefone())assert(w<=homeLarguraUtil()*.9f+.01f);
+        perto(passoFil(0),w+gapDe(FILEIRA_CATALOGOS));
+        perto(homeFileiraX(0,1)-homeFileiraX(0,0),passoFil(0));
+        for(int recorte=0;recorte<2;recorte++)for(int focoTeste=0;focoTeste<2;focoTeste++) {
+          scrollX[0]=recorte?w*.4f:0;animFoco[0][0]=(float)focoTeste;
+          float y=corteFileiras()+(recorte?-42:32);
+          alvosCard=0;pastaDesenhando=1;
+          int desenhosAntes=pastaDesenhos;
+          desenhaAtalhos(0,y);
+          pastaDesenhando=0;
+          assert(pastaDesenhos==desenhosAntes+1&&alvosCard==1);
+          pastaCasos++;
+        }
+        scrollX[0]=0;animFoco[0][0]=0;
+      }
+    }
+  printf("home_rows_review: %d actual folder art/target cases, all three shapes, UI100/120/130/150, phone and TV/tablet bounds\n",pastaCasos);
 }
 int main(void) {
   const float telas[][2]={{1080,1920},{1080,2340},{2340,1080},{2520,1080}};
@@ -55,5 +153,6 @@ int main(void) {
     }
   }
   printf("home_rows_review: %d production row geometry cases, %d actual stack artwork draws, %d violations\n",casos,pilhaDesenhos,pilhaFalhas);
+  testaPastas();
   return pilhaFalhas?1:0;
 }

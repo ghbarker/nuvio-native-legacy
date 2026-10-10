@@ -28,6 +28,7 @@
 #include "gfx.h"
 #include "home.h"
 #include "layout.h"
+#include "telefoneui.h"
 #include "menu.h"
 #include "tex_cache.h"
 #include "text.h"
@@ -74,6 +75,7 @@ static double fillUlt, fillVisUlt, modoUlt[GFX_NMODOS]; static int rectUlt;
 static int heroPaginaConfere;
 static float heroPaginaEsperada[3];
 static void heroPaginaVerificar(void);
+static int pastasComparando;
 #endif
 
 static void gravar(const char *bmp) {
@@ -95,6 +97,7 @@ static void quadros(int n, const char *bmp) {
     Uint32 agora = SDL_GetTicks();
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
     if (getenv("NV_HERO_SWIPE")) ponteiro_quadro(agora);
+    if (pastasComparando) ponteiro_quadro(agora);
 #endif
     SDL_PumpEvents();
     tex_bombear(8);
@@ -121,6 +124,7 @@ static void quadros(int n, const char *bmp) {
     }
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
     if (getenv("NV_HERO_SWIPE")) ponteiro_desenhar();
+    if (pastasComparando) ponteiro_desenhar();
 #endif
     if (i == n - 1) { fillUlt = gfx_fill; fillVisUlt = gfx_fill_vis; rectUlt = gfx_n_rect;
                       memcpy(modoUlt, gfx_fill_modo, sizeof modoUlt); }
@@ -192,6 +196,100 @@ static void ajusta(int layout, int vidro) {
 }
 
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static int pastaFocar(TipoFileira tipo,const char *titulo) {
+  home_ir_topo();quadros(120,NULL);
+  for(int i=0;i<40;i++) {
+    int row,n,t,col;
+    if(sscanf(home_rastro_foco(),"f%d/%d tipo=%d col=%d",&row,&n,&t,&col)==4 &&
+       t==(int)tipo && strstr(home_rastro_foco(),titulo)) return row;
+    tecla(SDLK_DOWN);quadros(110,NULL);
+  }
+  fprintf(stderr,"folder comparison row missing: %s\n",titulo);assert(0);return -1;
+}
+static PonteiroAlvo pastaAlvo(PonteiroFn fn,int row) {
+  const PonteiroAlvo *v;
+  int n=ponteiro_teste_lista(&v);
+  for(int i=0;i<n;i++)if(v[i].focar==fn&&v[i].a==row&&v[i].b==0)return v[i];
+  fprintf(stderr,"folder comparison target missing: row %d\n",row);assert(0);
+  return (PonteiroAlvo){0};
+}
+static void pastaDedo(Uint32 tipo,float x,float y) {
+  SDL_Event e={0};e.type=tipo;e.tfinger.touchId=71;e.tfinger.fingerId=1;
+  e.tfinger.x=x/NV_TELA_W;e.tfinger.y=y/NV_TELA_H;
+  assert(ponteiro_evento(&e,home_evento));
+}
+static void pastasComparar(const char *saida,const char *camadas) {
+  const char *nomes[]={"landscape","square","poster"};
+  const int tipos[]={FIL_TIPO_COLECAO,FIL_TIPO_DESTAQUE_QUADRADO,FIL_TIPO_CARTAZ};
+  char bmp[900];
+  int tipoCol=fil_tipo("collection_cs"),tipoPoster=fil_tipo("trend_series");
+  pastasComparando=1;ponteiro_iniciar();ponteiro_teste_toque(1);
+  assert(fil_definir_tipo("trend_series",FIL_TIPO_CARTAZ));
+  for(const char *L=camadas;*L;L++) {
+    int lay=*L-'0';
+    /* Dynamic moves Streaming into navigation; these comparisons concern
+       the actual Home folder row in Modern and Standard. */
+    if(lay==HOME_LAYOUT_DINAMICA)continue;
+    for(int vidro=0;vidro<2;vidro++) {
+      ajusta(lay,vidro);
+      int rowPoster=pastaFocar(FILEIRA_NORMAL,"Em alta");
+      HomeItem normal;assert(home_item_focado(&normal));
+      float zoom=ajustes_borda_foco()?1:1.06f;
+      float escalaPoster=fil_escala("trend_series");
+      float pw=normal.rect.w/zoom/escalaPoster,ph=normal.rect.h/zoom/escalaPoster;
+      PonteiroFn fn=NULL;
+      const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v);
+      for(int i=0;i<n;i++)if(v[i].a==rowPoster&&v[i].b==0&&v[i].focar &&
+        fabsf(v[i].x-normal.rect.x)<.1f&&fabsf(v[i].w-normal.rect.w)<.1f)fn=v[i].focar;
+      assert(fn);
+      snprintf(bmp,sizeof bmp,"%s-folders-L%d-g%d-0-ordinary-posters.bmp",saida,lay,vidro);
+      quadros(1,bmp);
+      for(int forma=0;forma<3;forma++) {
+        assert(fil_definir_tipo("collection_cs",tipos[forma]));quadros(120,NULL);
+        int row=pastaFocar(FILEIRA_CATALOGOS,"Streaming");
+        assert(row==rowPoster+1);
+        PonteiroAlvo alvo=pastaAlvo(fn,row);
+        float escalaCol=fil_escala("collection_cs");
+        float w=(forma==2?pw:forma==1?ph:ph*360/203)*escalaCol,h=ph*escalaCol;
+        if(NV_TELA_H/NV_TELA_W>=1.7f) {
+          float x=ajustes_rail_largura_fixa()>0?fmaxf(48,ajustes_conteudo_x()):48;
+          float cap=(NV_TELA_W-2*x)*.9f;
+          if(w>cap){h*=cap/w;w=cap;}
+        }
+        assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+        /* Place adjacent rows through the real vertical gesture. Short
+           landscape viewports keep the complete folder plus the visible
+           part of the poster; the separate reference captures it whole. */
+        float gap=NV_PAD_FILEIRA_GAP;
+        if(lay==HOME_LAYOUT_MODERNA)gap=ajustes_posteres_deitados()?NV_FILEIRA_GAP_LAND:NV_FILEIRA_GAP;
+        gap*=ajustes_espaco_fileiras();
+        float copia=ajustes_rotulos_poster()?NV_POSTER_COPY_H:0;
+        float top=fminf(156+2*NV_LEGACY_ROW_HEAD_H+ph*escalaPoster+copia+gap,NV_TELA_H-h-24);
+        float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80),delta=top-alvo.y;
+        pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+        pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
+        SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);quadros(4,NULL);
+        alvo=pastaAlvo(fn,row);
+        PonteiroAlvo poster=pastaAlvo(fn,rowPoster);
+        assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+        float posterTop=alvo.y-NV_LEGACY_ROW_HEAD_H-ph*escalaPoster-copia-gap;
+        float posterVis=ph*escalaPoster-fmaxf(0,132-posterTop);
+        assert(fabsf(poster.w-pw*escalaPoster)<.15f&&fabsf(poster.h-posterVis)<.15f);
+        assert(poster.h>=ph*escalaPoster*.7f);
+        assert(poster.y>=132&&poster.y+poster.h<alvo.y);
+        assert(alvo.y+alvo.h<=NV_TELA_H+.15f);
+        snprintf(bmp,sizeof bmp,"%s-folders-L%d-g%d-%d-%s-beside-posters.bmp",saida,lay,vidro,forma+1,nomes[forma]);
+        quadros(1,bmp);
+        printf("[shot] actual Home folder %s %.3fx%.3f, ordinary poster %.3fx%.3f (adjacent visible height %.3f), aspect %.6f, UI%.0f: measured draw targets passed\n",
+               nomes[forma],alvo.w,alvo.h,pw*escalaPoster,ph*escalaPoster,poster.h,alvo.w/alvo.h,gfx_escala_ui()*100);
+      }
+    }
+  }
+  assert(fil_definir_tipo("collection_cs",tipoCol));
+  assert(fil_definir_tipo("trend_series",tipoPoster));
+  pastasComparando=0;
+}
+
 int home_teste_hero_deslocamento(float valores[5]);
 int home_teste_pagina(float valores[3]);
 static void heroPaginaVerificar(void) {
@@ -546,6 +644,10 @@ int main(int argc, char **argv) {
         quadros(1, bmp);
       }
     } }
+
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if(getenv("NV_COL")&&telefoneui_ativo())pastasComparar(saida,camadas);
+#endif
 
   // NV_CTX=<n>: menu do cartaz SEGURANDO OK na fileira n (contada do destaque
   // para baixo), a pagina de estilos, a escolha e a home depois dela.

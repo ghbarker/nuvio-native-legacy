@@ -761,7 +761,13 @@ static void medidaColecao(int forma, float *w, float *h) {
   switch (forma) {
     case COL_FORMA_QUADRADO: *w = ph;  *h = ph;  break;
     case COL_FORMA_POSTER:   *w = pw;  *h = ph;  break;
-    default:                 *w = 360.0f; *h = 203.0f; break;
+    default:
+      // No telefone a pasta deitada acompanha a altura dos cartazes da
+      // mesma Home. A medida fixa de TV ficava menor mesmo quando os
+      // cartazes cresciam no retrato ou pela preferencia de largura.
+      *h = telefoneui_ativo() ? ph : 203.0f;
+      *w = telefoneui_ativo() ? ph * (360.0f / 203.0f) : 360.0f;
+      break;
   }
 }
 
