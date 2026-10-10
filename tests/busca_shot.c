@@ -92,6 +92,20 @@ static void tocarPessoa(int fileira, int coluna) {
   e.type = SDL_FINGERUP;
   assert(ponteiro_evento(&e, busca_evento));
 }
+
+static void pessoaInteira(int fileira, int coluna) {
+  const PonteiroAlvo *v;
+  int n = ponteiro_teste_lista(&v), found = -1;
+  for (int i = 0; i < n; i++)
+    if (v[i].focar && !v[i].ativar && v[i].a == fileira && v[i].b == coluna)
+      found = i;
+  assert(found >= 0);
+  /* Native phone person: 96px avatar plus8px focus margin on each side. */
+  printf("person target settled: a=%d b=%d y=%.3f h=%.3f canvas=%g\n",
+         fileira, coluna, v[found].y, v[found].h, (double)NV_TELA_H);
+  assert(v[found].h >= 112.0f - .1f);
+  assert(v[found].y + v[found].h <= NV_TELA_H - 48.0f + .1f);
+}
 #endif
 
 // `ms` > 0: grava depois de tantos milissegundos de quadros, e nao depois de
@@ -102,7 +116,16 @@ static void capturaEm(const char *nome, Uint32 ms) {
   int i, y;
   assert(pix);
   rail_shot_aplicar();
-  if (ms) { Uint32 t0 = SDL_GetTicks(); while (SDL_GetTicks() - t0 < ms) quadro(); }
+  if (ms) {
+    Uint32 t0 = SDL_GetTicks();
+    /* Software GL can spend most of500ms drawing a few frames. The170ms
+     * wave capture stays timed; focus captures also advance1.5s of updates. */
+    int frames = 0, minimo = 0;
+#ifdef NV_TEST_PHONE_SHOT_H
+    minimo = ms >= 500 ? 90 : 0;
+#endif
+    while (SDL_GetTicks() - t0 < ms || frames < minimo) { quadro(); frames++; }
+  }
   else for (i = 0; i < 45; i++) quadro();
   quadro();
   glReadPixels(0, 0, 1920, 1080, GL_RGBA, GL_UNSIGNED_BYTE, pix);
@@ -308,9 +331,15 @@ int main(int argc, char **argv) {
   tecla(SDLK_DOWN);
   snprintf(nome, sizeof nome, "%s-pessoas-foco.bmp", saida);
   capturaEm(nome, 500);
+#ifdef NV_TEST_PHONE_SHOT_H
+  pessoaInteira(2, 0);
+#endif
   tecla(SDLK_RIGHT);
   snprintf(nome, sizeof nome, "%s-pessoas-foco2.bmp", saida);
   capturaEm(nome, 500);
+#ifdef NV_TEST_PHONE_SHOT_H
+  pessoaInteira(2, 1);
+#endif
 #ifdef NV_TEST_PHONE_SHOT_H
   /* Seeded layout: Best result, first title row, then the People row. */
   tocarPessoa(2, 1);

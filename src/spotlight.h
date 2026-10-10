@@ -142,4 +142,8 @@ int  spot_linha_focada(void);
 int  spot_teclado_app_aberto(void);
 int  spot_foco_campo(void);
 float spot_altura_corpo(void);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+/* Deterministic drawing states only, excluded from application builds. */
+void spot_teste_lista(float deslocamento, float altura);
+#endif
 #endif

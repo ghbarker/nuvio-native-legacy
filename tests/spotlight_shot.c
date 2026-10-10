@@ -79,6 +79,9 @@ static char *tmdbFalso(const char *url) {
   return b;
 }
 static char dirArte[600];
+#if defined(NV_TEST_PHONE_SHOT_H) && defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static float testeListaOffset = -1, testeListaAltura;
+#endif
 
 static void tecla(SDL_Keycode k) {
   SDL_Event e;
@@ -125,6 +128,9 @@ static void quadro(void) {
   tex_bombear(16);
   gfx_novo_quadro();
   spot_atualizar(1.0f / 60.0f, agora);
+#if defined(NV_TEST_PHONE_SHOT_H) && defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if (testeListaOffset >= 0) spot_teste_lista(testeListaOffset, testeListaAltura);
+#endif
   glClearColor(0.051f, 0.051f, 0.051f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   fundo();
@@ -387,6 +393,19 @@ int main(int argc, char **argv) {
     ajustes_definir_vidro(1);
     captura(saida, "ajustes-vidro");
     ajustes_definir_vidro(0);
+#if defined(NV_TEST_PHONE_SHOT_H) && defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    if (telefoneui_ativo()) {
+      float h = spot_altura_corpo();
+      /* Best Settings scene intersects the header at the top, then the footer
+       * during list expansion. Its nested crops must stay off the page. */
+      testeListaOffset = 140; testeListaAltura = 350;
+      capturaQuadros(saida, "ajustes-previa-topo", 1);
+      testeListaOffset = 0; testeListaAltura = 200;
+      capturaQuadros(saida, "ajustes-previa-base", 1);
+      testeListaOffset = -1;
+      spot_teste_lista(0, h);
+    }
+#endif
     tecla(SDLK_ESCAPE);
     ajustes_abrir_opcao(p.indice);
     ajustes_iniciar();

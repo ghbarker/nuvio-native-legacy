@@ -30,6 +30,9 @@ int txt_pendentes, anim_politica_reduzida;
 static float escala = 1, zoom = 1;
 static GfxRect recorte, botoesTeste[32];
 static int alvoA[32], alvoB[32];
+#if defined(TESTE_ARTE)
+static PonteiroFn alvoFocar[32], alvoAtivar[32];
+#endif
 static int cortando, nBotoesTeste, ultimoPoster, nTextos;
 static float limiteTexto;
 static int tintaFocoTeste, corTextoR, corTextoG, corTextoB;
@@ -99,7 +102,14 @@ __attribute__((always_inline))
 inline void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn focar,PonteiroFn ativar,int a,int b) {
   limites((GfxRect){x,y,w,h},0);
   if (w>0 && h>0) {
-    assert(y>=0&&y+h<=telaH()+.01f); if(nBotoesTeste<32){botoesTeste[nBotoesTeste]=(GfxRect){x,y,w,h};alvoA[nBotoesTeste]=a;alvoB[nBotoesTeste]=b;nBotoesTeste++;}
+    assert(y>=0&&y+h<=telaH()+.01f);
+    if(nBotoesTeste<32) {
+      botoesTeste[nBotoesTeste]=(GfxRect){x,y,w,h};alvoA[nBotoesTeste]=a;alvoB[nBotoesTeste]=b;
+#if defined(TESTE_ARTE)
+      alvoFocar[nBotoesTeste]=focar;alvoAtivar[nBotoesTeste]=ativar;
+#endif
+      nBotoesTeste++;
+    }
   }
   (void)a;(void)b;(void)focar;(void)ativar;
 }
@@ -206,6 +216,28 @@ static void rodar(void) {
 }
 #elif defined(TESTE_ARTE)
 const char *ling_nome(const char *iso) { (void)iso;return "A translated language filter name"; }
+static void arteCorpoOculto(int a,int b) { (void)a;(void)b;assert(!"hidden Detail target must be removed"); }
+static void conferirAlvosArte(int interativos) {
+  int barreiras=0,controles=0;
+  for(int i=0;i<nBotoesTeste;i++) {
+    GfxRect r=botoesTeste[i];
+    if(!alvoFocar[i]&&!alvoAtivar[i]) {
+      barreiras++;
+      assert(r.x==0&&r.y==0&&r.w==NV_TELA_W&&r.h==NV_TELA_H);
+    } else {
+      assert(alvoFocar[i]==ponteiroFoco&&!alvoAtivar[i]);
+      assert(alvoA[i]==-1||alvoA[i]==-2||alvoA[i]==aba);
+      controles++;
+      if(alvoA[i]>=0) {
+        assert(r.y>=TA_Y0&&r.y+r.h<=TA_Y0+TA_LINHAS*TA_PASSO);
+      }
+      assert(r.y+r.h<=TA_Y0+TA_LINHAS*TA_PASSO);
+    }
+  }
+  assert(barreiras==1);
+  if(interativos)assert(controles>TA_COLS);
+  else assert(!controles&&nBotoesTeste==1);
+}
 static void rodar(void) {
   escala=1;aberto=1;mola=1;aba=naAba=naFiltro=0;memset(filtro,0,sizeof filtro);memset(toque,0,sizeof toque);memset(toqueY,0,sizeof toqueY);memset(topo,0,sizeof topo);
   strcpy(item.titulo,"A long artwork chooser title");
@@ -215,11 +247,18 @@ static void rodar(void) {
     aba=a;foco[a]=0;naAba=0;nBotoesTeste=0;trocaarte_desenhar("");
     int anterior=foco[a];arrastar(&toque[a],toqueRolar,1);assert(foco[a]==anterior&&!mudou);
     nBotoesTeste=0;trocaarte_desenhar("");assert(nBotoesTeste>TA_COLS);
-    int ultimo=0;for(int i=0;i<nBotoesTeste;i++)if(alvoA[i]==a&&alvoB[i]==39)ultimo=1;assert(ultimo);
+    int ultimo=0;for(int i=0;i<nBotoesTeste;i++)if(alvoFocar[i]==ponteiroFoco&&alvoA[i]==a&&alvoB[i]==39)ultimo=1;assert(ultimo);
     /* The actual last grid row gets a clipped tap target at scroll end. */
     assert(toqueY[a]==toque[a].maximo);
-    float maior=0;for(int i=0;i<nBotoesTeste;i++)maior=fmaxf(maior,botoesTeste[i].y+botoesTeste[i].h);
-    assert(maior<=TA_Y0+TA_LINHAS*TA_PASSO);
+    conferirAlvosArte(1);
+  }
+  /* While entering/closing, only the inert full-canvas barrier remains.
+   * The real modal layer also discards a previously published body target. */
+  const float transicao[]={.014f,.23f};
+  for(int i=0;i<2;i++) {
+    aberto=i==0;mola=transicao[i];
+    ponteiro_alvo(32,32,70,60,arteCorpoOculto,NULL,7,11);
+    trocaarte_desenhar("");conferirAlvosArte(0);
   }
 }
 #endif

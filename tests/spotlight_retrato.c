@@ -9,9 +9,19 @@ static float escalaUi = 1, escalaAtiva = 1;
 static int ime, voz, celular, nAlvos, chamadasIme, letrasLargas;
 static GfxRect clip;
 static int recortando;
+static int miniAtivaTeste, miniFalhaTeste, miniCorteAnt;
+static float miniEscalaAnt;
+static GfxRect miniCompostaTeste;
+static int miniComposicoesTeste;
 static PonteiroAlvo alvos[256];
 static CatItem item;
 static const char *alfabeto = "abcdefghijklmnopqrstuvwxyz0123456789";
+#ifdef NV_SPOTLIGHT_DRAW_HOOK
+static void NV_SPOTLIGHT_DRAW_HOOK(GfxRect r);
+#endif
+#ifdef NV_SPOTLIGHT_PREVIEW_HOOK
+static void NV_SPOTLIGHT_PREVIEW_HOOK(int op,float x,float y,float w,float h,float a);
+#endif
 
 float gfx_escala_ui(void) { return escalaUi; }
 float gfx_escala(void) { return escalaAtiva; }
@@ -35,8 +45,30 @@ void gfx_recorte(float x, float y, float w, float h) {
   clip = (GfxRect){x,y,w,h}; recortando = 1;
 }
 void gfx_sem_recorte(void) { recortando = 0; }
+int gfx_mini_alvo(GfxMini *m,int w,int h) {
+  assert(w>0 && h>0);
+  if(miniFalhaTeste) return 0;
+  *m=(GfxMini){.fbo=1,.tex=1,.w=w,.h=h};return 1;
+}
+void gfx_mini_comecar(GfxMini *m,float x,float y,float s) {
+  assert(m->fbo && !miniAtivaTeste && x==0 && y==0 && s>0);
+  miniAtivaTeste=1;miniCorteAnt=recortando;recortando=0;
+  miniEscalaAnt=escalaAtiva;escalaAtiva=1;
+}
+void gfx_mini_terminar(void) {
+  assert(miniAtivaTeste);miniAtivaTeste=0;recortando=miniCorteAnt;escalaAtiva=miniEscalaAnt;
+}
+void gfx_mini_desenhar(const GfxMini *m,GfxRect r,float radius,float a) {
+  assert(m->tex && !miniAtivaTeste);
+  assert(m->w==(int)ceilf(r.w*escalaAtiva) && m->h==(int)ceilf(r.h*escalaAtiva));
+  miniCompostaTeste=r;miniComposicoesTeste++;gfx_cor(r,radius,0,0,0,a);
+}
+void gfx_mini_liberar(GfxMini *m) { *m=(GfxMini){0}; }
 void gfx_cor(GfxRect r, float radius, float cr, float cg, float cb, float ca) {
   (void)radius; (void)cr; (void)cg; (void)cb; (void)ca; assert(r.w >= 0 && r.h >= 0);
+#ifdef NV_SPOTLIGHT_DRAW_HOOK
+  NV_SPOTLIGHT_DRAW_HOOK(r);
+#endif
 }
 void gfx_rect(GfxRect r, GLuint t, GfxModo m, float f, float px, float py, float rad,
               float cr, float cg, float cb, float ca) {
@@ -58,6 +90,9 @@ TxtLinha txt_linha_corta(TxtEstilo e, const char *s, int r, int g, int b, int a,
 }
 void txt_desenhar_alpha(TxtLinha l, float x, float y, float a) {
   (void)a; assert(l.w >= 0 && l.h >= 0);
+#ifdef NV_SPOTLIGHT_DRAW_HOOK
+  NV_SPOTLIGHT_DRAW_HOOK((GfxRect){x,y,l.w,l.h});
+#endif
   if (!recortando) { assert(x >= 0 && x+l.w <= NV_TELA_W+.51f); assert(y >= 0 && y+l.h <= NV_TELA_H+.51f); }
   else { assert(clip.w > 0 && clip.h > 0); }
 }
@@ -90,7 +125,13 @@ int tex_falhou(const char *s) { (void)s;return 0; }
 void guia_logo_desenhar(const char *url,const char *name,GfxRect r,float w,float h,float brilho,float a) {
   (void)url;(void)name;(void)w;(void)h;(void)brilho;gfx_cor(r,0,0,0,0,a);
 }
-void ajustes_previa_busca(int op,float x,float y,float w,float h,float a) { (void)op;gfx_cor((GfxRect){x,y,w,h},0,0,0,0,a); }
+void ajustes_previa_busca(int op,float x,float y,float w,float h,float a) {
+#ifdef NV_SPOTLIGHT_PREVIEW_HOOK
+  NV_SPOTLIGHT_PREVIEW_HOOK(op,x,y,w,h,a);
+#else
+  (void)op;gfx_cor((GfxRect){x,y,w,h},0,0,0,0,a);
+#endif
+}
 void ajustes_guia_imagem(int op,float x,float y,float w,float h) { (void)op;gfx_cor((GfxRect){x,y,w,h},0,0,0,0,1); }
 
 static void desenhar(int keyboard) {
@@ -99,6 +140,7 @@ static void desenhar(int keyboard) {
   corpoH=corpoAlvo();recortando=0;spot_desenhar(100,1);
   assert(nAlvos>1 && escalaAtiva==1);
 }
+#ifndef NV_SPOTLIGHT_DOUBLES_ONLY
 int main(void) {
   const float dims[][2]={{1080,2340},{1080,1920},{2340,1080},{2520,1080}};
   const float zoom[]={1,1.2f,1.3f,1.5f};
@@ -140,3 +182,4 @@ int main(void) {
   assert(!spTelefone() && SP_BY==120);spBW=SP_BW_KB;assert(SP_BW==1240);
   puts("spotlight_retrato: OK");return 0;
 }
+#endif

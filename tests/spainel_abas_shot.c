@@ -14,6 +14,17 @@
 //
 //   bash tests/socialui_shot.sh /tmp/nv-socialui
 #define NV_REC_URL "http://127.0.0.1:8799"
+#include <SDL2/SDL.h>
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+/* Tab/consent navigation can request a refresh; keep its included model
+ * offline before rendering synthetic account and pending-request states. */
+static SDL_Thread *shot_rec_thread(SDL_ThreadFunction fn, const char *name, void *data) {
+  (void)fn; (void)name; (void)data;
+  return NULL;
+}
+#undef SDL_CreateThread
+#define SDL_CreateThread shot_rec_thread
+#endif
 // A CONTA TRAKT E O LOGIN DO SIMKL NA TV, so para as linhas de "Contas
 // ligadas" (o resto do app continua com os de verdade, sem login).
 #define trakt_ativo     shot_trakt_ativo
@@ -21,6 +32,9 @@
 #define sessao_logada shot_sessao_logada
 #define simklauth_token shot_simklauth_token
 #include "../src/recomenda.c"
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+#undef SDL_CreateThread
+#endif
 #undef trakt_ativo
 #undef sessao_token_copiar
 #undef sessao_logada
@@ -216,6 +230,26 @@ static void controlesSociais(const char *saida) {
       controlesAlvos(1);
     }
     assert(!fioLigado && !fio && !identPedido);
+  }
+  /* Initial questions are separate from the persisted sharing segments. */
+  for (int pergunta = 0; pergunta < 2; pergunta++) {
+    spainel_fechar(); quadros(45, NULL);
+    SDL_LockMutex(mtx);
+    aparecer = pergunta ? REC_APARECER_SIM : REC_APARECER_NAO_PERGUNTADO;
+    alcance = REC_ALCANCE_NAO_PERGUNTADO; alcancePendente = -2;
+    nPedidos = 0;
+    SDL_UnlockMutex(mtx);
+    spainel_abrir(); spainel_ir_aba(2); quadros(90, NULL);
+    for (k = 0; k < (pergunta ? 3 : 2); k++) {
+      if (k) painelTecla(SDLK_DOWN);
+      quadros(90, NULL);
+      snprintf(bmp, sizeof bmp, "%s-qa-consent-%s-%d.bmp", saida,
+               pergunta ? "alcance" : "aparecer", k);
+      quadros(1, bmp);
+      assert(recomenda_aparecer() == (pergunta ? REC_APARECER_SIM : REC_APARECER_NAO_PERGUNTADO));
+      assert(recomenda_alcance() == REC_ALCANCE_NAO_PERGUNTADO);
+      assert(!fioLigado && !fio && !identPedido);
+    }
   }
 }
 #endif

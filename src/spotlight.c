@@ -197,6 +197,7 @@ static unsigned ultimaGerPessoa;
 static float scrollY, scrollAlvo, velY;
 #ifdef NV_TOUCH_PREVIEW
 static ToqueRolagem toqueSpot;
+static GfxMini previaAjuste;
 static ToqueRolagem toqueTeclado;
 static int toqueNoTeclado;
 static float kbRol;
@@ -1389,6 +1390,14 @@ static float listaVisivel(void) {
   float h = corpoAlvo() - SP_CPAD_T - SP_CPAD_B - SP_RODAPE_H - spListaDesloc();
   return h > 0.0f ? h : 0.0f;
 }
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+void spot_teste_lista(float deslocamento, float altura) {
+  if (!spTelefone()) return;
+  corpoH = fminf(SP_CORPO_MAX, fmaxf(0, altura)); corpoV = 0;
+  scrollY = scrollAlvo = fmaxf(0, deslocamento); velY = 0;
+  toqueSpot.livre = 1;
+}
+#endif
 
 static float molaIlha(float *v, float x, float alvo, float dt) {
   int k;
@@ -1405,7 +1414,15 @@ static float molaIlha(float *v, float x, float alvo, float dt) {
 void spot_atualizar(float dt, Uint32 agora) {
   int i, f, c;
   entrada = anim_mola(entrada, aberto ? 1.0f : 0.0f, dt, aberto ? 16.0f : 22.0f);
-  if (!aberto) { if (entrada < 0.004f) entrada = 0.0f; return; }
+  if (!aberto) {
+    if (entrada < 0.004f) {
+      entrada = 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+      gfx_mini_liberar(&previaAjuste);
+#endif
+    }
+    return;
+  }
 
   lerSistema();
   // A RESPOSTA DA REDE CHEGA DEPOIS DA TECLA: remonta quando a contagem do termo
@@ -1817,6 +1834,31 @@ static void desenhaGuia(Linha *l, GfxRect r, float f, float a1, float a2, float 
       realceDesde = 0; } }
 }
 
+static void recorteLista(float topo, float vis) {
+  gfx_recorte(spTelefone() ? listaX : listaX - 30.0f, topo - 8.0f,
+              spTelefone() ? listaW : listaW + 60.0f, vis + 4.0f);
+}
+
+static void desenhaPreviaAjuste(int op, GfxRect art, float a) {
+#ifdef NV_TOUCH_PREVIEW
+  if (spTelefone()) {
+    /* As cenas internas trocam a tesoura: rasterizar fora da lista e
+     * compor pela janela atual evita vazar tambem a previa parcialmente vista. */
+    float esc = gfx_escala();
+    if (gfx_mini_alvo(&previaAjuste, (int)ceilf(art.w * esc), (int)ceilf(art.h * esc))) {
+      gfx_mini_comecar(&previaAjuste, 0, 0, esc);
+      ajustes_previa_busca(op, 0, 0, art.w, art.h, 1);
+      gfx_mini_terminar();
+      recorteLista(toqueSpot.regiao.y, toqueSpot.regiao.h);
+      gfx_mini_desenhar(&previaAjuste, art, 0, a);
+    }
+    recorteLista(toqueSpot.regiao.y, toqueSpot.regiao.h);
+    return;
+  }
+#endif
+  ajustes_previa_busca(op, art.x, art.y, art.w, art.h, a);
+}
+
 static void desenhaLinha(int i, float x, float y, float a) {
   Linha *l = &lin[i];
   float f = animLin[i], w = listaW;
@@ -1909,7 +1951,7 @@ static void desenhaLinha(int i, float x, float y, float a) {
     if (spTelefone()) { art.w = fminf(art.w, r.w * 0.35f); art.h = art.w * 158.0f / 280.0f; }
     float tx = art.x + art.w + 26.0f, dw = 0.0f, tw, ty, bloco;
     TxtLinha t, m, o;
-    ajustes_previa_busca(l->ref, art.x, art.y, art.w, art.h, a);
+    desenhaPreviaAjuste(l->ref, art, a);
     o = txt_linha(TXT_ILHA_APOIO, "OK abre", SP_TINTA, 255);
     if (f > 0.02f && !spTelefone()) { txt_desenhar_alpha(o, r.x + r.w - 28.0f - o.w, r.y + (r.h - o.h) * 0.5f, .5f * f * a); dw = o.w + 40.0f; }
     tw = r.x + r.w - tx - 26.0f - dw;
@@ -1995,8 +2037,7 @@ static void desenhaLista(float dy, float a) {
                    0.0f, fmaxf(0.0f, alturaLista() - vis), 1, &scrollY);
   ponteiro_rolagem(toqueSpotRolar);
 #endif
-  gfx_recorte(spTelefone() ? listaX : listaX - 30.0f, topo - 8.0f,
-              spTelefone() ? listaW : listaW + 60.0f, vis + 4.0f);
+  recorteLista(topo, vis);
   for (i = 0; i < nLin; i++) {
     float y = topo + lin[i].y - scrollY;
     float e = entraLin[i];

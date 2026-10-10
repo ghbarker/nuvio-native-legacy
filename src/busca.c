@@ -1222,7 +1222,8 @@ static float filKickH(int r) {
   return BU_KICK_H;
 }
 static float filAlt(int r) {
-  if (fil[r].pessoas) return filKickH(r) + BU_PESS_AV;
+  // O alvo e a pilula de foco chegam 8px abaixo do avatar no telefone.
+  if (fil[r].pessoas) return filKickH(r) + BU_PESS_AV + (buTelefone() ? 8.0f : 0.0f);
   if (fil[r].melhor) return filKickH(r) + BU_MELHOR_H;
   return filKickH(r) + buCartazW() * 1.5f + BU_NOME_ALT;
 }
