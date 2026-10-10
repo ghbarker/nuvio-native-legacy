@@ -181,11 +181,12 @@ static void guiaTesteCanais(void) {
 #if defined(TESTE_AGENDA)
 static Noticia manchetesTeste[8];
 static float escalaAgendaTeste = 1.5f;
+static float uiAgendaTeste = 1.5f;
 static float railAgendaTeste;
 static AgItem linhasAgendaTeste[32];
 static PonteiroRolagemFn rolagemAgendaTeste;
 float gfx_escala(void) { return escalaAgendaTeste; }
-float gfx_escala_ui(void) { return escalaAgendaTeste; }
+float gfx_escala_ui(void) { return uiAgendaTeste; }
 float ajustes_rail_largura_fixa(void) { return railAgendaTeste; }
 int agenda_n(void) { return 32; }
 const AgItem *agenda_lista(int i) { return i >= 0 && i < 32 ? &linhasAgendaTeste[i] : NULL; }
@@ -467,43 +468,61 @@ int main(void) {
   {
     const float telas[][2] = {{1080,2340}, {2340,1080}, {1080,1920}, {1920,1080}};
     const float escalas[] = {1.0f, 1.2f, 1.5f, 2.0f};
-    for (int i = 0; i < 32; i++) snprintf(linhasAgendaTeste[i].dataProx, sizeof linhasAgendaTeste[i].dataProx, "today");
+    calAno=2026;calMes=9;calDia=16;calCelula=17;
+    for (int i = 0; i < 32; i++) snprintf(linhasAgendaTeste[i].dataProx, sizeof linhasAgendaTeste[i].dataProx, "2026-09-16");
     for (int t = 0; t < 4; t++) for (int s = 0; s < 4; s++) for (int r = 0; r < 2; r++) {
       nv_layout_w = telas[t][0]; nv_layout_h = telas[t][1];
-      escalaAgendaTeste = escalas[s]; railAgendaTeste = r ? 144 * agEscala() : 0;
+      escalaAgendaTeste = uiAgendaTeste = escalas[s]; railAgendaTeste = r ? 144 * agEscala() : 0;
       assert(agColunaUnica());
       float escala = agEscala();
       AgC1 L = c1(); AgMes M = agMesMedir();
-      /* Both orientations use one full-width page, with original row height. */
+      /* Both orientations keep a full-width page and scale readable phone rows. */
       perto(L.x0 * escala, railAgendaTeste + 48); perto(L.pnX, L.x0);
       perto((L.pnX + L.pnW) * escala, nv_layout_w - 48);
       perto(L.artW, 0); perto(L.artH, 0); assert(L.lsW > P(400));
+      perto(agLinhaH()*escala,184*escalas[s]);perto(agGrupoH()*escala,72*escalas[s]);
+      perto(M.celH*escala,128*escalas[s]);
       perto((L.lsY + L.lsH) * escala, nv_layout_h - 66);
       /* Seven calendar columns fit, and the episode list follows below them. */
       perto(M.x, L.pnX); perto(M.gradeW, L.pnW);
       perto(M.celW * 7 + M.espacX * 6, M.gradeW);
       perto(M.painel.x, L.pnX); perto(M.painel.w, L.pnW);
       assert(M.painel.y >= M.gradeY + M.celH * 6 + M.espacY * 5 + P(24));
-      perto((M.painel.y + M.painel.h) * escala, nv_layout_h - 44);
+      /* The larger dates and all episodes form one scrolling document. */
+      perto(M.painel.h, P(agTelefonePx(144 + 32 * 156)) + P(20));
       assert(M.painel.h > P(190));
       /* Real callback converts base finger motion using cached draw scale. */
       ctxAberto = 0; escalaAgendaTeste = escala;
+      toqueCalendario.offset=NULL;
       toqueAgAtiva = NULL; toquerol_limpar(&toqueAgenda); scrollY = 0;
       toquerol_vincular(&toqueAgenda, (GfxRect){L.pnX,L.lsY,L.pnW,L.lsH}, escala,
                        0, alturaDoc() - L.lsH, 1, &scrollY);
       PonteiroRolagem e = {PONT_ROL_INICIO,1,0,0,(L.pnX + P(100))*escala,(L.lsY + P(20))*escala};
       assert(toqueAgendaRolar(&e)); e.fase = PONT_ROL_MOVER; e.delta = -1e6f;
       assert(toqueAgendaRolar(&e));
-      perto(L.lsY + yDe(31) - scrollY + P(AG_ROW_H), L.lsY + L.lsH);
+      perto(L.lsY + yDe(31) - scrollY + agLinhaH(), L.lsY + L.lsH);
       e.fase = PONT_ROL_FIM; toqueAgendaRolar(&e); assert(!toqueAgAtiva);
       GfxRect eventos = agMesEventos(&M);
-      assert(eventos.h > P(78));
+      perto(eventos.h,32*P(agTelefonePx(156)));
+      GfxRect corpoMes={M.x,M.semanaY,M.gradeW,NV_TELA_H-P(44)-M.semanaY};
+      assert(corpoMes.h>0 && corpoMes.y>0);
+      float maxMes=M.painel.y+M.painel.h-corpoMes.y-corpoMes.h;
+      assert(maxMes>0);
+      toqueAgenda.offset=NULL;
       toquerol_limpar(&toqueCalendario); toqueCalOffset = 0;
-      toquerol_vincular(&toqueCalendario, eventos, escala, 0, 32 * P(78) - eventos.h, 1, &toqueCalOffset);
-      e.fase = PONT_ROL_INICIO; e.x = (eventos.x + P(100)) * escala; e.y = (eventos.y + P(20)) * escala;
-      assert(toqueAgendaRolar(&e)); e.fase = PONT_ROL_MOVER; e.delta = -1e6f;
+      toquerol_vincular(&toqueCalendario, corpoMes, escala, 0, maxMes, 1, &toqueCalOffset);
+      e.fase = PONT_ROL_INICIO; e.x = (corpoMes.x + P(100)) * escala; e.y = (corpoMes.y + P(20)) * escala;
+      assert(toqueAgendaRolar(&e));e.fase=PONT_ROL_MOVER;e.delta=-37;
+      assert(toqueAgendaRolar(&e));perto(toqueCalOffset,37/escala);
+      e.fase=PONT_ROL_SOLTAR;assert(toqueAgendaRolar(&e));
+      assert(toqueCalendario.livre && !ctxAberto);
+      e.fase = PONT_ROL_MOVER; e.delta = -1e6f;
       assert(toqueAgendaRolar(&e));
-      perto(32 * P(78) - toqueCalOffset, eventos.h);
+      perto(toqueCalOffset,maxMes);
+      perto(M.painel.y+M.painel.h-toqueCalOffset,corpoMes.y+corpoMes.h);
+      float ultimoEp=eventos.y+31*P(agTelefonePx(156))-toqueCalOffset;
+      assert(ultimoEp+P(agTelefonePx(142))<=corpoMes.y+corpoMes.h);
+      e.fase=PONT_ROL_MOVER;e.delta=1e6f;assert(toqueAgendaRolar(&e));perto(toqueCalOffset,0);
       e.fase = PONT_ROL_FIM; toqueAgendaRolar(&e); assert(!toqueAgAtiva);
       /* Modals remain centered dialogs; phone body/actions fit and scroll. */
       escModal = 1; escalaAgendaTeste = 1;

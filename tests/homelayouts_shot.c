@@ -172,7 +172,8 @@ static void ajusta(int layout, int vidro) {
           layout, vidro ? 0 : 1, getenv("NV_TEMA") ? atoi(getenv("NV_TEMA")) : 0);
   if (getenv("NV_AJ")) fprintf(a, "%s\n", getenv("NV_AJ"));   // ex.: "heroSectionEnabled 1"
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
-  if (getenv("NV_HERO_SWIPE")) fprintf(a,"modernHeroFullScreenBackdropEnabled 0\n");
+  // ajustes.txt stores the option index: 1 selects "Desligado".
+  if (getenv("NV_HERO_SWIPE")) fprintf(a,"modernHeroFullScreenBackdropEnabled 1\n");
 #endif
   fclose(a);
   ajustes_dir(dirDados);
@@ -203,6 +204,7 @@ static void heroSwipes(const char *saida) {
   ponteiro_iniciar(); ponteiro_teste_toque(1);
   for(int lay=0;lay<3;lay++) {
     ajusta(lay,0); home_ir_topo(); quadros(120,NULL);
+    assert(!ajustes_hero_cheio());
     if(lay==HOME_LAYOUT_MODERNA && NV_TELA_W>NV_TELA_H) {
       tecla(SDLK_DOWN); quadros(120,NULL);
       float px,py,pw,ph; home_hero_rect(&px,&py,&pw,&ph);
