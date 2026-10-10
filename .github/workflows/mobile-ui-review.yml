@@ -1,5 +1,7 @@
 name: Mobile UI rendered review
 on:
+  push:
+    branches: [mobile-touch]
   workflow_dispatch:
 permissions:
   contents: read
