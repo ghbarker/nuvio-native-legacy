@@ -47,6 +47,7 @@
 #include "addons.h"
 #include "descoberta.h"
 #include "sistexto.h"
+#include "telefoneui.h"
 #include "shot_arte.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -78,6 +79,9 @@ static char *tmdbFalso(const char *url) {
   return b;
 }
 static char dirArte[600];
+#if defined(NV_TEST_PHONE_SHOT_H) && defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+static float testeListaOffset = -1, testeListaAltura;
+#endif
 
 static void tecla(SDL_Keycode k) {
   SDL_Event e;
@@ -124,6 +128,9 @@ static void quadro(void) {
   tex_bombear(16);
   gfx_novo_quadro();
   spot_atualizar(1.0f / 60.0f, agora);
+#if defined(NV_TEST_PHONE_SHOT_H) && defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  if (testeListaOffset >= 0) spot_teste_lista(testeListaOffset, testeListaAltura);
+#endif
   glClearColor(0.051f, 0.051f, 0.051f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   fundo();
@@ -291,6 +298,27 @@ int main(int argc, char **argv) {
   assert(!spot_aberto());
 
   // TECLADO DO APP (sem teclado do sistema): so com OK no campo.
+  if (telefoneui_ativo()) {
+    // O telefone usa o IME. O teste da ponte injeta o texto inteiro e o
+    // Concluir; o teclado desenhado do app continua sendo exercitado na TV.
+    st_teste_ligar(1);
+    spot_abrir(0);
+    assert(st_dono() == ST_SPOT && st_estado() == ST_DIGITANDO);
+    assert(!spot_teclado_app_aberto() && spot_foco_campo() == 1);
+    tecla(SDLK_RETURN);
+    assert(st_dono() == ST_SPOT && st_estado() == ST_DIGITANDO);
+    assert(!spot_teclado_app_aberto() && spot_foco_campo() == 1);
+    st_teste_evento("Tthe "); quadro();
+    assert(!strcmp(spot_consulta(), "the "));
+    st_teste_evento("Tthe"); quadro();
+    assert(!strcmp(spot_consulta(), "the"));
+    captura(saida, "teclado-nativo");
+    st_teste_evento("Dthe"); quadro();
+    assert(st_estado() == ST_PARADO && spot_linha_focada() >= 0);
+    assert(!spot_teclado_app_aberto());
+    fechar(); assert(!spot_aberto() && st_dono() == ST_DONO_NENHUM);
+    st_teste_ligar(0);
+  } else {
   spot_abrir(0);
   assert(!spot_teclado_app_aberto());
   tecla(SDLK_RETURN);
@@ -308,6 +336,7 @@ int main(int argc, char **argv) {
   { int i; for (i = 0; i < 6; i++) tecla(SDLK_RIGHT); }   // passa da ultima coluna
   assert(spot_linha_focada() >= 0 && !spot_teclado_app_aberto());
   fechar();
+  }
 
   // Pessoa: "chri" acha Christian Bale no elenco do Prestige.
   spot_abrir(0);
@@ -364,6 +393,19 @@ int main(int argc, char **argv) {
     ajustes_definir_vidro(1);
     captura(saida, "ajustes-vidro");
     ajustes_definir_vidro(0);
+#if defined(NV_TEST_PHONE_SHOT_H) && defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    if (telefoneui_ativo()) {
+      float h = spot_altura_corpo();
+      /* Best Settings scene intersects the header at the top, then the footer
+       * during list expansion. Its nested crops must stay off the page. */
+      testeListaOffset = 140; testeListaAltura = 350;
+      capturaQuadros(saida, "ajustes-previa-topo", 1);
+      testeListaOffset = 0; testeListaAltura = 200;
+      capturaQuadros(saida, "ajustes-previa-base", 1);
+      testeListaOffset = -1;
+      spot_teste_lista(0, h);
+    }
+#endif
     tecla(SDLK_ESCAPE);
     ajustes_abrir_opcao(p.indice);
     ajustes_iniciar();

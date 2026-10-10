@@ -15,6 +15,7 @@
 #include "tex_cache.h"
 #include "episodios.h"
 #include "streams.h"
+#include "plrilha.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
@@ -57,6 +58,7 @@ static void quadros(int n) {
     glClearColor(.62f, .66f, .74f, 1); glClear(GL_COLOR_BUFFER_BIT);   // "cena clara"
     player_desenhar(relogio);
     faixas_desenhar(relogio);
+    plrilha_desenhar(relogio);
     SDL_Delay(1);
   }
 }

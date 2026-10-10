@@ -9,6 +9,19 @@ val raiz = rootProject.projectDir.parentFile                         // raiz do 
 val cache = file(System.getProperty("user.home") + "/.cache/nuvio-android")
 val sdlSrc = (findProperty("nuvio.sdlSrc") as String?) ?: "$cache/src"
 val estagio = (findProperty("nuvio.estagio") as String?) ?: "${raiz}/build/android"
+val touchPreview = (findProperty("nuvio.touchPreview") as String?)?.toBooleanStrict() ?: false
+val touchFfmpegAar = (findProperty("nuvio.ffmpegAar") as String?)?.let { file(it) }
+require(touchFfmpegAar == null || touchFfmpegAar.isFile) {
+    "nuvio.ffmpegAar must point to an existing AAR"
+}
+require(!touchPreview || touchFfmpegAar?.isFile == true) {
+    "Touch preview requires -Pnuvio.ffmpegAar from tools/android-touch.sh"
+}
+val abis = ((findProperty("nuvio.abis") as String?) ?: "arm64-v8a,armeabi-v7a")
+    .split(',').map { it.trim() }.distinct()
+require(abis.isNotEmpty() && abis.all { it in setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") }) {
+    "nuvio.abis must be a comma-separated list of Android ABIs"
+}
 
 // Versao: fonte unica e deploy/app/appinfo.json (mesma do env.sh).
 val versao = Regex("\"version\"\\s*:\\s*\"([^\"]+)\"")
@@ -21,12 +34,16 @@ android {
     ndkVersion = "27.2.12479018"
 
     defaultConfig {
-        applicationId = "space.nuvio.nativelegacy"
+        applicationId = if (touchPreview) "space.nuvio.nativelegacy.touch" else "space.nuvio.nativelegacy"
+        manifestPlaceholders["nuvioAppLabel"] = if (touchPreview) "Nuvio Touch" else "@string/app_name"
+        // Start in TV mode; the saved device setting applies the mobile policy at runtime.
+        manifestPlaceholders["nuvioOrientation"] = "landscape"
+        buildConfigField("boolean", "NUVIO_TOUCH_PREVIEW", touchPreview.toString())
         minSdk = 24
         targetSdk = 35
         versionCode = vx * 10000 + vy * 100 + vz
         versionName = versao
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += abis }
         externalNativeBuild {
             cmake {
                 arguments += listOf(
@@ -34,11 +51,15 @@ android {
                     "-DNUVIO_RAIZ=$raiz",
                     "-DNUVIO_SDL_SRC=$sdlSrc",
                     "-DNUVIO_ENV_CMAKE=$estagio/nuvio-env.cmake",
+                    "-DNUVIO_TOUCH_PREVIEW=${if (touchPreview) "ON" else "OFF"}",
                     "-DNUVIO_P2P_MOTOR=${(findProperty("nuvio.p2pMotor") as String?) ?: ""}",
                 )
+                arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
             }
         }
     }
+
+    buildFeatures { buildConfig = true }
 
     externalNativeBuild {
         cmake {
@@ -51,6 +72,13 @@ android {
     // assembleRelease nem e chamado (tools/android.sh).
     val ks = System.getenv("NUVIO_KEYSTORE")
     signingConfigs {
+        if (touchPreview) getByName("debug") {
+            // Use the restored preview key even when Android uses another user directory.
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (ks != null) create("release") {
             storeFile = file(ks)
             storePassword = System.getenv("NUVIO_KEYSTORE_PASS")
@@ -113,6 +141,13 @@ dependencies {
     // ele a fonte toca muda (evento 9). Compilado e publicado pela Jellyfin no
     // Maven Central, na mesma versao do Media3. So entra quando a plataforma
     // nao serve (EXTENSION_RENDERER_MODE_ON no NvPlayer).
-    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+    if (touchFfmpegAar != null) {
+        // Published 1.8.0+1 classes/32-bit JNI; selected 64-bit JNI rebuilt for 16KB pages.
+        implementation(files(touchFfmpegAar))
+        implementation("androidx.media3:media3-decoder:1.8.0")
+    } else {
+        implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+    }
     implementation("androidx.core:core-ktx:1.13.1")
 }
+

@@ -71,6 +71,7 @@
 #include "gfx.h"
 #include "text.h"
 #include "tex_cache.h"
+#include "ponteiro.h"
 #include "descoberta.h"
 #include "noticia.h"
 #include "leitura.h"
@@ -79,6 +80,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +124,9 @@ static void ajustesDeTeste(int idiomaIngles, int animReduzidas) {
   ajustes_dir(dados_dir());
 }
 static int oQue;
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+int agendaui_teste_rotulos(int *vistos, float medidas[4]);
+#endif
 
 static void tecla(SDL_Keycode k) {
   SDL_Event e;
@@ -180,6 +185,9 @@ static void captura(const char *nome, SDL_Window *win) {
     // muda de uma rodada para a outra nao serve para julgar nada.
     tex_bombear(32);
     gfx_novo_quadro();
+#ifdef NV_TEST_PHONE_SHOT_H
+    ponteiro_quadro(SDL_GetTicks());
+#endif
     switch (oQue) {
       case DES_AVISO:   agendaviso_atualizar(1.0f / 60.0f, SDL_GetTicks()); break;
       case DES_MENU:    menu_atualizar(1.0f / 60.0f, SDL_GetTicks());       break;
@@ -196,6 +204,46 @@ static void captura(const char *nome, SDL_Window *win) {
       default:          agendaui_desenhar(SDL_GetTicks());   break;
     }
     if (oQue != DES_MENU && oQue != DES_DETALHE) rail_shot_desenhar(MENU_AGENDA);
+#ifdef NV_TEST_PHONE_SHOT_H
+    ponteiro_desenhar();
+    if (oQue == DES_AGENDA) {
+      const PonteiroAlvo *alvos;
+      int n = ponteiro_teste_lista(&alvos);
+      for (int j = 0; j < n; j++) {
+        const PonteiroAlvo *p = alvos + j;
+        assert(p->w > 0 && p->h > 0 && p->x >= -.03f && p->y >= -.03f);
+        assert(p->x + p->w <= NV_TELA_W + .03f && p->y + p->h <= NV_TELA_H + .03f);
+      }
+      if (i == 89) printf("Agenda phone targets inside %gx%g: %d, %s\n",(double)NV_TELA_W,(double)NV_TELA_H,n,nome);
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+      if (i == 89) {
+        int vistos; float medidas[4];
+        int inteiros = agendaui_teste_rotulos(&vistos, medidas);
+        if (vistos) {
+          assert(vistos == 3 && inteiros == 3);
+          if (!agendaui_menu_aberto()) {
+            int seletor_compativel = 0;
+            for (int k = 0; k < 2 && k < n; k++) {
+              const PonteiroAlvo *p = alvos + k;
+              if (p->focar && !p->ativar && p->a == k + 1 && p->b == 0 &&
+                  fabsf(p->w - 180 * gfx_escala_ui()) < .1f &&
+                  fabsf(p->h - 112 * gfx_escala_ui()) < .1f)
+                seletor_compativel |= 1 << k;
+            }
+            assert(seletor_compativel == 3);
+            assert(fabsf(alvos[0].y - alvos[1].y) < .1f);
+            assert(fabsf(alvos[1].x - alvos[0].x - alvos[0].w - 12 * gfx_escala_ui()) < .1f);
+            printf("Agenda native shared List/Month pills: %gx%g, gap %g, %s\n",
+                   (double)alvos[0].w, (double)alvos[0].h,
+                   (double)(alvos[1].x - alvos[0].x - alvos[0].w), nome);
+          }
+          printf("Agenda native List/Month labels uncut: %.3f/%.3f, %.3f/%.3f, %s\n",
+                 medidas[0], medidas[1], medidas[2], medidas[3], nome);
+        }
+      }
+#endif
+    }
+#endif
     if (i == 89) {
       unsigned char *pix = malloc(1920 * 1080 * 4);
       SDL_Surface *s;
@@ -223,6 +271,50 @@ static void captura(const char *nome, SDL_Window *win) {
     printf("[tex] %s: quentes=%d %ld KB (cache %d itens, %ld KB)\n",
            nome, q, bq / 1024, it, b / 1024); }
 }
+
+#ifdef NV_TEST_PHONE_SHOT_H
+static void arrastoTelefone(void) {
+  SDL_Event e; SDL_zero(e);
+  e.type = SDL_FINGERDOWN; e.tfinger.touchId = 3; e.tfinger.fingerId = 1;
+  e.tfinger.x = .55f; e.tfinger.y = .90f;
+  assert(ponteiro_evento(&e, agendaui_evento));
+  e.type = SDL_FINGERMOTION; e.tfinger.y = .45f;
+  assert(ponteiro_evento(&e, agendaui_evento));
+  e.type = SDL_FINGERUP;
+  assert(ponteiro_evento(&e, agendaui_evento));
+  assert(!agendaui_menu_aberto());
+}
+
+static void tocarMesTelefone(void) {
+  const PonteiroAlvo *v;
+  int n = ponteiro_teste_lista(&v), achou = -1;
+  /* The List/Month buttons precede all title rows. */
+  for(int i=0;i<n;i++)if(v[i].focar&&!v[i].ativar&&v[i].a==2&&v[i].b==0) { achou=i;break; }
+  assert(achou>=0);
+  PonteiroAlvo p=v[achou];assert(fabsf(p.h-112*gfx_escala_ui())<.1f);
+  SDL_Event e;SDL_zero(e);e.type=SDL_FINGERDOWN;e.tfinger.touchId=3;e.tfinger.fingerId=1;
+  e.tfinger.x=(p.x+p.w*.5f)/NV_TELA_W;e.tfinger.y=(p.y+p.h*.5f)/NV_TELA_H;
+  assert(ponteiro_evento(&e,agendaui_evento));e.type=SDL_FINGERUP;
+  assert(ponteiro_evento(&e,agendaui_evento));
+}
+
+static void capturasTelefone(const char *saida, SDL_Window *w) {
+  char nome[800];
+  arrastoTelefone();
+  snprintf(nome,sizeof nome,"%s-phone-list-swiped.bmp",saida);captura(nome,w);
+  assert(!agendaui_menu_aberto());
+  agendaui_iniciar();
+  tocarMesTelefone();
+  snprintf(nome,sizeof nome,"%s-phone-calendar-large.bmp",saida);captura(nome,w);
+  tecla(SDLK_RETURN);
+  snprintf(nome,sizeof nome,"%s-phone-calendar-episodes.bmp",saida);captura(nome,w);
+  for(int i=0;i<3;i++)arrastoTelefone();
+  snprintf(nome,sizeof nome,"%s-phone-calendar-swiped.bmp",saida);captura(nome,w);
+  assert(!agendaui_menu_aberto());
+  agendaui_iniciar();
+  puts("PASS: native Agenda finger swipes, enlarged list/calendar and bounded touch targets.");
+}
+#endif
 
 // Uma linha de agenda-p1.txt, no formato que agenda.c le:
 // imdb TAB titulo TAB poster TAB situacao TAB temp TAB ep TAB nomeEp TAB
@@ -430,6 +522,9 @@ int main(int argc, char **argv) {
   glViewport(0, 0, 1920, 1080);
   gfx_tamanho_alvo(1920, 1080);
   assert(gfx_iniciar());
+#ifdef NV_TEST_PHONE_SHOT_H
+  ponteiro_iniciar();ponteiro_teste_toque(1);ponteiro_teste_janela(phone_shot_w,phone_shot_h);
+#endif
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(160);
   gfx_icones_dir("deploy/app/art");
@@ -545,6 +640,9 @@ int main(int argc, char **argv) {
   agendaui_iniciar();
   snprintf(nome, sizeof nome, "%s-hoje.bmp", saida);
   captura(nome, w);
+#ifdef NV_TEST_PHONE_SHOT_H
+  capturasTelefone(saida,w);
+#endif
   // So a captura comparada ao mockup (iteracao rapida): NUVIO_SHOT_SO=hoje.
   if (getenv("NUVIO_SHOT_SO") && !strcmp(getenv("NUVIO_SHOT_SO"), "hoje")) {
     printf("PASS: captura -hoje gravada.\n");

@@ -20,6 +20,62 @@ static char *arquivo(void) {
 static void igual(const char *antes) { char *depois = arquivo(); assert(!strcmp(antes, depois)); free(depois); }
 static void abrir(int op) { focarOpcao(op); key(SDLK_RETURN); assert(uxEditor); }
 
+#ifdef NV_TOUCH_UI
+static void listaTelefoneRotas(void) {
+  int savedMode = layout_modo_mobile();
+  layout_modo_definir(1);
+  int saved[AJ_N]; memcpy(saved, valor, sizeof saved);
+  float width = nv_layout_w, height = nv_layout_h;
+  const float phone[][2] = {{1080,2340},{1080,1920},{2340,1080},{2520,1080}};
+  int cases = 0;
+  for (int d = 0; d < 4; d++) for (int scale = 0; scale < 3; scale++) for (int raw = 0; raw < 2; raw++) {
+    nv_layout_w = phone[d][0]; nv_layout_h = phone[d][1];
+    valor[AJ_TAMANHO_AJUSTES] = scale; valor[AJ_LAYOUT_AJUSTES] = raw; valor[AJ_AVANCADAS] = 0;
+    assert(gravar()); char *before = arquivo();
+    assert(ajustes_layout_lista() && !aj2TemInsp());
+    for (int i = 0; i < AJ_N_TELA; i++) if (TELA[i].tipo == IT_OPC && TELA[i].op == AJ_LAYOUT_AJUSTES)
+      assert(!visivel(i) && !focavel(i));
+    AjusteBuscaResultado result[AJ_N]; int n = ajustes_buscar("layout arranjo painel", result, AJ_N);
+    for (int i = 0; i < n; i++) assert(result[i].op != AJ_LAYOUT_AJUSTES);
+    uxListarDiferencas(); for (int i = 0; i < uxNDifs; i++) assert(uxDifs[i] != AJ_LAYOUT_AJUSTES);
+    focar(primeiroDaSecao(AJS_APARENCIA)); focoIndice = 0; int first = focoItem;
+    focarOpcao(AJ_LAYOUT_AJUSTES); assert(focoItem == first);
+    uxAbrirEditor(AJ_LAYOUT_AJUSTES); assert(!uxEditor);
+    assert(!definirValorDireto(AJ_LAYOUT_AJUSTES, !raw));
+    assert(ajustes_rapido_op("ajustesLayoutLocal") == -1);
+    uxAbrirOp = -1; ajustes_abrir_opcao(AJ_LAYOUT_AJUSTES); assert(uxAbrirOp == -1);
+    aj2PonteiroCabLayout(0,0); assert(!uxCabLayout && !focoIndice);
+    key(SDLK_UP); assert(focoItem == first && !uxCabLayout && !focoIndice);
+    key(SDLK_AC_BACK); assert(focoIndice);
+    uxTopo = AJ2_T_PERFIL; key(SDLK_RIGHT); assert(uxTopo == AJ2_T_PERFIL);
+    key(SDLK_LEFT); assert(uxTopo == AJ2_T_AV); key(SDLK_RIGHT); assert(uxTopo == AJ2_T_PERFIL);
+    aj2PonteiroTopo(AJ2_T_LAYOUT,0); assert(uxTopo == AJ2_T_PERFIL);
+    key(SDLK_DOWN); assert(uxTopo == AJ2_T_RESOLVER); key(SDLK_UP); assert(uxTopo == AJ2_T_PERFIL);
+    uxTopo = AJ2_T_LAYOUT; key(SDLK_RETURN); assert(uxTopo == AJ2_T_PERFIL && focoIndice);
+    uxTopo = -1; focarSecao(AJS_APARENCIA); focoIndice = 0; uxCabLayout = 1;
+    key(SDLK_RETURN); assert(!uxCabLayout && focoItem == first && !uxEditor);
+    uxEditor = 1; uxOp = AJ_LAYOUT_AJUSTES; uxOriginal = raw; uxPendente = !raw;
+    key(SDLK_RETURN); assert(!uxEditor && valor[AJ_LAYOUT_AJUSTES] == raw);
+    uxIndice = 1; focoIndice = 0; uxDifs[0] = AJ_LAYOUT_AJUSTES; uxNDifs = 1; uxDifFoco = 0;
+    uxLayoutDisponibilidade(); for (int i = 0; i < uxNDifs; i++) assert(uxDifs[i] != AJ_LAYOUT_AJUSTES);
+    focoIndice = 1; uxTopo = AJ2_T_PERFIL; sair = 0; key(SDLK_AC_BACK); assert(sair); sair = 0;
+    assert(valor[AJ_LAYOUT_AJUSTES] == raw); igual(before); free(before); cases++;
+    uxCancelar(); uxTopo = -1; uxIndice = 2; uxVeioBusca = 0;
+  }
+  layout_modo_definir(0);
+  const float other[][2] = {{1920,1080},{1600,1000},{1000,1600}};
+  for (int d = 0; d < 3; d++) for (int raw = 0; raw < 2; raw++) {
+    nv_layout_w = other[d][0]; nv_layout_h = other[d][1]; valor[AJ_LAYOUT_AJUSTES] = raw;
+    assert(ajLayoutSelecionavel() && ajustes_layout_lista() == raw);
+    assert(aj2TopoVisivel(AJ2_T_LAYOUT) && ajustes_rapido_op("ajustesLayoutLocal") == AJ_LAYOUT_AJUSTES);
+    assert(uxAlternarLayout() && valor[AJ_LAYOUT_AJUSTES] == !raw);
+  }
+  layout_modo_definir(savedMode);
+  nv_layout_w = width; nv_layout_h = height; memcpy(valor, saved, sizeof saved); assert(gravar());
+  printf("settings phone List routes: %d phone states plus 6 TV/tablet preference toggles; hidden/stale header/search/Differences/direct/editor/Back routes and disk bytes PASS\n", cases);
+}
+#endif
+
 int main(void) {
   char dir[1024], bad[1400]; char *antes;
   int original, foco, n, i;
@@ -331,6 +387,9 @@ int main(void) {
   // Sair da tela descarta rascunho (Spotlight / troca de tela / fechamento).
   abrir(AJ_HOME_LAYOUT); original = valor[AJ_HOME_LAYOUT]; key(SDLK_DOWN);
   ajustes_encerrar(); assert(!uxEditor && valor[AJ_HOME_LAYOUT] == original);
+#ifdef NV_TOUCH_UI
+  listaTelefoneRotas();
+#endif
   char path[700]; snprintf(path, sizeof path, "%s/ajustes.txt", dir); unlink(path);
   snprintf(path, sizeof path, "%s/ajustes-locais.txt", dir); unlink(path);
   rmdir(dir); SDL_Quit();

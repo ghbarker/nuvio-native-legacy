@@ -40,9 +40,15 @@ static GLuint shot_arte_carregar(void) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, t->pitch / 4);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t->w, t->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, t->pixels);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  /* GLES2 has no unpack row-length setting. SDL surfaces can have padding. */
+  size_t row = (size_t)t->w * 4;
+  unsigned char *pixels = malloc(row * (size_t)t->h);
+  if (!pixels) { SDL_FreeSurface(t); return 0; }
+  for (int y = 0; y < t->h; y++)
+    memcpy(pixels + y * row, (char *)t->pixels + y * t->pitch, row);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t->w, t->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+  free(pixels);
   SDL_FreeSurface(t);
   return shotArteTex;
 }

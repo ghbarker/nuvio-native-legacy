@@ -201,6 +201,11 @@ int main(int argc, char **argv) {
       k.type = SDL_KEYUP; ctx_evento(&k);
       snprintf(nome, sizeof nome, "%s-estilo%d-aberta.bmp", saida, est);
       captura(nome, w, 90);
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+      k.type = SDL_KEYDOWN; k.key.keysym.sym = SDLK_RIGHT; ctx_evento(&k);
+      snprintf(nome, sizeof nome, "%s-estilo%d-segunda-acao.bmp", saida, est);
+      captura(nome, w, 90);
+#endif
       k.type = SDL_KEYDOWN; k.key.keysym.sym = SDLK_ESCAPE; ctx_evento(&k);
     }
   }

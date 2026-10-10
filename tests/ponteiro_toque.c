@@ -1,14 +1,45 @@
 // #216: dedo real, sem SDL host, video ou dispositivo. Eventos SDL normalizados.
 #define main ponteiro_roteiro_mouse
+#define gfx_escala ponteiro_escala_identidade
 #include "ponteiro.c"
+#undef gfx_escala
 #undef main
 #include <math.h>
+#include "ctxlista.h"
+#include "layout.h"
+#include "catalogo.h"
+#include "ctxmenu.h"
+#include "descoberta.h"
+#include "idioma.h"
+#include "ilha.h"
+
+static float escalaToque = 1.0f;
+float gfx_escala(void) { return escalaToque; }
+
+// Dependencias inertes da lista: a decisao do gesto vem de src/ctxlista.c.
+int ctx_aberto(void) { return 0; }
+const char *i18n(const char *s) { return s; }
+void ilha_atividade(const char *s, float p) { (void)s; (void)p; }
+int cat_n(void) { return 0; }
+int cat_indice_por_imdb(const char *s) { (void)s; return -1; }
+const CatItem *cat_item(int i) { (void)i; return NULL; }
+void ctx_fileira(const char *c, const char *t) { (void)c; (void)t; }
+void ctx_dispensar_retomar(int on) { (void)on; }
+void ctx_abrir_cartaz(int i, GfxRect r, const char *a) { (void)i; (void)r; (void)a; }
+void ctx_evento(const SDL_Event *e) { (void)e; }
+int desc_titulo_buscando(void) { return 0; }
+void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
+                               const char *titulo, const char *ano, const char *poster) {
+  (void)imdb; (void)tmdb; (void)tipo; (void)titulo; (void)ano; (void)poster;
+}
+
+static void (*entregaDedo)(const SDL_Event *) = entregar;
 
 static void dedo(Uint32 tipo, Sint64 id, float x, float y) {
   SDL_Event e; SDL_zero(e);
   e.type = tipo; e.tfinger.touchId = 3; e.tfinger.fingerId = id;
   e.tfinger.x = x; e.tfinger.y = y;
-  CONFERE(ponteiro_evento(&e, entregar) == 1, "evento de dedo consumido");
+  CONFERE(ponteiro_evento(&e, entregaDedo) == 1, "evento de dedo consumido");
 }
 static void tocar(float x, float y) {
   dedo(SDL_FINGERDOWN, 1, x / 1920.0f, y / 1080.0f);
@@ -16,6 +47,7 @@ static void tocar(float x, float y) {
 }
 static void preparar(void (*alvos)(void)) {
   ponteiro_iniciar(); ponteiro_teste_toque(1);
+  entregaDedo = entregar;
   quadro(alvos); zerar(); nFocar = nAtivar = 0;
 }
 static int conta(SDL_Keycode k) {
@@ -32,7 +64,699 @@ static void barra(void) {
   ponteiro_alvo_arrastavel();
 }
 static void canto(void) { ponteiro_alvo(1900, 1060, 20, 20, focar, NULL, 1, 1); }
+
+static CtxHold holdDedo;
+static int menusDedo, toquesDedo, flagsLongos, focosLongos;
+static void entregarHold(const SDL_Event *e) {
+  int r;
+  entregar(e);
+  if (ponteiro_ok_longo()) flagsLongos++;
+  r = ctxhold_evento(&holdDedo, e, 1);
+  if (r == CTXH_LONGO) menusDedo++;
+  if (r == CTXH_TOQUE) toquesDedo++;
+}
+#ifdef NV_TOUCH_UI
+static void cursorDepoisDoToque(void) {
+  preparar(home);
+  mover(150, 150);
+  int antes = nCursorCores;
+  quadro(home);
+  CONFERE(nCursorCores == antes + 3, "mouse real desenha o cursor circular");
+  zerar(); nFocar = 0;
+  dedo(SDL_FINGERDOWN, 1, 150.0f / 1920.0f, 150.0f / 1080.0f);
+  antes = nCursorCores;
+  quadro(home);
+  CONFERE(nCursorCores == antes && ponteiro_ativo(), "dedo esconde o cursor sem desativar alvos");
+  dedo(SDL_FINGERUP, 1, 150.0f / 1920.0f, 150.0f / 1080.0f);
+  quadro(home);
+  CONFERE(nCursorCores == antes && nFocar == 1 && nEntregues == 2,
+          "tap continua ativando o alvo sem cursor depois de soltar");
+  SDL_Event e; SDL_zero(e); e.type = SDL_MOUSEMOTION;
+  e.motion.which = SDL_TOUCH_MOUSEID; e.motion.x = 150; e.motion.y = 150;
+  ponteiro_evento(&e, entregar); quadro(home);
+  CONFERE(nCursorCores == antes, "mouse sintetico do toque nao devolve o cursor");
+  mover(160, 150); quadro(home);
+  CONFERE(nCursorCores == antes + 3, "mouse real posterior pode devolver o cursor");
+  zerar();
+  botao(SDL_MOUSEBUTTONDOWN, 160, 150, SDL_BUTTON_LEFT);
+  SDL_zero(e); e.type = SDL_FINGERDOWN; e.tfinger.touchId = SDL_MOUSE_TOUCHID;
+  e.tfinger.fingerId = 1; e.tfinger.x = 160.0f / 1920.0f; e.tfinger.y = 150.0f / 1080.0f;
+  CONFERE(ponteiro_evento(&e, entregar) == 1, "dedo sintetico do mouse e consumido");
+  e.type = SDL_FINGERMOTION;
+  ponteiro_evento(&e, entregar);
+  botao(SDL_MOUSEBUTTONUP, 160, 150, SDL_BUTTON_LEFT);
+  e.type = SDL_FINGERUP;
+  ponteiro_evento(&e, entregar);
+  antes = nCursorCores; quadro(home);
+  CONFERE(nEntregues == 2 && nCursorCores == antes + 3,
+          "mouse com dedos sinteticos ativa uma vez e conserva o cursor");
+}
+#endif
+static void prepararHold(void (*alvos)(void)) {
+  preparar(alvos);
+  memset(&holdDedo, 0, sizeof holdDedo);
+  menusDedo = toquesDedo = flagsLongos = focosLongos = 0;
+  entregaDedo = entregarHold;
+}
+static void focoTemporada(int a, int b) {
+  focar(a, b);
+  if (ponteiro_toque()) focosLongos++;
+}
+static void temporada(void) {
+  ponteiro_alvo(100, 100, 200, 100, NULL, ativar, 2, 3);
+  ponteiro_alvo_segurar(focoTemporada);
+}
+static PonteiroRolagem rolagens[256];
+static int nRolagens, aceitaRolagem, paraNoLimite, nOutraRolagem;
+static int rolagem(const PonteiroRolagem *e) {
+  if (nRolagens < 256) rolagens[nRolagens++] = *e;
+  if (e->fase == PONT_ROL_INICIO) return aceitaRolagem;
+  return e->fase != PONT_ROL_INERCIA || !paraNoLimite;
+}
+static int outraRolagem(const PonteiroRolagem *e) { nOutraRolagem++; return rolagem(e); }
+static void continuo(void) { home(); ponteiro_rolagem(rolagem); }
+static void continuoSemAlvos(void) { ponteiro_rolagem(rolagem); }
+static void outraCamada(void) { home(); ponteiro_rolagem(outraRolagem); }
+static void continuoComFolha(void) { continuo(); homeComFolha(); }
+static void barraContinua(void) { barra(); ponteiro_rolagem(rolagem); }
+static void prepararContinuo(void (*alvos)(void)) {
+  preparar(alvos);
+  nRolagens = nOutraRolagem = paraNoLimite = 0; aceitaRolagem = 1;
+}
+static void dedoPx(Uint32 tipo, Sint64 id, float x, float y) {
+  dedo(tipo, id, x / NV_TELA_W, y / NV_TELA_H);
+}
+static int fases(int fase) {
+  int n = 0;
+  for (int i = 0; i < nRolagens; i++) if (rolagens[i].fase == fase) n++;
+  return n;
+}
+static float distancia(int fase) {
+  float d = 0.0f;
+  for (int i = 0; i < nRolagens; i++) if (rolagens[i].fase == fase) d += rolagens[i].delta;
+  return d;
+}
+static void petelecoContinuo(void) {
+  dedoPx(SDL_FINGERDOWN, 1, 150, 700);
+  for (int y = 660; y >= 460; y -= 40) { relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 150, (float)y); }
+  relogio += 8; dedoPx(SDL_FINGERUP, 1, 150, 460);
+}
+static void rolagemContinua(void) {
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 240);
+  CONFERE(!nRolagens && !nFocar && !nEntregues, "movimento pequeno ainda nao captura nem abre");
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 210);
+  CONFERE(fases(PONT_ROL_INICIO) == 1 && fases(PONT_ROL_MOVER) == 1 &&
+          fabsf(distancia(PONT_ROL_MOVER) + 50.0f) < .01f &&
+          rolagens[0].eixoY == 1 && fabsf(rolagens[0].x - 150) < .01f &&
+          fabsf(rolagens[0].y - 260) < .01f && !nEntregues && !nFocar,
+          "captura continua entrega origem e deslocamento inteiro imediato, sem seta ou foco");
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 180);
+  CONFERE(fabsf(distancia(PONT_ROL_MOVER) + 80.0f) < .01f,
+          "conteudo acompanha trechos menores que um passo de seta");
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 180);
+  for (int i = 0; i < 30; i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_SOLTAR) == 1 && fases(PONT_ROL_FIM) == 1 &&
+          !fases(PONT_ROL_INERCIA) && !nEntregues && !nFocar,
+          "parar antes da soltura encerra sem inercia nem clique");
+
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += 40; dedoPx(SDL_FINGERMOTION, 1, 70, 215);
+  relogio += 40; dedoPx(SDL_FINGERMOTION, 1, 50, 500);
+  relogio += 40; dedoPx(SDL_FINGERMOTION, 1, 150, 260);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 260);
+  { int eixo = 1;
+    for (int i = 0; i < nRolagens; i++) if (rolagens[i].eixoY) eixo = 0;
+    CONFERE(eixo && fabsf(distancia(PONT_ROL_MOVER)) < .01f && !nEntregues && !nFocar,
+            "eixo horizontal fica travado; retornar ao inicio nao transforma arrasto em tap"); }
+  for (int i = 0; i < 2; i++) {
+    SDL_Event e; SDL_zero(e);
+    e.type = i ? SDL_MOUSEBUTTONUP : SDL_MOUSEBUTTONDOWN;
+    e.button.which = SDL_TOUCH_MOUSEID; e.button.button = SDL_BUTTON_LEFT;
+    e.button.x = 75; e.button.y = 130;
+    CONFERE(ponteiro_evento(&e, entregar) == 1, "mouse SDL derivado do swipe e consumido");
+  }
+  CONFERE(!nEntregues && !nFocar, "mouse SDL depois de soltar arrasto nao abre titulo");
+
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 180);
+  quadro(continuoSemAlvos);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 260);
+  CONFERE(fases(PONT_ROL_MOVER) == 2 && fases(PONT_ROL_SOLTAR) == 1 &&
+          !fases(PONT_ROL_CANCELAR) && !nEntregues && !nFocar,
+          "alvos que rolaram para fora nao apagam captura nem deixam soltura virar tap");
+
+  prepararContinuo(continuo);
+  petelecoContinuo();
+  for (int i = 0; i < 180; i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_SOLTAR) == 1 && fases(PONT_ROL_INERCIA) > 1 &&
+          fases(PONT_ROL_FIM) == 1 && distancia(PONT_ROL_INERCIA) < -100.0f &&
+          distancia(PONT_ROL_INERCIA) > -5000.0f && !nEntregues && !nFocar,
+          "peteleco continua com deltas finitos e termina uma vez sem setas");
+  { int finito = 1;
+    for (int i = 0; i < nRolagens; i++)
+      if (!isfinite(rolagens[i].delta) || !isfinite(rolagens[i].velocidade)) finito = 0;
+    CONFERE(finito, "velocidade e deltas continuos sempre finitos"); }
+
+  prepararContinuo(continuo);
+  petelecoContinuo();
+  dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+  relogio += NV_HOLD_MS + 50; quadro(continuo);
+  dedoPx(SDL_FINGERUP, 1, 150, 260);
+  CONFERE(fases(PONT_ROL_CANCELAR) == 1 && !fases(PONT_ROL_INERCIA) && !nEntregues && !nFocar,
+          "tocar para parar o embalo nao abre card nem menu ao soltar ou segurar");
+  tocar(150, 260);
+  CONFERE(nEntregues == 2 && nFocar == 1, "tap novo depois de parar embalo abre normalmente");
+
+  prepararContinuo(continuo);
+  petelecoContinuo(); paraNoLimite = 1;
+  for (int i = 0; i < 60; i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_INERCIA) == 1 && fases(PONT_ROL_FIM) == 1,
+          "consumidor para inercia no limite sem continuar emitindo deltas");
+
+  for (int c = 0; c < 4; c++) {
+    SDL_Event e;
+    prepararContinuo(continuo);
+    dedoPx(SDL_FINGERDOWN, 1, 150, 260);
+    relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 150, 180);
+    if (c == 0) quadro(continuoComFolha);
+    else if (c == 1) quadro(outraCamada);
+    else if (c == 2) dedoPx(SDL_FINGERDOWN, 2, 160, 180);
+    else { SDL_zero(e); e.type = SDL_WINDOWEVENT; e.window.event = SDL_WINDOWEVENT_SIZE_CHANGED;
+      ponteiro_evento(&e, entregar); }
+    dedoPx(SDL_FINGERUP, 1, 150, 260);
+    dedoPx(SDL_FINGERUP, 2, 160, 180);
+    CONFERE(fases(PONT_ROL_CANCELAR) == 1 && !fases(PONT_ROL_SOLTAR) && !nEntregues &&
+            !nFocar && !nOutraRolagem,
+            "camada, consumidor, segundo dedo ou resize cancelam captura sem soltar como clique");
+  }
+
+  prepararContinuo(continuo);
+  aceitaRolagem = 0;
+  dedoPx(SDL_FINGERDOWN, 1, 150, 700);
+  relogio += 200; dedoPx(SDL_FINGERMOTION, 1, 150, 500);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 150, 500);
+#ifdef NV_TOUCH_UI
+  CONFERE(fases(PONT_ROL_INICIO) == 1 && !fases(PONT_ROL_MOVER) && !nEntregues && !nFocar,
+          "preview consome arrasto recusado sem seta nem clique");
+#else
+  CONFERE(fases(PONT_ROL_INICIO) == 1 && !fases(PONT_ROL_MOVER) &&
+          conta(SDLK_DOWN) == 1 && !conta(SDLK_RETURN),
+          "consumidor que recusa conserva caminho legado de setas");
+#endif
+
+  prepararContinuo(barraContinua); nArrasto = 0;
+  dedoPx(SDL_FINGERDOWN, 1, 500, 930);
+  relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 700, 930);
+  dedoPx(SDL_FINGERUP, 1, 700, 930);
+  CONFERE(nArrasto > 0 && !nRolagens && !nEntregues,
+          "barra arrastavel tem prioridade sobre rolagem continua");
+
+#ifdef NV_TOUCH_UI
+  layout_tela_definir(2560, 1080);
+  prepararContinuo(continuo);
+  dedo(SDL_FINGERDOWN, 1, .25f, .4f);
+  relogio += 80; dedo(SDL_FINGERMOTION, 1, .30f, .4f);
+  relogio += 200; dedo(SDL_FINGERUP, 1, .30f, .4f);
+  CONFERE(fabsf(rolagens[0].x - 640.0f) < .01f &&
+          fabsf(distancia(PONT_ROL_MOVER) - 128.0f) < .01f,
+          "origem e delta horizontal seguem largura logica runtime do telefone");
+  layout_tela_definir(1920, 1080);
+#endif
+}
+
+static void arrastoSemNavegacao(void) {
+#ifdef NV_TOUCH_UI
+  for (int c = 0; c < 5; c++) {
+    void (*alvos)(void) = c == 0 ? home : c == 1 ? NULL : c == 2 ? continuo :
+                           c == 3 ? continuoSemAlvos : homeComFolha;
+    prepararContinuo(alvos);
+    aceitaRolagem = 0;
+    dedoPx(SDL_FINGERDOWN, 1, 150, 150);
+    relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 150, 750);
+    // Uma camada que aparece depois do limiar nao transforma o mesmo dedo
+    // em captura nova. Nem voltar ao alvo de partida reabilita tap ou hold.
+    for (int i = 0; i < 70; i++) quadro(continuo);
+    dedoPx(SDL_FINGERMOTION, 1, 150, 150);
+    relogio += NV_HOLD_MS + 1; quadro(continuo);
+    dedoPx(SDL_FINGERUP, 1, 150, 150);
+    for (int i = 0; i < 120; i++) quadro(continuo);
+    CONFERE(!nEntregues && !nFocar && !nAtivar && !fases(PONT_ROL_MOVER) &&
+            !fases(PONT_ROL_INERCIA) && fases(PONT_ROL_INICIO) == (c == 2 || c == 3),
+            "arrasto sem handler, recusado ou em modal nao navega, segura, clica ou ganha embalo");
+  }
+  preparar(home);
+  dedoPx(SDL_FINGERDOWN, 1, 150, 150);
+  relogio += 16; dedoPx(SDL_FINGERUP, 1, 950, 150);
+  for (int i = 0; i < 120; i++) quadro(home);
+  CONFERE(!nEntregues && !nFocar, "swipe horizontal recebido so na soltura tambem e consumido");
+  tocar(150, 150);
+  CONFERE(nEntregues == 2 && nFocar == 1, "tap seguinte a swipe sem handler continua funcionando");
+  zerar();
+  SDL_Event e; SDL_zero(e); e.type = SDL_MOUSEWHEEL; e.wheel.y = -1;
+  relogio += 100;
+  CONFERE(ponteiro_evento(&e, entregar) == 1 && conta(SDLK_DOWN) == 1,
+          "rodinha real conserva navegacao por seta no preview");
+  CONFERE(tecla(SDL_KEYDOWN, SDLK_RIGHT, 0) == 0 && tecla(SDL_KEYUP, SDLK_RIGHT, 0) == 0,
+          "setas reais do controle continuam passando no preview");
+#endif
+}
+
+// Borda registrada pela camada desenhada: o gesto usa o dispatcher real,
+// sem imitar sua escolha de eixo, limiar, cancelamento ou prioridade.
+#ifdef NV_TOUCH_UI
+static int aberturasBorda, aberturasOutraBorda, bordaPorToque;
+static void abrirBorda(void) { aberturasBorda++; bordaPorToque = ponteiro_toque(); }
+static void abrirOutraBorda(void) { aberturasOutraBorda++; }
+static void borda(void) { continuo(); ponteiro_borda_esquerda(120.0f, abrirBorda); }
+static void bordaOutra(void) { continuo(); ponteiro_borda_esquerda(120.0f, abrirOutraBorda); }
+static void bordaComFolha(void) { borda(); homeComFolha(); }
+static void bordaComSeek(void) {
+  borda();
+  ponteiro_alvo(0, 900, 500, 60, NULL, arrastoBarra, 0, 0);
+  ponteiro_alvo_arrastavel();
+}
+static void ativarBordaDireta(int a, int b) { (void)a; (void)b; ponteiro_borda_ativar(); }
+static void bordaComPilula(void) {
+  borda();
+  ponteiro_alvo(0, 0, 28, NV_TELA_H, NULL, ativarBordaDireta, 0, 0);
+}
+static void bordaAmpliada(void) {
+  escalaToque = 1.5f;
+  borda();
+  escalaToque = 1.0f;
+}
+static void prepararBorda(void (*alvos)(void)) {
+  prepararContinuo(alvos);
+  aberturasBorda = aberturasOutraBorda = bordaPorToque = nArrasto = 0;
+}
+static void bordaSemEfeitos(void) {
+  CONFERE(!nEntregues && !nFocar && !nAtivar && !nRolagens,
+          "borda nao fabrica tecla, tap, foco ou rolagem de conteudo");
+}
+static void registroBorda(void) {
+  prepararBorda(bordaComPilula);
+  CONFERE(!ponteiro_borda_registrada(), "consulta le quadro em desenho, nao registro antigo pronto");
+  dedoPx(SDL_FINGERDOWN, 1, 10, 500);
+  CONFERE(!aberturasBorda, "pilula direta nao abre no DOWN");
+  dedoPx(SDL_FINGERUP, 1, 10, 500);
+  CONFERE(aberturasBorda == 1 && bordaPorToque,
+          "tap direto roteia ao callback pronto uma vez como toque");
+  bordaSemEfeitos();
+
+  quadro(bordaComFolha);
+  ponteiro_borda_ativar();
+  CONFERE(aberturasBorda == 1, "camada modal limpa callback pronto e bloqueia ativacao direta antiga");
+  prepararBorda(borda);
+  ponteiro_quadro(relogio);
+  CONFERE(!ponteiro_borda_registrada(), "inicio do quadro nao conserva elegibilidade anterior");
+  ponteiro_borda_esquerda(120, abrirBorda);
+  CONFERE(ponteiro_borda_registrada(), "registro torna rail elegivel no quadro em desenho");
+  ponteiro_camada();
+  CONFERE(!ponteiro_borda_registrada(), "modal elimina elegibilidade antes de desenhar rail");
+  ponteiro_desenhar();
+  ponteiro_borda_ativar();
+  CONFERE(!aberturasBorda, "fechar quadro da modal elimina ativacao direta sem teclas");
+  bordaSemEfeitos();
+
+  prepararBorda(borda);
+  ponteiro_quadro(relogio);
+  ponteiro_borda_esquerda(120, abrirOutraBorda);
+  CONFERE(ponteiro_borda_registrada(), "provedor novo registrado vale para o desenho");
+  ponteiro_borda_ativar();
+  CONFERE(aberturasBorda == 1 && !aberturasOutraBorda,
+          "ativacao usa provedor visivel pronto antes da troca de quadro");
+  ponteiro_desenhar();
+  ponteiro_borda_ativar();
+  CONFERE(aberturasBorda == 1 && aberturasOutraBorda == 1,
+          "ativacao muda para o novo provedor somente depois do quadro pronto");
+  bordaSemEfeitos();
+}
+static void gestoBorda(void) {
+  registroBorda();
+  // Registro repetido da mesma camada nao cancela um arrasto lento; abertura
+  // exige deslocamento suficiente e nao depende de velocidade ou do UP.
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  relogio += 80; dedoPx(SDL_FINGERMOTION, 1, 80, 502);
+  quadro(borda);
+  relogio += 80; dedoPx(SDL_FINGERMOTION, 1, 110, 504);
+  CONFERE(!aberturasBorda, "borda lenta ainda nao abre abaixo de 72 px");
+  relogio += 80; dedoPx(SDL_FINGERMOTION, 1, 130, 506);
+  CONFERE(aberturasBorda == 1 && bordaPorToque, "borda lenta abre durante movimento como toque");
+  relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 600, 508);
+  quadro(borda);
+  relogio += NV_HOLD_MS + 100; quadro(borda);
+  dedoPx(SDL_FINGERMOTION, 1, 40, 500);
+  dedoPx(SDL_FINGERUP, 1, 40, 500);
+  for (int i = 0; i < 120; i++) quadro(borda);
+  CONFERE(aberturasBorda == 1, "borda abre uma vez sem clique longo ou embalo na soltura");
+  bordaSemEfeitos();
+
+  for (int soUp = 0; soUp < 2; soUp++) {
+    prepararBorda(borda);
+    dedoPx(SDL_FINGERDOWN, 1, 35, 500);
+    relogio += 8;
+    if (!soUp) dedoPx(SDL_FINGERMOTION, 1, 400, 501);
+    dedoPx(SDL_FINGERUP, 1, 400, 501);
+    for (int i = 0; i < 120; i++) quadro(borda);
+    CONFERE(aberturasBorda == 1, "borda rapida e movimento so no UP abrem uma vez");
+    bordaSemEfeitos();
+  }
+
+  // Arrasto curto ja passou do limiar de tap, mas nao atingiu o de abertura.
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  relogio += 30; dedoPx(SDL_FINGERMOTION, 1, 100, 500);
+  relogio += 100; dedoPx(SDL_FINGERUP, 1, 100, 500);
+  CONFERE(!aberturasBorda, "borda abaixo do limiar nao abre");
+  bordaSemEfeitos();
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 110, 150);
+  relogio += 30; dedoPx(SDL_FINGERUP, 1, 120, 150);
+  CONFERE(!aberturasBorda && nFocar == 1 && conta(SDLK_RETURN) == 1,
+          "tap curto iniciado na borda conserva a acao do alvo");
+
+  // A borda so disputa o gesto horizontal para a direita iniciado nela.
+  // O mesmo consumidor continua recebendo os outros eixos e origens.
+  for (int c = 0; c < 3; c++) {
+    float x = c == 0 ? 100.0f : c == 1 ? 40.0f : 200.0f;
+    float fimX = c == 0 ? 35.0f : c == 1 ? 45.0f : 450.0f;
+    float fimY = c == 1 ? 250.0f : 500.0f;
+    prepararBorda(borda);
+    dedoPx(SDL_FINGERDOWN, 1, x, 500);
+    relogio += 50; dedoPx(SDL_FINGERMOTION, 1, fimX, fimY);
+    relogio += 200; dedoPx(SDL_FINGERUP, 1, fimX, fimY);
+    CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1 &&
+            fases(PONT_ROL_MOVER) == 1 && fases(PONT_ROL_FIM) == 1 &&
+            rolagens[0].eixoY == (c == 1) && !nEntregues && !nFocar,
+            "reverso, vertical da borda e horizontal do meio preservam conteudo");
+    CONFERE(fabsf(distancia(PONT_ROL_MOVER) - (c == 1 ? fimY - 500.0f : fimX - x)) < .01f,
+            "conteudo recebe o deslocamento completo fora do gesto da borda");
+  }
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 45, 430);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 420);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 420);
+  CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1 && rolagens[0].eixoY,
+          "rolagem capturada no eixo vertical nao vira abertura ao mudar de rumo");
+
+  prepararBorda(bordaComSeek);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 930);
+  relogio += 16; dedoPx(SDL_FINGERMOTION, 1, 200, 930);
+  dedoPx(SDL_FINGERUP, 1, 200, 930);
+  CONFERE(nArrasto >= 1 && arrastoToque && !aberturasBorda && !nRolagens && !nEntregues,
+          "seek arrastavel tem prioridade mesmo com DOWN na borda");
+
+  // Cancelamento antes do limiar: modal, troca de provedor, registro ausente
+  // ou quadro vazio, foco/background/resize, dedo extra e cancelamento do host.
+  for (int c = 0; c < 10; c++) {
+    SDL_Event e; SDL_zero(e);
+    prepararBorda(borda);
+    dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+    relogio += 20; dedoPx(SDL_FINGERMOTION, 1, 80, 500);
+    if (c == 0) quadro(bordaComFolha);
+    else if (c == 1) quadro(bordaOutra);
+    else if (c == 2) quadro(continuo);
+    else if (c == 3) quadro(NULL);
+    else if (c == 4) dedoPx(SDL_FINGERDOWN, 2, 60, 500);
+    else if (c == 5) ponteiro_cancelar_toque();
+    else if (c == 6) tecla(SDL_KEYDOWN, SDLK_RIGHT, 0);
+    else {
+      e.type = c == 8 ? SDL_APP_WILLENTERBACKGROUND : SDL_WINDOWEVENT;
+      e.window.event = c == 9 ? SDL_WINDOWEVENT_SIZE_CHANGED : SDL_WINDOWEVENT_FOCUS_LOST;
+      ponteiro_evento(&e, entregar);
+    }
+    quadro(borda); // Voltar ao registro original nao rearma o dedo cancelado.
+    relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 500);
+    dedoPx(SDL_FINGERUP, 1, 400, 500);
+    dedoPx(SDL_FINGERUP, 2, 60, 500);
+    for (int i = 0; i < 30; i++) quadro(borda);
+    CONFERE(!aberturasBorda && !aberturasOutraBorda,
+            "camada, registro, foco ou multifinger cancelam borda antes da abertura");
+    bordaSemEfeitos();
+  }
+  prepararBorda(continuo);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 500);
+  quadro(borda);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 500);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 500);
+  CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1,
+          "registro que nasce depois do DOWN nao captura um gesto antigo");
+
+  layout_tela_definir(2400, 1080);
+  prepararBorda(bordaAmpliada);
+  dedoPx(SDL_FINGERDOWN, 1, 170, 500); // Dentro de 120 * 1,5; fora de 120.
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 240, 500);
+  CONFERE(!aberturasBorda, "limiar de abertura continua 72 px na tela base");
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 245, 500);
+  dedoPx(SDL_FINGERUP, 1, 245, 500);
+  CONFERE(aberturasBorda == 1 && fabsf(ponteiro_x() - 245.0f) < .01f,
+          "largura runtime 2400 e faixa ampliada usam coordenadas base corretas");
+  bordaSemEfeitos();
+  prepararBorda(bordaAmpliada);
+  dedoPx(SDL_FINGERDOWN, 1, 181, 500);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 400, 500);
+  relogio += 200; dedoPx(SDL_FINGERUP, 1, 400, 500);
+  CONFERE(!aberturasBorda && fases(PONT_ROL_INICIO) == 1,
+          "origem fora da faixa ampliada continua horizontal do conteudo");
+  layout_tela_definir(1080, 2340);
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 40, 1800);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 140, 1802);
+  dedoPx(SDL_FINGERUP, 1, 140, 1802);
+  CONFERE(aberturasBorda == 1 && fabsf(ponteiro_y() - 1802.0f) < .01f,
+          "borda retrato tambem funciona abaixo da antiga altura 1080");
+  bordaSemEfeitos();
+  prepararBorda(borda);
+  dedoPx(SDL_FINGERDOWN, 1, 300, 1800);
+  relogio += 50; dedoPx(SDL_FINGERMOTION, 1, 300, 1700);
+  CONFERE(!aberturasBorda && fabsf(distancia(PONT_ROL_MOVER) + 100.0f) < .01f,
+          "arrasto retrato tem a distancia real do dedo sem setas");
+  SDL_Event giro; SDL_zero(giro);
+  giro.type = SDL_WINDOWEVENT; giro.window.event = SDL_WINDOWEVENT_SIZE_CHANGED;
+  ponteiro_evento(&giro, entregar);
+  layout_tela_definir(2340, 1080);
+  dedoPx(SDL_FINGERUP, 1, 300, 800);
+  CONFERE(fases(PONT_ROL_CANCELAR) == 1 && !nEntregues && !nFocar,
+          "girar durante arrasto cancela sem ativar titulo na nova orientacao");
+  dedoPx(SDL_FINGERDOWN, 2, 150, 150);
+  dedoPx(SDL_FINGERUP, 2, 150, 150);
+  dedoPx(SDL_FINGERDOWN, 3, 40, 500);
+  dedoPx(SDL_FINGERUP, 3, 300, 500);
+  ponteiro_borda_ativar();
+  CONFERE(!nEntregues && !nFocar && !aberturasBorda,
+          "eventos enfileirados depois do resize ignoram o quadro antigo sem RETURN");
+  ponteiro_quadro(relogio);
+  dedoPx(SDL_FINGERDOWN, 4, 150, 150);
+  dedoPx(SDL_FINGERUP, 4, 150, 150);
+  CONFERE(!nEntregues, "comecar o desenho ainda nao publica os novos alvos");
+  quadro(borda);
+  dedoPx(SDL_FINGERDOWN, 5, 150, 150);
+  dedoPx(SDL_FINGERUP, 5, 150, 150);
+  CONFERE(nEntregues == 2 && nFocar == 1,
+          "novo quadro publica alvos e taps voltam a funcionar depois do giro");
+  layout_tela_definir(1920, 1080);
+}
+#else
+static void gestoBorda(void) {}
+#endif
+
+static void pressaoLonga(void) {
+  Uint32 inicio;
+  SDL_Event e;
+  prepararHold(home);
+  inicio = relogio;
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio = inicio + NV_HOLD_MS - 1;
+  quadro(home);
+  CONFERE(!nEntregues && !nFocar, "antes do limiar nao existe OK nem foco");
+  relogio = inicio + NV_HOLD_MS;
+  quadro(home);
+  CONFERE(nEntregues == 2 && nFocar == 1 && menusDedo == 1 && !toquesDedo &&
+          flagsLongos == 2 && !holdDedo.armado,
+          "limiar confirma um par OK longo pelo ctxhold real, sem abrir curto");
+  CONFERE(!ponteiro_ok_longo(), "marca longa so existe durante a entrega");
+  for (int i = 0; i < 60; i++) quadro(home);
+  dedo(SDL_FINGERMOTION, 1, .5f, .5f);
+  dedo(SDL_FINGERUP, 1, .5f, .5f);
+  CONFERE(nEntregues == 2 && menusDedo == 1 && nFocar == 1,
+          "segurar mais, arrastar e soltar depois do limiar nao repetem nem rolam");
+  tocar(150, 150);
+  CONFERE(toquesDedo == 1 && menusDedo == 1 && flagsLongos == 2,
+          "proximo tap e curto e nao herda a marca longa");
+
+  prepararHold(home);
+  inicio = relogio;
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS;
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(menusDedo == 1 && nEntregues == 2, "soltura apos limiar sem quadro tambem confirma longo");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS - 1;
+  dedo(SDL_FINGERMOTION, 1, .08f + 40.0f / 1920.0f, .14f);
+  relogio += 1000; quadro(home);
+  dedo(SDL_FINGERMOTION, 1, .08f, .14f);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!conta(SDLK_RETURN) && !nFocar && !menusDedo,
+          "arrasto antes do limiar cancela longo mesmo retornando ao inicio");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += 200;
+  dedo(SDL_FINGERMOTION, 1, .08f + 10.0f / 1920.0f, .14f);
+  relogio += 600; quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f + 10.0f / 1920.0f, .14f);
+  CONFERE(menusDedo == 1 && nEntregues == 2, "tremor pequeno mantem pressao longa");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS - 1;
+  dedo(SDL_FINGERDOWN, 2, .09f, .14f);
+  dedo(SDL_FINGERUP, 2, .09f, .14f);
+  relogio += 1000; quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!nEntregues && !nFocar, "segundo dedo cancela longo antes de confirmar");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS;
+  quadro(homeComFolha);
+  quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!nEntregues && !nFocar, "camada nova no limiar cancela, mesmo voltando ao alvo antigo");
+
+  for (int i = 0; i < 6; i++) {
+    prepararHold(home);
+    dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+    if (!i) dedo(SDL_FINGERMOTION, 1, NAN, .14f);
+    else if (i == 5) ponteiro_cancelar_toque();
+    else { SDL_zero(e); e.type = i == 2 ? SDL_APP_WILLENTERBACKGROUND : SDL_WINDOWEVENT;
+      e.window.event = i == 3 ? SDL_WINDOWEVENT_RESIZED :
+                       i == 4 ? SDL_WINDOWEVENT_SIZE_CHANGED : SDL_WINDOWEVENT_FOCUS_LOST;
+      ponteiro_evento(&e, entregarHold); }
+    relogio += NV_HOLD_MS + 1000; quadro(home);
+    dedo(SDL_FINGERUP, 1, .08f, .14f);
+    CONFERE(!nEntregues && !nFocar, "invalido, foco, background, resize ou cancelamento do host cancelam longo");
+  }
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  CONFERE(tecla(SDL_KEYDOWN, SDLK_RIGHT, 0) == 0, "seta real continua passando");
+  relogio += NV_HOLD_MS; quadro(home);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(!nEntregues && !nFocar, "navegar no controle cancela o dedo pendente");
+
+  prepararHold(home);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += 10;
+  ponteiro_cancelar_toque();
+  dedo(SDL_FINGERUP, 1, .08f, .14f);  // o UP que SDL fabrica de ACTION_CANCEL
+  CONFERE(!nEntregues && !nFocar && !toquesDedo && !menusDedo,
+          "cancelamento do host antes do UP sintetico nao confirma tap curto");
+  tocar(150, 150);
+  CONFERE(nEntregues == 2 && nFocar == 1 && toquesDedo == 1 && !menusDedo,
+          "tap seguinte funciona sem reiniciar apos cancelamento do host");
+
+  prepararHold(homeComFolha);
+  dedo(SDL_FINGERDOWN, 1, 1450.0f / 1920.0f, 500.0f / 1080.0f);
+  relogio += NV_HOLD_MS; quadro(homeComFolha);
+  dedo(SDL_FINGERUP, 1, 1450.0f / 1920.0f, 500.0f / 1080.0f);
+  CONFERE(!nEntregues && !nAtivar, "anteparo absorve pressao longa");
+  dedo(SDL_FINGERDOWN, 1, 150.0f / 1920.0f, 500.0f / 1080.0f);
+  relogio += NV_HOLD_MS; quadro(homeComFolha);
+  CONFERE(!nEntregues && !nAtivar, "acao propria nao ganha OK longo implicitamente");
+  dedo(SDL_FINGERUP, 1, 150.0f / 1920.0f, 500.0f / 1080.0f);
+  CONFERE(!nEntregues && nAtivar == 1, "acao propria continua confirmando somente na soltura");
+
+  prepararHold(temporada);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS; quadro(temporada);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(menusDedo == 1 && focosLongos == 1 && focoA == 2 && !nAtivar,
+          "alvo proprio opta por foco longo sem disparar ativar nem repetir na soltura");
+  tocar(150, 150);
+  CONFERE(nAtivar == 1, "tap no alvo optante preserva seu ativar proprio");
+
+  prepararHold(NULL);
+  dedo(SDL_FINGERDOWN, 1, .08f, .14f);
+  relogio += NV_HOLD_MS; quadro(NULL);
+  dedo(SDL_FINGERUP, 1, .08f, .14f);
+  CONFERE(menusDedo == 1 && nEntregues == 2, "camada sem alvos mantem OK longo puro");
+}
+static void cancelarAlvo(void) {
+  preparar(home);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "sem dedo nao cancela alvo");
+  dedo(SDL_FINGERDOWN,1,150.0f/1920,150.0f/1080);
+  CONFERE(!ponteiro_cancelar_alvo(NULL) && !ponteiro_cancelar_alvo(ativar), "outro foco nao cancela ativacao pendente");
+  dedo(SDL_FINGERUP,1,150.0f/1920,150.0f/1080);
+  CONFERE(nFocar==1 && conta(SDLK_RETURN)==1, "toque nao relacionado continua ativando");
+  preparar(home);
+  dedo(SDL_FINGERDOWN,1,150.0f/1920,150.0f/1080);
+  CONFERE(ponteiro_cancelar_alvo(focar)==1, "mesmo foco cancela ativacao pendente");
+  quadro(home);dedo(SDL_FINGERUP,1,150.0f/1920,150.0f/1080);
+  CONFERE(!nFocar && !nEntregues, "soltura antiga nao ativa indice substituido");
+  tocar(150,150);
+  CONFERE(nFocar==1 && conta(SDLK_RETURN)==1, "novo toque continua ativando apos cancelamento");
+  preparar(homeComFolha);
+  dedo(SDL_FINGERDOWN,1,150.0f/1920,500.0f/1080);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao de baixo nao cancela acao da folha");
+  quadro(homeComFolha);dedo(SDL_FINGERUP,1,150.0f/1920,500.0f/1080);
+  CONFERE(nAtivar==1 && ativA==99, "acao propria da folha sobrevive publicacao");
+  preparar(home);
+  dedo(SDL_FINGERDOWN,1,1000.0f/1920,800.0f/1080);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "vazio nao pertence ao foco publicado");
+  dedo(SDL_FINGERUP,1,1000.0f/1920,800.0f/1080);
+  CONFERE(!nFocar && !nEntregues, "soltura no vazio continua inerte");
+
+  prepararContinuo(continuo);
+  dedoPx(SDL_FINGERDOWN,1,150,260);
+  relogio += 20; dedoPx(SDL_FINGERMOTION,1,150,210);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao nao cancela arrasto capturado");
+  relogio += 20; dedoPx(SDL_FINGERMOTION,1,150,180);
+  relogio += 200; dedoPx(SDL_FINGERUP,1,150,180);
+  for (int i=0;i<30;i++) quadro(continuo);
+  CONFERE(fabsf(distancia(PONT_ROL_MOVER)+80.0f)<.01f &&
+          fases(PONT_ROL_SOLTAR)==1 && fases(PONT_ROL_FIM)==1 &&
+          !fases(PONT_ROL_CANCELAR) && !nEntregues && !nFocar,
+          "arrasto sobrevive publicacao e termina sem clique");
+
+  prepararContinuo(continuo);
+  petelecoContinuo();
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao nao cancela inercia");
+  for (int i=0;i<180;i++) quadro(continuo);
+  CONFERE(fases(PONT_ROL_INERCIA)>1 && fases(PONT_ROL_FIM)==1 &&
+          !fases(PONT_ROL_CANCELAR) && !nEntregues && !nFocar,
+          "inercia sobrevive publicacao e termina uma vez");
+
+  prepararHold(home);
+  dedoPx(SDL_FINGERDOWN,1,150,150);
+  relogio += NV_HOLD_MS; quadro(home);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao nao reconsome pressao longa");
+  dedoPx(SDL_FINGERUP,1,150,150);
+  CONFERE(menusDedo==1 && !toquesDedo && !nAtivar,
+          "pressao longa permanece consumida sem segundo toque");
+
+  preparar(home);
+  dedoPx(SDL_FINGERDOWN,1,150,150);
+  dedoPx(SDL_FINGERDOWN,2,160,150);
+  CONFERE(!ponteiro_cancelar_alvo(focar), "publicacao deixa multifinger cancelado");
+  dedoPx(SDL_FINGERUP,2,160,150);
+  dedoPx(SDL_FINGERUP,1,150,150);
+  CONFERE(!nEntregues && !nFocar, "multifinger permanece sem ativacao");
+}
+
 int main(void) {
+#ifdef NV_TOUCH_UI
+  layout_modo_definir(1);
+#endif
+  ponteiro_roteiro_mouse();
   ponteiro_teste_relogio(agora);
   // Janela 960x540 e drawable diferente nao mudam coords normalizadas SDL.
   ponteiro_teste_janela(960, 540);
@@ -107,7 +831,8 @@ int main(void) {
   dedo(SDL_FINGERDOWN, 1, 1.01f, 1.01f); dedo(SDL_FINGERUP, 1, 1.01f, 1.01f);
   CONFERE(nEntregues == 2 && ponteiro_x() == 1919.0f && ponteiro_y() == 1079.0f,
           "bordas finitas limitadas ao viewport");
-  // ROLAGEM: dedo sobe 400 px logicos devagar = duas setas para BAIXO, sem OK.
+#ifndef NV_TOUCH_UI
+  // Nas TVs, dedo sobe 400 px logicos devagar = duas setas para BAIXO.
   preparar(home);
   dedo(SDL_FINGERDOWN, 1, 150.0f / 1920.0f, 700.0f / 1080.0f);
   for (int y = 680; y >= 300; y -= 20) { relogio += 40; dedo(SDL_FINGERMOTION, 1, 150.0f / 1920.0f, y / 1080.0f); }
@@ -153,6 +878,7 @@ int main(void) {
     for (int i = 0; i < 60; i++) quadro(home);
     CONFERE(conta(SDLK_DOWN) == antes, "tocar de novo para a inercia"); }
   dedo(SDL_FINGERUP, 1, 150.0f / 1920.0f, 560.0f / 1080.0f);
+#endif
   // ARRASTO DE ALVO: a barra recebe o ativar a cada movimento, nada rola.
   preparar(barra);
   nArrasto = 0;
@@ -168,6 +894,14 @@ int main(void) {
   // Fora da barra o fundo do player: toque = focar (e OK, sem ativar proprio).
   zerar(); nFocar = 0; tocar(800, 300);
   CONFERE(nFocar == 1 && focoA == 5 && conta(SDLK_RETURN) == 1, "tap no fundo foca e da OK");
+  pressaoLonga();
+  rolagemContinua();
+  arrastoSemNavegacao();
+  gestoBorda();
+  cancelarAlvo();
+#ifdef NV_TOUCH_UI
+  cursorDepoisDoToque();
+#endif
   printf("ponteiro toque: %s\n", falhas ? "FALHOU" : "PASS");
   return falhas ? 1 : 0;
 }

@@ -78,6 +78,29 @@ int main(int argc, char **argv) {
     fclose(f); }
   ajustes_dir(dir);
 
+#ifdef NV_TEST_PHONE_SHOT_H
+  // Phone captures seed display data only. No server, account or decoded
+  // media is exercised by this fixture.
+  memset(&L, 0, sizeof L);
+  L.n = 3; L.estado = E_PRONTO; L.xtConfig = L.contaLida = L.conta.valido = 1;
+  L.conta.temTs = L.conta.formatosDeclarados = 1; L.conta.maxConexoes = L.conta.conexoes = 1;
+  snprintf(L.conta.status, sizeof L.conta.status, "%s", "Active");
+  snprintf(L.grupo, sizeof L.grupo, "%s", "Fixture channels with long translated names");
+  L.redeMedida = L.kbpsDoSegmento = 1; L.kbps = 9000; L.kbpsPior = 6000; L.latenciaMs = 1200;
+  for (i = 0; i < L.n; i++) {
+    char tituloCanal[140];
+    snprintf(tituloCanal, sizeof tituloCanal, "Fixture %d: a long channel title for narrow phone layout FHD", i + 1);
+    canal(i, "fixture", tituloCanal); L.it[i].pronto = 1;
+    L.it[i].f[F_TS].tentado = L.it[i].f[F_HLS].tentado = 1;
+    L.it[i].f[F_TS].servido = L.it[i].f[F_HLS].servido = 1;
+    L.it[i].f[F_TS].http = L.it[i].f[F_HLS].http = 200;
+    snprintf(L.it[i].f[F_TS].codec, sizeof L.it[i].f[F_TS].codec, "H.264 · AAC");
+    snprintf(L.it[i].f[F_HLS].codec, sizeof L.it[i].f[F_HLS].codec, "H.264 · AAC");
+    L.it[i].f[F_TS].kbps = L.it[i].f[F_HLS].kbps = 9000;
+  }
+  L.it[2].f[F_TS].dezBits = 1;
+  recomendar(); ltdPhoneReiniciar();
+#else
   // --- 1. rede contra o servidor falso ---
   xtream_definir_servidor("127.0.0.1:8765");
   xtream_definir_usuario("u");
@@ -117,6 +140,7 @@ int main(int argc, char **argv) {
   assert(L.rec.resolucao == 3 || L.rec.resolucao == 2);   // ~9 Mbps: 720p (ou 1080p no pico)
   assert(L.rec.formato == 0 && L.rec.dezBits == 1);
   puts("ok  rede: conta, .ts e .m3u8, codec, 10 bits, vazao e recomendacao contra o servidor falso");
+#endif
 
   // --- capturas ---
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -181,6 +205,19 @@ int main(int argc, char **argv) {
   L.atual = 2; L.estado = E_REDE;
   snprintf(nome, sizeof nome, "%s-4-testando.bmp", saida);
   captura(nome);
+#ifdef NV_TEST_PHONE_SHOT_H
+  L.pfVivo = 0; L.estado = E_PRONTO;
+  L.n = 0; L.xtConfig = 0; L.redeMedida = 0; L.recModo = -1; memset(&L.rec, 0, sizeof L.rec);
+  snprintf(nome, sizeof nome, "%s-5-empty.bmp", saida); captura(nome);
+  L.n = 6; L.estado = E_PLAYER; L.atual = 2; L.pfFormato = F_HLS; L.pfVivo = 1; L.pfDesde = SDL_GetTicks();
+  snprintf(nome, sizeof nome, "%s-6-player-window-layout.bmp", saida); captura(nome);
+  L.pfVivo = 0; L.estado = E_PRONTO; L.redeMedida = 1; L.kbps = 9000;
+  recomendar();
+  L.rec.dezBits = 1; L.rec.semDecoder = 3; L.latenciaMs = 1200; L.recModo = M_B; L.tocouModo[M_P] = 1; L.enviou = 1;
+  snprintf(nome, sizeof nome, "%s-7-full-result.bmp", saida); captura(nome);
+  ltdPhone.offset = ltdPhone.rolagem.maximo;
+  snprintf(nome, sizeof nome, "%s-8-result-bottom.bmp", saida); captura(nome);
+#endif
   puts("livetvdiag: tudo ok");
   return 0;
 }

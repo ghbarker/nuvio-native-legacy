@@ -1,0 +1,107 @@
+name: Mobile UI rendered review
+on:
+  push:
+    branches: [mobile-touch, feat/android-tv-mobile]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  captures:
+    if: github.event_name == 'pull_request' || github.repository != 'iqui27/nuvio-native-legacy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    concurrency:
+      group: mobile-ui-${{ github.ref }}-${{ matrix.group }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: settings-panel
+            capture: '--fixtures ajustes --cases 1080x2340@1 --all-settings --settings-layout 0'
+          - group: settings-list
+            capture: '--fixtures ajustes --cases 1080x2340@1 --all-settings --settings-layout 1'
+          - group: browsing
+            capture: '--fixtures busca biblioteca explorar vertudo agenda guia'
+          - group: home-layouts
+            capture: '--fixtures homelayouts'
+          - group: home-shapes
+            capture: '--fixtures homelayouts --home-variant shapes'
+          - group: home-ranking
+            capture: '--fixtures homelayouts --home-variant ranking'
+          - group: home-folders
+            capture: '--fixtures homelayouts --home-variant folders'
+          - group: feedback-home
+            capture: '--fixtures homelayouts --home-variant swipe --cases 1080x2340@1 1080x2340@1.5 2340x1080@1.5'
+          - group: feedback-pages
+            capture: '--fixtures agenda guia --cases 1080x2340@1.5 2340x1080@1.5'
+          - group: feedback-catalog
+            capture: '--fixtures explorar vertudo homelayouts --home-variant folders --cases 1080x2340@1.5 2340x1080@1.5'
+          - group: phone-input
+            capture: '--fixtures teclado_phone_native --cases 1080x2340@1 1080x2340@1.5 2340x1080@1 2340x1080@1.5'
+          - group: phone-settings-list
+            capture: '--fixtures ajustes --cases 1080x2340@1 1080x2340@1.5 2340x1080@1.5'
+          - group: detail
+            capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
+          - group: account
+            capture: '--fixtures perfil pessoas recenviar spainel_abas spainel_acordeao avisos_toast avisos_dispensar'
+          - group: saved-controls
+            capture: '--fixtures spainel_abas spainel_acordeao --cases 1080x2340@1.5 2340x1080@1.5'
+          - group: system
+            capture: '--fixtures central registro diagnostico livetvdiag ilha3'
+          - group: introductions
+            capture: '--fixtures pipintro novidades20 novidades_cartao'
+          - group: player-controls
+            capture: '--fixtures player_glass --cases 2340x1080@1.5 --player-scenes osd osd-serie osd-barra osd-barra-foco osd-botao-sobe audio-codec audio-codec-ee3 audio-codec-aac dts-nativo dts-convertido dts-sem-som toast-proporcao reconectando audio audio-direita legendas legenda-estilo seekr seekr-fita seekr-carregando pausa'
+          - group: player-movie
+            capture: '--fixtures player_glass --cases 2340x1080@1.5 --player-scenes buffering-claro buffering-escuro abrindo-compacto abrindo-expandido abrindo-fim carregando erro guia-parental guia-ilha pular-abertura episodios episodios-marcar proximo mais-como-este reacao fontes abrindo abrindo-logo abrindo-sem-logo guia-morph guia-relogio-off abrindo-folha onde-ver trailer'
+          - group: player-live
+            capture: '--fixtures player_glass --cases 2340x1080@1.5 --player-scenes aovivo-osd aovivo-atras aovivo-erro aovivo-mini aovivo-zap aovivo-ilha ilha-crescendo saida-modal saida-voo'
+          - group: subtitle-style
+            capture: '--fixtures faixas_estilo --cases 2340x1080@1.5'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Drawing tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev xvfb python3-pil
+      - name: Native phone captures
+        run: |
+          if [ '${{ matrix.group }}' = 'phone-settings-list' ]; then
+            export NUVIO_PHONE_SETTINGS_LIST_ONLY=1
+          fi
+          xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py ${{ matrix.capture }}
+      - name: Schedule selector native negative control
+        if: matrix.group == 'feedback-pages'
+        run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/agenda_label_native_negative.py
+      - name: Home folder reference native negative control
+        if: matrix.group == 'feedback-catalog'
+        run: |
+          python3 tests/home_folder_native_negative.py --self-test
+          xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/home_folder_native_negative.py
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.group == 'feedback-catalog'
+        with:
+          name: Mobile-UI-review-home-folder-negative-${{ github.sha }}
+          path: |
+            build/home-folder-native-negative/**/*.png
+            build/home-folder-native-negative/**/*.log
+            build/home-folder-native-negative/results.json
+            build/home-folder-native-negative/negative-control.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Mobile-UI-review-${{ matrix.group }}-${{ github.sha }}
+          path: |
+            build/phone-review/**/*.png
+            build/phone-review/**/*.log
+            build/phone-review/**/*.tsv
+            build/phone-review/results.json
+            build/phone-label-negative/**/*.log
+            build/phone-label-negative/results.json
+            build/phone-label-negative/negative-control.json
+          retention-days: 14
+

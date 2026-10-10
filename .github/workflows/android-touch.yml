@@ -1,0 +1,283 @@
+name: Android TV and Mobile debug
+
+on:
+  push:
+    branches: [mobile-touch, feat/android-tv-mobile]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      apk_run_id:
+        description: 'Retest APKs from an earlier build run; leave empty to build'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: android-touch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev python3-pil
+      - name: Runtime mode and input regressions
+        run: |
+          bash tests/interface_mode.sh
+          bash tests/telefoneui_mode.sh
+          cc -Isrc tests/layout_mode_tv.c src/layout.c -o /tmp/nuvio-layout-tv
+          /tmp/nuvio-layout-tv
+          bash tests/ponteiro_toque.sh
+          bash tests/app_sidebar_toque.sh
+          bash tests/settings_phone_list_routes.sh
+          bash tests/player_touch_resize.sh
+          bash tests/home_hero_swipe.sh
+          python3 tests/android_apk_pages.py
+          python3 tests/android_smoke_rotation.py
+          python3 tests/android_smoke_input.py
+
+  preview:
+    # Debug packages use this fork's test configuration/key, never release keys.
+    # PRs from another fork run the native checks without access to these secrets.
+    if: github.repository != 'iqui27/nuvio-native-legacy' && !inputs.apk_run_id && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NUVIO_ANDROID_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Public application configuration
+        env:
+          NUVIO_TOUCH_CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+          NUVIO_TOUCH_DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
+        run: |
+          mkdir -p build/android-touch
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          body = os.environ.get('NUVIO_TOUCH_CORE_PROPERTIES', '')
+          if not body:
+              raise SystemExit('Set NUVIO_TOUCH_CORE_PROPERTIES for this preview build')
+          path = Path('build/android-touch/preview.properties')
+          path.write_text(body)
+          path.chmod(0o600)
+          PY
+          test -n "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" || { echo 'Set NUVIO_TOUCH_DEBUG_KEYSTORE_B64 for repeatable preview updates'; exit 1; }
+          mkdir -p "$HOME/.android"
+          printf '%s' "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+          echo "NUVIO_PROPERTIES=$GITHUB_WORKSPACE/build/android-touch/preview.properties" >> "$GITHUB_ENV"
+      - uses: actions/cache/restore@v4
+        id: native-cache
+        with:
+          path: ~/.cache/nuvio-android
+          key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'tools/android/ffmpeg-touch.sh', 'android/app/src/main/cpp/CMakeLists.txt') }}
+      - uses: actions/cache/restore@v4
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-touch-gradle-${{ runner.os }}-
+      - name: Touch input regression
+        run: |
+          bash tests/ponteiro_toque.sh
+          bash tests/app_sidebar_toque.sh
+          bash tests/catalogo_toque.sh
+          bash tests/home_hero_swipe.sh
+          bash tests/agenda_phone.sh
+          bash tests/busca_people_phone.sh
+          bash tests/social_toque.sh
+          bash tests/media_toque.sh
+          bash tests/player_touch_resize.sh
+          bash tests/home_trailer_resize.sh
+          bash tests/menus_toque.sh
+          bash tests/settings_phone_list_routes.sh
+          bash tests/entrada_retrato.sh
+          bash tests/sistexto_valor.sh
+          bash tests/teclado_phone_native.sh
+          bash tests/utilidades_toque.sh
+          bash tests/gpun_touch.sh
+          bash tests/snap_retrato.sh
+          bash tests/account_mobile.sh
+          bash tests/ctxmenu_retrato.sh
+          bash tests/spotlight_retrato.sh
+          bash tests/spotlight_clip_phone.sh
+          bash tests/vertudo_retrato.sh
+          bash tests/telefone_blocos.sh
+          bash tests/account_actions_review.sh
+          bash tests/account_support_review.sh
+          bash tests/guia_drawers_review.sh
+          bash tests/explorar_desenho_review.sh
+          bash tests/vertudo_grid_review.sh
+          bash tests/phone_cards.sh
+          bash tests/telefone_dialogos.sh
+          bash tests/telefone_folhas.sh
+          bash tests/playback_actions_review.sh
+          bash tests/player_mini_toque.sh
+          bash tests/player_touch_frames_review.sh
+          bash tests/salvospainel_phone_content.sh
+          bash tests/saved_touch_frames_review.sh
+          bash tests/saved_social_phone.sh
+          bash tests/saved_social_touch_review.sh
+          bash tests/livetvdiag_phone.sh
+          bash tests/livetvdiag_actions_review.sh
+          bash tests/biblioteca_content_review.sh
+          bash tests/social_log_phone.sh
+          bash tests/social_log_actions_review.sh
+          bash tests/home_rows_review.sh
+          bash tests/settings_visibility_review.sh
+          bash tests/faixas_estilo_phone.sh
+          bash tests/pessoas_phone_focus.sh
+          bash tests/pausao_phone.sh
+          python3 tests/android_apk_pages.py
+          bash tests/interface_mode.sh
+          bash tests/telefoneui_mode.sh
+          cc -Isrc tests/layout_mode_tv.c src/layout.c -o /tmp/nuvio-layout-tv
+          /tmp/nuvio-layout-tv
+          cc -DNV_TOUCH_UI -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
+          /tmp/nuvio-layout-touch
+      - name: ARM phone APK
+        run: bash tools/android-touch.sh
+      - name: Standard package ARM debug APK
+        env:
+          NUVIO_TOUCH_PREVIEW: 'false'
+        run: bash tools/android-touch.sh
+      - name: Emulator APK
+        env:
+          NUVIO_TOUCH_ABIS: x86_64
+          NUVIO_TOUCH_PREVIEW: 'false'
+        run: bash tools/android-touch.sh
+      - name: Touch viewport regression
+        run: |
+          python3 tests/android_touch_viewport.py
+          python3 tests/android_window_layout.py
+          python3 tests/android_orientation.py
+          python3 tests/android_smoke_rotation.py
+          python3 tests/android_smoke_input.py
+      - uses: actions/cache/save@v4
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/nuvio-android
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - uses: actions/cache/save@v4
+        if: steps.gradle-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-tv-mobile-debug-${{ github.sha }}
+          path: build/android-ui-debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-touch-preview-${{ github.sha }}
+          path: build/android-touch/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Release build memory
+        run: bash android/gradlew -p android --stop
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Phone emulator smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis_ps16k
+          profile: pixel_2
+          cores: 4
+          ram-size: 6144
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tools/android-touch-smoke.sh build/android-ui-debug/*-tv-mobile-debug-x86_64.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-touch-smoke-${{ github.sha }}
+          path: build/android-touch/smoke/
+          if-no-files-found: warn
+          retention-days: 14
+
+  retest:
+    if: github.repository != 'iqui27/nuvio-native-legacy' && inputs.apk_run_id != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y python3-pil
+          python3 tests/android_smoke_rotation.py
+          python3 tests/android_smoke_input.py
+      - name: Download existing APKs
+        env:
+          APK_RUN_ID: ${{ inputs.apk_run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$APK_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          APK_NAME=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$APK_RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("Nuvio-tv-mobile-debug-")) | .name')
+          test -n "$APK_NAME"
+          gh run download "$APK_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$APK_NAME" --dir build/android-touch
+          test -n "$(compgen -G 'build/android-touch/*-tv-mobile-debug-x86_64.apk')"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Phone emulator smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis_ps16k
+          profile: pixel_2
+          cores: 4
+          ram-size: 6144
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tools/android-touch-smoke.sh build/android-touch/*-tv-mobile-debug-x86_64.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-touch-smoke-retest-${{ github.run_id }}
+          path: build/android-touch/smoke/
+          if-no-files-found: warn
+          retention-days: 14
+

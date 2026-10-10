@@ -10,6 +10,7 @@ set(NUVIO_RAIZ "" CACHE PATH "raiz do repositorio")
 set(NUVIO_SDL_SRC "$ENV{HOME}/.cache/nuvio-android/src" CACHE PATH "fontes do SDL")
 set(NUVIO_ENV_CMAKE "" CACHE FILEPATH "chaves -D geradas por tools/android.sh (fora do git)")
 set(NUVIO_P2P_MOTOR "" CACHE PATH "motor P2P de tools/p2p-motor/build-android.sh (vazio = sem motor)")
+option(NUVIO_TOUCH_PREVIEW "isolated touch preview package" OFF)
 
 set(SDL_DIR   "${NUVIO_SDL_SRC}/SDL2-2.30.9")
 set(IMG_DIR   "${NUVIO_SDL_SRC}/SDL2_image-2.8.2")
@@ -78,7 +79,16 @@ file(GLOB NUVIO_SRC CONFIGURE_DEPENDS "${NUVIO_RAIZ}/src/*.c" "${NUVIO_RAIZ}/src
 list(FILTER NUVIO_SRC EXCLUDE REGEX "/(video_tizen|video_tpk|tpk)\\.c$")
 add_library(main SHARED ${NUVIO_SRC})
 target_include_directories(main PRIVATE "${NUVIO_RAIZ}/src" "${CMAKE_BINARY_DIR}/inc")
-target_compile_definitions(main PRIVATE NV_ANDROID)
+target_compile_definitions(main PRIVATE NV_ANDROID NV_TOUCH_UI)
+if(NUVIO_TOUCH_PREVIEW)
+  target_compile_definitions(main PRIVATE NV_TOUCH_PREVIEW)
+endif()
+if(ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "x86_64")
+  # Both modes ship in one APK; NDK r27 needs a 16KB-aligned RELRO end.
+  foreach(t main SDL2)
+    target_link_options(${t} PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,-z,common-page-size=16384")
+  endforeach()
+endif()
 target_compile_options(main PRIVATE -O2 -Wno-unused-result)
 
 # Chaves (-D) do tools/env.sh. Sem o arquivo, ou com chave vazia, o build sai
@@ -88,6 +98,10 @@ set(NV_KEYS NV_SUPABASE_URL NV_SUPABASE_ANON_KEY NV_TV_LOGIN_BASE NV_TRAKT_CLIEN
 if(NUVIO_ENV_CMAKE AND EXISTS "${NUVIO_ENV_CMAKE}")
   include("${NUVIO_ENV_CMAKE}")
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${NUVIO_ENV_CMAKE}")
+endif()
+if(NUVIO_TOUCH_PREVIEW)
+  # Preview logs stay local, even when a production environment file is used.
+  set(NV_REC_URL "")
 endif()
 foreach(k ${NV_KEYS})
   # \" literal: o gerador de build escapa o resto.
@@ -116,3 +130,4 @@ if(NUVIO_P2P_MOTOR)
     "${P2P_LIB}/libtorrent-rasterbar.a" "${P2P_LIB}/libssl.a" "${P2P_LIB}/libcrypto.a" c++experimental)
   target_link_options(main PRIVATE "-Wl,--gc-sections")
 endif()
+

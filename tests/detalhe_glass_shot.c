@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 
 #define extras_pedir            fx_pedir
 #define extras_carregando       fx_carregando
@@ -366,7 +367,7 @@ int main(int argc, char **argv) {
   glViewport(0, 0, 1920, 1080);
   gfx_tamanho_alvo(1920, 1080);
   assert(gfx_iniciar());
-  { char ic[1024]; if (realpath("deploy/app/art", ic)) gfx_icones_dir(ic); }
+  { char ic[PATH_MAX]; if (realpath("deploy/app/art", ic)) gfx_icones_dir(ic); }
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(16);
   ajustes_iniciar();
@@ -393,7 +394,7 @@ int main(int argc, char **argv) {
     fclose(f);
     ajustes_dir(dd); }
   // As marcas das notas (IMDb, Rotten Tomatoes, Trakt) vem da pasta de arte.
-  { char ar[1024]; if (realpath("deploy/app/art", ar)) extras_carregar(ar); }
+  { char ar[PATH_MAX]; if (realpath("deploy/app/art", ar)) extras_carregar(ar); }
   montarCatalogo();
   cacheFrases();
   // NUVIO_SHOT_AMIGOS=1: amigos falsos (feed externo) no filme e na serie —

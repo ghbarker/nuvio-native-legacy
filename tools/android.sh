@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build do Nuvio para Android TV (SDL2 + GLES2, nucleo C em libmain.so).
+# Build do Nuvio para Android TV/Mobile (SDL2 + GLES2, nucleo C em libmain.so).
 #
 #   tools/android.sh            -> APK debug em build/android/Nuvio-<v>-android-debug.apk
 #   NUVIO_P2P_MOTOR=<raiz> tools/android.sh -> motor P2P (padrao: pasta achada por tools/p2p-motor/pasta.sh; =none desliga)
@@ -72,7 +72,10 @@ for abi in arm64-v8a armeabi-v7a; do
 done
 
 echo "[4/5] gradle"
-GR=(android/gradlew -p android --console=plain -Pnuvio.sdlSrc="$CACHE/src" -Pnuvio.estagio="$EST")
+export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$ANDROID_HOME/ndk/27.2.12479018}"
+FFMPEG_AAR="$EST/media3-ffmpeg-16kb.aar"
+bash tools/android/ffmpeg-touch.sh "$FFMPEG_AAR" arm64-v8a armeabi-v7a
+GR=(android/gradlew -p android --console=plain -Pnuvio.sdlSrc="$CACHE/src" -Pnuvio.estagio="$EST" -Pnuvio.ffmpegAar="$FFMPEG_AAR")
 # Motor P2P embutido: pasta achada por tools/p2p-motor/pasta.sh (NUVIO_P2P_MOTOR,
 # ou a pasta padrao); configurada e incompleta = erro, nunca pacote sem motor calado.
 . tools/p2p-motor/pasta.sh
@@ -119,6 +122,8 @@ for a in "${APKS[@]}"; do
   fi
   n=$(printf '%s\n' "$L" | grep -c -E "$SEGREDO" || true)
   [ "$n" = "0" ] || { echo "android.sh: $a leva $n arquivo(s) de pessoa:" >&2; printf '%s\n' "$L" | grep -E "$SEGREDO" >&2; exit 1; }
+  python3 tools/android-apk-pages.py "$a"
   echo "ok: $a ($(du -h "$a" | cut -f1))"
   printf '%s\n' "$L" | grep -E '^lib/.*\.so$' | sed 's/^/  /'
 done
+

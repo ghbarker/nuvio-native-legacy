@@ -28,6 +28,7 @@
 #include "gfx.h"
 #include "home.h"
 #include "layout.h"
+#include "telefoneui.h"
 #include "menu.h"
 #include "tex_cache.h"
 #include "text.h"
@@ -37,8 +38,10 @@
 #include "posterprov.h"
 #include "trakt.h"
 #include "socialvis.h"
+#include "ponteiro.h"
 #include <unistd.h>
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,6 +71,13 @@ static const Fil FILS[] = {
 static SDL_Window *janela;
 static const char *dirDados;
 static double fillUlt, fillVisUlt, modoUlt[GFX_NMODOS]; static int rectUlt;
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+static int heroPaginaConfere;
+static float heroPaginaEsperada[3];
+static void heroPaginaVerificar(void);
+static int pastasComparando;
+static int pastaModoDeitado;
+#endif
 
 static void gravar(const char *bmp) {
   unsigned char *pix = malloc(1920 * 1080 * 4);
@@ -86,6 +96,10 @@ static void quadros(int n, const char *bmp) {
   int i;
   for (i = 0; i < n; i++) {
     Uint32 agora = SDL_GetTicks();
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    if (getenv("NV_HERO_SWIPE")) ponteiro_quadro(agora);
+    if (pastasComparando) ponteiro_quadro(agora);
+#endif
     SDL_PumpEvents();
     tex_bombear(8);
     home_atualizar(1.0f / 60.0f, agora);
@@ -98,6 +112,9 @@ static void quadros(int n, const char *bmp) {
     glClear(GL_COLOR_BUFFER_BIT);
     gfx_ambiente(1.0f);
     home_desenhar(agora);
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    if (heroPaginaConfere) heroPaginaVerificar();
+#endif
     ctx_atualizar(1.0f / 60.0f, agora);
     ctx_desenhar(agora);
     // NV_MENU=1: a barra por cima, como app.c (no Dinamica, a pilula do topo).
@@ -106,6 +123,10 @@ static void quadros(int n, const char *bmp) {
       menu_atualizar(1.0f / 60.0f, agora);
       menu_desenhar(agora);
     }
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    if (getenv("NV_HERO_SWIPE")) ponteiro_desenhar();
+    if (pastasComparando) ponteiro_desenhar();
+#endif
     if (i == n - 1) { fillUlt = gfx_fill; fillVisUlt = gfx_fill_vis; rectUlt = gfx_n_rect;
                       memcpy(modoUlt, gfx_fill_modo, sizeof modoUlt); }
     if (bmp && i == n - 1) gravar(bmp);
@@ -156,13 +177,21 @@ static void tecla(SDL_Keycode k) {
 static void ajusta(int layout, int vidro) {
   char cam[700];
   FILE *a;
+  int deitado = 1;
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  if (pastaModoDeitado) deitado = 0;  // indice 0 = ligado
+#endif
   snprintf(cam, sizeof cam, "%s/ajustes.txt", dirDados);
   a = fopen(cam, "w");
   assert(a);
   fprintf(a, "idioma 0\ntrailerHero 1\nhomeLayoutLocal %d\nvidroLocal %d\n"
-             "modernLandscapePostersEnabled 1\nselected_theme %d\n",
-          layout, vidro ? 0 : 1, getenv("NV_TEMA") ? atoi(getenv("NV_TEMA")) : 0);
+             "modernLandscapePostersEnabled %d\nselected_theme %d\n",
+          layout, vidro ? 0 : 1, deitado, getenv("NV_TEMA") ? atoi(getenv("NV_TEMA")) : 0);
   if (getenv("NV_AJ")) fprintf(a, "%s\n", getenv("NV_AJ"));   // ex.: "heroSectionEnabled 1"
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  // ajustes.txt stores the option index: 1 selects "Desligado".
+  if (getenv("NV_HERO_SWIPE")) fprintf(a,"modernHeroFullScreenBackdropEnabled 1\n");
+#endif
   fclose(a);
   ajustes_dir(dirDados);
   // O roteamento de app.c (app_atualizar), que este teste nao roda.
@@ -170,6 +199,283 @@ static void ajusta(int layout, int vidro) {
   posterprov_preferir_addon(ajustes_poster_addon());
   col_arte_conta(ajustes_col_arte_conta());
 }
+
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+static int pastaFocar(TipoFileira tipo,const char *titulo) {
+  home_ir_topo();quadros(120,NULL);
+  for(int i=0;i<40;i++) {
+    int row,n,t,col;
+    if(sscanf(home_rastro_foco(),"f%d/%d tipo=%d col=%d",&row,&n,&t,&col)==4 &&
+       t==(int)tipo && strstr(home_rastro_foco(),titulo)) return row;
+    tecla(SDLK_DOWN);quadros(110,NULL);
+  }
+  fprintf(stderr,"folder comparison row missing: %s\n",titulo);assert(0);return -1;
+}
+static PonteiroAlvo pastaAlvoCol(PonteiroFn fn,int row,int col) {
+  const PonteiroAlvo *v;
+  int n=ponteiro_teste_lista(&v);
+  for(int i=0;i<n;i++)if(v[i].focar==fn&&v[i].a==row&&v[i].b==col)return v[i];
+  fprintf(stderr,"folder comparison target missing: row %d column %d\n",row,col);assert(0);
+  return (PonteiroAlvo){0};
+}
+static PonteiroAlvo pastaAlvo(PonteiroFn fn,int row) { return pastaAlvoCol(fn,row,0); }
+static HomeItem pastaPosterAssentar(void) {
+  HomeItem normal;assert(home_item_focado(&normal));
+  if (NV_TELA_W>NV_TELA_H && ajustes_expandir_poster() && !ajustes_posteres_deitados()) {
+    /* Exercise the formerly timing-dependent reference with the real idle
+       expansion fully active. No setting or production state is changed. */
+    Uint32 limite=SDL_GetTicks()+(Uint32)(ajustes_expandir_poster_atraso()*1000)+5000;
+    while (fabsf(normal.rect.w-normal.rect.h*(16.0f/9.0f))>=.15f && SDL_GetTicks()<limite) {
+      quadros(1,NULL);assert(home_item_focado(&normal));
+    }
+    printf("[shot] idle expanded reference: focused %.3fx%.3f, expected width %.3f\n",
+           normal.rect.w,normal.rect.h,normal.rect.h*(16.0f/9.0f));fflush(stdout);
+    assert(fabsf(normal.rect.w-normal.rect.h*(16.0f/9.0f))<.15f);
+  }
+  return normal;
+}
+static void pastaDedo(Uint32 tipo,float x,float y) {
+  SDL_Event e={0};e.type=tipo;e.tfinger.touchId=71;e.tfinger.fingerId=1;
+  e.tfinger.x=x/NV_TELA_W;e.tfinger.y=y/NV_TELA_H;
+  assert(ponteiro_evento(&e,home_evento));
+}
+static PonteiroFn pastaFnFocada(HomeItem normal,int row) {
+  const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v);
+  for(int i=0;i<n;i++)if(v[i].a==row&&v[i].b==0&&v[i].focar &&
+    fabsf(v[i].x-normal.rect.x)<.1f&&fabsf(v[i].w-normal.rect.w)<.1f) {
+    assert(fabsf(v[i].y-normal.rect.y)<.15f&&fabsf(v[i].h-normal.rect.h)<.15f);
+    return v[i].focar;
+  }
+  assert(0);return NULL;
+}
+static void pastaPosicionarDeitada(PonteiroAlvo alvo,float top) {
+  float delta=top-alvo.y;
+  /* A nearby row already meets the measured comparison below. A tiny
+     positioning gesture stays below ponteiro's 32px drag threshold and
+     becomes a tap on the folder; leave a margin above that threshold. */
+  int arrastar=fabsf(delta)>48.0f;
+  printf("[shot] wide positioning: current y %.3f, desired y %.3f, delta %.3f, SDL drag %d\n",
+         alvo.y,top,delta,arrastar);fflush(stdout);
+  if(arrastar) {
+    float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80);
+    pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+    pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
+    SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);
+  }
+  quadros(4,NULL);
+}
+static void pastaCompararDeitada(const char *saida,int lay,int vidro,float *wideW,float *wideH) {
+  char bmp[900];
+  pastaModoDeitado=1;ajusta(lay,vidro);
+  assert(ajustes_posteres_deitados());
+  int rowNormal=pastaFocar(FILEIRA_NORMAL,"Em alta");
+  HomeItem normal;assert(home_item_focado(&normal));
+  PonteiroFn fn=pastaFnFocada(normal,rowNormal);
+  float zoom=ajustes_borda_foco()?1:1.06f,escalaNormal=fil_escala("trend_series");
+  PonteiroAlvo fechado=pastaAlvoCol(fn,rowNormal,1);
+  assert(fabsf(fechado.w-normal.rect.w/zoom)<.15f&&fabsf(fechado.h-normal.rect.h/zoom)<.15f);
+  *wideW=fechado.w/escalaNormal;*wideH=fechado.h/escalaNormal;
+  printf("[shot] normal-wide reference: unfocused column1 %.3fx%.3f, row %d, scale %.3f, UI%.0f\n",
+         fechado.w,fechado.h,rowNormal,escalaNormal,gfx_escala_ui()*100);fflush(stdout);
+  snprintf(bmp,sizeof bmp,"%s-folders-wide-L%d-g%d-0-ordinary-landscape.bmp",saida,lay,vidro);quadros(1,bmp);
+  assert(fil_definir_tipo("collection_cs",FIL_TIPO_COLECAO));quadros(120,NULL);
+  int row=pastaFocar(FILEIRA_CATALOGOS,"Streaming");assert(row==rowNormal+1);
+  float escalaCol=fil_escala("collection_cs"),w=*wideW*escalaCol,h=*wideH*escalaCol;
+  PonteiroAlvo alvo=pastaAlvo(fn,row);
+  assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+  float gap=(lay==HOME_LAYOUT_MODERNA?NV_FILEIRA_GAP_LAND:NV_PAD_FILEIRA_GAP)*ajustes_espaco_fileiras();
+  float top=fminf(156+2*NV_LEGACY_ROW_HEAD_H+*wideH*escalaNormal+gap,NV_TELA_H-h-24);
+  pastaPosicionarDeitada(alvo,top);
+  alvo=pastaAlvo(fn,row);PonteiroAlvo titulo=pastaAlvo(fn,rowNormal);
+  float tituloTop=alvo.y-NV_LEGACY_ROW_HEAD_H-*wideH*escalaNormal-gap;
+  float vis=*wideH*escalaNormal-fmaxf(0,132-tituloTop);
+  printf("[shot] adjacent wide measured: folder %.3f,%.3f %.3fx%.3f, normal %.3f,%.3f %.3fx%.3f, expected normal %.3fx%.3f\n",
+         alvo.x,alvo.y,alvo.w,alvo.h,titulo.x,titulo.y,titulo.w,titulo.h,*wideW*escalaNormal,vis);fflush(stdout);
+  assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+  assert(fabsf(titulo.w-*wideW*escalaNormal)<.15f&&fabsf(titulo.h-vis)<.15f);
+  assert(titulo.h>=*wideH*escalaNormal*.7f&&titulo.y>=132&&titulo.y+titulo.h<alvo.y);
+  assert(alvo.y+alvo.h<=NV_TELA_H+.15f);
+  snprintf(bmp,sizeof bmp,"%s-folders-wide-L%d-g%d-1-landscape-beside-landscape.bmp",saida,lay,vidro);quadros(1,bmp);
+  printf("[shot] actual Home landscape folder %.3fx%.3f matches normal-wide %.3fx%.3f, row scales %.3f/%.3f, UI%.0f: measured draw targets passed\n",
+         alvo.w,alvo.h,*wideW*escalaNormal,*wideH*escalaNormal,escalaCol,escalaNormal,gfx_escala_ui()*100);fflush(stdout);
+  pastaModoDeitado=0;
+}
+static void pastasComparar(const char *saida,const char *camadas) {
+  const char *nomes[]={"landscape","square","poster"};
+  const int tipos[]={FIL_TIPO_COLECAO,FIL_TIPO_DESTAQUE_QUADRADO,FIL_TIPO_CARTAZ};
+  char bmp[900];
+  int tipoCol=fil_tipo("collection_cs"),tipoPoster=fil_tipo("trend_series");
+  pastasComparando=1;ponteiro_iniciar();ponteiro_teste_toque(1);
+  assert(fil_definir_tipo("trend_series",FIL_TIPO_CARTAZ));
+  for(const char *L=camadas;*L;L++) {
+    int lay=*L-'0';
+    /* Dynamic moves Streaming into navigation; these comparisons concern
+       the actual Home folder row in Modern and Standard. */
+    if(lay==HOME_LAYOUT_DINAMICA)continue;
+    for(int vidro=0;vidro<2;vidro++) {
+      float wideW,wideH;
+      pastaCompararDeitada(saida,lay,vidro,&wideW,&wideH);
+      ajusta(lay,vidro);
+      int rowPoster=pastaFocar(FILEIRA_NORMAL,"Em alta");
+      HomeItem normal=pastaPosterAssentar();
+      float zoom=ajustes_borda_foco()?1:1.06f;
+      float escalaPoster=fil_escala("trend_series");
+      float ph=normal.rect.h/zoom/escalaPoster;
+      PonteiroFn fn=NULL;
+      const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v);
+      for(int i=0;i<n;i++)if(v[i].a==rowPoster&&v[i].b==0&&v[i].focar &&
+        fabsf(v[i].x-normal.rect.x)<.1f&&fabsf(v[i].w-normal.rect.w)<.1f)fn=v[i].focar;
+      assert(fn);
+      PonteiroAlvo focado=pastaAlvo(fn,rowPoster);
+      assert(fabsf(focado.x-normal.rect.x)<.15f && fabsf(focado.y-normal.rect.y)<.15f &&
+             fabsf(focado.w-normal.rect.w)<.15f && fabsf(focado.h-normal.rect.h)<.15f);
+      /* A focused landscape-phone poster can already have expanded into
+         its backdrop after the real idle delay. Measure the ordinary width
+         from the explicitly unfocused neighbor, whose art keeps its shape. */
+      PonteiroAlvo fechado=pastaAlvoCol(fn,rowPoster,1);
+      assert(fabsf(fechado.h-ph*escalaPoster)<.15f);
+      float pw=fechado.w/escalaPoster;
+      /* Test-only negative control: the old expanded focused-width basis
+         must still fail the adjacent ordinary-poster assertion below. */
+      if(getenv("NV_FOLDER_OLD_REFERENCE"))pw=normal.rect.w/zoom/escalaPoster;
+      printf("[shot] ordinary reference: focused %.3fx%.3f, unfocused column1 %.3fx%.3f, row %d, UI%.0f\n",
+             normal.rect.w,normal.rect.h,fechado.w,fechado.h,rowPoster,gfx_escala_ui()*100);
+      fflush(stdout);
+      snprintf(bmp,sizeof bmp,"%s-folders-L%d-g%d-0-ordinary-posters.bmp",saida,lay,vidro);
+      quadros(1,bmp);
+      for(int forma=0;forma<3;forma++) {
+        assert(fil_definir_tipo("collection_cs",tipos[forma]));quadros(120,NULL);
+        int row=pastaFocar(FILEIRA_CATALOGOS,"Streaming");
+        assert(row==rowPoster+1);
+        PonteiroAlvo alvo=pastaAlvo(fn,row);
+        float escalaCol=fil_escala("collection_cs");
+        float w=(forma==2?pw:forma==1?ph:wideW)*escalaCol,h=(forma==0?wideH:ph)*escalaCol;
+        if(NV_TELA_H/NV_TELA_W>=1.7f) {
+          float x=ajustes_rail_largura_fixa()>0?fmaxf(48,ajustes_conteudo_x()):48;
+          float cap=(NV_TELA_W-2*x)*.9f;
+          if(w>cap){h*=cap/w;w=cap;}
+        }
+        assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+        /* Place adjacent rows through the real vertical gesture. Short
+           landscape viewports keep the complete folder plus the visible
+           part of the poster; the separate reference captures it whole. */
+        float gap=NV_PAD_FILEIRA_GAP;
+        if(lay==HOME_LAYOUT_MODERNA)gap=ajustes_posteres_deitados()?NV_FILEIRA_GAP_LAND:NV_FILEIRA_GAP;
+        gap*=ajustes_espaco_fileiras();
+        float copia=ajustes_rotulos_poster()?NV_POSTER_COPY_H:0;
+        float top=fminf(156+2*NV_LEGACY_ROW_HEAD_H+ph*escalaPoster+copia+gap,NV_TELA_H-h-24);
+        float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80),delta=top-alvo.y;
+        pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+        pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
+        SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);quadros(4,NULL);
+        alvo=pastaAlvo(fn,row);
+        PonteiroAlvo poster=pastaAlvo(fn,rowPoster);
+        assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+        float posterTop=alvo.y-NV_LEGACY_ROW_HEAD_H-ph*escalaPoster-copia-gap;
+        float posterVis=ph*escalaPoster-fmaxf(0,132-posterTop);
+        printf("[shot] adjacent measured: folder %.3f,%.3f %.3fx%.3f, poster %.3f,%.3f %.3fx%.3f, expected poster %.3fx%.3f\n",
+               alvo.x,alvo.y,alvo.w,alvo.h,poster.x,poster.y,poster.w,poster.h,pw*escalaPoster,posterVis);
+        fflush(stdout);
+        assert(fabsf(poster.w-pw*escalaPoster)<.15f&&fabsf(poster.h-posterVis)<.15f);
+        assert(poster.h>=ph*escalaPoster*.7f);
+        assert(poster.y>=132&&poster.y+poster.h<alvo.y);
+        assert(alvo.y+alvo.h<=NV_TELA_H+.15f);
+        snprintf(bmp,sizeof bmp,"%s-folders-L%d-g%d-%d-%s-beside-posters.bmp",saida,lay,vidro,forma+1,nomes[forma]);
+        quadros(1,bmp);
+        printf("[shot] actual Home folder %s %.3fx%.3f, ordinary poster %.3fx%.3f (adjacent visible height %.3f), aspect %.6f, UI%.0f: measured draw targets passed\n",
+               nomes[forma],alvo.w,alvo.h,pw*escalaPoster,ph*escalaPoster,poster.h,alvo.w/alvo.h,gfx_escala_ui()*100);
+      }
+    }
+  }
+  assert(fil_definir_tipo("collection_cs",tipoCol));
+  assert(fil_definir_tipo("trend_series",tipoPoster));
+  pastasComparando=0;
+}
+
+int home_teste_hero_deslocamento(float valores[5]);
+int home_teste_pagina(float valores[3]);
+static void heroPaginaVerificar(void) {
+  float atual[3]; assert(home_teste_pagina(atual));
+  assert(fabsf(atual[0]-heroPaginaEsperada[0])<.1f);
+  assert(fabsf(atual[1]-heroPaginaEsperada[1])<.1f);
+}
+static void heroDelta(float esperado) {
+  float desenhado[5]; assert(home_teste_hero_deslocamento(desenhado));
+  for(int i=0;i<4;i++)assert(fabsf(desenhado[i]-esperado)<.1f);
+  printf("[shot] actual hero draw: finger %.3f, old art/copy %.3f/%.3f, next art/copy %.3f/%.3f, width %.3f\n",
+         esperado,desenhado[0],desenhado[1],desenhado[2],desenhado[3],desenhado[4]);
+}
+static void heroDedo(Uint32 tipo, float x, float y) {
+  SDL_Event e = {0}; e.type = tipo; e.tfinger.touchId=41; e.tfinger.fingerId=1;
+  e.tfinger.x=x/NV_TELA_W; e.tfinger.y=y/NV_TELA_H;
+  assert(ponteiro_evento(&e,home_evento));
+}
+static void heroCapturar(const char *saida,int layout,const char *estado) {
+  char bmp[900]; snprintf(bmp,sizeof bmp,"%s-swipe-L%d-%s.bmp",saida,layout,estado);
+  quadros(1,bmp);
+}
+static void heroSwipes(const char *saida) {
+  ponteiro_iniciar(); ponteiro_teste_toque(1);
+  for(int lay=0;lay<3;lay++) {
+    heroPaginaConfere=0;
+    ajusta(lay,0); home_ir_topo(); quadros(120,NULL);
+    assert(!ajustes_hero_cheio());
+    if(lay==HOME_LAYOUT_MODERNA && NV_TELA_W>NV_TELA_H) {
+      tecla(SDLK_DOWN); quadros(120,NULL);
+      float px,py,pw,ph; home_hero_rect(&px,&py,&pw,&ph);
+      assert(pw<NV_TELA_W*.75f);
+      printf("[shot] narrow initial hero: x %.3f width %.3f, canvas %.3f\n",px,pw,NV_TELA_W);
+    }
+    HomeItem origem, atual;
+    assert(home_item_focado(&origem));
+    float x0=NV_TELA_W*.75f, x1=NV_TELA_W*.39f, y=300;
+    heroCapturar(saida,lay,"0-inicial");
+    assert(home_teste_pagina(heroPaginaEsperada)); heroPaginaConfere=1;
+    heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
+    heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"1-arrasto-esquerda");
+    heroDelta(x1-x0);
+    assert(!home_pediu_abrir() && !home_pediu_tocar());
+    heroDedo(SDL_FINGERUP,x1,y); quadros(4,NULL);
+    heroCapturar(saida,lay,"2-assentando-esquerda"); quadros(40,NULL);
+    heroCapturar(saida,lay,"3-proximo");
+    assert(home_item_focado(&atual) && atual.indice!=origem.indice);
+    assert(strstr(atual.arte,cat_item(atual.indice)->imdb) ||
+           !strcmp(atual.arte,cat_item(atual.indice)->backdrop));
+    assert(!home_pediu_abrir() && !home_pediu_tocar());
+    x0=NV_TELA_W*.3f; x1=NV_TELA_W*.66f;
+    heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
+    heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"4-arrasto-direita");
+    heroDelta(x1-x0);
+    heroDedo(SDL_FINGERUP,x1,y); quadros(40,NULL);
+    heroCapturar(saida,lay,"5-anterior");
+    assert(home_item_focado(&atual) && atual.indice==origem.indice);
+    x0=NV_TELA_W*.6f; x1=NV_TELA_W*.53f;
+    heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(100);
+    heroDedo(SDL_FINGERMOTION,x1,y); SDL_Delay(120);
+    heroDedo(SDL_FINGERUP,x1,y); quadros(40,NULL);
+    heroCapturar(saida,lay,"6-curto-retorna");
+    assert(home_item_focado(&atual) && atual.indice==origem.indice);
+    heroDedo(SDL_FINGERDOWN,NV_TELA_W*.75f,y); SDL_Delay(80);
+    heroDedo(SDL_FINGERMOTION,NV_TELA_W*.39f,y); quadros(1,NULL);
+    ponteiro_cancelar_toque(); heroDedo(SDL_FINGERUP,NV_TELA_W*.39f,y);
+    quadros(40,NULL); heroCapturar(saida,lay,"7-cancelado");
+    assert(home_item_focado(&atual) && atual.indice==origem.indice);
+    assert(!home_pediu_abrir() && !home_pediu_tocar());
+    printf("[shot] horizontal hero L%d: page offset %.3f and drawn first-row Y %.3f unchanged through left/right, short return and cancel\n",
+           lay,heroPaginaEsperada[0],heroPaginaEsperada[1]);
+    heroPaginaConfere=0;
+    float pagina[3]; assert(home_teste_pagina(pagina) && pagina[2]==1);
+    tecla(SDLK_UP);
+    assert(home_teste_pagina(pagina) && pagina[2]==0);
+    heroDedo(SDL_FINGERDOWN,NV_TELA_W*.55f,y);
+    heroDedo(SDL_FINGERUP,NV_TELA_W*.55f,y);
+    assert(home_pediu_abrir());
+    HomeItem aberto; assert(home_item_focado(&aberto) && aberto.indice==atual.indice);
+    assert(aberto.titulo && !strcmp(aberto.titulo,cat_item(atual.indice)->titulo));
+    printf("[shot] hero swipe L%d: left/right identity, short return, cancel, TV key recovery and tap passed\n",lay);
+  }
+}
+#endif
 
 int main(int argc, char **argv) {
   const char *saida = argc > 1 ? argv[1] : "/tmp/nv-home-layouts-shots/h";
@@ -317,6 +623,9 @@ int main(int argc, char **argv) {
     socialvis_definir_feed(e, 6);
   }
   quadros(60, NULL);
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  if (getenv("NV_HERO_SWIPE")) { heroSwipes(saida); goto feito; }
+#endif
   // NV_VISTOS=1 (#212): o selo de visto pelo HISTORICO, sem progresso. Dois
   // filmes de "Popular" pelo leitor de /sync/watched/movies (o corpo do Trakt)
   // e uma serie de "Em alta" pelo historico de titulo — nenhum deles tem
@@ -438,6 +747,10 @@ int main(int argc, char **argv) {
       }
     } }
 
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  if(getenv("NV_COL")&&telefoneui_ativo())pastasComparar(saida,camadas);
+#endif
+
   // NV_CTX=<n>: menu do cartaz SEGURANDO OK na fileira n (contada do destaque
   // para baixo), a pagina de estilos, a escolha e a home depois dela.
   if (getenv("NV_CTX")) {
@@ -553,6 +866,7 @@ int main(int argc, char **argv) {
     snprintf(bmp, sizeof bmp, "%s-visto-3-home.bmp", saida); quadros(1, bmp);
   }
 
+feito:
   tex_encerrar();
   txt_encerrar();
   SDL_GL_DeleteContext(gl);

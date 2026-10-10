@@ -22,6 +22,8 @@
 #include "ilha.h"
 #include "iconeapp.h"
 #include "logoapp.h"
+#include "ponteiro.h"
+#include "telefoneui.h"
 #include "text.h"
 #include "tex_cache.h"
 #include <SDL2/SDL.h>
@@ -66,6 +68,7 @@ static const char *const AJ_IDS[] = {
 
 extern int ajustes_teste_focar_opcao(int op);
 extern int ajustes_teste_cena_item(int i, int *op, int *sec, const char **chave, const char **rot);
+extern int ajustes_teste_opcao_visivel(int op);
 extern void ajustes_teste_cena_desenhar(int op, float t, float x, float y, float w);
 extern void ajustes_teste_ux_captura(int cenario);
 extern void atualizacao_teste_estado(int busca, const char *tag);
@@ -78,6 +81,9 @@ extern void ajustes_teste_vidro_env(void);
 extern void ajustes_teste_layout(int lista);
 extern int ajustes_teste_quadro(const char *id);
 static int quadrosCaptura = 60;
+static int listaSomenteCaptura;
+static Uint32 listaTick;
+static Uint32 listaRelogio(void) { return listaTick; }
 
 static void tecla(SDL_Keycode k) {
   SDL_Event e = { 0 };
@@ -90,6 +96,7 @@ static void captura(const char *nome, SDL_Window *win) {
   int i;
   rail_shot_aplicar();
   for (i = 0; i < quadrosCaptura; i++) {
+    if (listaSomenteCaptura) { listaTick += 16; ponteiro_quadro(listaTick); }
     SDL_PumpEvents();
     txt_novo_quadro();
     tex_novo_quadro();
@@ -98,6 +105,7 @@ static void captura(const char *nome, SDL_Window *win) {
     glClearColor(0.025f, 0.025f, 0.03f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     ajustes_desenhar(SDL_GetTicks());
+    if (listaSomenteCaptura) ponteiro_desenhar();
     rail_shot_desenhar(MENU_AJUSTES);
     // NUVIO_SHOT_MENU=1: the app menu drawn in its own fixed factor (0.9) on
     // top, as app.c does every frame on the TV.
@@ -143,6 +151,106 @@ static void captura(const char *nome, SDL_Window *win) {
     if (getenv("NUVIO_AJ_QUADROS")) SDL_Delay(16);   // a mola da ilha anda no relogio
   }
   printf("captura: %s\n", nome);
+}
+
+static void listaQuadro(SDL_Window *win) {
+  listaTick += 16; ponteiro_quadro(listaTick);
+  txt_novo_quadro(); tex_novo_quadro(); tex_bombear(6);
+  ajustes_atualizar(1.0f / 60.0f, listaTick);
+  glClearColor(.025f, .025f, .03f, 1); glClear(GL_COLOR_BUFFER_BIT);
+  ajustes_desenhar(listaTick); ponteiro_desenhar(); SDL_GL_SwapWindow(win);
+}
+static void listaAssentar(SDL_Window *win) { for (int i = 0; i < 160; i++) listaQuadro(win); }
+static AjustesListaTeste listaEstado(int saved) {
+  AjustesListaTeste p; ajustes_teste_lista_estado(&p);
+  assert(telefoneui_ativo() && p.saved_layout == saved && p.list && !p.option_visible);
+  assert(!ajustes_teste_opcao_visivel(p.layout_option));
+  assert(!p.header_layout_focus && !p.editor && !p.selector_targets && p.focused_option != p.layout_option);
+  assert(p.viewport.x >= 0 && p.viewport.y >= 0 && p.viewport.w > 0 && p.viewport.h > 0);
+  assert(p.viewport.x + p.viewport.w <= NV_TELA_W + .1f && p.viewport.y + p.viewport.h <= NV_TELA_H + .1f);
+  assert(p.offset >= -.01f && p.offset <= p.max_offset + .01f);
+  if (!p.index_focus) {
+    assert(fabsf(p.header.x - p.viewport.x) < .1f);
+    assert(fabsf(p.header.x + p.header.w - NV_TELA_W) < .1f);
+    assert(p.viewport.y >= p.header.y + p.header.h);
+    assert(p.viewport.y - (p.header.y + p.header.h) <= 50.1f * p.scale);
+  }
+  const PonteiroAlvo *targets; int n = ponteiro_teste_lista(&targets);
+  assert(n > 0);
+  for (int i = 0; i < n; i++) {
+    const PonteiroAlvo *t = &targets[i];
+    assert(t->x >= -.1f && t->y >= -.1f && t->w > 0 && t->h > 0);
+    assert(t->x + t->w <= NV_TELA_W + .1f && t->y + t->h <= NV_TELA_H + .1f);
+  }
+  return p;
+}
+static void listaDedo(Uint32 type, float x, float y, Sint64 finger, SDL_Window *win) {
+  SDL_Event e = {0}; e.type = type; e.tfinger.touchId = 1; e.tfinger.fingerId = finger;
+  e.tfinger.x = x / NV_TELA_W; e.tfinger.y = y / NV_TELA_H;
+  assert(ponteiro_evento(&e, ajustes_evento)); listaQuadro(win);
+}
+static void listaArrastarFim(SDL_Window *win, int saved) {
+  AjustesListaTeste p = listaEstado(saved);
+  int focus = p.focused_option, index = p.index_focus, drags = 0;
+  float initial = p.offset;
+  while (p.offset < p.max_offset - .5f && drags < 64) {
+    float x = p.viewport.x + p.viewport.w * .55f, y = p.viewport.y + p.viewport.h * .65f;
+    float distance = fminf(320, p.viewport.h * .3f);
+    listaDedo(SDL_FINGERDOWN, x, y, drags + 1, win);
+    for (int step = 1; step <= 6; step++) listaDedo(SDL_FINGERMOTION, x, y - distance * step / 6, drags + 1, win);
+    listaDedo(SDL_FINGERUP, x, y - distance, drags + 1, win);
+    for (int frame = 0; frame < 20; frame++) listaQuadro(win);
+    AjustesListaTeste next = listaEstado(saved);
+    assert(next.focused_option == focus && next.index_focus == index);
+    assert(next.offset > p.offset + .01f); p = next; drags++;
+  }
+  assert(p.offset >= p.max_offset - .5f);
+  printf("[shot] Settings phone List saved=%d vertical %s: %d SDL drags, offset %.2f -> %.2f/max %.2f; identity/raw preserved\n",
+         saved, p.max_offset > 0 ? "overflow exercised" : "fits without overflow", drags, initial, p.offset, p.max_offset);
+}
+static void listaSalvarCena(const char *prefix, const char *scene, int saved, SDL_Window *win) {
+  char path[700]; snprintf(path, sizeof path, "%s-phone-list-saved%d-%s.png", prefix, saved, scene);
+  captura(path, win); AjustesListaTeste p = listaEstado(saved);
+  printf("[shot] Settings phone List saved=%d scene=%s list=1 selector_targets=0 option_visible=0 raw=%d scale=%.3f offset=%.2f/max=%.2f\n",
+         saved, scene, p.saved_layout, p.scale, p.offset, p.max_offset);
+}
+static void listaTelefoneCapturas(const char *prefix, SDL_Window *win) {
+  assert(telefoneui_ativo()); listaSomenteCaptura = 1;
+  listaTick = SDL_GetTicks(); ponteiro_iniciar(); ponteiro_teste_toque(1);
+  ponteiro_teste_janela((int)NV_TELA_W, (int)NV_TELA_H); ponteiro_teste_relogio(listaRelogio);
+  setenv("NUVIO_SHOT_AVANCADAS", "1", 1);
+  int appearance = -1, op, sec, n; const char *key, *label;
+  for (n = 0; ajustes_teste_cena_item(n, &op, &sec, &key, &label); n++)
+    if (key && !strcmp(key, "ajustesLayoutLocal")) appearance = sec;
+  assert(n > 200 && appearance >= 0);
+  for (int saved = 0; saved < 2; saved++) {
+    assert(ajustes_iniciar());
+    assert(ajustes_teste_quadro("v2-menu")); ajustes_teste_layout(saved); listaAssentar(win);
+    listaSalvarCena(prefix, "index-first", saved, win); listaArrastarFim(win, saved);
+    listaSalvarCena(prefix, "index-end", saved, win);
+    const int sections[] = {0, appearance};
+    for (int section = 0; section < 2; section++) {
+      char scene[80], id[80]; snprintf(id, sizeof id, "v2-sec-%d", sections[section]);
+      assert(ajustes_teste_quadro(id)); ajustes_teste_layout(saved); listaAssentar(win);
+      AjustesListaTeste first = listaEstado(saved); assert(!first.index_focus);
+      tecla(SDLK_UP); listaQuadro(win); AjustesListaTeste up = listaEstado(saved);
+      assert(!up.header_layout_focus && up.focused_option == first.focused_option && !up.index_focus);
+      snprintf(scene, sizeof scene, "%s-first", section ? "appearance" : "category");
+      listaSalvarCena(prefix, scene, saved, win); listaArrastarFim(win, saved);
+      snprintf(scene, sizeof scene, "%s-end", section ? "appearance" : "category");
+      listaSalvarCena(prefix, scene, saved, win);
+      tecla(SDLK_AC_BACK); listaAssentar(win); assert(listaEstado(saved).index_focus);
+    }
+    AjusteBuscaResultado results[300]; int count = ajustes_buscar("layout arranjo painel", results, 300);
+    AjustesListaTeste p = listaEstado(saved);
+    for (int i = 0; i < count; i++) assert(results[i].op != p.layout_option);
+    assert(ajustes_rapido_op("ajustesLayoutLocal") == -1);
+    ajustes_abrir_opcao(p.layout_option); assert(ajustes_opcao_em_foco() == p.focused_option);
+    tecla(SDLK_AC_BACK); assert(ajustes_quer_sair());
+    printf("[shot] Settings phone List saved=%d Up/Back/search/direct/quick routes passed; no layout selector; raw preference preserved\n", saved);
+  }
+  ponteiro_teste_relogio(NULL);
+  puts("[shot] Settings phone List native checks passed: both stored layouts, full-width header/body/targets, visible-row exclusion and SDL scrolling where overflow exists");
 }
 
 int main(int argc, char **argv) {
@@ -292,6 +400,50 @@ int main(int argc, char **argv) {
       }
     }
     goto fim_capturas;
+  }
+
+  const char *phoneListOnly = getenv("NUVIO_PHONE_SETTINGS_LIST_ONLY");
+  if (phoneListOnly && atoi(phoneListOnly) == 1) {
+    listaTelefoneCapturas(saida, w);
+    goto fim_capturas;
+  }
+
+  // Complete current catalog, using the same full screen and focus code as
+  // the app. Never activate actions or change persisted account settings.
+  if (getenv("NUVIO_PHONE_SETTINGS_ALL")) {
+    int op, sec, n;
+    const char *chave, *rot;
+    char manifestPath[600], id[256];
+    snprintf(manifestPath, sizeof manifestPath, "%s-options.tsv", saida);
+    FILE *manifest = fopen(manifestPath, "w");
+    assert(manifest);
+    fprintf(manifest, "option\tsection\tkey\tlabel\timage\tvisible\n");
+    quadrosCaptura = 60;
+    for (n = 0; ajustes_teste_cena_item(n, &op, &sec, &chave, &rot); n++) {
+      assert(chave && chave[0]);
+      if (telefoneui_ativo() && !strcmp(chave, "ajustesLayoutLocal")) {
+        assert(!ajustes_teste_opcao_visivel(op));
+        fprintf(manifest, "%d\t%d\t%s\t%s\t\t0\n", op, sec, chave, rot);
+        continue; // registered TV preference; no phone scene or focus target
+      }
+      snprintf(id, sizeof id, "op:%s", chave);
+      assert(ajustes_teste_quadro(id));
+      if (getenv("NUVIO_SHOT_LAYOUT")) ajustes_teste_layout(atoi(getenv("NUVIO_SHOT_LAYOUT")));
+      if (getenv("NUVIO_SHOT_AJUSTES_ESCALA")) {
+        int percentual = atoi(getenv("NUVIO_SHOT_AJUSTES_ESCALA"));
+        ajustes_teste_escala(percentual);
+        assert(fabsf(ajustes_tamanho_ajustes() - percentual / 100.0f) < .001f);
+      }
+      if (getenv("NUVIO_SHOT_FONTE")) ajustes_teste_fonte_interface(atoi(getenv("NUVIO_SHOT_FONTE")));
+      snprintf(nome, sizeof nome, "%s-option-%03d-%s.png", saida, n, chave);
+      captura(nome, w);
+      fprintf(manifest, "%d\t%d\t%s\t%s\t%s\t%d\n", op, sec, chave, rot, nome, ajustes_teste_opcao_visivel(op));
+    }
+    fclose(manifest);
+    printf("full Settings catalog: %d options\n", n);
+    assert(n > 200);
+    tex_encerrar(); txt_encerrar(); gfx_encerrar(); SDL_GL_DeleteContext(gl); SDL_DestroyWindow(w); SDL_Quit();
+    return 0;
   }
 
   // OS QUADROS DO MOCKUP (ajustes-mockup.html): NUVIO_AJ_QUADROS="principal

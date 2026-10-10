@@ -44,10 +44,37 @@ int shot_vertudo_item(int i, CatItem *dst) {
 static ColFolder pasta;
 static ColSource pastaFontes[COL_SOURCE_MAX];   // a pasta so aponta (#255)
 
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+static void gradeTelefoneVerificar(void) {
+  if (!vtTelefone() || !shotGrade) return;
+  float s = vtEscala();
+  assert(fabsf(vtInicio()*s - (48*s + ajustes_rail_largura_fixa())) < .02f);
+  assert(fabsf(vtFim()*s - (NV_LAYOUT_REAL_W - 48*s)) < .02f);
+  if (NV_LAYOUT_REAL_H > NV_LAYOUT_REAL_W) assert(VT_COLS == 3);
+  assert(fabsf(vtInicio()+VT_COLS*VT_CARD_W+(VT_COLS-1)*VT_GAP_X-vtFim()) < .02f);
+  const PonteiroAlvo *v; int n=ponteiro_teste_lista(&v), vistos=0, selecionado=0;
+  for (int i=0;i<n;i++) if (v[i].focar==ponteiroCartaz) {
+    CatItem it; const char *arte;
+    assert(viewItem(v[i].a,&it));
+    GfxRect r=celulaRect(v[i].a,&it,&arte);
+    float y=fmaxf(r.y,VT_TOPO-12), fim=fminf(r.y+r.h+40,NV_TELA_H);
+    assert(fabsf(v[i].x-r.x*s)<.02f && fabsf(v[i].w-r.w*s)<.02f);
+    assert(fabsf(v[i].y-y*s)<.02f && fabsf(v[i].h-(fim-y)*s)<.02f);
+    assert(v[i].x>=vtInicio()*s-.02f && v[i].x+v[i].w<=vtFim()*s+.02f);
+    vistos++; selecionado |= v[i].a==foco;
+  }
+  assert(vistos>0 && selecionado);
+  assert(scrollY>=0 && scrollY<=toqueVertudoMax()+.02f);
+}
+#endif
+
 static void captura(const char *nome, SDL_Window *win) {
   int i;
   rail_shot_aplicar();
   for (i = 0; i < 90; i++) {
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    if (vtTelefone()) ponteiro_quadro(SDL_GetTicks());
+#endif
     SDL_PumpEvents();
     txt_novo_quadro();
     tex_novo_quadro();
@@ -57,8 +84,14 @@ static void captura(const char *nome, SDL_Window *win) {
     glClear(GL_COLOR_BUFFER_BIT);
     vertudo_atualizar(1.0f / 60.0f, SDL_GetTicks());
     vertudo_desenhar(SDL_GetTicks());
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+    if (vtTelefone()) ponteiro_desenhar();
+#endif
     rail_shot_desenhar(MENU_INICIO);
     if (i == 89) {
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+      gradeTelefoneVerificar();
+#endif
       unsigned char *pix = malloc(1920 * 1080 * 4);
       SDL_Surface *s;
       int y;
@@ -109,6 +142,12 @@ int main(int argc, char **argv) {
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(64);
   gfx_icones_dir("deploy/app/art");
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  if (vtTelefone()) {
+    ponteiro_teste_toque(1);
+    ponteiro_teste_janela((int)NV_LAYOUT_REAL_W,(int)NV_LAYOUT_REAL_H);
+  }
+#endif
 
   snprintf(pasta.title, sizeof pasta.title, "Netflix");
   snprintf(pasta.group, sizeof pasta.group, "Streaming");
@@ -159,6 +198,20 @@ int main(int argc, char **argv) {
   shotGrade = 12; tabFocus = 0; tabCursor = 0; foco = 0;
   snprintf(nome, sizeof nome, "%s-grade-painel.bmp", saida);
   captura(nome, w);
+#if defined(NV_TOUCH_UI) && defined(NV_SHOT_HOOKS)
+  if (vtTelefone()) {
+    foco=shotGrade-1;
+    snprintf(nome,sizeof nome,"%s-grade-fim.bmp",saida);
+    captura(nome,w);
+    ranked=1; foco=0; scrollY=velY=0;
+    snprintf(nome,sizeof nome,"%s-grade-ranking.bmp",saida);
+    captura(nome,w);
+    ranked=0; collection=NULL; scrollY=velY=0;
+    snprintf(titulo,sizeof titulo,"Catalogo de filmes");
+    snprintf(nome,sizeof nome,"%s-grade-catalogo.bmp",saida);
+    captura(nome,w);
+  }
+#endif
   shotGrade = 0;
 
   tex_encerrar();

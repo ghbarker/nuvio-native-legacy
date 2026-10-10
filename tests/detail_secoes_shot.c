@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 
 // --- INTERCEPTACAO DE extras.h ----------------------------------------------
 // So o que detail.c consulta nas secoes que interessam aqui. O resto do modulo
@@ -505,7 +506,7 @@ int main(int argc, char **argv) {
   gfx_tamanho_alvo(1920, 1080);
   assert(gfx_iniciar());
   // Icones (a estrela da nota na lista da colecao): caminho ABSOLUTO, como o app.
-  { char ic[1024];
+  { char ic[PATH_MAX];
     if (realpath("deploy/app/art", ic)) gfx_icones_dir(ic); }
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(16);
