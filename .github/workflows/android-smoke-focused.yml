@@ -1,0 +1,69 @@
+name: Android smoke focused review
+on:
+  push:
+    branches: [review/android-smoke-20261010]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  utility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native declarations
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsdl2-dev libgles2-mesa-dev
+      - name: All utility touch variants
+        run: bash tests/utilidades_toque.sh
+  retest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y python3-pil
+          python3 tests/android_smoke_rotation.py
+          python3 tests/android_smoke_input.py
+      - name: Download existing APKs
+        env:
+          APK_RUN_ID: '38095048528'
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$APK_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          APK_NAME=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$APK_RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("Nuvio-tv-mobile-debug-")) | .name')
+          test -n "$APK_NAME"
+          gh run download "$APK_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$APK_NAME" --dir build/android-touch
+          test -n "$(compgen -G 'build/android-touch/*-tv-mobile-debug-x86_64.apk')"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Phone emulator smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis_ps16k
+          profile: pixel_2
+          cores: 4
+          ram-size: 6144
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tools/android-touch-smoke.sh build/android-touch/*-tv-mobile-debug-x86_64.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-touch-smoke-retest-${{ github.run_id }}
+          path: build/android-touch/smoke/
+          if-no-files-found: warn
+          retention-days: 14
+
