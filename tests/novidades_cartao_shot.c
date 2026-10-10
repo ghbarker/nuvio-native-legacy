@@ -211,7 +211,11 @@ int main(int argc, char **argv) {
     captura(saida, "lg-pt-reduzido-p1", 0.5f, 0);
   }
 
+  /* Phone state/scroll bounds are covered by phone_cards.c. This sweep checks
+     the original fixed TV page/footer dimensions for every TV platform. */
+#ifndef NV_TEST_PHONE_SHOT_H
   cabeEmTodos();
+#endif
 
   tex_encerrar();
   txt_encerrar();

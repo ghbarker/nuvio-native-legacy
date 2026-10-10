@@ -11,6 +11,14 @@
 
 static int phone_shot_w = 1080, phone_shot_h = 2340;
 static SDL_Window *phone_shot_window;
+#ifndef GL_UNPACK_ROW_LENGTH
+#define GL_UNPACK_ROW_LENGTH 0x0CF2
+#endif
+static GLint phone_shot_row_length;
+static void phone_shot_pixel_store(GLenum name, GLint value) {
+  if (name == GL_UNPACK_ROW_LENGTH) phone_shot_row_length = value;
+  else glPixelStorei(name, value);
+}
 static SDL_Window *phone_shot_create(const char *title, int x, int y,
                                     int width, int height, Uint32 flags) {
   const char *w = getenv("NUVIO_PHONE_SHOT_W"), *h = getenv("NUVIO_PHONE_SHOT_H");
@@ -37,6 +45,16 @@ static void phone_shot_texture(GLenum target, GLint level, GLint internal,
                                 GLsizei w, GLsizei h, GLint border, GLenum format,
                                 GLenum type, const void *pixels) {
   if (!pixels && w == 1920 && h == 1080) { w = phone_shot_w; h = phone_shot_h; }
+  if (pixels && phone_shot_row_length > w && format == GL_RGBA && type == GL_UNSIGNED_BYTE) {
+    size_t row = (size_t)w * 4;
+    unsigned char *packed = malloc(row * (size_t)h);
+    if (!packed) abort();
+    for (int y = 0; y < h; y++)
+      memcpy(packed + y * row, (const char *)pixels + (size_t)y * phone_shot_row_length * 4, row);
+    glTexImage2D(target, level, internal, w, h, border, format, type, packed);
+    free(packed);
+    return;
+  }
   glTexImage2D(target, level, internal, w, h, border, format, type, pixels);
 }
 static void phone_shot_renderbuffer(GLenum target, GLenum internal, GLsizei w, GLsizei h) {
@@ -81,6 +99,7 @@ int __wrap_st_ime_disponivel(void) { return 1; }
 #define glViewport phone_shot_viewport
 #define gfx_tamanho_alvo phone_shot_target
 #define glTexImage2D phone_shot_texture
+#define glPixelStorei phone_shot_pixel_store
 #define glRenderbufferStorage phone_shot_renderbuffer
 #define glReadPixels phone_shot_read
 #undef SDL_SaveBMP

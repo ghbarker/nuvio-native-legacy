@@ -152,6 +152,21 @@ int main(int argc, char **argv) {
   busca_iniciar();
   snprintf(nome, sizeof nome, "%s-latino-com-tecla.bmp", saida);
   captura(nome);
+#ifdef NV_TEST_PHONE_SHOT_H
+  /* The phone uses a system editor, so type the complete UTF-8 value through
+     the same value/done messages that the native editor returns. */
+  st_teste_ligar(1);
+  tecla(SDLK_RETURN);
+  st_teste_evento("T\xd0\xb0\xd0\xb1\xc8\x99");
+  quadro();
+  assert(!strcmp(busca_consulta(), "\xd0\xb0\xd0\xb1\xc8\x99"));
+  st_teste_evento("D\xd0\xb0\xd0\xb1");
+  quadro();
+  assert(!strcmp(busca_consulta(), "\xd0\xb0\xd0\xb1"));
+  snprintf(nome, sizeof nome, "%s-nativo-cirilico.bmp", saida);
+  captura(nome);
+  st_teste_ligar(0);
+#else
   { int i;
     for (i = 0; i < 6; i++) tecla(SDLK_DOWN);      /* fileira de baixo */
     for (i = 0; i < 3; i++) tecla(SDLK_RIGHT);     /* tecla de layout */
@@ -178,6 +193,7 @@ int main(int argc, char **argv) {
     assert(!strcmp(busca_consulta(), "\xd0\xb0\xd0\xb1"));
     snprintf(nome, sizeof nome, "%s-cirilico-digitado.bmp", saida);
     captura(nome); }
+#endif
   // RESULTADOS E A ONDA (revela.h): o catalogo do pacote filtrado por duas
   // letras. A primeira foto sai no meio da entrada (os cards da direita ainda
   // subindo), a segunda com tudo assentado.

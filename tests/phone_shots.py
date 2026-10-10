@@ -34,7 +34,9 @@ def main():
     objects = output / 'objects'
     objects.mkdir(exist_ok=True)
     flags = ['-O1', '-g', '-DNV_LINUX_DESKTOP', '-DNV_TOUCH_PREVIEW',
-             '-DAJUSTES_TESTE', '-DSDL_MAIN_HANDLED', '-ffunction-sections',
+             '-DAJUSTES_TESTE', '-DNV_SHOT_HOOKS', '-DCENTRAL_TESTE',
+             '-DREGISTRO_TESTE', '-DAVISOS_TESTE_ENVIO', '-DDESEMPENHO_TESTE',
+             '-DTELEMETRIA_TESTE', '-DSDL_MAIN_HANDLED', '-ffunction-sections',
              '-fdata-sections', '-Isrc', '-Itests']
     cflags = shlex.split(subprocess.check_output(
         ['pkg-config', '--cflags', 'sdl2', 'SDL2_image', 'SDL2_ttf', 'glesv2', 'egl', 'zlib'], text=True))
@@ -84,9 +86,13 @@ def main():
             # Some existing fixtures take a directory, others a file prefix.
             # Provide both without changing their individual test semantics.
             (folder / name).mkdir(exist_ok=True)
-            data = folder / 'data'
+            data_name = {'detail_secoes': 'nuvio-detsec-dados',
+                         'detalhe_glass': 'nuvio-detglass-dados',
+                         'trocaarte': 'nuvio-trocaarte-dados',
+                         'spainel_abas': 'nuvio-abas-shot'}.get(name, 'data')
+            data = folder / data_name
             data.mkdir(exist_ok=True)
-            environment = dict(os.environ, NUVIO_DADOS=str(data),
+            environment = dict(os.environ, NUVIO_DADOS=str(data), NUVIO_TESTE_DIR=str(data),
                                NUVIO_PHONE_SHOT_W=width, NUVIO_PHONE_SHOT_H=height,
                                NUVIO_TAMANHO_UI=scale, LIBGL_ALWAYS_SOFTWARE='1')
             log = folder / 'capture.log'
