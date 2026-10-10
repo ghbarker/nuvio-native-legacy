@@ -38,5 +38,15 @@ int main(void) {
   recomendaTeste=1;assert(visivel(indice(AJ_PERFIL_PESQ))&&visivel(indice(AJ_PERFIL_EDITAR)));
   assert(ajustes_teste_opcao_visivel(AJ_PERFIL_PESQ)&&ajustes_teste_opcao_visivel(AJ_PERFIL_EDITAR));
   assert(!ajustes_teste_opcao_visivel(-1)&&!ajustes_teste_opcao_visivel(AJ_N));
+  const float telas[][2]={{1080,2340},{1080,1920},{2340,1080},{2520,1080},{1920,1080},{1600,1000},{1000,1600}};
+  int layout=indice(AJ_LAYOUT_AJUSTES), salvo=valor[AJ_LAYOUT_AJUSTES];
+  for(int t=0;t<7;t++)for(int v=0;v<2;v++) {
+    nv_layout_w=telas[t][0];nv_layout_h=telas[t][1];valor[AJ_LAYOUT_AJUSTES]=v;
+    assert(ajustes_layout_lista()==(t<4||v));
+    assert(visivel(layout)==(t>=4)&&ajustes_teste_opcao_visivel(AJ_LAYOUT_AJUSTES)==(t>=4));
+    assert(focavel(layout)==(t>=4)&&valor[AJ_LAYOUT_AJUSTES]==v);
+  }
+  valor[AJ_LAYOUT_AJUSTES]=salvo;
+  nv_layout_w=2400;nv_layout_h=1080;
   printf("settings_visibility_review: %d registered slots mapped to actual rows; Cinemeta/addon/value, supporter and social visibility PASS\n",n);
 }

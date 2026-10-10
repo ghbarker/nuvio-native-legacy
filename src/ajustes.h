@@ -439,6 +439,13 @@ unsigned ajustes_p2p_limite_mb(void);           // #334: P2P space limit in MB (
 int   ajustes_cache_seek_mb(void);           // F07: seek cache limit in MB for the next video (0 = off / not on this TV)
 #ifdef AJUSTES_TESTE
 void  ajustes_teste_escala(int percentual); // fixture only; does not persist
+typedef struct {
+  int saved_layout, layout_option, option_visible, list, index_focus;
+  int top_control, header_layout_focus, focused_option, editor, selector_targets;
+  float offset, max_offset, scale;
+  GfxRect header, viewport;
+} AjustesListaTeste;
+void ajustes_teste_lista_estado(AjustesListaTeste *out); // read-only fixture snapshot
 #endif
 // Fundo atras dos paineis (Aparencia › Fundo): 0 Arte, 1 Arte borrada, 2 Frost.
 int   ajustes_fundo(void);

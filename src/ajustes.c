@@ -75,6 +75,7 @@
 #include "logoapp.h"
 #include "abertura.h"
 #include "apoio.h"
+#include "telefoneui.h"
 
 // Settings has its own canvas and scale, independent of the global UI zoom.
 // Layout, text measurement, drawing and pointer targets share this factor.
@@ -173,7 +174,7 @@ static float ajTopoLista(void);
 #define AJ_TOPO        ajTopoLista()
 // 2.0.2: o cabecalho da pagina da categoria (o cartao da grade crescido), acima
 // da arte e da lista; o titulo saiu de dentro da ilha da lista.
-#define AJ_CAB_PAGINA  (ajRetrato() ? 224.0f : 136.0f)
+#define AJ_CAB_PAGINA  (ajRetrato() && !telefoneui_ativo() ? 224.0f : 136.0f)
 #define AJ_BASE        (NV_VTELA_H - ajPaginaMargem() - AJ_A3_RODAPE)
 #define AJ_A3_CAB       28.0f
 #define AJ_A3_RODAPE    72.0f
@@ -1916,13 +1917,14 @@ int  ajustes_teste_editor(int *pendente, int *rodape, int *restaurar, int *confi
 static char uxAviso[160];
 static Uint32 uxAvisoAte;
 static const char *textoValor(int op);
+static int ajOpcaoDisponivel(int op);
 static int uxTemPadrao(int op);
 static int uxDiferente(int op);
 static void uxCancelar(void);
 
 int ajustes_pediu_busca(void) { int p = uxPediuBusca; uxPediuBusca = 0; return p; }
 void ajustes_abrir_opcao(int op) {
-  if (op < 0 || op >= AJ_N) return;
+  if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op)) return;
   uxAbrirOp = op; uxVeioBusca = 1;
 }
 
@@ -2126,7 +2128,10 @@ float ajustes_tamanho_ajustes(void) {
   float s = v >= 0 && v < 3 ? F[v] : 0.8f;
   return ajRetrato() ? s * 1.25f : s;
 }
-int ajustes_layout_lista(void) { return valor[AJ_LAYOUT_AJUSTES] == 1; }
+// The phone always uses List. Keep the stored TV preference unchanged.
+static int ajLayoutSelecionavel(void) { return !telefoneui_ativo(); }
+static int ajOpcaoDisponivel(int op) { return op != AJ_LAYOUT_AJUSTES || ajLayoutSelecionavel(); }
+int ajustes_layout_lista(void) { return !ajLayoutSelecionavel() || valor[AJ_LAYOUT_AJUSTES] == 1; }
 int ajustes_esconder_logo_trailer(void) { return lig(AJ_LOGO_TRAILER); }
 int ajustes_trailer_zoom_tpk(void) { return lig(AJ_TRAILER_ZOOM_TPK); }   // 1 = Ligado
 #ifdef NV_ANDROID
@@ -5113,6 +5118,7 @@ static int visivel(int i) {
   }
   if (TELA[i].tipo == IT_OPC) {
     int op = TELA[i].op;
+    if (!ajOpcaoDisponivel(op)) return 0;
     if ((op == AJ_PERFIL_PESQ || op == AJ_PERFIL_EDITAR) && !recomenda_ativo()) return 0;
     if (op == AJ_BUSCA_CINEMETA && valor[op] == 0 && !cinemetaInstalado()) return 0;
     if (uxAvancada(op) && !lig(AJ_AVANCADAS) && !maisAberto[secDoItem[i]]) return 0;
@@ -5154,6 +5160,7 @@ static void abrirGrupo(int g) {
 // grupo que a contem (se houver) e poe o foco na LISTA, na linha dela.
 static void focarOpcao(int op) {
   int i;
+  if (!ajOpcaoDisponivel(op)) return;
   for (i = 0; i < AJ_N_TELA; i++) {
     if (TELA[i].tipo != IT_OPC || TELA[i].op != op) continue;
     // Busca/atalho para uma avancada: abre o "Mais opcoes" da categoria dela
@@ -6448,7 +6455,7 @@ static void notaLigarPar(int op) {
 static int ajOrigemDireto = AJLOG_AJUSTES;   // quem chamou: a tela, ou a Central via ajustes_rapido_passo
 static int definirValorDireto(int op, int novo) {
   int antes;
-  if (op < 0 || op >= AJ_N ||
+  if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op) ||
       (OPCOES[op].tipo != OP_ESCOLHA && OPCOES[op].tipo != OP_NUMERO)) return 0;
   novo = limita(op, novo);
   if (op == AJ_PERFIL_PESQ) {
@@ -7537,7 +7544,7 @@ int ajustes_relogio_cabe(void) {
 int ajustes_teste_focar_opcao(int op) {
   int i;
   montarTela();
-  if (op < 0 || op >= AJ_N) return 0;
+  if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op)) return 0;
   for (i = 0; i < AJ_N_TELA; i++) {
     if (TELA[i].tipo != IT_OPC || TELA[i].op != op) continue;
     focarOpcao(op); scrollY = velY = 0.0f;
@@ -7567,6 +7574,29 @@ int ajustes_teste_opcao_visivel(int op) {
   for (int i = 0; i < AJ_N_TELA; i++)
     if (TELA[i].tipo == IT_OPC && TELA[i].op == op) return visivel(i);
   return 0;
+}
+void ajustes_teste_lista_estado(AjustesListaTeste *out) {
+  if (!out) return;
+  memset(out, 0, sizeof *out);
+  out->saved_layout = valor[AJ_LAYOUT_AJUSTES]; out->layout_option = AJ_LAYOUT_AJUSTES;
+  out->option_visible = ajOpcaoDisponivel(AJ_LAYOUT_AJUSTES);
+  out->list = ajustes_layout_lista(); out->index_focus = focoIndice;
+  out->top_control = uxTopo; out->header_layout_focus = uxCabLayout;
+  out->focused_option = focoOp; out->editor = uxEditor;
+  out->scale = ajustes_tamanho_ajustes();
+  GfxRect h = aj2PaginaR();
+  out->header = (GfxRect){h.x * out->scale, h.y * out->scale, h.w * out->scale, h.h * out->scale};
+#ifdef NV_TOUCH_PREVIEW
+  int id = focoIndice ? AJT_INDICE : AJT_LISTA;
+  for (int i = 0; i < ajToqueN; i++) if (ajToqueRegioes[i].id == id) {
+    AjToqueRegiao *r = &ajToqueRegioes[i];
+    out->offset = *r->offset; out->max_offset = r->maximo;
+    out->viewport = r->r;
+  }
+  const PonteiroAlvo *v; int n = ponteiro_teste_lista(&v);
+  for (int i = 0; i < n; i++)
+    if ((v[i].focar == aj2PonteiroTopo && v[i].a == AJ2_T_LAYOUT) || v[i].focar == aj2PonteiroCabLayout) out->selector_targets++;
+#endif
 }
 void ajustes_teste_cena_desenhar(int op, float t, float x, float y, float w) {
   ajcTesteT = t;
@@ -7732,7 +7762,7 @@ int ajustes_teste_quadro(const char *id) {
         if (c && c[0] == '-') c++;
         if (c && !strcmp(c, par)) op = k;
       }
-      if (op < 0) return 0;
+      if (op < 0 || !ajOpcaoDisponivel(op)) return 0;
       if (ig) valor[op] = atoi(ig + 1);
       if (primeira < 0) primeira = op;
     }
@@ -7855,7 +7885,7 @@ int ajustes_rapido_op(const char *chave) {
   if (!chave || !chave[0]) return -1;
   for (i = 0; i < AJ_N; i++)
     if (CHAVE[i] && CHAVE[i][0] != '-' && !strcmp(CHAVE[i], chave)) { op = i; break; }
-  if (op < 0 || OPCOES[op].tipo != OP_ESCOLHA) return -1;
+  if (op < 0 || !ajOpcaoDisponivel(op) || OPCOES[op].tipo != OP_ESCOLHA) return -1;
   if (op == AJ_FIL_LIMITE || op == AJ_ITENS_FILEIRA) return -1;
   n = nValores(op);
   if (n < 2 || n > 6) return -1;

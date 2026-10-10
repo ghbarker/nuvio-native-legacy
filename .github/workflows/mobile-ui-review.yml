@@ -39,6 +39,8 @@ jobs:
             capture: '--fixtures explorar vertudo homelayouts --home-variant folders --cases 1080x2340@1.5 2340x1080@1.5'
           - group: phone-input
             capture: '--fixtures teclado_phone_native --cases 1080x2340@1 1080x2340@1.5 2340x1080@1 2340x1080@1.5'
+          - group: phone-settings-list
+            capture: '--fixtures ajustes --cases 1080x2340@1 1080x2340@1.5 2340x1080@1.5'
           - group: detail
             capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
           - group: account
@@ -64,7 +66,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev xvfb python3-pil
       - name: Native phone captures
-        run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py ${{ matrix.capture }}
+        run: |
+          if [ '${{ matrix.group }}' = 'phone-settings-list' ]; then
+            export NUVIO_PHONE_SETTINGS_LIST_ONLY=1
+          fi
+          xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py ${{ matrix.capture }}
       - name: Schedule selector native negative control
         if: matrix.group == 'feedback-pages'
         run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/agenda_label_native_negative.py

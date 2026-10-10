@@ -682,27 +682,30 @@ static float aj2TopoLargura(int t) {
   return 30 + 34 + 16 + (float)txt_largura(t == AJ2_T_BUSCA ? TXT_V3_CHIP_R : TXT_V3_CHIP, b) + (d[0] ? 8 + (float)txt_largura(TXT_V3_CHIP_R, d) : 0) + 32;
 }
 static GfxRect aj2TopoRetratoR(int t) {
+  if (!aj2TopoVisivel(t)) return (GfxRect){0};
   GfxRect g = aj2GradeR();
   float x = g.x + AJ2_G_PAD, y = aj2GradeChipY(), fim = g.x + g.w - AJ2_G_PAD;
   float w = (fim - x - 20.0f) * 0.5f;
   if (t <= AJ2_T_LAYOUT) {
     int col = t == AJ2_T_AV || t == AJ2_T_LAYOUT;
     int lin = t == AJ2_T_PERFIL || t == AJ2_T_LAYOUT;
+    if (t == AJ2_T_PERFIL && !ajLayoutSelecionavel()) return (GfxRect){x, y + AJ2_G_CHIP + 20.0f, fim - x, AJ2_G_CHIP};
     return (GfxRect){x + col * (w + 20.0f), y + lin * (AJ2_G_CHIP + 20.0f), w, AJ2_G_CHIP};
   }
   return (GfxRect){x, aj2GradeDescY() + (t == AJ2_T_TOUR ? 0.0f : AJ2_G_DESC + 20.0f), fim - x, AJ2_G_DESC};
 }
 static GfxRect aj2TopoR(int t) {
+  if (!aj2TopoVisivel(t)) return (GfxRect){0};
   if (ajRetrato()) return aj2TopoRetratoR(t);
   GfxRect g = aj2GradeR();
   float cw = aj2GradeColW(), x = g.x + AJ2_G_PAD, y = aj2GradeChipY(), fim = g.x + g.w - AJ2_G_PAD;
   float wb = cw + (cw + AJ2_G_VAO) / 3.0f, wa = aj2TopoLargura(AJ2_T_AV), wp = aj2TopoLargura(AJ2_T_PERFIL);
-  float wl = aj2TopoLargura(AJ2_T_LAYOUT);
+  float wl = ajLayoutSelecionavel() ? aj2TopoLargura(AJ2_T_LAYOUT) : 0.0f, gap = ajLayoutSelecionavel() ? 60.0f : 40.0f;
   // Em alemao/russo as quatro podem nao caber numa fileira: a busca cede
   // primeiro. O "Painel | Lista" (#339) mora no fim da fileira, encostado a
   // direita.
-  if (wb + 20 + wa + 20 + wp + 20 + wl > fim - x) { wb = fim - x - 60 - wa - wp - wl; if (wb < 300) wb = 300; }
-  if (wb + 60 + wa + wp + wl > fim - x) { float k = (fim - x - 60 - wb) / (wa + wp + wl); wa *= k; wp *= k; wl *= k; }
+  if (wb + gap + wa + wp + wl > fim - x) { wb = fim - x - gap - wa - wp - wl; if (wb < 300) wb = 300; }
+  if (wb + gap + wa + wp + wl > fim - x) { float k = (fim - x - gap - wb) / (wa + wp + wl); wa *= k; wp *= k; wl *= k; }
   if (t == AJ2_T_BUSCA) return (GfxRect){ x, y, wb, AJ2_G_CHIP };
   if (t == AJ2_T_AV) return (GfxRect){ x + wb + 20, y, wa, AJ2_G_CHIP };
   if (t == AJ2_T_PERFIL) return (GfxRect){ x + wb + 20 + wa + 20, y, wp, AJ2_G_CHIP };
@@ -711,6 +714,7 @@ static GfxRect aj2TopoR(int t) {
   return (GfxRect){ x + 2 * (cw + AJ2_G_VAO), aj2GradeDescY(), cw, AJ2_G_DESC };
 }
 static void aj2GradeAtualizar(float dt) {
+  uxLayoutDisponibilidade();
   int j, red = ajustes_animacoes_reduzidas();
   for (j = 0; j <= AJ2_NMENU; j++) {
     float alvo = focoIndice && uxTopo < 0 && j == uxIndice ? 1.0f : 0.0f;
@@ -1024,7 +1028,7 @@ static int ajModalAberto(void);
 // grade assentada (a < 1 e a transicao, com gfx_transformar).
 static void aj2PonteiroTopo(int t, int b) {
   (void)b;
-  if (uxEditor || t < 0 || t >= AJ2_T_N || (focoIndice && uxTopo == t)) return;
+  if (uxEditor || !aj2TopoVisivel(t) || (focoIndice && uxTopo == t)) return;
   focoIndice = 1; uxCabLayout = 0; uxTopo = t; sairArmado = 0;
 }
 static void aj2PonteiroSec(int s, int b) {
@@ -1054,7 +1058,7 @@ static void aj2DesenharGrade(float a) {
                        &aj2LRol, total - (aj2LBase() - aj2LTopo()), aj2LRol, 0);
     }
 #endif
-    for (t = 0; t < AJ2_T_N; t++) { GfxRect r = aj2TopoR(t); ponteiro_alvo(r.x, r.y, r.w, r.h, aj2PonteiroTopo, NULL, t, 0); }
+    for (t = 0; t < AJ2_T_N; t++) if (aj2TopoVisivel(t)) { GfxRect r = aj2TopoR(t); ponteiro_alvo(r.x, r.y, r.w, r.h, aj2PonteiroTopo, NULL, t, 0); }
     if (aj2Lista()) for (s = 0; s < n; s++) {
       GfxRect r = aj2LLinhaR(s);
       ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, aj2LTopo(), aj2LBase(), aj2PonteiroSec, NULL, s, 0);
@@ -1066,8 +1070,8 @@ static void aj2DesenharGrade(float a) {
     }
   }
   // As pilulas e os cartoes de descoberta; o em foco por ultimo (halo por cima).
-  for (t = 0; t < AJ2_T_N; t++) if (t != uxTopo || !focoIndice) { if (t <= AJ2_T_LAYOUT) aj2GradePilula(t); else aj2GradeDescoberta(t); }
-  if (focoIndice && uxTopo >= 0) { if (uxTopo <= AJ2_T_LAYOUT) aj2GradePilula(uxTopo); else aj2GradeDescoberta(uxTopo); }
+  for (t = 0; t < AJ2_T_N; t++) if (aj2TopoVisivel(t) && (t != uxTopo || !focoIndice)) { if (t <= AJ2_T_LAYOUT) aj2GradePilula(t); else aj2GradeDescoberta(t); }
+  if (focoIndice && aj2TopoVisivel(uxTopo)) { if (uxTopo <= AJ2_T_LAYOUT) aj2GradePilula(uxTopo); else aj2GradeDescoberta(uxTopo); }
   if (aj2Lista()) { aj2DesenharIdxLista(); goto fim_grade; }
   if (ajRetrato()) {
     gfx_recorte(g.x, aj2LTopo(), g.w, aj2LBase() - aj2LTopo());
@@ -1138,7 +1142,7 @@ static GfxRect aj2PaginaR(void) {
 #ifdef NV_TOUCH_PREVIEW
 static void aj2PonteiroCabLayout(int a, int b) {
   (void)a; (void)b;
-  if (!uxEditor && uxIndice >= 2) { focoIndice = 0; uxCabLayout = 1; }
+  if (ajLayoutSelecionavel() && !uxEditor && uxIndice >= 2) { focoIndice = 0; uxCabLayout = 1; }
 }
 #endif
 static void aj2DesenharPagina(float t) {
@@ -1165,7 +1169,7 @@ static void aj2DesenharPagina(float t) {
     else if (sec == AJS_IDIOMAS) snprintf(vb, sizeof vb, "%s", i18n(textoValor(AJ_IDIOMA)));
     { int i, nOp = 0, nAv = 0;
       for (i = secIni[sec] + 1; i < secFim(sec); i++)
-        if (TELA[i].tipo == IT_OPC) { nOp++; if (uxAvancada(TELA[i].op)) nAv++; }
+        if (TELA[i].tipo == IT_OPC && ajOpcaoDisponivel(TELA[i].op)) { nOp++; if (uxAvancada(TELA[i].op)) nAv++; }
       // 2.0.3 (mockup v3): "19 opcoes · 11 em Mais opcoes"; com a pilula
       // Avancadas ligada, "19 opcoes · 11 avancadas" e o valor vira o estado.
       { char tmp[80];
@@ -1197,7 +1201,7 @@ static void aj2DesenharPagina(float t) {
     direita -= (wq > wv ? wq : wv) + 40.0f; }
   // #339: o "Painel | Lista" no cabecalho, antes do valor. Cima na primeira
   // linha chega nele; OK (ou o lado) troca o arranjo na hora.
-  if (uxIndice >= 2) {
+  if (uxIndice >= 2 && ajLayoutSelecionavel()) {
     float sw = aj2LayoutSegW(TXT_V2_24, 26.0f), sh = 60.0f;
     GfxRect seg = { direita - sw, ajRetrato() ? h.y + h.h - sh - 10.0f : h.y + (h.h - sh) * 0.5f, sw, sh };
     aj2LayoutSeg(seg, TXT_V2_24, 26.0f, aj2Suave(aj2CabF));

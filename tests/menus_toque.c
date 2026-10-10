@@ -132,12 +132,15 @@ static void testaAjustesRetrato(void) {
       assert(editor.w > 740 && lista.w > 740 && pagina.y + pagina.h < lista.y);
       GfxRect topo[AJ2_T_N];
       for (int t = 0; t < AJ2_T_N; t++) {
+        if (!aj2TopoVisivel(t)) { assert(t == AJ2_T_LAYOUT); continue; }
         topo[t] = aj2TopoRetratoR(t); dentroAjustes(topo[t]);
         assert(topo[t].x >= grade.x && topo[t].x + topo[t].w <= grade.x + grade.w);
-        for (int j = 0; j < t; j++)
+        for (int j = 0; j < t; j++) if (aj2TopoVisivel(j))
           assert(topo[t].x >= topo[j].x + topo[j].w || topo[j].x >= topo[t].x + topo[t].w ||
                  topo[t].y >= topo[j].y + topo[j].h || topo[j].y >= topo[t].y + topo[t].h);
       }
+      perto(topo[AJ2_T_PERFIL].w, grade.w - 2 * AJ2_G_PAD);
+      assert(aj2TopoRetratoR(AJ2_T_LAYOUT).w == 0 && AJ_CAB_PAGINA == 136);
       assert(aj2LTopo() >= topo[AJ2_T_RESOLVER].y + topo[AJ2_T_RESOLVER].h);
       assert(aj2LBase() > aj2LTopo() + 500);
       // Choices stop before the restore row, which is above Confirm/Cancel.
@@ -172,18 +175,18 @@ static void testaAjustesRetrato(void) {
   valor[AJ_LAYOUT_AJUSTES] = 0;
   nv_layout_w = 1080; nv_layout_h = 1728; valor[AJ_TAMANHO_AJUSTES] = 2;
   assert(!ajRetrato() && !ajustes_layout_lista());
-  nv_layout_w = 2400; nv_layout_h = 1080;
+  nv_layout_w = 1920; nv_layout_h = 1080;
   assert(!ajRetrato() && !ajustes_layout_lista());
   perto(aj2EditorR().x, aj2X0());
   valor[AJ_LAYOUT_AJUSTES] = layoutSalvo; valor[AJ_TAMANHO_AJUSTES] = escalaSalva;
 }
-static void testaPainelListaTelefone(void) {
+static void testaListaTelefone(void) {
   int layout = valor[AJ_LAYOUT_AJUSTES], tamanho = valor[AJ_TAMANHO_AJUSTES], secoes = nSecoes;
   nSecoes = AJ_MAX_SECOES;
   for (int h = 0; h < 2; h++) for (int s = 0; s < 3; s++) for (int lista = 0; lista < 2; lista++) {
     nv_layout_w = 1080; nv_layout_h = h ? 2340 : 1920;
     valor[AJ_TAMANHO_AJUSTES] = s; valor[AJ_LAYOUT_AJUSTES] = lista;
-    assert(ajustes_layout_lista() == lista && aj2TemInsp() == !lista);
+    assert(ajustes_layout_lista() && !aj2TemInsp());
     perto(ajustes_tamanho_ajustes(), (s == 0 ? 0.8f : s == 1 ? 0.9f : 1.0f) * 1.25f);
     GfxRect g = aj2GradeR(), l = aj2ListaR(), ed = aj2EditorR();
     dentroAjustes(g); dentroAjustes(l); dentroAjustes(ed);
@@ -191,17 +194,13 @@ static void testaPainelListaTelefone(void) {
     perto(g.x + g.w * 0.5f, NV_VTELA_W * 0.5f);
     perto(l.x + l.w * 0.5f, NV_VTELA_W * 0.5f);
     assert(l.w > 740 && l.h > 580);
-    if (!lista) {
-      GfxRect insp = aj2InspR(); dentroAjustes(insp);
-      assert(insp.y + insp.h + 24 <= l.y + 0.01f);
-      perto(insp.x + insp.w * 0.5f, NV_VTELA_W * 0.5f);
-    } else perto(l.y, AJ2_CORPO);
+    perto(l.y, AJ2_CORPO);
     aj2LRol = 0; focoIndice = 1; uxTopo = -1; uxIndice = 2;
     ajToqueLimpar(); aj2LAtualizar(0.1f);
     assert(aj2LRh == 128 && AJ2_LN_H == 96);
     float total; aj2LYRel(0, &total);
     assert(total > aj2LBase() - aj2LTopo());
-    GfxRect primeiro = lista ? aj2LLinhaR(0) : aj2GradeCartao(0);
+    GfxRect primeiro = aj2LLinhaR(0);
     perto(primeiro.x + primeiro.w * 0.5f, NV_VTELA_W * 0.5f);
     assert(primeiro.h >= 128);
     escalaTeste = ajustes_tamanho_ajustes();
@@ -212,7 +211,7 @@ static void testaPainelListaTelefone(void) {
     assert(ajToqueRolar(&e)); e.fase = PONT_ROL_FIM; ajToqueRolar(&e);
     float scroll = aj2LRol; assert(scroll > 0);
     aj2LAtualizar(0.1f); perto(aj2LRol, scroll);
-    GfxRect movido = lista ? aj2LLinhaR(0) : aj2GradeCartao(0);
+    GfxRect movido = aj2LLinhaR(0);
     perto(movido.y, primeiro.y - scroll);
     assert(valor[AJ_LAYOUT_AJUSTES] == lista && valor[AJ_TAMANHO_AJUSTES] == s);
   }
@@ -228,6 +227,8 @@ static void testaAjustesTelaCheia(void) {
     valor[AJ_HOME_LAYOUT] = rail == 1 ? HOME_LAYOUT_PADRAO : HOME_LAYOUT_MODERNA;
     valor[AJ_RAIL] = rail == 0 ? 0 : 1; valor[AJ_RAIL_MODERNA] = rail == 2 ? 0 : 1;
     assert(ajTelaCheia());
+    assert(ajustes_layout_lista() == (telefoneui_ativo() || modo));
+    assert(valor[AJ_LAYOUT_AJUSTES] == modo);
     float escala = ajustes_tamanho_ajustes(), reserva = ajustes_rail_largura_fixa();
     GfxRect tela = ajTelaR(), grade = aj2GradeR(), lista = aj2ListaR(), editor = aj2EditorR(), pagina = aj2PaginaR();
     perto(tela.x, 0); perto(tela.y, 0); perto(tela.w * escala, telas[d][0]); perto(tela.h * escala, telas[d][1]);
@@ -241,6 +242,7 @@ static void testaAjustesTelaCheia(void) {
     // The portrait geometry wraps the controls independently of account labels.
     // The landscape label formatter reads live providers and belongs to UI tests.
     if (ajRetrato()) for (int t = 0; t < AJ2_T_N; t++) {
+      if (!aj2TopoVisivel(t)) { assert(t == AJ2_T_LAYOUT); continue; }
       GfxRect botao = aj2TopoRetratoR(t); dentroAjustes(botao);
       assert(botao.x >= grade.x + AJ2_G_PAD - 0.01f);
       assert(botao.x + botao.w <= grade.x + grade.w - AJ2_G_PAD + 0.01f);
@@ -259,7 +261,7 @@ static void testaAjustesTelaCheia(void) {
     perto(f.ilha.x, reserva > 0 ? 48 + reserva : 0); perto(f.ilha.y, 0);
     perto(f.ilha.x + f.ilha.w, NV_TELA_W); perto(f.ilha.y + f.ilha.h, NV_TELA_H);
     assert(f.cx >= f.ilha.x + 30 && f.cw > 300);
-    // Category rows and their touch/scroll clip begin below the stacked Panel inspector.
+    // Category rows and touch/scroll clips use the effective layout.
     ajToqueLimpar(); ajToqueCamada(); escalaTeste = escala;
     float off = 0;
     ajToqueRegistrar(AJT_LISTA, (GfxRect){lista.x, AJ_TOPO, lista.w, AJ_BASE - AJ_TOPO}, &off, 500, 0, 91);
@@ -391,7 +393,7 @@ int main(void) {
   perto(NV_VTELA_W, 2400.0f / ajustes_tamanho_ajustes());
   testaAjustesRetrato();
   testaBarraRetrato();
-  testaPainelListaTelefone();
+  testaListaTelefone();
   testaAjustesTelaCheia();
 #elif defined(TESTE_MENU)
   aberto = 1; tvToqueRegiao = (GfxRect){100, 200, 500, 600};
