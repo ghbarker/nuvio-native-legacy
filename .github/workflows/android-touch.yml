@@ -89,6 +89,10 @@ jobs:
           bash tests/utilidades_toque.sh
           bash tests/gpun_touch.sh
           bash tests/snap_retrato.sh
+          bash tests/account_mobile.sh
+          bash tests/ctxmenu_retrato.sh
+          bash tests/spotlight_retrato.sh
+          bash tests/vertudo_retrato.sh
           python3 tests/android_apk_pages.py
           cc -DNV_TOUCH_PREVIEW -Isrc tests/layout_touch.c src/layout.c -lm -o /tmp/nuvio-layout-touch
           /tmp/nuvio-layout-touch

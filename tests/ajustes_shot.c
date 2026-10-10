@@ -294,6 +294,34 @@ int main(int argc, char **argv) {
     goto fim_capturas;
   }
 
+  // Complete current catalog, using the same full screen and focus code as
+  // the app. Never activate actions or change persisted account settings.
+  if (getenv("NUVIO_PHONE_SETTINGS_ALL")) {
+    int op, sec, n;
+    const char *chave, *rot;
+    char manifestPath[600], id[256];
+    snprintf(manifestPath, sizeof manifestPath, "%s-options.tsv", saida);
+    FILE *manifest = fopen(manifestPath, "w");
+    assert(manifest);
+    fprintf(manifest, "option\tsection\tkey\tlabel\timage\n");
+    quadrosCaptura = 60;
+    for (n = 0; ajustes_teste_cena_item(n, &op, &sec, &chave, &rot); n++) {
+      assert(chave && chave[0]);
+      snprintf(id, sizeof id, "op:%s", chave);
+      assert(ajustes_teste_quadro(id));
+      if (getenv("NUVIO_SHOT_LAYOUT")) ajustes_teste_layout(atoi(getenv("NUVIO_SHOT_LAYOUT")));
+      if (getenv("NUVIO_SHOT_FONTE")) ajustes_teste_fonte_interface(atoi(getenv("NUVIO_SHOT_FONTE")));
+      snprintf(nome, sizeof nome, "%s-option-%03d-%s.png", saida, n, chave);
+      captura(nome, w);
+      fprintf(manifest, "%d\t%d\t%s\t%s\t%s\n", op, sec, chave, rot, nome);
+    }
+    fclose(manifest);
+    printf("full Settings catalog: %d options\n", n);
+    assert(n > 200);
+    tex_encerrar(); txt_encerrar(); gfx_encerrar(); SDL_GL_DeleteContext(gl); SDL_DestroyWindow(w); SDL_Quit();
+    return 0;
+  }
+
   // OS QUADROS DO MOCKUP (ajustes-mockup.html): NUVIO_AJ_QUADROS="principal
   // cor ..." grava <saida>-<id>.png de cada um, com a ilha do relogio.
   if (getenv("NUVIO_AJ_QUADROS")) {

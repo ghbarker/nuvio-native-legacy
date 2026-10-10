@@ -53,6 +53,7 @@
 #include "posterprov.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include "sistexto.h"
 #include "celbotao.h"
 #define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
@@ -80,9 +81,16 @@
 #define SP_BW_BASE   980.0f
 #define SP_BW_KB     1240.0f
 static float spBW = SP_BW_BASE;
-#define SP_BW        spBW
+static int spTelefone(void) {
+  return telefoneui_ativo();
+}
+static int spRetrato(void) { return spTelefone() && NV_LAYOUT_REAL_H > NV_LAYOUT_REAL_W; }
+static float spLargura(void) {
+  return spTelefone() ? fminf(spBW, NV_TELA_W - 96.0f / escala_min(SP_ESCALA_MIN)) : spBW;
+}
+#define SP_BW        spLargura()
 #define SP_BX        ((NV_TELA_W - SP_BW) * 0.5f)
-#define SP_BY        120.0f
+#define SP_BY        (spTelefone() ? 40.0f / escala_min(SP_ESCALA_MIN) : 120.0f)
 #define SP_BH        76.0f
 #define SP_RAIO      36.0f          // px do corpo aberto; a barra sozinha e pilula
 #define SP_CORPO_Y   (SP_BY + SP_BH)
@@ -106,7 +114,7 @@ static float spBW = SP_BW_BASE;
 #define SP_TECLA_GAP 10.0f
 #define SP_KB_COLS   6
 #define SP_KB_PASSO  (SP_TECLA + SP_TECLA_GAP)
-#define SP_KB_X      (SP_BX + 36.0f)
+#define SP_KB_X      (spRetrato() ? SP_BX + (SP_BW - SP_KB_W) * 0.5f : SP_BX + 36.0f)
 #define SP_KB_Y      (SP_CORPO_Y + SP_ILHA_VAO + SP_ILHA_PAD + 8.0f)
 #define SP_KB_W      (SP_KB_COLS * SP_TECLA + (SP_KB_COLS - 1) * SP_TECLA_GAP)
 #define SP_LISTA_X0  (SP_BX + SP_ILHA_PAD)            // sem o teclado do app
@@ -189,6 +197,9 @@ static unsigned ultimaGerPessoa;
 static float scrollY, scrollAlvo, velY;
 #ifdef NV_TOUCH_PREVIEW
 static ToqueRolagem toqueSpot;
+static ToqueRolagem toqueTeclado;
+static int toqueNoTeclado;
+static float kbRol;
 #endif
 static float animTecla[SP_KB_MAX_FIL + 1][SP_KB_COLS];
 static float animCampo;
@@ -199,6 +210,10 @@ static Uint32 okDesde;
 static float nivelVoz;             // nivel do som suavizado (st_nivel)
 #ifdef NV_TOUCH_PREVIEW
 static int toqueSpotRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    toqueNoTeclado = toquerol_evento(&toqueTeclado, e);
+    if (toqueNoTeclado) { okPress = okLongo = 0; return 1; }
+  } else if (toqueNoTeclado) return toquerol_evento(&toqueTeclado, e);
   int r = toquerol_evento(&toqueSpot, e);
   if (toqueSpot.livre) { scrollAlvo = scrollY; velY = 0.0f; okPress = okLongo = 0; }
   return r;
@@ -237,6 +252,15 @@ static int ouvindo(void) {
                                   st_estado() == ST_VOZ_SISTEMA);
 }
 static int digitandoSis(void) { return st_dono() == ST_SPOT && st_estado() == ST_DIGITANDO; }
+static float spTeclasH(void) { return (kbFil + 1) * SP_KB_PASSO - SP_TECLA_GAP; }
+static float spTecladoVisivel(void) {
+  float h = SP_CORPO_MAX - SP_CPAD_T - SP_RODAPE_H - 24.0f;
+  if (spRetrato()) h *= 0.55f;
+  return fminf(spTeclasH(), fmaxf(SP_TECLA * 2.0f, h));
+}
+static float spListaDesloc(void) {
+  return spRetrato() ? anim_suave(kbAnim) * (spTecladoVisivel() + 24.0f) : 0.0f;
+}
 
 static void kbMontar(void) {
   const unsigned char *p = (const unsigned char *)teclado_alfabeto();
@@ -267,6 +291,9 @@ static int kbColunas(int f) {
 static GfxRect teclaRect(int f, int c) {
   GfxRect r;
   r.y = SP_KB_Y + f * SP_KB_PASSO;
+#ifdef NV_TOUCH_PREVIEW
+  if (spTelefone()) r.y -= kbRol;
+#endif
   r.h = SP_TECLA;
   if (f < kbFil) { r.x = SP_KB_X + c * SP_KB_PASSO; r.w = SP_TECLA; }
   else {
@@ -924,7 +951,10 @@ void spot_texto_externo(const char *t) { campoDefinir(t, 1); }
 static void entrarLista(void);
 
 // --- Teclado e voz do sistema (sistexto.h) ----------------------------------------
-static void abrirTecladoSis(void) { st_ime_abrir(ST_SPOT, consulta, SP_MAX_TXT - 1); }
+static void abrirTecladoSis(void) {
+  if (spTelefone()) { kbAberto = 0; painel = P_CAMPO; }
+  st_ime_abrir(ST_SPOT, consulta, SP_MAX_TXT - 1);
+}
 static void ditar(void) { if (ditadoDisponivel()) st_voz_iniciar(ST_SPOT); }
 
 // OK no campo: o teclado do sistema onde ha; senao o do app, com o foco nele.
@@ -971,6 +1001,7 @@ void spot_abrir(int voz) {
 static void spotAbrirBase(int voz, int tecladoAuto) {
 #ifdef NV_TOUCH_PREVIEW
   toquerol_limpar(&toqueSpot);
+  toquerol_limpar(&toqueTeclado); kbRol = 0.0f; toqueNoTeclado = 0;
 #endif
   kbMontar();
   if (!modoAjustes) guia_preparar_busca();
@@ -1003,7 +1034,7 @@ static void spotAbrirBase(int voz, int tecladoAuto) {
 #endif
   fflush(stdout);
   if (voz && ditadoDisponivel()) { painel = P_MIC; ditar(); }
-  else if (tecladoAuto && imeDisponivel() && st_abre_sozinho()) abrirTecladoSis();
+  else if (tecladoAuto && imeDisponivel() && (st_abre_sozinho() || spTelefone())) abrirTecladoSis();
 }
 
 void spot_abrir_guia(void) {
@@ -1215,6 +1246,7 @@ void spot_evento(const SDL_Event *e) {
   SDL_Keycode k;
   if (!aberto) return;
 #ifdef NV_TOUCH_PREVIEW
+  if (toquerol_navegacao(e)) toquerol_limpar(&toqueTeclado);
   if (toquerol_navegacao(e) && toqueSpot.livre) {
     for (int i = 0; i < nLin; i++)
       if (focavel(lin[i].tipo) && lin[i].y + lin[i].h > scrollY) { focoL = i; painel = P_LISTA; break; }
@@ -1347,13 +1379,14 @@ static float corpoAlvo(void) {
   // linha INTEIRA e a ilha parava um pedaco acima do fim da tela.
   if (h > teto) h = teto;
   if (kbAberto && alturaTeclado() > h) h = alturaTeclado();
+  if (spRetrato() && kbAberto) h = fminf(teto, spTecladoVisivel() + 24.0f + alturaLista());
   if (h <= 0.0f) return 0.0f;
   h += SP_CPAD_T + SP_CPAD_B + SP_RODAPE_H;
   return h > SP_CORPO_MAX ? SP_CORPO_MAX : h;
 }
 // A janela da lista dentro do corpo (para a rolagem): pelo alvo, nao pela mola.
 static float listaVisivel(void) {
-  float h = corpoAlvo() - SP_CPAD_T - SP_CPAD_B - SP_RODAPE_H;
+  float h = corpoAlvo() - SP_CPAD_T - SP_CPAD_B - SP_RODAPE_H - spListaDesloc();
   return h > 0.0f ? h : 0.0f;
 }
 
@@ -1388,6 +1421,17 @@ void spot_atualizar(float dt, Uint32 agora) {
   if (corpoH < 0.0f) { corpoH = 0.0f; if (corpoV < 0.0f) corpoV = 0.0f; }
   kbAnim = anim_mola(kbAnim, kbAberto ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
   spBW = anim_mistura(SP_BW_BASE, SP_BW_KB, anim_suave(kbAnim));
+#ifdef NV_TOUCH_PREVIEW
+  if (spTelefone() && kbAberto) {
+    float maximo = fmaxf(0.0f, spTeclasH() - spTecladoVisivel());
+    if (!toqueTeclado.livre && painel == P_TECLADO) {
+      float top = kbF * SP_KB_PASSO, bottom = top + SP_TECLA;
+      if (top < kbRol) kbRol = top;
+      if (bottom > kbRol + spTecladoVisivel()) kbRol = bottom - spTecladoVisivel();
+    }
+    kbRol = anim_clamp(kbRol, 0.0f, maximo);
+  }
+#endif
   nivelVoz = anim_mola(nivelVoz, st_nivel(), dt, 18.0f);
   animMic = anim_mola(animMic, painel == P_MIC ? 1.0f : 0.0f, dt, NV_MOLA_FOCO);
   for (f = 0; f <= kbFil && f <= SP_KB_MAX_FIL; f++)
@@ -1592,6 +1636,16 @@ static void desenhaTeclado(float dy, float a) {
   float ar, ag, ab, ka = anim_suave(kbAnim), sx = (1.0f - ka) * -18.0f;
   if (kbAnim < 0.01f) return;
   a *= ka;
+#ifdef NV_TOUCH_PREVIEW
+  float topo = SP_KB_Y + dy, vis = fminf(spTecladoVisivel(), corpoH - SP_CPAD_T - SP_RODAPE_H);
+  if (spTelefone()) {
+    if (vis <= 0.0f) return;
+    toquerol_vincular(&toqueTeclado, (GfxRect){SP_KB_X, topo, SP_KB_W, vis}, gfx_escala(),
+                     0.0f, fmaxf(0.0f, spTeclasH() - vis), 1, &kbRol);
+    ponteiro_rolagem(toqueSpotRolar);
+    gfx_recorte(SP_KB_X - 6.0f, topo, SP_KB_W + 12.0f, vis);
+  }
+#endif
   ajustes_acento(&ar, &ag, &ab);
   for (f = 0; f <= kbFil; f++)
     for (c = 0; c < kbColunas(f); c++) {
@@ -1610,7 +1664,13 @@ static void desenhaTeclado(float dy, float a) {
                  ar, ag, ab, 0.28f * k * a);
         gfx_cor(t, 0.16f, ar, ag, ab, k * a);
       }
-      if (ponteiro_ativo() && kbAberto) ponteiro_alvo(b.x, b.y, b.w, b.h, focarTecla, NULL, f, c);
+      if (ponteiro_ativo() && kbAberto) {
+#ifdef NV_TOUCH_PREVIEW
+        if (spTelefone()) ponteiro_alvo_faixa(b.x, b.y, b.w, b.h, topo, topo + vis, focarTecla, NULL, f, c);
+        else
+#endif
+          ponteiro_alvo(b.x, b.y, b.w, b.h, focarTecla, NULL, f, c);
+      }
       if (f < kbFil) s = kbTeclas[f * SP_KB_COLS + c];
       else switch (kbCmd[c]) {
         case K_ESPACO:  s = i18n("espaço"); break;
@@ -1623,10 +1683,15 @@ static void desenhaTeclado(float dy, float a) {
       if (ic) gfx_icone((GfxRect){ t.x + (t.w - 30) * 0.5f, t.y + (t.h - 30) * 0.5f, 30, 30 }, ic,
                         tom / 255.0f, tom / 255.0f, tom / 255.0f, a);
       else {
-        TxtLinha l = txt_linha(f < kbFil ? TXT_PAINEL_ITEM : TXT_CAPTION, s, tom, tom, tom, 255);
+        TxtLinha l = spTelefone()
+          ? txt_linha_corta(f < kbFil ? TXT_PAINEL_ITEM : TXT_CAPTION, s, tom, tom, tom, 255, t.w - 12.0f)
+          : txt_linha(f < kbFil ? TXT_PAINEL_ITEM : TXT_CAPTION, s, tom, tom, tom, 255);
         txt_desenhar_alpha(l, t.x + (t.w - l.w) * 0.5f, t.y + (t.h - l.h) * 0.5f, a);
       }
     }
+#ifdef NV_TOUCH_PREVIEW
+  if (spTelefone()) gfx_sem_recorte();
+#endif
 }
 
 // Arte de uma linha no retangulo `r`, com esqueleto enquanto nao chega.
@@ -1723,11 +1788,12 @@ static void desenhaGuia(Linha *l, GfxRect r, float f, float a1, float a2, float 
   int vidro = ajustes_vidro();
   if (l->ref2 == 1) {
     GfxRect art = { r.x + 18.0f, r.y + 18.0f, 300.0f, 168.0f };
+    if (spTelefone()) { art.w = fminf(art.w, r.w * 0.35f); art.h = art.w * 168.0f / 300.0f; }
     float tx = art.x + art.w + 26.0f, dw = 0.0f, tw, ty;
     TxtLinha t, m, o;
     ajustes_guia_imagem(l->ref, art.x, art.y, art.w, art.h);
     o = txt_linha(TXT_ILHA_APOIO, i18n("OK abre"), SP_TINTA, 255);
-    if (f > 0.02f) { txt_desenhar_alpha(o, r.x + r.w - 28.0f - o.w, r.y + (r.h - o.h) * 0.5f, .5f * f * a); dw = o.w + 40.0f; }
+    if (f > 0.02f && !spTelefone()) { txt_desenhar_alpha(o, r.x + r.w - 28.0f - o.w, r.y + (r.h - o.h) * 0.5f, .5f * f * a); dw = o.w + 40.0f; }
     tw = r.x + r.w - tx - 26.0f - dw;
     t = txt_linha_corta(TXT_AJ_INSP, l->t1, SP_TINTA, 255, tw);
     m = txt_linha_corta(TXT_ILHA_META, l->t2, SP_TINTA, 255, tw);
@@ -1758,6 +1824,13 @@ static void desenhaLinha(int i, float x, float y, float a) {
   float a1, a2;                 // alfa do nome e da linha de apoio
   GfxRect r = { x, y, w, l->h };
   if (l->tipo == L_CAB) {
+    if (spTelefone()) {
+      TxtLinha c = txt_linha_corta(TXT_MINI, l->t2, SP_TINTA, 255, w * 0.25f);
+      TxtLinha t = txt_linha_corta(TXT_MINI, l->t1, SP_TINTA, 255, w - 32.0f - (c.w ? c.w + 12.0f : 0.0f));
+      txt_desenhar_alpha(t, x + 12.0f, y + l->h - 11.0f - t.h, .45f * a);
+      if (c.w) txt_desenhar_alpha(c, x + w - 12.0f - c.w, y + l->h - 11.0f - c.h, .35f * a);
+      return;
+    }
     kicker(l->t1, x + 12.0f, y + l->h - 11.0f, a);
     if (l->t2[0]) {   // a contagem do grupo ("No guia 4")
       char up[200];
@@ -1803,10 +1876,11 @@ static void desenhaLinha(int i, float x, float y, float a) {
     float tx, ty, bloco, dw = 0.0f;
     // Sem paisagem, o cartaz em pe ocupa o mesmo lugar (e a caixa encolhe).
     if (!(ci && ci->backdrop[0])) art.w = art.h * 2.0f / 3.0f;
+    if (spTelefone()) art.w = fminf(art.w, r.w * 0.35f);
     arte(art, l->arte, 14.0f / art.h, 0, a);
     tx = art.x + art.w + 24.0f;
     // "OK Abrir" a direita, no meio da altura: so com o foco nela.
-    if (f > 0.02f) {
+    if (f > 0.02f && !spTelefone()) {
       TxtLinha o = txt_linha(TXT_ILHA_APOIO, "OK", SP_TINTA, 255);
       dw = dicaPar(-1.0f, 0, "OK", i18n("Abrir"), a);
       dicaPar(r.x + r.w - 26.0f - dw, r.y + (r.h - o.h) * 0.5f, "OK", i18n("Abrir"), .5f * f * a);
@@ -1832,11 +1906,12 @@ static void desenhaLinha(int i, float x, float y, float a) {
     // MELHOR RESULTADO DE AJUSTE: a previa da opcao (280 x 158), o nome,
     // o caminho com o valor e a frase da opcao.
     GfxRect art = { r.x + 18.0f, r.y + 18.0f, 280.0f, 158.0f };
+    if (spTelefone()) { art.w = fminf(art.w, r.w * 0.35f); art.h = art.w * 158.0f / 280.0f; }
     float tx = art.x + art.w + 26.0f, dw = 0.0f, tw, ty, bloco;
     TxtLinha t, m, o;
     ajustes_previa_busca(l->ref, art.x, art.y, art.w, art.h, a);
     o = txt_linha(TXT_ILHA_APOIO, "OK abre", SP_TINTA, 255);
-    if (f > 0.02f) { txt_desenhar_alpha(o, r.x + r.w - 28.0f - o.w, r.y + (r.h - o.h) * 0.5f, .5f * f * a); dw = o.w + 40.0f; }
+    if (f > 0.02f && !spTelefone()) { txt_desenhar_alpha(o, r.x + r.w - 28.0f - o.w, r.y + (r.h - o.h) * 0.5f, .5f * f * a); dw = o.w + 40.0f; }
     tw = r.x + r.w - tx - 26.0f - dw;
     t = txt_linha_corta(TXT_AJ_INSP, l->t1, SP_TINTA, 255, tw);
     m = txt_linha_corta(TXT_ILHA_META, l->t2, SP_TINTA, 255, tw);
@@ -1912,15 +1987,16 @@ static void desenhaLinha(int i, float x, float y, float a) {
 
 static void desenhaLista(float dy, float a) {
   int i;
-  float topo = SP_CORPO_Y + SP_CPAD_T + dy;
-  float vis = corpoH - SP_CPAD_T - SP_CPAD_B - SP_RODAPE_H;
+  float topo = SP_CORPO_Y + SP_CPAD_T + dy + spListaDesloc();
+  float vis = corpoH - SP_CPAD_T - SP_CPAD_B - SP_RODAPE_H - spListaDesloc();
   if (vis <= 2.0f) return;
 #ifdef NV_TOUCH_PREVIEW
   toquerol_vincular(&toqueSpot, (GfxRect){listaX, topo, listaW, vis}, gfx_escala(),
                    0.0f, fmaxf(0.0f, alturaLista() - vis), 1, &scrollY);
   ponteiro_rolagem(toqueSpotRolar);
 #endif
-  gfx_recorte(listaX - 30.0f, topo - 8.0f, listaW + 60.0f, vis + 4.0f);
+  gfx_recorte(spTelefone() ? listaX : listaX - 30.0f, topo - 8.0f,
+              spTelefone() ? listaW : listaW + 60.0f, vis + 4.0f);
   for (i = 0; i < nLin; i++) {
     float y = topo + lin[i].y - scrollY;
     float e = entraLin[i];
@@ -1942,6 +2018,12 @@ static void desenhaRodape(float dy, float a) {
   int recente = painel == P_LISTA && focoL >= 0 && focoL < nLin && lin[focoL].tipo == L_RECENTE;
   a *= anim_clamp((corpoH - 80.0f) / 80.0f, 0.0f, 1.0f);
   if (a < 0.01f) return;
+  if (spTelefone()) {
+    const char *rot = painel == P_TECLADO ? "Resultados" : painel == P_LISTA ? "Abrir" : "Buscar";
+    TxtLinha l = txt_linha_corta(TXT_ILHA_APOIO, rot, SP_TINTA, 255, SP_BW - 2.0f * SP_ILHA_PAD - 32.0f);
+    txt_desenhar_alpha(l, x, y, .42f * a);
+    return;
+  }
   if (painel == P_TECLADO) {
     x = dica(x, y, "OK", i18n("Digitar"), a);
     x = dica(x, y, "\xe2\x86\x92", i18n("Resultados"), a);
@@ -1973,6 +2055,9 @@ static void spot_desenharCorpo_(Uint32 agora, int veuPronto) {
   a = anim_suave(entrada);
   dy = (1.0f - a) * -24.0f;
   ponteiro_camada();
+#ifdef NV_TOUCH_PREVIEW
+  toqueTeclado.offset = NULL;
+#endif
   if (!veuPronto) {
     float ga = gfx_opacidade_grupo;
     gfx_opacidade_grupo = ga * a;
@@ -1980,7 +2065,7 @@ static void spot_desenharCorpo_(Uint32 agora, int veuPronto) {
     gfx_opacidade_grupo = ga;
   }
   { float ka = anim_suave(kbAnim);
-    listaX = anim_mistura(SP_LISTA_X0, SP_LISTA_X1, ka);
+    listaX = anim_mistura(SP_LISTA_X0, spRetrato() ? SP_LISTA_X0 : SP_LISTA_X1, ka);
     listaW = SP_LISTA_XF - listaX; }
   sup = (GfxRect){ SP_BX, SP_BY + dy, SP_BW, SP_BH + (corpoH > 0.0f ? corpoH : 0.0f) };
   // A SUPERFICIE TODA e um anteparo para o ponteiro: clique fora das teclas e

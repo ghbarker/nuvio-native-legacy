@@ -1262,6 +1262,16 @@ static void desenhaFundo(void) {
   gfx_cor(tela, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 }
 
+static TxtLinha pinTitulo(const char *nome) {
+  char t[128];
+  snprintf(t, sizeof t, i18n("PIN de %s"), nome && nome[0] ? nome : i18n("perfil"));
+#ifdef NV_TOUCH_PREVIEW
+  return txt_linha_corta(TXT_TITULO3, t, 255, 255, 255, 255, fmaxf(1.0f, NV_TELA_W - 96.0f));
+#else
+  return txt_linha(TXT_TITULO3, t, 255, 255, 255, 255);
+#endif
+}
+
 static void desenhaPin(void) {
   static const char *ROT[PS_TECLA_COLS * PS_TECLA_LINS] =
     { "1","2","3", "4","5","6", "7","8","9", "","0","←" };
@@ -1286,10 +1296,7 @@ static void desenhaPin(void) {
   { GfxRect av = { (NV_TELA_W - 132.0f) * 0.5f, 176.0f, 132.0f, 132.0f };
     disco(av, p, 1.0f, a, 1); }
 
-  { char t[128];
-    TxtLinha l;
-    snprintf(t, sizeof t, i18n("PIN de %s"), p->nome[0] ? p->nome : i18n("perfil"));
-    l = txt_linha(TXT_TITULO3, t, 255, 255, 255, 255);
+  { TxtLinha l = pinTitulo(p->nome);
     txt_desenhar_alpha(l, (NV_TELA_W - l.w) * 0.5f, 344.0f, a); }
 
   // Pontos, nunca os digitos: alguem passando na sala nao precisa ler o PIN.

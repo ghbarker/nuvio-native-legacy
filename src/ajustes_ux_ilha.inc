@@ -1290,7 +1290,16 @@ static void ajSubLista(const AjSubLinha *L, int n, int foco, const AjDica *d, in
       ajIcone(L[i].icone, r.x + 22 + 14, yc - 12, 24, 0.85f * a);
     } else ajRosto(L[i].nome, r.x + 22, yc - 26, 52, 15, 0.09f, 0.85f * a, TXT_ILHA_INICIAL);
     if (L[i].pilula >= 0) cw = aj2PilulaEstado(-1, r.x + r.w - 22.0f, yc, L[i].pilula, a) + 16.0f;
-    if (L[i].chevron) { aj2Chevron(r.x + r.w - 22.0f - cw, yc, (f ? 0.7f : 0.32f) * a); cw += 34.0f; }
+    if (L[i].chevron) {
+      float dir = r.x + r.w - 22.0f - cw;
+      aj2Chevron(dir, yc, (f ? 0.7f : 0.32f) * a);
+#ifdef NV_TOUCH_PREVIEW
+      if (focar == pluginsui_ponteiro)
+        ponteiro_alvo_faixa(dir - 38.0f, r.y, 54.0f, r.h, topo, base,
+                            pluginsui_ponteiro, pluginsui_detalhes, i, 0);
+#endif
+      cw += 34.0f;
+    }
     tw = r.x + r.w - 22.0f - cw - tx - 12.0f;
     // O nome do addon/plugin e do usuario: nao passa por i18n.
     t = L[i].traduz ? ajTxtC(f ? TXT_V3_LN_B : TXT_V3_LN, L[i].nome, tw)
