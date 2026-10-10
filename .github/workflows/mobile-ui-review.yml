@@ -22,7 +22,9 @@ jobs:
           - group: settings-list
             capture: '--fixtures ajustes --cases 1080x2340@1 --all-settings --settings-layout 1'
           - group: browsing
-            capture: '--fixtures homelayouts busca biblioteca explorar vertudo agenda guia'
+            capture: '--fixtures busca biblioteca explorar vertudo agenda guia'
+          - group: home-layouts
+            capture: '--fixtures homelayouts'
           - group: home-shapes
             capture: '--fixtures homelayouts --home-variant shapes'
           - group: home-ranking

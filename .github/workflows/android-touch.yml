@@ -105,6 +105,10 @@ jobs:
           bash tests/playback_actions_review.sh
           bash tests/player_mini_toque.sh
           bash tests/player_touch_frames_review.sh
+          bash tests/salvospainel_phone_content.sh
+          bash tests/saved_touch_frames_review.sh
+          bash tests/saved_social_phone.sh
+          bash tests/saved_social_touch_review.sh
           bash tests/livetvdiag_phone.sh
           bash tests/livetvdiag_actions_review.sh
           bash tests/biblioteca_content_review.sh
@@ -129,6 +133,7 @@ jobs:
           python3 tests/android_touch_viewport.py
           python3 tests/android_window_layout.py
           python3 tests/android_orientation.py
+          python3 tests/android_smoke_rotation.py
       - uses: actions/cache/save@v4
         if: steps.native-cache.outputs.cache-hit != 'true'
         with:

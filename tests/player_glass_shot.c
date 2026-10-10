@@ -54,6 +54,12 @@ static char mock[600];
 
 static void salvar(const char *id) {
   char nome[800];
+  // A folha e seu menu pertencem apenas a estas duas capturas. Uma cena
+  // anterior aberta esconderia os controles que a proxima pretende revisar.
+  if (strcmp(id, "episodios") && strcmp(id, "episodios-marcar")) {
+    assert(!episodios_aberto());
+    assert(!episodios_menu_aberto_qualquer());
+  }
   SDL_Surface *s = SDL_CreateRGBSurface(0, LW, LH, 24, 0xff, 0xff00, 0xff0000, 0);
   int y; unsigned char *p, *t;
   glFinish(); glBindFramebuffer(GL_FRAMEBUFFER, fbo); glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -727,6 +733,20 @@ int main(int argc, char **argv) {
     episodios_shot_menu();
     quadros(60);
     if (quer(argc, argv, "episodios-marcar")) salvar("episodios-marcar");
+    // Fecha primeiro o menu e depois a folha, pelo mesmo caminho de Voltar.
+    // As cenas seguintes abrem o player diretamente, sem o encerramento que
+    // o roteador real faz antes de trocar de episodio ou titulo.
+    {
+      SDL_Event ev;
+      memset(&ev, 0, sizeof ev);
+      ev.type = SDL_KEYDOWN; ev.key.keysym.sym = SDLK_ESCAPE;
+      episodios_evento(&ev);
+      assert(!episodios_menu_aberto_qualquer());
+      episodios_evento(&ev);
+      assert(!episodios_aberto());
+      quadros(90);
+      assert(episodios_anim() < .005f);
+    }
     { struct tm lt; time_t t = time(NULL);
       localtime_r(&t, &lt); lt.tm_hour = 20; lt.tm_min = 19; lt.tm_sec = 0;
       plrilha_shot_hora(mktime(&lt)); }
@@ -764,6 +784,9 @@ int main(int argc, char **argv) {
     reacao_teste_abrir("tt99999991", "Project Hail Mary", "movie", 42, "Ana", 1);
     quadros(110);
     salvar("reacao");
+    reacao_fechar();
+    quadros(90);
+    assert(!reacao_aberta());
   }
   if (quer(argc, argv, "fontes")) {
     static Stream st[5];

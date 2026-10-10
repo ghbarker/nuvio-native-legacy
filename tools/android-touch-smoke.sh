@@ -22,6 +22,9 @@ adb logcat -c
 capturar_saida() {
   adb logcat -d > "$OUT/logcat.txt" || true
   adb exec-out screencap -p > "$OUT/last.png" || true
+  adb shell dumpsys window > "$OUT/window-exit.txt" || true
+  adb shell settings get system accelerometer_rotation > "$OUT/rotation-mode-exit.txt" || true
+  adb shell settings get system user_rotation > "$OUT/rotation-exit.txt" || true
 }
 trap capturar_saida EXIT
 adb shell am start -W -n "$PKG/space.nuvio.nativelegacy.NuvioActivity" > "$OUT/start.txt"
@@ -84,16 +87,23 @@ PY
 conferir_viewport portrait
 adb exec-out screencap -p > "$OUT/open-portrait.png"
 adb shell dumpsys window > "$OUT/window-portrait.txt"
-adb shell settings put system user_rotation 1
+pedir_rotacao() {
+  # uiautomator pode restaurar USER_ROTATION_FREE ao desconectar. Nesse modo
+  # user_rotation nao gira a tela: o sensor manda. Reafirma o bloqueio para
+  # cada orientacao pedida, sem mudar a verificacao do viewport real do app.
+  adb shell settings put system accelerometer_rotation 0
+  adb shell settings put system user_rotation "$1"
+}
+pedir_rotacao 1
 sleep 4
 conferir_viewport landscape
 adb exec-out screencap -p > "$OUT/open.png"
 adb shell dumpsys window > "$OUT/window-start.txt"
-adb shell settings put system user_rotation 0
+pedir_rotacao 0
 sleep 4
 conferir_viewport portrait
 adb exec-out screencap -p > "$OUT/return-portrait.png"
-adb shell settings put system user_rotation 1
+pedir_rotacao 1
 sleep 4
 conferir_viewport landscape
 [ "$(adb shell pidof "$PKG" | tr -d '\r')" = "$PID" ] || { echo 'smoke: rotacao recriou o processo' >&2; exit 1; }
@@ -143,8 +153,7 @@ if grep -E 'mInputShown=true' "$OUT/ime-back.txt" >/dev/null; then
   exit 1
 fi
 adb exec-out screencap -p > "$OUT/ime-back.png"
-adb shell settings put system accelerometer_rotation 0
-adb shell settings put system user_rotation 3
+pedir_rotacao 3
 sleep 2
 adb exec-out screencap -p > "$OUT/rotate.png"
 adb logcat -d --pid="$PID" > "$OUT/logcat.txt"
