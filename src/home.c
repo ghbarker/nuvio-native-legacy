@@ -762,11 +762,14 @@ static void medidaColecao(int forma, float *w, float *h) {
     case COL_FORMA_QUADRADO: *w = ph;  *h = ph;  break;
     case COL_FORMA_POSTER:   *w = pw;  *h = ph;  break;
     default:
-      // No telefone a pasta deitada acompanha a altura dos cartazes da
-      // mesma Home. A medida fixa de TV ficava menor mesmo quando os
-      // cartazes cresciam no retrato ou pela preferencia de largura.
-      *h = telefoneui_ativo() ? ph : 203.0f;
-      *w = telefoneui_ativo() ? ph * (360.0f / 203.0f) : 360.0f;
+      // A pasta deitada acompanha o card de titulo deitado, inclusive sua
+      // moldura. A altura do poster em pe faria a pasta quase duas vezes
+      // maior. A preferencia da fileira e o teto de retrato seguem abaixo.
+      if (telefoneui_ativo()) {
+        float e = escalaDoAjuste() * escalaPosterTelefone();
+        *w = e * NV_CARD_LAND_W;
+        *h = e * NV_CARD_LAND_H;
+      } else { *w = 360.0f; *h = 203.0f; }
       break;
   }
 }

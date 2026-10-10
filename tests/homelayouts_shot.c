@@ -76,6 +76,7 @@ static int heroPaginaConfere;
 static float heroPaginaEsperada[3];
 static void heroPaginaVerificar(void);
 static int pastasComparando;
+static int pastaModoDeitado;
 #endif
 
 static void gravar(const char *bmp) {
@@ -176,12 +177,16 @@ static void tecla(SDL_Keycode k) {
 static void ajusta(int layout, int vidro) {
   char cam[700];
   FILE *a;
+  int deitado = 1;
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if (pastaModoDeitado) deitado = 0;  // indice 0 = ligado
+#endif
   snprintf(cam, sizeof cam, "%s/ajustes.txt", dirDados);
   a = fopen(cam, "w");
   assert(a);
   fprintf(a, "idioma 0\ntrailerHero 1\nhomeLayoutLocal %d\nvidroLocal %d\n"
-             "modernLandscapePostersEnabled 1\nselected_theme %d\n",
-          layout, vidro ? 0 : 1, getenv("NV_TEMA") ? atoi(getenv("NV_TEMA")) : 0);
+             "modernLandscapePostersEnabled %d\nselected_theme %d\n",
+          layout, vidro ? 0 : 1, deitado, getenv("NV_TEMA") ? atoi(getenv("NV_TEMA")) : 0);
   if (getenv("NV_AJ")) fprintf(a, "%s\n", getenv("NV_AJ"));   // ex.: "heroSectionEnabled 1"
 #if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
   // ajustes.txt stores the option index: 1 selects "Desligado".
@@ -234,6 +239,53 @@ static void pastaDedo(Uint32 tipo,float x,float y) {
   e.tfinger.x=x/NV_TELA_W;e.tfinger.y=y/NV_TELA_H;
   assert(ponteiro_evento(&e,home_evento));
 }
+static PonteiroFn pastaFnFocada(HomeItem normal,int row) {
+  const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v);
+  for(int i=0;i<n;i++)if(v[i].a==row&&v[i].b==0&&v[i].focar &&
+    fabsf(v[i].x-normal.rect.x)<.1f&&fabsf(v[i].w-normal.rect.w)<.1f) {
+    assert(fabsf(v[i].y-normal.rect.y)<.15f&&fabsf(v[i].h-normal.rect.h)<.15f);
+    return v[i].focar;
+  }
+  assert(0);return NULL;
+}
+static void pastaCompararDeitada(const char *saida,int lay,int vidro,float *wideW,float *wideH) {
+  char bmp[900];
+  pastaModoDeitado=1;ajusta(lay,vidro);
+  assert(ajustes_posteres_deitados());
+  int rowNormal=pastaFocar(FILEIRA_NORMAL,"Em alta");
+  HomeItem normal;assert(home_item_focado(&normal));
+  PonteiroFn fn=pastaFnFocada(normal,rowNormal);
+  float zoom=ajustes_borda_foco()?1:1.06f,escalaNormal=fil_escala("trend_series");
+  PonteiroAlvo fechado=pastaAlvoCol(fn,rowNormal,1);
+  assert(fabsf(fechado.w-normal.rect.w/zoom)<.15f&&fabsf(fechado.h-normal.rect.h/zoom)<.15f);
+  *wideW=fechado.w/escalaNormal;*wideH=fechado.h/escalaNormal;
+  printf("[shot] normal-wide reference: unfocused column1 %.3fx%.3f, row %d, scale %.3f, UI%.0f\n",
+         fechado.w,fechado.h,rowNormal,escalaNormal,gfx_escala_ui()*100);fflush(stdout);
+  snprintf(bmp,sizeof bmp,"%s-folders-wide-L%d-g%d-0-ordinary-landscape.bmp",saida,lay,vidro);quadros(1,bmp);
+  assert(fil_definir_tipo("collection_cs",FIL_TIPO_COLECAO));quadros(120,NULL);
+  int row=pastaFocar(FILEIRA_CATALOGOS,"Streaming");assert(row==rowNormal+1);
+  float escalaCol=fil_escala("collection_cs"),w=*wideW*escalaCol,h=*wideH*escalaCol;
+  PonteiroAlvo alvo=pastaAlvo(fn,row);
+  assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+  float gap=(lay==HOME_LAYOUT_MODERNA?NV_FILEIRA_GAP_LAND:NV_PAD_FILEIRA_GAP)*ajustes_espaco_fileiras();
+  float top=fminf(156+2*NV_LEGACY_ROW_HEAD_H+*wideH*escalaNormal+gap,NV_TELA_H-h-24);
+  float x=alvo.x+alvo.w*.5f,y=alvo.y+fminf(alvo.h*.5f,80),delta=top-alvo.y;
+  pastaDedo(SDL_FINGERDOWN,x,y);SDL_Delay(100);pastaDedo(SDL_FINGERMOTION,x,y+delta);quadros(1,NULL);
+  SDL_Delay(100);pastaDedo(SDL_FINGERUP,x,y+delta);quadros(4,NULL);
+  alvo=pastaAlvo(fn,row);PonteiroAlvo titulo=pastaAlvo(fn,rowNormal);
+  float tituloTop=alvo.y-NV_LEGACY_ROW_HEAD_H-*wideH*escalaNormal-gap;
+  float vis=*wideH*escalaNormal-fmaxf(0,132-tituloTop);
+  printf("[shot] adjacent wide measured: folder %.3f,%.3f %.3fx%.3f, normal %.3f,%.3f %.3fx%.3f, expected normal %.3fx%.3f\n",
+         alvo.x,alvo.y,alvo.w,alvo.h,titulo.x,titulo.y,titulo.w,titulo.h,*wideW*escalaNormal,vis);fflush(stdout);
+  assert(fabsf(alvo.w-w)<.15f&&fabsf(alvo.h-h)<.15f);
+  assert(fabsf(titulo.w-*wideW*escalaNormal)<.15f&&fabsf(titulo.h-vis)<.15f);
+  assert(titulo.h>=*wideH*escalaNormal*.7f&&titulo.y>=132&&titulo.y+titulo.h<alvo.y);
+  assert(alvo.y+alvo.h<=NV_TELA_H+.15f);
+  snprintf(bmp,sizeof bmp,"%s-folders-wide-L%d-g%d-1-landscape-beside-landscape.bmp",saida,lay,vidro);quadros(1,bmp);
+  printf("[shot] actual Home landscape folder %.3fx%.3f matches normal-wide %.3fx%.3f, row scales %.3f/%.3f, UI%.0f: measured draw targets passed\n",
+         alvo.w,alvo.h,*wideW*escalaNormal,*wideH*escalaNormal,escalaCol,escalaNormal,gfx_escala_ui()*100);fflush(stdout);
+  pastaModoDeitado=0;
+}
 static void pastasComparar(const char *saida,const char *camadas) {
   const char *nomes[]={"landscape","square","poster"};
   const int tipos[]={FIL_TIPO_COLECAO,FIL_TIPO_DESTAQUE_QUADRADO,FIL_TIPO_CARTAZ};
@@ -247,6 +299,8 @@ static void pastasComparar(const char *saida,const char *camadas) {
        the actual Home folder row in Modern and Standard. */
     if(lay==HOME_LAYOUT_DINAMICA)continue;
     for(int vidro=0;vidro<2;vidro++) {
+      float wideW,wideH;
+      pastaCompararDeitada(saida,lay,vidro,&wideW,&wideH);
       ajusta(lay,vidro);
       int rowPoster=pastaFocar(FILEIRA_NORMAL,"Em alta");
       HomeItem normal=pastaPosterAssentar();
@@ -281,7 +335,7 @@ static void pastasComparar(const char *saida,const char *camadas) {
         assert(row==rowPoster+1);
         PonteiroAlvo alvo=pastaAlvo(fn,row);
         float escalaCol=fil_escala("collection_cs");
-        float w=(forma==2?pw:forma==1?ph:ph*360/203)*escalaCol,h=ph*escalaCol;
+        float w=(forma==2?pw:forma==1?ph:wideW)*escalaCol,h=(forma==0?wideH:ph)*escalaCol;
         if(NV_TELA_H/NV_TELA_W>=1.7f) {
           float x=ajustes_rail_largura_fixa()>0?fmaxf(48,ajustes_conteudo_x()):48;
           float cap=(NV_TELA_W-2*x)*.9f;
