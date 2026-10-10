@@ -8,6 +8,7 @@ import re
 import shlex
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,6 +25,7 @@ def main():
         'diagnostico', 'livetvdiag', 'trocaarte', 'ilha3', 'player_glass'])
     parser.add_argument('--cases', nargs='+', default=['1080x2340@1', '2340x1080@1.5'])
     parser.add_argument('--all-settings', action='store_true')
+    parser.add_argument('--settings-layout', nargs='+', type=int, choices=[0, 1], default=[0, 1])
     args = parser.parse_args()
     output = (ROOT / args.output).resolve()
     if ROOT not in output.parents:
@@ -39,18 +41,25 @@ def main():
     libraries = shlex.split(subprocess.check_output(
         ['pkg-config', '--libs', 'sdl2', 'SDL2_image', 'SDL2_ttf', 'glesv2', 'egl', 'zlib'], text=True))
     sources = sorted((ROOT / 'src').glob('*.c')) + sorted((ROOT / 'src/dts').glob('*.c'))
-    source_objects = []
-    for source in sources:
-        if source.name == 'main.c':
-            continue
+    def compile_source(source):
         relative = source.relative_to(ROOT)
         target = objects / ('_'.join(relative.parts) + '.o')
-        run(['cc', *flags, *cflags, '-c', str(relative), '-o', str(target)])
-        source_objects.append(target)
+        # Use the Android option catalog with the desktop drawing backend.
+        # The other modules keep their Linux video/network stubs.
+        catalog_flags = ['-DNV_ANDROID'] if source.name == 'ajustes.c' else []
+        with target.with_suffix('.log').open('w') as stream:
+            run(['cc', *flags, *catalog_flags, *cflags, '-c', str(relative), '-o', str(target)],
+                stdout=stream, stderr=subprocess.STDOUT)
+        return target
+    sources = [source for source in sources if source.name != 'main.c']
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        source_objects = list(pool.map(compile_source, sources))
+    print(f'Built {len(source_objects)} drawing modules', flush=True)
     archive = output / 'libphone-review.a'
     run(['ar', 'rcs', str(archive), *map(str, source_objects)])
     results = []
     for name in args.fixtures:
+        print(f'Capturing {name}', flush=True)
         if not re.fullmatch(r'[a-z0-9_]+', name):
             raise SystemExit('Invalid fixture name')
         fixture = ROOT / 'tests' / f'{name}_shot.c'
@@ -101,7 +110,7 @@ def main():
     if args.all_settings and 'ajustes' in args.fixtures:
         binary = output / 'ajustes-shot'
         if binary.exists():
-            for layout in (0, 1):
+            for layout in args.settings_layout:
                 folder = output / 'settings-catalog' / ('list' if layout else 'panel')
                 folder.mkdir(parents=True, exist_ok=True)
                 data = folder / 'data'
@@ -110,6 +119,7 @@ def main():
                                    NUVIO_PHONE_SHOT_W='1080', NUVIO_PHONE_SHOT_H='2340',
                                    NUVIO_TAMANHO_UI='1', LIBGL_ALWAYS_SOFTWARE='1',
                                    NUVIO_PHONE_SETTINGS_ALL='1', NUVIO_SHOT_AVANCADAS='1',
+                                   NUVIO_SHOT_AJUSTES_ESCALA='100',
                                    NUVIO_SHOT_LAYOUT=str(layout))
                 log = folder / 'capture.log'
                 try:

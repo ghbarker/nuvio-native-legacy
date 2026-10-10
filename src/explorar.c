@@ -34,6 +34,7 @@
 #include "ajustes.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include "idioma.h"
 #include "idiomacod.h"
 #include "layout.h"
@@ -708,12 +709,20 @@ static void fileiraClima(int linha, float y, float w, float h, float a) {
 
 static void desenharClima(void) {
   const MapaClima *c;
-  float x0 = ajustes_conteudo_x(), a = ajustes_animacoes_reduzidas() ? 1.0f : suave(entrada / 0.4f);
+  float x0 = ajustes_conteudo_x(), a = ajustes_animacoes_reduzidas() ? 1.0f : suave(entrada / 0.4f), caBase = 262.0f;
   char s[120];
   if (clAberto < 0 || clAberto >= climas.n) return;
   c = &climas.c[clAberto];
   desenharTitulo(NULL);
   rotuloEspacado(i18n("CLIMA"), x0, 140.0f, a);
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) {
+    float y = 168, w = EX_DIR - x0;
+    y += txt_bloco_corta(TXT_TITULO3, i18n(mapa_clima_nome(c->id)), 246, 246, 248, x0, y, w, 56, a, 0) + 8;
+    y += txt_bloco_corta(TXT_BODY, i18n(mapa_clima_descricao(c->id)), 186, 190, 202, x0, y, w, 36, a, 0) + 24;
+    caBase = fmaxf(caBase, y);
+  } else
+#endif
   { TxtLinha t = txt_linha_corta(TXT_TITULO3, i18n(mapa_clima_nome(c->id)), 246, 246, 248, 255, 1100.0f);
     TxtLinha d;
     txt_desenhar_alpha(t, x0, 168.0f, a);
@@ -725,16 +734,24 @@ static void desenharClima(void) {
     txt_desenhar_alpha(l, EX_DIR - l.w, 150.0f, pulso * a);
   }
   if (c->n == 0) {
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) {
+      txt_bloco_corta(TXT_TITULO3, i18n("Nada deste clima no seu catálogo ainda"), 236, 238, 244,
+                      x0, 520, EX_DIR - x0, 56, a, 0);
+    } else
+#endif
+    {
     TxtLinha v = txt_linha(TXT_TITULO3, i18n("Nada deste clima no seu catálogo ainda"), 236, 238, 244, 255);
     txt_desenhar_alpha(v, (NV_TELA_W - v.w) * 0.5f, 520.0f, a);
+    }
   }
   if (caN[0] > 0) {
     snprintf(s, sizeof s, "%s   ·   %d", i18n("PARA DESCOBRIR"), caN[0]);
-    rotuloEspacado(s, x0, 262.0f, a);
-    fileiraClima(0, 300.0f, EX_CA_W, EX_CA_H, a);
+    rotuloEspacado(s, x0, caBase, a);
+    fileiraClima(0, caBase + 38.0f, EX_CA_W, EX_CA_H, a);
   }
   if (caN[1] > 0) {
-    float y = caN[0] > 0 ? 690.0f : 262.0f;
+    float y = caN[0] > 0 ? caBase + 428.0f : caBase;
     snprintf(s, sizeof s, "%s   ·   %d", i18n("VOCÊ JÁ VIU"), caN[1]);
     rotuloEspacado(s, x0, y, a);
     fileiraClima(1, y + 38.0f, caN[0] > 0 ? EX_CB_W : EX_CA_W, caN[0] > 0 ? EX_CB_H : EX_CA_H, a);
@@ -845,27 +862,45 @@ static void desenharGrupos(float a) {
   float x0 = vzX(), y = EX_TOPO - 4.0f;
   tintaAcento(&tr, &tg, &tb);
   if (n == 0) {
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) {
+      txt_bloco_corta(TXT_HEADLINE, i18n("Nenhum vizinho no catálogo ainda"), 220, 222, 230,
+                      x0, 420, EX_DIR - x0, 46, a, 0);
+    } else
+#endif
+    {
     TxtLinha v = txt_linha(TXT_HEADLINE, i18n("Nenhum vizinho no catálogo ainda"), 220, 222, 230, 255);
     txt_desenhar_alpha(v, x0, 420.0f, a);
+    }
     return;
   }
-  for (li = 0; li < n; li++, y += EX_VZ_LINHA) {
+  for (li = 0; li < n; li++) {
     const MapaVizGrupo *gr = &viz.g[g[li]];
     float e = ajustes_animacoes_reduzidas() ? 1.0f : suave((entrada - 0.06f * (float)li) / 0.4f);
-    float ae = a * e, x = x0;
+    float ae = a * e, x = x0, posterY = y + 54.0f;
     char cab[140];
-    if (ae <= 0.01f) continue;
+    if (ae <= 0.01f) { y += EX_VZ_LINHA; continue; }
     cabecalhoGrupo(gr, cab, sizeof cab);
     { TxtLinha l = txt_linha_corta(TXT_HEADLINE, cab, 236, 238, 244, 255, EX_DIR - x0);
       txt_desenhar_alpha(l, x, y, ae);
       if (gr->tipo == MAPA_GR_AMIGOS && gr->sub[0]) {
+#ifdef NV_TOUCH_PREVIEW
+        if (telefoneui_ativo()) {
+          TxtLinha s = txt_linha_corta(TXT_CAPTION2, gr->sub, tr, tg, tb, 255, EX_DIR - x0);
+          float sy = y + l.h + 4;
+          txt_desenhar_alpha(s, x, sy, ae);
+          posterY = fmaxf(posterY, sy + s.h + 12);
+        } else
+#endif
+        {
         TxtLinha s = txt_linha_corta(TXT_CAPTION2, gr->sub, tr, tg, tb, 255, EX_DIR - x0 - l.w - 30.0f);
         txt_desenhar_alpha(s, x + l.w + 18.0f, y + (l.h - s.h) * 0.6f, ae);
+        }
       } }
 #ifdef NV_TOUCH_PREVIEW
     float largura = EX_DIR - x0;
     float max = vizRolarFileira(g[li], li, largura);
-    toquerol_vincular(&toqueVz[g[li]], (GfxRect){x0 - 10.0f, y + 44.0f, largura + 14.0f, EX_VZ_PH + 20.0f},
+    toquerol_vincular(&toqueVz[g[li]], (GfxRect){x0 - 10.0f, posterY - 10.0f, largura + 14.0f, EX_VZ_PH + 20.0f},
                      gfx_escala(), 0.0f, max, 0, &toqueVzOffset[g[li]]);
     ponteiro_rolagem(toqueExplorarRolar);
     gfx_recorte(x0 - 10.0f, 0.0f, largura + 14.0f, NV_TELA_H);
@@ -875,7 +910,7 @@ static void desenharGrupos(float a) {
       const MapaVizItem *it = &gr->itens[i];
       int sel = vzLinha == li && vzCol == i;
       float f = sel ? focoT : 0.0f, ty;
-      GfxRect p = { x, y + 54.0f, EX_VZ_PW, EX_VZ_PH };
+      GfxRect p = { x, posterY, EX_VZ_PW, EX_VZ_PH };
       char pq[140];
 #ifdef NV_TOUCH_PREVIEW
       if (x - 10.0f > EX_DIR + 4.0f) break;
@@ -903,6 +938,7 @@ static void desenharGrupos(float a) {
 #ifdef NV_TOUCH_PREVIEW
     gfx_sem_recorte();
 #endif
+    y += EX_VZ_LINHA + posterY - (y + 54.0f);
   }
 }
 

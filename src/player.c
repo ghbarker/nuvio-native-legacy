@@ -42,6 +42,7 @@
 #include "tex_cache.h"
 #include "anim.h"
 #include "layout.h"
+#include "telefoneui.h"
 #include "catalogo.h"
 #include "artehero.h"
 #include "logotitulo.h"
@@ -2115,6 +2116,21 @@ void player_fechar_mini(void) {
 // tampar (mesma propriedade que o veu dos controles usa). O destino e
 // reenviado so quando muda: cada chamada ao plano e uma mensagem ao ACB, e a
 // proporcao real do quadro pode chegar segundos depois da miniatura abrir.
+#ifdef NV_TOUCH_PREVIEW
+static int (*miniToqueGuarda)(void);
+void player_mini_toque_guarda(int (*pode)(void)) { miniToqueGuarda = pode; }
+static int miniToquePode(void) {
+  return mini && !miniGuia && telefoneui_ativo() && miniToqueGuarda && miniToqueGuarda();
+}
+static void miniToqueRestaurar(int a, int b) {
+  (void)a; (void)b;
+  if (miniToquePode()) player_restaurar();
+}
+static void miniToqueFechar(int a, int b) {
+  (void)a; (void)b;
+  if (miniToquePode()) player_fechar_mini();
+}
+#endif
 void player_mini_desenhar(Uint32 agora) {
   static float lx = -1.0f, ly, lw, lh;
   PlrRect r; GfxRect f;
@@ -2130,10 +2146,16 @@ void player_mini_desenhar(Uint32 agora) {
   }
   // No guia quem desenha e o guia (furo no preview, selo, bordas).
   if (miniGuia) return;
+#ifdef NV_TOUCH_PREVIEW
+  // A foreground sheet owns its pixels as well as its touch targets. Keep
+  // the native window current across rotation, without painting over it.
+  if (telefoneui_ativo() && !miniToquePode()) return;
+#endif
   f = (GfxRect){ r.x, r.y, r.w, r.h };
   (void)fr; (void)fg; (void)fb;
   // A ILHA em volta (sem o anel de acento de 4 px), o furo com raio 22.
-  { GfxRect il = { f.x - 10.0f, f.y - 10.0f, 500.0f, PLR_PIP_ILHA_H };
+  { GfxRect il = { telefoneui_ativo() ? PLR_PIP_X - 10 : f.x - 10.0f,
+                   telefoneui_ativo() ? PLR_PIP_Y - 10 : f.y - 10.0f, 500.0f, PLR_PIP_ILHA_H };
     char rot[160];
     EpgProg ag;
     float x = il.x + 20.0f, yc = f.y + f.h + 14.0f + 14.0f;
@@ -2156,6 +2178,19 @@ void player_mini_desenhar(Uint32 agora) {
     plrui_limpar_sep(rot);
     { TxtLinha nm = txt_linha_corta(TXT_G18M, rot, 243, 242, 239, 255, il.x + il.w - 20.0f - x);
       txt_desenhar_alpha(nm, x, yc - (float)nm.h * 0.5f, 1.0f); }
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) {
+      if (miniToquePode()) {
+        GfxRect fechar = { il.x + il.w - 72, il.y + 16, 56, 56 };
+        ponteiro_alvo(il.x, il.y, il.w, il.h, NULL, miniToqueRestaurar, 0, 0);
+        plrui_botao_repouso(fechar, 1);
+        gfx_icone((GfxRect){fechar.x + 16, fechar.y + 16, 24, 24}, "aj_x", 1, 1, 1, 1);
+        ponteiro_alvo(fechar.x, fechar.y, fechar.w, fechar.h, NULL, miniToqueFechar, 0, 0);
+        TxtLinha l = txt_linha_corta(TXT_G18M, i18n("Tela cheia"), 243, 242, 239, 255, il.w - 40);
+        txt_desenhar_alpha(l, il.x + 20, il.y + il.h - 24 - l.h, .65f);
+      }
+    } else
+#endif
     { const char *k[2] = {
 #ifdef NV_ANDROID
         "CH+",

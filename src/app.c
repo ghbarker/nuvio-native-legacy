@@ -4958,6 +4958,16 @@ static void desenharTelas(Uint32 agora) {
 // faixas): a pilula ficaria boiando sobre o veu de outra coisa. Os AVISOS da
 // ilha nao passam por aqui — eles aparecem em qualquer tela fora do player.
 static int spotVeuPronto;   // o veu do Spotlight ja esta na copia congelada
+static int relogioCamadaAberta(void) {
+  return sintro_aberto() || novidades_aberto() || novidades11_aberto() || novidades12_aberto() ||
+      novidades13_aberto() || novidades131_aberto() || novidades132_aberto() ||
+      novidades133_aberto() || novidades134_aberto() || novidades139_aberto() ||
+      novidades1312_aberto() || novidades142_aberto() || novidades148_aberto() ||
+      novidades170_aberto() || novidades180_aberto() || novidades20_aberto() || novidades201_aberto() || novidades202_aberto() || novcartao_aberto() || telemetria_aberto() || recintro_aberto() ||
+      atualizacao_aberta() || agendaviso_aberto() || avisos_cartao_aberto() ||
+      glem_cartao_aberto() || recenviar_aberto() || pessoas_aberto() ||
+      recomenda_aberta() || pipintro_aberto() || diagnostico_intro_aberto();
+}
 static int relogioCabe(void) {
   // AJUSTES NO GLASS UI (mockup de 03/10): o relogio fica no canto, em cima da
   // ilha de categorias — a tela nao tem mais titulo ali. Com folha, vinculo ou
@@ -4975,17 +4985,24 @@ static int relogioCabe(void) {
   // a ilha do menu nasce logo abaixo da do relogio, na mesma margem
   // (ilha_posicionar), e as duas formam a coluna da esquerda.
   if (ctx_aberto() || stream_folha_aberta() || faixas_aberta() || episodios_aberto()) return 0;
-  if (sintro_aberto() || novidades_aberto() || novidades11_aberto() || novidades12_aberto() ||
-      novidades13_aberto() || novidades131_aberto() || novidades132_aberto() ||
-      novidades133_aberto() || novidades134_aberto() || novidades139_aberto() ||
-      novidades1312_aberto() || novidades142_aberto() || novidades148_aberto() ||
-      novidades170_aberto() || novidades180_aberto() || novidades20_aberto() || novidades201_aberto() || novidades202_aberto() || novcartao_aberto() || telemetria_aberto() || recintro_aberto() ||
-      atualizacao_aberta() || agendaviso_aberto() || avisos_cartao_aberto() ||
-      glem_cartao_aberto() || recenviar_aberto() || pessoas_aberto() ||
-      recomenda_aberta() || pipintro_aberto() || diagnostico_intro_aberto())
-    return 0;
+  if (relogioCamadaAberta()) return 0;
   return 1;
 }
+
+#ifdef NV_TOUCH_PREVIEW
+static int miniToquePermitido(void) {
+  if (!app_central_pode() || player_aberto() || menu_aberto() || spainel_aberto() ||
+      central_aberta() || ilha_modal_aberto() || celb_aberto() || ctx_aberto() ||
+      recenviar_aberto() || pessoas_aberto() || stream_folha_aberta() ||
+      faixas_aberta() || episodios_aberto() || guia_overlay_aberta() || avisos_aberto() ||
+      relogioCamadaAberta()) return 0;
+  if (tela == TELA_DIAGNOSTICO && diagnostico_apresentacao_aberta()) return 0;
+  if (tela == TELA_AJUSTES && !ajustes_relogio_cabe()) return 0;
+  if (tela == TELA_AGENDA && agendaui_menu_aberto()) return 0;
+  // In the Guide its own preview and modal controls own the video rectangle.
+  return tela != TELA_GUIA;
+}
+#endif
 
 void app_desenhar(Uint32 agora) {
   // O GUIA DA 2.0 e tela inteira e opaco: nada do app por baixo (uma camada
@@ -5114,6 +5131,9 @@ void app_desenhar(Uint32 agora) {
   // O explicador fica ACIMA de qualquer tela (menos do painel de log, que e
   // ferramenta de diagnostico): ele e a primeira coisa que a pessoa ve depois
   // desta atualizacao, e nada pode aparecer por cima dele.
+#ifdef NV_TOUCH_PREVIEW
+  player_mini_toque_guarda(miniToquePermitido);
+#endif
   player_mini_desenhar(agora);
   CAMADA_SE(sintro_aberto());
   if (!registro_aberto()) sintro_desenhar(agora);

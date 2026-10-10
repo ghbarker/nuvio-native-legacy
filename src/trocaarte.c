@@ -14,6 +14,7 @@
 #include "detail.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include "rede.h"
 #include "tex_cache.h"
 #include "text.h"
@@ -81,14 +82,20 @@ static int  previaLogoTem;
 // na margem de 96 da pagina com folga. A primeira linha comeca em 628 para a
 // metade de cima da tela ficar inteira para a previa — e para o que se esta
 // escolhendo, o fundo, ser o assunto.
-#define TA_COLS   5
+#define TA_COLS   taColunas()
 #define TA_LINHAS 2
 #define TA_W      304.0f
 #define TA_H      171.0f
 #define TA_GAP    24.0f
 #define TA_X0     96.0f
-#define TA_Y0     628.0f
+#define TA_Y0     (telefoneui_ativo() && NV_TELA_W < 1500 ? 756.0f : 628.0f)
 #define TA_PASSO  (TA_H + 48.0f)
+
+static int taColunas(void) {
+  if (!telefoneui_ativo()) return 5;
+  int n = (int)((NV_TELA_W - 2 * TA_X0 + TA_GAP) / (TA_W + TA_GAP));
+  return n < 1 ? 1 : n > 5 ? 5 : n;
+}
 
 // A MESMA FOTO em outro tamanho conta como repetida: o catalogo manda o
 // backdrop do TMDB em w1280 e a lista do /images vem com o mesmo arquivo.
@@ -646,7 +653,8 @@ static void desenhaAba(GfxRect r, const char *rot, int ativa, int focada, float 
   else if (ativa) { cr = cg = cb = 0.92f; tinta = 0.06f; }
   gfx_cor(r, NV_RAIO_PILL, cr, cg, cb, a);
   c = (int)(tinta * 255.0f + 0.5f);
-  { TxtLinha l = txt_linha(TXT_DET_META2, rot, c, c, c, 255);
+  { TxtLinha l = telefoneui_ativo() ? txt_linha_corta(TXT_DET_META2, rot, c, c, c, 255, r.w - 40)
+                                  : txt_linha(TXT_DET_META2, rot, c, c, c, 255);
     txt_desenhar_alpha(l, r.x + (r.w - l.w) * 0.5f, r.y + (r.h - l.h) * 0.5f, a); }
 }
 
@@ -678,12 +686,14 @@ void trocaarte_desenhar(const char *logoPagina) {
   { TxtLinha t = txt_linha(TXT_HEADLINE, "Trocar arte", 245, 248, 255, 255);
     float x = TA_X0, y = 540.0f;
     txt_desenhar_alpha(t, x, y + (52.0f - t.h) * 0.5f, a);
-    x += t.w + 36.0f;
+    if (telefoneui_ativo() && NV_TELA_W < 1500) y += 64;
+    else x += t.w + 36.0f;
     { const char *rot[2] = { i18n("Fundos"), i18n("Logos") };
       int k;
       for (k = 0; k < 2; k++) {
         TxtLinha l = txt_linha(TXT_DET_META2, rot[k], 255, 255, 255, 255);
         GfxRect r = { x, y, l.w + 56.0f, 52.0f };
+        if (telefoneui_ativo()) r.w = fminf(r.w, (NV_TELA_W - TA_X0 * 2 - 14) * .5f);
         desenhaAba(r, rot[k], aba == k, naAba && !naFiltro && aba == k, a);
         if (a > 0.3f) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroFoco, NULL, -1, k);
         x += r.w + 14.0f;
@@ -697,7 +707,9 @@ void trocaarte_desenhar(const char *logoPagina) {
           GfxRect r;
           rotuloFiltro(aba, rf, sizeof rf);
           lf = txt_linha(TXT_DET_META2, rf, 255, 255, 255, 255);
+          if (telefoneui_ativo() && NV_TELA_W < 1500) { x = TA_X0 - 22; y += 64; }
           r = (GfxRect){ x + 22.0f, y, lf.w + 56.0f, 52.0f };
+          if (telefoneui_ativo()) r.w = fminf(r.w, NV_TELA_W - TA_X0 - r.x);
           desenhaAba(r, rf, filtro[0] != 0, naAba && naFiltro, a);
           if (a > 0.3f) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroFoco, NULL, -2, 0);
         } else if (naFiltro) naFiltro = 0;
@@ -705,7 +717,7 @@ void trocaarte_desenhar(const char *logoPagina) {
     { const char *dica = buscando ? i18n("Buscando mais artes…")
                                   : i18n("OK escolhe  ·  Voltar cancela");
       TxtLinha l = txt_linha(TXT_DET_META2, dica, 170, 174, 184, 255);
-      txt_desenhar_alpha(l, NV_TELA_W - 96.0f - l.w, y + (52.0f - l.h) * 0.5f, a * 0.9f); } }
+      if (!telefoneui_ativo()) txt_desenhar_alpha(l, NV_TELA_W - 96.0f - l.w, y + (52.0f - l.h) * 0.5f, a * 0.9f); } }
 
   // GRADE.
 #ifdef NV_TOUCH_PREVIEW

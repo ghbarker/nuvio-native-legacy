@@ -58,8 +58,9 @@
 // Mesma pegada do painel "Sua atividade" que ele substitui (perfil.c desenhava
 // em x=1120, 776x1032): quem ja tinha o gesto na memoria muscular encontra a
 // camada no mesmo lugar, so com outro conteudo.
-#define SP_X          (NV_TELA_W - 800.0f)   // 1120 em 1080; tela virtual (escala.h)
-#define SP_W           776.0f
+#include "telefoneui.h"
+#define SP_X          (NV_TELA_W - SP_W - 24.0f)
+#define SP_W          telefoneui_largura(776.0f, NV_TELA_W, 24.0f)
 // A ILHA FLUTUA A NV_FOLHA_MARGEM das tres bordas e com o raio da folha de
 // Fontes (streams.c): as duas camadas da direita sao o mesmo objeto, e uma
 // colada no topo ao lado da outra solta leria como dois materiais.

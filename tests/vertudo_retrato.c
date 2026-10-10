@@ -76,7 +76,7 @@ TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float
 }
 void txt_desenhar_alpha(TxtLinha l,float x,float y,float a) {
   (void)y;(void)a;if(!cortando)assert(x>=0&&x+l.w<=NV_TELA_W+.01f);
-  else if(corte.y>310)assert(x>=vtInicio()&&x+l.w<=vtFim()+.01f);
+  else if(timeline && corte.y>310)assert(x>=vtInicio()&&x+l.w<=vtFim()+.01f);
 }
 float txt_bloco(TxtEstilo e,const char *s,int r,int g,int b,float x,float y,float w,float h,float a,int max) {
   TxtLinha l=txt_linha_corta(e,s,r,g,b,255,w);txt_desenhar_alpha(l,x,y,a);return max*h;

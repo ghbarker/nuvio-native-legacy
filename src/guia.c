@@ -49,6 +49,7 @@
 #include "ajustes.h"   /* ajustes_acento: cor do anel de foco */
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include "epg.h"
 #include "rede.h"
 #include "addons.h"
@@ -235,7 +236,7 @@ static void gTopoDistribuir(const float *larguras) {
 #define G_PA_W      720.0f
 #define G_PA_X      (NV_TELA_W - G_PA_W)
 #define G_PA_MARG    48.0f
-#define G_PA_ROW     92.0f
+#define G_PA_ROW     (telefoneui_ativo() ? 152.0f : 92.0f)
 // Sugestao tem descricao de DUAS linhas (a de uma linha cortava toda frase
 // em "…", foto do dono em 19/09): a linha e mais alta.
 #define G_PA_ROW_REC 118.0f
@@ -2018,6 +2019,12 @@ static void painelGuia(int i) {
   }
   ocultosGravar();
 }
+#ifdef NV_TOUCH_PREVIEW
+static void ponteiroAddonGuia(int addon, int linha) {
+  if (!telefoneui_ativo() || !painel || linha < 0 || linha >= paN || paIdx[linha] != addon) return;
+  painelGuia(addon);
+}
+#endif
 
 // OK segurado NAO e varios OK: o firmware repete o KEYDOWN a cada ~130 ms, e
 // sem este repouso segurar a tecla ligava e desligava o addon em sequencia
@@ -3885,6 +3892,9 @@ static void desenharPainelAddons(float a) {
         sub = subBuf;
       }
       GfxRect pill = { x + w - 24.0f - 136.0f, yi + (row.h - 40.0f) * 0.5f, 136.0f, 40.0f };
+#ifdef NV_TOUCH_PREVIEW
+      if (telefoneui_ativo()) pill.y = yi + 22.0f;
+#endif
       float txtW = pill.x - 24.0f - (x + 24.0f);
       {
         TxtLinha t = f ? txt_linha_corta(TXT_BODY, addons_nome(ai), tf, tf, tf, 255, txtW)
@@ -3908,6 +3918,18 @@ static void desenharPainelAddons(float a) {
         { TxtLinha t = txt_linha(TXT_CAPTION, i18n("Desligado"), 190, 192, 200, 255);
           txt_desenhar_alpha(t, pill.x + (pill.w - t.w) * 0.5f, pill.y + (pill.h - t.h) * 0.5f, a); }
       }
+#ifdef NV_TOUCH_PREVIEW
+      if (telefoneui_ativo()) {
+        int oculto = baseOculta(addons_base(ai));
+        GfxRect local = {x + 24, yi + 80, w - 48, 56};
+        gfx_cor(local, .5f, .14f, .15f, .17f, a);
+        gfx_icone((GfxRect){local.x + 12, local.y + 18, 20, 20}, oculto ? "oculto" : "check", .82f, .84f, .88f, a);
+        TxtLinha t = txt_linha_corta(TXT_CAPTION2, i18n(oculto ? "Oculto no guia" : "No guia"), 218, 222, 228, 255, local.w - 56);
+        txt_desenhar_alpha(t, local.x + 44, local.y + (local.h - t.h) * .5f, a);
+        if (a > .99f) ponteiro_alvo_faixa(local.x, local.y, local.w, local.h, y0 - 8, NV_TELA_H - 80,
+                                         NULL, ponteiroAddonGuia, ai, i);
+      }
+#endif
     } else {
       const GRec *rc = &rec[i - n];
       int inst = recInstalado(rc);

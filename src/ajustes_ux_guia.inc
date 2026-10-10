@@ -1192,7 +1192,7 @@ static void guiaEvento(const SDL_Event *e) {
       if (k == SDLK_UP) guiaMoverEnt(-1);
       else if (k == SDLK_DOWN) guiaMoverEnt(+1);
       else if (k == SDLK_LEFT) gv.col = GC_INDICE;
-      else if ((k == SDLK_RIGHT || ok) && nb) { gv.col = GC_BOTOES; gv.botao = 0; }
+      else if ((k == SDLK_RIGHT || ok) && (nb || guiaTelefone())) { gv.col = GC_BOTOES; gv.botao = 0; }
     } break;
     case GC_BOTOES: {
       int bs[3], nb = guiaBotoes(gv.ent, bs);

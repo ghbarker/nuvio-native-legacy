@@ -34,6 +34,7 @@
 #include "escala.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefonecartao.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -168,6 +169,9 @@ static pthread_t fioEnvio;
 // por crash (a marca e o id do item, gravada em vistos ao fechar) quando a
 // home esta de pe e nenhum outro cartao esta na frente, como agendaviso.c.
 static int   cartao;            // 1 = aberto
+#ifdef NV_TOUCH_PREVIEW
+static void crashPhoneReiniciar(void);
+#endif
 static int   cartaoFoco;        // 0 = Enviar, 1 = Agora nao
 static float cartaoA;
 static int   cartaoPendente;    // ha crash nao perguntado nesta sessao
@@ -840,11 +844,17 @@ void avisos_mostrar_se_houver(void) {
   if (!cartaoPendente || cartao || aberto) return;
   cartaoPendente = 0;
   cartao = 1; cartaoFoco = 0;
+#ifdef NV_TOUCH_PREVIEW
+  crashPhoneReiniciar();
+#endif
 }
 int avisos_cartao_aberto(void) { return cartao; }
 
 static void cartaoFechar(void) {
   cartao = 0;
+#ifdef NV_TOUCH_PREVIEW
+  crashPhoneReiniciar();
+#endif
   pthread_mutex_lock(&trava);
   marcarVisto(cartaoId);
   { int i; for (i = 0; i < n; i++) if (!strcmp(itens[i].id, cartaoId)) itens[i].visto = 1; }
@@ -899,6 +909,41 @@ static void ponteiroCartao(int i, int b) {
   cartaoFoco = i;
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static TelefoneCartao crashPhone;
+static void crashPhoneReiniciar(void) { telefonecartao_limpar(&crashPhone); }
+static int crashPhoneRolar(const PonteiroRolagem *e) {
+  return cartao ? toquerol_evento(&crashPhone.rolagem, e) : 0;
+}
+static void crashPhoneAcao(int i, int b) {
+  (void)b;
+  if (!cartao || cartaoA <= .99f) return;
+  if (envioEstado == 0 && i == 0) { cartaoFoco = 0; enviarAgora(); }
+  else { cartaoFoco = 1; cartaoFechar(); }
+}
+static float crashPhoneCorpo(float x, float y, float w, float a) {
+  float ini = y; char txt[300];
+  y += telefonecartao_titulo("O app fechou sozinho", x, y, w, a);
+  snprintf(txt, sizeof txt, i18n("Em %s o Nuvio parou sem avisar. O registro daquela sessão (os últimos 200 KB do log, sem senhas nem chaves) ajuda a achar a causa. Quer enviar?"), crashQuando);
+  y += txt_bloco_corta(TXT_BODY, txt, 200, 203, 210, x, y, w, 34, a, 0) + 24;
+  if (envioEstado > 0) y += telefonecartao_texto(TXT_BODY, envioEstado == 1 ? "Enviando…"
+                                     : envioEstado == 2 ? "Registro enviado. Obrigado." : "Não foi possível enviar agora.", x, y, w, 34, a);
+  return y - ini;
+}
+static void cartaoPhoneDesenhar(float a) {
+  telefonecartao_medir(&crashPhone, NV_TELA_W, NV_TELA_H, envioEstado == 0 ? 2 : 1);
+  GfxRect r = crashPhone.corpo;
+  float h = crashPhoneCorpo(r.x, r.y, r.w, 0);
+  telefonecartao_comecar(&crashPhone, h, envioEstado, cartao && a > .99f, crashPhoneRolar, a);
+  crashPhoneCorpo(r.x, r.y - crashPhone.offset, r.w, a);
+  gfx_sem_recorte();
+  if (envioEstado == 0) {
+    telefonecartao_botao(&crashPhone, 0, "Enviar registro", cartaoFoco == 0, NULL, crashPhoneAcao, 0, a);
+    telefonecartao_botao(&crashPhone, 1, "Agora não", cartaoFoco == 1, NULL, crashPhoneAcao, 0, a);
+  } else telefonecartao_botao(&crashPhone, 0, "Fechar", 1, NULL, crashPhoneAcao, 1, a);
+}
+#endif
+
 static void cartaoDesenhar(void) {
   const float W = 980.0f, H = 336.0f;
   float a = cartaoA, x = (NV_TELA_W - W) * 0.5f, y = (NV_TELA_H - H) * 0.5f + (1.0f - a) * 30.0f;
@@ -907,6 +952,9 @@ static void cartaoDesenhar(void) {
   char txt[300];
   if (cartao) ponteiro_camada();
   if (a < 0.01f) return;
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) { cartaoPhoneDesenhar(a); return; }
+#endif
   ajustes_acento(&ar, &ag, &ab);
   gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0.0f, 0, 0, 0, 0.70f * a);
   // Mantem a luz ambiente do cartao para dar profundidade sem tornar o estado
@@ -1137,8 +1185,9 @@ int avisos_evento(const SDL_Event *e) {
 }
 
 // --- desenho -----------------------------------------------------------------------
-#define AVP_W    760.0f
-#define AVP_X    (NV_TELA_W - AVP_W)
+#include "telefoneui.h"
+#define AVP_W    telefoneui_largura(760.0f, NV_TELA_W, 24.0f)
+#define AVP_X    (NV_TELA_W - AVP_W - (telefoneui_ativo() ? 24.0f : 0.0f))
 #define AVP_MARG  48.0f
 #define AVP_TOPO 176.0f
 

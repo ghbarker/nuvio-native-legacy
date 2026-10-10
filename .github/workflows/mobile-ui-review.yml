@@ -9,7 +9,27 @@ jobs:
   captures:
     if: github.repository != 'iqui27/nuvio-native-legacy'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: settings-panel
+            capture: '--fixtures ajustes --cases 1080x2340@1 --all-settings --settings-layout 0'
+          - group: settings-list
+            capture: '--fixtures ajustes --cases 1080x2340@1 --all-settings --settings-layout 1'
+          - group: browsing
+            capture: '--fixtures homelayouts busca biblioteca explorar vertudo agenda guia'
+          - group: detail
+            capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
+          - group: account
+            capture: '--fixtures perfil pessoas recenviar spainel_abas spainel_acordeao avisos_toast avisos_dispensar'
+          - group: system
+            capture: '--fixtures central registro diagnostico livetvdiag ilha3'
+          - group: introductions
+            capture: '--fixtures pipintro novidades20 novidades_cartao'
+          - group: player
+            capture: '--fixtures player_glass --cases 2340x1080@1.5'
     steps:
       - uses: actions/checkout@v4
       - name: Drawing tools
@@ -17,11 +37,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev xvfb python3-pil
       - name: Native phone captures
-        run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py --all-settings
+        run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py ${{ matrix.capture }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Mobile-UI-review-${{ github.sha }}
+          name: Mobile-UI-review-${{ matrix.group }}-${{ github.sha }}
           path: |
             build/phone-review/**/*.png
             build/phone-review/**/*.log

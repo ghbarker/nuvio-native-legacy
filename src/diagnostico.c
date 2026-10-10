@@ -59,6 +59,9 @@
 #include "js.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
+#include "telefonecartao.h"
+#include "plrui.h"
 #include <stdatomic.h>
 #include <math.h>
 #include <stdio.h>
@@ -348,6 +351,9 @@ static int sairTela;
 static int velocidadePedida, soVelocidade;
 static int introGlobal;
 static int introDecidido;
+#ifdef NV_TOUCH_PREVIEW
+static void dgPhoneReiniciar(void);
+#endif
 
 static const char *gargaloPrincipal(void);
 
@@ -1940,6 +1946,9 @@ void diagnostico_iniciar(void) {
     return;
   }
   juntarFios(1);
+#ifdef NV_TOUCH_PREVIEW
+  dgPhoneReiniciar();
+#endif
   free(d.cfgAntes);
   memset(&d, 0, sizeof d);
   if (vz.fio) { SDL_WaitThread(vz.fio, NULL); vz.fio = NULL; }
@@ -2337,6 +2346,9 @@ void diagnostico_intro_primeira_vez(void) {
 }
 
 int diagnostico_intro_aberto(void) { return introGlobal; }
+#ifdef NV_TOUCH_PREVIEW
+int diagnostico_apresentacao_aberta(void) { return introGlobal || d.intro; }
+#endif
 
 void diagnostico_intro_dispensar(int marcarVista) {
   introDecidido = 1;
@@ -2988,6 +3000,14 @@ static void diagnosticoAntigo(Uint32 agora);
 void diagnostico_desenhar(Uint32 agora) {
 #ifdef NV_TOUCH_PREVIEW
   toqueRanking.offset = NULL;
+  if (telefoneui_ativo()) {
+    float anterior = gfx_escala();
+    gfx_escala_sair(gfx_escala_ui());
+    dgTelefone(agora);
+    gfx_escala_sair(anterior);
+    if (d.intro) { ponteiro_camada(); dgApresentacao(0); }
+    return;
+  }
 #endif
   // GLASS UI: as ilhas de diagnostico_ilha.inc sobre a arte, como Ajustes.
   { int est = atomic_load(&d.estado);
