@@ -13,7 +13,7 @@ case "$(uname -s)" in
   *) flags+=(-Wl,--gc-sections) ;;
 esac
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
-for fixture in explorar_desenho_review explorar_empty_review; do
+for fixture in explorar_desenho_review explorar_empty_review explorar_landing_touch; do
   cc "${flags[@]}" "tests/$fixture.c" -lm -o "$dir/$fixture"
   "$dir/$fixture"
 done

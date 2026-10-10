@@ -8,6 +8,8 @@
 
 float nv_layout_w=1080,nv_layout_h=2340,gfx_tex_aspect_atual;
 static float fontWide=1;
+static int longWordFixture;
+static int fullBlockGlyphs;
 static GfxRect clip;
 static int clipped,nTargets,draws,failures,phase;
 static PonteiroAlvo targets[80];
@@ -35,7 +37,10 @@ float gfx_escala(void){return 1;}
 int menu_pilula_titulo(void){return 0;}
 int cat_n(void){return 20;}
 const CatItem *cat_item(int i){(void)i;return NULL;}
-const char*i18n(const char*s){return s;}
+const char*i18n(const char*s){
+  if(longWordFixture&&!strcmp(s,mapa_clima_nome(4)))return "AdventureMysteryTimeline Across Worlds";
+  return s;
+}
 GLuint tex_obter_larg(const char*s,float w){(void)s;(void)w;return 0;}
 float tex_aspecto(const char*s){(void)s;return 2.0f/3;}
 void gfx_cor(GfxRect r,float rad,float cr,float cg,float cb,float a){(void)rad;(void)cr;(void)cg;(void)cb;if(a>0)drawn(r);}
@@ -47,13 +52,15 @@ void gfx_vidro_pilula_cheia(GfxRect r,float rad,float f,float a){(void)rad;(void
 int gfx_vidro_tinta(float f){(void)f;return 24;}
 void gfx_recorte(float x,float y,float w,float h){clip=(GfxRect){x,y,w,h};clipped=1;}
 void gfx_sem_recorte(void){clipped=0;}
+#ifndef EXPLORAR_REVIEW_POINTER_REAL
 void ponteiro_rolagem(PonteiroRolagemFn f){assert(f==toqueExplorarRolar);}
 void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int j){
   assert(nTargets<80);targets[nTargets++]=(PonteiroAlvo){x,y,w,h,f,a,i,j};
   if(x<0||y<0||x+w>NV_TELA_W+.01f||y+h>NV_TELA_H+.01f)problem("target outside",x,y,w,h);
 }
+#endif
 static int glyphs(const char*s){int n=0;for(;*s;s++)if(((unsigned char)*s&0xc0)!=0x80)n++;return n;}
-static int font(TxtEstilo e){return e==TXT_TITULO2?57:e==TXT_TITULO3?48:e==TXT_HEADLINE?38:e==TXT_BODY?29:e==TXT_CAPTION?22:21;}
+static int font(TxtEstilo e){return e==TXT_TITULO2?57:e==TXT_TITULO3?48:e==TXT_HEADLINE?38:e==TXT_BODY?25:e==TXT_CAPTION?22:21;}
 int txt_largura(TxtEstilo e,const char*s){return (int)(glyphs(s)*font(e)*.55f*fontWide);}
 TxtLinha txt_linha(TxtEstilo e,const char*s,int r,int g,int b,int a){(void)r;(void)g;(void)b;(void)a;return(TxtLinha){.w=txt_largura(e,s),.h=(int)(font(e)*1.2f)};}
 TxtLinha txt_linha_corta(TxtEstilo e,const char*s,int r,int g,int b,int a,float w){
@@ -70,6 +77,22 @@ float txt_bloco_corta(TxtEstilo e,const char*s,int r,int g,int b,float x,float y
   if(max>0&&n>max)n=max; l.h=n>0?(int)((n-1)*lead+font(e)*1.2f):0;
   txt_desenhar_alpha(l,x,y,a);return n*lead;
 }
+size_t txt_token_tam(const char*s){size_t n=0;while(s[n]&&s[n]!=' '&&s[n]!='\n')n++;return n;}
+float txt_bloco(TxtEstilo e,const char*s,int r,int g,int b,float x,float y,float w,float lead,float a,int max){
+  float atual=0;int linhas=0;const char*p=s;
+  fullBlockGlyphs=0;
+  while(*p){if(*p==' '){p++;continue;}if(*p=='\n'){if(atual>0){linhas++;atual=0;}p++;continue;}size_t n=txt_token_tam(p);char palavra[256];assert(n<sizeof palavra);
+    memcpy(palavra,p,n);palavra[n]=0;float largura=txt_largura(e,palavra);
+    fullBlockGlyphs+=glyphs(palavra);
+    if(largura>w+.01f)problem("word wider than block",x,y,largura,w);
+    float espaco=atual>0?txt_largura(e," "):0;
+    if(atual>0&&atual+espaco+largura>w){linhas++;atual=0;espaco=0;}
+    atual+=espaco+largura;p+=n;
+  }
+  if(atual>0)linhas++;assert(max<=0||linhas<=max);
+  for(int l=0;l<linhas;l++)txt_desenhar_alpha((TxtLinha){.w=(int)fminf(w,atual>0?fmaxf(atual,w*.7f):0),.h=(int)(font(e)*1.2f)},x,y+l*lead,a);
+  (void)r;(void)g;(void)b;return linhas*lead;
+}
 static void obra(MapaObra *o,int i){snprintf(o->titulo,sizeof o->titulo,"Uma historia com um titulo bastante comprido numero%d",i);snprintf(o->imdb,sizeof o->imdb,"tt%d",i);strcpy(o->tipo,"movie");o->ano=2024;o->nota=80;}
 int main(void){
   const float dims[][2]={{1080,2340},{1080,1920},{2340,1080},{2520,1080}};
@@ -80,7 +103,13 @@ int main(void){
   }
   for(int d=0;d<4;d++)for(int f=0;f<2;f++){
     nv_layout_w=dims[d][0];nv_layout_h=dims[d][1];fontWide=f?1.25f:1;
-    nTargets=0;clipped=0;phase=0;modo=MODO_CLIMAS;desenharClimas();assert(nTargets==MAPA_CLIMA_N);
+    nTargets=0;clipped=0;phase=0;modo=MODO_CLIMAS;clRolar=0;toqueCl=(ToqueRolagem){0};desenharClimas();assert(nTargets>0&&nTargets<=MAPA_CLIMA_N);
+    int vistos=0;for(int i=0;i<nTargets;i++)vistos|=1<<targets[i].a;
+    clRolar=toqueCl.maximo;toqueCl.livre=1;nTargets=0;desenharClimas();
+    for(int i=0;i<nTargets;i++)vistos|=1<<targets[i].a;
+    clRolar=toqueCl.maximo*.5f;nTargets=0;desenharClimas();
+    for(int i=0;i<nTargets;i++)vistos|=1<<targets[i].a;
+    assert(vistos==(1<<MAPA_CLIMA_N)-1);
     for(int i=0;i<MAPA_CLIMA_N;i++){
       phase=i+1;nTargets=0;modo=MODO_CLIMA;clAberto=i;caLinha=caCol[0]=caCol[1]=0;
       caN[0]=caN[1]=3;for(int j=0;j<3;j++){caIdx[0][j]=j;caIdx[1][j]=j+3;}caRolar[0]=caRolar[1]=0;

@@ -101,6 +101,24 @@ static int caLinha, caCol[2];         // clima aberto: 0 = descobrir, 1 = vistos
 static int caIdx[2][MAPA_CLIMA_ITENS], caN[2];
 static float caRolar[2];
 #ifdef NV_TOUCH_PREVIEW
+static ToqueRolagem toqueCl;
+static float clRolar;
+static int climaColunas(void);
+static void climasRetomarFoco(void);
+#ifdef NV_SHOT_HOOKS
+static unsigned clCardsDesenhados;
+static float clCardsDesenho[MAPA_CLIMA_N][9], clTextoDesenho[4];
+int explorar_teste_clima_card(int indice,float valores[9]) {
+  if(indice<0 || indice>=MAPA_CLIMA_N || !(clCardsDesenhados&(1u<<indice)))return 0;
+  if(valores)memcpy(valores,clCardsDesenho[indice],sizeof clCardsDesenho[indice]);
+  return 1;
+}
+int explorar_teste_climas_rolagem(float valores[2]) {
+  if(modo!=MODO_CLIMAS || !clCardsDesenhados)return 0;
+  valores[0]=clRolar; valores[1]=toqueCl.maximo;
+  return 1;
+}
+#endif
 static ToqueRolagem toqueCa[2];
 static int toqueCaAtiva = -1;
 static ToqueRolagem toqueVz[MAPA_VIZ_GRUPOS];
@@ -109,7 +127,9 @@ static int toqueVzAtiva = -1, toqueVzUltima = -1;
 static int toqueExplorarRolar(const PonteiroRolagem *e) {
   if (e->fase == PONT_ROL_INICIO) {
     toqueCaAtiva = toqueVzAtiva = -1;
-    if (modo == MODO_CLIMA) {
+    if (modo == MODO_CLIMAS) {
+      return toquerol_evento(&toqueCl,e);
+    } else if (modo == MODO_CLIMA) {
       for (int i = 0; i < 2; i++) if (toquerol_evento(&toqueCa[i], e)) { toqueCaAtiva = i; return 1; }
     } else if (modo == MODO_VIZ) {
       for (int i = 0; i < MAPA_VIZ_GRUPOS; i++) if (toquerol_evento(&toqueVz[i], e)) {
@@ -118,7 +138,8 @@ static int toqueExplorarRolar(const PonteiroRolagem *e) {
     }
     return 0;
   }
-  int r = toqueCaAtiva >= 0 ? toquerol_evento(&toqueCa[toqueCaAtiva], e)
+  int r = modo == MODO_CLIMAS ? toquerol_evento(&toqueCl,e)
+        : toqueCaAtiva >= 0 ? toquerol_evento(&toqueCa[toqueCaAtiva], e)
         : toqueVzAtiva >= 0 ? toquerol_evento(&toqueVz[toqueVzAtiva], e) : 0;
   if (e->fase == PONT_ROL_FIM || e->fase == PONT_ROL_CANCELAR) toqueCaAtiva = toqueVzAtiva = -1;
   return r;
@@ -443,14 +464,18 @@ static void subir(void) {
 static int ehOk(SDL_Keycode k) { return k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE; }
 
 static void eventoClimas(SDL_Keycode k) {
-  int col = clFoco % EX_CL_COLS;
+  int cols = EX_CL_COLS;
+#ifdef NV_TOUCH_PREVIEW
+  cols = climaColunas();
+#endif
+  int col = clFoco % cols;
   if (climas.n <= 0) { if (k == SDLK_LEFT) sair = 1; return; }
   if (k == SDLK_LEFT)  { if (col == 0) { sair = 1; return; } clFoco--; }
-  else if (k == SDLK_RIGHT) { if (col < EX_CL_COLS - 1 && clFoco + 1 < climas.n) clFoco++; }
-  else if (k == SDLK_UP)    { if (clFoco >= EX_CL_COLS) clFoco -= EX_CL_COLS; }
+  else if (k == SDLK_RIGHT) { if (col < cols - 1 && clFoco + 1 < climas.n) clFoco++; }
+  else if (k == SDLK_UP)    { if (clFoco >= cols) clFoco -= cols; }
   else if (k == SDLK_DOWN)  {
-    if (clFoco + EX_CL_COLS < climas.n) clFoco += EX_CL_COLS;
-    else if ((clFoco / EX_CL_COLS) < (climas.n - 1) / EX_CL_COLS) clFoco = climas.n - 1;
+    if (clFoco + cols < climas.n) clFoco += cols;
+    else if ((clFoco / cols) < (climas.n - 1) / cols) clFoco = climas.n - 1;
   }
   else if (ehOk(k)) { abrirClima(clFoco); return; }
   else return;
@@ -500,6 +525,7 @@ void explorar_evento(const SDL_Event *e) {
   if (!e || e->type != SDL_KEYDOWN) return;
 #ifdef NV_TOUCH_PREVIEW
   if (toquerol_navegacao(e)) {
+    if (modo == MODO_CLIMAS) climasRetomarFoco();
     for (int i = 0; i < 2; i++) {
       if (modo == MODO_CLIMA && toqueCa[i].livre && caN[i] > 0) {
         float w = i == 1 && caN[0] > 0 ? EX_CB_W : EX_CA_W;
@@ -615,7 +641,167 @@ static void desenharTitulo(const char *sub) {
 
 // --- desenho: grade de climas ----------------------------------------------------
 
+#ifdef NV_TOUCH_PREVIEW
+static int climaColunas(void) {
+  if (!telefoneui_ativo()) return EX_CL_COLS;
+  int cols=NV_TELA_H > NV_TELA_W ? 2 : 3;
+  float maior=0;
+  for(int i=0;i<climas.n;i++) for(int descricao=0;descricao<2;descricao++) {
+    const char *p=i18n(descricao ? mapa_clima_descricao(climas.c[i].id) : mapa_clima_nome(climas.c[i].id));
+    while(*p) {
+      if(*p==' ' || *p=='\n') { p++; continue; }
+      char palavra[128]; size_t n=txt_token_tam(p);
+      if(!n)break;
+      size_t copia=n<sizeof palavra-1 ? n : sizeof palavra-1;
+      memcpy(palavra,p,copia); palavra[copia]=0;
+      maior=fmaxf(maior,txt_largura(descricao ? TXT_HEADLINE : TXT_TITULO3,palavra));
+      p+=n;
+    }
+  }
+  while(cols>1 && (EX_DIR-ajustes_conteudo_x()-EX_CL_GAP*(cols-1))/cols-48<maior)cols--;
+  return cols;
+}
+
+static float climaBlocoTelefone(TxtEstilo estilo,const char *s,int r,int g,int b,
+                               float x,float y,float w,float leading,float a) {
+  // Keep a translated compound word complete even when one phone column is
+  // too narrow. Insert hard breaks at UTF-8 boundaries; never remove letters.
+  char texto[512];size_t usado=0;const char *p=i18n(s);
+  while(*p && usado<sizeof texto-1) {
+    if(*p==' ' || *p=='\n') {texto[usado++]=*p++;continue;}
+    size_t n=txt_token_tam(p), ini=0;
+    if(!n)break;
+    char palavra[512];
+    if(n<sizeof palavra && n<sizeof texto-usado) {
+      memcpy(palavra,p,n);palavra[n]=0;
+      if(txt_largura(estilo,palavra)<=w) {
+        memcpy(texto+usado,p,n);usado+=n;p+=n;continue;
+      }
+    }
+    while(ini<n && usado<sizeof texto-1) {
+      char trecho[512];size_t fim=ini, cabe=ini;
+      while(fim<n) {
+        size_t proximo=fim+1;
+        while(proximo<n && ((unsigned char)p[proximo]&0xc0)==0x80)proximo++;
+        size_t tam=proximo-ini;
+        if(tam>=sizeof trecho)break;
+        memcpy(trecho,p+ini,tam);trecho[tam]=0;
+        if(txt_largura(estilo,trecho)>w && cabe>ini)break;
+        cabe=proximo;fim=proximo;
+      }
+      if(cabe<=ini)break;
+      size_t tam=cabe-ini;
+      if(tam>sizeof texto-1-usado)tam=sizeof texto-1-usado;
+      memcpy(texto+usado,p+ini,tam);usado+=tam;ini=cabe;
+      if(ini<n && usado<sizeof texto-1)texto[usado++]='\n';
+    }
+    p+=n;
+  }
+  texto[usado]=0;
+  return txt_bloco(estilo,texto,r,g,b,x,y,w,leading,a,0);
+}
+
+static float climaConteudoTelefone(const MapaClima *c, float x, float y, float w, float a) {
+  float inicio = y;
+  char s[96];
+  float tituloH=climaBlocoTelefone(TXT_TITULO3,mapa_clima_nome(c->id),246,246,248,x,y,w,58,a);
+  y+=tituloH+12;
+  float descricaoH=climaBlocoTelefone(TXT_HEADLINE,mapa_clima_descricao(c->id),186,190,202,x,y,w,48,a);
+  y+=descricaoH+20;
+  float contagemH=0, afinidadeH=0;
+  if (c->n > 0) {
+    if (a > 0) for (int k=0;k<c->n && k<3;k++)
+      cartaz(c->itens[k].poster,(GfxRect){x+50*k,y,84,126},0,a);
+    y += 142;
+    snprintf(s,sizeof s,i18n(c->total==1 ? "%d título · você viu %d" : "%d títulos · você viu %d"),c->total,c->vistos);
+    contagemH=climaBlocoTelefone(TXT_HEADLINE,s,196,200,212,x,y,w,48,a);y+=contagemH;
+    if (c->afinidade > 0) {
+      int tr,tg,tb; tintaAcento(&tr,&tg,&tb);
+      snprintf(s,sizeof s,i18n("%d%% do que você viu"),c->afinidade);
+      afinidadeH=climaBlocoTelefone(TXT_HEADLINE,s,tr,tg,tb,x,y+8,w,48,a);y+=8+afinidadeH;
+    }
+  } else {
+    contagemH=climaBlocoTelefone(TXT_HEADLINE,"Nada deste clima no seu catálogo ainda",150,154,168,x,y,w,48,a);
+    y+=contagemH;
+  }
+#ifdef NV_SHOT_HOOKS
+  if(a>0) {clTextoDesenho[0]=tituloH;clTextoDesenho[1]=descricaoH;clTextoDesenho[2]=contagemH;clTextoDesenho[3]=afinidadeH;}
+#endif
+  return y-inicio;
+}
+
+static int climaGradeTelefone(GfxRect *cards) {
+  int cols=climaColunas(), linhas=(climas.n+cols-1)/cols;
+  float x=ajustes_conteudo_x(), w=(EX_DIR-x-EX_CL_GAP*(cols-1))/cols, y=EX_CL_TOPO;
+  for(int l=0;l<linhas;l++) {
+    float h=384;
+    for(int c=0;c<cols && l*cols+c<climas.n;c++)
+      h=fmaxf(h,48+climaConteudoTelefone(&climas.c[l*cols+c],0,0,w-48,0));
+    for(int c=0;c<cols && l*cols+c<climas.n;c++)
+      cards[l*cols+c]=(GfxRect){x+c*(w+EX_CL_GAP),y,w,h};
+    y+=h+EX_CL_GAP;
+  }
+  return climas.n;
+}
+
+static void climasRetomarFoco(void) {
+  if (toqueCl.livre && telefoneui_ativo() && climas.n>0) {
+    GfxRect cards[MAPA_CLIMA_N]; climaGradeTelefone(cards);
+    int cols=climaColunas(), col=clFoco%cols, escolhido=clFoco;
+    float melhor=1e9f, centro=(EX_CL_TOPO+NV_TELA_H-80)*.5f;
+    for(int i=col;i<climas.n;i+=cols) {
+      float d=fabsf(cards[i].y-clRolar+cards[i].h*.5f-centro);
+      if(d<melhor) { melhor=d; escolhido=i; }
+    }
+    clFoco=escolhido;
+  }
+  toquerol_limpar(&toqueCl);
+}
+
+static void desenharClimasTelefone(void) {
+  GfxRect cards[MAPA_CLIMA_N]; int n=climaGradeTelefone(cards);
+  float x=ajustes_conteudo_x(), baixo=NV_TELA_H-80;
+  desenharTitulo(i18n("Escolha um clima e puxe o fio de uma história"));
+  if(n<=0 || cat_n()<=0) {
+    txt_bloco(TXT_TITULO3,i18n("Os climas aparecem quando o catálogo carregar"),236,238,244,x,500,EX_DIR-x,58,1,0);
+    return;
+  }
+  float max=fmaxf(0,cards[n-1].y+cards[n-1].h-baixo);
+  if(!toqueCl.livre && clFoco>=0 && clFoco<n) {
+    if(cards[clFoco].y-clRolar<EX_CL_TOPO)clRolar=cards[clFoco].y-EX_CL_TOPO;
+    if(cards[clFoco].y+cards[clFoco].h-clRolar>baixo)clRolar=cards[clFoco].y+cards[clFoco].h-baixo;
+  }
+  clRolar=anim_clamp(clRolar,0,max);
+  toquerol_vincular(&toqueCl,(GfxRect){x-10,EX_CL_TOPO-10,EX_DIR-x+20,baixo-EX_CL_TOPO+10},gfx_escala(),0,max,1,&clRolar);
+  ponteiro_rolagem(toqueExplorarRolar);
+  gfx_recorte(x-10,EX_CL_TOPO-10,EX_DIR-x+20,baixo-EX_CL_TOPO+10);
+  for(int i=0;i<n;i++) {
+    float e=ajustes_animacoes_reduzidas() ? 1 : suave((entrada-.04f*i)/.45f);
+    float f=i==clFoco ? focoT : 0;
+    GfxRect r=cards[i]; r.y+=18*(1-e)-clRolar;
+    if(e<=.01f || r.y+r.h<EX_CL_TOPO-10 || r.y>=baixo)continue;
+    float y0=fmaxf(r.y,EX_CL_TOPO-10), y1=fminf(r.y+r.h,baixo);
+    if(y1>y0)ponteiro_alvo(r.x,y0,r.w,y1-y0,ponteiroClimas,NULL,i,0);
+    if(i==clFoco)r=crescer(r,.03f*f);
+    painelComFoco(r,18/r.h,f,e);
+    float textoH=climaConteudoTelefone(&climas.c[i],r.x+24,r.y+24,r.w-48,e);
+#ifdef NV_SHOT_HOOKS
+    clCardsDesenhados|=1u<<i;
+    clCardsDesenho[i][0]=r.x;clCardsDesenho[i][1]=r.y;
+    clCardsDesenho[i][2]=r.w;clCardsDesenho[i][3]=r.h;clCardsDesenho[i][4]=textoH;
+    memcpy(&clCardsDesenho[i][5],clTextoDesenho,sizeof clTextoDesenho);
+#else
+    (void)textoH;
+#endif
+  }
+  gfx_sem_recorte();
+}
+#endif
+
 static void desenharClimas(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if(telefoneui_ativo()) { desenharClimasTelefone(); return; }
+#endif
   float x0 = ajustes_conteudo_x();
   float w = (EX_DIR - x0 - EX_CL_GAP * (EX_CL_COLS - 1)) / EX_CL_COLS;
   int i, tr, tg, tb;
@@ -955,6 +1141,9 @@ static void desenharViz(void) {
 // --- ciclo ------------------------------------------------------------------------
 
 void explorar_iniciar(void) {
+#ifdef NV_TOUCH_PREVIEW
+  clRolar=0; toqueCl=(ToqueRolagem){0};
+#endif
   sair = pediuAbrir = abrindo = 0;
   tempo = 0.0f;
   memset(&climas, 0, sizeof climas);
@@ -1015,6 +1204,10 @@ void explorar_atualizar(float dt, Uint32 agora) {
 
 void explorar_desenhar(Uint32 agora) {
 #ifdef NV_TOUCH_PREVIEW
+#ifdef NV_SHOT_HOOKS
+  clCardsDesenhados=0;
+#endif
+  toqueCl.offset=NULL;
   toqueCa[0].offset = toqueCa[1].offset = NULL;
   for (int i = 0; i < MAPA_VIZ_GRUPOS; i++) toqueVz[i].offset = NULL;
 #endif

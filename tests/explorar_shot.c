@@ -24,6 +24,9 @@
 #include "ajustes.h"
 #include "rail_shot.h"
 #include "dados.h"
+#include "ponteiro.h"
+#include "telefoneui.h"
+#include "idioma.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
@@ -33,6 +36,57 @@
 
 static GLuint fbo, fboTex;
 static const char *saida = "/tmp/nuvio-explorar";
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+int explorar_teste_clima_card(int indice,float valores[9]);
+int explorar_teste_climas_rolagem(float valores[2]);
+static unsigned climasMedidos;
+static void confereCards(void) {
+  if(!telefoneui_ativo())return;
+  static MapaClimas cl; unsigned rev=0;
+  assert(mapa_climas_copiar(&cl,&rev));
+  int medidos=0;
+  for(int i=0;i<cl.n;i++) {
+    float card[9]; if(!explorar_teste_clima_card(i,card))continue;
+    medidos++;
+    float margem=NV_TELA_H>NV_TELA_W ? ajustes_conteudo_x() : 80;
+    float antigo=(NV_TELA_W-margem-ajustes_conteudo_x()-18*3)/4;
+    assert(card[2]>antigo*1.3f && card[3]>=384);
+    assert(card[4]<=card[3]-48+.1f);
+    float largura=card[2]-48;
+    assert(fabsf(card[5]-txt_bloco(TXT_TITULO3,mapa_clima_nome(cl.c[i].id),246,246,248,0,0,largura,58,0,0))<.1f);
+    assert(fabsf(card[6]-txt_bloco(TXT_HEADLINE,mapa_clima_descricao(cl.c[i].id),186,190,202,0,0,largura,48,0,0))<.1f);
+    char contagem[96];
+    if(cl.c[i].n>0)
+      snprintf(contagem,sizeof contagem,i18n(cl.c[i].total==1 ? "%d título · você viu %d" : "%d títulos · você viu %d"),cl.c[i].total,cl.c[i].vistos);
+    else snprintf(contagem,sizeof contagem,"%s",i18n("Nada deste clima no seu catálogo ainda"));
+    int tr=cl.c[i].n>0?196:150,tg=cl.c[i].n>0?200:154,tb=cl.c[i].n>0?212:168;
+    assert(fabsf(card[7]-txt_bloco(TXT_HEADLINE,contagem,tr,tg,tb,0,0,largura,48,0,0))<.1f);
+    if(cl.c[i].n>0 && cl.c[i].afinidade>0) {
+      snprintf(contagem,sizeof contagem,i18n("%d%% do que você viu"),cl.c[i].afinidade);
+      float ar,ag,ab;ajustes_acento(&ar,&ag,&ab);
+      tr=(int)((ar*.55f+.45f)*255);tg=(int)((ag*.55f+.45f)*255);tb=(int)((ab*.55f+.45f)*255);
+      assert(fabsf(card[8]-txt_bloco(TXT_HEADLINE,contagem,tr,tg,tb,0,0,largura,48,0,0))<.1f);
+    }
+    TxtLinha maior=txt_linha(TXT_TITULO3,"Ag",255,255,255,255);
+    TxtLinha antiga=txt_linha(TXT_HEADLINE,"Ag",255,255,255,255);
+    assert(maior.h>antiga.h && maior.h>=48);
+    assert(txt_linha(TXT_HEADLINE,"Ag",255,255,255,255).h>=38);
+    assert(txt_linha(TXT_HEADLINE,"Ag",255,255,255,255).h>
+           txt_linha(TXT_CAPTION2,"Ag",255,255,255,255).h);
+    climasMedidos|=1u<<i;
+    printf("[shot] full-label phone card %d: actual box %.1fx%.1f, full wrapped copy %.1f, title glyph height %d\n",
+           i,card[2],card[3],card[4],maior.h);
+  }
+  assert(medidos>0);
+  assert(!txt_pendentes);
+}
+static void dedoClima(Uint32 tipo,float x,float y) {
+  SDL_Event e={0};e.type=tipo;e.tfinger.touchId=41;e.tfinger.fingerId=1;
+  e.tfinger.x=x/NV_TELA_W;e.tfinger.y=y/NV_TELA_H;
+  assert(ponteiro_evento(&e,explorar_evento));
+}
+static void rolarClimas(int capturar);
+#endif
 
 static void tecla(SDL_Keycode k) {
   SDL_Event e;
@@ -46,8 +100,21 @@ static void quadros(int n, const char *nome) {
   int i;
   rail_shot_aplicar();
   for (i = 0; i < n; i++) {
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    ponteiro_quadro(SDL_GetTicks());
+#endif
     SDL_PumpEvents();
     txt_novo_quadro();
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    // Warm the comparison probes over ordinary frames, so native assertions
+    // never spend a fresh rasterization budget after the captured frame.
+    if(telefoneui_ativo()) {
+      (void)txt_linha(TXT_TITULO3,"Ag",255,255,255,255);
+      (void)txt_linha(TXT_HEADLINE,"Ag",255,255,255,255);
+      (void)txt_linha(TXT_BODY,"Ag",255,255,255,255);
+      (void)txt_linha(TXT_CAPTION2,"Ag",255,255,255,255);
+    }
+#endif
     tex_novo_quadro();
     tex_bombear(10);
     gfx_novo_quadro();
@@ -58,6 +125,9 @@ static void quadros(int n, const char *nome) {
     glClear(GL_COLOR_BUFFER_BIT);
     explorar_desenhar(SDL_GetTicks());
     rail_shot_desenhar(MENU_EXPLORAR);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    ponteiro_desenhar();
+#endif
     glFinish();
     if (nome && i == n - 1) {
       unsigned char *pix = malloc(1920 * 1080 * 4);
@@ -79,6 +149,48 @@ static void quadros(int n, const char *nome) {
     SDL_Delay(2);
   }
 }
+
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static void rolarClimas(int capturar) {
+  if(!telefoneui_ativo())return;
+  climasMedidos=0;
+  confereCards();
+  float r[2];assert(explorar_teste_climas_rolagem(r)&&r[1]>0);
+  float alvo=r[1]*.5f;
+  while(r[0]<alvo-.1f) {
+    float passo=fmaxf(40,fminf(alvo-r[0],NV_TELA_H*.5f)),x=NV_TELA_W*.6f,y=NV_TELA_H*.75f;
+    dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+    dedoClima(SDL_FINGERMOTION,x,y-passo);
+    float durante[2];assert(explorar_teste_climas_rolagem(durante));
+    assert(fabsf(durante[0]-fminf(r[0]+passo,r[1]))<.1f);
+    SDL_Delay(160);
+    dedoClima(SDL_FINGERUP,x,y-passo);quadros(2,NULL);
+    float novo[2];assert(explorar_teste_climas_rolagem(novo));assert(novo[0]>r[0]+.1f);
+    assert(fabsf(novo[0]-durante[0])<.1f);
+    memcpy(r,novo,sizeof r);
+  }
+  quadros(60,capturar ? "1a-climas-meio" : NULL);confereCards();
+  for(int i=0;i<8 && r[0]<r[1]-.1f;i++) {
+    float x=NV_TELA_W*.6f,y=NV_TELA_H*.75f;
+    dedoClima(SDL_FINGERDOWN,x,y);SDL_Delay(100);
+    dedoClima(SDL_FINGERMOTION,x,y-NV_TELA_H*.5f);SDL_Delay(160);
+    dedoClima(SDL_FINGERUP,x,y-NV_TELA_H*.5f);quadros(2,NULL);
+    assert(explorar_teste_climas_rolagem(r));
+  }
+  assert(fabsf(r[0]-r[1])<.1f);
+  quadros(60,capturar ? "1b-climas-fim" : NULL);confereCards();
+  assert(climasMedidos==(1u<<MAPA_CLIMA_N)-1);
+  int abriu=-1;assert(!explorar_pediu_abrir(&abriu));
+  explorar_iniciar();quadros(60,NULL);
+}
+static void shotIdioma(int ingles) {
+  char caminho[700];snprintf(caminho,sizeof caminho,"%s/ajustes.txt",dados_dir());
+  FILE *f=fopen(caminho,"w");assert(f);
+  const char *tema=getenv("NUVIO_SHOT_THEME"),*reduz=getenv("NUVIO_SHOT_REDUZ");
+  fprintf(f,"idioma %d\nselected_theme %d\nanimacoes %d\n",ingles,tema&&*tema?atoi(tema):2,reduz&&*reduz=='1');
+  fclose(f);ajustes_dir(dados_dir());assert(ajustes_idioma_ingles()==ingles);
+}
+#endif
 
 // --- catalogo sintetico ---------------------------------------------------------
 
@@ -196,7 +308,19 @@ int main(int argc, char **argv) {
     assert(cl.n == MAPA_CLIMA_N && cl.c[0].n > 0 && cl.c[0].afinidade >= cl.c[1].afinidade); }
 
   explorar_iniciar();
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  ponteiro_iniciar();ponteiro_teste_toque(1);
+#endif
   quadros(90, "1-climas");
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  rolarClimas(1);
+  if(telefoneui_ativo()) {
+    int ingles=ajustes_idioma_ingles();shotIdioma(!ingles);explorar_iniciar();quadros(90,NULL);
+    rolarClimas(0);
+    printf("[shot] Explore landing complete real-font labels and continuous drag passed in English and Portuguese\n");
+    shotIdioma(ingles);explorar_iniciar();quadros(60,NULL);
+  }
+#endif
   tecla(SDLK_RETURN);
   quadros(70, "2-clima");
 
