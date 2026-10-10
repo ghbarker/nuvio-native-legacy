@@ -136,6 +136,7 @@ jobs:
           python3 tests/android_window_layout.py
           python3 tests/android_orientation.py
           python3 tests/android_smoke_rotation.py
+          python3 tests/android_smoke_input.py
       - uses: actions/cache/save@v4
         if: steps.native-cache.outputs.cache-hit != 'true'
         with:
@@ -195,6 +196,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y python3-pil
+          python3 tests/android_smoke_rotation.py
+          python3 tests/android_smoke_input.py
       - name: Download existing APKs
         env:
           APK_RUN_ID: ${{ inputs.apk_run_id }}
