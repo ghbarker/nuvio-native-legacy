@@ -145,17 +145,32 @@ int epg_proximo(int epg, time_t t, int k, EpgProg *p) {
   (void)epg; for (int i = 0; i < 3; i++) if (programasGuia[i].ini > t && k-- == 0) { *p = programasGuia[i]; return 1; }
   return 0;
 }
-int epg_faixa(int epg, time_t de, time_t ate, EpgProg *out, int cap) {
-  (void)epg; int n = 0;
-  for (int i = 0; i < 3; i++) if (programasGuia[i].ini < ate && programasGuia[i].fim > de) { if (n < cap) out[n] = programasGuia[i]; n++; }
+int epg_faixa_desde(int epg, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
+  if (epg != 0 || ate <= de || (out && cap <= 0)) return 0;
+  if (pular < 0) pular = 0;
+  int n = 0;
+  for (int i = 0; i < 3 && (!out || n < cap); i++)
+    if (programasGuia[i].ini < ate && programasGuia[i].fim > de) {
+      if (pular > 0) { pular--; continue; }
+      if (out) out[n] = programasGuia[i];
+      n++;
+    }
   return n;
+}
+int epg_faixa(int epg, time_t de, time_t ate, EpgProg *out, int cap) {
+  return epg_faixa_desde(epg, de, ate, 0, out, cap);
 }
 int xtream_e_id(const char *id) { (void)id; return 0; }
 void xtepg_querer(const char *id) { (void)id; assert(!"unexpected network request"); }
 int xtepg_tem(const char *id) { (void)id; return 0; }
 int xtepg_agora(const char *id, time_t t, EpgProg *p) { (void)id; (void)t; (void)p; return 0; }
 int xtepg_proximo(const char *id, time_t t, int k, EpgProg *p) { (void)id; (void)t; (void)k; (void)p; return 0; }
-int xtepg_faixa(const char *id, time_t de, time_t ate, EpgProg *out, int cap) { (void)id; (void)de; (void)ate; (void)out; (void)cap; return 0; }
+int xtepg_faixa_desde(const char *id, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
+  (void)id; (void)de; (void)ate; (void)pular; (void)out; (void)cap; return 0;
+}
+int xtepg_faixa(const char *id, time_t de, time_t ate, EpgProg *out, int cap) {
+  return xtepg_faixa_desde(id, de, ate, 0, out, cap);
+}
 int lembrete_achar(const char *canal, time_t ini, const char *titulo) { (void)canal; (void)ini; (void)titulo; return -1; }
 const Lembrete *lembrete_item(int i) { (void)i; return NULL; }
 void lembrete_ajustar(int i, time_t ini, time_t fim) { (void)i; (void)ini; (void)fim; assert(!"unexpected reminder update"); }
