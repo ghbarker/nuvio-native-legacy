@@ -438,6 +438,15 @@ static float heroEntra = 1.0f;
 #define NV_HERO_DESLIZA_MS 520.0f
 static float heroDesliza = 1.0f;
 static int   heroDeslizaDir = 0, heroDirDesejado = 0;
+#ifdef NV_TOUCH_PREVIEW
+static GfxRect heroArteRect = {0, 0, NV_TELA_BASE_W, NV_TELA_BASE_H};
+static struct {
+  int estado, origem, alvo, direcao, confirmar;
+  float x, largura, inicio, destino, tempo, telaW, telaH;
+  char imdb[64], alvoImdb[64];
+  Uint32 desde;
+} toqueHero;
+#endif
 // TRAILER NO DESTAQUE (trailer.h; dono, 20/09/2026: "coloca para tocar no
 // hero tb"). Com o foco parado no hero e a arte assentada, espera o ajuste
 // "Espera do trailer no destaque" (heroTrailerEspera) e troca a arte pelo
@@ -1620,7 +1629,112 @@ static float toqueHomeMaxX(int r) {
   float util = homeLarguraUtil();
   return fmaxf(0.0f, (n - 1) * passoFil(r) + larguraFil(r) + xOffTipo(fileiras[r].tipo) + extra - util);
 }
+static void toqueHeroCancelar(void) { memset(&toqueHero, 0, sizeof toqueHero); }
+
+static int toqueHeroVizinho(int direcao) {
+  int pos = heroPosDe(toqueHero.origem), n = heroNLista();
+  if (n < 2) return -1;
+  if (pos < 0) return heroIdxEm(direcao > 0 ? 0 : n - 1);
+  return heroIdxEm(pos + direcao);
+}
+
+static int toqueHeroValido(void) {
+  const CatItem *origem = cat_item_exato(toqueHero.origem);
+  const CatItem *alvo = cat_item_exato(toqueHero.alvo);
+  return toqueHero.telaW == NV_TELA_W && toqueHero.telaH == NV_TELA_H &&
+         origem && !strcmp(origem->imdb, toqueHero.imdb) &&
+         (toqueHero.alvo < 0 || (alvo && !strcmp(alvo->imdb, toqueHero.alvoImdb) &&
+                                toqueHeroVizinho(toqueHero.direcao) == toqueHero.alvo));
+}
+
+static void toqueHeroAtualizar(float dt, Uint32 agora, int oculto, int reduzido) {
+  if (!toqueHero.estado) return;
+  if (oculto || !ajustes_hero_ligado() || !toqueHeroValido()) {
+    toqueHeroCancelar(); return;
+  }
+  heroUltTecla = agora;
+  heroTrocaEm = agora + NV_HERO_INTERVALO_MS;
+  if (toqueHero.estado != 2) return;
+  toqueHero.tempo += fmaxf(0.0f, dt);
+  float t = reduzido ? 1.0f : anim_clamp(toqueHero.tempo / .22f, 0.0f, 1.0f);
+  toqueHero.x = anim_mistura(toqueHero.inicio, toqueHero.destino, anim_saida(t));
+  if (t < 1.0f) return;
+  if (toqueHero.confirmar && toqueHero.alvo >= 0) {
+    // The pair already moved into place. Commit its identity once, without
+    // starting another arrow animation or displaying the previous title's art.
+    heroAnterior = toqueHero.origem;
+    heroAtual = heroPendente = toqueHero.alvo;
+    heroPendenteEm = agora;
+    heroDesejado = -1; heroDirDesejado = 0;
+    heroDesliza = 1.0f; heroDeslizaDir = 0;
+    heroSai = 0.0f; heroEntra = 1.0f;
+    heroTardeItem = heroAtual; heroTardeEm = toqueHero.desde;
+  }
+  toqueHeroCancelar();
+}
+
+static int toqueHeroRolar(const PonteiroRolagem *e) {
+  if (e->fase == PONT_ROL_INICIO) {
+    if (e->eixoY || toqueHero.estado || !ajustes_hero_ligado() ||
+        heroVisivelToque() <= .25f || detail_aberto() || player_aberto() ||
+        e->x < homeConteudoX() || e->x >= NV_TELA_W ||
+        e->y < fmaxf(0.0f, heroArteRect.y) ||
+        e->y >= fminf(NV_TELA_H, heroArteRect.y + heroArteRect.h) ||
+        heroArteRect.w <= 0.0f || heroNLista() < 2) return 0;
+    if (foco.fileira >= 0 && foco.fileira < nFileiras &&
+        (fileiras[foco.fileira].tipo == FILEIRA_SOCIAL ||
+         fileiras[foco.fileira].tipo == FILEIRA_CATALOGOS)) return 0;
+    const CatItem *origem = cat_item_exato(heroAtual);
+    if (!origem) return 0;
+    toqueHero.estado = 1; toqueHero.origem = heroAtual; toqueHero.alvo = -1;
+    toqueHero.largura = NV_TELA_W;
+    toqueHero.telaW = NV_TELA_W; toqueHero.telaH = NV_TELA_H;
+    toqueHero.desde = SDL_GetTicks();
+    snprintf(toqueHero.imdb, sizeof toqueHero.imdb, "%s", origem->imdb);
+    focoHero = 1; toqueFileira = -1;
+    heroDesejado = -1; heroDirDesejado = 0;
+    heroPendente = heroAtual; heroPendenteEm = toqueHero.desde;
+    heroSai = 0; heroEntra = 1; heroDesliza = 1;
+    heroTrailerFade = 0;
+    return 1;
+  }
+  if (!toqueHero.estado || e->eixoY) return 0;
+  if (e->fase == PONT_ROL_CANCELAR || !toqueHeroValido()) {
+    toqueHeroCancelar(); return 1;
+  }
+  if (e->fase == PONT_ROL_MOVER && toqueHero.estado == 1) {
+    float x = anim_clamp(toqueHero.x + e->delta, -toqueHero.largura, toqueHero.largura);
+    toqueHero.direcao = x < 0 ? 1 : -1;
+    toqueHero.alvo = toqueHeroVizinho(toqueHero.direcao);
+    const CatItem *alvo = cat_item_exato(toqueHero.alvo);
+    if (alvo) {
+      snprintf(toqueHero.alvoImdb, sizeof toqueHero.alvoImdb, "%s", alvo->imdb);
+      toqueHero.x = x;
+    } else {
+      toqueHero.alvo = -1;
+      // At either end, show a small elastic pull and return to this title.
+      toqueHero.x = anim_clamp(x, -.10f * toqueHero.largura, .10f * toqueHero.largura);
+    }
+    return 1;
+  }
+  if (e->fase == PONT_ROL_SOLTAR && toqueHero.estado == 1) {
+    float distancia = fabsf(toqueHero.x) / toqueHero.largura;
+    float velocidade = e->velocidade * (toqueHero.x < 0 ? -1.0f : 1.0f);
+    toqueHero.confirmar = toqueHero.alvo >= 0 &&
+                         (distancia >= .20f || (distancia >= .035f && velocidade >= .65f));
+    toqueHero.inicio = toqueHero.x;
+    toqueHero.destino = toqueHero.confirmar ? -toqueHero.direcao * toqueHero.largura : 0;
+    toqueHero.tempo = 0; toqueHero.estado = 2;
+  }
+  // The hero owns its snap. It never uses the list's inertial scrolling.
+  return e->fase != PONT_ROL_INERCIA;
+}
+
 static int toqueHomeRolar(const PonteiroRolagem *e) {
+  if (toqueHero.estado || (e->fase == PONT_ROL_INICIO && !e->eixoY)) {
+    int capturado = toqueHeroRolar(e);
+    if (capturado || toqueHero.estado) return capturado;
+  }
   if (e->fase == PONT_ROL_INICIO) {
     float y = topoFileiras() - scrollY;
     float topoToque = heroCompactoTelefone() ? 132.0f : corteFileiras();
@@ -1967,7 +2081,10 @@ int home_iniciar(const char *dirArte) {
 void home_evento(const SDL_Event *e) {
   if (e->type == SDL_QUIT) { sair = 1; return; }
 #ifdef NV_TOUCH_PREVIEW
-  if (e->type == SDL_KEYDOWN) toqueHomeRetomarFoco();
+  if (e->type == SDL_KEYDOWN) {
+    toqueHeroCancelar();
+    toqueHomeRetomarFoco();
+  }
 #endif
 
   // MODO CINEMA: a primeira tecla devolve a UI (o trailer segue, como no
@@ -2860,6 +2977,7 @@ void home_ir_topo(void) {
   int r;
 #ifdef NV_TOUCH_PREVIEW
   toqueHomeLimpar();
+  toqueHeroCancelar();
 #endif
   focoHero = 1;
   foco.fileira = 0;
@@ -2969,6 +3087,9 @@ void home_atualizar(float dt, Uint32 agora) {
   }
 
   const int motionReduzido = ajustes_animacoes_reduzidas();
+#ifdef NV_TOUCH_PREVIEW
+  toqueHeroAtualizar(dt, agora, heroOculto, motionReduzido);
+#endif
   if (okPressionando && foco_pode_pressao_longa())
     // O MESMO NV_HOLD_MS do resto do app: a barra que enche na tela E o
     // gatilho, entao ela nao pode correr num relogio proprio. Aqui havia um
@@ -3002,7 +3123,11 @@ void home_atualizar(float dt, Uint32 agora) {
     // Com o destaque em foco a regra continua valendo e continua necessaria:
     // ali o contador "3 / 10" tem de corresponder a arte, e um `heroAtual`
     // fora do conjunto nao tem posicao para mostrar.
-    if (!heroOculto && focoHero && heroNLista() > 0 && heroPosDe(heroAtual) < 0) {
+    if (!heroOculto && focoHero && heroNLista() > 0 && heroPosDe(heroAtual) < 0
+#ifdef NV_TOUCH_PREVIEW
+        && !toqueHero.estado
+#endif
+        ) {
       int primeiro = heroIdxEm(0);
       if (primeiro >= 0) heroAtual = heroAnterior = heroPendente = primeiro;
       heroDesliza = 1.0f;
@@ -3020,7 +3145,11 @@ void home_atualizar(float dt, Uint32 agora) {
   //
   // Enquanto ha foco num card, o carrossel automatico nao roda: duas fontes
   // mexendo na mesma arte dariam trocas em cima da escolha do usuario.
-  if (!heroOculto) {
+  if (!heroOculto
+#ifdef NV_TOUCH_PREVIEW
+      && !toqueHero.estado
+#endif
+      ) {
   {
     int alvo = -1;
     // COM O DESTAQUE EM FOCO, a arte e escolhida por ele — pela seta ou pelo
@@ -3373,7 +3502,9 @@ static void desenhaFundoDin(Uint32 agora) {
 // Rect da ARTE do hero no ultimo quadro. A tela de detalhe le isto para
 // comecar o backdrop dela EXATAMENTE onde a arte ja estava, em vez de aparecer
 // do nada: o fundo e o mesmo do titulo, entao ele nao deve piscar nem crescer.
+#ifndef NV_TOUCH_PREVIEW
 static GfxRect heroArteRect = { 0, 0, NV_TELA_BASE_W, NV_TELA_BASE_H };
+#endif
 int home_streaming_barra(const int **pastas) {
   if (pastas) *pastas = streamBarra;
   return layoutHome() == HOME_LAYOUT_DINAMICA ? nStreamBarra : 0;
@@ -4262,14 +4393,21 @@ static void desenhaHero(Uint32 agora, float saida) {
     }
   }
 
-  const CatItem *ci = cat_item_exato(heroAtual);
-  const char *arteA = arte_por_identidade(heroAtual, 2);
+  int indiceAtual = heroAtual, indiceAnterior = heroAnterior;
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueHero.estado) {
+    indiceAnterior = toqueHero.origem;
+    indiceAtual = toqueHero.alvo >= 0 ? toqueHero.alvo : toqueHero.origem;
+  }
+#endif
+  const CatItem *ci = cat_item_exato(indiceAtual);
+  const char *arteA = arte_por_identidade(indiceAtual, 2);
   // COR VIVA: o titulo do destaque e quem manda na cor da home. heroAtual so
   // troca quando a arte nova ja decodificou (acima), entao a cor chega junto
   // com a arte, e corviva ainda espera 150 ms parado antes de mudar.
   if (arteA) corviva_definir(arteA, CORVIVA_HOME);
-  const CatItem *cAnt = cat_item_exato(heroAnterior);
-  const char *arteB = arte_por_identidade(heroAnterior, 2);
+  const CatItem *cAnt = cat_item_exato(indiceAnterior);
+  const char *arteB = arte_por_identidade(indiceAnterior, 2);
   // Teto de 1920: o hero ocupa a tela e a 960 saia esticado ao dobro.
   // O ANTERIOR so e pedido ENQUANTO a mistura acontece. Estava sendo pedido em
   // TODO quadro, mesmo com a troca ja terminada, quando ele nao e desenhado: se o
@@ -4278,12 +4416,19 @@ static void desenhaHero(Uint32 agora, float saida) {
   // visiveis para fora do orcamento.
   // No deslize o anterior tambem e desenhado (sai pelo lado), e so enquanto
   // ele dura: parado, nada a mais.
-  const int deslizando = heroDesliza < 1.0f;
-  const float pDesl = deslizando ? anim_saida(heroDesliza) : 1.0f;
+  int deslizando = heroDesliza < 1.0f;
+  float pDesl = deslizando ? anim_saida(heroDesliza) : 1.0f;
   // Em fracao da largura da arte. As duas bordas andam JUNTAS: o que sai
   // termina onde o que entra comeca, sem vao nem sobreposicao.
-  const float dAnt = deslizando ? -(float)heroDeslizaDir * pDesl : 0.0f;
-  const float dAtu = deslizando ? (float)heroDeslizaDir * (1.0f - pDesl) : 0.0f;
+  float dAnt = deslizando ? -(float)heroDeslizaDir * pDesl : 0.0f;
+  float dAtu = deslizando ? (float)heroDeslizaDir * (1.0f - pDesl) : 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  if (toqueHero.estado) {
+    deslizando = 1;
+    dAnt = toqueHero.x / toqueHero.largura;
+    dAtu = dAnt + (toqueHero.direcao > 0 ? 1.0f : -1.0f);
+  }
+#endif
   GLuint tAnt = ((heroSai > 0.0f || deslizando) && arteB) ? tex_obter_hero(arteB) : 0;
   // Pedir a nova JA, durante o esvanecimento: e este pedido que enfileira o
   // decode, e e por isso que o vazio dura o tempo do carregamento e nao mais.
@@ -4335,9 +4480,17 @@ static void desenhaHero(Uint32 agora, float saida) {
       if (ax1 > ax0) {
         gfx_recorte(ax0, y0, ax1 - ax0, y1 - y0);
         if (tAnt) (void)desenhaArteHero(r, modoHero, cAnt, arteB, aArte, dAnt);
-        else if (!arteB) desenhaPlaceholderHero(rAnt, cAnt, aArte, 0);
+        else if (!arteB
+#ifdef NV_TOUCH_PREVIEW
+                 || toqueHero.estado
+#endif
+                 ) desenhaPlaceholderHero(rAnt, cAnt, aArte, arteB != NULL && arteB[0] != 0);
       }
-      if (bx1 > bx0) {
+      if (bx1 > bx0
+#ifdef NV_TOUCH_PREVIEW
+          && !(toqueHero.estado && toqueHero.alvo < 0)
+#endif
+          ) {
         gfx_recorte(bx0, y0, bx1 - bx0, y1 - y0);
         if (tAtu) (void)desenhaArteHero(r, modoHero, ci, arteA, aArte, dAtu);
         else desenhaPlaceholderHero(rAtu, ci, aArte, arteA != NULL && arteA[0] != 0);
@@ -4423,11 +4576,30 @@ static void desenhaHero(Uint32 agora, float saida) {
   float x = homeConteudoX();
   // TROCA DESLIZADA: o bloco do titulo que sai anda junto com a arte dele, e o
   // do que entra vem colado atras, na mesma distancia (a largura da arte).
-  if (deslizando && cAnt && cAnt != ci)
+  if (deslizando && cAnt && (cAnt != ci
+#ifdef NV_TOUCH_PREVIEW
+                           || toqueHero.estado
+#endif
+                           ))
     desenhaCopiaHero(cAnt, 0, x + dAnt * r.w, base, lay, cheio, logoH, sinW,
                      sinLinhas, aTexto, aCopy, cin, btnH, btnGap, slotBtn);
-  float actionY = desenhaCopiaHero(ci, 1, x + dAtu * r.w, base, lay, cheio, logoH, sinW,
-                   sinLinhas, aTexto, aCopy, cin, btnH, btnGap, slotBtn);
+  float actionY = 0;
+#ifdef NV_TOUCH_PREVIEW
+  if (!(toqueHero.estado && toqueHero.alvo < 0))
+#endif
+    actionY = desenhaCopiaHero(ci,
+#ifdef NV_TOUCH_PREVIEW
+                    toqueHero.estado ? 0 : 1,
+#else
+                    1,
+#endif
+                    x + dAtu * r.w, base, lay, cheio, logoH, sinW,
+                    sinLinhas, aTexto, aCopy, cin, btnH, btnGap, slotBtn);
+#ifdef NV_TOUCH_PREVIEW
+  // During a drag/snap the copy moves but its stationary buttons cannot be
+  // used. The original FINGERUP belongs to the gesture, never to a title.
+  if (toqueHero.estado) return;
+#endif
 
   // O BOTAO E A POSICAO, que so existem enquanto o destaque tem o foco.
   //
@@ -4851,6 +5023,9 @@ void home_trailer_passo(int topo, float dt, Uint32 agora) {
   pronto = pronto &&
            heroDesejado < 0 && heroAtual >= 0 && heroEntra >= 0.999f && heroSai <= 0.001f &&
            heroDesliza >= 1.0f &&   // o trailer abre com a arte ja parada
+#ifdef NV_TOUCH_PREVIEW
+           !toqueHero.estado &&
+#endif
            !(!focoHero && foco.fileira >= 0 && foco.fileira < nFileiras &&
              (fileiras[foco.fileira].tipo == FILEIRA_CATALOGOS ||
               fileiras[foco.fileira].tipo == FILEIRA_SOCIAL));
@@ -5738,7 +5913,13 @@ void home_desenhar(Uint32 agora) {
     float heroBaixo = layoutHome() == HOME_LAYOUT_DINAMICA
                     ? dinHeroY() + alturaTextoHeroDin() : corteFileiras();
     if (heroBaixo > 0.0f)
-      ponteiro_alvo(0, 0, NV_TELA_W, heroBaixo, ponteiroHero, NULL, 0, 0);
+      ponteiro_alvo(0, 0, NV_TELA_W, heroBaixo,
+#ifdef NV_TOUCH_PREVIEW
+                    toqueHero.estado ? NULL : ponteiroHero,
+#else
+                    ponteiroHero,
+#endif
+                    NULL, 0, 0);
   }
 
   // ABERTURA DO DETALHE: as fileiras DESCEM e apagam; a arte de fundo fica.

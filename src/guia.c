@@ -1356,7 +1356,8 @@ static int   painel, paFoco, paMexeu;
 static int   paLigou;
 static float paRol, paVelRol;
 #ifdef NV_TOUCH_PREVIEW
-static ToqueRolagem toqueGradeY, toqueLista, toqueTempo, toqueCat, toqueAddon, toqueBusca;
+static ToqueRolagem toqueGradeY, toqueLista, toqueTempo, toqueCat, toqueAddon, toqueBusca, toqueVazio;
+static float rolVazio;
 static ToqueRolagem toqueGradeX[G_MAX_CAT + 1];
 static int toqueLinha = -1;
 static float toqueTempoMin, toquePpm;
@@ -1369,6 +1370,7 @@ static void toqueGuiaRetomar(void);
 static void toqueLimpar(void) {
   toquerol_limpar(&toqueGradeY); toquerol_limpar(&toqueLista); toquerol_limpar(&toqueTempo);
   toquerol_limpar(&toqueCat); toquerol_limpar(&toqueAddon); toquerol_limpar(&toqueBusca);
+  toquerol_limpar(&toqueVazio);
   for (int l = 0; l <= G_MAX_CAT; l++) toquerol_limpar(&toqueGradeX[l]);
   toqueLinha = -1;
   toqueAtual = NULL;
@@ -1553,6 +1555,7 @@ static void dicaTalvez(void) {
 void guia_abrir(void) {
 #ifdef NV_TOUCH_PREVIEW
   toqueLimpar();
+  rolVazio = 0.0f;
 #endif
   guia_carregar();
   if (!previewLido) previewLer();
@@ -3392,6 +3395,73 @@ static void desenharDuasPortas(float x, float y, float a) {
 // enquanto abertas), e so com a animacao assentada.
 static int buscaEstado;   // declarada de novo com a busca, mais abaixo
 static int guiaCamadaAberta(void) { return catAberto || buscaEstado || painel; }
+#ifdef NV_TOUCH_PREVIEW
+static int guiaVazioTelefone(void) {
+  return telefoneui_ativo() && aberta && !overlay && !nCanais &&
+    (estado == G_FALHOU || (fontesOk && !nFontes && estado != G_BAIXANDO));
+}
+static void ponteiroConfigGuia(int i, int b) {
+  (void)i; (void)b;
+  if (!guiaVazioTelefone() || guiaCamadaAberta() || falhas || xtFalha) return;
+  focoTopo = 1; topoCol = G_TOPO_ADDONS;
+}
+static int toqueVazioRolar(const PonteiroRolagem *e) {
+  if (!guiaVazioTelefone() || guiaCamadaAberta()) return 0;
+  int r = toquerol_evento(&toqueVazio, e);
+  if (r && (e->fase == PONT_ROL_INICIO || e->fase == PONT_ROL_MOVER)) {
+    okDesde = 0; okLongo = 0; dirSeg = 0; dicaDesde = 0;
+  }
+  return r;
+}
+
+/* The setup explanation belongs below the wrapped header. Its TV diagram
+   uses fixed positions that cross the last phone chip and truncate its text. */
+static void desenharVazioTelefone(const char *msg, int configurar, float a) {
+  float topo = (gRetrato() ? gTopoFim : G_TOPO_Y + G_TOPO_H) + 40.0f;
+  float fim = NV_TELA_H - 80.0f, area = fmaxf(0.0f, fim - topo);
+  float textoH = txt_bloco_corta(TXT_V2_26, msg, 200, 202, 210,
+                                 G_AREA_X, topo, G_AREA_W, 36.0f, 0, 0);
+  float cardH[2] = {0}, tituloH[2] = {0}, subH[2] = {0};
+  const char *tit[2] = {i18n("Addon de canais"), i18n("Portal IPTV")};
+  const char *sub[2] = {i18n("Instalado na sua conta"), i18n("Cadastrado em Ajustes › Conta")};
+  float altura = textoH;
+  if (configurar) {
+    altura += 28.0f;
+    for (int i = 0; i < 2; i++) {
+      tituloH[i] = txt_bloco_corta(TXT_HEADLINE, tit[i], 240, 242, 248,
+                                   G_AREA_X + 24.0f, 0, G_AREA_W - 48.0f, 48.0f, 0, 0);
+      subH[i] = txt_bloco_corta(TXT_V2_26, sub[i], 150, 153, 162,
+                                G_AREA_X + 24.0f, 0, G_AREA_W - 48.0f, 36.0f, 0, 0);
+      cardH[i] = 48.0f + tituloH[i] + 8.0f + subH[i];
+      altura += cardH[i] + (i ? 0.0f : 16.0f);
+    }
+  }
+  toquerol_vincular(&toqueVazio, (GfxRect){G_AREA_X, topo, G_AREA_W, area},
+                    gfx_escala(), 0, fmaxf(0, altura - area), 1, &rolVazio);
+  rolVazio = toquerol_clamp(rolVazio, 0, toqueVazio.maximo);
+  if (!guiaCamadaAberta()) ponteiro_rolagem(toqueVazioRolar);
+  gfx_recorte(G_AREA_X, topo, G_AREA_W, area);
+  float y = topo - rolVazio;
+  y += txt_bloco_corta(TXT_V2_26, msg, 200, 202, 210,
+                       G_AREA_X, y, G_AREA_W, 36.0f, a, 0);
+  if (configurar) {
+    y += 28.0f;
+    for (int i = 0; i < 2; i++) {
+      GfxRect c = {G_AREA_X, y, G_AREA_W, cardH[i]};
+      if (!i) plrui_botao_repouso(c, a);
+      else gfx_cor(c, .08f, 1, 1, 1, .04f * a);
+      txt_bloco_corta(TXT_HEADLINE, tit[i], 240, 242, 248,
+                      c.x + 24.0f, c.y + 24.0f, c.w - 48.0f, 48.0f, a, 0);
+      txt_bloco_corta(TXT_V2_26, sub[i], 150, 153, 162,
+                      c.x + 24.0f, c.y + 32.0f + tituloH[i], c.w - 48.0f, 36.0f, a, 0);
+      if (!i && a > .99f && !guiaCamadaAberta())
+        ponteiro_alvo_faixa(c.x, c.y, c.w, c.h, topo, fim, ponteiroConfigGuia, NULL, 0, 0);
+      y += cardH[i] + 16.0f;
+    }
+  }
+  gfx_sem_recorte();
+}
+#endif
 static void ponteiroTopo(int i, int b) {
   (void)b;
   if (guiaCamadaAberta() || i < 0 || i >= G_TOPO_N) return;
@@ -4522,6 +4592,7 @@ void guia_desenhar(Uint32 agora) {
   gTopoMedir();
   temLinhas = (estado == G_PRONTO || estado == G_BAIXANDO) && nLinhas() > 0;
 #ifdef NV_TOUCH_PREVIEW
+  if (!guiaVazioTelefone()) toqueVazio.offset = NULL;
   if (temLinhas) {
     float area = G_L_BASE - (modoLista ? G_L_TOPO : G_TOPO);
     if (modoLista) {
@@ -4777,22 +4848,29 @@ void guia_desenhar(Uint32 agora) {
       : falhas
       ? i18n("Os addons de canais desta conta não responderam agora. O guia tenta de novo a cada 10 segundos enquanto esta tela estiver aberta.")
       : i18n("O guia se enche por dois caminhos: um addon de canais (como o FrostView TV) instalado na conta, ou um portal IPTV cadastrado em Ajustes › Conta.");
-    float msgY = 300.0f;
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) {
+      desenharVazioTelefone(msg, !falhas && !xtFalha, a);
+    } else
+#endif
+    {
+      float msgY = 300.0f;
     // O DESENHO SO NO CASO DE "FALTA FONTE", e nao no de "nao responderam".
     //
     // Ele explica de ONDE vem canal — resposta util para quem nao tem nenhuma
     // das duas portas, e resposta nenhuma para quem tem um addon que esta fora
     // do ar neste minuto. Ali a frase ja diz tudo, e um diagrama por cima dela
     // seria decoracao a atrapalhar a leitura.
-    if (!falhas && !xtFalha) {
+      if (!falhas && !xtFalha) {
       // ALINHADO A MARGEM, e nao centralizado: a tela le como uma coluna,
       // alinhada ao titulo do cabecalho.
-      desenharDuasPortas(G_AREA_X, 196.0f, a);
-      msgY = 560.0f;
+        desenharDuasPortas(G_AREA_X, 196.0f, a);
+        msgY = 560.0f;
+      }
+      TxtLinha t = txt_linha_corta(TXT_BODY, msg, 200, 202, 210, 255,
+                                   NV_TELA_W - 2 * NV_MARGEM_X);
+      txt_desenhar_alpha(t, G_AREA_X, msgY, a);
     }
-    TxtLinha t = txt_linha_corta(TXT_BODY, msg, 200, 202, 210, 255,
-                                 NV_TELA_W - 2 * NV_MARGEM_X);
-    txt_desenhar_alpha(t, G_AREA_X, msgY, a);
   }
 
   // (A gaveta de categorias vem depois da barra de ajuda, por cima de tudo.)

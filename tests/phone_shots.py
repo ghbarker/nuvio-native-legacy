@@ -25,7 +25,7 @@ def main():
         'diagnostico', 'livetvdiag', 'trocaarte', 'ilha3', 'player_glass'])
     parser.add_argument('--cases', nargs='+', default=['1080x2340@1', '2340x1080@1.5'])
     parser.add_argument('--all-settings', action='store_true')
-    parser.add_argument('--home-variant', choices=['shapes', 'ranking', 'folders'])
+    parser.add_argument('--home-variant', choices=['shapes', 'ranking', 'folders', 'swipe'])
     parser.add_argument('--player-scenes', nargs='+')
     parser.add_argument('--settings-layout', nargs='+', type=int, choices=[0, 1], default=[0, 1])
     args = parser.parse_args()
@@ -124,9 +124,11 @@ def main():
                     environment['NV_TIPOS'] = 'pop_movie=1,trend_series=2,drama_movie=3,comedia_movie=4,ficcao_movie=8'
                 elif args.home_variant == 'ranking':
                     environment['NV_TIPOS'] = 'pop_movie=5,trend_series=6,drama_movie=7,comedia_movie=9,ficcao_movie=10'
-                else:
+                elif args.home_variant == 'folders':
                     environment.update(NV_COL='1', NV_COL_PACOTE='1', NV_AMIGOS='1',
                                        NV_MENU='1', NV_MENU_ABRIR='1')
+                else:
+                    environment['NV_HERO_SWIPE'] = '1'
             log = folder / 'capture.log'
             destination = folder / (name + '.png' if name == 'avisos_toast' else name)
             try:

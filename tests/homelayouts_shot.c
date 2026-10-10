@@ -37,6 +37,7 @@
 #include "posterprov.h"
 #include "trakt.h"
 #include "socialvis.h"
+#include "ponteiro.h"
 #include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
@@ -86,6 +87,9 @@ static void quadros(int n, const char *bmp) {
   int i;
   for (i = 0; i < n; i++) {
     Uint32 agora = SDL_GetTicks();
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    if (getenv("NV_HERO_SWIPE")) ponteiro_quadro(agora);
+#endif
     SDL_PumpEvents();
     tex_bombear(8);
     home_atualizar(1.0f / 60.0f, agora);
@@ -106,6 +110,9 @@ static void quadros(int n, const char *bmp) {
       menu_atualizar(1.0f / 60.0f, agora);
       menu_desenhar(agora);
     }
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+    if (getenv("NV_HERO_SWIPE")) ponteiro_desenhar();
+#endif
     if (i == n - 1) { fillUlt = gfx_fill; fillVisUlt = gfx_fill_vis; rectUlt = gfx_n_rect;
                       memcpy(modoUlt, gfx_fill_modo, sizeof modoUlt); }
     if (bmp && i == n - 1) gravar(bmp);
@@ -170,6 +177,60 @@ static void ajusta(int layout, int vidro) {
   posterprov_preferir_addon(ajustes_poster_addon());
   col_arte_conta(ajustes_col_arte_conta());
 }
+
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+static void heroDedo(Uint32 tipo, float x, float y) {
+  SDL_Event e = {0}; e.type = tipo; e.tfinger.touchId=41; e.tfinger.fingerId=1;
+  e.tfinger.x=x/NV_TELA_W; e.tfinger.y=y/NV_TELA_H;
+  assert(ponteiro_evento(&e,home_evento));
+}
+static void heroCapturar(const char *saida,int layout,const char *estado) {
+  char bmp[900]; snprintf(bmp,sizeof bmp,"%s-swipe-L%d-%s.bmp",saida,layout,estado);
+  quadros(1,bmp);
+}
+static void heroSwipes(const char *saida) {
+  ponteiro_iniciar(); ponteiro_teste_toque(1);
+  for(int lay=0;lay<3;lay++) {
+    ajusta(lay,0); home_ir_topo(); quadros(120,NULL);
+    HomeItem origem, atual;
+    assert(home_item_focado(&origem));
+    float x0=NV_TELA_W*.75f, x1=NV_TELA_W*.39f, y=300;
+    heroCapturar(saida,lay,"0-inicial");
+    heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
+    heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"1-arrasto-esquerda");
+    assert(!home_pediu_abrir() && !home_pediu_tocar());
+    heroDedo(SDL_FINGERUP,x1,y); quadros(4,NULL);
+    heroCapturar(saida,lay,"2-assentando-esquerda"); quadros(40,NULL);
+    heroCapturar(saida,lay,"3-proximo");
+    assert(home_item_focado(&atual) && atual.indice!=origem.indice);
+    assert(strstr(atual.arte,cat_item(atual.indice)->imdb) ||
+           !strcmp(atual.arte,cat_item(atual.indice)->backdrop));
+    assert(!home_pediu_abrir() && !home_pediu_tocar());
+    x0=NV_TELA_W*.3f; x1=NV_TELA_W*.66f;
+    heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(80);
+    heroDedo(SDL_FINGERMOTION,x1,y); heroCapturar(saida,lay,"4-arrasto-direita");
+    heroDedo(SDL_FINGERUP,x1,y); quadros(40,NULL);
+    heroCapturar(saida,lay,"5-anterior");
+    assert(home_item_focado(&atual) && atual.indice==origem.indice);
+    x0=NV_TELA_W*.6f; x1=NV_TELA_W*.53f;
+    heroDedo(SDL_FINGERDOWN,x0,y); SDL_Delay(100);
+    heroDedo(SDL_FINGERMOTION,x1,y); SDL_Delay(120);
+    heroDedo(SDL_FINGERUP,x1,y); quadros(40,NULL);
+    heroCapturar(saida,lay,"6-curto-retorna");
+    assert(home_item_focado(&atual) && atual.indice==origem.indice);
+    heroDedo(SDL_FINGERDOWN,NV_TELA_W*.75f,y); SDL_Delay(80);
+    heroDedo(SDL_FINGERMOTION,NV_TELA_W*.39f,y); quadros(1,NULL);
+    ponteiro_cancelar_toque(); heroDedo(SDL_FINGERUP,NV_TELA_W*.39f,y);
+    quadros(40,NULL); heroCapturar(saida,lay,"7-cancelado");
+    assert(home_item_focado(&atual) && atual.indice==origem.indice);
+    assert(!home_pediu_abrir() && !home_pediu_tocar());
+    heroDedo(SDL_FINGERDOWN,NV_TELA_W*.55f,y);
+    heroDedo(SDL_FINGERUP,NV_TELA_W*.55f,y);
+    assert(home_pediu_abrir());
+    printf("[shot] hero swipe L%d: left/right identity, short return, cancel and tap passed\n",lay);
+  }
+}
+#endif
 
 int main(int argc, char **argv) {
   const char *saida = argc > 1 ? argv[1] : "/tmp/nv-home-layouts-shots/h";
@@ -317,6 +378,9 @@ int main(int argc, char **argv) {
     socialvis_definir_feed(e, 6);
   }
   quadros(60, NULL);
+#if defined(NV_TOUCH_PREVIEW) && defined(NV_SHOT_HOOKS)
+  if (getenv("NV_HERO_SWIPE")) { heroSwipes(saida); goto feito; }
+#endif
   // NV_VISTOS=1 (#212): o selo de visto pelo HISTORICO, sem progresso. Dois
   // filmes de "Popular" pelo leitor de /sync/watched/movies (o corpo do Trakt)
   // e uma serie de "Em alta" pelo historico de titulo — nenhum deles tem
@@ -553,6 +617,7 @@ int main(int argc, char **argv) {
     snprintf(bmp, sizeof bmp, "%s-visto-3-home.bmp", saida); quadros(1, bmp);
   }
 
+feito:
   tex_encerrar();
   txt_encerrar();
   SDL_GL_DeleteContext(gl);

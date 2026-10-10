@@ -31,6 +31,10 @@ jobs:
             capture: '--fixtures homelayouts --home-variant ranking'
           - group: home-folders
             capture: '--fixtures homelayouts --home-variant folders'
+          - group: feedback-home
+            capture: '--fixtures homelayouts --home-variant swipe --cases 1080x2340@1 1080x2340@1.5 2340x1080@1.5'
+          - group: feedback-pages
+            capture: '--fixtures agenda guia --cases 1080x2340@1.5 2340x1080@1.5'
           - group: detail
             capture: '--fixtures detail_secoes detalhe_glass spotlight trocaarte streamfit_folha'
           - group: account

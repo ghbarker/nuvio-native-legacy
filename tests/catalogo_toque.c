@@ -231,6 +231,20 @@ int desc_vertudo_n(void) { return 80; }
 void desc_vertudo_mais(void) { paginas++; }
 void lst_itens_mais(void) { paginas++; }
 #if defined(TESTE_HOME)
+/* The page-scroll fixture has no carousel catalogue. Horizontal drags in
+   rows still exercise Home's real row path after its hero capture declines. */
+#ifndef TESTE_HOME_ROWS_REVIEW
+int cat_n(void) { return 0; }
+const CatItem *cat_item(int i) { (void)i; return NULL; }
+#endif
+int cat_n_fileiras(void) { return 0; }
+const CatFileira *cat_fileira(int i) { (void)i; return NULL; }
+unsigned fil_revisao(void) { return 0; }
+const char *fil_hero_fonte(void) { return ""; }
+void desc_sinopse_hero(const int *i, int n) { (void)i; (void)n; }
+int amigosfil_indice_cat(int c) { (void)c; return -1; }
+int detail_aberto(void) { return 0; }
+int player_aberto(void) { return 0; }
 int amigosfil_rolagem(const PonteiroRolagem *e) { (void)e; return 0; }
 void amigosfil_retomar_foco(int *coluna) { (void)coluna; }
 Uint32 SDL_GetTicks(void) { return 100; }

@@ -677,6 +677,7 @@ static void ponteiroEvento(int linha, int ini) {
 // virtual da Agenda, que continua com o piso de 120% para o mes e os paineis.
 // Assim a lista sai do tamanho que o dono aprovou em qualquer escala.
 static float P(float px) { return px / agEscala(); }
+static float agTelefonePx(float px) { return px * gfx_escala_ui(); }
 
 typedef struct {
   float x0;                     // margem esquerda (rail + 96)
@@ -706,11 +707,17 @@ static AgC1 c1(void) {
     L.artW = L.artH = 0.0f;
     L.pnX = L.x0;
     L.pnW = agFim() - L.pnX;
+    L.pnY = P(agTelefonePx(142));
+    L.pnH = NV_TELA_H - P(44) - L.pnY;
   }
   L.lsX = L.pnX + P(22);
   L.lsY = L.pnY + P(22) + P(44) + P(8);
   L.lsW = L.pnW - P(44);
   L.lsH = L.pnY + L.pnH - P(22) - L.lsY;
+  if (agColunaUnica()) {
+    L.lsY = L.pnY + P(agTelefonePx(264));
+    L.lsH = L.pnY + L.pnH - P(22) - L.lsY;
+  }
   return L;
 }
 
@@ -728,6 +735,11 @@ static int grupo(int i) { return grupoDe(agenda_lista(i)); }
 #define AG_ROW_H   116.0f   // 96 de miniatura + 10 em cima e embaixo
 #define AG_GRP_H    51.0f   // .grp: 18 + texto + 6 + fio + 6
 #define AG_GAP       4.0f
+// A lista da TV mede em pixels reais. No telefone, texto, linhas e botoes
+// acompanham o tamanho da interface, sem alterar a lista do painel Social.
+static float agLinhaH(void) { return P(agColunaUnica() ? agTelefonePx(184) : AG_ROW_H); }
+static float agGrupoH(void) { return P(agColunaUnica() ? agTelefonePx(72) : AG_GRP_H); }
+static float agLinhaGap(void) { return P(agColunaUnica() ? agTelefonePx(12) : AG_GAP); }
 
 // y do TOPO DA LINHA `i` em coordenada de DOCUMENTO (antes da rolagem). Um
 // cabecalho de grupo entra antes da primeira linha de cada grupo.
@@ -736,8 +748,8 @@ static float yDe(int i) {
   int j, g = -1;
   for (j = 0; j <= i && j < agenda_n(); j++) {
     int gj = grupo(j);
-    if (gj != g) { y += P(AG_GRP_H) + P(AG_GAP); g = gj; }
-    if (j < i) y += P(AG_ROW_H) + P(AG_GAP);
+    if (gj != g) { y += agGrupoH() + agLinhaGap(); g = gj; }
+    if (j < i) y += agLinhaH() + agLinhaGap();
   }
   return y;
 }
@@ -746,7 +758,7 @@ static int abreGrupo(int i) { return i == 0 || grupo(i) != grupo(i - 1); }
 static float alturaDoc(void) {
   int n = agenda_n();
   if (n <= 0) return 0.0f;
-  return yDe(n - 1) + P(AG_ROW_H);
+  return yDe(n - 1) + agLinhaH();
 }
 
 int agendaui_iniciar(void) {
@@ -953,9 +965,9 @@ void agendaui_evento(const SDL_Event *e) {
   if (toquerol_navegacao(e)) {
     if (toqueAgenda.livre) {
       for (int i = 0; i < agenda_n() && i < AG_MAX; i++)
-        if (yDe(i) + P(AG_ROW_H) > scrollY) { foco = i; break; }
+        if (yDe(i) + agLinhaH() > scrollY) { foco = i; break; }
     }
-    if (toqueCalendario.livre) calEvento = (int)(toqueCalOffset / (agColunaUnica() ? 78.0f / agEscala() : 78.0f));
+    if (toqueCalendario.livre && !agColunaUnica()) calEvento = (int)(toqueCalOffset / 78.0f);
     if (toqueNoticia.livre) notRolAlvo = notRol;
     if (ctxAberto == 2 && toqueManchetes.livre) {
       const AgItem *it = agenda_lista(ctxItem);
@@ -1099,7 +1111,12 @@ void agendaui_evento(const SDL_Event *e) {
       if (calCelula < 35) selecionaCelula(calCelula + 7);
       return;
     }
-    if (ok && !e->key.repeat && qtd > 0) { calPainel = 1; calEvento = 0; }
+    if (ok && !e->key.repeat && qtd > 0) {
+#ifdef NV_TOUCH_PREVIEW
+      if (agColunaUnica()) toquerol_limpar(&toqueCalendario);
+#endif
+      calPainel = 1; calEvento = 0;
+    }
     return;
   }
   if (focoCabecalho) {
@@ -1199,8 +1216,8 @@ void agendaui_atualizar(float dt, Uint32 agora) {
   { AgC1 L = c1();
     topo = 0.0f; base = L.lsH;
     y = yDe(foco);
-    h = P(AG_ROW_H);
-    if (abreGrupo(foco)) { y -= P(AG_GRP_H) + P(AG_GAP); h += P(AG_GRP_H) + P(AG_GAP); }
+    h = agLinhaH();
+    if (abreGrupo(foco)) { y -= agGrupoH() + agLinhaGap(); h += agGrupoH() + agLinhaGap(); }
     if (foco == 0) { h += y; y = 0.0f; } }
   alvoY = scrollY;
   if (y - alvoY < 0.0f) alvoY = y;
@@ -1612,12 +1629,18 @@ static void desenhaEsquerda(const AgC1 *L, float a) {
 static float segC1(float xDir, float yc, int desenhar) {
   const char *rot[2] = { i18n("Lista"), i18n("Mês") };
   int id[2] = { AG_CAB_LISTA, AG_CAB_MES };
-  float padX = P(16), padY = P(6), pad = P(4), gap = P(4), w[2], h, total, x;
+  int telefone = agColunaUnica();
+  float corpo = telefone ? agTelefonePx(32) : 21;
+  TxtEstilo estilo = telefone ? TXT_G30M : TXT_AJ_SEG;
+  float fonte = telefone ? 30 : 20;
+  float padX = P(telefone ? agTelefonePx(24) : 16), padY = P(telefone ? agTelefonePx(16) : 6);
+  float pad = P(4), gap = P(telefone ? agTelefonePx(8) : 4), w[2], h, total, x;
   int k, ar, ag, ab;
   acentoInt(&ar, &ag, &ab);
-  h = hC1(TXT_AJ_SEG, 20, 21.0f, 17) + 2.0f * padY;
+  h = hC1(estilo, fonte, corpo, 17) + 2.0f * padY;
+  if (telefone && h < P(agTelefonePx(120))) h = P(agTelefonePx(120));
   for (k = 0; k < 2; k++)
-    w[k] = txC1(TXT_AJ_SEG, 20, rot[k], 17, 17, 17, -1.0f, 0, 21.0f, P(300), 1.0f) + 2.0f * padX;
+    w[k] = txC1(estilo, fonte, rot[k], 17, 17, 17, -1.0f, 0, corpo, P(300), 1.0f) + 2.0f * padX;
   total = pad * 2.0f + w[0] + gap + w[1];
   if (!desenhar) return total;
   { GfxRect tr = { xDir - total, yc - h * 0.5f - pad, total, h + pad * 2.0f };
@@ -1633,11 +1656,14 @@ static float segC1(float xDir, float yc, int desenhar) {
     if (branco) gfx_cor(ir, 0.5f, 1, 1, 1, 1.0f);
     else if (ativo) gfx_cor(ir, 0.5f, 1, 1, 1, 0.12f);
     if (branco)
-      txC1(TXT_AJ_SEG, 20, rot[k], 17, 17, 17, x + padX, ir.y + padY, 21.0f, P(300), 1.0f);
+      txC1(estilo, fonte, rot[k], 17, 17, 17, x + padX,
+           telefone ? ir.y + (ir.h - hC1(estilo, fonte, corpo, 17)) * .5f : ir.y + padY, corpo, telefone ? w[k] - padX * 2 : P(300), 1.0f);
     else if (ativo)
-      txC1(TXT_AJ_SEG, 20, rot[k], ar, ag, ab, x + padX, ir.y + padY, 21.0f, P(300), 1.0f);
+      txC1(estilo, fonte, rot[k], ar, ag, ab, x + padX,
+           telefone ? ir.y + (ir.h - hC1(estilo, fonte, corpo, ar)) * .5f : ir.y + padY, corpo, telefone ? w[k] - padX * 2 : P(300), 1.0f);
     else
-      txC1(TXT_AJ_SUB, 20, rot[k], AG_INK2, x + padX, ir.y + padY, 21.0f, P(300), 1.0f);
+      txC1(telefone ? TXT_G30M : TXT_AJ_SUB, fonte, rot[k], AG_INK2, x + padX,
+           telefone ? ir.y + (ir.h - hC1(estilo, fonte, corpo, 179)) * .5f : ir.y + padY, corpo, telefone ? w[k] - padX * 2 : P(300), 1.0f);
     x += w[k] + gap;
   }
   return total;
@@ -1661,7 +1687,8 @@ static void cabecalhoIlha(const AgC1 *L) {
   char sub[200];
   int i, n = agenda_n(), comData = 0;
   float yc = L->pnY + P(22) + P(22);
-  float segW = segC1(L->pnX + L->pnW - P(22), yc, 1);
+  float segW = 0;
+  if (!agColunaUnica()) segW = segC1(L->pnX + L->pnW - P(22), yc, 1);
   for (i = 0; i < n; i++) if (temData(agenda_lista(i))) comData++;
   if (n == 0)
     snprintf(sub, sizeof sub, "%s", i18n("Salve uma série ou comece a assistir para ela aparecer aqui"));
@@ -1669,6 +1696,12 @@ static void cabecalhoIlha(const AgC1 *L) {
     snprintf(sub, sizeof sub, i18n("%d série com data confirmada · %d acompanhadas"), comData, n);
   else
     snprintf(sub, sizeof sub, i18n("%d séries com data confirmada · %d acompanhadas"), comData, n);
+  if (agColunaUnica()) {
+    blocoC1(TXT_G28R, 28, sub, L->pnX + P(22), L->pnY + P(agTelefonePx(24)),
+            agTelefonePx(28), L->pnW - P(44), agTelefonePx(40), 2, AG_INK2, 1);
+    segC1(L->pnX + L->pnW - P(22), L->pnY + P(agTelefonePx(176)), 1);
+    return;
+  }
   txC1(TXT_AJ_ESTADO, 18, sub, AG_INK2, L->pnX + P(22),
        yc - hC1(TXT_AJ_ESTADO, 18, 20.0f, 179) * 0.5f, 20.0f,
        L->pnW - P(44) - segW - P(20), 1.0f);
@@ -1719,8 +1752,31 @@ static void grupoC1(const AgC1 *L, int g, int qtd, float y) {
   if (g == 3) snprintf(cru, sizeof cru, "%s \xc2\xb7 %d", nome, qtd);
   else snprintf(cru, sizeof cru, "%s", nome);
   maiusc(rot, sizeof rot, cru);
-  txt_tracking(TXT_AJ_CAPS13, rot, AG_INK2, L->lsX + P(46), ty, 1.0f, 1.6f);
-  gfx_cor((GfxRect){ L->lsX, y + P(AG_GRP_H) - P(7), L->lsW, P(1) }, 0, 1, 1, 1, 0.08f);
+  if (agColunaUnica())
+    txC1(TXT_G28B, 28, rot, AG_INK2, L->lsX + P(46), y + P(agTelefonePx(18)),
+         agTelefonePx(28), L->lsW - P(46), 1);
+  else txt_tracking(TXT_AJ_CAPS13, rot, AG_INK2, L->lsX + P(46), ty, 1.0f, 1.6f);
+  gfx_cor((GfxRect){ L->lsX, y + agGrupoH() - P(7), L->lsW, P(1) }, 0, 1, 1, 1, 0.08f);
+}
+
+static void metaTelefone(const AgItem *it, char *meta, size_t tam) {
+  char dl[48], ep[220];
+  const char *selo = !strcmp(it->tipoEp, "premiere") ? i18n("Estreia") :
+                     !strcmp(it->tipoEp, "finale") ? i18n("Final") : "";
+  if (temData(it)) {
+    size_t u;
+    dataLinha(it, dl, sizeof dl);
+    u = (size_t)snprintf(meta, tam, "%s", dl);
+    if (it->temporada > 0 && it->episodio > 0 && u < tam)
+      u += (size_t)snprintf(meta + u, tam - u, " \xc2\xb7 T%d E%d", it->temporada, it->episodio);
+    if (selo[0] && u < tam) u += (size_t)snprintf(meta + u, tam - u, " \xc2\xb7 %s", selo);
+    if (it->rede[0] && u < tam) snprintf(meta + u, tam - u, " \xc2\xb7 %s", it->rede);
+  } else {
+    const char *sit = situacaoTxt(it);
+    linhaEpisodio(it, ep, sizeof ep);
+    snprintf(meta, tam, "%s%s%s", sit ? sit : "", sit && ep[0] ? " \xc2\xb7 " : "",
+             ep[0] ? ep : sit ? "" : i18n("Sem data"));
+  }
 }
 
 // UMA LINHA (.ar): miniatura 170x96, nome (+ selo Estreia/Final), meta e o sino
@@ -1733,6 +1789,31 @@ static void linhaC1(const AgC1 *L, const AgItem *it, float y, float f) {
   float apaga = grupoDe(it) == 3 ? 0.55f + 0.45f * f : 1.0f;
   char meta[300], dl[48], selo[32];
   GfxRect r = { x, y, w, P(AG_ROW_H) };
+  if (agColunaUnica()) {
+    float pad = P(agTelefonePx(14)), artW = P(agTelefonePx(200)), artH = P(agTelefonePx(112));
+    float corpo = agTelefonePx(42), apoio = agTelefonePx(34), lead = agTelefonePx(44);
+    float nh = hC1(TXT_TITULO3, 48, corpo, 244), mh = P(lead * 2);
+    float textY;
+    r.h = agLinhaH();
+    sinoW = P(agTelefonePx(32));
+    tx = x + pad + artW + P(agTelefonePx(20));
+    tw = x + w - pad - sinoW - P(agTelefonePx(18)) - tx;
+    if (f > .01f) {
+      float ar, ag, ab;
+      ajustes_acento(&ar, &ag, &ab);
+      gfx_cor(r, P(18) / r.h, .14f * ar + .86f, .14f * ag + .86f, .14f * ab + .86f, .243f * f);
+    }
+    arteItem((GfxRect){x + pad, y + (r.h - artH) * .5f, artW, artH}, it, 16, apaga);
+    if (temChip(it)) gfx_icone((GfxRect){x + w - pad - sinoW, y + (r.h - sinoW) * .5f, sinoW, sinoW},
+                              it->lembrete ? "sino" : "aj_bell", .88f, .9f, .94f, apaga);
+    textY = y + (r.h - nh - P(agTelefonePx(8)) - mh) * .5f;
+    txC1(TXT_TITULO3, 48, it->titulo[0] ? it->titulo : i18n("Série"), AG_INK,
+         tx, textY, corpo, tw, apaga);
+    metaTelefone(it, meta, sizeof meta);
+    blocoC1(TXT_G28R, 28, meta, tx, textY + nh + P(agTelefonePx(8)), apoio, tw,
+            lead, 2, AG_INK2, apaga);
+    return;
+  }
   if (f > 0.01f) {
     float ar, ag, ab;
     ajustes_acento(&ar, &ag, &ab);
@@ -1805,16 +1886,16 @@ static void desenhaLista(const AgC1 *L) {
     float y = top + yDe(i);
     if (!it) continue;
     if (abreGrupo(i)) {
-      float gy = y - P(AG_GRP_H) - P(AG_GAP);
-      if (gy < L->lsY + L->lsH && gy + P(AG_GRP_H) > L->lsY)
+      float gy = y - agGrupoH() - agLinhaGap();
+      if (gy < L->lsY + L->lsH && gy + agGrupoH() > L->lsY)
         grupoC1(L, grupo(i), semData, gy);
     }
-    if (y > L->lsY + L->lsH || y + P(AG_ROW_H) < L->lsY) continue;
+    if (y > L->lsY + L->lsH || y + agLinhaH() < L->lsY) continue;
     if (!ctxAberto)
-      ponteiro_alvo_faixa(L->lsX + P(46), y, L->lsW - P(46), P(AG_ROW_H), L->lsY, L->lsY + L->lsH,
+      ponteiro_alvo_faixa(L->lsX + P(46), y, L->lsW - P(46), agLinhaH(), L->lsY, L->lsY + L->lsH,
                           ponteiroLinha, NULL, i, 0);
     linhaC1(L, it, y, animFoco[i]);
-    pontoC1(L->lsX + P(18), y + P(AG_ROW_H) * 0.5f, animFoco[i]);
+    pontoC1(L->lsX + P(18), y + agLinhaH() * 0.5f, animFoco[i]);
   }
   gfx_sem_recorte();
 }
@@ -2635,9 +2716,10 @@ static void botaoAgenda(GfxRect r, const char *rotulo, int ativo, int foco,
     int cr = acento || (ativo && !foco) ? (int)(ar * 255.0f + .5f) : c;
     int cg = acento || (ativo && !foco) ? (int)(ag * 255.0f + .5f) : c;
     int cb = acento || (ativo && !foco) ? (int)(ab * 255.0f + .5f) : c;
-    float w = txC1(TXT_HERO_SEC, 24, rotulo, cr, cg, cb, -1, 0, 20, r.w - P(12), 1);
-    txC1(TXT_HERO_SEC, 24, rotulo, cr, cg, cb, r.x + (r.w - w) * .5f,
-         r.y + (r.h - hC1(TXT_HERO_SEC, 24, 20, cr)) * .5f, 20, r.w - P(12), 1);
+    float corpo = agTelefonePx(32);
+    float w = txC1(TXT_G30M, 30, rotulo, cr, cg, cb, -1, 0, corpo, r.w - P(24), 1);
+    txC1(TXT_G30M, 30, rotulo, cr, cg, cb, r.x + (r.w - w) * .5f,
+         r.y + (r.h - hC1(TXT_G30M, 30, corpo, cr)) * .5f, corpo, r.w - P(24), 1);
     return;
   }
   txt_desenhar_alpha(t, r.x + (r.w - t.w) * 0.5f,
@@ -2645,6 +2727,38 @@ static void botaoAgenda(GfxRect r, const char *rotulo, int ativo, int foco,
 }
 
 static void desenhaBarraCalendario(float x, float xDir) {
+  if (agColunaUnica()) {
+    float gap = P(agTelefonePx(12)), h = P(agTelefonePx(112));
+    float y = P(agTelefonePx(192)), w = fminf(P(agTelefonePx(180)), (xDir - x - gap) * .5f);
+    GfxRect lista = {xDir - w * 2 - gap, y, w, h};
+    GfxRect mes = {xDir - w, y, w, h};
+    if (!ctxAberto) {
+      ponteiro_alvo(lista.x, lista.y, lista.w, lista.h, ponteiroCab, NULL, AG_CAB_LISTA, 0);
+      ponteiro_alvo(mes.x, mes.y, mes.w, mes.h, ponteiroCab, NULL, AG_CAB_MES, 0);
+    }
+    botaoAgenda(lista, i18n("Lista"), !vistaMes, focoCabecalho == AG_CAB_LISTA,
+                !vistaMes && focoCabecalho != AG_CAB_LISTA);
+    botaoAgenda(mes, i18n("Mês"), vistaMes, focoCabecalho == AG_CAB_MES,
+                vistaMes && focoCabecalho != AG_CAB_MES);
+    if (vistaMes) {
+      char rot[96], cru[96];
+      float seta = P(agTelefonePx(112));
+      y = P(agTelefonePx(320));
+      GfxRect ant = {x, y, seta, h}, prox = {xDir - seta, y, seta, h};
+      GfxRect centro = {x + seta + gap, y, xDir - x - 2 * (seta + gap), h};
+      snprintf(cru, sizeof cru, "%s %d", i18n(agenda_mes_nome(calMes)), calAno);
+      maiusc(rot, sizeof rot, cru);
+      if (!ctxAberto) {
+        ponteiro_alvo(ant.x, ant.y, ant.w, ant.h, ponteiroCab, NULL, AG_CAB_ANTERIOR, 0);
+        ponteiro_alvo(centro.x, centro.y, centro.w, centro.h, ponteiroCab, NULL, AG_CAB_HOJE, 0);
+        ponteiro_alvo(prox.x, prox.y, prox.w, prox.h, ponteiroCab, NULL, AG_CAB_PROXIMO, 0);
+      }
+      botaoAgenda(ant, "‹", focoCabecalho == AG_CAB_ANTERIOR, focoCabecalho == AG_CAB_ANTERIOR, 0);
+      botaoAgenda(centro, rot, 1, focoCabecalho == AG_CAB_HOJE, 0);
+      botaoAgenda(prox, "›", focoCabecalho == AG_CAB_PROXIMO, focoCabecalho == AG_CAB_PROXIMO, 0);
+    }
+    return;
+  }
   const float u = agColunaUnica() ? P(1) : 1.0f;
   const float y = (AG_LISTA_Y - 46.0f) * u, h = 42.0f * u;
   int focandoMes = focoCabecalho == AG_CAB_HOJE;
@@ -2696,20 +2810,22 @@ static void desenhaDiaCalendario(GfxRect r, int dia, int mesmoMes,
   }
   snprintf(num, sizeof num, "%d", dia);
   if (agColunaUnica()) {
-    txC1(TXT_HERO_SEC, 24, num,
+    float corpo = agTelefonePx(36);
+    float nw = txC1(TXT_G30B, 30, num, cor, cor, cor, -1, 0, corpo, r.w - P(16), 1);
+    txC1(TXT_G30B, 30, num,
          hoje ? (int)(ar * 255) : cor, hoje ? (int)(ag * 255) : cor,
-         hoje ? (int)(ab * 255) : cor, r.x + P(14 + (hoje ? 12 : 0)), r.y + P(8),
-         24, r.w - P(30), 1);
-    if (hoje) gfx_cor((GfxRect){r.x + P(14), r.y + P(18), P(7), P(7)}, .5f, ar, ag, ab, 1);
+         hoje ? (int)(ab * 255) : cor, r.x + (r.w - nw) * .5f, r.y + P(agTelefonePx(18)),
+         corpo, r.w - P(16), 1);
+    if (hoje) gfx_cor((GfxRect){r.x + r.w * .5f - P(4), r.y + r.h - P(agTelefonePx(22)), P(8), P(8)}, .5f, ar, ag, ab, 1);
     if (eventos > 0) {
       int vis = eventos > 3 ? 3 : eventos;
       for (int i = 0; i < vis; i++)
-        gfx_cor((GfxRect){r.x + P(14 + i * 11), r.y + r.h - P(10), P(5), P(5)}, .5f, ar, ag, ab, .9f);
+        gfx_cor((GfxRect){r.x + P(14 + i * 14), r.y + r.h - P(agTelefonePx(12)), P(8), P(8)}, .5f, ar, ag, ab, .9f);
       if (eventos > 3) {
         snprintf(qtd, sizeof qtd, "+%d", eventos - 3);
-        float w = txC1(TXT_MINI, 14, qtd, 190, 190, 193, -1, 0, 12, r.w - P(44), 1);
-        txC1(TXT_MINI, 14, qtd, 190, 190, 193, r.x + r.w - w - P(10),
-             r.y + r.h - P(18), 12, r.w - P(44), 1);
+        float w = txC1(TXT_G20M, 20, qtd, 190, 190, 193, -1, 0, agTelefonePx(20), r.w - P(58), 1);
+        txC1(TXT_G20M, 20, qtd, 190, 190, 193, r.x + r.w - w - P(8),
+             r.y + r.h - P(agTelefonePx(32)), agTelefonePx(20), r.w - P(58), 1);
       }
     }
     return;
@@ -2744,7 +2860,7 @@ static void desenhaEventoCalendario(GfxRect r, const AgItem *it, int foco) {
   if (foco) gfx_vidro_foco(r, 0.16f, 1.0f, 1.0f);
   const float u = agColunaUnica() ? P(1) : 1.0f;
   cartaz = (GfxRect){ r.x + 9.0f * u, r.y + 7.0f * u, 38.0f * u, r.h - 14.0f * u };
-  if (it->poster[0]) {
+  if (it->poster[0] && !agColunaUnica()) {
     GLuint tex = tex_obter_larg(it->poster, 42);
     if (tex) {
       gfx_tex_aspect_atual = cartaz.w / cartaz.h;
@@ -2753,13 +2869,25 @@ static void desenhaEventoCalendario(GfxRect r, const AgItem *it, int foco) {
     }
   }
   if (agColunaUnica()) {
-    txC1(TXT_HERO_SEC, 24, it->titulo[0] ? it->titulo : i18n("Série"),
+    cartaz = (GfxRect){r.x + P(agTelefonePx(14)), r.y + P(agTelefonePx(14)),
+                       P(agTelefonePx(76)), r.h - P(agTelefonePx(28))};
+    if (it->poster[0]) {
+      GLuint tex = tex_obter_larg(it->poster, cartaz.w);
+      if (tex) {
+        gfx_tex_aspect_atual = cartaz.w / cartaz.h;
+        gfx_rect(cartaz, tex, GFX_CARD, 0, 0, 0, P(12) / cartaz.h, 0, 0, 0, 1);
+        gfx_tex_aspect_atual = 0;
+      }
+    }
+    txC1(TXT_TITULO3, 48, it->titulo[0] ? it->titulo : i18n("Série"),
          foco ? 250 : 224, foco ? 250 : 224, foco ? 250 : 224,
-         r.x + P(58), r.y + P(9), 24, r.w - P(68), 1);
+         r.x + P(agTelefonePx(112)), r.y + P(agTelefonePx(14)),
+         agTelefonePx(40), r.w - P(agTelefonePx(132)), 1);
     linhaEpisodio(it, ep, sizeof ep);
     if (!ep[0]) snprintf(ep, sizeof ep, "%s", i18n("Próximo episódio"));
-    txC1(TXT_CAPTION2, 17, ep, (int)(ar * 220), (int)(ag * 220), (int)(ab * 220),
-         r.x + P(58), r.y + P(38), 17, r.w - P(68), 1);
+    txC1(TXT_G28R, 28, ep, (int)(ar * 220), (int)(ag * 220), (int)(ab * 220),
+         r.x + P(agTelefonePx(112)), r.y + P(agTelefonePx(78)), agTelefonePx(32),
+         r.w - P(agTelefonePx(132)), 1);
     return;
   }
   t = txt_linha_corta(TXT_HERO_SEC, it->titulo[0] ? it->titulo : i18n("Série"),
@@ -2796,22 +2924,53 @@ static AgMes agMesMedir(void) {
   M = (AgMes){x, semanaY, gradeY, gradeW, celW, celH, espacX, espacY,
               {painelX, semanaY, painelW, painelH}};
   if (agColunaUnica()) {
-    M.semanaY = P(222); M.gradeY = P(256);
+    M.semanaY = P(agTelefonePx(456)); M.gradeY = M.semanaY + P(agTelefonePx(46));
     M.gradeW = disponivel; M.espacX = M.espacY = P(8);
-    M.celW = (M.gradeW - M.espacX * 6) / 7; M.celH = P(52);
+    M.celW = (M.gradeW - M.espacX * 6) / 7; M.celH = P(agTelefonePx(128));
     float y = M.gradeY + M.celH * 6 + M.espacY * 5 + P(24);
-    M.painel = (GfxRect){x, y, disponivel, NV_TELA_H - P(44) - y};
+    int qtd = eventosDoDia(NULL, 0);
+    float docH = P(agTelefonePx(144)) + fmaxf(P(agTelefonePx(156)), qtd * P(agTelefonePx(156))) + P(20);
+    M.painel = (GfxRect){x, y, disponivel, docH};
   }
   return M;
 }
 
 static GfxRect agMesEventos(const AgMes *M) {
+  if (agColunaUnica()) {
+    float topo = P(agTelefonePx(144));
+    return (GfxRect){M->painel.x, M->painel.y + topo, M->painel.w, M->painel.h - topo - P(20)};
+  }
   float u = agColunaUnica() ? P(1) : 1.0f;
   return (GfxRect){M->painel.x, M->painel.y + 104 * u, M->painel.w, M->painel.h - 114 * u};
 }
 
 static void desenhaCalendarioMensal(void) {
   AgMes M = agMesMedir();
+#ifdef NV_TOUCH_PREVIEW
+  GfxRect corpo = {M.x, M.semanaY, M.gradeW, NV_TELA_H - P(44) - M.semanaY};
+  if (agColunaUnica()) {
+    float max = M.painel.y + M.painel.h - corpo.y - corpo.h;
+    if (!toqueCalendario.livre) {
+      if (!calPainel) {
+        float topoDia = M.gradeY + (calCelula / 7) * (M.celH + M.espacY);
+        if (topoDia - toqueCalOffset < corpo.y) toqueCalOffset = topoDia - corpo.y;
+        if (topoDia + M.celH - toqueCalOffset > corpo.y + corpo.h)
+          toqueCalOffset = topoDia + M.celH - corpo.y - corpo.h;
+      } else {
+        float topoEp = agMesEventos(&M).y + calEvento * P(agTelefonePx(156));
+        if (topoEp - toqueCalOffset < corpo.y) toqueCalOffset = topoEp - corpo.y;
+        if (topoEp + P(agTelefonePx(142)) - toqueCalOffset > corpo.y + corpo.h)
+          toqueCalOffset = topoEp + P(agTelefonePx(142)) - corpo.y - corpo.h;
+      }
+    }
+    if (toqueCalOffset > max) toqueCalOffset = max;
+    if (toqueCalOffset < 0) toqueCalOffset = 0;
+    toquerol_vincular(&toqueCalendario, corpo, gfx_escala(), 0, max, 1, &toqueCalOffset);
+    ponteiro_rolagem(toqueAgendaRolar);
+    M.semanaY -= toqueCalOffset; M.gradeY -= toqueCalOffset; M.painel.y -= toqueCalOffset;
+    gfx_recorte(corpo.x, corpo.y, corpo.w, corpo.h);
+  }
+#endif
   const float x = M.x, semanaY = M.semanaY, gradeY = M.gradeY;
   const float celW = M.celW, celH = M.celH, espacX = M.espacX, espacY = M.espacY;
   const float u = agColunaUnica() ? P(1) : 1.0f;
@@ -2852,8 +3011,8 @@ static void desenhaCalendarioMensal(void) {
     char sem[24];
     maiusc(sem, sizeof sem, i18n(agenda_semana_nome(DIAS[c])));
     if (agColunaUnica())
-      txC1(TXT_AJ_CAPS13, 14, sem, 135, 138, 146, x + c * (celW + espacX) + P(8),
-           semanaY, 14, celW - P(16), 1);
+      txC1(TXT_G28B, 28, sem, 135, 138, 146, x + c * (celW + espacX) + P(8),
+           semanaY, agTelefonePx(28), celW - P(16), 1);
     else kicker(sem, 135, 138, 146, x + c * (celW + espacX) + 12.0f, semanaY, 1.0f);
   }
   for (c = 0; c < 42; c++) {
@@ -2864,7 +3023,13 @@ static void desenhaCalendarioMensal(void) {
     GfxRect cel = { x + coluna * (celW + espacX),
                     gradeY + linha * (celH + espacY), celW, celH };
     // So os dias DO MES: um dia vizinho trocaria o mes debaixo do cursor.
-    if (mesmoMes && !ctxAberto) ponteiro_alvo(cel.x, cel.y, cel.w, cel.h, ponteiroDia, NULL, c, 0);
+    if (mesmoMes && !ctxAberto) {
+#ifdef NV_TOUCH_PREVIEW
+      if (agColunaUnica()) ponteiro_alvo_faixa(cel.x, cel.y, cel.w, cel.h, corpo.y, corpo.y + corpo.h, ponteiroDia, NULL, c, 0);
+      else
+#endif
+        ponteiro_alvo(cel.x, cel.y, cel.w, cel.h, ponteiroDia, NULL, c, 0);
+    }
     desenhaDiaCalendario(cel, dia, mesmoMes, hoje, cont[c], c == calCelula && !calPainel);
   }
 
@@ -2878,20 +3043,25 @@ static void desenhaCalendarioMensal(void) {
   snprintf(rot, sizeof rot, "%d %s %d", calDia,
            idioma_mes_data(calMes, agenda_mes_nome(calMes)), calAno);
   if (agColunaUnica())
-    txC1(TXT_HERO_SEC, 24, rot, 246, 247, 250, painel.x + P(22), painel.y + P(18),
-         24, painel.w - P(44), 1);
+    txC1(TXT_TITULO3, 48, rot, 246, 247, 250, painel.x + P(22), painel.y + P(agTelefonePx(18)),
+         agTelefonePx(40), painel.w - P(44), 1);
   else { TxtLinha titulo = txt_linha_corta(TXT_HERO_SEC, rot, 246, 247, 250, 255,
                                        painel.w - 44.0f);
     txt_desenhar_alpha(titulo, painel.x + 22.0f, painel.y + 18.0f, 1.0f); }
   nTotal = eventosDoDia(total, AG_MAX);
   snprintf(tmp, sizeof tmp, i18n(nTotal == 1 ? "%d episódio" : "%d episódios"), nTotal);
   if (agColunaUnica())
-    txC1(TXT_CAPTION2, 17, tmp, 150, 153, 162, painel.x + P(22), painel.y + P(66),
-         17, painel.w - P(44), 1);
+    txC1(TXT_G28R, 28, tmp, 150, 153, 162, painel.x + P(22), painel.y + P(agTelefonePx(84)),
+         agTelefonePx(28), painel.w - P(44), 1);
   else { TxtLinha sub = txt_linha_corta(TXT_CAPTION2, tmp, 150, 153, 162, 255,
                                     painel.w - 44.0f);
     txt_desenhar_alpha(sub, painel.x + 22.0f, painel.y + 66.0f, 1.0f); }
-  if (nTotal == 0) return;
+  if (nTotal == 0) {
+#ifdef NV_TOUCH_PREVIEW
+    if (agColunaUnica()) gfx_sem_recorte();
+#endif
+    return;
+  }
   { GfxRect eventos = agMesEventos(&M);
     float y = eventos.y;
     float passo = 78.0f * u;
@@ -2906,6 +3076,9 @@ static void desenhaCalendarioMensal(void) {
     if (inicio < 0) inicio = 0;
 #ifdef NV_TOUCH_PREVIEW
     float areaH = eventos.h;
+    if (agColunaUnica()) {
+      inicio = 0; maxLinhas = nTotal; passo = P(agTelefonePx(156));
+    } else {
     if (!toqueCalendario.livre) toqueCalOffset = inicio * passo;
     toquerol_vincular(&toqueCalendario, eventos, gfx_escala(),
                      0.0f, nTotal * passo - areaH, 1, &toqueCalOffset);
@@ -2916,12 +3089,18 @@ static void desenhaCalendarioMensal(void) {
       maxLinhas++;
     }
     gfx_recorte(painel.x, painel.y + 104.0f * u, painel.w, areaH);
+    }
 #endif
     for (linha = inicio; linha < nTotal && linha < inicio + maxLinhas; linha++, y += passo) {
       GfxRect r = { painel.x + 12.0f * u, y, painel.w - 24.0f * u, 70.0f * u };
+      if (agColunaUnica()) r.h = P(agTelefonePx(142));
       int emFoco = calPainel && linha == calEvento;
 #ifdef NV_TOUCH_PREVIEW
-      if (!ctxAberto) ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, painel.y + 104.0f * u, painel.y + painel.h - 10.0f * u, ponteiroEvento, NULL, linha, inicio);
+      if (agColunaUnica() && (r.y + r.h <= corpo.y || r.y >= corpo.y + corpo.h)) continue;
+      if (!ctxAberto) ponteiro_alvo_faixa(r.x, r.y, r.w, r.h,
+                        agColunaUnica() ? corpo.y : painel.y + 104.0f * u,
+                        agColunaUnica() ? corpo.y + corpo.h : painel.y + painel.h - 10.0f * u,
+                        ponteiroEvento, NULL, linha, inicio);
 #else
       if (r.y + r.h > painel.y + painel.h - 4.0f) break;
       if (!ctxAberto) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEvento, NULL, linha, inicio);
@@ -2942,14 +3121,16 @@ static void desenharNaEscala(Uint32 agora) {
   // O TITULO pequeno no canto (C1, como nos Ajustes A3): 40/700. Na Dinamica
   // ele mora na pilula da barra.
   if (!menu_pilula_titulo())
-    txC1(TXT_ILHA_TITULO, 40, i18n("Agenda"), AG_INK, L.x0, P(56), 40.0f,
+    txC1(agColunaUnica() ? TXT_TITULO2 : TXT_ILHA_TITULO,
+         agColunaUnica() ? 57 : 40, i18n("Agenda"), AG_INK, L.x0, P(agColunaUnica() ? 44 : 56),
+         agColunaUnica() ? agTelefonePx(52) : 40.0f,
          agColunaUnica() ? L.pnW : L.artW, 1.0f);
 
   // MES: a grade de sempre (o mesmo layout e a mesma navegacao de antes), com
   // a contagem e o aviso de fonte sob o titulo. Ver o relatorio da C1: a grade
   // nao coube dentro da ilha sem refazer a navegacao do mes.
   if (vistaMes) {
-    float x = agX(), xDir = agFim(), yc = P(110);
+    float x = agX(), xDir = agFim(), yc = P(agColunaUnica() ? agTelefonePx(124) : 110);
     char sub[200];
     const char *aviso = avisoFonte();
     int i, comData = 0;
@@ -2960,9 +3141,12 @@ static void desenharNaEscala(Uint32 agora) {
       snprintf(sub, sizeof sub, i18n(comData == 1 ? "%d série com data confirmada · %d acompanhadas"
                                                   : "%d séries com data confirmada · %d acompanhadas"),
                comData, n);
-    txC1(TXT_AJ_ESTADO, 18, sub, AG_INK2, x, yc, 20.0f, xDir - x, 1.0f);
+    txC1(agColunaUnica() ? TXT_G28R : TXT_AJ_ESTADO, agColunaUnica() ? 28 : 18,
+         sub, AG_INK2, x, yc, agColunaUnica() ? agTelefonePx(28) : 20.0f, xDir - x, 1.0f);
     if (aviso)
-      txC1(TXT_ILHA_HORA, 15, aviso, 214, 178, 110, x, yc + P(30), 16.0f, xDir - x, 1.0f);
+      txC1(TXT_ILHA_HORA, 15, aviso, 214, 178, 110, x,
+           yc + P(agColunaUnica() ? agTelefonePx(40) : 30),
+           agColunaUnica() ? agTelefonePx(20) : 16.0f, xDir - x, 1.0f);
     desenhaBarraCalendario(x, xDir);
     if (n > 0) desenhaCalendarioMensal();
     if (ctxA > 0.01f) desenhaContexto(ctxA);

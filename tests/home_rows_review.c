@@ -1,5 +1,6 @@
 /* Use production row bounds and the stacked ranking renderer without GL. */
 #define TESTE_HOME 1
+#define TESTE_HOME_ROWS_REVIEW 1
 #define SDL_MAIN_HANDLED 1
 #define main home_gesture_fixture_main
 #include "catalogo_toque.c"

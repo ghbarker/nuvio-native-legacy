@@ -31,6 +31,11 @@
 #include <SDL2/SDL_image.h>
 #include <assert.h>
 
+#ifdef NV_TOUCH_PREVIEW
+static const char *textoVazioShot;
+static int vazioShotFinal;
+#endif
+
 static void captura(const char *nome, SDL_Window *win) {
   int i;
   time_t agoraT = time(NULL);
@@ -90,8 +95,31 @@ static void capturaTela(const char *nome, SDL_Window *win, int comCanais) {
     gfx_novo_quadro();
     glClearColor(0.051f, 0.051f, 0.051f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+#ifdef NV_TOUCH_PREVIEW
+    ponteiro_quadro(SDL_GetTicks());
+#endif
     guia_desenhar(SDL_GetTicks());
+#ifdef NV_TOUCH_PREVIEW
+    if (textoVazioShot) {
+      /* An unusually long translated explanation exercises the production
+         empty renderer at both scroll edges without querying a provider. */
+      gfx_cor(toqueVazio.regiao, 0, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1);
+      ponteiro_camada();
+      rolVazio = vazioShotFinal ? 1e6f : 0;
+      desenharVazioTelefone(textoVazioShot, 1, 1);
+      assert(toqueVazio.maximo > 0);
+      assert(rolVazio == (vazioShotFinal ? toqueVazio.maximo : 0));
+    }
+    if (guiaVazioTelefone() && !guiaCamadaAberta()) {
+      float topo = gRetrato() ? gTopoFim : G_TOPO_Y + G_TOPO_H;
+      assert(toqueVazio.regiao.y >= topo + 39.99f);
+      assert(toqueVazio.regiao.y + toqueVazio.regiao.h <= NV_TELA_H - 79.99f);
+    }
+#endif
     glem_desenhar(SDL_GetTicks());
+#ifdef NV_TOUCH_PREVIEW
+    ponteiro_desenhar();
+#endif
     if (i == 89) {
       unsigned char *pix = malloc(1920 * 1080 * 4);
       SDL_Surface *s;
@@ -276,6 +304,9 @@ int main(int argc, char **argv) {
     ajustes_dir(dir); ajustes_teste_vidro_env();
   }
   assert(gfx_iniciar());
+#ifdef NV_TOUCH_PREVIEW
+  ponteiro_teste_toque(1);
+#endif
   assert(txt_iniciar("deploy/app", 1));
   tex_iniciar(64);
   gfx_icones_dir("deploy/app/art");
@@ -475,6 +506,67 @@ int main(int argc, char **argv) {
   falhas = 0;
   snprintf(nome, sizeof nome, "%s-tela-vazia.bmp", saida);
   capturaTela(nome, w, 0);
+
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) {
+    const PonteiroAlvo *alvos;
+    int n = ponteiro_teste_lista(&alvos), achou = 0;
+    for (int k = 0; k < n; k++) if (alvos[k].focar == ponteiroConfigGuia) {
+      PonteiroAlvo p = alvos[k];
+      assert(!p.ativar && p.y >= toqueVazio.regiao.y &&
+             p.y + p.h <= toqueVazio.regiao.y + toqueVazio.regiao.h);
+      SDL_Event e;
+      memset(&e, 0, sizeof e);
+      e.type = SDL_FINGERDOWN; e.tfinger.touchId = 7; e.tfinger.fingerId = 7;
+      e.tfinger.x = (p.x + p.w * .5f) / NV_TELA_W;
+      e.tfinger.y = (p.y + p.h * .5f) / NV_TELA_H;
+      /* A native tap opens the existing Add-ons path; with zero account
+         add-ons the real manifest probe exits without starting a worker. */
+      assert(addons_n() == 0);
+      assert(ponteiro_evento(&e, guia_evento));
+      assert(!painel);
+      e.type = SDL_FINGERUP; assert(ponteiro_evento(&e, guia_evento));
+      assert(painel && !paN && !paMexeu && !paLigou);
+      achou = 1; break;
+    }
+    assert(achou);
+    snprintf(nome, sizeof nome, "%s-setup-addons-aberto.bmp", saida);
+    capturaTela(nome, w, 0);
+    { SDL_Event e; memset(&e, 0, sizeof e); e.type=SDL_KEYDOWN; e.key.keysym.sym=SDLK_AC_BACK;
+      guia_evento(&e); assert(!painel && aberta && !paMexeu); }
+    puts("PASS: phone setup tap opens Add-ons and Back returns without installing or toggling a provider");
+
+    /* Local metadata only: no catalog load, install, toggle or manifest probe. */
+    AddonRemoto locais[2] = {{"Noticias e documentarios", "https://fixture.invalid/guide-a/manifest.json", 1},
+                            {"Esportes ao vivo", "https://fixture.invalid/guide-b/manifest.json", 0}};
+    assert(addons_definir_lista(locais, 2));
+    nSabe = 2;
+    for (int k=0; k<2; k++) { snprintf(sabe[k].base, sizeof sabe[k].base, "%s", addons_base(k)); sabe[k].canal=1; }
+    painelMontar(); assert(paN==2);painel=1;paFoco=0;paRol=0;paMexeu=paLigou=0;
+    snprintf(nome, sizeof nome, "%s-addons-instalados.bmp", saida);capturaTela(nome,w,0);
+    fioVivo=1;paMexeu=1;
+    snprintf(nome, sizeof nome, "%s-addons-atualizando.bmp", saida);capturaTela(nome,w,0);
+    fioVivo=paMexeu=0;sabe[0].canal=-1;
+    snprintf(nome, sizeof nome, "%s-addons-sem-resposta.bmp", saida);capturaTela(nome,w,0);
+    painel=0;addons_esquecer();nSabe=0;
+
+    char texto[6000];
+    const char *frase=i18n("O guia se enche por dois caminhos: um addon de canais (como o FrostView TV) instalado na conta, ou um portal IPTV cadastrado em Ajustes › Conta.");
+    texto[0]=0;
+    for(int k=0;k<16;k++) { strncat(texto,frase,sizeof texto-strlen(texto)-1);strncat(texto," ",sizeof texto-strlen(texto)-1); }
+    textoVazioShot=texto;vazioShotFinal=0;
+    snprintf(nome,sizeof nome,"%s-setup-texto-longo-topo.bmp",saida);capturaTela(nome,w,0);
+    vazioShotFinal=1;
+    snprintf(nome,sizeof nome,"%s-setup-texto-longo-fim.bmp",saida);capturaTela(nome,w,0);
+    textoVazioShot=NULL;rolVazio=0;toquerol_limpar(&toqueVazio);
+
+    xtFalha=XT_HTTP;xtHttp=503;
+    snprintf(nome,sizeof nome,"%s-tela-erro-http.bmp",saida);capturaTela(nome,w,0);
+    xtFalha=xtHttp=0;estado=G_BAIXANDO;
+    snprintf(nome,sizeof nome,"%s-tela-carregando.bmp",saida);capturaTela(nome,w,0);
+    assert(!toqueVazio.offset);estado=G_FALHOU;
+  }
+#endif
 
   // O OUTRO caso vazio: o addon ESTA instalado e nao respondeu. Sao duas
   // frases diferentes de proposito — uma pede uma instalacao, a outra conta o
