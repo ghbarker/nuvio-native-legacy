@@ -1902,6 +1902,12 @@ static void desenhaLista(float a) {
 // ---- A LINHA EXPANDIDA DO PAINEL DE SALVOS (ver ctxmenu.h) ----
 #define IL_PAD    18.0f
 #define IL_PILULA 50.0f
+#ifdef NV_TOUCH_PREVIEW
+static GfxRect inlineRecorte;
+static int inlineRecorteValido;
+void ctx_inline_recorte(GfxRect r) { inlineRecorte = r; inlineRecorteValido = r.w > 0 && r.h > 0; }
+int ctx_inline_painel_ativo(void) { return aberto && modoInline() && pagina == 0; }
+#endif
 void ctx_inline_pedir(int on) { inlinePend = on; }
 static int modoInline(void) { return inlineOn && doPainel && !doSocial && !doLista && !soFileira; }
 float ctx_inline_t(void) { return modoInline() ? (anim < 0.0f ? 0.0f : anim > 1.0f ? 1.0f : anim) : 0.0f; }
@@ -1917,6 +1923,30 @@ static const char *pilulaRot(int i, const CatItem *ci) {
     default:           return ops[i].rot;
   }
 }
+#ifdef NV_TOUCH_PREVIEW
+static void inlineAcoes(const CatItem *ci, float w, float faixaH, float hi, GfxRect *r) {
+  const float gap = 10, cw = w - 2 * (IL_PAD + 6);
+  float nat[CTX_MAX], total = 0, k = 1, x = IL_PAD + 6;
+  for (int i = 0; i < nOps; i++) {
+    nat[i] = 20 + 10 + (float)txt_linha(TXT_CAPTION2, pilulaRot(i, ci), 255, 255, 255, 255).w + 22;
+    total += nat[i];
+  }
+  total += gap * (nOps > 1 ? nOps - 1 : 0);
+  if (total > cw) k = (cw - gap * (nOps > 1 ? nOps - 1 : 0)) / (total - gap * (nOps > 1 ? nOps - 1 : 0));
+  for (int i = 0; i < nOps; i++) {
+    r[i] = (GfxRect){x, IL_PAD + faixaH + 14 + hi + 14, nat[i] * k, IL_PILULA};
+    x += r[i].w + gap;
+  }
+}
+int ctx_inline_foco_rect(float w, float faixaH, GfxRect *r) {
+  const CatItem *ci = itemAtual();
+  if (!r || !ci || !ctx_inline_painel_ativo() || foco < 0 || foco >= nOps) return 0;
+  CtxInfoEstado e = estInline(ci); GfxRect acoes[CTX_MAX];
+  float hi = ctxinfo_compacto(ci, &e, 0, 0, w - 2 * (IL_PAD + 6), 0, 0);
+  inlineAcoes(ci, w, faixaH, hi, acoes); *r = acoes[foco];
+  return foco + 1;
+}
+#endif
 float ctx_inline_altura(float w, float faixaH) {
   const CatItem *ci = itemAtual();
   CtxInfoEstado e;
@@ -1926,6 +1956,11 @@ float ctx_inline_altura(float w, float faixaH) {
          14.0f + IL_PILULA + IL_PAD;
 }
 void ctx_inline_desenhar(float x, float y, float w, float faixaH, float a) {
+#ifdef NV_TOUCH_PREVIEW
+  GfxRect recorteAtual = inlineRecorte;
+  int temRecorte = inlineRecorteValido;
+  inlineRecorteValido = 0;
+#endif
   const CatItem *ci = itemAtual();
   CtxInfoEstado e;
   float cx = x + IL_PAD + 6.0f, cw = w - 2.0f * (IL_PAD + 6.0f), py, hi, gap = 10.0f;
@@ -1938,6 +1973,10 @@ void ctx_inline_desenhar(float x, float y, float w, float faixaH, float a) {
   hi = ctxinfo_compacto(ci, &e, cx, y + IL_PAD + faixaH + 14.0f, cw, a, 1);
   py = y + IL_PAD + faixaH + 14.0f + hi + 14.0f;
   ajustes_acento(&ar, &ag, &ab);
+#ifdef NV_TOUCH_PREVIEW
+  GfxRect phoneAcoes[CTX_MAX];
+  if (telefoneui_ativo()) inlineAcoes(ci, w, faixaH, hi, phoneAcoes);
+#endif
   { float nat[CTX_MAX], tot = 0.0f, k = 1.0f, px = cx;
     for (i = 0; i < nOps; i++) {
       nat[i] = 20.0f + 10.0f + (float)txt_linha(TXT_CAPTION2, pilulaRot(i, ci), 255, 255, 255, 255).w + 22.0f;
@@ -1947,6 +1986,9 @@ void ctx_inline_desenhar(float x, float y, float w, float faixaH, float a) {
     if (tot > cw) k = (cw - gap * (float)(nOps > 1 ? nOps - 1 : 0)) / (tot - gap * (float)(nOps > 1 ? nOps - 1 : 0));
     for (i = 0; i < nOps; i++) {
       GfxRect r = { px, py, nat[i] * k, IL_PILULA };
+#ifdef NV_TOUCH_PREVIEW
+      if (telefoneui_ativo()) { r = phoneAcoes[i]; r.x += x; r.y += y; }
+#endif
       float f = focoAnim[i];
       const char *icone = "aj_info";
       TxtLinha t;
@@ -1960,7 +2002,19 @@ void ctx_inline_desenhar(float x, float y, float w, float faixaH, float a) {
       }
       gfx_cor(r, 0.5f, 1, 1, 1, (.07f + .05f * f) * a);
       if (f > 0.01f) gfx_cor(r, 0.5f, ar, ag, ab, .30f * f * a);
-      if (aberto && a > 0.5f) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroCtxOpcao, NULL, i, 0);
+      if (aberto && a > 0.5f) {
+#ifdef NV_TOUCH_PREVIEW
+        if (telefoneui_ativo()) {
+          if (temRecorte && ctx_inline_painel_ativo()) {
+            float ax = fmaxf(r.x, recorteAtual.x), ay = fmaxf(r.y, recorteAtual.y);
+            float ar = fminf(r.x + r.w, recorteAtual.x + recorteAtual.w);
+            float ab = fminf(r.y + r.h, recorteAtual.y + recorteAtual.h);
+            if (ar > ax && ab > ay) ponteiro_alvo(ax, ay, ar - ax, ab - ay, ponteiroCtxOpcao, NULL, i, 0);
+          }
+        } else
+#endif
+        ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroCtxOpcao, NULL, i, 0);
+      }
       t = txt_linha_corta(TXT_CAPTION2, pilulaRot(i, ci), 243, 242, 239, 255, r.w - 22.0f - 30.0f);
       tw = 30.0f + (float)t.w;
       gfx_icone((GfxRect){ r.x + (r.w - tw) * 0.5f, r.y + (r.h - 20.0f) * 0.5f, 20.0f, 20.0f },

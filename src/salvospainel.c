@@ -500,6 +500,13 @@ static int pilIni;     // 0 = a pilula ainda nao tem posicao (cola no alvo)
 static float velY;
 #ifdef NV_TOUCH_PREVIEW
 static ToqueRolagem toquePainel, toquePop, toqueEditar;
+typedef struct {
+  unsigned token;
+  int tipo, indice, perfil, estado, operacao, confirma;
+  char id[128];
+} SpToqueSocial;
+static SpToqueSocial toqueSocial[SP_SOCIAL_MAX];
+static unsigned toqueSocialToken;
 static float toqueEditarOffset;
 static float toquePainelMax(void);
 static int toquePainelRolar(const PonteiroRolagem *e);
@@ -532,6 +539,10 @@ static Uint32 okDesde;
 // (a linha local sai antes, a copia do catalogo so no 2xx) apontaria para
 // outra coisa no meio do caminho.
 static char   menuId[24], menuProximo[24];
+#ifdef NV_TOUCH_PREVIEW
+static int toqueInlineAcao;
+static char toqueInlineId[sizeof menuId];
+#endif
 // O FOCO SEGUE O TITULO MOVIDO. Mover para uma categoria (com a lista agrupada
 // por categoria) muda a posicao dele; o foco vai junto, na reconstrucao.
 static char   seguirId[24];
@@ -897,6 +908,7 @@ static int novaSecao(float y, int g, int vazia) {
 }
 
 static int expIdx(void);
+#define SP_FAIXA_H 150.0f
 static float expExtra(void);
 static float expExtraBloco(void);
 // Poe cada linha no lugar: secoes, filas, colunas.
@@ -1095,7 +1107,11 @@ static int nVisiveis(void) {
 #define SP_OPC_H      NV_CTRL_H
 #define SP_OPC_EXTRA (SP_OPC_Y + SP_OPC_H + 12.0f - SP_LISTA_Y)
 static int temBarra(void);
-static float listaTopo(void) { return SP_LISTA_Y + (temBarra() ? SP_OPC_EXTRA : 0.0f); }
+static float barraAltura(void);
+static float listaTopo(void) {
+  if (!temBarra()) return SP_LISTA_Y;
+  return telefoneui_ativo() ? SP_OPC_Y + barraAltura() + 12 : SP_LISTA_Y + SP_OPC_EXTRA;
+}
 
 // 1 enquanto a pergunta de primeira entrada esta na tela.
 static int consentindo(void) {
@@ -1138,6 +1154,9 @@ static float socialAlt(int i) {
 // Quem desenha tem de olhar o tipo para saber se escreve o rotulo — um vao
 // mudo com o cabecalho das sugestoes por cima seria pior que vao nenhum.
 static float socialTopo(void);
+#ifdef NV_TOUCH_PREVIEW
+static float socialPerguntaTelefone(float dx, float y0, float a, int alcance);
+#endif
 static float socialAntes(int i) {
   // A PRIMEIRA SECAO DA LISTA tem 6 px de ar, e nao 22 (ver SP_SECAO_AR1).
   float sh = (i == 0 && socialTopo() <= 0.0f) ? SP_SECAO_H1 : SP_SECAO_H;
@@ -1166,6 +1185,10 @@ static float socialAntes(int i) {
 // Altura do bloco de texto que abre a lista e nao recebe foco.
 static float socialTopo(void) {
   if (aba != SP_ABA_SOCIAL) return 0.0f;
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo() && (consentindo() || perguntandoAlcance()))
+    return socialPerguntaTelefone(0, 0, 0, perguntandoAlcance());
+#endif
   if (consentindo()) return SPS_CONSENT_TOPO;
   if (perguntandoAlcance()) return SPS_ALC_TOPO;
   // Com pedido esperando, o texto de "nenhuma recomendacao" sai: os pedidos
@@ -1397,6 +1420,7 @@ static void trocarAba(int nova) {
   scrollY = 0.0f; velY = 0.0f;
 #ifdef NV_TOUCH_PREVIEW
   toquerol_limpar(&toquePainel);
+  memset(toqueSocial, 0, sizeof toqueSocial);
 #endif
   memset(animFoco, 0, sizeof animFoco);
   editLapis = 0;
@@ -1758,6 +1782,7 @@ void spainel_abrir(void) {
   aberto = 1;
 #ifdef NV_TOUCH_PREVIEW
   toquerol_limpar(&toquePainel); toquerol_limpar(&toquePop);
+  memset(toqueSocial, 0, sizeof toqueSocial);
 #endif
   foco = 0;
   okDesde = 0;
@@ -2622,6 +2647,10 @@ void spainel_atualizar(float dt, Uint32 agora) {
   // Rola o MINIMO para a linha focada caber inteira, como a grade da
   // Biblioteca. Alinhar a focada ao topo joga o cabecalho para fora na primeira
   // descida e a pessoa perde de vista em que painel esta.
+#ifdef NV_TOUCH_PREVIEW
+  float escalaScroll = gfx_escala();
+  if (telefoneui_ativo()) gfx_escala_sair(gfx_escala_ui());
+#endif
   alvo = scrollY;
   if (foco == SP_FOCO_ABAS || foco == SP_FOCO_BARRA) alvo = 0.0f;
   else if (nVisiveis() > 0 && foco >= 0 && foco < nVisiveis()) {
@@ -2639,6 +2668,22 @@ void spainel_atualizar(float dt, Uint32 agora) {
     if (aba == SP_ABA_SALVOS && expIdx() == foco) {
       if (sorg_estilo() == SORG_ESTILO_LISTA) base += expExtra();
       else base = topo + (sorg_estilo() == SORG_ESTILO_GRADE ? SPG_PASSO : SPP_PASSO) - 12.0f + expExtraBloco();
+#ifdef NV_TOUCH_PREVIEW
+      if (telefoneui_ativo()) {
+        GfxRect acao;
+        int atual = ctx_inline_foco_rect(SP_LINHA_W, SP_FAIXA_H, &acao);
+        if (atual && (atual != toqueInlineAcao || strcmp(toqueInlineId, menuId))) {
+          toquerol_limpar(&toquePainel); toqueInlineAcao = atual;
+          snprintf(toqueInlineId, sizeof toqueInlineId, "%s", menuId);
+        }
+        if (atual && base - topo + 2 * SP_FOCO_AR > janela) {
+          float inicio = topo;
+          if (sorg_estilo() != SORG_ESTILO_LISTA)
+            inicio += (sorg_estilo() == SORG_ESTILO_GRADE ? SPG_PASSO : SPP_PASSO) - 12;
+          topo = inicio + acao.y; base = topo + acao.h;
+        }
+      }
+#endif
     }
     // O ar do foco nas duas pontas: o conteudo ja nasce SP_FOCO_AR abaixo do
     // recorte (ver SP_FOCO_AR), entao em cima basta `topo` e embaixo sao dois.
@@ -2652,6 +2697,10 @@ void spainel_atualizar(float dt, Uint32 agora) {
 #endif
   scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
                                 ajustes_animacoes_reduzidas());
+#ifdef NV_TOUCH_PREVIEW
+  if (!ctx_inline_painel_ativo()) { toqueInlineAcao = 0; toqueInlineId[0] = 0; }
+  gfx_escala_sair(escalaScroll);
+#endif
 }
 
 // "Salvo há 2 horas". A FRASE INTEIRA passa por i18n como FORMATO, nao montada
@@ -2958,7 +3007,6 @@ static void arteCelula(GfxRect r, const char *url, float raio, float a) {
 }
 
 // A LINHA EXPANDIDA (acordeao): o indice da linha aberta e o quanto ela cresce.
-#define SP_FAIXA_H 150.0f
 static int expIdx(void) {
   int i;
   if (ctx_inline_t() < 0.003f || !menuId[0]) return -1;
@@ -2983,6 +3031,9 @@ static void desenhaBlocoAberto(int i, float dx, float y, float a) {
   if (ca > 0.0f) {
     capaArte(faixa, l->fundo[0] ? l->fundo : l->poster, 22.0f, a * ca);
     gfx_veu_base(faixa, 22.0f / faixa.h, 0.62f, 0.7f * a * ca);
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) ctx_inline_recorte((GfxRect){SP_X + dx, listaTopo(), SP_W, SP_LISTA_BASE - listaTopo()});
+#endif
     ctx_inline_desenhar(lx, y, SP_LINHA_W, SP_FAIXA_H, a * ca);
   }
 }
@@ -3010,6 +3061,9 @@ static void desenhaLinhaAberta(int i, float dx, float y, float a) {
   }
   capaArte(r, l->fundo[0] && e > 0.4f ? l->fundo : l->poster, 10.0f + 12.0f * e, a);
   if (e > 0.3f) gfx_veu_base(r, (10.0f + 12.0f * e) / r.h, 0.62f, 0.7f * a * e);
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) ctx_inline_recorte((GfxRect){SP_X + dx, listaTopo(), SP_W, SP_LISTA_BASE - listaTopo()});
+#endif
   ctx_inline_desenhar(lx, y, SP_LINHA_W, SP_FAIXA_H, a * ca);
 }
 
@@ -3305,6 +3359,69 @@ static float abasLargura(int todasContagens) {
 static int spPont;
 static int spPontVale(void) { return aberto && !pop && !tecladoPara && !editando && !ctx_aberto(); }
 #ifdef NV_TOUCH_PREVIEW
+/* The identity is stable across redraws, but a changed request, profile or
+ * account state cannot inherit an older target's action. */
+static int toqueSocialAtual(int i, SpToqueSocial *s) {
+  if (i < 0 || i >= nSocial) return 0;
+  memset(s, 0, sizeof *s);
+  s->tipo = social[i].tipo; s->indice = social[i].idx; s->perfil = perfis_ativo();
+  if (s->tipo == SPS_PEDIDO) {
+    if (s->indice < 0 || s->indice >= nPeds || !peds[s->indice].pub[0] || pedJaFeito(peds[s->indice].pub)) return 0;
+    snprintf(s->id, sizeof s->id, "%s", peds[s->indice].pub);
+    return 1;
+  }
+#if SP_V2
+  if (s->tipo == SPS_ALCANCE) { s->estado = recomenda_alcance(); return 1; }
+  if (spsConta(s->tipo)) {
+    s->confirma = identConfirma;
+    if (s->tipo == SPS_IDENT) {
+      s->estado = recomenda_identidade_situacao(); s->operacao = recomenda_identidade_op();
+      snprintf(s->id, sizeof s->id, "%s", recomenda_identidade_trakt());
+    } else {
+      int prov = s->tipo == SPS_SIMKL ? REC_IDENT_SIMKL : REC_IDENT_LETTERBOXD;
+      s->estado = recomenda_identidade_estado(prov); s->operacao = recomenda_identidade_op_de(prov);
+      if (prov == REC_IDENT_LETTERBOXD)
+        snprintf(s->id, sizeof s->id, "%s", recomenda_identidade_usuario_letterboxd());
+    }
+    return 1;
+  }
+#endif
+  return 0;
+}
+static int toqueSocialPode(void) {
+  return telefoneui_ativo() && spPontVale() && aba == SP_ABA_SOCIAL &&
+         entrada > .999f && trocaT >= .999f && !reacao_painel_aberta() && !teclado_aberto();
+}
+static int toqueSocialVale(int i, int b) {
+  SpToqueSocial atual, anterior;
+  if (!toqueSocialPode() || b < 3 || i < 0 || i >= nSocial ||
+      toqueSocial[i].token != (unsigned)b / 3 || !toqueSocialAtual(i, &atual)) return 0;
+  anterior = toqueSocial[i]; anterior.token = 0;
+  if ((atual.tipo == SPS_PEDIDO && b % 3 > 1) || (spsConta(atual.tipo) && b % 3)) return 0;
+  return !memcmp(&atual, &anterior, sizeof atual);
+}
+static void toqueSocialFocar(int i, int b) {
+  if (!toqueSocialVale(i, b)) return;
+  foco = i; editLapis = 0; okDesde = 0;
+  if (social[i].tipo == SPS_PEDIDO) pedCol = b % 3;
+  else if (social[i].tipo == SPS_ALCANCE) alcCol = b % 3;
+}
+static void toqueSocialAtivar(int i, int b) {
+  if (!toqueSocialVale(i, b)) return;
+  toqueSocialFocar(i, b);
+  okSocial();
+}
+static void toqueSocialAlvo(int i, int coluna, GfxRect r) {
+  SpToqueSocial atual, anterior;
+  if (!spPont || !toqueSocialPode() || !toqueSocialAtual(i, &atual)) return;
+  anterior = toqueSocial[i]; anterior.token = 0;
+  if (!toqueSocial[i].token || memcmp(&atual, &anterior, sizeof atual)) {
+    if (++toqueSocialToken > 100000000u) toqueSocialToken = 1;
+    atual.token = toqueSocialToken; toqueSocial[i] = atual;
+  }
+  ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, listaTopo(), SP_LISTA_BASE,
+                     toqueSocialFocar, toqueSocialAtivar, i, (int)toqueSocial[i].token * 3 + coluna);
+}
 static float toquePainelMax(void) {
   int n = nVisiveis(), i = n - 1;
   float fim = 0;
@@ -3322,7 +3439,8 @@ static float toquePainelMax(void) {
 }
 static int toquePainelRolar(const PonteiroRolagem *e) {
   int r;
-  if (!spPontVale()) return 0;
+  if (!spPontVale() && !(telefoneui_ativo() && aberto && !pop && !tecladoPara &&
+      !editando && !reacao_painel_aberta() && ctx_inline_painel_ativo())) return 0;
   r = toquerol_evento(&toquePainel, e);
   if (r) { velY = 0; okDesde = 0; }
   return r;
@@ -3471,6 +3589,33 @@ static void chipTextos(int k, const char **cap, const char **val, const char **i
   }
 }
 
+#ifdef NV_TOUCH_PREVIEW
+static float barraTelefone(GfxRect *rects) {
+  float x = 0, y = 0, altura = 0;
+  for (int k = 0; k < nChips(); k++) {
+    const char *cap, *val, *icone; char buf[24];
+    chipTextos(k, &cap, &val, &icone, buf, sizeof buf);
+    TxtLinha t = txt_linha(TXT_ILHA_SEG, i18n(val), 0, 0, 0, 255);
+    float w = t.w, cw = cap ? caixaAltaIlha(cap, 0, 0, 0, -1, 0, 0) : 0;
+    if (cw > w) w = cw;
+    w = fminf(SP_INTERNO, w + 44 + (icone ? 30 : 0));
+    float livre = w - 44 - (icone ? 30 : 0), lead = t.h + 2;
+    float th = t.w > livre ? txt_bloco(TXT_ILHA_SEG, i18n(val), 0, 0, 0, -1, 0, livre, lead, 0, 0) : t.h;
+    float h = fmaxf(SP_OPC_H, th + (cap ? 19 : 0) + 16);
+    if (x > 0 && x + w > SP_INTERNO) { x = 0; y += altura + NV_CTRL_VAO; altura = 0; }
+    if (rects) rects[k] = (GfxRect){SP_X + SP_PAD + x, SP_OPC_Y + y, w, h};
+    x += w + NV_CTRL_VAO; if (h > altura) altura = h;
+  }
+  return y + altura;
+}
+#endif
+static float barraAltura(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) return barraTelefone(NULL);
+#endif
+  return SP_OPC_H;
+}
+
 // Os chips da ilha (".chip" do mockup): 56 de altura, branco a 8 % (solido
 // #24262c), o valor em 19 semibold a 85 % e o rotulo do que ele muda em
 // caixa alta pequena a 45 % por cima — "ORDENAR / Recentes". Foco = pilula
@@ -3479,6 +3624,10 @@ static void desenhaBarra(float dx, float a) {
   float x = SP_X + dx + SP_ABAS_X;
   int k, n = nChips(), tf = ajustes_tinta_foco();
   float tinta = ajustes_acento_tinta(NULL, NULL, NULL);
+#ifdef NV_TOUCH_PREVIEW
+  GfxRect phoneChips[SPB_N];
+  if (telefoneui_ativo()) barraTelefone(phoneChips);
+#endif
   for (k = 0; k < n; k++) {
     const char *cap, *val, *icone;
     char buf[24];
@@ -3492,18 +3641,41 @@ static void desenhaBarra(float dx, float a) {
     if (cap) { cw = caixaAltaIlha(cap, 255, 255, 255, -1.0f, 0.0f, 1.0f); if (cw > w) w = cw; }
     w += 44.0f + (icone ? 30.0f : 0.0f);
     r = (GfxRect){ x, SP_OPC_Y, w, SP_OPC_H };
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) { r = phoneChips[k]; r.x += dx; x = r.x; w = r.w; }
+#endif
     if (spPont) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroChip, NULL, k, 0);
     botaoSup(r, 0.5f, f, a);
     ix = x + 22.0f;
     if (icone) {
       float ic = anim_mistura(.85f * 243.0f / 255.0f, tinta, v);
-      gfx_icone((GfxRect){ ix, SP_OPC_Y + (SP_OPC_H - 22.0f) * 0.5f, 22.0f, 22.0f },
+      gfx_icone((GfxRect){ ix, r.y + (r.h - 22.0f) * 0.5f, 22.0f, 22.0f },
                 icone, ic, ic, ic, a);
       ix += 30.0f;
     }
+#ifdef NV_TOUCH_PREVIEW
+    if (telefoneui_ativo()) {
+      float larg = w - 44 - (icone ? 30 : 0), lead = vr.h + 2;
+      int blocoLongo = vr.w > larg;
+      float vh = blocoLongo ? txt_bloco(TXT_ILHA_SEG, i18n(val), 0, 0, 0, -1, 0, larg, lead, 0, 0) : vr.h;
+      float ty = r.y + (r.h - vh - (cap ? 19 : 0)) * .5f;
+      if (cap) {
+        caixaAltaIlha(cap, 255, 255, 255, ix, ty, a * .45f * (1 - v));
+        caixaAltaIlha(cap, tf, tf, tf, ix, ty, a * .8f * v); ty += 19;
+      }
+      if (blocoLongo) {
+        txt_bloco(TXT_ILHA_SEG, i18n(val), SPI_FG_R, SPI_FG_G, SPI_FG_B, ix, ty, larg, lead, a * .85f * (1 - v), 0);
+        txt_bloco(TXT_ILHA_SEG, i18n(val), tf, tf, tf, ix, ty, larg, lead, a * v, 0);
+      } else {
+        txt_desenhar_alpha(vr, ix, ty, a * .85f * (1 - v));
+        txt_desenhar_alpha(vf, ix, ty, a * v);
+      }
+      continue;
+    }
+#endif
     if (cap) {
       float bloco = 18.0f + 1.0f + (float)vr.h;
-      float ty = SP_OPC_Y + (SP_OPC_H - bloco) * 0.5f;
+      float ty = r.y + (r.h - bloco) * 0.5f;
       // O rotulo em caixa alta nao cruza para a tinta do foco por alfa: ele
       // e desenhado duas vezes (repouso a 45 %, foco na tinta), como o valor.
       caixaAltaIlha(cap, 255, 255, 255, ix, ty, a * 0.45f * (1.0f - v));
@@ -3511,7 +3683,7 @@ static void desenhaBarra(float dx, float a) {
       txt_desenhar_alpha(vr, ix, ty + 19.0f, a * 0.85f * (1.0f - v));
       txt_desenhar_alpha(vf, ix, ty + 19.0f, a * v);
     } else {
-      float ty = SP_OPC_Y + (SP_OPC_H - (float)vr.h) * 0.5f;
+      float ty = r.y + (r.h - (float)vr.h) * 0.5f;
       txt_desenhar_alpha(vr, ix, ty, a * 0.85f * (1.0f - v));
       txt_desenhar_alpha(vf, ix, ty, a * v);
     }
@@ -3607,6 +3779,9 @@ static void desenhaPop(float a) {
 // A PERGUNTA DO NIVEL (alcance), por extenso. Mesma forma da pergunta de
 // aparecer: o que cada resposta faz, sem sermao, e onde mudar depois.
 static void desenhaAlcancePergunta(float dx, float y0, float a) {
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) { socialPerguntaTelefone(dx, y0, a, 1); return; }
+#endif
   float x = SP_X + dx + SP_PAD, y = y0 + 8.0f;
   { TxtLinha t = txt_linha(TXT_ILHA_NOME, "Quem vê o que você assiste?", 243, 242, 239, 255);
     txt_desenhar_alpha(t, x, y, a); y += t.h + 18.0f; }
@@ -3659,6 +3834,9 @@ __attribute__((unused)) static void desenhaSocialVazio(float dx, float y0, float
 // o servidor so guarda nome, foto e contatos, e a consulta de sugestao filtra
 // por `descobrivel = 1` nos DOIS ramos justamente para esta lista ser verdade.
 static void desenhaConsentimento(float dx, float y0, float a) {
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) { socialPerguntaTelefone(dx, y0, a, 0); return; }
+#endif
   float x = SP_X + dx + SP_PAD;
   float y = y0 + 8.0f;
   // TXT_ILHA_NOME E NAO TXT_TITULO2. Com o titulo grande a pergunta saiu da
@@ -3681,6 +3859,31 @@ static void desenhaConsentimento(float dx, float y0, float a) {
       "Dá para mudar essa resposta quando quiser, no fim desta aba.",
       243, 242, 239, x, y, SP_INTERNO, 27.0f, a * 0.42f, 2);
 }
+#ifdef NV_TOUCH_PREVIEW
+static float socialPerguntaTelefone(float dx, float y0, float a, int alcance) {
+  const char *cons[] = {
+    "Se você aceitar, quem já te segue no Trakt e os amigos dos seus amigos passam a ver seu nome e sua foto numa lista de sugestões, e podem te adicionar como contato.",
+    "Eles não veem o que você assiste, o que você salvou nem o que você recomendou. Nada disso sai desta TV.",
+    "Se você recusar, continua recebendo e enviando recomendações do mesmo jeito. Você só não aparece na lista de ninguém.",
+    "Dá para mudar essa resposta quando quiser, no fim desta aba."};
+  const char *alc[] = {
+    "Seus amigos podem ver o que você está assistindo, o que terminou e do que gostou. Nada sai desta TV antes de você escolher.",
+    "Amigos dos seus amigos veem só o título e a ação, sem a sua foto.",
+    "Dá para mudar quando quiser, no fim desta aba."};
+  float x = a > 0 ? SP_X + dx + SP_PAD : -1, y = y0 + 8;
+  float lead = txt_linha(TXT_ILHA_NOME, "Ag", 0, 0, 0, 255).h + 2;
+  y += txt_bloco(TXT_ILHA_NOME, alcance ? "Quem vê o que você assiste?" : "Aparecer para outras pessoas?",
+                 243, 242, 239, x, y, SP_INTERNO, lead, a, 0) + 18;
+  int n = alcance ? 3 : 4;
+  for (int i = 0; i < n; i++) {
+    float alfa = i < n - 2 ? .62f : i == n - 2 ? .5f : .42f;
+    y += txt_bloco(TXT_ILHA_SUB, alcance ? alc[i] : cons[i], 243, 242, 239,
+                   x, y, SP_INTERNO, 27, a * alfa, 0);
+    if (i + 1 < n) y += alcance ? 14 : 18;
+  }
+  return y - y0 + 20;
+}
+#endif
 
 // Uma linha-botao compacta: pilula que inverte no foco, com um subtitulo
 // opcional. A altura e menor que a de um card porque isto e uma acao da lista,
@@ -4013,6 +4216,9 @@ static void desenhaAlcanceSeg(int i, float dx, float y, float alt, float a) {
     }
     txt_desenhar_alpha(l, s.x + (s.w - (float)l.w) * 0.5f, s.y + (s.h - (float)l.h) * 0.5f,
                        a * (cursor || aceso ? 1.0f : 0.55f));
+#ifdef NV_TOUCH_PREVIEW
+    toqueSocialAlvo(i, k, s);
+#endif
     // O valor de agora leva um ponto no acento, mesmo com o cursor em outro.
     if (aceso && !cursor)
       gfx_cor((GfxRect){ s.x + (s.w - 6.0f) * 0.5f, s.y + s.h - 9.0f, 6.0f, 6.0f }, 0.5f, ar, ag, ab, a);
@@ -4088,6 +4294,9 @@ static void desenhaConta(int i, float dx, float y, float alt, float a, Uint32 ag
   fila = (GfxRect){ SP_X + dx + SP_LINHA_X, y + 6.0f, SP_LINHA_W, SPS_CONTA_H };
   { float gap = 12.0f, tw = (fila.w - gap * (float)(n - 1)) / (float)n;
     r = (GfxRect){ fila.x + (tw + gap) * (float)col, fila.y, tw, fila.h }; }
+#ifdef NV_TOUCH_PREVIEW
+  toqueSocialAlvo(i, 0, r);
+#endif
   d = (GfxRect){ r.x + 16.0f, r.y + (r.h - 48.0f) * 0.5f, 48.0f, 48.0f };
   int reduz = ajustes_animacoes_reduzidas() || anim_politica_reduzida || gfx_efeitos_minimos();
 #if SP_V2
@@ -4276,6 +4485,9 @@ static void desenhaPedidoLinha(int i, int idx, float dx, float y, float a, Uint3
     botaoSup(pr[k], 0.5f, fk, a);
     txt_desenhar_alpha(rr[k], pr[k].x + 20.0f, pr[k].y + (pr[k].h - rr[k].h) * 0.5f, a * 0.85f * (1.0f - vk));
     txt_desenhar_alpha(rf[k], pr[k].x + 20.0f, pr[k].y + (pr[k].h - rf[k].h) * 0.5f, a * vk);
+#ifdef NV_TOUCH_PREVIEW
+    toqueSocialAlvo(i, k, pr[k]);
+#endif
   }
 }
 
@@ -4807,7 +5019,8 @@ static void desenharPainel(Uint32 agora) {
 #ifdef NV_TOUCH_PREVIEW
   toquerol_vincular(&toquePainel, (GfxRect){SP_X + x, listaTopo(), SP_W, SP_LISTA_BASE - listaTopo()},
                    gfx_escala(), 0, toquePainelMax(), 1, &scrollY);
-  if (spPont) ponteiro_rolagem(toquePainelRolar);
+  if (spPont || (telefoneui_ativo() && aberto && !pop && !tecladoPara && !editando && ctx_inline_painel_ativo()))
+    ponteiro_rolagem(toquePainelRolar);
 #endif
   if (temBarra()) desenhaBarra(x, a);
 
@@ -4914,9 +5127,10 @@ static void desenharPainel(Uint32 agora) {
       { float yv = y, av = alt;
         if (spsConta(social[i].tipo)) { av = SPS_H_CONTAS; if (i > 0 && spsConta(social[i - 1].tipo)) yv -= SPS_H_CONTAS; }
       if (yv + av >= listaTopo() && yv <= SP_LISTA_BASE) {
-        // As contas ligadas dividem uma fileira (ladrilhos lado a lado): sem
-        // alvo proprio por ora; o resto e uma linha de largura cheia.
-        if (spPont && !spsConta(social[i].tipo))
+        // Phone multi-action rows register their exact controls in the draw
+        // helper; the whole-row Return would select the previous column.
+        if (spPont && !spsConta(social[i].tipo) &&
+            !(telefoneui_ativo() && (social[i].tipo == SPS_PEDIDO || social[i].tipo == SPS_ALCANCE)))
           ponteiro_alvo_faixa(SP_X + x + SP_LINHA_X, y, SP_LINHA_W, alt, listaTopo(), SP_LISTA_BASE,
                               ponteiroLinhaAba, NULL, i, 0);
         switch (social[i].tipo) {
@@ -5006,6 +5220,9 @@ static void desenharPainel(Uint32 agora) {
       if (cy + linhas[i].lh < listaTopo() || cy > SP_LISTA_BASE) continue;
       { GfxRect ra = lista ? linhaIlhaRet(x, cy, linhas[i].lh)
                            : (GfxRect){ SP_X + x + SP_PAD + linhas[i].lx, cy, linhas[i].lw, linhas[i].lh };
+#ifdef NV_TOUCH_PREVIEW
+        if (!telefoneui_ativo() || !ctx_inline_painel_ativo())
+#endif
         ponteiro_alvo_faixa(ra.x, ra.y, ra.w, ra.h, listaTopo(), SP_LISTA_BASE, ponteiroTitulo, NULL, i, 0); }
       if (estilo == SORG_ESTILO_GRADE) desenhaCelulaGrade(i, x, cy, a);
       else if (estilo == SORG_ESTILO_PAISAGEM) desenhaCelulaPaisagem(i, x, cy, a);

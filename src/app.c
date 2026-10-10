@@ -17,6 +17,7 @@
 #include "teclado.h"
 #include "ponteiro.h"
 #include "app.h"
+#include "telefoneui.h"
 #include "descanso.h"
 #include "iconeapp.h"
 #include "logoapp.h"
@@ -4761,6 +4762,14 @@ void app_atualizar(float dt, Uint32 agora) {
 #else
 #define CAMADA_SE(aberta) do { if (aberta) ponteiro_camada(); } while (0)
 #endif
+static void desenharCtxDoPainel(Uint32 agora) {
+  CAMADA_SE(ctx_aberto()
+#ifdef NV_TOUCH_PREVIEW
+            && !(telefoneui_ativo() && ctx_inline_painel_ativo())
+#endif
+  );
+  ctx_desenhar(agora);
+}
 
 // TUDO QUE FICA ATRAS DO PAINEL DE SALVOS: a tela, "Ver tudo", o cartaz com
 // menu, o detalhe e o menu lateral. Funcao propria para spainel_fundo poder
@@ -4914,8 +4923,7 @@ static void desenharTelas(Uint32 agora) {
     CAMADA_SE(spainel_aberto());
     if (spainel_visivel()) {
       spainel_desenhar(agora);
-      CAMADA_SE(ctx_aberto());
-      ctx_desenhar(agora);
+      desenharCtxDoPainel(agora);
     }
   }
   // BRILHO DA INTERFACE DO PLAYER (esmaecer.h): tudo daqui ate a ilha do player
