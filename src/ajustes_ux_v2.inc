@@ -1045,7 +1045,7 @@ static void aj2DesenharGrade(float a) {
     GfxRect c = aj2IdxCartao(uxIndice - 2);
     gfx_transformar(c.x + c.w * 0.5f, c.y + c.h * 0.5f, 1.0f + 0.08f * (1.0f - a), 0, 0);
   }
-  ajIlha(g, 40.0f, 1, 0);
+  ajPaginaIlha(g, 40.0f, 1);
   if (a >= 0.999f && !ajModalAberto() && !uxEditor) {
 #ifdef NV_TOUCH_PREVIEW
     if (aj2Lista() || ajRetrato()) {
@@ -1153,9 +1153,9 @@ static void aj2DesenharPagina(float t) {
   r = (GfxRect){ c.x + (h.x - c.x) * k, c.y + (h.y - c.y) * k, c.w + (h.w - c.w) * k, c.h + (h.h - c.h) * k };
   ajustes_acento(&ar, &ag, &ab);
   gfx_opacidade_grupo = grupo * (t > 1 ? 1 : t);
-  ajIlha(r, 36.0f, 1, 0);
+  ajPaginaIlha(r, 36.0f, 1);
   // um veu do acento, como o cartao em foco de onde ele veio
-  gfx_cor(r, 36.0f / r.h, ar, ag, ab, 0.10f + 0.55f * (1.0f - k));
+  gfx_cor(r, ajTelaCheia() ? 0.0f : 36.0f / r.h, ar, ag, ab, 0.10f + 0.55f * (1.0f - k));
   gfx_opacidade_grupo = grupo * conteudo;
   if (uxIndice >= 2) {
     nome = aj2MenuTitulo(uxIndice); ic = aj2MenuIcone(uxIndice); kick = aj2GrupoNome(aj2Grupo(sec));

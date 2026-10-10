@@ -75,6 +75,43 @@ static void entregarHold(const SDL_Event *e) {
   if (r == CTXH_LONGO) menusDedo++;
   if (r == CTXH_TOQUE) toquesDedo++;
 }
+#ifdef NV_TOUCH_PREVIEW
+static void cursorDepoisDoToque(void) {
+  preparar(home);
+  mover(150, 150);
+  int antes = nCursorCores;
+  quadro(home);
+  CONFERE(nCursorCores == antes + 3, "mouse real desenha o cursor circular");
+  zerar(); nFocar = 0;
+  dedo(SDL_FINGERDOWN, 1, 150.0f / 1920.0f, 150.0f / 1080.0f);
+  antes = nCursorCores;
+  quadro(home);
+  CONFERE(nCursorCores == antes && ponteiro_ativo(), "dedo esconde o cursor sem desativar alvos");
+  dedo(SDL_FINGERUP, 1, 150.0f / 1920.0f, 150.0f / 1080.0f);
+  quadro(home);
+  CONFERE(nCursorCores == antes && nFocar == 1 && nEntregues == 2,
+          "tap continua ativando o alvo sem cursor depois de soltar");
+  SDL_Event e; SDL_zero(e); e.type = SDL_MOUSEMOTION;
+  e.motion.which = SDL_TOUCH_MOUSEID; e.motion.x = 150; e.motion.y = 150;
+  ponteiro_evento(&e, entregar); quadro(home);
+  CONFERE(nCursorCores == antes, "mouse sintetico do toque nao devolve o cursor");
+  mover(160, 150); quadro(home);
+  CONFERE(nCursorCores == antes + 3, "mouse real posterior pode devolver o cursor");
+  zerar();
+  botao(SDL_MOUSEBUTTONDOWN, 160, 150, SDL_BUTTON_LEFT);
+  SDL_zero(e); e.type = SDL_FINGERDOWN; e.tfinger.touchId = SDL_MOUSE_TOUCHID;
+  e.tfinger.fingerId = 1; e.tfinger.x = 160.0f / 1920.0f; e.tfinger.y = 150.0f / 1080.0f;
+  CONFERE(ponteiro_evento(&e, entregar) == 1, "dedo sintetico do mouse e consumido");
+  e.type = SDL_FINGERMOTION;
+  ponteiro_evento(&e, entregar);
+  botao(SDL_MOUSEBUTTONUP, 160, 150, SDL_BUTTON_LEFT);
+  e.type = SDL_FINGERUP;
+  ponteiro_evento(&e, entregar);
+  antes = nCursorCores; quadro(home);
+  CONFERE(nEntregues == 2 && nCursorCores == antes + 3,
+          "mouse com dedos sinteticos ativa uma vez e conserva o cursor");
+}
+#endif
 static void prepararHold(void (*alvos)(void)) {
   preparar(alvos);
   memset(&holdDedo, 0, sizeof holdDedo);
@@ -796,6 +833,9 @@ int main(void) {
   rolagemContinua();
   arrastoSemNavegacao();
   gestoBorda();
+#ifdef NV_TOUCH_PREVIEW
+  cursorDepoisDoToque();
+#endif
   printf("ponteiro toque: %s\n", falhas ? "FALHOU" : "PASS");
   return falhas ? 1 : 0;
 }

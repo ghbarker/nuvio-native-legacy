@@ -30,8 +30,36 @@ static void perto(float real, float esperado) { assert(fabsf(real - esperado) < 
 static float escalaTeste = 1.5f;
 static PonteiroRolagemFn rolarRegistrado;
 static int fileirasTeste[5] = {0, 1, 2, 3, 4}, fileirasParadasTeste, movimentosTeste, remontagensTeste;
+static GfxRect superficieTeste;
+static float raioTeste;
+static int sombrasTeste, superficiesTeste, fundosTeste;
+void gfx_cor(GfxRect r, float raio, float cr, float cg, float cb, float ca) {
+  (void)cr; (void)cg; (void)cb; (void)ca; superficieTeste = r; raioTeste = raio; superficiesTeste++;
+}
+void gfx_sombra_sob(GfxRect s, float foco, float parx, float raio, float cr, float cg, float cb,
+                     float ca, GfxRect painel, float raioPx, float alfaPainel) {
+  (void)s; (void)foco; (void)parx; (void)raio; (void)cr; (void)cg; (void)cb;
+  (void)ca; (void)painel; (void)raioPx; (void)alfaPainel; sombrasTeste++;
+}
+float gfx_vidro_opacidade(void) { return 1; }
+void gfx_vidro_fosco(GfxRect r, float raio, float a) { (void)r; (void)raio; (void)a; }
+void gfx_vidro_miolo(GfxRect r, float raio, float cr, float cg, float cb, float ca, float a) {
+  (void)cr; (void)cg; (void)cb; (void)ca; (void)a; superficieTeste = r; raioTeste = raio; superficiesTeste++;
+}
+void gfx_luz_canto(GfxRect r, float raio, float cx, float cy, float alcance, float cr, float cg, float cb, float ca) {
+  (void)r; (void)raio; (void)cx; (void)cy; (void)alcance; (void)cr; (void)cg; (void)cb; (void)ca;
+}
 float gfx_escala(void) { return escalaTeste; }
 void ponteiro_rolagem(PonteiroRolagemFn fn) { rolarRegistrado = fn; }
+int perfis_n(void) { return 0; }
+const ContaPerfil *perfis_item(int i) { (void)i; return NULL; }
+int perfis_ativo(void) { return 1; }
+int cat_n(void) { return 0; }
+const CatItem *cat_item(int i) { (void)i; return NULL; }
+int home_item_focado(HomeItem *out) { (void)out; return 0; }
+void fundo_desenhar_modo(int modo, GfxRect area, float raioPx, const char *arteUrl, float a) {
+  assert(modo == FUNDO_FROST); (void)area; (void)raioPx; (void)arteUrl; (void)a; fundosTeste++;
+}
 int selospacote_n(void) { return 0; }
 int txt_largura(TxtEstilo estilo, const char *s) { (void)estilo; return (int)strlen(s) * 10; }
 const char *i18n(const char *s) { return s; }
@@ -149,7 +177,7 @@ static void testaAjustesRetrato(void) {
   assert(!ajRetrato() && !ajustes_layout_lista());
   nv_layout_w = 2400; nv_layout_h = 1080;
   assert(!ajRetrato() && !ajustes_layout_lista());
-  perto(aj2EditorR().x, aj2X0() + AJ2_EDITOR_DX);
+  perto(aj2EditorR().x, aj2X0());
   valor[AJ_LAYOUT_AJUSTES] = layoutSalvo; valor[AJ_TAMANHO_AJUSTES] = escalaSalva;
 }
 static void testaPainelListaTelefone(void) {
@@ -162,6 +190,7 @@ static void testaPainelListaTelefone(void) {
     perto(ajustes_tamanho_ajustes(), (s == 0 ? 0.8f : s == 1 ? 0.9f : 1.0f) * 1.25f);
     GfxRect g = aj2GradeR(), l = aj2ListaR(), ed = aj2EditorR();
     dentroAjustes(g); dentroAjustes(l); dentroAjustes(ed);
+    perto(AJ_TOPO, l.y + AJ_A3_CAB);
     perto(g.x + g.w * 0.5f, NV_VTELA_W * 0.5f);
     perto(l.x + l.w * 0.5f, NV_VTELA_W * 0.5f);
     assert(l.w > 740 && l.h > 580);
@@ -192,6 +221,81 @@ static void testaPainelListaTelefone(void) {
   }
   nSecoes = secoes; valor[AJ_LAYOUT_AJUSTES] = layout; valor[AJ_TAMANHO_AJUSTES] = tamanho;
   nv_layout_w = 2400; nv_layout_h = 1080; escalaTeste = 1;
+}
+static void testaAjustesTelaCheia(void) {
+  const float telas[][2] = {{1080, 1920}, {1080, 2340}, {1920, 1080}, {2340, 1080}, {2400, 1080}};
+  int salvo[AJ_N]; memcpy(salvo, valor, sizeof salvo);
+  for (int d = 0; d < 5; d++) for (int s = 0; s < 3; s++) for (int modo = 0; modo < 2; modo++) for (int rail = 0; rail < 3; rail++) {
+    nv_layout_w = telas[d][0]; nv_layout_h = telas[d][1];
+    valor[AJ_TAMANHO_AJUSTES] = s; valor[AJ_LAYOUT_AJUSTES] = modo;
+    valor[AJ_HOME_LAYOUT] = rail == 1 ? HOME_LAYOUT_PADRAO : HOME_LAYOUT_MODERNA;
+    valor[AJ_RAIL] = rail == 0 ? 0 : 1; valor[AJ_RAIL_MODERNA] = rail == 2 ? 0 : 1;
+    assert(ajTelaCheia());
+    float escala = ajustes_tamanho_ajustes(), reserva = ajustes_rail_largura_fixa();
+    GfxRect tela = ajTelaR(), grade = aj2GradeR(), lista = aj2ListaR(), editor = aj2EditorR(), pagina = aj2PaginaR();
+    perto(tela.x, 0); perto(tela.y, 0); perto(tela.w * escala, telas[d][0]); perto(tela.h * escala, telas[d][1]);
+    dentroAjustes(grade); dentroAjustes(lista); dentroAjustes(editor); dentroAjustes(pagina);
+    perto(grade.y, 0); perto(grade.x * escala, reserva > 0 ? 48 + reserva : 0);
+    perto(grade.x + grade.w, NV_VTELA_W); perto(grade.y + grade.h, NV_VTELA_H);
+    perto(editor.x, grade.x); perto(editor.x + editor.w, NV_VTELA_W); perto(editor.y + editor.h, NV_VTELA_H);
+    perto(lista.x + lista.w, NV_VTELA_W); perto(lista.y + lista.h, NV_VTELA_H);
+    perto(pagina.y, 0); perto(AJ_TOPO, lista.y + AJ_A3_CAB);
+    assert(AJ_BASE > AJ_TOPO + 250);
+    for (int t = 0; t < AJ2_T_N; t++) {
+      GfxRect botao = aj2TopoR(t); dentroAjustes(botao);
+      assert(botao.x >= grade.x + AJ2_G_PAD - 0.01f);
+      assert(botao.x + botao.w <= grade.x + grade.w - AJ2_G_PAD + 0.01f);
+      assert(botao.y >= 40);
+    }
+    if (aj2TemInsp()) {
+      GfxRect insp = aj2InspR(); dentroAjustes(insp);
+      assert(insp.x >= grade.x + 28);
+      if (ajRetrato()) assert(AJ_TOPO >= insp.y + insp.h + 24 + AJ_A3_CAB - 0.01f);
+      else assert(insp.x + insp.w + 36 <= lista.x + 0.01f);
+    }
+    GfxRect modal = {560, 300, 800, 600}; ajCentraModal(&modal); dentroAjustes(modal);
+    perto(modal.x + modal.w * 0.5f, NV_VTELA_W * 0.5f);
+    perto(modal.y + modal.h * 0.5f, NV_VTELA_H * 0.5f);
+    AjFilMedidas f = ajFilMedir();
+    perto(f.ilha.x, reserva > 0 ? 48 + reserva : 0); perto(f.ilha.y, 0);
+    perto(f.ilha.x + f.ilha.w, NV_TELA_W); perto(f.ilha.y + f.ilha.h, NV_TELA_H);
+    assert(f.cx >= f.ilha.x + 30 && f.cw > 300);
+    // Category rows and their touch/scroll clip begin below the stacked Panel inspector.
+    ajToqueLimpar(); ajToqueCamada(); escalaTeste = escala;
+    float off = 0;
+    ajToqueRegistrar(AJT_LISTA, (GfxRect){lista.x, AJ_TOPO, lista.w, AJ_BASE - AJ_TOPO}, &off, 500, 0, 91);
+    int indice = uxIndice, pendente = uxPendente, foco = focoIndice;
+    PonteiroRolagem e = {PONT_ROL_INICIO, 1, 0, 0, (lista.x + 50) * escala, (AJ_TOPO - 1) * escala};
+    assert(!ajToqueRolar(&e)); e.y = (AJ_TOPO + 50) * escala; assert(ajToqueRolar(&e));
+    escalaTeste = 1; e.fase = PONT_ROL_MOVER; e.delta = -15.75f * escala;
+    assert(ajToqueRolar(&e)); perto(off, 15.75f);
+    e.fase = PONT_ROL_SOLTAR; ajToqueRolar(&e);
+    e.fase = PONT_ROL_INERCIA; e.delta = -1000 * escala; assert(ajToqueRolar(&e)); perto(off, 500);
+    assert(!ajToqueRolar(&e)); perto(off, 500);
+    e.fase = PONT_ROL_FIM; ajToqueRolar(&e); assert(ajToqueLivre[AJT_LISTA]);
+    assert(uxIndice == indice && uxPendente == pendente && focoIndice == foco);
+    // Fullscreen page surface, generic chips and actual dialogs keep separate materials.
+    fundosTeste = superficiesTeste = 0; ajustes_ui_fundo();
+    assert(fundosTeste == 1 && superficiesTeste == 0);
+    ajFundoPagina(); assert(fundosTeste == 2 && superficiesTeste == 1);
+    sombrasTeste = 0; ajPaginaIlha(tela, 40, 1); perto(raioTeste, 0); assert(!sombrasTeste);
+    perto(superficieTeste.x, 0); perto(superficieTeste.w * escala, telas[d][0]);
+    GfxRect chip = {100, 100, 160, 56};
+    ajustes_ui_ilha(chip, 28, 0); perto(raioTeste, 0.5f); assert(sombrasTeste == 1);
+    ajIlha(modal, 36, 1, 1); perto(raioTeste, 36 / modal.h); assert(sombrasTeste == 2);
+    ajIlhaMiolo(editor, 40, 0.88f); perto(raioTeste, 0); assert(sombrasTeste == 2);
+  }
+  // Ordinary 16:10 tablet proportions retain the original floating Settings frames.
+  for (int d = 0; d < 2; d++) {
+    nv_layout_w = d ? 1080 : 1728; nv_layout_h = d ? 1728 : 1080;
+    valor[AJ_HOME_LAYOUT] = HOME_LAYOUT_DINAMICA; valor[AJ_TAMANHO_AJUSTES] = 2;
+    assert(!ajTelaCheia()); GfxRect g = aj2GradeR();
+    perto(g.x, 48); perto(g.y, 112); perto(g.x + g.w, NV_VTELA_W - 40); perto(g.y + g.h, NV_VTELA_H - 40);
+    perto(aj2EditorR().x, aj2X0() + AJ2_EDITOR_DX);
+    sombrasTeste = 0; ajPaginaIlha(g, 40, 1); perto(raioTeste, 40 / g.h); assert(sombrasTeste == 1);
+    AjFilMedidas f = ajFilMedir(); perto(f.ilha.x, 48); perto(f.ilha.y, 112); perto(f.ilha.x + f.ilha.w, NV_TELA_W - 48);
+  }
+  memcpy(valor, salvo, sizeof salvo); nv_layout_w = 2400; nv_layout_h = 1080; escalaTeste = 1;
 }
 #elif defined(TESTE_MENU)
 int ajustes_home_layout(void) { return HOME_LAYOUT_MODERNA; }
@@ -289,6 +393,7 @@ int main(void) {
   testaAjustesRetrato();
   testaBarraRetrato();
   testaPainelListaTelefone();
+  testaAjustesTelaCheia();
 #elif defined(TESTE_MENU)
   aberto = 1; tvToqueRegiao = (GfxRect){100, 200, 500, 600};
   tvToqueEscala = 1.5f; tvToqueMaximo = 500; tvRolar = 0; tvRolarV = 10;

@@ -127,10 +127,11 @@ static void ajIlhaSombra(GfxRect r, float raioPx, float al, int opaca) {
 }
 // Ilha: sombra curta, miolo (vidro 80% / solido #15161A) e a luz larga do canto
 // de cima, sem contorno. `modal` = miolo a 86%, para a ilha por cima de outra.
-static void ajIlha(GfxRect r, float raioPx, float a, int modal) {
+static void ajIlhaMaterial(GfxRect r, float raioPx, float a, int modal, int pagina) {
+  if (pagina) raioPx = 0.0f;
   float raio = raioPx / r.h;
   if (a <= 0.003f) return;
-  ajIlhaSombra(r, raioPx, (ajVid() ? 0.36f : 0.45f) * a, !ajVid() && a >= 0.999f);
+  if (!pagina) ajIlhaSombra(r, raioPx, (ajVid() ? 0.36f : 0.45f) * a, !ajVid() && a >= 0.999f);
   if (ajVid()) {
     // Teste do vidro: opacidade (78% = 0.80/0.86 de sempre) e fosco.
     float miolo = (modal ? 0.86f : 0.80f) * gfx_vidro_opacidade();
@@ -141,10 +142,17 @@ static void ajIlha(GfxRect r, float raioPx, float a, int modal) {
     gfx_cor(r, raio, 0.082f, 0.086f, 0.102f, a);
   }
 }
+static void ajIlha(GfxRect r, float raioPx, float a, int modal) {
+  ajIlhaMaterial(r, raioPx, a, modal, 0);
+}
+static void ajPaginaIlha(GfxRect r, float raioPx, float a) {
+  ajIlhaMaterial(r, raioPx, a, 0, ajTelaCheia());
+}
 // Ilha com o miolo do vidro a `miolo` (o editor da v2: 88%).
 static void ajIlhaMiolo(GfxRect r, float raioPx, float miolo) {
+  if (ajTelaCheia()) raioPx = 0.0f;
   float raio = raioPx / r.h;
-  ajIlhaSombra(r, raioPx, ajVid() ? 0.36f : 0.45f, !ajVid());
+  if (!ajTelaCheia()) ajIlhaSombra(r, raioPx, ajVid() ? 0.36f : 0.45f, !ajVid());
   if (ajVid()) {
     float m = miolo * gfx_vidro_opacidade();
     gfx_vidro_fosco(r, raio, 1);
@@ -274,6 +282,10 @@ static const char *ajFundoArte(void) {
 static void ajFundo(void) {
   fundo_desenhar_modo(FUNDO_FROST, (GfxRect){ 0, 0, NV_VTELA_W, NV_VTELA_H }, 0.0f, ajFundoArte(), 1.0f);
 }
+static void ajFundoPagina(void) {
+  ajFundo();
+  if (ajTelaCheia()) ajPaginaIlha(ajTelaR(), 0, 1);
+}
 
 // --- GEOMETRIA ------------------------------------------------------------------
 #define AJI_TOPO        (112.0f / ajustes_tamanho_ajustes())   // indice: logo abaixo da ilha do relogio
@@ -315,8 +327,8 @@ static GfxRect ajInspR(void) { return (GfxRect){ ajInspX(), AJI_MARGEM, NV_VTELA
 // The Settings scale changes content size while frame anchors remain at
 // 48/172/300 px and screen margins at 40 px. The global UI zoom is independent.
 #define AJ2_S          ajustes_tamanho_ajustes()
-#define AJ2_TOPO       (112.0f / AJ2_S)
-#define AJ2_MARGEM     ((ajRetrato() ? 48.0f : 40.0f) / AJ2_S)
+#define AJ2_TOPO       ajPaginaTopo()
+#define AJ2_MARGEM     ajPaginaMargem()
 // 770 (era 660): os nomes inteiros em Montserrat, a fonte mais larga que a TV
 // oferece — "Languages and subtitles" em 44/600 mede 563 e a linha tira 198.
 #define AJ2_MENU_W     730.0f
@@ -327,7 +339,10 @@ static GfxRect ajInspR(void) { return (GfxRect){ ajInspX(), AJI_MARGEM, NV_VTELA
 #define AJ2_LISTA_DX   (124.0f / AJ2_S)   // 172 com a ilha do menu em 48
 #define AJ2_LISTA_W   1000.0f
 #define AJ2_EDITOR_DX  (252.0f / AJ2_S)   // 300
-static float aj2X0(void) { return (48.0f + ajustes_rail_largura_fixa()) / AJ2_S; }
+static float aj2X0(void) {
+  float rail = ajustes_rail_largura_fixa();
+  return ((ajTelaCheia() && rail <= 0.0f ? 0.0f : 48.0f) + rail) / AJ2_S;
+}
 // A3: linhas compactas (58 + 2 de vao, rotulo 24), o dobro de linhas na tela.
 #define AJ2_LN_H        (ajRetrato() ? 96.0f : 60.0f)
 #define AJ2_LN_GAP       2.0f
@@ -372,13 +387,18 @@ static GfxRect aj2ListaR(void) {
   float x = ajustes_layout_lista() ? aj2ArteX() : aj2ArteX() + aj2ArteW() + 36.0f;
   return (GfxRect){ x, AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - x, NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
+static float ajTopoLista(void) { return aj2ListaR().y + AJ_A3_CAB; }
 // O "inspetor" da A3 e a coluna da arte (sem ilha).
 static GfxRect aj2InspR(void) {
-  if (ajRetrato()) return (GfxRect){aj2ArteX(), AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - aj2ArteX(), aj2InspRetratoH()};
+  if (ajRetrato()) {
+    float pad = ajTelaCheia() ? 28.0f : 0.0f;
+    return (GfxRect){aj2ArteX() + pad, AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - aj2ArteX() - 2 * pad, aj2InspRetratoH()};
+  }
+  if (ajTelaCheia()) return (GfxRect){aj2ArteX() + 28.0f, AJ2_CORPO, aj2ArteW() - 28.0f, NV_VTELA_H - AJ2_CORPO};
   return (GfxRect){ aj2ArteX(), AJ2_CORPO, aj2ArteW(), NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
 static GfxRect aj2EditorR(void) {
-  float x = aj2X0() + (ajRetrato() ? 0.0f : AJ2_EDITOR_DX);
+  float x = aj2X0() + (ajTelaCheia() ? 0.0f : AJ2_EDITOR_DX);
   return (GfxRect){ x, AJ2_CORPO, NV_VTELA_W - AJ2_MARGEM - x, NV_VTELA_H - AJ2_CORPO - AJ2_MARGEM };
 }
 // Onde a lista comeca (o fim do cabecalho: 42 + kicker 21,8 + 4 + titulo 62,9

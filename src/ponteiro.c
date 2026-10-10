@@ -668,6 +668,9 @@ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
   switch (e->type) {
     case SDL_FINGERDOWN: case SDL_FINGERMOTION: case SDL_FINGERUP:
 #ifdef NV_TOUCH_PREVIEW
+      if (e->tfinger.touchId == SDL_MOUSE_TOUCHID) return 1;
+      // Um dedo substitui o cursor do mouse, sem desativar os alvos de toque.
+      esconder("toque");
       if (!toqueQuadroPronto) return 1;
 #endif
       return eventoToque(e, entregar);

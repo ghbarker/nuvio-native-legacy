@@ -145,9 +145,11 @@ static void ajFilPainel(GfxRect pr, int n, int lim);
 typedef struct { GfxRect ilha, painel; float cx, cw, estado, card, tamanho; } AjFilMedidas;
 static AjFilMedidas ajFilMedir(void) {
   AjFilMedidas m;
-  float x = 48.0f + ajustes_rail_largura_fixa();
-  float topo = AJI_TOPO * ajustes_tamanho_ajustes(), margem = AJI_MARGEM * ajustes_tamanho_ajustes();
-  m.ilha = (GfxRect){x, topo, NV_TELA_W - 48.0f - x, NV_TELA_H - topo - margem};
+  float rail = ajustes_rail_largura_fixa();
+  float x = (ajTelaCheia() && rail <= 0.0f ? 0.0f : 48.0f) + rail;
+  float topo = ajTelaCheia() ? 0.0f : AJI_TOPO * ajustes_tamanho_ajustes();
+  float margem = ajTelaCheia() ? 0.0f : AJI_MARGEM * ajustes_tamanho_ajustes();
+  m.ilha = (GfxRect){x, topo, NV_TELA_W - (ajTelaCheia() ? 0.0f : 48.0f) - x, NV_TELA_H - topo - margem};
   m.painel = (GfxRect){m.ilha.x + m.ilha.w - 24 - AJF_PAINEL_W, m.ilha.y + 24, AJF_PAINEL_W, m.ilha.h - 48};
   if (ajRetrato()) m.painel.x = m.ilha.x + m.ilha.w;
   m.cx = m.ilha.x + 30; m.cw = m.painel.x - 30 - m.cx;
@@ -214,7 +216,7 @@ static void desenhaFileiras(void) {
   filMontarLista();
   n = filListaN;
   gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0, 0, 0, 0, ajVid() ? 0.30f : 0.42f);
-  ajIlha(ilha, 36, 1, 0);
+  ajPaginaIlha(ilha, 36, 1);
   // CABECALHO
   ajKicker("Tela inicial · Ordenar e ativar", hx, ilha.y + 36, 1);
   { TxtLinha t = ajTxt(TXT_ILHA_TITULO, "Fileiras da Home");

@@ -393,7 +393,7 @@ static void ajDesenharFolha(void) {
   float topo, base, y, aPag = anim_suave(paginaA) * aj2TextoLista;
   const Item *s = &TELA[secIni[sec]];
   AjDica d[4];
-  ajIlha(fr, 40.0f, 1, 0);
+  ajPaginaIlha(fr, 40.0f, 1);
   aj2CabecalhoA3(fr, s->titulo, 20.0f, aPag);
   topo = AJ_TOPO;
   base = AJ_BASE;
@@ -484,7 +484,7 @@ static float aj2PreviaPendente(float x, float y, float w) {
 // Modal centrado na tela virtual, e no maximo do tamanho dela menos 40 de cada
 // lado (escala.h). Em 100% os numeros fixos de cada modal ja sao os centrados.
 static void ajCentraModal(GfxRect *m) {
-  if (ajustes_tamanho_ajustes() == 1.0f && !ajRetrato()) return;
+  if (ajustes_tamanho_ajustes() == 1.0f && !ajTelaCheia()) return;
   if (m->w > NV_VTELA_W - 80.0f) m->w = NV_VTELA_W - 80.0f;
   if (m->h > NV_VTELA_H - 80.0f) m->h = NV_VTELA_H - 80.0f;
   m->x = (NV_VTELA_W - m->w) * 0.5f;
@@ -505,7 +505,7 @@ static void ajConfirmacao(const char *kick, int alerta, const char *pergunta, co
   hTxt = txt_bloco(TXT_AJ_TEXTO, texto, 0, 0, 0, 0, -4000, m.w - 88, 30, 0, 6);
   m.h = 44 + 22 + 8 + 44 + 14 + hTxt + (de ? 22 + 24 : 0) + 34 + 60 + 44;
   m.y = m.h < 480 ? 300 : (NV_VTELA_H - m.h) * 0.5f;
-  if (ajustes_tamanho_ajustes() != 1.0f || ajRetrato()) { ajCentraModal(&m); x = m.x + 44; }
+  if (ajustes_tamanho_ajustes() != 1.0f || ajTelaCheia()) { ajCentraModal(&m); x = m.x + 44; }
   ajIlha(m, 36, 1, 1);
   y = m.y + 44;
   if (alerta) { gfx_icone((GfxRect){ x, y - 2, 22, 22 }, "aj_triangle-alert", 0.961f, 0.784f, 0.298f, 1); ajKicker(kick, x + 34, y, 1); }
@@ -992,7 +992,7 @@ static void aj2DesenharDiferencas(void) {
   }
 #endif
   float x = fr.x + 18, w = fr.w - 36;
-  ajIlha(fr, 40.0f, 1, 0);
+  ajPaginaIlha(fr, 40.0f, 1);
   aj2CabecalhoA3(fr, "Diferentes do padrão", 0, 1);
   gfx_recorte(fr.x, topo, fr.w, base - topo);
   if (!uxNDifs) {
@@ -1124,7 +1124,7 @@ static void ajDesenharTela(void) {
 #ifdef NV_TOUCH_PREVIEW
   ajPontInline = 0;
 #endif
-  ajFundo();
+  ajFundoPagina();
   if (filAberta) return;   // a folha de fileiras ocupa a tela (desenhada depois)
 #ifdef NV_TOUCH_PREVIEW
   ajPontInline = !modal && uxOp >= 0 && ajEditandoLinha(uxOp) &&
@@ -1240,8 +1240,8 @@ static void ajSubCabecalho(const char *ic, const char *kick, const char *titulo,
   GfxRect h = aj2PaginaR();
   float ar, ag, ab, tinta = ajTinta() / 255.0f, tile = 76.0f, x = h.x + 28.0f, direita = h.x + h.w - 36.0f;
   ajustes_acento(&ar, &ag, &ab);
-  ajIlha(h, 36.0f, 1, 0);
-  gfx_cor(h, 36.0f / h.h, ar, ag, ab, 0.10f);
+  ajPaginaIlha(h, 36.0f, 1);
+  gfx_cor(h, ajTelaCheia() ? 0.0f : 36.0f / h.h, ar, ag, ab, 0.10f);
   { GfxRect tr = { x, h.y + (h.h - tile) * 0.5f, tile, tile };
     gfx_cor(tr, 22.0f / tile, ar, ag, ab, 1);
     gfx_icone((GfxRect){ tr.x + 19, tr.y + 19, 38, 38 }, ic, tinta, tinta, tinta, 1); }
@@ -1262,7 +1262,7 @@ static void ajSubLista(const AjSubLinha *L, int n, int foco, const AjDica *d, in
   GfxRect fr = aj2ListaR();
   float topo = fr.y + 30.0f, base = fr.y + fr.h - AJ_A3_RODAPE - 8.0f, y, alvo;
   int i;
-  ajIlha(fr, 40.0f, 1, 0);
+  ajPaginaIlha(fr, 40.0f, 1);
   alvo = foco * AJ_SUB_PASSO - (base - topo - AJ_SUB_PASSO) * 0.5f;
   if (alvo > n * AJ_SUB_PASSO - (base - topo)) alvo = n * AJ_SUB_PASSO - (base - topo);
   if (alvo < 0) alvo = 0;
@@ -1338,7 +1338,7 @@ static void ajDesenharAddons(int foco) {
   montarTela();
   if (n > 64) n = 64;
   for (i = 0; i < n; i++) if (addons_ativo(i)) lig++;
-  ajFundo();
+  ajFundoPagina();
   snprintf(val, sizeof val, i18n("%d de %d"), lig, n);
   snprintf(sub, sizeof sub, "%s", n ? i18n("Ligados nesta TV") : i18n("Nenhum addon nesta conta."));
   ajSubCabecalho("aj_puzzle", "Fontes e addons", "Addons", n ? val : "", sub);
@@ -1554,7 +1554,7 @@ static void ajDesenharPlugins(const AjPluginsVista *v) {
   char sub[160], val[64], k[200], linha[200];
   PlugRepo rp;
   montarTela();
-  ajFundo();
+  ajFundoPagina();
   memset(&rp, 0, sizeof rp);
   if (v->nivel == 1) plugins_repo(v->repo, &rp);
   val[0] = 0;
