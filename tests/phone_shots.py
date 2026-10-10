@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--cases', nargs='+', default=['1080x2340@1', '2340x1080@1.5'])
     parser.add_argument('--all-settings', action='store_true')
     parser.add_argument('--home-variant', choices=['shapes', 'ranking', 'folders'])
+    parser.add_argument('--player-scenes', nargs='+')
     parser.add_argument('--settings-layout', nargs='+', type=int, choices=[0, 1], default=[0, 1])
     args = parser.parse_args()
     output = (ROOT / args.output).resolve()
@@ -98,6 +99,8 @@ def main():
                                NUVIO_PHONE_SHOT_W=width, NUVIO_PHONE_SHOT_H=height,
                                NUVIO_TAMANHO_UI=scale, LIBGL_ALWAYS_SOFTWARE='1')
             fixture_args = []
+            if name == 'player_glass' and args.player_scenes:
+                fixture_args = args.player_scenes
             if name == 'homelayouts' and args.home_variant:
                 fixture_args = ['1']
                 if args.home_variant == 'shapes':
@@ -122,6 +125,7 @@ def main():
                         if image.size != (int(width), int(height)):
                             raise RuntimeError(f'Unexpected framebuffer size: {png.name}')
                 results.append({'fixture': name, 'case': case, 'status': 'captured',
+                                'scenes': fixture_args if name == 'player_glass' else [],
                                 'images': [str(p.relative_to(output)) for p in pngs]})
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, RuntimeError) as error:
                 results.append({'fixture': name, 'case': case, 'status': 'capture failed',

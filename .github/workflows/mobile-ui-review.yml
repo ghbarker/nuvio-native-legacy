@@ -37,8 +37,12 @@ jobs:
             capture: '--fixtures central registro diagnostico livetvdiag ilha3'
           - group: introductions
             capture: '--fixtures pipintro novidades20 novidades_cartao'
-          - group: player
-            capture: '--fixtures player_glass --cases 2340x1080@1.5'
+          - group: player-controls
+            capture: '--fixtures player_glass --cases 2340x1080@1.5 --player-scenes osd osd-serie osd-barra osd-barra-foco osd-botao-sobe audio-codec audio-codec-ee3 audio-codec-aac dts-nativo dts-convertido dts-sem-som toast-proporcao reconectando audio audio-direita legendas legenda-estilo seekr seekr-fita seekr-carregando pausa'
+          - group: player-movie
+            capture: '--fixtures player_glass --cases 2340x1080@1.5 --player-scenes buffering-claro buffering-escuro abrindo-compacto abrindo-expandido abrindo-fim carregando erro guia-parental guia-ilha pular-abertura episodios episodios-marcar proximo mais-como-este reacao fontes abrindo abrindo-logo abrindo-sem-logo guia-morph guia-relogio-off abrindo-folha onde-ver trailer'
+          - group: player-live
+            capture: '--fixtures player_glass --cases 2340x1080@1.5 --player-scenes aovivo-osd aovivo-atras aovivo-erro aovivo-mini aovivo-zap aovivo-ilha ilha-crescendo saida-modal saida-voo'
           - group: subtitle-style
             capture: '--fixtures faixas_estilo --cases 2340x1080@1.5'
     steps:

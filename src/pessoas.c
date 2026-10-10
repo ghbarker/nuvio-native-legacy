@@ -36,6 +36,7 @@
 #include "escala.h"
 #include "ponteiro.h"
 #include "rolagemtoque.h"
+#include "telefoneui.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -827,6 +828,20 @@ static void medir(void) {
 }
 
 static float janelaH(float cab);
+static float alturaIlha(void);
+static float janelaFoco(void) {
+#ifdef NV_TOUCH_PREVIEW
+  if (telefoneui_ativo()) {
+    /* Choose the same scale from the same unscaled geometry as drawing,
+     * including on the first frame or after a rotation. */
+    ESCALA_SE_COUBER_INI(PE_W, alturaIlha());
+    float h = janelaH(0);
+    ESCALA_SE_COUBER_FIM();
+    return h;
+  }
+#endif
+  return janelaH(0);
+}
 
 void pessoas_atualizar(float dt, Uint32 agora) {
   int i, est;
@@ -891,11 +906,12 @@ void pessoas_atualizar(float dt, Uint32 agora) {
   // entra junto: um cabecalho sozinho no pe da janela nao diz nada.
 #ifdef NV_TOUCH_PREVIEW
   if (toque.livre) {
-    rolagem = rolagemAlvo = toquerol_clamp(rolagem, 0.0f, fmaxf(0.0f, conteudoH - toque.regiao.h));
+    float jh = telefoneui_ativo() ? janelaFoco() : toque.regiao.h;
+    rolagem = rolagemAlvo = toquerol_clamp(rolagem, 0.0f, fmaxf(0.0f, conteudoH - jh));
     return;
   }
 #endif
-  { float jh = janelaH(0.0f), topoF, baseF;
+  { float jh = janelaFoco(), topoF, baseF;
     if (foco >= 0 && foco < nL) {
       topoF = linhaY[foco];
       if (foco > 0 && linhas[foco - 1].tipo == T_SECAO) topoF = linhaY[foco - 1];

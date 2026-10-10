@@ -1327,7 +1327,9 @@ static float modalTelefone(GfxRect m, const IlhaModal *c, float a, int desenha) 
   for (int i = 0; i < n; i++) {
     GfxRect r = buttons[i]; r.y += footY;
     if (modalFocoA[i] > .5f) plrui_pilula_foco(r, a); else plrui_botao_repouso(r, a);
-    TxtLinha l = txt_linha_corta(TXT_G21B, rotuloBotao(i), 243, 242, 239, 255, r.w - 32);
+    int cr = 243, cg = 242, cb = 239;
+    if (modalFocoA[i] > .5f) cr = cg = cb = ajustes_tinta_foco();
+    TxtLinha l = txt_linha_corta(TXT_G21B, rotuloBotao(i), cr, cg, cb, 255, r.w - 32);
     txt_desenhar_alpha(l, r.x + 16, r.y + (r.h - l.h) * .5f, a);
     if (a > .3f) ponteiro_alvo(r.x, r.y, r.w, r.h, pontFoco, NULL, i, 0);
   }
