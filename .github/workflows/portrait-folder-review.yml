@@ -1,0 +1,27 @@
+name: Portrait Home folder review
+on:
+  push:
+    branches: [review/home-folders-20261010]
+permissions:
+  contents: read
+jobs:
+  portrait:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Drawing tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev xvfb python3-pil
+      - name: Portrait folder captures
+        run: xvfb-run -a -s '-screen 0 2600x2500x24' python3 tests/phone_shots.py --fixtures homelayouts --home-variant folders --cases 1080x2340@1 1080x2340@1.5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Portrait-home-folder-logs
+          path: |
+            build/phone-review/**/*.log
+            build/phone-review/**/*.tsv
+            build/phone-review/results.json
+          retention-days: 14
