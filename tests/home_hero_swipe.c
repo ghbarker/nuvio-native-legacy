@@ -59,6 +59,7 @@ static void receber(const SDL_Event *e) { if (e->type == SDL_KEYDOWN) teclas++; 
 static void focoHeroTeste(int a, int b) { (void)a; (void)b; focos++; }
 static void menuTeste(void) { menus++; }
 static void publicar(void) {
+  heroPublicarFoco(cat_item_exato(heroAtual),heroVisivelToque());
   ponteiro_quadro(relogioTeste);
   ponteiro_alvo(0, 0, NV_TELA_W, 600, toqueHero.estado ? NULL : focoHeroTeste, NULL, 0, 0);
   ponteiro_rolagem(toqueHomeRolar);
@@ -113,6 +114,7 @@ int main(void) {
     float w=telas[t][0], h=telas[t][1];
     for(int soltar=0;soltar<3;soltar++) {
       preparar(w,h,1); focoHero=0; scrollY=0; velY=140;
+      itemFoco.indice=4; temItemFoco=1;
       float visivel=heroVisivelToque(), corte=corteFileiras();
       float pagina=topoFileiras()-scrollY;
       float dx=soltar==1 ? w*.08f : w*.35f;
@@ -121,16 +123,34 @@ int main(void) {
       for(int i=0;i<5;i++) {
         passo(16); perto(scrollY,0); perto(topoFileiras()-scrollY,pagina);
         perto(heroVisivelToque(),visivel); perto(corteFileiras(),corte);
+        assert(itemFoco.indice==4);
       }
       if(soltar==2)ponteiro_cancelar_toque();
       else { relogioTeste+=120; dedo(SDL_FINGERUP,1,w*.75f-dx,300); }
+      if(soltar!=2) { passo(16); assert(toqueHero.estado==2 && itemFoco.indice==4); }
       terminar(); assert(toqueHeroYPreso && !teclas);
       assert(heroAtual==(soltar==0 ? 5 : 1));
+      HomeItem selecionado; assert(home_item_focado(&selecionado));
+      const CatItem *visivelItem=cat_item_exato(heroAtual);
+      assert(selecionado.indice==heroAtual);
+      assert(!strcmp(selecionado.arte,visivelItem->backdrop));
+      assert(!strcmp(selecionado.titulo,visivelItem->titulo));
+      assert(!strcmp(selecionado.genero,visivelItem->genero));
+      assert(!strcmp(selecionado.meta,visivelItem->meta));
+      perto(selecionado.rect.x,heroArteRect.x); perto(selecionado.rect.y,heroArteRect.y);
+      perto(selecionado.rect.w,heroArteRect.w); perto(selecionado.rect.h,heroArteRect.h);
       for(int i=0;i<80;i++) { passo(16); perto(scrollY,0); perto(topoFileiras()-scrollY,pagina); }
       toqueHomeRetomarFoco(); assert(!toqueHeroYPreso && focoHero);
       float retomado=homeScrollYPasso(-empurraHero(),.016f,0);
       if(empurraHero()>0)assert(retomado<0); else perto(retomado,0);
       casos++;
+    }
+    /* Hidden, unfocused and non-title heroes cannot overwrite a selection. */
+    for(int oculto=0;oculto<3;oculto++) {
+      preparar(w,h,1); itemFoco.indice=4;
+      if(oculto==0)focoHero=0;
+      heroPublicarFoco(oculto==2 ? NULL : cat_item_exato(heroAtual),oculto==1 ? 0 : 1);
+      assert(itemFoco.indice==4); casos++;
     }
     /* A retained page is bounded again after rotation or window resize,
        including after the hero has finished its snap. */

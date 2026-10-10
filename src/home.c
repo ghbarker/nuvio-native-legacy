@@ -3561,6 +3561,18 @@ static void desenhaFundoDin(Uint32 agora) {
 #ifndef NV_TOUCH_PREVIEW
 static GfxRect heroArteRect = { 0, 0, NV_TELA_BASE_W, NV_TELA_BASE_H };
 #endif
+#ifdef NV_TOUCH_PREVIEW
+static void heroPublicarFoco(const CatItem *ci, float aTexto) {
+  if (!focoHero || !ci || toqueHero.estado || aTexto <= 0.004f) return;
+  itemFoco.indice = heroAtual;
+  itemFoco.rect = heroArteRect;
+  itemFoco.arte = arteDoItem(ci, NULL);
+  itemFoco.titulo = ci->titulo;
+  itemFoco.genero = ci->genero;
+  itemFoco.meta = ci->meta;
+  temItemFoco = 1;
+}
+#endif
 int home_streaming_barra(const int **pastas) {
   if (pastas) *pastas = streamBarra;
   return layoutHome() == HOME_LAYOUT_DINAMICA ? nStreamBarra : 0;
@@ -4667,6 +4679,9 @@ static void desenhaHero(Uint32 agora, float saida) {
   // During a drag/snap the copy moves but its stationary buttons cannot be
   // used. The original FINGERUP belongs to the gesture, never to a title.
   if (toqueHero.estado) return;
+  // A horizontal swipe can retain the row-focus Y, where Moderna hides its
+  // button. Opening the visible hero still needs that hero's current identity.
+  heroPublicarFoco(ci, aTexto);
 #endif
 
   // O BOTAO E A POSICAO, que so existem enquanto o destaque tem o foco.
@@ -4736,6 +4751,7 @@ static void desenhaHero(Uint32 agora, float saida) {
       // retangulo que o item ocupava. Com o foco no destaque esse retangulo e a
       // arte do proprio destaque, e sem isto o OK abriria o ULTIMO card que
       // recebeu foco — o titulo errado, com a animacao vindo de fora da tela.
+#ifndef NV_TOUCH_PREVIEW
       if (focoHero && ci) {
         itemFoco.indice = heroAtual;
         itemFoco.rect   = heroArteRect;
@@ -4745,6 +4761,7 @@ static void desenhaHero(Uint32 agora, float saida) {
         itemFoco.meta   = ci->meta;
         temItemFoco = 1;
       }
+#endif
     } }
 }
 

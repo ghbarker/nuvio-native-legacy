@@ -270,6 +270,8 @@ static void heroSwipes(const char *saida) {
     heroDedo(SDL_FINGERDOWN,NV_TELA_W*.55f,y);
     heroDedo(SDL_FINGERUP,NV_TELA_W*.55f,y);
     assert(home_pediu_abrir());
+    HomeItem aberto; assert(home_item_focado(&aberto) && aberto.indice==atual.indice);
+    assert(aberto.titulo && !strcmp(aberto.titulo,cat_item(atual.indice)->titulo));
     printf("[shot] hero swipe L%d: left/right identity, short return, cancel, TV key recovery and tap passed\n",lay);
   }
 }
