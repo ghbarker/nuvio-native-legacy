@@ -18,6 +18,7 @@
 #endif
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 #include "rolagemtoque.h"
 
 float nv_layout_w = 2400.0f;
@@ -41,7 +42,13 @@ int tex_falhou(const char *s) { (void)s; return 0; }
 int socialvis_n_amigos(void) { return 5; }
 const SvAmigo *socialvis_amigo(int i) { (void)i; return NULL; }
 #endif
-static void perto(float a, float b) { assert(fabsf(a - b) < 0.01f); }
+static void pertoEm(float a, float b, int linha, const char *expressao, const char *esperado) {
+  if (!(fabsf(a - b) < 0.01f))
+    fprintf(stderr, "social_toque:%d: %s = %.6f; esperado %s = %.6f (modo=%s tela=%.0fx%.0f)\n",
+            linha, expressao, a, esperado, b, testMobile ? "Mobile" : "TV", nv_layout_w, nv_layout_h);
+  assert(fabsf(a - b) < 0.01f);
+}
+#define perto(a, b) pertoEm((a), (b), __LINE__, #a, #b)
 
 int main(void) {
   PonteiroRolagem e = { PONT_ROL_INICIO, 1, 0, 0, 400, 400 };
@@ -143,7 +150,8 @@ int main(void) {
   nv_layout_w = 2400; nv_layout_h = 1080; railAmigosTeste = 113.6f;
   perto(amigosfilDireita(), NV_TELA_W - NV_HOME_SAFE_RIGHT);
   testMobile = 0;
-  nv_layout_w = 1080; nv_layout_h = 1728;
+  // Real TV mode always uses this virtual canvas, including on a phone.
+  nv_layout_w = NV_TELA_BASE_W; nv_layout_h = NV_TELA_BASE_H;
   perto(amigosfilDireita(), NV_TELA_W - NV_HOME_SAFE_RIGHT);
   testMobile = 1;
   railAmigosTeste = 0; nv_layout_w = 2400; nv_layout_h = 1080;

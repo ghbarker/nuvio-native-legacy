@@ -94,6 +94,8 @@ static void dentroAjustes(GfxRect r) {
 }
 static void testaBarraRetrato(void) {
   int rail = valor[AJ_RAIL], moderna = valor[AJ_RAIL_MODERNA], layout = valor[AJ_HOME_LAYOUT];
+  int modoSalvo = testMobile;
+  testMobile = 1;
   for (int l = 0; l < HOME_LAYOUT_N; l++) {
     valor[AJ_HOME_LAYOUT] = l;
     for (int r = 0; r < 2; r++) for (int m = 0; m < 2; m++) {
@@ -117,10 +119,13 @@ static void testaBarraRetrato(void) {
     }
   }
   valor[AJ_RAIL] = rail; valor[AJ_RAIL_MODERNA] = moderna; valor[AJ_HOME_LAYOUT] = layout;
+  testMobile = modoSalvo;
 }
 static void testaAjustesRetrato(void) {
   const float alturas[] = {1920, 2340};
   int layoutSalvo = valor[AJ_LAYOUT_AJUSTES], escalaSalva = valor[AJ_TAMANHO_AJUSTES];
+  int modoSalvo = testMobile;
+  testMobile = 1;
   valor[AJ_LAYOUT_AJUSTES] = 1;
   for (int h = 0; h < 2; h++) {
     nv_layout_w = 1080; nv_layout_h = alturas[h];
@@ -180,8 +185,9 @@ static void testaAjustesRetrato(void) {
   assert(!ajRetrato() && !ajustes_layout_lista());
   nv_layout_w = 1920; nv_layout_h = 1080;
   assert(!ajRetrato() && !ajustes_layout_lista());
-  perto(aj2EditorR().x, aj2X0());
+  perto(aj2EditorR().x, aj2X0() + AJ2_EDITOR_DX);
   valor[AJ_LAYOUT_AJUSTES] = layoutSalvo; valor[AJ_TAMANHO_AJUSTES] = escalaSalva;
+  testMobile = modoSalvo;
 }
 static void testaListaTelefone(void) {
   testMobile = 1;

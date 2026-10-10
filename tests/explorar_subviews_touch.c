@@ -21,7 +21,9 @@ static void semearSubviews(void) {
   }
 }
 static void abrirSubview(int m,float w,float h,float s) {
+  testMobile=1;
   uiScale=s;preparar(w,h,1);semearSubviews();
+  assert(telefoneui_ativo());
   modo=m;clAberto=0;caLinha=caCol[0]=caCol[1]=0;climaSeparar();
   nTrilha=1;origem=ORIGEM_CLIMA;trilha[0].obra=viz.foco;
   vzLinha=vzCol=0;memset(toqueVz,0,sizeof toqueVz);memset(toqueVzOffset,0,sizeof toqueVzOffset);

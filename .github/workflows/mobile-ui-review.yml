@@ -94,6 +94,21 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: Mobile-UI-review-logs-${{ matrix.group }}-${{ github.sha }}
+          path: |
+            build/phone-review/**/*.log
+            build/phone-review/**/*.tsv
+            build/phone-review/results.json
+            build/phone-label-negative/**/*.log
+            build/phone-label-negative/results.json
+            build/phone-label-negative/negative-control.json
+            build/home-folder-native-negative/**/*.log
+            build/home-folder-native-negative/results.json
+            build/home-folder-native-negative/negative-control.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: Mobile-UI-review-${{ matrix.group }}-${{ github.sha }}
           path: |
             build/phone-review/**/*.png

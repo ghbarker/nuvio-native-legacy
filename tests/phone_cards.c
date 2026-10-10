@@ -68,11 +68,26 @@ void gfx_mini_desenhar(const GfxMini *m, GfxRect r, float raio, float a) { (void
 #if defined(TESTE_PIP)
 void player_fechar_mini(void) { videoFechado++; }
 #elif defined(TESTE_RELEASE)
+/* Keep upstream pagination on its font-measurement path using the same
+ * deterministic 16-pixel glyph widths as this fixture's text mocks. */
+int txt_largura(TxtEstilo e, const char *s) { (void)e; return (int)strlen(i18n(s)) * 16; }
+int ajustes_idioma(void) { return 0; }
+int ajustes_tinta_foco(void) { return 243; }
+static int apoioDesenho, qrDesenhados;
+static unsigned qrTipos;
+static float qrFim;
 int apoio_n(void) { return 2; }
 int apoio_qual(int i) { return i; }
 const char *apoio_nome(int i) { (void)i; return ""; }
 const char *apoio_url_curta(int i) { (void)i; return ""; }
-int apoio_qr(int i, float x, float y, float lado, float a) { (void)i; (void)x; (void)y; (void)lado; (void)a; assert(!"GPU preview unexpectedly executed"); return 0; }
+int apoio_qr(int i, float x, float y, float lado, float a) {
+  assert(apoioDesenho && "QR executed outside the explicit support draw");
+  assert(i >= APOIO_PATREON && i <= APOIO_DISCORD);
+  assert(x >= 0 && y >= 0 && lado > 0 && a > 0);
+  assert(!(qrTipos & (1u << i))); qrTipos |= 1u << i; qrDesenhados++;
+  qrFim = fmaxf(qrFim, y + lado);
+  return 1;
+}
 /* Scene function pointers remain in the production content table. The CPU
  * measurement path must never execute their GPU-only preview functions. */
 float dvtela_previa_largura(void) { assert(!"GPU preview unexpectedly executed"); return 0; }
@@ -85,7 +100,7 @@ void dvtela_previa_desenhar(float x, float y, float s, const DvtelaEstado *e, Ui
 void ajustes_acento(float *r, float *g, float *b) { *r = .5f; *g = .6f; *b = .8f; }
 int ajustes_relogio_12h(void) { return 0; }
 void plrui_linha_foco(GfxRect r, float raio, float a) { gfx_cor(r, raio, 1, 1, 1, a); }
-TxtLinha txt_linha(TxtEstilo e, const char *s, int r, int g, int b, int a) { (void)e; (void)r; (void)g; (void)b; (void)a; return (TxtLinha){.w = (int)strlen(s) * 16, .h = 30}; }
+TxtLinha txt_linha(TxtEstilo e, const char *s, int r, int g, int b, int a) { (void)r; (void)g; (void)b; (void)a; return (TxtLinha){.w = txt_largura(e, s), .h = 30}; }
 TxtLinha txt_linha_corta(TxtEstilo e, const char *s, int r, int g, int b, int a, float w) { TxtLinha l = txt_linha(e, s, r, g, b, a); if (l.w > w) l.w = (int)w; return l; }
 void txt_desenhar_alpha(TxtLinha l, float x, float y, float a) { (void)l; (void)x; (void)y; (void)a; }
 #elif defined(TESTE_N20)
@@ -144,7 +159,26 @@ int main(void) {
   gravadoNome[0] = 0; pipintro_abrir(); piTelefoneEscolher(1, 0);
   assert(!aberto && !strcmp(gravadoTexto, "0\n") && videoFechado == 1);
 #elif defined(TESTE_RELEASE)
-  novcartao_teste_plataforma(NOV_ANDROID); novcartao_abrir(); assert(nVis > 0 && nCen == 1);
+  novcartao_teste_plataforma(NOV_ANDROID); novcartao_abrir(); assert(nVis > 0 && nCen == 0); /* 2.0.4 has no preview scenes. */
+  /* Measuring support remains texture-free. Its scroll height reserves the
+   * donation and community QR rows, including their labels, in both grids. */
+  pagina = paginaApoio();
+  const float apoioLarguras[] = {600, 976};
+  for (int i = 0; i < 2; i++) {
+    entrada = 0; novDesenharTelefone(); assert(!novcartao_teste_discord());
+    qrTipos = 0; qrDesenhados = 0; qrFim = 0;
+    float medida = novTelefoneConteudo(0, 0, apoioLarguras[i], 0);
+    assert(!qrDesenhados && !novcartao_teste_discord());
+    apoioDesenho = 1;
+    float desenho = novTelefoneConteudo(0, 0, apoioLarguras[i], 1);
+    apoioDesenho = 0;
+    perto(medida, desenho);
+    assert(qrDesenhados == 3 && qrTipos == ((1u << APOIO_PATREON) | (1u << APOIO_KOFI) | (1u << APOIO_DISCORD)));
+    assert(qrFim + 128 <= medida); /* QR footer labels fit the measured body. */
+    assert(novcartao_teste_discord());
+  }
+  entrada = 0; novDesenharTelefone(); assert(!novcartao_teste_discord());
+  pagina = 0;
   for (int t = 0; t < 4; t++) for (int s = 0; s < 4; s++) {
     nv_layout_w = telas[t][0]; nv_layout_h = telas[t][1]; ui = zoom[s]; assert(telefoneui_ativo());
     for (pagina = 0; pagina <= paginaApoio(); pagina++) {

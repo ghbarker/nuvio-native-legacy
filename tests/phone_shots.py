@@ -197,6 +197,11 @@ def main():
     (output / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
     for result in results:
         print(result['fixture'], result.get('case', ''), result['status'])
+        if result['status'] not in ('captured', 'passed'):
+            print(result.get('error', 'Fixture failed'))
+            failure_log = output / result['log']
+            if failure_log.exists():
+                print('\n'.join(failure_log.read_text(errors='replace').splitlines()[-40:]))
     return 0 if all(r['status'] in ('captured', 'passed') for r in results) else 1
 
 if __name__ == '__main__':

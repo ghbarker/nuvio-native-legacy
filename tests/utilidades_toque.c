@@ -30,6 +30,7 @@ static struct tm *utilidades_localtime_r(const time_t *t, struct tm *out) {
 #error escolha TESTE_* utilidade
 #endif
 #include <assert.h>
+#include <stdio.h>
 
 float nv_layout_w = 2400.0f;
 static int testMobile = 1;
@@ -206,7 +207,13 @@ void ponteiro_alvo(float x, float y, float w, float h, PonteiroFn focar, Ponteir
   alvos++;
 }
 #endif
-static void perto(float a, float b) { assert(fabsf(a - b) < .001f); }
+static void pertoEm(float a, float b, int linha, const char *expressao, const char *esperado) {
+  if (!(fabsf(a - b) < .001f))
+    fprintf(stderr, "utilidades_toque:%d: %s = %.6f; esperado %s = %.6f (modo=%s tela=%.0fx%.0f)\n",
+            linha, expressao, a, esperado, b, testMobile ? "Mobile" : "TV", nv_layout_w, nv_layout_h);
+  assert(fabsf(a - b) < .001f);
+}
+#define perto(a, b) pertoEm((a), (b), __LINE__, #a, #b)
 static void exercitar(ToqueRolagem *r, float *offset, PonteiroRolagemFn fn, int eixoY) {
   PonteiroRolagem e = {PONT_ROL_INICIO, eixoY, 0, 0, 220, 480};
   *offset = 0;
@@ -470,8 +477,9 @@ int main(void) {
     }
   }
   testMobile = 0;
-  nv_layout_w = 1080; nv_layout_h = 1728; railExplorarTeste = 113.6f;
-  perto(EX_DIR, 1000); /* Ordinary portrait tablet retains the original inset. */
+  // The saved TV choice uses the original virtual canvas on every device.
+  nv_layout_w = NV_TELA_BASE_W; nv_layout_h = NV_TELA_BASE_H; railExplorarTeste = 113.6f;
+  perto(EX_DIR, 1840); /* Original TV right inset remains 80 pixels. */
   testMobile = 1;
   nv_layout_w = 2400; nv_layout_h = 1080; perto(EX_DIR, 2320);
   railExplorarTeste = 0;

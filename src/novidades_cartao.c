@@ -810,13 +810,16 @@ static float novTelefoneConteudo(float x, float y, float w, float a) {
   } else {
     y += telefonecartao_titulo("Apoie o projeto", x, y, w, a);
     y += telefonecartao_texto(TXT_V2_26, "O Nuvio Legacy é gratuito. Se ele te ajuda e você quiser apoiar quem faz o app, aponte a câmera do celular para um dos códigos.", x, y, w, 36, .7f * a) + 28;
-    int n = apoio_n(), cols = w >= 648 ? 2 : 1;
+    // Discord acompanha as doacoes sem entrar na lista de apoio_qual().
+    int nDoacoes = apoio_n(), n = nDoacoes + 1, cols = w >= 648 ? 2 : 1;
     float lado = fminf(300, (w - (cols - 1) * 24) / cols), passo = lado + 22 + 64 + 12 + 30 + 24;
     float total = cols * lado + (cols - 1) * 24, x0 = x + (w - total) * .5f;
     for (int i = 0; i < n; i++) {
-      int q = apoio_qual(i); float qx = x0 + (i % cols) * (lado + 24), qy = y + (i / cols) * passo;
+      int q = i < nDoacoes ? apoio_qual(i) : APOIO_DISCORD;
+      float qx = x0 + (i % cols) * (lado + 24), qy = y + (i / cols) * passo;
       if (a > 0) {
-        apoio_qr(q, qx, qy, lado, a);
+        int desenhou = apoio_qr(q, qx, qy, lado, a);
+        if (q == APOIO_DISCORD) discordDesenhado = desenhou;
         TxtLinha nome = txt_linha_corta(TXT_W20_24B, apoio_nome(q), 20, 21, 26, 255, lado - 32);
         TxtLinha url = txt_linha_corta(TXT_V2_18, apoio_url_curta(q), 243, 242, 239, 255, lado);
         gfx_cor((GfxRect){qx, qy + lado + 22, lado, 64}, .11f, .957f, .961f, .980f, a);
@@ -830,6 +833,7 @@ static float novTelefoneConteudo(float x, float y, float w, float a) {
   return y - inicio + 24;
 }
 static void novDesenharTelefone(void) {
+  discordDesenhado = 0;
   if (entrada < .002f) return;
   float a = anim_suave(entrada);
   telefonecartao_medir(&novTelefone, NV_TELA_W, NV_TELA_H, 2);
