@@ -121,6 +121,9 @@ static const Item TELA[] = {
       OPC(AJ_ESMAECER), OPC(AJ_DESCANSO_ESTILO), OPC(AJ_DESCANSO_FONTE),
     MAIS(),
     ROT("Cores e vidro"), OPC(AJ_VIDRO_OPAC), OPC(AJ_VIDRO_FOSCO),
+#ifdef NV_TOUCH_UI
+    ROT("Interface"), OPC(AJ_INTERFACE_MODO),
+#endif
 
   // NOTAS (decisao do dono, 07/10): so as onze "Notas no titulo". Os oito
   // AJ_MDB_* (qual nota o MDBList baixa) sairam da tela e continuam no enum e na
