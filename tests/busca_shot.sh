@@ -4,6 +4,7 @@
 # os simbolos da tela ficam neutros neste harness e nenhuma fonte e revertida.
 set -eu
 cd "$(dirname "$0")/.."
+source tests/native_flags.inc
 saida="${1:-/tmp/nuvio-busca}"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/nuvio-busca-shot-XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
@@ -13,10 +14,8 @@ for source in src/*.c src/dts/*.c; do
   [ "$source" = "src/novidades1312.c" ] && continue
   sources+=("$source")
 done
-cc "${sources[@]}" tests/busca_shot.c -x c - -Isrc -o "$tmp/shot" \
-  -DNV_TRAKT_CLIENT_ID='"chave-de-teste"' -O1 -g \
-  -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 -L/opt/homebrew/lib \
-  -lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL \
+cc "${nv_test_cflags[@]}" "${sources[@]}" tests/busca_shot.c -x c - -o "$tmp/shot" \
+  -DNV_TRAKT_CLIENT_ID='"chave-de-teste"' "${nv_test_libs[@]}" \
   -Wno-deprecated-declarations -Wno-macro-redefined <<'EOF'
 int novidades1312_aberto(void) { return 0; }
 int novidades1312_primeira_vez(void) { return 0; }
@@ -33,3 +32,4 @@ if command -v sips >/dev/null 2>&1; then
     sips -s format jpeg -Z 1400 "$b" --out "${b%.bmp}.jpg" >/dev/null
   done
 fi
+
