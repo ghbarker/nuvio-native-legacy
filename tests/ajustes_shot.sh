@@ -9,12 +9,13 @@
 # Sem NUVIO_AJUSTES_UX, acrescenta uma captura para cada categoria.
 set -eu
 cd "$(dirname "$0")/.."
+source tests/native_flags.inc
 sources=()
 for source in src/*.c src/dts/*.c; do
   if [ "$source" != src/main.c ]; then sources+=("$source"); fi
 done
-cc -DAJUSTES_TESTE "${sources[@]}" tests/ajustes_shot.c -Isrc -o "${NUVIO_SHOT_BIN:-/tmp/nuvio-ajustes-shot}" \
-  -O1 -g -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
-  -L/opt/homebrew/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL \
+cc "${nv_test_cflags[@]}" -DAJUSTES_TESTE "${sources[@]}" tests/ajustes_shot.c \
+  -o "${NUVIO_SHOT_BIN:-/tmp/nuvio-ajustes-shot}" "${nv_test_libs[@]}" \
   -Wno-deprecated-declarations -Wno-macro-redefined
 "${NUVIO_SHOT_BIN:-/tmp/nuvio-ajustes-shot}" "$@"
+

@@ -1,3 +1,5 @@
+**Android TV and Mobile in one APK:** The interface is selected automatically: TV on Android TV / Google TV devices, Mobile on phones and tablets. An optional **Interface mode** override is available in the advanced Appearance settings. TV preserves remote navigation; Mobile enables phone layouts, direct touch scrolling, portrait browsing, and the native keyboard. Existing explicit choices are preserved on update. See [Android interface modes](docs/android/INTERFACE-MODES.md) for details.
+
 <picture>
   <source media="(max-width: 640px)" srcset="docs/assets/nuvio-readme-banner-mobile.png">
   <img src="docs/assets/nuvio-readme-banner.png" alt="Nuvio Native Legacy. A native TV client for LG webOS, Samsung Tizen and Android TV (experimental). Independent, unofficial fork." width="1600">
