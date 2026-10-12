@@ -16,6 +16,7 @@
 #include "spotpessoa.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "shot_context.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +44,7 @@ static void tecla(SDL_Keycode k) {
 }
 
 static void quadro(void) {
+  shot_frame_tick();
   SDL_PumpEvents();
   txt_novo_quadro();
   tex_novo_quadro();
@@ -56,6 +58,33 @@ static void quadro(void) {
   SDL_GL_SwapWindow(janela);
 }
 
+#ifdef NV_SHOT_FIXED_TICKS
+// Drain worker queues at the initial wave time, without moving focus/animation.
+static void prepararArtesOnda(void) {
+  const Uint32 instante = SDL_GetTicks();
+  const Uint64 limite = SDL_GetPerformanceCounter() + SDL_GetPerformanceFrequency() * 5;
+  int prontas = 0;
+  for (int tentativa = 0; tentativa < 300; tentativa++) {
+    unsigned faltas = tex_n_falta;
+    int textos = txt_pendentes, pendentes = 0;
+    SDL_PumpEvents();
+    txt_novo_quadro(); tex_novo_quadro(); tex_bombear(32); gfx_novo_quadro();
+    busca_atualizar(0.0f, instante);
+    glClearColor(0.051f, 0.051f, 0.051f, 1.0f); glClear(GL_COLOR_BUFFER_BIT);
+    busca_desenhar(instante); rail_shot_desenhar(MENU_BUSCAR);
+    SDL_GL_SwapWindow(janela);
+    tex_estatisticas(NULL, &pendentes, NULL, NULL, NULL);
+    assert(SDL_GetTicks() == instante);
+    if (!pendentes && tex_n_falta == faltas && txt_pendentes == textos) {
+      if (++prontas == 2) return;
+    } else prontas = 0;
+    if (SDL_GetPerformanceCounter() >= limite) break;
+    SDL_Delay(10); // Real yielding; the controlled fixture clock stays paused.
+  }
+  assert(!"Search wave assets did not become ready within five seconds");
+}
+#endif
+
 // `ms` > 0: grava depois de tantos milissegundos de quadros, e nao depois de
 // 45 quadros — para fotografar uma animacao no meio (a onda dos resultados).
 static void capturaEm(const char *nome, Uint32 ms) {
@@ -64,9 +93,22 @@ static void capturaEm(const char *nome, Uint32 ms) {
   int i, y;
   assert(pix);
   rail_shot_aplicar();
-  if (ms) { Uint32 t0 = SDL_GetTicks(); while (SDL_GetTicks() - t0 < ms) quadro(); }
+  if (ms) {
+#ifdef NV_SHOT_FIXED_TICKS
+    if (ms == 170) prepararArtesOnda();
+#endif
+    Uint32 t0 = SDL_GetTicks();
+    while (SDL_GetTicks() - t0 < ms) quadro();
+#ifdef NV_SHOT_FIXED_TICKS
+    if (ms == 170) assert(SDL_GetTicks() - t0 == 170); // Preserve the mid-wave capture.
+#endif
+  }
   else for (i = 0; i < 45; i++) quadro();
+#ifdef NV_SHOT_FIXED_TICKS
+  if (ms != 170) quadro();
+#else
   quadro();
+#endif
   glReadPixels(0, 0, 1920, 1080, GL_RGBA, GL_UNSIGNED_BYTE, pix);
   s = SDL_CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, SDL_PIXELFORMAT_RGBA32);
   assert(s);
@@ -90,6 +132,7 @@ int main(int argc, char **argv) {
   IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+  shot_context();
   janela = SDL_CreateWindow("Nuvio: revisao da Busca", SDL_WINDOWPOS_CENTERED,
                            SDL_WINDOWPOS_CENTERED, 1920, 1080,
                            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);

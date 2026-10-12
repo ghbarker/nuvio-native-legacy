@@ -11,6 +11,7 @@
 # teste deste repositorio ja escreveu por cima dos dados reais do dono.
 set -eu
 cd "$(dirname "$0")/.."
+source tests/native_flags.inc
 
 NUVIO_DADOS=$(mktemp -d /tmp/nuvio-agenda-shot.XXXXXX)
 export NUVIO_DADOS
@@ -22,9 +23,7 @@ for source in src/*.c src/dts/*.c; do
   case "$source" in src/main.c) continue;; esac
   sources+=("$source")
 done
-cc "${sources[@]}" tests/agenda_shot.c -Isrc -o /tmp/nuvio-agenda-shot \
-  -O1 -g \
-  -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
-  -L/opt/homebrew/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL \
-  -Wall -Wextra -Wno-deprecated-declarations -Wno-macro-redefined
+cc "${nv_test_cflags[@]}" "${sources[@]}" tests/agenda_shot.c -o /tmp/nuvio-agenda-shot \
+  "${nv_test_libs[@]}" -Wno-deprecated-declarations -Wno-macro-redefined
 /tmp/nuvio-agenda-shot "$@"
+

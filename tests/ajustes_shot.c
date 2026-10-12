@@ -26,6 +26,7 @@
 #include "tex_cache.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "shot_context.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,6 +91,7 @@ static void captura(const char *nome, SDL_Window *win) {
   int i;
   rail_shot_aplicar();
   for (i = 0; i < quadrosCaptura; i++) {
+    shot_frame_tick();
     SDL_PumpEvents();
     txt_novo_quadro();
     tex_novo_quadro();
@@ -156,6 +158,7 @@ int main(int argc, char **argv) {
   IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+  shot_context();
   w = SDL_CreateWindow("Nuvio: revisao dos Ajustes", SDL_WINDOWPOS_CENTERED,
                        SDL_WINDOWPOS_CENTERED, 1920, 1080,
                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
@@ -335,6 +338,7 @@ int main(int argc, char **argv) {
         const char *t;
         // One frame first: the header pills measure their rows while drawing,
         // and the navigation reads that layout.
+        shot_frame_tick();
         ajustes_atualizar(1.0f / 60.0f, SDL_GetTicks());
         ajustes_desenhar(SDL_GetTicks());
         for (t = getenv("NUVIO_SHOT_TECLAS"); *t; t++)
