@@ -1,0 +1,43 @@
+name: TV rendering pixel diagnosis
+'on':
+  push:
+    branches:
+    - review/android-auto-mode-build
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - name: Image tools
+      run: sudo apt-get update -qq && sudo apt-get install -y python3-pil
+    - uses: actions/download-artifact@v4
+      with:
+        name: TV-upstream-comparison-8c22b57253e956440e226fb969bbe8829b8dd0d3
+        run-id: 38185117442
+        github-token: ${{ github.token }}
+        path: captures
+    - name: Measure and repack differing pixels
+      run: "python3 - <<'PIXELS'\nfrom pathlib import Path\nfrom PIL import Image,\
+        \ ImageChops\nimport json\nbase=Path('captures/upstream'); cand=Path('captures/combined');\
+        \ out=Path('diagnostic'); out.mkdir()\nselected={'search-populares','search-resultados-onda','settings-0-editor-numero','settings-1-cor'}\n\
+        metrics=[]; rows=[]\nfor path in sorted(cand.glob('*-diff.png')):\n    name=path.name.removesuffix('-diff.png')\n\
+        \    a=Image.open(base/(name+'.png')).convert('RGB'); b=Image.open(cand/(name+'.png')).convert('RGB')\n\
+        \    diff=ImageChops.difference(a,b)\n    pixels=sum(p!=(0,0,0) for p in diff.getdata())\n\
+        \    row={'name':name,'bbox':diff.getbbox(),'changedPixels':pixels,'size':a.size}\n\
+        \    metrics.append(row); print(json.dumps(row))\n    if name in selected:\n\
+        \        a.save(out/(name+'-upstream.png')); b.save(out/(name+'-combined.png'));\
+        \ diff.save(out/(name+'-diff.png'))\n    panel=Image.new('RGB',(1920,360))\n\
+        \    for i,im in enumerate((a,b,diff)):\n        preview=im.resize((640,360))\n\
+        \        panel.paste(preview,(i*640,0))\n    panel.save(out/(name+'-preview.jpg'),quality=85)\n\
+        \    rows.append(panel)\n(out/'metrics.json').write_text(json.dumps(metrics,indent=2)+'\\\
+        n')\nmontage=Image.new('RGB',(1920,360*len(rows)))\nfor i,row in enumerate(rows):\
+        \ montage.paste(row,(0,360*i))\nmontage.save(out/'montage.jpg',quality=85)\n\
+        print('DIAGNOSTIC_BYTES',sum(p.stat().st_size for p in out.iterdir()))\nPIXELS\n"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: TV-pixel-diagnosis-${{ github.sha }}
+        path: diagnostic/
+        retention-days: 14
