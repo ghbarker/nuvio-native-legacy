@@ -303,10 +303,12 @@ static float estRolY;
 // Os DELETE remotos de "Tirar de Continuar assistindo", fora do fio de
 // desenho. Nenhum dos dois e obrigatorio: sem Trakt nao ha id de playback, sem
 // conta nao ha RPC. Os dois dizem no log o que fizeram.
-typedef struct { char imdb[64]; char chave[192]; int ocultar; } TirarRemoto;
+typedef struct { char imdb[64]; char chave[192]; int ocultar; TirarRemotoPedido pedido; } TirarRemoto;
 static void *fioTirarRemoto(void *u) {
   TirarRemoto *tr = (TirarRemoto *)u;
-  tirarremoto_executar(tr->imdb, tr->chave, tr->ocultar);
+  if (tirarremoto_executar_pedido) tirarremoto_executar_pedido(&tr->pedido, tr->chave, tr->ocultar);
+  else tirarremoto_executar(tr->imdb, tr->chave, tr->ocultar);
+  memset(tr, 0, sizeof *tr);
   free(tr);
   return NULL;
 }
@@ -319,6 +321,7 @@ static void *fioTirarRemoto(void *u) {
 static void tirarRemotoEmFio(TirarRemoto *tr) {
   pthread_t t;
   if (!tr) return;
+  if (tirarremoto_capturar && !tirarremoto_capturar(&tr->pedido, tr->imdb)) { free(tr); return; }
   if (pthread_create(&t, NULL, fioTirarRemoto, tr) == 0) { pthread_detach(t); return; }
   printf("[ctx] sem fio para tirar %s do Trakt/conta: so o efeito local vale\n", tr->imdb);
   fflush(stdout);

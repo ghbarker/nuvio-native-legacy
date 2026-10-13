@@ -20,6 +20,9 @@
 void desc_esquecer(void);
 // Troca de perfil (#294): tira da tela e da memoria o catalogo do perfil que saiu.
 void desc_esquecer_catalogo_perfil(void);
+// Confirmed opening, including the same profile: invalidate detached jobs and
+// clear live results, without removing saved account/profile configuration.
+void desc_abrir_sessao(void);
 
 // CACHE UNICA DE MANIFESTO (corpo de manifest.json), por url + versao da lista
 // de addons (addons_versao()). Antes havia DOIS caminhos baixando o mesmo

@@ -20,6 +20,31 @@
 #ifndef NV_DEBRID_H
 #define NV_DEBRID_H
 
+#include <stdint.h>
+
+// Conta lida pelo sync: uma resposta e um conjunto completo, inclusive os
+// provedores ausentes. O worker preenche a copia; so a sessao que a pediu a
+// publica. Nunca transportar a chave em log, URL de diagnostico ou i18n.
+typedef struct { char chave[4][200]; } DebridConta;
+void debrid_conta_iniciar(DebridConta *conta);
+void debrid_conta_definir(DebridConta *conta, const char *servico, const char *chave);
+int  debrid_aplicar_chaves_conta(const DebridConta *conta, uint64_t sessao);
+void debrid_aplicar_chaves_locais(const DebridConta *conta);
+void debrid_abrir_sessao(uint64_t sessao);
+
+// Capturar ao despachar um trabalho, antes de trocar de perfil. Todas as
+// chamadas HTTP dele leem estas chaves e este episodio, nunca os da pessoa
+// que entrou enquanto o worker estava na rede. Contexto vive ate sair().
+typedef struct {
+  char chave[4][200];
+  int temporada, episodio;
+  uint64_t sessao;
+  unsigned busca;
+} DebridContexto;
+void debrid_contexto_capturar(DebridContexto *contexto);
+void debrid_contexto_entrar(const DebridContexto *contexto);
+void debrid_contexto_sair(void);
+
 // Chave vinda da conta. `servico` e o sufixo de "debrid:<servico>":
 // realdebrid/real-debrid, torbox e premiumize (com ou sem hifen). Uma chave
 // por servico; chamar de novo para outro servico NAO apaga a anterior.
