@@ -1,23 +1,48 @@
-name: Verify persistent test APK signing identity
+name: Permanently signed TV and mobile test APK
 'on':
   push:
     branches:
     - review/test-apk-signing-identity
 permissions:
   contents: read
+  actions: read
 jobs:
-  identity:
+  apk:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: '17'
-    - name: Compare persistent test signing certificate with installed test builds
+    - name: Download exact validated APK
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        mkdir -p build/apk build/apk-proof "$RUNNER_TEMP/source-apk"
+        gh run download 38454168514 --repo "$GITHUB_REPOSITORY" \
+          --name Nuvio-source-metadata-test-c5a58123ddbb1ea18356d22a303de13f4a76a57d \
+          --dir "$RUNNER_TEMP/source-apk"
+        python3 - "$RUNNER_TEMP/source-apk" <<'PY'
+        import hashlib
+        import shutil
+        import sys
+        from pathlib import Path
+        files = list(Path(sys.argv[1]).glob('*-tv-mobile-test.apk'))
+        assert len(files) == 1, files
+        expected = '3d8312b09c0a6193971ed9e9955794e62d4189b81c4cfd91fb81f8da40120130'
+        actual = hashlib.sha256(files[0].read_bytes()).hexdigest()
+        assert actual == expected, (actual, expected)
+        shutil.copyfile(files[0], 'build/apk-proof/validated-input.apk')
+        print('Exact previously tested APK SHA256 verified:', actual)
+        PY
+    - name: Sign with the persistent original test key
       env:
         NUVIO_TOUCH_DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
-      shell: bash
       run: |
         set -euo pipefail
         signing_dir="$RUNNER_TEMP/nuvio-test-signing"
@@ -30,13 +55,81 @@ jobs:
           -storepass android -file "$signing_dir/public-cert.der" >/dev/null
         python3 - "$signing_dir/public-cert.der" <<'PY'
         import hashlib
-        import json
         import sys
         from pathlib import Path
-        current = hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest()
-        previous = '8ef0e0bd9e3a2f3b9ace16beea292ea72b541c0f244c3ab38dfebd5f555e5475'
-        last = 'ad76654b50ddb29d54a395ded92a8a37c0ab555f5865711fcc0bf0d4a1807e6c'
-        print(json.dumps({'persistent_signing_certificate_sha256': current,
-                          'matches_previous_installed_test_build': current == previous,
-                          'matches_last_generated_test_build': current == last}))
+        expected = '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+        actual = hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest()
+        assert actual == expected, 'Persistent test signing key changed'
+        print('Original preview signing certificate verified:', actual)
         PY
+        "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+          --ks "$signing_dir/debug.keystore" --ks-key-alias androiddebugkey \
+          --ks-pass pass:android --key-pass pass:android \
+          --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
+          --v4-signing-enabled false \
+          --out build/apk/Nuvio-TV-Mobile-Test.apk build/apk-proof/validated-input.apk
+    - name: Verify signing, app identity and unchanged app payload
+      run: |
+        set -euo pipefail
+        "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs \
+          build/apk/Nuvio-TV-Mobile-Test.apk | tee build/apk-proof/signing.txt
+        python3 - "$ANDROID_HOME/build-tools/35.0.0/aapt" <<'PY'
+        import hashlib
+        import json
+        import re
+        import subprocess
+        import sys
+        import zipfile
+        from pathlib import Path
+        apk = Path('build/apk/Nuvio-TV-Mobile-Test.apk')
+        original = Path('build/apk-proof/validated-input.apk')
+        certificate = '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+        text = Path('build/apk-proof/signing.txt').read_text()
+        assert 'Signer #1 certificate SHA-256 digest: ' + certificate in text
+        badging = subprocess.check_output([sys.argv[1], 'dump', 'badging', str(apk)], text=True)
+        assert re.search(r"^package: name='space.nuvio.nativelegacy.touch' versionCode='20005'", badging, re.MULTILINE)
+        assert re.search(r"^application-label:'Nuvio TV/Mobile Test'", badging, re.MULTILINE)
+        def signing_entry(name):
+            return name.startswith('META-INF/') and (name.endswith(('.RSA', '.DSA', '.EC', '.SF')) or name == 'META-INF/MANIFEST.MF')
+        with zipfile.ZipFile(original) as before, zipfile.ZipFile(apk) as after:
+            old_names = {n for n in before.namelist() if not signing_entry(n)}
+            new_names = {n for n in after.namelist() if not signing_entry(n)}
+            assert old_names == new_names
+            for name in old_names:
+                assert hashlib.sha256(before.read(name)).digest() == hashlib.sha256(after.read(name)).digest(), name
+            for abi in ('arm64-v8a', 'armeabi-v7a'):
+                assert 'lib/' + abi + '/libmain.so' in new_names
+        subprocess.run([sys.executable, 'tools/android-apk-pages.py', str(apk)], check=True)
+        proof = {
+            'input_run': 38454168514,
+            'input_commit': 'c5a58123ddbb1ea18356d22a303de13f4a76a57d',
+            'input_apk_sha256': hashlib.sha256(original.read_bytes()).hexdigest(),
+            'apk_sha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
+            'apk_bytes': apk.stat().st_size,
+            'certificate_sha256': certificate,
+            'matches_original_touch_preview_11': True,
+            'app_payload_identical_to_tested_apk': True,
+            'package': 'space.nuvio.nativelegacy.touch',
+            'label': 'Nuvio TV/Mobile Test',
+            'version_code': 20005,
+            'abis': ['arm64-v8a', 'armeabi-v7a'],
+        }
+        Path('build/apk-proof/validated-input.apk').unlink()
+        Path('build/apk-proof/update-identity.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print(json.dumps(proof, indent=2))
+        PY
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Nuvio-TV-Mobile-Test-permanent-signing-${{ github.sha }}
+        path: build/apk/Nuvio-TV-Mobile-Test.apk
+        if-no-files-found: error
+        retention-days: 14
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: apk-signing-proof-${{ github.sha }}
+        path: |
+          build/apk-proof/signing.txt
+          build/apk-proof/update-identity.json
+        if-no-files-found: warn
+        retention-days: 14
