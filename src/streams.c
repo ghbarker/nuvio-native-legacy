@@ -7,6 +7,7 @@
 #include "tex_cache.h"
 #include "livetv_regras.h"
 #include "idioma.h"
+#include "linguas.h"
 #include "badges.h"
 #include "selospacote.h"
 #include "logotitulo.h"
@@ -89,6 +90,7 @@ static void medirCabecalho(void);
 #define FOLHA_MARCA_H   30.0f  // "SUA ESCOLHA ANTERIOR" / "REPRODUZINDO AGORA"
 #define FOLHA_ARQ_H     34.0f  // nome do arquivo, so na linha em foco
 #define FOLHA_FIT_H     32.0f  // StreamFit: evidencia da conexao, so na linha em foco
+#define FOLHA_FAIXA_H   28.0f  // idiomas declarados pelo addon, antes de reproduzir
 #define FOLHA_LINHA_GAP  4.0f
 #define FOLHA_SEC_H     64.0f  // cabecalho "4K  ULTRA HD ... 3 fontes"
 #define FOLHA_SEC_GAP   26.0f
@@ -2429,6 +2431,126 @@ static int temPalavra(const char *s, const char *p) {
 static int temNoTexto(const Stream *s, const char *p) {
   return temPalavra(s->rotulo, p) || temPalavra(s->descricao, p) || temPalavra(s->arquivo, p);
 }
+// Somente os idiomas DECLARADOS na resposta do addon. Nao usa o nome do
+// arquivo, as mascaras dos filtros nem as faixas descobertas pelo player.
+// ling_nome nomeia a familia; a variante declarada continua visivel aqui.
+static int faixaIdiomaInformado(const char *raw, size_t n) {
+  static const char *const ausentes[] = {
+    "unknown", "und", "undefined", "null", "none", "n/a", "na", "?", NULL
+  };
+  if (!n) return 0;
+  for (int i = 0; ausentes[i]; i++)
+    if (strlen(ausentes[i]) == n && !strncasecmp(raw, ausentes[i], n)) return 0;
+  return 1;
+}
+static int faixaIdiomaNome(const char *raw, char *nome, unsigned tam) {
+  char codigo[32], base[32], regiao[32];
+  const char *rotulo, *codigoDoNome;
+  size_t n = strlen(raw), k = 0;
+  int etiqueta = n >= 2 && n < sizeof codigo;
+  if (!tam || !faixaIdiomaInformado(raw, n)) return 0;
+  // BCP-47 / ISO curtos. Aceitar '_' como '-' sem perder PT-PT / ES-419.
+  while (k < n && isalpha((unsigned char)raw[k])) k++;
+  if (k < 2 || k > 3 || (k < n && raw[k] != '-' && raw[k] != '_')) etiqueta = 0;
+  for (size_t j = k; etiqueta && j < n; j++)
+    if (!isalnum((unsigned char)raw[j]) && raw[j] != '-' && raw[j] != '_') etiqueta = 0;
+  if (etiqueta) {
+    for (size_t j = 0; j <= n; j++)
+      codigo[j] = raw[j] == '_' ? '-' : (char)tolower((unsigned char)raw[j]);
+    snprintf(base, sizeof base, "%.*s", (int)k, codigo);
+    rotulo = i18n(ling_nome(base));
+    if (k < n && codigo[k + 1]) {
+      size_t j;
+      for (j = 0; codigo[k + 1 + j] && j + 1 < sizeof regiao; j++)
+        regiao[j] = (char)toupper((unsigned char)codigo[k + 1 + j]);
+      regiao[j] = 0;
+      snprintf(nome, tam, "%s (%s)", rotulo, regiao);
+    } else {
+      // Sinonimos brasileiros reconhecidos pela folha de faixas.
+      if (!strcmp(codigo, "pb") || !strcmp(codigo, "br") || !strcmp(codigo, "ptb"))
+        rotulo = i18n(ling_nome("pob"));
+      snprintf(nome, tam, "%s", rotulo);
+    }
+    return nome[0] != 0;
+  }
+  codigoDoNome = ling_do_nome(raw);
+  if (codigoDoNome) {
+    const char *parenteses = strchr(raw, '(');
+    rotulo = i18n(ling_nome(codigoDoNome));
+    // Um nome informado com regiao nao perde essa regiao ao ser traduzido.
+    if (parenteses && strcmp(codigoDoNome, "pob"))
+      snprintf(nome, tam, "%s %s", rotulo, parenteses);
+    else snprintf(nome, tam, "%s", rotulo);
+  } else snprintf(nome, tam, "%s", i18n(raw));  // sem traducao: preserva o informado
+  return nome[0] != 0;
+}
+static int faixaNomeRepetido(const char *listaNomes, const char *nome) {
+  size_t n = strlen(nome);
+  for (const char *p = listaNomes; *p;) {
+    const char *f = strchr(p, ',');
+    size_t tam = f ? (size_t)(f - p) : strlen(p);
+    if (tam == n && !strncasecmp(p, nome, n)) return 1;
+    if (!f) break;
+    p = f + 1;
+    while (*p == ' ') p++;
+  }
+  return 0;
+}
+int stream_faixas_texto(const Stream *s, int legendas, char *saida, unsigned tam) {
+  const char *p, *fim;
+  size_t usado = 0;
+  if (!saida || !tam) return 0;
+  saida[0] = 0;
+  if (!s) return 0;
+  p = legendas ? s->legendaIdiomas : s->audioIdiomas;
+  fim = p + strnlen(p, sizeof s->audioIdiomas);
+  while (p < fim) {
+    const char *f = memchr(p, ',', (size_t)(fim - p)), *ate = f ? f : fim;
+    char raw[sizeof s->audioIdiomas], nome[sizeof s->audioIdiomas + 64];
+    while (p < ate && isspace((unsigned char)*p)) p++;
+    while (ate > p && isspace((unsigned char)ate[-1])) ate--;
+    snprintf(raw, sizeof raw, "%.*s", (int)(ate - p), p);
+    if (faixaIdiomaNome(raw, nome, sizeof nome) && !faixaNomeRepetido(saida, nome)) {
+      size_t q = strlen(nome), separador = usado ? 2 : 0;
+      // Somente nomes completos: uma saida curta nunca corta um glifo UTF-8.
+      if (usado + separador + q >= tam) break;
+      if (separador) { memcpy(saida + usado, ", ", 2); usado += 2; }
+      memcpy(saida + usado, nome, q + 1); usado += q;
+    }
+    p = f ? f + 1 : fim;
+  }
+  return (int)usado;
+}
+static int linhasFaixas(const Stream *s) {
+  int n = 0;
+  if (!s) return 0;
+  for (int legendas = 0; legendas < 2; legendas++) {
+    const char *p = legendas ? s->legendaIdiomas : s->audioIdiomas;
+    const char *fim = p + strnlen(p, sizeof s->audioIdiomas);
+    // O parser entrega CSV limpo. Esta verificacao barata tambem tolera
+    // fontes sinteticas vazias/desconhecidas, sem traduzir a lista por quadro.
+    while (p < fim) {
+      const char *f = memchr(p, ',', (size_t)(fim - p)), *ate = f ? f : fim;
+      while (p < ate && isspace((unsigned char)*p)) p++;
+      while (ate > p && isspace((unsigned char)ate[-1])) ate--;
+      if (faixaIdiomaInformado(p, (size_t)(ate - p))) { n++; break; }
+      p = f ? f + 1 : fim;
+    }
+  }
+  return n;
+}
+static float desenharFaixas(const Stream *s, float x, float y, float w, int sel, float a) {
+  float altura = 0;
+  for (int legendas = 0; legendas < 2; legendas++) {
+    char idiomas[4096], linha[4224];
+    int c = sel ? 180 : 140;
+    if (!stream_faixas_texto(s, legendas, idiomas, sizeof idiomas)) continue;
+    snprintf(linha, sizeof linha, "%s: %s", i18n(legendas ? "Legendas" : "Áudio"), idiomas);
+    txt_desenhar_alpha(txt_linha_corta(TXT_PG_FIM, linha, c, c, c - 2, 255, w), x, y + altura, a);
+    altura += FOLHA_FAIXA_H;
+  }
+  return altura;
+}
 // O IDIOMA nao tem logo no pacote de selos, entao vai como texto no fim da
 // fileira. Lido por palavra no nome, na descricao e no arquivo.
 // Portugues na LISTA DE IDIOMAS do formatador (o "⚑ English | ... |
@@ -2652,7 +2774,7 @@ static float alturaLinha(int i, int automatica) {
     if (grupo == 1 && nOrdem == foco) h += extra * abreFoco;
     else if (nOrdem == linhaAnt)      h += extra * abreAnt;
   }
-  return h;
+  return h + linhasFaixas(&lista[i]) * FOLHA_FAIXA_H;
 }
 static void porLinha(int i, float *y, int automatica) {
   float h = alturaLinha(i, automatica);
@@ -2930,6 +3052,7 @@ int stream_folha_n(void) { return nFiltrados(); }
 static int   detAberto;
 static float detAnim, detRol, detRolAlvo, detAlt;   // detAlt: altura do corpo, medida no desenho
 static char  detProv[96], detTit[512], detArq[512], detDesc[4096];
+static char  detAudio[4096], detLegendas[4096];
 #define DET_PASSO 84.0f
 static void detalheAbrir(const Stream *s) {
   char tmp[sizeof s->descricao];
@@ -2941,6 +3064,8 @@ static void detalheAbrir(const Stream *s) {
   snprintf(tmp,sizeof tmp,"%s",s->descricao);
   for(char *p=tmp,*q=tmp;;p++){ if(*p!='\r') *q++=*p; if(!*p) break; }
   nv_limpar_texto(tmp,detDesc,sizeof detDesc,0);
+  stream_faixas_texto(s,0,detAudio,sizeof detAudio);
+  stream_faixas_texto(s,1,detLegendas,sizeof detLegendas);
   detAberto=1; detRol=detRolAlvo=0; detAlt=0;
 }
 int  stream_detalhe_aberto(void) { return detAberto; }
@@ -3403,6 +3528,12 @@ static void desenhaDetalhe(float x, float w, int ptr) {
   if(detTit[0]) {
     by+=txt_bloco(TXT_PAINEL_ITEM,detTit,250,250,248,ix,by,iw,34.0f,a,0)+22.0f;
   }
+  for(int legendas=0;legendas<2;legendas++) {
+    const char *idiomas=legendas?detLegendas:detAudio;
+    if(!idiomas[0]) continue;
+    plrui_kicker(legendas?"Legendas":"Áudio",ix,by,243,242,239,a*.45f); by+=30.0f;
+    by+=txt_bloco(TXT_PG_FIM,idiomas,200,200,198,ix,by,iw,DET_LD,a,0)+22.0f;
+  }
   if(detArq[0]) {
     plrui_kicker("Arquivo",ix,by,243,242,239,a*.45f); by+=30.0f;
     by+=txt_bloco(TXT_PG_FIM,detArq,150,150,148,ix,by,iw,DET_LD,a,0)+22.0f;
@@ -3782,6 +3913,7 @@ static void corpoFolha(float x, float w, float anim, Uint32 agora, int ilha) {
           if(l.w+14+le.w<=txtW) txt_desenhar_alpha(le,tx+l.w+14,cy+l.h-le.h-3,anim); } } }
     cy+=40;
     if(ajustes_fonte_texto_addon()) {
+      cy+=desenharFaixas(s,tx,cy,tr-tx,sel,anim);
       LinhaAddon ls[FOLHA_ADDON_LINHAS];
       int nl=linhasAddon(s,ls,FOLHA_ADDON_LINHAS);
       // abertura da linha: a mesma mola da altura (alturaLinha)
@@ -3868,6 +4000,7 @@ static void corpoFolha(float x, float w, float anim, Uint32 agora, int ilha) {
         if(lw+18+ln.w<=txtW0) { txt_desenhar_alpha(ln,tx0+(lw>0?lw+18:0),cy+(FOLHA_SELO_H-ln.h)*.5f,anim); lw+=(lw>0?18:0)+ln.w; } }
       }
     cy+=FOLHA_SELO_H+12;
+    cy+=desenharFaixas(s,tx,cy,tr-tx,sel,anim);
     // O ARQUIVO, so na linha em foco: e o que distingue duas fontes iguais
     // (grupo de release, versao), e em toda linha era ruido.
     { float a=(sel?abreFoco:row==linhaAnt?abreAnt:0);

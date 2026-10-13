@@ -42,6 +42,257 @@ static const char *valorRaiz(const char *p, const char *fim, const char *nome) {
   return NULL;
 }
 
+static const char *objetoRaiz(const char *p, const char *fim, const char *nome) {
+  const char *v = valorRaiz(p, fim, nome), *f;
+  if (!v || *v != '{' || !(f = js_fim(v)) || f <= v || f > fim || f[-1] != '}') return NULL;
+  return v;
+}
+
+// Idiomas de faixas sao metadados positivos do addon.
+// Valida cada valor antes de usa-lo: JSON cortado, objetos muito
+// fundos e chaves em cabecalhos nunca viram disponibilidade de audio/legenda.
+static const char *faixasEspacos(const char *p, const char *fim) {
+  while (p < fim && isspace((unsigned char)*p)) p++;
+  return p;
+}
+static unsigned faixasHex4(const char *p) {
+  unsigned n = 0;
+  for (int k = 0; k < 4; k++) {
+    unsigned char c = (unsigned char)p[k];
+    if (!isxdigit(c)) return UINT_MAX;
+    n = n * 16 + (c <= '9' ? (unsigned)(c - '0') : (unsigned)(tolower(c) - 'a' + 10));
+  }
+  return n;
+}
+static const char *faixasFimTexto(const char *p, const char *fim) {
+  if (p >= fim || *p++ != '"') return NULL;
+  while (p < fim) {
+    unsigned char c = (unsigned char)*p++;
+    if (c == '"') return p;
+    if (c < 0x20) return NULL;
+    if (c != '\\') continue;
+    if (p >= fim) return NULL;
+    c = (unsigned char)*p++;
+    if (strchr("\"\\/bfnrt", c)) continue;
+    if (c != 'u' || fim - p < 4) return NULL;
+    unsigned cp = faixasHex4(p);
+    if (cp == UINT_MAX) return NULL;
+    p += 4;
+    if (cp >= 0xDC00 && cp <= 0xDFFF) return NULL;
+    if (cp >= 0xD800 && cp <= 0xDBFF) {
+      if (fim - p < 6 || p[0] != '\\' || p[1] != 'u') return NULL;
+      unsigned lo = faixasHex4(p + 2);
+      if (lo < 0xDC00 || lo > 0xDFFF) return NULL;
+      p += 6;
+    }
+  }
+  return NULL;
+}
+static const char *faixasFimValor(const char *p, const char *fim, unsigned prof) {
+  if (p >= fim || prof > 16) return NULL;
+  if (*p == '"') return faixasFimTexto(p, fim);
+  if (*p == '{' || *p == '[') {
+    int objeto = *p == '{';
+    char fecha = objeto ? '}' : ']';
+    p = faixasEspacos(p + 1, fim);
+    if (p < fim && *p == fecha) return p + 1;
+    for (;;) {
+      if (objeto) {
+        p = faixasFimTexto(p, fim);
+        if (!p) return NULL;
+        p = faixasEspacos(p, fim);
+        if (p >= fim || *p != ':') return NULL;
+        p = faixasEspacos(p + 1, fim);
+      }
+      p = faixasFimValor(p, fim, prof + 1);
+      if (!p) return NULL;
+      p = faixasEspacos(p, fim);
+      if (p >= fim) return NULL;
+      if (*p == fecha) return p + 1;
+      if (*p != ',') return NULL;
+      p = faixasEspacos(p + 1, fim);
+    }
+  }
+  static const char *const literais[] = {"null", "true", "false"};
+  for (unsigned k = 0; k < sizeof literais / sizeof *literais; k++) {
+    size_t n = strlen(literais[k]);
+    if ((size_t)(fim - p) >= n && !memcmp(p, literais[k], n)) return p + n;
+  }
+  // Numeros sao ignorados como idiomas, mas precisam de sintaxe JSON valida.
+  if (*p == '-') p++;
+  if (p >= fim || !isdigit((unsigned char)*p)) return NULL;
+  if (*p == '0') p++;
+  else while (p < fim && isdigit((unsigned char)*p)) p++;
+  if (p < fim && *p == '.') {
+    p++;
+    if (p >= fim || !isdigit((unsigned char)*p)) return NULL;
+    while (p < fim && isdigit((unsigned char)*p)) p++;
+  }
+  if (p < fim && (*p == 'e' || *p == 'E')) {
+    p++;
+    if (p < fim && (*p == '+' || *p == '-')) p++;
+    if (p >= fim || !isdigit((unsigned char)*p)) return NULL;
+    while (p < fim && isdigit((unsigned char)*p)) p++;
+  }
+  return p;
+}
+static int faixasUtf8(const unsigned char *p) {
+  while (*p) {
+    unsigned c = *p++, cp, n;
+    if (c < 0x80) continue;
+    if (c >= 0xC2 && c <= 0xDF) { cp = c & 31; n = 1; }
+    else if (c >= 0xE0 && c <= 0xEF) { cp = c & 15; n = 2; }
+    else if (c >= 0xF0 && c <= 0xF4) { cp = c & 7; n = 3; }
+    else return 0;
+    unsigned minimo = n == 1 ? 0x80 : n == 2 ? 0x800 : 0x10000;
+    for (unsigned k = 0; k < n; k++) {
+      if ((*p & 0xC0) != 0x80) return 0;
+      cp = (cp << 6) | (*p++ & 63);
+    }
+    if (cp < minimo || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF) ||
+        (cp >= 0x80 && cp <= 0x9F) || cp == 0x2028 || cp == 0x2029) return 0;
+  }
+  return 1;
+}
+static int faixasTexto(const char *p, const char *fim, char *dst, unsigned tam) {
+  const char *f = faixasFimTexto(p, fim);
+  char json[1024];
+  if (!f || !tam || (size_t)(f - p) >= sizeof json || (size_t)(f - p - 2) >= tam) return 0;
+  // O decodificador geral converte alguns controles em espacos. Aqui nao
+  // aceitar "en\\u0000..." nem valores com quebras que parecam cabecalhos.
+  for (const char *q = p + 1; q < f - 1; q++) if (*q == '\\') {
+    q++;
+    if (strchr("bfnrt", *q)) return 0;
+    if (*q == 'u') {
+      unsigned cp = faixasHex4(q + 1);
+      if (cp < 0x20 || cp == 0x7F) return 0;
+      q += 4;
+    }
+  }
+  memcpy(json, p, (size_t)(f - p)); json[f - p] = 0;
+  return js_cadeia(json, dst, tam) && faixasUtf8((const unsigned char *)dst);
+}
+static void faixaIdiomaAdicionar(char *dst, unsigned tam, const char *ini, const char *fim) {
+  char idioma[128];
+  while (ini < fim && isspace((unsigned char)*ini)) ini++;
+  while (fim > ini && isspace((unsigned char)fim[-1])) fim--;
+  size_t n = (size_t)(fim - ini);
+  if (!n || n >= sizeof idioma) return;
+  int letra = 0;
+  for (const char *p = ini; p < fim; p++) {
+    unsigned char c = (unsigned char)*p;
+    if (c >= 0x80 || isalpha(c)) letra = 1;
+    else if (!isdigit(c) && c != ' ' && c != '-' && c != '_' && c != '(' && c != ')' && c != '\'' && c != '.') return;
+  }
+  if (!letra) return;
+  memcpy(idioma, ini, n); idioma[n] = 0;
+  static const char *const vazios[] = {
+    "und", "unknown", "null", "none", "undefined", "unavailable", "unreported",
+    "not reported", "not specified", "n.a.", "zxx", "mul", "multi", "multilingual",
+    "multiple", "multiple languages", "auto", "original"
+  };
+  for (unsigned k = 0; k < sizeof vazios / sizeof *vazios; k++)
+    if (!strcasecmp(idioma, vazios[k])) return;
+  for (const char *p = dst; *p;) {
+    const char *e = strchr(p, ',');
+    if (!e) e = p + strlen(p);
+    if ((size_t)(e - p) == n && !strncasecmp(p, idioma, n)) return;
+    p = *e ? e + 1 : e;
+  }
+  size_t usado = strlen(dst);
+  if (usado + n + (usado ? 1 : 0) >= tam) return;
+  if (usado) dst[usado++] = ',';
+  memcpy(dst + usado, idioma, n + 1);
+}
+static void faixasValorLer(const char *v, const char *fim, char *dst, unsigned tam, unsigned prof, int faixa) {
+  if (!v || v >= fim || prof > 3) return;
+  if (*v == '"') {
+    char texto[1024];
+    if (!faixasTexto(v, fim, texto, sizeof texto)) return;
+    const char *p = texto;
+    for (const char *q = p;; q++) if (!*q || *q == ',' || *q == '|' || *q == ';') {
+      faixaIdiomaAdicionar(dst, tam, p, q);
+      if (!*q) break;
+      p = q + 1;
+    }
+  } else if (*v == '[') {
+    const char *q = faixasEspacos(v + 1, fim);
+    while (q < fim && *q != ']') {
+      const char *f = faixasFimValor(q, fim, 0);
+      if (!f) return;
+      // Lista aninhada nao tem significado de faixa: nao a achatar.
+      if (*q == '"' || *q == '{') faixasValorLer(q, f, dst, tam, prof + 1, faixa);
+      q = faixasEspacos(f, fim);
+      if (q < fim && *q == ',') q = faixasEspacos(q + 1, fim);
+      else break;
+    }
+  } else if (*v == '{') {
+    // language/lang pertencem a faixa; code/name sao aceitos apenas dentro
+    // de um objeto declarado como idioma. O nome/codec de uma faixa nao e
+    // seu idioma: {name:"Stereo",code:"AAC"} nao informa idioma nenhum.
+    static const char *const chaves[] = {"language", "lang", "languageCode", "language_code", "code", "iso639_1", "iso639_2", "name"};
+    unsigned n = faixa ? 4 : sizeof chaves / sizeof *chaves;
+    for (unsigned k = 0; k < n; k++) {
+      const char *p = valorRaiz(v, fim, chaves[k]);
+      if (p && (*p == '"' || *p == '{')) {
+        faixasValorLer(p, fim, dst, tam, prof + 1, 0);
+        return;
+      }
+    }
+  }
+}
+static void faixasCampo(const char *obj, const char *fim, const char *chave, char *dst, unsigned tam, int faixa) {
+  const char *v = valorRaiz(obj, fim, chave), *f;
+  if (!v || !(f = faixasFimValor(v, fim, 0))) return;
+  const char *apos = faixasEspacos(f, fim);
+  if (apos >= fim || (*apos != ',' && *apos != '}')) return;
+  faixasValorLer(v, f, dst, tam, 0, faixa);
+}
+static void metadadosFaixas(const char *obj, const char *fim, Stream *s) {
+  const char *cr = objetoRaiz(obj, fim, "clientResolve");
+  const char *st = cr ? objetoRaiz(cr, js_fim(cr), "stream") : NULL;
+  const char *raw = st ? objetoRaiz(st, js_fim(st), "raw") : NULL;
+  const char *parsed = raw ? objetoRaiz(raw, js_fim(raw), "parsed") : NULL;
+  if (!parsed && st) parsed = objetoRaiz(st, js_fim(st), "parsed");
+  if (!parsed && cr) parsed = objetoRaiz(cr, js_fim(cr), "parsed");
+  if (!raw) raw = objetoRaiz(obj, fim, "raw");
+  if (!parsed && raw) parsed = objetoRaiz(raw, js_fim(raw), "parsed");
+  const char *parsedRaiz = objetoRaiz(obj, fim, "parsed");
+  const char *data = objetoRaiz(obj, fim, "streamData");
+  const char *parsedFile = data ? objetoRaiz(data, js_fim(data), "parsedFile") : NULL;
+  const char *objetos[] = {parsedFile, parsed, parsedRaiz, raw, st, cr, obj};
+  static const char *const audio[] = {"audioLanguages", "audio_languages", "audioTracks", "audio_tracks"};
+  static const char *const subs[] = {"subtitleLanguages", "subtitle_languages", "subtitleTracks", "subtitle_tracks"};
+  for (unsigned k = 0; k < sizeof objetos / sizeof *objetos; k++) if (objetos[k]) {
+    const char *f = js_fim(objetos[k]);
+    for (unsigned j = 0; j < sizeof audio / sizeof *audio; j++)
+      faixasCampo(objetos[k], f, audio[j], s->audioIdiomas, sizeof s->audioIdiomas, j >= 2);
+    for (unsigned j = 0; j < sizeof subs / sizeof *subs; j++)
+      faixasCampo(objetos[k], f, subs[j], s->legendaIdiomas, sizeof s->legendaIdiomas, j >= 2);
+    const char *tracks = objetoRaiz(objetos[k], f, "tracks");
+    if (tracks) {
+      const char *tf = js_fim(tracks);
+      faixasCampo(tracks, tf, "audio", s->audioIdiomas, sizeof s->audioIdiomas, 1);
+      faixasCampo(tracks, tf, "subtitles", s->legendaIdiomas, sizeof s->legendaIdiomas, 1);
+      faixasCampo(tracks, tf, "subtitle", s->legendaIdiomas, sizeof s->legendaIdiomas, 1);
+    }
+  }
+  // AIOStreams separa explicitamente languages (audio) de subtitles no
+  // ParsedFile. So estes caminhos documentados autorizam o nome generico.
+  // https://github.com/Viren070/AIOStreams/blob/main/packages/core/src/db/schemas.ts
+  if (parsedFile) {
+    faixasCampo(parsedFile, js_fim(parsedFile), "languages", s->audioIdiomas, sizeof s->audioIdiomas, 0);
+    faixasCampo(parsedFile, js_fim(parsedFile), "subtitles", s->legendaIdiomas, sizeof s->legendaIdiomas, 0);
+  }
+  if (parsed) {
+    faixasCampo(parsed, js_fim(parsed), "languages", s->audioIdiomas, sizeof s->audioIdiomas, 0);
+    faixasCampo(parsed, js_fim(parsed), "subtitles", s->legendaIdiomas, sizeof s->legendaIdiomas, 0);
+  }
+  // Stremio stream.subtitles sao legendas anexadas a ESTA fonte. Nao buscar
+  // no objeto de resposta/titulo, nem afirmar que estas faixas sao embutidas.
+  faixasCampo(obj, fim, "subtitles", s->legendaIdiomas, sizeof s->legendaIdiomas, 1);
+}
+
 // Decimal integers only, parsed without double rounding. Numeric strings
 // are accepted for compatibility, but fractions/exponents/overflow are
 // unavailable for fit. Legacy display size remains separate below.
@@ -323,6 +574,7 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
           fhd = fhdNoNome(nome); }
       js_texto_linhas(p, fim, "description", s.descricao, sizeof s.descricao);
       js_texto_linhas(p, fim, "title", titulo, sizeof titulo);
+      metadadosFaixas(p, fim, &s);
       js_texto(p, fim, "filename", s.arquivo, sizeof s.arquivo);
       // behaviorHints.bingeGroup — ANCORADO NO OBJETO, e nao procurado solto.
       //
