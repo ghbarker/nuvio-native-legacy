@@ -59,13 +59,13 @@ jobs:
         VERIFY
     - name: Native tools
       run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
-    - name: Verify corrected metadata UI and translation checks
+    - name: Verify formatted language metadata and retained parser, filter, order and cache behavior
       run: |
         export NV_TMP="$RUNNER_TEMP/nuvio-source-metadata"
         set -uo pipefail
         mkdir -p build/review "$NV_TMP"
         failed=0
-        for name in stream_faixas_ui i18n; do
+        for name in stream_faixas_parse stream_faixas_ui stream_parser streamfit_parser fontefiltro_parse fontefiltro fonte_ordem_addon fontecache_vod i18n; do
           if bash "tests/$name.sh" 2>&1 | tee "build/review/$name.log"; then
             echo "$name PASS" >> build/review/results.txt
           else

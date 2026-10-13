@@ -2514,7 +2514,7 @@ index cf47db4..c0862dc 100644
 @@ -4518,0 +4544 @@
 +  T("Tamanho máximo da fonte", "片源大小上限"),
 diff --git a/src/stream_parse.c b/src/stream_parse.c
-index 0812c43..1542b63 100644
+index 0812c43..333b38c 100644
 --- a/src/stream_parse.c
 +++ b/src/stream_parse.c
 @@ -20 +20 @@ static long tamanhoMB(double valor) {
@@ -2522,7 +2522,7 @@ index 0812c43..1542b63 100644
 +static const char *propriedadeRaiz(const char *p, const char *fim, const char *nome, const char **chave) {
 @@ -35,0 +36 @@ static const char *valorRaiz(const char *p, const char *fim, const char *nome) {
 +        if (chave) *chave = ini - 1;
-@@ -43,0 +45,422 @@ static const char *valorRaiz(const char *p, const char *fim, const char *nome) {
+@@ -43,0 +45,653 @@ static const char *valorRaiz(const char *p, const char *fim, const char *nome) {
 +static const char *valorRaiz(const char *p, const char *fim, const char *nome) {
 +  return propriedadeRaiz(p, fim, nome, NULL);
 +}
@@ -2750,6 +2750,232 @@ index 0812c43..1542b63 100644
 +  if (apos >= fim || (*apos != ',' && *apos != '}')) return;
 +  faixasValorLer(v, f, dst, tam, 0, faixa);
 +}
++
++// Um campo de texto do addon tambem pode RELATAR idiomas. Exigir uma secao
++// rotulada e um idioma inteiro conhecido evita confundir Audio: Dolby Atmos,
++// nomes de filmes e tags de release com idiomas de faixas.
++static int faixaIdiomaTextoConhecido(const char *p, const char *fim) {
++  static const char *const nomes[] = {
++    "English", "French", "German", "Italian", "Spanish", "Portuguese",
++    "Brazilian Portuguese", "Portuguese (Brazil)", "Portuguese (Portugal)",
++    "Portuguese (Brasil)", "Português", "Português (Brasil)", "Português (BR)",
++    "Português (Portugal)", "Português (PT)", "Inglês", "Ingles", "Francês",
++    "Frances", "Alemão", "Alemao", "Italiano", "Español", "Espanhol",
++    "Castilian", "Spanish (Latino)", "Spanish (Latin America)", "Latin American Spanish",
++    "Arabic", "Bengali", "Bosnian", "Bulgarian", "Burmese", "Cantonese",
++    "Catalan", "Chinese", "Chinese (Simplified)", "Chinese (Traditional)",
++    "Croatian", "Czech", "Danish", "Dutch", "Estonian", "Finnish", "Greek",
++    "Gujarati", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian",
++    "Japanese", "Kannada", "Khmer", "Korean", "Latvian", "Lithuanian",
++    "Macedonian", "Malay", "Malayalam", "Mandarin", "Marathi", "Nepali",
++    "Norwegian", "Persian", "Polish", "Punjabi", "Romanian", "Russian",
++    "Serbian", "Sinhala", "Slovak", "Slovenian", "Swedish", "Tamil",
++    "Telugu", "Thai", "Turkish", "Ukrainian", "Urdu", "Vietnamese",
++    "Basque", "Galician", "Welsh", "Filipino", "Tagalog", "Latino", "Japonês",
++    "日本語", "中文", "한국어"
++  };
++  size_t n = (size_t)(fim - p);
++  for (unsigned k = 0; k < sizeof nomes / sizeof *nomes; k++)
++    if (strlen(nomes[k]) == n && !strncasecmp(p, nomes[k], n)) return 1;
++  // ISO 639-1 e os codigos de tres letras usuais dos addons. Validar a familia
++  // antes das variantes BCP-47; "AAC", "DTS" e uma extensao .mkv nao contam.
++  static const char codigos[] =
++    "|aa|ab|ae|af|ak|am|an|ar|as|av|ay|az|ba|be|bg|bh|bi|bm|bn|bo|br|bs|"
++    "ca|ce|ch|co|cr|cs|cu|cv|cy|da|de|dv|dz|ee|el|en|eo|es|et|eu|fa|ff|"
++    "fi|fj|fo|fr|fy|ga|gd|gl|gn|gu|gv|ha|he|hi|ho|hr|ht|hu|hy|hz|ia|id|"
++    "ie|ig|ii|ik|io|is|it|iu|ja|jv|ka|kg|ki|kj|kk|kl|km|kn|ko|kr|ks|ku|"
++    "kv|kw|ky|la|lb|lg|li|ln|lo|lt|lu|lv|mg|mh|mi|mk|ml|mn|mr|ms|mt|my|"
++    "na|nb|nd|ne|ng|nl|nn|no|nr|nv|ny|oc|oj|om|or|os|pa|pi|pl|ps|pt|qu|"
++    "rm|rn|ro|ru|rw|sa|sc|sd|se|sg|si|sk|sl|sm|sn|so|sq|sr|ss|st|su|sv|"
++    "sw|ta|te|tg|th|ti|tk|tl|tn|to|tr|ts|tt|tw|ty|ug|uk|ur|uz|ve|vi|vo|"
++    "wa|wo|xh|yi|yo|za|zh|zu|eng|fra|fre|deu|ger|ita|spa|por|pob|ptb|ara|"
++    "ben|bos|bul|mya|bur|yue|cat|zho|chi|cmn|hrv|ces|cze|dan|nld|dut|est|"
++    "fin|ell|gre|guj|heb|hin|hun|isl|ice|ind|jpn|kan|khm|kor|lav|lit|mkd|"
++    "mac|msa|may|mal|mar|nep|nor|nob|nno|fas|per|pol|pan|ron|rum|rus|srp|"
++    "sin|slk|slo|slv|swe|tam|tel|tha|tur|ukr|urd|vie|eus|baq|glg|cym|wel|fil|";
++  size_t base = 0;
++  while (base < n && isalpha((unsigned char)p[base]) && (unsigned char)p[base] < 128) base++;
++  if (base < 2 || base > 3 || (base < n && p[base] != '-' && p[base] != '_')) return 0;
++  char chave[6] = {'|', 0};
++  for (size_t k = 0; k < base; k++) chave[k + 1] = (char)tolower((unsigned char)p[k]);
++  chave[base + 1] = '|';
++  if (!strstr(codigos, chave)) return 0;
++  for (size_t k = base; k < n;) {
++    if (p[k] != '-' && p[k] != '_') return 0;
++    size_t ini = ++k;
++    while (k < n && (unsigned char)p[k] < 128 && isalnum((unsigned char)p[k])) k++;
++    if (k == ini || k - ini > 8) return 0;
++  }
++  return 1;
++}
++static const char *faixasRotuloSubsTexto(const char *p, const char *fim, int *tipo) {
++  // Torrentio/AIOStreams: so a parte DEPOIS de "Subs /" e legenda. Os
++  // indicadores regionais anteriores nao revelam se eram audio ou Multi Subs.
++  static const char *const subs[] = {"multi subs", "subs"};
++  for (unsigned k = 0; k < sizeof subs / sizeof *subs; k++) {
++    size_t n = strlen(subs[k]);
++    if ((size_t)(fim - p) < n || strncasecmp(p, subs[k], n)) continue;
++    const char *q = faixasEspacos(p + n, fim);
++    if (q < fim && *q == '/') { *tipo = 2; return q + 1; }
++  }
++  return p;
++}
++static const char *faixasRotuloTexto(const char *p, const char *fim, int *tipo) {
++  static const struct { const char *rotulo; int tipo; } rotulos[] = {
++    {"audio languages", 1}, {"audio language", 1}, {"audio", 1}, {"áudio", 1},
++    {"Áudio", 1}, {"languages", 1}, {"language", 1}, {"idiomas de áudio", 1},
++    {"subtitle languages", 2}, {"subtitle language", 2}, {"subtitles", 2},
++    {"subtitle", 2}, {"subs", 2}, {"legendas", 2}, {"legenda", 2}
++  };
++  for (unsigned k = 0; k < sizeof rotulos / sizeof *rotulos; k++) {
++    size_t n = strlen(rotulos[k].rotulo);
++    if ((size_t)(fim - p) < n || strncasecmp(p, rotulos[k].rotulo, n)) continue;
++    const char *q = faixasEspacos(p + n, fim);
++    if (q < fim && *q == ':') { *tipo = rotulos[k].tipo; return q + 1; }
++  }
++  return faixasRotuloSubsTexto(p, fim, tipo);
++}
++static const char *faixaIdiomaEmoji(const char *p, const char *fim) {
++  // Inversa APENAS dos valores univocos do formatador AIOStreams, dentro de
++  // uma secao ja declarada. Nao e uma tabela de paises para inferir idiomas:
++  // 🇮🇳 representa sete idiomas e deve continuar desconhecido.
++  // https://github.com/Viren070/AIOStreams/blob/main/packages/core/src/utils/languages.ts
++  static const struct { const char *emoji, *idioma; } idiomas[] = {
++    {"🇬🇧", "English"}, {"🇯🇵", "Japanese"}, {"🇨🇳", "Chinese"},
++    {"🇷🇺", "Russian"}, {"🇸🇦", "Arabic"}, {"🇵🇹", "Portuguese"},
++    {"🇧🇷", "Portuguese (Brazil)"}, {"🇪🇸", "Spanish"}, {"🇫🇷", "French"},
++    {"🇩🇪", "German"}, {"🇮🇹", "Italian"}, {"🇰🇷", "Korean"},
++    {"🇧🇩", "Bengali"}, {"🇵🇰", "Punjabi"}, {"🇹🇭", "Thai"},
++    {"🇻🇳", "Vietnamese"}, {"🇮🇩", "Indonesian"}, {"🇹🇷", "Turkish"},
++    {"🇮🇱", "Hebrew"}, {"🇮🇷", "Persian"}, {"🇺🇦", "Ukrainian"},
++    {"🇬🇷", "Greek"}, {"🇱🇹", "Lithuanian"}, {"🇱🇻", "Latvian"},
++    {"🇪🇪", "Estonian"}, {"🇵🇱", "Polish"}, {"🇨🇿", "Czech"},
++    {"🇸🇰", "Slovak"}, {"🇭🇺", "Hungarian"}, {"🇷🇴", "Romanian"},
++    {"🇧🇬", "Bulgarian"}, {"🇷🇸", "Serbian"}, {"🇭🇷", "Croatian"},
++    {"🇸🇮", "Slovenian"}, {"🇳🇱", "Dutch"}, {"🇩🇰", "Danish"},
++    {"🇫🇮", "Finnish"}, {"🇸🇪", "Swedish"}, {"🇳🇴", "Norwegian"},
++    {"🇲🇾", "Malay"}, {"💃🏻", "Latino"}
++  };
++  size_t n = (size_t)(fim - p);
++  for (unsigned k = 0; k < sizeof idiomas / sizeof *idiomas; k++)
++    if (strlen(idiomas[k].emoji) == n && !memcmp(p, idiomas[k].emoji, n)) return idiomas[k].idioma;
++  return NULL;
++}
++static size_t faixasSeparadorTexto(const char *p, const char *fim) {
++  if (p >= fim) return 0;
++  if (*p == ',' || *p == '|' || *p == ';' || *p == '/') return 1;
++  return (size_t)(fim - p) >= strlen("•") && !memcmp(p, "•", strlen("•")) ? strlen("•") : 0;
++}
++static size_t faixasMarcadorTexto(const char *p, const char *fim, int *tipo) {
++  static const struct { const char *emoji; int tipo; } marcadores[] = {
++    {"🌎", 3}, {"🌐", 1}, {"🗣", 1}, {"📝", 2}
++  };
++  for (unsigned k = 0; k < sizeof marcadores / sizeof *marcadores; k++) {
++    size_t n = strlen(marcadores[k].emoji);
++    if ((size_t)(fim - p) < n || memcmp(p, marcadores[k].emoji, n)) continue;
++    // 🌎 tambem e o valor "Multi" do AIO. Sua secao so aceita nomes, como
++    // GDrive; nao transformar uma lista generica "🌎 / 🇬🇧" em audio.
++    *tipo = marcadores[k].tipo;
++    if ((size_t)(fim - p - n) >= strlen("️") && !memcmp(p + n, "️", strlen("️"))) n += strlen("️");
++    return n;
++  }
++  if (p >= fim || (unsigned char)*p < 0x80) return 0;
++  // Qualquer outro icone tecnico encerra a secao (🎧/🔊 sao codec/canais).
++  // Indicadores regionais e o valor Latino permanecem valores, nao marcadores.
++  if ((size_t)(fim - p) >= strlen("💃🏻") && !memcmp(p, "💃🏻", strlen("💃🏻"))) return 0;
++  const unsigned char *q = (const unsigned char *)p;
++  unsigned cp; size_t n;
++  if (*q >= 0xC2 && *q <= 0xDF) { cp = *q & 31; n = 2; }
++  else if (*q >= 0xE0 && *q <= 0xEF) { cp = *q & 15; n = 3; }
++  else if (*q >= 0xF0 && *q <= 0xF4) { cp = *q & 7; n = 4; }
++  else return 0;
++  if ((size_t)(fim - p) < n) return 0;
++  for (size_t k = 1; k < n; k++) cp = (cp << 6) | (q[k] & 63);
++  if (!((cp >= 0x1F000 && cp <= 0x1FAFF && !(cp >= 0x1F1E6 && cp <= 0x1F1FF) &&
++         !(cp >= 0x1F3FB && cp <= 0x1F3FF)) ||
++        (cp >= 0x2600 && cp <= 0x27BF))) return 0;
++  *tipo = 0;
++  if ((size_t)(fim - p - n) >= strlen("️") && !memcmp(p + n, "️", strlen("️"))) n += strlen("️");
++  return n;
++}
++static void faixasLinhaTexto(const char *p, const char *fim, char *audio, unsigned na,
++                             char *subs, unsigned ns) {
++  int tipo = 0;
++  while (p < fim) {
++    p = faixasEspacos(p, fim);
++    size_t n = faixasSeparadorTexto(p, fim);
++    if (n) { p += n; continue; }
++    n = faixasMarcadorTexto(p, fim, &tipo);
++    if (n) {
++      p = faixasEspacos(p + n, fim);
++      if (p < fim && *p == ':') p++;
++      continue;
++    }
++    const char *rotulado = faixasRotuloTexto(p, fim, &tipo);
++    if (rotulado != p) { p = rotulado; continue; }
++    const char *q = p;
++    for (; q < fim; q++) {
++      int proximo;
++      if (faixasSeparadorTexto(q, fim) || faixasMarcadorTexto(q, fim, &proximo)) break;
++      // Subs / pode vir imediatamente apos os indicadores sem separador.
++      if ((q == p || isspace((unsigned char)q[-1])) && faixasRotuloSubsTexto(q, fim, &proximo) != q) break;
++    }
++    const char *ini = faixasEspacos(p, q), *ate = q;
++    while (ate > ini && isspace((unsigned char)ate[-1])) ate--;
++    // Outro campo encerra a secao; nao emprestar os valores seguintes.
++    if (memchr(ini, ':', (size_t)(ate - ini))) tipo = 0;
++    if (tipo) {
++      char *dst = tipo == 2 ? subs : audio;
++      unsigned tam = tipo == 2 ? ns : na;
++      const char *idioma = tipo != 3 ? faixaIdiomaEmoji(ini, ate) : NULL;
++      if (idioma) faixaIdiomaAdicionar(dst, tam, idioma, idioma + strlen(idioma));
++      else if (faixaIdiomaTextoConhecido(ini, ate)) faixaIdiomaAdicionar(dst, tam, ini, ate);
++    }
++    p = q;
++  }
++}
++static void faixasCampoTexto(const char *obj, const char *fim, const char *campo, Stream *s) {
++  if (s->audioIdiomas[0] && s->legendaIdiomas[0]) return;
++  const char *v = valorRaiz(obj, fim, campo), *f;
++  char texto[2048], json[sizeof texto + 16];
++  char audio[sizeof s->audioIdiomas] = "", subs[sizeof s->legendaIdiomas] = "";
++  if (!v || !(f = faixasFimTexto(v, fim)) || (size_t)(f - v - 2) >= sizeof texto) return;
++  const char *apos = faixasEspacos(f, fim);
++  if (apos >= fim || (*apos != ',' && *apos != '}')) return;
++  // A descricao permite quebras, mas nunca NUL, controles ocultos ou um valor
++  // cortado cujo prefixo tenha virado um idioma aparentemente completo.
++  for (const char *q = v + 1; q < f - 1; q++) if (*q == '\\') {
++    q++;
++    if (*q == 'b' || *q == 'f') return;
++    if (*q == 'u') {
++      unsigned cp = faixasHex4(q + 1);
++      if ((cp < 0x20 && cp != '\n' && cp != '\r' && cp != '\t') || cp == 0x7F) return;
++      q += 4;
++    }
++  }
++  // Decodificar somente o valor validado e ancorado, preservando as quebras.
++  // Um objeto temporario pequeno usa o decodificador JSON existente sem
++  // permitir que uma chave igual em headers/outro objeto substitua a fonte.
++  size_t n = (size_t)(f - v);
++  memcpy(json, "{\"v\":", 5);
++  memcpy(json + 5, v, n);
++  json[n + 5] = '}'; json[n + 6] = 0;
++  // O decodificador geral descarta \\r. Aqui uma quebra CR tambem delimita
++  // metadados; normalizar so esse escape, sem alterar um \\\\r literal.
++  for (size_t k = 6; k < n + 4; k++) if (json[k] == '\\') {
++    if (json[++k] == 'r') json[k] = 'n';
++  }
++  if (!js_texto_linhas(json, json + n + 6, "v", texto, sizeof texto) ||
++      !faixasUtf8((const unsigned char *)texto)) return;
++  for (const char *p = texto; *p;) {
++    const char *q = p;
++    while (*q && *q != '\n' && *q != '\r') q++;
++    faixasLinhaTexto(p, q, audio, sizeof audio, subs, sizeof subs);
++    p = *q ? q + 1 : q;
++  }
++  if (!s->audioIdiomas[0]) memcpy(s->audioIdiomas, audio, sizeof audio);
++  if (!s->legendaIdiomas[0]) memcpy(s->legendaIdiomas, subs, sizeof subs);
++}
 +static void metadadosFaixas(const char *obj, const char *fim, Stream *s) {
 +  const char *cr = objetoRaiz(obj, fim, "clientResolve");
 +  const char *st = cr ? objetoRaiz(cr, js_fim(cr), "stream") : NULL;
@@ -2793,6 +3019,11 @@ index 0812c43..1542b63 100644
 +  // Stremio stream.subtitles sao legendas anexadas a ESTA fonte. Nao buscar
 +  // no objeto de resposta/titulo, nem afirmar que estas faixas sao embutidas.
 +  faixasCampo(obj, fim, "subtitles", s->legendaIdiomas, sizeof s->legendaIdiomas, 1);
++  // Valores estruturados continuam prioritarios, por tipo. Na falta deles,
++  // ler somente secoes declaradas no texto DESTA fonte, nunca seu name,
++  // provedor, filename, filtro de idiomas ou faixas descobertas pelo player.
++  faixasCampoTexto(obj, fim, "description", s);
++  faixasCampoTexto(obj, fim, "title", s);
 +}
 +
 +// Valores estruturados podem ser texto, numero (resolucao/canais) ou lista de
@@ -2945,10 +3176,10 @@ index 0812c43..1542b63 100644
 +  fontefiltro_classificar(&e, &s->filtro);
 +  s->filtroLido = 1;
 +}
-@@ -295 +718 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
+@@ -295 +949 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
 -    char titulo[2048] = "", texto[5000];
 +    char titulo[2048] = "", nomeFonte[1024] = "", texto[5000];
-@@ -321,6 +744,6 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
+@@ -321,6 +975,6 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
 -      { char nome[1024];
 -        if (js_texto_linhas(p, fim, "name", nome, sizeof nome) && strlen(nome) < sizeof nome - 1)
 -          fhd = fhdNoNome(nome); }
@@ -4353,10 +4584,10 @@ index 9f78b29..738451c 100644
 +cc ${flags[@]+"${flags[@]}"} -Wall src/rede.c src/redeurl.c src/stream_parse.c src/fontefiltro.c src/js.c src/badges.c tests/proxyts.c -Isrc -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
 diff --git a/tests/stream_faixas_parse.c b/tests/stream_faixas_parse.c
 new file mode 100644
-index 0000000..aee65ac
+index 0000000..effa548
 --- /dev/null
 +++ b/tests/stream_faixas_parse.c
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,214 @@
 +// Reported addon language metadata only: no probes, track inspection or
 +// inference from release titles. Uses the production stream parser.
 +#include "streams.h"
@@ -4389,8 +4620,58 @@ index 0000000..aee65ac
 +int main(void) {
 +  expect("\"name\":\"Source\"", "", "");
 +  expect("\"name\":\"English/French\",\"title\":\"Film.1080p.ENG.SPA.mkv\","
-+         "\"description\":\"Audio: English | Subtitles: French\","
++         "\"description\":\"English Patient — a French film\","
 +         "\"behaviorHints\":{\"filename\":\"Film.German.mkv\"}", "", "");
++  expect("\"description\":\"Audio: English | Subtitles: French\"", "English", "French");
++  expect("\"title\":\"Film.1080p.ENG.SPA.mkv\\nLanguages: English, Japanese | Subtitles: English, French\"",
++         "English,Japanese", "English,French");
++  expect("\"description\":\"Audio languages: en-US / ES-419; pt_BR • yue-Hant-HK\\n"
++         "Subtitle languages: fr, zh-Hant\"", "en-US,ES-419,pt_BR,yue-Hant-HK", "fr,zh-Hant");
++  expect("\"title\":\"  Áudio : Português (Brasil) | Inglês\\nLegendas: Português (Portugal)\"",
++         "Português (Brasil),Inglês", "Português (Portugal)");
++  expect("\"description\":\"Audio: Dolby Atmos | DTS | AAC | 5.1\\nSubtitles: English Patient | Multi | Unknown\"", "", "");
++  expect("\"description\":\"The Audio: English | The Subtitles: French\\n"
++         "Film.1080p.English.mkv\\nEnglish / French\\n🇬🇧 / 🇫🇷\"", "", "");
++  expect("\"name\":\"Audio: English | Subtitles: French\","
++         "\"other\":{\"description\":\"Audio: Japanese\"}", "", "");
++  expect("\"description\":\"Audio: English | Provider: French | German\\n"
++         "Subtitles: Spanish | URL: https://video.invalid/ja | Japanese\"", "English", "Spanish");
++  expect("\"audioLanguages\":[\"en\"],\"description\":\"Audio: Japanese | Subtitles: French\","
++         "\"title\":\"Audio: Spanish | Subtitles: German\"", "en", "French");
++  expect("\"subtitleLanguages\":[\"de\"],\"description\":\"Audio: English | Subtitles: French\"", "English", "de");
++  expect("\"description\":\"Audio: English\",\"title\":\"Audio: Japanese | Subtitles: French\"", "English", "French");
++  expect("\"description\":\"Audio: English\\u0000 | Subtitles: French\"", "", "");
++  expect("\"description\":\"Audio: English\\q\"", "", "");
++  expect("\"description\":\"Audio: English\\uD800\"", "", "");
++  expect("\"description\":\"Audio: English\\u0085\"", "", "");
++  expect("\"description\":\"Audio: English\xC0\xAF\"", "", "");
++  expect("\"title\":\"Audio: English\\u000aSubtitles: French\"", "English", "French");
++  expect("\"description\":\"Audio: English\\rSubtitles: French\"", "English", "French");
++  expect("\"description\":\"Audio: English\\u000dSubtitles: French\"", "English", "French");
++  expect("\"description\":\"Audio: English\\\\rSubtitles: French\"", "", "");
++  expect("\"description\":\"Audio: English\"broken", "", "");
++  expect("\"title\":\"Film\\n🌎 English | Japanese📝 English | French\\n💾 1.2 GB\"",
++         "English,Japanese", "English,French");
++  expect("\"description\":\"🌎 English • Japanese📝 English • French\"",
++         "English,Japanese", "English,French");
++  expect("\"description\":\"🌐 🇬🇧 / 🇯🇵📝 🇬🇧 / 🇫🇷\"",
++         "English,Japanese", "English,French");
++  expect("\"title\":\"🎧 AAC 🔊 5.1 🗣️ 🇬🇧 / 🇯🇵📝 🇬🇧 / 🇫🇷\"",
++         "English,Japanese", "English,French");
++  expect("\"description\":\"Audio: 🇧🇷 / 🇵🇹 | Subtitles: 🇧🇩 / 🇵🇰\"",
++         "Portuguese (Brazil),Portuguese", "Bengali,Punjabi");
++  expect("\"description\":\"🌐 🇮🇳 / 🇬🇧 / 🇺🇸 / 🇲🇽📝 🇮🇳 / 🇫🇷\"", "English", "French");
++  expect("\"description\":\"🌎 / 🇬🇧 / 🇫🇷\"", "", "");
++  expect("\"description\":\"🌐 🇬🇧 🇯🇵\"", "", "");
++  expect("\"description\":\"🌎 Multi / Dual Audio / Dubbed / Original / Unknown📝 None\"", "", "");
++  expect("\"description\":\"🌐 💃🏻📝 Latino\"", "Latino", "Latino");
++  expect("\"description\":\"🎧 English / 🔊 French / ⏱ Japanese / 💾 German\"", "", "");
++  expect("\"description\":\"🌐 🇬🇧 🎧 🇫🇷 / French 🔊 Japanese ⏱ Italian 💾 German📝 🇪🇸💾 French\"",
++         "English", "Spanish");
++  expect("\"title\":\"🇬🇧 / 🇯🇵 Subs / 🇬🇧 / 🇫🇷\"", "", "English,French");
++  expect("\"title\":\"Multi Subs / 🇫🇷 / 🇮🇳\"", "", "French");
++  expect("\"audioLanguages\":[\"pt-BR\"],\"subtitleLanguages\":[\"de\"],"
++         "\"description\":\"🌐 🇬🇧📝 🇫🇷\"", "pt-BR", "de");
 +  expect("\"languages\":[\"en\"],\"language\":\"fr\",\"other\":{\"audioLanguages\":[\"es\"]}", "", "");
 +  expect("\"audioLanguages\":[\" en \",\"ES-419\",\"en\",\"es-419\",\"pt_BR\"],"
 +         "\"subtitleLanguages\":[\"fr\",\"pt-BR\"]", "en,ES-419,pt_BR", "fr,pt-BR");
@@ -4464,6 +4745,16 @@ index 0000000..aee65ac
 +  assert(!v[2].audioIdiomas[0] && !strcmp(v[2].legendaIdiomas, "de"));
 +  free(v); checks++;
 +
++  assert(stream_extrair("{\"title\":\"Audio: Italian | Subtitles: Spanish\",\"streams\":["
++    "{\"url\":\"https://video.invalid/1\"},"
++    "{\"url\":\"https://video.invalid/2\",\"description\":\"🌐 🇬🇧📝 🇫🇷\"},"
++    "{\"url\":\"https://video.invalid/3\",\"title\":\"Audio: German\"}]}",
++    "Audio: Japanese | Subtitles: Portuguese", &v) == 3);
++  assert(!v[0].audioIdiomas[0] && !v[0].legendaIdiomas[0]);
++  assert(!strcmp(v[1].audioIdiomas, "English") && !strcmp(v[1].legendaIdiomas, "French"));
++  assert(!strcmp(v[2].audioIdiomas, "German") && !v[2].legendaIdiomas[0]);
++  free(v); checks++;
++
 +  // Bounds keep complete entries and UTF-8, never a partial language.
 +  char fields[8192];
 +  unsigned used = (unsigned)snprintf(fields, sizeof fields, "\"audioLanguages\":[");
@@ -4480,6 +4771,22 @@ index 0000000..aee65ac
 +  snprintf(fields + used, sizeof fields - used, "\",\"fr\"]");
 +  s = parse(fields);
 +  assert(!strcmp(s.audioIdiomas, "fr"));
++
++  // A long description cannot leave a seemingly complete language prefix.
++  used = (unsigned)snprintf(fields, sizeof fields, "\"description\":\"Audio: English ");
++  memset(fields + used, ' ', 3000); used += 3000;
++  snprintf(fields + used, sizeof fields - used, "\",\"title\":\"Subtitles: French\"");
++  s = parse(fields);
++  assert(!s.audioIdiomas[0] && !strcmp(s.legendaIdiomas, "French"));
++  used = (unsigned)snprintf(fields, sizeof fields, "\"description\":\"Audio: ");
++  for (unsigned k = 0; k < 150; k++)
++    used += (unsigned)snprintf(fields + used, sizeof fields - used, "%sen-%u", k ? "," : "", k);
++  snprintf(fields + used, sizeof fields - used, "\"");
++  s = parse(fields);
++  assert(!strncmp(s.audioIdiomas, "en-0,en-1,", strlen("en-0,en-1,")) && strlen(s.audioIdiomas) < sizeof s.audioIdiomas);
++  last = strrchr(s.audioIdiomas, ',');
++  assert(last && last[1] && !strncmp(last + 1, "en-", 3));
++  assert(s.audioIdiomas[strlen(s.audioIdiomas) - 1] >= '0' && s.audioIdiomas[strlen(s.audioIdiomas) - 1] <= '9');
 +
 +  // Incomplete and very deeply nested values must not claim tracks.
 +  s = parse("\"audioLanguages\":[\"en");
@@ -4524,10 +4831,10 @@ index 0000000..b4ac885
 +"$dir/test"
 diff --git a/tests/stream_faixas_ui.c b/tests/stream_faixas_ui.c
 new file mode 100644
-index 0000000..07ad597
+index 0000000..de37ce8
 --- /dev/null
 +++ b/tests/stream_faixas_ui.c
-@@ -0,0 +1,298 @@
+@@ -0,0 +1,334 @@
 +// #481: render only addon-reported audio/subtitle metadata. No media probing.
 +#define _POSIX_C_SOURCE 200809L
 +#define SDL_MAIN_HANDLED
@@ -4681,6 +4988,42 @@ index 0000000..07ad597
 +    semConsultas();
 +  }
 +}
++static void descricaoAioEDesenho(void) {
++  // Default AIO output omits rich language fields; its typed formatter
++  // sections still report languages. Technical markers are not languages.
++  Stream s = extrairUma("{\"streams\":[{\"url\":\"https://video.invalid/aio-default.mkv\","
++                        "\"name\":\"AIOStreams 1080p\","
++                        "\"description\":\"Movie.2024.1080p.WEB-DL.x265.mkv\\n"
++                        "🎥 HEVC | 🎧 AAC 5.1\\n🌐 🇬🇧 / 🇯🇵📝 🇫🇷 🎧 DTS 7.1\"}]}");
++  char texto[128];
++  assert(stream_faixas_texto(&s, 0, texto, sizeof texto));
++  assert(!strcmp(texto, "Inglês, Japonês"));
++  assert(stream_faixas_texto(&s, 1, texto, sizeof texto));
++  assert(!strcmp(texto, "Francês"));
++  assert(linhasFaixas(&s) == 2);
++  Stream sem = s;
++  memset(sem.audioIdiomas, 0, sizeof sem.audioIdiomas);
++  memset(sem.legendaIdiomas, 0, sizeof sem.legendaIdiomas);
++  for (textoAddon = 0; textoAddon <= 1; textoAddon++) {
++    for (int aberto = 0; aberto <= 2; aberto++) {
++      float fracao = aberto * .5f;
++      float base = medir(&sem, fracao);
++      assert(fabsf(medir(&s, fracao) - base - 2 * FOLHA_FAIXA_H) < .001f);
++      const Stream *listada = stream_item(0);
++      assert(listada && linhasFaixas(listada) == 2);
++      assert(!strcmp(listada->audioIdiomas, s.audioIdiomas));
++      assert(!strcmp(listada->legendaIdiomas, s.legendaIdiomas));
++      desenhoLimpar();
++      assert(desenharFaixas(listada, 10, 20, 300, 1, .7f) == 2 * FOLHA_FAIXA_H);
++      assert(nTextos == 2 && nDesenhos == 2);
++      assert(!strcmp(desenhos[0].texto, "Áudio: Inglês, Japonês"));
++      assert(!strcmp(desenhos[1].texto, "Legendas: Francês"));
++      assert(desenhos[0].w <= 300 && desenhos[1].w <= 300);
++      assert(fabsf(desenhos[1].y - desenhos[0].y - FOLHA_FAIXA_H) < .001f);
++      semConsultas();
++    }
++  }
++}
 +static void regionalEInfo(void) {
 +  Stream s = extrairUma("{\"streams\":[{\"url\":\"https://video.invalid/reported.mkv\","
 +                        "\"name\":\"Dual English Spanish\",\"description\":\"Original addon description\","
@@ -4745,7 +5088,7 @@ index 0000000..07ad597
 +}
 +static void ausentesELimites(void) {
 +  Stream s = extrairUma("{\"streams\":[{\"url\":\"https://video.invalid/en_pt-BR.mkv\","
-+                        "\"name\":\"Dual English Spanish\",\"description\":\"Audio: English / Subtitles: French\","
++                        "\"name\":\"Dual English Spanish\",\"description\":\"An English traveller discusses French subtitles in a Japanese movie.\","
 +                        "\"audioLanguages\":[\"unknown\",\"und\",null],\"subtitleLanguages\":null}]}");
 +  char texto[128] = "must be cleared";
 +  assert(!stream_faixas_texto(&s, 0, texto, sizeof texto) && !texto[0]);
@@ -4820,10 +5163,10 @@ index 0000000..07ad597
 +#else
 +    assert(FOLHA_W == 820);
 +#endif
-+    alturaEDesenho(); regionalEInfo(); longaECache(); ausentesELimites(); identidadeEOrdem();
++    alturaEDesenho(); descricaoAioEDesenho(); regionalEInfo(); longaECache(); ausentesELimites(); identidadeEOrdem();
 +  }
 +  stream_definir_lista(NULL, 0); fontecache_vod_limpar(); semConsultas();
-+  puts("stream_faixas_ui: PASS (reported rows, no-data height, TV/Mobile, regions, bounded text, Info, real cache, stable order/identity, no media requests)");
++  puts("stream_faixas_ui: PASS (reported rows, AIO description rows, no-data height, TV/Mobile, regions, bounded text, Info, real cache, stable order/identity, no media requests)");
 +  return 0;
 +}
 diff --git a/tests/stream_faixas_ui.sh b/tests/stream_faixas_ui.sh
