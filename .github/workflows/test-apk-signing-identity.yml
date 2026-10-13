@@ -145,11 +145,18 @@ jobs:
         expected = '179fc2763cbddeec302c9dbfbb5f7a29e1165e8600ce4118bfb8bba0a7d38ed6'
         actual = hashlib.sha256(apk.read_bytes()).hexdigest()
         assert actual == expected, (actual, expected)
+        helpers = {
+            '.review/apk-download/Nuvio-Test-Accounts.ps1': '983378fbe009b05a018fb17625077ac16eccac7438775d093c43defdfd945024',
+            '.review/apk-download/windows-account-transfer.txt': '759525713cc84116aa7a6e0bb9011939bf1f68b866ea760de5d394dbbed7d5bc',
+        }
+        for path, expected_helper in helpers.items():
+            assert hashlib.sha256(Path(path).read_bytes()).hexdigest() == expected_helper, path
         Path(str(apk) + '.sha256').write_text(actual + '  ' + apk.name + '\n')
         Path('build/apk/release-notes.txt').write_text(
             'Nuvio TV/Mobile Test with permanent signing and AIOStreams language metadata support.\n\n'
             'Download Nuvio-TV-Mobile-Test.apk directly. It uses the original Touch preview 11 signing key.\n'
             'Newer Actions ZIP builds used temporary keys and require a verified local account backup and transfer before reinstalling. Keep the installed app until its backup is verified.\n'
+            'Use Nuvio-Test-Accounts.ps1 and windows-account-transfer.txt for the one-time Windows transfer. The helper defaults to backup-only, keeps all account data local, and asks for typed approval before reinstalling. It verifies every restored file before launch.\n'\
             'Future APKs will use this same permanent test key.\n\n'
             'The app payload is identical to tested run 38454168514. Signing, payload hashes, package identity, both ARM architectures and native page packaging passed verification.\n\n'
             'No new PR has been opened.\n')
@@ -157,13 +164,15 @@ jobs:
         if gh release view tv-mobile-test-languages-481 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
           gh release upload tv-mobile-test-languages-481 \
             build/apk/Nuvio-TV-Mobile-Test.apk build/apk/Nuvio-TV-Mobile-Test.apk.sha256 \
+            .review/apk-download/Nuvio-Test-Accounts.ps1 .review/apk-download/windows-account-transfer.txt \
             --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit tv-mobile-test-languages-481 --repo "$GITHUB_REPOSITORY" \
             --draft=false --prerelease --latest=false --notes-file build/apk/release-notes.txt
         else
           gh release create tv-mobile-test-languages-481 \
             build/apk/Nuvio-TV-Mobile-Test.apk build/apk/Nuvio-TV-Mobile-Test.apk.sha256 \
-            --repo "$GITHUB_REPOSITORY" --target 6c88d15777fe1ec7030120dd846b7e01dad31c2f \
+            .review/apk-download/Nuvio-Test-Accounts.ps1 .review/apk-download/windows-account-transfer.txt \
+            --repo "$GITHUB_REPOSITORY" --verify-tag \
             --prerelease --latest=false --title 'Nuvio TV/Mobile Test: stable signing and languages' \
             --notes-file build/apk/release-notes.txt
         fi
