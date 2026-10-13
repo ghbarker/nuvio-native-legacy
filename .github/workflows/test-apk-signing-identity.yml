@@ -4,7 +4,7 @@ name: Permanently signed TV and mobile test APK
     branches:
     - review/test-apk-signing-identity
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   apk:
@@ -133,3 +133,37 @@ jobs:
           build/apk-proof/update-identity.json
         if-no-files-found: warn
         retention-days: 14
+    - name: Publish verified direct APK download
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import hashlib
+        from pathlib import Path
+        apk = Path('build/apk/Nuvio-TV-Mobile-Test.apk')
+        expected = '179fc2763cbddeec302c9dbfbb5f7a29e1165e8600ce4118bfb8bba0a7d38ed6'
+        actual = hashlib.sha256(apk.read_bytes()).hexdigest()
+        assert actual == expected, (actual, expected)
+        Path(str(apk) + '.sha256').write_text(actual + '  ' + apk.name + '\n')
+        Path('build/apk/release-notes.txt').write_text(
+            'Nuvio TV/Mobile Test with permanent signing and AIOStreams language metadata support.\n\n'
+            'Download Nuvio-TV-Mobile-Test.apk directly. It uses the original Touch preview 11 signing key.\n'
+            'Newer Actions ZIP builds used temporary keys and require a verified local account backup and transfer before reinstalling. Keep the installed app until its backup is verified.\n'
+            'Future APKs will use this same permanent test key.\n\n'
+            'The app payload is identical to tested run 38454168514. Signing, payload hashes, package identity, both ARM architectures and native page packaging passed verification.\n\n'
+            'No new PR has been opened.\n')
+        PY
+        if gh release view tv-mobile-test-languages-481 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          gh release upload tv-mobile-test-languages-481 \
+            build/apk/Nuvio-TV-Mobile-Test.apk build/apk/Nuvio-TV-Mobile-Test.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit tv-mobile-test-languages-481 --repo "$GITHUB_REPOSITORY" \
+            --draft=false --prerelease --latest=false --notes-file build/apk/release-notes.txt
+        else
+          gh release create tv-mobile-test-languages-481 \
+            build/apk/Nuvio-TV-Mobile-Test.apk build/apk/Nuvio-TV-Mobile-Test.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" --target 6c88d15777fe1ec7030120dd846b7e01dad31c2f \
+            --prerelease --latest=false --title 'Nuvio TV/Mobile Test: stable signing and languages' \
+            --notes-file build/apk/release-notes.txt
+        fi
