@@ -1,0 +1,42 @@
+name: Verify persistent test APK signing identity
+'on':
+  push:
+    branches:
+    - review/test-apk-signing-identity
+permissions:
+  contents: read
+jobs:
+  identity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - name: Compare persistent test signing certificate with installed test builds
+      env:
+        NUVIO_TOUCH_DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        signing_dir="$RUNNER_TEMP/nuvio-test-signing"
+        mkdir -p "$signing_dir"
+        trap 'rm -rf "$signing_dir"' EXIT
+        test -n "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64"
+        printf '%s' "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" | base64 --decode > "$signing_dir/debug.keystore"
+        chmod 600 "$signing_dir/debug.keystore"
+        keytool -exportcert -alias androiddebugkey -keystore "$signing_dir/debug.keystore" \
+          -storepass android -file "$signing_dir/public-cert.der" >/dev/null
+        python3 - "$signing_dir/public-cert.der" <<'PY'
+        import hashlib
+        import json
+        import sys
+        from pathlib import Path
+        current = hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest()
+        previous = '8ef0e0bd9e3a2f3b9ace16beea292ea72b541c0f244c3ab38dfebd5f555e5475'
+        last = 'ad76654b50ddb29d54a395ded92a8a37c0ab555f5865711fcc0bf0d4a1807e6c'
+        print(json.dumps({'persistent_signing_certificate_sha256': current,
+                          'matches_previous_installed_test_build': current == previous,
+                          'matches_last_generated_test_build': current == last}))
+        PY
