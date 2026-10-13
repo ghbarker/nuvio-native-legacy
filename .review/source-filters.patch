@@ -3928,6 +3928,18 @@ index 9e8606a..ab87b4d 100644
 @@ -9 +9 @@ if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit
 -cc "${flags[@]}" tests/proxprefetch.c src/posplay.c src/proximo.c src/intro.c src/velocidade.c src/addons.c src/fontefalha.c src/addonstats.c src/js.c -o "$dir/teste"
 +cc "${flags[@]}" tests/proxprefetch.c src/posplay.c src/proximo.c src/intro.c src/velocidade.c src/addons.c src/fontefalha.c src/fontefiltro.c src/addonstats.c src/js.c -o "$dir/teste"
+diff --git a/tests/proxyts.c b/tests/proxyts.c
+index 31e8afd..5c7186b 100644
+--- a/tests/proxyts.c
++++ b/tests/proxyts.c
+@@ -39 +39,3 @@ int main(void) {
+-  n = baixar(url, 6, &b, cab, sizeof cab);
++  // A fixture de 12 s tem vazao limitada; aguarda segmentos completos antes
++  // de conferir o volume total, inclusive em runners mais lentos.
++  n = baixar(url, 15, &b, cab, sizeof cab);
+@@ -86 +88 @@ int main(void) {
+-  n = baixar(url, 6, &b, cab, sizeof cab);
++  n = baixar(url, 15, &b, cab, sizeof cab);
 diff --git a/tests/proxyts.sh b/tests/proxyts.sh
 index 9f78b29..738451c 100644
 --- a/tests/proxyts.sh

@@ -357,6 +357,11 @@
       "mode": "100644"
     },
     {
+      "path": "tests/proxyts.c",
+      "sha": "5c7186b7acc1ba8337d0e6c063ae6f53b4e089b7",
+      "mode": "100644"
+    },
+    {
       "path": "tests/proxyts.sh",
       "sha": "738451cc6400d74e4743189a505f7e6b17cc5fb4",
       "mode": "100644"
