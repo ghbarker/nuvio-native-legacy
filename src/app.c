@@ -3243,6 +3243,19 @@ void app_atualizar(float dt, Uint32 agora) {
     return;
   }
 
+  // A confirmed choice changes identity during input. Reset its modules
+  // before polling them, so an outgoing OAuth completion cannot push into
+  // the new profile during the first frame after selection.
+  if (tela == TELA_ESCOLHA_PERFIL && perfilsel_concluido() &&
+      perfis_sessao_geracao() != perfilSessaoAplicada) {
+    perfilAbrirSessao(perfilAntes);
+    perfilAntes = perfis_ativo();
+    sync_iniciar();
+    trocaPerfilDesde = agora;
+    perfilsel_preparar(1, agora);
+    return;
+  }
+
   // Os vinculos de Trakt e Simkl avancam TODO quadro, em qualquer tela: os dois
   // fazem poll. MEDIDO na TV: estas duas linhas viviam dentro do `if` da tela
   // de perfil (a indentacao enganava), entao o poll so rodava ali — em Ajustes,
@@ -3310,15 +3323,6 @@ void app_atualizar(float dt, Uint32 agora) {
       return;
     }
     if (perfilsel_concluido()) {
-      uint64_t sessao = perfis_sessao_geracao();
-      if (sessao != perfilSessaoAplicada) {
-        perfilAbrirSessao(perfilAntes);
-        perfilAntes = perfis_ativo();
-        sync_iniciar();
-        trocaPerfilDesde = agora;
-        perfilsel_preparar(1, agora);
-        return;
-      }
       sync_iniciar();
       tela = TELA_HOME;
     }
