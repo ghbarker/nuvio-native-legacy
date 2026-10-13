@@ -1,0 +1,133 @@
+diff --git a/src/ajustes.c b/src/ajustes.c
+index e28d55b..dd731da 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -4722,6 +4722,8 @@ static void focarOpcao(int op);
+ // D1: "Posicao do relogio" 238 pessoas, "Sincronia por audio" 157, "Zoom do
+ // trailer" 86, P2P no .wgt 6), escondendo o aviso que importa.
+ static int foraDestaPlataforma(int op) {
++  // Os limites dos provedores sao editados dentro da folha de ordem.
++  if (op >= AJ_FALHA_RD_LIMITE && op <= AJ_FALHA_AD_LIMITE) return 1;
+ #ifndef NV_TOUCH_UI
+   if (op == AJ_INTERFACE_MODO) return 1;
+ #endif
+diff --git a/src/ajustes_ux_dados.inc b/src/ajustes_ux_dados.inc
+index 17d10a9..da2d7bd 100644
+--- a/src/ajustes_ux_dados.inc
++++ b/src/ajustes_ux_dados.inc
+@@ -207,6 +207,7 @@ static const char *uxSinonimos(int op) {
+       return "regex expressao regular padrao filtro nome idioma espanhol latino castellano multi dual remux auto-play autoplay regex match pattern";
+     case AJ_TAM_MAX: case AJ_TAM_MIN: return "tamanho maximo minimo gb gigabyte arquivo franquia dados internet limite cota plano economizar fonte automatica size quota data cap";
+     case AJ_FALHA_PROVEDORES: case AJ_FALHA_PROVEDOR_ORDEM: case AJ_FALHA_RD_LIMITE: case AJ_FALHA_TB_LIMITE: case AJ_FALHA_PM_LIMITE: case AJ_FALHA_AD_LIMITE:
++      return "falha erro provedor debrid trocar ordem prioridade limite links timeout failover fallback retry real-debrid torbox premiumize alldebrid";
+     case AJ_FALHA_ADDONS: case AJ_FALHA_ADDON_ORDEM: case AJ_FALHA_ADDON_LIMITE:
+       return "falha erro provedor debrid addon add-on trocar ordem prioridade limite links timeout failover fallback retry";
+     case AJ_FONTE_ORDEM_ADDON: return "ordem fontes qualidade addon aiostreams resolucao tamanho instalacao source order quality";
+diff --git a/src/ajustes_ux_desenho.inc b/src/ajustes_ux_desenho.inc
+index 62d6cfd..413ec93 100644
+--- a/src/ajustes_ux_desenho.inc
++++ b/src/ajustes_ux_desenho.inc
+@@ -22,14 +22,20 @@ static const char *uxResumo(int op) {
+   if (op == AJ_HOME_LAYOUT && uxIndice == 1) return i18n("Escolha como o destaque e as fileiras se organizam na Tela inicial.");
+   return ajudaOpcao(op);
+ }
++static int uxOpcaoNaTela(int op) {
++  return op >= AJ_FALHA_RD_LIMITE && op <= AJ_FALHA_AD_LIMITE
++    ? AJ_FALHA_PROVEDOR_ORDEM : op;
++}
+ static const char *uxCaminho(int op) {
+   int i;
++  op = uxOpcaoNaTela(op);
+   for (i = 0; i < AJ_N_TELA; i++)
+     if (TELA[i].tipo == IT_OPC && TELA[i].op == op) return TELA[secIni[secDoItem[i]]].titulo;
+   return "Ajustes";
+ }
+ static int uxSecaoDe(int op) {
+   int i;
++  op = uxOpcaoNaTela(op);
+   for (i = 0; i < AJ_N_TELA; i++)
+     if (TELA[i].tipo == IT_OPC && TELA[i].op == op) return secDoItem[i];
+   return 0;
+@@ -37,6 +43,7 @@ static int uxSecaoDe(int op) {
+ // O bloco (ROT) da opcao, "" sem bloco.
+ static const char *uxBloco(int op) {
+   int i, j;
++  op = uxOpcaoNaTela(op);
+   for (i = 0; i < AJ_N_TELA; i++)
+     if (TELA[i].tipo == IT_OPC && TELA[i].op == op) {
+       for (j = i; j > secIni[secDoItem[i]]; j--)
+diff --git a/src/ajustes_ux_tela.inc b/src/ajustes_ux_tela.inc
+index c62870a..c4692fb 100644
+--- a/src/ajustes_ux_tela.inc
++++ b/src/ajustes_ux_tela.inc
+@@ -72,7 +72,6 @@ static const Item TELA[] = {
+       OPC(AJ_BUSCA_NUVIO), OPC(AJ_BUSCA_ORIGEM),   // #311
+     ROT("Falha na reprodução"),
+       OPC(AJ_FALHA_PROVEDORES), OPC(AJ_FALHA_PROVEDOR_ORDEM),
+-      OPC(AJ_FALHA_RD_LIMITE), OPC(AJ_FALHA_TB_LIMITE), OPC(AJ_FALHA_PM_LIMITE), OPC(AJ_FALHA_AD_LIMITE),
+       OPC(AJ_FALHA_ADDONS), OPC(AJ_FALHA_ADDON_ORDEM), OPC(AJ_FALHA_ADDON_LIMITE),
+     ROT("Debrid"),
+       OPC(AJ_DEBRID_RD), OPC(AJ_DEBRID_TB), OPC(AJ_DEBRID_PM), OPC(AJ_DEBRID_AD),
+diff --git a/tests/ajustes_failover.c b/tests/ajustes_failover.c
+index e82705a..0952c23 100644
+--- a/tests/ajustes_failover.c
++++ b/tests/ajustes_failover.c
+@@ -80,23 +80,37 @@ static void independentes(void) {
+   puts("PASS: failover toggles default off, persist and remain independent");
+ }
+ 
++static void abrirLimiteProvedor(int servico) {
++  // The order sheet owns each provider's count; there is no duplicate row.
++  if (frAberta) key(SDLK_ESCAPE);
++  assert(!frAberta && !uxEditor);
++  abrir(AJ_FALHA_PROVEDOR_ORDEM); assert(frAberta == 4);
++  int linha = -1;
++  for (int i = 0; i < faN; i++) if (faItem[i].servico == servico) linha = i;
++  assert(linha >= 0);
++  for (int i = 0; i < linha; i++) key(SDLK_DOWN);
++  key(SDLK_RIGHT); key(SDLK_RIGHT); key(SDLK_RETURN);
++  assert(!frAberta && uxEditor == 1 && uxOp == AJ_FALHA_RD_LIMITE + servico);
++}
+ static void limiteRemoto(int op, int servico) {
+   const int original = fontefalha_provedor_limite(servico);
+   FonteFalhaConfig antes = configuracao();
+   char *disco = arquivo();
+-  abrir(op); assert(uxEditor == 1 && uxOp == op && uxPendente == original);
++  abrirLimiteProvedor(servico); assert(uxEditor == 1 && uxOp == op && uxPendente == original);
+   key(SDLK_RIGHT); assert(uxPendente == original + 1);
+   igual(&antes); igualArquivo(disco);
+-  key(SDLK_ESCAPE); assert(!uxEditor); igual(&antes); igualArquivo(disco);
+-  abrir(op);
++  key(SDLK_ESCAPE); assert(!uxEditor && frAberta == 4); igual(&antes); igualArquivo(disco);
++  abrirLimiteProvedor(servico);
+   for (int i = 0; i < 20; i++) key(SDLK_LEFT);
+   assert(uxPendente == 1); igual(&antes); igualArquivo(disco); free(disco);
+-  key(SDLK_RETURN); assert(!uxEditor && fontefalha_provedor_limite(servico) == 1);
++  key(SDLK_RETURN); assert(!uxEditor && frAberta == 4 && fontefalha_provedor_limite(servico) == 1);
++  key(SDLK_ESCAPE); assert(!frAberta);
+   recarregar(); assert(fontefalha_provedor_limite(servico) == 1);
+-  abrir(op);
++  abrirLimiteProvedor(servico);
+   for (int i = 0; i < 20; i++) key(SDLK_RIGHT);
+   assert(uxPendente == 10 && fontefalha_provedor_limite(servico) == 1);
+-  key(SDLK_RETURN); assert(!uxEditor && fontefalha_provedor_limite(servico) == 10);
++  key(SDLK_RETURN); assert(!uxEditor && frAberta == 4 && fontefalha_provedor_limite(servico) == 10);
++  key(SDLK_ESCAPE); assert(!frAberta);
+   recarregar(); assert(fontefalha_provedor_limite(servico) == 10);
+ }
+ static void provedores(void) {
+diff --git a/tests/ajustes_secoes.py b/tests/ajustes_secoes.py
+index 33501fa..9b350af 100644
+--- a/tests/ajustes_secoes.py
++++ b/tests/ajustes_secoes.py
+@@ -30,6 +30,10 @@ RETIRADAS = {
+     # titulo"; turning a rating on turns its pair on (notaLigarPar in ajustes.c).
+     "AJ_MDB_TRAKT", "AJ_MDB_IMDB", "AJ_MDB_TMDB", "AJ_MDB_LETTER",
+     "AJ_MDB_TOMATES", "AJ_MDB_AUDIENCIA", "AJ_MDB_META", "AJ_MDB_MAL",
++    # Counts are edited inside "Provider order and limits" rather than
++    # repeated as individual rows. Keep enum slots for the shared editor.
++    "AJ_FALHA_RD_LIMITE", "AJ_FALHA_TB_LIMITE",
++    "AJ_FALHA_PM_LIMITE", "AJ_FALHA_AD_LIMITE",
+ }
+ opcoes = [op for op in opcoes if op not in RETIRADAS]
+ 

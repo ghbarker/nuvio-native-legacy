@@ -1,0 +1,35 @@
+{
+  "base": "3b5bfc78a0deaa4fe0f2b33b7c33bf3cd2ec81b8",
+  "files": [
+    {
+      "path": "src/ajustes.c",
+      "sha": "dd731da51feb32b6982bb44e41e52569a6151a28",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha": "da2d7bd4878fc68e3b31fe5d7699f453d59dec32",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha": "413ec935840465fc4a6db25d31f1a2c987c7da72",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha": "c4692fb0a960b4fd3275f5882ad85f5887b4a5fb",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/ajustes_failover.c",
+      "sha": "0952c23c76686a0bc04386e15287aebeae33aa81",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/ajustes_secoes.py",
+      "sha": "9b350af865dd142f2ad25d4be5703dd687e5c634",
+      "mode": "100644"
+    }
+  ]
+}
