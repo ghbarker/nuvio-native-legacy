@@ -21,7 +21,7 @@ jobs:
     - name: Apply and verify reviewed source filters and retained Settings cleanup
       run: |
         set -euo pipefail
-        git apply --check --unidiff-zero --unidiff-zero .review/source-filters.patch
+        git apply --check --unidiff-zero .review/source-filters.patch
         git apply --unidiff-zero .review/source-filters.patch
         python3 - <<'VERIFY'
         import hashlib
@@ -61,16 +61,17 @@ jobs:
       run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
     - name: Run all affected native regression suites
       run: |
+        export NV_TMP="$RUNNER_TEMP/nuvio-source-filters"
         set -uo pipefail
         mkdir -p build/review "$NV_TMP"
         command -v ffmpeg >/dev/null || { echo 'FFmpeg is required for proxyts coverage'; exit 1; }
         failed=0
         for name in fontefiltro fontefiltro_parse fontefalha fontefalha_worker fontefalha_playback \
-        +  ajustes_failover stream_parser streamfit_parser debrid i18n \
-        +  p2p pluginjs plugins_fontes proxyts guia_stream_headers \
-        +  fhd402 fonte_ordem_addon addonslista addonurl addons_proveniencia \
-        +  autoplay_alvo fontecache_vod proxprefetch fontesmortas_orcamento fontesmortas_manual \
-        +  player_android_retomada; do
+          ajustes_failover stream_parser streamfit_parser debrid i18n \
+          p2p pluginjs plugins_fontes proxyts guia_stream_headers \
+          fhd402 fonte_ordem_addon addonslista addonurl addons_proveniencia \
+          autoplay_alvo fontecache_vod proxprefetch fontesmortas_orcamento fontesmortas_manual \
+          player_android_retomada; do
           if bash "tests/$name.sh" 2>&1 | tee "build/review/$name.log"; then
             echo "$name PASS" >> build/review/results.txt
           else
@@ -118,8 +119,6 @@ jobs:
         name: source-filters-regressions-${{ github.sha }}
         path: build/review/
         retention-days: 14
-    env:
-      NV_TMP: ${{ runner.temp }}/nuvio-source-filters
   android:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -133,7 +132,7 @@ jobs:
     - name: Apply and verify reviewed source filters and retained Settings cleanup
       run: |
         set -euo pipefail
-        git apply --check --unidiff-zero --unidiff-zero .review/source-filters.patch
+        git apply --check --unidiff-zero .review/source-filters.patch
         git apply --unidiff-zero .review/source-filters.patch
         python3 - <<'VERIFY'
         import hashlib
