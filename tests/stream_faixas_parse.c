@@ -39,6 +39,8 @@ int main(void) {
          "Subtitle languages: fr, zh-Hant\"", "en-US,ES-419,pt_BR,yue-Hant-HK", "fr,zh-Hant");
   expect("\"title\":\"  Áudio : Português (Brasil) | Inglês\\nLegendas: Português (Portugal)\"",
          "Português (Brasil),Inglês", "Português (Portugal)");
+  expect("\"description\":\"idiomas de áudio: Português (PT) / Japonês\"", "Português (PT),Japonês", "");
+  expect("\"description\":\"áudio: Inglês | Subtitles: French\"", "Inglês", "French");
   expect("\"description\":\"Audio: Dolby Atmos | DTS | AAC | 5.1\\nSubtitles: English Patient | Multi | Unknown\"", "", "");
   expect("\"description\":\"The Audio: English | The Subtitles: French\\n"
          "Film.1080p.English.mkv\\nEnglish / French\\n🇬🇧 / 🇫🇷\"", "", "");

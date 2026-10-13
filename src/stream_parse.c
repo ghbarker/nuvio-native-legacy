@@ -257,7 +257,7 @@ static int faixaIdiomaTextoConhecido(const char *p, const char *fim) {
     "English", "French", "German", "Italian", "Spanish", "Portuguese",
     "Brazilian Portuguese", "Portuguese (Brazil)", "Portuguese (Portugal)",
     "Portuguese (Brasil)", "Português", "Português (Brasil)", "Português (BR)",
-    "Português (Portugal)", "Português (PT)", "Inglês", "Ingles", "Francês",
+    "Português (Portugal)", "Inglês", "Ingles", "Francês",
     "Frances", "Alemão", "Alemao", "Italiano", "Español", "Espanhol",
     "Castilian", "Spanish (Latino)", "Spanish (Latin America)", "Latin American Spanish",
     "Arabic", "Bengali", "Bosnian", "Bulgarian", "Burmese", "Cantonese",
@@ -273,31 +273,46 @@ static int faixaIdiomaTextoConhecido(const char *p, const char *fim) {
     "日本語", "中文", "한국어"
   };
   size_t n = (size_t)(fim - p);
+  char alias[128];
+  if (n >= sizeof alias) return 0;
+  memcpy(alias, p, n); alias[n] = 0;
+  // Alias de entrada do addon; comparar sem traduzir os dados recebidos.
+  if (!strcasecmp(alias, "Português (PT)")) return 1;
   for (unsigned k = 0; k < sizeof nomes / sizeof *nomes; k++)
     if (strlen(nomes[k]) == n && !strncasecmp(p, nomes[k], n)) return 1;
   // ISO 639-1 e os codigos de tres letras usuais dos addons. Validar a familia
   // antes das variantes BCP-47; "AAC", "DTS" e uma extensao .mkv nao contam.
-  static const char codigos[] =
-    "|aa|ab|ae|af|ak|am|an|ar|as|av|ay|az|ba|be|bg|bh|bi|bm|bn|bo|br|bs|"
-    "ca|ce|ch|co|cr|cs|cu|cv|cy|da|de|dv|dz|ee|el|en|eo|es|et|eu|fa|ff|"
-    "fi|fj|fo|fr|fy|ga|gd|gl|gn|gu|gv|ha|he|hi|ho|hr|ht|hu|hy|hz|ia|id|"
-    "ie|ig|ii|ik|io|is|it|iu|ja|jv|ka|kg|ki|kj|kk|kl|km|kn|ko|kr|ks|ku|"
-    "kv|kw|ky|la|lb|lg|li|ln|lo|lt|lu|lv|mg|mh|mi|mk|ml|mn|mr|ms|mt|my|"
-    "na|nb|nd|ne|ng|nl|nn|no|nr|nv|ny|oc|oj|om|or|os|pa|pi|pl|ps|pt|qu|"
-    "rm|rn|ro|ru|rw|sa|sc|sd|se|sg|si|sk|sl|sm|sn|so|sq|sr|ss|st|su|sv|"
-    "sw|ta|te|tg|th|ti|tk|tl|tn|to|tr|ts|tt|tw|ty|ug|uk|ur|uz|ve|vi|vo|"
-    "wa|wo|xh|yi|yo|za|zh|zu|eng|fra|fre|deu|ger|ita|spa|por|pob|ptb|ara|"
-    "ben|bos|bul|mya|bur|yue|cat|zho|chi|cmn|hrv|ces|cze|dan|nld|dut|est|"
-    "fin|ell|gre|guj|heb|hin|hun|isl|ice|ind|jpn|kan|khm|kor|lav|lit|mkd|"
-    "mac|msa|may|mal|mar|nep|nor|nob|nno|fas|per|pol|pan|ron|rum|rus|srp|"
-    "sin|slk|slo|slv|swe|tam|tel|tha|tur|ukr|urd|vie|eus|baq|glg|cym|wel|fil|";
+  static const char *const codigos[] = {
+    "aa", "ab", "ae", "af", "ak", "am", "an", "ar", "as", "av", "ay", "az",
+    "ba", "be", "bg", "bh", "bi", "bm", "bn", "bo", "br", "bs", "ca", "ce",
+    "ch", "co", "cr", "cs", "cu", "cv", "cy", "da", "de", "dv", "dz", "ee",
+    "el", "en", "eo", "es", "et", "eu", "fa", "ff", "fi", "fj", "fo", "fr",
+    "fy", "ga", "gd", "gl", "gn", "gu", "gv", "ha", "he", "hi", "ho", "hr",
+    "ht", "hu", "hy", "hz", "ia", "id", "ie", "ig", "ii", "ik", "io", "is",
+    "it", "iu", "ja", "jv", "ka", "kg", "ki", "kj", "kk", "kl", "km", "kn",
+    "ko", "kr", "ks", "ku", "kv", "kw", "ky", "la", "lb", "lg", "li", "ln",
+    "lo", "lt", "lu", "lv", "mg", "mh", "mi", "mk", "ml", "mn", "mr", "ms",
+    "mt", "my", "na", "nb", "nd", "ne", "ng", "nl", "nn", "no", "nr", "nv",
+    "ny", "oc", "oj", "om", "or", "os", "pa", "pi", "pl", "ps", "pt", "qu",
+    "rm", "rn", "ro", "ru", "rw", "sa", "sc", "sd", "se", "sg", "si", "sk",
+    "sl", "sm", "sn", "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "ta",
+    "te", "tg", "th", "ti", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw",
+    "ty", "ug", "uk", "ur", "uz", "ve", "vi", "vo", "wa", "wo", "xh", "yi",
+    "yo", "za", "zh", "zu", "eng", "fra", "fre", "deu", "ger", "ita", "spa", "por",
+    "pob", "ptb", "ara", "ben", "bos", "bul", "mya", "bur", "yue", "cat", "zho", "chi",
+    "cmn", "hrv", "ces", "cze", "dan", "nld", "dut", "est", "fin", "ell", "gre", "guj",
+    "heb", "hin", "hun", "isl", "ice", "ind", "jpn", "kan", "khm", "kor", "lav", "lit",
+    "mkd", "mac", "msa", "may", "mal", "mar", "nep", "nor", "nob", "nno", "fas", "per",
+    "pol", "pan", "ron", "rum", "rus", "srp", "sin", "slk", "slo", "slv", "swe", "tam",
+    "tel", "tha", "tur", "ukr", "urd", "vie", "eus", "baq", "glg", "cym", "wel", "fil"
+  };
   size_t base = 0;
   while (base < n && isalpha((unsigned char)p[base]) && (unsigned char)p[base] < 128) base++;
   if (base < 2 || base > 3 || (base < n && p[base] != '-' && p[base] != '_')) return 0;
-  char chave[6] = {'|', 0};
-  for (size_t k = 0; k < base; k++) chave[k + 1] = (char)tolower((unsigned char)p[k]);
-  chave[base + 1] = '|';
-  if (!strstr(codigos, chave)) return 0;
+  int conhecido = 0;
+  for (unsigned k = 0; k < sizeof codigos / sizeof *codigos; k++)
+    if (strlen(codigos[k]) == base && !strncasecmp(p, codigos[k], base)) { conhecido = 1; break; }
+  if (!conhecido) return 0;
   for (size_t k = base; k < n;) {
     if (p[k] != '-' && p[k] != '_') return 0;
     size_t ini = ++k;
@@ -318,10 +333,28 @@ static const char *faixasRotuloSubsTexto(const char *p, const char *fim, int *ti
   }
   return p;
 }
+static const char *faixasRotuloPortuguesTexto(const char *p, const char *fim, int *tipo) {
+  char rotulo[64];
+  const char *q = p;
+  while (q < fim && *q != ':' && (size_t)(q - p) < sizeof rotulo) q++;
+  if (q == fim || *q != ':') return p;
+  const char *ate = q;
+  while (ate > p && isspace((unsigned char)ate[-1])) ate--;
+  size_t n = (size_t)(ate - p);
+  if (n >= sizeof rotulo) return p;
+  memcpy(rotulo, p, n); rotulo[n] = 0;
+  // Estes sao rotulos recebidos, nao texto de interface a traduzir.
+  if (!strcasecmp(rotulo, "áudio") || !strcasecmp(rotulo, "Áudio") ||
+      !strcasecmp(rotulo, "idiomas de áudio")) {
+    *tipo = 1;
+    return q + 1;
+  }
+  return p;
+}
 static const char *faixasRotuloTexto(const char *p, const char *fim, int *tipo) {
   static const struct { const char *rotulo; int tipo; } rotulos[] = {
-    {"audio languages", 1}, {"audio language", 1}, {"audio", 1}, {"áudio", 1},
-    {"Áudio", 1}, {"languages", 1}, {"language", 1}, {"idiomas de áudio", 1},
+    {"audio languages", 1}, {"audio language", 1}, {"audio", 1},
+    {"languages", 1}, {"language", 1},
     {"subtitle languages", 2}, {"subtitle language", 2}, {"subtitles", 2},
     {"subtitle", 2}, {"subs", 2}, {"legendas", 2}, {"legenda", 2}
   };
@@ -331,7 +364,8 @@ static const char *faixasRotuloTexto(const char *p, const char *fim, int *tipo) 
     const char *q = faixasEspacos(p + n, fim);
     if (q < fim && *q == ':') { *tipo = rotulos[k].tipo; return q + 1; }
   }
-  return faixasRotuloSubsTexto(p, fim, tipo);
+  const char *portugues = faixasRotuloPortuguesTexto(p, fim, tipo);
+  return portugues != p ? portugues : faixasRotuloSubsTexto(p, fim, tipo);
 }
 static const char *faixaIdiomaEmoji(const char *p, const char *fim) {
   // Inversa APENAS dos valores univocos do formatador AIOStreams, dentro de
