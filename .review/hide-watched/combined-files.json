@@ -1,0 +1,381 @@
+{
+  "retained_commit": "c5f0118c8889ba3930fd7230388603aa41153354",
+  "upstream_base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
+  "feature_commit": "4fdd573bc58536f7cb317697110b15a3d44adf87",
+  "settings": {
+    "retained_setting_count": 292,
+    "all_existing_indices_preserved": true,
+    "appended_setting_default": 1
+  },
+  "files": [
+    {
+      "path": "src/ajustes.c",
+      "sha": "52e9205525a65f22bc083f9c726c361fa4cbbd02",
+      "mode": "100644",
+      "retained_sha": "a615d86e45748972a2a60af6713fa2ccc4d7f8e2",
+      "upstream_sha": "00b2cda4627d0928164520849d5ed5dad2b3eff8",
+      "feature_sha": "1aa842a175a0d1ab91843cbbdd0003b447832645",
+      "merge": "structural-settings-append-and-three-way"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha": "8dfb90518ba6b3c57fb20418a1c4d0eda0914106",
+      "mode": "100644",
+      "retained_sha": "b8499d55d64d82c401fbf93104f1c16ec61a810a",
+      "upstream_sha": "b8499d55d64d82c401fbf93104f1c16ec61a810a",
+      "feature_sha": "8dfb90518ba6b3c57fb20418a1c4d0eda0914106",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/ajustes_ux_cenas.inc",
+      "sha": "56b09bda8c33994198d5d0e779b23701581e769d",
+      "mode": "100644",
+      "retained_sha": "7141d208c22b7e1d1e8f53e80e66be81353dc4d0",
+      "upstream_sha": "7141d208c22b7e1d1e8f53e80e66be81353dc4d0",
+      "feature_sha": "56b09bda8c33994198d5d0e779b23701581e769d",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/ajustes_ux_cenas_home.inc",
+      "sha": "7735b82a115cc5104764a3e086326aa923182588",
+      "mode": "100644",
+      "retained_sha": "aaf3abd864d4c851387d7a4125ab1c9f34f680a5",
+      "upstream_sha": "aaf3abd864d4c851387d7a4125ab1c9f34f680a5",
+      "feature_sha": "7735b82a115cc5104764a3e086326aa923182588",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha": "5001a49b9798b79ace84b4564112816b18e0af98",
+      "mode": "100644",
+      "retained_sha": "dca9a564cb654b03cd8eb91d099b26b30d764e73",
+      "upstream_sha": "d64079fec639eccf0d1a17cf16290703eb95b36f",
+      "feature_sha": "766ee40a3b98378f8f05996adad2fc31a746169c",
+      "merge": "append-after-retained-defaults"
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "sha": "b6d136b4911e7e74da00854966b469606fce1785",
+      "mode": "100644",
+      "retained_sha": "1beac8741fdbde86d6cc3e5f29b9d4131e7a5e6d",
+      "upstream_sha": "1beac8741fdbde86d6cc3e5f29b9d4131e7a5e6d",
+      "feature_sha": "b6d136b4911e7e74da00854966b469606fce1785",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha": "803367d627cca01b36725924d472d6e7485e67b2",
+      "mode": "100644",
+      "retained_sha": "2e2b0d292b6b4dde044e8a782c0ce7922aa7e848",
+      "upstream_sha": "34db3ab028b6369be8791551793afb74433e5e96",
+      "feature_sha": "648506e8bb9e9cd5bfbf01fb3b5e211c6a55859e",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "sha": "e27b5c19b18fd4f4485d3152d1a857907bf014a1",
+      "mode": "100644",
+      "retained_sha": "83fa03402f5e947f6e3f72c0e44006545f1e9f8c",
+      "upstream_sha": "83fa03402f5e947f6e3f72c0e44006545f1e9f8c",
+      "feature_sha": "e27b5c19b18fd4f4485d3152d1a857907bf014a1",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/descoberta.c",
+      "sha": "af4b6574a037d2c39409ab55b4ff5720babe9154",
+      "mode": "100644",
+      "retained_sha": "3c8e5240ab2b280a9691493e6449244335d7fe15",
+      "upstream_sha": "3c8e5240ab2b280a9691493e6449244335d7fe15",
+      "feature_sha": "af4b6574a037d2c39409ab55b4ff5720babe9154",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/descoberta.h",
+      "sha": "c5a7925fa456f64ddaadcb51b789888d85cb81f1",
+      "mode": "100644",
+      "retained_sha": "f266756a9ee876c7c84729011355db128a13df53",
+      "upstream_sha": "f266756a9ee876c7c84729011355db128a13df53",
+      "feature_sha": "c5a7925fa456f64ddaadcb51b789888d85cb81f1",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/home.c",
+      "sha": "4de3e1f739f523d7ea9ce7886f8598735809ca00",
+      "mode": "100644",
+      "retained_sha": "72e1c3876f31ce13f621dec1d3ace228620b8c85",
+      "upstream_sha": "72e1c3876f31ce13f621dec1d3ace228620b8c85",
+      "feature_sha": "4de3e1f739f523d7ea9ce7886f8598735809ca00",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha": "6b54db3e99767e4f6f43bc4350db33ff9498417e",
+      "mode": "100644",
+      "retained_sha": "8962783b638144ac3c77ce671771302bef29ecd8",
+      "upstream_sha": "71ea9c2cc80633d401cf8e7caa00f5c37c4b5658",
+      "feature_sha": "b64ca3e2f0276891637dcac4e4cc93cd42ef9df8",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha": "06c6a41d012b9459aa5cb38c71c6a3477d68afc8",
+      "mode": "100644",
+      "retained_sha": "0b4fc113ab2a418d73dd5795d6ad45ed0c9364a9",
+      "upstream_sha": "7dbee1400664829e88ee9104076243363bfaad5c",
+      "feature_sha": "f1ba1db89fe15910fad02f85eae4f67fb1ef963f",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha": "21900869f08d6be65344cb8e4b9ab7f72ff7cc45",
+      "mode": "100644",
+      "retained_sha": "62dbccf727c25745f557bf26e1b85d688fa2948a",
+      "upstream_sha": "85a14a155da22a4a68e003cf6832d33c4d69ad52",
+      "feature_sha": "c68e0f0ced4c58c29e86b60f7f5d6e51e3062e56",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha": "96dcb59cc989e869f5f2a8952fca3d71d74ed816",
+      "mode": "100644",
+      "retained_sha": "a1aa41da75a744e4fbee4d2a787a80ae795b90c0",
+      "upstream_sha": "68b7e4b3f8628b2bced5f1bf69772ad555b0a982",
+      "feature_sha": "7a0b13749d19cd0d9066e7d638ae6bb9437c6bfa",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha": "04f69926cf8e979ad4284f64b73762a1fa389b00",
+      "mode": "100644",
+      "retained_sha": "e7e9c062fa43f91842a0570414ef4dc2a85201d0",
+      "upstream_sha": "14e0058b20e48da06863b90bb81eb88decfcfed5",
+      "feature_sha": "50ea599c245a2dda7efb0ba0735b37657f154450",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha": "60601f8784c0a2778c2ec4879aff92209e067dbb",
+      "mode": "100644",
+      "retained_sha": "50a49ff0ed1f6ba025be3de60078c5f35614e7c6",
+      "upstream_sha": "890cdd460fee84981dc62c998a44386185530224",
+      "feature_sha": "5bac798b17508c4c579e8421f9349b436e8b9c30",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha": "62f356107dd6c640120877e5eeb6ec8212b22b8b",
+      "mode": "100644",
+      "retained_sha": "3f67c4661b9af3ba101954cbb69f6ea3ad5e89dd",
+      "upstream_sha": "1cf6dadbdd1e9fc4d9f3240327a63bc60155434f",
+      "feature_sha": "08a708ffa4dbf67fefa348dede2c25e69aacfac6",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha": "a921b205a0296449539cec9ecfdc352cf3cc3935",
+      "mode": "100644",
+      "retained_sha": "30acb0e815e76e2d16844f5513d870db099770e1",
+      "upstream_sha": "34433c69b35f7f8c98d24051a8bf4737817d4432",
+      "feature_sha": "5e390a2ac8ede44014a8e7e1f7b86adc4d9ea0c0",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha": "ebe983eee244a613ca1e4677339ea7ac3ac78969",
+      "mode": "100644",
+      "retained_sha": "bbc127f8fe61665f7d891ffd3e2714f255def367",
+      "upstream_sha": "8a15d5f96093cccf708fd90a1d228e5c920ca546",
+      "feature_sha": "a9a3c3b4ccd76471e912f5fb7c5598029c3536dd",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha": "16a9b92b8bb4a942ac4e9a111cb8d24cc71d0936",
+      "mode": "100644",
+      "retained_sha": "094c8e92a0d46079ae1d91acb7d1d4128d46abf9",
+      "upstream_sha": "07f5e61dcc81271f7619b4fb21fe7cf33ddd6810",
+      "feature_sha": "ffeba351af44ce0cf1a3e8d5b1443ca84d80b3c4",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha": "a15f66963a70c5dc3d11a64ea7da3ec96442ba34",
+      "mode": "100644",
+      "retained_sha": "1dd0448be06d57626c9f773d75d92ab956926a5e",
+      "upstream_sha": "0bfac6f3849c3f9a80b781eb9f869893fad38667",
+      "feature_sha": "00000a07856ed79c5777ee3606ccd3abcdf563b4",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha": "4a7ff032e1efe7bbefad8ca89444a32ac5a15f0c",
+      "mode": "100644",
+      "retained_sha": "06bc44865b467c1503e4fd234658fc13b2bc83d9",
+      "upstream_sha": "7f314f16014ed1f9f5a58be15e0f413c52081885",
+      "feature_sha": "84c47973c7169eaa90f5ab411ea7d41a485e5b50",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha": "31b9d83c241219e502c102d60eba813c84611556",
+      "mode": "100644",
+      "retained_sha": "4ad9300f1c544950aa0499cc2aac0720b0c231b4",
+      "upstream_sha": "2a86f97314ac3b5ff400f2cc93d0fc4079056777",
+      "feature_sha": "f2eeed3d719ef5628955262ecc568f8931fb4f5e",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha": "78372eff600041f7bcc5a179207dd80390ed7147",
+      "mode": "100644",
+      "retained_sha": "42c0ce28267ef82b3f9a47712149edad8c7e4b89",
+      "upstream_sha": "3d1b3ad5afa5881a902d91d7773781bdc0e68c5e",
+      "feature_sha": "0c6b6bf5ae62b70f051aaaa19ca45117a8b7882a",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha": "410d93e7f5dcd227534da247b06f3ecf8357aad9",
+      "mode": "100644",
+      "retained_sha": "4b664844c78fee6bcc864efe92229e650cceca24",
+      "upstream_sha": "302b64d96ba68655664b83528fdac81ae0facc55",
+      "feature_sha": "e4b0a35113cd499387e7f60c08c2bfadd2995a70",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha": "4243fc1c835aca757818d5d7dacf51c4a93ed608",
+      "mode": "100644",
+      "retained_sha": "a8a134adbe8d314b2aba45ab742396b25f68f53c",
+      "upstream_sha": "c6caa307c843f5dafb679a7ec6cc09668bf7b27e",
+      "feature_sha": "7e96db5ddc3a477382756bcc884ac7211bc68ddc",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha": "57056b6e42f270522f1a1c0db16ae1f84ccf77b6",
+      "mode": "100644",
+      "retained_sha": "f754aab5c5c1be8112ca870a361f4638c55bd230",
+      "upstream_sha": "35100dee7b137177e3eb9ea41964b12f5a709c7a",
+      "feature_sha": "6f5a7004fc85ee5c39b32604311cee869d2b17f0",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha": "720e2cb3687becffa50dc5b14d6e7fe47c00b5c5",
+      "mode": "100644",
+      "retained_sha": "8fe8f34c6ac84453681343de0cf95dd4f271b40e",
+      "upstream_sha": "a8727d7258c003b5d080e1f30e2c11c0ef7499e0",
+      "feature_sha": "458bdab7ac18e2a96d80ef22a87e25efc8f5471a",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha": "e40212ff9e39cdb9c50250e096da29172fea3f11",
+      "mode": "100644",
+      "retained_sha": "31076bb152ea2eb357aad45d18de61b38a0080c5",
+      "upstream_sha": "0d3797b3f0e5c7bfe171bba9f62de652e454e2b2",
+      "feature_sha": "4e90ec243d2e42380e961a4a2a8957056d8e0570",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha": "064dc0135ad445e782e32089c5f5612c0905884b",
+      "mode": "100644",
+      "retained_sha": "c81d7300b7bced2f4f28eff1617ffd97dda0abbd",
+      "upstream_sha": "14f925e66830338871570890bbbe32a25b5b6074",
+      "feature_sha": "036f942a47431fceecb29e78bdb737409dfb2734",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha": "dd4bdd702db4e7990c34c712d91889de9e2f4e32",
+      "mode": "100644",
+      "retained_sha": "a7efe55c7ce8862ae84e206d3536945ea7466a73",
+      "upstream_sha": "db13b0bde120e4b52a1bd87c6a1a316a72acabec",
+      "feature_sha": "cc580e5bc75390795d7bfcf3d3d153243196a13a",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha": "7f29de822a6a70306ae2c0e52f7582536b8d1ee7",
+      "mode": "100644",
+      "retained_sha": "528998a2af6c09620b8396788622c47caaedeeae",
+      "upstream_sha": "761e274aff045e9229222c53a735fc4a97c63779",
+      "feature_sha": "54b96d686c3fdee227184a0c61b96a5e5aad674a",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha": "4b910ba5c364e46be233b5ea216cf8443d0e98cc",
+      "mode": "100644",
+      "retained_sha": "de81707738b982046ade54f2455b5d11a513cef1",
+      "upstream_sha": "517cff34523b02b748eb7c502d689d12fbe7f539",
+      "feature_sha": "dad5a6a26c67bfae179bf332184412bfdabb8484",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha": "7167f2f01c01cbd3ed8de384b1d6d163b1c3024b",
+      "mode": "100644",
+      "retained_sha": "8bdf3db857c9c042e8685fd4b78ff9f26ed4982b",
+      "upstream_sha": "4ffed4aef3861dc662d392f601fac2990834d853",
+      "feature_sha": "545d3db252caf9282a08ac45be20d207d6081675",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha": "6f77a2383a43c816dc6e03684dcf50fc6950f6ed",
+      "mode": "100644",
+      "retained_sha": "cf78ddbcad70c99f622309d6f8a4680843d5bd82",
+      "upstream_sha": "3ee7c1d799d66efdb1f81e7bba0e9caaedbbca69",
+      "feature_sha": "5082cedace2a1b6686082df65236be52337d4fc1",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha": "e4330e249ab134aca585ed4bcbcab1d767174065",
+      "mode": "100644",
+      "retained_sha": "e381787f382840a95450d254484ec79401a2839f",
+      "upstream_sha": "2626603d8ad86b4f9ce2a958b393f12704e83200",
+      "feature_sha": "57d856627b6294c1d4ee3dc88c3b543df68956db",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha": "b6e915ccef3ac86ba505e1d8b4298fd0266e978c",
+      "mode": "100644",
+      "retained_sha": "921f7b3fb0d768a270f92a40d7c0a3011a08fa0b",
+      "upstream_sha": "c937466482342042198273a9a7501596ebe2d9ba",
+      "feature_sha": "0964799cbf48750fe24ebcada9b84c285676a880",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha": "7c874de4cc81e0128f7740c1b45bc291bb936dd5",
+      "mode": "100644",
+      "retained_sha": "4e9503c007524d6b0e168af1c65946043fc2ac28",
+      "upstream_sha": "36692c0a16b0c8a3469ee47befd3f21da2e9d158",
+      "feature_sha": "ef5402d901245404618e6aa0a2209f3850d50e52",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha": "36c4a8b86a6f55de8929eda209effd83fec0086d",
+      "mode": "100644",
+      "retained_sha": "c0862dce94dddd510d3199e0f15946b06ebf3de0",
+      "upstream_sha": "be5f49c2e9ff3cd5795b7992fd2fc7dd4733028f",
+      "feature_sha": "d23786db0bfd02d9c2d386f0e6ffb90d1b8dccf9",
+      "merge": "three-way"
+    },
+    {
+      "path": "src/vertudo.c",
+      "sha": "f65072a1f53facca441e42e2e6d6b01e53ce3e38",
+      "mode": "100644",
+      "retained_sha": "c53b54820de767546df7c7236a26471d113fcdbb",
+      "upstream_sha": "c53b54820de767546df7c7236a26471d113fcdbb",
+      "feature_sha": "f65072a1f53facca441e42e2e6d6b01e53ce3e38",
+      "merge": "three-way"
+    }
+  ]
+}

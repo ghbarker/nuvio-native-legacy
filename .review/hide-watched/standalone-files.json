@@ -1,0 +1,293 @@
+{
+  "base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
+  "files": [
+    {
+      "path": "src/ajustes.c",
+      "mode": "100644",
+      "sha": "1aa842a175a0d1ab91843cbbdd0003b447832645",
+      "sha256": "a1a378fdd3c0beeefba1e412c1b70bda0cda65d54bf45d8c03bb28d101d4a2a9",
+      "bytes": 460095
+    },
+    {
+      "path": "src/ajustes.h",
+      "mode": "100644",
+      "sha": "8dfb90518ba6b3c57fb20418a1c4d0eda0914106",
+      "sha256": "03c6a731fa0afdc1ab2817e750a1d159397938c7ffb2bb791f8ca60b1adc5cae",
+      "bytes": 41546
+    },
+    {
+      "path": "src/ajustes_ux_cenas.inc",
+      "mode": "100644",
+      "sha": "56b09bda8c33994198d5d0e779b23701581e769d",
+      "sha256": "6799db3636834d1938baf45a3ad997691869e020bd3ee017660485514a99a8c4",
+      "bytes": 49003
+    },
+    {
+      "path": "src/ajustes_ux_cenas_home.inc",
+      "mode": "100644",
+      "sha": "7735b82a115cc5104764a3e086326aa923182588",
+      "sha256": "a3e11d675137d916724c22d4d1fe21711c49449751367d848d98f9d8e37b5590",
+      "bytes": 35847
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "mode": "100644",
+      "sha": "766ee40a3b98378f8f05996adad2fc31a746169c",
+      "sha256": "096172c7969c0a0b56b4a6288234e096685cbd897307ff3072e377c462879f33",
+      "bytes": 17939
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "mode": "100644",
+      "sha": "b6d136b4911e7e74da00854966b469606fce1785",
+      "sha256": "aee47dc63c5be1188a3f6ba192a867f29036ff145735fa68ff33e51f1f747831",
+      "bytes": 80548
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "mode": "100644",
+      "sha": "648506e8bb9e9cd5bfbf01fb3b5e211c6a55859e",
+      "sha256": "5ee90e882ee29f1bef13c397c2e214b7c69fa1a42d4a6d03b696299086e275f7",
+      "bytes": 11893
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "mode": "100644",
+      "sha": "e27b5c19b18fd4f4485d3152d1a857907bf014a1",
+      "sha256": "2c57ca3e8ced23fa56a0eeef03d0d7e2b50890a8fcb39e82a56c24a76cbf059c",
+      "bytes": 36571
+    },
+    {
+      "path": "src/descoberta.c",
+      "mode": "100644",
+      "sha": "af4b6574a037d2c39409ab55b4ff5720babe9154",
+      "sha256": "5d910be59314db62552f67f02d795f81f278d8449a5021578b37a67384d52cd7",
+      "bytes": 405842
+    },
+    {
+      "path": "src/descoberta.h",
+      "mode": "100644",
+      "sha": "c5a7925fa456f64ddaadcb51b789888d85cb81f1",
+      "sha256": "0924136ba8daee7a5dfd4064b64773e5d496e5e66fb6fc4245ca9ddfbc4dfa2d",
+      "bytes": 19141
+    },
+    {
+      "path": "src/home.c",
+      "mode": "100644",
+      "sha": "4de3e1f739f523d7ea9ce7886f8598735809ca00",
+      "sha256": "bb5ec7df39ac5dfc75b343423dfc49859e180c19c8129b2241288406bc18227c",
+      "bytes": 367271
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "mode": "100644",
+      "sha": "b64ca3e2f0276891637dcac4e4cc93cd42ef9df8",
+      "sha256": "19cd88ed122f3aaefcdf0cff61c736f78c4fee8ef4a402caf09da86a60912a3f",
+      "bytes": 683071
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "mode": "100644",
+      "sha": "f1ba1db89fe15910fad02f85eae4f67fb1ef963f",
+      "sha256": "23e389fb772c380bbf202b9578d594d8aea80ec849e65cd0f328c6d681280820",
+      "bytes": 503254
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "mode": "100644",
+      "sha": "c68e0f0ced4c58c29e86b60f7f5d6e51e3062e56",
+      "sha256": "19366a6a8aa3a22043a423b8d1a7ae79c3b6f436ee41efd2782a533dc6777e8f",
+      "bytes": 515786
+    },
+    {
+      "path": "src/idioma_da.h",
+      "mode": "100644",
+      "sha": "7a0b13749d19cd0d9066e7d638ae6bb9437c6bfa",
+      "sha256": "91fee2a219eafa25e39814e93f1a8c84694578a5c606c5b5d7996e02b4df9c16",
+      "bytes": 506803
+    },
+    {
+      "path": "src/idioma_de.h",
+      "mode": "100644",
+      "sha": "50ea599c245a2dda7efb0ba0735b37657f154450",
+      "sha256": "ea1afbfe85bf7dcbeeb98a434e16644782b7269dc591d8f79a6aa84d775d1156",
+      "bytes": 526769
+    },
+    {
+      "path": "src/idioma_el.h",
+      "mode": "100644",
+      "sha": "5bac798b17508c4c579e8421f9349b436e8b9c30",
+      "sha256": "bdd22c215e5eca5e0f04e245893a5ef2aa282c3cab5bdca7e7b65d8a11ac441a",
+      "bytes": 717321
+    },
+    {
+      "path": "src/idioma_es.h",
+      "mode": "100644",
+      "sha": "08a708ffa4dbf67fefa348dede2c25e69aacfac6",
+      "sha256": "75147d21a8e731fe10c1a8db55283f48838703b515ee2026a16e52546d088c52",
+      "bytes": 517254
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "mode": "100644",
+      "sha": "5e390a2ac8ede44014a8e7e1f7b86adc4d9ea0c0",
+      "sha256": "6dadd09ee6adb68d1e11d8c7c5e66862aea251958fb59dbe54a63fd645babe05",
+      "bytes": 531781
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "mode": "100644",
+      "sha": "a9a3c3b4ccd76471e912f5fb7c5598029c3536dd",
+      "sha256": "f392156fdf8d3b8614446134d17ac501886d8429d4af330b597551f3e2d59055",
+      "bytes": 536462
+    },
+    {
+      "path": "src/idioma_id.h",
+      "mode": "100644",
+      "sha": "ffeba351af44ce0cf1a3e8d5b1443ca84d80b3c4",
+      "sha256": "7d67a078a433305777a9f3486fbef49f7fea9515948cf06de3194330325a6135",
+      "bytes": 506009
+    },
+    {
+      "path": "src/idioma_it.h",
+      "mode": "100644",
+      "sha": "00000a07856ed79c5777ee3606ccd3abcdf563b4",
+      "sha256": "c6d93fa68e29f2f16317f299a07f6a2102a3559c7072d6c7719587a60d688dc9",
+      "bytes": 517060
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "mode": "100644",
+      "sha": "84c47973c7169eaa90f5ab411ea7d41a485e5b50",
+      "sha256": "9aedbacbf7a7d5b139c8329a1927188ec3046766fa8af139b351021744d66c90",
+      "bytes": 584369
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "mode": "100644",
+      "sha": "f2eeed3d719ef5628955262ecc568f8931fb4f5e",
+      "sha256": "d487f50d26568050ff93af97e01559a80f42a83bf2a7cecdfb34f4c9e177d09a",
+      "bytes": 521196
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "mode": "100644",
+      "sha": "0c6b6bf5ae62b70f051aaaa19ca45117a8b7882a",
+      "sha256": "853cb0b29afb9230389a39f0675e821af33a39a56c631401fa5ebe4520fa5c46",
+      "bytes": 515286
+    },
+    {
+      "path": "src/idioma_no.h",
+      "mode": "100644",
+      "sha": "e4b0a35113cd499387e7f60c08c2bfadd2995a70",
+      "sha256": "e8b35fbf22b84b429b80b6a890833ac970de0aab18abff52cd8e464f78400cd1",
+      "bytes": 503624
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "mode": "100644",
+      "sha": "7e96db5ddc3a477382756bcc884ac7211bc68ddc",
+      "sha256": "bd5b71a4f4567751a1dfe998aa9d5b002a9684caa852a102813bfbeed8069d41",
+      "bytes": 519109
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "mode": "100644",
+      "sha": "6f5a7004fc85ee5c39b32604311cee869d2b17f0",
+      "sha256": "f1ebdffb147cfb18f4e7fbe5142c713ecfb812c6f2de187cf0e35aac4be80f46",
+      "bytes": 509320
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "mode": "100644",
+      "sha": "458bdab7ac18e2a96d80ef22a87e25efc8f5471a",
+      "sha256": "e24b419aef81f54698d14232dbcdc6b5a4c5e68cc34b9486f17df438124bbec9",
+      "bytes": 521552
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "mode": "100644",
+      "sha": "4e90ec243d2e42380e961a4a2a8957056d8e0570",
+      "sha256": "12a6217eeb07307aadcc1bdd847d440e9a3639af7562d7b12ead6055def3bf4e",
+      "bytes": 682150
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "mode": "100644",
+      "sha": "036f942a47431fceecb29e78bdb737409dfb2734",
+      "sha256": "e7efaf31e642ed2f0e329b4aba909c67d1ecb411768884edcd10fa35073a08c7",
+      "bytes": 517817
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "mode": "100644",
+      "sha": "cc580e5bc75390795d7bfcf3d3d153243196a13a",
+      "sha256": "6820da1fa03a3c5f75191c193dd9a111e63a19feaa307e4d60a2864ba379ab87",
+      "bytes": 507002
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "mode": "100644",
+      "sha": "54b96d686c3fdee227184a0c61b96a5e5aad674a",
+      "sha256": "1057d9aa3fc96e733f89c9fd6dcb93647c0e5213cb3521c54b8b5ae868c3804d",
+      "bytes": 502375
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "mode": "100644",
+      "sha": "dad5a6a26c67bfae179bf332184412bfdabb8484",
+      "sha256": "ae7277d0ae306e917385079212c005ccc4b83fa3f5865d57e67898531ff7d27a",
+      "bytes": 509420
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "mode": "100644",
+      "sha": "545d3db252caf9282a08ac45be20d207d6081675",
+      "sha256": "39c538d6b1d373970542df3b9754223b0dd51b48dc77de4fd468f964d809c1bf",
+      "bytes": 500953
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "mode": "100644",
+      "sha": "5082cedace2a1b6686082df65236be52337d4fc1",
+      "sha256": "cac7543a4cd251787c95a51060e7dbb6ca6f353a6a6dfb08032fc67abc89acac",
+      "bytes": 514551
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "mode": "100644",
+      "sha": "57d856627b6294c1d4ee3dc88c3b543df68956db",
+      "sha256": "8459633bbff7138c10ae17631eebed78cded1d6cda54dc4283f2a2771fc5c2db",
+      "bytes": 673794
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "mode": "100644",
+      "sha": "0964799cbf48750fe24ebcada9b84c285676a880",
+      "sha256": "bf56c93a220f73e51cbfda889df8082744387ee080924910bc94bb90ee49fdeb",
+      "bytes": 557229
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "mode": "100644",
+      "sha": "ef5402d901245404618e6aa0a2209f3850d50e52",
+      "sha256": "66da163e54f4825adcd4fdd39d72f65b30a179ab9f17398452d832214a0859b9",
+      "bytes": 492512
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "mode": "100644",
+      "sha": "d23786db0bfd02d9c2d386f0e6ffb90d1b8dccf9",
+      "sha256": "6d78791555c8d4b7b7e688d2de41b08a87893e5f0d08a50db8ae73fee10f061e",
+      "bytes": 494918
+    },
+    {
+      "path": "src/vertudo.c",
+      "mode": "100644",
+      "sha": "f65072a1f53facca441e42e2e6d6b01e53ce3e38",
+      "sha256": "6dc9ef2563efbeb740a993666b5bf88f979b56df598a4e5db1ab908ce4950991",
+      "bytes": 90573
+    }
+  ],
+  "feature_commit": "4fdd573bc58536f7cb317697110b15a3d44adf87"
+}
