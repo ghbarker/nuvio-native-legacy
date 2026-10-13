@@ -8,7 +8,7 @@ You should not have to enter accounts again.
 Nothing from the backup is uploaded. Keep the backup folder private.
 
 1. Download and save the helper to your Windows computer:
-   https://github.com/ghbarker/nuvio-native-legacy/releases/download/tv-mobile-test-languages-481/Nuvio-Test-Accounts.ps1
+   https://github.com/ghbarker/nuvio-native-legacy/releases/download/tv-mobile-test-languages-481/Nuvio-Test-Accounts-v2.ps1
 
    The fixed APK (the helper downloads it for you):
    https://github.com/ghbarker/nuvio-native-legacy/releases/download/tv-mobile-test-languages-481/Nuvio-TV-Mobile-Test.apk
@@ -16,16 +16,18 @@ Nothing from the backup is uploaded. Keep the backup folder private.
    "Allow USB debugging" prompt. Connect only that device.
 3. Open Windows PowerShell in the folder containing the helper and run:
 
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Nuvio-Test-Accounts.ps1
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Nuvio-Test-Accounts-v2.ps1
 
    This only creates and verifies a backup. It does not uninstall anything.
    It stops the app briefly to get a consistent snapshot. You can reopen it.
+   Administrator privileges are not required. The helper sets and verifies
+   only the local backup folder's access permissions, without audit or owner changes.
    The helper uses an existing adb.exe, or downloads Google's official tools
    into %LOCALAPPDATA%\Nuvio-Test-Account-Transfer. Windows system files stay unchanged.
 
 4. When ready for the one-time transfer, run:
 
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Nuvio-Test-Accounts.ps1 -Transfer
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Nuvio-Test-Accounts-v2.ps1 -Transfer
 
    It makes a fresh verified backup, downloads and checks the fixed APK, and
    tries an in-place update first. If Android rejects the old signature, it asks
@@ -36,7 +38,7 @@ Nothing from the backup is uploaded. Keep the backup folder private.
 If interrupted after the reinstall, keep the backup folder shown by the helper
 and use this recovery command, substituting that exact folder:
 
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Nuvio-Test-Accounts.ps1 -Restore -BackupFolder 'C:\Users\YOURNAME\AppData\Local\Nuvio-Test-Account-Transfer\backup-...'
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Nuvio-Test-Accounts-v2.ps1 -Restore -BackupFolder 'C:\Users\YOURNAME\AppData\Local\Nuvio-Test-Account-Transfer\backup-...'
 
 Recovery asks you to type RESTORE before replacing the app's saved data with
 the verified backup (and reinstalling the selected APK if its signature differs).

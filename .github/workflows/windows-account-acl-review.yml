@@ -1,0 +1,60 @@
+name: Windows account helper ACL regression
+
+on:
+  push:
+    branches: [review/windows-account-acl-fix]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standard-user-acl:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Exercise real ACL operations as a standard Windows user
+        shell: powershell
+        run: |
+          & "$env:GITHUB_WORKSPACE\.review\apk-download\standard-user-acl-tests.ps1" -HelperPath "$env:GITHUB_WORKSPACE\.review\apk-download\Nuvio-Test-Accounts.ps1"
+      - name: Save non-sensitive regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-standard-user-acl-${{ github.sha }}
+          path: acl-diagnostics/windows-acl-result.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  publish-helper:
+    needs: standard-user-acl
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify reviewed helper and publish the fixed downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import shutil
+          from pathlib import Path
+          helper = Path('.review/apk-download/Nuvio-Test-Accounts.ps1')
+          expected = 'c8a8bfc27e8b9f5e3e7f9127ed0978cba9c2eb8f025e05c1d95dd3f59cafe5c8'
+          assert hashlib.sha256(helper.read_bytes()).hexdigest() == expected
+          shutil.copyfile(helper, '.review/apk-download/Nuvio-Test-Accounts-v2.ps1')
+          PY
+          gh release upload tv-mobile-test-languages-481 \
+            .review/apk-download/Nuvio-Test-Accounts.ps1 \
+            .review/apk-download/Nuvio-Test-Accounts-v2.ps1 \
+            .review/apk-download/windows-account-transfer.txt \
+            --repo "$GITHUB_REPOSITORY" --clobber

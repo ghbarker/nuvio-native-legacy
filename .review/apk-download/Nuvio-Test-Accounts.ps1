@@ -260,20 +260,60 @@ function Read-VerifiedBackup([string]$Folder) {
     return [pscustomobject]@{ Folder = $Folder; Archive = $archive; OriginalApk = $original; OriginalApkSha256 = $manifest.OriginalApkSha256; Entries = @($manifest.Entries) }
 }
 
+function Get-PrivateDirectoryAcl([System.IO.DirectoryInfo]$Directory) {
+    # Read only the DACL. Audit/owner/group sections need privileges a normal user may not have.
+    $sections = [System.Security.AccessControl.AccessControlSections]::Access
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        return [System.IO.FileSystemAclExtensions]::GetAccessControl($Directory, $sections)
+    }
+    return $Directory.GetAccessControl($sections)
+}
+
+function Set-PrivateDirectoryAcl([System.IO.DirectoryInfo]$Directory, [System.Security.AccessControl.DirectorySecurity]$Acl) {
+    # Persist only the modified access rules; do not use Set-Acl or change ownership.
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        [System.IO.FileSystemAclExtensions]::SetAccessControl($Directory, $Acl)
+    } else {
+        $Directory.SetAccessControl($Acl)
+    }
+}
+
 function Initialize-PrivateFolder {
     $script:PrivateRoot = Join-Path $env:LOCALAPPDATA 'Nuvio-Test-Account-Transfer'
     if (-not (Test-Path -LiteralPath $script:PrivateRoot)) { $null = New-Item -ItemType Directory -Path $script:PrivateRoot }
+    if (-not (Test-Path -LiteralPath $script:PrivateRoot -PathType Container)) { throw 'The local backup path is not a directory. No device data was changed.' }
     Reject-ReparsePoint $script:PrivateRoot
-    $acl = New-Object System.Security.AccessControl.DirectorySecurity
+    $directory = [System.IO.DirectoryInfo]::new($script:PrivateRoot)
+    $acl = Get-PrivateDirectoryAcl $directory
     $acl.SetAccessRuleProtection($true, $false)
+    foreach ($rule in @($acl.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]))) {
+        $acl.RemoveAccessRuleSpecific($rule)
+    }
     $userSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-    $acl.SetOwner($userSid)
-    foreach ($sid in @($userSid.Value, 'S-1-5-18', 'S-1-5-32-544')) {
+    $expectedSids = @($userSid.Value, 'S-1-5-18', 'S-1-5-32-544')
+    foreach ($sid in $expectedSids) {
         $identity = [System.Security.Principal.SecurityIdentifier]::new($sid)
         $rule = [System.Security.AccessControl.FileSystemAccessRule]::new($identity, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
         $acl.AddAccessRule($rule)
     }
-    Set-Acl -LiteralPath $script:PrivateRoot -AclObject $acl
+    Set-PrivateDirectoryAcl $directory $acl
+    # Verify privacy before connecting to the device or capturing any account data.
+    $saved = Get-PrivateDirectoryAcl $directory
+    $rules = @($saved.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
+    if (-not $saved.AreAccessRulesProtected -or $rules.Count -ne $expectedSids.Count) {
+        throw 'Could not verify private backup folder permissions. No device data was changed.'
+    }
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($rule in $rules) {
+        if ($expectedSids -notcontains $rule.IdentityReference.Value -or
+            -not $seen.Add($rule.IdentityReference.Value) -or $rule.IsInherited -or
+            $rule.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow -or
+            $rule.FileSystemRights -ne [System.Security.AccessControl.FileSystemRights]::FullControl -or
+            $rule.InheritanceFlags -ne ([System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit) -or
+            $rule.PropagationFlags -ne [System.Security.AccessControl.PropagationFlags]::None) {
+            throw 'Could not verify private backup folder permissions. No device data was changed.'
+        }
+    }
 }
 
 function Initialize-Adb {
