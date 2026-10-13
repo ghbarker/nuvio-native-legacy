@@ -1,0 +1,20 @@
+name: Native failover review
+on:
+  push:
+    branches: [review/native-source-failover]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export exact upstream source
+        run: |
+          mkdir -p build/source
+          tar -czf build/source/upstream-source.tar.gz src tests tools android README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-failover-upstream-source
+          path: build/source/upstream-source.tar.gz
+          retention-days: 7
