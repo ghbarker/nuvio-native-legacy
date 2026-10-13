@@ -40,6 +40,10 @@
 #include <pthread.h>
 #include <time.h>
 
+// Optional imports belong to consumers: public declarations keep producers strong.
+extern int trakt_enfeitar_lote_sessao(CatItem *, int, uint64_t) NV_PERFIL_OPCIONAL;
+extern int recomenda_social_mesclar_sessao(CatItem *, int, int, uint64_t) NV_PERFIL_OPCIONAL;
+
 // Detached jobs retain the session of their request, including A -> B -> A.
 static pthread_key_t descSessaoChave;
 static pthread_once_t descSessaoUma = PTHREAD_ONCE_INIT;

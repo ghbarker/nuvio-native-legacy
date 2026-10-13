@@ -476,11 +476,7 @@ void recomenda_atividade_fim(const CatItem *ci, int concluiu);
 typedef struct { char imdb[24]; char titulo[160]; char tipo[8]; int agora; long long criado; } RecAtivAmigo;
 int  recomenda_amigo_atividades(const char *id, RecAtivAmigo *saida, int max);
 int  recomenda_social_mesclar(CatItem *itens, int nTrakt, int max);
-#if defined(__GNUC__) || defined(__clang__)
-int  recomenda_social_mesclar_sessao(CatItem *itens, int nTrakt, int max, uint64_t sessao) __attribute__((weak));
-#else
 int  recomenda_social_mesclar_sessao(CatItem *itens, int nTrakt, int max, uint64_t sessao);
-#endif
 // Funde `novos` (n) em `itens`(nTrakt) SEM rede: a regra de uniao, separada
 // para o teste. Devolve o novo total.
 int  rec_social_unir(CatItem *itens, int nTrakt, const CatItem *nuvio, int nNuvio, int max);

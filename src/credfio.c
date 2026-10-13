@@ -8,10 +8,8 @@
 
 // Isolated upstream fixtures omit sync.c. Complete apps always provide the
 // scoped APIs; the legacy fallback is only for those account-free fixtures.
-#if defined(__GNUC__) || defined(__clang__)
-extern int sync_credencial_pedido(SyncCredencialPedido *) __attribute__((weak));
-extern int sync_empurrar_credencial_pedido(const SyncCredencialPedido *, const char *, const char *) __attribute__((weak));
-#endif
+extern int sync_credencial_pedido(SyncCredencialPedido *) NV_PERFIL_OPCIONAL;
+extern int sync_empurrar_credencial_pedido(const SyncCredencialPedido *, const char *, const char *) NV_PERFIL_OPCIONAL;
 #define CF_SLOTS 4
 typedef struct { char prov[16]; int estado, res; uint64_t sessao, pedido; } Slot;
 typedef struct { char prov[16]; char *json; SyncCredencialPedido dono; uint64_t pedido; } Pedido;

@@ -82,7 +82,12 @@ static int gravado;        // 1 quando perfil.txt existia no arranque
 
 // Existing isolated fixtures omit sessao.c. A complete app always captures
 // both fields locally, without refreshing or doing HTTP on the UI thread.
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__APPLE__) && (defined(__GNUC__) || defined(__clang__))
+// This producer must keep its epoch definitions strong. Import only the two
+// optional session helpers; Mach-O needs weak_import for an absent provider.
+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak_import));
+extern void sessao_token_recusado(const char *) __attribute__((weak_import));
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma weak sessao_identidade_local_copiar
 #pragma weak sessao_token_recusado
 #endif

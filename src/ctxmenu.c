@@ -1,4 +1,5 @@
 #include "ctxmenu.h"
+#include "perfisessao.h"
 #include "catalogo.h"
 #include "logotitulo.h"
 #include "descoberta.h"
@@ -42,6 +43,10 @@
 #include "telefoneui.h"
 #define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
 #include "escala.h"
+
+// Optional imports belong to consumers: public declarations keep producers strong.
+extern int tirarremoto_capturar(TirarRemotoPedido *, const char *) NV_PERFIL_OPCIONAL;
+extern void tirarremoto_executar_pedido(const TirarRemotoPedido *, const char *, int) NV_PERFIL_OPCIONAL;
 
 // Mantem o header publico de Trakt estavel: estas leituras sao o contrato
 // interno entre a modal e as escritas assincronas do proprio port.

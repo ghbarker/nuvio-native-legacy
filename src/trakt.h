@@ -84,11 +84,7 @@ void trakt_abrir_sessao(void);
 // invalido — falha do Cinemeta sozinha NAO remove o item. Nao depende de
 // credencial Trakt. BLOQUEIA — chamar do fio de descoberta.
 int  trakt_enfeitar_lote(CatItem *saida, int n);
-#if defined(__GNUC__) || defined(__clang__)
-int trakt_enfeitar_lote_sessao(CatItem *saida, int n, uint64_t sessao) __attribute__((weak));
-#else
 int trakt_enfeitar_lote_sessao(CatItem *saida, int n, uint64_t sessao);
-#endif
 
 // Preenche ate `max` itens do "continue assistindo", ja com arte resolvida.
 // BLOQUEIA — chamar do fio de descoberta. Devolve quantos preencheu.
@@ -96,13 +92,8 @@ int trakt_enfeitar_lote_sessao(CatItem *saida, int n, uint64_t sessao);
 // `imdb` e a chave COMPOSTA que trakt_continuar montou. Devolve 0 quando nao ha
 // id conhecido — o item veio do progresso da conta, nao do Trakt.
 typedef struct { uint64_t sessao; unsigned long long mapa, credencial; char aut[200], chave[140]; } TraktDestino;
-#if defined(__GNUC__) || defined(__clang__)
-int trakt_destino_capturar(TraktDestino *) __attribute__((weak));
-int trakt_episodios_marcar_destino(const TraktDestino *, const char *, const VistoPar *, int, int) __attribute__((weak));
-#else
 int trakt_destino_capturar(TraktDestino *);
 int trakt_episodios_marcar_destino(const TraktDestino *, const char *, const VistoPar *, int, int);
-#endif
 #define TRAKT_REMOVER_MAX 64
 typedef struct {
   TraktDestino destino;

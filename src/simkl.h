@@ -147,15 +147,9 @@ const char *simkl_rota_historico(int visto);
 typedef struct {
   uint64_t sessao, geracao; char aut[400], cid[200], nome[120];
 } SimklDestino;
-#if defined(__GNUC__) || defined(__clang__)
-int simkl_destino_capturar(SimklDestino *) __attribute__((weak));
-int simkl_episodios_marcar_destino(const SimklDestino *, const char *, const VistoPar *, int, int) __attribute__((weak));
-int simkl_titulo_marcar_destino(const SimklDestino *, const char *, const char *, const int *, int, int) __attribute__((weak));
-#else
 int simkl_destino_capturar(SimklDestino *);
 int simkl_episodios_marcar_destino(const SimklDestino *, const char *, const VistoPar *, int, int);
 int simkl_titulo_marcar_destino(const SimklDestino *, const char *, const char *, const int *, int, int);
-#endif
 int simkl_episodios_marcar(const char *imdb, const VistoPar *pares, int qtd, int visto);
 int simkl_titulo_marcar(const char *imdb, const char *tipo, const int *temporadas,
                         int nt, int visto);

@@ -1,4 +1,5 @@
 #include "simklauth.h"
+#include "perfisessao.h"
 #include "idioma.h"
 #include "nuvem.h"
 #include "dados.h"
@@ -53,10 +54,8 @@ static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 
 // O perfil pode mudar enquanto o PIN responde; a conta Nuvio nao pode herdar
 // a autorizacao de quem saiu. Captura local, sem renovacao/rede na UI.
-#if defined(__GNUC__) || defined(__clang__)
-extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak));
-extern const char *sessao_usuario(void) __attribute__((weak));
-#endif
+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) NV_PERFIL_OPCIONAL;
+extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
 static char usuarioFio[80], usuarioEstado[80];
 static void usuarioCopiar(char dst[80]) {
   char jwt[3000];

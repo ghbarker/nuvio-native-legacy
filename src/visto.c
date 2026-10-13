@@ -10,6 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Optional imports belong to consumers: public declarations keep producers strong.
+extern int trakt_destino_capturar(TraktDestino *) NV_PERFIL_OPCIONAL;
+extern int trakt_episodios_marcar_destino(const TraktDestino *, const char *, const VistoPar *, int, int) NV_PERFIL_OPCIONAL;
+extern int simkl_destino_capturar(SimklDestino *) NV_PERFIL_OPCIONAL;
+extern int simkl_episodios_marcar_destino(const SimklDestino *, const char *, const VistoPar *, int, int) NV_PERFIL_OPCIONAL;
+extern int simkl_titulo_marcar_destino(const SimklDestino *, const char *, const char *, const int *, int, int) NV_PERFIL_OPCIONAL;
+
 // Teto do lote: o mesmo do Simkl, que e o menor dos tres (Trakt aceita 256
 // desde este mesmo conserto; a conta nao tem teto no cliente).
 #define VT_LOTE SMK_LOTE_MAX

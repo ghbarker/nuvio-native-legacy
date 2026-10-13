@@ -16,6 +16,9 @@
 #include <string.h>
 #include <pthread.h>
 
+// Optional imports belong to consumers: public declarations keep producers strong.
+extern int trakt_enfeitar_lote_sessao(CatItem *, int, uint64_t) NV_PERFIL_OPCIONAL;
+
 #define SMK_API "https://api.simkl.com"
 // Retomada: o mesmo teto da fileira (CONT_MAX de descoberta.c) com folga para
 // o "a seguir" disputar lugar com os pausados.

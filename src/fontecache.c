@@ -9,7 +9,7 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 extern int addons_consultar_sessao(const char *, const char *, const char *, int,
-    int (*)(void *), void *, Stream **, uint64_t) __attribute__((weak));
+    int (*)(void *), void *, Stream **, uint64_t) NV_PERFIL_OPCIONAL;
 #endif
 // O relogio e um macro para o teste poder avancar o tempo sem dormir. No app
 // e SDL_GetTicks, o mesmo relogio de stream_idade_ms.

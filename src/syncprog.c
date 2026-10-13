@@ -228,15 +228,11 @@ int syncprog_empurrar_sessao(int perfil, uint64_t sessao) {
 // da serie.
 // The public backend contract and the official Android TV client both pass
 // p_profile_id here. Omitting it invokes the SQL default (profile 1).
-#if defined(__GNUC__) || defined(__clang__)
-extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak));
-extern const char *sessao_usuario(void) __attribute__((weak));
-extern int sessao_token_copiar(char *, size_t) __attribute__((weak));
-extern void sessao_token_recusado(const char *) __attribute__((weak));
-extern char *nuvem_rpc_com(const char *, const char *, const char *, int *) __attribute__((weak));
-#else
-extern char *nuvem_rpc_com(const char *, const char *, const char *, int *);
-#endif
+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) NV_PERFIL_OPCIONAL;
+extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
+extern int sessao_token_copiar(char *, size_t) NV_PERFIL_OPCIONAL;
+extern void sessao_token_recusado(const char *) NV_PERFIL_OPCIONAL;
+extern char *nuvem_rpc_com(const char *, const char *, const char *, int *) NV_PERFIL_OPCIONAL;
 int syncprog_remocao_capturar(SyncProgRemocao *p) {
   if (!p) return 0;
   memset(p, 0, sizeof *p); p->sessao = nv_perfil_sessao_ler();

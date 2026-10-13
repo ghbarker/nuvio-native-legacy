@@ -1,4 +1,5 @@
 #include "traktauth.h"
+#include "perfisessao.h"
 #include "idioma.h"
 #include "nuvem.h"
 #include "dados.h"
@@ -89,10 +90,8 @@ static int  pushPendente;          // a conta ainda nao tem este token (push fal
 // Os arquivos por perfil pertencem a conta Nuvio que iniciou o fluxo. Uma
 // resposta pode sobreviver a troca de perfil, mas nunca ao logout/login.
 // A copia local nao renova o JWT nem faz rede no fio principal.
-#if defined(__GNUC__) || defined(__clang__)
-extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak));
-extern const char *sessao_usuario(void) __attribute__((weak));
-#endif
+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) NV_PERFIL_OPCIONAL;
+extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
 static char usuarioFio[80], usuarioEstado[80];
 static void usuarioCopiar(char dst[80]) {
   char jwt[3000];

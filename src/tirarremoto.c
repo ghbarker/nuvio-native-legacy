@@ -4,15 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 // Optional only in existing isolated fixtures. Complete apps link these.
-#if defined(__GNUC__) || defined(__clang__)
-extern int perfis_ativo(void) __attribute__((weak));
-extern const char *sessao_usuario(void) __attribute__((weak));
-extern int syncprog_remover_sessao(const char *, int, uint64_t, const char *) __attribute__((weak));
-#else
-extern int perfis_ativo(void);
-extern const char *sessao_usuario(void);
-extern int syncprog_remover_sessao(const char *, int, uint64_t, const char *);
-#endif
+extern int perfis_ativo(void) NV_PERFIL_OPCIONAL;
+extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
+extern int syncprog_remover_sessao(const char *, int, uint64_t, const char *) NV_PERFIL_OPCIONAL;
+extern int syncprog_remocao_capturar(SyncProgRemocao *) NV_PERFIL_OPCIONAL;
+extern int syncprog_remover_pedido(const SyncProgRemocao *, const char *) NV_PERFIL_OPCIONAL;
 int tirarremoto_capturar(TirarRemotoPedido *p, const char *imdb) {
   if (!p || !imdb || !*imdb) return 0;
   memset(p, 0, sizeof *p); p->sessao = nv_perfil_sessao_ler();

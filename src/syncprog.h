@@ -42,13 +42,8 @@ int  syncprog_puxadas(void);
 typedef struct {
   uint64_t sessao; int perfil, autenticada; char usuario[80], jwt[3000];
 } SyncProgRemocao;
-#if defined(__GNUC__) || defined(__clang__)
-int syncprog_remocao_capturar(SyncProgRemocao *) __attribute__((weak));
-int syncprog_remover_pedido(const SyncProgRemocao *, const char *chave) __attribute__((weak));
-#else
 int syncprog_remocao_capturar(SyncProgRemocao *);
 int syncprog_remover_pedido(const SyncProgRemocao *, const char *chave);
-#endif
 int syncprog_remover_sessao(const char *chave, int perfil, uint64_t sessao, const char *usuario);
 int  syncprog_remover(const char *chave);
 void syncprog_esquecer(void);
