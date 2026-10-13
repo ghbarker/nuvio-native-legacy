@@ -1,0 +1,109 @@
+name: Standalone reported source audio and subtitle metadata verification
+'on':
+  push:
+    branches:
+    - review/source-audio-subtitle-metadata-481-fix
+permissions:
+  contents: read
+concurrency:
+  group: metadata-only-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: Standalone metadata parser, UI and cache regressions (macOS)
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact seven-file feature based on current upstream
+      run: |
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        import re
+        import shutil
+        import subprocess
+        from pathlib import Path
+
+        base = '17bb330373273a3de284d7f2898a3a3e16f1fc3f'
+        feature = '40c0bc7a1325c94af47f910712cbe2cc4f464531'
+        assert re.fullmatch(r'[0-9a-f]{40}', feature), 'Replace the feature SHA before publishing this workflow'
+        plan_path = Path('.review/metadata-only-files.json')
+        plan = json.loads(plan_path.read_text())
+        assert plan['base'] == base, plan['base']
+        assert len(plan['files']) == 7, len(plan['files'])
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        subprocess.run(['git', 'merge-base', '--is-ancestor', feature, 'HEAD'], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        expected = sorted(entry['path'] for entry in plan['files'])
+        assert changed == expected, (changed, expected)
+
+        verified = []
+        paths = set()
+        for entry in plan['files']:
+            relative = entry['path']
+            assert relative.startswith(('src/', 'tests/')), relative
+            assert '..' not in Path(relative).parts, relative
+            assert relative not in paths, relative
+            assert entry['mode'] in ('100644', '100755'), (relative, entry['mode'])
+            paths.add(relative)
+            path = Path(relative)
+            data = path.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            assert actual == entry['sha'], (relative, actual, entry['sha'])
+            executable = bool(path.stat().st_mode & 0o111)
+            assert executable == (entry['mode'] == '100755'), (relative, entry['mode'])
+            feature_blob = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert feature_blob == actual, (relative, feature_blob, actual)
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+
+        # Verification-only descendants cannot introduce extra app or test edits.
+        review_changes = subprocess.check_output(['git', 'diff', '--name-only', '-z', feature, 'HEAD']).decode().split('\0')
+        assert all(path.startswith(('.github/workflows/', '.review/')) for path in review_changes if path), review_changes
+        output = Path('build/review')
+        output.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(plan_path, output / 'metadata-only-files.json')
+        proof = {
+            'base': base,
+            'feature_commit': feature,
+            'build_commit': os.environ['GITHUB_SHA'],
+            'verified': True,
+            'feature_changed_paths': changed,
+            'files': verified,
+        }
+        (output / 'source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Verified exact standalone metadata feature:', feature)
+        print('Feature is based on reviewed upstream:', base)
+        print('Exactly seven source/test paths and all SHA/modes verified')
+        VERIFY
+    - name: Native tools
+      run: brew install sdl2 sdl2_image sdl2_ttf
+    - name: Run standalone metadata and existing parser/cache regressions
+      run: |
+        export NV_TMP="$RUNNER_TEMP/nuvio-metadata-only"
+        set -uo pipefail
+        mkdir -p build/review "$NV_TMP"
+        failed=0
+        for name in stream_faixas_parse stream_faixas_ui stream_parser streamfit_parser fontecache_vod i18n; do
+          if bash "tests/$name.sh" 2>&1 | tee "build/review/$name.log"; then
+            echo "$name PASS" >> build/review/results.txt
+          else
+            echo "$name FAIL" >> build/review/results.txt
+            failed=1
+          fi
+        done
+        cat build/review/results.txt
+        exit "$failed"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: metadata-only-regressions-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: warn
+        retention-days: 14
