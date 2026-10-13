@@ -13,11 +13,17 @@ BUILD_SCRIPTS = {'tools/android.sh', 'tools/arm.sh'}
 def digest(path):
     data = path.read_bytes() if path.is_file() else b''
     return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
-def verify(entries, key='sha'):
+def verify(entries, key='sha', allowed_paths=None):
     checked = []
     for entry in entries:
         relative = entry['path']
-        assert (relative.startswith('src/') or relative in BUILD_SCRIPTS) and '..' not in Path(relative).parts
+        assert not Path(relative).is_absolute() and '..' not in Path(relative).parts
+        if allowed_paths is None:
+            assert relative.startswith('src/') or relative in BUILD_SCRIPTS
+        else:
+            # Only prior, successfully verified retained files receive this
+            # exception. New feature and preview inputs remain product-only.
+            assert relative in allowed_paths
         path = Path(relative)
         assert digest(path) == entry[key], (relative, key, digest(path), entry[key])
         if entry[key] != EMPTY:
@@ -63,7 +69,8 @@ def main():
     modified = {e['path'] for e in plan['files'] + preview}
     retained_entries = {e['path']: e for e in retained_proof['retained_files']}
     retained_entries.update({e['path']: e for e in retained_proof['final_files']})
-    untouched = verify([e for p, e in retained_entries.items() if p not in modified])
+    untouched = verify([e for p, e in retained_entries.items() if p not in modified],
+                       allowed_paths=set(retained_entries))
     proof = {'build_commit': os.environ['GITHUB_SHA'], 'retained_commit': plan['retained_commit'],
              'feature_commit': plan['feature_commit'], 'upstream_base': plan['upstream_base'],
              'verified': True, 'settings': settings, 'retained_files': list(retained_entries.values()),
