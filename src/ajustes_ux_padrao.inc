@@ -265,3 +265,4 @@
   1, /* auto-skip credits, only with a real start+end marker: Desligado */
   5, /* owner decision #256: configurable countdown in seconds */
   0, /* interface mode: TV, including on phones until Mobile is selected */
+  1, /* hide watched movies (#366): Desligado, per profile on this device */
