@@ -1,6 +1,6 @@
 {
   "base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
-  "feature_commit": "389849c5e7a04deb809b975d03f2b6ac8efd8c9d",
+  "feature_commit": "3641a471e319a7dc2bbed9b203770e73e1955cb0",
   "files": [
     {
       "path": "src/addons.c",
@@ -118,7 +118,7 @@
     },
     {
       "path": "src/credfio.c",
-      "sha": "41e9223bfe17600dffcca119a951c3d78a67dc35",
+      "sha": "82b5cf5c2c4c750fc83d0f15f5acc14ae5b165d3",
       "mode": "100644",
       "upstream_sha": "9b02e92553e959c600c18d3df59f23455c02fd3c"
     },
@@ -130,7 +130,7 @@
     },
     {
       "path": "src/ctxmenu.c",
-      "sha": "329b5041580699256f04c7d23a313a3a78f28a5a",
+      "sha": "97d5f0bfd0c70ce04ee428cf650c5371d7b38f0b",
       "mode": "100644",
       "upstream_sha": "cfd5547b2224835b633196709dba520853ecc803"
     },
@@ -148,7 +148,7 @@
     },
     {
       "path": "src/descoberta.c",
-      "sha": "30a9eba7d50018acf90936e1b1bdc66aac1f7446",
+      "sha": "e3bc43807e6a6b62e0444fa9190f315a405e297b",
       "mode": "100644",
       "upstream_sha": "3c8e5240ab2b280a9691493e6449244335d7fe15"
     },
@@ -184,7 +184,7 @@
     },
     {
       "path": "src/fontecache.c",
-      "sha": "a8cd1ef31c316760eead96b38b3a7432b4ccd0ee",
+      "sha": "95060dba18ab7fe79428af2c8d202a75a0110d4a",
       "mode": "100644",
       "upstream_sha": "b93c4a04c5879bcf689f60b6e012ae56592150b0"
     },
@@ -382,7 +382,7 @@
     },
     {
       "path": "src/idioma_sr.h",
-      "sha": "b461b6d4d274ad691d6e07ebf9f5c3e6eace1042",
+      "sha": "0ab6b09d48433e8688a84adf60d5baab2ec70c4b",
       "mode": "100644",
       "upstream_sha": "761e274aff045e9229222c53a735fc4a97c63779"
     },
@@ -490,7 +490,7 @@
     },
     {
       "path": "src/perfis.c",
-      "sha": "614dd318762173652589fe5deb239a92c948bce4",
+      "sha": "aee84ece9d2448294e37dbdc4f67e202a448910f",
       "mode": "100644",
       "upstream_sha": "763d45770ca397beba9a8ae09fcb601e3a04c467"
     },
@@ -502,7 +502,7 @@
     },
     {
       "path": "src/perfisessao.h",
-      "sha": "ec307280432e19d297cfdcb4a844203d10e9b8d5",
+      "sha": "686f7a15dae8062cf9496b5a0807b9d38cff7443",
       "mode": "100644",
       "upstream_sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
     },
@@ -520,7 +520,7 @@
     },
     {
       "path": "src/recomenda.h",
-      "sha": "b4f08d4687aefa910e96a6b0553ccd4d67c683fb",
+      "sha": "55278a33284af66074ce0a283a3f65f980755e90",
       "mode": "100644",
       "upstream_sha": "1d26d9edb064fb138dc8d9331af4a87a97fe1edc"
     },
@@ -550,19 +550,19 @@
     },
     {
       "path": "src/simkl.c",
-      "sha": "590b428860d9cd077687ac0ce532631e13be4ab9",
+      "sha": "7c9fab14b6dec4bf5d6f03ca95e77561028d5ba6",
       "mode": "100644",
       "upstream_sha": "648406853e47de6f7d8bbb2d7bd4a3615dc6eba7"
     },
     {
       "path": "src/simkl.h",
-      "sha": "46af3f55ceb7e3b57adefd3252db30ad88f12e9e",
+      "sha": "53fc1e9e81a653ced43b345b64b63203495b6c69",
       "mode": "100644",
       "upstream_sha": "2925c98c85d9c9bbc9fba08500076e878175422e"
     },
     {
       "path": "src/simklauth.c",
-      "sha": "6ed3c786a306ac6dce4dad870e1d1eca002b193e",
+      "sha": "43cddb999cf6f50e42ebf4dbd2be10d8183909d7",
       "mode": "100644",
       "upstream_sha": "d8a5642001f415fdb3ce0d72d94515a7e5be51ff"
     },
@@ -610,25 +610,25 @@
     },
     {
       "path": "src/syncprog.c",
-      "sha": "7a42adf92f551be409404152b5c11136136d6ee4",
+      "sha": "58c36e6288d36f1f58056a804fefad9e74a2731a",
       "mode": "100644",
       "upstream_sha": "58e39a0c4909e89559ab16fbfd2e91e2d10224b9"
     },
     {
       "path": "src/syncprog.h",
-      "sha": "a0626fbf2414c0bbbef1051211f46339c2b1c604",
+      "sha": "71baed3df0003031700ec4f11e55bdd69663700b",
       "mode": "100644",
       "upstream_sha": "505fd949231b499693ebb9514276b0c341e9ff25"
     },
     {
       "path": "src/tirarremoto.c",
-      "sha": "70d38cc6ad21f28733b181c49b74227aeaf3ed0d",
+      "sha": "29a58d36e50dc89126bae08e2dfa7ea6951a5ef6",
       "mode": "100644",
       "upstream_sha": "0ff847634027b5f4177febd52f9bbe6785edb2c4"
     },
     {
       "path": "src/tirarremoto.h",
-      "sha": "ec2f8dbd32ac38c1ec1c737186a1ddec2153e6b1",
+      "sha": "e7560f037a66d2a10ad31b3b24ebf1820231cd97",
       "mode": "100644",
       "upstream_sha": "91664e0b695e1e7400966908d5ed506a0943ce2b"
     },
@@ -640,19 +640,19 @@
     },
     {
       "path": "src/trakt.h",
-      "sha": "e121b0680f14395c3615aaa987062dc20ab765ea",
+      "sha": "d034567fac481bf0ad1c9fe2ce11b88f541f659d",
       "mode": "100644",
       "upstream_sha": "240b64da089725327d4d1d71ae5f3c64e990ef23"
     },
     {
       "path": "src/traktauth.c",
-      "sha": "0c61a84456fce8b000b91f0a50fb3823a8ac6661",
+      "sha": "677a4a895388b5778d991951ca4108ad9fd1cdbf",
       "mode": "100644",
       "upstream_sha": "c6412ad6bbc655ba03e413b6134621d30ccd9796"
     },
     {
       "path": "src/visto.c",
-      "sha": "278176d3d73a7cf84e3ac7b6cc3f04749989f839",
+      "sha": "cd499f600ff7281f938ca672db9f73ccc57deb47",
       "mode": "100644",
       "upstream_sha": "de4581bcc7ad536cb7c088648b1e5efe414a2bb1"
     },

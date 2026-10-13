@@ -38,6 +38,7 @@ for profile_tracker_suite in existing auth-owned auth-existing; do
   fi
 done
 if [[ "$(uname -s)" == Darwin ]]; then
+  python3 "$profile_review/build/prepare_http_tests.py"
   for profile_server in jellyfin plex emby; do
     if bash "tests/$profile_server.sh" 2>&1 | tee "$profile_results/server-$profile_server.log"; then
       echo "$profile_server HTTP PASS" >> "$profile_results/results.txt"

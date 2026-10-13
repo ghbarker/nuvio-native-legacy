@@ -2449,7 +2449,7 @@ diff --git a/src/contalib.c b/src/contalib.c
 diff --git a/src/credfio.c b/src/credfio.c
 --- a/src/credfio.c
 +++ b/src/credfio.c
-@@ -1,59 +1,88 @@
+@@ -1,59 +1,86 @@
  #include "credfio.h"
  #include "sync.h"
 +#include "perfisessao.h"
@@ -2460,10 +2460,8 @@ diff --git a/src/credfio.c b/src/credfio.c
  
 +// Isolated upstream fixtures omit sync.c. Complete apps always provide the
 +// scoped APIs; the legacy fallback is only for those account-free fixtures.
-+#if defined(__GNUC__) || defined(__clang__)
-+extern int sync_credencial_pedido(SyncCredencialPedido *) __attribute__((weak));
-+extern int sync_empurrar_credencial_pedido(const SyncCredencialPedido *, const char *, const char *) __attribute__((weak));
-+#endif
++extern int sync_credencial_pedido(SyncCredencialPedido *) NV_PERFIL_OPCIONAL;
++extern int sync_empurrar_credencial_pedido(const SyncCredencialPedido *, const char *, const char *) NV_PERFIL_OPCIONAL;
  #define CF_SLOTS 4
 -typedef struct { char prov[16]; char *json; int estado; int res; } Slot; // 0 livre, 1 no ar, 2 pronto
 +typedef struct { char prov[16]; int estado, res; uint64_t sessao, pedido; } Slot;
@@ -2583,7 +2581,24 @@ diff --git a/src/credfio.h b/src/credfio.h
 diff --git a/src/ctxmenu.c b/src/ctxmenu.c
 --- a/src/ctxmenu.c
 +++ b/src/ctxmenu.c
-@@ -303,10 +303,12 @@
+@@ -1,4 +1,5 @@
+ #include "ctxmenu.h"
++#include "perfisessao.h"
+ #include "catalogo.h"
+ #include "logotitulo.h"
+ #include "descoberta.h"
+@@ -42,6 +43,10 @@
+ #include "telefoneui.h"
+ #define NV_ESCALA_TELA   // o arquivo inteiro mede pela tela virtual (escala.h)
+ #include "escala.h"
++
++// Optional imports belong to consumers: public declarations keep producers strong.
++extern int tirarremoto_capturar(TirarRemotoPedido *, const char *) NV_PERFIL_OPCIONAL;
++extern void tirarremoto_executar_pedido(const TirarRemotoPedido *, const char *, int) NV_PERFIL_OPCIONAL;
+ 
+ // Mantem o header publico de Trakt estavel: estas leituras sao o contrato
+ // interno entre a modal e as escritas assincronas do proprio port.
+@@ -303,10 +308,12 @@
  // Os DELETE remotos de "Tirar de Continuar assistindo", fora do fio de
  // desenho. Nenhum dos dois e obrigatorio: sem Trakt nao ha id de playback, sem
  // conta nao ha RPC. Os dois dizem no log o que fizeram.
@@ -2598,7 +2613,7 @@ diff --git a/src/ctxmenu.c b/src/ctxmenu.c
    free(tr);
    return NULL;
  }
-@@ -319,6 +321,7 @@
+@@ -319,6 +326,7 @@
  static void tirarRemotoEmFio(TirarRemoto *tr) {
    pthread_t t;
    if (!tr) return;
@@ -3230,10 +3245,14 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  #include "artereserva.h"
  #include "artefontes.h"
  #include "idbase.h"
-@@ -38,6 +39,76 @@
+@@ -38,6 +39,80 @@
  #include <stdlib.h>
  #include <pthread.h>
  #include <time.h>
++
++// Optional imports belong to consumers: public declarations keep producers strong.
++extern int trakt_enfeitar_lote_sessao(CatItem *, int, uint64_t) NV_PERFIL_OPCIONAL;
++extern int recomenda_social_mesclar_sessao(CatItem *, int, int, uint64_t) NV_PERFIL_OPCIONAL;
 +
 +// Detached jobs retain the session of their request, including A -> B -> A.
 +static pthread_key_t descSessaoChave;
@@ -3307,7 +3326,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
  #define TMDB     "https://api.themoviedb.org/3"
  
-@@ -76,6 +147,7 @@
+@@ -76,6 +151,7 @@
  // Chave do TMDB, em art/tmdb.txt. SEGREDO do dono (saiu do dist/nuvio.env.js do
  // app web) — nao versionar. Sem ela o elenco continua so com nomes.
  static char tmdbChave[64];
@@ -3315,7 +3334,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static char dirArteDesc[512];
  
  void desc_tmdb_definir(const char *chave) {
-@@ -102,12 +174,13 @@
+@@ -102,12 +178,13 @@
  #endif
    snprintf(caminho, sizeof caminho, "%s/tmdb.txt", dirArte ? dirArte : ".");
    f = fopen(caminho, "r");
@@ -3330,7 +3349,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[desc] tmdb %s\n", tmdbChave[0] ? "ok" : "ausente");
  }
  
-@@ -825,6 +898,7 @@
+@@ -825,6 +902,7 @@
    int     geracao;
  } resAlvo[BUSCA_ALVOS];
  
@@ -3338,7 +3357,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static int  geracao;            // sobe a cada termo novo
  static int  respGeracao = -1;   // geracao da ultima resposta aceita (desc_busca_chegou)
  static int  proximoAlvo;        // fila de trabalho: proximo indice a consultar
-@@ -859,6 +933,7 @@
+@@ -859,6 +937,7 @@
    buscaTermo[0] = 0;
    proximoAlvo = 0;
    geracao++;
@@ -3346,7 +3365,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    pthread_mutex_unlock(&buscaTrava);
  }
  
-@@ -947,15 +1022,17 @@
+@@ -947,15 +1026,17 @@
      meu = proximoAlvo++;
      a = alvos[meu];
      g = geracao;
@@ -3365,7 +3384,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        memcpy(resAlvo[meu].itens, achados, sizeof(CatItem) * (size_t)n);
        resAlvo[meu].n = n;
        resAlvo[meu].geracao = g;
-@@ -979,6 +1056,7 @@
+@@ -979,6 +1060,7 @@
    if (!strcmp(termo, buscaPedido)) { pthread_mutex_unlock(&buscaTrava); return; }
    snprintf(buscaPedido, sizeof buscaPedido, "%s", termo);
    geracao++;
@@ -3373,7 +3392,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    proximoAlvo = 0;
    // Zera a contagem, nao os itens: a tela pode estar desenhando o quadro
    // corrente e ler item pela metade seria pior que uma fileira a menos.
-@@ -1083,6 +1161,7 @@
+@@ -1083,6 +1165,7 @@
  // Identidade da montagem em voo. Troca de conta/perfil/config invalida o fio
  // antigo antes que ele publique ou grave um snapshot privado no contexto novo.
  static volatile unsigned montagemGeracao;
@@ -3381,7 +3400,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  // 0 = nao espere; 1 = espere (perfil ainda nao escolhido); 2 = espere, com prazo.
  static int (*esperaAddons)(void);
  void desc_espera_addons_definir(int (*f)(void)) { esperaAddons = f; }
-@@ -2767,7 +2846,7 @@
+@@ -2767,7 +2850,7 @@
          if (!strcmp(enfeitadas[i].titulo,
                      i18n(!strcmp(enfeitadas[i].tipo, "series") ? "Programa de TV" : "Filme")))
            enfeitadas[i].titulo[0] = 0;
@@ -3390,7 +3409,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        for (i = 0; i < n; i++)
          for (j = 0; j < ni; j++)
            if (!strcmp(saida[i].imdb, enfeitadas[j].imdb) &&
-@@ -2890,6 +2969,8 @@
+@@ -2890,6 +2973,8 @@
  // trakt_enfeitar_lote, chamado tambem por trakt_social — nao admitem dois
  // montadores ao mesmo tempo, entao a trava cobre os DOIS usos em montar().
  static pthread_mutex_t contTrava = PTHREAD_MUTEX_INITIALIZER;
@@ -3399,7 +3418,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
  // QUAL "CONTINUAR" E O MAIS NOVO (issue #205). montar() calcula a fileira no
  // COMECO da volta e so a publica no fim, segundos depois (manifestos e
-@@ -2945,7 +3026,7 @@
+@@ -2945,7 +3030,7 @@
    it->nomeEpisodio[0] = 0;
    it->restanteMin = 0;
    // Episodio antigo: ja foi ao ar (sem isto contaria "sem data de estreia").
@@ -3408,7 +3427,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (nAjustados < (int)(sizeof ajustadosIds / sizeof *ajustadosIds))
      snprintf(ajustadosIds[nAjustados++], sizeof ajustadosIds[0], "%s", it->imdb);
  }
-@@ -3068,18 +3149,18 @@
+@@ -3068,18 +3153,18 @@
    CatItem *lote;
    int nSem, nLote = 0, i, j, confirmados, entraram = 0;
    int fVelho = 0, fVisto = 0, fPausado = 0;
@@ -3431,7 +3450,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    for (i = 0; i < nSem; i++) {
      CatItem *d = &lote[nLote];
      int ja = 0;
-@@ -3113,8 +3194,8 @@
+@@ -3113,8 +3198,8 @@
      nLote++;
    }
    // Publicado ANTES do enfeite: e por ele que trakt.c sabe que tem de conferir.
@@ -3442,7 +3461,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    // Sugestoes so disputam lugares entre si; pausados ficam. Com
    // "Mostrar nao exibidos" desligado o futuro nem disputa lugar: o filtro mais
    // abaixo o tiraria, e o pausado que ele empurrou para fora nao voltaria.
-@@ -3188,7 +3269,7 @@
+@@ -3188,7 +3273,7 @@
    int querSimkl = (fonte == AJ_CWF_AMBAS || fonte == AJ_CWF_SIMKL) && simkl_ativo();
  
    if (max > CONT_MAX) max = CONT_MAX;
@@ -3451,7 +3470,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    nAjustados = 0;
    nT = querTrakt ? trakt_continuar(doTrakt, CONT_MAX) : 0;
    // Os limites AGORA valem para todas as fontes. Sem isto, o /sync/playback
-@@ -3235,14 +3316,14 @@
+@@ -3235,14 +3320,14 @@
    if (querConta && (fonte == AJ_CWF_CONTA || (!trakt_ativo() && !simkl_ativo())))
      nL = contaASeguir(daConta, nL, CONT_MAX, trakt_ativo() || simkl_ativo());
    else
@@ -3468,7 +3487,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
    // A CONTA ENTRA PRIMEIRO porque ela e a fonte DATADA (lastWatchedMs, que o
    // syncprog ja reconciliou entre celular e TV). O item remoto que fala da
-@@ -3403,7 +3484,7 @@
+@@ -3403,7 +3488,7 @@
        nJ = mp + mf;
        // Publicado ANTES de cat_trocar_continuar (quem chama publica a fileira
        // depois deste retorno): a home nunca ve a lista nova com o conjunto velho.
@@ -3477,7 +3496,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        if (modo != CWO_PADRAO || escondidos || semData)
          printf("[desc] continuar assistindo: ordem %s, %d futuro(s)%s, %d escondido(s), "
                 "%d sem data, nao exibidos %s, corte: %d exibido(s) e %d futuro(s) fora\n",
-@@ -3486,14 +3567,26 @@
+@@ -3486,14 +3571,26 @@
  static void *fioContinuar(void *u) {
    CatItem lote[CONT_MAX];
    int n;
@@ -3509,7 +3528,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    cwVivo = 0;
    if (cwDeNovo) { cwDeNovo = 0; desc_refazer_continuar(); }
    return NULL;
-@@ -3501,9 +3594,13 @@
+@@ -3501,9 +3598,13 @@
  
  void desc_refazer_continuar(void) {
    pthread_t t;
@@ -3524,7 +3543,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    else pthread_detach(t);
  }
  
-@@ -3533,14 +3630,14 @@
+@@ -3533,14 +3634,14 @@
      idbase_copiar(ci->imdb, base, sizeof base);
      snprintf(novo.imdb, sizeof novo.imdb, "%s:%d:%d", base, novo.temporada, novo.episodio);
    }
@@ -3543,7 +3562,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[desc] continuar assistindo: %s %s ao sair do player (local; a refacao confirma)\n",
           novo.imdb, mudou ? "na frente" : "ja estava na frente");
    fflush(stdout);
-@@ -3555,8 +3652,9 @@
+@@ -3555,8 +3656,9 @@
  static CatItem *cwAntesDePublicar(int *k) {
    CatItem *c = NULL;
    *k = 0;
@@ -3555,7 +3574,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      *k = cat_copiar_fileira("continue_watching", c, CONT_MAX, NULL);
    return c;
  }
-@@ -3569,15 +3667,18 @@
+@@ -3569,15 +3671,18 @@
      cat_trocar_continuar(c, k);
      free(c);
    }
@@ -3576,7 +3595,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[perf] publicarMontagem: %d itens, %d fileiras, %.1f ms\n", n, nf, cat_relogio_ms() - t0);
    fflush(stdout);
  }
-@@ -3893,7 +3994,8 @@
+@@ -3893,7 +3998,8 @@
      if (i < n && m < CAT_FIL_MAX) todas[m++] = fils[i];
    }
    { double t0 = cat_relogio_ms();
@@ -3586,7 +3605,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      printf("[perf] snapshot da home: %d fileiras em %.1f ms\n", m, cat_relogio_ms() - t0);
      fflush(stdout);
      return r; }
-@@ -3906,7 +4008,7 @@
+@@ -3906,7 +4012,7 @@
    HomeContexto c;
    (void)homeestado_geracao();
    homeestado_contexto(&c);
@@ -3595,7 +3614,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  }
  
  // COM A ESTRUTURA DE AGORA, UMA MONTAGEM NOVA PEDIRIA ALGO QUE ESTA NAO PEDIU?
-@@ -3977,6 +4079,7 @@
+@@ -3977,6 +4083,7 @@
    CatItem *wl, *col;
    int nWl, nCol;
    int pronto, largado;
@@ -3603,7 +3622,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  } ListasTrakt;
  static pthread_mutex_t listasTrava = PTHREAD_MUTEX_INITIALIZER;
  
-@@ -3996,8 +4099,11 @@
+@@ -3996,8 +4103,11 @@
  static void *fioListas(void *u) {
    ListasTrakt *j = u;
    int nw = 0, nc = 0;
@@ -3617,7 +3636,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    pthread_mutex_lock(&listasTrava);
    if (j->largado) {
      pthread_mutex_unlock(&listasTrava);
-@@ -4015,6 +4121,7 @@
+@@ -4015,6 +4125,7 @@
    ListasTrakt *j = calloc(1, sizeof *j);
    pthread_t t;
    if (!j) return NULL;
@@ -3625,7 +3644,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (pthread_create(&t, NULL, fioListas, j) != 0) { free(j); return NULL; }
    pthread_detach(t);
    return j;
-@@ -4068,13 +4175,18 @@
+@@ -4068,13 +4179,18 @@
    parcialNaTela = 1;
  }
  
@@ -3646,7 +3665,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    return NULL;
  }
  
-@@ -4087,6 +4199,7 @@
+@@ -4087,6 +4203,7 @@
    int nContinuar = 0, nSocial = 0;
    unsigned socialGeracao;
    unsigned minhaGeracao = montagemGeracao;
@@ -3654,7 +3673,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    // O CONTEXTO EM QUE ESTA VOLTA BUSCA, em partes (ver homeestado.h). A
    // identidade vale do inicio: o Trakt e lido logo abaixo. Os addons sao
    // recapturados no instante em que a lista e lida, e a estrutura no instante
-@@ -4163,7 +4276,7 @@
+@@ -4163,7 +4280,7 @@
    // depois de pagar todos os manifestos e catalogos. MEDIDO na C9 do dono: 45 s
    // de uma volta que ninguem ia ver. Os pontos abaixo sao os seguros: fora de
    // trava, sem fio de catalogo esperando por quem sai.
@@ -3663,7 +3682,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    // AS LISTAS DO TRAKT ASSIM QUE CHEGAREM, em qualquer ponto seguro. Com a
    // home inteira na tela (volta silenciosa) so marca e acrescenta; em partes,
    // entram de rabo na publicacao seguinte (ou nesta, se ja houve uma).
-@@ -4172,8 +4285,8 @@
+@@ -4172,8 +4289,8 @@
          minhaGeracao == montagemGeracao && fonteIntacta(&ctxIni)) { \
        if (!progressivo) { \
          listasNaTela = 1; \
@@ -3674,7 +3693,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
          marco("listas do trakt na tela"); \
        } else if (n == nPublicado || n == 0) { \
          /* So com o lote igual ao que esta na tela: o rabo de rascunho nao \
-@@ -4195,10 +4308,11 @@
+@@ -4195,10 +4312,11 @@
    socialGeracao = recomenda_geracao();
    SocialFio socFio;
    memset(&socFio, 0, sizeof socFio);
@@ -3687,7 +3706,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    n += nContinuar;
    marco("trakt continuar assistindo");
    if (CONDENADA("depois do continuar assistindo")) {
-@@ -4994,7 +5108,7 @@
+@@ -4994,7 +5112,7 @@
      int mudou;
      homeestado_contexto(&ctxFim);
      mudou = homeestado_mudancas(&ctxIni, &ctxFim);
@@ -3696,7 +3715,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        // DESCARTADA SEM PUBLICAR, e por isso RECOMECA. A geracao muda sozinha
        // no arranque (perfil escolhido, catordem/colecoes/addons da conta
        // chegando — tudo entra na assinatura do homeestado), e no log da LG as
-@@ -5039,7 +5153,7 @@
+@@ -5039,7 +5157,7 @@
        marco("catalogo da rede igual ao da tela: nao republicado");
        printf("[desc] catalogo montado com %d titulos, igual ao que esta na tela; mantido\n", n);
      }
@@ -3705,7 +3724,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      localizarContinuarPublicado();
      if (!(mudou & HOMEESTADO_MUDOU_ESTRUTURA))
        salvarSnapshot(filsMontadas, nFileirasMontadas, estadoFim);
-@@ -5127,7 +5241,7 @@
+@@ -5127,7 +5245,7 @@
      { HomeContexto ctxCache;
        homeestado_contexto(&ctxCache);
        if (!(homeestado_mudancas(&ctxIni, &ctxCache) & HOMEESTADO_MUDOU_FONTE))
@@ -3714,7 +3733,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        else
          printf("[desc] cache descartado: conta/perfil/addons mudou durante a montagem\n");
      }
-@@ -5200,6 +5314,7 @@
+@@ -5200,6 +5318,7 @@
    descVoltas++;
    descPedidoPessoa = 0;   // esta volta atende o pedido da pessoa
    montagemGeracao++;
@@ -3722,7 +3741,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    pthread_mutex_unlock(&listaTrava);
    if (pthread_create(&th, NULL, montar, NULL) != 0) {
      // NAO FALHAR CALADO. No webOS um pthread_create nunca falhou e o caminho de
-@@ -5242,6 +5357,7 @@
+@@ -5242,6 +5361,7 @@
  // assistindo" nao tem `base` — elas nao sao catalogo de addon e nao participam
  // da ordem, senao a uniao as jogaria para o fim como chaves desconhecidas.
  void desc_remontar_fileiras(void) {
@@ -3730,7 +3749,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    static CatFileira saidaFil[CAT_FIL_MAX];
    const char *chaves[CAT_FIL_MAX];
    int idxCat[CAT_FIL_MAX], ordem[CAT_FIL_MAX], antes[CAT_FIL_MAX];
-@@ -5353,7 +5469,7 @@
+@@ -5353,7 +5473,7 @@
    fflush(stdout);
    nFileirasMontadas = nOut;
    memcpy(filsMontadas, saidaFil, sizeof(CatFileira) * (size_t)nOut);
@@ -3739,7 +3758,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
    // A VAGA QUE A COLECAO LIBEROU TEM DE SER PREENCHIDA, e so a rede tem com que.
    //
-@@ -5489,7 +5605,7 @@
+@@ -5489,7 +5609,7 @@
          filsMontadas[w++] = filsMontadas[i];
      nFileirasMontadas = w;
    }
@@ -3748,7 +3767,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[desc] %d fileira(s) de addon removido/desligado sairam da tela na hora\n", tirou);
    fflush(stdout);
    return tirou;
-@@ -6113,7 +6229,7 @@
+@@ -6113,7 +6233,7 @@
    }
    if (arteDoAddon(tipo, id, logo, nl, fundo, nf)) ok = 1;
    if (!logo[0] && logoTmdb[0]) { snprintf(logo, nl, "%s", logoTmdb); ok = 1; }
@@ -3757,7 +3776,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    return ok;
  }
  
-@@ -6168,7 +6284,7 @@
+@@ -6168,7 +6288,7 @@
      const CatItem *o = cat_item(i);
      if (!o) continue;
      *e = *o;
@@ -3766,7 +3785,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    }
    free(e);
    if (mudou) {
-@@ -6182,6 +6298,7 @@
+@@ -6182,6 +6302,7 @@
  // ganha uma volta a mais (so o ultimo estado interessa, como no refazer do CW).
  #define LOC_LOTE 32
  static int locIdx[LOC_LOTE], locNIdx;
@@ -3774,7 +3793,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static volatile int locVivo, locDeNovo;
  static pthread_mutex_t locFilaTrava = PTHREAD_MUTEX_INITIALIZER;
  
-@@ -6192,9 +6309,11 @@
+@@ -6192,9 +6313,11 @@
      int lista[LOC_LOTE], n, k;
      pthread_mutex_lock(&locFilaTrava);
      n = locNIdx;
@@ -3786,7 +3805,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      for (k = 0; k < n; k++) {
        // Copia sob a trava do catalogo: este fio nao vira quadro, entao um
        // ponteiro de cat_item() aqui pode apontar para bloco ja liberado
-@@ -6214,7 +6333,7 @@
+@@ -6214,7 +6337,7 @@
        // titulo. Nada mais do item e reescrito.
        if (locValoresDoItem(e, tit, sizeof tit, sin, sizeof sin, logo, sizeof logo,
                             fundo, sizeof fundo))
@@ -3795,7 +3814,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        free(e);
      }
      pthread_mutex_lock(&locFilaTrava);
-@@ -6222,7 +6341,7 @@
+@@ -6222,7 +6345,7 @@
      pthread_mutex_unlock(&locFilaTrava);
      // Uma gravacao por lote, FORA da trava da fila e antes de soltar locVivo
      // (quem espera o fio — o teste — ve o arquivo pronto).
@@ -3804,7 +3823,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      pthread_mutex_lock(&locFilaTrava);
      if (locDeNovo) { pthread_mutex_unlock(&locFilaTrava); novos = 0; continue; }
      locVivo = 0;
-@@ -6239,6 +6358,7 @@
+@@ -6239,6 +6362,7 @@
    pthread_mutex_lock(&locFilaTrava);
    memcpy(locIdx, idx, sizeof(int) * (size_t)n);
    locNIdx = n;
@@ -3812,7 +3831,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (locVivo) { locDeNovo = 1; pthread_mutex_unlock(&locFilaTrava); return; }
    locVivo = 1;
    pthread_mutex_unlock(&locFilaTrava);
-@@ -6281,6 +6401,7 @@
+@@ -6281,6 +6405,7 @@
  #define HSIN_NEG_N 32
  #define HSIN_NEG_S 600
  static int hsIdx[HSIN_LOTE], hsNIdx;
@@ -3820,7 +3839,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static volatile int hsVivo, hsDeNovo;
  static pthread_mutex_t hsTrava = PTHREAD_MUTEX_INITIALIZER;
  // Falhas recentes: o conjunto do destaque e refeito a cada mudanca do catalogo,
-@@ -6349,9 +6470,11 @@
+@@ -6349,9 +6474,11 @@
      int lista[HSIN_LOTE], n, k;
      pthread_mutex_lock(&hsTrava);
      n = hsNIdx;
@@ -3832,7 +3851,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      for (k = 0; k < n; k++) {
        // Copia sob a trava do catalogo: este fio nao vira quadro, entao um
        // ponteiro de cat_item() aqui pode apontar para bloco ja liberado
-@@ -6364,11 +6487,11 @@
+@@ -6364,11 +6491,11 @@
        snprintf(imdb, sizeof imdb, "%s", e->imdb);
        if (hsNegativo(imdb)) { free(e); continue; }
        r = desc_sinopse_completar_item(e, NULL, NULL);
@@ -3847,7 +3866,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        }
        free(e);
        SDL_Delay(HSIN_PAUSA_MS);   // um pedido por vez, com folga entre eles
-@@ -6400,6 +6523,7 @@
+@@ -6400,6 +6527,7 @@
    pthread_mutex_lock(&hsTrava);
    memcpy(hsIdx, idx, sizeof(int) * (size_t)n);
    hsNIdx = n;
@@ -3855,7 +3874,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (hsVivo) { hsDeNovo = 1; pthread_mutex_unlock(&hsTrava); return; }
    hsVivo = 1;
    pthread_mutex_unlock(&hsTrava);
-@@ -6865,10 +6989,12 @@
+@@ -6865,10 +6993,12 @@
  // titulo iam parar em outro. epAlvo re-resolve pelo id antes de cada escrita;
  // -1 = o titulo saiu do catalogo e nada e escrito. Um fio por vez (fioEpVivo).
  static char epAlvoId[64];
@@ -3868,7 +3887,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    int i = cat_indice_vivo(alvoItem, id);
    if (i != alvoItem) {
      printf("[desc] episodios de %s: catalogo remontou no meio do pedido (%d -> %d)\n",
-@@ -6917,7 +7043,7 @@
+@@ -6917,7 +7047,7 @@
        free(o);
      }
    }
@@ -3877,7 +3896,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    free(eps);
    marco("episodios na tela");
    printf("[desc] %s: %d episodios publicados antes dos extras\n", titulo, n);
-@@ -7321,8 +7447,8 @@
+@@ -7321,8 +7451,8 @@
    *cedo = *orig;
    completarRaso(cedo, corpo, orig->tipo);
    fichaDe(cedo, corpo, 1);
@@ -3888,7 +3907,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    marco("detalhe: ficha primaria publicada antes do complemento");
    free(cedo);
  }
-@@ -7509,6 +7635,7 @@
+@@ -7509,6 +7639,7 @@
  // larga nos pontos de parada abaixo (no maximo uma viagem de rede depois).
  static volatile int epPreQuer, epRodaPre, epCancelar;
  static int preCede(const char *id) {
@@ -3896,7 +3915,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (!(epRodaPre && epCancelar)) return 0;
    printf("[desc] pre-busca de %s cedeu ao titulo em cena\n", id);
    fflush(stdout);
-@@ -7527,6 +7654,7 @@
+@@ -7527,6 +7658,7 @@
    int viaCatalogo = 0, solto = 0;
    (void)u;
    memset(&mf, 0, sizeof mf);
@@ -3904,7 +3923,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (!cat_copiar_item(alvoItem, &base) || !base.imdb[0]) { fioEpVivo = 0; return NULL; }
    orig = &base;
    if (preCede(orig->imdb)) { fioEpVivo = 0; return NULL; }
-@@ -7548,8 +7676,8 @@
+@@ -7548,8 +7680,8 @@
      CatItem ed = base;
      int ne = eps ? servidores_ficha(&ed, eps, VIDEOS_MAX) : -1;
      if (ne >= 0 && (alvoItem = epAlvo(alvoItem)) >= 0) {
@@ -3915,7 +3934,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      }
      free(eps);
      fioEpVivo = 0;
-@@ -7729,8 +7857,8 @@
+@@ -7729,8 +7861,8 @@
      if (viaCatalogo) completarFicha(&edit, &mf, ehFilme ? "movie" : "series");
      // A logo e a ficha basica nao esperam a traducao/fotos opcionais.
      if ((alvoItem = epAlvo(alvoItem)) >= 0) {
@@ -3926,7 +3945,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        marco("detalhe: campos primarios publicados antes dos extras");
      }
      // TITULO, SINOPSE E GENEROS DO ADDON DE METADADOS (#176). So campo que o
-@@ -7773,7 +7901,7 @@
+@@ -7773,7 +7905,7 @@
        }
      }
      // Publica texto, generos e temporadas antes do enriquecimento de imagens.
@@ -3935,7 +3954,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      marco("detalhe: meta basico na tela");
      // A FICHA ESTA NA TELA: ESTE FIO JA NAO SEGURA O PROXIMO TITULO (R2). O que
      // resta (fotos do elenco e as notas por temporada do TMDB, uma viagem por
-@@ -7822,7 +7950,7 @@
+@@ -7822,7 +7954,7 @@
      // com outras abas, e republicar o `edit` inteiro devolvia as abas velhas
      // (T1 com 72 episodios em T1-T3: T2/T3 carregados e escondidos). As abas
      // ficam as que estao no item; o resto (elenco, arte, texto) e desta cauda.
@@ -3944,7 +3963,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      printf("[desc] %s: %d atores, dir='%s', %d temporadas\n",
             edit.titulo, edit.nElenco, edit.direcao, edit.nTemporadas);
      fflush(stdout);
-@@ -7889,7 +8017,7 @@
+@@ -7889,7 +8021,7 @@
                if (marcados > 0 && preenchidas == 0) preenchidas = -marcados; }
              if (preenchidas != 0 && (alvoItem = epAlvoDe(alvoItem, meuId)) >= 0 &&
                  cat_n_episodios(alvoItem) == neps) {
@@ -3953,7 +3972,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
                printf("[desc] %s: nota/sinopse TMDB em %d episodios\n",
                       edit.titulo, preenchidas);
                fflush(stdout);
-@@ -7927,6 +8055,7 @@
+@@ -7927,6 +8059,7 @@
  static char     vtBase[NV_ADDON_URL_MAX], vtTipo[8], vtCat[96], vtGenre[96];
  static int      vtPagina, vtFim, vtFioVivo, vtErro;
  static unsigned vtGeracao;
@@ -3961,7 +3980,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  // Fonte nao-addon aberta por desc_vertudo_fonte (issue #44): vtProvedor 1 e
  // TMDB, 2 e Trakt; vtFonte e uma copia zerada da ColSource para o memcmp de
  // "mesma fonte" ser seguro (a struct tem preenchimento).
-@@ -8148,10 +8277,14 @@
+@@ -8148,10 +8281,14 @@
    if (geracaoPaginas != generation) { geracaoPaginas = generation; paginas = 0; }
    paginas++;
    antes = vtProjetar();
@@ -3976,7 +3995,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
    // FONTE NAO-ADDON (issue #44): pasta de colecao do site cujo conteudo vem
    // do TMDB ou do Trakt, nao de um catalogo de addon. vtPagina aqui e o
-@@ -8222,9 +8355,9 @@
+@@ -8222,9 +8359,9 @@
      free(corpo);
      // Itens do Trakt chegam sem poster: o lote inteiro ganha arte pelo
      // Cinemeta de uma vez, como a fileira "Continuar assistindo" ja faz.
@@ -3988,7 +4007,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      int seguir = 0;
      { int added=ocultos;   // pagina so de futuros nao encerra a paginacao
        for(int i=0;i<nl&&vtN<VT_MAX;i++){
-@@ -8256,7 +8389,7 @@
+@@ -8256,7 +8393,7 @@
    corpo=(!addons_base_desligada(base)&&descPedidoCoube(base,w,sizeof url))?rede_baixar(url,10):NULL; }
    cap=strstr(id,"top100")?100:strstr(id,"top250")?250:VT_MAX;
    pthread_mutex_lock(&vtTrava);
@@ -3997,7 +4016,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    pthread_mutex_unlock(&vtTrava);
    const char *first=corpo?js_array(corpo,NULL,"metas"):NULL;
    int valid=corpo&&strstr(corpo,"\"metas\"");
-@@ -8272,13 +8405,13 @@
+@@ -8272,13 +8409,13 @@
        pthread_mutex_lock(&vtTrava);
        int duplicate=0;
        for(int i=0;i<vtN;i++)if(it.imdb[0]&&!strcmp(vtItens[i].imdb,it.imdb)&&!strcmp(vtItens[i].tipo,it.tipo)){duplicate=1;break;}
@@ -4013,7 +4032,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    vtErro=!valid;
    // Skip usa quantidade recebida, não 100 presumidos. Muitos addons entregam
    // 20/50 por página. Repetição sem novos ids também termina a paginação.
-@@ -8297,6 +8430,7 @@
+@@ -8297,6 +8434,7 @@
    pthread_mutex_lock(&vtTrava);
    if (vtFioVivo || vtFim || (!vtBase[0] && !vtProvedor)) {pthread_mutex_unlock(&vtTrava);return;}
    vtFioVivo = 1;
@@ -4021,7 +4040,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    vtErro=0;
    // fioVerTudo empilha buffers grandes; no macOS o stack padrao do pthread
    // estoura (collections.sh: Bus error em ___chkstk_darwin).
-@@ -8394,6 +8528,7 @@
+@@ -8394,6 +8532,7 @@
    (void)temporada;
    if (cat_n_episodios(indiceItem) > 0) return;
    epItem = indiceItem; epTemp = temporada;
@@ -4029,7 +4048,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    epRodaPre = epPreQuer; epPreQuer = 0; epCancelar = 0;
    fioEpVivo = 1;
    if (pthread_create(&fioEp, NULL, buscarEps, NULL) != 0) fioEpVivo = 0;
-@@ -8456,6 +8591,7 @@
+@@ -8456,6 +8595,7 @@
  static char sobTipo[8];
  static int  sobIndice = -1;   // resultado, consumido por desc_titulo_pronto
  static int  sobFioVivo;
@@ -4037,7 +4056,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static pthread_t sobFio;
  // SEMENTE (R2): o que o clique ja sabia do titulo (nome, ano, cartaz). Com ela
  // a pagina abre NA HORA, com o layout normal, e o buscarEps preenche o resto.
-@@ -8466,6 +8602,7 @@
+@@ -8466,6 +8606,7 @@
    char url[200], id[24], *corpo;
    int achou = -1, passo;
    (void)arg;
@@ -4045,7 +4064,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    snprintf(id, sizeof id, "%s", sobId);
  
    // O credito de um ator chega com o id do TMDB, nao com o do IMDb — o
-@@ -8497,7 +8634,7 @@
+@@ -8497,7 +8638,7 @@
        CatItem s = sobSemente;
        snprintf(s.imdb, sizeof s.imdb, "%s", id);
        s.tmdb = sobTmdb;
@@ -4054,7 +4073,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        printf("[desc] sob demanda tmdb %ld -> %s com semente, indice %d\n", sobTmdb, id, sobIndice);
        fflush(stdout);
        sobFioVivo = 0;
-@@ -8516,7 +8653,7 @@
+@@ -8516,7 +8657,7 @@
          // vazio, e sem ele o titulo entraria no catalogo sem chave e nao
          // poderia ser reaberto nem casar com progresso.
          if (!it.imdb[0]) snprintf(it.imdb, sizeof it.imdb, "%s", id);
@@ -4063,7 +4082,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        } }
      free(corpo);
    }
-@@ -8534,6 +8671,7 @@
+@@ -8534,6 +8675,7 @@
    sobId[0] = 0;
    sobIndice = -1;
    sobFioVivo = 1;
@@ -4071,7 +4090,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (pthread_create(&sobFio, NULL, buscarTitulo, NULL) != 0) sobFioVivo = 0;
    else pthread_detach(sobFio);
  }
-@@ -8555,6 +8693,7 @@
+@@ -8555,6 +8697,7 @@
    sobTmdb = 0;
    sobIndice = -1;
    sobFioVivo = 1;
@@ -4079,7 +4098,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (pthread_create(&sobFio, NULL, buscarTitulo, NULL) != 0) sobFioVivo = 0;
    else pthread_detach(sobFio);
  }
-@@ -8601,15 +8740,63 @@
+@@ -8601,15 +8744,63 @@
    { int j = cat_indice_por_imdb(id);
      if (j >= 0) { sobIndice = j; return; } }
    snprintf(s.imdb, sizeof s.imdb, "%s", id);
@@ -4842,7 +4861,7 @@ diff --git a/src/fontecache.c b/src/fontecache.c
  
 +#if defined(__GNUC__) || defined(__clang__)
 +extern int addons_consultar_sessao(const char *, const char *, const char *, int,
-+    int (*)(void *), void *, Stream **, uint64_t) __attribute__((weak));
++    int (*)(void *), void *, Stream **, uint64_t) NV_PERFIL_OPCIONAL;
 +#endif
  // O relogio e um macro para o teste poder avancar o tempo sem dormir. No app
  // e SDL_GetTicks, o mesmo relogio de stream_idade_ms.
@@ -6502,8 +6521,8 @@ diff --git a/src/idioma_sr.h b/src/idioma_sr.h
    T("Compara uma regex com o nome, a descrição e o add-on de cada fonte, sem diferenciar maiúsculas. Exigir: só toca o que casa. Preferir: o que casa vem primeiro.", "Poredi regex sa nazivom, opisom i dodatkom svakog izvora, bez razlike velikih i malih slova. Zahtevaj: pušta se samo podudaranje. Preferiraj: podudaranja idu prva."),
    T("Comparação", "Poređenje"),
    T("Comparação aprovada e aplicada", "Poređenje odobreno i primenjeno"),
-+  T("Compartilhada neste aparelho", "Заједничка на овом уређају"),
-+  T("Compartilhada usa as mesmas contas de provedores neste aparelho. Separada guarda uma cópia para este perfil. Trocar de opção mantém as duas configurações.", "Заједничка користе исте налоге провајдера на овом уређају. Одвојена чувају копију за овај профил. Промена опције задржава оба подешавања."),
++  T("Compartilhada neste aparelho", "Zajednička na ovom uređaju"),
++  T("Compartilhada usa as mesmas contas de provedores neste aparelho. Separada guarda uma cópia para este perfil. Trocar de opção mantém as duas configurações.", "Zajednička podešavanja koriste iste naloge provajdera na ovom uređaju. Odvojena čuvaju kopiju za ovaj profil. Promena opcije zadržava oba podešavanja."),
    T("Completa", "Temeljna"),
    T("Completas", "Puno"),
    T("Completos", "Potpuni"),
@@ -6511,7 +6530,7 @@ diff --git a/src/idioma_sr.h b/src/idioma_sr.h
    T("Configuração anterior restaurada", "Vraćena prethodna konfiguracija"),
    T("Configuração anterior restaurada só nesta sessão: falha ao salvar", "Previous settings restored for this session only: save failed"),
    T("Configuração anterior restaurada · OK executa nova análise · R restaura", "Vraćena prethodna konfiguracija · OK pokreće novu analizu · R vraća"),
-+  T("Configuração dos provedores", "Подешавања провајдера"),
++  T("Configuração dos provedores", "Podešavanja provajdera"),
    T("Configuração dos trailers no destaque, no cartaz em foco e na página do título.", "Trejleri u istaknutom, u posteru u fokusu i na stranici naslova."),
    T("Configuração mudou durante o teste: perfil não salvo", "Settings changed during the test: profile not saved"),
    T("Configure os próximos episódios e a ordem.", "Podesite sledeće epizode i redosled."),
@@ -6519,7 +6538,7 @@ diff --git a/src/idioma_sr.h b/src/idioma_sr.h
    T("Senha do Emby", "Emby lozinka"),
    T("Senha do Jellyfin", "Jellyfin lozinka"),
    T("Senhas, chaves e o caminho dos endereços", "Lozinke, ključevi i putanje adresa"),
-+  T("Separada para este perfil", "Одвојена за овај профил"),
++  T("Separada para este perfil", "Odvojena za ovaj profil"),
    T("Separando…", "Razdvajanje…"),
    T("Separar", "Odvoji"),
    T("Separar futuros", "Podeli nadolazeće"),
@@ -7459,14 +7478,19 @@ diff --git a/src/perfis.c b/src/perfis.c
  // ESCOLHIDO E DE SESSAO, GRAVADO E DE DISCO — e a diferenca entre as duas e a
  // mudanca de comportamento inteira desta tela.
  //
-@@ -47,28 +80,60 @@
+@@ -47,28 +80,65 @@
  static int escolhido;      // 1 depois que o usuario decidiu NESTA sessao
  static int gravado;        // 1 quando perfil.txt existia no arranque
  
 -static void lerDono(void) {
 +// Existing isolated fixtures omit sessao.c. A complete app always captures
 +// both fields locally, without refreshing or doing HTTP on the UI thread.
-+#if defined(__GNUC__) || defined(__clang__)
++#if defined(__APPLE__) && (defined(__GNUC__) || defined(__clang__))
++// This producer must keep its epoch definitions strong. Import only the two
++// optional session helpers; Mach-O needs weak_import for an absent provider.
++extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak_import));
++extern void sessao_token_recusado(const char *) __attribute__((weak_import));
++#elif defined(__GNUC__) || defined(__clang__)
 +#pragma weak sessao_identidade_local_copiar
 +#pragma weak sessao_token_recusado
 +#endif
@@ -7534,7 +7558,7 @@ diff --git a/src/perfis.c b/src/perfis.c
      printf("[perfis] get_sync_owner nao respondeu; usando o sub do token\n");
    }
  }
-@@ -211,35 +276,42 @@
+@@ -211,35 +281,42 @@
    return 0;
  }
  
@@ -7591,7 +7615,7 @@ diff --git a/src/perfis.c b/src/perfis.c
        // O AVATAR OFICIAL VEM POR ID, e nao por URL. `avatar_url` so e
        // preenchido para foto que a pessoa subiu; quem escolhe um dos avatares
        // do Nuvio guarda `avatar_id` ("avatar_lalo") e a imagem sai do catalogo.
-@@ -247,22 +319,22 @@
+@@ -247,22 +324,22 @@
        // `avatars` — foi por procurar a tabela que uma medicao antiga concluiu
        // que nao havia como resolver o id, e os perfis ficaram todos com a
        // inicial num circulo colorido.
@@ -7621,7 +7645,7 @@ diff --git a/src/perfis.c b/src/perfis.c
                                ? (strcmp(b, "true") == 0) : ((int)idx == 1); }
        { char b[16];
          // `uses_primary_addons`, NAO `uses_primary_plugins`. Sao DUAS colunas
-@@ -275,19 +347,19 @@
+@@ -275,19 +352,19 @@
          // vazia, sem erro, e a tela de ajustes dizendo zero.
          // O nome antigo fica como reserva: linha gravada por uma versao que so
          // conhecia aquela coluna continua sendo lida.
@@ -7645,7 +7669,7 @@ diff --git a/src/perfis.c b/src/perfis.c
    if (r && st >= 200 && st < 300) {
      for (p = js_raiz_array(r); p; p = js_prox(js_fim(p))) {
        const char *f = js_fim(p);
-@@ -301,15 +373,48 @@
+@@ -301,15 +378,48 @@
        // digitacao seria aceita: ninguem entraria na propria conta.
        travado = js_bruto(p, f, "pin_enabled", b, sizeof b)
                  ? (strcmp(b, "true") == 0) : 0;
@@ -7698,7 +7722,7 @@ diff --git a/src/perfis.c b/src/perfis.c
  }
  
  int           perfis_n(void)         { return n; }
-@@ -321,7 +426,7 @@
+@@ -321,7 +431,7 @@
    return NULL;
  }
  const char   *perfis_dono(void)      { return dono; }
@@ -7707,7 +7731,7 @@ diff --git a/src/perfis.c b/src/perfis.c
  
  // Addons NAO sao por perfil quando o perfil diz herdar os do primario.
  //
-@@ -368,11 +473,22 @@
+@@ -368,11 +478,22 @@
  // plugins.h puxa streams.h (SDL); perfis.c compila sem SDL nos testes.
  void plugins_perfil_mudou(void);
  
@@ -7731,7 +7755,7 @@ diff --git a/src/perfis.c b/src/perfis.c
    fil_definir_perfil(indice);
    fontepref_definir_perfil(indice);
    legmem_definir_perfil(indice);
-@@ -382,7 +498,7 @@
+@@ -382,7 +503,7 @@
    plugins_perfil_mudou();
    // Personal servers are per profile: drop the previous profile's in-flight
    // requests and load this profile's connection (jellyfin.h).
@@ -7740,7 +7764,7 @@ diff --git a/src/perfis.c b/src/perfis.c
    escolhido = 1;
    gravado = 1;
    snprintf(linha, sizeof linha, "%d\n", indice);
-@@ -447,10 +563,14 @@
+@@ -447,10 +568,14 @@
  }
  
  void perfis_esquecer(void) {
@@ -7799,18 +7823,27 @@ diff --git a/src/perfisessao.h b/src/perfisessao.h
 new file mode 100644
 --- /dev/null
 +++ b/src/perfisessao.h
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,41 @@
 +// Optional linkage for the existing isolated module fixtures. Every complete
 +// app links perfis.c; fixtures that omit account infrastructure retain their
 +// original behaviour. Tests of profile ownership must link the real module.
 +#ifndef NV_PERFISESSAO_H
 +#define NV_PERFISESSAO_H
 +#include <stdint.h>
++#if defined(__APPLE__) && (defined(__GNUC__) || defined(__clang__))
++// Mach-O distinguishes an optional undefined import from a weak definition.
++// A complete app supplies the strong producer; isolated fixtures may omit it.
++#define NV_PERFIL_OPCIONAL __attribute__((weak_import))
++#elif defined(__GNUC__) || defined(__clang__)
++#define NV_PERFIL_OPCIONAL __attribute__((weak))
++#else
++#define NV_PERFIL_OPCIONAL
++#endif
 +#if defined(__GNUC__) || defined(__clang__)
-+extern uint64_t perfis_sessao_geracao(void) __attribute__((weak));
-+extern int perfis_sessao_atual(uint64_t) __attribute__((weak));
-+extern int perfis_sessao_travar(uint64_t) __attribute__((weak));
-+extern void perfis_sessao_destravar(void) __attribute__((weak));
++extern uint64_t perfis_sessao_geracao(void) NV_PERFIL_OPCIONAL;
++extern int perfis_sessao_atual(uint64_t) NV_PERFIL_OPCIONAL;
++extern int perfis_sessao_travar(uint64_t) NV_PERFIL_OPCIONAL;
++extern void perfis_sessao_destravar(void) NV_PERFIL_OPCIONAL;
 +static inline uint64_t nv_perfil_sessao_ler(void) {
 +  return perfis_sessao_geracao ? perfis_sessao_geracao() : 0;
 +}
@@ -9734,15 +9767,11 @@ diff --git a/src/recomenda.h b/src/recomenda.h
  int  recomenda_cancelar_pedido(const char *pub);
  int  recomenda_bloquear(const char *pubOuId);
  int  recomenda_desbloquear(const char *pub);
-@@ -468,12 +476,17 @@
+@@ -468,12 +476,13 @@
  typedef struct { char imdb[24]; char titulo[160]; char tipo[8]; int agora; long long criado; } RecAtivAmigo;
  int  recomenda_amigo_atividades(const char *id, RecAtivAmigo *saida, int max);
  int  recomenda_social_mesclar(CatItem *itens, int nTrakt, int max);
-+#if defined(__GNUC__) || defined(__clang__)
-+int  recomenda_social_mesclar_sessao(CatItem *itens, int nTrakt, int max, uint64_t sessao) __attribute__((weak));
-+#else
 +int  recomenda_social_mesclar_sessao(CatItem *itens, int nTrakt, int max, uint64_t sessao);
-+#endif
  // Funde `novos` (n) em `itens`(nTrakt) SEM rede: a regra de uniao, separada
  // para o teste. Devolve o novo total.
  int  rec_social_unir(CatItem *itens, int nTrakt, const CatItem *nuvio, int nNuvio, int max);
@@ -9863,7 +9892,17 @@ diff --git a/src/simkl.c b/src/simkl.c
  #include "ajustes.h"
  #include "simklauth.h"
  #include "nuvem.h"
-@@ -345,31 +346,58 @@
+@@ -14,6 +15,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <pthread.h>
++
++// Optional imports belong to consumers: public declarations keep producers strong.
++extern int trakt_enfeitar_lote_sessao(CatItem *, int, uint64_t) NV_PERFIL_OPCIONAL;
+ 
+ #define SMK_API "https://api.simkl.com"
+ // Retomada: o mesmo teto da fileira (CONT_MAX de descoberta.c) com folga para
+@@ -345,31 +349,58 @@
  // `metodo`: 'G' GET, 'P' POST, 'D' DELETE. O token entra so no cabecalho, e
  // nada aqui imprime a URL — o client_id nao e segredo, mas o costume do app e
  // logar so o caminho (ver rede_url_publica).
@@ -9934,7 +9973,7 @@ diff --git a/src/simkl.c b/src/simkl.c
      printf("[simkl] %s -> HTTP %d\n", caminho, *st);
      fflush(stdout);
      free(r);
-@@ -388,7 +416,9 @@
+@@ -388,7 +419,9 @@
  
  // ------------------------------------------------------------ estado
  
@@ -9945,7 +9984,7 @@ diff --git a/src/simkl.c b/src/simkl.c
  
  // Registros de playback da ultima leitura (chave composta -> id), para o
  // DELETE, e os ids "tt:S:E" que sao "a seguir". Tabelas laterais pela mesma
-@@ -417,6 +447,9 @@
+@@ -417,6 +450,9 @@
  
  void simkl_esquecer(void) {
    pthread_mutex_lock(&trava);
@@ -9955,7 +9994,7 @@ diff --git a/src/simkl.c b/src/simkl.c
    nPlay = nProx = nPtw = 0;
    assCw = assPtw = 0;
    trocar(&corpoPlay, NULL); trocar(&corpoAssist, NULL);
-@@ -424,9 +457,11 @@
+@@ -424,9 +460,11 @@
    pthread_mutex_unlock(&trava);
  }
  
@@ -9969,7 +10008,7 @@ diff --git a/src/simkl.c b/src/simkl.c
    unsigned long h = assinar(r);
    free(r);
    return h;
-@@ -451,56 +486,32 @@
+@@ -451,56 +489,32 @@
    long long ids[SMK_PLAY_MAX];
    unsigned long h;
    char *cPlay = NULL, *cAssist = NULL;
@@ -10047,7 +10086,7 @@ diff --git a/src/simkl.c b/src/simkl.c
    nP = prox && ajustes_cw_proximo() ? simkl_ler_assistindo(cAssist, prox, SMK_PLAY_MAX) : 0;
    for (k = 0; k < nP; k++) {
      int ja = 0, alvo;
-@@ -516,16 +527,20 @@
+@@ -516,16 +530,20 @@
        alvo = vel;
      }
      saida[alvo] = prox[k];
@@ -10078,7 +10117,7 @@ diff --git a/src/simkl.c b/src/simkl.c
    { int a, b;
      for (a = 1; a < n; a++) {
        CatItem t = saida[a];
-@@ -534,57 +549,47 @@
+@@ -534,57 +552,47 @@
              ((saida[b].progresso == 0) == (t.progresso == 0) &&
               saida[b].retomadoMs < t.retomadoMs)); b--) saida[b + 1] = saida[b];
        saida[b + 1] = t;
@@ -10163,7 +10202,7 @@ diff --git a/src/simkl.c b/src/simkl.c
  }
  
  int simkl_na_plantowatch(const char *imdb) {
-@@ -601,94 +606,69 @@
+@@ -601,94 +609,69 @@
  
  // ------------------------------------------------------------ escritas
  
@@ -10301,7 +10340,7 @@ diff --git a/src/simkl.c b/src/simkl.c
    ok = st >= 200 && st < 300;
    nf = r ? strstr(r, "\"not_found\"") : NULL;
    if (ok && nf && strstr(nf, "\"ids\"")) ok = 0;
-@@ -701,70 +681,65 @@
+@@ -701,70 +684,65 @@
    return ok;
  }
  
@@ -10430,22 +10469,16 @@ diff --git a/src/simkl.h b/src/simkl.h
  
  // 1 quando ha token do Simkl nesta TV (vinculo feito em Ajustes).
  int simkl_ativo(void);
-@@ -143,11 +144,24 @@
+@@ -143,11 +144,18 @@
  
  // SINCRONAS, bloqueiam ate 20 s: so de um fio (visto.c). 1 = 2xx sem
  // not_found; 0 sem vinculo, sem corpo ou recusado.
 +typedef struct {
 +  uint64_t sessao, geracao; char aut[400], cid[200], nome[120];
 +} SimklDestino;
-+#if defined(__GNUC__) || defined(__clang__)
-+int simkl_destino_capturar(SimklDestino *) __attribute__((weak));
-+int simkl_episodios_marcar_destino(const SimklDestino *, const char *, const VistoPar *, int, int) __attribute__((weak));
-+int simkl_titulo_marcar_destino(const SimklDestino *, const char *, const char *, const int *, int, int) __attribute__((weak));
-+#else
 +int simkl_destino_capturar(SimklDestino *);
 +int simkl_episodios_marcar_destino(const SimklDestino *, const char *, const VistoPar *, int, int);
 +int simkl_titulo_marcar_destino(const SimklDestino *, const char *, const char *, const int *, int, int);
-+#endif
  int simkl_episodios_marcar(const char *imdb, const VistoPar *pares, int qtd, int visto);
  int simkl_titulo_marcar(const char *imdb, const char *tipo, const int *temporadas,
                          int nt, int visto);
@@ -10458,7 +10491,11 @@ diff --git a/src/simkl.h b/src/simkl.h
 diff --git a/src/simklauth.c b/src/simklauth.c
 --- a/src/simklauth.c
 +++ b/src/simklauth.c
-@@ -4,6 +4,7 @@
+@@ -1,9 +1,11 @@
+ #include "simklauth.h"
++#include "perfisessao.h"
+ #include "idioma.h"
+ #include "nuvem.h"
  #include "dados.h"
  #include "rede.h"
  #include "sync.h"
@@ -10466,16 +10503,14 @@ diff --git a/src/simklauth.c b/src/simklauth.c
  #include "js.h"
  #include "jsw.h"
  #include <stdio.h>
-@@ -50,6 +51,27 @@
+@@ -50,6 +52,25 @@
  static char userCodeFio[48];
  static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
  
 +// O perfil pode mudar enquanto o PIN responde; a conta Nuvio nao pode herdar
 +// a autorizacao de quem saiu. Captura local, sem renovacao/rede na UI.
-+#if defined(__GNUC__) || defined(__clang__)
-+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak));
-+extern const char *sessao_usuario(void) __attribute__((weak));
-+#endif
++extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) NV_PERFIL_OPCIONAL;
++extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
 +static char usuarioFio[80], usuarioEstado[80];
 +static void usuarioCopiar(char dst[80]) {
 +  char jwt[3000];
@@ -10494,7 +10529,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
  // Todo pedido leva client_id, app-name e app-version na QUERY — nao em
  // cabecalho. Sem eles o Simkl responde erro sem dizer o que faltou.
  static char *pegar(const char *caminho, int *status) {
-@@ -98,6 +120,7 @@
+@@ -98,6 +119,7 @@
  
  int simklauth_carregar(void) {
    char *b;
@@ -10502,7 +10537,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
    migrarLegado();
    b = dados_ler(arq(perfil).s);
    if (!b) return 0;
-@@ -162,7 +185,7 @@
+@@ -162,7 +184,7 @@
  
    if (!nuvem_simkl_cliente()[0]) {
      pthread_mutex_lock(&trava);
@@ -10511,7 +10546,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
        snprintf(erro, sizeof erro, "pacote sem a chave do Simkl");
        estado = SMK_ERRO;
      }
-@@ -187,7 +210,7 @@
+@@ -187,7 +209,7 @@
    }
    pthread_mutex_lock(&trava);
    // PIN pedido por um perfil que ja saiu da tela: ninguem vai digita-lo.
@@ -10520,7 +10555,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
      pthread_mutex_unlock(&trava);
      free(r);
      fioPronto = 1;
-@@ -256,6 +279,12 @@
+@@ -256,6 +278,12 @@
    snprintf(caminho, sizeof caminho, "/oauth/pin/%s", userCodeFio);
    r = pegar(caminho, &st);
    pthread_mutex_lock(&trava);
@@ -10533,7 +10568,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
    if (gerFio != geracao) {
      // Autorizado depois da troca de perfil: e do perfil que pediu o PIN.
      char t[300];
-@@ -313,6 +342,8 @@
+@@ -313,6 +341,8 @@
  
  static void soltar(void *(*rotina)(void *)) {
    if (fioVivo) return;
@@ -10542,7 +10577,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
    fioPronto = 0;
    gerFio = geracao;
    perfilFio = perfil;
-@@ -323,6 +354,7 @@
+@@ -323,6 +353,7 @@
  
  void simklauth_comecar(void) {
    if (estado == SMK_PEDINDO || estado == SMK_AGUARDANDO) return;
@@ -10550,7 +10585,7 @@ diff --git a/src/simklauth.c b/src/simklauth.c
    erro[0] = 0;
    comecouMs = 0;
    estado = SMK_PEDINDO;
-@@ -330,6 +362,11 @@
+@@ -330,6 +361,11 @@
  }
  
  void simklauth_passo(unsigned agoraMs) {
@@ -12266,21 +12301,17 @@ diff --git a/src/syncprog.c b/src/syncprog.c
  }
  
  // APAGA UMA ENTRADA DE PROGRESSO NA CONTA. A outra metade do issue #22: sem
-@@ -193,32 +226,105 @@
+@@ -193,32 +226,101 @@
  // `p_keys` e a chave de progresso (prog_chave), a mesma que o push manda em
  // `progress_key` — e nao o content_id. Mandar o id apagaria todos os episodios
  // da serie.
 +// The public backend contract and the official Android TV client both pass
 +// p_profile_id here. Omitting it invokes the SQL default (profile 1).
-+#if defined(__GNUC__) || defined(__clang__)
-+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak));
-+extern const char *sessao_usuario(void) __attribute__((weak));
-+extern int sessao_token_copiar(char *, size_t) __attribute__((weak));
-+extern void sessao_token_recusado(const char *) __attribute__((weak));
-+extern char *nuvem_rpc_com(const char *, const char *, const char *, int *) __attribute__((weak));
-+#else
-+extern char *nuvem_rpc_com(const char *, const char *, const char *, int *);
-+#endif
++extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) NV_PERFIL_OPCIONAL;
++extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
++extern int sessao_token_copiar(char *, size_t) NV_PERFIL_OPCIONAL;
++extern void sessao_token_recusado(const char *) NV_PERFIL_OPCIONAL;
++extern char *nuvem_rpc_com(const char *, const char *, const char *, int *) NV_PERFIL_OPCIONAL;
 +int syncprog_remocao_capturar(SyncProgRemocao *p) {
 +  if (!p) return 0;
 +  memset(p, 0, sizeof *p); p->sessao = nv_perfil_sessao_ler();
@@ -12391,7 +12422,7 @@ diff --git a/src/syncprog.c b/src/syncprog.c
    for (i = 0; i < nCaixa; i++) {
      // A resposta pertence ao perfil que fez o pedido. A escolha na TV pode
      // mudar enquanto a RPC esta em voo ou antes deste consumo no fio principal.
-@@ -236,8 +342,17 @@
+@@ -236,8 +338,17 @@
      printf("[sync] progresso: %d linhas, %d aceitas, %d no catalogo\n", nCaixa, aceitos, noCatalogo);
    nCaixa = 0;
    if (casaram) *casaram = noCatalogo;
@@ -12434,20 +12465,15 @@ diff --git a/src/syncprog.h b/src/syncprog.h
  
  // FIO PRINCIPAL. Aplica a caixa puxada: prog_aplicar_remoto decide (pendente
  // local vence; senao o mais novo), e o que ele aceitou vai para o item do
-@@ -36,6 +39,17 @@
+@@ -36,6 +39,12 @@
  // Esvazia a caixa sem aplicar (logout).
  // Apaga uma entrada de progresso NA CONTA (sync_delete_watch_progress), pela
  // chave de prog_chave. Ver a nota longa em syncprog.c.
 +typedef struct {
 +  uint64_t sessao; int perfil, autenticada; char usuario[80], jwt[3000];
 +} SyncProgRemocao;
-+#if defined(__GNUC__) || defined(__clang__)
-+int syncprog_remocao_capturar(SyncProgRemocao *) __attribute__((weak));
-+int syncprog_remover_pedido(const SyncProgRemocao *, const char *chave) __attribute__((weak));
-+#else
 +int syncprog_remocao_capturar(SyncProgRemocao *);
 +int syncprog_remover_pedido(const SyncProgRemocao *, const char *chave);
-+#endif
 +int syncprog_remover_sessao(const char *chave, int perfil, uint64_t sessao, const char *usuario);
  int  syncprog_remover(const char *chave);
  void syncprog_esquecer(void);
@@ -12455,7 +12481,7 @@ diff --git a/src/syncprog.h b/src/syncprog.h
 diff --git a/src/tirarremoto.c b/src/tirarremoto.c
 --- a/src/tirarremoto.c
 +++ b/src/tirarremoto.c
-@@ -1,13 +1,43 @@
+@@ -1,13 +1,39 @@
  #include "tirarremoto.h"
 -#include "trakt.h"
  #include "syncprog.h"
@@ -12464,15 +12490,11 @@ diff --git a/src/tirarremoto.c b/src/tirarremoto.c
 +#include <stdio.h>
 +#include <string.h>
 +// Optional only in existing isolated fixtures. Complete apps link these.
-+#if defined(__GNUC__) || defined(__clang__)
-+extern int perfis_ativo(void) __attribute__((weak));
-+extern const char *sessao_usuario(void) __attribute__((weak));
-+extern int syncprog_remover_sessao(const char *, int, uint64_t, const char *) __attribute__((weak));
-+#else
-+extern int perfis_ativo(void);
-+extern const char *sessao_usuario(void);
-+extern int syncprog_remover_sessao(const char *, int, uint64_t, const char *);
-+#endif
++extern int perfis_ativo(void) NV_PERFIL_OPCIONAL;
++extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
++extern int syncprog_remover_sessao(const char *, int, uint64_t, const char *) NV_PERFIL_OPCIONAL;
++extern int syncprog_remocao_capturar(SyncProgRemocao *) NV_PERFIL_OPCIONAL;
++extern int syncprog_remover_pedido(const SyncProgRemocao *, const char *) NV_PERFIL_OPCIONAL;
 +int tirarremoto_capturar(TirarRemotoPedido *p, const char *imdb) {
 +  if (!p || !imdb || !*imdb) return 0;
 +  memset(p, 0, sizeof *p); p->sessao = nv_perfil_sessao_ler();
@@ -12511,7 +12533,7 @@ diff --git a/src/tirarremoto.c b/src/tirarremoto.c
 diff --git a/src/tirarremoto.h b/src/tirarremoto.h
 --- a/src/tirarremoto.h
 +++ b/src/tirarremoto.h
-@@ -1,11 +1,21 @@
+@@ -1,11 +1,16 @@
  #ifndef TIRARREMOTO_H
  #define TIRARREMOTO_H
 -// Os pedidos remotos de "tirar de Continuar assistindo" e de "marcar como
@@ -12529,13 +12551,8 @@ diff --git a/src/tirarremoto.h b/src/tirarremoto.h
 +typedef struct {
 +  uint64_t sessao; int perfil; char usuario[80]; TraktRemocao trakt; SyncProgRemocao conta;
 +} TirarRemotoPedido;
-+#if defined(__GNUC__) || defined(__clang__)
-+int tirarremoto_capturar(TirarRemotoPedido *, const char *imdb) __attribute__((weak));
-+void tirarremoto_executar_pedido(const TirarRemotoPedido *, const char *chave, int ocultar) __attribute__((weak));
-+#else
 +int tirarremoto_capturar(TirarRemotoPedido *, const char *imdb);
 +void tirarremoto_executar_pedido(const TirarRemotoPedido *, const char *chave, int ocultar);
-+#endif
 +// Synchronous legacy entry. Only explicit removal hides future Trakt episodes;
 +// marking watched removes paused playback without hiding the series.
  void tirarremoto_executar(const char *imdb, const char *chave, int ocultar);
@@ -14047,15 +14064,11 @@ diff --git a/src/trakt.h b/src/trakt.h
  
  // Completa itens que ja tem imdb, tipo e progresso com arte (metahub, sem
  // rede), sinopse/meta/nota (Cinemeta so se ainda faltarem) e minutos
-@@ -81,12 +84,33 @@
+@@ -81,12 +84,24 @@
  // invalido — falha do Cinemeta sozinha NAO remove o item. Nao depende de
  // credencial Trakt. BLOQUEIA — chamar do fio de descoberta.
  int  trakt_enfeitar_lote(CatItem *saida, int n);
-+#if defined(__GNUC__) || defined(__clang__)
-+int trakt_enfeitar_lote_sessao(CatItem *saida, int n, uint64_t sessao) __attribute__((weak));
-+#else
 +int trakt_enfeitar_lote_sessao(CatItem *saida, int n, uint64_t sessao);
-+#endif
  
  // Preenche ate `max` itens do "continue assistindo", ja com arte resolvida.
  // BLOQUEIA — chamar do fio de descoberta. Devolve quantos preencheu.
@@ -14063,13 +14076,8 @@ diff --git a/src/trakt.h b/src/trakt.h
  // `imdb` e a chave COMPOSTA que trakt_continuar montou. Devolve 0 quando nao ha
  // id conhecido — o item veio do progresso da conta, nao do Trakt.
 +typedef struct { uint64_t sessao; unsigned long long mapa, credencial; char aut[200], chave[140]; } TraktDestino;
-+#if defined(__GNUC__) || defined(__clang__)
-+int trakt_destino_capturar(TraktDestino *) __attribute__((weak));
-+int trakt_episodios_marcar_destino(const TraktDestino *, const char *, const VistoPar *, int, int) __attribute__((weak));
-+#else
 +int trakt_destino_capturar(TraktDestino *);
 +int trakt_episodios_marcar_destino(const TraktDestino *, const char *, const VistoPar *, int, int);
-+#endif
 +#define TRAKT_REMOVER_MAX 64
 +typedef struct {
 +  TraktDestino destino;
@@ -14084,17 +14092,21 @@ diff --git a/src/trakt.h b/src/trakt.h
 diff --git a/src/traktauth.c b/src/traktauth.c
 --- a/src/traktauth.c
 +++ b/src/traktauth.c
-@@ -86,6 +86,28 @@
+@@ -1,4 +1,5 @@
+ #include "traktauth.h"
++#include "perfisessao.h"
+ #include "idioma.h"
+ #include "nuvem.h"
+ #include "dados.h"
+@@ -86,6 +87,26 @@
  static int  pushGeracaoAtual, pushGeracao; // geracao do token (a cada vinculo) e a do push no ar
  static int  pushPendente;          // a conta ainda nao tem este token (push falhou ou nunca saiu)
  
 +// Os arquivos por perfil pertencem a conta Nuvio que iniciou o fluxo. Uma
 +// resposta pode sobreviver a troca de perfil, mas nunca ao logout/login.
 +// A copia local nao renova o JWT nem faz rede no fio principal.
-+#if defined(__GNUC__) || defined(__clang__)
-+extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) __attribute__((weak));
-+extern const char *sessao_usuario(void) __attribute__((weak));
-+#endif
++extern int sessao_identidade_local_copiar(char *, size_t, char *, size_t) NV_PERFIL_OPCIONAL;
++extern const char *sessao_usuario(void) NV_PERFIL_OPCIONAL;
 +static char usuarioFio[80], usuarioEstado[80];
 +static void usuarioCopiar(char dst[80]) {
 +  char jwt[3000];
@@ -14113,7 +14125,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
  static char *postar(const char *caminho, const char *corpo, int *status) {
    char completo[300];
    const char *cab[2];
-@@ -191,6 +213,7 @@
+@@ -191,6 +212,7 @@
  int traktauth_carregar(void) {
    char *b;
    char *col[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
@@ -14121,7 +14133,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
    migrarLegado();
    b = dados_ler(arqToken(perfil).s);
    if (!b) goto fluxo;
-@@ -317,7 +340,7 @@
+@@ -317,7 +339,7 @@
      // Caso de COMPILACAO, nao do usuario: o pacote saiu sem as chaves do
      // aplicativo. Dizer isso evita a pessoa tentar de novo para sempre.
      pthread_mutex_lock(&trava);
@@ -14130,7 +14142,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
        snprintf(erro, sizeof erro, "pacote sem as chaves do Trakt");
        estado = TRA_ERRO;
      }
-@@ -347,7 +370,7 @@
+@@ -347,7 +369,7 @@
    pthread_mutex_lock(&trava);
    // Pedido de um perfil que ja nao esta na tela: o codigo nao e mostrado a
    // ninguem, entao nao ha o que guardar.
@@ -14139,7 +14151,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
      pthread_mutex_unlock(&trava);
      free(r);
      fioPronto = 1;
-@@ -391,6 +414,12 @@
+@@ -391,6 +413,12 @@
    jsw_livre(&w);
  
    pthread_mutex_lock(&trava);
@@ -14152,7 +14164,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
    if (!fioAtual()) {
      // O perfil mudou com o poll no ar. Autorizado: o vinculo e do perfil que
      // pediu o codigo, e vai para o arquivo DELE — o perfil em vigor nao ve
-@@ -464,7 +493,7 @@
+@@ -464,7 +492,7 @@
  // access_token, refresh_token, token_type, created_at, expires_in.
  static void empurrarParaConta(void) {
    Jsw c;
@@ -14161,7 +14173,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
    jsw_iniciar(&c);
    jsw_obj_ini(&c);
    jsw_cs(&c, "access_token", token);
-@@ -503,6 +532,12 @@
+@@ -503,6 +531,12 @@
    jsw_livre(&w);
  
    pthread_mutex_lock(&trava);
@@ -14174,7 +14186,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
    if (!fioAtual()) {
      // Renovacao do perfil ANTERIOR. O refresh velho morreu nesta resposta, entao
      // descartar mataria o vinculo daquele perfil: o par novo vai para o arquivo
-@@ -555,6 +590,8 @@
+@@ -555,6 +589,8 @@
  
  static void soltar(void *(*rotina)(void *)) {
    if (fioVivo) return;
@@ -14183,7 +14195,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
    fioPronto = 0;
    gerFio = geracao;
    perfilFio = perfil;
-@@ -566,6 +603,7 @@
+@@ -566,6 +602,7 @@
  
  void traktauth_comecar(void) {
    if (estado == TRA_PEDINDO || estado == TRA_AGUARDANDO) return;
@@ -14191,7 +14203,7 @@ diff --git a/src/traktauth.c b/src/traktauth.c
    erro[0] = 0;
    comecouMs = 0;
    pollMs = TRA_POLL_PADRAO;
-@@ -574,6 +612,12 @@
+@@ -574,6 +611,12 @@
  }
  
  void traktauth_passo(unsigned agoraMs) {
@@ -14213,7 +14225,21 @@ diff --git a/src/visto.c b/src/visto.c
  #include "trakt.h"
  #include "simkl.h"
  #include "contapend.h"
-@@ -60,12 +61,28 @@
+@@ -8,6 +9,13 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++
++// Optional imports belong to consumers: public declarations keep producers strong.
++extern int trakt_destino_capturar(TraktDestino *) NV_PERFIL_OPCIONAL;
++extern int trakt_episodios_marcar_destino(const TraktDestino *, const char *, const VistoPar *, int, int) NV_PERFIL_OPCIONAL;
++extern int simkl_destino_capturar(SimklDestino *) NV_PERFIL_OPCIONAL;
++extern int simkl_episodios_marcar_destino(const SimklDestino *, const char *, const VistoPar *, int, int) NV_PERFIL_OPCIONAL;
++extern int simkl_titulo_marcar_destino(const SimklDestino *, const char *, const char *, const int *, int, int) NV_PERFIL_OPCIONAL;
+ 
+ // Teto do lote: o mesmo do Simkl, que e o menor dos tres (Trakt aceita 256
+ // desde este mesmo conserto; a conta nao tem teto no cliente).
+@@ -60,12 +68,28 @@
    VistoPar pares[VT_LOTE];
    int temps[VT_TEMPS];
    int n, nt, visto, destinos, titulo;
@@ -14244,7 +14270,7 @@ diff --git a/src/visto.c b/src/visto.c
    free(e);
    return NULL;
  }
-@@ -77,49 +94,53 @@
+@@ -77,49 +101,53 @@
    return 1;
  }
  

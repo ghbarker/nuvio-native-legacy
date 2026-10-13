@@ -28,7 +28,7 @@ jobs:
         from pathlib import Path
         import subprocess
         base = '17bb330373273a3de284d7f2898a3a3e16f1fc3f'
-        feature = '389849c5e7a04deb809b975d03f2b6ac8efd8c9d'
+        feature = '3641a471e319a7dc2bbed9b203770e73e1955cb0'
         plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
         assert plan['base'] == base and plan['feature_commit'] == feature
         subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
@@ -485,7 +485,7 @@ jobs:
         import hashlib
         import json
         import shutil
-        expected_feature = '389849c5e7a04deb809b975d03f2b6ac8efd8c9d'
+        expected_feature = '3641a471e319a7dc2bbed9b203770e73e1955cb0'
         proof = json.loads(Path('delivery/proof/update-identity.json').read_text())
         candidates = list(Path('delivery/apk').glob('*-tv-mobile-test.apk'))
         assert len(candidates) == 1
@@ -507,5 +507,5 @@ jobs:
           gh release upload tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --clobber
           gh release edit tv-mobile-test-profiles-488 --draft=false --prerelease --latest=false --notes-file delivery/release-notes.txt
         else
-          gh release create tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --target 389849c5e7a04deb809b975d03f2b6ac8efd8c9d --prerelease --latest=false --title 'Nuvio TV/Mobile Test: fresh profile sessions' --notes-file delivery/release-notes.txt
+          gh release create tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --target 3641a471e319a7dc2bbed9b203770e73e1955cb0 --prerelease --latest=false --title 'Nuvio TV/Mobile Test: fresh profile sessions' --notes-file delivery/release-notes.txt
         fi

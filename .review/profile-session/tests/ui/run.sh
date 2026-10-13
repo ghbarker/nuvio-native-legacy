@@ -9,7 +9,11 @@ trap 'rm -rf "$build_dir"' EXIT
 cc_path="${CC:-cc}"
 cflags=(-std=c11 -O1 -g -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -ffunction-sections -fdata-sections "-I$sdk_path" "-I$sdk_path/SDL2" "-I$repo_path/src" "-I$fixture_path")
 case "$(uname -s)" in
-  Darwin) ldflags=(-Wl,-dead_strip -pthread -lm) ;;
+  Darwin)
+    # Keep upstream BSD declarations (timegm) visible with the POSIX flags.
+    cflags+=(-D_DARWIN_C_SOURCE)
+    ldflags=(-Wl,-dead_strip -pthread -lm)
+    ;;
   *) ldflags=(-Wl,--gc-sections -pthread -lm) ;;
 esac
 if [ "${RUN_ASAN:-0}" = 1 ]; then
