@@ -1,5 +1,5 @@
 diff --git a/src/ajustes.c b/src/ajustes.c
-index e28d55b..e6ff4a2 100644
+index e28d55b..a615d86 100644
 --- a/src/ajustes.c
 +++ b/src/ajustes.c
 @@ -70,0 +71 @@
@@ -122,7 +122,7 @@ index e28d55b..e6ff4a2 100644
 +    faRetornarFolha = 6;
 +  } else if (ffFoco == 8) {
 +    static const char *const alfabeto =
-+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789, ._-";
++      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789, ._-+";
 +    FonteFiltroConfig cfg; char contexto[160]; fontefalha_filtro(&cfg);
 +    snprintf(contexto, sizeof contexto, "%s · %s", i18n("Fontes e addons"), i18n("Filtros das fontes"));
 +    teclado_contexto(contexto); stCampo = AJ_FILTRO_GRUPOS;
@@ -2852,7 +2852,7 @@ index 8eb3434..61bcdf9 100644
 -cc "${flags[@]}" src/addons.c src/fontefalha.c src/addonstats.c src/js.c tests/addonurl.c -o /tmp/nuvio-addonurl-tests
 +cc "${flags[@]}" src/addons.c src/fontefalha.c src/fontefiltro.c src/addonstats.c src/js.c tests/addonurl.c -o /tmp/nuvio-addonurl-tests
 diff --git a/tests/ajustes_failover.c b/tests/ajustes_failover.c
-index e82705a..6ca1db5 100644
+index e82705a..a049a85 100644
 --- a/tests/ajustes_failover.c
 +++ b/tests/ajustes_failover.c
 @@ -14,0 +15 @@ static void semRecorteTeste(void) {}
@@ -2894,10 +2894,25 @@ index e82705a..6ca1db5 100644
 -  key(SDLK_RETURN); assert(!uxEditor && fontefalha_provedor_limite(servico) == 10);
 +  key(SDLK_RETURN); assert(!uxEditor && frAberta == 4 && fontefalha_provedor_limite(servico) == 10);
 +  key(SDLK_ESCAPE); assert(!frAberta);
-@@ -221 +240 @@ static void quadroNumero(void) {
+@@ -210,0 +230,11 @@ static void addonsPorInstancia(void) {
++static void fecharQuadroSemCursor(void) {
++  // Mouse clicks make the software cursor visible. Its renderer deliberately
++  // ignores group opacity, while this windowless fixture has no GL context.
++  // Hide it through the pointer's normal keyboard path before publishing the
++  // real target list. The arrow is not delivered to Settings, so focus and
++  // pending edits are unchanged; mouse/finger dispatch itself stays real.
++  SDL_Event e; SDL_zero(e);
++  e.type = SDL_KEYDOWN; e.key.keysym.sym = SDLK_UP;
++  assert(!ponteiro_evento(&e, ajustes_evento));
++  ponteiro_desenhar(); relogio += 400;
++}
+@@ -219 +249 @@ static void quadroNumero(void) {
+-  ponteiro_desenhar(); relogio += 400;
++  fecharQuadroSemCursor();
+@@ -221 +251 @@ static void quadroNumero(void) {
 -static void tocarAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b) {
 +static void pontAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b, int dedo) {
-@@ -231,4 +250,9 @@ static void tocarAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b) {
+@@ -231,4 +261,9 @@ static void tocarAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b) {
 -  e.type = SDL_FINGERDOWN; e.tfinger.touchId = 1; e.tfinger.fingerId = 1;
 -  e.tfinger.x = x / NV_TELA_W; e.tfinger.y = y / NV_TELA_H;
 -  assert(ponteiro_evento(&e, ajustes_evento));
@@ -2911,16 +2926,19 @@ index e82705a..6ca1db5 100644
 +  }
 +  assert(ponteiro_evento(&e, ajustes_evento)); relogio += 60;
 +  e.type = dedo ? SDL_FINGERUP : SDL_MOUSEBUTTONUP;
-@@ -236,0 +261,3 @@ static void tocarAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b) {
+@@ -236,0 +272,3 @@ static void tocarAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b) {
 +static void tocarAlvo(PonteiroFn focar, PonteiroFn ativar, int a, int b) {
 +  pontAlvo(focar, ativar, a, b, 1);
 +}
-@@ -279,0 +307,191 @@ static void limitePorToque(void) {
+@@ -242 +280 @@ static void quadroFolha(void) {
+-  ponteiro_desenhar(); relogio += 400;
++  fecharQuadroSemCursor();
+@@ -279,0 +318,191 @@ static void limitePorToque(void) {
 +static void quadroFiltros(void) {
 +  ponteiro_teste_janela((int)NV_TELA_W, (int)NV_TELA_H);
 +  ponteiro_quadro(relogio);
 +  AJ_ESCALA_INI(); desenhaFolhaFiltros(); AJ_ESCALA_FIM();
-+  ponteiro_desenhar(); relogio += 400;
++  fecharQuadroSemCursor();
 +}
 +// 0 = remote OK, 1 = actual TV mouse click, 2 = actual Mobile finger tap.
 +static void filtroLinha(int linha, int entrada) {
@@ -3035,17 +3053,17 @@ index e82705a..6ca1db5 100644
 +  FonteFalhaConfig antes = configuracao(); char *disco = arquivo();
 +  filtroGruposAbrir(entrada);
 +  assert(!strcmp(teclado_texto(), antes.filtro.grupos));
-+  st_teste_evento("TYTS, EZTV"); ajustes_atualizar(0.016f, relogio); relogio += 80;
-+  assert(teclado_aberto() && !strcmp(teclado_texto(), "YTS, EZTV"));
++  st_teste_evento("TYTS+, EZTV"); ajustes_atualizar(0.016f, relogio); relogio += 80;
++  assert(teclado_aberto() && !strcmp(teclado_texto(), "YTS+, EZTV"));
 +  igual(&antes); igualArquivo(disco);
 +  key(SDLK_ESCAPE); ajustes_atualizar(0.016f, relogio); relogio += 80;
 +  assert(!teclado_aberto() && frAberta == 6 && ffFoco == 8 && !stCampo);
 +  igual(&antes); igualArquivo(disco); free(disco);
 +  key(SDLK_ESCAPE);
 +  filtroGruposAbrir(entrada);
-+  st_teste_evento("DYTS, EZTV, yts"); ajustes_atualizar(0.016f, relogio); relogio += 80;
++  st_teste_evento("DYTS+, EZTV, yts+"); ajustes_atualizar(0.016f, relogio); relogio += 80;
 +  assert(!teclado_aberto() && !stCampo && frAberta == 6 && ffFoco == 8);
-+  strcpy(antes.filtro.grupos, "YTS,EZTV"); igual(&antes);
++  strcpy(antes.filtro.grupos, "YTS+,EZTV"); igual(&antes);
 +  key(SDLK_ESCAPE); recarregar(); igual(&antes);
 +  disco = arquivo(); filtroGruposAbrir(entrada);
 +  st_teste_evento("DY TS"); ajustes_atualizar(0.016f, relogio); relogio += 80;
@@ -3107,7 +3125,7 @@ index e82705a..6ca1db5 100644
 +  puts("PASS: Mobile taps reach all nine filter categories; +/- confirm/cancel and release-group keyboard validation preserve other settings");
 +}
 +
-@@ -289 +507 @@ int main(void) {
+@@ -289 +518 @@ int main(void) {
 -  independentes(); provedores(); instalarAddons(); addonsPorInstancia(); limitePorToque();
 +  independentes(); provedores(); instalarAddons(); addonsPorInstancia(); limitePorToque(); filtros();
 diff --git a/tests/ajustes_secoes.py b/tests/ajustes_secoes.py
@@ -3142,13 +3160,50 @@ index c57ba6c..a46921a 100755
 @@ -9 +9 @@ if [ "$(uname -s)" = Darwin ]; then flags+=(-Wl,-dead_strip); else flags+=(-Wl,-
 -cc src/stream_parse.c src/js.c src/badges.c tests/fhd402.c -Isrc \
 +cc src/stream_parse.c src/fontefiltro.c src/js.c src/badges.c tests/fhd402.c -Isrc \
+diff --git a/tests/fonte_ordem_addon.c b/tests/fonte_ordem_addon.c
+index 694440f..87a1d9a 100644
+--- a/tests/fonte_ordem_addon.c
++++ b/tests/fonte_ordem_addon.c
+@@ -77 +77,2 @@ int main(void) {
+-  // #402: cache negativo conhecido vai ao fim, desconhecido conserva a ordem.
++  // #402/#205: cache negativo vai ao fim do proprio grupo de qualidade;
++  // na ordem do addon, vai ao fim da lista. Desconhecido conserva a ordem.
+@@ -87 +88 @@ int main(void) {
+-  const int mistaQ[] = {2,3,1,0}, mistaA[] = {1,2,3,0};
++  const int mistaQ[] = {0,2,3,1}, mistaA[] = {1,2,3,0};
+@@ -88,0 +90,2 @@ int main(void) {
++  assert(secN[grupoRes(&lista[0])] == 1);
++  assert(secN[grupoRes(&lista[2])] == 2);
+@@ -103 +106 @@ int main(void) {
+-  const int hintQ[] = {2,1,0}, hintA[] = {1,2,0};
++  const int hintQ[] = {0,2,1}, hintA[] = {1,2,0};
+@@ -111,2 +114,17 @@ int main(void) {
+-  const int consultada[] = {1,0,2};
+-  modo = 0; conferir(consultada, 3); modo = 1; conferir(consultada, 3);
++  const int consultadaQ[] = {0,2,1}, consultadaA[] = {1,0,2};
++  modo = 0; conferir(consultadaQ, 3); modo = 1; conferir(consultadaA, 3);
++  // A negativa maior nao passa a frente das fontes normais do mesmo grupo,
++  // mas continua no grupo 1080p antes de qualquer fonte 720p (#205).
++  assert(stream_extrair("{\"streams\":["
++    "{\"name\":\"1080p Not cached\",\"infoHash\":\"d\",\"videoSize\":419430400},"
++    "{\"name\":\"720p\",\"url\":\"https://video.invalid/720.mp4\"},"
++    "{\"name\":\"1080p\",\"url\":\"https://video.invalid/large.mp4\",\"videoSize\":209715200},"
++    "{\"name\":\"1080p\",\"url\":\"https://video.invalid/small.mp4\",\"videoSize\":104857600}]}",
++    "Addon A", &a) == 4);
++  stream_definir_lista(a, 4); free(a); atualizarProvedores(); melhorFolha = -1;
++  const int grupoQ[] = {2,3,0,1}, grupoA[] = {1,2,3,0};
++  modo = 0; conferir(grupoQ, 4);
++  assert(secN[grupoRes(&lista[0])] == 3);
++  assert(secN[grupoRes(&lista[1])] == 1);
++  melhorFolha = 0; conferir(grupoQ, 4);
++  modo = 1; conferir(grupoA, 4);
 diff --git a/tests/fonte_ordem_addon.sh b/tests/fonte_ordem_addon.sh
-index d6bf0f9..ebdea72 100644
+index d6bf0f9..8ad0a0a 100644
 --- a/tests/fonte_ordem_addon.sh
 +++ b/tests/fonte_ordem_addon.sh
 @@ -10 +10 @@ if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit
 -cc "${flags[@]}" tests/fonte_ordem_addon.c src/fontesmortas.c src/stream_parse.c src/js.c src/badges.c src/streamfit.c src/naovideo.c -pthread -o "$dir/test"
-+cc "${flags[@]}" tests/fonte_ordem_addon.c src/fontesmortas.c src/stream_parse.c src/fontefiltro.c src/js.c src/badges.c src/streamfit.c src/naovideo.c -pthread -o "$dir/test"
++cc "${flags[@]}" tests/fonte_ordem_addon.c src/fontesmortas.c src/stream_parse.c src/fontefalha.c src/fontefiltro.c src/js.c src/badges.c src/streamfit.c src/naovideo.c -pthread -o "$dir/test"
 diff --git a/tests/fontecache_vod.sh b/tests/fontecache_vod.sh
 index a232f43..0c66f44 100644
 --- a/tests/fontecache_vod.sh
@@ -3874,10 +3929,17 @@ index 9e8606a..ab87b4d 100644
 -cc "${flags[@]}" tests/proxprefetch.c src/posplay.c src/proximo.c src/intro.c src/velocidade.c src/addons.c src/fontefalha.c src/addonstats.c src/js.c -o "$dir/teste"
 +cc "${flags[@]}" tests/proxprefetch.c src/posplay.c src/proximo.c src/intro.c src/velocidade.c src/addons.c src/fontefalha.c src/fontefiltro.c src/addonstats.c src/js.c -o "$dir/teste"
 diff --git a/tests/proxyts.sh b/tests/proxyts.sh
-index 9f78b29..612917a 100644
+index 9f78b29..738451c 100644
 --- a/tests/proxyts.sh
 +++ b/tests/proxyts.sh
-@@ -20 +20 @@ sleep 0.5
+@@ -11,0 +12,2 @@ mkdir -p "$M/hls"
++# GOP de 4 s e VBV limitado: a fixture precisa caber no prazo de 6 s do
++# cliente mesmo com o servidor limitado a 9 Mbps, sem um primeiro segmento de 10 s.
+@@ -13 +15,2 @@ ffmpeg -loglevel error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -f lavfi -i
+-  -c:v libx264 -preset ultrafast -b:v 3M -c:a aac -f mpegts "$M/h264.ts"
++  -c:v libx264 -preset ultrafast -b:v 3M -maxrate 3M -bufsize 3M \
++  -g 100 -keyint_min 100 -sc_threshold 0 -c:a aac -f mpegts "$M/h264.ts"
+@@ -20 +23 @@ sleep 0.5
 -cc ${flags[@]+"${flags[@]}"} -Wall src/rede.c src/redeurl.c src/stream_parse.c src/js.c src/badges.c tests/proxyts.c -Isrc -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
 +cc ${flags[@]+"${flags[@]}"} -Wall src/rede.c src/redeurl.c src/stream_parse.c src/fontefiltro.c src/js.c src/badges.c tests/proxyts.c -Isrc -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
 diff --git a/tests/stream_parser.sh b/tests/stream_parser.sh

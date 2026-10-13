@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   native:
-    name: Source filters, parser and playback regressions (macOS)
+    name: Settings release-group text and targeted regressions (macOS)
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -59,19 +59,14 @@ jobs:
         VERIFY
     - name: Native tools
       run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
-    - name: Run all affected native regression suites
+    - name: Run Settings and previously failing regression suites
       run: |
         export NV_TMP="$RUNNER_TEMP/nuvio-source-filters"
         set -uo pipefail
         mkdir -p build/review "$NV_TMP"
         command -v ffmpeg >/dev/null || { echo 'FFmpeg is required for proxyts coverage'; exit 1; }
         failed=0
-        for name in fontefiltro fontefiltro_parse fontefalha fontefalha_worker fontefalha_playback \
-          ajustes_failover stream_parser streamfit_parser debrid i18n \
-          p2p pluginjs plugins_fontes proxyts guia_stream_headers \
-          fhd402 fonte_ordem_addon addonslista addonurl addons_proveniencia \
-          autoplay_alvo fontecache_vod proxprefetch fontesmortas_orcamento fontesmortas_manual \
-          player_android_retomada; do
+        for name in ajustes_failover proxyts fonte_ordem_addon; do
           if bash "tests/$name.sh" 2>&1 | tee "build/review/$name.log"; then
             echo "$name PASS" >> build/review/results.txt
           else
@@ -350,14 +345,14 @@ jobs:
           echo 'gradle_cache=true' >> "$GITHUB_OUTPUT"
         fi
     - uses: actions/cache/save@v4
-      if: always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-primary-key
-        != ''
+      if: always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true'
+        && steps.native-cache.outputs.cache-primary-key != ''
       with:
         path: ~/.cache/nuvio-android
         key: ${{ steps.native-cache.outputs.cache-primary-key }}
     - uses: actions/cache/save@v4
-      if: always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true' && steps.gradle-cache.outputs.cache-primary-key
-        != ''
+      if: always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true'
+        && steps.gradle-cache.outputs.cache-primary-key != ''
       with:
         path: |
           ~/.gradle/caches

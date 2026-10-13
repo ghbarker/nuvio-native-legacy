@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "src/ajustes.c",
-      "sha": "e6ff4a2807b6762f9766a689225dec330a9f13f1",
+      "sha": "a615d86e45748972a2a60af6713fa2ccc4d7f8e2",
       "mode": "100644"
     },
     {
@@ -243,7 +243,7 @@
     },
     {
       "path": "tests/ajustes_failover.c",
-      "sha": "6ca1db5f3cae2ba159f11f6f56fd6cc7dbf15a49",
+      "sha": "a049a85a0a15e584f0409d2d92161642b7a21236",
       "mode": "100644"
     },
     {
@@ -267,8 +267,13 @@
       "mode": "100755"
     },
     {
+      "path": "tests/fonte_ordem_addon.c",
+      "sha": "87a1d9a0e2944cac6f4a412873293fb7d1751244",
+      "mode": "100644"
+    },
+    {
       "path": "tests/fonte_ordem_addon.sh",
-      "sha": "ebdea724236a590c39d9100f4de3df016afc553f",
+      "sha": "8ad0a0a2c0554d76ca4b95853f3d7e5ebd439038",
       "mode": "100644"
     },
     {
@@ -353,7 +358,7 @@
     },
     {
       "path": "tests/proxyts.sh",
-      "sha": "612917aa1b84f24beadc4ff9b12a4f612b20a355",
+      "sha": "738451cc6400d74e4743189a505f7e6b17cc5fb4",
       "mode": "100644"
     },
     {
