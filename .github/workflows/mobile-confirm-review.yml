@@ -1,0 +1,214 @@
+name: Mobile interface confirmation review
+'on':
+  push:
+    branches:
+    - review/android-mobile-confirm-build
+permissions:
+  contents: read
+concurrency:
+  group: mobile-interface-confirm-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: Touch confirmation regression (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+    - name: Native tools
+      run: brew install sdl2 sdl2_image sdl2_ttf
+    - uses: actions/checkout@v4
+      with:
+        repository: iqui27/nuvio-native-legacy
+        ref: 17bb330373273a3de284d7f2898a3a3e16f1fc3f
+        path: upstream-reference
+    - name: Shipping source must fail the new touch regression
+      run: "set -euo pipefail\nmkdir -p build/review\ncp src/ajustes_ux_desenho.inc\
+        \ \"$RUNNER_TEMP/interface-picker-fixed.inc\"\ntrap 'cp \"$RUNNER_TEMP/interface-picker-fixed.inc\"\
+        \ src/ajustes_ux_desenho.inc' EXIT\ncp upstream-reference/src/ajustes_ux_desenho.inc\
+        \ src/ajustes_ux_desenho.inc\nset +e\nbash tests/ajustes_ux_toque_modo.sh\
+        \ > build/review/confirmation-red.log 2>&1\ncontrol_status=$?\nset -e\ncp\
+        \ \"$RUNNER_TEMP/interface-picker-fixed.inc\" src/ajustes_ux_desenho.inc\n\
+        if [[ \"$control_status\" == 0 ]]; then\n  echo 'Shipping source unexpectedly\
+        \ passed the new regression'\n  exit 1\nfi\npython3 - <<'CHECK'\nfrom pathlib\
+        \ import Path\nlog=Path('build/review/confirmation-red.log').read_text()\n\
+        message='FALHA: Modo da interface: usa o seletor com alvos proprios tambem\
+        \ em TV'\nassert message in log, 'Expected selector failure missing; compile/setup\
+        \ failure is not a valid red control'\nprint(message)\nprint('PASS: shipping\
+        \ source reproduces the touch confirmation failure')\nCHECK\n"
+    - name: Fixed picker must confirm, cancel and persist by touch
+      run: 'set -o pipefail
+
+        bash tests/ajustes_ux_toque_modo.sh 2>&1 | tee build/review/confirmation-green.log
+
+        '
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: Mobile-confirmation-regression-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NUVIO_ANDROID_JOBS: 2
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Build tools
+      run: 'sudo apt-get update -qq
+
+        sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev
+
+        sdkmanager ''platforms;android-35'' ''build-tools;35.0.0'' ''ndk;27.2.12479018''
+        ''cmake;3.22.1''
+
+        '
+    - name: Public application configuration and debug signing
+      env:
+        NUVIO_TOUCH_CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+        NUVIO_TOUCH_DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64
+          }}
+      run: "mkdir -p build/android\npython3 - <<'PY'\nimport os\nfrom pathlib import\
+        \ Path\nbody = os.environ.get('NUVIO_TOUCH_CORE_PROPERTIES', '')\nif not body:\n\
+        \    raise SystemExit('Set NUVIO_TOUCH_CORE_PROPERTIES for this debug build')\n\
+        path = Path('build/android/product.properties')\npath.write_text(body)\npath.chmod(0o600)\n\
+        PY\ntest -n \"$NUVIO_TOUCH_DEBUG_KEYSTORE_B64\" || { echo 'Set NUVIO_TOUCH_DEBUG_KEYSTORE_B64\
+        \ for repeatable debug updates'; exit 1; }\nmkdir -p \"$HOME/.android\"\n\
+        printf '%s' \"$NUVIO_TOUCH_DEBUG_KEYSTORE_B64\" | base64 --decode > \"$HOME/.android/debug.keystore\"\
+        \nchmod 600 \"$HOME/.android/debug.keystore\"\necho \"NUVIO_PROPERTIES=$GITHUB_WORKSPACE/build/android/product.properties\"\
+        \ >> \"$GITHUB_ENV\"\n"
+    - uses: actions/cache/restore@v4
+      id: native-cache
+      with:
+        path: ~/.cache/nuvio-android
+        key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh',
+          'tools/android/ffmpeg-android.sh', 'android/app/src/main/cpp/CMakeLists.txt')
+          }}
+        restore-keys: android-touch-native-v1-${{ runner.os }}-
+    - uses: actions/cache/restore@v4
+      id: gradle-cache
+      with:
+        path: '~/.gradle/caches
+
+          ~/.gradle/wrapper
+
+          '
+        key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts',
+          'android/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: android-touch-gradle-${{ runner.os }}-
+    - name: Native ARM dependencies
+      run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
+    - name: Standard production-tool debug APK
+      env:
+        NUVIO_P2P_MOTOR: none
+        NUVIO_REQUIRE_CORE: '1'
+      run: bash tools/android.sh
+    - name: Verify standard package and both ARM architectures
+      run: "python3 - \"$ANDROID_HOME/build-tools/35.0.0/aapt\" <<'PY'\nimport re\n\
+        import subprocess\nimport sys\nimport zipfile\nfrom pathlib import Path\n\
+        apks = list(Path('build/android').glob('*-android-debug.apk'))\nif len(apks)\
+        \ != 1:\n    raise SystemExit(f'Expected one standard debug APK, found {len(apks)}')\n\
+        apk = apks[0]\nbadging = subprocess.run([sys.argv[1], 'dump', 'badging', str(apk)],\
+        \ check=True, capture_output=True, text=True).stdout\npackage = re.search(r\"\
+        ^package: name='([^']+)'\", badging, re.MULTILINE)\nif package is None or\
+        \ package.group(1) != 'space.nuvio.nativelegacy':\n    raise SystemExit('APK\
+        \ must use the standard space.nuvio.nativelegacy application ID')\nlabel =\
+        \ re.search(r\"^application-label:'([^']+)'\", badging, re.MULTILINE)\nif\
+        \ label is None:\n    raise SystemExit('APK application label is missing')\n\
+        print(f'applicationId={package.group(1)} applicationLabel={label.group(1)}')\n\
+        with zipfile.ZipFile(apk) as archive:\n    names = set(archive.namelist())\n\
+        for abi in ('arm64-v8a', 'armeabi-v7a'):\n    required = f'lib/{abi}/libmain.so'\n\
+        \    if required not in names:\n        raise SystemExit(f'APK missing {required}')\n\
+        print(f'{apk}: standard application ID and both ARM native cores verified')\n\
+        PY\n"
+    - name: Prepare compatible test installation in CI working copy
+      run: "python3 - <<'PY'\nfrom pathlib import Path\nreplacements = {\n    Path('android/app/build.gradle.kts'):\
+        \ [\n        ('applicationId = \"space.nuvio.nativelegacy\"', 'applicationId\
+        \ = \"space.nuvio.nativelegacy.touch\"'),\n    ],\n    Path('android/app/src/main/AndroidManifest.xml'):\
+        \ [\n        ('android:label=\"@string/app_name\"', 'android:label=\"Nuvio\
+        \ TV/Mobile Test\"'),\n        ('android:authorities=\"space.nuvio.nativelegacy.atualizacao\"\
+        ', 'android:authorities=\"space.nuvio.nativelegacy.touch.atualizacao\"'),\n\
+        \    ],\n}\nupdated = {}\nfor path, pairs in replacements.items():\n    body\
+        \ = path.read_text()\n    for old, new in pairs:\n        if body.count(old)\
+        \ != 1:\n            raise SystemExit(f'{path}: expected exactly one {old!r}')\n\
+        \        body = body.replace(old, new)\n    updated[path] = body\nfor path,\
+        \ body in updated.items():\n    path.write_text(body)\nprint('Temporary CI\
+        \ package, label and provider authority changed; production namespace and\
+        \ classes preserved')\nPY\n"
+    - name: Compatible TV and Mobile test APK
+      env:
+        NUVIO_P2P_MOTOR: none
+      run: "task_root=\"$PWD\"\ntask_cache=\"${NUVIO_ANDROID_CACHE:-$HOME/.cache/nuvio-android}\"\
+        \ntask_stage=\"$task_root/build/android\"\nbash android/gradlew -p android\
+        \ --console=plain \\\n  -Pnuvio.sdlSrc=\"$task_cache/src\" \\\n  -Pnuvio.estagio=\"\
+        $task_stage\" \\\n  -Pnuvio.ffmpegAar=\"$task_stage/media3-ffmpeg-16kb.aar\"\
+        \ \\\n  assembleDebug\ntask_version=\"$(python3 -c 'import json; print(json.load(open(\"\
+        deploy/app/appinfo.json\"))[\"version\"])')\"\ncp android/app/build/outputs/apk/debug/app-debug.apk\
+        \ \"build/android/Nuvio-$task_version-tv-mobile-test.apk\"\n"
+    - name: Verify compatible test package, label and native packaging
+      run: "python3 - \"$ANDROID_HOME/build-tools/35.0.0/aapt\" <<'PY'\nimport re\n\
+        import subprocess\nimport sys\nimport zipfile\nfrom pathlib import Path\n\
+        apks = list(Path('build/android').glob('*-tv-mobile-test.apk'))\nif len(apks)\
+        \ != 1:\n    raise SystemExit(f'Expected one compatible test APK, found {len(apks)}')\n\
+        apk = apks[0]\nbadging = subprocess.run([sys.argv[1], 'dump', 'badging', str(apk)],\
+        \ check=True, capture_output=True, text=True).stdout\npackage = re.search(r\"\
+        ^package: name='([^']+)'\", badging, re.MULTILINE)\nlabel = re.search(r\"\
+        ^application-label:'([^']+)'\", badging, re.MULTILINE)\nif package is None\
+        \ or package.group(1) != 'space.nuvio.nativelegacy.touch':\n    raise SystemExit('Test\
+        \ APK must use space.nuvio.nativelegacy.touch')\nif label is None or label.group(1)\
+        \ != 'Nuvio TV/Mobile Test':\n    raise SystemExit('Test APK must be labeled\
+        \ Nuvio TV/Mobile Test')\nprint(f'applicationId={package.group(1)} applicationLabel={label.group(1)}')\n\
+        with zipfile.ZipFile(apk) as archive:\n    names = set(archive.namelist())\n\
+        for abi in ('arm64-v8a', 'armeabi-v7a'):\n    required = f'lib/{abi}/libmain.so'\n\
+        \    if required not in names:\n        raise SystemExit(f'APK missing {required}')\n\
+        subprocess.run([sys.executable, 'tools/android-apk-pages.py', str(apk)], check=True)\n\
+        print(f'{apk}: compatible test identity, both ARM native cores and page packaging\
+        \ verified')\nPY\n"
+    - name: Locate build outputs
+      id: outputs
+      if: always()
+      run: "if compgen -G 'build/android/*-android-debug.apk' >/dev/null; then\n \
+        \ echo 'standard_apk=true' >> \"$GITHUB_OUTPUT\"\nfi\nif compgen -G 'build/android/*-tv-mobile-test.apk'\
+        \ >/dev/null; then\n  echo 'test_apk=true' >> \"$GITHUB_OUTPUT\"\nfi\nif [[\
+        \ -d \"$HOME/.cache/nuvio-android\" ]]; then\n  echo 'native_cache=true' >>\
+        \ \"$GITHUB_OUTPUT\"\nfi\nif [[ -d \"$HOME/.gradle/caches\" || -d \"$HOME/.gradle/wrapper\"\
+        \ ]]; then\n  echo 'gradle_cache=true' >> \"$GITHUB_OUTPUT\"\nfi\n"
+    - uses: actions/cache/save@v4
+      if: always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit
+        != 'true' && steps.native-cache.outputs.cache-primary-key != ''
+      with:
+        path: ~/.cache/nuvio-android
+        key: ${{ steps.native-cache.outputs.cache-primary-key }}
+    - uses: actions/cache/save@v4
+      if: always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit
+        != 'true' && steps.gradle-cache.outputs.cache-primary-key != ''
+      with:
+        path: '~/.gradle/caches
+
+          ~/.gradle/wrapper
+
+          '
+        key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+    - uses: actions/upload-artifact@v4
+      if: always() && steps.outputs.outputs.standard_apk == 'true'
+      with:
+        name: Nuvio-mobile-confirm-standard-${{ github.sha }}
+        path: build/android/*-android-debug.apk
+        if-no-files-found: error
+        retention-days: 14
+    - uses: actions/upload-artifact@v4
+      if: always() && steps.outputs.outputs.test_apk == 'true'
+      with:
+        name: Nuvio-mobile-confirm-test-${{ github.sha }}
+        path: build/android/*-tv-mobile-test.apk
+        if-no-files-found: error
+        retention-days: 14
