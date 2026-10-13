@@ -30,8 +30,58 @@ static void expect(const char *fields, const char *audio, const char *subs) {
 int main(void) {
   expect("\"name\":\"Source\"", "", "");
   expect("\"name\":\"English/French\",\"title\":\"Film.1080p.ENG.SPA.mkv\","
-         "\"description\":\"Audio: English | Subtitles: French\","
+         "\"description\":\"English Patient — a French film\","
          "\"behaviorHints\":{\"filename\":\"Film.German.mkv\"}", "", "");
+  expect("\"description\":\"Audio: English | Subtitles: French\"", "English", "French");
+  expect("\"title\":\"Film.1080p.ENG.SPA.mkv\\nLanguages: English, Japanese | Subtitles: English, French\"",
+         "English,Japanese", "English,French");
+  expect("\"description\":\"Audio languages: en-US / ES-419; pt_BR • yue-Hant-HK\\n"
+         "Subtitle languages: fr, zh-Hant\"", "en-US,ES-419,pt_BR,yue-Hant-HK", "fr,zh-Hant");
+  expect("\"title\":\"  Áudio : Português (Brasil) | Inglês\\nLegendas: Português (Portugal)\"",
+         "Português (Brasil),Inglês", "Português (Portugal)");
+  expect("\"description\":\"Audio: Dolby Atmos | DTS | AAC | 5.1\\nSubtitles: English Patient | Multi | Unknown\"", "", "");
+  expect("\"description\":\"The Audio: English | The Subtitles: French\\n"
+         "Film.1080p.English.mkv\\nEnglish / French\\n🇬🇧 / 🇫🇷\"", "", "");
+  expect("\"name\":\"Audio: English | Subtitles: French\","
+         "\"other\":{\"description\":\"Audio: Japanese\"}", "", "");
+  expect("\"description\":\"Audio: English | Provider: French | German\\n"
+         "Subtitles: Spanish | URL: https://video.invalid/ja | Japanese\"", "English", "Spanish");
+  expect("\"audioLanguages\":[\"en\"],\"description\":\"Audio: Japanese | Subtitles: French\","
+         "\"title\":\"Audio: Spanish | Subtitles: German\"", "en", "French");
+  expect("\"subtitleLanguages\":[\"de\"],\"description\":\"Audio: English | Subtitles: French\"", "English", "de");
+  expect("\"description\":\"Audio: English\",\"title\":\"Audio: Japanese | Subtitles: French\"", "English", "French");
+  expect("\"description\":\"Audio: English\\u0000 | Subtitles: French\"", "", "");
+  expect("\"description\":\"Audio: English\\q\"", "", "");
+  expect("\"description\":\"Audio: English\\uD800\"", "", "");
+  expect("\"description\":\"Audio: English\\u0085\"", "", "");
+  expect("\"description\":\"Audio: English\xC0\xAF\"", "", "");
+  expect("\"title\":\"Audio: English\\u000aSubtitles: French\"", "English", "French");
+  expect("\"description\":\"Audio: English\\rSubtitles: French\"", "English", "French");
+  expect("\"description\":\"Audio: English\\u000dSubtitles: French\"", "English", "French");
+  expect("\"description\":\"Audio: English\\\\rSubtitles: French\"", "", "");
+  expect("\"description\":\"Audio: English\"broken", "", "");
+  expect("\"title\":\"Film\\n🌎 English | Japanese📝 English | French\\n💾 1.2 GB\"",
+         "English,Japanese", "English,French");
+  expect("\"description\":\"🌎 English • Japanese📝 English • French\"",
+         "English,Japanese", "English,French");
+  expect("\"description\":\"🌐 🇬🇧 / 🇯🇵📝 🇬🇧 / 🇫🇷\"",
+         "English,Japanese", "English,French");
+  expect("\"title\":\"🎧 AAC 🔊 5.1 🗣️ 🇬🇧 / 🇯🇵📝 🇬🇧 / 🇫🇷\"",
+         "English,Japanese", "English,French");
+  expect("\"description\":\"Audio: 🇧🇷 / 🇵🇹 | Subtitles: 🇧🇩 / 🇵🇰\"",
+         "Portuguese (Brazil),Portuguese", "Bengali,Punjabi");
+  expect("\"description\":\"🌐 🇮🇳 / 🇬🇧 / 🇺🇸 / 🇲🇽📝 🇮🇳 / 🇫🇷\"", "English", "French");
+  expect("\"description\":\"🌎 / 🇬🇧 / 🇫🇷\"", "", "");
+  expect("\"description\":\"🌐 🇬🇧 🇯🇵\"", "", "");
+  expect("\"description\":\"🌎 Multi / Dual Audio / Dubbed / Original / Unknown📝 None\"", "", "");
+  expect("\"description\":\"🌐 💃🏻📝 Latino\"", "Latino", "Latino");
+  expect("\"description\":\"🎧 English / 🔊 French / ⏱ Japanese / 💾 German\"", "", "");
+  expect("\"description\":\"🌐 🇬🇧 🎧 🇫🇷 / French 🔊 Japanese ⏱ Italian 💾 German📝 🇪🇸💾 French\"",
+         "English", "Spanish");
+  expect("\"title\":\"🇬🇧 / 🇯🇵 Subs / 🇬🇧 / 🇫🇷\"", "", "English,French");
+  expect("\"title\":\"Multi Subs / 🇫🇷 / 🇮🇳\"", "", "French");
+  expect("\"audioLanguages\":[\"pt-BR\"],\"subtitleLanguages\":[\"de\"],"
+         "\"description\":\"🌐 🇬🇧📝 🇫🇷\"", "pt-BR", "de");
   expect("\"languages\":[\"en\"],\"language\":\"fr\",\"other\":{\"audioLanguages\":[\"es\"]}", "", "");
   expect("\"audioLanguages\":[\" en \",\"ES-419\",\"en\",\"es-419\",\"pt_BR\"],"
          "\"subtitleLanguages\":[\"fr\",\"pt-BR\"]", "en,ES-419,pt_BR", "fr,pt-BR");
@@ -105,6 +155,16 @@ int main(void) {
   assert(!v[2].audioIdiomas[0] && !strcmp(v[2].legendaIdiomas, "de"));
   free(v); checks++;
 
+  assert(stream_extrair("{\"title\":\"Audio: Italian | Subtitles: Spanish\",\"streams\":["
+    "{\"url\":\"https://video.invalid/1\"},"
+    "{\"url\":\"https://video.invalid/2\",\"description\":\"🌐 🇬🇧📝 🇫🇷\"},"
+    "{\"url\":\"https://video.invalid/3\",\"title\":\"Audio: German\"}]}",
+    "Audio: Japanese | Subtitles: Portuguese", &v) == 3);
+  assert(!v[0].audioIdiomas[0] && !v[0].legendaIdiomas[0]);
+  assert(!strcmp(v[1].audioIdiomas, "English") && !strcmp(v[1].legendaIdiomas, "French"));
+  assert(!strcmp(v[2].audioIdiomas, "German") && !v[2].legendaIdiomas[0]);
+  free(v); checks++;
+
   // Bounds keep complete entries and UTF-8, never a partial language.
   char fields[8192];
   unsigned used = (unsigned)snprintf(fields, sizeof fields, "\"audioLanguages\":[");
@@ -121,6 +181,22 @@ int main(void) {
   snprintf(fields + used, sizeof fields - used, "\",\"fr\"]");
   s = parse(fields);
   assert(!strcmp(s.audioIdiomas, "fr"));
+
+  // A long description cannot leave a seemingly complete language prefix.
+  used = (unsigned)snprintf(fields, sizeof fields, "\"description\":\"Audio: English ");
+  memset(fields + used, ' ', 3000); used += 3000;
+  snprintf(fields + used, sizeof fields - used, "\",\"title\":\"Subtitles: French\"");
+  s = parse(fields);
+  assert(!s.audioIdiomas[0] && !strcmp(s.legendaIdiomas, "French"));
+  used = (unsigned)snprintf(fields, sizeof fields, "\"description\":\"Audio: ");
+  for (unsigned k = 0; k < 150; k++)
+    used += (unsigned)snprintf(fields + used, sizeof fields - used, "%sen-%u", k ? "," : "", k);
+  snprintf(fields + used, sizeof fields - used, "\"");
+  s = parse(fields);
+  assert(!strncmp(s.audioIdiomas, "en-0,en-1,", strlen("en-0,en-1,")) && strlen(s.audioIdiomas) < sizeof s.audioIdiomas);
+  last = strrchr(s.audioIdiomas, ',');
+  assert(last && last[1] && !strncmp(last + 1, "en-", 3));
+  assert(s.audioIdiomas[strlen(s.audioIdiomas) - 1] >= '0' && s.audioIdiomas[strlen(s.audioIdiomas) - 1] <= '9');
 
   // Incomplete and very deeply nested values must not claim tracks.
   s = parse("\"audioLanguages\":[\"en");

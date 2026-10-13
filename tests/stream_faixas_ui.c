@@ -147,6 +147,42 @@ static void alturaEDesenho(void) {
     semConsultas();
   }
 }
+static void descricaoAioEDesenho(void) {
+  // Default AIO output omits rich language fields; its typed formatter
+  // sections still report languages. Technical markers are not languages.
+  Stream s = extrairUma("{\"streams\":[{\"url\":\"https://video.invalid/aio-default.mkv\","
+                        "\"name\":\"AIOStreams 1080p\","
+                        "\"description\":\"Movie.2024.1080p.WEB-DL.x265.mkv\\n"
+                        "🎥 HEVC | 🎧 AAC 5.1\\n🌐 🇬🇧 / 🇯🇵📝 🇫🇷 🎧 DTS 7.1\"}]}");
+  char texto[128];
+  assert(stream_faixas_texto(&s, 0, texto, sizeof texto));
+  assert(!strcmp(texto, "Inglês, Japonês"));
+  assert(stream_faixas_texto(&s, 1, texto, sizeof texto));
+  assert(!strcmp(texto, "Francês"));
+  assert(linhasFaixas(&s) == 2);
+  Stream sem = s;
+  memset(sem.audioIdiomas, 0, sizeof sem.audioIdiomas);
+  memset(sem.legendaIdiomas, 0, sizeof sem.legendaIdiomas);
+  for (textoAddon = 0; textoAddon <= 1; textoAddon++) {
+    for (int aberto = 0; aberto <= 2; aberto++) {
+      float fracao = aberto * .5f;
+      float base = medir(&sem, fracao);
+      assert(fabsf(medir(&s, fracao) - base - 2 * FOLHA_FAIXA_H) < .001f);
+      const Stream *listada = stream_item(0);
+      assert(listada && linhasFaixas(listada) == 2);
+      assert(!strcmp(listada->audioIdiomas, s.audioIdiomas));
+      assert(!strcmp(listada->legendaIdiomas, s.legendaIdiomas));
+      desenhoLimpar();
+      assert(desenharFaixas(listada, 10, 20, 300, 1, .7f) == 2 * FOLHA_FAIXA_H);
+      assert(nTextos == 2 && nDesenhos == 2);
+      assert(!strcmp(desenhos[0].texto, "Áudio: Inglês, Japonês"));
+      assert(!strcmp(desenhos[1].texto, "Legendas: Francês"));
+      assert(desenhos[0].w <= 300 && desenhos[1].w <= 300);
+      assert(fabsf(desenhos[1].y - desenhos[0].y - FOLHA_FAIXA_H) < .001f);
+      semConsultas();
+    }
+  }
+}
 static void regionalEInfo(void) {
   Stream s = extrairUma("{\"streams\":[{\"url\":\"https://video.invalid/reported.mkv\","
                         "\"name\":\"Dual English Spanish\",\"description\":\"Original addon description\","
@@ -211,7 +247,7 @@ static void longaECache(void) {
 }
 static void ausentesELimites(void) {
   Stream s = extrairUma("{\"streams\":[{\"url\":\"https://video.invalid/en_pt-BR.mkv\","
-                        "\"name\":\"Dual English Spanish\",\"description\":\"Audio: English / Subtitles: French\","
+                        "\"name\":\"Dual English Spanish\",\"description\":\"An English traveller discusses French subtitles in a Japanese movie.\","
                         "\"audioLanguages\":[\"unknown\",\"und\",null],\"subtitleLanguages\":null}]}");
   char texto[128] = "must be cleared";
   assert(!stream_faixas_texto(&s, 0, texto, sizeof texto) && !texto[0]);
@@ -285,9 +321,9 @@ int main(void) {
 #else
     assert(FOLHA_W == 820);
 #endif
-    alturaEDesenho(); regionalEInfo(); longaECache(); ausentesELimites(); identidadeEOrdem();
+    alturaEDesenho(); descricaoAioEDesenho(); regionalEInfo(); longaECache(); ausentesELimites(); identidadeEOrdem();
   }
   stream_definir_lista(NULL, 0); fontecache_vod_limpar(); semConsultas();
-  puts("stream_faixas_ui: PASS (reported rows, no-data height, TV/Mobile, regions, bounded text, Info, real cache, stable order/identity, no media requests)");
+  puts("stream_faixas_ui: PASS (reported rows, AIO description rows, no-data height, TV/Mobile, regions, bounded text, Info, real cache, stable order/identity, no media requests)");
   return 0;
 }
