@@ -1,4 +1,4 @@
-name: Failover Settings cleanup test APK
+name: Shared source exclusion filters test APK
 'on':
   push:
     branches:
@@ -6,46 +6,71 @@ name: Failover Settings cleanup test APK
 permissions:
   contents: read
 concurrency:
-  group: failover-settings-cleanup-${{ github.sha }}
+  group: source-filters-${{ github.sha }}
   cancel-in-progress: true
 jobs:
   native:
-    name: Settings editors and catalogue regressions (macOS)
+    name: Source filters, parser and playback regressions (macOS)
     runs-on: macos-14
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
         fetch-depth: 0
-    - name: Apply and verify reviewed Settings cleanup
+    - name: Apply and verify reviewed source filters and retained Settings cleanup
       run: |
         set -euo pipefail
-        git apply --check --unidiff-zero .review/settings-cleanup.patch
-        git apply --unidiff-zero .review/settings-cleanup.patch
+        git apply --check --unidiff-zero --unidiff-zero .review/source-filters.patch
+        git apply --unidiff-zero .review/source-filters.patch
         python3 - <<'VERIFY'
         import hashlib
         import json
+        import os
+        import shutil
         from pathlib import Path
 
-        plan = json.loads(Path('.review/settings-cleanup-files.json').read_text())
+        plan_path = Path('.review/source-filters-files.json')
+        plan = json.loads(plan_path.read_text())
         assert plan['base'] == '3b5bfc78a0deaa4fe0f2b33b7c33bf3cd2ec81b8', plan['base']
+        verified = []
+        paths = set()
         for entry in plan['files']:
-            path = Path(entry['path'])
-            assert entry['path'].startswith(('src/', 'tests/')), entry['path']
+            relative = entry['path']
+            assert relative.startswith(('src/', 'tests/')), relative
+            assert '..' not in Path(relative).parts, relative
+            assert relative not in paths, relative
+            paths.add(relative)
+            path = Path(relative)
             data = path.read_bytes()
             actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
-            assert actual == entry['sha'], (entry['path'], actual, entry['sha'])
-        print('Verified exact Settings cleanup source:', len(plan['files']), 'files')
+            assert actual == entry['sha'], (relative, actual, entry['sha'])
+            executable = bool(path.stat().st_mode & 0o111)
+            assert executable == (entry['mode'] == '100755'), (relative, entry['mode'])
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        assert verified, 'Source manifest must contain the reviewed delta'
+        output = Path('build/review')
+        output.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(plan_path, output / 'source-filters-files.json')
+        proof = {'base': plan['base'], 'build_commit': os.environ['GITHUB_SHA'],
+                 'files': verified, 'verified': True}
+        (output / 'source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Verified exact source filters and retained cleanup:', len(verified), 'files')
         VERIFY
     - name: Native tools
-      run: brew install sdl2 sdl2_image sdl2_ttf
-    - name: Run Settings cleanup regressions
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Run all affected native regression suites
       run: |
         set -uo pipefail
-        mkdir -p build/review
+        mkdir -p build/review "$NV_TMP"
+        command -v ffmpeg >/dev/null || { echo 'FFmpeg is required for proxyts coverage'; exit 1; }
         failed=0
-        for name in ajustes_failover; do
+        for name in fontefiltro fontefiltro_parse fontefalha fontefalha_worker fontefalha_playback \
+        +  ajustes_failover stream_parser streamfit_parser debrid i18n \
+        +  p2p pluginjs plugins_fontes proxyts guia_stream_headers \
+        +  fhd402 fonte_ordem_addon addonslista addonurl addons_proveniencia \
+        +  autoplay_alvo fontecache_vod proxprefetch fontesmortas_orcamento fontesmortas_manual \
+        +  player_android_retomada; do
           if bash "tests/$name.sh" 2>&1 | tee "build/review/$name.log"; then
             echo "$name PASS" >> build/review/results.txt
           else
@@ -90,9 +115,11 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: failover-settings-cleanup-regressions-${{ github.sha }}
+        name: source-filters-regressions-${{ github.sha }}
         path: build/review/
         retention-days: 14
+    env:
+      NV_TMP: ${{ runner.temp }}/nuvio-source-filters
   android:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -103,25 +130,44 @@ jobs:
       with:
         persist-credentials: false
         fetch-depth: 0
-    - name: Apply and verify reviewed Settings cleanup
+    - name: Apply and verify reviewed source filters and retained Settings cleanup
       run: |
         set -euo pipefail
-        git apply --check --unidiff-zero .review/settings-cleanup.patch
-        git apply --unidiff-zero .review/settings-cleanup.patch
+        git apply --check --unidiff-zero --unidiff-zero .review/source-filters.patch
+        git apply --unidiff-zero .review/source-filters.patch
         python3 - <<'VERIFY'
         import hashlib
         import json
+        import os
+        import shutil
         from pathlib import Path
 
-        plan = json.loads(Path('.review/settings-cleanup-files.json').read_text())
+        plan_path = Path('.review/source-filters-files.json')
+        plan = json.loads(plan_path.read_text())
         assert plan['base'] == '3b5bfc78a0deaa4fe0f2b33b7c33bf3cd2ec81b8', plan['base']
+        verified = []
+        paths = set()
         for entry in plan['files']:
-            path = Path(entry['path'])
-            assert entry['path'].startswith(('src/', 'tests/')), entry['path']
+            relative = entry['path']
+            assert relative.startswith(('src/', 'tests/')), relative
+            assert '..' not in Path(relative).parts, relative
+            assert relative not in paths, relative
+            paths.add(relative)
+            path = Path(relative)
             data = path.read_bytes()
             actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
-            assert actual == entry['sha'], (entry['path'], actual, entry['sha'])
-        print('Verified exact Settings cleanup source:', len(plan['files']), 'files')
+            assert actual == entry['sha'], (relative, actual, entry['sha'])
+            executable = bool(path.stat().st_mode & 0o111)
+            assert executable == (entry['mode'] == '100755'), (relative, entry['mode'])
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        assert verified, 'Source manifest must contain the reviewed delta'
+        output = Path('build/review')
+        output.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(plan_path, output / 'source-filters-files.json')
+        proof = {'base': plan['base'], 'build_commit': os.environ['GITHUB_SHA'],
+                 'files': verified, 'verified': True}
+        (output / 'source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Verified exact source filters and retained cleanup:', len(verified), 'files')
         VERIFY
     - uses: actions/setup-java@v4
       with:
@@ -305,14 +351,14 @@ jobs:
           echo 'gradle_cache=true' >> "$GITHUB_OUTPUT"
         fi
     - uses: actions/cache/save@v4
-      if: always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true'
-        && steps.native-cache.outputs.cache-primary-key != ''
+      if: always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-primary-key
+        != ''
       with:
         path: ~/.cache/nuvio-android
         key: ${{ steps.native-cache.outputs.cache-primary-key }}
     - uses: actions/cache/save@v4
-      if: always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true'
-        && steps.gradle-cache.outputs.cache-primary-key != ''
+      if: always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true' && steps.gradle-cache.outputs.cache-primary-key
+        != ''
       with:
         path: |
           ~/.gradle/caches
@@ -321,15 +367,22 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always() && steps.outputs.outputs.standard_apk == 'true'
       with:
-        name: Nuvio-failover-settings-cleanup-standard-${{ github.sha }}
+        name: Nuvio-source-filters-standard-${{ github.sha }}
         path: build/android/*-android-debug.apk
         if-no-files-found: error
         retention-days: 14
     - uses: actions/upload-artifact@v4
       if: always() && steps.outputs.outputs.test_apk == 'true'
       with:
-        name: Nuvio-failover-settings-cleanup-test-${{ github.sha }}
+        name: Nuvio-source-filters-test-${{ github.sha }}
         path: build/android/*-tv-mobile-test.apk
         if-no-files-found: error
         retention-days: 14
-    name: Compatible test APK (both ARM architectures)
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: source-filters-android-source-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: warn
+        retention-days: 14
+    name: Source filters compatible test APK (both ARM architectures)

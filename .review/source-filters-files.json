@@ -1,0 +1,370 @@
+{
+  "base": "3b5bfc78a0deaa4fe0f2b33b7c33bf3cd2ec81b8",
+  "files": [
+    {
+      "path": "src/ajustes.c",
+      "sha": "e6ff4a2807b6762f9766a689225dec330a9f13f1",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha": "299d7459fa10280c17cee37142e1d146e5ee352a",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha": "dc64a9dd6272a07e0f4f15436e894cfb08230f17",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_ilha.inc",
+      "sha": "ba167fc2e5feac7ad9b1a7270fa2824cc40fb522",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha": "dca9a564cb654b03cd8eb91d099b26b30d764e73",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha": "2e2b0d292b6b4dde044e8a782c0ce7922aa7e848",
+      "mode": "100644"
+    },
+    {
+      "path": "src/app.c",
+      "sha": "0d6cb7188f3d983d4227a4710bcdb0d96bcb160c",
+      "mode": "100644"
+    },
+    {
+      "path": "src/fontefalha.c",
+      "sha": "85630168120d9491bd006cb578218741b88057b3",
+      "mode": "100644"
+    },
+    {
+      "path": "src/fontefalha.h",
+      "sha": "d04f076a20e29039fecf3785f39cf10f139c640f",
+      "mode": "100644"
+    },
+    {
+      "path": "src/fontefiltro.c",
+      "sha": "27c54438263ae82e1d3e8a594414f62c2cafe4ed",
+      "mode": "100644"
+    },
+    {
+      "path": "src/fontefiltro.h",
+      "sha": "0bd751a4af3732a9063c8a5e0894357cea75be00",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha": "8962783b638144ac3c77ce671771302bef29ecd8",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha": "0b4fc113ab2a418d73dd5795d6ad45ed0c9364a9",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha": "62dbccf727c25745f557bf26e1b85d688fa2948a",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha": "a1aa41da75a744e4fbee4d2a787a80ae795b90c0",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha": "e7e9c062fa43f91842a0570414ef4dc2a85201d0",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha": "50a49ff0ed1f6ba025be3de60078c5f35614e7c6",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha": "3f67c4661b9af3ba101954cbb69f6ea3ad5e89dd",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha": "30acb0e815e76e2d16844f5513d870db099770e1",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha": "bbc127f8fe61665f7d891ffd3e2714f255def367",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha": "094c8e92a0d46079ae1d91acb7d1d4128d46abf9",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha": "1dd0448be06d57626c9f773d75d92ab956926a5e",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha": "06bc44865b467c1503e4fd234658fc13b2bc83d9",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha": "4ad9300f1c544950aa0499cc2aac0720b0c231b4",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha": "42c0ce28267ef82b3f9a47712149edad8c7e4b89",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha": "4b664844c78fee6bcc864efe92229e650cceca24",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha": "a8a134adbe8d314b2aba45ab742396b25f68f53c",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha": "f754aab5c5c1be8112ca870a361f4638c55bd230",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha": "8fe8f34c6ac84453681343de0cf95dd4f271b40e",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha": "31076bb152ea2eb357aad45d18de61b38a0080c5",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha": "c81d7300b7bced2f4f28eff1617ffd97dda0abbd",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha": "a7efe55c7ce8862ae84e206d3536945ea7466a73",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha": "528998a2af6c09620b8396788622c47caaedeeae",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha": "de81707738b982046ade54f2455b5d11a513cef1",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha": "8bdf3db857c9c042e8685fd4b78ff9f26ed4982b",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha": "cf78ddbcad70c99f622309d6f8a4680843d5bd82",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha": "e381787f382840a95450d254484ec79401a2839f",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha": "921f7b3fb0d768a270f92a40d7c0a3011a08fa0b",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha": "4e9503c007524d6b0e168af1c65946043fc2ac28",
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha": "c0862dce94dddd510d3199e0f15946b06ebf3de0",
+      "mode": "100644"
+    },
+    {
+      "path": "src/stream_parse.c",
+      "sha": "eda5c394b8c62fae0e3d4151216268069d3647c1",
+      "mode": "100644"
+    },
+    {
+      "path": "src/streams.c",
+      "sha": "0b80128bd61dff5f48e196ba5b524a26a7b9076a",
+      "mode": "100644"
+    },
+    {
+      "path": "src/streams.h",
+      "sha": "1990dfcdd13aea4476bb6a8f110708565683aeec",
+      "mode": "100644"
+    },
+    {
+      "path": "src/teclado.c",
+      "sha": "664381a302f4ea17ba275dc85b9506ba6fd36527",
+      "mode": "100644"
+    },
+    {
+      "path": "src/teclado.h",
+      "sha": "cdafe14c0ed9296d861f84d4a58602ff1cadfbe3",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/addons_proveniencia.sh",
+      "sha": "652064b74eddbf7ccfb707326e01d7921f7f481b",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/addonslista.sh",
+      "sha": "28465f21c71ff691c37abe652e2f7eb12fc68616",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/addonurl.sh",
+      "sha": "61bcdf9bc2f10e7b45f35f697f71bb705f397b37",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/ajustes_failover.c",
+      "sha": "6ca1db5f3cae2ba159f11f6f56fd6cc7dbf15a49",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/ajustes_secoes.py",
+      "sha": "79c92cf9f925a9efd3d6f1ec6d1fc50fc11af306",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/autoplay_alvo.sh",
+      "sha": "1161b6436e9e8599526ff80cd2e4471e6f35db08",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/debrid.sh",
+      "sha": "60c628ae31c531920f3895442cf43e0d3026e0d3",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fhd402.sh",
+      "sha": "a46921a89fecf77f89dcf960965c81aca218ec48",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/fonte_ordem_addon.sh",
+      "sha": "ebdea724236a590c39d9100f4de3df016afc553f",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontecache_vod.sh",
+      "sha": "0c66f44f1a6fddec85d7c1b504ab4019a3c603db",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefalha.c",
+      "sha": "a78e4cdebe8d463419c4fb114646f9665005ca92",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefalha.sh",
+      "sha": "b81e952015dcd22c4b90fd34fbeafaafa4302e35",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefalha_playback.sh",
+      "sha": "3cac1e2aa814bf2989785740e5e33e1476020177",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/fontefalha_worker.c",
+      "sha": "6bd065ad5902c5912639d2816f6cc392c890ca85",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefalha_worker.sh",
+      "sha": "5dfa086370bcf4e331d74334410c37e4ee21e377",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/fontefiltro.c",
+      "sha": "286dc213f69f3a817ebc1fade835322ec4d73698",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefiltro.sh",
+      "sha": "64c7b1e31331df85b133667ea5414ed2bc00c8ef",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefiltro_parse.c",
+      "sha": "de692a888427a13bed26ff68b04872bcdd37f4de",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/fontefiltro_parse.sh",
+      "sha": "ffe91aa0c8fff9d4c434473d2a5ec225914beb04",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/fontesmortas_orcamento.sh",
+      "sha": "d610ddacca96812d33cbe614e99124ef99c1b52e",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/guia_stream_headers.sh",
+      "sha": "33c723198fc4bedf9f713ea6be9e5760a04ab7bb",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/p2p.sh",
+      "sha": "ec0294f068b48fa8efa92a3de2675c90fba34e73",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/pluginjs.sh",
+      "sha": "a20fa64f737dfc5479512f9d742895f1fc88c6a6",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/plugins_fontes.sh",
+      "sha": "dc49728e32e1b12a24314b53d3ad553f7ef4749c",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/proxprefetch.sh",
+      "sha": "ab87b4d863809c176f7700da7d818ba71fecbdf5",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/proxyts.sh",
+      "sha": "612917aa1b84f24beadc4ff9b12a4f612b20a355",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/stream_parser.sh",
+      "sha": "9e3cb2190df1befc2e18886997209b3047243e48",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/streamfit_parser.sh",
+      "sha": "bfdb762ab4bf9033468432d3c299efcda9009886",
+      "mode": "100755"
+    }
+  ]
+}
