@@ -208,7 +208,7 @@
     },
     {
       "path": "src/streams.c",
-      "sha": "34c5aff41f32d2172d11e26d58aa918d46ae24a0",
+      "sha": "69faa706c08dbe8894b1557c288805f028de2447",
       "mode": "100644"
     },
     {
@@ -383,7 +383,7 @@
     },
     {
       "path": "tests/stream_faixas_ui.sh",
-      "sha": "cc0e375cc5394cda8444fee8b78531968c03f67f",
+      "sha": "b0bda5aaf317589bfaa4db922a689964ccc6e440",
       "mode": "100644"
     },
     {

@@ -2962,7 +2962,7 @@ index 0812c43..1542b63 100644
 +      metadadosFiltro(p, fim, nomeFonte, s.descricao, titulo, &s);
 +      metadadosFaixas(p, fim, &s);
 diff --git a/src/streams.c b/src/streams.c
-index 60e6342..34c5aff 100644
+index 60e6342..69faa70 100644
 --- a/src/streams.c
 +++ b/src/streams.c
 @@ -9,0 +10 @@
@@ -3058,29 +3058,29 @@ index 60e6342..34c5aff 100644
 +    for (size_t j = 0; j <= n; j++)
 +      codigo[j] = raw[j] == '_' ? '-' : (char)tolower((unsigned char)raw[j]);
 +    snprintf(base, sizeof base, "%.*s", (int)k, codigo);
-+    rotulo = ling_nome(base);
++    rotulo = i18n(ling_nome(base));
 +    if (k < n && codigo[k + 1]) {
 +      size_t j;
 +      for (j = 0; codigo[k + 1 + j] && j + 1 < sizeof regiao; j++)
 +        regiao[j] = (char)toupper((unsigned char)codigo[k + 1 + j]);
 +      regiao[j] = 0;
-+      snprintf(nome, tam, "%s (%s)", i18n(rotulo), regiao);
++      snprintf(nome, tam, "%s (%s)", rotulo, regiao);
 +    } else {
 +      // Sinonimos brasileiros reconhecidos pela folha de faixas.
 +      if (!strcmp(codigo, "pb") || !strcmp(codigo, "br") || !strcmp(codigo, "ptb"))
-+        rotulo = ling_nome("pob");
-+      snprintf(nome, tam, "%s", i18n(rotulo));
++        rotulo = i18n(ling_nome("pob"));
++      snprintf(nome, tam, "%s", rotulo);
 +    }
 +    return nome[0] != 0;
 +  }
 +  codigoDoNome = ling_do_nome(raw);
 +  if (codigoDoNome) {
 +    const char *parenteses = strchr(raw, '(');
-+    rotulo = ling_nome(codigoDoNome);
++    rotulo = i18n(ling_nome(codigoDoNome));
 +    // Um nome informado com regiao nao perde essa regiao ao ser traduzido.
-+    if (parenteses && !strchr(rotulo, '('))
-+      snprintf(nome, tam, "%s %s", i18n(rotulo), parenteses);
-+    else snprintf(nome, tam, "%s", i18n(rotulo));
++    if (parenteses && strcmp(codigoDoNome, "pob"))
++      snprintf(nome, tam, "%s %s", rotulo, parenteses);
++    else snprintf(nome, tam, "%s", rotulo);
 +  } else snprintf(nome, tam, "%s", i18n(raw));  // sem traducao: preserva o informado
 +  return nome[0] != 0;
 +}
@@ -4828,7 +4828,7 @@ index 0000000..07ad597
 +}
 diff --git a/tests/stream_faixas_ui.sh b/tests/stream_faixas_ui.sh
 new file mode 100644
-index 0000000..cc0e375
+index 0000000..b0bda5a
 --- /dev/null
 +++ b/tests/stream_faixas_ui.sh
 @@ -0,0 +1,31 @@
@@ -4841,7 +4841,7 @@ index 0000000..cc0e375
 +flags=(-std=gnu11 -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -O1 -g -Isrc -pthread
 +       -Wall -Wextra -Wno-unused-function -ffunction-sections -fdata-sections)
 +if [ "$(uname -s)" = Darwin ]; then
-+  flags+=(-I/opt/homebrew/include -I/opt/homebrew/include/SDL2)
++  flags+=(-D_DARWIN_C_SOURCE -I/opt/homebrew/include -I/opt/homebrew/include/SDL2)
 +  linker=(-Wl,-dead_strip)
 +else
 +  flags+=(-DNV_LINUX_DESKTOP)
