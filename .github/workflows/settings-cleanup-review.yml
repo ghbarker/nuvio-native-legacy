@@ -160,10 +160,41 @@ jobs:
         path.chmod(0o600)
         PY
         test -n "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" || { echo 'Set NUVIO_TOUCH_DEBUG_KEYSTORE_B64 for repeatable debug updates'; exit 1; }
-        mkdir -p "$HOME/.android"
-        printf '%s' "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
-        chmod 600 "$HOME/.android/debug.keystore"
+        signing_dir="$RUNNER_TEMP/nuvio-test-signing"
+        mkdir -p "$signing_dir"
+        printf '%s' "$NUVIO_TOUCH_DEBUG_KEYSTORE_B64" | base64 --decode > "$signing_dir/debug.keystore"
+        chmod 600 "$signing_dir/debug.keystore"
+        keytool -exportcert -alias androiddebugkey -keystore "$signing_dir/debug.keystore" \
+          -storepass android -file "$signing_dir/public-cert.der" >/dev/null
+        python3 - "$signing_dir/public-cert.der" <<'VERIFY'
+        import hashlib
+        import sys
+        from pathlib import Path
+        actual = hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest()
+        expected = '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+        assert actual == expected, 'Persistent test signing key changed'
+        print('Persistent test signing certificate verified:', actual)
+        VERIFY
+        echo "NUVIO_TEST_DEBUG_KEYSTORE=$signing_dir/debug.keystore" >> "$GITHUB_ENV"
         echo "NUVIO_PROPERTIES=$GITHUB_WORKSPACE/build/android/product.properties" >> "$GITHUB_ENV"
+    - name: Explicitly pin debug signing in the CI working copy
+      run: |
+        python3 - <<'PY'
+        from pathlib import Path
+        path = Path('android/app/build.gradle.kts')
+        body = path.read_text()
+        marker = '    signingConfigs {\n'
+        assert body.count(marker) == 1, 'Expected exactly one signingConfigs block'
+        replacement = '''    signingConfigs {
+                getByName("debug") {
+                    storeFile = file(System.getenv("NUVIO_TEST_DEBUG_KEYSTORE") ?: error("Persistent test signing key missing"))
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
+        '''
+        path.write_text(body.replace(marker, replacement, 1))
+        PY
     - uses: actions/cache/restore@v4
       id: native-cache
       with:
@@ -266,9 +297,9 @@ jobs:
           assembleDebug
         task_version="$(python3 -c 'import json; print(json.load(open("deploy/app/appinfo.json"))["version"])')"
         cp android/app/build/outputs/apk/debug/app-debug.apk "build/android/Nuvio-$task_version-tv-mobile-test.apk"
-    - name: Verify compatible test package, label and native packaging
+    - name: Verify compatible test package, label, persistent signature and native packaging
       run: |
-        python3 - "$ANDROID_HOME/build-tools/35.0.0/aapt" <<'PY'
+        python3 - "$ANDROID_HOME/build-tools/35.0.0/aapt" "$ANDROID_HOME/build-tools/35.0.0/apksigner" <<'PY'
         import re
         import subprocess
         import sys
@@ -285,6 +316,11 @@ jobs:
             raise SystemExit('Test APK must use space.nuvio.nativelegacy.touch')
         if label is None or label.group(1) != 'Nuvio TV/Mobile Test':
             raise SystemExit('Test APK must be labeled Nuvio TV/Mobile Test')
+        signing = subprocess.check_output([sys.argv[2], 'verify', '--verbose', '--print-certs', str(apk)], text=True)
+        expected = '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+        if 'Signer #1 certificate SHA-256 digest: ' + expected not in signing:
+            raise SystemExit('Test APK must use the persistent original preview signing certificate')
+        print('Test APK persistent signing certificate verified:', expected)
         print(f'applicationId={package.group(1)} applicationLabel={label.group(1)}')
         with zipfile.ZipFile(apk) as archive:
             names = set(archive.namelist())
