@@ -1,0 +1,40 @@
+{
+  "base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
+  "files": [
+    {
+      "path": "src/stream_parse.c",
+      "sha": "55d2981d5434ae2ce5cd5f79d8d667436fa6d514",
+      "mode": "100644"
+    },
+    {
+      "path": "src/streams.c",
+      "sha": "94053d10de0fc9ac14bbd214f932aa94e670106d",
+      "mode": "100644"
+    },
+    {
+      "path": "src/streams.h",
+      "sha": "8569400023bc4d871a28bef5e1132771cf7b2535",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/stream_faixas_parse.c",
+      "sha": "effa5484cb4964ed8cf5661d060299383441ffb6",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/stream_faixas_parse.sh",
+      "sha": "3ca035df2303bda80422bd398f6f0689f048af68",
+      "mode": "100755"
+    },
+    {
+      "path": "tests/stream_faixas_ui.c",
+      "sha": "5e4bde5955d0f279bb9e58a2ed61ddecc663858a",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/stream_faixas_ui.sh",
+      "sha": "7ed4022574ddeb53c0f94853cd6e458c568242ad",
+      "mode": "100644"
+    }
+  ]
+}
