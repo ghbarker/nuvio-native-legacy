@@ -203,7 +203,7 @@
     },
     {
       "path": "src/stream_parse.c",
-      "sha": "333b38c880ebdfa13193ac5cd1b64443dc66bf01",
+      "sha": "f83b79f212cd45f435a8b0c0ec78d0df33c0a106",
       "mode": "100644"
     },
     {
@@ -368,7 +368,7 @@
     },
     {
       "path": "tests/stream_faixas_parse.c",
-      "sha": "effa5484cb4964ed8cf5661d060299383441ffb6",
+      "sha": "8fe56cc2478b9aac584e588b7fca6f27a3ac10d1",
       "mode": "100644"
     },
     {
