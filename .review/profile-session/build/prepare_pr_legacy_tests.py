@@ -117,7 +117,7 @@ def main():
     # These original upstream fixtures include a reduced addons/streams/app
     # module and model one session. They do not link the profile subsystem.
     # Ownership/race suites and all full-source builds still use real perfis.c.
-    for name in ('addons_proveniencia', 'fontefalha_worker', 'fontefalha_playback'):
+    for name in ('addons_proveniencia', 'fontefalha_worker', 'fontefalha_playback', 'addons_legendas'):
         path = Path('tests') / (name + '.sh')
         assert path.is_file(), ('Missing latest-upstream fixture', str(path))
         original = 'cc "${flags[@]}" tests/' + name + '.c'
