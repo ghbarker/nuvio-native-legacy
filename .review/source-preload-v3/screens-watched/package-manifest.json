@@ -12,8 +12,8 @@
     },
     {
       "path": "source-pins.json",
-      "sha256": "93faf96c059aa6c0515a7e1bd7188ef972da8bc53451f701b027e18c1199e605",
-      "bytes": 2624
+      "sha256": "793b9445938b38b99c56f25ff41797917c0b3f87e3156286db7c532e062a5f57",
+      "bytes": 2632
     },
     {
       "path": "sdk/SDL2/SDL.h",

@@ -1,8 +1,8 @@
 {
-  "source_description": "Actual combined watched product snapshot verified by the final 10 local C checks",
+  "source_description": "Exact log-only delivery source; all original draw assertions and fixture hashes retained",
   "canonical_revision": "17b7769dac4273557e1b07f5fb8734df91dd718f",
   "sha256": {
-    "src/avisos.c": "7d445dd14bb4d5fe3e50e834937157667005cd38b6a151905eee26568f09c14b",
+    "src/avisos.c": "c775f0417e0277f284dcef0e71b09ee3d1ed2650ac036798f6c1495f3d1807b4",
     "src/biblioteca.c": "c6536413f368dc08482bb13a6b66620235eb47a9d20c0a9452166ad55a597004",
     "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
     "src/catalogo.h": "6c7232053a1c06c7020300900bd1907a14d66d2b544d92e5dc38f255dd65146a",
