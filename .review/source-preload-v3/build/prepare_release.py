@@ -26,10 +26,11 @@ assert len(native['actual_original_full_source_asan']) == 3
 assert {'release-date', 'release-date-asan'} <= set(native['gates'])
 assert 'image-download' in native['gates']
 assert 'seek-regression' in native['gates']
-assert len(native['seek_regression_actual_regressions']) == 4
+assert len(native['seek_regression_actual_regressions']) == 6
 assert {(run['case'], run['mode']) for run in native['seek_regression_actual_regressions']} == {
     ('seek_gestures', 'normal'), ('seek_gestures', 'asan'),
-    ('seek_controller', 'normal'), ('seek_controller', 'asan')}
+    ('seek_controller', 'normal'), ('seek_controller', 'asan'),
+    ('window_reentry', 'normal'), ('window_reentry', 'asan')}
 assert all(run['passed'] is True for run in native['seek_regression_actual_regressions'])
 assert {'player_recuo-original', 'posplay_recuo-original', 'creditosauto-original', 'creditosauto-original-asan'} <= set(native['gates'])
 assert len(native['actual_original_seek_guards']) == 3
@@ -52,7 +53,8 @@ target.with_suffix('.apk.sha256').write_text(digest + '  ' + target.name + '\n')
 Path('delivery/release-notes.txt').write_text(
     'I fixed forward touch seeking that could incorrectly leave playback marked as rewound. '
     'A small backward movement during an otherwise forward drag could block next-episode preparation and its automatic countdown. '
-    'The app now evaluates the whole drag from its starting position. A real backward seek still cancels the countdown.\n\n'
+    'The app now evaluates the whole drag from its starting position. A real backward seek still cancels the countdown. '
+    'I also fixed countdown re-entry so automatic Next starts its countdown only inside the episode’s final window.\n\n'
     'This update keeps the earlier episode-date and artwork download fixes. '
     'The earlier intro timing and preload expiry experiments remain excluded. '
     'Local diagnostic logging is retained only for the test build. '

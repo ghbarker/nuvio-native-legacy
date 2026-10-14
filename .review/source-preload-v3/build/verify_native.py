@@ -91,10 +91,11 @@ if flags.get('run_seek_regression'):
     seek_hashes = {relative: hashlib.sha256(Path(relative).read_bytes()).hexdigest() for relative in seek_paths}
     assert seek_report['source_hashes'] == seek_hashes
     seek_runs = seek_report['runs']
-    assert len(seek_runs) == 4
+    assert len(seek_runs) == 6
     assert {(run['case'], run['mode']) for run in seek_runs} == {
         ('seek_gestures', 'normal'), ('seek_gestures', 'asan'),
-        ('seek_controller', 'normal'), ('seek_controller', 'asan')}
+        ('seek_controller', 'normal'), ('seek_controller', 'asan'),
+        ('window_reentry', 'normal'), ('window_reentry', 'asan')}
     for run in seek_runs:
         assert run['passed'] is True
         assert Path(run['source_root']).resolve() == Path.cwd().resolve()

@@ -18832,7 +18832,7 @@ index 1a23178826553c48bafb17a1e276f674f2bc47e9..db55071ce1362172b426b29d1a8a37ec
  void ponteiro_cancelar_toque(void);
  // Cancela somente uma ativacao pendente do alvo com este foco. Gestos de
 diff --git a/src/posplay.c b/src/posplay.c
-index 81e2f8e4620dd635af06699b473d7ad82d425d46..53368e3e87d25a901aed85c3e70b4b6fc8bff8f6 100644
+index 81e2f8e4620dd635af06699b473d7ad82d425d46..8af26a0c521e3dd4b21386b392da406e5680852d 100644
 --- a/src/posplay.c
 +++ b/src/posplay.c
 @@ -2,6 +2,7 @@
@@ -18998,7 +18998,15 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53368e3e87d25a901aed85c3e70b4b6f
  
    if (ehSerie) {
      // A JANELA quem decide e o player: ele e o unico que sabe se os creditos
-@@ -471,6 +525,45 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+@@ -464,13 +518,52 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+   // Arma depois de abrir o cartao: marcador real permite antecipar a contagem;
+   // sem ele, conta apenas os segundos restantes. Desligado, espera OK.
+   // Recuo e busca pendente suspendem a mesma contagem configuravel.
+-  if (visivel && serie && !recuou && !aguardaBusca) {
++  if (visivel && serie && janelaSerie && !recuou && !aguardaBusca) {
+     // #202: a 1,5x os segundos do arquivo passam mais depressa que os do relogio.
+     double resta = vel_tempo_real(durSeg - posSeg, player_velocidade_efetiva());
+     if (aguardaCena) fecharEm = 0;
      else fecharEm = posplay_contagem(agora, abriuEm, fecharEm, resta, ajustes_proximo_auto(), marcadorReal, ajustes_proximo_contagem());
    }
  

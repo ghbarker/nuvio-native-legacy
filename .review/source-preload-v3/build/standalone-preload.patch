@@ -7050,7 +7050,7 @@ index 087757771621f42350e2d3a20126dec4a783bffc..e41e4026dcb5a0417e5cd373d956d1f5
  void plugins_ligar_aos_addons(void);
  
 diff --git a/src/posplay.c b/src/posplay.c
-index 81e2f8e4620dd635af06699b473d7ad82d425d46..2bd09729fa90964bf435b842232126884530096d 100644
+index 81e2f8e4620dd635af06699b473d7ad82d425d46..b4c8096e58e40182190e89d4cce5cc4b2339d050 100644
 --- a/src/posplay.c
 +++ b/src/posplay.c
 @@ -2,6 +2,7 @@
@@ -7210,6 +7210,15 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..2bd09729fa90964bf435b84223212688
  
    if (ehSerie) {
      // A JANELA quem decide e o player: ele e o unico que sabe se os creditos
+@@ -464,7 +515,7 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+   // Arma depois de abrir o cartao: marcador real permite antecipar a contagem;
+   // sem ele, conta apenas os segundos restantes. Desligado, espera OK.
+   // Recuo e busca pendente suspendem a mesma contagem configuravel.
+-  if (visivel && serie && !recuou && !aguardaBusca) {
++  if (visivel && serie && janelaSerie && !recuou && !aguardaBusca) {
+     // #202: a 1,5x os segundos do arquivo passam mais depressa que os do relogio.
+     double resta = vel_tempo_real(durSeg - posSeg, player_velocidade_efetiva());
+     if (aguardaCena) fecharEm = 0;
 diff --git a/src/posplay.h b/src/posplay.h
 index 44a191a8f8175c810f5ed0cf6d7cc477fed6055f..5cec23ec7305ae44df6922384cfd0645d6cb0109 100644
 --- a/src/posplay.h

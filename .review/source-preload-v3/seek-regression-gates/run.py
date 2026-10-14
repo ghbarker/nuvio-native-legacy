@@ -45,6 +45,8 @@ link=['-Wl,-dead_strip' if host=='Darwin' else '-Wl,--gc-sections','-lm']
 cases=[('seek_gestures',['tests/seek_gestures.c','tests/posplay_probe.c'],
         ['proximo.c','velocidade.c','relogio.c']),
        ('seek_controller',['tests/seek_controller.c'],['proximo.c','fontefalha.c'])]
+if not args.expect_jitter_bug:
+    cases.append(('window_reentry',['tests/window_reentry.c'],['proximo.c']))
 if args.expect_jitter_bug:
     cases=cases[:1]
 report={'schema':1,'host':host,'source_root':str(root),

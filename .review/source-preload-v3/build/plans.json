@@ -35,7 +35,7 @@
       "run_image_download": true,
       "run_seek_regression": true,
       "run_original_seek_guards": true,
-      "patch_sha256": "5c0be0ef9a87e2d85d8de882cfd6609e61a1a45d54fe4fe2cd36967efab720c6"
+      "patch_sha256": "f3a2f928382a108f7aafc6199bc6c4fffbd865176cd24e689e57c964192fc016"
     },
     {
       "id": "combined-delivery",
@@ -68,7 +68,7 @@
       "run_image_download": true,
       "run_seek_regression": true,
       "run_original_seek_guards": true,
-      "patch_sha256": "d2cfd44719c2b5e27343875273307126f8c854a99656ced9556be195eba0fa2c"
+      "patch_sha256": "9392662b5a0e417c6297ad444613986cd5b8398b29933419cc1757de2a15a40d"
     }
   ],
   "test_release": {
