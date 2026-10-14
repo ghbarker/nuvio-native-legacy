@@ -288,6 +288,13 @@ class StartupContractTest {
             val trace = StartupTrace()
             val url = server.base + "/resolve-mkv"
             val (id, p) = warmTitle(url, trace, audio)
+            // STATE_READY can precede the asynchronous decoder's first PCM
+            // output. Compare actual warmed sinks only after one exists.
+            await("silent preferred title did not initialize its audio output", 10_000) {
+                snapshot(p).getInt("audioTrackIdentity") != 0
+            }
+            assertEquals("waiting for the hidden sink published playback natives", 0, TestProbe.count())
+            onMain { assertFalse(p.isPlaying); assertFalse(p.playWhenReady); assertEquals(0f, p.volume, 0f) }
             val before = snapshot(p)
             assertTrue("requested language was not selected during silent preparation",
                 if (audio == "pt") portuguese(selectedLanguage(p)) else selectedLanguage(p).startsWith("en"))
@@ -300,10 +307,10 @@ class StartupContractTest {
             await("early-audio title did not play") { onMain { p.isPlaying } }
             assertTrue("early-audio title did not render", trace.firstFrame.await(15, TimeUnit.SECONDS))
             val after = snapshot(p)
+            report("early-title-audio-" + audio, trace, before, after)
             assertEquals("matching automatic choice released the warmed audio output", releasesBefore, trace.audioTrackReleaseCount())
             assertEquals("matching automatic choice replaced the warmed AudioTrack", before.getInt("audioTrackIdentity"), after.getInt("audioTrackIdentity"))
             assertEquals("early-audio adoption repeated the resolver", resolvesBefore, server.requests.count { it.path == "/resolve-mkv" })
-            report("early-title-audio-" + audio, trace, before, after)
             if (audio == "pt") {
                 val english = onMain {
                     @Suppress("UNCHECKED_CAST")
@@ -311,11 +318,16 @@ class StartupContractTest {
                     tracks.indexOfFirst { (group, track) -> group.getTrackFormat(track).language?.startsWith("en") == true }
                 }
                 assertTrue(english >= 0)
+                val releasesBeforeManual = trace.audioTrackReleaseCount()
                 NvPlayer.escolher(0, english)
                 await("captured preference prevented a manual English choice") { selectedLanguage(p).startsWith("en") && onMain { p.isPlaying } }
+                await("manual language change did not exercise the real AudioTrack release counter") {
+                    trace.audioTrackReleaseCount() > releasesBeforeManual
+                }
                 val position = onMain { p.currentPosition }
                 await("manual audio choice did not survive continued playback") { onMain { p.currentPosition >= position + 250L } }
                 assertTrue("early preference overrode the manual audio choice", selectedLanguage(p).startsWith("en"))
+                report("early-title-manual-english-after-portuguese", trace, before, snapshot(p))
             }
             assertEquals(0, TestProbe.errors())
             NvPlayer.parar()
@@ -357,12 +369,18 @@ class StartupContractTest {
         val url = server.base + "/resolve-mkv"
         val (id, stale) = warmTitle(url, trace, "pt")
         assertTrue(portuguese(selectedLanguage(stale)))
+        val before = snapshot(stale)
+        val coldTrace = StartupTrace()
+        coldTrace.play()
         NvPlayer.abrirPreparada(url, "X-Probe: startup", 0, 0, 412, id, "en")
         await("changed audio preference reused stale prepared selection") { active()?.let { it !== stale } == true }
         val cold = active()!!
+        onMain { coldTrace.attach(cold) }
         await("cold fallback did not retain the ordinary English default") { selectedLanguage(cold).startsWith("en") && onMain { cold.isPlaying } }
         assertEquals(0, NvPlayer.prepararEstado(id))
         assertEquals(0, TestProbe.errors())
+        report("audio-preference-mismatch-cold-default", coldTrace, before, snapshot(cold), JSONObject()
+            .put("stalePlayerIdentity", System.identityHashCode(stale)).put("coldPlayerIdentity", System.identityHashCode(cold)))
     }
 
 }

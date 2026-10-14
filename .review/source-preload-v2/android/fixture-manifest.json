@@ -84,8 +84,8 @@
     },
     {
       "path": "startup-diagnostics/StartupContractTest.kt",
-      "sha256": "5dacc12b1d0e2c52e0eea89cb5f933e8a50a4ef1a2e55054b56af89f589279c8",
-      "bytes": 28653
+      "sha256": "4f1107ad7eeef1160e84ec9991158e0281a510465e21544b1be1946c6042e50d",
+      "bytes": 29929
     },
     {
       "path": "startup-diagnostics/generate-fixtures.sh",
@@ -94,8 +94,8 @@
     },
     {
       "path": "startup-diagnostics/run-runtime.sh",
-      "sha256": "cdc5b8f4a81d28b0167f474898bc7c436ae47980e130f489ad1a0205f814fa6c",
-      "bytes": 1001
+      "sha256": "d3277b015fcf4b4d6e68b0fc6c43f9fff65c2be0d70c93483e1d2ec6e450200d",
+      "bytes": 2772
     },
     {
       "path": "startup-diagnostics/stage-v2.sh",
