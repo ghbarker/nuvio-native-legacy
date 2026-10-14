@@ -1,0 +1,210 @@
+{
+  "format": 1,
+  "product": {
+    "path": "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
+    "sha256": "09288bbb2f24163b85933e1c84d3ff39a1072c5fada9faf3b4672d1c7b360c90"
+  },
+  "runtime_test_methods": [
+    "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+    "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+    "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+    "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+    "cancelQueuedRequestsAndStaleTokensStaySilent",
+    "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition",
+    "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+    "percentageResumeAndCacheAreTransferredAndHeadersMustMatch",
+    "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset",
+    "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+    "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+    "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+    "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+    "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+    "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults",
+    "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
+    "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
+    "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
+    "localLogResultWritesRedactedFileThroughContentResolver"
+  ],
+  "helper_files": [
+    {
+      "path": "build.gradle.kts",
+      "sha256": "50425357e4449207a6e3098fa4f4dc66864a870859025051fc809589ddb858df",
+      "bytes": 142
+    },
+    {
+      "path": "generate-fixture.sh",
+      "sha256": "d87a23f8859c3c78ca7079bb35e8f07d28c4995111b5249d1eb89b71a70918b6",
+      "bytes": 1466
+    },
+    {
+      "path": "gradle.properties",
+      "sha256": "a5c2a9794e8431e9a29c571b45d21202fd24c0bf9518d9bedfd4853bcdd0c085",
+      "bytes": 51
+    },
+    {
+      "path": "probe/build.gradle.kts",
+      "sha256": "4718aa9584a775a71075cad760283edc95c86564b71327dc546d834729e2e4b0",
+      "bytes": 1069
+    },
+    {
+      "path": "probe/src/androidTest/java/space/nuvio/preloadtest/PreloadContractTest.kt",
+      "sha256": "0bf2d24f2f5124e0fa69805514e27516248955618b1f4dd742f2f5079dd6900b",
+      "bytes": 26643
+    },
+    {
+      "path": "probe/src/main/AndroidManifest.xml",
+      "sha256": "4d9953d9dab2d5b9492b220003b0fb22cd78679407c8c227d79486f4eca58715",
+      "bytes": 465
+    },
+    {
+      "path": "probe/src/main/cpp/CMakeLists.txt",
+      "sha256": "5e80c316b0237f3324fc9129051a857d3ed88a0c3b5eea907b6cce43a6e670f9",
+      "bytes": 111
+    },
+    {
+      "path": "probe/src/main/cpp/preloadprobe.c",
+      "sha256": "440626833a28229d4f4967b1ae7545ffc05fe23ebe9824a3933b38b044f1619d",
+      "bytes": 4674
+    },
+    {
+      "path": "probe/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "sha256": "680290cfe0f498e248ad3e6ef897beb6176f4db36a47b3a41ac684407ed19197",
+      "bytes": 322
+    },
+    {
+      "path": "probe/src/main/java/space/nuvio/preloadtest/ProbeActivity.kt",
+      "sha256": "b033488714475ddad120bdc568d76513e828e18be9d7f069291ee42c884ea028",
+      "bytes": 950
+    },
+    {
+      "path": "settings.gradle.kts",
+      "sha256": "3bc13c65d6c67c01200137a1f8971aa453c93d3c8f7cd1413b4d16a6aa8823f5",
+      "bytes": 290
+    },
+    {
+      "path": "stage.sh",
+      "sha256": "6f49c99c65edb972db571b8fed831b362cf53fa192ec3a2203f5862edadcd948",
+      "bytes": 818
+    },
+    {
+      "path": "startup-diagnostics/StartupContractTest.kt",
+      "sha256": "4f1107ad7eeef1160e84ec9991158e0281a510465e21544b1be1946c6042e50d",
+      "bytes": 29929
+    },
+    {
+      "path": "startup-diagnostics/generate-fixtures.sh",
+      "sha256": "a650306fe53110f79b522ec45160c25c55dfdb661eecb361bab5885fc2885b69",
+      "bytes": 6897
+    },
+    {
+      "path": "startup-diagnostics/run-runtime.sh",
+      "sha256": "d3277b015fcf4b4d6e68b0fc6c43f9fff65c2be0d70c93483e1d2ec6e450200d",
+      "bytes": 2772
+    },
+    {
+      "path": "startup-diagnostics/stage-v2.sh",
+      "sha256": "c5ed44f5f86a468b0f3b3523c065f937fa92146e9bd5727cbcd8b557417a0c16",
+      "bytes": 1443
+    },
+    {
+      "path": "probe/src/androidTest/java/space/nuvio/preloadtest/LocalLogsContractTest.kt",
+      "sha256": "2ef3e07d81edb675826fab094434a140c288b1251a10c795c9f9151100f9fb42",
+      "bytes": 4677
+    }
+  ],
+  "staged_player_helpers": [
+    {
+      "path": "space/nuvio/nativelegacy/AudioSyncSink.kt",
+      "sha256": "3ea9927c8b80b9b4e7f9dbb8984cb40e1fe3d9bfaa01fcde2d1a9230a40bc0c1"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/AudioSyncTap.kt",
+      "sha256": "f0fcc355cb73a0b127e34ad3edc379cf81678dfd35152199fc5b5597c28d8263"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/CacheMidia.kt",
+      "sha256": "494606fb18b683dc7ed5a4d78a1b7790870deeccd24e445132179f59adca303d"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/CacheSessao.kt",
+      "sha256": "c05a8bcc909cb7df877fb19689d3dd3ee7d91825c4d6867da30dc8d462eb6b10"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/GanhoAudioProcessor.kt",
+      "sha256": "0d0a1c721a8edfe2049d4f69155c86c5f6a7be351e96a2129669a6b34112947c"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/GanhoMath.kt",
+      "sha256": "c4776a36ab0b4e33b07b1d70ebaa265ad04dea564b242156163de93a464d5129"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/NvPlayer.kt",
+      "sha256": "09288bbb2f24163b85933e1c84d3ff39a1072c5fada9faf3b4672d1c7b360c90"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/ParaleloDataSource.kt",
+      "sha256": "0123ec85f436876cab0642fa0d6882f303b1f5a007d7e428850b723aed567d17"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/PassivoMedidor.kt",
+      "sha256": "4f3f738b254fef1c519d9ace6ca60e05cadeec7aa35db3cb778a75cdc4fdd2c4"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/RecriaHdr.kt",
+      "sha256": "fe57b92377d316d5ef1bd4a58c6864dfc14270751e158c923e6a8004bf1b1933"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "sha256": "d660a42febe98cd76daf80eb73612acb64e92ce2298761e43c062d62d78f840e"
+    }
+  ],
+  "media_assets": {
+    "generated_at_runtime": true,
+    "generator": "generate-fixture.sh",
+    "fixtures": [
+      "20 s AVC/AAC MP4 at 3 Mbps",
+      "20 s 2-second AVC/AAC HLS segments at 3 Mbps",
+      "10 s 6-second AVC/AAC HLS segments at 32 Mbps exceeding preload byte cap",
+      "20 s opaque-URL Matroska with default English and Portuguese AAC audio",
+      "HLS shared video and separate English/Portuguese audio renditions",
+      "4 s ~78 Mbps AVC MP4 exercising 16 MiB preload ceiling"
+    ]
+  },
+  "scope": "Real Media3 1.8.0 runtime in isolated app from exact final source; original eight contracts plus seven startup/track/rebuffer regressions. UI black alpha0 SurfaceView experiment is preserved as rejected baseline evidence, excluded from product and passing tests. Physical S26 timing remains separate.",
+  "startup_test_methods": [
+    "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset",
+    "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+    "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+    "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+    "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+    "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+    "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults"
+  ],
+  "runtime_test_classes": {
+    "space.nuvio.preloadtest.PreloadContractTest": [
+      "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+      "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+      "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+      "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+      "cancelQueuedRequestsAndStaleTokensStaySilent",
+      "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition",
+      "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+      "percentageResumeAndCacheAreTransferredAndHeadersMustMatch"
+    ],
+    "space.nuvio.preloadtest.StartupContractTest": [
+      "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset",
+      "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+      "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+      "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+      "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+      "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+      "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults"
+    ],
+    "space.nuvio.preloadtest.LocalLogsContractTest": [
+      "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
+      "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
+      "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
+      "localLogResultWritesRedactedFileThroughContentResolver"
+    ]
+  }
+}

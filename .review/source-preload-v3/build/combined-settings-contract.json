@@ -1,0 +1,76 @@
+{
+  "total_count": 292,
+  "appended": [
+    {
+      "id": "AJ_PROVEDORES_ESCOPO",
+      "index": 289,
+      "key": "-provedoresEscopo",
+      "default": 0
+    },
+    {
+      "id": "AJ_OCULTAR_FILMES_VISTOS",
+      "index": 290,
+      "key": "hideWatchedMoviesLocal",
+      "default": 1
+    },
+    {
+      "id": "AJ_FONTE_PRECARREGAR",
+      "index": 291,
+      "key": "fontePrecarregarLocal",
+      "default": 1
+    }
+  ],
+  "required_keys": [
+    "-provedoresEscopo",
+    "hideWatchedMoviesLocal",
+    "fontePrecarregarLocal",
+    "fontePrepararLocal",
+    "interfaceModoLocal"
+  ],
+  "runtime": [
+    {
+      "key": "fontePrecarregarLocal",
+      "default": 1,
+      "device_only": true,
+      "profile_local": false,
+      "per_profile": false,
+      "id": "AJ_FONTE_PRECARREGAR",
+      "index": 291
+    },
+    {
+      "key": "fontePrepararLocal",
+      "default": 1,
+      "device_only": true,
+      "profile_local": false,
+      "per_profile": false
+    },
+    {
+      "key": "hideWatchedMoviesLocal",
+      "default": 1,
+      "device_only": true,
+      "profile_local": true,
+      "per_profile": true
+    },
+    {
+      "key": "interfaceModoLocal",
+      "default": 2,
+      "device_only": true,
+      "profile_local": false,
+      "per_profile": false
+    },
+    {
+      "key": "-provedoresEscopo",
+      "default": 0,
+      "device_only": true,
+      "profile_local": false,
+      "per_profile": false
+    }
+  ],
+  "default_exceptions": {
+    "interfaceModoLocal": {
+      "before": 0,
+      "after": 2,
+      "reason": "The reviewed #431 candidate defaults new installs to Auto; saved TV=0 and Mobile=1 keep their original meaning."
+    }
+  }
+}
