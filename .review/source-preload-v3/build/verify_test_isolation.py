@@ -2,6 +2,7 @@
 """Check frozen test-only overlay boundaries against actual source bytes."""
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 MARKERS = (b'NV_TEST_LOCAL_LOGS', b'TestLocalLogs', b'nuvio.testLocalLogs', b'[test-next]')
@@ -49,6 +50,30 @@ def verify_tree(path, case, target):
             expected[entry['path']] = entry['after']
         for relative in ('src/app.c', 'src/posplay.c', 'android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt'):
             assert relative in {entry['path'] for entry in proof['overlay_changes']}, relative
+    # The local materialization omitted documentation assets. Validate every
+    # extra upstream document against its immutable real canonical Git blob,
+    # instead of mistaking it for a changed application source file.
+    extra_docs = sorted(set(current) - set(expected))
+    assert all(path.startswith('docs/') for path in extra_docs), ('Unexpected code path', extra_docs)
+    if extra_docs:
+        def docs_tree(ref):
+            result = {}
+            raw = subprocess.check_output(['git', '-C', str(target), 'ls-tree', '-rz', ref, '--', 'docs'])
+            for item in raw.split(b'\0'):
+                if not item: continue
+                meta, path = item.split(b'\t', 1)
+                mode, kind, sha = meta.decode().split()
+                result[path.decode()] = (mode, kind, sha)
+            return result
+        canonical_docs = docs_tree('17b7769dac4273557e1b07f5fb8734df91dd718f')
+        current_docs = docs_tree('HEAD')
+        for path in extra_docs:
+            assert path in canonical_docs and canonical_docs[path] == current_docs.get(path), ('Changed upstream document', path)
+            mode, kind, sha = canonical_docs[path]
+            data = (Path(target) / path).read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            assert kind == 'blob' and actual == sha and current[path]['mode'] == mode, ('Document byte/mode mismatch', path)
+            del current[path]
     assert current == expected, ('Frozen clean/overlay source boundary changed',
         sorted(set(current) ^ set(expected)),
         [relative for relative in current.keys() & expected.keys() if current[relative] != expected[relative]])
@@ -57,4 +82,5 @@ def verify_tree(path, case, target):
             'clean_pr_candidate': case == 'standalone-preload',
             'test_overlay_present': case == 'combined-delivery',
             'verified_source_files': len(current),
+            'canonical_upstream_documents_verified': len(extra_docs),
             'overlay_paths': [entry['path'] for entry in proof['overlay_changes']] if case == 'combined-delivery' else []}
