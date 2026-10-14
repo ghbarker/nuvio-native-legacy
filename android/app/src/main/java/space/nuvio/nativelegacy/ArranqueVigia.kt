@@ -119,7 +119,7 @@ class ArranqueVigia(private val act: NuvioActivity) {
             .setTitle(if (motivo == "laco-parado") t("O Nuvio parou de responder", "Nuvio stopped responding")
                       else t("O Nuvio não terminou de abrir", "Nuvio didn't finish opening"))
             .setView(corpo)
-            .setPositiveButton(t("Enviar registro", "Send log"), null)
+            .setPositiveButton(if (BuildConfig.NV_TEST_LOCAL_LOGS) "Save log" else t("Enviar registro", "Send log"), null)
             .setNeutralButton(t("Esperar", "Wait"), null)
             .setNegativeButton(t("Sair", "Exit"), null)
             .setCancelable(true)
@@ -175,6 +175,7 @@ class ArranqueVigia(private val act: NuvioActivity) {
     } catch (e: Exception) { "(logcat indisponivel: $e)" }
 
     private fun enviar(motivo: String, linha: String) {
+        if (BuildConfig.NV_TEST_LOCAL_LOGS) { act.salvarRegistroLocal(); return }
         if (enviando) return
         enviando = true
         texto?.text = mensagem(motivo, t("Enviando…", "Sending…"))
