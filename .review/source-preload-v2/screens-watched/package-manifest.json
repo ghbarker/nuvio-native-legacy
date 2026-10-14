@@ -1,0 +1,81 @@
+{
+  "ready_files": [
+    {
+      "path": "runner",
+      "sha256": "be2ee2dbe1f840b67021bc4dfac22ff59216f06f5c50a258fd183d38fcee78bb",
+      "bytes": 871
+    },
+    {
+      "path": "execute.py",
+      "sha256": "24a4d1e918a8a04103929df48b3adea28494a9dcb2d36455c3053b296b618835",
+      "bytes": 7219
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "93faf96c059aa6c0515a7e1bd7188ef972da8bc53451f701b027e18c1199e605",
+      "bytes": 2624
+    },
+    {
+      "path": "sdk/SDL2/SDL.h",
+      "sha256": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "bytes": 3858
+    },
+    {
+      "path": "sdk/GLES2/gl2.h",
+      "sha256": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "bytes": 881
+    },
+    {
+      "path": "tests/watched_catalog_ui.c",
+      "sha256": "7850901adc66c28ab5989bd44fb48e6341d4bb8f3ba3f9bb100e0d79645de453",
+      "bytes": 19863
+    },
+    {
+      "path": "tests/watched_discovery.c",
+      "sha256": "56cc3e4cc8afb7b914311f98a68a0bc02ab6dab765851156423a4c6b1af2e16f",
+      "bytes": 20997
+    },
+    {
+      "path": "tests/watched_draw.c",
+      "sha256": "1931e151e3797b0d53de16f24f231160ace8f6424f4f78cbbbc992f1283847c3",
+      "bytes": 3001
+    },
+    {
+      "path": "tests/draw-boundary-stubs.inc",
+      "sha256": "3fb44b1f03047317e7b38ea2de2dfd812f2e9966f70e954f03f2ebff6758d066",
+      "bytes": 2457
+    },
+    {
+      "path": "tests/sdk-extra.h",
+      "sha256": "9db13b25a95bebf2ab1cf2851853c9a499e8c1b157664997166792b17f9539bf",
+      "bytes": 165
+    }
+  ],
+  "not_for_upload": [
+    "verification/"
+  ],
+  "entrypoint": "runner",
+  "normal_command": "SANITIZE=0 bash runner --root \"$PWD\" --output \"$task_output/screens-watched\"",
+  "sanitized_command": "SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash runner --root \"$PWD\" --output \"$task_output/screens-watched\"",
+  "requirements": [
+    "Bash 3.2 or newer",
+    "Python 3.7 or newer",
+    "C compiler (CC executable override supported)",
+    "Linux or macOS"
+  ],
+  "checks_per_invocation": 5,
+  "checks_after_both_modes": 10,
+  "profile_fixture_sources_packaged_separately": [
+    "/workspace/review/profile-pr-tests/ui",
+    "/workspace/review/profile-pr-tests/data",
+    "/workspace/review/profile-pr-tests/live-tv"
+  ],
+  "source_pinning": "Strict SHA256 of selected watched source/header dependencies plus fixture SHA256s; mismatches fail before compilation.",
+  "outputs": [
+    "normal/source-proof.json",
+    "normal/evidence.json",
+    "asan-ubsan/source-proof.json",
+    "asan-ubsan/evidence.json",
+    "evidence.json"
+  ]
+}

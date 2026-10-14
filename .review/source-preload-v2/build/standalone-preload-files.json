@@ -1,0 +1,510 @@
+{
+  "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "source_root": "/workspace/nuvio-source-preload",
+  "files": [
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
+      "mode": "100644",
+      "sha": "e13bd1cf7b7bc01acf5e9eccf7a4d936dc88e1d3",
+      "sha256": "09288bbb2f24163b85933e1c84d3ff39a1072c5fada9faf3b4672d1c7b360c90",
+      "bytes": 98931
+    },
+    {
+      "path": "src/addons.c",
+      "mode": "100644",
+      "sha": "8e3d997007dd8d0fd3a82ab6ef2b603282f5c717",
+      "sha256": "4cf2645cb7e09898484b8997e7fc1cae42bfa5d9261b5d8a5373162db72f3b19",
+      "bytes": 135289
+    },
+    {
+      "path": "src/addons.h",
+      "mode": "100644",
+      "sha": "86d96a0cd1031d2aa57a76bc6fc115351fc506cb",
+      "sha256": "1295a1cfd1e050c16906901a4969759a675a82eedebcacdfdffe49010ab08b78",
+      "bytes": 18356
+    },
+    {
+      "path": "src/ajustes.c",
+      "mode": "100644",
+      "sha": "30c4ddf8439e600435e2f86f2606c1ec9e7f3f34",
+      "sha256": "770c3e327cc5983b560a0c2fec07317caf87368e62532ee4b6f3fb1c9f4f7185",
+      "bytes": 470163
+    },
+    {
+      "path": "src/ajustes.h",
+      "mode": "100644",
+      "sha": "c3601ce9be1d8710960ce0e51119a8ed2a37561c",
+      "sha256": "fc6a35fc658b66cc9970ac01d4f2b7e9a27da663ba0a18744edcfa7931a686bd",
+      "bytes": 41334
+    },
+    {
+      "path": "src/ajustes_ux_cenas_reproducao.inc",
+      "mode": "100644",
+      "sha": "d2e1b18fcb707b99505ac02747f78c475f1f1030",
+      "sha256": "ea0ebd60de90daebdf06bfff217a533d44e09b7da634f517ce9ee0a69d02d057",
+      "bytes": 41835
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "mode": "100644",
+      "sha": "0d96c22079f5bc682e72508c6d3be2d82724220d",
+      "sha256": "ad035583921a3f29e58edafd7665d196ef31e64f9f6483ade61998f704c8d1d6",
+      "bytes": 25315
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "mode": "100644",
+      "sha": "b01bf8193fc270f5ef914acdfc7a4f537a8da37d",
+      "sha256": "8161b8324344e4cdaa2f3eceb6f73add88d97be69af7cc2bf63b928f46d4e069",
+      "bytes": 70473
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "mode": "100644",
+      "sha": "1e4602918b19345a35e7ad16f7e06332b20742df",
+      "sha256": "714ec38f40019a870dfa7c0b0285219cb71eca137445a5f5175905f2330764e2",
+      "bytes": 18124
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "mode": "100644",
+      "sha": "5f061628ab4cf160751594dc2c025ce9e28a5435",
+      "sha256": "9c035cb96ead34e243e73c299c6f444065851ba7fa7db66a024b1baeedaa345e",
+      "bytes": 80540
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "mode": "100644",
+      "sha": "0b5ac53d5447e2c80f447cdf8254feea1c722050",
+      "sha256": "c1a5a20fbbe2b0555028cf3a1dbd3b6003409ca5ed6c9641c7105e8e394d5c79",
+      "bytes": 12168
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "mode": "100644",
+      "sha": "893e66abab62a4ec1ace10ec2d99ba4da395096f",
+      "sha256": "2a56a6e61ebed1456d74436c6d8a694ff237e3e61737438c852d4dfac5169d8b",
+      "bytes": 36569
+    },
+    {
+      "path": "src/app.c",
+      "mode": "100644",
+      "sha": "0ad0ef9c00bc8e0d5859c996ccc65a3fa1f42197",
+      "sha256": "68fae4e00bf8176363f30e3e89afa825e4de6c966c337c679abca506de9d1b11",
+      "bytes": 303452
+    },
+    {
+      "path": "src/debrid.c",
+      "mode": "100644",
+      "sha": "ad48c8d160bac87eed58659e860d8566c318821d",
+      "sha256": "15cfbd8f3321963b289f13932febf5d675a616743ab0c3d2d2c01009a1da2726",
+      "bytes": 59737
+    },
+    {
+      "path": "src/debrid.h",
+      "mode": "100644",
+      "sha": "1939e972f76f2879e289609fa8a32993461b002f",
+      "sha256": "75de6dd03d4f55302a33c02dbb6be4e0bdc082bbf80c522885f7e5cad7cb6df1",
+      "bytes": 9138
+    },
+    {
+      "path": "src/faixas.c",
+      "mode": "100644",
+      "sha": "7ed7f442d126cc9aac851c56958a66acd0a103ad",
+      "sha256": "fdb7f2b13315df2e40e53c3508ed5fdec2b931a91705e9607d6f2700973c5bad",
+      "bytes": 99274
+    },
+    {
+      "path": "src/faixas.h",
+      "mode": "100644",
+      "sha": "ec53911602877d0f4d719e34ba46f1193d78ca0b",
+      "sha256": "879fe4c04fe7ddbf85b56848629c675404c1ef5e660fc5d0e533bbc93151e2d1",
+      "bytes": 2862
+    },
+    {
+      "path": "src/fonteantecipa.c",
+      "mode": "100644",
+      "sha": "6e436054dfb5453a0e93e306b5da792690bb28f2",
+      "sha256": "c29383e758b61d25efaff7dc4ac0a567f0be2f103e3473307cf63edc8eb71cc3",
+      "bytes": 2663
+    },
+    {
+      "path": "src/fonteantecipa.h",
+      "mode": "100644",
+      "sha": "3dafd1fe1dcd2d0b77424aaf5dda605ca49978a6",
+      "sha256": "38f16b3dbbdac6f22e0353d88ec5feeeebc3725f3b29c7a8974859b2a34e3269",
+      "bytes": 4011
+    },
+    {
+      "path": "src/fontecache.c",
+      "mode": "100644",
+      "sha": "8b2b5b8cdcb923deda803697c1a8873ed9f93f92",
+      "sha256": "5f59aa83de55c3b27773a16e738320c091b2b56992b43392b45fca06381c0414",
+      "bytes": 16592
+    },
+    {
+      "path": "src/fontecache.h",
+      "mode": "100644",
+      "sha": "42d9dec1ee999738d554756715f6f80c8384bdb6",
+      "sha256": "060bd73c050e75e3f66e86840c99ee440f7cad937f94a20f54f7882133d01ebf",
+      "bytes": 10166
+    },
+    {
+      "path": "src/fontepref.c",
+      "mode": "100644",
+      "sha": "b012f09f374ed6f5361589166c5fa639367788d8",
+      "sha256": "9c87c7a61deb323e64ea7c83d687fbb7a8e60598d0edbc5a08cde1d06b601fce",
+      "bytes": 32384
+    },
+    {
+      "path": "src/fontepref.h",
+      "mode": "100644",
+      "sha": "0cbf9db6e77f305336878f1fdc0f8cfdc26f86d5",
+      "sha256": "d5750163b8041b028fef49971c13d534864aad0634130f479b9c4fe6a8e7b243",
+      "bytes": 12462
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "mode": "100644",
+      "sha": "0181a8b90d949d3a2a187c3f0d90e2b08aa0f756",
+      "sha256": "0b022fe96d1603eaac139670fc6abd1e846e83d7ec1f66590853d578b4804e84",
+      "bytes": 688048
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "mode": "100644",
+      "sha": "ecb6d362d3c6b4ba46bc6c1c5785dce04283f477",
+      "sha256": "44cb1e6489b14a1e5479d9e53f378611d7b088f86e5765c02e16646f49362a74",
+      "bytes": 506947
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "mode": "100644",
+      "sha": "d12be01cc7e88ec6611b0ffca1d9d199511a88f6",
+      "sha256": "34eaf8db90f880fe1d2281f808c256023491d73c37e9db35674346f511087a55",
+      "bytes": 519500
+    },
+    {
+      "path": "src/idioma_da.h",
+      "mode": "100644",
+      "sha": "687faea4d898bd91d9a91707ee20f22c540bd229",
+      "sha256": "0d4b69791cc2b41ae815ace95ebbd4d13875d4ec95d2305cfb55a9e2e4b2b51b",
+      "bytes": 510518
+    },
+    {
+      "path": "src/idioma_de.h",
+      "mode": "100644",
+      "sha": "3b1c1e72021a16e77c6e652a96b283953d685568",
+      "sha256": "52142e7c058708c442d83483ac280dfe3520c11b15e2b6f1a053498cd437c65f",
+      "bytes": 530562
+    },
+    {
+      "path": "src/idioma_el.h",
+      "mode": "100644",
+      "sha": "90b4dca71e5177f18e68f4ef7aa9faa471ad8c88",
+      "sha256": "6bac901e53597ccfc45f605603a187abaa377c9b20887595762f6b5e1144629f",
+      "bytes": 722743
+    },
+    {
+      "path": "src/idioma_es.h",
+      "mode": "100644",
+      "sha": "add086ea05fafc68ba749650562fd2d0b292395a",
+      "sha256": "e72f52084accb3ebb4351c1b4b677548781aa8a4c7abe299d54777c73dff1a92",
+      "bytes": 520929
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "mode": "100644",
+      "sha": "a2b2d953e66680deb901311671b6ef3fe8fa8892",
+      "sha256": "203f496e6ad16e66f1180feefc0af45b250c9901ce63e9b4d168361bfe59bc4e",
+      "bytes": 535597
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "mode": "100644",
+      "sha": "d7cafc42ea03d8f077286297e375328c090d3611",
+      "sha256": "89238dcabe52a22bf482cdf59746c03ea158d83bba0aed696bbddd80c2390c7a",
+      "bytes": 540407
+    },
+    {
+      "path": "src/idioma_id.h",
+      "mode": "100644",
+      "sha": "29066ad12a18d2aea890a9b8802f115180dbdd32",
+      "sha256": "93bb38485d0b36ac163f62e20b906a0d7094b6a7f463ebf373525d4ad7b2d79f",
+      "bytes": 509680
+    },
+    {
+      "path": "src/idioma_it.h",
+      "mode": "100644",
+      "sha": "66cfe2a4416e088d963222bf6ccb0e870242ee5a",
+      "sha256": "b3bc3c3e917e94fce51ecdba78cb29562c28d15c3e59a0eb5f23ce96be2adf5b",
+      "bytes": 520654
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "mode": "100644",
+      "sha": "2f0ae6a8fd282f8ee982b291fd8d5ef5205b9b61",
+      "sha256": "b2b85025447a211b5cd79e9ef682ad976330af926663a740673d9aaac4361eac",
+      "bytes": 588546
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "mode": "100644",
+      "sha": "72b837e158a690932c335920cec75e151fcbfb52",
+      "sha256": "244b7bdc601dacc74a018034952c8a081b0908eed83d431b8e0e331ec50246d0",
+      "bytes": 524870
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "mode": "100644",
+      "sha": "8d023c0b45056f394b931f63ae00a87ecf1794c9",
+      "sha256": "92a4039466cac946376c349bbdb2dcd6ae956981c446c5a69b072f1ef87ee45e",
+      "bytes": 519062
+    },
+    {
+      "path": "src/idioma_no.h",
+      "mode": "100644",
+      "sha": "277b69d775a1787cbefadafbc704eed318cc00e4",
+      "sha256": "f25119f31995f9662e9685b07c4ddcbd494c24922c8c64dbcfb8f51b560a35ff",
+      "bytes": 507278
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "mode": "100644",
+      "sha": "ded3dd64c65a82ac5678a20fe76ad0dd1d372f51",
+      "sha256": "6933d95a50ab0f20ea7cefa5c409e2b390258b1845269c01df463d0b36fd4e6d",
+      "bytes": 522795
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "mode": "100644",
+      "sha": "d1ce438aeadf40a77e1cdaaad0304b7900a9539d",
+      "sha256": "e7efc2656c865b3607585cecd8f52d7a216486b815e53964c1b46a447308812b",
+      "bytes": 512994
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "mode": "100644",
+      "sha": "7d2f782b4e9d1b968affca10806faa741fb2295c",
+      "sha256": "4237b5745fcb909d18658199364ceb74c86db5df79c3448ab63d08ce28a9eb6b",
+      "bytes": 525324
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "mode": "100644",
+      "sha": "8b8da8be54887dd3f55984a9941e01cad1c7e454",
+      "sha256": "901b98b29ba3979ff9ceae9cc5374c6d76a20d37a70cc50d210f12d02f404fad",
+      "bytes": 687081
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "mode": "100644",
+      "sha": "c55d818276381425623bcefe9ec902904b6e6b48",
+      "sha256": "005f675f7c447cb19c47972b91d9f99d2302dfb63a1bc9b2fc7436fa2433d4c2",
+      "bytes": 521498
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "mode": "100644",
+      "sha": "78025da0fe93c50db8ac4af7942b576ddeab6b5e",
+      "sha256": "9fddd2eb15c5ed862bd0118005be2c4a36ed2d1872b2a36657c48dbd3cb3f09e",
+      "bytes": 510649
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "mode": "100644",
+      "sha": "a2af838f40c9f67d2087cffa84afdfefee700434",
+      "sha256": "8cfb7f42b0cc5535bf44c0ee01dc406be30b171678d68d4d8c8b8fe1da1884e3",
+      "bytes": 506048
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "mode": "100644",
+      "sha": "fc5bbe972d39d0ce63b2cd9ffc575740cd215628",
+      "sha256": "258d6ef613776ae7932e4beb2b41d97b44fb83bc96b18c81e33e346e930db42a",
+      "bytes": 513093
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "mode": "100644",
+      "sha": "ee7696c56140006211914da6a22700c425c87147",
+      "sha256": "99eb44e8a60cb4831e13b18fd0f80038afaf8b0646d55cf0280094964f2897ec",
+      "bytes": 504429
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "mode": "100644",
+      "sha": "2f9cfd8039bf6a3c6cb200ecd579d0c809d5987c",
+      "sha256": "99cf1b9d5426523a2ac85126734300bd89a684998c591c4660dac7e4c0cddaeb",
+      "bytes": 518399
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "mode": "100644",
+      "sha": "38b80310da7973b38f12c65074cf45f8d362f967",
+      "sha256": "7c9184fe197d2e848489a81d874a0bf7a1fe9537e3e4bfccc0538bb44b2ddb7a",
+      "bytes": 678958
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "mode": "100644",
+      "sha": "9cae1be4f65bf26348d70f8afbbc48a1ea11de6e",
+      "sha256": "367fe3235d56acdc2ff69f088c69a37996cee78b6eb470770a8abe7a97c03d1c",
+      "bytes": 561420
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "mode": "100644",
+      "sha": "88dd53cd8af3a6a90bf47a1443da93da1cfd225a",
+      "sha256": "5e9c8042e377738b196e40c240bf21f65ad020d8151ab3e399aecdf189b37392",
+      "bytes": 495861
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "mode": "100644",
+      "sha": "8dc3fc3aaee45726ae962e94a4126a4d4d80375b",
+      "sha256": "1e688e41556b0602da407ea828d31677f0070374aa495dba217bcdbde024e972",
+      "bytes": 498273
+    },
+    {
+      "path": "src/mkvass.c",
+      "mode": "100644",
+      "sha": "a0b90422eb2b4f38f73b8b67919a599ee6fa999c",
+      "sha256": "31e6c4cb41f98186d28462c01cccdc9525b66b58614a930a683b3befaa523a04",
+      "bytes": 184963
+    },
+    {
+      "path": "src/mkvass.h",
+      "mode": "100644",
+      "sha": "9d41b42042b390353e41751f82e11c35b6e25f36",
+      "sha256": "b80bfbe50194806a29f5cd8c73e2d46a7344c30991797b40e00914dd0259dbd0",
+      "bytes": 12203
+    },
+    {
+      "path": "src/perfis.c",
+      "mode": "100644",
+      "sha": "d5474ddbc0da1fd00524dbbd8032ef0b96a2e440",
+      "sha256": "cd1dae9ba3afe923b656528558c29e0474ead06926a23ff9e4b545abf8e3ad56",
+      "bytes": 20484
+    },
+    {
+      "path": "src/perfis.h",
+      "mode": "100644",
+      "sha": "a745ceaed835699d37e9ecbfb699b7f7c48d8e82",
+      "sha256": "859fc00a2827bfed4de83a25611cb7b58cc08179cef6cb8b208fd22ba14012a3",
+      "bytes": 7425
+    },
+    {
+      "path": "src/perfisessao.h",
+      "mode": "100644",
+      "sha": "686f7a15dae8062cf9496b5a0807b9d38cff7443",
+      "sha256": "ad60d82d8a461b8799ae57a74dd7dd9fe21ca8e7594ec7b443c4d70d1728b13e",
+      "bytes": 1773
+    },
+    {
+      "path": "src/player.c",
+      "mode": "100644",
+      "sha": "7cb7f65d4f4775c5d9d4657c2c2f564800a78a49",
+      "sha256": "77f2a0f22599f07249d3a819e3d51e7c02d89e2c258c37d2f46e058cef699261",
+      "bytes": 288585
+    },
+    {
+      "path": "src/player.h",
+      "mode": "100644",
+      "sha": "8f797fb46e5f4aaa3a5cc57ad8ceafe217c9ed5c",
+      "sha256": "efce5d943ea24ff770d88e1fb0f621f33cb930b5a4b5434fa3b35290ebe03c28",
+      "bytes": 18017
+    },
+    {
+      "path": "src/plex.c",
+      "mode": "100644",
+      "sha": "32066b1c8bcdc8ecaf3947f58258aaf555feccab",
+      "sha256": "66570cfa922dfb555065dc90a4ca47b00e7276ed56f8a542916317bf3ec35886",
+      "bytes": 82483
+    },
+    {
+      "path": "src/plex.h",
+      "mode": "100644",
+      "sha": "b5ded349ecf1288a1178f9400ed4dcf6ac5c1fc3",
+      "sha256": "e9e99044420ce8299bea7dc44a87580bddd8c160e9dddc33cc31981b3514b499",
+      "bytes": 13565
+    },
+    {
+      "path": "src/plexaddons.c",
+      "mode": "100644",
+      "sha": "ec9e0e402aac877ff64fd6a6e54cc79574c1920e",
+      "sha256": "d901bba2e6bb9dd587d7f7a6260667a3e8ed8df578d4d66cf94a4ddf09b871e5",
+      "bytes": 1281
+    },
+    {
+      "path": "src/plugins.c",
+      "mode": "100644",
+      "sha": "c6512165d8bb95bdb0c59731344fd8f4a06e3335",
+      "sha256": "0af171ed6036937a485b35179ff9477a5eab022540f4de481a439913de90396d",
+      "bytes": 44632
+    },
+    {
+      "path": "src/plugins.h",
+      "mode": "100644",
+      "sha": "e41e4026dcb5a0417e5cd373d956d1f516900bd1",
+      "sha256": "66dcfb4225ffeb8bb4163b12884d4a1675318a1baf2688d0970a7a97de704406",
+      "bytes": 5681
+    },
+    {
+      "path": "src/posplay.c",
+      "mode": "100644",
+      "sha": "788276995e0796d1d0b77c7bd3a01b9ae273f516",
+      "sha256": "6d368e1784b75b8e114e12a0868b7ff3825ec969989454b7de07211b1f277430",
+      "bytes": 39149
+    },
+    {
+      "path": "src/proximopreparo.c",
+      "mode": "100644",
+      "sha": "4f5d7a301ee749d3909bc549e8e83a1309fbff10",
+      "sha256": "c65ddc46299bcef16e582d3af5538f10f1fae49b64a98e1c70c6bae62bf2a489",
+      "bytes": 14464
+    },
+    {
+      "path": "src/proximopreparo.h",
+      "mode": "100644",
+      "sha": "d87fd2b9c7abdfc01a4dfcf776e86f9923f43371",
+      "sha256": "5bf58f511bb427cb42281b09bfb9c3101be29be8f26eb6f28bf30a2f1cde20d6",
+      "bytes": 2582
+    },
+    {
+      "path": "src/sessao.c",
+      "mode": "100644",
+      "sha": "00ec4eeb2a94e60f5c836ce311744e1862b67804",
+      "sha256": "575cf5668698c207550ae1289a02aa2a7994c6897759409f39fde83e716ca94d",
+      "bytes": 33800
+    },
+    {
+      "path": "src/streams.c",
+      "mode": "100644",
+      "sha": "0b92a3de1a14d0fe08514ae6950760c5dd51b378",
+      "sha256": "ded90bd3aea7ec01dab464f764c7e3c35376626f7125c1b458e89e1f6f46b142",
+      "bytes": 211038
+    },
+    {
+      "path": "src/streams.h",
+      "mode": "100644",
+      "sha": "33e18d591262d678eb12de970cdf9f5572212679",
+      "sha256": "db07451a3e52698ff01cb1b60c9ae217e9fe6f3078904600840b6d11439a7b96",
+      "bytes": 24041
+    },
+    {
+      "path": "src/video.h",
+      "mode": "100644",
+      "sha": "81e708ad7dbfaf374f90d38cd6a858b3f9430701",
+      "sha256": "c17721fb4b9bbdbdda6afb02ce49987e08c6dabbc434f633e239c30a63684c79",
+      "bytes": 28666
+    },
+    {
+      "path": "src/video_android.c",
+      "mode": "100644",
+      "sha": "35a950b313b125e7bcc4959eed809bca9b128ee1",
+      "sha256": "84e3da0f8fe2b71f32dbe13029711968fb7bf21d317039826de4b78b2f7d66da",
+      "bytes": 49247
+    }
+  ]
+}
