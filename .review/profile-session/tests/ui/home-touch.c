@@ -1,6 +1,11 @@
 #define NV_TOUCH_UI 1
 #define NV_ANDROID 1
 #include "common.h"
+// Real SDL_zero uses SDL_memset; the lightweight SDK maps it to libc.
+// Keep the real symbol in this fixture, unless SDL already aliases it.
+#ifndef SDL_memset
+void *SDL_memset(void *dst, int value, size_t n) { return memset(dst, value, n); }
+#endif
 #include "ajustes.h"
 int ajustes_hero_ligado(void) { return 0; }
 int ajustes_home_layout(void) { return HOME_LAYOUT_MODERNA; }
