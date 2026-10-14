@@ -2,7 +2,7 @@ name: 'Complete source preloading: pinned app gates and compatible test APK'
 'on':
   push:
     branches:
-    - review/source-preload-final-v2
+    - review/source-preload-final-v3
   workflow_dispatch: {}
 permissions:
   contents: read
