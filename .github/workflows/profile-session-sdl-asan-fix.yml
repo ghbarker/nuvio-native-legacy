@@ -1,0 +1,167 @@
+name: 'Profile PR: real SDL3 linker rpath and original full-source ASan gates'
+'on':
+  push:
+    branches:
+    - review/profile-session-sdl-asanfix
+permissions:
+  contents: read
+concurrency:
+  group: profile-sdl-asan-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  sdl-diagnostic:
+    name: 'Real SDL + ASan: installed dependency identity and loader reduction'
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Install real Homebrew SDL and native SDK dependencies
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep
+    - name: Capture dependency identity and bounded baseline, loader-path and durable-rpath probes
+      timeout-minutes: 4
+      run: python3 .review/profile-session/build/sdl-asan/diagnose_sdl.py --output build/review/sdl-diagnostic
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-real-sdl-loader-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  original-full-source-asan:
+    name: 'Original ${{ matrix.test }}: complete source ASan + UBSan'
+    runs-on: macos-14
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+        - fontepref
+        - fontepref_file
+        - player_retido
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Verify exact pinned product and unchanged original upstream tests
+      run: |
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+        test -z "$(git -C ci-profile-feature diff --name-only 17b7769dac4273557e1b07f5fb8734df91dd718f -- tests)"
+        test -z "$(git -C ci-profile-feature status --porcelain)"
+    - name: Install real Homebrew SDL and native SDK dependencies
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep
+    - name: Require real SDL + ASan constructor and timer initialization with linked SDL3 rpath
+      timeout-minutes: 2
+      run: python3 .review/profile-session/build/sdl-asan/diagnose_sdl.py --candidate-only --output build/review/sdl-probe
+    - name: Run unchanged original full-source test with link-only SDL3 rpath
+      timeout-minutes: 8
+      run: |
+        set -euo pipefail
+        export SANITIZE=1
+        export ASAN_OPTIONS=halt_on_error=1:abort_on_error=1
+        export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+        export REVIEW_REAL_CC="$(command -v cc)"
+        export REVIEW_SDL3_LIBRARY_DIR="$(brew --prefix sdl3)/lib"
+        export REVIEW_CC_OUTPUT="$GITHUB_WORKSPACE/build/review/compile"
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin"
+        cp .review/profile-session/build/sdl-asan/cc_capture.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        export PATH="$GITHUB_WORKSPACE/build/review/cc-bin:$PATH"
+        case "${{ matrix.test }}" in
+          fontepref) pattern='^/tmp/nuvio-fontepref(\s|$)' ;;
+          fontepref_file) pattern='^/tmp/nuvio-fontepref-file(\s|$)' ;;
+          player_retido) pattern='(^|/)nuvio-player-retido\.[^/]+/test(\s|$)' ;;
+          *) exit 2 ;;
+        esac
+        set +e
+        python3 .review/profile-session/build/sdl-asan/bounded_run.py \
+          --output build/review/full-source --runtime-seconds 120 --compile-seconds 300 \
+          --binary-pattern "$pattern" --cwd ci-profile-feature \
+          -- bash -x "tests/${{ matrix.test }}.sh"
+        test_status=$?
+        set -e
+        if [ "$test_status" -ne 0 ]; then
+          if [ "$test_status" -eq 124 ]; then
+            echo '${{ matrix.test }} ASAN_UBSAN TIMEOUT'
+          else
+            echo "${{ matrix.test }} ASAN_UBSAN FAIL exit=$test_status"
+          fi
+          exit "$test_status"
+        fi
+        test -z "$(git -C ci-profile-feature status --porcelain)"
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        for entry in plan['files']:
+            data = (Path('ci-profile-feature') / entry['path']).read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            assert actual == entry['sha'], (entry['path'], actual, entry['sha'])
+        compiled = [json.loads(path.read_text()) for path in Path('build/review/compile').glob('*-invocation.json')]
+        assert compiled and all(row['sanitizers'] and row['frame_pointers'] for row in compiled)
+        assert any('linked_binary' in row for row in compiled)
+        expected_rpath = '-Wl,-rpath,' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve())
+        for row in compiled:
+            if '-c' in row['arguments']:
+                assert row['effective_arguments'] == row['arguments'] and row['added_link_rpath'] is None
+            else:
+                assert row['effective_arguments'] == row['arguments'] + [expected_rpath]
+                assert row['added_link_rpath'] == expected_rpath
+        load_commands = list(Path('build/review/compile').glob('*-load-commands.txt'))
+        assert load_commands and all('cmd LC_RPATH' in path.read_text() and
+            'path ' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve()) + ' (offset ' in path.read_text()
+            for path in load_commands)
+        Path('build/review/original-full-source-gate.json').write_text(json.dumps({
+            'test': '${{ matrix.test }}', 'outcome': 'PASS', 'source_commit': '4cc89807e4c3248a7768360c0a7f23696f11698a',
+            'product_paths_reverified': len(plan['files']), 'original_tests_unmodified': True,
+            'sanitizers': ['address', 'undefined'], 'runtime_limit_seconds': 120,
+            'compile_limit_seconds': 300, 'compiler_invocations': len(compiled),
+            'link_only_sdl3_rpath': expected_rpath, 'DYLD_LIBRARY_PATH_injected': False}, indent=2) + '\n')
+        VERIFY
+        echo '${{ matrix.test }} ASAN_UBSAN PASS'
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-original-${{ matrix.test }}-asan-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
