@@ -6023,7 +6023,7 @@ index 0000000000000000000000000000000000000000..686f7a15dae8062cf9496b5a0807b9d3
 +typedef uint64_t NvPerfilSessao;
 +#endif
 diff --git a/src/player.c b/src/player.c
-index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f564800a78a49 100644
+index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..4f1e4e463042919d3b9c1231485b815f3d072689 100644
 --- a/src/player.c
 +++ b/src/player.c
 @@ -121,6 +121,10 @@ static void avisarCascaAberto(int v) { (void)v; }
@@ -6037,7 +6037,17 @@ index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f5648
  #include "ponteiro.h"
  #include "atividade.h"
  #include "reacao.h"
-@@ -325,6 +329,17 @@ static int   esperandoFonte = 0;   // aberto sem URL, esperando o addon responde
+@@ -198,7 +202,8 @@ enum { PLR_PLAY, PLR_CC, PLR_AUDIO, PLR_ASPECTO,
+        PLR_FONTES, PLR_EPISODIOS, PLR_NBTNS };
+ 
+ // Avanco em curso: enquanto vale, posSeg e do DONO e nao do pipeline.
+-static int    scrubbing, scrubPassos, scrubTocava, scrubDir;
++static int    scrubbing, scrubPassos, scrubTocava, scrubDir, scrubToque;
++static double scrubInicio;
+ static Uint32 scrubUltimo;
+ static SaltoEst scrubSalto;   // rajada do teclado (salto.h)
+ // BUSCA SUAVE: o que a BARRA mostra durante o avanco. posSeg anda em degraus
+@@ -325,6 +330,17 @@ static int   esperandoFonte = 0;   // aberto sem URL, esperando o addon responde
  // que vai ao pipeline quando ela acabar. "" = nenhuma.
  static char   prebuscaUrl[4096];
  static Uint32 prebuscaDesde;
@@ -6055,7 +6065,16 @@ index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f5648
  static float posSeg = 0.0f;
  // Relogio da LEGENDA (#92): posSeg e o ultimo currentTime do pipeline, que na
  // C9 chega a cada ~200 ms. A legenda desenhada com ele andava aos degraus e em
-@@ -1457,7 +1472,11 @@ void player_abrir(int indiceCatalogo, const char *url) {
+@@ -1407,7 +1423,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
+   aberto = 1; saindo = 0; pediuSair = 0; barraFoco = 0;
+   // Titulo novo: um avanco em curso do anterior mandaria a posicao velha ao
+   // pipeline novo assim que o silencio vencesse.
+-  scrubbing = 0; scrubPassos = 0; scrubTocava = 0; scrubDir = 0;
++  scrubbing = 0; scrubPassos = 0; scrubTocava = 0; scrubDir = 0; scrubToque = 0; scrubInicio = 0.0;
+   posVis = 0.0f; posVisV = 0.0f; posVisSolto = 0;
+   encolhe = 1.0f; encolheAlvo = 0.0f; encolheT = 0.0f; encolheEm = 0;
+   posplay_fechar();   // titulo novo, painel do anterior nao vale mais
+@@ -1457,7 +1473,11 @@ void player_abrir(int indiceCatalogo, const char *url) {
    ultimoInput = SDL_GetTicks();
    esperandoFonte = (url == NULL);
    // Legenda externa e da sessao que acabou, nao desta.
@@ -6068,7 +6087,7 @@ index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f5648
    // F07: volume back to 100% and the cache report of the last title forgotten.
    cacheboost_sessao();
    // O modo de proporcao e do APARELHO, nao da sessao: reler aqui e o que faz
-@@ -1557,6 +1576,126 @@ static int prebuscaCabe(const char *url) {
+@@ -1557,6 +1577,126 @@ static int prebuscaCabe(const char *url) {
  }
  #endif
  
@@ -6195,7 +6214,7 @@ index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f5648
  static void tocarFonte(const char *url) {
    marco("abrir: url ao pipeline");
    loadEm = SDL_GetTicks();   // #202: do pipeline ao primeiro quadro ("[player] load->1o quadro")
-@@ -1691,6 +1830,11 @@ void player_definir_fonte(const char *url) {
+@@ -1691,6 +1831,11 @@ void player_definir_fonte(const char *url) {
    dvTelaFonte(url);
  #ifndef __EMSCRIPTEN__
    prebuscaUrl[0] = 0;
@@ -6207,7 +6226,7 @@ index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f5648
    if (prebuscaCabe(url) && mkvass_prebuscar(url, escolherLegendaPrebusca, retomarPct / 100.0)) {
      // O video espera (player_atualizar solta): a tela segue em "abrindo fonte".
      if (comVideo) { video_parar(); comVideo = 0; mkvass_video_aberto(0); }
-@@ -2002,6 +2146,14 @@ static void fecharSessao(int manter) {
+@@ -2002,6 +2147,14 @@ static void fecharSessao(int manter) {
    // principal" (impossivel): e a tela DIZER que esta saindo em vez de parecer
    // travada. Medir antes de escolher.
    { Uint32 t0 = SDL_GetTicks(), tv;
@@ -6222,6 +6241,148 @@ index ffe7e84f65471dd2a491b7c856b8578adb0a0adb..7cb7f65d4f4775c5d9d4657c2c2f5648
      if (comVideo && !manter) video_parar();
      tv = SDL_GetTicks();
      pausao_fechar();
+@@ -2023,6 +2176,7 @@ static void fecharSessao(int manter) {
+   retido = manter; if (!manter) retidoVoo = 0;
+   prepararRetencao = 0; saidaIlhaDesde = 0;
+   esperandoFonte = 0; aberto = 0; saindo = 0; pediuSair = 0;
++  scrubbing = scrubToque = 0; scrubInicio = 0.0;
+   mini = 0; querMini = 0; miniGuia = 0; janAtiva = 0;
+   avisarCascaAberto(0);
+   // Os DOIS relogios, e nao so o do primeiro quadro. `pgDesde` sobrevivendo ao
+@@ -2126,7 +2280,7 @@ int player_retomar_retido(const char *imdb, int t, int e) {
+   retido = 0; retidoVoo = 0; aberto = 1; saindo = pediuSair = 0;
+   desc_episodios_garantir(idxAtual());
+   entrada = 1.0f; visivel = 0; anim = 0.0f; soBarra = 0;
+-  scrubbing = barraFoco = 0; encolhe = 1.0f; encolheT = encolheAlvo = 0.0f;
++  scrubbing = barraFoco = scrubToque = 0; scrubInicio = 0.0; encolhe = 1.0f; encolheT = encolheAlvo = 0.0f;
+   ultimoInput = agora; retomadaAplicada = 1; tocando = 1;
+   medirAbertura = 0;   // a medida desta volta e a "retomada pronta" abaixo
+   relogio_zerar(&relLeg);
+@@ -2937,19 +3091,27 @@ static void buscarUsuario(double alvo) {
+   video_buscar(alvo);
+ }
+ 
++static void iniciarSalto(int toque) {
++  scrubInicio = comVideo ? video_pos() : posSeg;
++  scrubToque = toque;
++  scrubbing = 1;
++  scrubPassos = 0;
++  scrubTocava = tocando || retomandoSalto;
++  pausao_fechar();
++  if (tocando && comVideo) { video_pausar(1); tocando = 0; }
++  posplay_busca_usuario();
++}
++
+ static void saltar(int dir, int repeticao) {
+   int novo = 0;
+   if (!scrubbing) {
+-    scrubbing = 1;
+-    scrubPassos = 0;
+-    scrubTocava = tocando || retomandoSalto;
+-    pausao_fechar();
+-    if (tocando && comVideo) { video_pausar(1); tocando = 0; }
++    iniciarSalto(0);
+     novo = 1;
+   }
+   // Trocar de direcao no meio da rajada recomeca a rampa: quem passou do ponto
+   // e volta quer o passo pequeno de novo, nao o de 2 minutos.
+   if (dir != scrubDir) novo = 1;
++  scrubToque = 0;
+   scrubDir = dir;
+   Uint32 agora = SDL_GetTicks();
+   // Repeticao de tecla segurada entre dois passos: so mantem o avanco vivo (scrubUltimo), nao anda.
+@@ -2968,13 +3130,18 @@ static void saltar(int dir, int repeticao) {
+ static void terminarSalto(void) {
+   if (!scrubbing) return;
+   scrubbing = 0;
++  // No toque, o gesto inteiro decide a direcao. Ajustar um destino adiantado
++  // alguns segundos para tras nao e pedir para rever o episodio.
++  if (scrubToque) recuarAutomatico(scrubInicio, posSeg);
+   retomandoSalto = scrubTocava;
+   pausao_fechar();
+   seekr_ocioso();   // solta a folha decodificada (~22 MB), fica o JPEG
+   if (comVideo) {
++    if (posSeg >= scrubInicio) creditosauto_buscar(&creditosAuto, posSeg);
+     buscarUsuario(posSeg);
+     if (scrubTocava) { video_pausar(0); tocando = 1; }
+   }
++  scrubToque = 0; scrubInicio = 0.0;
+ }
+ 
+ void player_evento(const SDL_Event *e) {
+@@ -3425,7 +3592,10 @@ void player_atualizar(float dt, Uint32 agora) {
+   // Fim do avanco por inatividade: o controle nao manda KEYUP confiavel, entao
+   // quem decide que a pessoa soltou e o silencio.
+ #ifdef NV_SHOT_HOOKS
+-  if (shotBusca) { scrubbing = 1; posVisSolto = 1; scrubUltimo = agora; }
++  if (shotBusca) {
++    if (!scrubbing) scrubInicio = posSeg;
++    scrubbing = 1; posVisSolto = 1; scrubUltimo = agora;
++  }
+ #endif
+   if (scrubbing && agora - scrubUltimo > salto_fim_ms(ajustes_seekr_ligado())) terminarSalto();
+ 
+@@ -3572,7 +3742,7 @@ void player_atualizar(float dt, Uint32 agora) {
+     double de = posSeg;
+     posSeg = anim_clamp(posSeg + salto_quadro(&scrubSalto, scrubDir, agora, dt, duracaoSeg),
+                         0.0f, duracaoSeg);
+-    recuarAutomatico(de, posSeg);
++    if (!scrubToque) recuarAutomatico(de, posSeg);
+   }
+   if (posVisSolto) {
+     posVis = anim_mola2(&posVisV, posVis, posSeg, dt, PLR_BUSCA_MOLA);
+@@ -3680,7 +3850,7 @@ void player_atualizar(float dt, Uint32 agora) {
+     int aguardaBusca = creditosauto_aguardar(&creditosAuto, video_pos(),
+       comVideo && video_pronto() && tocando && !scrubbing && !video_bufferando_ms(),
+       comVideo && video_terminou(), SDL_GetTicks());
+-    posplay_aguardar_busca(aguardaBusca);
++    posplay_aguardar_busca(scrubbing || aguardaBusca);
+     // Canal ao vivo nao tem "fim": sem a guarda, o relogio reserva cruzaria os
+     // 90% em ~1h42 de exibicao e abriria o painel de relacionados no meio da
+     // programacao.
+@@ -4338,22 +4508,20 @@ static void ponteiroBuscar(int a, int b) {
+     // ARRASTAR NA BARRA (#216): o mesmo avanco das setas (saltar) — video
+     // pausado, posSeg na mao do dedo, UMA busca no fim (terminarSalto, depois
+     // de PLR_SCRUB_FIM_MS sem movimento).
+-    if (!scrubbing) {
+-      scrubbing = 1; scrubPassos = 0; scrubTocava = tocando || retomandoSalto;
+-    pausao_fechar();
+-      if (tocando && comVideo) { video_pausar(1); tocando = 0; }
+-    }
++    if (!scrubbing) iniciarSalto(1);
+     barraFoco = 1; skipFoco = 0;
+-    double de = posSeg;
+     posSeg = f * duracaoSeg;
+-    recuarAutomatico(de, posSeg);
+     scrubUltimo = SDL_GetTicks();
+     return;
+   }
+   double de = comVideo ? video_pos() : posSeg;
++  posplay_busca_usuario();
+   posSeg = f * duracaoSeg;
+   recuarAutomatico(de, posSeg);
+-  if (comVideo) buscarUsuario(posSeg);
++  if (comVideo) {
++    if (posSeg >= de) creditosauto_buscar(&creditosAuto, posSeg);
++    buscarUsuario(posSeg);
++  }
+ }
+ static void ponteiroSkip(int a, int b) { (void)a; (void)b; skipFoco = 1; barraFoco = 1; acordar(); }
+ 
+@@ -5638,7 +5806,12 @@ void player_shot_esconder(void) { visivel = 0; anim = 0.0f; }
+ // O aviso da ilha que esta no ar ("" sem aviso): a nota do HDR10 (dvtela.h).
+ const char *player_shot_toast_texto(Uint32 agora) { return toastAte > agora ? toastTexto : ""; }
+ void player_shot_carregando(int sim) { esperandoFonte = sim; erroFonte = 0; }
+-void player_shot_buscando(int sim) { shotBusca = sim; scrubbing = sim; posVisSolto = sim; }
++void player_shot_buscando(int sim) {
++  if (sim && !scrubbing) scrubInicio = posSeg;
++  if (!sim) scrubInicio = 0.0;
++  scrubToque = 0;
++  shotBusca = sim; scrubbing = sim; posVisSolto = sim;
++}
+ #endif
+ 
+ // BRILHO DA INTERFACE DO PLAYER (esmaecer.h): o fator de cor que app.c aplica
 diff --git a/src/player.h b/src/player.h
 index 183d7324ef5a7f519678a893ae36c12c6707f28f..8f797fb46e5f4aaa3a5cc57ad8ceafe217c9ed5c 100644
 --- a/src/player.h
@@ -6889,7 +7050,7 @@ index 087757771621f42350e2d3a20126dec4a783bffc..e41e4026dcb5a0417e5cd373d956d1f5
  void plugins_ligar_aos_addons(void);
  
 diff --git a/src/posplay.c b/src/posplay.c
-index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a8465f23bad 100644
+index 81e2f8e4620dd635af06699b473d7ad82d425d46..2bd09729fa90964bf435b842232126884530096d 100644
 --- a/src/posplay.c
 +++ b/src/posplay.c
 @@ -2,6 +2,7 @@
@@ -6900,7 +7061,13 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a84
  #include "jfid.h"
  #include "idioma.h"
  #include "catalogo.h"
-@@ -101,6 +102,7 @@ static int    proxT, proxE;          // proximo episodio, quando ha
+@@ -96,11 +97,12 @@ static int    dispensado;
+ static float  anim;
+ static Uint32 fecharEm;              // 0 = sem contagem
+ static int    pedT, pedE, pedTitulo = -1;
+-static int    pedAutomatico, recuou, aguardaBusca;
++static int    pedAutomatico, automaticoEntregue, recuou, aguardaBusca;
+ static int    proxT, proxE;          // proximo episodio, quando ha
  static char   proxNome[120];
  static char   preEpisodio[64], preAlvo[64];
  static int    preTentou;
@@ -6908,12 +7075,13 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a84
  static FontecacheEscopo preEscopo;
  
  static void cancelarPreparo(int apagar) {
-@@ -139,13 +141,21 @@ int posplay_sobre_video(void) { return visivel && (serie || aguardaCena); }
+@@ -139,18 +141,27 @@ int posplay_sobre_video(void) { return visivel && (serie || aguardaCena); }
  // (janelaSerie) continua verdadeira e o painel volta no quadro seguinte —
  // no video do relato o cartao nem sequer some depois do OK, que era este
  // segundo defeito somado ao primeiro.
 -static void esconder(void) { cancelarPreparo(!pedT); visivel = 0; fecharEm = 0; foco = 0; dispensado = 1; }
 +static void esconder(void) {
++  automaticoEntregue = 0;
 +  cancelarPreparo(!pedT);
 +  // O pedido Next consome no roteador antes de encerrar o player. Back/Down
 +  // descartam; uma escolha explicita de Next conserva o mesmo worker/token.
@@ -6931,7 +7099,32 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a84
    visivel = 0; fecharEm = 0; foco = 0;
    cenaPendente = cenaNoFim = aguardaCena = 0;
    durVista = 0.0; durEstavel = 0.0;   // titulo novo: a duracao comeca de novo
-@@ -173,6 +183,7 @@ static void cancelarAutomatico(void) {
+   pedT = pedE = 0; pedTitulo = -1;
+-  pedAutomatico = recuou = aguardaBusca = 0;
++  pedAutomatico = automaticoEntregue = recuou = aguardaBusca = 0;
+   dispensado = 0;   // titulo novo: a dispensa do anterior nao vale mais
+ #ifdef NV_TOUCH_UI
+   scrollPP = 0; memset(&toquePP, 0, sizeof toquePP);
+@@ -169,10 +180,26 @@ static void cancelarAutomatico(void) {
+   }
+ }
+ 
++// Busca explicita revoga tambem um Next que o roteador ja estava aguardando.
++// O pulo automatico de creditos usa so aguardar_busca e conserva o buffer.
++void posplay_busca_usuario(void) {
++  cancelarAutomatico();
++  if (automaticoEntregue && serie && proxT > 0 && proxE > 0) {
++    visivel = 1;
++    dispensado = 0;
++  }
++  automaticoEntregue = 0;
++  cancelarPreparo(0);
++  proximopreparo_cancelar();
++  preTentou = preVideoTentou = preVideoRenovou = 0;
++  aguardaBusca = 1;
++}
++
+ // Recuar e pedir para ficar neste episodio. O cartao continua servindo ao OK,
  // mas a contagem nao volta enquanto a pessoa ainda esta na mesma janela.
  void posplay_recuar(void) {
    cancelarAutomatico();
@@ -6939,7 +7132,15 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a84
    recuou = 1;
  }
  
-@@ -245,30 +256,50 @@ static void prepararProximo(int ehSerie, double resta) {
+@@ -188,6 +215,7 @@ int posplay_pediu_episodio(int *t, int *e) {
+   if (t) *t = pedT;
+   if (e) *e = pedE;
+   pedT = pedE = 0;
++  automaticoEntregue = pedAutomatico;
+   pedAutomatico = 0;
+   return 1;
+ }
+@@ -245,30 +273,50 @@ static void prepararProximo(int ehSerie, double resta) {
    const CatItem *ci = cat_item(idx);
    long long quando;
    int t = 0, e = 0, n = cat_n_episodios(idx), proximo;
@@ -6997,7 +7198,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a84
    if (preTentou) {
      Stream *l = NULL;
      Uint32 idade = 0;
-@@ -391,7 +422,10 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+@@ -391,7 +439,10 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
    prepararProximo(ehSerie, vel_tempo_real(durSeg - posSeg, player_velocidade_efetiva()));
    if (durSeg <= 1.0) return;
  
@@ -7009,6 +7210,20 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..c4bf614d7cfcd6788199d746ab6e4a84
  
    if (ehSerie) {
      // A JANELA quem decide e o player: ele e o unico que sabe se os creditos
+diff --git a/src/posplay.h b/src/posplay.h
+index 44a191a8f8175c810f5ed0cf6d7cc477fed6055f..5cec23ec7305ae44df6922384cfd0645d6cb0109 100644
+--- a/src/posplay.h
++++ b/src/posplay.h
+@@ -57,6 +57,9 @@ void posplay_fechar(void);
+ // Recuo manual: cancela contagem e pedido automatico, mantendo o OK manual.
+ // A contagem volta a valer ao sair da janela final ou abrir outro titulo.
+ void posplay_recuar(void);
++// Inicio de busca explicita: revoga Next pendente e suspende novo preparo
++// ate a confirmacao pelo player. Nao marca recuo nem altera o OK manual.
++void posplay_busca_usuario(void);
+ // Seek automatico em voo: suspende so a contagem/pedido automatico. OK segue
+ // disponivel; o player libera quando o video progride ou termina de verdade.
+ void posplay_aguardar_busca(int aguardar);
 diff --git a/src/proximo.c b/src/proximo.c
 index ade096c1ed3d7bdb735630087e049005008b3f66..d43bc632ffaf037040e53357261e3f71d486a948 100644
 --- a/src/proximo.c

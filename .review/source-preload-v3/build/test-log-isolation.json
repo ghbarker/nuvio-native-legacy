@@ -4,9 +4,9 @@
   "never_include_in_pr": true,
   "clean_products_checked": true,
   "isolated_delivery_copy": true,
-  "standalone_source_root": "/workspace/review/image-download-fix/source-standalone",
-  "combined_product_root": "/workspace/review/image-download-fix/source-clean-combined",
-  "combined_delivery_root": "/workspace/review/image-download-fix/build-stage/product-snapshots/combined-delivery",
+  "standalone_source_root": "/workspace/review/next-scrub-fix/source-standalone",
+  "combined_product_root": "/workspace/review/next-scrub-fix/source-clean-combined",
+  "combined_delivery_root": "/workspace/review/next-scrub-fix/build-stage/product-snapshots/combined-delivery",
   "standalone_files": {
     "src/seekrquota.c": {
       "sha256": "87a1025f88024c850f59828e803456fb15f262113ba372814f60f41b45e447b0",
@@ -1145,7 +1145,7 @@
       "mode": "100644"
     },
     "src/posplay.c": {
-      "sha256": "62c6ea6c2688dd8527d8829844cc31342379c331fe7243838a74558ba5fb91b1",
+      "sha256": "dbf850704dd328901904cf97d10a01802a733b5e1c788ff8b30ec75162582a70",
       "mode": "100644"
     },
     "src/descanso.h": {
@@ -1645,7 +1645,7 @@
       "mode": "100644"
     },
     "src/posplay.h": {
-      "sha256": "de4b84e07114b24c291a1c3b84a1e8ffd1452341a43283b5f34df14abf76fa5e",
+      "sha256": "34adcdf06b2a58e624f93c407a2d465c3620e90308d01d5c5588fb4729e715a6",
       "mode": "100644"
     },
     "src/assrender.c": {
@@ -1901,7 +1901,7 @@
       "mode": "100644"
     },
     "src/player.c": {
-      "sha256": "77f2a0f22599f07249d3a819e3d51e7c02d89e2c258c37d2f46e058cef699261",
+      "sha256": "8fc0e60195a5819c426580470d972bf3e24df5d66a5857f5527327362a87a992",
       "mode": "100644"
     },
     "src/notasui.c": {
@@ -4747,7 +4747,7 @@
       "mode": "100644"
     },
     "src/posplay.c": {
-      "sha256": "0e8b7e737559cc9e7f7ff9dc9b07a5a4ab282028902dd062d0ba2dd57a4d941c",
+      "sha256": "a4c8e929832222ba7f3df59faa1ea3470b38f24e82c6d628fb72c5c4289e420e",
       "mode": "100644"
     },
     "src/descanso.h": {
@@ -5247,7 +5247,7 @@
       "mode": "100644"
     },
     "src/posplay.h": {
-      "sha256": "de4b84e07114b24c291a1c3b84a1e8ffd1452341a43283b5f34df14abf76fa5e",
+      "sha256": "34adcdf06b2a58e624f93c407a2d465c3620e90308d01d5c5588fb4729e715a6",
       "mode": "100644"
     },
     "src/assrender.c": {
@@ -5503,7 +5503,7 @@
       "mode": "100644"
     },
     "src/player.c": {
-      "sha256": "77f2a0f22599f07249d3a819e3d51e7c02d89e2c258c37d2f46e058cef699261",
+      "sha256": "8fc0e60195a5819c426580470d972bf3e24df5d66a5857f5527327362a87a992",
       "mode": "100644"
     },
     "src/notasui.c": {
@@ -7337,11 +7337,11 @@
     {
       "path": "src/posplay.c",
       "before": {
-        "sha256": "0e8b7e737559cc9e7f7ff9dc9b07a5a4ab282028902dd062d0ba2dd57a4d941c",
+        "sha256": "a4c8e929832222ba7f3df59faa1ea3470b38f24e82c6d628fb72c5c4289e420e",
         "mode": "100644"
       },
       "after": {
-        "sha256": "cd7b3e7ba1a2a93c7593ff947acdd9a08fff5a53f832ee4153f37fa8d27d86e2",
+        "sha256": "326a09344b1a462ab3b10c267faec0550b5457cb7e042d6b9290f4e376f2e3ae",
         "mode": "100644"
       }
     },
@@ -7370,11 +7370,11 @@
   ],
   "overlays": [
     {
-      "helper_path": "/workspace/review/image-download-fix/build-stage/test-next-trace/apply.py",
+      "helper_path": "/workspace/review/next-scrub-fix/build-stage/test-next-trace/apply.py",
       "sha256": "645222d2f3d9a47701f48f960dd84584958da5d4a95683bbf7e2883d7f31bfc0"
     },
     {
-      "helper_path": "/workspace/review/image-download-fix/build-stage/test-local-logs/apply.py",
+      "helper_path": "/workspace/review/next-scrub-fix/build-stage/test-local-logs/apply.py",
       "sha256": "dae3182b473e5abc0886000e3d64f26e5c141df209c11a3de34b962c0c658971"
     }
   ],

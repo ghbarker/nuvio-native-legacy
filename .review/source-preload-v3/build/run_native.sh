@@ -141,6 +141,19 @@ if task_enabled run_image_download; then
   # both normal and ASan/UBSan modes; JNI/network transport is controlled.
   task_run image-download python3 "$task_review/image-download-gates/run.py" --root "$PWD" --output "$task_output/image-download" --mode both
 fi
+if task_enabled run_seek_regression; then
+  # Run actual player gestures and Next guards in normal and sanitizer modes.
+  task_run seek-regression python3 "$task_review/seek-regression-gates/run.py" --root "$PWD" --output "$task_output/seek-regression" --mode both
+fi
+if task_enabled run_original_seek_guards; then
+  # Preserve upstream assertions and full source lists. These first two
+  # original scripts do not support SANITIZE; their normal runs stay intact.
+  for task_name in player_recuo posplay_recuo; do
+    task_run "$task_name-original" bash "tests/$task_name.sh"
+  done
+  task_run creditosauto-original env SANITIZE=0 bash tests/creditosauto.sh
+  task_run creditosauto-original-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash tests/creditosauto.sh
+fi
 if task_enabled run_skip_next; then
   # These additions retain every V2 gate above and exercise the real player,
   # countdown, preparation controller and literal app Next request block.

@@ -1,6 +1,6 @@
 {
   "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
-  "source_root": "/workspace/review/image-download-fix/build-stage/product-snapshots/combined-delivery",
+  "source_root": "/workspace/review/next-scrub-fix/build-stage/product-snapshots/combined-delivery",
   "files": [
     {
       "path": "README.md",
@@ -950,9 +950,9 @@
     {
       "path": "src/player.c",
       "mode": "100644",
-      "sha": "7cb7f65d4f4775c5d9d4657c2c2f564800a78a49",
-      "sha256": "77f2a0f22599f07249d3a819e3d51e7c02d89e2c258c37d2f46e058cef699261",
-      "bytes": 288585
+      "sha": "4f1e4e463042919d3b9c1231485b815f3d072689",
+      "sha256": "8fc0e60195a5819c426580470d972bf3e24df5d66a5857f5527327362a87a992",
+      "bytes": 289286
     },
     {
       "path": "src/player.h",
@@ -1013,9 +1013,16 @@
     {
       "path": "src/posplay.c",
       "mode": "100644",
-      "sha": "217b14ba2d24022d0439eec2c0100328db6a98b1",
-      "sha256": "cd7b3e7ba1a2a93c7593ff947acdd9a08fff5a53f832ee4153f37fa8d27d86e2",
-      "bytes": 42184
+      "sha": "53368e3e87d25a901aed85c3e70b4b6fc8bff8f6",
+      "sha256": "326a09344b1a462ab3b10c267faec0550b5457cb7e042d6b9290f4e376f2e3ae",
+      "bytes": 42758
+    },
+    {
+      "path": "src/posplay.h",
+      "mode": "100644",
+      "sha": "5cec23ec7305ae44df6922384cfd0645d6cb0109",
+      "sha256": "34adcdf06b2a58e624f93c407a2d465c3620e90308d01d5c5588fb4729e715a6",
+      "bytes": 4602
     },
     {
       "path": "src/proximo.c",
