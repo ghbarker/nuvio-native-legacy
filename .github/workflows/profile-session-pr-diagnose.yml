@@ -1,0 +1,85 @@
+name: 'Profile PR: canonical versus feature manual preference startup diagnostics'
+'on':
+  push:
+    branches:
+    - review/profile-session-pr-diagnose
+permissions:
+  contents: read
+concurrency:
+  group: profile-pr-diagnose-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  feature:
+    name: 'feature: original manual preference ASan startup sample'
+    runs-on: macos-14
+    timeout-minutes: 12
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify pure pinned source and untouched original test inputs
+      run: |-
+        set -euo pipefail
+        git worktree add --detach "$GITHUB_WORKSPACE/diagnostic-source" 4cc89807e4c3248a7768360c0a7f23696f11698a
+        mkdir -p build/review
+        python3 - <<'VERIFY'
+        import json
+        import subprocess
+        from pathlib import Path
+        source = Path('diagnostic-source')
+        assert subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip() == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        assert subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], text=True).strip() == ''
+        assert subprocess.check_output(['git', '-C', str(source), 'diff', '--name-only', '17b7769dac4273557e1b07f5fb8734df91dd718f', '--', 'tests'], text=True).strip() == ''
+        Path('build/review/source.json').write_text(json.dumps({'label':'feature', 'source_commit':'4cc89807e4c3248a7768360c0a7f23696f11698a',
+            'upstream_base':'17b7769dac4273557e1b07f5fb8734df91dd718f', 'original_tests_unmodified_before_diagnostic_markers':True}, indent=2)+'\n')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Bounded original test startup and process sampling
+      timeout-minutes: 7
+      run: python3 .review/profile-session/build/monitor_pref.py --source diagnostic-source --output build/review --label
+        feature --deadline 300
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-pref-diagnostic-feature-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  canonical_base:
+    name: 'canonical_base: original manual preference ASan startup sample'
+    runs-on: macos-14
+    timeout-minutes: 12
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify pure pinned source and untouched original test inputs
+      run: |-
+        set -euo pipefail
+        git worktree add --detach "$GITHUB_WORKSPACE/diagnostic-source" 17b7769dac4273557e1b07f5fb8734df91dd718f
+        mkdir -p build/review
+        python3 - <<'VERIFY'
+        import json
+        import subprocess
+        from pathlib import Path
+        source = Path('diagnostic-source')
+        assert subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip() == '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        assert subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], text=True).strip() == ''
+        assert subprocess.check_output(['git', '-C', str(source), 'diff', '--name-only', '17b7769dac4273557e1b07f5fb8734df91dd718f', '--', 'tests'], text=True).strip() == ''
+        Path('build/review/source.json').write_text(json.dumps({'label':'canonical_base', 'source_commit':'17b7769dac4273557e1b07f5fb8734df91dd718f',
+            'upstream_base':'17b7769dac4273557e1b07f5fb8734df91dd718f', 'original_tests_unmodified_before_diagnostic_markers':True}, indent=2)+'\n')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Bounded original test startup and process sampling
+      timeout-minutes: 7
+      run: python3 .review/profile-session/build/monitor_pref.py --source diagnostic-source --output build/review --label
+        canonical_base --deadline 300
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-pref-diagnostic-canonical_base-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
