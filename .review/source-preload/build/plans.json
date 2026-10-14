@@ -1,0 +1,49 @@
+{
+  "schema": 2,
+  "validation_phase": "final",
+  "publish_release": false,
+  "cases": [
+    {
+      "id": "watched-rebase",
+      "label": "Rebased Hide watched movies",
+      "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+      "patch": "watched-rebase.patch",
+      "patch_sha256": "27bf65d0bbc519e638b442a3db8f91aa0964ed3bfb2543bf27f76598d8642172",
+      "manifest": "watched-rebase-files.json",
+      "delivery": false,
+      "run_watched": true,
+      "run_preload": false,
+      "run_retained": false,
+      "run_automatic": false
+    },
+    {
+      "id": "automatic-rebase",
+      "label": "Rebased automatic TV and Mobile",
+      "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+      "patch": "automatic-rebase.patch",
+      "patch_sha256": "416f82f189d5bed8efeb37cc0c58f5610658355cf58f50ac303155bbd080807e",
+      "manifest": "automatic-rebase-files.json",
+      "delivery": false,
+      "run_watched": false,
+      "run_preload": false,
+      "run_retained": false,
+      "run_automatic": true
+    },
+    {
+      "id": "backend-probe",
+      "label": "Android Media3 preload probe (not final app)",
+      "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+      "patch": "backend-probe.patch",
+      "patch_sha256": "229038e0cb43e25bebc0aad65da108e44f95b852fcac776a4e0ccc780abe623e",
+      "manifest": "backend-probe-files.json",
+      "delivery": false,
+      "skip_native": true,
+      "scope": "early backend-only probe; not final app; C controller integration pending",
+      "run_watched": false,
+      "run_preload": false,
+      "run_retained": false,
+      "run_automatic": false
+    }
+  ],
+  "media3_case": "backend-probe"
+}

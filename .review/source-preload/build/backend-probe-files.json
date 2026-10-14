@@ -1,0 +1,13 @@
+{
+  "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "scope": "early backend-only probe; not final app; C controller integration pending",
+  "files": [
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
+      "mode": "100644",
+      "sha": "641cfcc38c5d319ee2aceb379f76477ccafc1a2c",
+      "sha256": "7e82b8d43ccb9a3d974fe609b4f396a8d93956a77512c86fadb1f9f097dc03da",
+      "bytes": 89362
+    }
+  ]
+}

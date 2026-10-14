@@ -1,0 +1,1990 @@
+diff --git a/src/ajustes.c b/src/ajustes.c
+index e28d55b..71d312d 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -549,6 +549,8 @@ typedef enum {
+   AJ_FALHA_PROVEDORES, AJ_FALHA_PROVEDOR_ORDEM,
+   AJ_FALHA_RD_LIMITE, AJ_FALHA_TB_LIMITE, AJ_FALHA_PM_LIMITE, AJ_FALHA_AD_LIMITE,
+   AJ_FALHA_ADDONS, AJ_FALHA_ADDON_ORDEM, AJ_FALHA_ADDON_LIMITE,
++  // #366: discovery rows only, per profile on this device. Append-only.
++  AJ_OCULTAR_FILMES_VISTOS,
+   AJ_N
+ } OpcaoId;
+ _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
+@@ -1421,6 +1423,7 @@ static const Opcao OPCOES[AJ_N] = {
+   ESC("Trocar add-on se falhar", V_LIGA, 2),
+   ACAO("Ordem e limites dos add-ons"),
+   NUM("Links neste add-on", 1, FONTEFALHA_MAX_LINKS, 1, ""),
++  ESC("Ocultar filmes assistidos", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal
+ };
+ 
+ // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
+@@ -1664,6 +1667,7 @@ static const char *CHAVE[] = {
+   "-falhaProvedores", "-falhaProvedorOrdem",
+   "-falhaRDLinks", "-falhaTBLinks", "-falhaPMLinks", "-falhaADLinks",
+   "-falhaAddons", "-falhaAddonOrdem", "-falhaAddonLinks",
++  "hideWatchedMoviesLocal",
+ };
+ // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
+ // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
+@@ -2336,6 +2340,11 @@ int ajustes_leg2_borda(void) { int v = valor[AJ_LEG2_BORDA]; return v >= 1 && v
+ int ajustes_saida_player_home(void) { return lig(AJ_RELOGIO) && valor[AJ_SAIDA_PLAYER] == 0; }
+ int ajustes_manter_video(void) { return ajustes_saida_player_home() && lig(AJ_MANTER_VIDEO) && !SEGURO; }
+ int ajustes_selo_visto(void) { return lig(AJ_SELO_VISTO); }
++int ajustes_ocultar_filmes_vistos(void) { return lig(AJ_OCULTAR_FILMES_VISTOS); }
++void ajustes_definir_ocultar_filmes_vistos(int ligado) {
++  valor[AJ_OCULTAR_FILMES_VISTOS] = ligado ? 0 : 1;
++  AJ_COM_ORIGEM(AJLOG_CENTRAL, gravar());
++}
+ static void riscoNotar(int op, int antes);
+ void ajustes_definir_vidro(int ligado) { int a = valor[AJ_VIDRO]; valor[AJ_VIDRO] = ligado ? 0 : 1; AJ_COM_ORIGEM(AJLOG_CENTRAL, gravar()); riscoNotar(AJ_VIDRO, a); }
+ #ifdef __EMSCRIPTEN__
+@@ -4429,6 +4438,7 @@ static int somenteDesteAparelho(int op) {
+     case AJ_FUNDO:          /* o desfoque custa GPU desta TV; o web nao tem */
+     case AJ_VIDRO_OPAC: case AJ_VIDRO_FOSCO: /* teste do vidro: visual desta TV */
+     case AJ_SELO_VISTO:     /* o web nao tem a escolha */
++    case AJ_OCULTAR_FILMES_VISTOS: /* por perfil desta TV; fora do blob da conta */
+     case AJ_REACAO_CREDITOS: /* o web nao tem a pergunta */
+     case AJ_PULAR_ABERTURA: case AJ_PULAR_RESUMO: case AJ_PROXIMO_AUTO: case AJ_PULAR_CREDITOS: case AJ_PROXIMO_CONTAGEM: /* idem: local desta TV */
+     case AJ_SEEKR_LIGADO: case AJ_SEEKR_FITA: case AJ_SEEKR_AJUSTE: /* o web nao tem o Seekr */
+@@ -4456,7 +4466,7 @@ static int somenteDesteAparelho(int op) {
+ // onde o historico vai e se o social existe. Entram na copia por perfil
+ // (ajustes-p<N>.txt) e continuam FORA do blob (somenteDesteAparelho).
+ static int perfilLocal(int i) {
+-  return i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL;
++  return i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL || i == AJ_OCULTAR_FILMES_VISTOS;
+ }
+ 
+ static int dePerfil(int i) {
+@@ -5685,6 +5695,7 @@ static const char *ajudaOpcaoBase(int op) {
+     case AJ_PS_FUNDO: return "Fundo da tela de escolha de perfil. Filmes: os cartazes do que cada perfil assistiu, numa parede inclinada. Luz: preto com uma luz na cor do perfil. Projetor: sala de cinema antes da sessão. Arte do perfil: o fundo escolhido ao editar o perfil no app Nuvio; sem ele, o avatar desfocado. Ou as listras do login.";
+     case AJ_DESCOBRIR: return "Onde fica a tela Descobrir: junto da Busca, como item próprio na barra lateral, ou em lugar nenhum.";
+     case AJ_SELO_VISTO: return "Um check pequeno no canto de cima do pôster dos títulos que você já assistiu, pelo Trakt, pela conta ou marcados nesta TV.";
++    case AJ_OCULTAR_FILMES_VISTOS: return "Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.";
+     case AJ_ROTULOS: return "Escreve o nome do título abaixo do cartaz. A maior parte da arte já traz o nome impresso.";
+     case AJ_NOME_ADDON: return "Acrescenta o nome do addon ao título da fileira, para separar dois catálogos com o mesmo nome.";
+     case AJ_SUFIXO_TIPO: return "Acrescenta \"Filme\" ou \"Série\" ao título da fileira, para separar as duas versões do mesmo catálogo.";
+@@ -7924,7 +7935,7 @@ static AjPreview familiaPreviaOpcao(int op) {
+     case AJ_RAIL_BLUR: case AJ_HERO: case AJ_HERO_CATALOGOS:
+     case AJ_PS_FUNDO: case AJ_PS_CONTINUAR: case AJ_DESCOBRIR: case AJ_ROTULOS:
+     case AJ_NOME_ADDON: case AJ_SUFIXO_TIPO: case AJ_OCULTAR_NLANC:
+-    case AJ_NOTAS_HOME: case AJ_GRAD_CLASSICO: case AJ_SELO_VISTO:
++    case AJ_NOTAS_HOME: case AJ_GRAD_CLASSICO: case AJ_SELO_VISTO: case AJ_OCULTAR_FILMES_VISTOS:
+       return AJPV_HOME;
+     case AJ_CW_LIGADO: case AJ_CW_OK: case AJ_CW_FONTE:
+     case AJ_CW_ESTILO: case AJ_CW_THUMB: case AJ_CW_BLUR_PROX:
+diff --git a/src/ajustes.h b/src/ajustes.h
+index b8499d5..8dfb905 100644
+--- a/src/ajustes.h
++++ b/src/ajustes.h
+@@ -484,6 +484,10 @@ int   ajustes_saida_player_home(void);
+ int   ajustes_manter_video(void);
+ // Selo de visto no cartaz da home (#212). 1 = ligado (o de fabrica).
+ int   ajustes_selo_visto(void);
++// #366: oculta filmes vistos so na descoberta, por perfil neste aparelho.
++// Desligado de fabrica; busca, biblioteca e historico nao sao filtrados.
++int   ajustes_ocultar_filmes_vistos(void);
++void  ajustes_definir_ocultar_filmes_vistos(int ligado);
+ // MODO SEGURO (seguro.h). Chamar no arranque, DEPOIS de ajustes_dir e de
+ // avisos_iniciar: `caiu` = a sessao anterior nao se despediu. Desfaz o ajuste
+ // arriscado que estava em prova, liga o perfil seguro se as quedas se repetem e
+diff --git a/src/ajustes_ux_cenas.inc b/src/ajustes_ux_cenas.inc
+index 7141d20..56b09bd 100644
+--- a/src/ajustes_ux_cenas.inc
++++ b/src/ajustes_ux_cenas.inc
+@@ -177,6 +177,7 @@ static void ajcCenaHome(int op) {
+     case AJ_HERO_CATALOGOS: case AJ_HERO_TRANSICAO: o.marca = AJC_M_HERO; break;
+     case AJ_LANDSCAPE: o.paisagem = ajcLig(op); break;
+     case AJ_FIL_ORDEM: case AJ_FIL_LIMITE: case AJ_ITENS_FILEIRA: case AJ_OCULTAR_NLANC:
++    case AJ_OCULTAR_FILMES_VISTOS:
+       o.hero = 0.0f; o.marca = AJC_M_FILEIRAS; break;
+     case AJ_ROTULOS: case AJ_NOME_ADDON: case AJ_SUFIXO_TIPO: o.hero = 0; o.marca = AJC_M_TITULOS; break;
+     case AJ_NOTAS_HOME: case AJ_SELO_VISTO: o.hero = 0; break;
+diff --git a/src/ajustes_ux_cenas_home.inc b/src/ajustes_ux_cenas_home.inc
+index aaf3abd..7735b82 100644
+--- a/src/ajustes_ux_cenas_home.inc
++++ b/src/ajustes_ux_cenas_home.inc
+@@ -348,6 +348,24 @@ static void ajcHSelo(int op) {
+   ajc_icone("aj_eye", 320, 282, 22, 0.5f + 0.5f * k);
+   ajcChaveCanto(k);
+ }
++// Ocultar filmes assistidos: o cartaz marcado sai da descoberta e fecha o vao.
++static void ajcHOcultarVistos(int op) {
++  float k = ajcLig(op), p = k * ajc_onda(3.0f);
++  int i;
++  ajcHTela(60, 24, 520, 280, 1);
++  ajc_barra(86, 52, 80, 0.5f);
++  for (i = 0; i < 5; i++) {
++    float x = 86 + i * 94 - (i > 2 ? p * 94 : 0);
++    float a = i == 2 ? 1 - p : 1;
++    ajcHBloco(x, 72, 82, 130, i, a);
++    if (i == 2) {
++      ajc_bolinha(x + 66, 88, 24, C.ar, C.ag, C.ab, a);
++      ajc_icone_tinta("aj_check", x + 66, 88, 15, a);
++    }
++  }
++  ajc_icone("aj_eye-off", 330, 250, 30, 0.3f + 0.7f * p);
++  ajcChaveCanto(k);
++}
+ // Rotulos: o nome escrito abaixo do cartaz.
+ static void ajcHRotulos(int op) {
+   float k = ajcLig(op);
+@@ -771,6 +789,7 @@ static int ajcNovaHome(int sec, int op) {
+     case AJ_OCULTAR_NLANC: ajcHNaoLancados(op); return 1;
+     case AJ_NOTAS_HOME: ajcHNotas(op); return 1;
+     case AJ_SELO_VISTO: ajcHSelo(op); return 1;
++    case AJ_OCULTAR_FILMES_VISTOS: ajcHOcultarVistos(op); return 1;
+     case AJ_ROTULOS: ajcHRotulos(op); return 1;
+     case AJ_NOME_ADDON: case AJ_SUFIXO_TIPO: ajcHTituloFileira(op); return 1;
+     case AJ_CW_LIGADO: ajcHCwLigado(op); return 1;
+diff --git a/src/ajustes_ux_padrao.inc b/src/ajustes_ux_padrao.inc
+index b40dfcf..725f80a 100644
+--- a/src/ajustes_ux_padrao.inc
++++ b/src/ajustes_ux_padrao.inc
+@@ -268,3 +268,4 @@
+   1, 0, /* provider failover off; order action */
+   3, 3, 3, 3, /* total links per native provider */
+   1, 0, 3, /* addon failover off; instance order action; total links */
++  1, /* hide watched movies (#366): Desligado, per profile on this device */
+diff --git a/src/ajustes_ux_secoes.inc b/src/ajustes_ux_secoes.inc
+index 1beac87..b6d136b 100644
+--- a/src/ajustes_ux_secoes.inc
++++ b/src/ajustes_ux_secoes.inc
+@@ -162,6 +162,7 @@ static int ajCenaSecao(int op) {
+       return AJC_HOME_ESTILO;
+     case AJ_FIL_ORDEM: case AJ_FIL_LIMITE: case AJ_ITENS_FILEIRA: case AJ_ESPACO_FILEIRAS: case AJ_ESPACO_TITULOS: case AJ_OCULTAR_NLANC: case AJ_NOTAS_HOME:
+     case AJ_ROTULOS: case AJ_NOME_ADDON: case AJ_SUFIXO_TIPO: case AJ_SELO_VISTO:
++    case AJ_OCULTAR_FILMES_VISTOS:
+       return AJC_HOME_FILEIRAS;
+     case AJ_RAIL_MODERNA: case AJ_RAIL: case AJ_MENU_EXPLORAR: case AJ_MENU_GUIA: case AJ_MENU_AGENDA:
+     case AJ_MENU_PERFIL: case AJ_RAIL_BLUR: case AJ_DESCOBRIR:
+diff --git a/src/ajustes_ux_tela.inc b/src/ajustes_ux_tela.inc
+index c62870a..3c084a6 100644
+--- a/src/ajustes_ux_tela.inc
++++ b/src/ajustes_ux_tela.inc
+@@ -102,6 +102,7 @@ static const Item TELA[] = {
+       OPC(AJ_FIL_ORDEM), OPC(AJ_FIL_LIMITE), OPC(AJ_ITENS_FILEIRA),
+       OPC(AJ_ESPACO_FILEIRAS), OPC(AJ_ESPACO_TITULOS),
+       OPC(AJ_OCULTAR_NLANC), OPC(AJ_NOTAS_HOME), OPC(AJ_SELO_VISTO),
++      OPC(AJ_OCULTAR_FILMES_VISTOS),
+     ROT("Continuar assistindo"),
+       OPC(AJ_CW_LIGADO), OPC(AJ_CW_OK), OPC(AJ_CW_ESTILO), OPC(AJ_CW_THUMB),
+       OPC(AJ_CW_BLUR_PROX), OPC(AJ_CW_ORDEM), OPC(AJ_CW_NAO_EXIBIDOS),
+diff --git a/src/ajustes_ux_visual.inc b/src/ajustes_ux_visual.inc
+index 83fa034..e27b5c1 100644
+--- a/src/ajustes_ux_visual.inc
++++ b/src/ajustes_ux_visual.inc
+@@ -18,6 +18,7 @@ static const char *ajVisualIcone(int op) {
+     case AJ_NOME_ADDON: return "aj_rows-3";
+     case AJ_SUFIXO_TIPO: return "aj_rows-3";
+     case AJ_SELO_VISTO: return "aj_rows-3";
++    case AJ_OCULTAR_FILMES_VISTOS: return "aj_rows-3";
+     case AJ_CW_LIGADO: return "aj_rotate-ccw-clock";
+     case AJ_CW_OK: return "aj_rotate-ccw-clock";
+     case AJ_CW_ESTILO: return "aj_rotate-ccw-clock";
+diff --git a/src/descoberta.c b/src/descoberta.c
+index 3c8e524..af4b657 100644
+--- a/src/descoberta.c
++++ b/src/descoberta.c
+@@ -636,6 +636,18 @@ static int descOcultaNaoLancado(const CatItem *it) {
+   return nlanc_meta_futuro(it->meta, tmv.tm_year + 1900);
+ }
+ 
++// O meta da rede nao tem a posicao local de playback. Reusar so a evidencia
++// do item canonico faz o filtro acompanhar o selo tambem sem historico remoto;
++// cat_visto continua dando precedencia a um "nao visto" explicito. A copia
++// por identidade e sob a trava dos publicadores, inclusive nos fios de rede.
++int desc_filme_visto(const CatItem *it) {
++  CatItem conhecido;
++  if (!it || strcmp(it->tipo, "movie")) return 0;
++  return cat_visto(it) ||
++         (it->imdb[0] && cat_copiar_por_id(it->imdb, it->tipo, &conhecido) &&
++          cat_visto(&conhecido));
++}
++
+ // --- DE QUAL ADDON VEIO O ITEM (CatItem.origem) ------------------------------
+ //
+ // O detalhe pergunta a ficha (/meta) primeiro a quem PUBLICOU o titulo, e para
+@@ -1362,6 +1374,72 @@ static int lerCatalogo(const char *base, const char *tipo, const char *id,
+   return n;
+ }
+ 
++// #366: o prefixo original continua no catalogo canonico e no cache; so a
++// reserva seguinte pula os vistos, que antes nem cabiam na fileira da Home.
++// Sao ate 24 originais mais ate 24 suplementos, quando o prefixo nao basta.
++// Varremos a resposta inteira: 60 vistos no inicio de uma pagina de 100 nao
++// impedem os 40 seguintes de preencher a tela. Um addon que declara skip pode
++// ceder uma pagina a mais, usando a contagem CRUA recebida como proximo skip.
++#define HOME_VISTOS_MAX (DESC_ITENS_POR_FILEIRA * 2)
++static int lerCatalogoHomeParcial(const char *base, const char *tipo, const char *id,
++                           CatItem *saida, int max, int quantos,
++                           int paginavel, int *respondeu,
++                           int (*primeira)(const CatItem *, int, void *), void *usuario) {
++  int n = 0, visiveis = 0, skip = 0;
++  char orig[96];
++  if (!ajustes_ocultar_filmes_vistos() || strcmp(tipo, "movie"))
++    return lerCatalogo(base, tipo, id, saida, max, quantos, respondeu);
++  if (max > HOME_VISTOS_MAX) max = HOME_VISTOS_MAX;
++  if (respondeu) *respondeu = 0;
++  if (addons_base_desligada(base)) return 0;
++  origemDaBase(base, orig, sizeof orig);
++  for (int pagina = 0; pagina < (paginavel ? 2 : 1); pagina++) {
++    char url[NV_ADDON_PEDIDO_MAX], *corpo;
++    int w, raw = 0, novos = 0;
++    if (skip) w = nv_addon_url(url, sizeof url, base,
++                  "/catalog/%s/%s/skip=%d.json", tipo, id, skip);
++    else w = nv_addon_url(url, sizeof url, base, "/catalog/%s/%s.json", tipo, id);
++    if (!descPedidoCoube(base, w, sizeof url)) break;
++    corpo = rede_baixar(url, 8);
++    if (!corpo) break;
++    if (respondeu && !pagina) *respondeu = 1;
++    for (const char *p = js_array(corpo, NULL, "metas"); p; p = js_prox(js_fim(p))) {
++      const char *f = js_fim(p);
++      raw++;
++      if (n >= max || visiveis >= quantos) continue;
++      if (!deMeta(p, f, tipo, &saida[n]) || descOcultaNaoLancado(&saida[n])) continue;
++      int repetido = 0;
++      // O prefixo conserva ate repeticoes que o addon ja mandava. So a
++      // reserva adicional rejeita ids repetidos, para nao preencher com o
++      // mesmo cartaz nem continuar perseguindo uma pagina que ignora skip.
++      int suplemento = pagina > 0 || n >= DESC_ITENS_POR_FILEIRA;
++      if (suplemento) for (int i = 0; i < n; i++)
++        if (saida[n].imdb[0] && !strcmp(saida[i].imdb, saida[n].imdb) &&
++            !strcmp(saida[i].tipo, saida[n].tipo)) { repetido = 1; break; }
++      if (repetido) continue;
++      int visto = desc_filme_visto(&saida[n]);
++      if (suplemento && visto) continue;
++      snprintf(saida[n].origem, sizeof saida[n].origem, "%s", orig);
++      if (!visto) visiveis++;
++      n++; novos++;
++    }
++    free(corpo);
++    if (!raw || !novos || n >= max || visiveis >= quantos) break;
++    // O montador pode largar um GET lento. A primeira resposta boa fica
++    // disponivel em memoria IMUTAVEL antes da tentativa opcional; assim o
++    // timeout dela nao apaga a fileira que ja respondeu.
++    if (!pagina && paginavel && primeira && !primeira(saida, n, usuario)) break;
++    skip += raw;
++  }
++  return n;
++}
++static int lerCatalogoHome(const char *base, const char *tipo, const char *id,
++                           CatItem *saida, int max, int quantos,
++                           int paginavel, int *respondeu) {
++  return lerCatalogoHomeParcial(base, tipo, id, saida, max, quantos,
++                               paginavel, respondeu, NULL, NULL);
++}
++
+ // --- fileiras da home: catalogos declarados pelos addons ---------------------
+ // Isto substitui a lista PREF fixa de quatro catalogos. O app web nao tem
+ // fileira fixa: cada fileira e um catalogo declarado no manifesto de um addon,
+@@ -1415,6 +1493,7 @@ typedef struct {
+   // `extra: [{name:"search"}]` (formato novo) ou `extraSupported: ["search"]`
+   // (antigo) — os addons do dono usam os dois.
+   int buscavel;
++  int paginavel;        // skip declarado: preenchimento limitado do #366
+   // 1 quando o manifesto marca o extra `search` como `isRequired` — ou seja, o
+   // catalogo so responde a quem digitou um termo, e a home nao tem termo. Ele
+   // continua servindo a BUSCA; o que ele nao pode e virar fileira. Ver a nota
+@@ -1996,6 +2075,22 @@ static int exigeBusca(const char *p, const char *f) {
+   return 0;
+ }
+ 
++static int aceitaSkip(const char *p, const char *f) {
++  const char *ex = js_array(p, f, "extra");
++  for (; ex && ex < f; ex = js_prox(js_fim(ex))) {
++    char nome[32] = "";
++    if (*ex == '{') js_texto_raiz_em(ex, js_fim(ex), "name", nome, sizeof nome);
++    else js_cadeia(ex, nome, sizeof nome);
++    if (!strcmp(nome, "skip")) return 1;
++  }
++  ex = js_array(p, f, "extraSupported");
++  for (; ex && ex < f; ex = js_prox(js_fim(ex))) {
++    char nome[32] = "";
++    if (*ex == '"' && js_cadeia(ex, nome, sizeof nome) && !strcmp(nome, "skip")) return 1;
++  }
++  return 0;
++}
++
+ // NOMES DOS CATALOGOS DECLARADOS, por (base, tipo, id) — issue #76. A colecao
+ // da conta pode vir SEM o titulo da fonte (o export do Xperience manda so
+ // addonId/type/catalogId), e a pagina da colecao mostrava "mdblist.13914 ·
+@@ -2308,6 +2403,7 @@ static int lerManifesto(int iAddon, const char *base, Decl *saida, int max,
+                                        : (addonId[0] ? addonId : "addon"));
+         } }
+       d->exigeParam = exige;
++      d->paginavel = aceitaSkip(p, f);
+       snprintf(d->tipo, sizeof d->tipo, "%s", tipo);
+       snprintf(d->id,   sizeof d->id,   "%s", id);
+       snprintf(d->chave, sizeof d->chave, "%s_%s_%s",
+@@ -2366,6 +2462,10 @@ typedef struct {
+   const Decl *d;        // so para quem monta; o fio le as copias abaixo
+   char base[NV_ADDON_URL_MAX], tipo[8], id[96];
+   CatItem itens[MAX_POR_FILEIRA];
++  CatItem *extras;      // #366: cauda crua opcional, so para fileira deficiente
++  CatItem *primeira;    // resposta boa preservada enquanto o suplemento faz rede
++  int nPrimeira;
++  int paginavel;
+   int  n;
+   int  respondeu;
+   int  pronto;
+@@ -2383,6 +2483,23 @@ typedef struct {
+   unsigned long long inicioMs, ultimoProntoMs;
+ } RodadaCat;
+ 
++// As reservas de preenchimento nao podem ocupar os slots dos outros
++// catalogos nem das listas privadas que a montagem acrescenta no fim. O
++// primeiro bloco de ate 24 itens conserva o comportamento anterior; so a
++// cauda opcional e reduzida quando CAT_MAX nao deixa folga.
++static int homeVistosReserva(void) {
++  int reserva = trakt_ativo() ? 2 * TRAKT_LISTA_MAX : 0;
++  if (ajustes_salvos_no_simkl() && simkl_ativo()) reserva += 300;
++  if (ajustes_jellyfin_ligado() && servidores_conectado()) reserva += SRV_ITENS_MAX;
++  return reserva;
++}
++static int homeVistosLimitar(int got, int usados, int restantes, int reserva) {
++  if (got <= MAX_POR_FILEIRA) return got;
++  int cabe = CAT_MAX - usados - restantes * MAX_POR_FILEIRA - reserva;
++  if (cabe < MAX_POR_FILEIRA) cabe = MAX_POR_FILEIRA;
++  return got > cabe ? cabe : got;
++}
++
+ // O TETO DO CATALOGO LENTO. Os dois precisam valer juntos, com a fila da rodada
+ // ja vazia: CAT_ESPERA_SILENCIO_MS sem NENHUM catalogo terminar, e este no ar ha
+ // CAT_ESPERA_MIN_MS. O primeiro separa "a rede esta lenta para todos" (ai todos
+@@ -2459,7 +2576,7 @@ static void preservarFileirasAusentes(CatItem **lote, int *n, int *cap,
+   int r;
+   // static pelo mesmo motivo do daLinhaAnterior de montar(): 24 CatItem sao
+   // ~375 KB, e o fio que monta tem 2 MB de pilha no Tizen. Um fio so chama.
+-  static CatItem tmp[MAX_POR_FILEIRA];
++  static CatItem tmp[HOME_VISTOS_MAX];
+   // O TETO DE FILEIRAS VALE AQUI TAMBEM (#195). Linha que ficou de fora
+   // porque o limite encheu nao e linha ausente: sem isto o substituto de uma
+   // fileira que voltou a responder era reanexado e a home passava do limite.
+@@ -2476,7 +2593,8 @@ static void preservarFileirasAusentes(CatItem **lote, int *n, int *cap,
+     // profile, and configuration. A still-configured URL does not make items
+     // from the previous profile safe to copy.
+     if (!fileiraPodeSerPreservada(old)) continue;
+-    got = linhaAnterior(old->chave, tmp, MAX_POR_FILEIRA, NULL);
++    got = linhaAnterior(old->chave, tmp, HOME_VISTOS_MAX, NULL);
++    got = homeVistosLimitar(got, *n, teto - *nFil - 1, homeVistosReserva());
+     if (!got && !old->estado) continue;
+     need = *n + got;
+     if (need > *cap) {
+@@ -2499,7 +2617,10 @@ static unsigned long long descAgoraMs(void);
+ 
+ // Sob catTrava.
+ static void rodadaSoltarLocked(RodadaCat *r) {
+-  if (--r->refs == 0) { free(r->t); free(r); }
++  if (--r->refs == 0) {
++    for (int i = 0; i < r->nT; i++) { free(r->t[i].extras); free(r->t[i].primeira); }
++    free(r->t); free(r);
++  }
+ }
+ // Quem monta acabou com a rodada (inteira, ou desistiu): nenhum fio pega
+ // pedido novo dela, e o ultimo a sair libera.
+@@ -2510,6 +2631,19 @@ static void rodadaSoltar(RodadaCat *r) {
+   pthread_mutex_unlock(&catTrava);
+ }
+ 
++static int catalogoPrimeiraGuardar(const CatItem *itens, int n, void *usuario) {
++  TarefaCat *t = usuario;
++  CatItem *copia = malloc(sizeof *copia * (size_t)n);
++  if (!copia) return 0;   // sem reserva segura, termina com a primeira pagina
++  memcpy(copia, itens, sizeof *copia * (size_t)n);
++  pthread_mutex_lock(&catTrava);
++  int continuar = !t->largada;
++  if (continuar) { t->primeira = copia; t->nPrimeira = n; }
++  pthread_mutex_unlock(&catTrava);
++  if (!continuar) free(copia);
++  return continuar;
++}
++
+ static void *fioCatalogo(void *u) {
+   RodadaCat *r = u;
+   for (;;) {
+@@ -2528,11 +2662,30 @@ static void *fioCatalogo(void *u) {
+ 
+     // QUANTOS e o ajuste (12/18/24, #163); o balde tem sempre o teto.
+     { int q = ajustes_itens_fileira();
++      CatItem *ampliados = NULL, *extras = NULL;
+       if (q > MAX_POR_FILEIRA) q = MAX_POR_FILEIRA;
+-      got = lerCatalogo(t->base, t->tipo, t->id, t->itens,
+-                        MAX_POR_FILEIRA, q, &respondeu); }
++      if (ajustes_ocultar_filmes_vistos() && !strcmp(t->tipo, "movie"))
++        ampliados = malloc(sizeof *ampliados * HOME_VISTOS_MAX);
++      got = lerCatalogoHomeParcial(t->base, t->tipo, t->id, ampliados ? ampliados : t->itens,
++                            ampliados ? HOME_VISTOS_MAX : MAX_POR_FILEIRA,
++                            q, t->paginavel, &respondeu, catalogoPrimeiraGuardar, t);
++      if (ampliados) {
++        int primeiros = got > MAX_POR_FILEIRA ? MAX_POR_FILEIRA : got;
++        if (primeiros) memcpy(t->itens, ampliados, sizeof *ampliados * (size_t)primeiros);
++        if (got > MAX_POR_FILEIRA) {
++          extras = malloc(sizeof *extras * (size_t)(got - MAX_POR_FILEIRA));
++          if (extras) memcpy(extras, ampliados + MAX_POR_FILEIRA,
++                             sizeof *extras * (size_t)(got - MAX_POR_FILEIRA));
++          else got = MAX_POR_FILEIRA;
++        }
++        free(ampliados);
++      }
++      // O montador so le o balde depois de `pronto`, publicado sob catTrava.
++      t->extras = extras;
++    }
+ 
+     pthread_mutex_lock(&catTrava);
++    if (!t->largada) { free(t->primeira); t->primeira = NULL; t->nPrimeira = 0; }
+     t->n = got;
+     t->respondeu = respondeu;
+     t->pronto = 1;
+@@ -4473,6 +4626,7 @@ static void *montar(void *u) {
+           snprintf(tarefas[nTarefas].base, sizeof tarefas[nTarefas].base, "%s", d->base ? d->base : "");
+           snprintf(tarefas[nTarefas].tipo, sizeof tarefas[nTarefas].tipo, "%s", d->tipo);
+           snprintf(tarefas[nTarefas].id, sizeof tarefas[nTarefas].id, "%s", d->id);
++          tarefas[nTarefas].paginavel = d->paginavel;
+           nTarefas++;
+           declPedida[ordem[cursor]] = 1;
+         }
+@@ -4509,7 +4663,7 @@ static void *montar(void *u) {
+             // Rascunho de quem monta para a linha anterior de um catalogo
+             // LARGADO: o balde dele ainda e do fio, que pode escrever nele.
+             // static: MAX_POR_FILEIRA CatItem passam de 370 KB, e montar() roda num fio so.
+-            static CatItem daLinhaAnterior[MAX_POR_FILEIRA];
++            static CatItem daLinhaAnterior[HOME_VISTOS_MAX];
+             for (;;) {
+               int pr;
+               unsigned long long agora = descAgoraMs();
+@@ -4534,9 +4688,11 @@ static void *montar(void *u) {
+               SDL_Delay(10);
+             }
+             if (largado) {
+-              got = 0; respondeu = 0;
+-              printf("[desc] catalogo lento: %s (%s); segue sem ele depois de %llu ms\n",
+-                     d->titulo, d->nomeAddon,
++              got = tarefas[k].nPrimeira;
++              respondeu = got > 0;
++              if (got) origem = tarefas[k].primeira;
++              printf("[desc] catalogo lento: %s (%s); primeira pagina: %d titulos depois de %llu ms\n",
++                     d->titulo, d->nomeAddon, got,
+                      (unsigned long long)(descAgoraMs() - tarefas[k].inicioMs));
+             } else {
+               got = tarefas[k].n;
+@@ -4572,16 +4728,26 @@ static void *montar(void *u) {
+                        d->titulo, d->nomeAddon);
+               // Timeout preserva o ultimo lote bom desta chave. No primeiro
+               // arranque, sem snapshot, segue omitida de forma segura.
+-              got = linhaAnterior(d->chave, daLinhaAnterior, MAX_POR_FILEIRA, NULL);
++              got = linhaAnterior(d->chave, daLinhaAnterior, HOME_VISTOS_MAX, NULL);
+               origem = daLinhaAnterior;
+               // Sem lote anterior a vaga vai para o seguinte, mas a chave fica
+               // no snapshot: a proxima volta pede este de novo (#195).
+               if (!got) { pendSnapGuardar(d->chave, nFil); continue; }
+             }
+-            GARANTE(MAX_POR_FILEIRA + 2);
++            { int restam = teto - nFil - 1;
++              int candidatos = nTarefas - k - 1 + nOrdem - cursor;
++              if (candidatos < restam) restam = candidatos;
++              got = homeVistosLimitar(got, n, restam, homeVistosReserva()); }
++            GARANTE(got + 2);
+             if (got > cap - n) got = cap - n;
+-            if (got > 0)
+-              memcpy(lote + n, origem, sizeof(CatItem) * (size_t)got);
++            if (got > 0) {
++              int primeiros = origem == tarefas[k].itens && got > MAX_POR_FILEIRA
++                             ? MAX_POR_FILEIRA : got;
++              memcpy(lote + n, origem, sizeof(CatItem) * (size_t)primeiros);
++              if (primeiros < got)
++                memcpy(lote + n + primeiros, tarefas[k].extras,
++                       sizeof(CatItem) * (size_t)(got - primeiros));
++            }
+           {
+             CatFileira *f = &fil[nFil++];
+             memset(f, 0, sizeof *f);
+@@ -4674,10 +4840,12 @@ static void *montar(void *u) {
+         }
+         if (dh && dh->base && dh->base[0] && (fil_estado_chave(dh->chave) == FIL_FORA ||
+                                               fil_estado_chave(dh->chave) == FIL_NA_FILA)) {
+-          static CatItem hItens[MAX_POR_FILEIRA];
++          static CatItem hItens[HOME_VISTOS_MAX];
+           int resp = 0, qtd = ajustes_itens_fileira(), got;
+           if (qtd > MAX_POR_FILEIRA) qtd = MAX_POR_FILEIRA;
+-          got = lerCatalogo(dh->base, dh->tipo, dh->id, hItens, MAX_POR_FILEIRA, qtd, &resp);
++          got = lerCatalogoHome(dh->base, dh->tipo, dh->id, hItens,
++                                HOME_VISTOS_MAX, qtd, dh->paginavel, &resp);
++          got = homeVistosLimitar(got, n, 0, homeVistosReserva());
+           printf("[desc] destaque: catalogo %s so para o destaque (%d titulo(s))\n", dh->titulo, got);
+           if (got > 0) {
+             GARANTE(got);
+@@ -5361,6 +5529,17 @@ void desc_esquecer(void) {
+   maniCacheLimpar();
+ }
+ 
++void desc_ocultar_vistos_atualizar(void) {
++  static int anterior = -1;
++  int ocultar = ajustes_ocultar_filmes_vistos();
++  if (anterior == ocultar) return;
++  // O arranque ja monta com o valor salvo. So a transicao pedida na tela
++  // precisa de uma volta extra; revisao de progresso nao dispara nada aqui.
++  int preencher = anterior == 0 && ocultar;
++  anterior = ocultar;
++  if (preencher) desc_repetir_silencioso();
++}
++
+ // --- episodios sob demanda ---------------------------------------------------
+ 
+ // CACHE LRU DO /meta DAS SERIES.
+@@ -7755,6 +7934,40 @@ static ColSource vtFonte;
+ static int      vtProvedor;
+ static pthread_mutex_t vtTrava = PTHREAD_MUTEX_INITIALIZER;
+ 
++// #366: o filtro e uma PROJECAO da lista recebida, nunca uma remocao dela.
++// Desligar o ajuste ou desmarcar um filme devolve o mesmo titulo, na ordem do
++// addon, sem outra viagem de rede. vtN/skip/limites continuam contando a lista
++// crua; uma pagina cheia de vistos nao pode ser confundida com fim de catalogo.
++static int vtVisiveis[VT_MAX], vtNVisiveis;
++static int vtProjN = -1, vtProjOcultar;
++static unsigned vtProjGeracao, vtProjItens, vtProjRevisao;
++
++// Chamado sob vtTrava. O historico e o progresso usam as mesmas fontes do selo
++// do cartaz; tipos incertos, series e canais nunca entram no filtro de FILMES.
++static int vtProjetar(void) {
++  int ocultar = ajustes_ocultar_filmes_vistos();
++  unsigned itens = cat_revisao_itens();
++  if (vtProjN == vtN && vtProjGeracao == vtGeracao &&
++      vtProjOcultar == ocultar && (!ocultar || vtProjItens == itens)) return vtNVisiveis;
++  vtNVisiveis = 0;
++  for (int i = 0; i < vtN; i++)
++    if (!ocultar || !desc_filme_visto(&vtItens[i]))
++      vtVisiveis[vtNVisiveis++] = i;
++  vtProjN = vtN; vtProjGeracao = vtGeracao; vtProjOcultar = ocultar;
++  vtProjItens = itens;
++  vtProjRevisao++;
++  return vtNVisiveis;
++}
++
++// Um pedido pode atravessar algumas paginas inteiramente vistas para achar
++// algo para mostrar. O teto torna esse preenchimento limitado mesmo quando um
++// addon ignora skip; duplicatas e os limites crus ainda encerram a leitura.
++#define VT_VISTOS_PAGINAS_MAX 3
++static int vtPaginaSoDeVistos(int antes, int adicionados, int paginas) {
++  return ajustes_ocultar_filmes_vistos() && adicionados > 0 && !vtFim &&
++         !vtErro && paginas < VT_VISTOS_PAGINAS_MAX && vtProjetar() == antes;
++}
++
+ // Um item de resultado do TMDB (results[], items[], cast[], crew[],
+ // parts[]) vira CatItem. O id fica "tmdb:<n>" — nao e imdb, e quem abre
+ // resolve pelo desc_pedir_titulo_tmdb (vertudo checa o prefixo). O tipo vem
+@@ -7924,12 +8137,17 @@ static const char *tmdbMontarUrl(const ColSource *f, int pagina,
+ 
+ static void *fioVerTudo(void *u) {
+   (void)u;
++  unsigned geracaoPaginas = 0;
++  int paginas = 0;
+   for (;;) {
+   char url[NV_ADDON_PEDIDO_MAX], base[NV_ADDON_URL_MAX], type[8], id[96], genre[96], encoded[290], *corpo;
+-  int raw=0, ocultos=0, skip, cap, prov;unsigned generation;
++  int raw=0, ocultos=0, skip, cap, prov, antes;unsigned generation;
+   ColSource fonte;
+   pthread_mutex_lock(&vtTrava);
+   skip=vtPagina;generation=vtGeracao;prov=vtProvedor;
++  if (geracaoPaginas != generation) { geracaoPaginas = generation; paginas = 0; }
++  paginas++;
++  antes = vtProjetar();
+   memset(&fonte,0,sizeof fonte);fonte=vtFonte;
+   snprintf(base,sizeof base,"%s",vtBase);snprintf(type,sizeof type,"%s",vtTipo);
+   snprintf(id,sizeof id,"%s",vtCat);snprintf(genre,sizeof genre,"%s",vtGenre);
+@@ -8007,6 +8225,7 @@ static void *fioVerTudo(void *u) {
+     if (prov==2&&nl) trakt_enfeitar_lote(lote,nl);
+     pthread_mutex_lock(&vtTrava);
+     if(generation!=vtGeracao){pthread_mutex_unlock(&vtTrava);free(lote);continue;}
++    int seguir = 0;
+     { int added=ocultos;   // pagina so de futuros nao encerra a paginacao
+       for(int i=0;i<nl&&vtN<VT_MAX;i++){
+         int dup=0;
+@@ -8017,9 +8236,11 @@ static void *fioVerTudo(void *u) {
+       }
+       vtErro=!ok;
+       if(ok){if(semMais||!added||vtN>=VT_MAX)vtFim=1;else vtPagina=skip+1;}
+-      vtFioVivo=0; }
++      seguir = vtPaginaSoDeVistos(antes, added, paginas);
++      if (!seguir) vtFioVivo=0; }
+     pthread_mutex_unlock(&vtTrava);
+     free(lote);
++    if (seguir) continue;
+     return NULL;
+   }
+ 
+@@ -8062,8 +8283,10 @@ static void *fioVerTudo(void *u) {
+   // Skip usa quantidade recebida, não 100 presumidos. Muitos addons entregam
+   // 20/50 por página. Repetição sem novos ids também termina a paginação.
+   if(valid){vtPagina+=raw;if(!raw||!added||vtN>=cap)vtFim=1;}
+-  vtFioVivo=0;
++  int seguir = vtPaginaSoDeVistos(antes, added, paginas);
++  if (!seguir) vtFioVivo=0;
+   pthread_mutex_unlock(&vtTrava);
++  if (seguir) continue;
+   return NULL;
+   }
+ }
+@@ -8095,7 +8318,11 @@ void desc_vertudo_filtro(const char *base, const char *tipo, const char *catId,c
+   // recomecar do zero (o dono pode ter voltado e entrado de novo).
+   if (!vtProvedor && !strcmp(vtBase, base) && !strcmp(vtTipo, tipo) && !strcmp(vtCat, catId)
+       && !strcmp(vtGenre,genre?genre:"") && vtN > 0) {
++    // Reabrir e um pedido explicito: se o lote limitado anterior so tinha
++    // vistos, deixa procurar mais paginas sem um ciclo automatico sem fim.
++    int preencher = ajustes_ocultar_filmes_vistos() && !vtProjetar() && !vtFim && !vtErro;
+     pthread_mutex_unlock(&vtTrava);
++    if (preencher) vtDisparar();
+     return;
+   }
+   snprintf(vtBase, sizeof vtBase, "%s", base);
+@@ -8117,7 +8344,10 @@ void desc_vertudo_fonte(const ColSource *s) {
+   memset(&copia, 0, sizeof copia); copia = *s;
+   pthread_mutex_lock(&vtTrava);
+   if (vtProvedor && !memcmp(&vtFonte, &copia, sizeof copia) && vtN > 0) {
+-    pthread_mutex_unlock(&vtTrava); return;
++    int preencher = ajustes_ocultar_filmes_vistos() && !vtProjetar() && !vtFim && !vtErro;
++    pthread_mutex_unlock(&vtTrava);
++    if (preencher) vtDisparar();
++    return;
+   }
+   vtFonte = copia;
+   vtProvedor = !strcmp(s->prov, "trakt") ? 2 : 1;
+@@ -8128,13 +8358,24 @@ void desc_vertudo_fonte(const ColSource *s) {
+ }
+ 
+ void desc_vertudo_mais(void) { vtDisparar(); }
+-int  desc_vertudo_n(void) { pthread_mutex_lock(&vtTrava);int n=vtN;pthread_mutex_unlock(&vtTrava);return n; }
++int  desc_vertudo_n(void) { pthread_mutex_lock(&vtTrava);int n=vtProjetar();pthread_mutex_unlock(&vtTrava);return n; }
++int  desc_vertudo_n_bruto(void) { pthread_mutex_lock(&vtTrava);int n=vtN;pthread_mutex_unlock(&vtTrava);return n; }
++unsigned desc_vertudo_revisao(void) { pthread_mutex_lock(&vtTrava);vtProjetar();unsigned r=vtProjRevisao;pthread_mutex_unlock(&vtTrava);return r; }
+ int  desc_vertudo_carregando(void) { pthread_mutex_lock(&vtTrava);int n=vtFioVivo;pthread_mutex_unlock(&vtTrava);return n; }
+ int  desc_vertudo_fim(void) { pthread_mutex_lock(&vtTrava);int n=vtFim;pthread_mutex_unlock(&vtTrava);return n; }
+ int  desc_vertudo_erro(void) { pthread_mutex_lock(&vtTrava);int n=vtErro;pthread_mutex_unlock(&vtTrava);return n; }
+ void desc_vertudo_fechar(void) { /* guarda o que leu; ver desc_vertudo_abrir */ }
+ 
+ int desc_vertudo_item(int i, CatItem *dst) {
++  int ok = 0;
++  pthread_mutex_lock(&vtTrava);
++  int n = vtProjetar();
++  if (dst && i >= 0 && i < n) { memcpy(dst, &vtItens[vtVisiveis[i]], sizeof *dst); ok = 1; }
++  pthread_mutex_unlock(&vtTrava);
++  return ok;
++}
++
++int desc_vertudo_item_bruto(int i, CatItem *dst) {
+   int ok = 0;
+   pthread_mutex_lock(&vtTrava);
+   if (dst && i >= 0 && i < vtN) { memcpy(dst, &vtItens[i], sizeof *dst); ok = 1; }
+diff --git a/src/descoberta.h b/src/descoberta.h
+index f266756..c5a7925 100644
+--- a/src/descoberta.h
++++ b/src/descoberta.h
+@@ -103,6 +103,13 @@ int desc_catalogos_fora(void);
+ // ordem, de colecao ou de limite — ver a nota longa em descoberta.c. Chamar do
+ // fio principal.
+ void desc_remontar_fileiras(void);
++// #366: observa o ajuste no fio principal. Ligar pede UMA montagem silenciosa
++// para preencher fileiras curtas; desligar so devolve os indices ja recebidos.
++// Mudancas de progresso/historico se refletem nos indices, sem refazer a rede.
++void desc_ocultar_vistos_atualizar(void);
++// Mesmo estado do selo do catalogo para um meta recebido fora dele: historico
++// conhecido ou progresso local. So o tipo movie e excluivel, nunca serie/canal.
++int desc_filme_visto(const CatItem *item);
+ 
+ // Le a chave do TMDB (art/tmdb.txt). Sem ela o elenco fica so com nomes, sem
+ // foto nem personagem.
+@@ -238,6 +245,13 @@ int desc_vertudo_erro(void);
+ void desc_vertudo_mais(void);
+ int  desc_vertudo_n(void);
+ int  desc_vertudo_item(int i, CatItem *dst);
++// Catalogo recebido, antes do filtro de vistos (#366). Para caches derivados
++// da Vitrine conservarem filmes que devem voltar ao desligar o ajuste.
++int  desc_vertudo_n_bruto(void);
++int  desc_vertudo_item_bruto(int i, CatItem *dst);
++// Muda junto da projecao visivel, inclusive quando so trocam as identidades
++// (mesma quantidade de cards): ordem, caches e foco guardado precisam reajustar.
++unsigned desc_vertudo_revisao(void);
+ int  desc_vertudo_carregando(void);
+ // 1 quando a ultima pagina veio curta: nao ha mais o que pedir.
+ int  desc_vertudo_fim(void);
+diff --git a/src/home.c b/src/home.c
+index 72e1c38..4de3e1f 100644
+--- a/src/home.c
++++ b/src/home.c
+@@ -181,6 +181,25 @@ static int fileiraItemIndice(const Fileira *f, int coluna) {
+   return f->usaItens ? f->itens[coluna] : f->ini + coluna;
+ }
+ 
++// #366: somente a descoberta muda. O catalogo, as listas e o historico
++// continuam inteiros; os indices visiveis conservam a ordem do provedor.
++static int filmeVistoOculto(const CatItem *item) {
++  return ajustes_ocultar_filmes_vistos() && item &&
++         !strcmp(item->tipo, "movie") && cat_visto(item);
++}
++static void filtrarFilmesVistos(Fileira *f, const CatFileira *cf) {
++  if (!f || !cf || !ajustes_ocultar_filmes_vistos() ||
++      !cf->base[0] || !cf->catId[0]) return;
++  int teto = f->n, visiveis = 0;
++  for (int c = 0; c < cf->n && visiveis < teto && visiveis < MAX_CARDS; c++) {
++    int indice = cf->ini + c;
++    const CatItem *item = cat_item(indice);
++    if (item && !filmeVistoOculto(item)) f->itens[visiveis++] = indice;
++  }
++  f->usaItens = 1;
++  f->n = visiveis;
++}
++
+ static char bd[MAX_ARTE][512];    int nBd = 0;    // backdrops 16:9
+ static char pst[MAX_ARTE][512];   int nPst = 0;   // posters 2:3
+ 
+@@ -881,7 +900,8 @@ static int heroSetN;
+ // Assinatura do que a lista depende. Refazer a lista a cada quadro custaria o
+ // strcmp da preferencia e uma varredura das fileiras; refazer so quando algo
+ // mudou custa tres comparacoes de inteiro.
+-static unsigned heroSetRev, heroSetFilRev;
++static unsigned heroSetRev, heroSetFilRev, heroSetItensRev;
++static int heroSetOcultaVistos;
+ static int heroSetCat, heroSetNFil;
+ 
+ // Sorteio ESTAVEL dentro da sessao: o embaralhamento usa uma semente propria
+@@ -903,7 +923,11 @@ static void heroMontarSet(void) {
+     int m = total < (int)(sizeof baralho / sizeof *baralho)
+           ? total : (int)(sizeof baralho / sizeof *baralho);
+     unsigned x = heroSemente ? heroSemente : (heroSemente = (unsigned)SDL_GetTicks() | 1u);
+-    for (i = 0; i < m; i++) baralho[i] = i;
++    int candidatos = 0;
++    for (i = 0; i < m; i++)
++      if (!filmeVistoOculto(cat_item(i))) baralho[candidatos++] = i;
++    m = candidatos;
++    if (n > m) n = m;
+     for (i = 0; i < n && i < m; i++) {
+       int j;
+       x = x * 1103515245u + 12345u;
+@@ -935,20 +959,26 @@ static void heroMontarSet(void) {
+         int k;
+         if (!cf || strcmp(cf->chave, fonte)) continue;
+         for (k = 0; k < cf->n && heroSetN < HOME_HERO_LISTA; k++)
+-          if (cf->ini + k >= 0 && cf->ini + k < cat_n()) heroSet[heroSetN++] = cf->ini + k;
++          if (cf->ini + k >= 0 && cf->ini + k < cat_n() &&
++              !filmeVistoOculto(cat_item(cf->ini + k))) heroSet[heroSetN++] = cf->ini + k;
+         break;
+       }
+     }
+     if (heroSetN) return;
+   }
+-  for (i = 0; i < total && heroSetN < HOME_HERO_LISTA; i++) heroSet[heroSetN++] = i;
++  for (i = 0; i < total && heroSetN < HOME_HERO_LISTA; i++)
++    if (!filmeVistoOculto(cat_item(i))) heroSet[heroSetN++] = i;
+ }
+ 
+ static void heroSetGarantir(void) {
+   unsigned fr = fil_revisao();
++  int ocultar = ajustes_ocultar_filmes_vistos();
++  unsigned ir = ocultar ? cat_revisao_itens() : 0;
+   int cn = cat_n(), nf = nFileiras;
+-  if (heroSetRev && fr == heroSetFilRev && cn == heroSetCat && nf == heroSetNFil)
++  if (heroSetRev && fr == heroSetFilRev && cn == heroSetCat && nf == heroSetNFil &&
++      ocultar == heroSetOcultaVistos && ir == heroSetItensRev)
+     return;
++  heroSetOcultaVistos = ocultar; heroSetItensRev = ir;
+   heroSetFilRev = fr; heroSetCat = cn; heroSetNFil = nf; heroSetRev = 1;
+   heroMontarSet();
+   // Os candidatos ja sao conhecidos: completa em segundo plano a sinopse dos
+@@ -2466,7 +2496,8 @@ static int assinaturaPrefs(void) {
+        | (ajustes_home_layout() << 8)
+        // Ligar/desligar o destaque decide se a primeira fileira vira vitrine
+        // (vitrineNaPrimeira).
+-       | (ajustes_hero_ligado() ? 1 << 12 : 0);
++       | (ajustes_hero_ligado() ? 1 << 12 : 0)
++       | (ajustes_ocultar_filmes_vistos() ? 1 << 13 : 0);
+ }
+ 
+ // A PRIMEIRA FILEIRA DE CATALOGO VIRA VITRINE (cartoes 16:9 grandes) so quando
+@@ -2568,6 +2599,7 @@ static void dinAtribuirTipos(int total) {
+ // nova vai para o fim) e deixaria a pessoa separa-la da outra metade.
+ static int proxHome[MAX_CARDS], nProxHome;
+ static void sincronizarFileiras(void) {
++  desc_ocultar_vistos_atualizar();
+   int nCat = cat_n_fileiras(), r, destino = 0;
+   int assin = assinaturaPrefs();
+   // #392: reservas expiram em 30 s, mesmo sem nova resposta da rede.
+@@ -2595,8 +2627,9 @@ static void sincronizarFileiras(void) {
+   // direto (cat_revisao); cat_revisao e bumpado em cat_definir_tudo,
+   // cat_trocar_continuar E cat_republicar_fileiras, cobrindo todo caminho
+   // que troca fils[].
+-  static unsigned ultCatRev, ultFilRev, ultColRev, ultFilLim, ultCwoRev, ultOrdemRev, ultRetRev;
++  static unsigned ultCatRev, ultFilRev, ultColRev, ultFilLim, ultCwoRev, ultOrdemRev, ultRetRev, ultItensRev;
+   unsigned catRev = cat_revisao(), filRev = fil_revisao();
++  unsigned itensRev = ajustes_ocultar_filmes_vistos() ? cat_revisao_itens() : 0;
+   int filLim = fil_limite();
+   unsigned colRev = col_revisao();
+   unsigned ordemRev = catordem_revisao();
+@@ -2604,7 +2637,7 @@ static void sincronizarFileiras(void) {
+   // (a mesma lista publicada, so a divisao outra), e o hash abaixo ja o pesa.
+   unsigned cwoRev = cwo_revisao();
+   if (nCat == filsAplicadas && assin == prefsAplicadas &&
+-      catRev == ultCatRev && filRev == ultFilRev &&
++      catRev == ultCatRev && filRev == ultFilRev && itensRev == ultItensRev &&
+       colRev == ultColRev && ordemRev == ultOrdemRev &&
+       filLim == ultFilLim && cwoRev == ultCwoRev &&
+       retomarAplicada == retomarRev && cw_retido_rev() == ultRetRev &&
+@@ -2618,10 +2651,12 @@ static void sincronizarFileiras(void) {
+     colfileiras_sincronizar();
+   filRev = fil_revisao(); colRev = col_revisao();
+   ultCatRev = catRev; ultFilRev = filRev; ultColRev = colRev; ultFilLim = (unsigned)filLim;
++  ultItensRev = itensRev;
+   ultCwoRev = cwoRev;
+   ultOrdemRev = ordemRev;
+   ultRetRev = cw_retido_rev();
+   unsigned revisao = 2166136261u;
++  revisao = (revisao ^ itensRev) * 16777619u;
+   revisao = (revisao ^ (unsigned)reservaEstado) * 16777619u;
+   // A escolha LOCAL de fileiras entra na mesma assinatura do catalogo: ordem,
+   // liga/desliga, forma, tamanho e limite mudam a lista tanto quanto uma
+@@ -2737,6 +2772,7 @@ static void sincronizarFileiras(void) {
+     snprintf(fileiras[destino].catId, sizeof fileiras[destino].catId, "%s", cf->catId);
+     snprintf(fileiras[destino].catTipo, sizeof fileiras[destino].catTipo, "%s", cf->tipo);
+     fileiras[destino].ini = cf->ini;
++    filtrarFilmesVistos(&fileiras[destino], cf);
+     if(!strcmp(cf->chave,"social_activity"))fileiras[destino].tipo=FILEIRA_SOCIAL;
+     // UM TITULO, UM LUGAR (cwretido.h): o que o cartao da ilha ou a faixa
+     // "Retomar agora" segura nao entra aqui. So a lista desenhada muda; o
+@@ -2772,14 +2808,14 @@ static void sincronizarFileiras(void) {
+     Fileira *d = &fileiras[destaqueIndice];
+     int baseN = d->n;
+     int c, r;
+-    for (c = 0; c < baseN && c < MAX_CARDS; c++) d->itens[c] = d->ini + c;
++    for (c = 0; c < baseN && c < MAX_CARDS; c++) d->itens[c] = fileiraItemIndice(d, c);
+     d->usaItens = 1;
+     for (r = destaqueIndice + 1;
+          r < destino && d->n < DESTAQUE_OPCOES; r++) {
+       Fileira *fonte = &fileiras[r];
+       if (!fonte->base[0] || !fonte->catId[0]) continue;
+       for (c = 0; c < fonte->n && d->n < DESTAQUE_OPCOES; c++) {
+-        int idx = fonte->ini + c;
++        int idx = fileiraItemIndice(fonte, c);
+         int repetido = 0, k;
+         if (idx < 0 || idx >= cat_n()) continue;
+         for (k = 0; k < d->n; k++)
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index adb6ebf..31dd2f0 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Зареждане на разписанието…"),
+   T("Carregando títulos…", "Зареждане на заглавия…"),
+   T("Carregando…", "Зареждане…"),
++  T("Carregar mais", "Зареди още"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Плакат с описание до него: година, жанр, оценка и началото на сюжета."),
+   T("Cartaz com ficha", "Плакат с описание"),
+   T("Cartaz em foco", "Плакат във фокус"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Благодарим, че сте тук."),
+   T("Oceano", "Океан"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Скрива подробностите на миниатюрата, за да избегнете спойлери за епизоди, които не сте гледали."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Скрива гледаните филми в редовете за откриване. Търсенето и Библиотеката продължават да показват всички филми. Важи за този профил на това устройство."),
+   T("Ocultar", "Скрий"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Скриване на гледани филми"),
+   T("Ocultar não lançados", "Скрий неиздадените"),
+   T("Oculto no guia", "Скрито в справочника"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index 7296a4e..05f7bcd 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Učitavanje rasporeda…"),
+   T("Carregando títulos…", "Učitavanje naslova…"),
+   T("Carregando…", "Učitavanje…"),
++  T("Carregar mais", "Učitaj više"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakat s detaljima pored: godina, žanr, ocjena i početak sadržaja."),
+   T("Cartaz com ficha", "Plakat s detaljima"),
+   T("Cartaz em foco", "Poster u fokusu"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Hvala što ste ovdje."),
+   T("Oceano", "Okean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Sakriva detalje sličice kako bi se izbjegli spojleri za epizode koje niste gledali."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skriva gledane filmove u redovima za otkrivanje. Pretraga i Biblioteka i dalje prikazuju sve filmove. Važi za ovaj profil na ovom uređaju."),
+   T("Ocultar", "Sakrij"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Sakrij gledane filmove"),
+   T("Ocultar não lançados", "Sakrij neobjavljeno"),
+   T("Oculto no guia", "Skriveno u vodiču"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index e3de09f..c46b6cd 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Načítá se rozvrh…"),
+   T("Carregando títulos…", "Načítají se tituly…"),
+   T("Carregando…", "Načítání…"),
++  T("Carregar mais", "Načíst další"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakát s popisem vedle: rok, žánr, hodnocení a začátek děje."),
+   T("Cartaz com ficha", "Plakát s popisem"),
+   T("Cartaz em foco", "Plakát ve výběru"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Děkujeme, že jste tu."),
+   T("Oceano", "Oceán"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Skryje detaily náhledu, aby se předešlo spoilerům u epizod, které jste ještě neviděli."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skryje zhlédnuté filmy v řádcích objevování. Vyhledávání a Knihovna nadále zobrazují všechny filmy. Platí pro tento profil na tomto zařízení."),
+   T("Ocultar", "Skrýt"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Skrýt zhlédnuté filmy"),
+   T("Ocultar não lançados", "Skrýt nevydané"),
+   T("Oculto no guia", "Skryto v průvodci"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index 8407a12..3196184 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Indlæser programoversigt…"),
+   T("Carregando títulos…", "Indlæser titler…"),
+   T("Carregando…", "Indlæser…"),
++  T("Carregar mais", "Indlæs flere"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakat med detaljer ved siden af: år, genre, bedømmelse og starten af handlingen."),
+   T("Cartaz com ficha", "Plakat med detaljer"),
+   T("Cartaz em foco", "Plakat i fokus"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Tak, fordi du er her."),
+   T("Oceano", "Ocean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Skjuler detaljer i miniaturen for at undgå spoilere om afsnit, du endnu ikke har set."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skjuler sete film i opdagelsesrækkerne. Søgning og Bibliotek viser stadig alle film. Gælder denne profil på denne enhed."),
+   T("Ocultar", "Skjul"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Skjul sete film"),
+   T("Ocultar não lançados", "Skjul ikke udgivne"),
+   T("Oculto no guia", "Skjult i guiden"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index 19f33b1..688180c 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -1065,6 +1065,7 @@
+   T("Carregando programação…", "Programm wird geladen…"),
+   T("Carregando títulos…", "Titel werden geladen…"),
+   T("Carregando…", "Wird geladen…"),
++  T("Carregar mais", "Mehr laden"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Poster mit Steckbrief daneben: Jahr, Genre, Bewertung und Anfang der Handlung."),
+   T("Cartaz com ficha", "Poster mit Steckbrief"),
+   T("Cartaz em foco", "Poster im Fokus"),
+@@ -3365,8 +3366,10 @@
+   T("Obrigado por estar aqui.", "Danke, dass du da bist."),
+   T("Oceano", "Ozean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Blendet Vorschaudetails aus, um Spoiler zu Folgen zu vermeiden, die du noch nicht gesehen hast."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Blendet gesehene Filme in den Entdeckungsreihen aus. Suche und Bibliothek zeigen weiterhin alle Filme. Gilt für dieses Profil auf diesem Gerät."),
+   T("Ocultar", "Ausblenden"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Gesehene Filme ausblenden"),
+   T("Ocultar não lançados", "Unveröffentlichte ausblenden"),
+   T("Oculto no guia", "Im Guide ausgeblendet"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index 6f66025..4560ebf 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Φόρτωση προγράμματος…"),
+   T("Carregando títulos…", "Φόρτωση τίτλων…"),
+   T("Carregando…", "Φόρτωση…"),
++  T("Carregar mais", "Φόρτωση περισσότερων"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Αφίσα με τα στοιχεία δίπλα: έτος, είδος, βαθμολογία και η αρχή της πλοκής."),
+   T("Cartaz com ficha", "Αφίσα με στοιχεία"),
+   T("Cartaz em foco", "Αφίσα σε εστίαση"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Ευχαριστούμε που είσαι εδώ."),
+   T("Oceano", "Ωκεανός"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Κρύβει τις λεπτομέρειες της μικρογραφίας για να αποφύγεις spoilers στα επεισόδια που δεν έχεις δει."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Αποκρύπτει τις ταινίες που έχετε δει από τις σειρές ανακάλυψης. Η Αναζήτηση και η Βιβλιοθήκη συνεχίζουν να εμφανίζουν όλες τις ταινίες. Ισχύει για αυτό το προφίλ σε αυτή τη συσκευή."),
+   T("Ocultar", "Απόκρυψη"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Απόκρυψη προβεβλημένων ταινιών"),
+   T("Ocultar não lançados", "Απόκρυψη όσων δεν έχουν κυκλοφορήσει"),
+   T("Oculto no guia", "Κρυφό στον οδηγό"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index e27a20f..39d7b09 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -1065,6 +1065,7 @@
+   T("Carregando programação…", "Cargando programación…"),
+   T("Carregando títulos…", "Cargando títulos…"),
+   T("Carregando…", "Cargando…"),
++  T("Carregar mais", "Cargar más"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Póster con su ficha al lado: año, género, nota y el comienzo de la sinopsis."),
+   T("Cartaz com ficha", "Póster con ficha"),
+   T("Cartaz em foco", "Póster enfocado"),
+@@ -3365,8 +3366,10 @@
+   T("Obrigado por estar aqui.", "Gracias por estar aquí."),
+   T("Oceano", "Océano"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Oculta detalles de la miniatura para evitar spoilers de episodios que aún no has visto."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Oculta las películas ya vistas en las filas de descubrimiento. La Búsqueda y la Biblioteca siguen mostrando todas las películas. Se aplica a este perfil en este dispositivo."),
+   T("Ocultar", "Ocultar"),
+   T("Ocultar avançados · %d", "Ocultar opciones avanzadas · %d"),
++  T("Ocultar filmes assistidos", "Ocultar películas vistas"),
+   T("Ocultar não lançados", "Ocultar no estrenados"),
+   T("Oculto no guia", "Oculto en la guía"),
+   T("Ocultos · %d", "Ocultos · %d"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index 935f507..ef2066b 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -1065,6 +1065,7 @@
+   T("Carregando programação…", "Chargement du programme…"),
+   T("Carregando títulos…", "Chargement des titres…"),
+   T("Carregando…", "Chargement…"),
++  T("Carregar mais", "Charger plus"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Affiche avec sa fiche à côté : année, genre, note et début du synopsis."),
+   T("Cartaz com ficha", "Affiche avec fiche"),
+   T("Cartaz em foco", "Affiche en focus"),
+@@ -3365,8 +3366,10 @@
+   T("Obrigado por estar aqui.", "Merci d'être là."),
+   T("Oceano", "Océan"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Masque les détails de la miniature pour éviter les spoilers des épisodes non vus."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Masque les films déjà vus dans les rangées de découverte. La Recherche et la Bibliothèque affichent toujours tous les films. S’applique à ce profil sur cet appareil."),
+   T("Ocultar", "Masquer"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Masquer les films vus"),
+   T("Ocultar não lançados", "Masquer les non sortis"),
+   T("Oculto no guia", "Masqué dans le guide"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index e21ccfe..8de9068 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Menetrend betöltése…"),
+   T("Carregando títulos…", "Címek betöltése…"),
+   T("Carregando…", "Betöltés…"),
++  T("Carregar mais", "Továbbiak betöltése"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakát mellette az adatlappal: év, műfaj, értékelés és a cselekmény eleje."),
+   T("Cartaz com ficha", "Plakát adatlappal"),
+   T("Cartaz em foco", "Kijelölt poszter"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Köszönjük, hogy itt vagy."),
+   T("Oceano", "Óceán"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Elrejti a miniatűr részleteit, hogy elkerüld a spoilereket a még meg nem nézett epizódoknál."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Elrejti a megnézett filmeket a felfedezési sorokból. A Keresés és a Könyvtár továbbra is minden filmet megjelenít. Erre a profilra vonatkozik ezen az eszközön."),
+   T("Ocultar", "Elrejtés"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Megnézett filmek elrejtése"),
+   T("Ocultar não lançados", "Meg nem jelentek elrejtése"),
+   T("Oculto no guia", "Rejtve az útmutatóban"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index ead9b73..9b0c257 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Memuat jadwal…"),
+   T("Carregando títulos…", "Memuat judul…"),
+   T("Carregando…", "Memuat…"),
++  T("Carregar mais", "Muat lagi"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Poster dengan detail di sampingnya: tahun, genre, rating, dan awal sinopsis."),
+   T("Cartaz com ficha", "Poster dengan detail"),
+   T("Cartaz em foco", "Poster yang difokus"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Terima kasih sudah berada di sini."),
+   T("Oceano", "Samudra"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Menyembunyikan detail thumbnail untuk menghindari spoiler episode yang belum kamu tonton."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Menyembunyikan film yang sudah ditonton dari baris penemuan. Pencarian dan Perpustakaan tetap menampilkan semua film. Berlaku untuk profil ini di perangkat ini."),
+   T("Ocultar", "Sembunyikan"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Sembunyikan film yang sudah ditonton"),
+   T("Ocultar não lançados", "Sembunyikan yang belum rilis"),
+   T("Oculto no guia", "Disembunyikan di panduan"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index 32d37ef..41b71f9 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Caricamento della programmazione…"),
+   T("Carregando títulos…", "Caricamento dei titoli…"),
+   T("Carregando…", "Caricamento…"),
++  T("Carregar mais", "Carica altro"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Locandina con la scheda accanto: anno, genere, voto e l'inizio della trama."),
+   T("Cartaz com ficha", "Locandina con scheda"),
+   T("Cartaz em foco", "Locandina in focus"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Grazie di essere qui."),
+   T("Oceano", "Oceano"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Nasconde i dettagli delle miniature per evitare spoiler sugli episodi che non hai ancora guardato."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Nasconde i film già visti nelle righe di scoperta. Ricerca e Biblioteca continuano a mostrare tutti i film. Si applica a questo profilo su questo dispositivo."),
+   T("Ocultar", "Nascondi"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Nascondi i film visti"),
+   T("Ocultar não lançados", "Nascondi non usciti"),
+   T("Oculto no guia", "Nascosto nella guida"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index ea5207f..15b55d0 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "番組表を読み込み中…"),
+   T("Carregando títulos…", "作品を読み込み中…"),
+   T("Carregando…", "読み込み中…"),
++  T("Carregar mais", "さらに読み込む"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "横に詳細つきのポスター：年、ジャンル、評価、あらすじの冒頭。"),
+   T("Cartaz com ficha", "詳細つきポスター"),
+   T("Cartaz em foco", "フォーカス中のポスター"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "ご利用ありがとうございます。"),
+   T("Oceano", "オーシャン"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "未視聴のエピソードのネタバレを避けるため、サムネイルの詳細を隠します。"),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "視聴済みの映画を発見用の列で非表示にします。検索とライブラリには引き続きすべての映画が表示されます。この端末のこのプロフィールに適用されます。"),
+   T("Ocultar", "隠す"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "視聴済みの映画を非表示"),
+   T("Ocultar não lançados", "未公開を隠す"),
+   T("Oculto no guia", "ガイドで非表示"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 45c899b..0721579 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Kraunamas tvarkaraštis…"),
+   T("Carregando títulos…", "Kraunami pavadinimai…"),
+   T("Carregando…", "Kraunama…"),
++  T("Carregar mais", "Įkelti daugiau"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakatas su aprašu šalia: metai, žanras, įvertinimas ir siužeto pradžia."),
+   T("Cartaz com ficha", "Plakatas su aprašu"),
+   T("Cartaz em foco", "Pažymėtas plakatas"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Ačiū, kad esate čia."),
+   T("Oceano", "Vandenynas"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Paslepia miniatiūros detales, kad išvengtumėte neperžiūrėtų epizodų spoilerių."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Paslepia peržiūrėtus filmus atradimų eilutėse. Paieška ir Biblioteka vis tiek rodo visus filmus. Taikoma šiam profiliui šiame įrenginyje."),
+   T("Ocultar", "Slėpti"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Slėpti peržiūrėtus filmus"),
+   T("Ocultar não lançados", "Slėpti neišleistus"),
+   T("Oculto no guia", "Paslėpta vadove"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index 2a2a2ac..b450b95 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Schema laden…"),
+   T("Carregando títulos…", "Titels laden…"),
+   T("Carregando…", "Laden…"),
++  T("Carregar mais", "Meer laden"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Poster met de details ernaast: jaar, genre, score en het begin van de samenvatting."),
+   T("Cartaz com ficha", "Poster met details"),
+   T("Cartaz em foco", "Poster in focus"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Bedankt dat je er bent."),
+   T("Oceano", "Oceaan"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Verbergt miniatuurdetails om spoilers te voorkomen voor afleveringen die je nog niet hebt gezien."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Verbergt bekeken films in de ontdekkingsrijen. Zoeken en Bibliotheek tonen nog steeds alle films. Geldt voor dit profiel op dit apparaat."),
+   T("Ocultar", "Verbergen"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Bekeken films verbergen"),
+   T("Ocultar não lançados", "Onuitgebracht verbergen"),
+   T("Oculto no guia", "Verborgen in de gids"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 9bdf9ad..c4c8888 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Laster programoversikt…"),
+   T("Carregando títulos…", "Laster titler…"),
+   T("Carregando…", "Laster…"),
++  T("Carregar mais", "Last inn flere"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakat med detaljer ved siden av: år, sjanger, vurdering og starten av handlingen."),
+   T("Cartaz com ficha", "Plakat med detaljer"),
+   T("Cartaz em foco", "Plakat i fokus"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Takk for at du er her."),
+   T("Oceano", "Hav"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Skjuler detaljer i miniatyren for å unngå spoilere om episoder du ikke har sett ennå."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skjuler sette filmer i oppdagelsesradene. Søk og Bibliotek viser fortsatt alle filmer. Gjelder denne profilen på denne enheten."),
+   T("Ocultar", "Skjul"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Skjul sette filmer"),
+   T("Ocultar não lançados", "Skjul uutgitte"),
+   T("Oculto no guia", "Skjult i guiden"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index b7fad6b..adf5aaf 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Wczytywanie ramówki…"),
+   T("Carregando títulos…", "Wczytywanie tytułów…"),
+   T("Carregando…", "Wczytywanie…"),
++  T("Carregar mais", "Załaduj więcej"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakat z opisem obok: rok, gatunek, ocena i początek opisu."),
+   T("Cartaz com ficha", "Plakat z opisem"),
+   T("Cartaz em foco", "Plakat w fokusie"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Dziękujemy, że jesteś."),
+   T("Oceano", "Ocean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Ukrywa szczegóły miniatur, aby uniknąć spoilerów dla odcinków, których jeszcze nie obejrzałeś(-aś)."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Ukrywa obejrzane filmy w rzędach odkrywania. Wyszukiwanie i Biblioteka nadal pokazują wszystkie filmy. Dotyczy tego profilu na tym urządzeniu."),
+   T("Ocultar", "Ukryj"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Ukryj obejrzane filmy"),
+   T("Ocultar não lançados", "Ukryj niewydane"),
+   T("Oculto no guia", "Ukryty w przewodniku"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index ec8d698..e214550 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "A carregar programação…"),
+   T("Carregando títulos…", "A carregar títulos…"),
+   T("Carregando…", "A carregar…"),
++  T("Carregar mais", "Carregar mais"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Cartaz com a ficha ao lado: ano, género, nota e o início da sinopse."),
+   T("Cartaz com ficha", "Cartaz com ficha"),
+   T("Cartaz em foco", "Cartaz em foco"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Obrigado por estares aqui."),
+   T("Oceano", "Oceano"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Oculta detalhes da miniatura para evitar spoilers de episódios que ainda não viste."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Oculta os filmes já vistos nas filas de descoberta. A Pesquisa e a Biblioteca continuam a mostrar todos os filmes. Aplica-se a este perfil neste dispositivo."),
+   T("Ocultar", "Ocultar"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Ocultar filmes vistos"),
+   T("Ocultar não lançados", "Ocultar não estreados"),
+   T("Oculto no guia", "Oculto no guia"),
+   T("Ocultos · %d", "Ocultos · %d"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index 765fdaa..9f0407b 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -1065,6 +1065,7 @@
+   T("Carregando programação…", "Se încarcă programul…"),
+   T("Carregando títulos…", "Se încarcă titlurile…"),
+   T("Carregando…", "Se încarcă…"),
++  T("Carregar mais", "Încarcă mai multe"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Afiș cu detaliile alături: an, gen, notă și începutul rezumatului."),
+   T("Cartaz com ficha", "Afiș cu detalii"),
+   T("Cartaz em foco", "Afișul în focus"),
+@@ -3365,8 +3366,10 @@
+   T("Obrigado por estar aqui.", "Mulțumim că ești aici."),
+   T("Oceano", "Ocean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Ascunde detaliile miniaturii pentru a evita spoilerele la episoadele nevizionate."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Ascunde filmele deja vizionate din rândurile de descoperire. Căutarea și Biblioteca afișează în continuare toate filmele. Se aplică acestui profil pe acest dispozitiv."),
+   T("Ocultar", "Ascunde"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Ascunde filmele vizionate"),
+   T("Ocultar não lançados", "Ascunde nelansatele"),
+   T("Oculto no guia", "Ascuns în ghid"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 7318e5d..35c8862 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -1065,6 +1065,7 @@
+   T("Carregando programação…", "Загрузка программы передач…"),
+   T("Carregando títulos…", "Загрузка названий…"),
+   T("Carregando…", "Загрузка…"),
++  T("Carregar mais", "Загрузить ещё"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Постер с описанием рядом: год, жанр, оценка и начало описания."),
+   T("Cartaz com ficha", "Постер с описанием"),
+   T("Cartaz em foco", "Постер в фокусе"),
+@@ -3365,8 +3366,10 @@
+   T("Obrigado por estar aqui.", "Спасибо, что вы здесь."),
+   T("Oceano", "Океан"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Скрывает подробности миниатюры, чтобы избежать спойлеров к непросмотренным эпизодам."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Скрывает просмотренные фильмы в рядах рекомендаций. Поиск и Библиотека по-прежнему показывают все фильмы. Действует для этого профиля на этом устройстве."),
+   T("Ocultar", "Скрыть"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Скрывать просмотренные фильмы"),
+   T("Ocultar não lançados", "Скрывать невышедшее"),
+   T("Oculto no guia", "Скрыто в гиде"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index 7699558..c1a812f 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Načítava sa rozvrh…"),
+   T("Carregando títulos…", "Načítavajú sa tituly…"),
+   T("Carregando…", "Načítavanie…"),
++  T("Carregar mais", "Načítať ďalšie"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plagát s popisom vedľa: rok, žáner, hodnotenie a začiatok deja."),
+   T("Cartaz com ficha", "Plagát s popisom"),
+   T("Cartaz em foco", "Plagát vo výbere"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Ďakujeme, že ste tu."),
+   T("Oceano", "Oceán"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Skryje detaily náhľadu, aby sa predišlo spoilerom pri epizódach, ktoré ste ešte nevideli."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skryje pozreté filmy v riadkoch objavovania. Vyhľadávanie a Knižnica naďalej zobrazujú všetky filmy. Platí pre tento profil na tomto zariadení."),
+   T("Ocultar", "Skryť"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Skryť pozreté filmy"),
+   T("Ocultar não lançados", "Skryť nevydané"),
+   T("Oculto no guia", "Skryté v sprievodcovi"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index 5efb7b2..f1911de 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Nalaganje razporeda …"),
+   T("Carregando títulos…", "Nalaganje naslovov …"),
+   T("Carregando…", "Nalaganje …"),
++  T("Carregar mais", "Naloži več"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakat s podatki ob strani: leto, žanr, ocena in začetek opisa."),
+   T("Cartaz com ficha", "Plakat s podatki"),
+   T("Cartaz em foco", "Plakat v fokusu"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Hvala, da ste tu."),
+   T("Oceano", "Ocean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Skrije podrobnosti sličice, da se izognete spoilerjem za epizode, ki jih še niste gledali."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skrije ogledane filme v vrsticah odkrivanja. Iskanje in Knjižnica še naprej prikazujeta vse filme. Velja za ta profil v tej napravi."),
+   T("Ocultar", "Skrij"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Skrij ogledane filme"),
+   T("Ocultar não lançados", "Skrij neizdano"),
+   T("Oculto no guia", "Skrito v vodniku"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index 9c9c52b..fabcc75 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Učitavanje rasporeda…"),
+   T("Carregando títulos…", "Učitavanje naslova…"),
+   T("Carregando…", "Učitavanje…"),
++  T("Carregar mais", "Učitaj više"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Plakat sa detaljima pored: godina, žanr, ocena i početak sadržaja."),
+   T("Cartaz com ficha", "Plakat sa detaljima"),
+   T("Cartaz em foco", "Poster u fokusu"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Hvala što ste ovde."),
+   T("Oceano", "Okean"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Sakriva detalje sličice kako bi se izbegli spojleri za epizode koje niste gledali."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Skriva gledane filmove u redovima za otkrivanje. Pretraga i Biblioteka i dalje prikazuju sve filmove. Važi za ovaj profil na ovom uređaju."),
+   T("Ocultar", "Sakrij"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Sakrij gledane filmove"),
+   T("Ocultar não lançados", "Sakrij neobjavljeno"),
+   T("Oculto no guia", "Sakriveno u vodiču"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index 4eb3832..a67438c 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Laddar tablå…"),
+   T("Carregando títulos…", "Laddar titlar…"),
+   T("Carregando…", "Laddar…"),
++  T("Carregar mais", "Läs in fler"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Affisch med fakta bredvid: år, genre, betyg och början av handlingen."),
+   T("Cartaz com ficha", "Affisch med fakta"),
+   T("Cartaz em foco", "Affisch i fokus"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Tack för att du är här."),
+   T("Oceano", "Hav"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Döljer detaljer i miniatyren för att undvika spoilers om avsnitt du inte har sett."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Döljer sedda filmer i upptäcktsraderna. Sökning och Bibliotek visar fortfarande alla filmer. Gäller den här profilen på den här enheten."),
+   T("Ocultar", "Dölj"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Dölj sedda filmer"),
+   T("Ocultar não lançados", "Dölj ej utgivna"),
+   T("Oculto no guia", "Dold i guiden"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index 0f88765..ea87407 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -1065,6 +1065,7 @@
+   { "Carregando programação…", "Loading schedule…" },
+   { "Carregando títulos…", "Loading titles…" },
+   { "Carregando…", "Loading…" },
++  { "Carregar mais", "Load more" },
+   { "Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Poster with its details beside it: year, genre, rating and the start of the synopsis." },
+   { "Cartaz com ficha", "Poster with details" },
+   { "Cartaz em foco", "Focused poster" },
+@@ -3365,8 +3366,10 @@
+   { "Obrigado por estar aqui.", "Thank you for being here." },
+   { "Oceano", "Ocean" },
+   { "Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Hides thumbnail detail to avoid spoilers for episodes you have not watched." },
++  { "Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Hides watched movies from discovery rows. Search and Library still show all movies. Applies to this profile on this device." },
+   { "Ocultar", "Hide" },
+   { "Ocultar avançados · %d", "Hide advanced · %d" },
++  { "Ocultar filmes assistidos", "Hide watched movies" },
+   { "Ocultar não lançados", "Hide unreleased" },
+   { "Oculto no guia", "Hidden in the guide" },
+   { "Ocultos · %d", "Hidden · %d" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index e8ea2e3..f8a608d 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Program yükleniyor…"),
+   T("Carregando títulos…", "Başlıklar yükleniyor…"),
+   T("Carregando…", "Yükleniyor…"),
++  T("Carregar mais", "Daha fazla yükle"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Yanında ayrıntılarıyla afiş: yıl, tür, puan ve özetin başı."),
+   T("Cartaz com ficha", "Ayrıntılı afiş"),
+   T("Cartaz em foco", "Odaktaki afiş"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Burada olduğun için teşekkürler."),
+   T("Oceano", "Okyanus"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "İzlemediğin bölümlerde spoiler olmaması için küçük resim ayrıntılarını gizler."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "İzlenen filmleri keşif satırlarında gizler. Arama ve Kitaplık tüm filmleri göstermeye devam eder. Bu cihazdaki bu profil için geçerlidir."),
+   T("Ocultar", "Gizle"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "İzlenen filmleri gizle"),
+   T("Ocultar não lançados", "Yayınlanmamışları gizle"),
+   T("Oculto no guia", "Rehberde gizli"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index 7a50ffa..dbd031e 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -1065,6 +1065,7 @@
+   T("Carregando programação…", "Завантаження програми передач…"),
+   T("Carregando títulos…", "Завантаження назв…"),
+   T("Carregando…", "Завантаження…"),
++  T("Carregar mais", "Завантажити ще"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Постер з описом поруч: рік, жанр, оцінка й початок опису."),
+   T("Cartaz com ficha", "Постер з описом"),
+   T("Cartaz em foco", "Постер у фокусі"),
+@@ -3365,8 +3366,10 @@
+   T("Obrigado por estar aqui.", "Дякуємо, що ви тут."),
+   T("Oceano", "Океан"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Ховає подробиці мініатюри, щоб уникнути спойлерів до непереглянутих епізодів."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Приховує переглянуті фільми в рядах рекомендацій. Пошук і Бібліотека й надалі показують усі фільми. Діє для цього профілю на цьому пристрої."),
+   T("Ocultar", "Сховати"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Приховувати переглянуті фільми"),
+   T("Ocultar não lançados", "Ховати невипущене"),
+   T("Oculto no guia", "Приховано в гіді"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 4a6ff2f..21b60d2 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "Đang tải lịch chiếu…"),
+   T("Carregando títulos…", "Đang tải các tựa phim…"),
+   T("Carregando…", "Đang tải…"),
++  T("Carregar mais", "Tải thêm"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "Áp phích kèm thông tin bên cạnh: năm, thể loại, điểm và phần đầu tóm tắt."),
+   T("Cartaz com ficha", "Áp phích kèm thông tin"),
+   T("Cartaz em foco", "Áp phích đang chọn"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "Cảm ơn bạn đã ở đây."),
+   T("Oceano", "Đại dương"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "Ẩn chi tiết ảnh thu nhỏ để tránh tiết lộ nội dung các tập bạn chưa xem."),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "Ẩn phim đã xem khỏi các hàng khám phá. Tìm kiếm và Thư viện vẫn hiển thị tất cả phim. Áp dụng cho hồ sơ này trên thiết bị này."),
+   T("Ocultar", "Ẩn"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "Ẩn phim đã xem"),
+   T("Ocultar não lançados", "Ẩn nội dung chưa phát hành"),
+   T("Oculto no guia", "Đã ẩn trong hướng dẫn"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 58df504..459d59e 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "正在加载节目表…"),
+   T("Carregando títulos…", "正在加载作品…"),
+   T("Carregando…", "加载中…"),
++  T("Carregar mais", "加载更多"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "海报旁边附简介：年份、类型、评分和剧情开头。"),
+   T("Cartaz com ficha", "海报和简介"),
+   T("Cartaz em foco", "焦点海报"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "感谢你在这里。"),
+   T("Oceano", "海洋"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "隐藏缩略图的细节，避免剧透你还没看的剧集。"),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "在发现内容的列表中隐藏已看过的电影。搜索和媒体库仍会显示所有电影。仅适用于此设备上的此个人资料。"),
+   T("Ocultar", "隐藏"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "隐藏已看过的电影"),
+   T("Ocultar não lançados", "隐藏未上映内容"),
+   T("Oculto no guia", "在指南中隐藏"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index cf47db4..d2c64a3 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -1066,6 +1066,7 @@
+   T("Carregando programação…", "正在載入節目表…"),
+   T("Carregando títulos…", "正在載入作品…"),
+   T("Carregando…", "載入中…"),
++  T("Carregar mais", "載入更多"),
+   T("Cartaz com a ficha ao lado: ano, gênero, nota e o começo da sinopse.", "海報旁附簡介：年份、類型、評分與劇情開頭。"),
+   T("Cartaz com ficha", "海報與簡介"),
+   T("Cartaz em foco", "焦點海報"),
+@@ -3366,8 +3367,10 @@
+   T("Obrigado por estar aqui.", "感謝你在這裡。"),
+   T("Oceano", "海洋"),
+   T("Oculta detalhes da miniatura para evitar spoilers de episódios ainda não assistidos.", "隱藏縮圖的細節，避免劇透你還沒看的集數。"),
++  T("Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.", "在探索內容的列表中隱藏已看過的電影。搜尋和媒體庫仍會顯示所有電影。僅適用於此裝置上的此個人檔案。"),
+   T("Ocultar", "隱藏"),
+   T("Ocultar avançados · %d", "Hide advanced · %d"),
++  T("Ocultar filmes assistidos", "隱藏已看過的電影"),
+   T("Ocultar não lançados", "隱藏未上映內容"),
+   T("Oculto no guia", "在指南中隱藏"),
+   T("Ocultos · %d", "Hidden · %d"),
+diff --git a/src/vertudo.c b/src/vertudo.c
+index c53b548..f65072a 100644
+--- a/src/vertudo.c
++++ b/src/vertudo.c
+@@ -265,6 +265,38 @@ static int yearOf(const CatItem *it) {
+ }
+ static int viewItem(int i,CatItem *out) {return desc_vertudo_item(ordenaPorAno()&&i<orderN?order[i]:i,out);}
+ 
++// O foco pertence ao titulo, nao ao indice: ocultar um filme pode trocar a
++// lista sem mudar seu tamanho. Chaves pequenas evitam guardar outro CatItem.
++typedef struct { char id[64], tipo[8]; long tmdb; } VtChave;
++static VtChave focoChave;
++static unsigned gradeRevisao, gradePonteiroRevisao;
++static int gradeRevisaoValida, gradePonteiroValido, focoLembrado = -1;
++static void guardarChave(VtChave *chave, const CatItem *it) {
++  memset(chave, 0, sizeof *chave);
++  if (!it) return;
++  snprintf(chave->id, sizeof chave->id, "%s", it->imdb);
++  snprintf(chave->tipo, sizeof chave->tipo, "%s", it->tipo);
++  chave->tmdb = it->tmdb;
++}
++static int mesmaChave(const VtChave *chave, const CatItem *it) {
++  if (strcmp(chave->tipo, it->tipo)) return 0;
++  if (chave->id[0]) return !strcmp(chave->id, it->imdb);
++  return chave->tmdb > 0 && chave->tmdb == it->tmdb;
++}
++static void lembrarFoco(void) {
++  CatItem it;
++  if (foco == focoLembrado) return;
++  guardarChave(&focoChave, viewItem(foco, &it) ? &it : NULL);
++  focoLembrado = foco;
++}
++static void limparFocoCatalogo(void) {
++  memset(&focoChave, 0, sizeof focoChave);
++  gradeRevisaoValida = 0;
++  gradePonteiroValido = 0;
++  focoLembrado = -1;
++}
++static int atualizarGrade(void);
++
+ // --- A ESCOLHA, por perfil e por pasta ---------------------------------------
+ // Arquivo proprio ("<id da colecao>\t<exibicao>" por linha), gravado por
+ // dados_gravar como o resto: no Tizen e o que leva a escolha para o IndexedDB.
+@@ -368,6 +400,7 @@ static void openSource(void) {
+   snprintf(catalogId,sizeof catalogId,"%s",s->catId);
+   ranked=strstr(s->catId,"top100")||strstr(s->catId,"top250")||strstr(s->catId,"top10");
+   foco=0;scrollY=velY=0;orderN=-1;celLay=-1;armarOnda();
++  limparFocoCatalogo();
+   resolverLayout();
+   // VITRINE: nao ha "a fonte aberta"; cada aba vira uma fileira e vitIniciar
+   // as carrega uma a uma.
+@@ -449,6 +482,7 @@ void vertudo_abrir(const char *base, const char *tipo, const char *catId,
+   memset(tabAnim, 0, sizeof tabAnim);
+   snprintf(titulo, sizeof titulo, "%s", tit ? tit : "");
+   collection=col_por_catalogo(base,tipo,catId);
++  limparFocoCatalogo();
+   source=tabCursor=tabFocus=0;orderN=-1;celLay=-1;pillAnim=0;
+   layEscolha=escolhaGravada(collection);semVitrineAuto=1;
+   if(layEscolha==VT_LAY_VITRINE)layEscolha=VT_LAY_AUTO;   // "Ver tudo" e uma fileira so
+@@ -477,6 +511,24 @@ int vertudo_pediu_menu(void) { int v = pedMenu; pedMenu = 0; return v; }
+ 
+ static int nItens(void) { return desc_vertudo_n(); }
+ 
++// O preenchimento automatico de vistos e limitado. Se nenhuma dessas paginas
++// trouxe um cartaz visivel, so a pessoa pode pedir o proximo bloco de paginas.
++static int temMaisVistos(void) {
++  return lay != VT_LAY_VITRINE && ajustes_ocultar_filmes_vistos() &&
++         !semFonte && !nItens() && desc_vertudo_n_bruto() > 0 &&
++         !desc_vertudo_fim() && !desc_vertudo_erro() && !desc_vertudo_carregando();
++}
++static void ponteiroMaisVistos(int a, int b) {
++  (void)a; (void)b;
++  if (temMaisVistos()) tabFocus = 0;
++}
++static void carregarMaisVistos(int a, int b) {
++  (void)a; (void)b;
++  if (!aberta || !temMaisVistos()) return;
++  tabFocus = 0;
++  desc_vertudo_mais();
++}
++
+ // O OK NUM CARTAO: abre a pagina do titulo (o toque curto) ou, SEGURANDO, o menu
+ // do cartaz (ctxlista.h). O item da grade NAO esta no catalogo global — ele veio
+ // de uma pagina que so esta tela leu. Entra por cat_acrescentar para que a tela
+@@ -528,7 +580,7 @@ static int celulaAceitaMenu(void) {
+   if (nItens() < 1 || desc_vertudo_erro()) return 0;
+   return viewItem(foco, &it);
+ }
+-static int vistoItem(const CatItem *it) { return cat_visto(it) || it->progresso >= 90; }
++static int vistoItem(const CatItem *it) { return cat_visto(it) || desc_filme_visto(it); }
+ static void contarVistos(int n) {
+   sagaVistos = 0;
+   for (int i = 0; i < n && i < VT_MAX; i++) {
+@@ -634,6 +686,25 @@ static void montar(int n) {
+   if (foco >= n) foco = n ? n - 1 : 0;
+   if (lay == VT_LAY_SAGA) { contarVistos(n); vistosEm = SDL_GetTicks(); }
+ }
++static int atualizarGrade(void) {
++  unsigned revisao = desc_vertudo_revisao();
++  int n = nItens(), mudou = gradeRevisaoValida && gradeRevisao != revisao;
++  if (n > VT_MAX) n = VT_MAX;
++  if (mudou) {
++    orderN = -1; celLay = -1;
++    ctxhold_cancelar(&hold);
++  }
++  if (celLay != lay || celN != n) { montar(n); focoLembrado = -1; }
++  if (mudou && (focoChave.id[0] || focoChave.tmdb > 0)) {
++    for (int i = 0; i < n; i++) {
++      CatItem it;
++      if (viewItem(i, &it) && mesmaChave(&focoChave, &it)) { foco = i; break; }
++    }
++  }
++  gradeRevisao = revisao; gradeRevisaoValida = 1;
++  lembrarFoco();
++  return n;
++}
+ // O vizinho na linha `lin` (acima ou abaixo) com o centro mais perto do
+ // centro do item em foco. As linhas sao contiguas em indice em toda exibicao.
+ static int vizinhoNaLinha(int n, int lin) {
+@@ -678,9 +749,17 @@ static int nAbas(void) {
+ // Itens por fileira EM VIGOR, fixado quando o buffer nasce (vitIniciar).
+ static int vitCap = VIT_ITENS;
+ enum { VIT_PEND = 0, VIT_CARREGANDO, VIT_PRONTA, VIT_VAZIA };
+-typedef struct { char nome[96]; int n, estado, semFonte; } VitLin;
++typedef struct { char nome[96]; int n, brutoN, extraN, estado, semFonte; } VitLin;
+ static VitLin vitLin[VIT_LIN_MAX];
+ static CatItem *vitBuf;
++// Preserva a primeira fileira original. Se ela tem filmes vistos, guarda ate
++// outra fileira de candidatos ja recebidos para preencher as vagas visiveis.
++// A reserva extra so e alocada onde ha vagas; jamais dispara um pedido novo.
++static CatItem *vitExtra[VIT_LIN_MAX];
++static short vitVis[VIT_LIN_MAX][VIT_ITENS];
++static unsigned vitRevisao;
++static int vitOcultar = -1, vitProjetoSujo;
++static VtChave vitFocoChave;
+ static int vitN, vitMulti, vitCarga, vitFR, vitFC, vitMexeu, vitUnicoN = -1;
+ static int vitColLemb[VIT_LIN_MAX];
+ static Uint32 vitT0, vitNomeEm, vitReleEm;
+@@ -692,7 +771,8 @@ static float vitHeroEntra = 1.0f;
+ 
+ static CatItem *vitItem(int r, int c) {
+   if (!vitBuf || r < 0 || r >= vitN || c < 0 || c >= vitLin[r].n) return NULL;
+-  return &vitBuf[r * vitCap + c];
++  int i = vitVis[r][c];
++  return i < vitCap ? &vitBuf[r * vitCap + i] : &vitExtra[r][i - vitCap];
+ }
+ static CatItem *vitChave(int k) { return k < 0 ? NULL : vitItem(k / vitCap, k % vitCap); }
+ static int vitTemItens(void) {
+@@ -708,6 +788,49 @@ static void vitFocoInicial(void) {
+   if (vitLin[vitFR < vitN ? vitFR : 0].n > 0 && vitFR < vitN) return;
+   for (int r = 0; r < vitN; r++) if (vitLin[r].n > 0) { vitFR = r; vitFC = 0; return; }
+ }
++static void vitLembrarFoco(void) { guardarChave(&vitFocoChave, vitItem(vitFR, vitFC)); }
++static void vitProjetar(void) {
++  int ocultar = ajustes_ocultar_filmes_vistos();
++  unsigned revisao = cat_revisao_itens();
++  if (!vitProjetoSujo && ocultar == vitOcultar && (!ocultar || revisao == vitRevisao)) return;
++  int linha = vitFR, coluna = vitFC;
++  for (int r = 0; r < vitN; r++) {
++    VitLin *l = &vitLin[r];
++    int lembrado = vitColLemb[r] < l->n ? vitVis[r][vitColLemb[r]] : -1;
++    l->n = 0;
++    for (int i = 0; i < l->brutoN + (ocultar ? l->extraN : 0) && l->n < vitCap; i++) {
++      int bruto = i < l->brutoN ? i : vitCap + i - l->brutoN;
++      CatItem *it = bruto < vitCap ? &vitBuf[r * vitCap + bruto] : &vitExtra[r][bruto - vitCap];
++      if (ocultar && desc_filme_visto(it)) continue;
++      vitVis[r][l->n] = (short)bruto;
++      if (bruto == lembrado) vitColLemb[r] = l->n;
++      l->n++;
++    }
++    if (vitColLemb[r] >= l->n) vitColLemb[r] = l->n ? l->n - 1 : 0;
++    vitSx[r] = vitSv[r] = 0.0f;
++  }
++  vitFR = linha < vitN ? linha : (vitN ? vitN - 1 : 0);
++  vitFC = coluna;
++  // Procura primeiro na mesma fileira: catalogos distintos podem repetir a obra.
++  int achou = 0;
++  for (int passo = 0; passo < vitN && !achou; passo++) {
++    int r = (vitFR + passo) % vitN;
++    for (int c = 0; c < vitLin[r].n; c++)
++      if (mesmaChave(&vitFocoChave, vitItem(r, c))) { vitFR = r; vitFC = c; achou = 1; break; }
++  }
++  if (vitN && !vitLin[vitFR].n) {
++    int r = vitLinhaVizinha(vitFR, 1);
++    if (r < 0) r = vitLinhaVizinha(vitFR, -1);
++    if (r >= 0) { vitFR = r; vitFC = vitColLemb[r]; }
++  }
++  if (!vitN) vitFR = vitFC = 0;
++  else if (vitFC >= vitLin[vitFR].n) vitFC = vitLin[vitFR].n ? vitLin[vitFR].n - 1 : 0;
++  // Os indices dos destaques eram da projecao anterior; nao deixam um filme
++  // ocultado aparecer no hero nem apontam para o vizinho que tomou seu lugar.
++  vitHeroAtual = vitHeroAnt = vitHeroDes = -1; vitHeroEntra = 1.0f;
++  vitOcultar = ocultar; vitRevisao = revisao; vitProjetoSujo = 0;
++  vitLembrarFoco();
++}
+ 
+ // O texto de cada aba: o mesmo da barra de abas (ver a nota em themeHeader).
+ static void rotulosAbas(char (*rot)[180]) {
+@@ -745,6 +868,10 @@ static void vitIniciar(void) {
+     vitBuf = calloc((size_t)VIT_LIN_MAX * vitCap, sizeof(CatItem));
+   }
+   memset(vitLin, 0, sizeof vitLin);
++  for (int r = 0; r < VIT_LIN_MAX; r++) { free(vitExtra[r]); vitExtra[r] = NULL; }
++  memset(vitVis, 0, sizeof vitVis);
++  memset(&vitFocoChave, 0, sizeof vitFocoChave);
++  vitOcultar = -1; vitProjetoSujo = 1;
+   memset(vitColLemb, 0, sizeof vitColLemb);
+   memset(vitSx, 0, sizeof vitSx); memset(vitSv, 0, sizeof vitSv);
+   vitN = 0; vitCarga = 0; vitFR = vitFC = 0; vitMexeu = 0; vitUnicoN = -1;
+@@ -761,13 +888,23 @@ static void vitIniciar(void) {
+ 
+ // Guarda a primeira pagina do catalogo aberto na fileira `r`.
+ static void vitGuardar(int r) {
+-  int n = nItens(), k = 0;
+-  if (n > vitCap) n = vitCap;
+-  for (int i = 0; i < n; i++)
+-    if (desc_vertudo_item(i, &vitBuf[r * vitCap + k])) k++;
+-  vitLin[r].n = k;
++  int n = semFonte ? 0 : desc_vertudo_n_bruto(), k = 0, vistos = 0, skip = 0;
++  vitLin[r].extraN = 0;
++  for (; skip < n && k < vitCap; skip++)
++    if (desc_vertudo_item_bruto(skip, &vitBuf[r * vitCap + k])) {
++      vistos += desc_filme_visto(&vitBuf[r * vitCap + k]); k++;
++    }
++  vitLin[r].brutoN = k;
++  if (vistos && n > skip && !vitExtra[r]) vitExtra[r] = calloc((size_t)vitCap, sizeof(CatItem));
++  if (vistos && vitExtra[r]) {
++    CatItem it;
++    for (int i = skip; i < n && vitLin[r].extraN < vitCap; i++)
++      if (desc_vertudo_item_bruto(i, &it) && !desc_filme_visto(&it))
++        vitExtra[r][vitLin[r].extraN++] = it;
++  }
+   vitLin[r].estado = k ? VIT_PRONTA : VIT_VAZIA;
+   vitLin[r].semFonte = semFonte;
++  vitProjetoSujo = 1;
+ }
+ 
+ // SEM ABAS: as fileiras saem dos titulos lidos. Tipos misturados = uma fileira
+@@ -778,11 +915,11 @@ static void vitAgrupar(int n) {
+   int chaves[VIT_LIN_MAX + 1], nc = 0, filmes = 0, series = 0;
+   if (n > VT_MAX) n = VT_MAX;
+   for (int i = 0; i < n; i++)
+-    if (desc_vertudo_item(i, &tmp)) { if (!strcmp(tmp.tipo, "series")) series = 1; else filmes = 1; }
++    if (desc_vertudo_item_bruto(i, &tmp)) { if (!strcmp(tmp.tipo, "series")) series = 1; else filmes = 1; }
+   for (int i = 0; i < n; i++) {
+     int k;
+     chave[i] = -1;
+-    if (!desc_vertudo_item(i, &tmp)) continue;
++    if (!desc_vertudo_item_bruto(i, &tmp)) continue;
+     if (filmes && series) k = !strcmp(tmp.tipo, "series") ? 1 : 0;
+     else { int a = nv_ano_meta(tmp.meta); k = a ? a / 10 * 10 : 0; }
+     chave[i] = (short)k;
+@@ -807,12 +944,20 @@ static void vitAgrupar(int n) {
+     if (filmes && series) snprintf(l->nome, sizeof l->nome, "%s", i18n(chaves[r] ? "Séries" : "Filmes"));
+     else if (chaves[r]) snprintf(l->nome, sizeof l->nome, i18n("Anos %d"), chaves[r]);
+     else snprintf(l->nome, sizeof l->nome, "%s", i18n("Sem data"));
+-    for (int i = 0; i < n && l->n < vitCap; i++)
+-      if (chave[i] == chaves[r] && desc_vertudo_item(i, &vitBuf[r * vitCap + l->n])) l->n++;
++    int vistos = 0;
++    for (int i = 0; i < n; i++) {
++      if (chave[i] != chaves[r] || !desc_vertudo_item_bruto(i, &tmp)) continue;
++      if (l->brutoN < vitCap) {
++        vistos += desc_filme_visto(&tmp);
++        vitBuf[r * vitCap + l->brutoN++] = tmp;
++      } else if (vistos && l->extraN < vitCap && !desc_filme_visto(&tmp)) {
++        if (!vitExtra[r]) vitExtra[r] = calloc((size_t)vitCap, sizeof(CatItem));
++        if (vitExtra[r]) vitExtra[r][l->extraN++] = tmp;
++      }
++    }
+     l->estado = VIT_PRONTA;
+   }
+-  if (vitFR >= vitN) vitFR = vitN ? vitN - 1 : 0;
+-  if (vitN && vitFC >= vitLin[vitFR].n) vitFC = vitLin[vitFR].n ? vitLin[vitFR].n - 1 : 0;
++  vitProjetoSujo = 1;
+ }
+ 
+ // Um passo da carga, por quadro: a fila de abas, as ultimas paginas do catalogo
+@@ -820,7 +965,7 @@ static void vitAgrupar(int n) {
+ static void vitCarregar(Uint32 agora) {
+   if (!vitBuf) return;
+   if (!vitMulti) {
+-    int n = nItens();
++    int n = desc_vertudo_n_bruto();
+     if (n != vitUnicoN) { vitUnicoN = n; if (n > 0) vitAgrupar(n); }
+     // O catalogo traz 100 por pagina: pede mais ate haver o que agrupar.
+     if (n > 0 && n < 300 && !desc_vertudo_carregando() && !desc_vertudo_fim() &&
+@@ -834,7 +979,7 @@ static void vitCarregar(Uint32 agora) {
+       source = vitCarga; carregarFonte();
+       l->estado = VIT_CARREGANDO; vitT0 = agora ? agora : 1u;
+     } else if (l->estado == VIT_CARREGANDO && !desc_vertudo_carregando() &&
+-               (nItens() > 0 || desc_vertudo_fim() || desc_vertudo_erro() || semFonte ||
++               (desc_vertudo_n_bruto() > 0 || desc_vertudo_fim() || desc_vertudo_erro() || semFonte ||
+                 (Sint32)(agora - vitT0) > 2500)) {
+       vitGuardar(vitCarga);
+       vitCarga++;
+@@ -889,6 +1034,7 @@ static void alternarExibicao(void) {
+ static void vitEvento(int k) {
+   int enter = k == SDLK_RETURN || k == SDLK_KP_ENTER;
+   VitLin *l;
++  vitProjetar();
+   vitMexeu = 1;
+   if (tabFocus) {   // o botao "Exibição", acima do destaque
+     if (k == SDLK_LEFT) pedMenu = 1;
+@@ -912,6 +1058,7 @@ static void vitEvento(int k) {
+     if (it) abrirItem(it);
+   }
+   if (vitFR < vitN && vitFC >= vitLin[vitFR].n) vitFC = vitLin[vitFR].n ? vitLin[vitFR].n - 1 : 0;
++  vitLembrarFoco();
+ }
+ 
+ // Medidas das fileiras: as da Home (home_vitrine_medida). O topo da primeira e
+@@ -926,7 +1073,9 @@ static float vitPasso(void) {
+ static void vitAtualizar(float dt, Uint32 agora) {
+   float w, h, passo, rot, alvo;
+   vitCarregar(agora);
++  vitProjetar();
+   if (!vitMexeu) vitFocoInicial();
++  vitLembrarFoco();
+   // Destaque: o item sob o foco; so troca depois de 140 ms parado e com a arte
+   // nova decodificada (ou 700 ms de espera), e a arte nova entra em 250 ms.
+   { int des = !vitItem(vitFR, vitFC) ? -1 : vitFR * vitCap + vitFC;
+@@ -996,10 +1145,12 @@ static void toqueVertudoRetomarFoco(void) {
+ void vertudo_evento(const SDL_Event *e) {
+   int n = nItens(), k;
+   if (!aberta) return;
++  if (lay != VT_LAY_VITRINE) n = atualizarGrade();
+ #ifdef NV_TOUCH_UI
+   if (toquerol_navegacao(e)) toquerol_limpar(&toqueAbas);
+   if (e->type == SDL_KEYDOWN) toqueVertudoRetomarFoco();
+ #endif
++  if (lay != VT_LAY_VITRINE) lembrarFoco();
+   switch (ctxhold_evento(&hold, e, celulaAceitaMenu())) {
+     case CTXH_LONGO: if (!menuNoFocado()) abrirFocado(); return;
+     case CTXH_CONSUMIDO: return;
+@@ -1023,12 +1174,15 @@ void vertudo_evento(const SDL_Event *e) {
+         alternarExibicao();
+       } else {source=tabCursor;openSource();tabFocus=0;}
+     }
+-    if(k==SDLK_DOWN&&n>0)tabFocus=0;
++    if(k==SDLK_DOWN&&(n>0||temMaisVistos()))tabFocus=0;
+     return;
+   }
+   if (celLay != lay || celN != n) montar(n);
+   if(k==SDLK_UP&&collection&&(n<1||celLin[foco]==0)){tabFocus=1;tabCursor=nAbas()?source:0;return;}
+   if((k==SDLK_RETURN||k==SDLK_KP_ENTER)&&desc_vertudo_erro()){desc_vertudo_mais();return;}
++  if ((k == SDLK_RETURN || k == SDLK_KP_ENTER) && !e->key.repeat && temMaisVistos()) {
++    carregarMaisVistos(0, 0); return;
++  }
+   // ESQUERDA no primeiro item de uma linha: a barra lateral (ver pedMenu).
+   if (k == SDLK_LEFT && (n < 1 || foco == 0 || celLin[foco - 1] != celLin[foco])) { pedMenu = 1; return; }
+   if (n < 1) return;
+@@ -1039,6 +1193,7 @@ void vertudo_evento(const SDL_Event *e) {
+   else if (k == SDLK_UP) { int v = vizinhoNaLinha(n, celLin[foco] - 1);
+                            if (v >= 0) foco = v; }
+   else if (k == SDLK_RETURN || k == SDLK_KP_ENTER) abrirFocado();
++  lembrarFoco();
+   // Chegando perto do fim, pede a proxima pagina. Antes de o dono ver o vazio,
+   // e nao quando ele ja esta olhando para ele.
+   if (foco >= n - 12) desc_vertudo_mais();
+@@ -1049,6 +1204,7 @@ void vertudo_atualizar(float dt, Uint32 agora) {
+   int n = nItens();
+   anim = anim_mola(anim, aberta ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
+   if (!aberta) { ctxhold_cancelar(&hold); return; }
++  if (lay != VT_LAY_VITRINE) n = atualizarGrade();
+   // SEGUROU OK NUM CARTAO ATE O LIMIAR: o menu do cartaz, com o dedo ainda no
+   // botao (ctxlista.h).
+   if (ctxhold_passo(&hold, agora, 1) && menuNoFocado()) ctxhold_cancelar(&hold);
+@@ -1070,8 +1226,8 @@ void vertudo_atualizar(float dt, Uint32 agora) {
+   { float alvoP = collection && tabFocus && tabCursor >= nAbas() ? 1.0f : 0.0f;
+     pillAnim = anim_mola(pillAnim, alvoP, dt, alvoP > pillAnim ? NV_MOLA_FOCO : NV_MOLA_DESFOCO); }
+   if (lay == VT_LAY_VITRINE) { vitAtualizar(dt, agora); return; }
+-  if (celLay != lay || celN != n) montar(n);
+-  else if (lay == VT_LAY_SAGA && n <= 200 && (Sint32)(agora - vistosEm) > 1500)
++  n = atualizarGrade();
++  if (lay == VT_LAY_SAGA && n <= 200 && (Sint32)(agora - vistosEm) > 1500)
+     { contarVistos(n); vistosEm = agora; }
+   // Mira a linha focada a 30% da altura util, como o resto do app faz.
+   alvo = n ? VT_TOPO + celY[foco] - NV_TELA_H * 0.30f : 0.0f;
+@@ -1257,11 +1413,16 @@ static void ponteiroAba(int i, int b) {
+ }
+ static void ponteiroCartaz(int i, int b) {
+   (void)b;
++  atualizarGrade();
++  // O alvo foi registrado no ultimo desenho. Se a projecao mudou desde la,
++  // este indice pertence a outro cartaz: o proximo quadro registra alvos novos.
++  if (!gradePonteiroValido || gradePonteiroRevisao != gradeRevisao) return;
+   if (i < 0 || i >= nItens()) return;
+ #ifdef NV_TOUCH_UI
+   toqueLivre = 0;
+ #endif
+   tabFocus = 0; foco = i;
++  lembrarFoco();
+   if (foco >= nItens() - VT_COLS * 2) desc_vertudo_mais();
+ }
+ 
+@@ -1635,7 +1796,22 @@ static void botaoExibicao(float a, float x0) {
+   }
+ }
+ 
++static void botaoMaisVistos(float a, float x0) {
++  if (!temMaisVistos()) return;
++  float f = tabFocus ? 0.0f : 1.0f, h = 60.0f;
++  int cor = f > 0.5f ? ajustes_tinta_foco() : 214;
++  float livre = fmaxf(1.0f, vtFim() - x0 - 44.0f);
++  TxtLinha t = txt_linha_corta(TXT_HERO_META, i18n("Carregar mais"), cor, cor, cor, 255, livre);
++  GfxRect botao = { x0, VT_TOPO + 32.0f, t.w + 44.0f, h };
++  gfx_cor(botao, NV_RAIO_PILL, 1, 1, 1, 0.07f * a);
++  focoAbaFonte(botao, f, a);
++  txt_desenhar_alpha(t, botao.x + 22.0f, botao.y + (h - t.h) * 0.5f, a);
++  ponteiro_alvo(botao.x, botao.y, botao.w, botao.h,
++                ponteiroMaisVistos, carregarMaisVistos, 0, 0);
++}
++
+ static void vitDesenhar(float a, float x0) {
++  vitProjetar();
+   float w, h, passo, rot, pas = vitPasso();
+   CatItem *hero = vitChave(vitHeroAtual), *ant = vitChave(vitHeroAnt);
+   int arte = 0;
+@@ -1674,9 +1850,9 @@ static void vitDesenhar(float a, float x0) {
+             foco_anel(base, ajustes_raio_poster_px() / (w < h ? w : h), 1.0f, a);
+           else card = foco_zoom(base, 1.0f);
+         }
+-        home_vitrine_cartao(&vitBuf[r * vitCap + c], base, card, ac);
++        home_vitrine_cartao(vitItem(r, c), base, card, ac);
+       }
+-    } else if (l->estado == VIT_VAZIA) {
++    } else if (l->estado == VIT_VAZIA || l->estado == VIT_PRONTA) {
+       const char *msg = l->semFonte ? i18n("O addon desta coleção não está instalado nesta TV.")
+                                     : i18n("Nenhum título nesta lista.");
+       TxtLinha m = txt_linha_corta(TXT_DET_META2, msg, 196, 202, 213, 255, 1200);
+@@ -1729,7 +1905,7 @@ void vertudo_desenhar(Uint32 agora) {
+     if (vtTelefone()) gfx_escala_sair(escalaAnterior);
+     return;
+   }
+-  if (celLay != lay || celN != n) montar(n);
++  n = atualizarGrade();
+   x0Atual = x0;
+   if (ondaArmada && n > 0) { ondaEm = agora ? agora : 1u; ondaArmada = 0; }
+   if (ondaEm && revela_onda_fim(ondaEm, agora)) ondaEm = 0;
+@@ -1767,6 +1943,7 @@ void vertudo_desenhar(Uint32 agora) {
+     gfx_sem_recorte();
+   }
+   gfx_recorte(0.0f, corteTopo, NV_TELA_W, NV_TELA_H - corteTopo);
++  gradePonteiroRevisao = gradeRevisao; gradePonteiroValido = 1;
+   for (i = 0; i < n; i++) {
+     float cx = x0 + celX[i], cy = VT_TOPO + celY[i] - scrollY;
+     float w = celW[i], h = celH[i];
+@@ -1793,6 +1970,7 @@ void vertudo_desenhar(Uint32 agora) {
+       default:             cartazGrade(i, &it, cx, cy, w, h, ac, agora, sel);
+     }
+   }
++  if (!n) botaoMaisVistos(a, x0);
+   if(!n&&desc_vertudo_carregando())for(int i=0;i<VT_COLS;i++) {
+     float w=vtTelefone()&&!timeline?VT_CARD_W:248.0f;
+     float h=vtTelefone()&&!timeline?VT_CARD_H:372.0f;

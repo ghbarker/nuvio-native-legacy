@@ -1,0 +1,334 @@
+{
+  "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "original_head": "4fdd573bc58536f7cb317697110b15a3d44adf87",
+  "files": [
+    {
+      "path": "src/ajustes.c",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes.c",
+      "mode": "100644",
+      "sha": "71d312dd3f17b2d6415f11ae93bc9f65f4006804",
+      "sha256": "7de0e82bb723df006e6b680f657e28ecff3e9bcd7b7b58674d4b109537fe51c8",
+      "bytes": 470318
+    },
+    {
+      "path": "src/ajustes.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes.h",
+      "mode": "100644",
+      "sha": "8dfb90518ba6b3c57fb20418a1c4d0eda0914106",
+      "sha256": "03c6a731fa0afdc1ab2817e750a1d159397938c7ffb2bb791f8ca60b1adc5cae",
+      "bytes": 41546
+    },
+    {
+      "path": "src/ajustes_ux_cenas.inc",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes_ux_cenas.inc",
+      "mode": "100644",
+      "sha": "56b09bda8c33994198d5d0e779b23701581e769d",
+      "sha256": "6799db3636834d1938baf45a3ad997691869e020bd3ee017660485514a99a8c4",
+      "bytes": 49003
+    },
+    {
+      "path": "src/ajustes_ux_cenas_home.inc",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes_ux_cenas_home.inc",
+      "mode": "100644",
+      "sha": "7735b82a115cc5104764a3e086326aa923182588",
+      "sha256": "a3e11d675137d916724c22d4d1fe21711c49449751367d848d98f9d8e37b5590",
+      "bytes": 35847
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes_ux_padrao.inc",
+      "mode": "100644",
+      "sha": "725f80a6eb392a934dc396f81c3fae8bf181f7d7",
+      "sha256": "2fc7d080742dc3f5dfdff3526df992a4350617bcaa0b71dc049dfd4970846fd3",
+      "bytes": 18113
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes_ux_secoes.inc",
+      "mode": "100644",
+      "sha": "b6d136b4911e7e74da00854966b469606fce1785",
+      "sha256": "aee47dc63c5be1188a3f6ba192a867f29036ff145735fa68ff33e51f1f747831",
+      "bytes": 80548
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes_ux_tela.inc",
+      "mode": "100644",
+      "sha": "3c084a6d07096d20fb8c1a4615e4418439a3e0da",
+      "sha256": "2d388c83d6f9c2a467e1e5cdabcb15b51799bdc45db618d4173cfee8c25b5748",
+      "bytes": 12178
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "local": "/workspace/nuvio-pr490-rebase/src/ajustes_ux_visual.inc",
+      "mode": "100644",
+      "sha": "e27b5c19b18fd4f4485d3152d1a857907bf014a1",
+      "sha256": "2c57ca3e8ced23fa56a0eeef03d0d7e2b50890a8fcb39e82a56c24a76cbf059c",
+      "bytes": 36571
+    },
+    {
+      "path": "src/descoberta.c",
+      "local": "/workspace/nuvio-pr490-rebase/src/descoberta.c",
+      "mode": "100644",
+      "sha": "af4b6574a037d2c39409ab55b4ff5720babe9154",
+      "sha256": "5d910be59314db62552f67f02d795f81f278d8449a5021578b37a67384d52cd7",
+      "bytes": 405842
+    },
+    {
+      "path": "src/descoberta.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/descoberta.h",
+      "mode": "100644",
+      "sha": "c5a7925fa456f64ddaadcb51b789888d85cb81f1",
+      "sha256": "0924136ba8daee7a5dfd4064b64773e5d496e5e66fb6fc4245ca9ddfbc4dfa2d",
+      "bytes": 19141
+    },
+    {
+      "path": "src/home.c",
+      "local": "/workspace/nuvio-pr490-rebase/src/home.c",
+      "mode": "100644",
+      "sha": "4de3e1f739f523d7ea9ce7886f8598735809ca00",
+      "sha256": "bb5ec7df39ac5dfc75b343423dfc49859e180c19c8129b2241288406bc18227c",
+      "bytes": 367271
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_bg.h",
+      "mode": "100644",
+      "sha": "31dd2f050cfa985a3119c85f8eecdeb64e6d6f33",
+      "sha256": "941bb2bda425c7982d67c43d20e79b0a2a0cbea4d1f2ca107957b871c4986d5b",
+      "bytes": 687855
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_bs.h",
+      "mode": "100644",
+      "sha": "05f7bcdda28e6a43aa5b16bca0800947dcdd5911",
+      "sha256": "60634145e78c07996613eae5ba2c14a957d6d0853fa5023ad8ce48f1a75256fc",
+      "bytes": 506830
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_cs.h",
+      "mode": "100644",
+      "sha": "c46b6cd7f40878e9509ec31c88098dc1ae95ee6b",
+      "sha256": "eb0d0dd4de08888915e61579b983522629c08cb1022647384a3b3a35a2a5ae8a",
+      "bytes": 519365
+    },
+    {
+      "path": "src/idioma_da.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_da.h",
+      "mode": "100644",
+      "sha": "31961841b0ed556cfe7c25625e9218ce9a33703e",
+      "sha256": "47feae7cb042b06c10f6fba4f66dc69a068a38630e0fe6fffb54f9f51509872d",
+      "bytes": 510409
+    },
+    {
+      "path": "src/idioma_de.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_de.h",
+      "mode": "100644",
+      "sha": "688180c57acd866b41d55fff6d300eb24ed20a08",
+      "sha256": "5003f136bb68cb0de45ef57820b4193274a52eed8d649446e339d5c0c7bf5639",
+      "bytes": 530460
+    },
+    {
+      "path": "src/idioma_el.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_el.h",
+      "mode": "100644",
+      "sha": "4560ebf326e7006462ba77196792d641fc901b73",
+      "sha256": "ebd527d5a2956d0510730bdd7d21fbbc44cd9baf1917ba55da57054370511519",
+      "bytes": 722475
+    },
+    {
+      "path": "src/idioma_es.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_es.h",
+      "mode": "100644",
+      "sha": "39d7b09684462bb1097d433671ec917ec5b464f7",
+      "sha256": "7bb9fb5ddcc9979bacd273c685e2d3190f988787b3867d99dc6695e04f3210ed",
+      "bytes": 520900
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_fr.h",
+      "mode": "100644",
+      "sha": "ef2066b8bac6fe0e9fbd78610af533a764acbb14",
+      "sha256": "7ef37de3d3e05f5eb3ca714202e81ee076595df2635d90c0fe43aba54fd4bfb2",
+      "bytes": 535527
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_hu.h",
+      "mode": "100644",
+      "sha": "8de9068f4911fa6b129f73df1fc91b47be9b9996",
+      "sha256": "4e4a9dff9259cf6a583844a198383928153ad5a2cf960048462ed82a5acdf28b",
+      "bytes": 540275
+    },
+    {
+      "path": "src/idioma_id.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_id.h",
+      "mode": "100644",
+      "sha": "9b0c25720353de0e248491b27f0cefe83fd9e372",
+      "sha256": "1db0cb3a38f8f0f6d7229f7d754f218e96594a8a4f0d92b960214418aba3dc04",
+      "bytes": 509612
+    },
+    {
+      "path": "src/idioma_it.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_it.h",
+      "mode": "100644",
+      "sha": "41b71f9f7d5cdf97e5af01f5e7d4bc52c6c10cd2",
+      "sha256": "4281df05abaad9b58702a55000511728b1b3e960ff045359dfe844922a5e9f08",
+      "bytes": 520605
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_ja.h",
+      "mode": "100644",
+      "sha": "15b55d068df1fe85e8421c34c37626100b426718",
+      "sha256": "e12727e61104fb61e5a913f64d1706faa47407e1618339fcc993fca4e98a5953",
+      "bytes": 588462
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_lt.h",
+      "mode": "100644",
+      "sha": "072157950869cf701763f6fbe54e56d03fbf9c5c",
+      "sha256": "aedcc8c83197ac57b8538792577f07322ebe594e676f10b87a627bd4e41b8937",
+      "bytes": 524762
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_nl.h",
+      "mode": "100644",
+      "sha": "b450b95666eb31908fffa54e4f15cb22ccba2de6",
+      "sha256": "2fb7b22cec9ea992ae2652c0a3ee5e4e1aacbe5bc63b6e2555c1c82a821da8b3",
+      "bytes": 518941
+    },
+    {
+      "path": "src/idioma_no.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_no.h",
+      "mode": "100644",
+      "sha": "c4c888867a8d21c4cd135aa54117e25c9fccf799",
+      "sha256": "ff30c9e2555b6803f1c75a9868ec6d3ac5934e21dcb79620c090483e90d7469d",
+      "bytes": 507188
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_pl.h",
+      "mode": "100644",
+      "sha": "adf5aaf298b208fc70cb94c5e1df15d31a14f95c",
+      "sha256": "93a791b0ad8ffa849ff7caf01de89adce4b0114b4480be81cd576c9f41fc54fa",
+      "bytes": 522686
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_ptpt.h",
+      "mode": "100644",
+      "sha": "e2145503751556ca471822e72a041ec6db9c5c8d",
+      "sha256": "6994d256cdf54fe47fd432af002dfeca64ced16ee3999b2439f13c7dc85c2196",
+      "bytes": 512951
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_ro.h",
+      "mode": "100644",
+      "sha": "9f0407b399594582e9bae04201b2167d33f2ed80",
+      "sha256": "6e8b088376fe8a6325ada68d6a19f84eb42c25db8e9af797cf310b951d479cae",
+      "bytes": 525244
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_ru.h",
+      "mode": "100644",
+      "sha": "35c8862a9536281520e7f8000ccb2384664d1de7",
+      "sha256": "57b9b88fd2ec7a1e404af0b9d48415aa2bdb209d622076ed329e2d79abfcd610",
+      "bytes": 686954
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_sk.h",
+      "mode": "100644",
+      "sha": "c1a812f5993d6d4027ce5f218d26a6fef7b1bf10",
+      "sha256": "7f96d3b24b59b8bf727e1473ad1a4d5dcbec3e7b4f20bb886b1ef115fe2f3721",
+      "bytes": 521366
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_sl.h",
+      "mode": "100644",
+      "sha": "f1911debb6a793e4b72df9f17bca4aa9a4d60b10",
+      "sha256": "cdb0834ae45c85670b186e40c5a14001381abf1ab8a8ed1597118f25542b38b9",
+      "bytes": 510525
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_sr.h",
+      "mode": "100644",
+      "sha": "fabcc75f84cfb45932acdd0bfe5f7ff34dee3d19",
+      "sha256": "be949e9ebcb426977d08c39cd733a137ba65f638271148e52b1b8763e479d087",
+      "bytes": 505922
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_sv.h",
+      "mode": "100644",
+      "sha": "a67438c4a4e11eb1f856090809166c0856d6cff0",
+      "sha256": "b4f8eed4071fea9b948a4a0a4ef466776f0845eaaa774a142d4f0f1f8709ff9b",
+      "bytes": 512987
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_tab.h",
+      "mode": "100644",
+      "sha": "ea87407843af5672ad382cb9a7eb925dff230a4f",
+      "sha256": "f52ab183946527d1b285b0c4ae3d0ea7c73303b8836467601e54828173d05cd4",
+      "bytes": 504347
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_tr.h",
+      "mode": "100644",
+      "sha": "f8a608db605df1a99c1c3dfbc94e33c31617f737",
+      "sha256": "e91979b25deac0d017ac9d81dcd610ae402a68343a5b4b512266dfc6af16fa9d",
+      "bytes": 518269
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_uk.h",
+      "mode": "100644",
+      "sha": "dbd031efd058edfdc796ec53b0eae498016a6c4e",
+      "sha256": "ea62307098ba064a2bf1ddf85ab9c4775ff31eabdbd12057e05c755beb5f3d59",
+      "bytes": 678750
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_vi.h",
+      "mode": "100644",
+      "sha": "21b60d25f0b5077db05fec75a3debcf9cc6f0db1",
+      "sha256": "b5abb5cf0b1b24238ace7d5fc299818430215ab8252bf8498d187c918de50fdc",
+      "bytes": 561337
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_zhcn.h",
+      "mode": "100644",
+      "sha": "459d59e06a00d77411472b1bef2044dcf0e0bf16",
+      "sha256": "75308847d4a457b1db8d0ce51478d94535a6c31265ffd2181001cf74189dd027",
+      "bytes": 495810
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "local": "/workspace/nuvio-pr490-rebase/src/idioma_zhtw.h",
+      "mode": "100644",
+      "sha": "d2c64a3dfd4571b27d1a3c5aa1ae5e9d1bc750ce",
+      "sha256": "fbe4372cd1dfe140e7dc45fed3981f5022443095b2b29de90ba7354b27007842",
+      "bytes": 498216
+    },
+    {
+      "path": "src/vertudo.c",
+      "local": "/workspace/nuvio-pr490-rebase/src/vertudo.c",
+      "mode": "100644",
+      "sha": "f65072a1f53facca441e42e2e6d6b01e53ce3e38",
+      "sha256": "6dc9ef2563efbeb740a993666b5bf88f979b56df598a4e5db1ab908ce4950991",
+      "bytes": 90573
+    }
+  ]
+}
