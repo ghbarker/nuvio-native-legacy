@@ -81,24 +81,23 @@ jobs:
         fi
         exit "$failed"
     - name: Preserve catalog display geometry, D-pad and profile regression coverage
-      run: |
-        cd "$RUNNER_TEMP/nuvio-profile-session-standalone"
-        mkdir -p .review/hide-watched/tests build/review
-        cp "$GITHUB_WORKSPACE/.review/hide-watched/tests/colecao_exibicao_compat.c" .review/hide-watched/tests/
+      run: |-
         set -euo pipefail
+        cd "$RUNNER_TEMP/nuvio-profile-session-standalone"
+        mkdir -p build/review "$GITHUB_WORKSPACE/build/review"
         task_sources=()
         for task_source in src/*.c src/dts/*.c; do
           case "$task_source" in src/main.c|src/vertudo.c) continue;; esac
           task_sources+=("$task_source")
         done
-        cc "${task_sources[@]}" .review/hide-watched/tests/colecao_exibicao_compat.c \
+        cc "${task_sources[@]}" tests/colecao_exibicao.c \
           -Isrc -o build/review/catalog-display-baseline -O1 -g \
           -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
           -L/opt/homebrew/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL \
           -Wno-deprecated-declarations -Wno-macro-redefined \
-          > build/review/catalog-display-build.log 2>&1
-        build/review/catalog-display-baseline | tee build/review/catalog-display-baseline.log
-        cp build/review/catalog-display*.log "$GITHUB_WORKSPACE/build/review/"
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/catalog-display-build.log"
+        build/review/catalog-display-baseline \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/catalog-display-baseline.log"
       if: ${{ !cancelled() }}
     - uses: actions/upload-artifact@v4
       if: always()
@@ -149,6 +148,8 @@ jobs:
     - name: Preserve catalog display geometry, D-pad and profile regression coverage
       run: |-
         set -euo pipefail
+
+        mkdir -p build/review "$GITHUB_WORKSPACE/build/review"
         task_sources=()
         for task_source in src/*.c src/dts/*.c; do
           case "$task_source" in src/main.c|src/vertudo.c) continue;; esac
@@ -159,8 +160,9 @@ jobs:
           -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
           -L/opt/homebrew/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL \
           -Wno-deprecated-declarations -Wno-macro-redefined \
-          > build/review/catalog-display-build.log 2>&1
-        build/review/catalog-display-baseline | tee build/review/catalog-display-baseline.log
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/catalog-display-build.log"
+        build/review/catalog-display-baseline \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/catalog-display-baseline.log"
       if: ${{ !cancelled() }}
     - name: Verify profile sessions alongside all retained features
       run: |-
