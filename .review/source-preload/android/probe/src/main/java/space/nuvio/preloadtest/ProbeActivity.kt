@@ -1,6 +1,6 @@
 package space.nuvio.preloadtest
 
-import android.app.Activity
+import space.nuvio.nativelegacy.NuvioActivity
 import android.os.Bundle
 import android.widget.FrameLayout
 import space.nuvio.nativelegacy.NvPlayer
@@ -17,7 +17,7 @@ object TestProbe {
     external fun resumeAccepted(): Int
 }
 
-class ProbeActivity : Activity() {
+class ProbeActivity : NuvioActivity() {
     lateinit var layer: FrameLayout
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
