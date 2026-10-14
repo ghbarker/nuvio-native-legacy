@@ -25,6 +25,7 @@
 #include "redesaude.h"
 #include <math.h>
 #include "agenda.h"
+#include "perfis.h"
 #include "catalogo.h"
 #include "salvos.h"
 #include "sessao.h"
@@ -46,6 +47,11 @@
 #define NV_VERSAO "dev"
 #endif
 #ifndef NV_REC_URL
+#define NV_REC_URL ""
+#endif
+#ifdef NV_TEST_LOCAL_LOGS
+#include "android.h"
+#undef NV_REC_URL
 #define NV_REC_URL ""
 #endif
 
@@ -202,14 +208,25 @@ static void vistosLer(void) {
   free(t);
 }
 static int foiVisto(const char *id) {
+  char chave[72];
   int i;
+  int privado = !strcmp(id, "rec") || !strncmp(id, "agenda:", 7) ||
+                !strncmp(id, "pedidos:", 8);
+  if (privado) {
+    snprintf(chave, sizeof chave, "p%d:%s", perfis_ativo(), id);
+    for (i = 0; i < nVistos; i++) if (!strcmp(vistos[i], chave)) return 1;
+    // As marcas antigas pertenciam ao perfil principal.
+    if (perfis_ativo() != 1) return 0;
+  }
   for (i = 0; i < nVistos; i++) if (!strcmp(vistos[i], id)) return 1;
   return 0;
 }
 static void marcarVisto(const char *id) {
   if (foiVisto(id)) return;
   if (nVistos >= 120) { memmove(vistos[0], vistos[1], sizeof vistos[0] * 119); nVistos = 119; }
-  snprintf(vistos[nVistos++], sizeof vistos[0], "%s", id);
+  if (!strcmp(id, "rec") || !strncmp(id, "agenda:", 7) || !strncmp(id, "pedidos:", 8))
+    snprintf(vistos[nVistos++], sizeof vistos[0], "p%d:%s", perfis_ativo(), id);
+  else snprintf(vistos[nVistos++], sizeof vistos[0], "%s", id);
   vistosSujos = 1;
 }
 static void vistosGravar(void) {
@@ -476,6 +493,9 @@ static char *logAtual;
 #include "avisos_corte.inc"
 static unsigned ultimoHashAuto;   // so muda depois de um envio que o servidor aceitou
 static void *enviarRegistro(void *u) {
+#ifdef NV_TEST_LOCAL_LOGS
+  (void)u; return NULL;
+#endif
   unsigned hAuto = 0;
   static char aut[2200], via[40], chave[160];
   const char *cab[5];
@@ -864,6 +884,9 @@ static void cartaoFechar(void) {
 }
 
 static void enviarAgora(void) {
+#ifdef NV_TEST_LOCAL_LOGS
+  fflush(stdout); android_salvar_registro_local(); return;
+#endif
   if (envioEstado == 1) return;
   if (!NV_REC_URL[0]) { envioEstado = 3; return; }
   envioEstado = 1;
@@ -1104,6 +1127,22 @@ const char *avisos_pediu_abrir(void) {
   return saida;
 }
 int avisos_pediu(void) { int c = pediuCodigo; pediuCodigo = 0; return c; }
+
+void avisos_abrir_sessao(void) {
+  pthread_mutex_lock(&trava);
+  // As marcas ja possuem o dono no id; gravar nao as transfere para o novo perfil.
+  vistosGravar();
+  for (int i = n - 1; i >= 0; i--)
+    if (itens[i].tipo == AV_REC || itens[i].tipo == AV_AGENDA || itens[i].tipo == AV_PEDIDO)
+      tirar(itens[i].id);
+  aberto = foco = 0; entrada = rol = 0.0f; okDesde = 0;
+  toastN = toastPendente = 0; recAnunciada = -1;
+  pediuAbrir[0] = 0; pediuCodigo = 0;
+#ifdef NV_TOUCH_UI
+  toquerol_limpar(&toqueAvisos);
+#endif
+  pthread_mutex_unlock(&trava);
+}
 
 // PONTEIRO (#99): a linha sob o cursor vira o foco, pela MESMA variavel das
 // setas. Trocar de linha solta um OK afundado, como a seta faz.
@@ -1604,6 +1643,9 @@ int avisos_lista_ok(int linha) {
     case AV_UPDATE: pediuCodigo = AVISOS_ABRIR_ATUALIZACAO; return 1;
     case AV_AGENDA: snprintf(pediuAbrir, sizeof pediuAbrir, "%s", a.alvo); return 1;
     case AV_CRASH:
+#ifdef NV_TEST_LOCAL_LOGS
+      fflush(stdout); android_salvar_registro_local(); return 0;
+#endif
       if (envioEstado == 0 || envioEstado == 3) {
         if (!NV_REC_URL[0]) { envioEstado = 3; return 0; }
         envioEstado = 1;
@@ -1761,7 +1803,7 @@ static void avisos_desenharCorpo_(Uint32 agora) {
     toquerol_vincular(&toqueAvisos, (GfxRect){AVP_X + dx, AVP_TOPO, AVP_W, areaH}, gfx_escala(),
                      0, total - areaH, 1, &rol);
     if (aberto && !cartao && a > .99f) ponteiro_rolagem(toqueAvisosRolar);
-    if (!toqueAvisos.livre)
+    if (!toquerol_livre(&toqueAvisos))
 #endif
     rol += (alvo - rol) * 0.25f; }
   // A linha da ilha tem 22 de recuo proprio: a caixa dela sai 22 para fora,
@@ -1785,6 +1827,9 @@ int avisos_envio_estado(void) { return envioEstado; }
 // com no maximo 64 KB. Nunca dois envios ao mesmo tempo, e nunca por cima de um
 // envio manual em curso.
 void avisos_envio_auto_passo(Uint32 agora) {
+#ifdef NV_TEST_LOCAL_LOGS
+  (void)agora; return;
+#endif
   static int anteriorFeito;
   // "O registro fica guardado e sai assim que a rede voltar" (painel de envio,
   // TV sem internet): o envio manual que caiu por falta de rede sai sozinho
@@ -1819,6 +1864,9 @@ void avisos_envio_auto_passo(Uint32 agora) {
 }
 
 void avisos_enviar_registro_atual(void) {
+#ifdef NV_TEST_LOCAL_LOGS
+  fflush(stdout); android_salvar_registro_local(); return;
+#endif
   if (envioEstado == 1) return;
   envQuando = time(NULL);
   envCodigo[0] = 0; envHttp = 0;

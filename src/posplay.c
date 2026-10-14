@@ -2,6 +2,7 @@
 #include "intro.h"
 #include "proximo.h"
 #include "fontecache.h"
+#include "proximopreparo.h"
 #include "jfid.h"
 #include "idioma.h"
 #include "catalogo.h"
@@ -101,6 +102,7 @@ static int    proxT, proxE;          // proximo episodio, quando ha
 static char   proxNome[120];
 static char   preEpisodio[64], preAlvo[64];
 static int    preTentou;
+static int    preVideoTentou, preVideoRenovou;
 static FontecacheEscopo preEscopo;
 
 static void cancelarPreparo(int apagar) {
@@ -139,13 +141,21 @@ int posplay_sobre_video(void) { return visivel && (serie || aguardaCena); }
 // (janelaSerie) continua verdadeira e o painel volta no quadro seguinte —
 // no video do relato o cartao nem sequer some depois do OK, que era este
 // segundo defeito somado ao primeiro.
-static void esconder(void) { cancelarPreparo(!pedT); visivel = 0; fecharEm = 0; foco = 0; dispensado = 1; }
+static void esconder(void) {
+  cancelarPreparo(!pedT);
+  // O pedido Next consome no roteador antes de encerrar o player. Back/Down
+  // descartam; uma escolha explicita de Next conserva o mesmo worker/token.
+  if (!pedT) proximopreparo_cancelar();
+  visivel = 0; fecharEm = 0; foco = 0; dispensado = 1;
+}
 
 void posplay_fechar(void) {
   // Uma lista JA completa continua disponivel ao buscarParaPlayer do proximo.
   // O fio em voo e cancelado sem esperar HTTP na UI; nunca publica depois daqui.
   cancelarPreparo(0);
+  proximopreparo_cancelar();
   preTentou = 0; preEpisodio[0] = preAlvo[0] = 0;
+  preVideoTentou = preVideoRenovou = 0;
   visivel = 0; fecharEm = 0; foco = 0;
   cenaPendente = cenaNoFim = aguardaCena = 0;
   durVista = 0.0; durEstavel = 0.0;   // titulo novo: a duracao comeca de novo
@@ -173,6 +183,7 @@ static void cancelarAutomatico(void) {
 // mas a contagem nao volta enquanto a pessoa ainda esta na mesma janela.
 void posplay_recuar(void) {
   cancelarAutomatico();
+  proximopreparo_cancelar();
   recuou = 1;
 }
 
@@ -185,6 +196,9 @@ void posplay_aguardar_busca(int aguardar) {
 
 int posplay_pediu_episodio(int *t, int *e) {
   if (!pedT) return 0;
+#ifdef NV_TEST_LOCAL_LOGS
+  printf("[test-next] event=request t=%d e=%d automatic=%d ms=%u\n", pedT, pedE, pedAutomatico, SDL_GetTicks());
+#endif
   if (t) *t = pedT;
   if (e) *e = pedE;
   pedT = pedE = 0;
@@ -245,30 +259,50 @@ static void prepararProximo(int ehSerie, double resta) {
   const CatItem *ci = cat_item(idx);
   long long quando;
   int t = 0, e = 0, n = cat_n_episodios(idx), proximo;
-  if (!ehSerie || !ci || jfid_e(ci->imdb)) return;
+  proximopreparo_passo(preEpisodio);
+  if (!ehSerie || !ci || jfid_e(ci->imdb)) {
+    proximopreparo_cancelar(); return;
+  }
   addons_capturar_escopo(&escopo);
-  if (!ajustes_fonte_preparar() || (preTentou &&
+  int video = ajustes_fonte_precarregar() && !ajustes_fonte_manual();
+  if ((!ajustes_fonte_preparar() && !video) || ((preTentou || preVideoTentou) &&
       (escopo.geracao != preEscopo.geracao || escopo.addons != preEscopo.addons ||
-       escopo.perfil != preEscopo.perfil || strcmp(escopo.conta, preEscopo.conta)))) {
+       escopo.perfil != preEscopo.perfil || escopo.sessao != preEscopo.sessao ||
+       strcmp(escopo.conta, preEscopo.conta)))) {
     cancelarPreparo(1);
+    proximopreparo_cancelar();
     return;
   }
   // Uma renovacao, 10 s antes da contagem final: o preparo feito antes dos
   // creditos pode ter expirado. Nao consulta periodicamente durante o episodio.
-  if (preTentou == 2 || (preTentou && resta > ajustes_proximo_contagem() + 10.0) ||
-      dispensado || durEstavel < PP_DUR_ESTAVEL_S ||
-      !player_janela_proximo(10.0)) return;
+  // O video ganha um minuto antes da janela para consultar os scrapers e
+  // carregar amostras; o preparo antigo de metadados conserva os seus 10 s.
+  if ((!video && (preTentou == 2 || (preTentou && resta > ajustes_proximo_contagem() + 10.0))) ||
+      dispensado || recuou || aguardaBusca || durEstavel < PP_DUR_ESTAVEL_S ||
+      !player_janela_proximo(video ? 60.0 : 10.0)) return;
   player_episodio_atual(&t, &e);
   if (t <= 0 || e <= 0) return;
   proximo = prox_indice_seguinte(n ? cat_episodio(idx, 0) : NULL, n, t, e);
   px = proximo >= 0 ? cat_episodio(idx, proximo) : NULL;
   if (!px) return;
-  quando = prox_data_ms(px->data);
+  quando = prox_episodio_data_ms(px);
   // Desconhecido nao prova que ja estreou: nao gasta rede especulativa.
   if (quando == PROX_SEM_DATA || quando > (long long)time(NULL) * 1000) return;
   if (!cat_id_stream(idx, px->temporada, px->episodio, preAlvo, sizeof preAlvo) ||
       jfid_e(preAlvo)) return;
   preEscopo = escopo;
+  if (video) {
+    // O novo toggle nao depende de preparar as fontes na pagina de titulo.
+    // Usa lista/resolvedor proprios, sem substituir streams do episodio atual.
+    if (!preVideoTentou) {
+      preVideoTentou = 1;
+      proximopreparo_agendar(idx, px->temporada, px->episodio,
+                             preEpisodio, preAlvo, &preEscopo);
+    } else if (!preVideoRenovou && resta <= ajustes_proximo_contagem() + 10.0) {
+      if (proximopreparo_renovar(preEpisodio, preAlvo)) preVideoRenovou = 1;
+    }
+    return;
+  }
   if (preTentou) {
     Stream *l = NULL;
     Uint32 idade = 0;
@@ -391,7 +425,10 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
   prepararProximo(ehSerie, vel_tempo_real(durSeg - posSeg, player_velocidade_efetiva()));
   if (durSeg <= 1.0) return;
 
-  if (ehSerie && !janelaSerie && !aguardaBusca) recuou = 0;
+  if (ehSerie && !janelaSerie && !aguardaBusca && recuou) {
+    recuou = 0;
+    preVideoTentou = preVideoRenovou = 0;
+  }
 
   if (ehSerie) {
     // A JANELA quem decide e o player: ele e o unico que sabe se os creditos
@@ -471,6 +508,45 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
     else fecharEm = posplay_contagem(agora, abriuEm, fecharEm, resta, ajustes_proximo_auto(), marcadorReal, ajustes_proximo_contagem());
   }
 
+#ifdef NV_TEST_LOCAL_LOGS
+  // Test APK only: state changes and a bounded five-second pulse near Next.
+  // No source URLs, accounts, API keys or profile names enter these records.
+  {
+    static unsigned testEstado;
+    static Uint32 testQuando;
+    static int testT, testE;
+    int t = 0, e = 0;
+    const CatEp *testProximo = player_proximo_episodio();
+    long long testLancamento = prox_episodio_data_ms(testProximo);
+    int testDataConhecida = testLancamento != PROX_SEM_DATA;
+    int testFutura = testDataConhecida && testLancamento > (long long)time(NULL) * 1000;
+    player_episodio_atual(&t, &e);
+    unsigned estado = (unsigned)!!visivel | (unsigned)!!fecharEm << 1 |
+      (unsigned)!!marcadorReal << 2 | (unsigned)!!aguardaCena << 3 |
+      (unsigned)!!aguardaBusca << 4 | (unsigned)!!recuou << 5 |
+      (unsigned)!!dispensado << 6 | (unsigned)!!ajustes_proximo_auto() << 7 |
+      (unsigned)!!ajustes_pular_creditos() << 8 | (unsigned)!!janelaSerie << 9 |
+      (unsigned)!!preVideoTentou << 10 | (unsigned)!!preVideoRenovou << 11 |
+      (unsigned)!!pedT << 12 | (unsigned)!!video_terminou() << 13 |
+      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15 |
+      (unsigned)!!ajustes_fonte_precarregar() << 16 | (unsigned)!!ajustes_fonte_preparar() << 17 |
+      (unsigned)!!ajustes_fonte_manual() << 18 | (unsigned)!!testDataConhecida << 19 |
+      (unsigned)!!testFutura << 20;
+    int perto = visivel || janelaSerie || preVideoTentou || aguardaBusca;
+    if (ehSerie && (estado != testEstado || t != testT || e != testE ||
+                    (perto && agora - testQuando >= 5000u))) {
+      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d preload_enabled=%d prepare_enabled=%d manual=%d release_known=%d release_future=%d release_ms=%lld\n",
+        agora, t, e, proxT, proxE, posSeg, video_pos(), durSeg, video_terminou(), video_pronto(),
+        video_bufferando_ms(), player_velocidade_efetiva(), creditosSeg,
+        marcadorReal, janelaSerie, visivel, ajustes_proximo_auto(), ajustes_pular_creditos(),
+        aguardaCena, aguardaBusca, recuou, dispensado,
+        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou,
+        ajustes_fonte_precarregar(), ajustes_fonte_preparar(), ajustes_fonte_manual(),
+        testDataConhecida, testFutura, testDataConhecida ? testLancamento : 0LL);
+      testEstado = estado; testQuando = agora; testT = t; testE = e;
+    }
+  }
+#endif
   // A contagem so vale para o proximo episodio.
   if (visivel && fecharEm && agora >= fecharEm) {
     pedT = proxT; pedE = proxE;
@@ -486,6 +562,10 @@ int posplay_evento(const SDL_Event *e) {
   if (toquerol_navegacao(e)) toquerol_limpar(&toquePP);
 #endif
   k = e->key.keysym.sym;
+#ifdef NV_TEST_LOCAL_LOGS
+  printf("[test-next] event=control key=%d focus=%d scene=%d series=%d next=%d:%d ms=%u\n",
+    k, foco, aguardaCena, serie, proxT, proxE, SDL_GetTicks());
+#endif
   if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
       e->key.keysym.scancode == NV_SCANCODE_BACK) {
     // Dispensar CANCELA a contagem e deixa o video terminar em paz. E GRUDA:
@@ -741,7 +821,7 @@ static void posplay_desenharCorpo_(Uint32 agora, float baseY) {
     if (telefoneui_ativo()) {
       float vista = ilha.w - 54.0f, max = fmaxf(0, n * 212.0f - 22.0f - vista);
       toquerol_vincular(&toquePP, (GfxRect){cx, y - 20, vista, 313}, gfx_escala(), 0, max, 0, &scrollPP);
-      if (!toquePP.livre) {
+      if (!toquerol_livre(&toquePP)) {
         float esq = foco * 212.0f, dir = esq + 190;
         if (esq < scrollPP) scrollPP = esq;
         if (dir > scrollPP + vista) scrollPP = dir - vista;
