@@ -99,6 +99,7 @@ jobs:
           > build/review/catalog-display-build.log 2>&1
         build/review/catalog-display-baseline | tee build/review/catalog-display-baseline.log
         cp build/review/catalog-display*.log "$GITHUB_WORKSPACE/build/review/"
+      if: ${{ !cancelled() }}
     - uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -160,6 +161,7 @@ jobs:
           -Wno-deprecated-declarations -Wno-macro-redefined \
           > build/review/catalog-display-build.log 2>&1
         build/review/catalog-display-baseline | tee build/review/catalog-display-baseline.log
+      if: ${{ !cancelled() }}
     - name: Verify profile sessions alongside all retained features
       run: |-
         set -euo pipefail

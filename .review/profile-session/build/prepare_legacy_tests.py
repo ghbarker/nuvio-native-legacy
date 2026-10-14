@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Link omitted epoch infrastructure only in four retained reduced fixtures.
+"""Supply omitted account/epoch infrastructure only in reduced old fixtures.
 
 Changes are confined to the CI working copy of the old test runners. Existing
 assertions and their mock transports remain intact. New ownership/race suites
@@ -74,6 +74,70 @@ def replace_once(path, old, new):
     return True
 
 
+def adapt_watched_runner(path, compat):
+    if not path.exists():
+        return False
+    text = path.read_text()
+    # Accept the previous one-target adapter in a reused local CI worktree.
+    first = '"$task_review/tests/watched_discovery.c" src/js.c src/metaprov.c'
+    prior = first+' '+compat
+    if prior in text:
+        text = text.replace(prior, first)
+    old = 'cc "${task_flags[@]}"'
+    new = old+' '+compat
+    if text.count(new) == 7:
+        return True
+    # All seven commands are unchanged legacy discovery/catalog/layout tests.
+    # This runner never links perfis.c or runs the new profile ownership suites.
+    assert text.count(old) == 7 and new not in text, path
+    path.write_text(text.replace(old, new))
+    return True
+
+
+def adapt_profile_selection(path):
+    if not path.exists():
+        return False
+    text = path.read_text()
+    old = '''char *nuvem_rpc_com(const char *funcao, const char *corpoJson,
+                    const char *bearer, int *status) {
+  (void)funcao; (void)corpoJson; (void)bearer;
+  if (status) *status = 0;
+  return NULL;
+}'''
+    new = '''// The new frozen-identity path uses the same account and RPC fake as the
+// original fixture; anonymous avatar calls still have their original response.
+static const char *perfilselJwt = "perfilsel-fixture-jwt";
+char *sessao_rpc(const char *, const char *, int *);
+int sessao_identidade_local_copiar(char *u, size_t nu, char *jwt, size_t nj) {
+  const char *account = sessao_usuario();
+  if (!u || !nu || !jwt || !nj || !account || !*account ||
+      strlen(account) >= nu || strlen(perfilselJwt) >= nj) return 0;
+  snprintf(u, nu, "%s", account);
+  snprintf(jwt, nj, "%s", perfilselJwt);
+  return 1;
+}
+void sessao_token_recusado(const char *jwt) {
+  assert(jwt && !strcmp(jwt, perfilselJwt));
+  // The existing profile-selection RPC fake never returns 401. Other review
+  // fixtures explicitly exercise renewal and account changes with real epochs.
+}
+char *nuvem_rpc_com(const char *funcao, const char *corpoJson,
+                    const char *bearer, int *status) {
+  if (bearer && *bearer) {
+    assert(!strcmp(bearer, perfilselJwt));
+    return sessao_rpc(funcao, corpoJson, status);
+  }
+  (void)funcao; (void)corpoJson; (void)bearer;
+  if (status) *status = 0;
+  return NULL;
+}'''
+    if new in text:
+        return True
+    assert text.count(old) == 1, path
+    path.write_text(text.replace(old, new))
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--probe-log', type=Path)
@@ -89,11 +153,12 @@ def main():
     old = 'sources=(tests/stream_faixas_ui.c'
     if replace_once(Path('tests/stream_faixas_ui.sh'), old, old+' '+compat):
         changed.append('stream_faixas_ui')
-    old = '"$task_review/tests/watched_discovery.c" src/js.c src/metaprov.c'
-    if replace_once(Path('.review/hide-watched/build/run_regressions.sh'), old, old+' '+compat):
-        changed.append('watched_discovery')
+    if adapt_watched_runner(Path('.review/hide-watched/build/run_regressions.sh'), compat):
+        changed.append('all seven retained watched/discovery/catalog compile commands')
+    if adapt_profile_selection(Path('tests/perfilsel.c')):
+        changed.append('perfilsel (same account/JWT and original RPC/PIN fake)')
     assert 'fontecache_vod' in changed, 'Expected the original reduced VOD-cache fixture'
-    print('Legacy epoch-zero compatibility linked only into: '+', '.join(changed))
+    print('Legacy fixture dependencies prepared only for: '+', '.join(changed))
 
 
 if __name__ == '__main__':
