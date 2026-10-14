@@ -1,0 +1,120 @@
+{
+  "format": 1,
+  "intended_source_commit": "65d3da65c6abbbef584efbf2b7f0bb1f63c9e7f1",
+  "product_player_sha256": "26728240f2f069b11b73f43cf1d1f67043a094c034d55914c0f52ceb46e6d7d9",
+  "canonical_fixture_manifest_sha256": "569673adca17f3779713c2096ddcb4d0c55749d483f54d387c5bf054d800cc5d",
+  "helper_files": [
+    {
+      "path": "generate-fixtures.sh",
+      "bytes": 7065,
+      "sha256": "46d86d1d34a6a5ddb77850ebaf4853bfc1eddce2767ce992878a4266b1fea338"
+    },
+    {
+      "path": "stage.sh",
+      "bytes": 3967,
+      "sha256": "f7c2f110fd16fc229ee78d6b304223efc85dcc7238828e68b9f14b0792ee58be"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3575,
+      "sha256": "09bcb556de4a8ba217eec480a85bd6d20209eef649320cdb0b329a6cade9fb2b"
+    }
+  ],
+  "diagnostic_test": {
+    "path": "StartupContractTest.kt",
+    "staged_as": "probe/src/androidTest/java/space/nuvio/preloadtest/StartupContractTest.kt",
+    "class_filter": "space.nuvio.preloadtest.StartupContractTest",
+    "sha256_recorded_at_staging": true,
+    "bytes": 24720,
+    "sha256": "87d65532cef789b4039c439b58fd926cbc71ccf978a88e7fedecd96d4f0a468d"
+  },
+  "media_assets": {
+    "generated_at_runtime": true,
+    "output_directory": "probe/src/androidTest/assets",
+    "canonical_generator": "../generate-fixture.sh",
+    "canonical_generator_sha256": "75a2767e8301ff6a949f475a710f02d9c4daf51237c1410ad16571d5aa602781",
+    "additional_generator": "generate-fixtures.sh",
+    "additional_media": [
+      {
+        "path": "startup-two-audio.mkv",
+        "duration_s": 20,
+        "video": "copied fixture.mp4 AVC, 640x360, 24 fps, approximately 3 Mbps",
+        "audio": [
+          {
+            "index": 0,
+            "codec": "aac",
+            "sample_rate_hz": 48000,
+            "tone_hz": 440,
+            "language": "eng",
+            "default": true
+          },
+          {
+            "index": 1,
+            "codec": "aac",
+            "sample_rate_hz": 48000,
+            "tone_hz": 880,
+            "language": "por",
+            "default": false
+          }
+        ]
+      },
+      {
+        "path": "startup-master.m3u8",
+        "codecs": "AVC codec derived from actual avcC plus mp4a.40.2",
+        "video_playlist": "startup-video.m3u8",
+        "video_chunks": "startup-video%02d.ts",
+        "audio": [
+          {
+            "playlist": "startup-eng.m3u8",
+            "chunks": "startup-eng%02d.ts",
+            "language": "en",
+            "default": true
+          },
+          {
+            "playlist": "startup-por.m3u8",
+            "chunks": "startup-por%02d.ts",
+            "language": "pt",
+            "default": false
+          }
+        ]
+      },
+      {
+        "path": "startup-budget.mp4",
+        "duration_s": 4,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "video_size": [
+          640,
+          360
+        ],
+        "video_fps": 24,
+        "configured_video_cbr_bps": 80000000,
+        "faststart": true,
+        "accepted_video_bitrate_bps": [
+          70000000,
+          90000000
+        ],
+        "accepted_file_bytes": [
+          34000000,
+          45000000
+        ],
+        "must_reach_16_mib_before_seconds": 2.5
+      }
+    ],
+    "generated_validation_record": "probe/src/androidTest/assets/startup-fixtures.json"
+  },
+  "local_ffmpeg_validation": {
+    "ffmpeg_version": "7.1.5-0+deb13u1",
+    "avc_codec": "avc1.42c01e",
+    "budget": {
+      "duration_s": 4.0,
+      "video_bitrate_bps": 78001762,
+      "bytes": 39052880,
+      "seconds_for_16_mib_at_video_bitrate": 1.7207012323644688
+    },
+    "audio_default_flags_verified": true,
+    "hls_playlist_stream_types_and_segment_files_verified": true,
+    "hls_master_audio_languages_and_default_flags_verified": true
+  },
+  "scope": "Isolated diagnostic staging and generated media only. Canonical twelve helpers, eight test methods, manifest, and product sources remain unchanged."
+}

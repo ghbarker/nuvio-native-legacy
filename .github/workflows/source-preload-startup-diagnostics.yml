@@ -1,0 +1,76 @@
+name: Preload startup diagnostics on the tested APK source
+on:
+  push:
+    branches: [review/source-preload-startup-diagnostics-v1]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  startup:
+    name: Real MKV, audio, buffer and first-frame diagnostics
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 65d3da65c6abbbef584efbf2b7f0bb1f63c9e7f1
+          path: source-app
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install SDK and media tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Stage exact tested player and isolated diagnostic fixtures
+        run: |
+          bash .review/source-preload-final/android/startup-diagnostics/stage.sh "$GITHUB_WORKSPACE/source-app" "$GITHUB_WORKSPACE/startup-probe"
+          bash .review/source-preload-final/android/startup-diagnostics/generate-fixtures.sh "$GITHUB_WORKSPACE/startup-probe"
+          gradle -p startup-probe --console=plain :probe:assembleDebug :probe:assembleDebugAndroidTest
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            set +e
+            gradle -p startup-probe --console=plain -Pandroid.testInstrumentationRunnerArguments.class=space.nuvio.preloadtest.StartupContractTest :probe:connectedDebugAndroidTest
+            startup_status=$?
+            mkdir -p build/review/startup
+            adb exec-out run-as space.nuvio.preloadtest cat files/startup-diagnostics.jsonl > build/review/startup/startup-diagnostics.jsonl
+            adb logcat -d > build/review/startup/logcat.txt
+            exit "$startup_status"
+      - name: Record diagnostic source and fixture identities
+        if: always()
+        run: |
+          mkdir -p build/review/startup
+          test ! -f startup-probe/startup-stage.json || cp startup-probe/startup-stage.json build/review/startup/
+          test ! -f startup-probe/probe/src/androidTest/assets/startup-fixtures.json || cp startup-probe/probe/src/androidTest/assets/startup-fixtures.json build/review/startup/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-preload-startup-diagnostics-${{ github.sha }}
+          path: |
+            build/review/startup/
+            startup-probe/probe/build/reports/
+            startup-probe/probe/build/outputs/androidTest-results/
+          retention-days: 14
