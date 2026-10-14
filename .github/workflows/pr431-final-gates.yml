@@ -1,0 +1,91 @@
+name: 'Frozen PR431 final macOS gates: complete pinned product'
+'on':
+  push:
+    branches:
+    - review/pr431-final-gates-v1
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  native:
+    name: Frozen PR431 full macOS gates with bounded Window fixture
+    runs-on: macos-14
+    timeout-minutes: 75
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize and verify exact pinned product source
+      run: python3 .review/source-preload/build/verify_source.py --case automatic-rebase --source-commit e7f58bc8108534e4425867ac04127731962ccf73
+        --target source-app --proof build/review/source-verified.json
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.9'
+    - name: Resolve exact compiler artifacts required by unchanged upstream Window fixture
+      run: gradle -p .review/source-preload/window-compiler --console=plain resolveWindowCompiler
+    - name: Native SDK and real SDL libraries
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Add only link-time SDL3 rpath while preserving all original compiler flags
+      run: 'set -euo pipefail
+
+        compiler="$(command -v cc)"
+
+        sdl3_library="$(brew --prefix sdl3)/lib"
+
+        test -d "$sdl3_library"
+
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+
+        cp .review/source-preload/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"'
+    - name: Full app TV/Mobile builds and final behavior gates
+      working-directory: source-app
+      env:
+        NUVIO_SOURCE_PRELOAD_REVIEW: ${{ github.workspace }}/.review/source-preload
+        NUVIO_SOURCE_PRELOAD_RESULTS: ${{ github.workspace }}/build/review/native
+        NUVIO_SOURCE_PRELOAD_CASE: automatic-rebase
+      run: 'set -euo pipefail
+
+        cp "$NUVIO_SOURCE_PRELOAD_REVIEW/window-fix/pr431_window_geometry.py" tests/pr431_window_geometry.py
+
+        python3 - "$NUVIO_SOURCE_PRELOAD_REVIEW/build/run_native.sh" "$NUVIO_SOURCE_PRELOAD_RESULTS/run_native_bounded.sh"
+        <<''PYCODE''
+
+        from pathlib import Path
+
+        import sys
+
+        old = Path(sys.argv[1]).read_text()
+
+        assert old.count(''bash tests/pr431_runtime_review.sh'') == 1
+
+        Path(sys.argv[2]).parent.mkdir(parents=True, exist_ok=True)
+
+        Path(sys.argv[2]).write_text(old.replace(''bash tests/pr431_runtime_review.sh'', ''bash tests/pr431_runtime_bounded_review.sh''))
+
+        PYCODE
+
+        bash "$NUVIO_SOURCE_PRELOAD_RESULTS/run_native_bounded.sh"'
+    - name: Reverify pinned product source after native checks
+      run: python3 .review/source-preload/build/verify_source.py --case automatic-rebase --source-commit e7f58bc8108534e4425867ac04127731962ccf73
+        --target source-app --proof build/review/source-verified.json --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: source-preload-native-automatic-final-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
