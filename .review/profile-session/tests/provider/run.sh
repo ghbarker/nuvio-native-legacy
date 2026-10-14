@@ -15,6 +15,7 @@ provider_gc=(-Wl,--gc-sections)
 if [ "$(uname -s)" = Darwin ]; then provider_gc=(-Wl,-dead_strip); fi
 provider_scope_extra=(src/fontefalha.c)
 provider_flags=(-std=gnu11 -O1 -g -Isrc -I/opt/homebrew/include -I/opt/homebrew/include/SDL2)
+if [ "$(uname -s)" = Darwin ]; then provider_flags+=(-D_DARWIN_C_SOURCE); fi
 if [ -n "${NUVIO_PROFILE_TEST_SDK:-}" ]; then
   provider_flags+=("-I$NUVIO_PROFILE_TEST_SDK")
   if [ -n "${NUVIO_PROFILE_TEST_SDK_EXTRA:-}" ]; then provider_flags+=("-I$NUVIO_PROFILE_TEST_SDK_EXTRA"); fi

@@ -1,0 +1,346 @@
+name: 'Profile PR: skipped checks, provider correction and manual functional coverage'
+'on':
+  push:
+    branches:
+    - review/profile-session-pr-finalchecks
+permissions:
+  contents: read
+concurrency:
+  group: profile-pr-finalchecks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  remaining_profile:
+    name: Previously skipped profile/playback baselines (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact unchanged clean product source and all source blobs
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Prepare faithful reduced-fixture dependencies
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        python3 "$GITHUB_WORKSPACE/.review/profile-session/build/prepare_pr_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
+    - name: 'ASan baseline: legmemoria'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/legmemoria.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/legmemoria.log"
+        echo 'legmemoria PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'ASan baseline: fontevolta'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontevolta.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontevolta.log"
+        echo 'fontevolta PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'ASan baseline: player_retido'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/player_retido.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/player_retido.log"
+        echo 'player_retido PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'ASan baseline: addons_legendas'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/addons_legendas.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/addons_legendas.log"
+        echo 'addons_legendas PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'ASan baseline: fontecache_vod'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontecache_vod.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontecache_vod.log"
+        echo 'fontecache_vod PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'ASan baseline: i18n'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/i18n.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/i18n.log"
+        echo 'i18n PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-final-remaining_profile-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  remaining_native:
+    name: Previously skipped debrid and corrected budget baselines (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact unchanged clean product source and all source blobs
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Prepare faithful reduced-fixture dependencies
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        python3 "$GITHUB_WORKSPACE/.review/profile-session/build/prepare_pr_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
+    - name: 'ASan baseline: debrid'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/debrid.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/debrid.log"
+        echo 'debrid PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'ASan baseline: fontesmortas_orcamento'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontesmortas_orcamento.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontesmortas_orcamento.log"
+        echo 'fontesmortas_orcamento PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-final-remaining_native-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  provider:
+    name: Provider bank/ownership fixtures with Darwin declarations (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact unchanged clean product source and all source blobs
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Corrected provider scope, bank, credentials and rules fixtures
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export NUVIO_PROFILE_NATIVE_FAILOVER=1
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 bash "$GITHUB_WORKSPACE/.review/profile-session/tests/provider/run.sh" "$PWD" \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/provider.log"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-final-provider-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  manual_normal:
+    name: Original full-source manual preference functional checks without ASan (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact unchanged clean product source and all source blobs
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: 'Normal full-source baseline: fontepref'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=0 FONTEFALHA_SANITIZE=0 bash tests/fontepref.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontepref.log"
+        echo 'fontepref PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Normal full-source baseline: fontepref_file'
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=0 FONTEFALHA_SANITIZE=0 bash tests/fontepref_file.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontepref_file.log"
+        echo 'fontepref_file PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-final-manual_normal-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
