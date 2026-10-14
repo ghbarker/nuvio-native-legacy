@@ -30,3 +30,13 @@ for name in herosinopse_corrida localizar_corrida; do
   cc "${flags[@]}" -DNV_CAT_TEST_ANTES_TRAVA=nv_cat_teste_antes_trava src/catalogo.c src/cwordem.c "tests/$name.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c src/artefontes.c "$fixtures/single-session.c" -o "$out/$name"
   run_test "$name"
 done
+cc "${flags[@]}" "$fixtures/discovery-reopen.c" src/perfis.c src/homeestado.c src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c src/colecoes.c src/colfileiras.c src/catordem.c src/cotacat.c src/js.c src/jsw.c src/metaprov.c src/redeurl.c -o "$out/discovery-reopen"
+run_test discovery-reopen
+for mode in boot-first signedout-bootstrap; do
+  if "$out/discovery-reopen" "$mode" > "$out/discovery-reopen-$mode.log" 2>&1; then
+    printf 'discovery-reopen-%s: PASS\n' "$mode"
+  else
+    cat "$out/discovery-reopen-$mode.log"
+    exit 1
+  fi
+done

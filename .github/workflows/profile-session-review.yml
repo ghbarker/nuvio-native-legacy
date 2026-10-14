@@ -28,7 +28,7 @@ jobs:
         from pathlib import Path
         import subprocess
         base = '17bb330373273a3de284d7f2898a3a3e16f1fc3f'
-        feature = 'd166b009eefd0bc69e5b608960c561e7e4cdfc1f'
+        feature = 'a8c99d08ebe263f475019f9ac3c55962bd7c6805'
         plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
         assert plan['base'] == base and plan['feature_commit'] == feature
         subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
@@ -312,8 +312,8 @@ jobs:
         replacements = {
             Path('android/app/build.gradle.kts'): [
                 ('applicationId = "space.nuvio.nativelegacy"', 'applicationId = "space.nuvio.nativelegacy.touch"'),
-                ('versionCode = vx * 10000 + vy * 100 + vz', 'versionCode = 20007'),
-                ('versionName = versao', 'versionName = "2.0.7-testprofiles"'),
+                ('versionCode = vx * 10000 + vy * 100 + vz', 'versionCode = 20008'),
+                ('versionName = versao', 'versionName = "2.0.8-testprofiles"'),
             ],
             Path('android/app/src/main/AndroidManifest.xml'): [
                 ('android:label="@string/app_name"', 'android:label="Nuvio TV/Mobile Test"'),
@@ -357,7 +357,7 @@ jobs:
           -Pnuvio.ffmpegAar="$task_stage/media3-ffmpeg-16kb.aar" \
           assembleDebug
         task_version="$(python3 -c 'import json; print(json.load(open("deploy/app/appinfo.json"))["version"])')"
-        cp android/app/build/outputs/apk/debug/app-debug.apk "build/android/Nuvio-2.0.7-testprofiles-tv-mobile-test.apk"
+        cp android/app/build/outputs/apk/debug/app-debug.apk "build/android/Nuvio-2.0.8-testprofiles-tv-mobile-test.apk"
     - name: Verify compatible test package, label, persistent signature and native packaging
       run: |-
         python3 - "$ANDROID_HOME/build-tools/35.0.0/aapt" "$ANDROID_HOME/build-tools/35.0.0/apksigner" <<'PY'
@@ -379,8 +379,8 @@ jobs:
             raise SystemExit('Test APK must be labeled Nuvio TV/Mobile Test')
         signing = subprocess.check_output([sys.argv[2], 'verify', '--verbose', '--print-certs', str(apk)], text=True)
         expected = '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
-        assert re.search(r"^package: name='space.nuvio.nativelegacy.touch' versionCode='20007'", badging, re.MULTILINE)
-        assert re.search(r"versionName='2.0.7-testprofiles'", badging)
+        assert re.search(r"^package: name='space.nuvio.nativelegacy.touch' versionCode='20008'", badging, re.MULTILINE)
+        assert re.search(r"versionName='2.0.8-testprofiles'", badging)
         if 'Signer #1 certificate SHA-256 digest: ' + expected not in signing:
             raise SystemExit('Test APK must use the persistent original preview signing certificate')
         print('Test APK persistent signing certificate verified:', expected)
@@ -403,8 +403,8 @@ jobs:
         source = json.loads(Path('build/review/combined-source-verified.json').read_text())
         proof = {'apk_sha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
                  'apk_bytes': apk.stat().st_size, 'package': 'space.nuvio.nativelegacy.touch',
-                 'label': 'Nuvio TV/Mobile Test', 'version_code': 20007,
-                 'version_name': '2.0.7-testprofiles', 'abis': ['arm64-v8a', 'armeabi-v7a'],
+                 'label': 'Nuvio TV/Mobile Test', 'version_code': 20008,
+                 'version_name': '2.0.8-testprofiles', 'abis': ['arm64-v8a', 'armeabi-v7a'],
                  'certificate_sha256': '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
                  'source_commit': source['build_commit'], 'feature_commit': source['feature_commit'],
                  'retained_commit': source['retained_commit']}
@@ -493,7 +493,7 @@ jobs:
         import hashlib
         import json
         import shutil
-        expected_feature = 'd166b009eefd0bc69e5b608960c561e7e4cdfc1f'
+        expected_feature = 'a8c99d08ebe263f475019f9ac3c55962bd7c6805'
         proof = json.loads(Path('delivery/proof/update-identity.json').read_text())
         candidates = list(Path('delivery/apk').glob('*-tv-mobile-test.apk'))
         assert len(candidates) == 1
@@ -501,19 +501,19 @@ jobs:
         assert proof['feature_commit'] == expected_feature
         assert proof['package'] == 'space.nuvio.nativelegacy.touch'
         assert proof['label'] == 'Nuvio TV/Mobile Test'
-        assert proof['version_code'] == 20007
+        assert proof['version_code'] == 20008
         assert proof['certificate_sha256'] == '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
         digest = hashlib.sha256(apk.read_bytes()).hexdigest()
         assert digest == proof['apk_sha256']
         target = Path('delivery/Nuvio-TV-Mobile-Test-Profiles.apk')
         shutil.copyfile(apk, target)
         target.with_suffix('.apk.sha256').write_text(digest + '  ' + target.name + '\n')
-        Path('delivery/release-notes.txt').write_text('I added fresh profile sessions for issue #488, including the folder/showcase display fix and safeguards against data from a previous profile appearing after switching.\n\nI also added a provider configuration setting: shared on this device or separate for this profile. Existing accounts are preserved. Switching mode preserves both configurations.\n\nThis test APK retains native provider/addon failover, exclusion filters, addon language metadata, Hide watched movies, and TV/Mobile support.\n\nThe macOS standalone and combined regression jobs and both ARM Android builds passed before publication. Device testing of this profile change is still pending.\n\nPackage space.nuvio.nativelegacy.touch; label Nuvio TV/Mobile Test; versionCode 20007. Signed with the original persistent test certificate to update the preceding stable test APK while keeping accounts.\n\nNo PR has been opened for this profile change yet.\nIssue: https://github.com/iqui27/nuvio-native-legacy/issues/488\n')
+        Path('delivery/release-notes.txt').write_text("I clear touch and scroll capture when switching profiles so swipe and tap input stays available. I also close leftover menus and overlays so they cannot block the new Home screen. I restart the new profile's catalogs using its cached addons, then refresh them without carrying over the previous profile's session.\n\nI kept the fresh profile sessions and folder/showcase fix for issue #488, along with shared or separate provider settings. Existing accounts and both provider configurations are preserved.\n\nThis test APK retains native provider/addon failover, exclusion filters, addon language metadata, Hide watched movies, and TV/Mobile support.\n\nThe macOS standalone and combined regression jobs, full native linking checks, and both ARM Android builds passed before publication. I still need to verify these fixes on a physical device.\n\nPackage space.nuvio.nativelegacy.touch; label Nuvio TV/Mobile Test; versionCode 20008; versionName 2.0.8-testprofiles. I used the same persistent test certificate so this APK updates the preceding stable test APK while keeping accounts.\n\nNo PR has been opened for this profile change yet.\nIssue: https://github.com/iqui27/nuvio-native-legacy/issues/488\n")
         print('Verified test APK SHA256:', digest)
         VERIFY
-        if gh release view tv-mobile-test-profiles-488 >/dev/null 2>&1; then
-          gh release upload tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --clobber
-          gh release edit tv-mobile-test-profiles-488 --draft=false --prerelease --latest=false --notes-file delivery/release-notes.txt
+        if gh release view tv-mobile-test-profiles-488-v2 >/dev/null 2>&1; then
+          gh release upload tv-mobile-test-profiles-488-v2 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --clobber
+          gh release edit tv-mobile-test-profiles-488-v2 --title 'Nuvio TV/Mobile Test: profile switching fixes' --draft=false --prerelease --latest=false --notes-file delivery/release-notes.txt
         else
-          gh release create tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --target d166b009eefd0bc69e5b608960c561e7e4cdfc1f --prerelease --latest=false --title 'Nuvio TV/Mobile Test: fresh profile sessions' --notes-file delivery/release-notes.txt
+          gh release create tv-mobile-test-profiles-488-v2 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --target a8c99d08ebe263f475019f9ac3c55962bd7c6805 --prerelease --latest=false --title 'Nuvio TV/Mobile Test: profile switching fixes' --notes-file delivery/release-notes.txt
         fi

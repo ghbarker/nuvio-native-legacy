@@ -1,6 +1,6 @@
 {
   "base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
-  "feature_commit": "d166b009eefd0bc69e5b608960c561e7e4cdfc1f",
+  "feature_commit": "a8c99d08ebe263f475019f9ac3c55962bd7c6805",
   "files": [
     {
       "path": "src/addons.c",
@@ -70,7 +70,7 @@
     },
     {
       "path": "src/app.c",
-      "sha": "319ca76579f48a79ecd8494bc7cf82b1eca961ab",
+      "sha": "ee3a831afd826f1ed1cf5e5cec28c9267ef66a14",
       "mode": "100644",
       "upstream_sha": "95edd6b61c1fc2f330293a41bec1c4a05dc4dfac"
     },
@@ -130,9 +130,15 @@
     },
     {
       "path": "src/ctxmenu.c",
-      "sha": "97d5f0bfd0c70ce04ee428cf650c5371d7b38f0b",
+      "sha": "5d4c8d582b0e7c4484345dfcb7b6c863cdcbf05c",
       "mode": "100644",
       "upstream_sha": "cfd5547b2224835b633196709dba520853ecc803"
+    },
+    {
+      "path": "src/ctxmenu.h",
+      "sha": "500b05c192eb715dbea0eb85fc91cd74b01fe8d2",
+      "mode": "100644",
+      "upstream_sha": "fe52cc0284f252c50045d7c25df9ece207f7c3a5"
     },
     {
       "path": "src/debrid.c",
@@ -148,13 +154,13 @@
     },
     {
       "path": "src/descoberta.c",
-      "sha": "e3bc43807e6a6b62e0444fa9190f315a405e297b",
+      "sha": "152e92c7b95ad580022832b660b6782db2bc68a9",
       "mode": "100644",
       "upstream_sha": "3c8e5240ab2b280a9691493e6449244335d7fe15"
     },
     {
       "path": "src/descoberta.h",
-      "sha": "a279f28689106679844157ba58a3fb57b3340a7f",
+      "sha": "ab8636885ee4d2b03f9ac56096d2f16ce9362e87",
       "mode": "100644",
       "upstream_sha": "f266756a9ee876c7c84729011355db128a13df53"
     },
@@ -513,6 +519,18 @@
       "upstream_sha": "3bdb229885d9c66d95b9eaa24c9e2075193d230d"
     },
     {
+      "path": "src/ponteiro.c",
+      "sha": "c01f7cbacf1f9f4e38f1cc86335c839b2e4890a9",
+      "mode": "100644",
+      "upstream_sha": "a6dc76a584defd5c73eca46517b6ea74ffccae4d"
+    },
+    {
+      "path": "src/ponteiro.h",
+      "sha": "db55071ce1362172b426b29d1a8a37ec7e838e55",
+      "mode": "100644",
+      "upstream_sha": "1a23178826553c48bafb17a1e276f674f2bc47e9"
+    },
+    {
       "path": "src/recomenda.c",
       "sha": "2c28c3ae7169ad6b28bc6f8c6d0a389720ac571a",
       "mode": "100644",
@@ -598,7 +616,7 @@
     },
     {
       "path": "src/sync.c",
-      "sha": "2fe5e02e57d80d3c9e1541ecf69f61d992d31339",
+      "sha": "fe06d80dd3c85f2e2e19eac9fa14b11a5d8fd4bf",
       "mode": "100644",
       "upstream_sha": "f722f67ce81f11dd1977ff1d1968b36a88c974eb"
     },

@@ -1849,13 +1849,19 @@ diff --git a/src/app.c b/src/app.c
             stream_atual() == j->indice && stream_lista_geracao() == j->geracaoLista;
    if (valido) {
      if (j->resultado == 1 && j->url[0]) {
-@@ -2340,7 +2362,81 @@
+@@ -2340,7 +2362,87 @@
      contapend_chutar();
  }
  
 +// Finish under the outgoing identity. Selection advances the session epoch
 +// immediately afterwards; old jobs may finish but cannot update the new UI.
 +static void perfilEncerrarSessao(void) {
++  // End input capture before resetting the Home it belongs to. Hit targets
++  // from the outgoing frame cannot activate under the destination profile.
++  ponteiro_abrir_sessao();
++  ctx_abrir_sessao();
++  estatvivo_fechar();
++  celb_fechar();
 +  if (player_mini_ativo()) player_fechar_mini();
 +  if (player_aberto() || player_retido()) player_encerrar();
 +  player_descartar_retido();
@@ -1931,7 +1937,7 @@ diff --git a/src/app.c b/src/app.c
  #ifdef NV_LINUX_DESKTOP
    const char *preview = getenv("NUVIO_UI_PREVIEW");
    uiPreview = preview && !strcmp(preview, "1");
-@@ -2436,7 +2532,8 @@
+@@ -2436,7 +2538,8 @@
      tela = TELA_HOME;
      // Com sessao gravada o ciclo comeca no arranque: e ele que traz os addons
      // e o Trakt da pessoa, sem os quais a home mostra so o que veio no pacote.
@@ -1941,7 +1947,7 @@ diff --git a/src/app.c b/src/app.c
      arranque_etapa("app_iniciar/sync_iniciar");
      sync_iniciar();
      // A ESCOLHA DE PERFIL ABRE AQUI, e nao daqui a alguns segundos.
-@@ -3246,6 +3343,9 @@
+@@ -3246,6 +3349,9 @@
        // Logo apos entrar, o primeiro ciclo de sync: e ele que descobre quantos
        // perfis a conta tem, e sem isso a tela de escolha nao teria o que
        // mostrar.
@@ -1951,7 +1957,7 @@ diff --git a/src/app.c b/src/app.c
        sync_reaplicar_ajustes();
        sync_iniciar();
        tela = TELA_ESCOLHA_PERFIL;
-@@ -3264,9 +3364,24 @@
+@@ -3264,9 +3370,24 @@
        && !uiPreview
  #endif
       ) {
@@ -1977,7 +1983,7 @@ diff --git a/src/app.c b/src/app.c
      return;
    }
  
-@@ -3323,7 +3438,8 @@
+@@ -3323,7 +3444,8 @@
        // Continuar). O teto existe para uma rede lenta nunca prender a pessoa
        // na tela de escolha: passado ele, a home abre como estiver e termina de
        // se montar ali, como antes.
@@ -1987,7 +1993,7 @@ diff --git a/src/app.c b/src/app.c
            agora - trocaPerfilDesde >= TROCA_PERFIL_TETO_MS) {
          printf("[perfis] home do perfil %d %s em %u ms\n", perfis_ativo(),
                 (sync_perfil_pronto() && !desc_montando()) ? "pronta" : "aberta pelo teto",
-@@ -3336,88 +3452,7 @@
+@@ -3336,88 +3458,7 @@
        return;
      }
      if (perfilsel_concluido()) {
@@ -2621,6 +2627,77 @@ diff --git a/src/ctxmenu.c b/src/ctxmenu.c
    if (pthread_create(&t, NULL, fioTirarRemoto, tr) == 0) { pthread_detach(t); return; }
    printf("[ctx] sem fio para tirar %s do Trakt/conta: so o efeito local vale\n", tr->imdb);
    fflush(stdout);
+@@ -2307,3 +2315,57 @@
+     linhaCtx(r, ops[i].rot, icone, f, a);
+   }
+ }
++
++void ctx_abrir_sessao(void) {
++  // Sem animacao de saida: uma linha inline pode perder o painel que a
++  // desenhava e continuar aberta como uma camada invisivel sobre a Home.
++  aberto = 0;
++  idx = -1; foco = 0;
++  anim = animV = 0.0f;
++  doPainel = doSocial = doLista = soFileira = cartazFixo = 0;
++  inlineOn = inlinePend = 0;
++  pagina = confFoco = 0;
++  holdAtivo = holdCancelado = holdPronto = esperandoSoltura = 0;
++  holdDesde = 0;
++  // O observador SDL continua instalado uma vez; so o gesto era do perfil.
++  operacao = CTX_OP_NENHUMA;
++  intencao = estadoOperacao = opSimkl = espelhoAplicado = 0;
++  operacaoImdb[0] = 0;
++  avisoOp = NULL;
++  opTinhaRetomada = fecharAoConfirmar = 0;
++  memset(&opItem, 0, sizeof opItem);
++  memset(&copiaPainel, 0, sizeof copiaPainel);
++  memset(&lista, 0, sizeof lista);
++  listaPedida = listaAlterou = 0;
++  memset(extras, 0, sizeof extras);
++  nExtras = 0;
++  extraPedido = confExtra = pendExtra = -1;
++  pedCategoriaImdb[0] = 0;
++  detalhesOk = detalhesPend = deOutraTela = 0;
++  dispensarPend = dispensarOp = 0;
++  filChave[0] = filTitulo[0] = 0;
++  nOps = 0;
++  memset(ops, 0, sizeof ops);
++  memset(focoAnim, 0, sizeof focoAnim);
++  memset(confAnim, 0, sizeof confAnim);
++  nEstilos = 0; estFoco = -1;
++  memset(estLin, 0, sizeof estLin);
++  memset(estTam, 0, sizeof estTam);
++  memset(estAnim, 0, sizeof estAnim);
++  prevAtual = prevAnt = prevRefAtual = prevRefAnt = -1;
++  prevT = 1.0f;
++  temCartaz = 0;
++  cartazArte[0] = 0;
++  memset(&cartazRect, 0, sizeof cartazRect);
++  infoT = infoH = 0.0f;
++  infoDesenhada = infoLadoUlt = 0;
++  memset(&infoCaixa, 0, sizeof infoCaixa);
++  memset(&menuCaixa, 0, sizeof menuCaixa);
++  dicaCx = -1.0f;
++#ifdef NV_TOUCH_UI
++  memset(&toqueEst, 0, sizeof toqueEst);
++  estRolY = 0.0f;
++  memset(&inlineRecorte, 0, sizeof inlineRecorte);
++  inlineRecorteValido = 0;
++#endif
++}
+diff --git a/src/ctxmenu.h b/src/ctxmenu.h
+--- a/src/ctxmenu.h
++++ b/src/ctxmenu.h
+@@ -22,6 +22,9 @@
+ // tecla nem abre no KEYDOWN; assim o toque curto continua abrindo o detalhe e
+ // o modal recebe apenas o foco D-pad depois de estar visivel.
+ void ctx_abrir(int indice);
++// Fecha a UI e descarta copias/pedidos do perfil anterior. Escritas ja
++// despachadas continuam nos seus proprios workers, com o dono original.
++void ctx_abrir_sessao(void);
+ int  ctx_aberto(void);
+ void ctx_evento(const SDL_Event *e);
+ void ctx_atualizar(float dt, Uint32 agora);
 diff --git a/src/debrid.c b/src/debrid.c
 --- a/src/debrid.c
 +++ b/src/debrid.c
@@ -3400,7 +3477,20 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  // 0 = nao espere; 1 = espere (perfil ainda nao escolhido); 2 = espere, com prazo.
  static int (*esperaAddons)(void);
  void desc_espera_addons_definir(int (*f)(void)) { esperaAddons = f; }
-@@ -2767,7 +2850,7 @@
+@@ -1130,6 +1213,12 @@
+ // completa.
+ static pthread_mutex_t listaTrava = PTHREAD_MUTEX_INITIALIZER;
+ static int listaLidaNaVolta;
++// Reset creates a pending opening; sync releases it only after the target
++// addon cache is installed. main.c remains the first bootstrap dispatcher.
++static NvPerfilSessao aberturaSessao;
++static int aberturaPendente, aberturaFontesProntas, descobertaInicializada;
++static unsigned long long aberturaRetentarEm;
++static void descTentarAbertura(void);
+ // Fim de volta: `buscando` cai sob a mesma trava em que desc_iniciar o testa e marca.
+ static void buscandoSoltar(void) {
+   pthread_mutex_lock(&listaTrava); buscando = 0; pthread_mutex_unlock(&listaTrava);
+@@ -2767,7 +2856,7 @@
          if (!strcmp(enfeitadas[i].titulo,
                      i18n(!strcmp(enfeitadas[i].tipo, "series") ? "Programa de TV" : "Filme")))
            enfeitadas[i].titulo[0] = 0;
@@ -3409,7 +3499,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        for (i = 0; i < n; i++)
          for (j = 0; j < ni; j++)
            if (!strcmp(saida[i].imdb, enfeitadas[j].imdb) &&
-@@ -2890,6 +2973,8 @@
+@@ -2890,6 +2979,8 @@
  // trakt_enfeitar_lote, chamado tambem por trakt_social — nao admitem dois
  // montadores ao mesmo tempo, entao a trava cobre os DOIS usos em montar().
  static pthread_mutex_t contTrava = PTHREAD_MUTEX_INITIALIZER;
@@ -3418,7 +3508,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
  // QUAL "CONTINUAR" E O MAIS NOVO (issue #205). montar() calcula a fileira no
  // COMECO da volta e so a publica no fim, segundos depois (manifestos e
-@@ -2945,7 +3030,7 @@
+@@ -2945,7 +3036,7 @@
    it->nomeEpisodio[0] = 0;
    it->restanteMin = 0;
    // Episodio antigo: ja foi ao ar (sem isto contaria "sem data de estreia").
@@ -3427,7 +3517,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (nAjustados < (int)(sizeof ajustadosIds / sizeof *ajustadosIds))
      snprintf(ajustadosIds[nAjustados++], sizeof ajustadosIds[0], "%s", it->imdb);
  }
-@@ -3068,18 +3153,18 @@
+@@ -3068,18 +3159,18 @@
    CatItem *lote;
    int nSem, nLote = 0, i, j, confirmados, entraram = 0;
    int fVelho = 0, fVisto = 0, fPausado = 0;
@@ -3450,7 +3540,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    for (i = 0; i < nSem; i++) {
      CatItem *d = &lote[nLote];
      int ja = 0;
-@@ -3113,8 +3198,8 @@
+@@ -3113,8 +3204,8 @@
      nLote++;
    }
    // Publicado ANTES do enfeite: e por ele que trakt.c sabe que tem de conferir.
@@ -3461,7 +3551,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    // Sugestoes so disputam lugares entre si; pausados ficam. Com
    // "Mostrar nao exibidos" desligado o futuro nem disputa lugar: o filtro mais
    // abaixo o tiraria, e o pausado que ele empurrou para fora nao voltaria.
-@@ -3188,7 +3273,7 @@
+@@ -3188,7 +3279,7 @@
    int querSimkl = (fonte == AJ_CWF_AMBAS || fonte == AJ_CWF_SIMKL) && simkl_ativo();
  
    if (max > CONT_MAX) max = CONT_MAX;
@@ -3470,7 +3560,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    nAjustados = 0;
    nT = querTrakt ? trakt_continuar(doTrakt, CONT_MAX) : 0;
    // Os limites AGORA valem para todas as fontes. Sem isto, o /sync/playback
-@@ -3235,14 +3320,14 @@
+@@ -3235,14 +3326,14 @@
    if (querConta && (fonte == AJ_CWF_CONTA || (!trakt_ativo() && !simkl_ativo())))
      nL = contaASeguir(daConta, nL, CONT_MAX, trakt_ativo() || simkl_ativo());
    else
@@ -3487,7 +3577,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
    // A CONTA ENTRA PRIMEIRO porque ela e a fonte DATADA (lastWatchedMs, que o
    // syncprog ja reconciliou entre celular e TV). O item remoto que fala da
-@@ -3403,7 +3488,7 @@
+@@ -3403,7 +3494,7 @@
        nJ = mp + mf;
        // Publicado ANTES de cat_trocar_continuar (quem chama publica a fileira
        // depois deste retorno): a home nunca ve a lista nova com o conjunto velho.
@@ -3496,7 +3586,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        if (modo != CWO_PADRAO || escondidos || semData)
          printf("[desc] continuar assistindo: ordem %s, %d futuro(s)%s, %d escondido(s), "
                 "%d sem data, nao exibidos %s, corte: %d exibido(s) e %d futuro(s) fora\n",
-@@ -3486,14 +3571,26 @@
+@@ -3486,14 +3577,26 @@
  static void *fioContinuar(void *u) {
    CatItem lote[CONT_MAX];
    int n;
@@ -3528,7 +3618,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    cwVivo = 0;
    if (cwDeNovo) { cwDeNovo = 0; desc_refazer_continuar(); }
    return NULL;
-@@ -3501,9 +3598,13 @@
+@@ -3501,9 +3604,13 @@
  
  void desc_refazer_continuar(void) {
    pthread_t t;
@@ -3543,7 +3633,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    else pthread_detach(t);
  }
  
-@@ -3533,14 +3634,14 @@
+@@ -3533,14 +3640,14 @@
      idbase_copiar(ci->imdb, base, sizeof base);
      snprintf(novo.imdb, sizeof novo.imdb, "%s:%d:%d", base, novo.temporada, novo.episodio);
    }
@@ -3562,7 +3652,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[desc] continuar assistindo: %s %s ao sair do player (local; a refacao confirma)\n",
           novo.imdb, mudou ? "na frente" : "ja estava na frente");
    fflush(stdout);
-@@ -3555,8 +3656,9 @@
+@@ -3555,8 +3662,9 @@
  static CatItem *cwAntesDePublicar(int *k) {
    CatItem *c = NULL;
    *k = 0;
@@ -3574,7 +3664,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      *k = cat_copiar_fileira("continue_watching", c, CONT_MAX, NULL);
    return c;
  }
-@@ -3569,15 +3671,18 @@
+@@ -3569,15 +3677,18 @@
      cat_trocar_continuar(c, k);
      free(c);
    }
@@ -3595,7 +3685,26 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[perf] publicarMontagem: %d itens, %d fileiras, %.1f ms\n", n, nf, cat_relogio_ms() - t0);
    fflush(stdout);
  }
-@@ -3893,7 +3998,8 @@
+@@ -3590,11 +3701,14 @@
+ // cat_trocar_continuar concorrente ou ja enxergar o carimbo (e podar) ou
+ // publicar antes da remocao (e ser corrigida por ela). Os DELETE remotos sao
+ // de quem chama. Devolve quantos cards sairam.
+-// Leitura sem trava, como desc_repetir ja faz com `buscando`: um quadro de
+-// atraso na resposta nao muda nada para quem pergunta (app.c, uma vez por
+-// quadro, com teto de tempo).
++// Dispatcher state uses its short mutex; no network wait is held here.
+ int desc_montando(void) {
+-  return buscando || repetirAoFim || descDeb.adiado || cwVivo || cwDeNovo;
++  int pendente;
++  pthread_mutex_lock(&listaTrava);
++  pendente = buscando || repetirAoFim || descDeb.adiado ||
++             (aberturaPendente && nv_perfil_sessao_atual(aberturaSessao));
++  pthread_mutex_unlock(&listaTrava);
++  return pendente || cwVivo || cwDeNovo;
+ }
+ // A CARGA DA HOME (o aviso "Carregando fileiras…" da ilha) e o ciclo de
+ // descoberta, nao a refacao so do Continuar assistindo: essa nao consulta add-on
+@@ -3893,7 +4007,8 @@
      if (i < n && m < CAT_FIL_MAX) todas[m++] = fils[i];
    }
    { double t0 = cat_relogio_ms();
@@ -3605,7 +3714,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      printf("[perf] snapshot da home: %d fileiras em %.1f ms\n", m, cat_relogio_ms() - t0);
      fflush(stdout);
      return r; }
-@@ -3906,7 +4012,7 @@
+@@ -3906,7 +4021,7 @@
    HomeContexto c;
    (void)homeestado_geracao();
    homeestado_contexto(&c);
@@ -3614,7 +3723,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  }
  
  // COM A ESTRUTURA DE AGORA, UMA MONTAGEM NOVA PEDIRIA ALGO QUE ESTA NAO PEDIU?
-@@ -3977,6 +4083,7 @@
+@@ -3977,6 +4092,7 @@
    CatItem *wl, *col;
    int nWl, nCol;
    int pronto, largado;
@@ -3622,7 +3731,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  } ListasTrakt;
  static pthread_mutex_t listasTrava = PTHREAD_MUTEX_INITIALIZER;
  
-@@ -3996,8 +4103,11 @@
+@@ -3996,8 +4112,11 @@
  static void *fioListas(void *u) {
    ListasTrakt *j = u;
    int nw = 0, nc = 0;
@@ -3636,7 +3745,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    pthread_mutex_lock(&listasTrava);
    if (j->largado) {
      pthread_mutex_unlock(&listasTrava);
-@@ -4015,6 +4125,7 @@
+@@ -4015,6 +4134,7 @@
    ListasTrakt *j = calloc(1, sizeof *j);
    pthread_t t;
    if (!j) return NULL;
@@ -3644,7 +3753,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (pthread_create(&t, NULL, fioListas, j) != 0) { free(j); return NULL; }
    pthread_detach(t);
    return j;
-@@ -4068,13 +4179,18 @@
+@@ -4068,13 +4188,18 @@
    parcialNaTela = 1;
  }
  
@@ -3665,15 +3774,17 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    return NULL;
  }
  
-@@ -4087,6 +4203,7 @@
+@@ -4087,6 +4212,9 @@
    int nContinuar = 0, nSocial = 0;
    unsigned socialGeracao;
    unsigned minhaGeracao = montagemGeracao;
-+  if (!descSessaoVincular(montagemSessao)) { free(lote); buscandoSoltar(); return NULL; }
++  if (!descSessaoVincular(montagemSessao)) {
++    free(lote); buscandoSoltar(); descTentarAbertura(); return NULL;
++  }
    // O CONTEXTO EM QUE ESTA VOLTA BUSCA, em partes (ver homeestado.h). A
    // identidade vale do inicio: o Trakt e lido logo abaixo. Os addons sao
    // recapturados no instante em que a lista e lida, e a estrutura no instante
-@@ -4163,7 +4280,7 @@
+@@ -4163,7 +4291,7 @@
    // depois de pagar todos os manifestos e catalogos. MEDIDO na C9 do dono: 45 s
    // de uma volta que ninguem ia ver. Os pontos abaixo sao os seguros: fora de
    // trava, sem fio de catalogo esperando por quem sai.
@@ -3682,7 +3793,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    // AS LISTAS DO TRAKT ASSIM QUE CHEGAREM, em qualquer ponto seguro. Com a
    // home inteira na tela (volta silenciosa) so marca e acrescenta; em partes,
    // entram de rabo na publicacao seguinte (ou nesta, se ja houve uma).
-@@ -4172,8 +4289,8 @@
+@@ -4172,8 +4300,8 @@
          minhaGeracao == montagemGeracao && fonteIntacta(&ctxIni)) { \
        if (!progressivo) { \
          listasNaTela = 1; \
@@ -3693,7 +3804,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
          marco("listas do trakt na tela"); \
        } else if (n == nPublicado || n == 0) { \
          /* So com o lote igual ao que esta na tela: o rabo de rascunho nao \
-@@ -4195,10 +4312,11 @@
+@@ -4195,10 +4323,11 @@
    socialGeracao = recomenda_geracao();
    SocialFio socFio;
    memset(&socFio, 0, sizeof socFio);
@@ -3706,7 +3817,26 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    n += nContinuar;
    marco("trakt continuar assistindo");
    if (CONDENADA("depois do continuar assistindo")) {
-@@ -4994,7 +5112,7 @@
+@@ -4320,15 +4449,17 @@
+     // Quem sabe de conta e de perfil e o app (desc_espera_addons_definir): os
+     // testes que compilam este arquivo sozinho nao tem sessao nem perfis.
+     { static int jaEsperou;
++      static NvPerfilSessao sessaoEsperada;
+       int k;
+       // ESPERA O CICLO INTEIRO DA CONTA, nao so os addons: as colecoes e a
+       // ordem chegam ~3 s depois deles (TCL: addons 06.05, "sync aplicado"
+       // 09.31), e a volta que ja tinha escolhido os catalogos refazia a Home
+       // no meio — 14 fileiras, cai para 8, volta para 14 com outras. Enquanto
+       // isso a tela e a do cache.
+-      if (!jaEsperou && esperaAddons && esperaAddons()) {
++      if ((!jaEsperou || sessaoEsperada != descSessao()) && esperaAddons && esperaAddons()) {
+         Uint32 desde = 0;
+         jaEsperou = 1;
++        sessaoEsperada = descSessao();
+         printf("[desc] esperando a conta (addons, colecoes, ordem) antes de montar a Home\n"); fflush(stdout);
+         while (minhaGeracao == montagemGeracao && (k = esperaAddons()) != 0) {
+           if (k == 2) {   // perfil ja escolhido: o prazo corre
+@@ -4994,7 +5125,7 @@
      int mudou;
      homeestado_contexto(&ctxFim);
      mudou = homeestado_mudancas(&ctxIni, &ctxFim);
@@ -3715,7 +3845,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        // DESCARTADA SEM PUBLICAR, e por isso RECOMECA. A geracao muda sozinha
        // no arranque (perfil escolhido, catordem/colecoes/addons da conta
        // chegando — tudo entra na assinatura do homeestado), e no log da LG as
-@@ -5039,7 +5157,7 @@
+@@ -5039,7 +5170,7 @@
        marco("catalogo da rede igual ao da tela: nao republicado");
        printf("[desc] catalogo montado com %d titulos, igual ao que esta na tela; mantido\n", n);
      }
@@ -3724,7 +3854,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      localizarContinuarPublicado();
      if (!(mudou & HOMEESTADO_MUDOU_ESTRUTURA))
        salvarSnapshot(filsMontadas, nFileirasMontadas, estadoFim);
-@@ -5127,7 +5245,7 @@
+@@ -5127,7 +5258,7 @@
      { HomeContexto ctxCache;
        homeestado_contexto(&ctxCache);
        if (!(homeestado_mudancas(&ctxIni, &ctxCache) & HOMEESTADO_MUDOU_FONTE))
@@ -3733,15 +3863,92 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        else
          printf("[desc] cache descartado: conta/perfil/addons mudou durante a montagem\n");
      }
-@@ -5200,6 +5318,7 @@
+@@ -5180,16 +5311,31 @@
+ // de o pedido ser ignorado. tests/desc_iniciar_corrida.sh.
+ enum { DESC_INICIOU, DESC_OCUPADO, DESC_ATENDIDO };
+ static int descIniciarTravado(int conferirVoltas, unsigned voltasAoAgendar,
+-                              int repetirSeOcupado) {
++                              int repetirSeOcupado, int apenasAbertura) {
+   pthread_t th;
++  NvPerfilSessao sessao;
+   unsigned long long agora = descAgoraMs();
+   pthread_mutex_lock(&listaTrava);
++  sessao = nv_perfil_sessao_ler();
++  if (apenasAbertura && (!descobertaInicializada || !aberturaPendente ||
++      aberturaSessao != sessao || !aberturaFontesProntas || agora < aberturaRetentarEm)) {
++    pthread_mutex_unlock(&listaTrava);
++    return DESC_ATENDIDO;
++  }
++  // An old condemned worker cannot restart under the target identity before
++  // its addon/configuration cache has been installed on the drawing thread.
++  if (descobertaInicializada && (aberturaSessao != sessao ||
++      (aberturaPendente && !aberturaFontesProntas))) {
++    pthread_mutex_unlock(&listaTrava);
++    return DESC_ATENDIDO;
++  }
+   if (conferirVoltas && descVoltas != voltasAoAgendar) {
+     pthread_mutex_unlock(&listaTrava);
+     return DESC_ATENDIDO;   // uma volta ja comecou depois do pedido
+   }
+   if (buscando) {
+-    if (repetirSeOcupado) { descDeb.adiado = 0; repetirAoFim = 1; }   // a volta no ar repete ao fim
++    if (apenasAbertura && montagemSessao == sessao) aberturaPendente = 0;
++    else if (repetirSeOcupado) { descDeb.adiado = 0; repetirAoFim = 1; }   // a volta no ar repete ao fim
+     pthread_mutex_unlock(&listaTrava);
+     if (!repetirSeOcupado) { printf("[desc] ja montando; pedido ignorado\n"); fflush(stdout); }
+     return DESC_OCUPADO;
+@@ -5200,20 +5346,48 @@
    descVoltas++;
    descPedidoPessoa = 0;   // esta volta atende o pedido da pessoa
    montagemGeracao++;
-+  montagemSessao = nv_perfil_sessao_ler();
++  montagemSessao = sessao;
++  descobertaInicializada = 1;
++  if (!aberturaPendente) aberturaSessao = sessao;
++  if (aberturaSessao == sessao) aberturaPendente = 0;
    pthread_mutex_unlock(&listaTrava);
    if (pthread_create(&th, NULL, montar, NULL) != 0) {
      // NAO FALHAR CALADO. No webOS um pthread_create nunca falhou e o caminho de
-@@ -5242,6 +5361,7 @@
+     // erro era so uma bandeira; no alvo WASM o fio e um Worker do navegador,
+     // que E um recurso limitado e PODE acabar. Quando acaba, a home fica com o
+     // catalogo do pacote para sempre e nao ha uma linha no log dizendo por que.
+-    buscandoSoltar();
++    pthread_mutex_lock(&listaTrava);
++    buscando = 0;
++    if (aberturaSessao == sessao && nv_perfil_sessao_atual(sessao)) {
++      aberturaPendente = 1;
++      aberturaRetentarEm = agora + 1000;
++    }
++    pthread_mutex_unlock(&listaTrava);
+     printf("[desc] pthread_create FALHOU: o catalogo nao vai remontar\n");
+     fflush(stdout);
+   }
+   else pthread_detach(th);
+   return DESC_INICIOU;
+ }
+-void desc_iniciar(void) { (void)descIniciarTravado(0, 0, 0); }
++void desc_iniciar(void) { (void)descIniciarTravado(0, 0, 0, 0); }
++
++static void descTentarAbertura(void) {
++  (void)descIniciarTravado(0, 0, 1, 1);
++}
++
++void desc_sessao_passo(void) { descTentarAbertura(); }
++
++void desc_sessao_preparada(void) {
++  NvPerfilSessao sessao = nv_perfil_sessao_ler();
++  pthread_mutex_lock(&listaTrava);
++  if (aberturaPendente && aberturaSessao == sessao) {
++    aberturaFontesProntas = 1;
++    montSilenciosa = 0;
++    descPedidoPessoa = 1;
++  }
++  pthread_mutex_unlock(&listaTrava);
++  descTentarAbertura();
++}
+ 
+ // Remontar depois de uma mudanca de credencial (vincular o Trakt, receber a
+ // chave do TMDB pela conta). Chamar desc_iniciar() direto NAO resolve: se um
+@@ -5242,6 +5416,7 @@
  // assistindo" nao tem `base` — elas nao sao catalogo de addon e nao participam
  // da ordem, senao a uniao as jogaria para o fim como chaves desconhecidas.
  void desc_remontar_fileiras(void) {
@@ -3749,7 +3956,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    static CatFileira saidaFil[CAT_FIL_MAX];
    const char *chaves[CAT_FIL_MAX];
    int idxCat[CAT_FIL_MAX], ordem[CAT_FIL_MAX], antes[CAT_FIL_MAX];
-@@ -5353,7 +5473,7 @@
+@@ -5353,7 +5528,7 @@
    fflush(stdout);
    nFileirasMontadas = nOut;
    memcpy(filsMontadas, saidaFil, sizeof(CatFileira) * (size_t)nOut);
@@ -3758,7 +3965,16 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
    // A VAGA QUE A COLECAO LIBEROU TEM DE SER PREENCHIDA, e so a rede tem com que.
    //
-@@ -5489,7 +5609,7 @@
+@@ -5403,7 +5578,7 @@
+   struct timespec t = { a.ms / 1000u, (long)(a.ms % 1000u) * 1000000L };
+   free(arg);
+   nanosleep(&t, NULL);
+-  (void)descIniciarTravado(1, a.voltas, 1);
++  (void)descIniciarTravado(1, a.voltas, 1, 0);
+   return NULL;
+ }
+ // Inicia uma volta respeitando o minimo entre voltas; pedidos no intervalo
+@@ -5489,7 +5664,7 @@
          filsMontadas[w++] = filsMontadas[i];
      nFileirasMontadas = w;
    }
@@ -3767,7 +3983,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    printf("[desc] %d fileira(s) de addon removido/desligado sairam da tela na hora\n", tirou);
    fflush(stdout);
    return tirou;
-@@ -6113,7 +6233,7 @@
+@@ -6113,7 +6288,7 @@
    }
    if (arteDoAddon(tipo, id, logo, nl, fundo, nf)) ok = 1;
    if (!logo[0] && logoTmdb[0]) { snprintf(logo, nl, "%s", logoTmdb); ok = 1; }
@@ -3776,7 +3992,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    return ok;
  }
  
-@@ -6168,7 +6288,7 @@
+@@ -6168,7 +6343,7 @@
      const CatItem *o = cat_item(i);
      if (!o) continue;
      *e = *o;
@@ -3785,7 +4001,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    }
    free(e);
    if (mudou) {
-@@ -6182,6 +6302,7 @@
+@@ -6182,6 +6357,7 @@
  // ganha uma volta a mais (so o ultimo estado interessa, como no refazer do CW).
  #define LOC_LOTE 32
  static int locIdx[LOC_LOTE], locNIdx;
@@ -3793,7 +4009,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static volatile int locVivo, locDeNovo;
  static pthread_mutex_t locFilaTrava = PTHREAD_MUTEX_INITIALIZER;
  
-@@ -6192,9 +6313,11 @@
+@@ -6192,9 +6368,11 @@
      int lista[LOC_LOTE], n, k;
      pthread_mutex_lock(&locFilaTrava);
      n = locNIdx;
@@ -3805,7 +4021,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      for (k = 0; k < n; k++) {
        // Copia sob a trava do catalogo: este fio nao vira quadro, entao um
        // ponteiro de cat_item() aqui pode apontar para bloco ja liberado
-@@ -6214,7 +6337,7 @@
+@@ -6214,7 +6392,7 @@
        // titulo. Nada mais do item e reescrito.
        if (locValoresDoItem(e, tit, sizeof tit, sin, sizeof sin, logo, sizeof logo,
                             fundo, sizeof fundo))
@@ -3814,7 +4030,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        free(e);
      }
      pthread_mutex_lock(&locFilaTrava);
-@@ -6222,7 +6345,7 @@
+@@ -6222,7 +6400,7 @@
      pthread_mutex_unlock(&locFilaTrava);
      // Uma gravacao por lote, FORA da trava da fila e antes de soltar locVivo
      // (quem espera o fio — o teste — ve o arquivo pronto).
@@ -3823,7 +4039,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      pthread_mutex_lock(&locFilaTrava);
      if (locDeNovo) { pthread_mutex_unlock(&locFilaTrava); novos = 0; continue; }
      locVivo = 0;
-@@ -6239,6 +6362,7 @@
+@@ -6239,6 +6417,7 @@
    pthread_mutex_lock(&locFilaTrava);
    memcpy(locIdx, idx, sizeof(int) * (size_t)n);
    locNIdx = n;
@@ -3831,7 +4047,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (locVivo) { locDeNovo = 1; pthread_mutex_unlock(&locFilaTrava); return; }
    locVivo = 1;
    pthread_mutex_unlock(&locFilaTrava);
-@@ -6281,6 +6405,7 @@
+@@ -6281,6 +6460,7 @@
  #define HSIN_NEG_N 32
  #define HSIN_NEG_S 600
  static int hsIdx[HSIN_LOTE], hsNIdx;
@@ -3839,7 +4055,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static volatile int hsVivo, hsDeNovo;
  static pthread_mutex_t hsTrava = PTHREAD_MUTEX_INITIALIZER;
  // Falhas recentes: o conjunto do destaque e refeito a cada mudanca do catalogo,
-@@ -6349,9 +6474,11 @@
+@@ -6349,9 +6529,11 @@
      int lista[HSIN_LOTE], n, k;
      pthread_mutex_lock(&hsTrava);
      n = hsNIdx;
@@ -3851,7 +4067,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      for (k = 0; k < n; k++) {
        // Copia sob a trava do catalogo: este fio nao vira quadro, entao um
        // ponteiro de cat_item() aqui pode apontar para bloco ja liberado
-@@ -6364,11 +6491,11 @@
+@@ -6364,11 +6546,11 @@
        snprintf(imdb, sizeof imdb, "%s", e->imdb);
        if (hsNegativo(imdb)) { free(e); continue; }
        r = desc_sinopse_completar_item(e, NULL, NULL);
@@ -3866,7 +4082,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        }
        free(e);
        SDL_Delay(HSIN_PAUSA_MS);   // um pedido por vez, com folga entre eles
-@@ -6400,6 +6527,7 @@
+@@ -6400,6 +6582,7 @@
    pthread_mutex_lock(&hsTrava);
    memcpy(hsIdx, idx, sizeof(int) * (size_t)n);
    hsNIdx = n;
@@ -3874,7 +4090,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (hsVivo) { hsDeNovo = 1; pthread_mutex_unlock(&hsTrava); return; }
    hsVivo = 1;
    pthread_mutex_unlock(&hsTrava);
-@@ -6865,10 +6993,12 @@
+@@ -6865,10 +7048,12 @@
  // titulo iam parar em outro. epAlvo re-resolve pelo id antes de cada escrita;
  // -1 = o titulo saiu do catalogo e nada e escrito. Um fio por vez (fioEpVivo).
  static char epAlvoId[64];
@@ -3887,7 +4103,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    int i = cat_indice_vivo(alvoItem, id);
    if (i != alvoItem) {
      printf("[desc] episodios de %s: catalogo remontou no meio do pedido (%d -> %d)\n",
-@@ -6917,7 +7047,7 @@
+@@ -6917,7 +7102,7 @@
        free(o);
      }
    }
@@ -3896,7 +4112,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    free(eps);
    marco("episodios na tela");
    printf("[desc] %s: %d episodios publicados antes dos extras\n", titulo, n);
-@@ -7321,8 +7451,8 @@
+@@ -7321,8 +7506,8 @@
    *cedo = *orig;
    completarRaso(cedo, corpo, orig->tipo);
    fichaDe(cedo, corpo, 1);
@@ -3907,7 +4123,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    marco("detalhe: ficha primaria publicada antes do complemento");
    free(cedo);
  }
-@@ -7509,6 +7639,7 @@
+@@ -7509,6 +7694,7 @@
  // larga nos pontos de parada abaixo (no maximo uma viagem de rede depois).
  static volatile int epPreQuer, epRodaPre, epCancelar;
  static int preCede(const char *id) {
@@ -3915,7 +4131,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (!(epRodaPre && epCancelar)) return 0;
    printf("[desc] pre-busca de %s cedeu ao titulo em cena\n", id);
    fflush(stdout);
-@@ -7527,6 +7658,7 @@
+@@ -7527,6 +7713,7 @@
    int viaCatalogo = 0, solto = 0;
    (void)u;
    memset(&mf, 0, sizeof mf);
@@ -3923,7 +4139,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (!cat_copiar_item(alvoItem, &base) || !base.imdb[0]) { fioEpVivo = 0; return NULL; }
    orig = &base;
    if (preCede(orig->imdb)) { fioEpVivo = 0; return NULL; }
-@@ -7548,8 +7680,8 @@
+@@ -7548,8 +7735,8 @@
      CatItem ed = base;
      int ne = eps ? servidores_ficha(&ed, eps, VIDEOS_MAX) : -1;
      if (ne >= 0 && (alvoItem = epAlvo(alvoItem)) >= 0) {
@@ -3934,7 +4150,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      }
      free(eps);
      fioEpVivo = 0;
-@@ -7729,8 +7861,8 @@
+@@ -7729,8 +7916,8 @@
      if (viaCatalogo) completarFicha(&edit, &mf, ehFilme ? "movie" : "series");
      // A logo e a ficha basica nao esperam a traducao/fotos opcionais.
      if ((alvoItem = epAlvo(alvoItem)) >= 0) {
@@ -3945,7 +4161,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        marco("detalhe: campos primarios publicados antes dos extras");
      }
      // TITULO, SINOPSE E GENEROS DO ADDON DE METADADOS (#176). So campo que o
-@@ -7773,7 +7905,7 @@
+@@ -7773,7 +7960,7 @@
        }
      }
      // Publica texto, generos e temporadas antes do enriquecimento de imagens.
@@ -3954,7 +4170,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      marco("detalhe: meta basico na tela");
      // A FICHA ESTA NA TELA: ESTE FIO JA NAO SEGURA O PROXIMO TITULO (R2). O que
      // resta (fotos do elenco e as notas por temporada do TMDB, uma viagem por
-@@ -7822,7 +7954,7 @@
+@@ -7822,7 +8009,7 @@
      // com outras abas, e republicar o `edit` inteiro devolvia as abas velhas
      // (T1 com 72 episodios em T1-T3: T2/T3 carregados e escondidos). As abas
      // ficam as que estao no item; o resto (elenco, arte, texto) e desta cauda.
@@ -3963,7 +4179,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      printf("[desc] %s: %d atores, dir='%s', %d temporadas\n",
             edit.titulo, edit.nElenco, edit.direcao, edit.nTemporadas);
      fflush(stdout);
-@@ -7889,7 +8021,7 @@
+@@ -7889,7 +8076,7 @@
                if (marcados > 0 && preenchidas == 0) preenchidas = -marcados; }
              if (preenchidas != 0 && (alvoItem = epAlvoDe(alvoItem, meuId)) >= 0 &&
                  cat_n_episodios(alvoItem) == neps) {
@@ -3972,7 +4188,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
                printf("[desc] %s: nota/sinopse TMDB em %d episodios\n",
                       edit.titulo, preenchidas);
                fflush(stdout);
-@@ -7927,6 +8059,7 @@
+@@ -7927,6 +8114,7 @@
  static char     vtBase[NV_ADDON_URL_MAX], vtTipo[8], vtCat[96], vtGenre[96];
  static int      vtPagina, vtFim, vtFioVivo, vtErro;
  static unsigned vtGeracao;
@@ -3980,7 +4196,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  // Fonte nao-addon aberta por desc_vertudo_fonte (issue #44): vtProvedor 1 e
  // TMDB, 2 e Trakt; vtFonte e uma copia zerada da ColSource para o memcmp de
  // "mesma fonte" ser seguro (a struct tem preenchimento).
-@@ -8148,10 +8281,14 @@
+@@ -8148,10 +8336,14 @@
    if (geracaoPaginas != generation) { geracaoPaginas = generation; paginas = 0; }
    paginas++;
    antes = vtProjetar();
@@ -3995,7 +4211,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  
    // FONTE NAO-ADDON (issue #44): pasta de colecao do site cujo conteudo vem
    // do TMDB ou do Trakt, nao de um catalogo de addon. vtPagina aqui e o
-@@ -8222,9 +8359,9 @@
+@@ -8222,9 +8414,9 @@
      free(corpo);
      // Itens do Trakt chegam sem poster: o lote inteiro ganha arte pelo
      // Cinemeta de uma vez, como a fileira "Continuar assistindo" ja faz.
@@ -4007,7 +4223,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
      int seguir = 0;
      { int added=ocultos;   // pagina so de futuros nao encerra a paginacao
        for(int i=0;i<nl&&vtN<VT_MAX;i++){
-@@ -8256,7 +8393,7 @@
+@@ -8256,7 +8448,7 @@
    corpo=(!addons_base_desligada(base)&&descPedidoCoube(base,w,sizeof url))?rede_baixar(url,10):NULL; }
    cap=strstr(id,"top100")?100:strstr(id,"top250")?250:VT_MAX;
    pthread_mutex_lock(&vtTrava);
@@ -4016,7 +4232,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    pthread_mutex_unlock(&vtTrava);
    const char *first=corpo?js_array(corpo,NULL,"metas"):NULL;
    int valid=corpo&&strstr(corpo,"\"metas\"");
-@@ -8272,13 +8409,13 @@
+@@ -8272,13 +8464,13 @@
        pthread_mutex_lock(&vtTrava);
        int duplicate=0;
        for(int i=0;i<vtN;i++)if(it.imdb[0]&&!strcmp(vtItens[i].imdb,it.imdb)&&!strcmp(vtItens[i].tipo,it.tipo)){duplicate=1;break;}
@@ -4032,7 +4248,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    vtErro=!valid;
    // Skip usa quantidade recebida, não 100 presumidos. Muitos addons entregam
    // 20/50 por página. Repetição sem novos ids também termina a paginação.
-@@ -8297,6 +8434,7 @@
+@@ -8297,6 +8489,7 @@
    pthread_mutex_lock(&vtTrava);
    if (vtFioVivo || vtFim || (!vtBase[0] && !vtProvedor)) {pthread_mutex_unlock(&vtTrava);return;}
    vtFioVivo = 1;
@@ -4040,7 +4256,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    vtErro=0;
    // fioVerTudo empilha buffers grandes; no macOS o stack padrao do pthread
    // estoura (collections.sh: Bus error em ___chkstk_darwin).
-@@ -8394,6 +8532,7 @@
+@@ -8394,6 +8587,7 @@
    (void)temporada;
    if (cat_n_episodios(indiceItem) > 0) return;
    epItem = indiceItem; epTemp = temporada;
@@ -4048,7 +4264,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    epRodaPre = epPreQuer; epPreQuer = 0; epCancelar = 0;
    fioEpVivo = 1;
    if (pthread_create(&fioEp, NULL, buscarEps, NULL) != 0) fioEpVivo = 0;
-@@ -8456,6 +8595,7 @@
+@@ -8456,6 +8650,7 @@
  static char sobTipo[8];
  static int  sobIndice = -1;   // resultado, consumido por desc_titulo_pronto
  static int  sobFioVivo;
@@ -4056,7 +4272,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
  static pthread_t sobFio;
  // SEMENTE (R2): o que o clique ja sabia do titulo (nome, ano, cartaz). Com ela
  // a pagina abre NA HORA, com o layout normal, e o buscarEps preenche o resto.
-@@ -8466,6 +8606,7 @@
+@@ -8466,6 +8661,7 @@
    char url[200], id[24], *corpo;
    int achou = -1, passo;
    (void)arg;
@@ -4064,7 +4280,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    snprintf(id, sizeof id, "%s", sobId);
  
    // O credito de um ator chega com o id do TMDB, nao com o do IMDb — o
-@@ -8497,7 +8638,7 @@
+@@ -8497,7 +8693,7 @@
        CatItem s = sobSemente;
        snprintf(s.imdb, sizeof s.imdb, "%s", id);
        s.tmdb = sobTmdb;
@@ -4073,7 +4289,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        printf("[desc] sob demanda tmdb %ld -> %s com semente, indice %d\n", sobTmdb, id, sobIndice);
        fflush(stdout);
        sobFioVivo = 0;
-@@ -8516,7 +8657,7 @@
+@@ -8516,7 +8712,7 @@
          // vazio, e sem ele o titulo entraria no catalogo sem chave e nao
          // poderia ser reaberto nem casar com progresso.
          if (!it.imdb[0]) snprintf(it.imdb, sizeof it.imdb, "%s", id);
@@ -4082,7 +4298,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
        } }
      free(corpo);
    }
-@@ -8534,6 +8675,7 @@
+@@ -8534,6 +8730,7 @@
    sobId[0] = 0;
    sobIndice = -1;
    sobFioVivo = 1;
@@ -4090,7 +4306,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (pthread_create(&sobFio, NULL, buscarTitulo, NULL) != 0) sobFioVivo = 0;
    else pthread_detach(sobFio);
  }
-@@ -8555,6 +8697,7 @@
+@@ -8555,6 +8752,7 @@
    sobTmdb = 0;
    sobIndice = -1;
    sobFioVivo = 1;
@@ -4098,7 +4314,7 @@ diff --git a/src/descoberta.c b/src/descoberta.c
    if (pthread_create(&sobFio, NULL, buscarTitulo, NULL) != 0) sobFioVivo = 0;
    else pthread_detach(sobFio);
  }
-@@ -8601,15 +8744,63 @@
+@@ -8601,15 +8799,67 @@
    { int j = cat_indice_por_imdb(id);
      if (j >= 0) { sobIndice = j; return; } }
    snprintf(s.imdb, sizeof s.imdb, "%s", id);
@@ -4126,6 +4342,10 @@ diff --git a/src/descoberta.c b/src/descoberta.c
 +  free(pthread_getspecific(descSessaoChave));
 +  pthread_setspecific(descSessaoChave, NULL);
 +  pthread_mutex_lock(&listaTrava);
++  aberturaSessao = sessao;
++  aberturaPendente = 1;
++  aberturaFontesProntas = 0;
++  aberturaRetentarEm = 0;
 +  montagemGeracao++;
 +  geracaoPedida++;
 +  descVoltas++;
@@ -4167,13 +4387,20 @@ diff --git a/src/descoberta.c b/src/descoberta.c
 diff --git a/src/descoberta.h b/src/descoberta.h
 --- a/src/descoberta.h
 +++ b/src/descoberta.h
-@@ -20,6 +20,9 @@
+@@ -20,6 +20,16 @@
  void desc_esquecer(void);
  // Troca de perfil (#294): tira da tela e da memoria o catalogo do perfil que saiu.
  void desc_esquecer_catalogo_perfil(void);
 +// Confirmed opening, including the same profile: invalidate detached jobs and
 +// clear live results, without removing saved account/profile configuration.
 +void desc_abrir_sessao(void);
++// Called after this session's cached addon list/configuration is restored.
++// Starts its pending discovery once, reusing an in-flight worker. Before the
++// first main.c bootstrap start this only marks the sources ready.
++void desc_sessao_preparada(void);
++// Drawing-thread retry for an already prepared opening; idempotent and
++// throttled after thread-creation failure. Never prepares another profile.
++void desc_sessao_passo(void);
  
  // CACHE UNICA DE MANIFESTO (corpo de manifest.json), por url + versao da lista
  // de addons (addons_versao()). Antes havia DOIS caminhos baixando o mesmo
@@ -7965,6 +8192,101 @@ diff --git a/src/plex.c b/src/plex.c
    nRel++;
    pthread_cond_signal(&sinalRel);
  }
+diff --git a/src/ponteiro.c b/src/ponteiro.c
+--- a/src/ponteiro.c
++++ b/src/ponteiro.c
+@@ -54,6 +54,7 @@
+ #endif
+ static int escreve = 0;          // a que o desenho deste quadro preenche
+ static int pronto  = 1;          // a do quadro anterior, que o hit-test le
++static int quadroSessaoPendente; // descarta entrada ate a nova tela publicar alvos
+ 
+ static float px = NV_TELA_BASE_W * 0.5f, py = NV_TELA_BASE_H * 0.5f;
+ static int visivel = 0;
+@@ -224,6 +225,7 @@
+ 
+ void ponteiro_iniciar(void) {
+   cancelarToque();
++  quadroSessaoPendente = 0;
+   nLista[0] = nLista[1] = 0;
+   listaRolagem[0] = listaRolagem[1] = NULL;
+ #ifdef NV_TOUCH_UI
+@@ -340,6 +342,7 @@
+ }
+ 
+ static void tecla(void (*entregar)(const SDL_Event *), Uint32 tipo, SDL_Keycode k) {
++  if (!entregar) return; // um callback pode ter encerrado a abertura no KEYDOWN
+   SDL_Event t; SDL_zero(t);
+   t.type = tipo; t.key.keysym.sym = k;
+   t.key.state = tipo == SDL_KEYDOWN ? SDL_PRESSED : SDL_RELEASED;
+@@ -471,6 +474,34 @@
+ }
+ 
+ void ponteiro_cancelar_toque(void) { cancelarToque(); }
++
++void ponteiro_abrir_sessao(void) {
++  // CANCELAR ainda vai para a tela que sai. Ela continua dona do gesto aqui;
++  // so depois o app limpa seus offsets e troca a identidade do perfil.
++  cancelarToque();
++  memset(dedos, 0, sizeof dedos);
++  toqueAlvo = hover = ativarPendente = (Ident){0};
++  toqueRolagem = NULL; toqueSemAlvos = 0;
++  toqueX = toqueY = toqueUltX = toqueUltY = 0.0f; toqueDesde = 0;
++  toqueParouInercia = okLongoToque = 0;
++  arrEixoY = 0; arrAcum = arrUltX = arrUltY = arrVel = 0.0f; arrUltMs = 0;
++  memset(&arrAlvo, 0, sizeof arrAlvo);
++  inVel = inAcum = inX = inY = 0.0f; inUltMs = 0; inEixoY = 0;
++  entregarToque = NULL;
++  okPendente = voltarPendente = engolirCliqueSolto = engolirOkSolto = 0;
++  cliqueEm = okTeclaEm = rodaEm = conteudoMexeuEm = 0;
++  escondidoSeta = setaAncora = 0; setaEm = setaMovEm = 0;
++  nLista[0] = nLista[1] = 0;
++  memset(lista, 0, sizeof lista);
++  listaRolagem[0] = listaRolagem[1] = NULL;
++  quadroSessaoPendente = 1;
++#ifdef NV_TOUCH_UI
++  listaBorda[0] = listaBorda[1] = toqueBorda = (Borda){0};
++  toqueQuadroPronto = 0;
++#endif
++  // Nao toca toqueDisponivel, janelaW/H, relogio nem a API do cursor do
++  // compositor: isto e uma fronteira de entrada, nao um novo dispositivo.
++}
+ 
+ int ponteiro_cancelar_alvo(PonteiroFn focar) {
+   if (!focar || nDedos != 1 || toqueCancelado || toqueLongo ||
+@@ -682,6 +713,11 @@
+ 
+ int ponteiro_evento(const SDL_Event *e, void (*entregar)(const SDL_Event *)) {
+   Uint32 agora = agoraMs();
++  if (quadroSessaoPendente &&
++      (e->type == SDL_MOUSEMOTION || e->type == SDL_MOUSEBUTTONDOWN ||
++       e->type == SDL_MOUSEBUTTONUP || e->type == SDL_MOUSEWHEEL ||
++       e->type == SDL_FINGERDOWN || e->type == SDL_FINGERMOTION || e->type == SDL_FINGERUP))
++    return 1;
+   switch (e->type) {
+     case SDL_FINGERDOWN: case SDL_FINGERMOTION: case SDL_FINGERUP:
+ #ifdef NV_TOUCH_UI
+@@ -874,6 +910,7 @@
+   Uint32 agora = agoraMs();
+   pronto = escreve;
+   escreve ^= 1;
++  quadroSessaoPendente = 0;
+   nLista[escreve] = 0;
+   listaRolagem[escreve] = NULL;
+ #ifdef NV_TOUCH_UI
+diff --git a/src/ponteiro.h b/src/ponteiro.h
+--- a/src/ponteiro.h
++++ b/src/ponteiro.h
+@@ -75,6 +75,9 @@
+ } PonteiroAlvo;
+ 
+ void ponteiro_iniciar(void);
++// Nova abertura de perfil: cancela entrada da tela anterior e espera seus
++// novos alvos. Conserva dispositivo, cursor do sistema e calibracao da janela.
++void ponteiro_abrir_sessao(void);
+ // Cancela o gesto de dedo no fio de eventos, antes de uma soltura do sistema.
+ void ponteiro_cancelar_toque(void);
+ // Cancela somente uma ativacao pendente do alvo com este foco. Gestos de
 diff --git a/src/recomenda.c b/src/recomenda.c
 --- a/src/recomenda.c
 +++ b/src/recomenda.c
@@ -11697,7 +12019,94 @@ diff --git a/src/sync.c b/src/sync.c
  }
  
  // #360 MAO UNICA: a pendencia de edicao local de addons deixou de existir —
-@@ -409,7 +451,7 @@
+@@ -291,25 +333,24 @@
+ 
+ // ---------------------------------------------------------------- addons
+ 
+-// Le a resposta da tabela `addons` (ou a copia dela) para addonsRem.
+-static int lerAddons(const char *r) {
+-  // static: so o fio do sync le a conta, e 8 KB nao pertencem a pilha dele.
+-  static char url[SY_URL_LEITURA];
++// Destination and long-URL buffer belong to the caller. The drawing thread
++// can restore B's cache while A's account worker still owns its staged reply.
++static int lerAddonsPara(const char *r, AddonRemoto *saida, char *url) {
+   const char *p;
+   int k = 0, fora = 0;
+   for (p = js_raiz_array(r); p && k < SY_ADD_MAX; p = js_prox(js_fim(p))) {
+     const char *f = js_fim(p);
+     char b[16];
+-    memset(&addonsRem[k], 0, sizeof addonsRem[k]);
+-    if (!js_texto(p, f, "url", url, sizeof url)) continue;
+-    js_texto(p, f, "name", addonsRem[k].nome, sizeof addonsRem[k].nome);
++    memset(&saida[k], 0, sizeof saida[k]);
++    if (!js_texto(p, f, "url", url, SY_URL_LEITURA)) continue;
++    js_texto(p, f, "name", saida[k].nome, sizeof saida[k].nome);
+     // A URL QUE NAO CABE NAO ENTRA CORTADA (#201). js_texto corta em silencio
+     // no tamanho do destino, e era aqui que a URL do Comet (870) virava 599: o
+     // addon recebia meia configuracao e respondia como se ela fosse valida.
+     // #203: a que passa de NV_ADDON_URL_MAX (AIOLists tem 2 a 8 KB) vira
+     // apelido; so some quando passa dos 16 KB da leitura ou a tabela enche.
+-    if (strlen(url) >= sizeof url - 1 ||
+-        !nv_addon_url_guardar(addonsRem[k].nome, url, addonsRem[k].url, sizeof addonsRem[k].url)) {
++    if (strlen(url) >= SY_URL_LEITURA - 1 ||
++        !nv_addon_url_guardar(saida[k].nome, url, saida[k].url, sizeof saida[k].url)) {
+       fora++; continue;
+     }
+     // #360: a conta pode trazer o MESMO addon duas vezes (heranca do tempo em
+@@ -317,17 +358,17 @@
+     // normalizada (nv_addon_base, addonurl.h): fica a primeira ocorrencia,
+     // com a URL exata que a conta mandou.
+     { int i; char base[NV_ADDON_URL_MAX], bi[NV_ADDON_URL_MAX];
+-      nv_addon_base(addonsRem[k].url, base, sizeof base);
++      nv_addon_base(saida[k].url, base, sizeof base);
+       if (!base[0]) continue;
+       for (i = 0; i < k; i++) {
+-        nv_addon_base(addonsRem[i].url, bi, sizeof bi);
++        nv_addon_base(saida[i].url, bi, sizeof bi);
+         if (!strcmp(bi, base)) break;
+       }
+       if (i < k) continue;
+     }
+     // Ausente conta como LIGADO: e assim que o web le, e um addon que some por
+     // causa de um campo que o servidor nao mandou e pior que um a mais.
+-    addonsRem[k].ativo = js_bruto(p, f, "enabled", b, sizeof b)
++    saida[k].ativo = js_bruto(p, f, "enabled", b, sizeof b)
+                          ? (strcmp(b, "false") != 0) : 1;
+     k++;
+   }
+@@ -336,11 +377,16 @@
+   // conta — a diferenca entre "a conta mudou" e "nao coube".
+   for (; p; p = js_prox(js_fim(p))) {
+     const char *f = js_fim(p);
+-    if (js_texto(p, f, "url", url, sizeof url)) fora++;
++    if (js_texto(p, f, "url", url, SY_URL_LEITURA)) fora++;
+   }
+   if (fora) printf("[sync] addons: %d da conta ficaram de fora (maximo %d, ou URL grande demais)\n",
+                    fora, SY_ADD_MAX);
+   return k;
++}
++
++static int lerAddons(const char *r) {
++  static char url[SY_URL_LEITURA]; // worker-only staging
++  return lerAddonsPara(r, addonsRem, url);
+ }
+ 
+ // A lista aplicada fica separada da resposta recebida: so aplicar confirma
+@@ -393,9 +439,10 @@
+   if (addonsRestauradosPerfil == perfil && !strcmp(addonsRestauradosUsuario, sessao_usuario())) return;
+   c = contacache_ler(CC_ADDONS_APLICADOS, perfil, sessao_usuario(), NULL);
+   if (c) {
+-    static AddonRemoto local[SY_ADD_MAX];
+-    int n = addons_exportar(local, SY_ADD_MAX), k = lerAddons(c);
+-    if (!addonsListaIgual(local, n, addonsRem, k)) addons_definir_lista(addonsRem, k);
++    static AddonRemoto local[SY_ADD_MAX], guardados[SY_ADD_MAX];
++    static char url[SY_URL_LEITURA]; // drawing-thread cache restoration
++    int n = addons_exportar(local, SY_ADD_MAX), k = lerAddonsPara(c, guardados, url);
++    if (!addonsListaIgual(local, n, guardados, k)) addons_definir_lista(guardados, k);
+     addons_marcar_da_conta(perfis_ativo());
+     free(c);
+   }
+@@ -409,7 +456,7 @@
  static int puxarAddons(void) {
    char consulta[400], dono[80];
    char *r;
@@ -11706,7 +12115,7 @@ diff --git a/src/sync.c b/src/sync.c
  
    if (!perfis_dono()[0]) return 0;
    nuvem_url_escapar(perfis_dono(), dono, sizeof dono);
-@@ -424,7 +466,7 @@
+@@ -424,7 +471,7 @@
             dono, perfilAddons);
    // Com a chave anonima o RLS responde 401 "permission denied for table
    // addons": ler as linhas de alguem exige o token de quem esta pedindo.
@@ -11715,7 +12124,7 @@ diff --git a/src/sync.c b/src/sync.c
    // O pedido pertence ao perfil/conta de antes da rede. Uma troca durante a
    // resposta nao pode guardar nem aplicar a lista antiga no novo perfil.
    if (!perfilDoCicloAtual() || perfilAddons != perfis_ativo_addons()) {
-@@ -487,7 +529,7 @@
+@@ -487,7 +534,7 @@
    static PlugRepo l[PLUG_REPOS_MAX];
    char consulta[400], dono[80];
    char *r;
@@ -11724,7 +12133,7 @@ diff --git a/src/sync.c b/src/sync.c
    if (!perfis_dono()[0]) return;
    plugins_retrato(&s);
    if (s.pendente) {
-@@ -511,7 +553,7 @@
+@@ -511,7 +558,7 @@
      }
      jsw_arr_fim(&w);
      jsw_obj_fim(&w);
@@ -11733,7 +12142,7 @@ diff --git a/src/sync.c b/src/sync.c
      jsw_livre(&w);
      if (ok2xx(r, st) && perfilDoCicloAtual()) {
        int ok = plugins_confirmar(s.rev, s.geracao);
-@@ -529,7 +571,7 @@
+@@ -529,7 +576,7 @@
    nuvem_url_escapar(perfis_dono(), dono, sizeof dono);
    snprintf(consulta, sizeof consulta,
             "user_id=eq.%s&profile_id=eq.%d&select=*&order=sort_order.asc", dono, perfil);
@@ -11742,7 +12151,7 @@ diff --git a/src/sync.c b/src/sync.c
    if (!ok2xx(r, st) || !perfilDoCicloAtual() || perfil != perfis_ativo_addons()) {
      if (r && nuvem_erro_ausente(r)) printf("[sync] tabela plugins ausente\n");
      else if (st && !ok2xx(r, st)) printf("[sync] leitura de plugins: HTTP %d\n", st);
-@@ -553,11 +595,13 @@
+@@ -553,11 +600,13 @@
  
    jsw_iniciar(&w);
    jsw_obj_ini(&w);
@@ -11759,7 +12168,7 @@ diff --git a/src/sync.c b/src/sync.c
  
    // Trakt, debrid e mdblist compartilham as MESMAS RPC, separados so pelo campo
    // `provider`. Uma leitura serve para os tres.
-@@ -588,7 +632,7 @@
+@@ -588,7 +637,7 @@
        // a chave embutida na URL do addon nao e afetado: esses ja vem com url.
        char k[200];
        if (js_texto(cred, cred + strlen(cred), "api_key", k, sizeof k))
@@ -11768,7 +12177,7 @@ diff --git a/src/sync.c b/src/sync.c
      }
    }
    free(r);
-@@ -648,7 +692,7 @@
+@@ -648,7 +697,7 @@
    const char *p;
    ultimoSt = -2;
    if (jaAusente(funcao)) return -1;
@@ -11777,7 +12186,7 @@ diff --git a/src/sync.c b/src/sync.c
    ultimoSt = st;
    if (!ok2xx(r, st)) {
      if (r && nuvem_erro_ausente(r)) {
-@@ -842,8 +886,8 @@
+@@ -842,8 +891,8 @@
    // tem o que reescrever e ficaria calado para sempre justamente na TV que
    // acabou de proteger os ajustes locais. O que a protecao decide agora e so se
    // o blob e APLICADO (temAjustesBlob abaixo), nao se ele e buscado.
@@ -11788,7 +12197,7 @@ diff --git a/src/sync.c b/src/sync.c
    // A resposta e [{ "settings_json": { ... } }]; o que interessa e o objeto de
    // dentro, cru e INTEIRO.
    p = js_raiz_array(r);
-@@ -862,13 +906,16 @@
+@@ -862,13 +911,16 @@
            if (novo) {
              memcpy(novo, v, n);
              novo[n] = 0;
@@ -11812,7 +12221,7 @@ diff --git a/src/sync.c b/src/sync.c
            }
          } else {
            // O web aceita o blob tambem como STRING JSON serializada. Este
-@@ -908,7 +955,9 @@
+@@ -908,7 +960,9 @@
    int st = 0;
    if (!sujoAjustes) return;
    if (jaAusente("sync_push_profile_settings_blob")) return;
@@ -11822,7 +12231,7 @@ diff --git a/src/sync.c b/src/sync.c
      printf("[sync] ajustes locais pendentes, mas sem blob da conta para costurar: nada enviado\n");
      return;
    }
-@@ -916,17 +965,20 @@
+@@ -916,17 +970,20 @@
      // Nada diferente do que a conta ja tem: pendencia resolvida sem viagem.
      free(mesclado);
      sujoAjustes = 0;
@@ -11845,7 +12254,7 @@ diff --git a/src/sync.c b/src/sync.c
    if (ok2xx(r, st)) {
      sujoAjustes = 0;
      free(ajustesBlob);
-@@ -952,6 +1004,7 @@
+@@ -952,6 +1009,7 @@
      }
    }
    free(r);
@@ -11853,7 +12262,7 @@ diff --git a/src/sync.c b/src/sync.c
  }
  
  // A resposta inteira e guardada, nao interpretada aqui: quem le e catordem.c,
-@@ -962,7 +1015,7 @@
+@@ -962,7 +1020,7 @@
    char *r;
    int st = 0;
    if (jaAusente("sync_pull_home_catalog_settings")) return 0;
@@ -11862,7 +12271,7 @@ diff --git a/src/sync.c b/src/sync.c
    if (!ok2xx(r, st)) {
      // IMPRIME, como o contarRpc que estava aqui antes ja fazia. Sem esta linha
      // a RPC ausente e a resposta vazia ficam com o MESMO sintoma no log —
-@@ -1076,8 +1129,8 @@
+@@ -1076,8 +1134,8 @@
    addonsCiclo = 0;
    copiaQuandoCiclo = 0;
    addonsLidosCiclo = 0;
@@ -11873,7 +12282,7 @@ diff --git a/src/sync.c b/src/sync.c
      estado = SYNC_PRONTO;
      PRONTO_PUBLICAR(fioPronto, 1);
      return NULL;
-@@ -1112,9 +1165,9 @@
+@@ -1112,9 +1170,9 @@
      PRONTO_PUBLICAR(fioPronto, 1);
      return NULL;
    }
@@ -11886,7 +12295,7 @@ diff --git a/src/sync.c b/src/sync.c
    addonsLidosCiclo = puxouAddons = puxarAddons();
    if (puxouAddons < 0) {
      char d[32];
-@@ -1148,18 +1201,17 @@
+@@ -1148,18 +1206,17 @@
    //
    if (temAddonsRem) PRONTO_PUBLICAR(addonsCedo, 1);
    puxarCredenciais();
@@ -11910,7 +12319,7 @@ diff --git a/src/sync.c b/src/sync.c
    if (!perfilDoCicloAtual()) {
      printf("[sync] perfil trocado no meio do ciclo (%d -> %d): nada sobe\n",
             perfilDoCiclo, perfis_ativo());
-@@ -1178,7 +1230,7 @@
+@@ -1178,7 +1235,7 @@
    // "Enviar histórico para a conta Nuvio" desligado neste perfil: o progresso
    // nao sobe (o pull continua, a conta pode ter coisa de outra TV).
    if (!ajustes_hist_conta()) sujoProgresso = 0;
@@ -11919,8 +12328,22 @@ diff --git a/src/sync.c b/src/sync.c
    // O JORNAL DA CONTA (vistos e Salvos marcados nesta TV): DEPOIS do pull,
    // como o resto. E a repeticao de quem falhou offline — cada ciclo tenta de
    // novo o que ainda nao teve 2xx.
-@@ -1258,8 +1310,14 @@
-   addonsRestaurar();
+@@ -1245,6 +1302,10 @@
+   // com ou sem login — elas nunca mais seriam lidas nem enviadas.
+   addonsEsquecer();
+   if (!sessao_logada()) return;
++  // Cached sources are private to this session and do not touch the worker's
++  // staging buffers. Restore them even while an old sync drains or backs off.
++  addonsRestaurar();
++  desc_sessao_preparada();
+   // PEDIDO COM O FIO VIVO NAO SE PERDE. Voltar calado deixava um buraco: o
+   // fio que estava no ar pode ser justamente o interrompido pela pergunta de
+   // perfil, e ai o ciclo completo do perfil escolhido so partia com
+@@ -1255,11 +1316,16 @@
+   pedidoComFioVivo = 0;
+   if (nuvem_freio_ativo()) return;
+   addonsPerfilCiclo = perfis_ativo_addons();
+-  addonsRestaurar();
    cicloInterrompido = 0;
    perfilDoCiclo = perfis_ativo();
 -  snprintf(usuarioDoCiclo, sizeof usuarioDoCiclo, "%s", sessao_usuario());
@@ -11935,7 +12358,15 @@ diff --git a/src/sync.c b/src/sync.c
    estado = SYNC_RODANDO;
    __atomic_store_n(&fioPronto, 0, __ATOMIC_RELAXED);
    if (pthread_create(&fio, NULL, rodar, NULL) == 0) { pthread_detach(fio); fioVivo = 1; if (manualPedido) manualRodando = 1; }
-@@ -1358,13 +1416,14 @@
+@@ -1314,6 +1380,7 @@
+ }
+ 
+ void sync_passo(unsigned agoraMs) {
++  if (sessao_logada()) desc_sessao_passo();
+   // ANTES DA PORTEIRA de `fioPronto`: ver o comentario em rodar(). O resto do
+   // ciclo continua sendo aplicado de uma vez, no fim — so os addons saem na
+   // frente, porque so eles mudam O QUE a descoberta vai buscar.
+@@ -1358,13 +1425,14 @@
    // 2 passava a ser o do 1 (medido na C9 do dono, 24/09: 103 linhas aceitas).
    // Descartar tudo e pedir a volta do perfil certo; o que ja estava na tela e
    // do perfil novo (invalidarPerfil em app.c).
@@ -11952,7 +12383,7 @@ diff --git a/src/sync.c b/src/sync.c
      free(catHomeBlob); catHomeBlob = NULL; temCatHomeBlob = 0;
      free(colBlob);     colBlob = NULL;     temColBlob = 0;
      free(bibBlob);     bibBlob = NULL;     temBibBlob = 0;
-@@ -1429,6 +1488,10 @@
+@@ -1429,6 +1497,10 @@
                            trakt_definir(traktTok, nuvem_trakt_cliente()); remontar = 1; } }
                        else printf("[sync] trakt: vinculo local mantido, credencial da conta ignorada\n");
                        temTraktRem = 0; }
@@ -11963,7 +12394,7 @@ diff --git a/src/sync.c b/src/sync.c
    if (temTmdb)      { desc_tmdb_definir(tmdbKey);   temTmdb = 0; }
    if (temMdb)       { extras_definir_chave(mdbKey); temMdb = 0; }
    spMarcar(SP_CRED);
-@@ -1727,16 +1790,32 @@
+@@ -1727,16 +1799,32 @@
    return r;
  }
  
@@ -12000,7 +12431,7 @@ diff --git a/src/sync.c b/src/sync.c
    jsw_cs(&w, "p_origin_client_id", dados_cliente_id());
    jsw_chave(&w, "p_credentials");
    jsw_arr_ini(&w);
-@@ -1747,8 +1826,15 @@
+@@ -1747,8 +1835,15 @@
    jsw_obj_fim(&w);
    jsw_arr_fim(&w);
    jsw_obj_fim(&w);
@@ -12017,7 +12448,7 @@ diff --git a/src/sync.c b/src/sync.c
    ok = ok2xx(r, st) ? 1 : (st >= 400 && st < 500 ? -1 : 0);
    if (!ok2xx(r, st)) {
      printf("[sync] push de credencial %s falhou (HTTP %d): %.200s\n", provider, st, r ? r : "");
-@@ -1766,6 +1852,12 @@
+@@ -1766,6 +1861,12 @@
    } else printf("[sync] credencial %s guardada na conta\n", provider);
    free(r);
    return ok;
@@ -12030,7 +12461,7 @@ diff --git a/src/sync.c b/src/sync.c
  }
  
  void sync_reaplicar_ajustes(void) {
-@@ -1783,9 +1875,12 @@
+@@ -1783,9 +1884,12 @@
    sujoAjustes = 0;
    // A base velha e do perfil velho. Solta-la aqui tambem evita que um push do
    // primeiro ciclo costure sobre o blob de outro perfil.
@@ -12046,7 +12477,7 @@ diff --git a/src/sync.c b/src/sync.c
    // Os idiomas da conta eram do perfil velho: ate o blob do novo chegar,
    // "Da conta" nao tem idioma (#378, revisao).
    ajustes_idiomas_da_conta(NULL);
-@@ -1797,14 +1892,6 @@
+@@ -1797,14 +1901,6 @@
    snprintf(dst, tam, "ajustes-locais-p%d.txt", perfil);
  }
  
@@ -12061,7 +12492,7 @@ diff --git a/src/sync.c b/src/sync.c
  
  void sync_trocar_perfil(int antes) {
    int depois = perfis_ativo();
-@@ -1820,13 +1907,9 @@
+@@ -1820,13 +1916,9 @@
    free(t);
    if (pendente) dados_gravar(nome, "1\n");
    else dados_apagar(nome);
@@ -12078,7 +12509,7 @@ diff --git a/src/sync.c b/src/sync.c
    // 3. A conta manda de novo (blob do perfil novo), e a base e a pendencia do
    //    perfil anterior caem — ver sync_reaplicar_ajustes.
    sync_reaplicar_ajustes();
-@@ -1846,6 +1929,36 @@
+@@ -1846,6 +1938,36 @@
    free(t);
    dados_apagar(nome);
    perfilAplicado = 0;
@@ -12115,7 +12546,7 @@ diff --git a/src/sync.c b/src/sync.c
  }
  
  int sync_perfil_pronto(void) {
-@@ -1864,6 +1977,8 @@
+@@ -1864,6 +1986,8 @@
  }
  
  void sync_esquecer_usuario(void) {
@@ -12124,7 +12555,7 @@ diff --git a/src/sync.c b/src/sync.c
    cat_historico_contexto("", 0);
    // A ordem importa pouco, mas o CONJUNTO nao: cada linha aqui corresponde a
    // uma coisa que sobrevivia ao logout.
-@@ -1919,7 +2034,7 @@
+@@ -1919,7 +2043,7 @@
    // E AS RECOMENDACOES, pela mesma razao com um agravante proprio: elas trazem
    // o NOME de quem mandou. Sem esta linha a proxima pessoa a entrar abriria a
    // aba Social com a lista de amigos de quem saiu.

@@ -19,14 +19,27 @@ esac
 if [ "${RUN_ASAN:-0}" = 1 ]; then
   cflags+=(-fsanitize=address,undefined -fno-omit-frame-pointer)
 fi
-for fixture in home-test library alerts social social-actions social-logout lists-dispatch; do
+for fixture in home-test home-touch global-modal-boundary context-boundary library alerts social social-actions social-logout lists-dispatch; do
   extra=()
+  fixture_flags=()
   case "$fixture" in
+    home-touch)
+      extra=("$repo_path/src/layout.c")
+      fixture_flags=(-DNV_TOUCH_UI -DNV_ANDROID -DPROFILE_TOUCH_APPLY_POINTER_RESET)
+      ;;
+    global-modal-boundary)
+      extra=("$repo_path/src/estatvivoui.c" "$repo_path/src/celbotao.c" "$repo_path/src/ponteiro.c" "$repo_path/src/layout.c")
+      fixture_flags=(-DNV_TOUCH_UI -DNV_ANDROID "-I$repo_path/tests")
+      ;;
+    context-boundary)
+      extra=("$repo_path/src/ponteiro.c" "$repo_path/src/layout.c")
+      fixture_flags=(-DNV_TOUCH_UI -DNV_ANDROID "-I$repo_path/tests")
+      ;;
     social|social-actions|social-logout) extra=("$repo_path/src/js.c" "$repo_path/src/recresp.c") ;;
     lists-dispatch) extra=("$repo_path/src/js.c") ;;
   esac
   # The guarded expansion works with empty arrays on macOS Bash 3.2.
-  "$cc_path" "${cflags[@]}" "$fixture_path/$fixture.c" ${extra[@]+"${extra[@]}"} "${ldflags[@]}" -o "$build_dir/$fixture"
+  "$cc_path" "${cflags[@]}" ${fixture_flags[@]+"${fixture_flags[@]}"} "$fixture_path/$fixture.c" ${extra[@]+"${extra[@]}"} "${ldflags[@]}" -o "$build_dir/$fixture"
   mkdir "$build_dir/data-$fixture"
   PROFILE_TEST_DATA="$build_dir/data-$fixture" ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}" "$build_dir/$fixture"
 done
