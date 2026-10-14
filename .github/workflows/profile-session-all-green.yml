@@ -1,0 +1,694 @@
+name: 'Profile PR: all remaining frozen-source gates'
+'on':
+  push:
+    branches:
+    - review/profile-session-all-green
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: profile-all-green-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  baselines:
+    name: Original profile, native failover, debrid and budget baselines (macOS)
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+      NUVIO_PROFILE_NATIVE_FAILOVER: '1'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify all123 exact pinned product blobs and unchanged original tests
+      id: source
+      run: |
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        assert len(plan['files']) == 123
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+        test -z "$(git -C ci-profile-feature diff --name-only 17b7769dac4273557e1b07f5fb8734df91dd718f -- tests)"
+        test -z "$(git -C ci-profile-feature status --porcelain)"
+    - name: Install real Homebrew SDL and native SDK dependencies
+      id: sdk
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep
+    - name: Preserve original compiler flags and add only link-time SDL3 rpath
+      id: shim
+      run: "set -euo pipefail\ncompiler=\"$(command -v cc)\"\nsdl3_library=\"$(brew --prefix sdl3)/lib\"\ntest -d \"$sdl3_library\"\
+        \nmkdir -p \"$GITHUB_WORKSPACE/build/review/cc-bin\" \"$GITHUB_WORKSPACE/build/review/compile\"\ncp .review/profile-session/build/final-gates/cc_rpath.py\
+        \ \"$GITHUB_WORKSPACE/build/review/cc-bin/cc\"\nchmod +x \"$GITHUB_WORKSPACE/build/review/cc-bin/cc\"\necho \"REVIEW_REAL_CC=$compiler\"\
+        \ >> \"$GITHUB_ENV\"\necho \"REVIEW_SDL3_LIBRARY_DIR=$sdl3_library\" >> \"$GITHUB_ENV\"\necho \"REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile\"\
+        \ >> \"$GITHUB_ENV\"\necho \"$GITHUB_WORKSPACE/build/review/cc-bin\" >> \"$GITHUB_PATH\"\necho 'Compiler callers retain\
+        \ all original flags; only links receive the real SDL3 rpath' "
+    - name: Prepare faithful reduced-fixture neighbours
+      id: fixtures
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        python3 "$GITHUB_WORKSPACE/.review/profile-session/build/prepare_pr_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
+    - name: 'Original baseline: homeestado'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/homeestado.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/homeestado.log"
+        echo 'homeestado PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: ordemperfil'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/ordemperfil.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/ordemperfil.log"
+        echo 'ordemperfil PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: ajustes_perfil'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/ajustes_perfil.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/ajustes_perfil.log"
+        echo 'ajustes_perfil PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: perfilsel'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/perfilsel.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/perfilsel.log"
+        echo 'perfilsel PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: legmemoria'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/legmemoria.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/legmemoria.log"
+        echo 'legmemoria PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontevolta'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontevolta.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontevolta.log"
+        echo 'fontevolta PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: addons_legendas'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/addons_legendas.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/addons_legendas.log"
+        echo 'addons_legendas PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontecache_vod'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontecache_vod.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontecache_vod.log"
+        echo 'fontecache_vod PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: i18n'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/i18n.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/i18n.log"
+        echo 'i18n PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: addons_proveniencia'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/addons_proveniencia.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/addons_proveniencia.log"
+        echo 'addons_proveniencia PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontefalha'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontefalha.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontefalha.log"
+        echo 'fontefalha PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontefalha_worker'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontefalha_worker.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontefalha_worker.log"
+        echo 'fontefalha_worker PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontefalha_playback'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontefalha_playback.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontefalha_playback.log"
+        echo 'fontefalha_playback PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: debrid'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/debrid.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/debrid.log"
+        echo 'debrid PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontesmortas_orcamento'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontesmortas_orcamento.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontesmortas_orcamento.log"
+        echo 'fontesmortas_orcamento PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: Require every gate and reverify all123 product blobs and linker arguments
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == '17b7769dac4273557e1b07f5fb8734df91dd718f' and plan['feature_commit'] == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        assert len(plan['files']) == 123
+        assert subprocess.check_output(['git', '-C', 'ci-profile-feature', 'rev-parse', 'HEAD'], text=True).strip() == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        for entry in plan['files']:
+            path = Path('ci-profile-feature') / entry['path']
+            data = path.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            assert actual == entry['sha'], (entry['path'], actual, entry['sha'])
+            assert bool(path.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+        expected = ['homeestado', 'ordemperfil', 'ajustes_perfil', 'perfilsel', 'legmemoria', 'fontevolta', 'addons_legendas', 'fontecache_vod', 'i18n', 'addons_proveniencia', 'fontefalha', 'fontefalha_worker', 'fontefalha_playback', 'debrid', 'fontesmortas_orcamento']
+        results = Path('build/review/results.txt').read_text().splitlines()
+        assert sorted(results) == sorted(name + ' PASS' for name in expected), (results, expected)
+
+        compiler_records = [json.loads(path.read_text()) for path in Path('build/review/compile').glob('*-invocation.json')]
+        assert compiler_records
+        expected_rpath = '-Wl,-rpath,' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve())
+        for record in compiler_records:
+            original = record['arguments']
+            if record['added_link_rpath'] is None:
+                assert record['effective_arguments'] == original
+            else:
+                assert record['added_link_rpath'] == expected_rpath
+                assert record['effective_arguments'] == original + [expected_rpath]
+        links = [record for record in compiler_records if 'linked_binary' in record]
+        assert links and all(record['returncode'] == 0 and record['load_commands_returncode'] == 0 for record in links)
+        commands = list(Path('build/review/compile').glob('*-load-commands.txt'))
+        assert len(commands) == len(links)
+        assert all('cmd LC_RPATH' in path.read_text() and 'path ' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve()) + ' (offset ' in path.read_text() for path in commands)
+        proof = {'verified': True, 'outcome': 'PASS', 'base': plan['base'],
+                 'feature_commit': plan['feature_commit'], 'review_commit': os.environ['GITHUB_SHA'],
+                 'product_paths_reverified': len(plan['files']), 'gates': expected,
+                 'compiler_arguments_preserved': True, 'link_only_sdl3_rpath': expected_rpath,
+                 'DYLD_LIBRARY_PATH_injected': False, 'original_instrumentation_preserved': True,
+                 'separate_original_full_source_asan_tests': ['fontepref', 'fontepref_file', 'player_retido']}
+        Path('build/review/remaining-gates-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('All group gates PASS; all123 pinned product blobs and compiler argument preservation verified')
+        VERIFY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-all-green-baselines-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  ownership:
+    name: Profile ownership, personal-server HTTP and saved TV/Mobile settings (macOS)
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+      NUVIO_PROFILE_NATIVE_FAILOVER: '1'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify all123 exact pinned product blobs and unchanged original tests
+      id: source
+      run: |
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        assert len(plan['files']) == 123
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+        test -z "$(git -C ci-profile-feature diff --name-only 17b7769dac4273557e1b07f5fb8734df91dd718f -- tests)"
+        test -z "$(git -C ci-profile-feature status --porcelain)"
+    - name: Install real Homebrew SDL and native SDK dependencies
+      id: sdk
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep
+    - name: Preserve original compiler flags and add only link-time SDL3 rpath
+      id: shim
+      run: "set -euo pipefail\ncompiler=\"$(command -v cc)\"\nsdl3_library=\"$(brew --prefix sdl3)/lib\"\ntest -d \"$sdl3_library\"\
+        \nmkdir -p \"$GITHUB_WORKSPACE/build/review/cc-bin\" \"$GITHUB_WORKSPACE/build/review/compile\"\ncp .review/profile-session/build/final-gates/cc_rpath.py\
+        \ \"$GITHUB_WORKSPACE/build/review/cc-bin/cc\"\nchmod +x \"$GITHUB_WORKSPACE/build/review/cc-bin/cc\"\necho \"REVIEW_REAL_CC=$compiler\"\
+        \ >> \"$GITHUB_ENV\"\necho \"REVIEW_SDL3_LIBRARY_DIR=$sdl3_library\" >> \"$GITHUB_ENV\"\necho \"REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile\"\
+        \ >> \"$GITHUB_ENV\"\necho \"$GITHUB_WORKSPACE/build/review/cc-bin\" >> \"$GITHUB_PATH\"\necho 'Compiler callers retain\
+        \ all original flags; only links receive the real SDL3 rpath' "
+    - name: Prepare faithful reduced-fixture neighbours
+      id: fixtures
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        python3 "$GITHUB_WORKSPACE/.review/profile-session/build/prepare_pr_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
+    - name: All11 profile groups and three real loopback HTTP suites
+      timeout-minutes: 12
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        export NUVIO_PROFILE_REVIEW="$GITHUB_WORKSPACE/.review/profile-session"
+        export NUVIO_PROFILE_RESULTS="$GITHUB_WORKSPACE/build/review/profile-session"
+        export NUVIO_PROFILE_NATIVE_FAILOVER=1
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 bash "$NUVIO_PROFILE_REVIEW/tests/run_regressions.sh" \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/profile-session.log"
+        echo 'profile-ownership-and-http PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: fontepref_auto'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontepref_auto.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontepref_auto.log"
+        echo 'fontepref_auto PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: ajustes_ux_toque_modo'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/ajustes_ux_toque_modo.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/ajustes_ux_toque_modo.log"
+        echo 'ajustes_ux_toque_modo PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: Require every gate and reverify all123 product blobs and linker arguments
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == '17b7769dac4273557e1b07f5fb8734df91dd718f' and plan['feature_commit'] == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        assert len(plan['files']) == 123
+        assert subprocess.check_output(['git', '-C', 'ci-profile-feature', 'rev-parse', 'HEAD'], text=True).strip() == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        for entry in plan['files']:
+            path = Path('ci-profile-feature') / entry['path']
+            data = path.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            assert actual == entry['sha'], (entry['path'], actual, entry['sha'])
+            assert bool(path.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+        expected = ['fontepref_auto', 'ajustes_ux_toque_modo', 'profile-ownership-and-http']
+        results = Path('build/review/results.txt').read_text().splitlines()
+        assert sorted(results) == sorted(name + ' PASS' for name in expected), (results, expected)
+        profile_results = Path('build/review/profile-session/results.txt').read_text().splitlines()
+        assert sorted(profile_results) == ['auth-existing PASS', 'auth-owned PASS', 'core PASS', 'data PASS', 'emby HTTP PASS', 'existing PASS', 'jellyfin HTTP PASS', 'live-tv PASS', 'native-failover PASS', 'playback PASS', 'plex HTTP PASS', 'provider PASS', 'trackers PASS', 'ui PASS'], profile_results
+        compiler_records = [json.loads(path.read_text()) for path in Path('build/review/compile').glob('*-invocation.json')]
+        assert compiler_records
+        expected_rpath = '-Wl,-rpath,' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve())
+        for record in compiler_records:
+            original = record['arguments']
+            if record['added_link_rpath'] is None:
+                assert record['effective_arguments'] == original
+            else:
+                assert record['added_link_rpath'] == expected_rpath
+                assert record['effective_arguments'] == original + [expected_rpath]
+        links = [record for record in compiler_records if 'linked_binary' in record]
+        assert links and all(record['returncode'] == 0 and record['load_commands_returncode'] == 0 for record in links)
+        commands = list(Path('build/review/compile').glob('*-load-commands.txt'))
+        assert len(commands) == len(links)
+        assert all('cmd LC_RPATH' in path.read_text() and 'path ' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve()) + ' (offset ' in path.read_text() for path in commands)
+        proof = {'verified': True, 'outcome': 'PASS', 'base': plan['base'],
+                 'feature_commit': plan['feature_commit'], 'review_commit': os.environ['GITHUB_SHA'],
+                 'product_paths_reverified': len(plan['files']), 'gates': expected,
+                 'compiler_arguments_preserved': True, 'link_only_sdl3_rpath': expected_rpath,
+                 'DYLD_LIBRARY_PATH_injected': False, 'original_instrumentation_preserved': True,
+                 'separate_original_full_source_asan_tests': ['fontepref', 'fontepref_file', 'player_retido']}
+        Path('build/review/remaining-gates-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('All group gates PASS; all123 pinned product blobs and compiler argument preservation verified')
+        VERIFY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-all-green-ownership-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  native:
+    name: Native failover settings, player integration and full catalog link (macOS)
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+      NUVIO_PROFILE_NATIVE_FAILOVER: '1'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify all123 exact pinned product blobs and unchanged original tests
+      id: source
+      run: |
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        assert len(plan['files']) == 123
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+        test -z "$(git -C ci-profile-feature diff --name-only 17b7769dac4273557e1b07f5fb8734df91dd718f -- tests)"
+        test -z "$(git -C ci-profile-feature status --porcelain)"
+    - name: Install real Homebrew SDL and native SDK dependencies
+      id: sdk
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep
+    - name: Preserve original compiler flags and add only link-time SDL3 rpath
+      id: shim
+      run: "set -euo pipefail\ncompiler=\"$(command -v cc)\"\nsdl3_library=\"$(brew --prefix sdl3)/lib\"\ntest -d \"$sdl3_library\"\
+        \nmkdir -p \"$GITHUB_WORKSPACE/build/review/cc-bin\" \"$GITHUB_WORKSPACE/build/review/compile\"\ncp .review/profile-session/build/final-gates/cc_rpath.py\
+        \ \"$GITHUB_WORKSPACE/build/review/cc-bin/cc\"\nchmod +x \"$GITHUB_WORKSPACE/build/review/cc-bin/cc\"\necho \"REVIEW_REAL_CC=$compiler\"\
+        \ >> \"$GITHUB_ENV\"\necho \"REVIEW_SDL3_LIBRARY_DIR=$sdl3_library\" >> \"$GITHUB_ENV\"\necho \"REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile\"\
+        \ >> \"$GITHUB_ENV\"\necho \"$GITHUB_WORKSPACE/build/review/cc-bin\" >> \"$GITHUB_PATH\"\necho 'Compiler callers retain\
+        \ all original flags; only links receive the real SDL3 rpath' "
+    - name: Prepare faithful reduced-fixture neighbours
+      id: fixtures
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        python3 "$GITHUB_WORKSPACE/.review/profile-session/build/prepare_pr_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
+    - name: 'Original baseline: ajustes_failover'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/ajustes_failover.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/ajustes_failover.log"
+        echo 'ajustes_failover PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Original baseline: player_android_retomada'
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/player_android_retomada.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/player_android_retomada.log"
+        echo 'player_android_retomada PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: Full native catalog geometry, D-pad and link
+      timeout-minutes: 8
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        mkdir -p build/review "$GITHUB_WORKSPACE/build/review"
+        task_sources=()
+        for task_source in src/*.c src/dts/*.c; do
+          case "$task_source" in src/main.c|src/vertudo.c) continue;; esac
+          task_sources+=("$task_source")
+        done
+        cc "${task_sources[@]}" tests/colecao_exibicao.c \
+          -Isrc -o build/review/catalog-display-baseline -O1 -g \
+          -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
+          -L/opt/homebrew/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL \
+          -Wno-deprecated-declarations -Wno-macro-redefined \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/catalog-display-build.log"
+        build/review/catalog-display-baseline \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/catalog-display-baseline.log"
+        echo 'full-native-catalog PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: Require every gate and reverify all123 product blobs and linker arguments
+      if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.sdk.outcome == 'success' && steps.shim.outcome ==
+        'success' && steps.fixtures.outcome == 'success' }}
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == '17b7769dac4273557e1b07f5fb8734df91dd718f' and plan['feature_commit'] == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        assert len(plan['files']) == 123
+        assert subprocess.check_output(['git', '-C', 'ci-profile-feature', 'rev-parse', 'HEAD'], text=True).strip() == '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        for entry in plan['files']:
+            path = Path('ci-profile-feature') / entry['path']
+            data = path.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            assert actual == entry['sha'], (entry['path'], actual, entry['sha'])
+            assert bool(path.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+        expected = ['ajustes_failover', 'player_android_retomada', 'full-native-catalog']
+        results = Path('build/review/results.txt').read_text().splitlines()
+        assert sorted(results) == sorted(name + ' PASS' for name in expected), (results, expected)
+
+        compiler_records = [json.loads(path.read_text()) for path in Path('build/review/compile').glob('*-invocation.json')]
+        assert compiler_records
+        expected_rpath = '-Wl,-rpath,' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve())
+        for record in compiler_records:
+            original = record['arguments']
+            if record['added_link_rpath'] is None:
+                assert record['effective_arguments'] == original
+            else:
+                assert record['added_link_rpath'] == expected_rpath
+                assert record['effective_arguments'] == original + [expected_rpath]
+        links = [record for record in compiler_records if 'linked_binary' in record]
+        assert links and all(record['returncode'] == 0 and record['load_commands_returncode'] == 0 for record in links)
+        commands = list(Path('build/review/compile').glob('*-load-commands.txt'))
+        assert len(commands) == len(links)
+        assert all('cmd LC_RPATH' in path.read_text() and 'path ' + str(Path(os.environ['REVIEW_SDL3_LIBRARY_DIR']).resolve()) + ' (offset ' in path.read_text() for path in commands)
+        proof = {'verified': True, 'outcome': 'PASS', 'base': plan['base'],
+                 'feature_commit': plan['feature_commit'], 'review_commit': os.environ['GITHUB_SHA'],
+                 'product_paths_reverified': len(plan['files']), 'gates': expected,
+                 'compiler_arguments_preserved': True, 'link_only_sdl3_rpath': expected_rpath,
+                 'DYLD_LIBRARY_PATH_injected': False, 'original_instrumentation_preserved': True,
+                 'separate_original_full_source_asan_tests': ['fontepref', 'fontepref_file', 'player_retido']}
+        Path('build/review/remaining-gates-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('All group gates PASS; all123 pinned product blobs and compiler argument preservation verified')
+        VERIFY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-all-green-native-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  android_proof:
+    name: Verify unchanged-source standard Android APK, both ARM and page alignment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify all123 exact pinned product blobs and unchanged original tests
+      run: |
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        assert len(plan['files']) == 123
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+        test -z "$(git -C ci-profile-feature diff --name-only 17b7769dac4273557e1b07f5fb8734df91dd718f -- tests)"
+        test -z "$(git -C ci-profile-feature status --porcelain)"
+    - uses: actions/download-artifact@v4
+      with:
+        name: profile-session-pr-android-proof-6707573a9c07d30876118b61501311aceb8c16b7
+        path: build/prior-android
+        run-id: 38498426357
+        github-token: ${{ github.token }}
+    - name: Require successful prior Android job and identical source blob/mode manifest
+      env:
+        GH_API_TOKEN: ${{ github.token }}
+      run: python3 .review/profile-session/build/verify_prior_android.py --artifact build/prior-android --manifest .review/profile-session/standalone-files.json
+        --prior-head 6707573a9c07d30876118b61501311aceb8c16b7 --run-id 38498426357 --job-id 115639406063 --output build/review/prior-android-verified.json
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-all-green-android-reused-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
