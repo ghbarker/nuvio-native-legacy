@@ -2,7 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 #define SDL_MAIN_HANDLED
 int ajustes_fonte_precarregar(void);
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 #include "session-stubs.h"
 #endif
 #include SOURCE_STREAMS
@@ -12,7 +12,7 @@ typedef struct { int servico, arquivo; char hash[48]; } Pedido;
 static Pedido pedidos[128];
 static int nPedidos, nHttp, cancelar, trocar, errar, duplicar, recusar, bloquearManual;
 static int falharServico = -1;
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 static int changeProfileInRequest;
 #endif
 static int nManual, manualResultado = 1, nP2P, p2pHabilitado, motor;
@@ -74,7 +74,7 @@ int debrid_resolver_servico_cache(int s, const char *hash, int arq,
   assert(nPedidos < (int)(sizeof pedidos / sizeof pedidos[0]));
   Pedido *p = &pedidos[nPedidos++];
   p->servico = s; p->arquivo = arq;
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
   if(changeProfileInRequest) atomic_fetch_add(&fixtureSession,1);
 #endif
   snprintf(p->hash, sizeof p->hash, "%s", hash);
@@ -172,7 +172,7 @@ static Stream fonte(const FonteFalhaConfig *c, int addon, const char *hash, int 
   return s;
 }
 static void resetar(void) {
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
   atomic_store(&fixtureSession,1); changeProfileInRequest=0;
 #endif
   nPedidos = nHttp = cancelar = trocar = errar = duplicar = recusar = bloquearManual = 0;
@@ -567,7 +567,7 @@ static void independentTransportEpochInvalidation(void) {
   assert(fontefalha_definir_provedores(0));
   puts("PASS Next transport epoch change with unchanged owner/credentials cancels resolver/renewal without source budget spend");
 }
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 static void combinedSnapshotVisitGate(void) {
   resetar(); FonteFalhaConfig c=cfg(1,1,3); assert(fontefalha_definir_provedores(1));
   Stream next=fonte(&c,0,"next-private-hash",7);
@@ -581,12 +581,27 @@ static void combinedSnapshotVisitGate(void) {
   stream_preparo_liberar(p); assert(fontefalha_definir_provedores(0));
   puts("PASS combined explicit-list snapshot stops stale visit before request and after in-flight response without caller callback");
 }
+static void preparationProbeVisitGate(void) {
+  resetar(); FonteFalhaConfig cfgNow=cfg(1,1,3);
+  Stream native=fonte(&cfgNow,0,"probe-private-hash",7); stream_definir_lista(&native,1);
+  Conferencia c={0,0,0,-1,nv_perfil_sessao_ler()}; c.geracao=stream_lista_geracao();
+  atomic_fetch_add(&fixtureSession,2);
+  assert(!verificarOuParar(0,&c)&&c.abortou&&!nPedidos&&!nHttp);
+  falhouUma(0,&c); assert(stream_automatico_disponivel(0));
+  resetar(); stream_definir_lista(&native,1);
+  c=(Conferencia){0,0,0,-1,nv_perfil_sessao_ler()}; c.geracao=stream_lista_geracao();
+  changeProfileInRequest=1;
+  assert(!verificarOuParar(0,&c)&&c.abortou&&nPedidos==1&&!stream_item(0)->url[0]);
+  falhouUma(0,&c); assert(stream_automatico_disponivel(0));
+  puts("PASS actual preparation probe rejects owner ABA before HTTP and stale response without changing URL/exclusion state");
+}
 #endif
 int main(int argc, char **argv) {
   assert(argc == 2 && "runner supplies an isolated preference directory");
   fontefalha_dir(argv[1]);
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
   combinedSnapshotVisitGate();
+  preparationProbeVisitGate();
 #endif
    independentTransportEpochInvalidation(); independentEpisodeSnapshot(); preparedRenewalKeepsRouteAndBudget(); ordemETotal(); identidadeEDedup(); missNaoExcluiOutroServico(); semTetosAntigos();
   limiteNativoIndependente(); decoderAprendido();

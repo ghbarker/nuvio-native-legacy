@@ -6,6 +6,7 @@ __attribute__((weak)) int ajustes_ocultar_filmes_vistos(void) { return 0; }
 
 #include "catalogo.h"
 #include "perfisessao.h"
+#include "recomenda.h"
 int trakt_enfeitar_lote(CatItem *itens, int n);
 // The reduced fixture's enrichment is synchronous and makes no HTTP calls.
 // Ownership/race fixtures link real perfis.c; old unscoped regressions retain
@@ -16,4 +17,15 @@ int trakt_enfeitar_lote_sessao(CatItem *itens, int n, uint64_t sessao) {
   enriquecidos = trakt_enfeitar_lote(itens, n);
   nv_perfil_sessao_destravar();
   return enriquecidos;
+}
+
+// Keep the reduced fixture's existing social double behind the real epoch
+// gate when present. This supplies a producer for the Mach-O weak import.
+int recomenda_social_mesclar_sessao(CatItem *itens, int nTrakt, int max,
+                                    uint64_t sessao) {
+  int mesclados;
+  if (!nv_perfil_sessao_travar(sessao)) return 0;
+  mesclados = recomenda_social_mesclar(itens, nTrakt, max);
+  nv_perfil_sessao_destravar();
+  return mesclados;
 }

@@ -8,6 +8,8 @@ case = json.loads((output / 'case.json').read_text())
 assert case['phase'] == 'final'
 required = ['translations', 'native-i18n', 'translation-keys', 'home-state']
 flags = case['case']
+if flags.get('run_standalone_epoch'):
+    required += ['standalone-epoch']
 if flags['run_preload']:
     required += ['controller', 'controller-asan', 'player-boundary', 'player-boundary-asan']
 if flags.get('run_original_full_source_asan'):
@@ -16,6 +18,8 @@ if flags.get('run_settings_proof'):
     required += ['settings-source', 'settings-runtime']
 if flags['run_watched']:
     required += ['watched', 'watched-asan']
+if flags.get('run_cache_epoch'):
+    required += ['cache-epoch', 'cache-epoch-asan']
 if flags.get('run_origin_snapshots'):
     required += ['origin-plugins', 'origin-plugins-asan', 'origin-plex', 'origin-plex-asan']
 if flags.get('run_next'):
@@ -73,6 +77,13 @@ proof = {'catalog_entries': flags['catalog_entries'], 'catalog_count': 29,
          'actual_original_full_source_asan': original_proofs,
          'compiler_invocations_verified': len(records),
          'declaration_only_cpu_fixture_boundaries': ['controller SDK', 'NV_ANDROID player SDK'],
-         'same_product_source_reverification_required': True}
+         'same_product_source_reverification_required': True,
+         'review_only_reduced_fixture_adaptations': {
+             'stable_epoch_omitted_by_original_subset': ['fonte_ordem_addon', 'fontecache_vod', 'fontefalha_worker'] if flags['run_retained'] else [],
+             'source_order_quality_expectations': 'Canonical #205: negatives last within each quality group; addon order and all assertions retained' if flags['run_retained'] else None,
+             'original_full_source_asan_scripts_and_source_arguments': 'unchanged',
+             'account_transport_ownership_subset': 'Unexpected identity/refusal calls abort; checked sync-cycle remains original' if flags.get('run_profiles') else None,
+             'plugin_weak_macos_case': 'Explicit stable-zero compatibility producer; absent producer tested on Linux'
+         }}
 (output / 'native-gates-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
 print('Every declared final native gate passed:', flags['id'], len(required))

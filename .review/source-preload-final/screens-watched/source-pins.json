@@ -28,6 +28,7 @@
     "tests/sdk-extra.h": "9db13b25a95bebf2ab1cf2851853c9a499e8c1b157664997166792b17f9539bf",
     "tests/watched_draw.c": "1931e151e3797b0d53de16f24f231160ace8f6424f4f78cbbbc992f1283847c3",
     "tests/watched_catalog_ui.c": "7850901adc66c28ab5989bd44fb48e6341d4bb8f3ba3f9bb100e0d79645de453",
-    "tests/draw-boundary-stubs.inc": "3fb44b1f03047317e7b38ea2de2dfd812f2e9966f70e954f03f2ebff6758d066"
+    "tests/draw-boundary-stubs.inc": "3fb44b1f03047317e7b38ea2de2dfd812f2e9966f70e954f03f2ebff6758d066",
+    "../watched/tests/session-test-adapter.c": "5886ba0ef8856fb161c1213a569ebe7b87e81a2f197e9ab8548102336a736e9e"
   }
 }

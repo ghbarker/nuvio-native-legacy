@@ -11,6 +11,7 @@ else
   flags+=(-Wl,--gc-sections -I"$tv_fixture_dir/../sdk")
 fi
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
+flags+=("$tv_fixture_dir/legacy-session-adapter.c")
 cc "${flags[@]}" src/perfis.c src/xtream.c src/js.c "$tv_fixture_dir/support.c" "$tv_fixture_dir/xtream-ownership.c" -pthread -o "$tv_fixture_dir/build/xtream-ownership"
 cc "${flags[@]}" src/perfis.c src/stalker.c src/js.c "$tv_fixture_dir/support.c" "$tv_fixture_dir/stalker-ownership.c" -pthread -o "$tv_fixture_dir/build/stalker-ownership"
 cc "${flags[@]}" src/perfis.c "$tv_fixture_dir/support.c" "$tv_fixture_dir/epg-ownership.c" -pthread -lz -o "$tv_fixture_dir/build/epg-ownership"

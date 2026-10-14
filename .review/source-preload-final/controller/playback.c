@@ -8,7 +8,7 @@ static int fake_join(pthread_t, void **);
 #define pthread_create fake_create
 #define pthread_join fake_join
 int ajustes_fonte_precarregar(void);
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 #include "session-stubs.h"
 #endif
 #include SOURCE_APP
@@ -377,7 +377,7 @@ int stream_falha_renovar(int idx, unsigned gen, int service, int (*cancelled)(vo
 }
 
 
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 int stream_primeira_boa_sessao(int n,uint64_t s) { return perfis_sessao_atual(s) ? stream_primeira_boa(n) : -1; }
 int stream_verificar_proxima_vod_sessao(int i,int n,int *c,uint64_t s) { return perfis_sessao_atual(s) ? stream_verificar_proxima_vod(i,n,c) : -1; }
 int stream_canal_primeira_viva_sessao(int n,uint64_t s) { return perfis_sessao_atual(s) ? stream_canal_primeira_viva(n) : -1; }

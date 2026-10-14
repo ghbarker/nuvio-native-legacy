@@ -1187,7 +1187,7 @@ index f335cbfeaab7c27cbb27aa02390ce4608415dd79..7b85540635b864d1e8ca557b293e4f3d
  
 +
 diff --git a/src/addons.c b/src/addons.c
-index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568424126fa 100644
+index 3e73140feb39626886b35e1955435e5972aa03d6..e5e526b6918dc7b96b840a799cdc669ee6270a89 100644
 --- a/src/addons.c
 +++ b/src/addons.c
 @@ -13,6 +13,8 @@
@@ -1323,15 +1323,19 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  static void progLimpar(void) {
    int q;
    pthread_mutex_lock(&progTrava);
-@@ -253,6 +341,7 @@ void addons_capturar_escopo(FontecacheEscopo *e) {
+@@ -251,16 +339,19 @@ static void progLimpar(void) {
+ 
+ void addons_capturar_escopo(FontecacheEscopo *e) {
    memset(e, 0, sizeof *e);
++  e->sessao = nv_perfil_sessao_ler();
++  if (!nv_perfil_sessao_travar(e->sessao)) return;
    snprintf(e->conta, sizeof e->conta, "%s", sessao_usuario());
    e->perfil = perfis_ativo();
-+  e->sessao = nv_perfil_sessao_ler();
    e->addons = versaoLista;
    e->geracao = fontecache_vod_geracao();
++  nv_perfil_sessao_destravar();
  }
-@@ -260,7 +349,7 @@ void addons_capturar_escopo(FontecacheEscopo *e) {
+ 
  static int escopoAindaAtual(const FontecacheEscopo *e) {
    FontecacheEscopo atual;
    addons_capturar_escopo(&atual);
@@ -1340,7 +1344,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
           atual.geracao == e->geracao && !strcmp(atual.conta, e->conta);
  }
  
-@@ -300,10 +389,6 @@ static void baseNormalizada(const char *url, char *dst, size_t tam) {
+@@ -300,10 +391,6 @@ static void baseNormalizada(const char *url, char *dst, size_t tam) {
  }
  
  // O pedido ao addon `i` coube no buffer? Ver nv_addon_pedido_coube (addonurl.h).
@@ -1351,7 +1355,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  // --- leitura do arquivo de configuracao -------------------------------------
  
  // Perfil cuja conta mandou a lista atual; 0 = pacote ou nada. Ver addons.h.
-@@ -314,7 +399,7 @@ void addons_marcar_da_conta(int perfil) {
+@@ -314,7 +401,7 @@ void addons_marcar_da_conta(int perfil) {
  }
  int  addons_perfil_da_lista(void) { return __atomic_load_n(&perfilLista, __ATOMIC_SEQ_CST); }
  
@@ -1360,7 +1364,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    // A linha e nome<TAB>url<TAB>colunas: a URL inteira mais folga para o resto.
    char caminho[600], linha[NV_ADDON_URL_MAX + 256];
    FILE *f;
-@@ -407,7 +492,7 @@ static int listaIgual(const AddonRemoto *nova, int n) {
+@@ -407,7 +494,7 @@ static int listaIgual(const AddonRemoto *nova, int n) {
    return k == nAddon;
  }
  
@@ -1369,7 +1373,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    int i, aceitos = 0;
    if (!nova || n <= 0) {
      // Vazio nao substitui. Ver o comentario no cabecalho: uma resposta vazia
-@@ -511,7 +596,7 @@ void addons_diferenca(const AddonRemoto *antes, int na, const AddonRemoto *depoi
+@@ -511,7 +598,7 @@ void addons_diferenca(const AddonRemoto *antes, int na, const AddonRemoto *depoi
    if (mudaram) *mudaram = m;
  }
  
@@ -1378,7 +1382,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    memset(addon, 0, sizeof addon);
    nAddon = 0;
    addons_marcar_da_conta(0);
-@@ -574,12 +659,12 @@ AddEstado addons_estado(void) {
+@@ -574,12 +661,12 @@ AddEstado addons_estado(void) {
    // As respostas que ja chegaram vao para a folha antes de tudo (#221).
    progDrenar();
    // Publica no fio da UI: nenhum desenho observa uma lista parcialmente escrita.
@@ -1393,7 +1397,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
        // Conta/perfil/configuracao mudaram durante a rede. Essa resposta nao
        // pertence mais a tela, nem pode recriar o cache depois do logout.
        free(resultado); resultado = NULL; nResultado = 0;
-@@ -637,6 +722,8 @@ AddEstado addons_estado(void) {
+@@ -637,6 +724,8 @@ AddEstado addons_estado(void) {
    }
    // Busca principal ociosa: e a vez do prefetch pendente, se houver.
    if (e != ADD_BUSCANDO && !fioVivo) fontecache_avancar();
@@ -1402,7 +1406,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    return e;
  }
  
-@@ -750,9 +837,9 @@ int addons_faltam_decisivos(void) {
+@@ -750,9 +839,9 @@ int addons_faltam_decisivos(void) {
    if (!addons_busca_parcial()) return 0;
    pthread_mutex_lock(&progTrava);
    for (i = 0; i < nAddon && i < ADD_MAX; i++)
@@ -1414,7 +1418,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    pthread_mutex_unlock(&progTrava);
    return k;
  }
-@@ -765,19 +852,19 @@ void addons_inicio_info(AddonsInicioInfo *o) {
+@@ -765,19 +854,19 @@ void addons_inicio_info(AddonsInicioInfo *o) {
    if (!addons_busca_parcial()) return;
    pthread_mutex_lock(&progTrava);
    for (i = 0; i < nAddon && i < ADD_MAX; i++) {
@@ -1438,7 +1442,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
        }
      } else if (progEstadoEx[i] == 3 && !o->semResposta++)
        snprintf(o->semRespostaNome, sizeof o->semRespostaNome, "%s", progNomeEx[i]);
-@@ -790,9 +877,9 @@ int addons_pendente_antes(int idx) {
+@@ -790,9 +879,9 @@ int addons_pendente_antes(int idx) {
    if (!addons_busca_parcial()) return 0;
    pthread_mutex_lock(&progTrava);
    for (i = 0; i < idx && i < nAddon && i < ADD_MAX; i++)
@@ -1450,7 +1454,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    pthread_mutex_unlock(&progTrava);
    return r;
  }
-@@ -817,9 +904,9 @@ int addons_pendente_grupo_min(int (*f)(const char *nome, int plugin, void *u), v
+@@ -817,9 +906,9 @@ int addons_pendente_grupo_min(int (*f)(const char *nome, int plugin, void *u), v
    if (!f || !addons_busca_parcial()) return m;
    pthread_mutex_lock(&progTrava);
    for (i = 0; i < nAddon && i < ADD_MAX; i++)
@@ -1462,7 +1466,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    pthread_mutex_unlock(&progTrava);
    return m;
  }
-@@ -887,6 +974,7 @@ static pthread_t fioLeg;
+@@ -887,6 +976,7 @@ static pthread_t fioLeg;
  static int fioLegVivo, fioLegCriado, legParar;
  static char legId[64], legTipo[16];
  static unsigned legGeracao;
@@ -1470,7 +1474,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  // Extras do Stremio do arquivo que toca (#201). Valem so para `id`: o titulo
  // seguinte nao herda o nome nem o hash do anterior.
  typedef struct {
-@@ -1109,6 +1197,8 @@ typedef struct {
+@@ -1109,6 +1199,8 @@ typedef struct {
    char id[64], tipo[16];
    int temporada, episodio;
    unsigned geracao;
@@ -1479,7 +1483,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    pthread_mutex_t m;       // guarda lotes
  } LegBusca;
  
-@@ -1123,8 +1213,9 @@ static void publicarLegendas(LegBusca *B, int final) {
+@@ -1123,8 +1215,9 @@ static void publicarLegendas(LegBusca *B, int final) {
    pthread_mutex_lock(&B->m);
    n = distribuirLegendas(B->lotes, B->nLotes, B->nGrupos, achadas);
    pthread_mutex_unlock(&B->m);
@@ -1490,7 +1494,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      if (B->manter) {
        int i;
        // Mantem ordem e indices atuais: a escolha ativa continua na mesma entrada.
-@@ -1136,36 +1227,41 @@ static void publicarLegendas(LegBusca *B, int final) {
+@@ -1136,36 +1229,41 @@ static void publicarLegendas(LegBusca *B, int final) {
      }
    }
    pthread_mutex_unlock(&legTrava);
@@ -1537,7 +1541,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    p = js_array(corpo, NULL, "subtitles");
    // js_array devolve NULL tambem para []: o diagnostico precisa distinguir
    // um array vazio de uma resposta sem o resource esperado.
-@@ -1209,7 +1305,7 @@ static void *buscarUmAddon(void *u) {
+@@ -1209,7 +1307,7 @@ static void *buscarUmAddon(void *u) {
            js_texto(q, f, "subtitleFileName", nome, sizeof nome);
            if (!nome[0]) js_texto(q, f, "movieReleaseName", nome, sizeof nome);
            snprintf(d->idioma, sizeof d->idioma, "%s", cod);
@@ -1546,7 +1550,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
            snprintf(d->arquivo, sizeof d->arquivo, "%s", nome);
            if (B->temporada > 0 && B->episodio > 0)
              snprintf(d->rotulo, sizeof d->rotulo, i18n("T%dE%d  \xc2\xb7  %s%s%.22s"),
-@@ -1238,7 +1334,7 @@ static void *buscarUmAddon(void *u) {
+@@ -1238,7 +1336,7 @@ static void *buscarUmAddon(void *u) {
    // libcurl so diz o tipo da falha e o host.
    { const char *erro = medida.status ? "" : rede_ultimo_erro();
      printf("[legendas] %s: %d legendas, %d no idioma (HTTP %d, %ld bytes, %lu ms)%s%s%s\n",
@@ -1555,7 +1559,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
             comExtras && !recuou ? ", com extras" : "",
             erro && erro[0] ? ": " : "", erro ? erro : ""); }
    fflush(stdout);
-@@ -1309,7 +1405,7 @@ static void prepararExtras(LegBusca *B) {
+@@ -1309,7 +1407,7 @@ static void prepararExtras(LegBusca *B) {
    e = legExt;
    pthread_mutex_unlock(&legTrava);
    B->extras[0] = 0;
@@ -1564,7 +1568,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    snprintf(nome, sizeof nome, "%s", e.arquivo);
    if (!nome[0]) legextras_nome_da_url(e.video, nome, sizeof nome);
    if (e.hash[0]) { snprintf(hash, sizeof hash, "%s", e.hash); motivo = "from the addon"; }
-@@ -1326,12 +1422,13 @@ static void prepararExtras(LegBusca *B) {
+@@ -1326,12 +1424,13 @@ static void prepararExtras(LegBusca *B) {
      else {
        int ok = medirHash(e.video, e.tamanho, hash, motivoMedido, sizeof motivoMedido);
        motivo = motivoMedido;
@@ -1579,7 +1583,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
        }
      }
    }
-@@ -1357,10 +1454,10 @@ static void *buscarLegendas(void *u) {
+@@ -1357,10 +1456,10 @@ static void *buscarLegendas(void *u) {
      memset(criado, 0, sizeof criado);
      pthread_mutex_init(&B.m, NULL);
      pthread_mutex_lock(&legTrava);
@@ -1592,7 +1596,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      B.manter = legManter;
      pthread_mutex_unlock(&legTrava);
      prepararExtras(&B);
-@@ -1370,13 +1467,13 @@ static void *buscarLegendas(void *u) {
+@@ -1370,13 +1469,13 @@ static void *buscarLegendas(void *u) {
        snprintf(B.gruposTexto[i], sizeof B.gruposTexto[i], "%s", B.grupos[i]);
        B.grupos[i] = B.gruposTexto[i];
      }
@@ -1608,7 +1612,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
        fio[i].B = &B; fio[i].i = i;
        if (pthread_create(&th[i], NULL, buscarUmAddon, &fio[i]) == 0) { criado[i] = 1; nAtivos++; }
        else buscarUmAddon(&fio[i]);      // sem fio novo: faz aqui mesmo
-@@ -1386,11 +1483,11 @@ static void *buscarLegendas(void *u) {
+@@ -1386,11 +1485,11 @@ static void *buscarLegendas(void *u) {
      // Refazer com extras: soma a lista nova de uma vez, agora que todos
      // responderam (publicarLegendas descarta se a geracao ja mudou).
      if (B.manter && B.lotes) publicarLegendas(&B, 1);
@@ -1622,7 +1626,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      fioLegVivo = 0;
      legManter = 0;
      i = nLegs;
-@@ -1441,7 +1538,7 @@ int addons_fornece(int i, int oque) {
+@@ -1441,7 +1540,7 @@ int addons_fornece(int i, int oque) {
    if (oque == ADD_META)     return addon[i].meta;
    return addon[i].legenda;
  }
@@ -1631,7 +1635,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    if (i < 0 || i >= nAddon) return 0;
    addon[i].ativo = !addon[i].ativo;
    listaMudou();
-@@ -1467,7 +1564,7 @@ int addons_alternar(int i) {
+@@ -1467,7 +1566,7 @@ int addons_alternar(int i) {
  // Devolve 1 se entrou, 0 se a lista esta cheia ou o addon ja existe. Comparacao
  // por base NORMALIZADA, e nao pela URL crua: "<base>", "<base>/" e
  // "<base>/manifest.json" sao o mesmo addon.
@@ -1640,7 +1644,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    char nova[NV_ADDON_URL_MAX];
    int i;
    if (!urlManifest || !*urlManifest) return 0;
-@@ -1521,7 +1618,7 @@ int addons_adicionar(const char *nome, const char *urlManifest) {
+@@ -1521,7 +1620,7 @@ int addons_adicionar(const char *nome, const char *urlManifest) {
  // Roda em fio proprio e UMA vez por lista: sao N viagens, e faze-las no
  // arranque atrasaria a primeira tela por addon configurado.
  static pthread_t fioSonda;
@@ -1649,7 +1653,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  
  // --- O QUE O RESOURCE "meta" DECLARA (idPrefixes e types) -------------------
  //
-@@ -1781,47 +1878,55 @@ static void capacidadesDoManifesto(int i, const char *corpo) {
+@@ -1781,47 +1880,55 @@ static void capacidadesDoManifesto(int i, const char *corpo) {
  // funcoes publicas tomam e soltam essa trava sozinhas, entao chamar daqui, de
  // um fio diferente do da descoberta, e seguro por construcao. Nenhuma rede
  // nasce dentro da trava: so memcpy de um buffer pequeno.
@@ -1730,7 +1734,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  }
  
  void addons_legendas_reiniciar(void) {
-@@ -1858,7 +1963,7 @@ void addons_buscar_legendas(const char *imdb, const char *tipo) {
+@@ -1858,7 +1965,7 @@ void addons_buscar_legendas(const char *imdb, const char *tipo) {
    }
    snprintf(legId, sizeof legId, "%s", id);
    snprintf(legTipo, sizeof legTipo, "%s", tp);
@@ -1739,7 +1743,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    legManter = 0;
    nLegs = 0;
    if (fioLegVivo) { pthread_mutex_unlock(&legTrava); return; }
-@@ -1903,7 +2008,7 @@ void addons_legendas_fonte(const char *imdb, const char *tipo, const char *arqui
+@@ -1903,7 +2010,7 @@ void addons_legendas_fonte(const char *imdb, const char *tipo, const char *arqui
    manter = !strcmp(id, legId) && !strcmp(tp, legTipo);
    snprintf(legId, sizeof legId, "%s", id);
    snprintf(legTipo, sizeof legTipo, "%s", tp);
@@ -1748,7 +1752,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    legManter = manter;
    if (!manter) nLegs = 0;
    printf("[legendas] fonte conhecida: refazendo a busca com extras%s\n",
-@@ -1978,11 +2083,6 @@ typedef struct {
+@@ -1978,11 +2085,6 @@ typedef struct {
  // segunda chance, tomava 404 e a folha dizia que ele "nao respondeu". So
  // LEITURA dos campos que a sonda publica: o balde dele sai da segunda chance e
  // do resumo (nao conta como consultado, mudo nem vazio).
@@ -1760,7 +1764,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  // O QUE A ULTIMA BUSCA REAL VIU, para a folha de fontes vazia dizer a causa
  // (B6/#107 e D5). A folha so dizia "Nenhuma fonte direta disponivel", e tres
  // situacoes diferentes davam essa mesma frase:
-@@ -2023,24 +2123,21 @@ typedef struct {
+@@ -2023,24 +2125,21 @@ typedef struct {
    int progresso;              // 1 = a busca real que publica aos poucos (#221)
    int rodada;                 // 0/1 = primeira, 2 = segunda chance
    Uint32 inicio;              // SDL_GetTicks do disparo, para o log por addon
@@ -1792,7 +1796,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  #define ADD_PRAZO_VOD_S 30   // 1a rodada de filme/serie; a 2a soma mais 30 = 60 s do oficial
  // O QUE A SEGUNDA TENTATIVA DE UM ADD-ON MUDO CUSTA (#202). Medido no D1:
  // 396 linhas "sem resposta: segunda tentativa (30 s)" — quem nao respondeu em
-@@ -2049,13 +2146,13 @@ static const char *tipoCanalDeclarado(int i) {
+@@ -2049,13 +2148,13 @@ static const char *tipoCanalDeclarado(int i) {
  // vezes nem tenta (addonstats.h). Responder rapido na segunda continua
  // possivel para quem so estava frio (AIOStreams, #182): a primeira falha dele
  // nao o marca como mudo seguido.
@@ -1809,7 +1813,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      if (m > 0) s = m;
    }
    return s;
-@@ -2065,6 +2162,7 @@ static void *fioFontes(void *u) {
+@@ -2065,6 +2164,7 @@ static void *fioFontes(void *u) {
    Consulta *c = u;
    for (;;) {
      int meu, i, n, prazoS;
@@ -1817,7 +1821,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      char url[NV_ADDON_PEDIDO_MAX], idUrl[768], *corpo;
      const char *t1, *t2;
      Stream *achados;
-@@ -2074,27 +2172,28 @@ static void *fioFontes(void *u) {
+@@ -2074,27 +2174,28 @@ static void *fioFontes(void *u) {
      pthread_mutex_unlock(&c->trava);
      // Cancelamento entre um addon e outro: o download em curso nao se
      // interrompe (libcurl), mas o proximo nem comeca.
@@ -1853,7 +1857,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      // CANAL AO VIVO TEM DOIS NOMES DE TIPO NO PROTOCOLO, e addons diferentes
      // usam nomes diferentes.
      //
-@@ -2118,14 +2217,15 @@ static void *fioFontes(void *u) {
+@@ -2118,14 +2219,15 @@ static void *fioFontes(void *u) {
      // dois alvos, porque este caminho nao tem ramo de plataforma (o log do
      // #112 e de uma Samsung, mas a URL e montada igual na LG). Com e sem
      // Origin: null e User-Agent a resposta e a mesma, byte a byte.
@@ -1872,7 +1876,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
          // O segundo so substitui o primeiro quando traz fonte, ou quando o
          // primeiro nem respondeu: um 404 no segundo nome nao apaga o "respondeu
          // vazio" do primeiro, que e o que a mensagem de erro vai citar.
-@@ -2133,7 +2233,7 @@ static void *fioFontes(void *u) {
+@@ -2133,7 +2235,7 @@ static void *fioFontes(void *u) {
            free(achados); free(corpo);
            achados = a2; n = n2; corpo = alt;
            printf("[addons] %s: respondeu como \"%s\" (nao como \"%s\")\n",
@@ -1881,7 +1885,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
          } else { free(a2); free(alt); }
        }
      }
-@@ -2143,17 +2243,17 @@ static void *fioFontes(void *u) {
+@@ -2143,17 +2245,17 @@ static void *fioFontes(void *u) {
        // 12002 ms" ou o HTTP (a linha "[rede] HTTP 403 em <host>" sai antes, sem
        // o nome do addon). Prazo junto: diz se foi a 1a ou a 2a rodada.
        { const char *erro = rede_ultimo_erro();
@@ -1903,7 +1907,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      c->baldes[meu].respondeu = 1;
      c->baldes[meu].ms = (unsigned)(SDL_GetTicks() - c->inicio);
      c->baldes[meu].n = n;
-@@ -2161,7 +2261,7 @@ static void *fioFontes(void *u) {
+@@ -2161,7 +2263,7 @@ static void *fioFontes(void *u) {
      // O TEMPO DE CADA ADDON NO LOG (#221): sem ele o D1 so dava o total da
      // consulta, e "quem segura" tinha de ser adivinhado pela ordem das linhas.
      printf("[addons] %s: %d fontes (%u bytes, %u ms)\n",
@@ -1912,7 +1916,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
             (unsigned)(SDL_GetTicks() - c->inicio));
      // RESPOSTA CURTA SEM FONTE VAI PARA O LOG. No registro 1504 havia
      // "Torrentio TB: 0 fontes (75 bytes)": 75 bytes nao sao {"streams":[]}
-@@ -2177,10 +2277,11 @@ static void *fioFontes(void *u) {
+@@ -2177,10 +2279,11 @@ static void *fioFontes(void *u) {
        snprintf(amostra, sizeof amostra, "%s", corpo);
        for (k = 0; amostra[k]; k++)
          if ((unsigned char)amostra[k] < ' ') amostra[k] = ' ';
@@ -1925,7 +1929,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  }
  
  // --- saude por addon (ver addons_fora_do_ar) ------------------------------------
-@@ -2224,18 +2325,19 @@ static void segundaChance(Consulta *c, int fios) {
+@@ -2224,18 +2327,19 @@ static void segundaChance(Consulta *c, int fios) {
    int q, m = 0, criados = 0, pulados = 0;
    pthread_t f[ADD_FIOS];
    int *orig;
@@ -1948,7 +1952,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      c2.id = c->id; c2.tipo = c->tipo; c2.tipoAlt = c->tipoAlt;
      c2.nBaldes = m; c2.cancelado = c->cancelado; c2.ctx = c->ctx;
      c2.timeout = c->timeout > 20 ? c->timeout : 20;
-@@ -2254,7 +2356,7 @@ static void segundaChance(Consulta *c, int fios) {
+@@ -2254,7 +2358,7 @@ static void segundaChance(Consulta *c, int fios) {
      for (q = 0; q < m; q++) {
        if (!c2.baldes[q].respondeu) continue;
        c->baldes[orig[q]] = c2.baldes[q];
@@ -1957,7 +1961,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
      }
      pthread_mutex_destroy(&c2.trava);
    }
-@@ -2273,6 +2375,7 @@ static void segundaChance(Consulta *c, int fios) {
+@@ -2273,6 +2377,7 @@ static void segundaChance(Consulta *c, int fios) {
  #define ORIGENS_EXTRA_MAX 2
  static OrigemExtra origensExtra[ORIGENS_EXTRA_MAX];
  static int (*origensExtraAtiva[ORIGENS_EXTRA_MAX])(void);
@@ -1965,7 +1969,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  static int nOrigensExtra;
  void addons_definir_origem_extra(OrigemExtra f, int (*ativa)(void)) {
    int i;
-@@ -2288,6 +2391,12 @@ void addons_definir_origem_extra(OrigemExtra f, int (*ativa)(void)) {
+@@ -2288,6 +2393,12 @@ void addons_definir_origem_extra(OrigemExtra f, int (*ativa)(void)) {
  static int origemExtraViva(int i) {
    return origensExtra[i] && origensExtraAtiva[i] && origensExtraAtiva[i]();
  }
@@ -1978,7 +1982,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  int addons_origem_extra_ativa(void) {
    int i;
    for (i = 0; i < nOrigensExtra; i++) if (origemExtraViva(i)) return 1;
-@@ -2298,6 +2407,7 @@ typedef struct {
+@@ -2298,6 +2409,7 @@ typedef struct {
    const char *id, *tipo;
    int (*cancelado)(void *); void *ctx;
    int progresso;
@@ -1986,7 +1990,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    Stream *l; int n;
    _Atomic int pendentes, incompleta;
  } PedidoExtra;
-@@ -2311,11 +2421,12 @@ typedef struct {
+@@ -2311,11 +2423,12 @@ typedef struct {
  } UmaOrigem;
  static int cancelaExtra(void *u) {
    PedidoExtra *p = u;
@@ -2000,7 +2004,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    if (fontes && n > 0 && k >= 0 && k < ADD_EXTRA_MAX) {
      const Stream *s = fontes;
      if (s->addonChave[0]) snprintf(o->chaves[k], sizeof o->chaves[k], "%s", s->addonChave);
-@@ -2328,9 +2439,16 @@ static void avisoExtra(void *u, int k, const char *nome, int estado, const void
+@@ -2328,9 +2441,16 @@ static void avisoExtra(void *u, int k, const char *nome, int estado, const void
    if (estado == 3) atomic_store(&p->incompleta, 1);
    if (!p->progresso) return;
    // Scraper que terminou (2) ou desistiu (3): entra na memoria de latencia.
@@ -2020,7 +2024,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  }
  static void *fioUmaOrigem(void *u) {
    UmaOrigem *o = u;
-@@ -2383,12 +2501,15 @@ static void *fioExtra(void *u) {
+@@ -2383,12 +2503,15 @@ static void *fioExtra(void *u) {
    }
    // Scraper que o corte (30 s) deixou sem resposta: mudo nesta busca. Cancelada
    // a busca, nao prova nada.
@@ -2039,7 +2043,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    }
    for (i = 0; i < nOrigensExtra; i++) free(o[i].l);
    return NULL;
-@@ -2396,7 +2517,7 @@ static void *fioExtra(void *u) {
+@@ -2396,7 +2519,7 @@ static void *fioExtra(void *u) {
  
  static int consultar(const char *id, const char *tipo, const char *base, int fios,
                       int (*cancelado)(void *), void *ctx, Stream **saida,
@@ -2048,7 +2052,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    Consulta c;
    Stream *achados = NULL;
    int n = 0, i, q;
-@@ -2405,27 +2526,30 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2405,27 +2528,30 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
    int temExtra = 0;
    *saida = NULL;
    if (!id || !*id || !tipo || !*tipo) return 0;
@@ -2083,7 +2087,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    c.id = id; c.tipo = tipo; c.tipoAlt = tipoAlternativo(tipo);
    c.cancelado = cancelado; c.ctx = ctx;
    c.progresso = progresso;
-@@ -2442,24 +2566,24 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2442,24 +2568,24 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
    c.timeout = progresso ? ADD_PRAZO_VOD_S : 12;
    c.inicio = SDL_GetTicks();
    pthread_mutex_init(&c.trava, NULL);
@@ -2114,7 +2118,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    }
  
    // QUEM FICOU DE FORA, E POR QUE (issue #83).
-@@ -2487,22 +2611,23 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2487,22 +2613,23 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
      static int folhaFeita;
      if (!(base && *base) && (!folhaFeita || ultimaFolha != versaoLista)) {
        ultimaFolha = versaoLista; folhaFeita = 1;
@@ -2145,7 +2149,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    }
  
    if (c.baldes && c.nBaldes > 0) {
-@@ -2519,37 +2644,31 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2519,37 +2646,31 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
        int k = c.baldes[q].n;
        // Tambem quem respondeu 200 vazio: sem recurso stream, "veio vazio" nao
        // diz nada. Limite que fica: a sonda terminando DEPOIS deste resumo.
@@ -2201,7 +2205,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
          rs->consultados++;
          if (!c.baldes[q].respondeu) {
            if (!rs->semResposta++) snprintf(rs->mudo, sizeof rs->mudo, "%s", nome);
-@@ -2566,7 +2685,7 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2566,7 +2687,7 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
        free(c.baldes[q].achados);
      }
    }
@@ -2210,7 +2214,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    pthread_mutex_destroy(&c.trava);
    if (temExtra) pthread_join(fioEx, NULL);
    if (rs) rs->extraIncompleta = extra.pendentes != 0 || extra.incompleta;
-@@ -2577,7 +2696,7 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2577,7 +2698,7 @@ static int consultar(const char *id, const char *tipo, const char *base, int fio
    }
    free(extra.l);
    // Cancelada, a lista pode estar pela metade: nao e resposta, e lixo.
@@ -2219,7 +2223,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    *saida = achados;
    return n;
  }
-@@ -2588,12 +2707,301 @@ int addons_consultar(const char *id, const char *tipo, const char *base, int fio
+@@ -2588,12 +2709,301 @@ int addons_consultar(const char *id, const char *tipo, const char *base, int fio
    // busca real seguinte. O cache da busca principal aplica a mesma guarda.
    Resumo rs = {0};
    int vod = tipo && !strcmp(tipo, "series");
@@ -2522,7 +2526,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  static void resumoDaLista(Resumo *rs) {
    int i;
    memset(rs, 0, sizeof *rs);
-@@ -2642,27 +3050,39 @@ int addons_motivo_vazio(char *dst, unsigned n) {
+@@ -2642,27 +3052,39 @@ int addons_motivo_vazio(char *dst, unsigned n) {
    return 1;
  }
  
@@ -2578,7 +2582,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    return NULL;
  }
  
-@@ -2672,7 +3092,7 @@ static void dispararBusca(void) {
+@@ -2672,7 +3094,7 @@ static void dispararBusca(void) {
    // teria sido adotado em addons_buscar) larga os addons que faltam.
    fontecache_ceder();
    estado = ADD_BUSCANDO;
@@ -2587,7 +2591,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
    progLimpar();
    progLigado = alvoVod();
    progPublicou = 0; progExtraPublicou = 0;
-@@ -2680,7 +3100,17 @@ static void dispararBusca(void) {
+@@ -2680,7 +3102,17 @@ static void dispararBusca(void) {
    addons_capturar_escopo(&fioEscopo);
    snprintf(fioBase, sizeof fioBase, "%s", alvoBase);
    alvoBase[0] = 0;   // consumida: origem e do pedido, nao de sessao
@@ -2606,7 +2610,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
  }
  
  // Diz de que addon o PROXIMO alvo veio. Chamar ANTES de addons_buscar; a
-@@ -2738,7 +3168,7 @@ static void buscarPedido(const char *imdb, const char *tipo, int forcar) {
+@@ -2738,7 +3170,7 @@ static void buscarPedido(const char *imdb, const char *tipo, int forcar) {
    // id cru agora mesmo; aqui ele vira o que de fato foi perguntado.
    if (strcmp(id, imdb)) stream_definir_alvo(id);
    if (fioVivo) {
@@ -2615,7 +2619,7 @@ index 3e73140feb39626886b35e1955435e5972aa03d6..9cd26f60bfc572f7cc7088865d67b568
        snprintf(pendId, sizeof pendId, "%s", imdb);
        snprintf(pendTipo, sizeof pendTipo, "%s", tipo ? tipo : "movie");
        pendRenovar = forcar;
-@@ -2836,3 +3266,71 @@ const char *addons_base_por_id(const char *id) {
+@@ -2836,3 +3268,71 @@ const char *addons_base_por_id(const char *id) {
      if (addon[i].id[0] && !strcmp(addon[i].id, id)) return addon[i].base;
    return "";
  }
@@ -4330,7 +4334,7 @@ index 1d8971e248195256dac6c7beafce2528c8628cf6..c732f496cafb7dd6a3864e9f9624a757
        if (fx + fw > toqueRol + faixa.w) toqueRol = fx + fw - faixa.w;
      }
 diff --git a/src/app.c b/src/app.c
-index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30ad569230 100644
+index f75d434f8b5004ddb94b3068479a57057f715b54..327e32e0b41c26b7ca9fa9d91e095f3e319f1d1c 100644
 --- a/src/app.c
 +++ b/src/app.c
 @@ -32,6 +32,8 @@
@@ -4350,7 +4354,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  #include "plrilha.h"
  #include "ilhacart.h"
  #include "cwretido.h"
-@@ -261,7 +264,43 @@ static _Atomic int fonteEscolhida = -2;   // release/acquire entre verificacao e
+@@ -261,7 +264,45 @@ static _Atomic int fonteEscolhida = -2;   // release/acquire entre verificacao e
  // nenhum fio de rede le player_id_canal(), que pode mudar durante um zap.
  static _Atomic unsigned stalkerGeracao;
  enum { FJOB_IDLE, FJOB_RUNNING, FJOB_DONE };
@@ -4366,9 +4370,10 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +} FontePreparoContexto;
 +static void preparoContexto(FontePreparoContexto *c) {
 +  memset(c, 0, sizeof *c);
++  c->sessaoPerfil = perfis_sessao_geracao();
++  if (!perfis_sessao_travar(c->sessaoPerfil)) return;
 +  fontefalha_config(&c->politica);
 +  debrid_contexto_capturar(&c->debrid);
-+  c->sessaoPerfil = perfis_sessao_geracao();
 +  c->perfil = perfis_ativo();
 +  snprintf(c->conta, sizeof c->conta, "%s", sessao_usuario());
 +  c->regras = fonteregra_versao();
@@ -4382,6 +4387,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +    ajustes_cache_seek_mb(), ajustes_fonte_conferir_varias(), ajustes_fonte_tocar_conferindo() };
 +  memcpy(c->ajustes, a, sizeof a);
 +  snprintf(c->qualidade, sizeof c->qualidade, "%s", ajustes_qualidade());
++  perfis_sessao_destravar();
 +}
 +static int preparoContextoAtual(const FontePreparoContexto *c) {
 +  FontePreparoContexto agora, salvo = *c;
@@ -4395,7 +4401,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  typedef struct {
    _Atomic int estado;
    int tipo;
-@@ -272,11 +311,33 @@ typedef struct {
+@@ -272,11 +313,33 @@ typedef struct {
    int depoisDe, tentativas, conferidas;
    unsigned listaGeracao;
    FonteFalhaSessao *falha;
@@ -4429,7 +4435,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  static int fonteDepoisDe, fonteRestantes; // pedido pendente; nunca mexer no job ativo
  static unsigned fontePedidoGeracao;
  static int fontePendenteTipo;
-@@ -440,12 +501,14 @@ static void pedirPerfil(void) {
+@@ -440,12 +503,14 @@ static void pedirPerfil(void) {
  // proprio a tela segue em 60fps mostrando "Abrindo fonte".
  static void *escolherFonte(void *u) {
    FonteJob *job = u;
@@ -4445,7 +4451,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    atomic_store_explicit(&job->estado, FJOB_DONE, memory_order_release);
    return NULL;
  }
-@@ -458,32 +521,55 @@ static void *escolherFonte(void *u) {
+@@ -458,32 +523,55 @@ static void *escolherFonte(void *u) {
  static Uint32 canalFontePrazo;
  static void *escolherProximaVOD(void *u) {
    FonteJob *job = u;
@@ -4505,7 +4511,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    job->resultado = e;
    atomic_store_explicit(&job->estado, FJOB_DONE, memory_order_release);
    return NULL;
-@@ -491,7 +577,7 @@ static void *escolherFonteCanal(void *u) {
+@@ -491,7 +579,7 @@ static void *escolherFonteCanal(void *u) {
  static void *escolherFonteStalker(void *u) {
    FonteJob *job = u;
    char url[4096];
@@ -4514,10 +4520,11 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    // O worker publica somente no seu job. O consumidor confere a geracao e o
    // id depois do acquire; nenhuma resposta velha toca o mailbox da sessao
    // corrente.
-@@ -542,19 +628,49 @@ static int iniciarFonteJob(int tipo, unsigned geracao, const char *id, int renov
+@@ -542,19 +630,55 @@ static int iniciarFonteJob(int tipo, unsigned geracao, const char *id, int renov
    job->tentativas = fonteRestantes;
    job->conferidas = 0;
    job->listaGeracao = stream_lista_geracao();
++  job->sessaoPerfil = perfis_sessao_geracao();
 +  memset(&job->debrid, 0, sizeof job->debrid);
 +  debrid_contexto_capturar(&job->debrid);
    job->falha = NULL; job->falhaEstado = FONTEFALHA_FIM;
@@ -4529,7 +4536,6 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
      if (!fonteFalha || fonteFalhaLista != job->listaGeracao ||
          !(job->falha = fontefalha_sessao_clonar(fonteFalha))) return -1;
    }
-+  job->sessaoPerfil = perfis_sessao_geracao();
 +  if (tipo == FJOB_PREPARO || tipo == FJOB_PREPARO_FALHA) {
 +    preparoContexto(&job->contexto);
 +    job->preparoRodada = atomic_load_explicit(&preparoGeracao, memory_order_acquire);
@@ -4556,6 +4562,12 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +    }
 +  }
    if (id) snprintf(job->id, sizeof job->id, "%s", id);
++  if (!perfis_sessao_atual(job->sessaoPerfil) ||
++      ((tipo == FJOB_PREPARO || tipo == FJOB_PREPARO_FALHA) &&
++       job->contexto.sessaoPerfil != job->sessaoPerfil)) {
++    fontefalha_sessao_liberar(job->falha); job->falha = NULL;
++    return -1;
++  }
    atomic_store_explicit(&job->estado, FJOB_RUNNING, memory_order_release);
    if (pthread_create(&fioFonte, NULL,
                       tipo == FJOB_STALKER ? escolherFonteStalker :
@@ -4565,7 +4577,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
                       tipo == FJOB_PROXIMA_VOD ? escolherProximaVOD : escolherFonte,
                       job) != 0) {
      atomic_store_explicit(&job->estado, FJOB_IDLE, memory_order_release);
-@@ -652,7 +768,7 @@ static int sidebar_permitida(void) {
+@@ -652,7 +776,7 @@ static int sidebar_permitida(void) {
  }
  #ifdef NV_TOUCH_UI
  static int sidebarToquePode(void) {
@@ -4574,7 +4586,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
           !central_aberta() && !ilha_modal_aberto() && !celb_aberto() &&
           !ctx_aberto() && !spainel_aberto() && app_central_pode();
  }
-@@ -717,6 +833,8 @@ static void sidebarToqueRegistrar(int contexto) {
+@@ -717,6 +841,8 @@ static void sidebarToqueRegistrar(int contexto) {
  // requisicoes) num perfil que nao mudou seria pagar o preco da troca em toda
  // abertura do app.
  static int perfilAntes = 1;
@@ -4583,7 +4595,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  // Quando a troca de perfil comecou a preparar a home nova. Ver o teto abaixo.
  static Uint32 trocaPerfilDesde;
  // Teto da espera pela home do perfil novo. A rede lenta nunca prende a pessoa
-@@ -1325,9 +1443,11 @@ static void avisoCanalXtreamMini(void) {
+@@ -1325,9 +1451,11 @@ static void avisoCanalXtreamMini(void) {
  }
  
  // Preparar a fonte ao abrir o titulo (ver prepararAoAbrir, mais abaixo).
@@ -4597,7 +4609,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  
  // Um unico worker pode existir. O fio de desenho so junta depois de DONE;
  // enquanto RUNNING, uma troca invalida por geracao e agenda o pedido seguinte.
-@@ -1351,11 +1471,17 @@ static void processarFonteJob(void) {
+@@ -1351,11 +1479,17 @@ static void processarFonteJob(void) {
    snprintf(id, sizeof id, "%s", job->id);
    snprintf(url, sizeof url, "%s", job->url);
    atomic_store_explicit(&job->estado, FJOB_IDLE, memory_order_release);
@@ -4618,7 +4630,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
      if (preparoEspera) {
        char alvoP[64];
        int idx;
-@@ -1366,12 +1492,22 @@ static void processarFonteJob(void) {
+@@ -1366,12 +1500,22 @@ static void processarFonteJob(void) {
          limparFontePendente();   // o pedido normal que esperava na fila nao e mais preciso
          printf("[fonte] preparada ao abrir: o Play esperou por ela e abriu\n");
          fflush(stdout);
@@ -4642,7 +4654,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    if (tipo == FJOB_FALHA) {
      aplicar = aplicar && fonteFalha && job->listaGeracao == fonteFalhaLista &&
                job->listaGeracao == stream_lista_geracao() &&
-@@ -1383,7 +1519,7 @@ static void processarFonteJob(void) {
+@@ -1383,7 +1527,7 @@ static void processarFonteJob(void) {
        fonteFalhaN = stream_n();
        if (fonteFalhaEsperando) fonteEscolhida = -2;
        else fonteEscolhida = resultado >= 0 &&
@@ -4651,7 +4663,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
                                 ? resultado : -1;
      } else if (geracao == fontePedidoGeracao &&
                 geracao == atomic_load_explicit(&stalkerGeracao, memory_order_acquire) &&
-@@ -1438,6 +1574,7 @@ static void processarFonteJob(void) {
+@@ -1438,6 +1582,7 @@ static void processarFonteJob(void) {
    }
    // O job antigo foi recolhido. Só agora o slot pode receber o pedido que
    // ficou pendente durante a troca; uma geracao nova torna o pendente obsoleto.
@@ -4659,7 +4671,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    if (fontePendenteTipo &&
        (fontePendenteRenovando || aguardandoFonte == 2) &&
        fontePendenteGeracao == fontePedidoGeracao &&
-@@ -1530,6 +1667,8 @@ typedef struct {
+@@ -1530,6 +1675,8 @@ typedef struct {
    _Atomic int estado;           // 0 livre, 1 rodando, 2 pronto
    int indice, resultado, pct;
    unsigned geracaoLista, sessao;
@@ -4668,7 +4680,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    char url[4096], servico[32];
  } TorrentJob;
  static TorrentJob torrentJob;
-@@ -1541,9 +1680,11 @@ static unsigned torrentPendenteGeracao;
+@@ -1541,9 +1688,11 @@ static unsigned torrentPendenteGeracao;
  
  static void *resolverTorrentEscolhido(void *u) {
    TorrentJob *j = u;
@@ -4682,7 +4694,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    atomic_store_explicit(&j->estado, 2, memory_order_release);
    return NULL;
  }
-@@ -1555,7 +1696,10 @@ static int iniciarTorrentJob(int indice, unsigned geracaoLista) {
+@@ -1555,7 +1704,10 @@ static int iniciarTorrentJob(int indice, unsigned geracaoLista) {
      return 1;
    }
    j->indice = indice; j->geracaoLista = geracaoLista; j->sessao = torrentSessao;
@@ -4693,7 +4705,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    atomic_store_explicit(&j->estado, 1, memory_order_release);
    if (pthread_create(&fioTorrent, NULL, resolverTorrentEscolhido, j) != 0) {
      atomic_store_explicit(&j->estado, 0, memory_order_release);
-@@ -1638,7 +1782,7 @@ static void processarTorrentJob(void) {
+@@ -1638,7 +1790,7 @@ static void processarTorrentJob(void) {
    // A resposta so vale para a MESMA escolha, na mesma lista, com o player
    // ainda esperando por ela: um episodio novo, outra fonte escolhida ou o
    // player fechado no meio fazem a resposta velha nao tocar nada.
@@ -4702,7 +4714,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
             stream_atual() == j->indice && stream_lista_geracao() == j->geracaoLista;
    if (valido) {
      if (j->resultado == 1 && j->url[0]) {
-@@ -1738,68 +1882,290 @@ static void processarTorrentJob(void) {
+@@ -1738,68 +1890,330 @@ static void processarTorrentJob(void) {
  // alguns links respondem HTTP 200 e o uMS fica em load sem erro. Se o
  // automatico caiu nesse caso, tira a candidata da fila e verifica a proxima;
  // escolha manual fica intacta.
@@ -4750,6 +4762,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +#ifdef NV_ANDROID
 +  if (preparo.tem && preparo.token && player_precarregar_estado(preparo.token) < 0) {
 +    player_precarregar_cancelar(preparo.token); preparo.token = 0;
++    if (preparo.lista != stream_lista_geracao() || !preparoContextoAtual(&preparo.contexto)) return;
 +    preparo.falhou = 1;
 +    if (preparo.falha) fontefalha_marcar_aberta(preparo.falha);
 +    else stream_automatico_excluir(preparo.idx);
@@ -4863,26 +4876,28 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +                  !strcmp(preparo.alvo, alvoPlay) && preparo.lista == stream_lista_geracao() &&
 +                  preparo.lembrada == lembrada && preparoContextoAtual(&preparo.contexto);
 +  if (!vale && !continuar) { preparoInvalidar(); return 0; }
++  if (!perfis_sessao_travar(preparo.contexto.sessaoPerfil)) { preparoInvalidar(); return 0; }
 +  *idx = continuar ? -2 : preparo.idx;
 +  if (preparo.falha) {
 +    fontefalha_sessao_liberar(fonteFalha);
 +    fonteFalha = preparo.falha; preparo.falha = NULL;
 +    fonteFalhaLista = preparo.lista; fonteFalhaManual = -1;
 +    fonteFalhaPos = -1.0; fonteFalhaEsperando = fonteFalhaN = 0;
-   }
--  *idx = preparo.idx;
--  preparo.tem = 0;
++  }
 +#ifdef NV_ANDROID
 +  if (preparo.token) {
 +    if (player_precarregar_estado(preparo.token) > 0) player_precarregar_adotar(preparo.token);
 +    else player_precarregar_cancelar(preparo.token);
-+  }
+   }
+-  *idx = preparo.idx;
+-  preparo.tem = 0;
 +#endif
 +  preparo.token = 0;
 +  preparoLimparCache(0);
 +  atomic_fetch_add_explicit(&preparoGeracao, 1, memory_order_acq_rel);
 +  preparoRodando = preparoEspera = 0;
 +  memset(&preparoUltimo, 0, sizeof preparoUltimo);
++  perfis_sessao_destravar();
    return 1;
  }
  static void prepararAoAbrir(void) {
@@ -4944,38 +4959,71 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +// Next e uma intencao explicita (botao ou contagem que ja disparou). Enquanto
 +// o worker independente termina, o episodio atual continua sendo o dono do
 +// video/progresso; nunca resolve a mesma escolha outra vez no caminho frio.
-+static struct { int tem, titulo, t, e, apontar; unsigned geracao; char atual[64], alvo[64]; } proximoIntento;
++static struct { int tem, titulo, t, e, apontar; unsigned geracao; uint64_t sessaoPerfil; char atual[64], alvo[64]; } proximoIntento;
 +static void abrirProximoEpisodio(int t, int e, int apontar) {
++  uint64_t sessaoEntrada = perfis_sessao_geracao();
 +  int titulo = player_indice();
 +  char atual[64], alvo[64];
 +  alvoPlayer(atual, sizeof atual);
 +  cat_id_stream(titulo, t, e, alvo, sizeof alvo);
++  uint64_t sessaoPerfil = proximoIntento.tem && !strcmp(proximoIntento.alvo, alvo)
++      ? proximoIntento.sessaoPerfil : sessaoEntrada;
 +  ProximoPreparoResultado preparada = {0};
 +  int pronta = proximopreparo_consumir(alvo, &preparada);
++  if (!perfis_sessao_atual(sessaoPerfil) || (pronta && preparada.sessaoPerfil != sessaoPerfil)) {
++    proximopreparo_liberar_resultado(&preparada);
++    memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
++    return;
++  }
 +  if (!pronta && proximopreparo_em_curso(alvo)) {
 +    if (!proximoIntento.tem || strcmp(proximoIntento.alvo, alvo))
 +      player_toast(i18n("Abrindo fonte"), 1500);
 +    proximoIntento.tem = 1; proximoIntento.titulo = titulo;
 +    proximoIntento.t = t; proximoIntento.e = e; proximoIntento.apontar = apontar;
 +    proximoIntento.geracao = proximopreparo_geracao();
++    proximoIntento.sessaoPerfil = sessaoPerfil;
 +    snprintf(proximoIntento.atual, sizeof proximoIntento.atual, "%s", atual);
 +    snprintf(proximoIntento.alvo, sizeof proximoIntento.alvo, "%s", alvo);
 +    return;
 +  }
 +  memset(&proximoIntento, 0, sizeof proximoIntento);
++  // A conta pode mudar num worker depois de consumir. So adotar os bytes
++  // sob o mesmo ator; nao segurar esta trava ao salvar/fechar o player.
++  if (!perfis_sessao_travar(sessaoPerfil)) {
++    proximopreparo_liberar_resultado(&preparada); proximopreparo_cancelar();
++    return;
++  }
 +#ifdef NV_ANDROID
 +  unsigned tokenAdotado = pronta ? preparada.token : 0;
 +  if (pronta && preparada.token) {
 +    player_precarregar_adotar(preparada.token); preparada.token = 0;
 +  }
 +#endif
++  perfis_sessao_destravar();
 +  // Consumir/adotar vem antes do encerramento: posplay_fechar e video_parar
 +  // so podem cancelar os trabalhos que ainda pertencem ao episodio antigo.
 +  diagnostico_cancelar_vazao();
 +  player_encerrar();
 +  limparFonteVOD();
++  if (!perfis_sessao_atual(sessaoPerfil)) {
++#ifdef NV_ANDROID
++    if (tokenAdotado) player_precarregar_cancelar(tokenAdotado);
++#endif
++    proximopreparo_liberar_resultado(&preparada); proximopreparo_cancelar();
++    return;
++  }
 +  player_abrir(titulo, NULL);
 +  player_definir_episodio(t, e);
++  // Abrir/fechar nao seguram a trava de identidade. Conferir outra vez antes
++  // de publicar a lista e seu orcamento como uma unica transferencia curta.
++  if (!perfis_sessao_travar(sessaoPerfil)) {
++#ifdef NV_ANDROID
++    if (tokenAdotado) player_precarregar_cancelar(tokenAdotado);
++#endif
++    proximopreparo_liberar_resultado(&preparada); proximopreparo_cancelar();
++    player_encerrar();
++    return;
++  }
 +  // O caminho pronto dispensa addons_buscar, que normalmente atualiza este
 +  // alvo. Os recuos futuros tambem devem capturar o episodio que abriu.
 +  debrid_definir_episodio(t, e);
@@ -4990,14 +5038,15 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +    // indices/politica do Next para aquela lista ou adotar seu buffer depois.
 +    if (stream_lista_geracao() == listaAntes || stream_n() != preparada.n ||
 +        !stream_lista_do_alvo(alvo)) {
-+#ifdef NV_ANDROID
-+      if (tokenAdotado) player_precarregar_cancelar(tokenAdotado);
-+#endif
-+      proximopreparo_liberar_resultado(&preparada);
 +      // Nao repetir automaticamente os links ja cobrados do snapshot. A
 +      // abertura falha sem fonte, e a lista antiga tambem sai da folha.
 +      stream_definir_lista(NULL, 0);
 +      aguardandoFonte = 0; fonteEscolhida = -1;
++      perfis_sessao_destravar();
++#ifdef NV_ANDROID
++      if (tokenAdotado) player_precarregar_cancelar(tokenAdotado);
++#endif
++      proximopreparo_liberar_resultado(&preparada);
 +      player_erro_fonte();
 +      return;
 +    }
@@ -5009,11 +5058,13 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +    fonteEscolhida = preparada.indiceFonte; aguardandoFonte = 2;
 +    if (fonteEscolhida == -2 && fonteFalha &&
 +        pedirFonteJob(FJOB_FALHA, fontePedidoGeracao, NULL, 0) < 0) fonteEscolhida = -1;
++    perfis_sessao_destravar();
 +    const CatItem *ci = cat_item(titulo);
 +    if (ci) addons_buscar_legendas(alvo, ci->tipo);
 +    proximopreparo_liberar_resultado(&preparada);
 +    marco("proximo episodio: fonte preparada");
 +  } else {
++    perfis_sessao_destravar();
 +    marco("proximo episodio: buscando fontes");
 +    buscarParaPlayer(); aguardandoFonte = 1;
 +  }
@@ -5024,7 +5075,8 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
 +  proximopreparo_passo(atual);
 +  if (!proximoIntento.tem) return;
 +  if (!atual[0] || strcmp(atual, proximoIntento.atual) || player_indice() != proximoIntento.titulo ||
-+      proximoIntento.geracao != proximopreparo_geracao()) {
++      proximoIntento.geracao != proximopreparo_geracao() ||
++      !perfis_sessao_atual(proximoIntento.sessaoPerfil)) {
 +    memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
 +  } else if (!proximopreparo_em_curso(proximoIntento.alvo))
 +    abrirProximoEpisodio(proximoIntento.t, proximoIntento.e, proximoIntento.apontar);
@@ -5032,7 +5084,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  // AQUECER CONEXOES (aquecer.h). Sem efeito no .wgt (o navegador cuida das dele).
  // Na pagina do titulo: a API do debrid; quando a lista de fontes chega ou cresce:
  // o host de cada uma das primeiras. Nunca resolve link nem cria arquivo.
-@@ -2333,7 +2699,88 @@ static void salvoParaConta(const CatItem *ci, int salvo) {
+@@ -2333,7 +2747,88 @@ static void salvoParaConta(const CatItem *ci, int salvo) {
      contapend_chutar();
  }
  
@@ -5121,7 +5173,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  #ifdef NV_LINUX_DESKTOP
    const char *preview = getenv("NUVIO_UI_PREVIEW");
    uiPreview = preview && !strcmp(preview, "1");
-@@ -2429,7 +2876,8 @@ int app_iniciar(const char *dirArte) {
+@@ -2429,7 +2924,8 @@ int app_iniciar(const char *dirArte) {
      tela = TELA_HOME;
      // Com sessao gravada o ciclo comeca no arranque: e ele que traz os addons
      // e o Trakt da pessoa, sem os quais a home mostra so o que veio no pacote.
@@ -5131,7 +5183,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
      arranque_etapa("app_iniciar/sync_iniciar");
      sync_iniciar();
      // A ESCOLHA DE PERFIL ABRE AQUI, e nao daqui a alguns segundos.
-@@ -3197,7 +3645,9 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -3197,7 +3693,9 @@ void app_atualizar(float dt, Uint32 agora) {
    if (menu_pediu_spotlight() && spotPode()) spotAbrir(0);
    if (spot_aberto() && !spotPode()) spot_fechar();
    cancelarFonteSeSaiu();
@@ -5141,7 +5193,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    // A QUALIDADE DA IMAGEM CHEGA AOS DOIS MODULOS QUE A CONSOMEM, e so quando
    // muda. tex_cache e artehero nao incluem ajustes.h de proposito: o cache de
    // texturas e a politica de url nao tem por que saber que existe uma tela de
-@@ -3239,6 +3689,9 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -3239,6 +3737,9 @@ void app_atualizar(float dt, Uint32 agora) {
        // Logo apos entrar, o primeiro ciclo de sync: e ele que descobre quantos
        // perfis a conta tem, e sem isso a tela de escolha nao teria o que
        // mostrar.
@@ -5151,7 +5203,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
        sync_reaplicar_ajustes();
        sync_iniciar();
        tela = TELA_ESCOLHA_PERFIL;
-@@ -3257,12 +3710,27 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -3257,12 +3758,27 @@ void app_atualizar(float dt, Uint32 agora) {
        && !uiPreview
  #endif
       ) {
@@ -5180,7 +5232,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    // Os vinculos de Trakt e Simkl avancam TODO quadro, em qualquer tela: os dois
    // fazem poll. MEDIDO na TV: estas duas linhas viviam dentro do `if` da tela
    // de perfil (a indentacao enganava), entao o poll so rodava ali — em Ajustes,
-@@ -3316,7 +3784,8 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -3316,7 +3832,8 @@ void app_atualizar(float dt, Uint32 agora) {
        // Continuar). O teto existe para uma rede lenta nunca prender a pessoa
        // na tela de escolha: passado ele, a home abre como estiver e termina de
        // se montar ali, como antes.
@@ -5190,7 +5242,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
            agora - trocaPerfilDesde >= TROCA_PERFIL_TETO_MS) {
          printf("[perfis] home do perfil %d %s em %u ms\n", perfis_ativo(),
                 (sync_perfil_pronto() && !desc_montando()) ? "pronta" : "aberta pelo teto",
-@@ -3329,88 +3798,7 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -3329,88 +3846,7 @@ void app_atualizar(float dt, Uint32 agora) {
        return;
      }
      if (perfilsel_concluido()) {
@@ -5279,7 +5331,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
        tela = TELA_HOME;
      }
      return;
-@@ -4163,6 +4551,25 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -4163,6 +4599,25 @@ void app_atualizar(float dt, Uint32 agora) {
        // por isso passa por sucesso.
        const CatItem *ci = cat_item(detail_indice());
        limparFonteVOD();
@@ -5305,7 +5357,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
        diagnostico_cancelar_vazao();
        player_abrir(detail_indice(), NULL);
        episodioDoDetalhe();
-@@ -4184,8 +4591,19 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -4184,8 +4639,19 @@ void app_atualizar(float dt, Uint32 agora) {
        }
        // A busca de fontes sai SEMPRE (renovarListaDoPlayer): com a fonte
        // guardada ela corre em segundo plano e so serve a folha e ao recuo.
@@ -5327,7 +5379,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
      }
      if (detail_pediu_marcar()) {
        // Alterna no Trakt E no espelho local. O estado de partida vem de
-@@ -4335,20 +4753,23 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -4335,20 +4801,23 @@ void app_atualizar(float dt, Uint32 agora) {
          char alvoP[64];
          int idx;
          alvoPlayer(alvoP, sizeof alvoP);
@@ -5360,7 +5412,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
            if (pedirFonteJob(FJOB_ADDON, geracao, NULL, 0) < 0) { aguardandoFonte = 0; player_erro_fonte(); }
          }
        }
-@@ -4912,12 +5333,8 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -4912,12 +5381,8 @@ void app_atualizar(float dt, Uint32 agora) {
      }
    }
    { int t,e;
@@ -5375,7 +5427,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    }
    episodios_atualizar(dt);
    // O player devolve 1 para a coluna de audio e 2 para a de legenda.
-@@ -5030,41 +5447,9 @@ void app_atualizar(float dt, Uint32 agora) {
+@@ -5030,41 +5495,9 @@ void app_atualizar(float dt, Uint32 agora) {
    // o titulo relacionado sai do player e abre o detalhe, que e onde o dono
    // escolhe se quer mesmo assistir.
    { int t = 0, e = 0;
@@ -5420,7 +5472,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
    { int i = posplay_pediu_titulo();
      if (i >= 0) {
        const CatItem *ci = cat_item(i);
-@@ -5691,7 +6076,7 @@ void app_desenhar(Uint32 agora) {
+@@ -5691,7 +6124,7 @@ void app_desenhar(Uint32 agora) {
      // ele esta na tela, ela fica por baixo, medindo, sem se desenhar.
      ilha_coberta(spainel_da_ilha() || atualizacao_cobre_ilha());
  #ifdef NV_TOUCH_UI
@@ -5429,7 +5481,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  #endif
      ilha_desenhar(agora);
    }
-@@ -5710,13 +6095,13 @@ void app_desenhar(Uint32 agora) {
+@@ -5710,13 +6143,13 @@ void app_desenhar(Uint32 agora) {
    if (!registro_aberto()) pipintro_desenhar(agora);
    if (!registro_aberto()) {
  #ifdef NV_TOUCH_UI
@@ -5445,7 +5497,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  #endif
      celb_desenhar();
    }
-@@ -5731,7 +6116,7 @@ void app_desenhar(Uint32 agora) {
+@@ -5731,7 +6164,7 @@ void app_desenhar(Uint32 agora) {
      ilha_relogio_visivel(ajustes_relogio_ligado());
      ilha_posicionar(1);
  #ifdef NV_TOUCH_UI
@@ -5454,7 +5506,7 @@ index f75d434f8b5004ddb94b3068479a57057f715b54..506755d25487fb392e41da075c659a30
  #endif
      ilha_desenhar(agora);
    }
-@@ -5752,6 +6137,8 @@ int app_central_pode(void) {
+@@ -5752,6 +6185,8 @@ int app_central_pode(void) {
  
  void app_encerrar(void) {
    avisos_encerrar();   // saida limpa: apaga a marca de sessao viva
@@ -16623,7 +16675,7 @@ index 1a23178826553c48bafb17a1e276f674f2bc47e9..db55071ce1362172b426b29d1a8a37ec
  void ponteiro_cancelar_toque(void);
  // Cancela somente uma ativacao pendente do alvo com este foco. Gestos de
 diff --git a/src/posplay.c b/src/posplay.c
-index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501b6d3ca5d 100644
+index 81e2f8e4620dd635af06699b473d7ad82d425d46..25a13680dd0374d643a41a1fbef82eac6d19912e 100644
 --- a/src/posplay.c
 +++ b/src/posplay.c
 @@ -2,6 +2,7 @@
@@ -16673,7 +16725,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501
    recuou = 1;
  }
  
-@@ -245,19 +256,26 @@ static void prepararProximo(int ehSerie, double resta) {
+@@ -245,19 +256,27 @@ static void prepararProximo(int ehSerie, double resta) {
    const CatItem *ci = cat_item(idx);
    long long quando;
    int t = 0, e = 0, n = cat_n_episodios(idx), proximo;
@@ -16687,7 +16739,9 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501
 +  int video = ajustes_fonte_precarregar() && !ajustes_fonte_manual();
 +  if ((!ajustes_fonte_preparar() && !video) || ((preTentou || preVideoTentou) &&
        (escopo.geracao != preEscopo.geracao || escopo.addons != preEscopo.addons ||
-        escopo.perfil != preEscopo.perfil || strcmp(escopo.conta, preEscopo.conta)))) {
+-       escopo.perfil != preEscopo.perfil || strcmp(escopo.conta, preEscopo.conta)))) {
++       escopo.perfil != preEscopo.perfil || escopo.sessao != preEscopo.sessao ||
++       strcmp(escopo.conta, preEscopo.conta)))) {
      cancelarPreparo(1);
 +    proximopreparo_cancelar();
      return;
@@ -16705,7 +16759,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501
    player_episodio_atual(&t, &e);
    if (t <= 0 || e <= 0) return;
    proximo = prox_indice_seguinte(n ? cat_episodio(idx, 0) : NULL, n, t, e);
-@@ -269,6 +287,19 @@ static void prepararProximo(int ehSerie, double resta) {
+@@ -269,6 +288,19 @@ static void prepararProximo(int ehSerie, double resta) {
    if (!cat_id_stream(idx, px->temporada, px->episodio, preAlvo, sizeof preAlvo) ||
        jfid_e(preAlvo)) return;
    preEscopo = escopo;
@@ -16725,7 +16779,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501
    if (preTentou) {
      Stream *l = NULL;
      Uint32 idade = 0;
-@@ -391,7 +422,10 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+@@ -391,7 +423,10 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
    prepararProximo(ehSerie, vel_tempo_real(durSeg - posSeg, player_velocidade_efetiva()));
    if (durSeg <= 1.0) return;
  
@@ -16737,7 +16791,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501
  
    if (ehSerie) {
      // A JANELA quem decide e o player: ele e o unico que sabe se os creditos
-@@ -741,7 +775,7 @@ static void posplay_desenharCorpo_(Uint32 agora, float baseY) {
+@@ -741,7 +776,7 @@ static void posplay_desenharCorpo_(Uint32 agora, float baseY) {
      if (telefoneui_ativo()) {
        float vista = ilha.w - 54.0f, max = fmaxf(0, n * 212.0f - 22.0f - vista);
        toquerol_vincular(&toquePP, (GfxRect){cx, y - 20, vista, 313}, gfx_escala(), 0, max, 0, &scrollPP);
@@ -16748,15 +16802,16 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..fcd757c71e8ad149e9228dd184103501
          if (dir > scrollPP + vista) scrollPP = dir - vista;
 diff --git a/src/proximopreparo.c b/src/proximopreparo.c
 new file mode 100644
-index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94877b5b9a
+index 0000000000000000000000000000000000000000..f1f69797389c67b77d6104cc851abf5f8077c084
 --- /dev/null
 +++ b/src/proximopreparo.c
-@@ -0,0 +1,319 @@
+@@ -0,0 +1,327 @@
 +#include "proximopreparo.h"
 +#include "addons.h"
 +#include "ajustes.h"
 +#include "fonteantecipa.h"
 +#include "player.h"
++#include "perfisessao.h"
 +#include <pthread.h>
 +#include <stdatomic.h>
 +#include <stdlib.h>
@@ -16768,6 +16823,7 @@ index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94
 +  _Atomic unsigned refs;
 +  _Atomic int estado, cancelado;
 +  unsigned geracao;
++  NvPerfilSessao sessaoPerfil;
 +  uint64_t configuracao;
 +  FontecacheEscopo escopo;
 +  AddonsConsulta *addons;
@@ -16802,11 +16858,12 @@ index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94
 +static int cancelado(void *u) {
 +  ProximoJob *j = u;
 +  return atomic_load_explicit(&j->cancelado, memory_order_acquire) ||
-+         j->geracao != atomic_load_explicit(&geracao, memory_order_acquire);
++         j->geracao != atomic_load_explicit(&geracao, memory_order_acquire) ||
++         !nv_perfil_sessao_atual(j->sessaoPerfil);
 +}
 +static int mesmoEscopo(const FontecacheEscopo *a, const FontecacheEscopo *b) {
 +  return a->perfil == b->perfil && a->addons == b->addons && a->geracao == b->geracao &&
-+         !strcmp(a->conta, b->conta);
++         a->sessao == b->sessao && !strcmp(a->conta, b->conta);
 +}
 +static int contextoAtual(const ProximoJob *j) {
 +  FontecacheEscopo atual;
@@ -16899,6 +16956,7 @@ index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94
 +  atomic_init(&j->estado, PP_METADADOS);
 +  atomic_init(&j->cancelado, 0);
 +  j->geracao = atomic_load_explicit(&geracao, memory_order_acquire);
++  j->sessaoPerfil = nv_perfil_sessao_ler();
 +  j->escopo = *escopo;
 +  j->configuracao = stream_preparo_config_atual();
 +  j->addons = addons_consulta_capturar();
@@ -16962,6 +17020,9 @@ index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94
 +                           j->metadados, j->n, j->metadadosEm);
 +    j->fontes = stream_preparo_criar_alvo(j->metadados, j->n, -1, j->alvo);
 +    free(j->metadados); j->metadados = NULL;
++    // A fronteira de conta pode ocorrer durante a captura do resolvedor.
++    // A metadata pertence ao ator original, mesmo se o novo snapshot for atual.
++    if (cancelado(j)) { proximopreparo_cancelar(); return; }
 +    if (!j->fontes) { liberarProximo(0); return; }
 +    stream_preparo_definir_episodio(j->fontes, j->temporada, j->episodio);
 +    if (!despachar(j, PP_RESOLVENDO)) { liberarProximo(0); return; }
@@ -17048,6 +17109,7 @@ index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94
 +    proximopreparo_cancelar(); return 0;
 +  }
 +  saida->indiceFonte = j->indice;
++  saida->sessaoPerfil = j->sessaoPerfil;
 +  saida->politica = j->politica; j->politica = NULL;
 +  saida->token = j->token; j->token = 0;
 +  saida->catalogo = j->catalogo; saida->temporada = j->temporada; saida->episodio = j->episodio;
@@ -17073,10 +17135,10 @@ index 0000000000000000000000000000000000000000..1cc711b3e3c54eb5f348652628a5fb94
 +}
 diff --git a/src/proximopreparo.h b/src/proximopreparo.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..63f09a89396d9b0b2faf1530d2c91893570c1edb
+index 0000000000000000000000000000000000000000..b887671117f39ce6b40fea42f093e1d9910bbcb1
 --- /dev/null
 +++ b/src/proximopreparo.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,48 @@
 +#ifndef NV_PROXIMOPREPARO_H
 +#define NV_PROXIMOPREPARO_H
 +
@@ -17092,10 +17154,11 @@ index 0000000000000000000000000000000000000000..63f09a89396d9b0b2faf1530d2c91893
 +  int catalogo, temporada, episodio;
 +  FonteFalhaSessao *politica;
 +  unsigned token;
++  uint64_t sessaoPerfil;
 +  Uint32 idadeMs;
 +} ProximoPreparoResultado;
 +
-+// O posplay decide o proximo ID e a janela de dez segundos antes dos creditos.
++// O posplay decide o proximo ID e a janela antes dos creditos.
 +// Captura addons/configuracao/conta/perfil antes de qualquer worker. Uma
 +// segunda chamada para o mesmo alvo apenas observa o trabalho em andamento.
 +int proximopreparo_agendar(int catalogo, int temporada, int episodio,
@@ -17112,6 +17175,7 @@ index 0000000000000000000000000000000000000000..63f09a89396d9b0b2faf1530d2c91893
 +// exatos. indiceFonte=-1 e esgotado; -2 exige continuar a MESMA politica no
 +// roteador (ex.: link envelhecido). Mesmo sem fonte valida, entrega a politica
 +// ja gasta para nao recomecar seu limite. O chamador passa a ser o dono.
++// sessaoPerfil acompanha a lista/token: validar o mesmo ator antes de adotar.
 +int proximopreparo_consumir(const char *alvo, ProximoPreparoResultado *saida);
 +void proximopreparo_liberar_resultado(ProximoPreparoResultado *resultado);
 +// Recuar, Stop/Back, outro alvo ou conta/perfil/configuracao novos descartam

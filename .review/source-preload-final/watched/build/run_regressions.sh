@@ -17,6 +17,9 @@ else
     task_flags+=("${task_sdl_flags[@]}")
   fi
 fi
+if [[ -n "${NUVIO_WATCHED_SDK:-}" ]]; then
+  task_flags+=(-I"$NUVIO_WATCHED_SDK" -include "$task_review/../screens-watched/tests/sdk-extra.h")
+fi
 if [[ "${SANITIZE:-0}" == 1 ]]; then
   task_flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer)
   task_link+=(-fsanitize=address,undefined)
@@ -24,23 +27,23 @@ fi
 if [[ "${NUVIO_WATCHED_COMBINED:-0}" == 1 ]]; then
   task_flags+=(-DNV_COMBINED_PREVIEW=1)
 fi
-task_extra=("$task_review/tests/language-test-stubs.c")
+task_extra=("$task_review/tests/language-test-stubs.c" "$task_review/tests/session-test-adapter.c")
 for task_src in src/fontefalha.c src/fontefiltro.c; do
   if [[ -f "$task_src" ]]; then task_extra+=("$task_src"); fi
 done
 
 cc "${task_flags[@]}" src/catalogo.c src/cwordem.c \
-  "$task_review/tests/watched_discovery.c" src/js.c src/metaprov.c \
+  "$task_review/tests/watched_discovery.c" src/js.c src/metaprov.c "$task_review/tests/session-test-adapter.c" \
   "${task_link[@]}" -o "$task_out/watched_discovery"
 "$task_out/watched_discovery" | tee "$task_out/discovery.log"
 
 cc "${task_flags[@]}" src/catalogo.c src/cwordem.c \
-  "$task_review/tests/colfiltro_existing.c" src/js.c src/metaprov.c \
+  "$task_review/tests/colfiltro_existing.c" src/js.c src/metaprov.c "$task_review/tests/session-test-adapter.c" \
   "${task_link[@]}" -o "$task_out/colfiltro-existing"
 "$task_out/colfiltro-existing" | tee "$task_out/colfiltro-existing.log"
 
 cc "${task_flags[@]}" -DNV_CAT_TEST_ANTES_TRAVA=nv_cat_teste_antes_trava \
-  src/catalogo.c tests/catconsistencia.c "${task_link[@]}" -o "$task_out/history-existing"
+  src/catalogo.c tests/catconsistencia.c "$task_review/tests/session-test-adapter.c" "${task_link[@]}" -o "$task_out/history-existing"
 "$task_out/history-existing" | tee "$task_out/history-existing.log"
 
 cc "${task_flags[@]}" src/catalogo.c src/progresso.c src/focus.c src/ajustes.c \
@@ -63,7 +66,7 @@ for task_mode in tv touch; do
     tests/amigosfil_stub.c "${task_link[@]}" -o "$task_out/home-$task_mode"
   "$task_out/home-$task_mode" | tee "$task_out/home-$task_mode.log"
   cc "${task_flags[@]}" "${task_touch[@]+${task_touch[@]}}" \
-    "$task_review/tests/watched_catalog_ui.c" src/descoberta.c src/catalogo.c \
+    "$task_review/tests/watched_catalog_ui.c" src/descoberta.c src/catalogo.c "$task_review/tests/session-test-adapter.c" \
     "${task_link[@]}" -o "$task_out/catalog-ui-$task_mode"
   "$task_out/catalog-ui-$task_mode" | tee "$task_out/catalog-ui-$task_mode.log"
   cc "${task_flags[@]}" "${task_touch[@]+${task_touch[@]}}" \

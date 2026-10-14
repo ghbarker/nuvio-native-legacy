@@ -12,9 +12,9 @@
     {
       "path": "src/addons.c",
       "mode": "100644",
-      "sha": "c3c644790c8c0209a2cd62ab8cbce3f8214e574b",
-      "sha256": "ae0fa745c866c8b64ad4bdca35f430e88c16036e97c44b466d4bb834d8334b60",
-      "bytes": 134536
+      "sha": "8e3d997007dd8d0fd3a82ab6ef2b603282f5c717",
+      "sha256": "4cf2645cb7e09898484b8997e7fc1cae42bfa5d9261b5d8a5373162db72f3b19",
+      "bytes": 135289
     },
     {
       "path": "src/addons.h",
@@ -89,9 +89,9 @@
     {
       "path": "src/app.c",
       "mode": "100644",
-      "sha": "13842049c0217324682cf044396c672295c8b06f",
-      "sha256": "165a27304bb4b3a3d5827d1977aa80448971075a575e7ff1687137661634a63d",
-      "bytes": 298901
+      "sha": "ad20351339f21018759495c3d27767a0dd966a27",
+      "sha256": "a78a8d561bc5a2881cc4cbd712d004f7b5422415d130a3877275bc2abbd69f0c",
+      "bytes": 302591
     },
     {
       "path": "src/debrid.c",
@@ -134,6 +134,20 @@
       "sha": "3dafd1fe1dcd2d0b77424aaf5dda605ca49978a6",
       "sha256": "38f16b3dbbdac6f22e0353d88ec5feeeebc3725f3b29c7a8974859b2a34e3269",
       "bytes": 4011
+    },
+    {
+      "path": "src/fontecache.c",
+      "mode": "100644",
+      "sha": "8b2b5b8cdcb923deda803697c1a8873ed9f93f92",
+      "sha256": "5f59aa83de55c3b27773a16e738320c091b2b56992b43392b45fca06381c0414",
+      "bytes": 16592
+    },
+    {
+      "path": "src/fontecache.h",
+      "mode": "100644",
+      "sha": "42d9dec1ee999738d554756715f6f80c8384bdb6",
+      "sha256": "060bd73c050e75e3f66e86840c99ee440f7cad937f94a20f54f7882133d01ebf",
+      "bytes": 10166
     },
     {
       "path": "src/fontepref.c",
@@ -353,6 +367,20 @@
       "bytes": 498273
     },
     {
+      "path": "src/perfis.c",
+      "mode": "100644",
+      "sha": "d5474ddbc0da1fd00524dbbd8032ef0b96a2e440",
+      "sha256": "cd1dae9ba3afe923b656528558c29e0474ead06926a23ff9e4b545abf8e3ad56",
+      "bytes": 20484
+    },
+    {
+      "path": "src/perfis.h",
+      "mode": "100644",
+      "sha": "a745ceaed835699d37e9ecbfb699b7f7c48d8e82",
+      "sha256": "859fc00a2827bfed4de83a25611cb7b58cc08179cef6cb8b208fd22ba14012a3",
+      "bytes": 7425
+    },
+    {
       "path": "src/perfisessao.h",
       "mode": "100644",
       "sha": "686f7a15dae8062cf9496b5a0807b9d38cff7443",
@@ -411,37 +439,44 @@
     {
       "path": "src/posplay.c",
       "mode": "100644",
-      "sha": "5bc7dedd893fd766c0c420d886a8f4f57422adba",
-      "sha256": "2b299e1acf30adbcf8c6efb34ae7343ba5ecaa4a7e525f6ec11f65fd8bb353ed",
-      "bytes": 39107
+      "sha": "8851934b4ce8fae40e07bdc0bbc493cf861394ee",
+      "sha256": "bcd5bf0c470dcd6d3fc09f34aa0791bc05edcdf1659b0930d018c8b20a334b02",
+      "bytes": 39151
     },
     {
       "path": "src/proximopreparo.c",
       "mode": "100644",
-      "sha": "1cc711b3e3c54eb5f348652628a5fb94877b5b9a",
-      "sha256": "a819a6bd34c0eb9c8ea7ecfc90c8220c31aacbf3828f87c9a05fe175cc47dd25",
-      "bytes": 12826
+      "sha": "f1f69797389c67b77d6104cc851abf5f8077c084",
+      "sha256": "8f9381367f532f57eacdac2aac907810e19a4ec009aad45129756791b3c2eff9",
+      "bytes": 13262
     },
     {
       "path": "src/proximopreparo.h",
       "mode": "100644",
-      "sha": "63f09a89396d9b0b2faf1530d2c91893570c1edb",
-      "sha256": "3ac7e09b1780806f50d9aac1081c093318db3e0a34ed2011ea97f7b69024b546",
-      "bytes": 2339
+      "sha": "b887671117f39ce6b40fea42f093e1d9910bbcb1",
+      "sha256": "f005951f7e327033434a5a31c9d438cc6c262cacb19e24b20a100c34f6256050",
+      "bytes": 2427
+    },
+    {
+      "path": "src/sessao.c",
+      "mode": "100644",
+      "sha": "00ec4eeb2a94e60f5c836ce311744e1862b67804",
+      "sha256": "575cf5668698c207550ae1289a02aa2a7994c6897759409f39fde83e716ca94d",
+      "bytes": 33800
     },
     {
       "path": "src/streams.c",
       "mode": "100644",
-      "sha": "6a7fe4c6cdfaa0b2427e8755251efd1609a435a8",
-      "sha256": "a0e9c8efee775bb0818ba6c30c06db6743d4733be98c42c5284ed457e5a966c6",
-      "bytes": 208903
+      "sha": "0b92a3de1a14d0fe08514ae6950760c5dd51b378",
+      "sha256": "ded90bd3aea7ec01dab464f764c7e3c35376626f7125c1b458e89e1f6f46b142",
+      "bytes": 211038
     },
     {
       "path": "src/streams.h",
       "mode": "100644",
-      "sha": "7bddbecf279462928ce26f193af51972a744df21",
-      "sha256": "13e18f5bc84e1a43381bb720bbd02d4eb5100c7689619b3ffef668375f52af57",
-      "bytes": 23868
+      "sha": "33e18d591262d678eb12de970cdf9f5572212679",
+      "sha256": "db07451a3e52698ff01cb1b60c9ae217e9fe6f3078904600840b6d11439a7b96",
+      "bytes": 24041
     },
     {
       "path": "src/video.h",

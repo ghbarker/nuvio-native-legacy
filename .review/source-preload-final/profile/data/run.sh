@@ -18,11 +18,11 @@ run_test() {
     return 1
   fi
 }
-cc "${flags[@]}" src/perfis.c src/catalogo.c src/contalib.c src/vistoep.c src/js.c src/jsw.c "$fixtures/private-state.c" -o "$out/private-state"
+cc "${flags[@]}" src/perfis.c src/catalogo.c src/contalib.c src/vistoep.c src/js.c src/jsw.c "$fixtures/private-state.c" "$fixtures/legacy-session-adapter.c" -o "$out/private-state"
 run_test private-state
 cc "${flags[@]}" "$fixtures/sync-cycle-identity.c" src/perfis.c src/js.c src/jsw.c -o "$out/sync-cycle-identity"
 run_test sync-cycle-identity
-cc "${flags[@]}" src/perfis.c src/jsw.c src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c "$fixtures/cw-session-race.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c "$fixtures/fixture-neighbours.c" -o "$out/cw-session-race"
+cc "${flags[@]}" src/perfis.c src/jsw.c src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c "$fixtures/cw-session-race.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c "$fixtures/fixture-neighbours.c" "$fixtures/legacy-session-adapter.c" -o "$out/cw-session-race"
 run_test cw-session-race
 cc "${flags[@]}" src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c tests/cwremover.c src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c "$fixtures/fixture-neighbours.c" "$fixtures/single-session.c" -o "$out/cwremover"
 run_test cwremover
@@ -30,7 +30,7 @@ for name in herosinopse_corrida localizar_corrida; do
   cc "${flags[@]}" -DNV_CAT_TEST_ANTES_TRAVA=nv_cat_teste_antes_trava src/catalogo.c src/cwordem.c "tests/$name.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c src/artefontes.c "$fixtures/single-session.c" -o "$out/$name"
   run_test "$name"
 done
-cc "${flags[@]}" "$fixtures/discovery-reopen.c" src/perfis.c src/homeestado.c src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c src/colecoes.c src/colfileiras.c src/catordem.c src/cotacat.c src/js.c src/jsw.c src/metaprov.c src/redeurl.c -o "$out/discovery-reopen"
+cc "${flags[@]}" "$fixtures/discovery-reopen.c" src/perfis.c src/homeestado.c src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c src/colecoes.c src/colfileiras.c src/catordem.c src/cotacat.c src/js.c src/jsw.c src/metaprov.c src/redeurl.c "$fixtures/legacy-session-adapter.c" -o "$out/discovery-reopen"
 run_test discovery-reopen
 for mode in boot-first signedout-bootstrap; do
   if "$out/discovery-reopen" "$mode" > "$out/discovery-reopen-$mode.log" 2>&1; then

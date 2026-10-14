@@ -40,9 +40,9 @@
     {
       "path": "src/addons.c",
       "mode": "100644",
-      "sha": "9cd26f60bfc572f7cc7088865d67b568424126fa",
-      "sha256": "ce1017c410991967c71e7ad0d945db387ce88b87b257d369f69ec50b4d284af2",
-      "bytes": 144255
+      "sha": "e5e526b6918dc7b96b840a799cdc669ee6270a89",
+      "sha256": "2b23030d9b52dc8b8883f67c0e706115b77a10eada8eb9368a806d740d3ddfa1",
+      "bytes": 144338
     },
     {
       "path": "src/addons.h",
@@ -229,9 +229,9 @@
     {
       "path": "src/app.c",
       "mode": "100644",
-      "sha": "506755d25487fb392e41da075c659a30ad569230",
-      "sha256": "f3ffa86dffbc77f76a17108bf5b44dce98174de78a7a1d029bf432f65c81df66",
-      "bytes": 298798
+      "sha": "327e32e0b41c26b7ca9fa9d91e095f3e319f1d1c",
+      "sha256": "3a1f974ca1ce41cd5dbe90f2c723cf27a0331f7750e96f93d931ce05de845e7c",
+      "bytes": 300963
     },
     {
       "path": "src/atualizacao.c",
@@ -971,23 +971,23 @@
     {
       "path": "src/posplay.c",
       "mode": "100644",
-      "sha": "fcd757c71e8ad149e9228dd184103501b6d3ca5d",
-      "sha256": "b6a26aa4b7c1c9821c4f3845cf878ce08e43d352e69fd8c3382a88a21d8719ad",
-      "bytes": 39118
+      "sha": "25a13680dd0374d643a41a1fbef82eac6d19912e",
+      "sha256": "b05991616e4b25c5039891c9838bb3c32ae330730f87206c8a0cb14f3a83dfe9",
+      "bytes": 39162
     },
     {
       "path": "src/proximopreparo.c",
       "mode": "100644",
-      "sha": "1cc711b3e3c54eb5f348652628a5fb94877b5b9a",
-      "sha256": "a819a6bd34c0eb9c8ea7ecfc90c8220c31aacbf3828f87c9a05fe175cc47dd25",
-      "bytes": 12826
+      "sha": "f1f69797389c67b77d6104cc851abf5f8077c084",
+      "sha256": "8f9381367f532f57eacdac2aac907810e19a4ec009aad45129756791b3c2eff9",
+      "bytes": 13262
     },
     {
       "path": "src/proximopreparo.h",
       "mode": "100644",
-      "sha": "63f09a89396d9b0b2faf1530d2c91893570c1edb",
-      "sha256": "3ac7e09b1780806f50d9aac1081c093318db3e0a34ed2011ea97f7b69024b546",
-      "bytes": 2339
+      "sha": "b887671117f39ce6b40fea42f093e1d9910bbcb1",
+      "sha256": "f005951f7e327033434a5a31c9d438cc6c262cacb19e24b20a100c34f6256050",
+      "bytes": 2427
     },
     {
       "path": "src/recenviar.c",

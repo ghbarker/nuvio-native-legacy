@@ -12,6 +12,7 @@ static int fixtureCriarFio(pthread_t *,const pthread_attr_t *,void *(*)(void *),
 struct AddonsConsulta { unsigned versao; char conta[80]; };
 struct StreamPreparo {
   Stream *lista; int n, t, e; uint64_t cfg;
+  NvPerfilSessao sessaoPerfil;
   FonteFalhaSessao *politica;
 };
 static pthread_t ui;
@@ -20,16 +21,31 @@ static _Atomic int consultas, resolucoes, entrouMeta, entrouResolver;
 static _Atomic int reservas, http;
 static _Atomic int falhaFioRenovar;
 static _Atomic int bloquearMeta, bloquearResolver;
+static _Atomic uint64_t perfilEpoch = 1;
+static pthread_mutex_t perfilTrava = PTHREAD_MUTEX_INITIALIZER;
+static int mudarPerfilCriar;
+static NvPerfilSessao snapshotPerfil;
 static int ligado = 1, manual, nFontes = 160, semFonte, semSnapshot, metaResposta, politicaInterna;
 static uint64_t cfg = 100;
 // The real StreamPreparo fingerprint is separately tested by the resolver
 // fixture. This boundary exposes ONLY a transport-epoch change to the actual
 // next controller, with account, profile, credentials and settings unchanged.
 static DebridContexto debridAtual;
-static FontecacheEscopo escopo = {"conta-A", 1, 10, 20};
+static FontecacheEscopo escopo = {"conta-A", 1, 10, 20, 1};
 static int iniciaBuffer, cancelaBuffer, renova, renovaFalha, bufferFalha, estadoBuffer = 2;
 static unsigned tokenAtual, sequencia = 10;
 static int snapshotT, snapshotE, liberaPolitica;
+uint64_t perfis_sessao_geracao(void) { return atomic_load(&perfilEpoch); }
+int perfis_sessao_atual(uint64_t epoch) { return epoch == atomic_load(&perfilEpoch); }
+int perfis_sessao_travar(uint64_t epoch) {
+  pthread_mutex_lock(&perfilTrava);
+  if (perfis_sessao_atual(epoch)) return 1;
+  pthread_mutex_unlock(&perfilTrava); return 0;
+}
+void perfis_sessao_destravar(void) { pthread_mutex_unlock(&perfilTrava); }
+static void alterarPerfil(void) {
+  pthread_mutex_lock(&perfilTrava); atomic_fetch_add(&perfilEpoch, 1); pthread_mutex_unlock(&perfilTrava);
+}
 static int fixtureCriarFio(pthread_t *t,const pthread_attr_t *a,void *(*f)(void *),void *u) {
   if(f==trabalhar && atomic_load(&((ProximoJob *)u)->estado)==PP_RENOVANDO &&
      atomic_exchange(&falhaFioRenovar,0))return EAGAIN;
@@ -39,7 +55,10 @@ static int fixtureCriarFio(pthread_t *t,const pthread_attr_t *a,void *(*f)(void 
 Uint32 SDL_GetTicks(void) { return atomic_load(&relogio); }
 int ajustes_fonte_precarregar(void) { return ligado; }
 int ajustes_fonte_manual(void) { return manual; }
-void addons_capturar_escopo(FontecacheEscopo *out) { assert(pthread_equal(ui,pthread_self())); *out = escopo; }
+void addons_capturar_escopo(FontecacheEscopo *out) {
+  assert(pthread_equal(ui,pthread_self())); *out = escopo;
+  out->sessao=perfis_sessao_geracao();
+}
 AddonsConsulta *addons_consulta_capturar(void) {
   assert(pthread_equal(ui,pthread_self()));
   if (semSnapshot) return NULL;
@@ -71,12 +90,17 @@ int addons_consulta_consultar(const AddonsConsulta *a,const char *id,const char 
   return nFontes;
 }
 uint64_t stream_preparo_config_atual(void) { assert(pthread_equal(ui,pthread_self())); return cfg ^ ((uint64_t)debridAtual.busca << 32); }
-int stream_preparo_contexto_atual(const StreamPreparo *p) { return p && p->cfg==stream_preparo_config_atual(); }
+int stream_preparo_contexto_atual(const StreamPreparo *p) {
+  return p && p->cfg==stream_preparo_config_atual() && perfis_sessao_atual(p->sessaoPerfil);
+}
 StreamPreparo *stream_preparo_criar_alvo(const Stream *s,int n,int preferred,const char *id) {
   assert(pthread_equal(ui,pthread_self())); assert(preferred==-1 && !strcmp(id,"tt42:1:2"));
+  if (mudarPerfilCriar) { mudarPerfilCriar=0; alterarPerfil(); }
   StreamPreparo *p=calloc(1,sizeof *p); assert(p);
   p->lista=malloc((size_t)n*sizeof *s); assert(p->lista); memcpy(p->lista,s,(size_t)n*sizeof *s);
   p->n=n; p->cfg=stream_preparo_config_atual();
+  p->sessaoPerfil=snapshotPerfil=perfis_sessao_geracao();
+  assert(stream_preparo_contexto_atual(p));
   FonteFalhaConfig f={.provedores=1,.addons=1,.ordem={DEBRID_TB,DEBRID_PM,DEBRID_RD,DEBRID_AD},
                       .limites={2,3,2,2},.nAddons=2};
   strcpy(f.addon[0].chave,"addon-A"); f.addon[0].limite=10;
@@ -149,10 +173,11 @@ static void reset(void) {
   atomic_store(&falhaFioRenovar,0);
   atomic_store(&entrouMeta,0);atomic_store(&entrouResolver,0);
   atomic_store(&bloquearMeta,0);atomic_store(&bloquearResolver,0);
+  atomic_store(&perfilEpoch,1);mudarPerfilCriar=0;snapshotPerfil=0;
   ligado=1;manual=semFonte=semSnapshot=bufferFalha=metaResposta=politicaInterna=0;estadoBuffer=2;cfg=100;
   memset(&debridAtual,0,sizeof debridAtual);debridAtual.busca=1;debridAtual.sessao=7;
   strcpy(debridAtual.chave[DEBRID_TB],"captured-test-only-key");
-  escopo=(FontecacheEscopo){"conta-A",1,10,20};
+  escopo=(FontecacheEscopo){"conta-A",1,10,20,1};
   iniciaBuffer=cancelaBuffer=renova=renovaFalha=0;tokenAtual=0;
 }
 static void agendar(void) { assert(proximopreparo_agendar(0,1,2,"tt42:1:1","tt42:1:2",&escopo)); }
@@ -177,6 +202,7 @@ int main(void) {
   for(int i=0;i<20;i++)proximopreparo_passo("tt42:1:1");assert(iniciaBuffer==1);
   ProximoPreparoResultado r;assert(proximopreparo_consumir("tt42:1:2",&r));
   assert(r.n==160 && (size_t)r.n*sizeof(Stream)>FONTECACHE_VOD_BYTES && r.indiceFonte>=0 && r.token);
+  assert(r.sessaoPerfil==perfis_sessao_geracao());
   assert(fontefalha_tentativas(r.politica)==4); // 3 TB across addons A/B, then PM.
   unsigned moved=r.token;assert(!proximopreparo_consumir("tt42:1:2",&(ProximoPreparoResultado){0}));
   assert(!cancelaBuffer && tokenAtual==moved);proximopreparo_liberar_resultado(&r);assert(cancelaBuffer==1);
@@ -229,6 +255,34 @@ int main(void) {
     if(changed==6)manual=1;
     proximopreparo_passo("tt42:1:1");proximopreparo_encerrar();assert(!resolucoes&&!iniciaBuffer&&!proximo);
   }
+  // Incoming metadata scope was captured in the previous account visit.
+  // Same account/profile/addons/settings strings after A->B->A must not
+  // rebind that old scope/target to a new original dispatch actor.
+  reset();FontecacheEscopo escopoAntigo=escopo;alterarPerfil();alterarPerfil();
+  assert(!perfis_sessao_atual(escopoAntigo.sessao));
+  assert(!proximopreparo_agendar(0,1,2,"tt42:1:1","tt42:1:2",&escopoAntigo));
+  assert(!proximo&&!consultas&&!resolucoes&&!reservas&&!http&&!iniciaBuffer);
+  // The old metadata actor must remain bound through the source capture.
+  // Deliberately create a CURRENT snapshot after an asynchronous actor boundary:
+  // checking only that new snapshot would allow the old episode to spend routes.
+  reset();agendar();entrou(&entrouMeta);
+  for(int i=0;i<2000 && atomic_load(&proximo->estado)!=PP_META_PRONTA;i++)usleep(1000);
+  assert(atomic_load(&proximo->estado)==PP_META_PRONTA);
+  NvPerfilSessao originalPerfil=proximo->sessaoPerfil;
+  unsigned originalIntento=proximopreparo_geracao();mudarPerfilCriar=1;
+  proximopreparo_passo("tt42:1:1");proximopreparo_encerrar();
+  assert(snapshotPerfil!=originalPerfil && perfis_sessao_atual(snapshotPerfil));
+  assert(!proximo && proximopreparo_geracao()!=originalIntento && !resolucoes && !reservas && !http && !iniciaBuffer);
+  assert(!proximopreparo_consumir("tt42:1:2",&r));
+  // The original actor also reaches the worker callback without relying on
+  // a UI frame to cancel the job. A paused resolver wakes and spends nothing.
+  reset();atomic_store(&bloquearResolver,1);agendar();
+  for(int i=0;i<2000&&!atomic_load(&entrouResolver);i++){proximopreparo_passo("tt42:1:1");usleep(1000);}
+  entrou(&entrouResolver);alterarPerfil();
+  for(int i=0;i<2000 && atomic_load(&proximo->estado)!=PP_RESOLVIDO;i++)usleep(1000);
+  assert(atomic_load(&proximo->estado)==PP_RESOLVIDO && proximo->resultado==-1);
+  assert(!reservas && !http && !iniciaBuffer);
+  proximopreparo_passo("tt42:1:1");proximopreparo_encerrar();assert(!proximo && resolucoes==1);
   // A foreground source refresh advances only debrid.busca. Neither the VOD
   // metadata scope nor saved credentials change, so the fingerprint must
   // cancel this job before any stale resolver reservation or native start.
@@ -267,5 +321,5 @@ int main(void) {
   assert(proximopreparo_consumir("tt42:1:2",&r)&&r.indiceFonte==-2&&!r.token&&r.politica);proximopreparo_liberar_resultado(&r);
   reset();semSnapshot=1;assert(!proximopreparo_agendar(0,1,2,"tt42:1:1","tt42:1:2",&escopo));assert(!consultas);
   proximopreparo_encerrar();
-  puts("Next controller: independent large list, 3 TB then PM budget/one-shot transfer, one refresh, native failure continuation, exhaustion, context/transport epoch cancellation without extra budget or HTTP, late worker/target/TTL cancellation PASS");
+  puts("Next controller: independent large list, 3 TB then PM budget/one-shot transfer, one refresh, native failure continuation, exhaustion, original actor/transport epoch cancellation without extra budget or HTTP, late worker/target/TTL cancellation PASS");
 }

@@ -45,7 +45,7 @@ task_run() {
 
 # Check the same settings prefix against the real pinned canonical worktree.
 if task_enabled run_settings_proof; then
-  task_baseline="$task_output/canonical-settings-baseline"
+  task_baseline="${RUNNER_TEMP:?Set RUNNER_TEMP}/canonical-settings-baseline-$task_case"
   git worktree add --detach "$task_baseline" 17b7769dac4273557e1b07f5fb8734df91dd718f
   task_contract="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["case"]["settings_contract"])' "$task_output/case.json")"
   task_run settings-source python3 "$task_review/build/verify_settings.py" \
@@ -75,6 +75,9 @@ if task_enabled run_watched; then
   task_run watched env SANITIZE=0 bash "$task_review/watched/build/run_regressions.sh"
   task_run watched-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash "$task_review/watched/build/run_regressions.sh"
 fi
+if task_enabled run_standalone_epoch; then
+  task_run standalone-epoch env ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash "$task_review/standalone-epoch/tests/run.sh" --root "$PWD"
+fi
 if task_enabled run_preload; then
   task_run controller bash "$task_review/controller/run.sh" "$PWD"
   task_run controller-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash "$task_review/controller/run.sh" "$PWD"
@@ -88,6 +91,10 @@ if task_enabled run_original_full_source_asan; then
   for task_name in fontepref fontepref_file player_retido; do
     task_run "$task_name-original-asan" env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash "tests/$task_name.sh"
   done
+fi
+if task_enabled run_cache_epoch; then
+  task_run cache-epoch env SANITIZE=0 python3 "$task_review/cache-epoch/run.py" --source "$PWD" --output "$task_output/cache-epoch"
+  task_run cache-epoch-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 python3 "$task_review/cache-epoch/run.py" --source "$PWD" --output "$task_output/cache-epoch"
 fi
 if task_enabled run_origin_snapshots; then
   for task_origin in plugins plex; do
@@ -115,7 +122,7 @@ if task_enabled run_profiles; then
 fi
 if task_enabled run_retained; then
   for task_name in stream_parser streamfit_parser fonte_ordem_addon fontecache_vod fontefalha fontefalha_worker ajustes_failover; do
-    task_run "$task_name" bash "tests/$task_name.sh"
+    task_run "$task_name" python3 "$task_review/build/run_retained.py" --source "$PWD" --name "$task_name" --adapter "$task_review/support/stable-profile-session.c"
   done
 fi
 if task_enabled run_automatic; then

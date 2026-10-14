@@ -8,7 +8,7 @@ static int fake_join(pthread_t, void **);
 #define pthread_create fake_create
 #define pthread_join fake_join
 int ajustes_fonte_precarregar(void);
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 #include "session-stubs.h"
 #endif
 #include SOURCE_APP
@@ -42,6 +42,7 @@ static const DebridContexto *boundContext;
 static int contextEntrances, contextExits, expectedKey;
 static int transitionEvent, adoptionEvent, loadingToasts, listCopyFails, streamsCount=4, sourceErrors;
 static int workerEsperar, workerEscolhida;
+static int actorAfterConsume, actorDuringClose, actorDuringCapture, actorDuringTarget, actorDuringOpen;
 
 static int fake_create(pthread_t *t, const pthread_attr_t *attr,
                        void *(*fn)(void *), void *arg) {
@@ -102,7 +103,11 @@ int player_indice(void) { return 0; }
 void player_episodio_atual(int *t, int *e) { *t = playerT; *e = playerE; }
 const CatItem *cat_item(int i) { (void)i; return &catalogItem; }
 int cat_id_stream(int i, int t, int e, char *url, unsigned n) {
-  (void)i; snprintf(url, n, "%s:%d:%d", catalogItem.imdb, t, e); return 1;
+  (void)i; snprintf(url, n, "%s:%d:%d", catalogItem.imdb, t, e);
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  if(actorDuringTarget) { actorDuringTarget=0; atomic_fetch_add(&fixtureSession,2); }
+#endif
+  return 1;
 }
 void stream_definir_lista(const Stream *s, int n) { assert(!s && !n); streamsCount=0; lista++; memset(fontes,0,sizeof fontes); }
 void stream_definir_atual(int i) { (void)i; assert(!"VOD consumer opens in the later UI phase"); }
@@ -158,7 +163,12 @@ void stream_falha_identidade(const Stream *s, char *dst, unsigned tam) {
 
 
 void debrid_definir_episodio(int t,int e) { credentialContext.temporada=t; credentialContext.episodio=e; }
-void debrid_contexto_capturar(DebridContexto *ctx) { *ctx = credentialContext; }
+void debrid_contexto_capturar(DebridContexto *ctx) {
+  *ctx = credentialContext;
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  if(actorDuringCapture) { assert(!fixtureGateDepth); actorDuringCapture=0; atomic_fetch_add(&fixtureSession,2); }
+#endif
+}
 void debrid_contexto_entrar(const DebridContexto *ctx) { assert(!boundContext); boundContext = ctx; contextEntrances++; }
 void debrid_contexto_sair(void) { assert(boundContext); boundContext = NULL; contextExits++; }
 int perfis_ativo(void) { return profile; }
@@ -205,7 +215,13 @@ int player_precarregar_fonte(int cat, int t, int e, int idx, unsigned token) {
 }
 int player_precarregar_estado(unsigned token) { assert(token == lastToken); return nativeState; }
 void player_precarregar_cancelar(unsigned token) { assert(!token || token == lastToken); nativeCancel++; }
-void player_precarregar_adotar(unsigned token) { assert(token == lastToken); nativeAdopt++; adoptionEvent=++transitionEvent; }
+void player_precarregar_adotar(unsigned token) {
+  assert(token == lastToken);
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  assert(fixtureGateDepth>0); // both title and next adoption are actor-gated
+#endif
+  nativeAdopt++; adoptionEvent=++transitionEvent;
+}
 int stream_falha_renovar(int idx, unsigned gen, int service, int (*cancelled)(void *), void *ctx,
                          char *url, unsigned n) {
   assert(gen == lista && idx >= 0 && idx < 4); renewals++;
@@ -215,8 +231,9 @@ int stream_falha_renovar(int idx, unsigned gen, int service, int (*cancelled)(vo
 
 static void reset(int providers, int addons) {
   assert(!worker && !fioFonteVivo);
-#ifdef NUVIO_COMBINED
-  atomic_store(&fixtureSession,1);
+  actorAfterConsume=actorDuringClose=actorDuringCapture=actorDuringTarget=actorDuringOpen=0;
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  atomic_store(&fixtureSession,1); fixtureActorAfterUnlock=0; assert(!fixtureGateDepth);
 #endif
   listCopyFails=0; streamsCount=4; sourceErrors=0;
   preparoInvalidar(); limparFonteVOD(); limparFontePendente();
@@ -264,22 +281,34 @@ int proximopreparo_em_curso(const char *target) { return nextBusy && !strcmp(tar
 int proximopreparo_consumir(const char *target, ProximoPreparoResultado *out) {
   memset(out,0,sizeof *out);
   if(!nextReady || strcmp(target,nextTarget)) return 0;
-  *out=nextPayload; memset(&nextPayload,0,sizeof nextPayload); nextReady=0; return 1;
+  *out=nextPayload; memset(&nextPayload,0,sizeof nextPayload); nextReady=0;
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  if(actorAfterConsume) atomic_fetch_add(&fixtureSession,2);
+#endif
+  return 1;
 }
 void proximopreparo_liberar_resultado(ProximoPreparoResultado *r) {
-  assert(!r->token); free(r->fontes); fontefalha_sessao_liberar(r->politica); memset(r,0,sizeof *r);
+  if(r->token) player_precarregar_cancelar(r->token); free(r->fontes); fontefalha_sessao_liberar(r->politica); memset(r,0,sizeof *r);
 }
 #endif
 void diagnostico_cancelar_vazao(void) {}
 void player_encerrar(void) {
   closes++; savedT=playerT; savedE=playerE; closeEvent=++transitionEvent; aberto=0;
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  if(actorDuringClose) atomic_fetch_add(&fixtureSession,2);
+#endif
 #ifdef JOINED_APP_NEXT
   proximopreparo_cancelar();
 #else
   nextEpoch++;
 #endif
 }
-void player_abrir(int i,const char *url) { assert(i==0&&!url); opens++; aberto=1; }
+void player_abrir(int i,const char *url) {
+  assert(i==0&&!url); opens++; aberto=1;
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  if(actorDuringOpen) { actorDuringOpen=0; atomic_fetch_add(&fixtureSession,2); }
+#endif
+}
 void player_definir_episodio(int t,int e) { playerT=t; playerE=e; }
 void cat_apontar_episodio(int i,int t,int e) { assert(i==0&&playerT==t&&playerE==e); catalogItem.temporada=t; catalogItem.episodio=e; }
 void stream_definir_lista_idade(const Stream *list,int count,Uint32 age) {
@@ -300,6 +329,9 @@ static void makeNextReady(void) {
   strcpy(nextPayload.fontes[2].url,"https://next.invalid/source.mp4");
   nextPayload.n=4; nextPayload.indiceFonte=2; nextPayload.catalogo=0; nextPayload.temporada=1; nextPayload.episodio=2;
   nextPayload.token=player_precarregar_novo_token(); nextPayload.idadeMs=1000;
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  nextPayload.sessaoPerfil=perfis_sessao_geracao();
+#endif
   FonteFalhaConfig cfg; fontefalha_config(&cfg); nextPayload.politica=fontefalha_sessao_nova(&cfg,6,-1); assert(nextPayload.politica);
   FonteFalhaCandidata c={.indice=2,.nativa=1,.identidade=fontes[2].infoHash,.ordemAddon=1}; strcpy(c.addon,fontes[2].addonChave);
   assert(fontefalha_tentar(nextPayload.politica,&c,DEBRID_TB));
@@ -327,7 +359,26 @@ static void nextAppTransitionAndCancellation(void) {
   nextReset(); nextBusy=1; abrirProximoEpisodio(1,2,1); assert(proximoIntento.tem);
   nextEpoch++; nextBusy=0; proximoPreparoPasso(); assert(!proximoIntento.tem&&!closes&&!opens&&!coldRequests&&playerE==1);
   nextReset(); abrirProximoEpisodio(1,2,0); assert(closes==1&&opens==1&&coldRequests==1&&aguardandoFonte==1&&!fonteFalha);
-  puts("PASS app Next adopts before close, preserves old episode save, transfers list/policy, reuses busy worker, cancels pending intent on rewind and keeps cold path");
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  nextReset(); actorDuringTarget=1; abrirProximoEpisodio(1,2,0);
+  assert(!closes&&!opens&&!coldRequests&&!nativeAdopt&&!fonteFalha);
+  nextReset(); makeNextReady(); actorAfterConsume=1; abrirProximoEpisodio(1,2,1);
+  assert(!closes&&!opens&&!coldRequests&&!nativeAdopt&&nativeCancel==1&&!fonteFalha);
+  assert(!nextReady&&!proximoIntento.tem&&!requests&&playerE==1);
+  nextReset(); makeNextReady(); actorDuringClose=1; abrirProximoEpisodio(1,2,1);
+  assert(closes==1&&!opens&&!coldRequests&&nativeAdopt==1&&nativeCancel==1&&!fonteFalha);
+  assert(!requests&&playerE==1);
+  nextReset(); makeNextReady(); actorDuringOpen=1; unsigned unchangedList=lista;
+  abrirProximoEpisodio(1,2,1);
+  assert(closes==2&&opens==1&&!aberto&&lista==unchangedList&&!coldRequests);
+  assert(nativeAdopt==1&&nativeCancel==1&&!fonteFalha&&!requests&&fonteEscolhida==-2);
+  nextReset(); actorDuringClose=1; abrirProximoEpisodio(1,2,0);
+  assert(closes==1&&!opens&&!coldRequests&&!fonteFalha);
+  nextReset(); nextBusy=1; abrirProximoEpisodio(1,2,1); nextBusy=0;
+  atomic_fetch_add(&fixtureSession,2); proximoPreparoPasso();
+  assert(!proximoIntento.tem&&!closes&&!opens&&!coldRequests&&playerE==1);
+#endif
+  puts("PASS app Next adopts before close, transfers spent policy, reuses pending worker, and rejects actor changes after consume/during close/pending cold fallback");
 }
 static void distinctSettingsAndEpisodes(void) {
   for (int source = 0; source <= 1; source++) for (int native = 0; native <= 1; native++) {
@@ -449,7 +500,43 @@ static void transportEpochCancelsBeforeSpending(void) {
   processarFonteJob(); assert(!preparo.tem && !preparo.falha && !fonteJob.falha);
   puts("PASS same owner/credentials with only transport epoch change cancels before spending source budget");
 }
+#ifdef NUVIO_SOURCE_EPOCH
+static void ownerVisitEpochRejectsABA(void) {
+  for(int kind=0;kind<2;kind++) {
+    reset(1,1); actorDuringCapture=1; preparoLembradaRod=-1;
+    int r=iniciarFonteJob(kind?FJOB_PREPARO_FALHA:FJOB_ADDON,lista,catalogItem.imdb,0);
+    assert(r==-1&&!worker&&!fioFonteVivo&&!fonteJob.falha&&!requests&&!nativeStarts&&!legadas);
+  }
+  reset(1,1); prepared(); fixtureActorAfterUnlock=1; int titleIdx=-1;
+  assert(!preparoUsar(catalogItem.imdb,-1,&titleIdx)&&!nativeAdopt&&nativeCancel==1&&!fonteFalha);
+  reset(1,1); prepared();
+  int oldProfile=profile; char oldAccount[sizeof account]; strcpy(oldAccount,account);
+  profile++; strcpy(account,"temporary-owner"); atomic_fetch_add(&fixtureSession,1);
+  profile=oldProfile; strcpy(account,oldAccount); atomic_fetch_add(&fixtureSession,1);
+  int idx=-1; assert(!preparoUsar(catalogItem.imdb,-1,&idx)&&nativeCancel==1&&!nativeAdopt);
+  reset(1,1); prepararAoAbrir();
+  atomic_fetch_add(&fixtureSession,2); // actor A -> B -> A before the UI polls
+  assert(fonteJobCancelado(&fonteJob)); concluirWorker(); processarFonteJob();
+  assert(!requests&&!nativeStarts&&!aplicacoes&&!preparo.tem&&!fonteJob.falha);
+  reset(0,0); prepararAoAbrir(); atomic_fetch_add(&fixtureSession,2);
+  concluirWorker(); processarFonteJob(); assert(!legadas&&!requests&&!preparo.tem);
+#ifndef NUVIO_COMBINED
+  reset(1,1); prepared(); proximoIntento.tem=1; aberto=1; playerT=2; playerE=7; closes=0;
+  unsigned old=atomic_load(&preparoGeracao); preparoEncerrarPerfil();
+  assert(!preparo.tem&&!preparo.falha&&!preparo.token&&!proximoIntento.tem&&nativeCancel==1);
+  assert(closes==1&&savedT==2&&savedE==7&&!aberto&&atomic_load(&preparoGeracao)==old+1);
+  assert(!streamsCount&&!aguardandoFonte&&fontePendenteTipo==FJOB_NONE);
+#endif
+  puts("PASS source owner ABA: unchanged final account/profile rejects cache and old workers; before-selection hook closes old owner and cancels prepared Next");
+}
+#endif
 static void nativeFaultContinuation(void) {
+  for(int stale=0;stale<2;stale++) {
+    reset(0,0); prepared(); nativeState=-1;
+    if(stale) atomic_fetch_add(&fixtureSession,2); else lista++;
+    int idx=-1; assert(!preparoUsar(catalogItem.imdb,-1,&idx));
+    assert(!mortas&&!preparo.tem&&!preparo.falha&&!nativeAdopt&&nativeCancel==1);
+  }
   reset(1,1); prepared();
   nativeState=0; assert(preparoVale(catalogItem.imdb,-1)); prepararAoAbrir();
   assert(!worker&&requests==1&&fontefalha_tentativas(preparo.falha)==1);
@@ -504,12 +591,15 @@ int main(int argc, char **argv) {
   combinedProfileLifetime();
 #endif
   nextAppTransitionAndCancellation(); distinctSettingsAndEpisodes(); flagsAndPolicyTransfer(); inFlightPlayAndWorkerInvalidation(); cacheCancellation(); transportEpochCancelsBeforeSpending();
+#ifdef NUVIO_SOURCE_EPOCH
+  ownerVisitEpochRejectsABA();
+#endif
   nativeFaultContinuation(); expirationRenewalAndBoundedBuffer();
   preparoInvalidar(); limparFonteVOD();
   puts("source preload controller: PASS"); return 0;
 }
 
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 int stream_primeira_boa_sessao(int n,uint64_t s) { return perfis_sessao_atual(s) ? stream_primeira_boa(n) : -1; }
 int stream_verificar_proxima_vod_sessao(int i,int n,int *c,uint64_t s) { return perfis_sessao_atual(s) ? stream_verificar_proxima_vod(i,n,c) : -1; }
 int stream_canal_primeira_viva_sessao(int n,uint64_t s) { return perfis_sessao_atual(s) ? stream_canal_primeira_viva(n) : -1; }
@@ -517,16 +607,16 @@ int stream_falha_aplicar_sessao(int i,unsigned g,int p,const char *u,uint64_t s)
 int stalker_resolver_sessao(const char *id,char *u,unsigned n,uint64_t s) { return perfis_sessao_atual(s) ? stalker_resolver(id,u,n) : 0; }
 #endif
 
+void player_descartar_retido(void) {}
+void fontevolta_esquecer(const char *why) { (void)why; }
+void detail_fechar_seco(void) { openDetail=0; }
 #ifdef NUVIO_COMBINED
 void ponteiro_abrir_sessao(void) {}
 void ctx_abrir_sessao(void) {}
 void estatvivo_fechar(void) {}
 void celb_fechar(void) {}
-void player_descartar_retido(void) {}
-void fontevolta_esquecer(const char *why) { (void)why; }
 void trailer_fechar(void) {}
 void p2pmotor_cancelar(void) {}
-void detail_fechar_seco(void) { openDetail=0; }
 int vertudo_aberta(void) { return 0; }
 void vertudo_fechar_seco(void) {}
 void spot_fechar(void) {}

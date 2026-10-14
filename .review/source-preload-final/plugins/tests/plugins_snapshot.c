@@ -30,6 +30,14 @@ uint64_t perfis_sessao_geracao(void) { return __atomic_load_n(&perfilSessao, __A
 int perfis_sessao_atual(uint64_t n) { return n == perfis_sessao_geracao(); }
 int perfis_sessao_travar(uint64_t n) { return perfis_sessao_atual(n); }
 void perfis_sessao_destravar(void) {}
+#elif defined(__APPLE__)
+// Strict Mach-O closure: exercise the same stable-zero compatibility behavior
+// as the absent producer on ELF, without unresolved-link flags. The strong
+// fixture above retains its checked profile epoch transition coverage.
+uint64_t perfis_sessao_geracao(void) { return 0; }
+int perfis_sessao_atual(uint64_t n) { return n == 0; }
+int perfis_sessao_travar(uint64_t n) { return n == 0; }
+void perfis_sessao_destravar(void) {}
 #endif
 void debrid_contexto_capturar(DebridContexto *c) { pthread_mutex_lock(&contextoTrava); *c = debridTeste; pthread_mutex_unlock(&contextoTrava); }
 void debrid_contexto_entrar(const DebridContexto *c) { pthread_once(&tlsUma, tlsCriar); assert(!pthread_setspecific(tlsDebrid, c)); }

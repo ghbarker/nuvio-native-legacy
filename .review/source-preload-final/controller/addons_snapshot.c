@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 #define SDL_MAIN_HANDLED
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
 #include "session-stubs.h"
 #endif
 #include SOURCE_ADDONS
@@ -19,6 +19,9 @@ void debrid_contexto_capturar(DebridContexto *c) { *c=captured; }
 void debrid_contexto_entrar(const DebridContexto *c) { pthread_once(&keyOnce,keyInit); assert(!pthread_getspecific(testKey)); pthread_setspecific(testKey,c); }
 void debrid_contexto_sair(void) { pthread_setspecific(testKey,NULL); }
 Uint32 SDL_GetTicks(void) { return 1234; }
+const char *sessao_usuario(void) { return "same-account"; }
+int perfis_ativo(void) { return 2; }
+unsigned fontecache_vod_geracao(void) { return 19; }
 uint64_t badges_detectar(const char *s) { (void)s; return 0; }
 uint64_t badges_bit(const char *s) { (void)s; return 0; }
 char *rede_baixar(const char *url,int seconds) {
@@ -160,6 +163,14 @@ static void allOriginsSnapshots(void) {
 }
 int main(void) {
   nAddon=2; versaoLista=77; memset(addon,0,sizeof addon);
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
+  FontecacheEscopo oldScope, newScope; addons_capturar_escopo(&oldScope);
+  assert(oldScope.sessao==perfis_sessao_geracao()&&escopoAindaAtual(&oldScope));
+  atomic_fetch_add(&fixtureSession,2); addons_capturar_escopo(&newScope);
+  assert(oldScope.sessao!=newScope.sessao&&!escopoAindaAtual(&oldScope)&&escopoAindaAtual(&newScope));
+  assert(oldScope.perfil==newScope.perfil&&oldScope.addons==newScope.addons&&oldScope.geracao==newScope.geracao&&!strcmp(oldScope.conta,newScope.conta));
+  puts("PASS actual addon cache-scope capture rejects same account/profile A-B-A visit");
+#endif
   strcpy(addon[0].nome,"First instance"); strcpy(addon[1].nome,"Second instance");
   strcpy(addon[0].base,"https://snapshot-a.invalid/old-a"); strcpy(addon[1].base,"https://snapshot-b.invalid/old-b");
   addon[0].ativo=addon[0].fonte=addon[1].ativo=addon[1].fonte=1;
@@ -183,7 +194,7 @@ int main(void) {
   free(querySources); querySources=NULL;
   cancelQuery=1; assert(addons_consulta_consultar(snapshot,"tt-capture:2:8","series",2,cancelled,NULL,&querySources)==-1);
   assert(!querySources&&requests==2);
-#ifdef NUVIO_COMBINED
+#if defined(NUVIO_COMBINED) || defined(NUVIO_SOURCE_EPOCH)
   cancelQuery=0; atomic_fetch_add(&fixtureSession,1);
   assert(!addons_consulta_atual(snapshot));
   assert(addons_consulta_consultar(snapshot,"tt-capture:2:8","series",2,NULL,NULL,&querySources)==-1);

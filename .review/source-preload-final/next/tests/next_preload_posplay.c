@@ -3,9 +3,10 @@
 
 static CatItem item;
 static CatEp episodes[2];
-static FontecacheEscopo scope={"A",1,1,1};
+static FontecacheEscopo scope={"A",1,1,1,1};
 static int videoSetting=1,sourceSetting,manualSetting,rate=100,currentT=1,currentE=1;
 static int schedules,refreshes,oldSchedules,job,canceled;
+static int metadataCanceled;
 static double position,duration=2000,credits=1900;
 static unsigned clockNow=1000;
 
@@ -31,7 +32,7 @@ int ajustes_fonte_manual(void) {return manualSetting;}
 int ajustes_proximo_auto(void) {return 1;}
 int ajustes_proximo_contagem(void) {return 5;}
 void addons_capturar_escopo(FontecacheEscopo *out) {*out=scope;}
-void fontecache_cancelar_proximo(void) {}
+void fontecache_cancelar_proximo(void) {metadataCanceled++;}
 void fontecache_vod_apagar(const char *a,const char *t,const char *o,const FontecacheEscopo *e) {(void)a;(void)t;(void)o;(void)e;}
 int fontecache_precarregar_proximo(const char *id,const FontecacheEscopo *e) {(void)id;(void)e;oldSchedules++;return 1;}
 int fontecache_vod_pegar(const char *a,const char *t,const char *o,const FontecacheEscopo *e,Stream **out,int *n,Uint32 *age) {
@@ -50,11 +51,11 @@ void desc_pedir_titulo(const char *id) {(void)id;}
 
 static void frame(double at,int isSeries) {position=at;clockNow+=1000;posplay_atualizar(1,clockNow,at,duration,isSeries,0,player_janela_proximo(0));}
 static void reset(void) {
-  posplay_fechar();schedules=refreshes=oldSchedules=canceled=job=0;
+  posplay_fechar();schedules=refreshes=oldSchedules=canceled=job=metadataCanceled=0;
   memset(&item,0,sizeof item);strcpy(item.imdb,"tt42");strcpy(item.tipo,"series");
   memset(episodes,0,sizeof episodes);
   for(int i=0;i<2;i++) {episodes[i].temporada=1;episodes[i].episodio=i+1;strcpy(episodes[i].data,"2020-01-01");}
-  scope=(FontecacheEscopo){"A",1,1,1};
+  scope=(FontecacheEscopo){"A",1,1,1,1};
   videoSetting=1;sourceSetting=manualSetting=0;rate=100;currentT=currentE=1;
   for(int i=0;i<10;i++)frame(0,1);
 }
@@ -110,6 +111,13 @@ int main(void) {
   reset();frame(credits,1);posplay_aguardar_busca(1);frame(credits+1,1);assert(schedules==1&&job);
   event(SDLK_RETURN);assert(posplay_pediu_episodio(&t,&e));
   reset();frame(credits,1);scope.perfil++;frame(credits+1,1);assert(!job&&canceled==1);
+  // Same owner/account/profile/addon settings after a new visit still cancel
+  // both speculative paths, without scheduling old episode work again.
+  reset();frame(credits,1);scope.sessao+=2;frame(credits+1,1);
+  assert(!job&&canceled==1&&schedules==1&&!refreshes);
+  reset();videoSetting=0;sourceSetting=1;frame(credits,1);
+  int canceledBefore=metadataCanceled;scope.sessao+=2;frame(credits+1,1);
+  assert(metadataCanceled>canceledBefore&&oldSchedules==1&&!schedules);
   reset();frame(credits,1);currentE=2;frame(credits+1,1);assert(!job&&canceled==1);
-  puts("Posplay: independent video60s + legacy metadata10s at 0.5x/1x/2x, stable/released gates, one refresh, Back/Down/Stop, manual Next, rewind and seek-ack semantics PASS");
+  puts("Posplay: independent video60s + legacy metadata10s at 0.5x/1x/2x, stable/released/actor-visit gates, one refresh, Back/Down/Stop, manual Next, rewind and seek-ack semantics PASS");
 }

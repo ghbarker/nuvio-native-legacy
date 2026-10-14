@@ -10,6 +10,7 @@ preload_flags=(-std=gnu11 -O1 -g -Wall -Wextra -Wno-unused-function -Wno-unused-
                -Wno-format-truncation -Wno-misleading-indentation -Wno-address -pthread
                -ffunction-sections -fdata-sections -I"$preload_source/src" -I"$preload_fixtures/sdk")
 if grep -q 'static void perfilEncerrarSessao' "$preload_source/src/app.c"; then preload_flags+=(-DNUVIO_COMBINED); fi
+if grep -q 'sessaoPerfil' "$preload_source/src/app.c"; then preload_flags+=(-DNUVIO_SOURCE_EPOCH); fi
 if [ "${SANITIZE:-0}" = 1 ]; then preload_flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie); fi
 preload_gc=(-Wl,--gc-sections)
 if [ "$(uname -s)" = Darwin ]; then preload_gc=(-Wl,-dead_strip); fi
@@ -28,7 +29,7 @@ mkdir "$preload_build/joined-data"
 "$preload_build/joined-next" "$preload_build/joined-data"
 "$preload_cc" "${preload_flags[@]}" -DNV_LINUX_DESKTOP -DSDLK_i=105 \
   -DSOURCE_STREAMS="\"$preload_source/src/streams.c\"" \
-  "$preload_fixtures/worker.c" "$preload_source/src/fontefalha.c" "$preload_source/src/fonteauto.c" \
+  "$preload_fixtures/worker.c" "$preload_source/src/fontefalha.c" "$preload_source/src/fonteauto.c" "$preload_source/src/fonteantecipa.c" \
   "${preload_gc[@]}" -lm -o "$preload_build/worker"
 "$preload_build/worker" "$preload_build/data"
 "$preload_cc" "${preload_flags[@]}" -DNUVIO_PROFILE_COMBINED \

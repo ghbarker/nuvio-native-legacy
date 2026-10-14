@@ -88,6 +88,7 @@ for name, touch, fixture in CASES:
                    source / "src/js.c", source / "src/metaprov.c"]
     else:
         sources = [fixture_path, source / "src/descoberta.c", source / "src/catalogo.c"]
+    sources.append(PACKAGE / "../watched/tests/session-test-adapter.c")
     command = common + (["-DNV_TOUCH_UI"] if touch else []) + list(map(str, sources)) + link + ["-o", str(binary)]
     build = subprocess.run(command, cwd=source, capture_output=True, text=True)
     build_log = mode_output / (name + ".build.log")

@@ -18,6 +18,8 @@ for plugins_mode in "${plugins_modes[@]}"; do
   plugins_session_flags=(); if [ "$plugins_session" = weak ]; then plugins_session_flags=(-DPLUGINS_WEAK_SESSION); fi
   "${CC:-cc}" "${plugins_flags[@]}" "${plugins_sanitizers[@]}" "${plugins_session_flags[@]}" "$plugins_fixture_dir/plugins_snapshot.c" "$plugins_product_root/src/js.c" "$plugins_product_root/src/stream_parse.c" "$plugins_product_root/src/badges.c" "${plugins_linker[@]}" -lm -o "$plugins_build_dir/plugins-$plugins_mode"
   "$plugins_build_dir/plugins-$plugins_mode"
-  printf 'plugins-snapshot: %s session=%s sanitize=%s PASS\n' "$plugins_host" "$plugins_session" "$plugins_mode"
+  plugins_session_label="$plugins_session"
+  if [ "$plugins_host" = Darwin ] && [ "$plugins_session" = weak ]; then plugins_session_label="stable-zero-compatibility"; fi
+  printf 'plugins-snapshot: %s session=%s sanitize=%s PASS\n' "$plugins_host" "$plugins_session_label" "$plugins_mode"
 done
 done
