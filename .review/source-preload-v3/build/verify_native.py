@@ -32,6 +32,8 @@ if flags.get('run_origin_snapshots'):
     required += ['origin-plugins', 'origin-plugins-asan', 'origin-plex', 'origin-plex-asan']
 if flags.get('run_next'):
     required += ['next-controller', 'next-controller-asan']
+if flags.get('run_release_date'):
+    required += ['release-date', 'release-date-asan']
 if flags.get('run_skip_next'):
     required += ['skip-next-player', 'skip-next-player-asan', 'skip-next-app', 'skip-next-app-asan']
 if flags.get('run_screens_watched'):
@@ -88,6 +90,8 @@ proof = {'catalog_entries': flags['catalog_entries'], 'catalog_count': 29,
          'compiler_invocations_verified': len(records),
          'declaration_only_cpu_fixture_boundaries': ['controller SDK', 'NV_ANDROID player SDK'],
          'same_product_source_reverification_required': True,
+         'release_date_regression_modes': ['normal', 'address+undefined'] if flags.get('run_release_date') else [],
+         'release_date_actual_product_paths': ['src/descoberta.c', 'src/catalogo.h', 'src/proximo.c', 'src/proximo.h', 'src/posplay.c', 'src/proximopreparo.c'] if flags.get('run_release_date') else [],
          'expanded_next_ready_cases': ['next_preload_controller', 'next_preload_posplay', 'next_ready_posplay_joined', 'next_ready_source_only'] if flags.get('run_next_ready') else [],
          'legacy_mkv_original_api_runs': 7 if flags.get('run_legacy_mkv') else 0,
          'owned_mkv_modes': ['normal', 'address+undefined'] if flags.get('run_owned_mkv') else [],

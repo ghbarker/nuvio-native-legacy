@@ -42,6 +42,10 @@ replace('src/posplay.c', '  // A contagem so vale para o proximo episodio.\n', '
     static Uint32 testQuando;
     static int testT, testE;
     int t = 0, e = 0;
+    const CatEp *testProximo = player_proximo_episodio();
+    long long testLancamento = prox_episodio_data_ms(testProximo);
+    int testDataConhecida = testLancamento != PROX_SEM_DATA;
+    int testFutura = testDataConhecida && testLancamento > (long long)time(NULL) * 1000;
     player_episodio_atual(&t, &e);
     unsigned estado = (unsigned)!!visivel | (unsigned)!!fecharEm << 1 |
       (unsigned)!!marcadorReal << 2 | (unsigned)!!aguardaCena << 3 |
@@ -50,16 +54,21 @@ replace('src/posplay.c', '  // A contagem so vale para o proximo episodio.\n', '
       (unsigned)!!ajustes_pular_creditos() << 8 | (unsigned)!!janelaSerie << 9 |
       (unsigned)!!preVideoTentou << 10 | (unsigned)!!preVideoRenovou << 11 |
       (unsigned)!!pedT << 12 | (unsigned)!!video_terminou() << 13 |
-      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15;
+      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15 |
+      (unsigned)!!ajustes_fonte_precarregar() << 16 | (unsigned)!!ajustes_fonte_preparar() << 17 |
+      (unsigned)!!ajustes_fonte_manual() << 18 | (unsigned)!!testDataConhecida << 19 |
+      (unsigned)!!testFutura << 20;
     int perto = visivel || janelaSerie || preVideoTentou || aguardaBusca;
     if (ehSerie && (estado != testEstado || t != testT || e != testE ||
                     (perto && agora - testQuando >= 5000u))) {
-      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d\\n",
+      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d preload_enabled=%d prepare_enabled=%d manual=%d release_known=%d release_future=%d release_ms=%lld\\n",
         agora, t, e, proxT, proxE, posSeg, video_pos(), durSeg, video_terminou(), video_pronto(),
         video_bufferando_ms(), player_velocidade_efetiva(), creditosSeg,
         marcadorReal, janelaSerie, visivel, ajustes_proximo_auto(), ajustes_pular_creditos(),
         aguardaCena, aguardaBusca, recuou, dispensado,
-        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou);
+        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou,
+        ajustes_fonte_precarregar(), ajustes_fonte_preparar(), ajustes_fonte_manual(),
+        testDataConhecida, testFutura, testDataConhecida ? testLancamento : 0LL);
       testEstado = estado; testQuando = agora; testT = t; testE = e;
     }
   }

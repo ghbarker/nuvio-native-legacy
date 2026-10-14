@@ -1,6 +1,6 @@
 {
   "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
-  "source_root": "/workspace/review/source-preload-build/final-build-v3/source-standalone-preload",
+  "source_root": "/workspace/review/source-preload-build/release-date-fix/source-standalone",
   "files": [
     {
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
@@ -94,6 +94,13 @@
       "bytes": 303452
     },
     {
+      "path": "src/catalogo.h",
+      "mode": "100644",
+      "sha": "4f43fdad7ae28fa7767e74dc462378f20e7f9798",
+      "sha256": "ace8768841ed714a33d09e81191ecbe21248af62b518609c45f7669be1a2aecf",
+      "bytes": 32228
+    },
+    {
       "path": "src/debrid.c",
       "mode": "100644",
       "sha": "ad48c8d160bac87eed58659e860d8566c318821d",
@@ -106,6 +113,13 @@
       "sha": "1939e972f76f2879e289609fa8a32993461b002f",
       "sha256": "75de6dd03d4f55302a33c02dbb6be4e0bdc082bbf80c522885f7e5cad7cb6df1",
       "bytes": 9138
+    },
+    {
+      "path": "src/descoberta.c",
+      "mode": "100644",
+      "sha": "7acf9f5b3baa1c3465965b09a75663744391cae5",
+      "sha256": "0fd89cf8a62acdc3fe6290939ab28282010338883757cb4ec48f0a6aedbdd1eb",
+      "bytes": 394334
     },
     {
       "path": "src/faixas.c",
@@ -367,6 +381,13 @@
       "bytes": 498273
     },
     {
+      "path": "src/jellyfin.c",
+      "mode": "100644",
+      "sha": "77c8d602008bff69243df3661467b7e5cf634bf9",
+      "sha256": "4e2ccd47d80f290d6c5b0078ea335b9e5263d041b8a042a7aea2473dfb0c5b4d",
+      "bytes": 77300
+    },
+    {
       "path": "src/mkvass.c",
       "mode": "100644",
       "sha": "a0b90422eb2b4f38f73b8b67919a599ee6fa999c",
@@ -418,9 +439,9 @@
     {
       "path": "src/plex.c",
       "mode": "100644",
-      "sha": "32066b1c8bcdc8ecaf3947f58258aaf555feccab",
-      "sha256": "66570cfa922dfb555065dc90a4ca47b00e7276ed56f8a542916317bf3ec35886",
-      "bytes": 82483
+      "sha": "6c9c83b12ea03cb2eb82aa6d0b3916dfbaf3bd18",
+      "sha256": "931276dd112b86ee9deafb84bbd070b390ac20a0eed1819e7eb52ba0c11dd5db",
+      "bytes": 82560
     },
     {
       "path": "src/plex.h",
@@ -453,9 +474,23 @@
     {
       "path": "src/posplay.c",
       "mode": "100644",
-      "sha": "788276995e0796d1d0b77c7bd3a01b9ae273f516",
-      "sha256": "6d368e1784b75b8e114e12a0868b7ff3825ec969989454b7de07211b1f277430",
-      "bytes": 39149
+      "sha": "c4bf614d7cfcd6788199d746ab6e4a8465f23bad",
+      "sha256": "62c6ea6c2688dd8527d8829844cc31342379c331fe7243838a74558ba5fb91b1",
+      "bytes": 39152
+    },
+    {
+      "path": "src/proximo.c",
+      "mode": "100644",
+      "sha": "d43bc632ffaf037040e53357261e3f71d486a948",
+      "sha256": "18d2a4c3ff6f4adcac680b5a59b8e5f1fbe93b39cb1ae7d1a0fdce74385fb3c4",
+      "bytes": 8407
+    },
+    {
+      "path": "src/proximo.h",
+      "mode": "100644",
+      "sha": "095166c3200f5cbbde01a4f5806b7f6bce6bcb1f",
+      "sha256": "ba254c301abba153c1010e01b8edcd229a53b6cd4074580832f9e25c966f169b",
+      "bytes": 8455
     },
     {
       "path": "src/proximopreparo.c",

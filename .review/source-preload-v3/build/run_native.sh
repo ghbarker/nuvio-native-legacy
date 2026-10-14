@@ -130,6 +130,12 @@ if task_enabled run_next; then
     task_run next-controller-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash "$task_review/next/run.sh" "$PWD"
   fi
 fi
+if task_enabled run_release_date; then
+  # Exercise the actual episode metadata parser and Next eligibility with
+  # machine dates kept separate from each localized display date.
+  task_run release-date env SANITIZE=0 python3 "$task_review/release-date-gates/run.py" --root "$PWD" --output "$task_output/release-date/normal"
+  task_run release-date-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 python3 "$task_review/release-date-gates/run.py" --root "$PWD" --output "$task_output/release-date/asan-ubsan"
+fi
 if task_enabled run_skip_next; then
   # These additions retain every V2 gate above and exercise the real player,
   # countdown, preparation controller and literal app Next request block.

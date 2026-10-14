@@ -1,6 +1,6 @@
 {
   "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
-  "source_root": "/workspace/review/source-preload-build/final-build-v3/source-combined-delivery",
+  "source_root": "/workspace/review/source-preload-build/final-build-v4/product-snapshots/combined-delivery",
   "files": [
     {
       "path": "README.md",
@@ -313,9 +313,9 @@
     {
       "path": "src/catalogo.h",
       "mode": "100644",
-      "sha": "84d37cb7f591a189ff5c486719bfc4cc8c39ec8a",
-      "sha256": "6c7232053a1c06c7020300900bd1907a14d66d2b544d92e5dc38f255dd65146a",
-      "bytes": 32184
+      "sha": "0dd9817dc23e5a74262e9da1d247a6557f1dc342",
+      "sha256": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+      "bytes": 32511
     },
     {
       "path": "src/central.c",
@@ -376,9 +376,9 @@
     {
       "path": "src/descoberta.c",
       "mode": "100644",
-      "sha": "0c162ef39f48b906343cb97d46939534a68ac930",
-      "sha256": "010a3911a6f5ca9058fba4b513781a22fd3b4e05952ccb02a773b142076a9bb5",
-      "bytes": 416062
+      "sha": "13ee8dc17c83847521c5be7af9e9cbba092853e4",
+      "sha256": "b74906043c2b642237925e86356eaa7f4281baa3524db098066d2d1cb73cce82",
+      "bytes": 416231
     },
     {
       "path": "src/descoberta.h",
@@ -838,9 +838,9 @@
     {
       "path": "src/jellyfin.c",
       "mode": "100644",
-      "sha": "105156ea4083524270c4d9db6c70ddac3121d3ec",
-      "sha256": "7c60ac437fd668ff075770ab9f760de4426757eef2719c707e3412eb3c1ec417",
-      "bytes": 77736
+      "sha": "5da1177b8a6bd02ede24fef8cf60999993ca7e7b",
+      "sha256": "e52ae05f21113e720a4a361ac8fd6b7906ff718a8fb6eaab161fd8696488a550",
+      "bytes": 77817
     },
     {
       "path": "src/layout.c",
@@ -964,9 +964,9 @@
     {
       "path": "src/plex.c",
       "mode": "100644",
-      "sha": "a869f35659605cd7662e2e6f73a5f7f077fabf26",
-      "sha256": "afde5163bcffb3113ac0626a048b4d60053be8bd4e32224ab44097dfb01ebdfc",
-      "bytes": 82977
+      "sha": "a3e8dbce0077a88c16c08d62aa4171b28855bf72",
+      "sha256": "e9bc589f7554ac6f93e7bbc236078fe1c6328abbf69ce2f2d68119cf0816acc8",
+      "bytes": 83054
     },
     {
       "path": "src/plex.h",
@@ -1013,9 +1013,23 @@
     {
       "path": "src/posplay.c",
       "mode": "100644",
-      "sha": "53b3bf23f6a2f34e6c6a66e14bd55aca70498560",
-      "sha256": "6048fdbfc568bbe8388463fd431fcdf424e1a4992c84025539419a6393ac4d2d",
-      "bytes": 41416
+      "sha": "217b14ba2d24022d0439eec2c0100328db6a98b1",
+      "sha256": "cd7b3e7ba1a2a93c7593ff947acdd9a08fff5a53f832ee4153f37fa8d27d86e2",
+      "bytes": 42184
+    },
+    {
+      "path": "src/proximo.c",
+      "mode": "100644",
+      "sha": "d43bc632ffaf037040e53357261e3f71d486a948",
+      "sha256": "18d2a4c3ff6f4adcac680b5a59b8e5f1fbe93b39cb1ae7d1a0fdce74385fb3c4",
+      "bytes": 8407
+    },
+    {
+      "path": "src/proximo.h",
+      "mode": "100644",
+      "sha": "095166c3200f5cbbde01a4f5806b7f6bce6bcb1f",
+      "sha256": "ba254c301abba153c1010e01b8edcd229a53b6cd4074580832f9e25c966f169b",
+      "bytes": 8455
     },
     {
       "path": "src/proximopreparo.c",

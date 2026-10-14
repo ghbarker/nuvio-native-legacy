@@ -4,7 +4,9 @@
   "never_include_in_pr": true,
   "clean_products_checked": true,
   "isolated_delivery_copy": true,
-  "original_playback_release": "bd8bbfa7bb9fa7dfc5c2c870537d7029da2cc730",
+  "standalone_source_root": "/workspace/review/source-preload-build/release-date-fix/source-standalone",
+  "combined_product_root": "/workspace/review/source-preload-build/release-date-fix/source-clean-combined",
+  "combined_delivery_root": "/workspace/review/source-preload-build/final-build-v4/product-snapshots/combined-delivery",
   "standalone_files": {
     "src/seekrquota.c": {
       "sha256": "87a1025f88024c850f59828e803456fb15f262113ba372814f60f41b45e447b0",
@@ -587,7 +589,7 @@
       "mode": "100644"
     },
     "src/catalogo.h": {
-      "sha256": "a405538fbc3d2fae2af71d32366f5ec58ef423f12c1608b8a43e05497d8681a4",
+      "sha256": "ace8768841ed714a33d09e81191ecbe21248af62b518609c45f7669be1a2aecf",
       "mode": "100644"
     },
     "src/pausao.h": {
@@ -1103,7 +1105,7 @@
       "mode": "100644"
     },
     "src/descoberta.c": {
-      "sha256": "8bd67681be03f8775131b389e5264d1707a8eaa789bad8dd272d602e4e91c38b",
+      "sha256": "0fd89cf8a62acdc3fe6290939ab28282010338883757cb4ec48f0a6aedbdd1eb",
       "mode": "100644"
     },
     "src/audioinfo.h": {
@@ -1143,7 +1145,7 @@
       "mode": "100644"
     },
     "src/posplay.c": {
-      "sha256": "6d368e1784b75b8e114e12a0868b7ff3825ec969989454b7de07211b1f277430",
+      "sha256": "62c6ea6c2688dd8527d8829844cc31342379c331fe7243838a74558ba5fb91b1",
       "mode": "100644"
     },
     "src/descanso.h": {
@@ -1443,7 +1445,7 @@
       "mode": "100644"
     },
     "src/jellyfin.c": {
-      "sha256": "01fba31af3ae749268186e3f582080e929c3cf5b1a90a125bc23b1cb9cd05599",
+      "sha256": "4e2ccd47d80f290d6c5b0078ea335b9e5263d041b8a042a7aea2473dfb0c5b4d",
       "mode": "100644"
     },
     "src/ajustes_ux_apoio.inc": {
@@ -2327,7 +2329,7 @@
       "mode": "100644"
     },
     "src/proximo.c": {
-      "sha256": "59693a9e522f94d95448d0d0ff88f14c2f5a680bc64d8890dac6c2fb65c0be4c",
+      "sha256": "18d2a4c3ff6f4adcac680b5a59b8e5f1fbe93b39cb1ae7d1a0fdce74385fb3c4",
       "mode": "100644"
     },
     "src/stream_parse.c": {
@@ -2691,7 +2693,7 @@
       "mode": "100644"
     },
     "src/proximo.h": {
-      "sha256": "970cfb17f16b00d72cb1263f9f7dfc6de458dcabe48c879f218587915614d22b",
+      "sha256": "ba254c301abba153c1010e01b8edcd229a53b6cd4074580832f9e25c966f169b",
       "mode": "100644"
     },
     "src/ajustes_ux_tela.inc": {
@@ -2819,7 +2821,7 @@
       "mode": "100644"
     },
     "src/plex.c": {
-      "sha256": "66570cfa922dfb555065dc90a4ca47b00e7276ed56f8a542916317bf3ec35886",
+      "sha256": "931276dd112b86ee9deafb84bbd070b390ac20a0eed1819e7eb52ba0c11dd5db",
       "mode": "100644"
     },
     "src/recenviar.c": {
@@ -4189,7 +4191,7 @@
       "mode": "100644"
     },
     "src/catalogo.h": {
-      "sha256": "6c7232053a1c06c7020300900bd1907a14d66d2b544d92e5dc38f255dd65146a",
+      "sha256": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
       "mode": "100644"
     },
     "src/pausao.h": {
@@ -4705,7 +4707,7 @@
       "mode": "100644"
     },
     "src/descoberta.c": {
-      "sha256": "010a3911a6f5ca9058fba4b513781a22fd3b4e05952ccb02a773b142076a9bb5",
+      "sha256": "b74906043c2b642237925e86356eaa7f4281baa3524db098066d2d1cb73cce82",
       "mode": "100644"
     },
     "src/audioinfo.h": {
@@ -4745,7 +4747,7 @@
       "mode": "100644"
     },
     "src/posplay.c": {
-      "sha256": "8a6a4d9716e7c87e999999a9a1cd4fc8bf33cc42dc11307a6b736a1792f36d74",
+      "sha256": "0e8b7e737559cc9e7f7ff9dc9b07a5a4ab282028902dd062d0ba2dd57a4d941c",
       "mode": "100644"
     },
     "src/descanso.h": {
@@ -5045,7 +5047,7 @@
       "mode": "100644"
     },
     "src/jellyfin.c": {
-      "sha256": "7c60ac437fd668ff075770ab9f760de4426757eef2719c707e3412eb3c1ec417",
+      "sha256": "e52ae05f21113e720a4a361ac8fd6b7906ff718a8fb6eaab161fd8696488a550",
       "mode": "100644"
     },
     "src/ajustes_ux_apoio.inc": {
@@ -5929,7 +5931,7 @@
       "mode": "100644"
     },
     "src/proximo.c": {
-      "sha256": "59693a9e522f94d95448d0d0ff88f14c2f5a680bc64d8890dac6c2fb65c0be4c",
+      "sha256": "18d2a4c3ff6f4adcac680b5a59b8e5f1fbe93b39cb1ae7d1a0fdce74385fb3c4",
       "mode": "100644"
     },
     "src/stream_parse.c": {
@@ -6293,7 +6295,7 @@
       "mode": "100644"
     },
     "src/proximo.h": {
-      "sha256": "970cfb17f16b00d72cb1263f9f7dfc6de458dcabe48c879f218587915614d22b",
+      "sha256": "ba254c301abba153c1010e01b8edcd229a53b6cd4074580832f9e25c966f169b",
       "mode": "100644"
     },
     "src/ajustes_ux_tela.inc": {
@@ -6421,7 +6423,7 @@
       "mode": "100644"
     },
     "src/plex.c": {
-      "sha256": "afde5163bcffb3113ac0626a048b4d60053be8bd4e32224ab44097dfb01ebdfc",
+      "sha256": "e9bc589f7554ac6f93e7bbc236078fe1c6328abbf69ce2f2d68119cf0816acc8",
       "mode": "100644"
     },
     "src/recenviar.c": {
@@ -7335,11 +7337,11 @@
     {
       "path": "src/posplay.c",
       "before": {
-        "sha256": "8a6a4d9716e7c87e999999a9a1cd4fc8bf33cc42dc11307a6b736a1792f36d74",
+        "sha256": "0e8b7e737559cc9e7f7ff9dc9b07a5a4ab282028902dd062d0ba2dd57a4d941c",
         "mode": "100644"
       },
       "after": {
-        "sha256": "6048fdbfc568bbe8388463fd431fcdf424e1a4992c84025539419a6393ac4d2d",
+        "sha256": "cd7b3e7ba1a2a93c7593ff947acdd9a08fff5a53f832ee4153f37fa8d27d86e2",
         "mode": "100644"
       }
     },
@@ -7365,5 +7367,16 @@
         "mode": "100644"
       }
     }
-  ]
+  ],
+  "overlays": [
+    {
+      "helper_path": "/workspace/review/source-preload-build/final-build-v4/test-next-trace/apply.py",
+      "sha256": "645222d2f3d9a47701f48f960dd84584958da5d4a95683bbf7e2883d7f31bfc0"
+    },
+    {
+      "helper_path": "/workspace/review/source-preload-build/final-build-v4/test-local-logs/apply.py",
+      "sha256": "dae3182b473e5abc0886000e3d64f26e5c141df209c11a3de34b962c0c658971"
+    }
+  ],
+  "github_writes": false
 }

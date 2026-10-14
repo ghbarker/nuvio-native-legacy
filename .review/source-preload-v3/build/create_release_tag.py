@@ -8,7 +8,7 @@ import subprocess
 source = os.environ['PLANNED_SOURCE']
 proof = json.loads(Path('delivery/proof/update-identity.json').read_text())
 assert proof['verified'] and proof['phase'] == 'final' and proof['source_commit'] == source
-payload = {'ref': 'refs/tags/tv-mobile-test-local-logs-v1', 'sha': source}
+payload = {'ref': 'refs/tags/tv-mobile-test-local-logs-v2', 'sha': source}
 created = subprocess.run(['gh', 'api', '--method', 'POST', 'repos/' + os.environ['GH_REPO'] + '/git/refs', '--input', '-'],
                          input=json.dumps(payload), text=True, capture_output=True)
 if created.returncode:

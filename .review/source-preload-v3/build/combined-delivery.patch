@@ -6846,7 +6846,7 @@ index 57d63b578d142fe571c8f3c93d71301d85ef886b..165853ef8ff3595f405d98ca75cda893
  }
  
 diff --git a/src/catalogo.h b/src/catalogo.h
-index 81cc7bdf555f29ea71031da10a6f0ee9b9733590..84d37cb7f591a189ff5c486719bfc4cc8c39ec8a 100644
+index 81cc7bdf555f29ea71031da10a6f0ee9b9733590..0dd9817dc23e5a74262e9da1d247a6557f1dc342 100644
 --- a/src/catalogo.h
 +++ b/src/catalogo.h
 @@ -9,6 +9,7 @@
@@ -6857,7 +6857,19 @@ index 81cc7bdf555f29ea71031da10a6f0ee9b9733590..84d37cb7f591a189ff5c486719bfc4cc
  
  // 40 titulos hoje (14 do historico do dono + 26 dos catalogos). A folga evita
  // o corte silencioso que ja aconteceu: com 32 os oito ultimos sumiam sem aviso.
-@@ -218,7 +219,11 @@ int  cat_carregar(const char *dirArte);
+@@ -187,6 +188,11 @@ typedef struct {
+   // remapeamento IMDb->TMDB que a API faz (intro.h). Nao vai para o disco.
+   long tmdbSerie;
+   int  tmdbT, tmdbE;
++  // Data ORIGINAL do metadata, antes de desc_data_extenso traduzir `data`.
++  // As regras de estreia usam este ISO, nunca o texto apresentado na tela.
++  // Episodios do pacote antigo deixam vazio e conservam a leitura de `data`.
++  // CatEp nao tem dump binario; o cache de metadata guarda o JSON original.
++  char dataIso[32];
+ } CatEp;
+ 
+ // Le <dir>/catalogo.txt. Devolve quantos itens carregou (0 = nenhum, e quem
+@@ -218,7 +224,11 @@ int  cat_carregar(const char *dirArte);
  // pedidos e os 14,5 s medidos acima. A escolha fica dentro de catalogo.c, e nao
  // nos chamadores, porque quem le (home.c) e quem grava (descoberta.c) sao
  // arquivos diferentes e tem de concordar. Ver a nota longa em caminhoCache.
@@ -7791,7 +7803,7 @@ index 1fe01c6bba8098ed7157a7fb6763a0bcac227446..1939e972f76f2879e289609fa8a32993
  // realdebrid/real-debrid, torbox e premiumize (com ou sem hifen). Uma chave
  // por servico; chamar de novo para outro servico NAO apaga a anterior.
 diff --git a/src/descoberta.c b/src/descoberta.c
-index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534a68ac930 100644
+index 3c8e5240ab2b280a9691493e6449244335d7fe15..13ee8dc17c83847521c5be7af9e9cbba092853e4 100644
 --- a/src/descoberta.c
 +++ b/src/descoberta.c
 @@ -25,6 +25,7 @@
@@ -8915,7 +8927,23 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    if (hsVivo) { hsDeNovo = 1; pthread_mutex_unlock(&hsTrava); return; }
    hsVivo = 1;
    pthread_mutex_unlock(&hsTrava);
-@@ -6686,10 +7048,12 @@ void desc_mesclar_episodios(CatEp *base, int nb, const CatEp *outro, int no, int
+@@ -6616,6 +6978,7 @@ static int parsearEpisodios(const char *corpo, CatEp *eps, int max) {
+         if (runtime > 0 && runtime < 1440)
+           snprintf(e->duracao, sizeof e->duracao, "%d min", runtime);
+       }
++      js_texto(p, f, "released", e->dataIso, sizeof e->dataIso);
+       js_texto(p, f, "released", d, sizeof d);
+       desc_data_extenso(d, e->data, sizeof e->data);
+       n++;
+@@ -6673,6 +7036,7 @@ void desc_mesclar_episodios(CatEp *base, int nb, const CatEp *outro, int no, int
+     if (!base[i].thumb[0])   snprintf(base[i].thumb, sizeof base[i].thumb, "%s", outro[j].thumb);
+     if (!base[i].duracao[0]) snprintf(base[i].duracao, sizeof base[i].duracao, "%s", outro[j].duracao);
+     if (!base[i].data[0])    snprintf(base[i].data, sizeof base[i].data, "%s", outro[j].data);
++    if (!base[i].dataIso[0]) snprintf(base[i].dataIso, sizeof base[i].dataIso, "%s", outro[j].dataIso);
+     i++; j++;
+   }
+ }
+@@ -6686,10 +7050,12 @@ void desc_mesclar_episodios(CatEp *base, int nb, const CatEp *outro, int no, int
  // titulo iam parar em outro. epAlvo re-resolve pelo id antes de cada escrita;
  // -1 = o titulo saiu do catalogo e nada e escrito. Um fio por vez (fioEpVivo).
  static char epAlvoId[64];
@@ -8928,7 +8956,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    int i = cat_indice_vivo(alvoItem, id);
    if (i != alvoItem) {
      printf("[desc] episodios de %s: catalogo remontou no meio do pedido (%d -> %d)\n",
-@@ -6738,7 +7102,7 @@ static int publicarEpisodios(const char *corpo, int alvoItem, const char *titulo
+@@ -6738,7 +7104,7 @@ static int publicarEpisodios(const char *corpo, int alvoItem, const char *titulo
        free(o);
      }
    }
@@ -8937,7 +8965,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    free(eps);
    marco("episodios na tela");
    printf("[desc] %s: %d episodios publicados antes dos extras\n", titulo, n);
-@@ -7142,8 +7506,8 @@ static void metaPublicarPrimario(const CatItem *orig, const char *corpo, int ind
+@@ -7142,8 +7508,8 @@ static void metaPublicarPrimario(const CatItem *orig, const char *corpo, int ind
    *cedo = *orig;
    completarRaso(cedo, corpo, orig->tipo);
    fichaDe(cedo, corpo, 1);
@@ -8948,7 +8976,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    marco("detalhe: ficha primaria publicada antes do complemento");
    free(cedo);
  }
-@@ -7330,6 +7694,7 @@ static int episodiosDoCatalogo(int alvoItem, const char *titulo, const char *ser
+@@ -7330,6 +7696,7 @@ static int episodiosDoCatalogo(int alvoItem, const char *titulo, const char *ser
  // larga nos pontos de parada abaixo (no maximo uma viagem de rede depois).
  static volatile int epPreQuer, epRodaPre, epCancelar;
  static int preCede(const char *id) {
@@ -8956,7 +8984,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    if (!(epRodaPre && epCancelar)) return 0;
    printf("[desc] pre-busca de %s cedeu ao titulo em cena\n", id);
    fflush(stdout);
-@@ -7348,6 +7713,7 @@ static void *buscarEps(void *u) {
+@@ -7348,6 +7715,7 @@ static void *buscarEps(void *u) {
    int viaCatalogo = 0, solto = 0;
    (void)u;
    memset(&mf, 0, sizeof mf);
@@ -8964,7 +8992,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    if (!cat_copiar_item(alvoItem, &base) || !base.imdb[0]) { fioEpVivo = 0; return NULL; }
    orig = &base;
    if (preCede(orig->imdb)) { fioEpVivo = 0; return NULL; }
-@@ -7369,8 +7735,8 @@ static void *buscarEps(void *u) {
+@@ -7369,8 +7737,8 @@ static void *buscarEps(void *u) {
      CatItem ed = base;
      int ne = eps ? servidores_ficha(&ed, eps, VIDEOS_MAX) : -1;
      if (ne >= 0 && (alvoItem = epAlvo(alvoItem)) >= 0) {
@@ -8975,7 +9003,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
      }
      free(eps);
      fioEpVivo = 0;
-@@ -7550,8 +7916,8 @@ static void *buscarEps(void *u) {
+@@ -7550,8 +7918,8 @@ static void *buscarEps(void *u) {
      if (viaCatalogo) completarFicha(&edit, &mf, ehFilme ? "movie" : "series");
      // A logo e a ficha basica nao esperam a traducao/fotos opcionais.
      if ((alvoItem = epAlvo(alvoItem)) >= 0) {
@@ -8986,7 +9014,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
        marco("detalhe: campos primarios publicados antes dos extras");
      }
      // TITULO, SINOPSE E GENEROS DO ADDON DE METADADOS (#176). So campo que o
-@@ -7594,7 +7960,7 @@ static void *buscarEps(void *u) {
+@@ -7594,7 +7962,7 @@ static void *buscarEps(void *u) {
        }
      }
      // Publica texto, generos e temporadas antes do enriquecimento de imagens.
@@ -8995,7 +9023,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
      marco("detalhe: meta basico na tela");
      // A FICHA ESTA NA TELA: ESTE FIO JA NAO SEGURA O PROXIMO TITULO (R2). O que
      // resta (fotos do elenco e as notas por temporada do TMDB, uma viagem por
-@@ -7643,7 +8009,7 @@ static void *buscarEps(void *u) {
+@@ -7643,7 +8011,7 @@ static void *buscarEps(void *u) {
      // com outras abas, e republicar o `edit` inteiro devolvia as abas velhas
      // (T1 com 72 episodios em T1-T3: T2/T3 carregados e escondidos). As abas
      // ficam as que estao no item; o resto (elenco, arte, texto) e desta cauda.
@@ -9004,7 +9032,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
      printf("[desc] %s: %d atores, dir='%s', %d temporadas\n",
             edit.titulo, edit.nElenco, edit.direcao, edit.nTemporadas);
      fflush(stdout);
-@@ -7710,7 +8076,7 @@ static void *buscarEps(void *u) {
+@@ -7710,7 +8078,7 @@ static void *buscarEps(void *u) {
                if (marcados > 0 && preenchidas == 0) preenchidas = -marcados; }
              if (preenchidas != 0 && (alvoItem = epAlvoDe(alvoItem, meuId)) >= 0 &&
                  cat_n_episodios(alvoItem) == neps) {
@@ -9013,7 +9041,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
                printf("[desc] %s: nota/sinopse TMDB em %d episodios\n",
                       edit.titulo, preenchidas);
                fflush(stdout);
-@@ -7748,6 +8114,7 @@ static int      vtN;
+@@ -7748,6 +8116,7 @@ static int      vtN;
  static char     vtBase[NV_ADDON_URL_MAX], vtTipo[8], vtCat[96], vtGenre[96];
  static int      vtPagina, vtFim, vtFioVivo, vtErro;
  static unsigned vtGeracao;
@@ -9021,7 +9049,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
  // Fonte nao-addon aberta por desc_vertudo_fonte (issue #44): vtProvedor 1 e
  // TMDB, 2 e Trakt; vtFonte e uma copia zerada da ColSource para o memcmp de
  // "mesma fonte" ser seguro (a struct tem preenchimento).
-@@ -7755,6 +8122,40 @@ static ColSource vtFonte;
+@@ -7755,6 +8124,40 @@ static ColSource vtFonte;
  static int      vtProvedor;
  static pthread_mutex_t vtTrava = PTHREAD_MUTEX_INITIALIZER;
  
@@ -9062,7 +9090,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
  // Um item de resultado do TMDB (results[], items[], cast[], crew[],
  // parts[]) vira CatItem. O id fica "tmdb:<n>" — nao e imdb, e quem abre
  // resolve pelo desc_pedir_titulo_tmdb (vertudo checa o prefixo). O tipo vem
-@@ -7924,16 +8325,25 @@ static const char *tmdbMontarUrl(const ColSource *f, int pagina,
+@@ -7924,16 +8327,25 @@ static const char *tmdbMontarUrl(const ColSource *f, int pagina,
  
  static void *fioVerTudo(void *u) {
    (void)u;
@@ -9089,7 +9117,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
  
    // FONTE NAO-ADDON (issue #44): pasta de colecao do site cujo conteudo vem
    // do TMDB ou do Trakt, nao de um catalogo de addon. vtPagina aqui e o
-@@ -8004,9 +8414,10 @@ static void *fioVerTudo(void *u) {
+@@ -8004,9 +8416,10 @@ static void *fioVerTudo(void *u) {
      free(corpo);
      // Itens do Trakt chegam sem poster: o lote inteiro ganha arte pelo
      // Cinemeta de uma vez, como a fileira "Continuar assistindo" ja faz.
@@ -9102,7 +9130,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
      { int added=ocultos;   // pagina so de futuros nao encerra a paginacao
        for(int i=0;i<nl&&vtN<VT_MAX;i++){
          int dup=0;
-@@ -8017,9 +8428,11 @@ static void *fioVerTudo(void *u) {
+@@ -8017,9 +8430,11 @@ static void *fioVerTudo(void *u) {
        }
        vtErro=!ok;
        if(ok){if(semMais||!added||vtN>=VT_MAX)vtFim=1;else vtPagina=skip+1;}
@@ -9115,7 +9143,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
      return NULL;
    }
  
-@@ -8035,7 +8448,7 @@ static void *fioVerTudo(void *u) {
+@@ -8035,7 +8450,7 @@ static void *fioVerTudo(void *u) {
    corpo=(!addons_base_desligada(base)&&descPedidoCoube(base,w,sizeof url))?rede_baixar(url,10):NULL; }
    cap=strstr(id,"top100")?100:strstr(id,"top250")?250:VT_MAX;
    pthread_mutex_lock(&vtTrava);
@@ -9124,7 +9152,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    pthread_mutex_unlock(&vtTrava);
    const char *first=corpo?js_array(corpo,NULL,"metas"):NULL;
    int valid=corpo&&strstr(corpo,"\"metas\"");
-@@ -8051,19 +8464,21 @@ static void *fioVerTudo(void *u) {
+@@ -8051,19 +8466,21 @@ static void *fioVerTudo(void *u) {
        pthread_mutex_lock(&vtTrava);
        int duplicate=0;
        for(int i=0;i<vtN;i++)if(it.imdb[0]&&!strcmp(vtItens[i].imdb,it.imdb)&&!strcmp(vtItens[i].tipo,it.tipo)){duplicate=1;break;}
@@ -9149,7 +9177,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    return NULL;
    }
  }
-@@ -8074,6 +8489,7 @@ static void vtDisparar(void) {
+@@ -8074,6 +8491,7 @@ static void vtDisparar(void) {
    pthread_mutex_lock(&vtTrava);
    if (vtFioVivo || vtFim || (!vtBase[0] && !vtProvedor)) {pthread_mutex_unlock(&vtTrava);return;}
    vtFioVivo = 1;
@@ -9157,7 +9185,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    vtErro=0;
    // fioVerTudo empilha buffers grandes; no macOS o stack padrao do pthread
    // estoura (collections.sh: Bus error em ___chkstk_darwin).
-@@ -8095,7 +8511,11 @@ void desc_vertudo_filtro(const char *base, const char *tipo, const char *catId,c
+@@ -8095,7 +8513,11 @@ void desc_vertudo_filtro(const char *base, const char *tipo, const char *catId,c
    // recomecar do zero (o dono pode ter voltado e entrado de novo).
    if (!vtProvedor && !strcmp(vtBase, base) && !strcmp(vtTipo, tipo) && !strcmp(vtCat, catId)
        && !strcmp(vtGenre,genre?genre:"") && vtN > 0) {
@@ -9169,7 +9197,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
      return;
    }
    snprintf(vtBase, sizeof vtBase, "%s", base);
-@@ -8117,7 +8537,10 @@ void desc_vertudo_fonte(const ColSource *s) {
+@@ -8117,7 +8539,10 @@ void desc_vertudo_fonte(const ColSource *s) {
    memset(&copia, 0, sizeof copia); copia = *s;
    pthread_mutex_lock(&vtTrava);
    if (vtProvedor && !memcmp(&vtFonte, &copia, sizeof copia) && vtN > 0) {
@@ -9181,7 +9209,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    }
    vtFonte = copia;
    vtProvedor = !strcmp(s->prov, "trakt") ? 2 : 1;
-@@ -8128,13 +8551,24 @@ void desc_vertudo_fonte(const ColSource *s) {
+@@ -8128,13 +8553,24 @@ void desc_vertudo_fonte(const ColSource *s) {
  }
  
  void desc_vertudo_mais(void) { vtDisparar(); }
@@ -9207,7 +9235,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    int ok = 0;
    pthread_mutex_lock(&vtTrava);
    if (dst && i >= 0 && i < vtN) { memcpy(dst, &vtItens[i], sizeof *dst); ok = 1; }
-@@ -8153,6 +8587,7 @@ void desc_episodios(int indiceItem, int temporada) {
+@@ -8153,6 +8589,7 @@ void desc_episodios(int indiceItem, int temporada) {
    (void)temporada;
    if (cat_n_episodios(indiceItem) > 0) return;
    epItem = indiceItem; epTemp = temporada;
@@ -9215,7 +9243,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    epRodaPre = epPreQuer; epPreQuer = 0; epCancelar = 0;
    fioEpVivo = 1;
    if (pthread_create(&fioEp, NULL, buscarEps, NULL) != 0) fioEpVivo = 0;
-@@ -8215,6 +8650,7 @@ static long sobTmdb;          // quando > 0, o id do IMDb ainda precisa ser reso
+@@ -8215,6 +8652,7 @@ static long sobTmdb;          // quando > 0, o id do IMDb ainda precisa ser reso
  static char sobTipo[8];
  static int  sobIndice = -1;   // resultado, consumido por desc_titulo_pronto
  static int  sobFioVivo;
@@ -9223,7 +9251,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
  static pthread_t sobFio;
  // SEMENTE (R2): o que o clique ja sabia do titulo (nome, ano, cartaz). Com ela
  // a pagina abre NA HORA, com o layout normal, e o buscarEps preenche o resto.
-@@ -8225,6 +8661,7 @@ static void *buscarTitulo(void *arg) {
+@@ -8225,6 +8663,7 @@ static void *buscarTitulo(void *arg) {
    char url[200], id[24], *corpo;
    int achou = -1, passo;
    (void)arg;
@@ -9231,7 +9259,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    snprintf(id, sizeof id, "%s", sobId);
  
    // O credito de um ator chega com o id do TMDB, nao com o do IMDb — o
-@@ -8256,7 +8693,7 @@ static void *buscarTitulo(void *arg) {
+@@ -8256,7 +8695,7 @@ static void *buscarTitulo(void *arg) {
        CatItem s = sobSemente;
        snprintf(s.imdb, sizeof s.imdb, "%s", id);
        s.tmdb = sobTmdb;
@@ -9240,7 +9268,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
        printf("[desc] sob demanda tmdb %ld -> %s com semente, indice %d\n", sobTmdb, id, sobIndice);
        fflush(stdout);
        sobFioVivo = 0;
-@@ -8275,7 +8712,7 @@ static void *buscarTitulo(void *arg) {
+@@ -8275,7 +8714,7 @@ static void *buscarTitulo(void *arg) {
          // vazio, e sem ele o titulo entraria no catalogo sem chave e nao
          // poderia ser reaberto nem casar com progresso.
          if (!it.imdb[0]) snprintf(it.imdb, sizeof it.imdb, "%s", id);
@@ -9249,7 +9277,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
        } }
      free(corpo);
    }
-@@ -8293,6 +8730,7 @@ static void pedirTmdb(long tmdbId, const char *tipo, int semente) {
+@@ -8293,6 +8732,7 @@ static void pedirTmdb(long tmdbId, const char *tipo, int semente) {
    sobId[0] = 0;
    sobIndice = -1;
    sobFioVivo = 1;
@@ -9257,7 +9285,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    if (pthread_create(&sobFio, NULL, buscarTitulo, NULL) != 0) sobFioVivo = 0;
    else pthread_detach(sobFio);
  }
-@@ -8314,6 +8752,7 @@ void desc_pedir_titulo(const char *imdb) {
+@@ -8314,6 +8754,7 @@ void desc_pedir_titulo(const char *imdb) {
    sobTmdb = 0;
    sobIndice = -1;
    sobFioVivo = 1;
@@ -9265,7 +9293,7 @@ index 3c8e5240ab2b280a9691493e6449244335d7fe15..0c162ef39f48b906343cb97d46939534
    if (pthread_create(&sobFio, NULL, buscarTitulo, NULL) != 0) sobFioVivo = 0;
    else pthread_detach(sobFio);
  }
-@@ -8360,15 +8799,67 @@ void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
+@@ -8360,15 +8801,67 @@ void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
    { int j = cat_indice_por_imdb(id);
      if (j >= 0) { sobIndice = j; return; } }
    snprintf(s.imdb, sizeof s.imdb, "%s", id);
@@ -15224,10 +15252,22 @@ index e64dfcb5e23548976709ff9f7de2e1127b1b7eaf..647e36c157774102f3fdc48415aa433d
    responderPedido();
    ilhasalvar_passo(agora);
 diff --git a/src/jellyfin.c b/src/jellyfin.c
-index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac3121d3ec 100644
+index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..5da1177b8a6bd02ede24fef8cf60999993ca7e7b 100644
 --- a/src/jellyfin.c
 +++ b/src/jellyfin.c
-@@ -876,6 +876,7 @@ typedef struct {
+@@ -580,8 +580,10 @@ int jf_ler_episodios(const JfConta *c, const char *corpo, size_t nCorpo, CatEp *
+           txtRaiz(p, f, "Overview", ep->sinopse, sizeof ep->sinopse);
+           tk = numRaiz(p, f, "RunTimeTicks", 0);
+           if (tk > 0) snprintf(ep->duracao, sizeof ep->duracao, "%d min", (int)(jf_seg((long long)tk) / 60.0 + 0.5));
+-          if (txtRaiz(p, f, "PremiereDate", data, sizeof data) && strlen(data) >= 10)
++          if (txtRaiz(p, f, "PremiereDate", data, sizeof data) && strlen(data) >= 10) {
++            snprintf(ep->dataIso, sizeof ep->dataIso, "%s", data);
+             snprintf(ep->data, sizeof ep->data, "%.2s/%.2s/%.4s", data + 8, data + 5, data);
++          }
+           if (blocoRaiz(p, f, "ImageTags", &ti, &tf) && txtRaiz(ti, tf, "Primary", tag, sizeof tag))
+             imagem(c, el, "Primary", tag, "maxWidth=640", ep->thumb, sizeof ep->thumb);
+           n++;
+@@ -876,6 +878,7 @@ typedef struct {
    unsigned geracao;
    double pos;
    JfSessaoPlay s;
@@ -15235,7 +15275,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
  } Relato;
  
  typedef struct {
-@@ -902,7 +903,7 @@ typedef struct JfInst {
+@@ -902,7 +905,7 @@ typedef struct JfInst {
    int iniciou;
    pthread_t fioCtl, fioRel;
    int fiosVivos, parar;
@@ -15244,7 +15284,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
    unsigned geracao;
    RedeJob *jobCtl;                // control job in flight (cancel on demand)
    unsigned cancelEntrada;         // bumps on "cancel sign-in"
-@@ -973,6 +974,7 @@ static void *trabalharRel(void *u);
+@@ -973,6 +976,7 @@ static void *trabalharRel(void *u);
  
  static void iniciar(JfInst *I) {
    I->grupo = rede_grupo_criar();
@@ -15252,7 +15292,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
    if (pthread_create(&I->fioCtl, NULL, trabalharCtl, I) == 0) {
      if (pthread_create(&I->fioRel, NULL, trabalharRel, I) == 0) I->fiosVivos = 2;
      else I->fiosVivos = 1;
-@@ -1100,13 +1102,18 @@ static void soltarSnapshotLocked(JfInst *I) {
+@@ -1100,13 +1104,18 @@ static void soltarSnapshotLocked(JfInst *I) {
      apagarSegredo(I->sessoes[i].s.url, sizeof I->sessoes[i].s.url);
      I->sessoes[i].ativo = 0;
    }
@@ -15274,7 +15314,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
  static void avancarLocked(JfInst *I) {
    I->geracao++;
    if (I->grupo) rede_grupo_avancar(I->grupo);
-@@ -1163,6 +1170,7 @@ static void jfi_esquecer(JfInst *I) {
+@@ -1163,6 +1172,7 @@ static void jfi_esquecer(JfInst *I) {
    // the task (base/token in b/a never touch logs). Queued AFTER advancing so
    // the new generation does not cancel it.
    avancarLocked(I);
@@ -15282,7 +15322,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
    if (I->conta.token[0] && I->conta.base[0]) {
      char a[600];
      snprintf(a, sizeof a, "%s\n%s\n%s", I->conta.base, I->conta.token, I->conta.dispositivoId);
-@@ -1183,6 +1191,7 @@ static void jfi_esquecer_todos(JfInst *I) {
+@@ -1183,6 +1193,7 @@ static void jfi_esquecer_todos(JfInst *I) {
    garantir(I);
    pthread_mutex_lock(&I->trava);
    avancarLocked(I);
@@ -15290,7 +15330,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
    for (i = 1; i <= 32; i++) { arquivo(I, nome, sizeof nome, i); dados_apagar(nome); }
    apagarSegredo(&I->conta, sizeof I->conta);
    carregarLocked(I);
-@@ -1194,6 +1203,7 @@ static void jfi_encerrar(JfInst *I) {
+@@ -1194,6 +1205,7 @@ static void jfi_encerrar(JfInst *I) {
    pthread_mutex_lock(&I->trava);
    I->parar = 1;
    avancarLocked(I);
@@ -15298,7 +15338,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
    vivos = I->fiosVivos;
    pthread_cond_broadcast(&I->sinalCtl);
    pthread_cond_broadcast(&I->sinalRel);
-@@ -1205,6 +1215,7 @@ static void jfi_encerrar(JfInst *I) {
+@@ -1205,6 +1217,7 @@ static void jfi_encerrar(JfInst *I) {
    free(I->snapItens); I->snapItens = NULL;
    free(I->fontesLista); I->fontesLista = NULL;
    if (I->grupo) { rede_grupo_cancelar(I->grupo); rede_grupo_soltar(I->grupo); I->grupo = NULL; }
@@ -15306,7 +15346,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
    apagarSegredo(&I->conta, sizeof I->conta);
    pthread_mutex_unlock(&I->trava);
  }
-@@ -1684,10 +1695,10 @@ static void *trabalharRel(void *u) {
+@@ -1684,10 +1697,10 @@ static void *trabalharRel(void *u) {
      apagarSegredo(&I->filaRel[I->iniRel], sizeof I->filaRel[I->iniRel]);
      I->iniRel = (I->iniRel + 1) % JF_FILA_REL;
      I->nRel--;
@@ -15321,7 +15361,7 @@ index 874f87fde06bf0bb3a3ca5f3702e82ba546bafb5..105156ea4083524270c4d9db6c70ddac
      }
      pthread_mutex_unlock(&I->trava);
      if (j) {
-@@ -1734,7 +1745,7 @@ static void relatarLocked(JfInst *I, int evento, const Sessao *s, double pos) {
+@@ -1734,7 +1747,7 @@ static void relatarLocked(JfInst *I, int evento, const Sessao *s, double pos) {
    r->evento = evento;
    r->geracao = s->geracao;
    r->pos = pos;
@@ -17792,10 +17832,22 @@ index 183d7324ef5a7f519678a893ae36c12c6707f28f..8f797fb46e5f4aaa3a5cc57ad8ceafe2
  void player_aprender_creditos(void);
  int player_indice(void);
 diff --git a/src/plex.c b/src/plex.c
-index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f077fabf26 100644
+index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a3e8dbce0077a88c16c08d62aa4171b28855bf72 100644
 --- a/src/plex.c
 +++ b/src/plex.c
-@@ -733,6 +733,19 @@ int px_ler_fontes(const PxConta *c, const char *rk, const char *corpo, size_t n,
+@@ -531,8 +531,10 @@ int px_ler_episodios(const PxConta *c, const char *corpo, size_t n, CatEp *out,
+         txtRaiz(p, f, "summary", ep->sinopse, sizeof ep->sinopse);
+         dur = numRaiz(p, f, "duration", 0);
+         if (dur > 0) snprintf(ep->duracao, sizeof ep->duracao, "%d min", (int)(dur / 60000.0 + 0.5));
+-        if (txtRaiz(p, f, "originallyAvailableAt", data, sizeof data) && strlen(data) >= 10)
++        if (txtRaiz(p, f, "originallyAvailableAt", data, sizeof data) && strlen(data) >= 10) {
++          snprintf(ep->dataIso, sizeof ep->dataIso, "%s", data);
+           snprintf(ep->data, sizeof ep->data, "%.2s/%.2s/%.4s", data + 8, data + 5, data);
++        }
+         if (txtRaiz(p, f, "thumb", thumb, sizeof thumb)) imagem(c, thumb, 640, 360, ep->thumb, sizeof ep->thumb);
+         k++;
+       }
+@@ -733,6 +735,19 @@ int px_ler_fontes(const PxConta *c, const char *rk, const char *corpo, size_t n,
  }
  
  // ------------------------------------------------------------ requests
@@ -17815,7 +17867,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
  // One request. Logs operation/status/latency only: never the URL (the host can
  // be a private address, the query can carry a token).
  static int pedir(const PxConta *c, const char *url, const char *token, const char *metodo,
-@@ -768,6 +781,12 @@ static int pedir(const PxConta *c, const char *url, const char *token, const cha
+@@ -768,6 +783,12 @@ static int pedir(const PxConta *c, const char *url, const char *token, const cha
    p.max_bytes = PX_CORPO_MAX;
    p.seguir = 1;
    p.job = job;
@@ -17828,7 +17880,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    // #290: only the configured personal server (c->base) may skip certificate
    // verification, and only on its own origin (rede.h). plex.tv keeps it.
    if (c && c->base[0] && !strncmp(url, c->base, strlen(c->base))) {
-@@ -1008,6 +1027,7 @@ typedef struct {
+@@ -1008,6 +1029,7 @@ typedef struct {
    unsigned geracao;
    double pos;
    PxSessaoPlay s;
@@ -17836,7 +17888,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
  } Relato;
  
  typedef struct {
-@@ -1023,7 +1043,7 @@ static pthread_cond_t sinalCtl = PTHREAD_COND_INITIALIZER, sinalRel = PTHREAD_CO
+@@ -1023,7 +1045,7 @@ static pthread_cond_t sinalCtl = PTHREAD_COND_INITIALIZER, sinalRel = PTHREAD_CO
  static pthread_once_t uma = PTHREAD_ONCE_INIT;
  static pthread_t fioCtl, fioRel;
  static int fiosVivos, parar;
@@ -17845,7 +17897,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
  static unsigned geracao = 1;
  static RedeJob *jobCtl;
  static unsigned cancelEntrada;
-@@ -1045,6 +1065,7 @@ static int nSnapFils, nSnapItens;
+@@ -1045,6 +1067,7 @@ static int nSnapFils, nSnapItens;
  static unsigned snapVersao;
  static PxIdx *indice;
  static int nIndice;
@@ -17853,7 +17905,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
  
  static char fontesAlvo[JFID_MAX];
  static int fontesEstado = PX_FONTES_NADA;
-@@ -1061,6 +1082,7 @@ static void *trabalharRel(void *u);
+@@ -1061,6 +1084,7 @@ static void *trabalharRel(void *u);
  
  static void iniciar(void) {
    grupo = rede_grupo_criar();
@@ -17861,7 +17913,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    if (pthread_create(&fioCtl, NULL, trabalharCtl, NULL) == 0) {
      if (pthread_create(&fioRel, NULL, trabalharRel, NULL) == 0) fiosVivos = 2;
      else fiosVivos = 1;
-@@ -1171,14 +1193,20 @@ static void soltarSnapshotLocked(void) {
+@@ -1171,14 +1195,20 @@ static void soltarSnapshotLocked(void) {
    nSnapFils = nSnapItens = 0;
    snapVersao++;
    free(indice); indice = NULL; nIndice = 0;
@@ -17884,7 +17936,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
  }
  
  static void avancarLocked(void) {
-@@ -1241,6 +1269,7 @@ void plex_esquecer(void) {
+@@ -1241,6 +1271,7 @@ void plex_esquecer(void) {
    pthread_mutex_lock(&trava);
    conferirPerfilLocked();
    avancarLocked();
@@ -17892,7 +17944,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    cancelEntrada++;
    arquivo(nome, sizeof nome, perfis_ativo());
    dados_apagar(nome);
-@@ -1258,6 +1287,7 @@ void plex_esquecer_todos(void) {
+@@ -1258,6 +1289,7 @@ void plex_esquecer_todos(void) {
    garantir();
    pthread_mutex_lock(&trava);
    avancarLocked();
@@ -17900,7 +17952,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    cancelEntrada++;
    for (i = 1; i <= 32; i++) { arquivo(nome, sizeof nome, i); dados_apagar(nome); }
    apagarSegredo(&conta, sizeof conta);
-@@ -1270,6 +1300,7 @@ void plex_encerrar(void) {
+@@ -1270,6 +1302,7 @@ void plex_encerrar(void) {
    pthread_mutex_lock(&trava);
    parar = 1;
    avancarLocked();
@@ -17908,7 +17960,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    vivos = fiosVivos;
    pthread_cond_broadcast(&sinalCtl);
    pthread_cond_broadcast(&sinalRel);
-@@ -1281,6 +1312,7 @@ void plex_encerrar(void) {
+@@ -1281,6 +1314,7 @@ void plex_encerrar(void) {
    free(snapItens); snapItens = NULL;
    free(fontesLista); fontesLista = NULL;
    if (grupo) { rede_grupo_cancelar(grupo); rede_grupo_soltar(grupo); grupo = NULL; }
@@ -17916,7 +17968,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    apagarSegredo(&conta, sizeof conta);
    pthread_mutex_unlock(&trava);
  }
-@@ -1671,6 +1703,7 @@ static void tarefaBibliotecas(const Tarefa *t) {
+@@ -1671,6 +1705,7 @@ static void tarefaBibliotecas(const Tarefa *t) {
        free(indice);
        indice = idx; idx = NULL;
        nIndice = nIdx;
@@ -17924,7 +17976,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
        printf("[plex] external-id index: %d title(s)\n", nIdx);
      }
      pthread_mutex_unlock(&trava);
-@@ -1776,10 +1809,10 @@ static void *trabalharRel(void *u) {
+@@ -1776,10 +1811,10 @@ static void *trabalharRel(void *u) {
      apagarSegredo(&filaRel[iniRel], sizeof filaRel[iniRel]);
      iniRel = (iniRel + 1) % PX_FILA_REL;
      nRel--;
@@ -17939,7 +17991,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
      }
      pthread_mutex_unlock(&trava);
      if (j) {
-@@ -1822,7 +1855,7 @@ static void relatarLocked(int evento, const Sessao *s, double pos) {
+@@ -1822,7 +1857,7 @@ static void relatarLocked(int evento, const Sessao *s, double pos) {
    r->evento = evento;
    r->geracao = s->geracao;
    r->pos = pos;
@@ -17948,7 +18000,7 @@ index 3bdb229885d9c66d95b9eaa24c9e2075193d230d..a869f35659605cd7662e2e6f73a5f7f0
    nRel++;
    pthread_cond_signal(&sinalRel);
  }
-@@ -1921,6 +1954,188 @@ int plex_fontes_colher(const char *alvo, Stream **lista, int *n) {
+@@ -1921,6 +1956,188 @@ int plex_fontes_colher(const char *alvo, Stream **lista, int *n) {
    return e;
  }
  
@@ -18619,7 +18671,7 @@ index 1a23178826553c48bafb17a1e276f674f2bc47e9..db55071ce1362172b426b29d1a8a37ec
  void ponteiro_cancelar_toque(void);
  // Cancela somente uma ativacao pendente do alvo com este foco. Gestos de
 diff --git a/src/posplay.c b/src/posplay.c
-index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca70498560 100644
+index 81e2f8e4620dd635af06699b473d7ad82d425d46..217b14ba2d24022d0439eec2c0100328db6a98b1 100644
 --- a/src/posplay.c
 +++ b/src/posplay.c
 @@ -2,6 +2,7 @@
@@ -18679,7 +18731,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
    if (t) *t = pedT;
    if (e) *e = pedE;
    pedT = pedE = 0;
-@@ -245,19 +259,27 @@ static void prepararProximo(int ehSerie, double resta) {
+@@ -245,30 +259,50 @@ static void prepararProximo(int ehSerie, double resta) {
    const CatItem *ci = cat_item(idx);
    long long quando;
    int t = 0, e = 0, n = cat_n_episodios(idx), proximo;
@@ -18713,7 +18765,12 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
    player_episodio_atual(&t, &e);
    if (t <= 0 || e <= 0) return;
    proximo = prox_indice_seguinte(n ? cat_episodio(idx, 0) : NULL, n, t, e);
-@@ -269,6 +291,18 @@ static void prepararProximo(int ehSerie, double resta) {
+   px = proximo >= 0 ? cat_episodio(idx, proximo) : NULL;
+   if (!px) return;
+-  quando = prox_data_ms(px->data);
++  quando = prox_episodio_data_ms(px);
+   // Desconhecido nao prova que ja estreou: nao gasta rede especulativa.
+   if (quando == PROX_SEM_DATA || quando > (long long)time(NULL) * 1000) return;
    if (!cat_id_stream(idx, px->temporada, px->episodio, preAlvo, sizeof preAlvo) ||
        jfid_e(preAlvo)) return;
    preEscopo = escopo;
@@ -18744,7 +18801,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
  
    if (ehSerie) {
      // A JANELA quem decide e o player: ele e o unico que sabe se os creditos
-@@ -471,6 +508,36 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+@@ -471,6 +508,45 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
      else fecharEm = posplay_contagem(agora, abriuEm, fecharEm, resta, ajustes_proximo_auto(), marcadorReal, ajustes_proximo_contagem());
    }
  
@@ -18756,6 +18813,10 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
 +    static Uint32 testQuando;
 +    static int testT, testE;
 +    int t = 0, e = 0;
++    const CatEp *testProximo = player_proximo_episodio();
++    long long testLancamento = prox_episodio_data_ms(testProximo);
++    int testDataConhecida = testLancamento != PROX_SEM_DATA;
++    int testFutura = testDataConhecida && testLancamento > (long long)time(NULL) * 1000;
 +    player_episodio_atual(&t, &e);
 +    unsigned estado = (unsigned)!!visivel | (unsigned)!!fecharEm << 1 |
 +      (unsigned)!!marcadorReal << 2 | (unsigned)!!aguardaCena << 3 |
@@ -18764,16 +18825,21 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
 +      (unsigned)!!ajustes_pular_creditos() << 8 | (unsigned)!!janelaSerie << 9 |
 +      (unsigned)!!preVideoTentou << 10 | (unsigned)!!preVideoRenovou << 11 |
 +      (unsigned)!!pedT << 12 | (unsigned)!!video_terminou() << 13 |
-+      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15;
++      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15 |
++      (unsigned)!!ajustes_fonte_precarregar() << 16 | (unsigned)!!ajustes_fonte_preparar() << 17 |
++      (unsigned)!!ajustes_fonte_manual() << 18 | (unsigned)!!testDataConhecida << 19 |
++      (unsigned)!!testFutura << 20;
 +    int perto = visivel || janelaSerie || preVideoTentou || aguardaBusca;
 +    if (ehSerie && (estado != testEstado || t != testT || e != testE ||
 +                    (perto && agora - testQuando >= 5000u))) {
-+      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d\n",
++      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d preload_enabled=%d prepare_enabled=%d manual=%d release_known=%d release_future=%d release_ms=%lld\n",
 +        agora, t, e, proxT, proxE, posSeg, video_pos(), durSeg, video_terminou(), video_pronto(),
 +        video_bufferando_ms(), player_velocidade_efetiva(), creditosSeg,
 +        marcadorReal, janelaSerie, visivel, ajustes_proximo_auto(), ajustes_pular_creditos(),
 +        aguardaCena, aguardaBusca, recuou, dispensado,
-+        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou);
++        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou,
++        ajustes_fonte_precarregar(), ajustes_fonte_preparar(), ajustes_fonte_manual(),
++        testDataConhecida, testFutura, testDataConhecida ? testLancamento : 0LL);
 +      testEstado = estado; testQuando = agora; testT = t; testE = e;
 +    }
 +  }
@@ -18781,7 +18847,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
    // A contagem so vale para o proximo episodio.
    if (visivel && fecharEm && agora >= fecharEm) {
      pedT = proxT; pedE = proxE;
-@@ -486,6 +553,10 @@ int posplay_evento(const SDL_Event *e) {
+@@ -486,6 +562,10 @@ int posplay_evento(const SDL_Event *e) {
    if (toquerol_navegacao(e)) toquerol_limpar(&toquePP);
  #endif
    k = e->key.keysym.sym;
@@ -18792,7 +18858,7 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
    if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
        e->key.keysym.scancode == NV_SCANCODE_BACK) {
      // Dispensar CANCELA a contagem e deixa o video terminar em paz. E GRUDA:
-@@ -741,7 +812,7 @@ static void posplay_desenharCorpo_(Uint32 agora, float baseY) {
+@@ -741,7 +821,7 @@ static void posplay_desenharCorpo_(Uint32 agora, float baseY) {
      if (telefoneui_ativo()) {
        float vista = ilha.w - 54.0f, max = fmaxf(0, n * 212.0f - 22.0f - vista);
        toquerol_vincular(&toquePP, (GfxRect){cx, y - 20, vista, 313}, gfx_escala(), 0, max, 0, &scrollPP);
@@ -18801,6 +18867,92 @@ index 81e2f8e4620dd635af06699b473d7ad82d425d46..53b3bf23f6a2f34e6c6a66e14bd55aca
          float esq = foco * 212.0f, dir = esq + 190;
          if (esq < scrollPP) scrollPP = esq;
          if (dir > scrollPP + vista) scrollPP = dir - vista;
+diff --git a/src/proximo.c b/src/proximo.c
+index ade096c1ed3d7bdb735630087e049005008b3f66..d43bc632ffaf037040e53357261e3f71d486a948 100644
+--- a/src/proximo.c
++++ b/src/proximo.c
+@@ -78,6 +78,31 @@ long long prox_data_ms(const char *data) {
+   return diasCivis(a, m, d) * 86400000LL;
+ }
+ 
++long long prox_episodio_data_ms(const CatEp *ep) {
++  static const int DIAS[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
++  const char *iso;
++  int a, m, d, limite, i;
++  if (!ep) return PROX_SEM_DATA;
++  if (!ep->dataIso[0]) return prox_data_ms(ep->data);  // pacote legado
++  iso = ep->dataIso;
++  // So o calendario do metadata decide a estreia. Nao inventa mes/dia para
++  // um ano isolado nem normaliza uma data impossivel como 31 de fevereiro.
++  if (strlen(iso) < 10 || iso[4] != '-' || iso[7] != '-' ||
++      (iso[10] && iso[10] != 'T')) return PROX_SEM_DATA;
++  for (i = 0; i < 10; i++)
++    if (i != 4 && i != 7 && (iso[i] < '0' || iso[i] > '9')) return PROX_SEM_DATA;
++  a = (iso[0] - '0') * 1000 + (iso[1] - '0') * 100 +
++      (iso[2] - '0') * 10 + iso[3] - '0';
++  m = (iso[5] - '0') * 10 + iso[6] - '0';
++  d = (iso[8] - '0') * 10 + iso[9] - '0';
++  if (a < 1 || m < 1 || m > 12) return PROX_SEM_DATA;
++  limite = DIAS[m - 1] + (m == 2 && a % 4 == 0 && (a % 100 != 0 || a % 400 == 0));
++  if (d < 1 || d > limite) return PROX_SEM_DATA;
++  // Como a regra legada, a data de estreia e o dia civil UTC; o horario
++  // opcional do ISO nao muda a politica existente de episodios por dia.
++  return diasCivis(a, m, d) * 86400000LL;
++}
++
+ int prox_mostrar_nao_acompanhada(long long semeadoEmMs, long long lancamentoMs,
+                                  long long agoraMs) {
+   long long dist;
+@@ -113,7 +138,7 @@ int prox_para_item(const CatItem *ci, const CatEp *eps, int n,
+     if (!valido(&eps[i])) continue;
+     // Serie nao acompanhada e o unico caso que o nativo conhece (ver o
+     // cabecalho): sem data legivel, ou fora da janela de noticia, nao mostra.
+-    if (!prox_mostrar_nao_acompanhada(0, prox_data_ms(eps[i].data), agoraMs))
++    if (!prox_mostrar_nao_acompanhada(0, prox_episodio_data_ms(&eps[i]), agoraMs))
+       return 0;
+     saida->temporada = eps[i].temporada;
+     saida->episodio  = eps[i].episodio;
+@@ -138,7 +163,7 @@ int prox_seguinte(const CatItem *ci, const CatEp *eps, int n, int limiarPct,
+   for (i = ancora + 1; i < n; i++) {
+     long long quando;
+     if (!valido(&eps[i])) continue;
+-    quando = prox_data_ms(eps[i].data);
++    quando = prox_episodio_data_ms(&eps[i]);
+     if (quando != PROX_SEM_DATA && quando > agoraMs) return 0;   // nao foi ao ar
+     saida->temporada = eps[i].temporada;
+     saida->episodio  = eps[i].episodio;
+diff --git a/src/proximo.h b/src/proximo.h
+index 5239a5f600531b8570eecbc7c251a99cb16e14fc..095166c3200f5cbbde01a4f5806b7f6bce6bcb1f 100644
+--- a/src/proximo.h
++++ b/src/proximo.h
+@@ -49,10 +49,11 @@
+ //    portadas: sao preferencia de interface, e a janela de 60 dias ja limita o
+ //    futuro pelos dois lados.
+ //
+-// 5. A data do episodio chega por EXTENSO ("27 de janeiro de 2023"), montada
+-//    por desc_data_extenso; o web recebe ISO. Data que nao da para ler vira
+-//    "sem data", e sem data nao se mostra nada — igual ao JS, que devolve false
+-//    quando `parseReleaseEpochMs` da null (nextUpWatchingPolicy.js:36).
++// 5. A data de estreia conserva o ISO do metadata separado do texto traduzido
++//    por desc_data_extenso. O pacote antigo so tem a data por extenso em
++//    portugues. Data que nao da para ler vira "sem data", e sem data nao se
++//    mostra nada — igual ao JS, que devolve false quando `parseReleaseEpochMs`
++//    da null (nextUpWatchingPolicy.js:36).
+ #ifndef NV_PROXIMO_H
+ #define NV_PROXIMO_H
+ #include <limits.h>
+@@ -107,6 +108,11 @@ int prox_ancora(const CatEp *eps, int n, int temporada, int episodio,
+ // so o ano sobrou, que e o que desc_data_extenso deixa passar com ISO curto.
+ long long prox_data_ms(const char *data);
+ 
++// Estreia de um episodio: prefere o ISO original, independente do idioma da
++// interface. ISO presente mas invalido e desconhecido; nao cai no texto da
++// tela. So o pacote legado, sem ISO, usa a data portuguesa/ISO em `data`.
++long long prox_episodio_data_ms(const CatEp *ep);
++
+ // shouldSurfaceNextUpForUntrackedSeries (nextUpWatchingPolicy.js:29), 1:1.
+ // `lancamentoMs` == PROX_SEM_DATA e o `null` do parseReleaseEpochMs de la.
+ int prox_mostrar_nao_acompanhada(long long semeadoEmMs, long long lancamentoMs,
 diff --git a/src/proximopreparo.c b/src/proximopreparo.c
 new file mode 100644
 index 0000000000000000000000000000000000000000..4f5d7a301ee749d3909bc549e8e83a1309fbff10
