@@ -531,8 +531,10 @@ int px_ler_episodios(const PxConta *c, const char *corpo, size_t n, CatEp *out, 
         txtRaiz(p, f, "summary", ep->sinopse, sizeof ep->sinopse);
         dur = numRaiz(p, f, "duration", 0);
         if (dur > 0) snprintf(ep->duracao, sizeof ep->duracao, "%d min", (int)(dur / 60000.0 + 0.5));
-        if (txtRaiz(p, f, "originallyAvailableAt", data, sizeof data) && strlen(data) >= 10)
+        if (txtRaiz(p, f, "originallyAvailableAt", data, sizeof data) && strlen(data) >= 10) {
+          snprintf(ep->dataIso, sizeof ep->dataIso, "%s", data);
           snprintf(ep->data, sizeof ep->data, "%.2s/%.2s/%.4s", data + 8, data + 5, data);
+        }
         if (txtRaiz(p, f, "thumb", thumb, sizeof thumb)) imagem(c, thumb, 640, 360, ep->thumb, sizeof ep->thumb);
         k++;
       }
