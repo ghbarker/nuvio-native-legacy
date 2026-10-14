@@ -469,7 +469,7 @@ static void ajToqueConfirmar(int a, int b) {
 }
 static void ajToqueCancelar(int a, int b) { (void)a; (void)b; if (uxEditor) uxCancelar(); }
 static void ajToqueEscolhaAlvo(GfxRect r, int v, int op, float topo, float base) {
-  if (ajPontInline && ajEditandoLinha(op))
+  if (ajTelaCheia() && ajPontInline && ajEditandoLinha(op))
     ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, NULL, ajToqueInlineValor, v, op);
 }
 static void ajToqueBotoes(float direita, float yc, float a) {
@@ -749,7 +749,7 @@ static int ajCusto(int op) {
       return 1;
     case AJ_MANTER_VIDEO: case AJ_HERO_TRAILER: case AJ_FIL_LIMITE: return 1 | 2;
     case AJ_QUALIDADE: case AJ_TMDB_LIGADO: case AJ_MDB_LIGADO: case AJ_FONTE_AQUECER:
-    case AJ_FONTE_CONFERIR_VARIAS: case AJ_FONTE_PREPARAR: case AJ_TRAILER_QUAL: case AJ_DET_TRAILER_AUTO:
+    case AJ_FONTE_CONFERIR_VARIAS: case AJ_FONTE_PREPARAR: case AJ_FONTE_PRECARREGAR: case AJ_TRAILER_QUAL: case AJ_DET_TRAILER_AUTO:
       return 2;
     case AJ_SEEKR_LIGADO: return 2 | 4;
     case AJ_P2P_LIGADO: case AJ_FANART_CHAVE: case AJ_SEEKR_CHAVE: case AJ_MDB_CHAVE: case AJ_POSTER_CHAVE:
