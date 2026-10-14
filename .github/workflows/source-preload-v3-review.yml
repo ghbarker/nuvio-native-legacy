@@ -202,8 +202,8 @@ jobs:
     - name: Prepare compatible test installation in CI working copy
       run: "python3 - <<'PY'\nfrom pathlib import Path\nreplacements = {\n    Path('android/app/build.gradle.kts'): [\n  \
         \      ('applicationId = \"space.nuvio.nativelegacy\"', 'applicationId = \"space.nuvio.nativelegacy.touch\"'),\n \
-        \       ('versionCode = vx * 10000 + vy * 100 + vz', 'versionCode = 20012'),\n        ('versionName = versao', 'versionName\
-        \ = \"2.0.12-test-logs2\"'),\n    ],\n    Path('android/app/src/main/AndroidManifest.xml'): [\n        ('android:label=\"\
+        \       ('versionCode = vx * 10000 + vy * 100 + vz', 'versionCode = 20013'),\n        ('versionName = versao', 'versionName\
+        \ = \"2.0.13-test-logs3\"'),\n    ],\n    Path('android/app/src/main/AndroidManifest.xml'): [\n        ('android:label=\"\
         @string/app_name\"', 'android:label=\"Nuvio TV/Mobile Test\"'),\n        ('android:authorities=\"space.nuvio.nativelegacy.atualizacao\"\
         ', 'android:authorities=\"space.nuvio.nativelegacy.touch.atualizacao\"'),\n    ],\n}\nupdated = {}\nfor path, pairs\
         \ in replacements.items():\n    body = path.read_text()\n    for old, new in pairs:\n        if body.count(old) !=\
@@ -218,7 +218,7 @@ jobs:
         \nbash android/gradlew -p android --console=plain \\\n  -Pnuvio.sdlSrc=\"$task_cache/src\" \\\n  -Pnuvio.estagio=\"\
         $task_stage\" \\\n  -Pnuvio.ffmpegAar=\"$task_stage/media3-ffmpeg-16kb.aar\" \\\n  -Pnuvio.testLocalLogs=true \\\n\
         \  assembleDebug\ntask_version=\"$(python3 -c 'import json; print(json.load(open(\"deploy/app/appinfo.json\"))[\"\
-        version\"])')\"\ncp android/app/build/outputs/apk/debug/app-debug.apk \"build/android/Nuvio-2.0.12-test-logs2-tv-mobile-test.apk\"\
+        version\"])')\"\ncp android/app/build/outputs/apk/debug/app-debug.apk \"build/android/Nuvio-2.0.13-test-logs3-tv-mobile-test.apk\"\
         \n"
       if: ${{ matrix.delivery }}
     - name: Verify compatible test package, label, persistent signature and native packaging
@@ -399,9 +399,9 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
         PLANNED_SOURCE: ${{ fromJSON(needs.prepare.outputs.delivery).source_commit }}
-      run: "python3 .review/source-preload-v3/build/prepare_release.py\nif gh release view tv-mobile-test-local-logs-v2 >/dev/null\
+      run: "python3 .review/source-preload-v3/build/prepare_release.py\nif gh release view tv-mobile-test-local-logs-v3 >/dev/null\
         \ 2>&1; then\n  echo \"The unique preload release tag already exists; no assets will be overwritten.\"\n  exit 1\n\
-        fi\npython3 .review/source-preload-v3/build/create_release_tag.py\ngh release create tv-mobile-test-local-logs-v2\
-        \ --verify-tag delivery/Nuvio-TV-Mobile-Test-Logs2.apk delivery/Nuvio-TV-Mobile-Test-Logs2.apk.sha256 delivery/proof/update-identity.json\
+        fi\npython3 .review/source-preload-v3/build/create_release_tag.py\ngh release create tv-mobile-test-local-logs-v3\
+        \ --verify-tag delivery/Nuvio-TV-Mobile-Test-Logs3.apk delivery/Nuvio-TV-Mobile-Test-Logs3.apk.sha256 delivery/proof/update-identity.json\
         \ delivery/proof/media3-verified.json delivery/proof/native-gates-verified.json delivery/proof/release-tag.json --target\
-        \ \"$PLANNED_SOURCE\" --prerelease --latest=false --title \"Nuvio TV/Mobile Test: Local logs 2\" --notes-file delivery/release-notes.txt"
+        \ \"$PLANNED_SOURCE\" --prerelease --latest=false --title \"Nuvio TV/Mobile Test: Local logs 3\" --notes-file delivery/release-notes.txt"

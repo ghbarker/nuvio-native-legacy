@@ -7514,6 +7514,27 @@ index 0000000000000000000000000000000000000000..d87fd2b9c7abdfc01a4dfcf776e86f99
 +void proximopreparo_encerrar(void);
 +
 +#endif
+diff --git a/src/rede.c b/src/rede.c
+index 0b94d22bd8a8477868b70ae409e79280cb0e0646..a9fa92920d59b709dfba7ac2291d7dcfbbe61d29 100644
+--- a/src/rede.c
++++ b/src/rede.c
+@@ -1660,6 +1660,7 @@ static char *viaAndroid(const char *verbo, const char *url, int segundos,
+   long bytes = 0;
+   unsigned long t0 = redeAgoraMs();
+   static int logados;
++  redeBytesLocal = 0;
+   if (status) *status = 0;
+   for (k = 0; cab && cab[k]; k++) {
+     n += strlen(cab[k]) + 1;
+@@ -1689,6 +1690,8 @@ static char *viaAndroid(const char *verbo, const char *url, int segundos,
+   }
+   if (!r) { snprintf(redeErroTxt, sizeof redeErroTxt, "android: %.180s", erro); return NULL; }
+   redeErroTxt[0] = 0;
++  // Os wrappers medidos leem este contador mesmo sem pedir `tam`.
++  redeBytesLocal = bytes;
+   if (st == 401 && aviso401) aviso401(url);
+   if (status) *status = st;
+   else if (st < 200 || st > 299) { free(r); return NULL; }  // como rede_baixar sem status
 diff --git a/src/sessao.c b/src/sessao.c
 index f952da225f6a47e23cfb8a426a8c024c1d72ab20..00ec4eeb2a94e60f5c836ce311744e1862b67804 100644
 --- a/src/sessao.c

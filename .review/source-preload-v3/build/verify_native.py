@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -34,6 +35,8 @@ if flags.get('run_next'):
     required += ['next-controller', 'next-controller-asan']
 if flags.get('run_release_date'):
     required += ['release-date', 'release-date-asan']
+if flags.get('run_image_download'):
+    required += ['image-download']
 if flags.get('run_skip_next'):
     required += ['skip-next-player', 'skip-next-player-asan', 'skip-next-app', 'skip-next-app-asan']
 if flags.get('run_screens_watched'):
@@ -51,6 +54,24 @@ assert sorted(seen) == sorted(name + ' PASS' for name in required), (seen, requi
 assert (output / 'app-tv').is_file() and (output / 'app-mobile').is_file()
 source = json.loads((output.parent / 'source-verified.json').read_text())
 assert source['verified'] and source['phase'] == 'final' and source['case'] == flags['id']
+image_download_proofs = []
+if flags.get('run_image_download'):
+    image_report = json.loads((output / 'image-download/report.json').read_text())
+    image_runs = image_report['runs']
+    assert len(image_runs) == 2 and {run['mode'] for run in image_runs} == {'normal', 'asan'}
+    image_source_hash = hashlib.sha256(Path('src/rede.c').read_bytes()).hexdigest()
+    for run in image_runs:
+        assert Path(run['source_root']).resolve() == Path.cwd().resolve()
+        assert run['rede_sha256'] == image_source_hash
+        assert run['exit_code'] == run['expected_exit_code'] == 0
+        assert len(run['checks']) == 13 and all(check.startswith('CHECK PASS ') for check in run['checks'])
+        assert len(set(run['checks'])) == 13
+        assert ('-fsanitize=address,undefined' in run['compile_command']) == (run['mode'] == 'asan')
+        assert '-DNV_ANDROID=1' in run['compile_command']
+        image_download_proofs.append({'mode': run['mode'], 'checks_passed': 13,
+            'actual_rede_sha256': image_source_hash,
+            'sanitizers': ['address', 'undefined'] if run['mode'] == 'asan' else [],
+            'transport_boundaries': ['Android HTTP/JNI', 'curl transport']})
 records = [json.loads(path.read_text()) for path in (output.parent / 'compile').glob('*-invocation.json')]
 assert records, 'No original/effective compiler flag records'
 for record in records:
@@ -92,6 +113,9 @@ proof = {'catalog_entries': flags['catalog_entries'], 'catalog_count': 29,
          'same_product_source_reverification_required': True,
          'release_date_regression_modes': ['normal', 'address+undefined'] if flags.get('run_release_date') else [],
          'release_date_actual_product_paths': ['src/descoberta.c', 'src/catalogo.h', 'src/proximo.c', 'src/proximo.h', 'src/posplay.c', 'src/proximopreparo.c'] if flags.get('run_release_date') else [],
+         'image_download_regression_modes': ['normal', 'address+undefined'] if flags.get('run_image_download') else [],
+         'image_download_actual_product_paths': ['src/rede.c', 'src/redeurl.c'] if flags.get('run_image_download') else [],
+         'image_download_actual_regressions': image_download_proofs,
          'expanded_next_ready_cases': ['next_preload_controller', 'next_preload_posplay', 'next_ready_posplay_joined', 'next_ready_source_only'] if flags.get('run_next_ready') else [],
          'legacy_mkv_original_api_runs': 7 if flags.get('run_legacy_mkv') else 0,
          'owned_mkv_modes': ['normal', 'address+undefined'] if flags.get('run_owned_mkv') else [],

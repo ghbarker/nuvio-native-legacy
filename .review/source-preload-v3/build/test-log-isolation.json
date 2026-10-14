@@ -4,9 +4,9 @@
   "never_include_in_pr": true,
   "clean_products_checked": true,
   "isolated_delivery_copy": true,
-  "standalone_source_root": "/workspace/review/source-preload-build/release-date-fix/source-standalone",
-  "combined_product_root": "/workspace/review/source-preload-build/release-date-fix/source-clean-combined",
-  "combined_delivery_root": "/workspace/review/source-preload-build/final-build-v4/product-snapshots/combined-delivery",
+  "standalone_source_root": "/workspace/review/image-download-fix/source-standalone",
+  "combined_product_root": "/workspace/review/image-download-fix/source-clean-combined",
+  "combined_delivery_root": "/workspace/review/image-download-fix/build-stage/product-snapshots/combined-delivery",
   "standalone_files": {
     "src/seekrquota.c": {
       "sha256": "87a1025f88024c850f59828e803456fb15f262113ba372814f60f41b45e447b0",
@@ -2801,7 +2801,7 @@
       "mode": "100644"
     },
     "src/rede.c": {
-      "sha256": "10bf3849093fc1f389a3955c47dbb7993fe4e16c1aba00a663871d3b5d9d5ad0",
+      "sha256": "9db0be0c1ed94c47b6928af010ce49c0a2855903c7028eddb42154606fba57cd",
       "mode": "100644"
     },
     "src/proxyts.h": {
@@ -6403,7 +6403,7 @@
       "mode": "100644"
     },
     "src/rede.c": {
-      "sha256": "10bf3849093fc1f389a3955c47dbb7993fe4e16c1aba00a663871d3b5d9d5ad0",
+      "sha256": "9db0be0c1ed94c47b6928af010ce49c0a2855903c7028eddb42154606fba57cd",
       "mode": "100644"
     },
     "src/proxyts.h": {
@@ -7370,11 +7370,11 @@
   ],
   "overlays": [
     {
-      "helper_path": "/workspace/review/source-preload-build/final-build-v4/test-next-trace/apply.py",
+      "helper_path": "/workspace/review/image-download-fix/build-stage/test-next-trace/apply.py",
       "sha256": "645222d2f3d9a47701f48f960dd84584958da5d4a95683bbf7e2883d7f31bfc0"
     },
     {
-      "helper_path": "/workspace/review/source-preload-build/final-build-v4/test-local-logs/apply.py",
+      "helper_path": "/workspace/review/image-download-fix/build-stage/test-local-logs/apply.py",
       "sha256": "dae3182b473e5abc0886000e3d64f26e5c141df209c11a3de34b962c0c658971"
     }
   ],

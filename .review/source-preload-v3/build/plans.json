@@ -32,7 +32,8 @@
       "run_skip_next": false,
       "test_local_logs": false,
       "run_release_date": true,
-      "patch_sha256": "4fd32553a2502ade500654eb719b89f079d2bca550de8ecded9c210e0c1682a8"
+      "run_image_download": true,
+      "patch_sha256": "a173b8f5337896ee3278ec2f5fd6924785ec4115f931486b3981c28089aed34e"
     },
     {
       "id": "combined-delivery",
@@ -62,14 +63,15 @@
       "run_skip_next": false,
       "test_local_logs": true,
       "run_release_date": true,
-      "patch_sha256": "331ba6188287fe0bd85cc1deca6ab99aaca4573434637611457125cca473aedc"
+      "run_image_download": true,
+      "patch_sha256": "d2a5b6cc96cbe9927d2a69e97659123ee456c05a47f249924633d64505c7654d"
     }
   ],
   "test_release": {
-    "tag": "tv-mobile-test-local-logs-v2",
-    "apk": "Nuvio-TV-Mobile-Test-Logs2.apk",
-    "version_code": 20012,
-    "version_name": "2.0.12-test-logs2",
+    "tag": "tv-mobile-test-local-logs-v3",
+    "apk": "Nuvio-TV-Mobile-Test-Logs3.apk",
+    "version_code": 20013,
+    "version_name": "2.0.13-test-logs3",
     "package": "space.nuvio.nativelegacy.touch",
     "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
   },

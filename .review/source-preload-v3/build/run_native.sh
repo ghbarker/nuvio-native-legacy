@@ -136,6 +136,11 @@ if task_enabled run_release_date; then
   task_run release-date env SANITIZE=0 python3 "$task_review/release-date-gates/run.py" --root "$PWD" --output "$task_output/release-date/normal"
   task_run release-date-asan env SANITIZE=1 ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 python3 "$task_review/release-date-gates/run.py" --root "$PWD" --output "$task_output/release-date/asan-ubsan"
 fi
+if task_enabled run_image_download; then
+  # One mandatory gate executes actual Android measured binary downloads in
+  # both normal and ASan/UBSan modes; JNI/network transport is controlled.
+  task_run image-download python3 "$task_review/image-download-gates/run.py" --root "$PWD" --output "$task_output/image-download" --mode both
+fi
 if task_enabled run_skip_next; then
   # These additions retain every V2 gate above and exercise the real player,
   # countdown, preparation controller and literal app Next request block.

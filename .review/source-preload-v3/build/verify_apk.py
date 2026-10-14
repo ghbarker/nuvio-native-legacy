@@ -24,7 +24,7 @@ package = 'space.nuvio.nativelegacy.touch' if args.test else 'space.nuvio.native
 assert re.search(r"^package: name='" + re.escape(package) + "'", badging, re.M)
 if args.test:
     assert re.search(r"^application-label:'Nuvio TV/Mobile Test'", badging, re.M)
-    assert "versionCode='20012'" in badging and "versionName='2.0.12-test-logs2'" in badging
+    assert "versionCode='20013'" in badging and "versionName='2.0.13-test-logs3'" in badging
 signing = subprocess.check_output([args.apksigner, 'verify', '--verbose', '--print-certs', str(apk)], text=True)
 assert 'Signer #1 certificate SHA-256 digest: ' + CERT in signing
 with zipfile.ZipFile(apk) as archive:
@@ -44,7 +44,7 @@ proof = {**source, 'apk_sha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
          'abis': ['arm64-v8a', 'armeabi-v7a'], 'certificate_sha256': CERT,
          'native_page_packaging': 'passed', 'test_package': args.test}
 if args.test:
-    proof.update(label='Nuvio TV/Mobile Test', version_code=20012, version_name='2.0.12-test-logs2')
+    proof.update(label='Nuvio TV/Mobile Test', version_code=20013, version_name='2.0.13-test-logs3')
     proof['test_local_logs_enabled'] = source['case'] == 'combined-delivery'
 output = Path('build/review/update-identity.json' if args.test else 'build/review/standard-identity.json')
 output.write_text(json.dumps(proof, indent=2) + '\n')

@@ -1,6 +1,6 @@
 {
   "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
-  "source_root": "/workspace/review/source-preload-build/final-build-v4/product-snapshots/combined-delivery",
+  "source_root": "/workspace/review/image-download-fix/build-stage/product-snapshots/combined-delivery",
   "files": [
     {
       "path": "README.md",
@@ -1079,6 +1079,13 @@
       "sha": "34329d2e4fb98c231ac2d9e1d87c97bb88b943e5",
       "sha256": "d4a36760fffe0019be25bd845540da203cb9160ed55c98e69c0e2810d6d832e4",
       "bytes": 5087
+    },
+    {
+      "path": "src/rede.c",
+      "mode": "100644",
+      "sha": "a9fa92920d59b709dfba7ac2291d7dcfbbe61d29",
+      "sha256": "9db0be0c1ed94c47b6928af010ce49c0a2855903c7028eddb42154606fba57cd",
+      "bytes": 136471
     },
     {
       "path": "src/registro.c",

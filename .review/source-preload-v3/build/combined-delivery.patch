@@ -21289,6 +21289,27 @@ index 3065e18c59691d93823453b1f7decade78887542..34329d2e4fb98c231ac2d9e1d87c97bb
  void recresp_esquecer(void);
 +void recresp_abrir_sessao(void); // invalida memoria sem apagar respostas salvas
  #endif
+diff --git a/src/rede.c b/src/rede.c
+index 0b94d22bd8a8477868b70ae409e79280cb0e0646..a9fa92920d59b709dfba7ac2291d7dcfbbe61d29 100644
+--- a/src/rede.c
++++ b/src/rede.c
+@@ -1660,6 +1660,7 @@ static char *viaAndroid(const char *verbo, const char *url, int segundos,
+   long bytes = 0;
+   unsigned long t0 = redeAgoraMs();
+   static int logados;
++  redeBytesLocal = 0;
+   if (status) *status = 0;
+   for (k = 0; cab && cab[k]; k++) {
+     n += strlen(cab[k]) + 1;
+@@ -1689,6 +1690,8 @@ static char *viaAndroid(const char *verbo, const char *url, int segundos,
+   }
+   if (!r) { snprintf(redeErroTxt, sizeof redeErroTxt, "android: %.180s", erro); return NULL; }
+   redeErroTxt[0] = 0;
++  // Os wrappers medidos leem este contador mesmo sem pedir `tam`.
++  redeBytesLocal = bytes;
+   if (st == 401 && aviso401) aviso401(url);
+   if (status) *status = st;
+   else if (st < 200 || st > 299) { free(r); return NULL; }  // como rede_baixar sem status
 diff --git a/src/registro.c b/src/registro.c
 index 7a3720de8a2c4c7ce048120ddc3483d443d5693a..8fd38da0f4539f14d4cd11f8d438def2cbcb4738 100644
 --- a/src/registro.c
