@@ -1,0 +1,400 @@
+name: 'Complete source preloading: pinned app gates and compatible test APK'
+'on':
+  push:
+    branches:
+    - review/source-preload-final-v1
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: source-preload-final-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      matrix: ${{ steps.plans.outputs.matrix }}
+      native_matrix: ${{ steps.plans.outputs.native_matrix }}
+      phase: ${{ steps.plans.outputs.phase }}
+      publish: ${{ steps.plans.outputs.publish }}
+      delivery: ${{ steps.plans.outputs.delivery }}
+      media3: ${{ steps.plans.outputs.media3 }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify reviewed patches and publish isolated candidate source commits
+      id: plans
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 .review/source-preload-final/build/prepare_cases.py
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: source-preload-final-materialization-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  native:
+    name: ${{ matrix.label }} (macOS)
+    needs: prepare
+    runs-on: macos-14
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.prepare.outputs.native_matrix) }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize and verify exact pinned product source
+      run: python3 .review/source-preload-final/build/verify_source.py --case "${{ matrix.id }}" --source-commit "${{ matrix.source_commit
+        }}" --target source-app --proof build/review/source-verified.json
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.9'
+    - name: Resolve exact upstream Kotlin window-fixture compiler
+      run: gradle -p .review/source-preload-final/window-compiler --console=plain resolveWindowCompiler
+    - name: Native SDK and real SDL libraries
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Add only link-time SDL3 rpath while preserving all original compiler flags
+      run: 'set -euo pipefail
+
+        compiler="$(command -v cc)"
+
+        sdl3_library="$(brew --prefix sdl3)/lib"
+
+        test -d "$sdl3_library"
+
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+
+        cp .review/source-preload-final/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"'
+    - name: Full app TV/Mobile builds and final behavior gates
+      working-directory: source-app
+      env:
+        NUVIO_SOURCE_PRELOAD_REVIEW: ${{ github.workspace }}/.review/source-preload-final
+        NUVIO_SOURCE_PRELOAD_RESULTS: ${{ github.workspace }}/build/review/native
+        NUVIO_SOURCE_PRELOAD_CASE: ${{ matrix.id }}
+      run: bash "$NUVIO_SOURCE_PRELOAD_REVIEW/build/run_native.sh"
+    - name: Reverify pinned product source after native checks
+      run: python3 .review/source-preload-final/build/verify_source.py --case "${{ matrix.id }}" --source-commit "${{ matrix.source_commit
+        }}" --target source-app --proof build/review/source-verified.json --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: source-preload-final-native-${{ matrix.id }}-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+  android:
+    name: ${{ matrix.label }} (Android ARM32/ARM64)
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      NUVIO_ANDROID_JOBS: 2
+    defaults:
+      run:
+        working-directory: source-app
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize and verify exact pinned product source
+      working-directory: .
+      run: python3 .review/source-preload-final/build/verify_source.py --case "${{ matrix.id }}" --source-commit "${{ matrix.source_commit
+        }}" --target source-app --proof source-app/build/review/source-verified.json
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Build tools
+      run: 'sudo apt-get update -qq
+
+        sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev
+
+        sdkmanager ''platforms;android-35'' ''build-tools;35.0.0'' ''ndk;27.2.12479018'' ''cmake;3.22.1''
+
+        '
+    - name: Public application configuration and debug signing
+      env:
+        NUVIO_TOUCH_CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+        NUVIO_TOUCH_DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
+      run: "mkdir -p build/android\npython3 - <<'PY'\nimport os\nfrom pathlib import Path\nbody = os.environ.get('NUVIO_TOUCH_CORE_PROPERTIES',\
+        \ '')\nif not body:\n    raise SystemExit('Set NUVIO_TOUCH_CORE_PROPERTIES for this debug build')\npath = Path('build/android/product.properties')\n\
+        path.write_text(body)\npath.chmod(0o600)\nPY\ntest -n \"$NUVIO_TOUCH_DEBUG_KEYSTORE_B64\" || { echo 'Set NUVIO_TOUCH_DEBUG_KEYSTORE_B64\
+        \ for repeatable debug updates'; exit 1; }\nsigning_dir=\"$RUNNER_TEMP/nuvio-test-signing\"\nmkdir -p \"$signing_dir\"\
+        \nprintf '%s' \"$NUVIO_TOUCH_DEBUG_KEYSTORE_B64\" | base64 --decode > \"$signing_dir/debug.keystore\"\nchmod 600 \"\
+        $signing_dir/debug.keystore\"\nkeytool -exportcert -alias androiddebugkey -keystore \"$signing_dir/debug.keystore\"\
+        \ \\\n  -storepass android -file \"$signing_dir/public-cert.der\" >/dev/null\npython3 - \"$signing_dir/public-cert.der\"\
+        \ <<'VERIFY'\nimport hashlib\nimport sys\nfrom pathlib import Path\nactual = hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest()\n\
+        expected = '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'\nassert actual == expected, 'Persistent\
+        \ test signing key changed'\nprint('Persistent test signing certificate verified:', actual)\nVERIFY\necho \"NUVIO_TEST_DEBUG_KEYSTORE=$signing_dir/debug.keystore\"\
+        \ >> \"$GITHUB_ENV\"\necho \"NUVIO_PROPERTIES=$GITHUB_WORKSPACE/source-app/build/android/product.properties\" >> \"\
+        $GITHUB_ENV\"\n"
+    - name: Explicitly pin debug signing in the CI working copy
+      run: "python3 - <<'PY'\nfrom pathlib import Path\npath = Path('android/app/build.gradle.kts')\nbody = path.read_text()\n\
+        marker = '    signingConfigs {\\n'\nassert body.count(marker) == 1, 'Expected exactly one signingConfigs block'\n\
+        replacement = '''    signingConfigs {\n        getByName(\"debug\") {\n            storeFile = file(System.getenv(\"\
+        NUVIO_TEST_DEBUG_KEYSTORE\") ?: error(\"Persistent test signing key missing\"))\n            storePassword = \"android\"\
+        \n            keyAlias = \"androiddebugkey\"\n            keyPassword = \"android\"\n        }\n'''\npath.write_text(body.replace(marker,\
+        \ replacement, 1))\nPY\n"
+    - uses: actions/cache/restore@v4
+      id: native-cache
+      with:
+        path: ~/.cache/nuvio-android
+        key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'tools/android/ffmpeg-android.sh',
+          'android/app/src/main/cpp/CMakeLists.txt') }}
+        restore-keys: android-touch-native-v1-${{ runner.os }}-
+    - uses: actions/cache/restore@v4
+      id: gradle-cache
+      with:
+        path: '~/.gradle/caches
+
+          ~/.gradle/wrapper
+
+          '
+        key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties')
+          }}
+        restore-keys: android-touch-gradle-${{ runner.os }}-
+    - name: Native ARM dependencies
+      run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
+    - name: Standard production-tool debug APK
+      env:
+        NUVIO_P2P_MOTOR: none
+        NUVIO_REQUIRE_CORE: '1'
+      run: bash tools/android.sh
+    - name: Verify standard package, both ARM cores, persistent signature and 16 KB native pages
+      run: python3 "$GITHUB_WORKSPACE/.review/source-preload-final/build/verify_apk.py"  --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt"
+        --apksigner "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+    - name: Verify compiled production NvPlayer JNI lookup descriptors
+      run: python3 "$GITHUB_WORKSPACE/.review/source-preload-final/build/verify_jni.py" --source "$PWD" --classes android/app/build/tmp/kotlin-classes/debug
+        --source-proof build/review/source-verified.json --output build/review/product-jni-verified.json
+    - name: Prepare compatible test installation in CI working copy
+      run: "python3 - <<'PY'\nfrom pathlib import Path\nreplacements = {\n    Path('android/app/build.gradle.kts'): [\n  \
+        \      ('applicationId = \"space.nuvio.nativelegacy\"', 'applicationId = \"space.nuvio.nativelegacy.touch\"'),\n \
+        \       ('versionCode = vx * 10000 + vy * 100 + vz', 'versionCode = 20009'),\n        ('versionName = versao', 'versionName\
+        \ = \"2.0.9-test-preload1\"'),\n    ],\n    Path('android/app/src/main/AndroidManifest.xml'): [\n        ('android:label=\"\
+        @string/app_name\"', 'android:label=\"Nuvio TV/Mobile Test\"'),\n        ('android:authorities=\"space.nuvio.nativelegacy.atualizacao\"\
+        ', 'android:authorities=\"space.nuvio.nativelegacy.touch.atualizacao\"'),\n    ],\n}\nupdated = {}\nfor path, pairs\
+        \ in replacements.items():\n    body = path.read_text()\n    for old, new in pairs:\n        if body.count(old) !=\
+        \ 1:\n            raise SystemExit(f'{path}: expected exactly one {old!r}')\n        body = body.replace(old, new)\n\
+        \    updated[path] = body\nfor path, body in updated.items():\n    path.write_text(body)\nprint('Temporary CI package,\
+        \ label and provider authority changed; production namespace and classes preserved')\nPY\n\n"
+      if: ${{ matrix.delivery }}
+    - name: Compatible TV and Mobile test APK
+      env:
+        NUVIO_P2P_MOTOR: none
+      run: "task_root=\"$PWD\"\ntask_cache=\"${NUVIO_ANDROID_CACHE:-$HOME/.cache/nuvio-android}\"\ntask_stage=\"$task_root/build/android\"\
+        \nbash android/gradlew -p android --console=plain \\\n  -Pnuvio.sdlSrc=\"$task_cache/src\" \\\n  -Pnuvio.estagio=\"\
+        $task_stage\" \\\n  -Pnuvio.ffmpegAar=\"$task_stage/media3-ffmpeg-16kb.aar\" \\\n  assembleDebug\ntask_version=\"\
+        $(python3 -c 'import json; print(json.load(open(\"deploy/app/appinfo.json\"))[\"version\"])')\"\ncp android/app/build/outputs/apk/debug/app-debug.apk\
+        \ \"build/android/Nuvio-2.0.9-test-preload1-tv-mobile-test.apk\"\n"
+      if: ${{ matrix.delivery }}
+    - name: Verify compatible test package, label, persistent signature and native packaging
+      run: python3 "$GITHUB_WORKSPACE/.review/source-preload-final/build/verify_apk.py" --test --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt"
+        --apksigner "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+      if: ${{ matrix.delivery }}
+    - name: Locate build outputs
+      id: outputs
+      if: always()
+      run: "if compgen -G 'build/android/*-android-debug.apk' >/dev/null; then\n  echo 'standard_apk=true' >> \"$GITHUB_OUTPUT\"\
+        \nfi\nif compgen -G 'build/android/*-tv-mobile-test.apk' >/dev/null; then\n  echo 'test_apk=true' >> \"$GITHUB_OUTPUT\"\
+        \nfi\nif [[ -d \"$HOME/.cache/nuvio-android\" ]]; then\n  echo 'native_cache=true' >> \"$GITHUB_OUTPUT\"\nfi\nif [[\
+        \ -d \"$HOME/.gradle/caches\" || -d \"$HOME/.gradle/wrapper\" ]]; then\n  echo 'gradle_cache=true' >> \"$GITHUB_OUTPUT\"\
+        \nfi\n"
+    - uses: actions/cache/save@v4
+      if: always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-primary-key
+        != ''
+      with:
+        path: ~/.cache/nuvio-android
+        key: ${{ steps.native-cache.outputs.cache-primary-key }}
+    - uses: actions/cache/save@v4
+      if: always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true' && steps.gradle-cache.outputs.cache-primary-key
+        != ''
+      with:
+        path: '~/.gradle/caches
+
+          ~/.gradle/wrapper
+
+          '
+        key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+    - uses: actions/upload-artifact@v4
+      if: always() && steps.outputs.outputs.standard_apk == 'true'
+      with:
+        name: source-preload-final-standard-${{ matrix.id }}-${{ github.sha }}
+        path: source-app/build/android/*-android-debug.apk
+        if-no-files-found: error
+        retention-days: 14
+    - uses: actions/upload-artifact@v4
+      if: always() && steps.outputs.outputs.test_apk == 'true'
+      with:
+        name: source-preload-final-test-${{ matrix.id }}-${{ github.sha }}
+        path: source-app/build/android/*-tv-mobile-test.apk
+        if-no-files-found: error
+        retention-days: 14
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: source-preload-final-android-proof-${{ matrix.id }}-${{ github.sha }}
+        path: source-app/build/review/
+        if-no-files-found: warn
+        retention-days: 14
+  media3:
+    name: Real Media3 paused loading and adoption (API35 x86_64)
+    needs: prepare
+    if: ${{ needs.prepare.outputs.phase == 'final' && needs.prepare.outputs.media3 != 'null' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize exact Media3 test source and record probe or full-app scope
+      run: python3 .review/source-preload-final/build/verify_source.py --case "${{ fromJSON(needs.prepare.outputs.media3).id
+        }}" --source-commit "${{ fromJSON(needs.prepare.outputs.media3).source_commit }}" --target source-app --proof build/review/source-verified.json
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.9'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Install probe SDK, NDK, CMake and deterministic media tools
+      run: 'sudo apt-get update -qq
+
+        sudo apt-get install -y ffmpeg
+
+        sdkmanager ''platforms;android-35'' ''build-tools;35.0.0'' ''ndk;27.2.12479018'' ''cmake;3.22.1'''
+    - name: Stage exact NvPlayer and helpers and generate local MP4/HLS assets
+      run: 'bash .review/source-preload-final/android/stage.sh "$GITHUB_WORKSPACE/source-app"
+
+        bash .review/source-preload-final/android/generate-fixture.sh
+
+        gradle -p .review/source-preload-final/android --console=plain :probe:assembleDebug :probe:assembleDebugAndroidTest'
+    - name: Enable KVM permissions
+      run: 'echo ''KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"'' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+
+        sudo udevadm control --reload-rules
+
+        sudo udevadm trigger --name-match=kvm'
+    - uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 35
+        arch: x86_64
+        target: google_apis
+        disable-animations: true
+        script: gradle -p .review/source-preload-final/android --console=plain :probe:connectedDebugAndroidTest
+    - name: Record exact failed or skipped runtime assertions
+      if: always()
+      run: python3 .review/source-preload-final/build/report_instrumentation_failures.py
+    - name: Verify staged compiled NvPlayer JNI lookup descriptors
+      run: python3 .review/source-preload-final/build/verify_jni.py --source source-app --classes .review/source-preload-final/android/probe/build/tmp/kotlin-classes/debug
+        --source-proof build/review/source-verified.json --output build/review/probe-jni-verified.json
+    - name: Require all real-player contracts with no ignored tests
+      run: python3 .review/source-preload-final/build/verify_instrumentation.py
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: source-preload-final-media3-${{ github.sha }}
+        path: 'build/review/
+
+          .review/source-preload-final/android/player-source.sha256
+
+          .review/source-preload-final/android/probe/build/reports/
+
+          .review/source-preload-final/android/probe/build/outputs/androidTest-results/'
+        retention-days: 14
+        include-hidden-files: true
+  publish:
+    name: Publish uniquely tagged validated compatible test APK
+    needs:
+    - prepare
+    - native
+    - android
+    - media3
+    if: ${{ needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.phase == 'final' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: source-preload-final-test-${{ fromJSON(needs.prepare.outputs.delivery).id }}-${{ github.sha }}
+        path: delivery/apk
+    - uses: actions/download-artifact@v4
+      with:
+        name: source-preload-final-android-proof-${{ fromJSON(needs.prepare.outputs.delivery).id }}-${{ github.sha }}
+        path: delivery/proof
+    - uses: actions/download-artifact@v4
+      with:
+        name: source-preload-final-media3-${{ github.sha }}
+        path: delivery/media3-artifact
+    - uses: actions/download-artifact@v4
+      with:
+        name: source-preload-final-native-${{ fromJSON(needs.prepare.outputs.delivery).id }}-${{ github.sha }}
+        path: delivery/native
+    - name: Locate same-source Media3 verification proof
+      run: 'mkdir -p delivery/media3
+
+        python3 - <<''PY''
+
+        from pathlib import Path
+
+        import shutil
+
+        proofs = list(Path(''delivery/media3-artifact'').rglob(''media3-verified.json''))
+
+        assert len(proofs) == 1
+
+        shutil.copyfile(proofs[0], ''delivery/media3/media3-verified.json'')
+
+        PY'
+    - name: Verify identity, digest and pinned source then create a new release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        PLANNED_SOURCE: ${{ fromJSON(needs.prepare.outputs.delivery).source_commit }}
+      run: "python3 .review/source-preload-final/build/prepare_release.py\nif gh release view tv-mobile-test-source-preload-v1\
+        \ >/dev/null 2>&1; then\n  echo \"The unique preload release tag already exists; no assets will be overwritten.\"\n\
+        \  exit 1\nfi\npython3 .review/source-preload-final/build/create_release_tag.py\ngh release create tv-mobile-test-source-preload-v1\
+        \ --verify-tag delivery/Nuvio-TV-Mobile-Test-Preload1.apk delivery/Nuvio-TV-Mobile-Test-Preload1.apk.sha256 delivery/proof/update-identity.json\
+        \ delivery/proof/media3-verified.json delivery/proof/native-gates-verified.json delivery/proof/release-tag.json --target\
+        \ \"$PLANNED_SOURCE\" --prerelease --latest=false --title \"Nuvio TV/Mobile Test: source preloading\" --notes-file\
+        \ delivery/release-notes.txt"

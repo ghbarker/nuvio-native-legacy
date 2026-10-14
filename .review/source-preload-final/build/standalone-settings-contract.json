@@ -1,0 +1,33 @@
+{
+  "total_count": 290,
+  "appended": [
+    {
+      "id": "AJ_FONTE_PRECARREGAR",
+      "index": 289,
+      "key": "fontePrecarregarLocal",
+      "default": 1
+    }
+  ],
+  "required_keys": [
+    "fontePrecarregarLocal",
+    "fontePrepararLocal"
+  ],
+  "runtime": [
+    {
+      "key": "fontePrecarregarLocal",
+      "default": 1,
+      "device_only": true,
+      "profile_local": false,
+      "per_profile": false,
+      "id": "AJ_FONTE_PRECARREGAR",
+      "index": 289
+    },
+    {
+      "key": "fontePrepararLocal",
+      "default": 1,
+      "device_only": true,
+      "profile_local": false,
+      "per_profile": false
+    }
+  ]
+}

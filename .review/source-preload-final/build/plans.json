@@ -1,0 +1,52 @@
+{
+  "schema": 2,
+  "validation_phase": "final",
+  "publish_release": true,
+  "media3_case": "combined-delivery",
+  "cases": [
+    {
+      "id": "standalone-preload",
+      "label": "Complete standalone source preloading",
+      "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+      "patch": "standalone-preload.patch",
+      "patch_sha256": "e207fdb4819b7bcf8edbef3cbe8784e9a59bab51e8e39ea7c37650aded26f3ff",
+      "manifest": "standalone-preload-files.json",
+      "scope": "complete standalone product candidate",
+      "delivery": false,
+      "run_watched": false,
+      "run_preload": true,
+      "run_retained": false,
+      "run_automatic": false,
+      "run_original_full_source_asan": true,
+      "run_settings_proof": true,
+      "settings_contract": "standalone-settings-contract.json",
+      "run_next": true,
+      "run_profiles": false,
+      "run_screens_watched": false,
+      "catalog_entries": 5586,
+      "run_origin_snapshots": true
+    },
+    {
+      "id": "combined-delivery",
+      "label": "Complete combined source-preload delivery",
+      "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+      "patch": "combined-delivery.patch",
+      "patch_sha256": "fd03e91557a0a87cb26a9bb18ff33d0bf5fd8a0d3e5712c34e01cfe623e4b829",
+      "manifest": "combined-delivery-files.json",
+      "scope": "complete combined product candidate",
+      "delivery": true,
+      "run_watched": true,
+      "run_preload": true,
+      "run_retained": true,
+      "run_automatic": true,
+      "run_original_full_source_asan": true,
+      "run_settings_proof": true,
+      "settings_contract": "combined-settings-contract.json",
+      "run_next": true,
+      "run_profiles": true,
+      "run_screens_watched": true,
+      "catalog_entries": 5594,
+      "run_origin_snapshots": true
+    }
+  ]
+}

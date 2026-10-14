@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Portable review-only entry point; compatible with Bash 3.2.
+set -eu
+watched_package=$(cd "$(dirname "$0")" && pwd)
+watched_root=$PWD
+watched_output=
+watched_sdk=$watched_package/sdk
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --root) watched_root=$2; shift 2 ;;
+    --output) watched_output=$2; shift 2 ;;
+    --sdk) watched_sdk=$2; shift 2 ;;
+    --help)
+      printf '%s\n' 'Usage: SANITIZE=0|1 bash runner --root REPOSITORY --output RESULTS [--sdk SDK_HEADERS]'
+      exit 0 ;;
+    *) printf 'Unknown argument: %s\n' "$1" >&2; exit 2 ;;
+  esac
+done
+if [ -z "$watched_output" ]; then
+  printf '%s\n' '--output is required; keep review results outside product source.' >&2
+  exit 2
+fi
+exec "${PYTHON:-python3}" "$watched_package/execute.py" \
+  --root "$watched_root" --output "$watched_output" --sdk "$watched_sdk" \
+  --sanitize "${SANITIZE:-0}"

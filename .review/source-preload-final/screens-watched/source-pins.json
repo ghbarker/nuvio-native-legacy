@@ -1,0 +1,33 @@
+{
+  "source_description": "Actual combined watched product snapshot verified by the final 10 local C checks",
+  "canonical_revision": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "sha256": {
+    "src/avisos.c": "7d445dd14bb4d5fe3e50e834937157667005cd38b6a151905eee26568f09c14b",
+    "src/biblioteca.c": "c6536413f368dc08482bb13a6b66620235eb47a9d20c0a9452166ad55a597004",
+    "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+    "src/catalogo.h": "6c7232053a1c06c7020300900bd1907a14d66d2b544d92e5dc38f255dd65146a",
+    "src/ctxmenu.c": "233fe930663d9c1be813f0a370d6a765081ecee40d428cbc743bbacc25af330e",
+    "src/cwordem.c": "ac94cec02576d4eb5ace3d2505845cafb9de153a631c2445a6c017312c2906c3",
+    "src/cwordem.h": "e35ec30faccb7d6e070a6eade38d4e75b8ea155ab93d67009dd29213201d6f19",
+    "src/descoberta.c": "010a3911a6f5ca9058fba4b513781a22fd3b4e05952ccb02a773b142076a9bb5",
+    "src/descoberta.h": "07c55c3d7aa1ebe628f31081b02e6faf48267a6ebd8cc8549314811e33b1b5b3",
+    "src/guia.c": "8dcdec47c6b120e54522c6190720dd9f3f9f551f145f210fd6fe4b47a68aaab8",
+    "src/home.c": "9977a9f620d48266b6c9675c28868bbeb5c874c8ec8938fe578c8533a239ddc1",
+    "src/js.c": "600e01a70fc71d2152dabcbac3e21b13d91ac8b8a8b40c8b7a743207615c4d13",
+    "src/layout.h": "ccc6faa888a2af844535c93a854354a737f26927810fd7179437b701b12555cc",
+    "src/metaprov.c": "e8ef4a1f3ee28897e70fd47a3d0d5ebe4063e054fad8b27626661432be0a0e16",
+    "src/perfisessao.h": "ad60d82d8a461b8799ae57a74dd7dd9fe21ca8e7594ec7b443c4d70d1728b13e",
+    "src/ponteiro.c": "5e379adc860dd8ad4831ccf133a846a4ac7c266539078015d4ed89baea40c3b4",
+    "src/proximo.h": "970cfb17f16b00d72cb1263f9f7dfc6de458dcabe48c879f218587915614d22b",
+    "src/rolagemtoque.h": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e",
+    "src/vertudo.c": "0e4e889cffccedf104bfd27a6a3f6dc7d27693dfc71a8960638ead371f974cff",
+    "src/vertudo.h": "d7e07f1bf3af8a91aed0083d23d89d70153e798e8fd10c4266a1e3b72574ed4e"
+  },
+  "fixture_sha256": {
+    "tests/watched_discovery.c": "56cc3e4cc8afb7b914311f98a68a0bc02ab6dab765851156423a4c6b1af2e16f",
+    "tests/sdk-extra.h": "9db13b25a95bebf2ab1cf2851853c9a499e8c1b157664997166792b17f9539bf",
+    "tests/watched_draw.c": "1931e151e3797b0d53de16f24f231160ace8f6424f4f78cbbbc992f1283847c3",
+    "tests/watched_catalog_ui.c": "7850901adc66c28ab5989bd44fb48e6341d4bb8f3ba3f9bb100e0d79645de453",
+    "tests/draw-boundary-stubs.inc": "3fb44b1f03047317e7b38ea2de2dfd812f2e9966f70e954f03f2ebff6758d066"
+  }
+}
