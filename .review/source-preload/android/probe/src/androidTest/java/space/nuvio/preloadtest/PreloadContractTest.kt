@@ -298,8 +298,8 @@ class PreloadContractTest {
     }
 
     @Test fun percentageResumeAndCacheAreTransferredAndHeadersMustMatch() {
-        onMain { NvPlayer.cache(16) }
-        val token = prepare(fraction = 5000, cache = 16)
+        onMain { NvPlayer.cache(256) }
+        val token = prepare(fraction = 5000, cache = 256)
         val p = prepared()!!
         val cache = onMain { field(field(field(NvPlayer, "preparo")!!, "recursos")!!, "cache") }
         assertNotNull(cache)
@@ -309,7 +309,7 @@ class PreloadContractTest {
         onMain { assertSame(cache, field(NvPlayer, "cacheMidia")); assertEquals(1, TestProbe.resumeAccepted()) }
         NvPlayer.parar()
         await("playback did not stop") { active() == null }
-        val mismatch = prepare(cache = 16)
+        val mismatch = prepare(cache = 256)
         val old = prepared()!!
         NvPlayer.abrirPreparada(server.url, "X-Probe: changed", 0, 0, 94, mismatch)
         await("header mismatch adopted untrusted preparation") { active()?.let { it !== old } == true }
