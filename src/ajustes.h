@@ -171,6 +171,7 @@ int ajustes_fonte_tocar_conferindo(void);
 int ajustes_fonte_aquecer(void);
 int ajustes_fonte_conferir_varias(void);
 int ajustes_fonte_preparar(void);
+int ajustes_fonte_precarregar(void);
 int ajustes_fonte_escopo(void);
 int ajustes_fonte_regex_modo(void);
 // "Usar a ordem" dos add-ons (FR_ORDEM_*); 0 tambem quando nao ha ordem.
@@ -484,6 +485,10 @@ int   ajustes_saida_player_home(void);
 int   ajustes_manter_video(void);
 // Selo de visto no cartaz da home (#212). 1 = ligado (o de fabrica).
 int   ajustes_selo_visto(void);
+// #366: oculta filmes vistos so na descoberta, por perfil neste aparelho.
+// Desligado de fabrica; busca, biblioteca e historico nao sao filtrados.
+int   ajustes_ocultar_filmes_vistos(void);
+void  ajustes_definir_ocultar_filmes_vistos(int ligado);
 // MODO SEGURO (seguro.h). Chamar no arranque, DEPOIS de ajustes_dir e de
 // avisos_iniciar: `caiu` = a sessao anterior nao se despediu. Desfaz o ajuste
 // arriscado que estava em prova, liga o perfil seguro se as quedas se repetem e
@@ -669,6 +674,13 @@ float       ajustes_rapido_cor(int i, float *r, float *g, float *b);
 int         ajustes_rapido_cor_atual(void);
 const char *ajustes_rapido_cor_atual_nome(void);
 int         ajustes_rapido_cor_definir(int i);
+
+// Contas nativas compartilhadas (legado) ou uma copia separada por conta+perfil.
+int  ajustes_provedores_compartilhados(void);
+int  ajustes_definir_provedores_compartilhados(int compartilhados);
+void ajustes_provedores_abrir_sessao(void);
+int  ajustes_provedores_arquivo(char *dst, unsigned tam, const char *base);
+void ajustes_perfil_padrao(void);
 
 #ifdef NV_SHOT_HOOKS
 int ajustes_shot_valor(const char *chave, int v);   // capturas: opcao pela chave
