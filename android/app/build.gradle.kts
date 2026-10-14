@@ -5,6 +5,7 @@ plugins {
 
 // Tudo que vem de fora do projeto entra por propriedade (-P) que o
 // tools/android.sh passa; os padroes servem para abrir no Android Studio.
+val testLocalLogs = (findProperty("nuvio.testLocalLogs") as String?) == "true"
 val raiz = rootProject.projectDir.parentFile                         // raiz do repo
 val cache = file(System.getProperty("user.home") + "/.cache/nuvio-android")
 val sdlSrc = (findProperty("nuvio.sdlSrc") as String?) ?: "$cache/src"
@@ -24,7 +25,10 @@ android {
     compileSdk = 35
     ndkVersion = "27.2.12479018"
 
+    buildFeatures { buildConfig = true }
+
     defaultConfig {
+        buildConfigField("boolean", "NV_TEST_LOCAL_LOGS", testLocalLogs.toString())
         applicationId = "space.nuvio.nativelegacy"
         minSdk = 24
         targetSdk = 35
@@ -41,6 +45,7 @@ android {
                     "-DNUVIO_P2P_MOTOR=${(findProperty("nuvio.p2pMotor") as String?) ?: ""}",
                 )
                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+                arguments += "-DNV_TEST_LOCAL_LOGS=${if (testLocalLogs) "ON" else "OFF"}"
             }
         }
     }

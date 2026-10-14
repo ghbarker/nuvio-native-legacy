@@ -1,5 +1,8 @@
 #include "app_id.h"
 #include "registro.h"
+#ifdef NV_TEST_LOCAL_LOGS
+#include "android.h"
+#endif
 #include "dados.h"
 #include "gfx.h"
 #include "text.h"
@@ -564,7 +567,7 @@ int registro_envio_evento(const SDL_Event *e);
 int registro_evento(const SDL_Event *e) {
 #ifdef NV_TOUCH_UI
   if (toquerol_navegacao(e)) {
-    if (toqueRegistro.livre && nVis > 0) {
+    if (toquerol_livre(&toqueRegistro) && nVis > 0) {
       foco = (int)(toqueRegistroOffset / 32.0f);
       if (foco >= nVis) foco = nVis - 1;
       segEd = 0;
