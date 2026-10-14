@@ -63,6 +63,50 @@ def adapt_provenance_snapshot(path):
     assert text.count(old) == 2 and new not in text, path
     path.write_text(text.replace(old, new))
 
+def adapt_budget_selectors(path):
+    text = path.read_text()
+    marker = '#include "../src/app.c"'
+    aliases = '''// Keep the original initial/channel selector doubles. This fixture's
+// NEXT-VOD verifier and app consumer remain real and enforce the total budget.
+#define stream_primeira_boa_sessao teste_stream_primeira_boa_sessao
+#define stream_canal_primeira_viva_sessao teste_stream_canal_primeira_viva_sessao
+'''
+    if aliases not in text:
+        assert text.count(marker) == 1, path
+        text = text.replace(marker, aliases + marker)
+    marker = '\nint main(int argc, char **argv) {'
+    wrappers = '''
+int teste_stream_primeira_boa_sessao(int n, uint64_t epoch) {
+  assert(epoch == 0); return stream_primeira_boa(n);
+}
+int teste_stream_canal_primeira_viva_sessao(int n, uint64_t epoch) {
+  assert(epoch == 0); return stream_canal_primeira_viva(n);
+}
+'''
+    if wrappers not in text:
+        assert text.count(marker) == 1, path
+        text = text.replace(marker, wrappers + marker)
+    path.write_text(text)
+
+BUDGET_NEIGHBOURS = r'''// Only the original reduced fontesmortas_orcamento fixture links these
+// omitted account neighbours. The next-VOD worker and budget remain real.
+#include "debrid.h"
+#include "stalker.h"
+#include <assert.h>
+#include <string.h>
+static const _Thread_local DebridContexto *entered;
+void debrid_contexto_capturar(DebridContexto *c) {
+  assert(c); memset(c, 0, sizeof *c);
+}
+void debrid_contexto_entrar(const DebridContexto *c) {
+  assert(c && c->sessao == 0 && !entered); entered = c;
+}
+void debrid_contexto_sair(void) { assert(entered); entered = 0; }
+int stalker_resolver_sessao(const char *id, char *url, unsigned n, uint64_t epoch) {
+  assert(epoch == 0); return stalker_resolver(id, url, n);
+}
+'''
+
 def main():
     # Preserves original profile-selection transports and legacy VOD assertions.
     legacy.main()
@@ -91,6 +135,14 @@ def main():
     adapt_provenance_snapshot(Path('tests/addons_proveniencia.c'))
     changed.append('addons_proveniencia immutable private-worker input')
     changed.append('fontefalha_playback scoped selectors and absent credential context')
+    budget = ROOT / 'native-budget-neighbours.c'
+    budget.write_text(BUDGET_NEIGHBOURS)
+    path = Path('tests/fontesmortas_orcamento.sh')
+    old = 'cc "${flags[@]}" tests/fontesmortas_orcamento.c'
+    new = 'cc "${flags[@]}" ' + compatibility + ' ' + shlex.quote(str(budget)) + ' tests/fontesmortas_orcamento.c'
+    legacy.replace_once(path, old, new)
+    adapt_budget_selectors(Path('tests/fontesmortas_orcamento.c'))
+    changed.append('fontesmortas_orcamento original first/channel doubles plus absent account neighbours')
     print('Latest-upstream reduced fixture neighbours supplied: ' + ', '.join(changed))
 
 if __name__ == '__main__':
