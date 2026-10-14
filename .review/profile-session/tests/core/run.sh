@@ -10,7 +10,7 @@ case "$(uname -s)" in Darwin) flags+=(-Wl,-dead_strip);; *) flags+=(-Wl,--gc-sec
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
 cc "${flags[@]}" src/perfis.c src/js.c src/jsw.c "$fixtures/session.c" -o "$out/session"
 "$out/session"
-cc "${flags[@]}" src/catalogo.c "$fixtures/cache.c" -o "$out/cache"
+cc "${flags[@]}" src/catalogo.c src/perfis.c src/js.c src/jsw.c "$fixtures/cache.c" -o "$out/cache"
 "$out/cache"
 cc "${flags[@]}" -DNV_CAT_TEST_CACHE_MEIO=nv_cache_session_mid src/catalogo.c src/perfis.c src/js.c src/jsw.c "$fixtures/cache-session.c" -o "$out/cache-session"
 "$out/cache-session"

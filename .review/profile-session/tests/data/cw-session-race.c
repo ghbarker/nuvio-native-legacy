@@ -85,6 +85,11 @@ static void runCase(int mode) {
   if (mode != 2) perfis_definir_ativo(2);
   if (mode == 1 || mode == 2) perfis_definir_ativo(1);
   assert(!perfis_sessao_atual(oldEpoch));
+  {
+    CatItem stale = {0};
+    assert(trakt_enfeitar_lote_sessao(&stale, 1, oldEpoch) == 0);
+    assert(trakt_enfeitar_lote_sessao(&stale, 1, perfis_sessao_geracao()) == 1);
+  }
   // Relevant real clearing API, without enqueueing a second CW fixture request.
   desc_abrir_sessao();
   cwDeNovo = 0;

@@ -1,6 +1,6 @@
 {
   "base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
-  "feature_commit": "3641a471e319a7dc2bbed9b203770e73e1955cb0",
+  "feature_commit": "d166b009eefd0bc69e5b608960c561e7e4cdfc1f",
   "files": [
     {
       "path": "src/addons.c",
@@ -703,6 +703,12 @@
       "sha": "6d0eb5dfb43f6dc082dae055f6293c7535fe1367",
       "mode": "100755",
       "upstream_sha": "af1e6f0c68948f5dca486544fc0717ca068f1afa"
+    },
+    {
+      "path": "tools/varredura-i18n.py",
+      "sha": "3716df8fd6ad085fbb9eb1ab8c1e11f3055102ba",
+      "mode": "100644",
+      "upstream_sha": "3b247851955d11a76c95ff7575bceeb9648ec3db"
     }
   ]
 }

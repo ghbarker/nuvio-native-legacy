@@ -18,7 +18,7 @@ import tempfile
 
 RETAINED_COMMIT = 'ef864de25a89d89c46620226b5d3da4afb228c3b'
 UPSTREAM_BASE = '17bb330373273a3de284d7f2898a3a3e16f1fc3f'
-BUILD_SCRIPTS = {'tools/android.sh', 'tools/arm.sh'}
+BUILD_SCRIPTS = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
 
 
 def git(repo, *args):

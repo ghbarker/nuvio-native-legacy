@@ -24,9 +24,9 @@ cc "${flags[@]}" "$fixtures/sync-cycle-identity.c" src/perfis.c src/js.c src/jsw
 run_test sync-cycle-identity
 cc "${flags[@]}" src/perfis.c src/jsw.c src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c "$fixtures/cw-session-race.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c "$fixtures/fixture-neighbours.c" -o "$out/cw-session-race"
 run_test cw-session-race
-cc "${flags[@]}" src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c tests/cwremover.c src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c "$fixtures/fixture-neighbours.c" -o "$out/cwremover"
+cc "${flags[@]}" src/catalogo.c src/progresso.c src/cwordem.c src/cwretido.c tests/cwremover.c src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c "$fixtures/fixture-neighbours.c" "$fixtures/single-session.c" -o "$out/cwremover"
 run_test cwremover
 for name in herosinopse_corrida localizar_corrida; do
-  cc "${flags[@]}" -DNV_CAT_TEST_ANTES_TRAVA=nv_cat_teste_antes_trava src/catalogo.c src/cwordem.c "tests/$name.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c src/artefontes.c -o "$out/$name"
+  cc "${flags[@]}" -DNV_CAT_TEST_ANTES_TRAVA=nv_cat_teste_antes_trava src/catalogo.c src/cwordem.c "tests/$name.c" src/cotacat.c src/js.c src/metaprov.c src/colecoes.c src/redeurl.c src/catordem.c src/artefontes.c "$fixtures/single-session.c" -o "$out/$name"
   run_test "$name"
 done

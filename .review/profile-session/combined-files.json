@@ -1,7 +1,7 @@
 {
   "retained_commit": "ef864de25a89d89c46620226b5d3da4afb228c3b",
   "upstream_base": "17bb330373273a3de284d7f2898a3a3e16f1fc3f",
-  "feature_commit": "3641a471e319a7dc2bbed9b203770e73e1955cb0",
+  "feature_commit": "d166b009eefd0bc69e5b608960c561e7e4cdfc1f",
   "settings": {
     "retained_setting_count": 293,
     "all_existing_indices_preserved": true,
@@ -1061,6 +1061,15 @@
       "retained_sha": "af1e6f0c68948f5dca486544fc0717ca068f1afa",
       "upstream_sha": "af1e6f0c68948f5dca486544fc0717ca068f1afa",
       "feature_sha": "6d0eb5dfb43f6dc082dae055f6293c7535fe1367",
+      "merge": "three-way"
+    },
+    {
+      "path": "tools/varredura-i18n.py",
+      "sha": "3716df8fd6ad085fbb9eb1ab8c1e11f3055102ba",
+      "mode": "100644",
+      "retained_sha": "3b247851955d11a76c95ff7575bceeb9648ec3db",
+      "upstream_sha": "3b247851955d11a76c95ff7575bceeb9648ec3db",
+      "feature_sha": "3716df8fd6ad085fbb9eb1ab8c1e11f3055102ba",
       "merge": "three-way"
     }
   ],

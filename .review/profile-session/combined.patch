@@ -14798,6 +14798,22 @@ diff --git a/tools/arm.sh b/tools/arm.sh
    printf '%s\n' "$LISTA" | grep -qE '(^|/)conta-[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU conta-*.txt/conta-*.txt.tmp"
    printf '%s\n' "$LISTA" | grep -qE '(^|/)discord-p[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU discord profile tokens"
    printf '%s\n' "$LISTA" | grep -qE '(^|/)(jellyfin|emby|plex)-p[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU media-server profile tokens"
+diff --git a/tools/varredura-i18n.py b/tools/varredura-i18n.py
+--- a/tools/varredura-i18n.py
++++ b/tools/varredura-i18n.py
+@@ -344,6 +344,12 @@
+     "-perfil",                      # sufixo de nome de arquivo (ajustes.c)
+     "recomendacoes-perfil.txt",     # nome de arquivo do perfil publico (recomenda.c)
+     "amigos-vistos.txt",            # nome de arquivo das novidades vistas (socialvis.c)
++    # Caches privados por conta/perfil e seus temporarios (catalogo.c), e o
++    # arquivo das novidades vistas por perfil (recomenda.c/socialvis.c).
++    # Usados apenas para ler, gravar e apagar arquivos; nunca texto de tela.
++    "%s/catalogo-%016llx-p%d.bin", "%s/catalogo-%016llx-p%d.bin.tmp",
++    "catalogo-%016llx-p%d.bin.tmp-", "catalogo-rede.bin.tmp-",
++    "amigos-vistos-p%d.txt",
+     "%s/poster/%02d.jpg",           # caminho da arte dos dados de exemplo (socialvis.c, so teste)
+     "biblioteca.h", "catalogo.h", "fileiras.h", "perfil.h", "legenda.h",
+     "perfil.txt",                   # #include e nome de arquivo
 diff --git a/src/fontefalha.c b/src/fontefalha.c
 --- a/src/fontefalha.c
 +++ b/src/fontefalha.c

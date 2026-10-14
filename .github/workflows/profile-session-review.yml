@@ -28,14 +28,14 @@ jobs:
         from pathlib import Path
         import subprocess
         base = '17bb330373273a3de284d7f2898a3a3e16f1fc3f'
-        feature = '3641a471e319a7dc2bbed9b203770e73e1955cb0'
+        feature = 'd166b009eefd0bc69e5b608960c561e7e4cdfc1f'
         plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
         assert plan['base'] == base and plan['feature_commit'] == feature
         subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
         changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
         changed = sorted(p for p in changed if p)
         assert changed == sorted(e['path'] for e in plan['files'])
-        assert changed and all((p.startswith('src/') or p in {'tools/android.sh', 'tools/arm.sh'}) and '..' not in Path(p).parts for p in changed)
+        assert changed and all((p.startswith('src/') or p in {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}) and '..' not in Path(p).parts for p in changed)
         target = Path(os.environ['RUNNER_TEMP']) / 'nuvio-profile-session-standalone'
         subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
         verified = []
@@ -64,6 +64,8 @@ jobs:
         export NUVIO_PROFILE_RESULTS="$GITHUB_WORKSPACE/build/review/profile-session"
         mkdir -p build/review
         cd "$RUNNER_TEMP/nuvio-profile-session-standalone"
+        python3 "$NUVIO_PROFILE_REVIEW/build/prepare_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
         failed=0
         for name in homeestado ordemperfil ajustes_perfil perfilsel fontepref legmemoria fontevolta player_retido addons_legendas fontecache_vod i18n; do
           if bash "tests/$name.sh" 2>&1 | tee "$GITHUB_WORKSPACE/build/review/$name.log"; then
@@ -116,6 +118,8 @@ jobs:
       run: python3 .review/profile-session/build/verify_overlay.py
     - name: Preserve retained Settings assertions after the append-only provider setting
       run: python3 .review/profile-session/build/adapt_retained_tests.py
+    - name: Link epoch-zero compatibility only in retained reduced fixtures
+      run: python3 .review/profile-session/build/prepare_legacy_tests.py --probe-log build/review/optional-import.log
     - name: Native tools
       run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
     - name: Verify retained features and watched behavior in TV and Mobile paths
@@ -485,7 +489,7 @@ jobs:
         import hashlib
         import json
         import shutil
-        expected_feature = '3641a471e319a7dc2bbed9b203770e73e1955cb0'
+        expected_feature = 'd166b009eefd0bc69e5b608960c561e7e4cdfc1f'
         proof = json.loads(Path('delivery/proof/update-identity.json').read_text())
         candidates = list(Path('delivery/apk').glob('*-tv-mobile-test.apk'))
         assert len(candidates) == 1
@@ -507,5 +511,5 @@ jobs:
           gh release upload tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --clobber
           gh release edit tv-mobile-test-profiles-488 --draft=false --prerelease --latest=false --notes-file delivery/release-notes.txt
         else
-          gh release create tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --target 3641a471e319a7dc2bbed9b203770e73e1955cb0 --prerelease --latest=false --title 'Nuvio TV/Mobile Test: fresh profile sessions' --notes-file delivery/release-notes.txt
+          gh release create tv-mobile-test-profiles-488 delivery/Nuvio-TV-Mobile-Test-Profiles.apk delivery/Nuvio-TV-Mobile-Test-Profiles.apk.sha256 delivery/proof/update-identity.json --target d166b009eefd0bc69e5b608960c561e7e4cdfc1f --prerelease --latest=false --title 'Nuvio TV/Mobile Test: fresh profile sessions' --notes-file delivery/release-notes.txt
         fi

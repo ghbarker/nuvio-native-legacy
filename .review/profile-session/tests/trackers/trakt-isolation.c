@@ -67,6 +67,20 @@ int syncprog_remover_sessao(const char *key, int profile, uint64_t epoch, const 
   assert(!strcmp(key, "tt1000001") && !strcmp(owner, "fixture-household")); accountProfile = profile; accountEpoch = epoch; return 1;
 }
 int syncprog_remover(const char *key) { (void)key; assert(!"unscoped account removal"); return 0; }
+// The remote progress module is mocked here; preserve its owned request
+// contract while retaining real perfis.c generations in every race below.
+int syncprog_remocao_capturar(SyncProgRemocao *p) {
+  memset(p, 0, sizeof *p);
+  p->sessao = perfis_sessao_geracao(); p->perfil = perfis_ativo(); p->autenticada = 1;
+  snprintf(p->usuario, sizeof p->usuario, "%s", sessao_usuario());
+  snprintf(p->jwt, sizeof p->jwt, "fixture-original-account-jwt");
+  return 1;
+}
+int syncprog_remover_pedido(const SyncProgRemocao *p, const char *key) {
+  assert(p->autenticada && !strcmp(p->jwt, "fixture-original-account-jwt"));
+  return syncprog_remover_sessao(key, p->perfil, p->sessao, p->usuario);
+}
+
 char *rede_postar_st(const char *u, int s, const char *const *cab, const char *body, int *st) {
   (void)s; (void)body;
   pthread_mutex_lock(&netLock);
@@ -161,6 +175,7 @@ static void outgoingRemoval(int beforeWorker) {
   openProfile(1, "token-A");
   CatItem *out = calloc(8, sizeof *out); assert(trakt_continuar(out, 8) >= 1); free(out);
   assert(tirarremoto_capturar(&removal, "tt1000001"));
+  assert(removal.conta.perfil == 1 && removal.conta.sessao == perfis_sessao_geracao());
   uint64_t epoch = perfis_sessao_geracao(); pthread_t worker;
   if (!beforeWorker) { delay("/sync/playback/", 0); pthread_create(&worker, NULL, removeOld, NULL); waitEntered(); }
   openProfile(2, "token-B"); out = calloc(8, sizeof *out); assert(trakt_continuar(out, 8) == 1); free(out);

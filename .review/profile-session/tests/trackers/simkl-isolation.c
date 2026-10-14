@@ -19,6 +19,11 @@ int ajustes_cw_proximo(void) { return 1; }
 int ajustes_cw_minimo(void) { return 1; }
 int ajustes_cw_concluido(void) { return 90; }
 int trakt_enfeitar_lote(CatItem *s, int n) { (void)s; return n; }
+int trakt_enfeitar_lote_sessao(CatItem *s, int n, uint64_t epoch) {
+  // Preserve the fixture's metadata mock, but reject stale real profile epochs.
+  return perfis_sessao_atual(epoch) ? trakt_enfeitar_lote(s, n) : 0;
+}
+
 static pthread_mutex_t netLock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t netCond = PTHREAD_COND_INITIALIZER;
 static const char *delayPath;

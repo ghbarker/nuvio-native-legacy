@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 
 EMPTY = hashlib.sha1(b'blob 0\0').hexdigest()
-BUILD_SCRIPTS = {'tools/android.sh', 'tools/arm.sh'}
+BUILD_SCRIPTS = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
 def digest(path):
     data = path.read_bytes() if path.is_file() else b''
     return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
