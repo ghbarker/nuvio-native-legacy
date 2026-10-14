@@ -1,5 +1,5 @@
 diff --git a/android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt b/android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt
-index 22c018f..641cfcc 100644
+index 22c018f..f54d144 100644
 --- a/android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt
 +++ b/android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt
 @@ -4,6 +4,7 @@ import android.app.Activity
@@ -52,7 +52,7 @@ index 22c018f..641cfcc 100644
  
      // F07 (src/video_android.c -> cacheboost.h): seek cache state of this open.
      // The audio output state for the boost is F06's nativeAudioEstado (one
-@@ -214,6 +231,438 @@ object NvPlayer {
+@@ -214,6 +231,439 @@ object NvPlayer {
          try { nativeEvento(tipo, a, b) } catch (e: UnsatisfiedLinkError) { Log.w(TAG, "evento $tipo sem lib: $e") }
      }
  
@@ -221,6 +221,7 @@ index 22c018f..641cfcc 100644
 +        Handler(fio.looper).post {
 +            r.seletorPreparo?.release()
 +            r.capacidadesPreparo?.release()
++            (r.carga.allocator as? DefaultAllocator)?.reset()
 +            fio.quitSafely()
 +        }
 +    }
@@ -354,8 +355,10 @@ index 22c018f..641cfcc 100644
 +    }
 +
 +    private fun prepararFonteProxima(act: Activity, s: Preparo, r: RecursosPlayer) {
-+        // Sample queues only: borrow the current player's capability descriptors.
-+        // No second ExoPlayer, decoder, AudioTrack, Surface or native callbacks.
++        // Sample queues only. Capabilities must have their own descriptors:
++        // querying a live audio renderer would enter the current AudioSink from
++        // this other looper. These renderers are never enabled, so they create
++        // no MediaCodec, AudioTrack, Surface, focus or playback callbacks.
 +        val fio = HandlerThread("nv-next-preload").apply { start() }
 +        r.fioPreparo = fio
 +        val h = Handler(fio.looper)
@@ -365,14 +368,12 @@ index 22c018f..641cfcc 100644
 +        seletor.init({}, banda)
 +        seletor.parameters = seletor.parameters.buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
 +        r.seletorPreparo = seletor
-+        val p = player
-+        val capacidades: Array<RendererCapabilities> = if (p != null) {
-+            Array(p.rendererCount) { p.getRenderer(it).capabilities }
-+        } else {
-+            val lista = DefaultRendererCapabilitiesList.Factory(r.renderizadores).createRendererCapabilitiesList()
-+            r.capacidadesPreparo = lista
-+            lista.rendererCapabilities
-+        }
++        val descritores = androidx.media3.exoplayer.DefaultRenderersFactory(act)
++            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
++            .setEnableDecoderFallback(true)
++        val lista = DefaultRendererCapabilitiesList.Factory(descritores).createRendererCapabilitiesList()
++        r.capacidadesPreparo = lista
++        val capacidades: Array<RendererCapabilities> = lista.rendererCapabilities
 +        val fonte = FonteComDuracao(r.fabricaMidia.createMediaSource(itemMidia(s.url))) { timeline ->
 +            if (!timeline.isEmpty) {
 +                val w = timeline.getWindow(0, Timeline.Window())
@@ -491,13 +492,15 @@ index 22c018f..641cfcc 100644
      // --- ciclo de vida (NuvioActivity) ---------------------------------------
  
      // UI-thread mode changes use the same coordinate policy as the native canvas.
-@@ -292,12 +741,17 @@ object NvPlayer {
+@@ -292,12 +742,19 @@ object NvPlayer {
      // player continua vivo para o onResume nao precisar de nada.
      @JvmStatic
      fun pausarPeloSistema() {
 +        cancelarPreparo(0)
 +        // Cancel queued opens but retain callbacks of the current paused session.
-+        pedidoAtivo = pedidos.incrementAndGet()
++        val aindaAtual = pedidoAtivo == pedidos.get()
++        val pedido = pedidos.incrementAndGet()
++        if (aindaAtual) pedidoAtivo = pedido
          try { player?.pause() } catch (e: Exception) { Log.w(TAG, "pausarPeloSistema: $e") }
      }
  
@@ -509,7 +512,7 @@ index 22c018f..641cfcc 100644
          pedidos.incrementAndGet()
          liberar()
          val sv = superficie
-@@ -311,12 +765,14 @@ object NvPlayer {
+@@ -311,12 +768,14 @@ object NvPlayer {
  
      @JvmStatic fun abrir(url: String, cabecalhos: String) { abrirPosicao(url, cabecalhos, 0, 0) }
      @JvmStatic fun abrirPosicao(url: String, cabecalhos: String, inicioMs: Int, geracao: Int) {
@@ -524,7 +527,7 @@ index 22c018f..641cfcc 100644
          val pedido = pedidos.incrementAndGet()
          principal.post {
              if (pedido == pedidos.get())
-@@ -324,9 +780,27 @@ object NvPlayer {
+@@ -324,9 +783,27 @@ object NvPlayer {
          }
      }
      @JvmStatic fun parar() {
@@ -552,7 +555,7 @@ index 22c018f..641cfcc 100644
      @JvmStatic fun pausar(p: Int) { principal.post { player?.playWhenReady = (p == 0) } }
      @JvmStatic fun buscar(ms: Int) {
          val pedido = pedidos.get()
-@@ -353,11 +827,121 @@ object NvPlayer {
+@@ -353,11 +830,121 @@ object NvPlayer {
  
      // --- abrir / liberar ------------------------------------------------------
  
@@ -677,7 +680,7 @@ index 22c018f..641cfcc 100644
          val espera = if (esperaInicio < 0) SystemClock.elapsedRealtime() else esperaInicio
          if (esperaInicio < 0) {
              liberar()
-@@ -366,11 +950,11 @@ object NvPlayer {
+@@ -366,11 +953,11 @@ object NvPlayer {
          }
          // MStar/Amlogic: o overlay e o decoder antigos precisam sair antes do novo.
          // Poll no Handler deixa Back/parar funcionar enquanto o release corre em fundo.
@@ -691,7 +694,7 @@ index 22c018f..641cfcc 100644
                  }, 25)
                  return
              }
-@@ -393,129 +977,30 @@ object NvPlayer {
+@@ -393,129 +980,30 @@ object NvPlayer {
          abriuEm = SystemClock.elapsedRealtime()
          if (!reabrindo) retentou = false
          try {
@@ -767,7 +770,12 @@ index 22c018f..641cfcc 100644
 -                        .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
 -                        .setAudioProcessors(arrayOf(proc))
 -                        .build(), tap)
--            }
++            val r = preparada?.recursos ?: criarPlayer(act, url, cabecalhos, bufferPreset, cacheMbPedido, false, geracao)
++            if (preparada != null) {
++                medidorToken = medidor.sessao(geracao)
++                r.promover(medidorToken)
++                if (!r.construido()) construirPlayer(act, r)
+             }
 -                .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 -                .setEnableDecoderFallback(true)
 -            // TETO DO BUFFER EM BYTES (03/10, TCL C755: dois OutOfMemoryError
@@ -786,12 +794,7 @@ index 22c018f..641cfcc 100644
 -                2 -> Triple(50_000, 80_000, tetoBuffer)
 -                3 -> Triple(90_000, 150_000, (heap / 3).coerceIn(32L shl 20, 96L shl 20).toInt())
 -                else -> Triple(50_000, 50_000, tetoBuffer)
-+            val r = preparada?.recursos ?: criarPlayer(act, url, cabecalhos, bufferPreset, cacheMbPedido, false, geracao)
-+            if (preparada != null) {
-+                medidorToken = medidor.sessao(geracao)
-+                r.promover(medidorToken)
-+                if (!r.construido()) construirPlayer(act, r)
-             }
+-            }
 -            bufferAlvoMs = maxMs
 -            Log.i(TAG, "[player] buffer preset=$bufferPreset min=${minMs / 1000}s max=${maxMs / 1000}s teto=${bytes shr 20}MB")
 -            val carga = androidx.media3.exoplayer.DefaultLoadControl.Builder()
@@ -840,7 +843,7 @@ index 22c018f..641cfcc 100644
              val ouv = ouvinte(minha); val ana = analitico(minha)
              ouvinteAtual = ouv; analiticoAtual = ana
              p.addListener(ouv)
-@@ -530,30 +1015,48 @@ object NvPlayer {
+@@ -530,30 +1018,48 @@ object NvPlayer {
              temJanela = false
              aplicarEncaixe()
  
@@ -889,7 +892,7 @@ index 22c018f..641cfcc 100644
 +                // period position, after the previous decoder has been released.
 +                fracaoPendente = preparada.fracaoPendente
 +                p.setMediaSource(r.fontePrecarregada!!, preparada.posicaoFonteMs)
-+                if (fracaoPendente <= 0) confirmarRetomada(geracao, preparada.inicioAceito)
++                if (fracaoPendente <= 0) confirmarRetomada(geracao, inicioMs > 0 || preparada.inicioAceito)
 +                p.playWhenReady = true
 +                p.prepare()
 +                Log.i(TAG, "[preparo] proximo adotado token=${preparada.token} pos=${preparada.posicaoFonteMs}")
@@ -911,7 +914,7 @@ index 22c018f..641cfcc 100644
              confirmarRetomada(geracao, false)
              Log.w(TAG, "abrir: $e")
              ev(EV_ERRO, -1, 0)
-@@ -565,6 +1068,11 @@ object NvPlayer {
+@@ -565,6 +1071,11 @@ object NvPlayer {
      private fun liberar() {
          sessao++
          medidor.encerrar()
@@ -923,7 +926,7 @@ index 22c018f..641cfcc 100644
          val p = player
          player = null
          pronto = false
-@@ -586,7 +1094,7 @@ object NvPlayer {
+@@ -586,7 +1097,7 @@ object NvPlayer {
              try { if (ana != null) p.removeAnalyticsListener(ana) } catch (e: Exception) { }
              // Esconde sem destruir a superficie (destruir acorda o callback do Media3).
              try { sv?.layoutParams = FrameLayout.LayoutParams(1, 1) } catch (e: Exception) { }
@@ -932,7 +935,7 @@ index 22c018f..641cfcc 100644
              // A superficie velha fica com o player velho; a proxima abertura cria outra.
              superficie = null
          }
-@@ -599,6 +1107,7 @@ object NvPlayer {
+@@ -599,6 +1110,7 @@ object NvPlayer {
          processador = null
          // Depois do release (o fio de reproducao ja parou): sem audio decodificado.
          tap.encerrar()
@@ -940,7 +943,7 @@ index 22c018f..641cfcc 100644
          superficie?.visibility = View.GONE
      }
  
-@@ -660,12 +1169,13 @@ object NvPlayer {
+@@ -660,12 +1172,13 @@ object NvPlayer {
      // stop+release do player velho fora do fio principal. A SurfaceView so sai
      // da tela depois: tirar antes dispararia o callback de superficie do
      // Media3, que espera o fio de reproducao (justo o que esta preso).
@@ -955,7 +958,7 @@ index 22c018f..641cfcc 100644
              val ms = SystemClock.elapsedRealtime() - ini
              if (ms > 5000) Log.w(TAG, "[player] release anterior levou $ms ms (>5 s: HAL de audio preso?)")
              else Log.i(TAG, "[player] release anterior levou $ms ms")
-@@ -1146,8 +1656,7 @@ object NvPlayer {
+@@ -1146,8 +1659,7 @@ object NvPlayer {
              // na MediaTek, c2.mtk.dvhe.* / c2.mtk.dvav.* (TCL Smart TV Pro: o
              // painel engatou Dolby Vision e o selo dizia HDR10, 30/09/2026).
              Log.i(TAG, "[player] decoder de video: $decoderName")

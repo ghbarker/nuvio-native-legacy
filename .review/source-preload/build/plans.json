@@ -31,10 +31,10 @@
     },
     {
       "id": "backend-probe",
-      "label": "Android Media3 preload probe (not final app)",
+      "label": "Android Media3 preload thread-affinity fix (not final app)",
       "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
       "patch": "backend-probe.patch",
-      "patch_sha256": "229038e0cb43e25bebc0aad65da108e44f95b852fcac776a4e0ccc780abe623e",
+      "patch_sha256": "2ce6e9609d7f7065259a99f4cecea9010d4acfc279aaa0c19c527aab66245c81",
       "manifest": "backend-probe-files.json",
       "delivery": false,
       "skip_native": true,
