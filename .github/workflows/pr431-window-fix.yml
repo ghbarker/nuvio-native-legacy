@@ -1,0 +1,44 @@
+name: 'Frozen PR431 window geometry: bounded fixture and canonical comparison'
+'on':
+  push:
+    branches:
+    - review/pr431-window-fix-v2
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  window:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.9'
+    - name: Resolve exact compiler artifacts required by unchanged upstream Window fixture
+      run: gradle -p .review/source-preload/window-compiler --console=plain resolveWindowCompiler
+    - name: Materialize exact canonical and frozen PR431 product sources
+      run: 'python3 .review/source-preload/build/verify_source.py --case automatic-rebase --source-commit e7f58bc8108534e4425867ac04127731962ccf73
+        --target source-app --proof build/review/source-verified.json
+
+        git worktree add --detach baseline-app 17b7769dac4273557e1b07f5fb8734df91dd718f'
+    - name: Compare unchanged stale fixture and bounded helper on both exact sources
+      run: python3 .review/source-preload/window-fix/compare_window.py --baseline "$GITHUB_WORKSPACE/baseline-app" --candidate
+        "$GITHUB_WORKSPACE/source-app" --fixture "$GITHUB_WORKSPACE/.review/source-preload/window-fix/pr431_window_geometry.py"
+        --output "$GITHUB_WORKSPACE/build/review/window"
+    - name: Reverify frozen product source
+      run: python3 .review/source-preload/build/verify_source.py --case automatic-rebase --source-commit e7f58bc8108534e4425867ac04127731962ccf73
+        --target source-app --proof build/review/source-verified.json --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pr431-window-baseline-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
