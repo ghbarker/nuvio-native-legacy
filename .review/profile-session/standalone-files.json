@@ -1,0 +1,744 @@
+{
+  "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "feature_commit": "4cc89807e4c3248a7768360c0a7f23696f11698a",
+  "files": [
+    {
+      "path": "src/addons.c",
+      "sha": "9582fe4b2078638f8426c432019162c75e2b7aca",
+      "mode": "100644",
+      "upstream_sha": "3e73140feb39626886b35e1955435e5972aa03d6"
+    },
+    {
+      "path": "src/addons.h",
+      "sha": "f4a5d48a1d08ad0c345485b51bb39e6bb1961c43",
+      "mode": "100644",
+      "upstream_sha": "1e00fe2509588d3f2a49e430ac59187f6205f495"
+    },
+    {
+      "path": "src/addonstats.h",
+      "sha": "e4a27576d086b03936145d35de8a31ef4d5e3ad1",
+      "mode": "100644",
+      "upstream_sha": "b4b31f15003e0df794307d81f93c4ed7f42205b7"
+    },
+    {
+      "path": "src/agendaviso.c",
+      "sha": "3b90753c5b13ea340b7a8757a731ff52403c3c7e",
+      "mode": "100644",
+      "upstream_sha": "09bdcaf7077e45daf8064f6ebb24fe41ee78cf60"
+    },
+    {
+      "path": "src/agendaviso.h",
+      "sha": "66c1545e96e9e790c6ddedc02dc374205bc12ac7",
+      "mode": "100644",
+      "upstream_sha": "76c94e96f911562744693f7bd41baebc4b56ede9"
+    },
+    {
+      "path": "src/ajustes.c",
+      "sha": "54f4816e442af501bb10c33136ea9b00dd9cfd35",
+      "mode": "100644",
+      "upstream_sha": "e28d55b2129f3d5a29f6837ffac65c846c5e2924"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha": "7ffe3031e0e4b445d7833e60d82a42bc5eec2a21",
+      "mode": "100644",
+      "upstream_sha": "b8499d55d64d82c401fbf93104f1c16ec61a810a"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha": "8d65507b85e5f19fe689fffab0888014dac2359d",
+      "mode": "100644",
+      "upstream_sha": "17d10a946603bc9179cfd57bc66f96d629b75d25"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha": "b19d8d99a8ddcdf5ade869b37baf80168b9b5352",
+      "mode": "100644",
+      "upstream_sha": "b40dfcfc2357bfb425174d88d50352cd8b5aefb3"
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "sha": "1b1a48860334e5a844a7d802d3ecea489c56a598",
+      "mode": "100644",
+      "upstream_sha": "1beac8741fdbde86d6cc3e5f29b9d4131e7a5e6d"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha": "7c9ff482c929c2b14edf2169400546818a16c785",
+      "mode": "100644",
+      "upstream_sha": "c62870ad90df69cd106b70de0f38a30686eaff6b"
+    },
+    {
+      "path": "src/app.c",
+      "sha": "01360434c4b5b5f6bae524f2942a6ece39d45a1d",
+      "mode": "100644",
+      "upstream_sha": "f75d434f8b5004ddb94b3068479a57057f715b54"
+    },
+    {
+      "path": "src/avisos.c",
+      "sha": "02904c94c77c13f7d0de2b890856e4d4f3fbe843",
+      "mode": "100644",
+      "upstream_sha": "38d6c8cfb12cd2bee4261265b85427485e1f67f4"
+    },
+    {
+      "path": "src/avisos.h",
+      "sha": "130c06bfd03ff0c3226eb2572c6be32d4d9a9b89",
+      "mode": "100644",
+      "upstream_sha": "0e620ae0f360d63080d530d10fe21639c5cf9b70"
+    },
+    {
+      "path": "src/biblioteca.c",
+      "sha": "9db4d32c246a4aaacfe53ce7cdb9167c953ae5f5",
+      "mode": "100644",
+      "upstream_sha": "cdd2d0d363514242c99821cfd420c223144a1bfd"
+    },
+    {
+      "path": "src/biblioteca.h",
+      "sha": "4a1b37084c22def3ba782ba9d7faa576f26ff6cc",
+      "mode": "100644",
+      "upstream_sha": "7d5ac08f37b66a753d8f37d23c4ec97e4f99d92c"
+    },
+    {
+      "path": "src/catalogo.c",
+      "sha": "165853ef8ff3595f405d98ca75cda893a5598932",
+      "mode": "100644",
+      "upstream_sha": "57d63b578d142fe571c8f3c93d71301d85ef886b"
+    },
+    {
+      "path": "src/catalogo.h",
+      "sha": "84d37cb7f591a189ff5c486719bfc4cc8c39ec8a",
+      "mode": "100644",
+      "upstream_sha": "81cc7bdf555f29ea71031da10a6f0ee9b9733590"
+    },
+    {
+      "path": "src/contalib.c",
+      "sha": "1e8b0e31f62d2c1fa96f1c110318c363b68f66bc",
+      "mode": "100644",
+      "upstream_sha": "eb9b581e719433cbdb46b5b83adbb6d818b509f3"
+    },
+    {
+      "path": "src/credfio.c",
+      "sha": "82b5cf5c2c4c750fc83d0f15f5acc14ae5b165d3",
+      "mode": "100644",
+      "upstream_sha": "9b02e92553e959c600c18d3df59f23455c02fd3c"
+    },
+    {
+      "path": "src/credfio.h",
+      "sha": "acc156b489d00a7f4a44c954889828ab039c0fc7",
+      "mode": "100644",
+      "upstream_sha": "bdb7dbe466de99cb2862fdb9310b907cd46f9d66"
+    },
+    {
+      "path": "src/ctxmenu.c",
+      "sha": "5d4c8d582b0e7c4484345dfcb7b6c863cdcbf05c",
+      "mode": "100644",
+      "upstream_sha": "cfd5547b2224835b633196709dba520853ecc803"
+    },
+    {
+      "path": "src/ctxmenu.h",
+      "sha": "500b05c192eb715dbea0eb85fc91cd74b01fe8d2",
+      "mode": "100644",
+      "upstream_sha": "fe52cc0284f252c50045d7c25df9ece207f7c3a5"
+    },
+    {
+      "path": "src/debrid.c",
+      "sha": "ad48c8d160bac87eed58659e860d8566c318821d",
+      "mode": "100644",
+      "upstream_sha": "1ae723957c1f9eccd7a80477f9305ae630902ec1"
+    },
+    {
+      "path": "src/debrid.h",
+      "sha": "1939e972f76f2879e289609fa8a32993461b002f",
+      "mode": "100644",
+      "upstream_sha": "1fe01c6bba8098ed7157a7fb6763a0bcac227446"
+    },
+    {
+      "path": "src/descoberta.c",
+      "sha": "152e92c7b95ad580022832b660b6782db2bc68a9",
+      "mode": "100644",
+      "upstream_sha": "3c8e5240ab2b280a9691493e6449244335d7fe15"
+    },
+    {
+      "path": "src/descoberta.h",
+      "sha": "ab8636885ee4d2b03f9ac56096d2f16ce9362e87",
+      "mode": "100644",
+      "upstream_sha": "f266756a9ee876c7c84729011355db128a13df53"
+    },
+    {
+      "path": "src/epg.c",
+      "sha": "2b8ec391219c9bcc317b329329b240b6c74d0755",
+      "mode": "100644",
+      "upstream_sha": "88fff40946a0ff2abed1ed747d8eda4697289259"
+    },
+    {
+      "path": "src/epg.h",
+      "sha": "26480d15bcc3e14b998b752f0329c82cfabdd120",
+      "mode": "100644",
+      "upstream_sha": "2ec1ed545456795f9d920422487854eab0a90678"
+    },
+    {
+      "path": "src/extras.c",
+      "sha": "d49b4955d691bc83bbdfdd905552de50f6533e35",
+      "mode": "100644",
+      "upstream_sha": "c55e3f26791918fb24db69f89df6d5821ddddd46"
+    },
+    {
+      "path": "src/extras.h",
+      "sha": "1a160fccb2669799451788dbba3b5f3a47aaa1f1",
+      "mode": "100644",
+      "upstream_sha": "ab81d006109e6b8a053f4436e592194e815aa24d"
+    },
+    {
+      "path": "src/fontecache.c",
+      "sha": "95060dba18ab7fe79428af2c8d202a75a0110d4a",
+      "mode": "100644",
+      "upstream_sha": "b93c4a04c5879bcf689f60b6e012ae56592150b0"
+    },
+    {
+      "path": "src/fontecache.h",
+      "sha": "1c3542b34602351edb74db065f5099194d46fe19",
+      "mode": "100644",
+      "upstream_sha": "f4fb525486f45b5fdc5d100111f9a1fd11edca97"
+    },
+    {
+      "path": "src/fontefalha.c",
+      "sha": "f40102a703941fddc29d01bd44b860796590f775",
+      "mode": "100644",
+      "upstream_sha": "379f5e6f245229da523a0346b28c213e808f1cd1"
+    },
+    {
+      "path": "src/fontefalha.h",
+      "sha": "1ded890798254ee1954b13db6fb3478879fcbfdc",
+      "mode": "100644",
+      "upstream_sha": "dbf44c55f7f08b3726b2ac56ad1e3c7b39d1efac"
+    },
+    {
+      "path": "src/fonteregra.c",
+      "sha": "9c67c8af72d371c129ef454c5b79f7750f379008",
+      "mode": "100644",
+      "upstream_sha": "c7bb7f43400b9200b1ee2ec27fbb0d6fde8f6865"
+    },
+    {
+      "path": "src/fonteregra.h",
+      "sha": "bd2aa1ac0d2097d6389af5eccf3e916e4dc823d6",
+      "mode": "100644",
+      "upstream_sha": "ffe8ab090156481eb5f90b5ce53d5e95a5b2ecaf"
+    },
+    {
+      "path": "src/fontesmortas.c",
+      "sha": "697a10b046d3a65d9fe59825fadec4cf4ca4d224",
+      "mode": "100644",
+      "upstream_sha": "b7f28c0624c059f92dceb65a0cb7987adb883d7b"
+    },
+    {
+      "path": "src/fontesmortas.h",
+      "sha": "5b9d6d913c56dc08895b95945f02682ea3109836",
+      "mode": "100644",
+      "upstream_sha": "e8271ec1401f3e71d0bd068e867500e75bc09d09"
+    },
+    {
+      "path": "src/guia.c",
+      "sha": "9409f6b67451787b4d474791268f5ad543195be4",
+      "mode": "100644",
+      "upstream_sha": "4a2f010ead4ab4b695b4e7414ae88055c457fbd1"
+    },
+    {
+      "path": "src/guia.h",
+      "sha": "941ca90c9f0a8c74ccba61db9fa86f8e0661e724",
+      "mode": "100644",
+      "upstream_sha": "ee55c76293ba45bfe889fdd53f6bd7b7b3ca484b"
+    },
+    {
+      "path": "src/guialembrete.c",
+      "sha": "4f187857c614c8c7e88e477adbeb95fdfe114479",
+      "mode": "100644",
+      "upstream_sha": "918b0e0e2ed93583fba12cdf7971873cd70a92e8"
+    },
+    {
+      "path": "src/guialembrete.h",
+      "sha": "b2ff766b6665f75a8a5fdeab3106b37710639d6b",
+      "mode": "100644",
+      "upstream_sha": "1e1aa13c37f537b6a9593d38c91f010bade87f5d"
+    },
+    {
+      "path": "src/home.c",
+      "sha": "476a94dcbf0f075e3b852f3429b5a8c61123351e",
+      "mode": "100644",
+      "upstream_sha": "72e1c3876f31ce13f621dec1d3ace228620b8c85"
+    },
+    {
+      "path": "src/home.h",
+      "sha": "6b4fef7df4ed1ecc6fe13d89701f1750909183ef",
+      "mode": "100644",
+      "upstream_sha": "51ecc4f1466046b4e6a1ef6532886783f91c868e"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha": "2ec7ab05d4528f43601e40865d3cb525755010f1",
+      "mode": "100644",
+      "upstream_sha": "adb6ebf7245adbbc9538716927f96794f163ec0f"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha": "b1b1f279b03b08cb992bca7132af06be52af4492",
+      "mode": "100644",
+      "upstream_sha": "7296a4ec7e747ad5b20894e2aee7f896452dfa48"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha": "692e2256f8aff5f04239f931ee834af254af93f5",
+      "mode": "100644",
+      "upstream_sha": "e3de09fca77ef646ccb50a450081777d769ea0fa"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha": "0fbe6e245a52ad6c40268a782005c351b263af60",
+      "mode": "100644",
+      "upstream_sha": "8407a129778b17f912590f9870cc67b1f302e00f"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha": "8ff843770470889e932c6889d01fcb89f3931c61",
+      "mode": "100644",
+      "upstream_sha": "19f33b16a946014394859d55551883d11214de78"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha": "64bf2e84ea8df91f75c3bc0d69cc90d016b6f480",
+      "mode": "100644",
+      "upstream_sha": "6f660252dc224c38d224a89692d463cf2bc114d8"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha": "50219d4cbbb249a52d7ed2b3c94f361a65f95e29",
+      "mode": "100644",
+      "upstream_sha": "e27a20fd97e62dc94b127029ed093d4b14f6bd89"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha": "924d0d14455337aff0a3e0fc103c8e91bf6c541a",
+      "mode": "100644",
+      "upstream_sha": "935f50765dee79db4c9dad40c87ad526baf8b370"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha": "2ead243c9e69a7061ffd621784b03f0e8d12abda",
+      "mode": "100644",
+      "upstream_sha": "e21ccfe43bcdeea3273c8ccb81e07621ed69cebd"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha": "fb504b76e6c83aaa16300a6298836deedb062662",
+      "mode": "100644",
+      "upstream_sha": "ead9b73e8c063880a212cb3de9a14041e2c679df"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha": "742132bb52231d1438fdaa309608c70de38c5064",
+      "mode": "100644",
+      "upstream_sha": "32d37ef0e48b92863fb88b9310e275288e495700"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha": "ce58361f64f4030e8a7dafbec1736be807429123",
+      "mode": "100644",
+      "upstream_sha": "ea5207f32c82ed73fa6ea9347d3fd515d7591bae"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha": "03d3285ba2d6d9b9cd050d463aa7e4f29e80d830",
+      "mode": "100644",
+      "upstream_sha": "45c899b6297e69ea5011e4a57c4f4da0b2d4d28f"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha": "c0081119de6e9cf5d2ce6ef330c5e3eaa27467f1",
+      "mode": "100644",
+      "upstream_sha": "2a2a2ac1327f115a991b05ad00a57a9ea5ea4488"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha": "afee6088b649ccf2eaecc407242e8a2eb62f5aa8",
+      "mode": "100644",
+      "upstream_sha": "9bdf9ad58b1834a9aa68d5878ce0a8b3403338d6"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha": "5a592b872cb70320ab9a2e70c758650fdf873ebb",
+      "mode": "100644",
+      "upstream_sha": "b7fad6b1ddccdc8a1ba46bb3ebb76cf4f399db24"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha": "a5604b535e52b0b4016719fabed5236325f106e1",
+      "mode": "100644",
+      "upstream_sha": "ec8d69871f54755ef3ef1b17c1e0900dde1d282c"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha": "e61e4cea0d7115647e2acf8a85b74aee8407cc24",
+      "mode": "100644",
+      "upstream_sha": "765fdaa92266db8a6f6c2a9e0f8e2cb0bb4ee67f"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha": "d250bb0927c5145b8c5330d31cced8409df59c1a",
+      "mode": "100644",
+      "upstream_sha": "7318e5d7d1fd968bfeaa58a9dfe8c38aa8ddcca4"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha": "7152d5628b10cb9bcf43425fc6fb8441ddde7072",
+      "mode": "100644",
+      "upstream_sha": "76995584943e3d9e7273db4fa044662fd49562c7"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha": "4d105b0ba9d5f109555d5eadf27c229cedde503c",
+      "mode": "100644",
+      "upstream_sha": "5efb7b2cd4a409753c855fe57a0d2b24a4abc13a"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha": "17c120930753ee1f245695e52c90a816cad4a433",
+      "mode": "100644",
+      "upstream_sha": "9c9c52bdc031d147ea2a3b1daadc7d697a4de2bf"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha": "4d4a968aafa88395739acff1abc3ca3c21c68785",
+      "mode": "100644",
+      "upstream_sha": "4eb38324af4347a918db4e205df6afcd386aa512"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha": "60c94c5215a6c01280ff3e0919c5fddcc94426e0",
+      "mode": "100644",
+      "upstream_sha": "0f88765779d208bdecab78b47e23b009192818f7"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha": "56219dc7e8e21245d6bd0864b5139e1242fceb6c",
+      "mode": "100644",
+      "upstream_sha": "e8ea2e38066c66d7069a5b2f89dbd8d93e851506"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha": "aea9af0760c72da784029307fc98e57589e9342f",
+      "mode": "100644",
+      "upstream_sha": "7a50ffa680eb963ec282599a93e020170e6d29db"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha": "7efa20aed03d321949d69bd4371ffbf99ba93474",
+      "mode": "100644",
+      "upstream_sha": "4a6ff2fae4e292a3d889ff9208a8d3e5a0e9c53b"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha": "1221f1ac08b0166b4a9bd85d3f43f25a263ae5f0",
+      "mode": "100644",
+      "upstream_sha": "58df5048b50e0b471ffebc305c5cc70eb068b04b"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha": "3bf5f730a622a25182dff4785760741c7f4ce261",
+      "mode": "100644",
+      "upstream_sha": "cf47db4a5de28f73aed431dd7dc0255cad9eb35b"
+    },
+    {
+      "path": "src/ilha.c",
+      "sha": "262635eb1b13f8d5f3fd1217aede28b52a01048f",
+      "mode": "100644",
+      "upstream_sha": "387ddca299ef849052f7bf3b504c16934969eba7"
+    },
+    {
+      "path": "src/ilha.h",
+      "sha": "d8bd5f15e033c2beffec55290d557ce9af94fe9c",
+      "mode": "100644",
+      "upstream_sha": "258720dd3e528ddd7348e9433dc308574a57f4fc"
+    },
+    {
+      "path": "src/ilhaacao.c",
+      "sha": "4077250b92f55a470a1ea848c745f5ec90c77a84",
+      "mode": "100644",
+      "upstream_sha": "f59dcd3e88093334a6480d00a48637642fe9a412"
+    },
+    {
+      "path": "src/ilhaacao.h",
+      "sha": "240fcb1b13c24cc4f53d35d259a1b9277d2259e0",
+      "mode": "100644",
+      "upstream_sha": "af9b763e4d727fb9cc0d2f12db4e4dfe59f1b4f0"
+    },
+    {
+      "path": "src/ilhasalvar.c",
+      "sha": "70b3dfb3bd9b423a722886cdbf33345d31d44601",
+      "mode": "100644",
+      "upstream_sha": "4572fbf6140259d88663e2bc05dfbd4612a71907"
+    },
+    {
+      "path": "src/ilhasalvar.h",
+      "sha": "09bc8123ddd59268c35ae56ed75aa74bf4c61d34",
+      "mode": "100644",
+      "upstream_sha": "e0a75a07bd6c3fb16495b774f0304fffd0d1bbb2"
+    },
+    {
+      "path": "src/ilhasinais.c",
+      "sha": "647e36c157774102f3fdc48415aa433d63183b44",
+      "mode": "100644",
+      "upstream_sha": "e64dfcb5e23548976709ff9f7de2e1127b1b7eaf"
+    },
+    {
+      "path": "src/jellyfin.c",
+      "sha": "105156ea4083524270c4d9db6c70ddac3121d3ec",
+      "mode": "100644",
+      "upstream_sha": "874f87fde06bf0bb3a3ca5f3702e82ba546bafb5"
+    },
+    {
+      "path": "src/listas.c",
+      "sha": "b7d6a514ea62b65e2413964270368cb9959aff14",
+      "mode": "100644",
+      "upstream_sha": "0eacca2769965f569aff333d9adfafda8eb0535d"
+    },
+    {
+      "path": "src/listas.h",
+      "sha": "e43f59023470780940bb017b9c0e0a83a8ea5bf9",
+      "mode": "100644",
+      "upstream_sha": "828cd7f5b23b47e0c17a5100cd92241d86836eb1"
+    },
+    {
+      "path": "src/perfis.c",
+      "sha": "aee84ece9d2448294e37dbdc4f67e202a448910f",
+      "mode": "100644",
+      "upstream_sha": "763d45770ca397beba9a8ae09fcb601e3a04c467"
+    },
+    {
+      "path": "src/perfis.h",
+      "sha": "debcf0881c9839ecd4ebb625fa36a657ed72598b",
+      "mode": "100644",
+      "upstream_sha": "af9bd0331b1c92b02c65751b9d1c2bab66cba072"
+    },
+    {
+      "path": "src/perfisessao.h",
+      "sha": "686f7a15dae8062cf9496b5a0807b9d38cff7443",
+      "mode": "100644",
+      "upstream_sha": null
+    },
+    {
+      "path": "src/plex.c",
+      "sha": "0dfb1f0d304c1aeb6a3efe4e566bc034f36eb86e",
+      "mode": "100644",
+      "upstream_sha": "3bdb229885d9c66d95b9eaa24c9e2075193d230d"
+    },
+    {
+      "path": "src/ponteiro.c",
+      "sha": "c01f7cbacf1f9f4e38f1cc86335c839b2e4890a9",
+      "mode": "100644",
+      "upstream_sha": "a6dc76a584defd5c73eca46517b6ea74ffccae4d"
+    },
+    {
+      "path": "src/ponteiro.h",
+      "sha": "db55071ce1362172b426b29d1a8a37ec7e838e55",
+      "mode": "100644",
+      "upstream_sha": "1a23178826553c48bafb17a1e276f674f2bc47e9"
+    },
+    {
+      "path": "src/recomenda.c",
+      "sha": "2c28c3ae7169ad6b28bc6f8c6d0a389720ac571a",
+      "mode": "100644",
+      "upstream_sha": "3b6687f8c6105ce5f45d80ea29bb0019fd8077e9"
+    },
+    {
+      "path": "src/recomenda.h",
+      "sha": "55278a33284af66074ce0a283a3f65f980755e90",
+      "mode": "100644",
+      "upstream_sha": "1d26d9edb064fb138dc8d9331af4a87a97fe1edc"
+    },
+    {
+      "path": "src/recresp.c",
+      "sha": "9b646135f5fb67ed7523ab687a013cb8f378d0f3",
+      "mode": "100644",
+      "upstream_sha": "c9d2eb715ed14fb6899e5dcffc90533d41824772"
+    },
+    {
+      "path": "src/recresp.h",
+      "sha": "34329d2e4fb98c231ac2d9e1d87c97bb88b943e5",
+      "mode": "100644",
+      "upstream_sha": "3065e18c59691d93823453b1f7decade78887542"
+    },
+    {
+      "path": "src/sessao.c",
+      "sha": "c5d1715a6ee8c502f01efa7169c2399e9ce273d4",
+      "mode": "100644",
+      "upstream_sha": "f952da225f6a47e23cfb8a426a8c024c1d72ab20"
+    },
+    {
+      "path": "src/sessao.h",
+      "sha": "5a96b37e5da5a5113ad9dd9dcbcfe9e4ef3a1b84",
+      "mode": "100644",
+      "upstream_sha": "3f66a46c2a038324800356128b8611af4d81c9dd"
+    },
+    {
+      "path": "src/simkl.c",
+      "sha": "7c9fab14b6dec4bf5d6f03ca95e77561028d5ba6",
+      "mode": "100644",
+      "upstream_sha": "648406853e47de6f7d8bbb2d7bd4a3615dc6eba7"
+    },
+    {
+      "path": "src/simkl.h",
+      "sha": "53fc1e9e81a653ced43b345b64b63203495b6c69",
+      "mode": "100644",
+      "upstream_sha": "2925c98c85d9c9bbc9fba08500076e878175422e"
+    },
+    {
+      "path": "src/simklauth.c",
+      "sha": "43cddb999cf6f50e42ebf4dbd2be10d8183909d7",
+      "mode": "100644",
+      "upstream_sha": "d8a5642001f415fdb3ce0d72d94515a7e5be51ff"
+    },
+    {
+      "path": "src/socialvis.c",
+      "sha": "35026c890c7a6e822b8f1f2c5e00f5185d362f47",
+      "mode": "100644",
+      "upstream_sha": "5c4daed26e7c5f670802da44323db4a685398c27"
+    },
+    {
+      "path": "src/stalker.c",
+      "sha": "7c8d5804dcb1153b2a747fdafa36c72c982ec71a",
+      "mode": "100644",
+      "upstream_sha": "5899c9186a8574949d7667dc832cd4a44ad8d45c"
+    },
+    {
+      "path": "src/stalker.h",
+      "sha": "bad89e04d671503aa649333bea36ba7283fabbc6",
+      "mode": "100644",
+      "upstream_sha": "b3dec766dd42b4174d5e838e2334155c67740f8e"
+    },
+    {
+      "path": "src/streams.c",
+      "sha": "1fbeab12236f4b175e8a3e4bfb8028d6bd627337",
+      "mode": "100644",
+      "upstream_sha": "60e63423b094793a49f9861412661d54ba0e9d07"
+    },
+    {
+      "path": "src/streams.h",
+      "sha": "f5727b11b94f5df32024ed04e00d3c37abece6cd",
+      "mode": "100644",
+      "upstream_sha": "832f21d0531aa9e4b661d7bd88e4be3809eca0fc"
+    },
+    {
+      "path": "src/sync.c",
+      "sha": "fe06d80dd3c85f2e2e19eac9fa14b11a5d8fd4bf",
+      "mode": "100644",
+      "upstream_sha": "f722f67ce81f11dd1977ff1d1968b36a88c974eb"
+    },
+    {
+      "path": "src/sync.h",
+      "sha": "bc0e5d715958b035b64b40c0a418d72610e36755",
+      "mode": "100644",
+      "upstream_sha": "e7efb49f660eaa6577d20bd6b67473894c31a9c9"
+    },
+    {
+      "path": "src/syncprog.c",
+      "sha": "58c36e6288d36f1f58056a804fefad9e74a2731a",
+      "mode": "100644",
+      "upstream_sha": "58e39a0c4909e89559ab16fbfd2e91e2d10224b9"
+    },
+    {
+      "path": "src/syncprog.h",
+      "sha": "71baed3df0003031700ec4f11e55bdd69663700b",
+      "mode": "100644",
+      "upstream_sha": "505fd949231b499693ebb9514276b0c341e9ff25"
+    },
+    {
+      "path": "src/tirarremoto.c",
+      "sha": "29a58d36e50dc89126bae08e2dfa7ea6951a5ef6",
+      "mode": "100644",
+      "upstream_sha": "0ff847634027b5f4177febd52f9bbe6785edb2c4"
+    },
+    {
+      "path": "src/tirarremoto.h",
+      "sha": "e7560f037a66d2a10ad31b3b24ebf1820231cd97",
+      "mode": "100644",
+      "upstream_sha": "91664e0b695e1e7400966908d5ed506a0943ce2b"
+    },
+    {
+      "path": "src/trakt.c",
+      "sha": "8325149914fdf46839ac10c253fa1695ec9b6872",
+      "mode": "100644",
+      "upstream_sha": "69001777006cbcbc9d2cacd4bbbba1665ef7d06d"
+    },
+    {
+      "path": "src/trakt.h",
+      "sha": "d034567fac481bf0ad1c9fe2ce11b88f541f659d",
+      "mode": "100644",
+      "upstream_sha": "240b64da089725327d4d1d71ae5f3c64e990ef23"
+    },
+    {
+      "path": "src/traktauth.c",
+      "sha": "677a4a895388b5778d991951ca4108ad9fd1cdbf",
+      "mode": "100644",
+      "upstream_sha": "c6412ad6bbc655ba03e413b6134621d30ccd9796"
+    },
+    {
+      "path": "src/visto.c",
+      "sha": "cd499f600ff7281f938ca672db9f73ccc57deb47",
+      "mode": "100644",
+      "upstream_sha": "de4581bcc7ad536cb7c088648b1e5efe414a2bb1"
+    },
+    {
+      "path": "src/visto.h",
+      "sha": "fa544ac802cb01017d7b6532c9f5909285f84a72",
+      "mode": "100644",
+      "upstream_sha": "2f918dd86b49d7170afa09e388493fb57986b1e1"
+    },
+    {
+      "path": "src/vistoep.c",
+      "sha": "82daf2ef629c1b06d851867625c585fc34101d1b",
+      "mode": "100644",
+      "upstream_sha": "62fcf4a5e85e8e35a27ea79bec3d6edfcbff1d88"
+    },
+    {
+      "path": "src/vistoep.h",
+      "sha": "73d7c50e8e13eb4213dc6c11917b629591152096",
+      "mode": "100644",
+      "upstream_sha": "96b4412a1e152a1f5238c7df89ffb3706855727e"
+    },
+    {
+      "path": "src/xtepg.c",
+      "sha": "b72d32f4bb0de728b521865335c4604c04d9f673",
+      "mode": "100644",
+      "upstream_sha": "5d9e26444ec585eb624d140b526ae69a23b2585e"
+    },
+    {
+      "path": "src/xtream.c",
+      "sha": "85d8e3bcead9650c5950ddce3b207479e2ba966e",
+      "mode": "100644",
+      "upstream_sha": "0dcfc3f76fe485d1856febbd6450c4f8d0376b02"
+    },
+    {
+      "path": "src/xtream.h",
+      "sha": "fc5a628aa7b1569dbb8adb1903c32984b96c2168",
+      "mode": "100644",
+      "upstream_sha": "ebe83331bd919a750b085ec1427b8109aec81045"
+    },
+    {
+      "path": "tools/android.sh",
+      "sha": "d210069a7b98a84e0d2db1da27d0749f1e406d1f",
+      "mode": "100755",
+      "upstream_sha": "2c294b97c560e0a298fd86d6754b74f5fe7a936d"
+    },
+    {
+      "path": "tools/arm.sh",
+      "sha": "fde14de6e11fd6043e323854f2af70e0b5806528",
+      "mode": "100755",
+      "upstream_sha": "af1e6f0c68948f5dca486544fc0717ca068f1afa"
+    },
+    {
+      "path": "tools/varredura-i18n.py",
+      "sha": "3716df8fd6ad085fbb9eb1ab8c1e11f3055102ba",
+      "mode": "100644",
+      "upstream_sha": "3b247851955d11a76c95ff7575bceeb9648ec3db"
+    }
+  ]
+}
