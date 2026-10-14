@@ -333,25 +333,24 @@ static int ok2xx(const char *r, int st) { return r && st >= 200 && st < 300; }
 
 // ---------------------------------------------------------------- addons
 
-// Le a resposta da tabela `addons` (ou a copia dela) para addonsRem.
-static int lerAddons(const char *r) {
-  // static: so o fio do sync le a conta, e 8 KB nao pertencem a pilha dele.
-  static char url[SY_URL_LEITURA];
+// Destination and long-URL buffer belong to the caller. The drawing thread
+// can restore B's cache while A's account worker still owns its staged reply.
+static int lerAddonsPara(const char *r, AddonRemoto *saida, char *url) {
   const char *p;
   int k = 0, fora = 0;
   for (p = js_raiz_array(r); p && k < SY_ADD_MAX; p = js_prox(js_fim(p))) {
     const char *f = js_fim(p);
     char b[16];
-    memset(&addonsRem[k], 0, sizeof addonsRem[k]);
-    if (!js_texto(p, f, "url", url, sizeof url)) continue;
-    js_texto(p, f, "name", addonsRem[k].nome, sizeof addonsRem[k].nome);
+    memset(&saida[k], 0, sizeof saida[k]);
+    if (!js_texto(p, f, "url", url, SY_URL_LEITURA)) continue;
+    js_texto(p, f, "name", saida[k].nome, sizeof saida[k].nome);
     // A URL QUE NAO CABE NAO ENTRA CORTADA (#201). js_texto corta em silencio
     // no tamanho do destino, e era aqui que a URL do Comet (870) virava 599: o
     // addon recebia meia configuracao e respondia como se ela fosse valida.
     // #203: a que passa de NV_ADDON_URL_MAX (AIOLists tem 2 a 8 KB) vira
     // apelido; so some quando passa dos 16 KB da leitura ou a tabela enche.
-    if (strlen(url) >= sizeof url - 1 ||
-        !nv_addon_url_guardar(addonsRem[k].nome, url, addonsRem[k].url, sizeof addonsRem[k].url)) {
+    if (strlen(url) >= SY_URL_LEITURA - 1 ||
+        !nv_addon_url_guardar(saida[k].nome, url, saida[k].url, sizeof saida[k].url)) {
       fora++; continue;
     }
     // #360: a conta pode trazer o MESMO addon duas vezes (heranca do tempo em
@@ -359,17 +358,17 @@ static int lerAddons(const char *r) {
     // normalizada (nv_addon_base, addonurl.h): fica a primeira ocorrencia,
     // com a URL exata que a conta mandou.
     { int i; char base[NV_ADDON_URL_MAX], bi[NV_ADDON_URL_MAX];
-      nv_addon_base(addonsRem[k].url, base, sizeof base);
+      nv_addon_base(saida[k].url, base, sizeof base);
       if (!base[0]) continue;
       for (i = 0; i < k; i++) {
-        nv_addon_base(addonsRem[i].url, bi, sizeof bi);
+        nv_addon_base(saida[i].url, bi, sizeof bi);
         if (!strcmp(bi, base)) break;
       }
       if (i < k) continue;
     }
     // Ausente conta como LIGADO: e assim que o web le, e um addon que some por
     // causa de um campo que o servidor nao mandou e pior que um a mais.
-    addonsRem[k].ativo = js_bruto(p, f, "enabled", b, sizeof b)
+    saida[k].ativo = js_bruto(p, f, "enabled", b, sizeof b)
                          ? (strcmp(b, "false") != 0) : 1;
     k++;
   }
@@ -378,11 +377,16 @@ static int lerAddons(const char *r) {
   // conta — a diferenca entre "a conta mudou" e "nao coube".
   for (; p; p = js_prox(js_fim(p))) {
     const char *f = js_fim(p);
-    if (js_texto(p, f, "url", url, sizeof url)) fora++;
+    if (js_texto(p, f, "url", url, SY_URL_LEITURA)) fora++;
   }
   if (fora) printf("[sync] addons: %d da conta ficaram de fora (maximo %d, ou URL grande demais)\n",
                    fora, SY_ADD_MAX);
   return k;
+}
+
+static int lerAddons(const char *r) {
+  static char url[SY_URL_LEITURA]; // worker-only staging
+  return lerAddonsPara(r, addonsRem, url);
 }
 
 // A lista aplicada fica separada da resposta recebida: so aplicar confirma
@@ -435,9 +439,10 @@ static void addonsRestaurar(void) {
   if (addonsRestauradosPerfil == perfil && !strcmp(addonsRestauradosUsuario, sessao_usuario())) return;
   c = contacache_ler(CC_ADDONS_APLICADOS, perfil, sessao_usuario(), NULL);
   if (c) {
-    static AddonRemoto local[SY_ADD_MAX];
-    int n = addons_exportar(local, SY_ADD_MAX), k = lerAddons(c);
-    if (!addonsListaIgual(local, n, addonsRem, k)) addons_definir_lista(addonsRem, k);
+    static AddonRemoto local[SY_ADD_MAX], guardados[SY_ADD_MAX];
+    static char url[SY_URL_LEITURA]; // drawing-thread cache restoration
+    int n = addons_exportar(local, SY_ADD_MAX), k = lerAddonsPara(c, guardados, url);
+    if (!addonsListaIgual(local, n, guardados, k)) addons_definir_lista(guardados, k);
     addons_marcar_da_conta(perfis_ativo());
     free(c);
   }
@@ -1297,6 +1302,10 @@ void sync_iniciar(void) {
   // com ou sem login — elas nunca mais seriam lidas nem enviadas.
   addonsEsquecer();
   if (!sessao_logada()) return;
+  // Cached sources are private to this session and do not touch the worker's
+  // staging buffers. Restore them even while an old sync drains or backs off.
+  addonsRestaurar();
+  desc_sessao_preparada();
   // PEDIDO COM O FIO VIVO NAO SE PERDE. Voltar calado deixava um buraco: o
   // fio que estava no ar pode ser justamente o interrompido pela pergunta de
   // perfil, e ai o ciclo completo do perfil escolhido so partia com
@@ -1307,7 +1316,6 @@ void sync_iniciar(void) {
   pedidoComFioVivo = 0;
   if (nuvem_freio_ativo()) return;
   addonsPerfilCiclo = perfis_ativo_addons();
-  addonsRestaurar();
   cicloInterrompido = 0;
   perfilDoCiclo = perfis_ativo();
   copiaGeracaoDoCiclo = contacache_geracao();
@@ -1372,6 +1380,7 @@ static void spRelatar(void) {
 }
 
 void sync_passo(unsigned agoraMs) {
+  if (sessao_logada()) desc_sessao_passo();
   // ANTES DA PORTEIRA de `fioPronto`: ver o comentario em rodar(). O resto do
   // ciclo continua sendo aplicado de uma vez, no fim — so os addons saem na
   // frente, porque so eles mudam O QUE a descoberta vai buscar.

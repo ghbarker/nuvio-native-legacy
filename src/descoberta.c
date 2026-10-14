@@ -1201,6 +1201,12 @@ static unsigned geracaoLida;
 // completa.
 static pthread_mutex_t listaTrava = PTHREAD_MUTEX_INITIALIZER;
 static int listaLidaNaVolta;
+// Reset creates a pending opening; sync releases it only after the target
+// addon cache is installed. main.c remains the first bootstrap dispatcher.
+static NvPerfilSessao aberturaSessao;
+static int aberturaPendente, aberturaFontesProntas, descobertaInicializada;
+static unsigned long long aberturaRetentarEm;
+static void descTentarAbertura(void);
 // Fim de volta: `buscando` cai sob a mesma trava em que desc_iniciar o testa e marca.
 static void buscandoSoltar(void) {
   pthread_mutex_lock(&listaTrava); buscando = 0; pthread_mutex_unlock(&listaTrava);
@@ -3542,11 +3548,14 @@ static void publicarMontagem(const CatItem *lote, int n, const CatFileira *fils,
 // cat_trocar_continuar concorrente ou ja enxergar o carimbo (e podar) ou
 // publicar antes da remocao (e ser corrigida por ela). Os DELETE remotos sao
 // de quem chama. Devolve quantos cards sairam.
-// Leitura sem trava, como desc_repetir ja faz com `buscando`: um quadro de
-// atraso na resposta nao muda nada para quem pergunta (app.c, uma vez por
-// quadro, com teto de tempo).
+// Dispatcher state uses its short mutex; no network wait is held here.
 int desc_montando(void) {
-  return buscando || repetirAoFim || descDeb.adiado || cwVivo || cwDeNovo;
+  int pendente;
+  pthread_mutex_lock(&listaTrava);
+  pendente = buscando || repetirAoFim || descDeb.adiado ||
+             (aberturaPendente && nv_perfil_sessao_atual(aberturaSessao));
+  pthread_mutex_unlock(&listaTrava);
+  return pendente || cwVivo || cwDeNovo;
 }
 // A CARGA DA HOME (o aviso "Carregando fileiras…" da ilha) e o ciclo de
 // descoberta, nao a refacao so do Continuar assistindo: essa nao consulta add-on
@@ -4050,7 +4059,9 @@ static void *montar(void *u) {
   int nContinuar = 0, nSocial = 0;
   unsigned socialGeracao;
   unsigned minhaGeracao = montagemGeracao;
-  if (!descSessaoVincular(montagemSessao)) { free(lote); buscandoSoltar(); return NULL; }
+  if (!descSessaoVincular(montagemSessao)) {
+    free(lote); buscandoSoltar(); descTentarAbertura(); return NULL;
+  }
   // O CONTEXTO EM QUE ESTA VOLTA BUSCA, em partes (ver homeestado.h). A
   // identidade vale do inicio: o Trakt e lido logo abaixo. Os addons sao
   // recapturados no instante em que a lista e lida, e a estrutura no instante
@@ -4285,15 +4296,17 @@ static void *montar(void *u) {
     // Quem sabe de conta e de perfil e o app (desc_espera_addons_definir): os
     // testes que compilam este arquivo sozinho nao tem sessao nem perfis.
     { static int jaEsperou;
+      static NvPerfilSessao sessaoEsperada;
       int k;
       // ESPERA O CICLO INTEIRO DA CONTA, nao so os addons: as colecoes e a
       // ordem chegam ~3 s depois deles (TCL: addons 06.05, "sync aplicado"
       // 09.31), e a volta que ja tinha escolhido os catalogos refazia a Home
       // no meio — 14 fileiras, cai para 8, volta para 14 com outras. Enquanto
       // isso a tela e a do cache.
-      if (!jaEsperou && esperaAddons && esperaAddons()) {
+      if ((!jaEsperou || sessaoEsperada != descSessao()) && esperaAddons && esperaAddons()) {
         Uint32 desde = 0;
         jaEsperou = 1;
+        sessaoEsperada = descSessao();
         printf("[desc] esperando a conta (addons, colecoes, ordem) antes de montar a Home\n"); fflush(stdout);
         while (minhaGeracao == montagemGeracao && (k = esperaAddons()) != 0) {
           if (k == 2) {   // perfil ja escolhido: o prazo corre
@@ -5130,16 +5143,31 @@ condenada:
 // de o pedido ser ignorado. tests/desc_iniciar_corrida.sh.
 enum { DESC_INICIOU, DESC_OCUPADO, DESC_ATENDIDO };
 static int descIniciarTravado(int conferirVoltas, unsigned voltasAoAgendar,
-                              int repetirSeOcupado) {
+                              int repetirSeOcupado, int apenasAbertura) {
   pthread_t th;
+  NvPerfilSessao sessao;
   unsigned long long agora = descAgoraMs();
   pthread_mutex_lock(&listaTrava);
+  sessao = nv_perfil_sessao_ler();
+  if (apenasAbertura && (!descobertaInicializada || !aberturaPendente ||
+      aberturaSessao != sessao || !aberturaFontesProntas || agora < aberturaRetentarEm)) {
+    pthread_mutex_unlock(&listaTrava);
+    return DESC_ATENDIDO;
+  }
+  // An old condemned worker cannot restart under the target identity before
+  // its addon/configuration cache has been installed on the drawing thread.
+  if (descobertaInicializada && (aberturaSessao != sessao ||
+      (aberturaPendente && !aberturaFontesProntas))) {
+    pthread_mutex_unlock(&listaTrava);
+    return DESC_ATENDIDO;
+  }
   if (conferirVoltas && descVoltas != voltasAoAgendar) {
     pthread_mutex_unlock(&listaTrava);
     return DESC_ATENDIDO;   // uma volta ja comecou depois do pedido
   }
   if (buscando) {
-    if (repetirSeOcupado) { descDeb.adiado = 0; repetirAoFim = 1; }   // a volta no ar repete ao fim
+    if (apenasAbertura && montagemSessao == sessao) aberturaPendente = 0;
+    else if (repetirSeOcupado) { descDeb.adiado = 0; repetirAoFim = 1; }   // a volta no ar repete ao fim
     pthread_mutex_unlock(&listaTrava);
     if (!repetirSeOcupado) { printf("[desc] ja montando; pedido ignorado\n"); fflush(stdout); }
     return DESC_OCUPADO;
@@ -5150,21 +5178,48 @@ static int descIniciarTravado(int conferirVoltas, unsigned voltasAoAgendar,
   descVoltas++;
   descPedidoPessoa = 0;   // esta volta atende o pedido da pessoa
   montagemGeracao++;
-  montagemSessao = nv_perfil_sessao_ler();
+  montagemSessao = sessao;
+  descobertaInicializada = 1;
+  if (!aberturaPendente) aberturaSessao = sessao;
+  if (aberturaSessao == sessao) aberturaPendente = 0;
   pthread_mutex_unlock(&listaTrava);
   if (pthread_create(&th, NULL, montar, NULL) != 0) {
     // NAO FALHAR CALADO. No webOS um pthread_create nunca falhou e o caminho de
     // erro era so uma bandeira; no alvo WASM o fio e um Worker do navegador,
     // que E um recurso limitado e PODE acabar. Quando acaba, a home fica com o
     // catalogo do pacote para sempre e nao ha uma linha no log dizendo por que.
-    buscandoSoltar();
+    pthread_mutex_lock(&listaTrava);
+    buscando = 0;
+    if (aberturaSessao == sessao && nv_perfil_sessao_atual(sessao)) {
+      aberturaPendente = 1;
+      aberturaRetentarEm = agora + 1000;
+    }
+    pthread_mutex_unlock(&listaTrava);
     printf("[desc] pthread_create FALHOU: o catalogo nao vai remontar\n");
     fflush(stdout);
   }
   else pthread_detach(th);
   return DESC_INICIOU;
 }
-void desc_iniciar(void) { (void)descIniciarTravado(0, 0, 0); }
+void desc_iniciar(void) { (void)descIniciarTravado(0, 0, 0, 0); }
+
+static void descTentarAbertura(void) {
+  (void)descIniciarTravado(0, 0, 1, 1);
+}
+
+void desc_sessao_passo(void) { descTentarAbertura(); }
+
+void desc_sessao_preparada(void) {
+  NvPerfilSessao sessao = nv_perfil_sessao_ler();
+  pthread_mutex_lock(&listaTrava);
+  if (aberturaPendente && aberturaSessao == sessao) {
+    aberturaFontesProntas = 1;
+    montSilenciosa = 0;
+    descPedidoPessoa = 1;
+  }
+  pthread_mutex_unlock(&listaTrava);
+  descTentarAbertura();
+}
 
 // Remontar depois de uma mudanca de credencial (vincular o Trakt, receber a
 // chave do TMDB pela conta). Chamar desc_iniciar() direto NAO resolve: se um
@@ -5355,7 +5410,7 @@ static void *adiadoFio(void *arg) {
   struct timespec t = { a.ms / 1000u, (long)(a.ms % 1000u) * 1000000L };
   free(arg);
   nanosleep(&t, NULL);
-  (void)descIniciarTravado(1, a.voltas, 1);
+  (void)descIniciarTravado(1, a.voltas, 1, 0);
   return NULL;
 }
 // Inicia uma volta respeitando o minimo entre voltas; pedidos no intervalo
@@ -8525,6 +8580,10 @@ void desc_abrir_sessao(void) {
   free(pthread_getspecific(descSessaoChave));
   pthread_setspecific(descSessaoChave, NULL);
   pthread_mutex_lock(&listaTrava);
+  aberturaSessao = sessao;
+  aberturaPendente = 1;
+  aberturaFontesProntas = 0;
+  aberturaRetentarEm = 0;
   montagemGeracao++;
   geracaoPedida++;
   descVoltas++;

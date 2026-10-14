@@ -2236,6 +2236,12 @@ static void salvoParaConta(const CatItem *ci, int salvo) {
 // Finish under the outgoing identity. Selection advances the session epoch
 // immediately afterwards; old jobs may finish but cannot update the new UI.
 static void perfilEncerrarSessao(void) {
+  // End input capture before resetting the Home it belongs to. Hit targets
+  // from the outgoing frame cannot activate under the destination profile.
+  ponteiro_abrir_sessao();
+  ctx_abrir_sessao();
+  estatvivo_fechar();
+  celb_fechar();
   if (player_mini_ativo()) player_fechar_mini();
   if (player_aberto() || player_retido()) player_encerrar();
   player_descartar_retido();
