@@ -1,0 +1,162 @@
+name: 'Profile PR: collect startup evidence and finish remaining checks'
+'on':
+  push:
+    branches:
+    - review/profile-session-pr-evidence
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: profile-pr-evidence-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  collect:
+    name: Existing canonical and feature ASan startup sample evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: profile-pr-pref-diagnostic-feature-221f235df6629c388e19219ef65959e690fa2a3b
+        path: evidence/feature
+        run-id: 38503571156
+        github-token: ${{ github.token }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: profile-pr-pref-diagnostic-canonical_base-221f235df6629c388e19219ef65959e690fa2a3b
+        path: evidence/canonical_base
+        run-id: 38503571156
+        github-token: ${{ github.token }}
+    - name: Print diagnostic reports, sampled stacks and ASan tails
+      run: |-
+        python3 - <<'REPORT'
+        import json
+        from pathlib import Path
+        import re
+        for label in ('feature', 'canonical_base'):
+            folder = Path('evidence') / label
+            print('\n===== ' + label + ': diagnostic outcome; not a validation pass =====', flush=True)
+            for name in ('source.json', 'diagnostic-result.json', 'sample-command.log'):
+                file = folder / name
+                print('\n--- ' + name + ' ---', flush=True)
+                print(file.read_text(errors='replace') if file.exists() else 'MISSING', flush=True)
+            sample = (folder / 'pref.sample').read_text(errors='replace').splitlines()
+            include = set(range(min(100, len(sample))))
+            for index, line in enumerate(sample):
+                if re.search(r'__asan|__sanitizer|AddressSanitizer|pthread|semaphore|dispatch|dyld|malloc|nano|Mutex|spin|fontepref|dados_|perfis', line, re.I):
+                    include.update(range(max(0, index-4), min(len(sample), index+5)))
+            chosen = sorted(include)[:500]
+            print('\n--- selected sample frames (' + str(len(sample)) + ' total lines) ---', flush=True)
+            for index in chosen: print(str(index+1) + ': ' + sample[index], flush=True)
+            log = (folder / 'fontepref.log').read_text(errors='replace').splitlines()
+            print('\n--- ASan/compiler log tail ---', flush=True)
+            print('\n'.join(log[-180:]), flush=True)
+        REPORT
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-startup-collected-${{ github.sha }}
+        path: evidence/
+        retention-days: 14
+  remaining:
+    name: Normal full-source player and final original checks (macOS)
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact unchanged product source and all source blobs
+      run: |-
+        set -euo pipefail
+        python3 - <<'VERIFY'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+        import subprocess
+        base = '17b7769dac4273557e1b07f5fb8734df91dd718f'
+        feature = '4cc89807e4c3248a7768360c0a7f23696f11698a'
+        plan = json.loads(Path('.review/profile-session/standalone-files.json').read_text())
+        assert plan['base'] == base and plan['feature_commit'] == feature
+        subprocess.run(['git', 'merge-base', '--is-ancestor', base, feature], check=True)
+        changed = subprocess.check_output(['git', 'diff', '--name-only', '-z', base, feature]).decode().split('\0')
+        changed = sorted(path for path in changed if path)
+        assert changed == sorted(entry['path'] for entry in plan['files'])
+        allowed_tools = {'tools/android.sh', 'tools/arm.sh', 'tools/varredura-i18n.py'}
+        assert changed and all((path.startswith('src/') or path in allowed_tools) and
+                               '..' not in Path(path).parts for path in changed)
+        target = Path(os.environ['GITHUB_WORKSPACE']) / 'ci-profile-feature'
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(target), feature], check=True)
+        verified = []
+        for entry in plan['files']:
+            relative = entry['path']
+            file = target / relative
+            data = file.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+            expected = subprocess.check_output(['git', 'rev-parse', feature + ':' + relative], text=True).strip()
+            assert actual == entry['sha'] == expected, (relative, actual, entry['sha'], expected)
+            assert bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755')
+            verified.append({'path': relative, 'sha': actual, 'mode': entry['mode']})
+        output = Path(os.environ['GITHUB_WORKSPACE']) / 'build/review'
+        output.mkdir(parents=True, exist_ok=True)
+        proof = {'base': base, 'feature_commit': feature, 'build_commit': os.environ['GITHUB_SHA'],
+                 'verified': True, 'feature_changed_paths': changed, 'files': verified}
+        (output / 'standalone-source-verified.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('Exact latest-upstream profile feature verified:', feature, len(verified), 'product paths')
+        VERIFY
+    - name: Native SDK tools
+      run: brew install sdl2 sdl2_image sdl2_ttf ffmpeg
+    - name: Prepare faithful reduced-fixture neighbours
+      run: |-
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        python3 "$GITHUB_WORKSPACE/.review/profile-session/build/prepare_pr_legacy_tests.py" \
+          --probe-log "$GITHUB_WORKSPACE/build/review/optional-import.log"
+    - name: 'Normal original full-source player: player_retido'
+      if: ${{ !cancelled() }}
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=0 FONTEFALHA_SANITIZE=0 bash tests/player_retido.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/player_retido.log"
+        echo 'player_retido PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Remaining original check: addons_legendas'
+      if: ${{ !cancelled() }}
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/addons_legendas.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/addons_legendas.log"
+        echo 'addons_legendas PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Remaining original check: fontecache_vod'
+      if: ${{ !cancelled() }}
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/fontecache_vod.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/fontecache_vod.log"
+        echo 'fontecache_vod PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - name: 'Remaining original check: i18n'
+      if: ${{ !cancelled() }}
+      timeout-minutes: 8
+      run: |-
+        set -euo pipefail
+        export ASAN_OPTIONS=detect_leaks=0
+        cd "$GITHUB_WORKSPACE/ci-profile-feature"
+        SANITIZE=1 FONTEFALHA_SANITIZE=1 bash tests/i18n.sh \
+          2>&1 | tee "$GITHUB_WORKSPACE/build/review/i18n.log"
+        echo 'i18n PASS' >> "$GITHUB_WORKSPACE/build/review/results.txt"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: profile-pr-player-and-final-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
