@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "accepted_product_base": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+  "accepted_test_base": "1ea3cc8f36d6cb0160bfacf96c61793c30d930e4",
+  "sources": {
+    "product": {
+      "layer": "product",
+      "commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "tree": "12691126c31b2c573f28198624f25bd3edb0b9ec",
+      "parent": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "source_clean": true,
+      "private_logs": false,
+      "path": "/tmp/integration-apk20024-20261015/product",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "d6bb0140a97d4676294585b43cde16fde2727348199028dea6124173459600ec",
+      "delta_patch_sha256": "e87f1613dbfe4776e6e5c55d44c98ef2a40d897f3b8f6a0c788db5ef4b0135ea"
+    },
+    "test": {
+      "layer": "test",
+      "commit": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+      "tree": "36a77ae9b37a2b86275bd8dfd6e33a0dbf146e10",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "source_clean": true,
+      "private_logs": true,
+      "path": "/tmp/integration-apk20024-20261015/test",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "285370fd46a7155ebce60fface8134726adfa4b45dd526cd86b73869fecb409f",
+      "delta_patch_sha256": "8d67676b5f4689d788b2f1c716872e0c64fe2c75786d0545bedcb12699cf0665"
+    }
+  },
+  "scope": [
+    "Exact accepted Logs13 foundation preserved as direct parent",
+    "Only approved cold-start collection identity hunks; no later pagination or whole-file replacement",
+    "Unchanged11-file private diagnostics overlay with versionCode/name20024/Logs14"
+  ],
+  "product_delta_from_foundation": {
+    "paths": [
+      "src/addons.c",
+      "src/addons.h",
+      "src/descoberta.c",
+      "src/vertudo.c"
+    ],
+    "files": 4
+  },
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "files": 11,
+    "added_removed_lines_identical_after_identity_normalization": true,
+    "identity_only": {
+      "old_code": 20023,
+      "code": 20024,
+      "old_name": "2.0.23-test-logs13",
+      "name": "2.0.24-test-logs14"
+    }
+  },
+  "merge_resolutions": [
+    "Vitrine message hunk context retargeted to the accepted Logs13 renderer; added/removed lines identical to approved patch"
+  ],
+  "package_signer_unchanged": true,
+  "composition_proof_sha256": "913cec4296eaf8e119a5796fab5bd007a895deedd3f06bad62c5eb6169e41f93",
+  "peer_source_review_sha256": "499b423da3327be7e54716b860a9b86a8d5744c3642f7217754c364696dc2762",
+  "no_ci_build_launch_or_publication_performed": true
+}

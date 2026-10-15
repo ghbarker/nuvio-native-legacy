@@ -1,0 +1,31 @@
+{
+  "root_reviewed": true,
+  "execution_approved": true,
+  "approved_closed_plan_sha256": "419fd5faf77d197620464c0204704db779fa06ae36bf499cd6a4f6672c9d676f",
+  "approved_closed_payload_sha256": "75c303cf81406329976b263486b4963091615454affc35d8450c18857fdce8ed",
+  "approved_aggregate_sha256": "778502b2e5b36e8bd7e034929b2ca931e75ec4849e2003c330a5c01ca69f2e12",
+  "approved_source_composition": {
+    "product": {
+      "commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "tree": "12691126c31b2c573f28198624f25bd3edb0b9ec"
+    },
+    "test": {
+      "commit": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+      "tree": "36a77ae9b37a2b86275bd8dfd6e33a0dbf146e10"
+    }
+  },
+  "approved_fixture_invocations": 40,
+  "approved_jobs": [
+    "native",
+    "feature-contracts",
+    "original-fontepref",
+    "original-fontepref_file",
+    "original-player_retido",
+    "android",
+    "jvm",
+    "all-gates"
+  ],
+  "peer_ci_review_sha256": "1aeac2fa3eb990788837b848176f4876fb5bfdabc659852b0bc0643a68534788",
+  "offline_materialization_review_sha256": "a4d85268726c332ede6e926aa1bae77102ce666f73bd32052416afe3bcec60ca",
+  "scope": "Only root-approved approval/provenance flag changes and plan/workflow/payload repin; source and executable recipe code unchanged. Parent owns CI launch. APK/source PR publication remains separate."
+}

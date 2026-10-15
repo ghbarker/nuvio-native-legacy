@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "retained_fixture_assertions_byte_unchanged": true,
+  "compatibility": {
+    "collection-state/fixtures/collection-views.c": {
+      "old_sha256": "bcd54856987f1b0ff842270d1d191d36e27dd026345a0589cf1f8de5b7fedd19",
+      "new_sha256": "ea31bc283949427e040b6737d73b0f01a55e80c58b16121447df4ddc4d2689e3",
+      "unchanged_original_prefix": true,
+      "appended_boundary_only": true
+    },
+    "collection-state/fixtures/original-collection.c": {
+      "old_sha256": "f446b78fbb92195cf013ec681a3c66aea7eda3b3873849ec7187149b66c9f798",
+      "new_sha256": "5fedc29b4cd169023cd26d5e2eaadfa6142da56259e43fb0ca4ba10e33f4823e",
+      "unchanged_original_prefix": true,
+      "appended_boundary_only": true
+    },
+    "collection-taps/async/collection-taps.c": {
+      "old_sha256": "ba04525731e9530895de038d741a02db74ecf9cf816dcd8e7aec7b06237922bc",
+      "new_sha256": "ecc4baa70998e02c53d833baa284901dd40c312ebde994b09611bcf5a1d228d2",
+      "unchanged_original_prefix": true,
+      "appended_boundary_only": true
+    },
+    "collection-taps/fixture/collection-taps.c": {
+      "old_sha256": "5ec3d9293dabfa30d71829e8f5f08cd790a9a1b50d9fe9250a7470bf7bd52959",
+      "new_sha256": "804d9fc8cce6f991d7e68607039e5c5c09d13579097670436f120ab4b22ea5e4",
+      "unchanged_original_prefix": true,
+      "appended_boundary_only": true
+    },
+    "collection-taps/reachability/fixtures/geometry.c": {
+      "old_sha256": "98b971960115c82e9d1c7e9807fd6c032954b1c774d9fc81fd925992a807bf57",
+      "new_sha256": "3c838f47957af087c21a078a0f487c398c81247c69f11f56d32fac750ce0dc5d",
+      "unchanged_original_prefix": true,
+      "appended_boundary_only": true
+    }
+  },
+  "new_identity_fixture_manifest_sha256": "10a590d9d95158217e73fff5aeadf9c197a165ebc81bcacac83c1a88b7b3d510",
+  "scope": "Append only typed copied-base/status transport boundaries to old fixtures; add lifecycle+actualworker+renderer contracts separately. Product tests tree unchanged."
+}

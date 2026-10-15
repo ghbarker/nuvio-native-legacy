@@ -1,0 +1,14 @@
+{
+  "scope": "Only approved Logs14 deltas on exact released Logs12 source",
+  "parity_parent": "1f14099b",
+  "product_commit": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+  "test_commit": "1ea3cc8f36d6cb0160bfacf96c61793c30d930e4",
+  "private_overlay_conflict_count": 0,
+  "private_overlay_paths": 11,
+  "startup_binding": "Parity app startup binding and the accepted diagnostic overlay applied cleanly. Every old overlay added/removed byte hunk is retained after normalizing version fields only.",
+  "product_additions": [
+    "subtitle parity 77051883",
+    "late-addon terminal-row cursor 9e9d7980",
+    "long artwork URL registry eeabb955"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "source_pin": null,
+  "files_sha256": {
+    "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "README.md": "7d0c74e796b1a2569c3a62f17562f104dcb1af85218f08798645ad57f423b41c",
+    "fixture-provenance.json": "1eefebfe4869e9293bbf6fc653f8d7d13e4c62d29e3e39078f0a79509c0c20c8",
+    "run.py": "dd49d68fb04c1b313d027552ebef4c7c3eb08496067baa9303faf1e089ea4ef5",
+    "tv-assertion-adaptation.json": "bcb6693edaab45cab2bfdb9977aced3f7ce371bfdff2b8d65f25988884180024",
+    "fixtures/collection-choice-composed.c": "0c90e07f3938c0d82aabf1b214c694164c8284f7f43388b1341a642c68dca886",
+    "fixtures/collection-choice.c": "73069f4fb264ad1964430c95f6f446daa9c4e16cdefb54d02133fdd7d47f863c",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  },
+  "typed_sdk_origins": {
+    "sdk/vistonao.h": {
+      "original": "/workspace/review/runtime-syntax-sdk/vistonao.h",
+      "sha256": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9"
+    },
+    "sdk/GLES2/gl2.h": {
+      "original": "/workspace/review/runtime-syntax-sdk/GLES2/gl2.h",
+      "sha256": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+    },
+    "sdk/SDL2/SDL.h": {
+      "original": "/workspace/review/runtime-syntax-sdk/SDL2/SDL.h",
+      "sha256": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+    }
+  },
+  "assertion_policy": "Copied accepted assertion C is unchanged; only producer/portable link and typed SDK/clock adapters are new. No product source changes or CI launch.",
+  "output_policy": "Fresh output directory outside staged recipe; logs and receipts safe metadata only.",
+  "producer_optimization": "--platform all shares one identical touch-capable compilation across all original36 savedTV/Mobile runtime configurations per sanitizer mode.",
+  "inputs": {
+    "README.md": "7d0c74e796b1a2569c3a62f17562f104dcb1af85218f08798645ad57f423b41c",
+    "fixture-provenance.json": "1eefebfe4869e9293bbf6fc653f8d7d13e4c62d29e3e39078f0a79509c0c20c8",
+    "fixtures/collection-choice-composed.c": "0c90e07f3938c0d82aabf1b214c694164c8284f7f43388b1341a642c68dca886",
+    "fixtures/collection-choice.c": "73069f4fb264ad1964430c95f6f446daa9c4e16cdefb54d02133fdd7d47f863c",
+    "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "player-prefs-companion.c": "cb8621dfd717dacb9f52cc1c49e997418fb0ffd7644244e6d62c8408be676b5f",
+    "run.py": "90ed06173b13d1de5c4d738c2b7f26b57cca1a1de7063895d6535e808b5c0c43",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "tv-assertion-adaptation.json": "bcb6693edaab45cab2bfdb9977aced3f7ce371bfdff2b8d65f25988884180024"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "passed": true,
+  "sources": {
+    "product": {
+      "commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "tree": "12691126c31b2c573f28198624f25bd3edb0b9ec",
+      "parent": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "d6bb0140a97d4676294585b43cde16fde2727348199028dea6124173459600ec",
+      "delta_patch_sha256": "e87f1613dbfe4776e6e5c55d44c98ef2a40d897f3b8f6a0c788db5ef4b0135ea"
+    },
+    "test": {
+      "commit": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+      "tree": "36a77ae9b37a2b86275bd8dfd6e33a0dbf146e10",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "285370fd46a7155ebce60fface8134726adfa4b45dd526cd86b73869fecb409f",
+      "delta_patch_sha256": "8d67676b5f4689d788b2f1c716872e0c64fe2c75786d0545bedcb12699cf0665"
+    }
+  },
+  "producer_invocations": 6,
+  "records": [
+    {
+      "label": "identity-product-normal",
+      "path": "/tmp/integration-apk20024-20261015/preflight/identity-product-normal/receipt.json",
+      "sha256": "9fee7b074fbf10eb89a191d0d144e25321b65486e3057a7de2cbf30deb872259",
+      "source_commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "tree": "12691126c31b2c573f28198624f25bd3edb0b9ec",
+      "groups": [
+        "lifecycle",
+        "worker",
+        "renderer"
+      ],
+      "renderer_cases": 16
+    },
+    {
+      "label": "identity-product-asan",
+      "path": "/dev/shm/logs14-focused/identity-product-asan/receipt.json",
+      "sha256": "993da886db3d4d4e794508f2f1b6e25724573c7e651443716ccd11c3317832e3",
+      "source_commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "tree": "12691126c31b2c573f28198624f25bd3edb0b9ec",
+      "groups": [
+        "lifecycle",
+        "worker",
+        "renderer"
+      ],
+      "renderer_cases": 16
+    },
+    {
+      "label": "identity-test-normal",
+      "path": "/dev/shm/logs14-focused/identity-test-normal/receipt.json",
+      "sha256": "92e052a103813cb1955d264a004cc0b176ae72451d0d284312cf3540bdeaa0fe",
+      "source_commit": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+      "tree": "36a77ae9b37a2b86275bd8dfd6e33a0dbf146e10",
+      "groups": [
+        "lifecycle",
+        "worker",
+        "renderer"
+      ],
+      "renderer_cases": 16
+    },
+    {
+      "label": "identity-test-asan",
+      "path": "/dev/shm/logs14-focused/identity-test-asan/receipt.json",
+      "sha256": "7c35287c1bb78eec5301ec1f564da95e75ac621883e9b6e25b460a78d5fc9863",
+      "source_commit": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+      "tree": "36a77ae9b37a2b86275bd8dfd6e33a0dbf146e10",
+      "groups": [
+        "lifecycle",
+        "worker",
+        "renderer"
+      ],
+      "renderer_cases": 16
+    },
+    {
+      "label": "retained-collection-state-product-normal",
+      "path": "/dev/shm/logs14-focused/old-state-product-normal/receipt.json",
+      "sha256": "bd08f21ba951eb843c41908c2adc8c1be37da0a9fefdbe4cacd18e3aa17a64b7",
+      "source_commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "scope": "Original assertion bodies retained with typed lookup/status compatibility only."
+    },
+    {
+      "label": "retained-collection-taps-product-asan",
+      "path": "/dev/shm/logs14-focused/old-taps-product-asan/receipt.json",
+      "sha256": "71f62a9c63a7f29673b7ef21c8063b96e1d16920b4f0a693b82dc969956b89ab",
+      "source_commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "scope": "Original assertion bodies retained with typed lookup/status compatibility only."
+    }
+  ],
+  "baseline_reproduction_receipt": {
+    "path": "/tmp/collection-identity-20261015/validation/baseline-worker-reproduction/receipt.json",
+    "sha256": "47655374e3cfad4b1b1d7bdf44eb1c8fd9d775eba9b67230f55b33f51d1f12c0"
+  },
+  "scope": "Bounded exact product/private normal+ASan identity lifecycle/scoped-capability/worker/cache/render checks and controlled unchanged-Logs13 reproduction. Complete macOS/Android/JVM/original source gates remain mandatory fresh in CI."
+}

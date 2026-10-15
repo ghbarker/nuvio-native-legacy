@@ -1,0 +1,195 @@
+{
+  "outcome": "passed",
+  "scope": "Offline recipe schema, fail-closed approval/source guards, narrow transformation policy and sanitized metadata fixtures only; no application source suites, Android build, APK verification or backend actions executed",
+  "checks": [
+    {
+      "check": "all Python helpers parse without execution",
+      "passed": true
+    },
+    {
+      "check": "complete approved pinned schema accepted",
+      "passed": true
+    },
+    {
+      "check": "frozen false refused",
+      "passed": true
+    },
+    {
+      "check": "root_reviewed false refused",
+      "passed": true
+    },
+    {
+      "check": "source_frozen false refused",
+      "passed": true
+    },
+    {
+      "check": "required_collection_identity_regression.bound false refused",
+      "passed": true
+    },
+    {
+      "check": "required_collection_identity_regression.fixture_manifest_sha256 false refused",
+      "passed": true
+    },
+    {
+      "check": "required_pointer_regression.bound false refused",
+      "passed": true
+    },
+    {
+      "check": "required_pointer_regression.all_new_geometry_coverage_bound false refused",
+      "passed": true
+    },
+    {
+      "check": "required_pointer_regression.async_row_load_regression_bound false refused",
+      "passed": true
+    },
+    {
+      "check": "required_settings_style_regression.bound false refused",
+      "passed": true
+    },
+    {
+      "check": "required_settings_style_regression.fixture_manifest_sha256 false refused",
+      "passed": true
+    },
+    {
+      "check": "required_synopsis_percentage_regression.bound false refused",
+      "passed": true
+    },
+    {
+      "check": "required_synopsis_percentage_regression.fixture_manifest_sha256 false refused",
+      "passed": true
+    },
+    {
+      "check": "wrong explicit plan SHA refused",
+      "passed": true
+    },
+    {
+      "check": "missing explicit plan SHA refused",
+      "passed": true
+    },
+    {
+      "check": "product pending commit refused",
+      "passed": true
+    },
+    {
+      "check": "product pending tree refused",
+      "passed": true
+    },
+    {
+      "check": "product pending manifest_sha256 refused",
+      "passed": true
+    },
+    {
+      "check": "test pending commit refused",
+      "passed": true
+    },
+    {
+      "check": "test pending tree refused",
+      "passed": true
+    },
+    {
+      "check": "test pending manifest_sha256 refused",
+      "passed": true
+    },
+    {
+      "check": "pending bundle pin refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity version_code refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity package refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity certificate_sha256 refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity version_name refused",
+      "passed": true
+    },
+    {
+      "check": "modified source manifest refused",
+      "passed": true
+    },
+    {
+      "check": "prepare_env.py refuses unapproved plan before side effects",
+      "passed": true
+    },
+    {
+      "check": "run.py refuses unapproved plan before side effects",
+      "passed": true
+    },
+    {
+      "check": "matching source/proof/test-tree binding accepted",
+      "passed": true
+    },
+    {
+      "check": "another CI review commit refused",
+      "passed": true
+    },
+    {
+      "check": "exact product debug signer insertion accepted",
+      "passed": true
+    },
+    {
+      "check": "forged C mutation receipt refused",
+      "passed": true
+    },
+    {
+      "check": "test layer accepts only unchanged source",
+      "passed": true
+    },
+    {
+      "check": "unlisted test-layer source mutation refused",
+      "passed": true
+    },
+    {
+      "check": "canonical cache found through actual compile directory",
+      "passed": true
+    },
+    {
+      "check": "wrong ABI cache refused",
+      "passed": true
+    },
+    {
+      "check": "wrong source cache refused",
+      "passed": true
+    },
+    {
+      "check": "adjacent copied cache is never used as fallback",
+      "passed": true
+    },
+    {
+      "check": "sanitized metadata never records property values or commands",
+      "passed": true
+    },
+    {
+      "check": "named job has exact SDK setup, blocked pin and both fresh layers",
+      "passed": true
+    },
+    {
+      "check": "GRADLE_OPTS correction and no review bypass retained",
+      "passed": true
+    }
+  ],
+  "count": 43,
+  "recipe_files": {
+    "README.md": "c33fe912df9199cd109472289360a761cb0a52b86649979e7819ef0ed0498ca9",
+    "cleanup_private.py": "d936df87541824761d48773e5d27490643da1d678ff146ca9a85eacee917139a",
+    "common.py": "902a7f0657f2d3d3c7e7e86cb06284a3561aaf111404ed32ec4c8f60a836ff48",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "job-fragment.json": "22539570530754bad6b0bc0df3a67193fc85c3c8d8163a8754daecebedbee1e3",
+    "legacy-jni-descriptors.json": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1",
+    "make_job.py": "4dc7de4ce4c4c3bc16685d7f8df08ebd7fb01598b9086ae7de38adae0cb839d9",
+    "prepare_env.py": "e0f2fdffb9f2da487576e42e6cff40f0086ae2c0cdcdcf3c8f3394b78ae42dd9",
+    "prepare_source.py": "203694307e97f3c0614cffe300cbbda5e2ddc7559b9a3561e4bb83a09f6edcb1",
+    "record_cache.py": "98912fe7304547fda69fdb614db7951f8afebd504dd456c3f0804467c85e3d0e",
+    "run.py": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe",
+    "static-preflight.py": "2cc7fb86e3d2a9301f70eff4eb7be741ef83688c89ce32afafd0eba6ddd2e027",
+    "verify_apk.py": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "Fresh32 JVM helpers +15 real Media3 contracts",
+  "runs-on": "ubuntu-24.04",
+  "timeout-minutes": 45,
+  "permissions": {
+    "contents": "read"
+  },
+  "steps": [
+    {
+      "uses": "actions/checkout@v4",
+      "with": {
+        "persist-credentials": false,
+        "fetch-depth": 0
+      }
+    },
+    {
+      "name": "Materialize exact root-approved test source",
+      "run": "python3 .review/apk20024/materialize.py --layer test --output source-test --proof build/review/apk20024/test-source.json --base-repository \"$GITHUB_WORKSPACE\""
+    },
+    {
+      "uses": "actions/setup-java@v4",
+      "with": {
+        "distribution": "temurin",
+        "java-version": "21"
+      }
+    },
+    {
+      "uses": "gradle/actions/setup-gradle@v4",
+      "with": {
+        "gradle-version": "8.9"
+      }
+    },
+    {
+      "uses": "android-actions/setup-android@v3",
+      "with": {
+        "packages": "platform-tools",
+        "log-accepted-android-sdk-licenses": false
+      }
+    },
+    {
+      "name": "Install exact probe SDK and media generator",
+      "run": "command -v sdkmanager >/dev/null\nsudo apt-get update -qq\nsudo apt-get install -y ffmpeg\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' 'emulator'"
+    },
+    {
+      "uses": "actions/cache@v4",
+      "with": {
+        "path": "~/.cache/nuvio-kotlin-preflight",
+        "key": "apk20024-kotlin-tools-v1-${{ runner.os }}-${{ hashFiles('.review/logs8/kotlin/tools.json') }}",
+        "restore-keys": "apk20024-kotlin-tools-v1-${{ runner.os }}-\napk20020-kotlin-tools-v1-${{ runner.os }}-\napk20019-kotlin-tools-v1-${{ runner.os }}-"
+      }
+    },
+    {
+      "name": "Run fresh32 actual helper contracts",
+      "run": "python3 .review/apk20024/jvm/run.py --phase helpers --source source-test --source-proof build/review/apk20024/test-source.json --output build/review/apk20024/jvm"
+    },
+    {
+      "name": "Stage unchanged assertions and build exact current Media3 probe",
+      "run": "python3 .review/apk20024/jvm/run.py --phase prepare-media3 --source source-test --source-proof build/review/apk20024/test-source.json --output build/review/apk20024/jvm"
+    },
+    {
+      "name": "Enable KVM permissions",
+      "run": "echo 'KERNEL==\"kvm\", GROUP=\"kvm\", MODE=\"0666\", OPTIONS+=\"static_node=kvm\"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules\nsudo udevadm control --reload-rules\nsudo udevadm trigger --name-match=kvm"
+    },
+    {
+      "uses": "reactivecircus/android-emulator-runner@v2",
+      "with": {
+        "api-level": 35,
+        "arch": "x86_64",
+        "target": "google_apis",
+        "disable-animations": true,
+        "script": "python3 .review/apk20024/jvm/run.py --phase media3 --source source-test --source-proof build/review/apk20024/test-source.json --output build/review/apk20024/jvm"
+      }
+    },
+    {
+      "name": "Require all47 fresh contracts from this exact source",
+      "run": "python3 .review/apk20024/jvm/run.py --phase verify --source source-test --source-proof build/review/apk20024/test-source.json --output build/review/apk20024/jvm"
+    },
+    {
+      "uses": "actions/upload-artifact@v4",
+      "if": "always()",
+      "with": {
+        "name": "apk20024-jvm47-${{ github.sha }}",
+        "path": "build/review/apk20024/jvm/*.json\nbuild/review/apk20024/jvm/*.log\nbuild/review/apk20024/jvm/kotlin/kotlin-verified.json\nbuild/review/apk20024/jvm/kotlin/*.log\nbuild/review/apk20024/jvm/media3-runtime/\nbuild/review/apk20024/jvm/media3-probe/probe/build/outputs/androidTest-results/\nbuild/review/apk20024/jvm/media3-probe/probe/build/reports/androidTests/",
+        "if-no-files-found": "error",
+        "retention-days": 14
+      }
+    }
+  ]
+}

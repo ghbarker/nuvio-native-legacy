@@ -1,0 +1,15 @@
+{
+  "root_approved": true,
+  "scope": "Exact approved four-file identity patch and exact accepted-Logs13 product/private composition only; CI execution and publication remain closed pending final recipe/payload review.",
+  "sources": {
+    "product": {
+      "commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "tree": "12691126c31b2c573f28198624f25bd3edb0b9ec"
+    },
+    "test": {
+      "commit": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+      "tree": "36a77ae9b37a2b86275bd8dfd6e33a0dbf146e10"
+    }
+  },
+  "peer_composition_review_sha256": "499b423da3327be7e54716b860a9b86a8d5744c3642f7217754c364696dc2762"
+}

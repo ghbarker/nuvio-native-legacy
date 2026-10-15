@@ -1,0 +1,38 @@
+{
+  "outcome": "passed",
+  "review_scope": "Independent read-only source/recipe/payload/manifest/retained-assertion audit; no SDK build or external writes",
+  "source_composition_review": "peer-composition-source-review.json",
+  "source_materialization_review": "peer-materialization-bindings-review.json",
+  "plan_sha256": "419fd5faf77d197620464c0204704db779fa06ae36bf499cd6a4f6672c9d676f",
+  "payload_snapshot_sha256": "75c303cf81406329976b263486b4963091615454affc35d8450c18857fdce8ed",
+  "payload_snapshot_files": 209,
+  "payload_metadata_only_repackaging_permitted": [
+    "peer-ci-recipe-review.json",
+    "root-ci-recipe-approval.json",
+    "root-source-review.json",
+    "final-affected-preflight.json"
+  ],
+  "aggregate_sha256": "778502b2e5b36e8bd7e034929b2ca931e75ec4849e2003c330a5c01ca69f2e12",
+  "old_aggregate_sha256": "f263798e689244e7f71e89b8b0a515d52eb0e1f0baba582140dd1d25197da7b8",
+  "all_existing_aggregate_assertions_preserved": true,
+  "new_feature_groups": 4,
+  "total_feature_groups": 40,
+  "new_identity_renderer_cases_per_group": 16,
+  "new_identity_subproducers": [
+    "lifecycle",
+    "worker",
+    "renderer"
+  ],
+  "retained_fixture_assertions_changed": false,
+  "retained_fixture_compatibility": "Insertions only for copied addon lookup/status typed boundary in five fixtures",
+  "private_overlay_separate_and_unchanged": true,
+  "actual_source_tests_tree_unchanged": true,
+  "identity_and_signer_unchanged_except_version_20024": true,
+  "all_recipe_pins_and_fixture_manifests_match": true,
+  "all_payload_hashes_and_python_syntax_pass": true,
+  "new_identity_nested_source_logs_fixture_and_flags_bound": true,
+  "resolved_blocker": "New staged fixture tooling uses safe staged child hash, not artifact-only Aggregate.file",
+  "execution_approval_flags_false": true,
+  "platform_tests_executed_by_peer": false,
+  "limits": "Fresh seven producer jobs and mandatory aggregate remain pending root launch. Owner local fixture/static/materialization receipts are separate evidence."
+}
