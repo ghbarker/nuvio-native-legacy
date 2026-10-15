@@ -1,0 +1,209 @@
+{
+  "format": 1,
+  "root_reviewed": true,
+  "all_gates_green": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "publisher_branch": "review/apk20021-publish-20261015",
+  "parent_review": "1f07a88a0ef3ae7d3c932bf0660ca7547571c5af",
+  "parent_tree": "096cf26ed069268c45b6e7a2af9f867f98b4b0db",
+  "source_plan_sha256": "7edb8760a4ac6a4fdc6e7eb28ea21196c65183b2cb1f9735d65110d5b49bdc99",
+  "source_materializer_sha256": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+  "aggregate_recipe_sha256": "7f7343c45bc33618855d872366453b3cf3ddb2274960124dbc1e62e88c1ee2fa",
+  "bundle_sha256": "93676243578a6be5f4aae19a13eac5b58f957ae74123ddf83a102b30cd03f4fe",
+  "validation": {
+    "run_id": 38734408778,
+    "review_commit": "1f07a88a0ef3ae7d3c932bf0660ca7547571c5af",
+    "workflow_path": ".github/workflows/apk20021-feature-retry.yml",
+    "run_attempt": 1
+  },
+  "jobs": {
+    "native": {
+      "id": 116413345815,
+      "name": "Complete macOS TV/Mobile + actual changed native contracts",
+      "run_id": 38732464381,
+      "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "run_attempt": 1,
+      "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+      "artifact": {
+        "id": 11971428271,
+        "name": "apk20021-native-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "3b320f0be8ac54843e81f56ebaac495dda784188ef8b1a70a63160c0ee462cfe",
+        "bytes": 102277336
+      }
+    },
+    "original-fontepref": {
+      "id": 116413345869,
+      "name": "Original complete fontepref normal + ASan/UBSan",
+      "run_id": 38732464381,
+      "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "run_attempt": 1,
+      "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+      "artifact": {
+        "id": 11971078393,
+        "name": "apk20021-original-fontepref-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "10aebd0eb724955c83966bf625383d5a57a694c3334b83ec0c4de1c89cdf637b",
+        "bytes": 28451
+      }
+    },
+    "original-fontepref_file": {
+      "id": 116413345921,
+      "name": "Original complete fontepref_file normal + ASan/UBSan",
+      "run_id": 38732464381,
+      "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "run_attempt": 1,
+      "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+      "artifact": {
+        "id": 11971088294,
+        "name": "apk20021-original-fontepref_file-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "0d58fc3bec6e25e75f80419ea3f6729d3b8410aba7b495cd99f34d8321b5f8a6",
+        "bytes": 26605
+      }
+    },
+    "original-player_retido": {
+      "id": 116413345705,
+      "name": "Original complete player_retido normal + ASan/UBSan",
+      "run_id": 38732464381,
+      "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "run_attempt": 1,
+      "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+      "artifact": {
+        "id": 11970792841,
+        "name": "apk20021-original-player_retido-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "57fca9068c982f8a48340208fd690b257c7e8f4a9061475ada7b11756261d7a3",
+        "bytes": 21756
+      }
+    },
+    "android": {
+      "id": 116413345783,
+      "name": "APK20021 clean product and compatible test APK (ARM32/ARM64)",
+      "run_id": 38732464381,
+      "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "run_attempt": 1,
+      "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+      "artifact": {
+        "id": 11971313991,
+        "name": "apk20021-android-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "118ee72a1d964fe88536acb94bdaf264eff3e397d0aa55ee764144f104040698",
+        "bytes": 108641091
+      }
+    },
+    "jvm": {
+      "id": 116413345786,
+      "name": "Fresh32 JVM helpers +15 real Media3 contracts",
+      "run_id": 38732464381,
+      "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "run_attempt": 1,
+      "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+      "artifact": {
+        "id": 11971382997,
+        "name": "apk20021-jvm47-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "508d4a13b34198def50e07ea4a35bbaae5599242fc7d31e72ed5d250e62f74f2",
+        "bytes": 2014025
+      }
+    },
+    "feature-contracts": {
+      "id": 116419928159,
+      "name": "Focused caption/libass and collection source contracts",
+      "run_id": 38734408778,
+      "review_commit": "1f07a88a0ef3ae7d3c932bf0660ca7547571c5af",
+      "run_attempt": 1,
+      "plan_sha256": "7edb8760a4ac6a4fdc6e7eb28ea21196c65183b2cb1f9735d65110d5b49bdc99",
+      "artifact": {
+        "id": 11972615463,
+        "name": "apk20021-features-1f07a88a0ef3ae7d3c932bf0660ca7547571c5af",
+        "bytes": 82200635,
+        "sha256": "5cf050b05999fdeb38eab782387b28e536501662e00749689a1e70d2b4d35b2f"
+      }
+    },
+    "all-gates": {
+      "id": 116421560954,
+      "name": "Require six retained successes and fresh focused feature gates",
+      "run_id": 38734408778,
+      "review_commit": "1f07a88a0ef3ae7d3c932bf0660ca7547571c5af",
+      "run_attempt": 1,
+      "plan_sha256": "7edb8760a4ac6a4fdc6e7eb28ea21196c65183b2cb1f9735d65110d5b49bdc99"
+    }
+  },
+  "artifacts": {
+    "all_gates": {
+      "id": 11972241068,
+      "name": "apk20021-retry-all-gates-1f07a88a0ef3ae7d3c932bf0660ca7547571c5af",
+      "sha256": "1c990283890702d49f3f91a3c697a09786674ea00b040058157c08f4cbdca8db",
+      "bytes": 47774
+    },
+    "android": {
+      "id": 11971313991,
+      "name": "apk20021-android-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+      "sha256": "118ee72a1d964fe88536acb94bdaf264eff3e397d0aa55ee764144f104040698",
+      "bytes": 108641091
+    }
+  },
+  "all_gates_json_sha256": "7f4b2925061a9d28903aff961f36a6a9c09faad2d4458fa168e08249cdfe8f38",
+  "sources": {
+    "product": {
+      "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+      "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "f6d6f367cfb35a470641b7db60195e7cf629a2cec2220a31ead57a30e6e55818",
+      "delta_patch_sha256": "fbab0133937148f8e3c5ca6219449d58911000f8a08443e0cdbbdf1b19ec2da0"
+    },
+    "test": {
+      "commit": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+      "tree": "8db5e6d2bdf6ffff2867fb2bcf88d241d6f57fac",
+      "parent": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "17586f1b72b2bded45318e1f295e056051988b0cd35d6f1dc1abe02725a3cc6f",
+      "delta_patch_sha256": "f07bae45a21d0a2eff089c910e21200216bb013857c868c47bd8c575c504c5d5"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20021,
+    "version_name": "2.0.21-test-logs11",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "apk": {
+    "sha256": "f458a0ac26a86fd1b4e01bbd69201f7a2c58f1195e223c8dca17d82cc3ef57b5",
+    "bytes": 58971152
+  },
+  "release": {
+    "tag": "tv-mobile-test-logs-v11",
+    "asset": "Nuvio-TV-Mobile-Test-Logs11.apk",
+    "proof_asset": "Logs11-validation.json",
+    "title": "Nuvio TV/Mobile Test \u2014 Logs11 update",
+    "prerelease": true,
+    "notes_sha256": "f37d959da808ffb3204f23f82e51230e1ff7ef03e08b9f36c24bafdb366105e8"
+  },
+  "features_expected": {
+    "fresh_groups": 24,
+    "caption_style_libass": true,
+    "collection_settings_profiles_views_touch": true,
+    "actual_libass_version": "0.17.1",
+    "collection_pointer_groups": 4,
+    "collection_pointer_gesture_cases_per_group": 75,
+    "collection_pointer_reachability_cases_per_group": 36,
+    "collection_pointer_reachability_title_activations_per_group": 2160
+  },
+  "original_plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+  "retry_lock_sha256": "19402b575482e46171ce7d273dd26ba7cb57e7e4040c93048f06acde9aee74b3",
+  "retry_aggregate_sha256": "be93c0cac25fa84f3ee49d3a10c4cc3e5db7bdf8483cc322dddb56dec3f11d62",
+  "retained_validation": {
+    "run_id": 38732464381,
+    "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+    "run_attempt": 1,
+    "overall_run_success_required": false,
+    "conclusion": "failure"
+  },
+  "excluded_failed_feature": {
+    "run_id": 38732464381,
+    "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+    "job_id": 116413345748,
+    "artifact_id": 11971452352,
+    "outcome": "failure",
+    "reuse_as_pass": false,
+    "aggregate_job_id": 116417220959,
+    "failed_artifact_sha256": "e94fc7c012474ea2fba7360032a72e84e58eecfdb15df9562934331d14a08292"
+  }
+}
