@@ -1,0 +1,2016 @@
+diff --git a/src/agendaui.c b/src/agendaui.c
+index c0256099..51f197dd 100644
+--- a/src/agendaui.c
++++ b/src/agendaui.c
+@@ -155,6 +155,7 @@
+ #include "agenda.h"
+ #include "gfx.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "anim.h"
+ #include "layout.h"
+@@ -1592,8 +1593,11 @@ static void desenhaEsquerda(const AgC1 *L, float a) {
+     maxSin = temNot ? 2 : 3;
+     if (aviso) maxSin--;
+     if (it->sinopse[0]) {
+-      int k = blocoC1(TXT_AJ_ESTADO, 18, it->sinopse, L->x0, y, 21.0f, w, 30.0f, maxSin, AG_INK2, a);
+-      y += P(30) * (float)k + P(6);
++      float lead = sinopse_entrelinha(TXT_AJ_ESTADO, 30);
++      float px = sinopse_entrelinha(TXT_AJ_ESTADO, 21);
++      int max = sinopse_linhas(TXT_AJ_ESTADO, 30, maxSin);
++      int k = blocoC1(TXT_AJ_ESTADO, 18, it->sinopse, L->x0, y, px, w, lead, max, AG_INK2, a);
++      y += P(lead) * (float)k + P(6);
+     }
+     if (temNot) {
+       const char *dica = i18n("OK para ler mais");
+diff --git a/src/ajustes.c b/src/ajustes.c
+index 0f06a988..802fb677 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -554,6 +554,7 @@ typedef enum {
+   AJ_FALHA_ADDONS, AJ_FALHA_ADDON_ORDEM, AJ_FALHA_ADDON_LIMITE,
+   AJ_FONTE_PRECARREGAR, // local, append-only; video e proximo episodio, desligado
+   AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile
++  AJ_TAMANHO_SINOPSE, // #477: 100/120/130/150%, local, padrao preservado
+   AJ_N
+ } OpcaoId;
+ _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
+@@ -628,6 +629,7 @@ static const char *V_FONTE_MODELO[] = { "Personalizado", "Espanhol", "Português
+ // "Usar a ordem" dos add-ons (fonteregra.h FR_ORDEM_*): o indice e o gravado.
+ static const char *V_FONTE_ORDEM_USO[] = { "Não", "Para desempatar", "Ordem estrita" };
+ // Indice gravado em tamanhoUiLocal; o fator sai de ajustes_tamanho_ui.
++static const char *V_TAMANHO_SINOPSE[] = { "100%", "120%", "130%", "150%" };
+ static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%" };
+ static const char *V_TAMANHO_AJUSTES[] = { "80%", "90%", "100%" };
+ static const char *V_INTERFACE_MODO[] = { "TV", "Mobile" };
+@@ -1431,6 +1433,7 @@ static const Opcao OPCOES[AJ_N] = {
+ 
+   ESC("Configuração dos provedores", V_PROVEDORES_ESCOPO, 2),
+ 
++  ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 4),
+ };
+ 
+ // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
+@@ -1678,6 +1681,7 @@ static const char *CHAVE[] = {
+ 
+   "-provedoresEscopo",
+ 
++  "sinopseEscalaLocal",
+ };
+ // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
+ // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
+@@ -2282,6 +2286,10 @@ int ajustes_relogio_12h(void) { return valor[AJ_RELOGIO_12H] == 1; }
+ // GB da faixa de tamanho da escolha automatica; 0 = "Sem limite".
+ int ajustes_tamanho_max_gb(void) { int v = valor[AJ_TAM_MAX]; return v < 0 || v >= (int)(sizeof TAMANHO_GB / sizeof *TAMANHO_GB) ? 0 : TAMANHO_GB[v]; }
+ int ajustes_tamanho_min_gb(void) { int v = valor[AJ_TAM_MIN]; return v < 0 || v >= (int)(sizeof TAMANHO_GB / sizeof *TAMANHO_GB) ? 0 : TAMANHO_GB[v]; }
++int ajustes_sinopse_tamanho(void) {
++  int v = valor[AJ_TAMANHO_SINOPSE];
++  return v >= 0 && v < 4 ? v : 0;
++}
+ float ajustes_tamanho_ui(void) {
+   static const float F[] = { 1.0f, 1.2f, 1.3f, 1.5f };
+   int v = valor[AJ_TAMANHO_UI];
+@@ -3511,6 +3519,7 @@ void ajustes_dir(const char *dir) {
+   { int viuIdioma = 0, viuAuto = 0, idiomaGravado = IDIOMA_EN, autoGravado = 0;
+     int medidorAntigo = -1, viuMedidor = 0, resAntiga = -1, viuRes = 0, prazoAntigo = -1, viuEspera = 0;
+     int focoAntigo = -1, viuFoco = 0;
++    int sinopseAntiga = -1, viuSinopse = 0;
+   while (fgets(linha, sizeof linha, f)) {
+     char chave[64]; int v, i;
+     if (sscanf(linha, "%63s %d", chave, &v) != 2) continue;
+@@ -3538,6 +3547,12 @@ void ajustes_dir(const char *dir) {
+       if (v >= IDA_TMDB && v <= IDA_PADRAO) idiomaFonteGravada = v;
+       continue;
+     }
++    // Legacy preview choices map to 100/120/150%. The new percentage
++    // choice wins in either file order; the other interface sizes stay local.
++    if (!strcmp(chave, "sinopseTamanhoLocal")) {
++      if (v >= 0 && v < 3) sinopseAntiga = v;
++      continue;
++    }
+     for (i = 0; i < AJ_N; i++) {
+       if (!CHAVE[i] || strcmp(CHAVE[i], chave)) continue;
+       if (OPCOES[i].tipo == OP_LEITURA || OPCOES[i].tipo == OP_ACAO) continue;
+@@ -3548,9 +3563,14 @@ void ajustes_dir(const char *dir) {
+       if (i == AJ_RESOLUCAO) viuRes = 1;
+       if (i == AJ_FONTE_PRAZO) viuEspera = 1;
+       if (i == AJ_FOCO_TRAILER) viuFoco = 1;
++      if (i == AJ_TAMANHO_SINOPSE) viuSinopse = 1;
+       break;
+     }
+   }
++  if (!viuSinopse && sinopseAntiga >= 0) {
++    static const int DE_PARA[3] = { 0, 1, 3 }; // 100%, 120%, 150%
++    valor[AJ_TAMANHO_SINOPSE] = DE_PARA[sinopseAntiga];
++  }
+   if (!viuMedidor && medidorAntigo >= 0) valor[AJ_MEDIDOR] = medidorAntigo == 0 ? 3 : 0;
+   if (!viuRes && resAntiga >= 0) {
+     valor[AJ_RESOLUCAO] = res_migrar(resAntiga);
+@@ -4559,6 +4579,7 @@ static int somenteDesteAparelho(int op) {
+     case AJ_ESPACO_FILEIRAS: case AJ_ESPACO_TITULOS: /* o web nao tem espacamento */
+     case AJ_FONTE_PRAZO:    /* o web nao tem: a rede e os addons sao desta casa */
+     case AJ_MEDIDOR:        /* o medidor e da GPU desta TV; o web nao tem */
++    case AJ_TAMANHO_SINOPSE: /* acessibilidade desta tela; sem par na conta */
+     case AJ_TAMANHO_UI:     /* o tamanho e desta tela, e o web nao tem */
+     case AJ_TAMANHO_AJUSTES:
+     case AJ_LAYOUT_AJUSTES: /* #339: o arranjo dos Ajustes e desta TV */
+@@ -5923,6 +5944,7 @@ static const char *ajudaOpcaoBase(int op) {
+     case AJ_IDIOMA: return "Idioma de toda a interface. Automático segue a sua conta e, sem ela, o idioma da TV. Não muda o idioma das legendas nem do áudio.";
+     case AJ_GPU_EFEITOS: return "Automático mede a TV nos primeiros segundos e, se ela não der conta, tira os efeitos mais pesados. Completos mantém tudo; Leves tira desfoque e brilho para deixar a navegação mais lisa.";
+     case AJ_FONTE_UI: return "Altera a tipografia dos menus. A fonte das legendas é escolhida separadamente no player.";
++    case AJ_TAMANHO_SINOPSE: return "Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.";
+     case AJ_TAMANHO_UI: return "Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.";
+     case AJ_INTERFACE_MODO: return "TV para controle remoto. Mobile para toque, em retrato ou paisagem. A troca é imediata e fica salva só neste aparelho.";
+     case AJ_TAMANHO_AJUSTES: return i18n("Muda só o tamanho dos Ajustes nesta TV. O padrão é 80%.");
+@@ -8146,7 +8168,7 @@ static AjPreview familiaPreviaOpcao(int op) {
+     case AJ_IDIOMA: case AJ_ANIM: case AJ_TEMA:
+     case AJ_COR_LOGO: case AJ_FONTE_UI: case AJ_VIDRO: case AJ_VIDRO_CONTORNO:
+     case AJ_RELOGIO: case AJ_RELOGIO_POS: case AJ_SAIDA_PLAYER: case AJ_RELOGIO_12H:
+-    case AJ_TAMANHO_UI: case AJ_TAMANHO_AJUSTES: case AJ_LAYOUT_AJUSTES: case AJ_INTERFACE_MODO: case AJ_FUNDO: case AJ_VIDRO_OPAC: case AJ_VIDRO_FOSCO:
++    case AJ_TAMANHO_SINOPSE: case AJ_TAMANHO_UI: case AJ_TAMANHO_AJUSTES: case AJ_LAYOUT_AJUSTES: case AJ_INTERFACE_MODO: case AJ_FUNDO: case AJ_VIDRO_OPAC: case AJ_VIDRO_FOSCO:
+     case AJ_AVANCADAS: case AJ_LOGO_APP: case AJ_ABERTURA:
+     case AJ_ESMAECER: case AJ_BRILHO_PLAYER: case AJ_HDR_UI: case AJ_MANTER_VIDEO:
+     case AJ_DESCANSO_ESTILO: case AJ_DESCANSO_FONTE:
+diff --git a/src/ajustes.h b/src/ajustes.h
+index 988d9037..1681a900 100644
+--- a/src/ajustes.h
++++ b/src/ajustes.h
+@@ -439,6 +439,8 @@ int   ajustes_relogio_ligado(void);
+ int   ajustes_relogio_pos(void);
+ int   ajustes_relogio_12h(void);   // 1 = 12 h com AM/PM (relogio.h)
+ // Tamanho da interface: 1, 1.2, 1.3 ou 1.5 (gfx_escala_ui). LOCAL.
++// #477: 0 = 100%, 1 = 120%, 2 = 130%, 3 = 150%. So sinopses.
++int ajustes_sinopse_tamanho(void);
+ float ajustes_tamanho_ui(void);
+ // Settings only: 0.8/0.9/1.0, default 0.9; independent of global UI zoom.
+ float ajustes_tamanho_ajustes(void);
+diff --git a/src/ajustes_ux_dados.inc b/src/ajustes_ux_dados.inc
+index 12bf03b6..0e753b07 100644
+--- a/src/ajustes_ux_dados.inc
++++ b/src/ajustes_ux_dados.inc
+@@ -270,7 +270,7 @@ static const char *uxCaminhoAntigo(int op) {
+     case AJ_SELOS_CORES: case AJ_SELOS_PACOTE: case AJ_SELOS_PACOTE_ADD: case AJ_SELOS_PACOTE_REM:
+       return "Fontes e addons";   // 2.0.2; desde a 2.0.3 a escolha da fonte mora em Reproducao
+     case AJ_BUSCA_CINEMETA: case AJ_BUSCA_NUVIO: case AJ_BUSCA_ORIGEM: return "Busca";
+-    case AJ_AVANCADAS: return "Aparência";
++    case AJ_TAMANHO_SINOPSE: case AJ_AVANCADAS: return "Aparência";
+     case AJ_IDIOMA: return "Idioma";
+     // 2.0.3: Cartazes e arte + Trailers viraram Cartazes e trailers; Desempenho
+     // desta TV virou Esta TV; Conta e perfis virou Conta e servicos.
+diff --git a/src/ajustes_ux_padrao.inc b/src/ajustes_ux_padrao.inc
+index a69684b6..2b3db84b 100644
+--- a/src/ajustes_ux_padrao.inc
++++ b/src/ajustes_ux_padrao.inc
+@@ -270,3 +270,4 @@
+   1, 0, 3, /* addon failover off; instance order action; total links */
+   1, /* video preload and next episode buffer: Desligado, independent source setting */
+   0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */
++  0, /* synopsis text size (#477): 100%, current typography */
+diff --git a/src/ajustes_ux_tela.inc b/src/ajustes_ux_tela.inc
+index d65ca1d9..5e524009 100644
+--- a/src/ajustes_ux_tela.inc
++++ b/src/ajustes_ux_tela.inc
+@@ -125,7 +125,7 @@ static const Item TELA[] = {
+     ROT("Logo e abertura"),
+       OPC(AJ_LOGO_APP), OPC(AJ_ABERTURA), OPC(AJ_ICONE_APP),
+     ROT("Texto e tamanho"),
+-      OPC(AJ_FONTE_UI), OPC(AJ_TAMANHO_UI), OPC(AJ_TAMANHO_AJUSTES), OPC(AJ_LAYOUT_AJUSTES),
++      OPC(AJ_FONTE_UI), OPC(AJ_TAMANHO_UI), OPC(AJ_TAMANHO_SINOPSE), OPC(AJ_TAMANHO_AJUSTES), OPC(AJ_LAYOUT_AJUSTES),
+     ROT("Movimento e relógio"),
+       OPC(AJ_ANIM), OPC(AJ_RELOGIO), OPC(AJ_RELOGIO_12H),
+     ROT("Tela de descanso"),
+diff --git a/src/ajustes_ux_visual.inc b/src/ajustes_ux_visual.inc
+index 893e66ab..9b3157f5 100644
+--- a/src/ajustes_ux_visual.inc
++++ b/src/ajustes_ux_visual.inc
+@@ -163,6 +163,7 @@ static const char *ajVisualIcone(int op) {
+     case AJ_COR_LOGO: return "aj_palette";
+     case AJ_VIDRO: return "aj_layers";
+     case AJ_FONTE_UI: return "aj_type";
++    case AJ_TAMANHO_SINOPSE: return "aj_file-text";
+     case AJ_TAMANHO_UI: return "aj_maximize-2";
+     case AJ_TAMANHO_AJUSTES: return "aj_sliders-horizontal";
+     case AJ_LAYOUT_AJUSTES: return "aj_layout-list";
+diff --git a/src/biblioteca.c b/src/biblioteca.c
+index 9db4d32c..e6368e38 100644
+--- a/src/biblioteca.c
++++ b/src/biblioteca.c
+@@ -76,6 +76,7 @@
+ #include "simkl.h"
+ #include "gfx.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "focus.h"
+ #include "anim.h"
+@@ -2049,7 +2050,7 @@ static void desenhaLinhaTitulo(const CatItem *ci, float y, float f, float a) {
+     t = txt_linha_corta(TXT_HEADLINE, ci->titulo, cor, cor, cor, 255, larg);
+     sl = txt_linha_corta(TXT_CAPTION2, sub, sr, sg, sb, 255, larg);
+     if (f > 0.5f && ci->sinopse[0])
+-      ss = txt_linha_corta(TXT_CAPTION, ci->sinopse, sr, sg, sb, 255, larg);
++      ss = txt_linha_corta(sinopse_estilo(TXT_CAPTION), ci->sinopse, sr, sg, sb, 255, larg);
+     { float hBloco = (float)t.h + 7.0f + (float)sl.h;
+       if (ss.h) hBloco += 6.0f + (float)ss.h;
+       // O bloco fica centrado na linha: a sinopse so aparece quando a linha
+diff --git a/src/ctxinfo.c b/src/ctxinfo.c
+index 8ea553ca..a1566b5d 100644
+--- a/src/ctxinfo.c
++++ b/src/ctxinfo.c
+@@ -10,6 +10,7 @@
+ #include "badges.h"
+ #include "tex_cache.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "idioma.h"
+ #include "idiomacod.h"
+ #include "ajustes.h"
+@@ -217,7 +218,7 @@ static void montar(const CatItem *ci, const CtxInfoEstado *st, Modelo *m) {
+ 
+ // A SINOPSE QUEBRADA UMA VEZ. A chave e o texto, a largura e o idioma; o
+ // quadro seguinte so desenha as linhas (txt_linha ja guarda a textura).
+-static struct { char chave[96]; float w; int idioma, n, max; char l[CTXI_SIN_LINHAS][300]; } sinCache;
++static struct { char chave[96]; float w; int idioma, tamanho, n, max; char l[CTXI_SIN_LINHAS][300]; } sinCache;
+ static int sinMax = CTXI_SIN_LINHAS;
+ 
+ static void quebrarSinopse(const char *s, float w) {
+@@ -225,11 +226,11 @@ static void quebrarSinopse(const char *s, float w) {
+   const char *p = s;
+   int n = 0;
+   snprintf(chave, sizeof chave, "%.80s|%zu", s, strlen(s));
+-  if (sinCache.w == w && sinCache.max == sinMax && sinCache.idioma == ajustes_idioma() && !strcmp(sinCache.chave, chave)) return;
++  if (sinCache.w == w && sinCache.max == sinMax && sinCache.tamanho == ajustes_sinopse_tamanho() && sinCache.idioma == ajustes_idioma() && !strcmp(sinCache.chave, chave)) return;
+   memset(&sinCache, 0, sizeof sinCache);
+   snprintf(sinCache.chave, sizeof sinCache.chave, "%s", chave);
+-  sinCache.w = w; sinCache.idioma = ajustes_idioma(); sinCache.max = sinMax;
+-  while (*p && n < sinMax) {
++  sinCache.w = w; sinCache.idioma = ajustes_idioma(); sinCache.max = sinMax; sinCache.tamanho = ajustes_sinopse_tamanho();
++  while (*p && n < sinopse_linhas(TXT_ILHA_TEXTO, 28, sinMax)) {
+     char linha[300] = "";
+     const char *corte = NULL;
+     while (*p == ' ') p++;
+@@ -238,18 +239,18 @@ static void quebrarSinopse(const char *s, float w) {
+       size_t k = txt_token_tam(p), nl = strlen(linha);
+       if (nl + k + 2 >= sizeof tent) break;
+       snprintf(tent, sizeof tent, "%s%s%.*s", linha, nl ? " " : "", (int)k, p);
+-      if (nl && (float)txt_largura(TXT_ILHA_TEXTO, tent) > w) { corte = p; break; }
++      if (nl && (float)txt_largura(sinopse_estilo(TXT_ILHA_TEXTO), tent) > w) { corte = p; break; }
+       snprintf(linha, sizeof linha, "%s", tent);
+       p += k;
+       while (*p == ' ') p++;
+     }
+     // A ULTIMA linha leva a reticencia quando ainda sobra texto.
+-    if (n == sinMax - 1 && (corte || *p)) {
++    if (n == sinopse_linhas(TXT_ILHA_TEXTO, 28, sinMax) - 1 && (corte || *p)) {
+       size_t nl = strlen(linha);
+       for (;;) {
+         char tent[310];
+         snprintf(tent, sizeof tent, "%s\xe2\x80\xa6", linha);
+-        if ((float)txt_largura(TXT_ILHA_TEXTO, tent) <= w || nl == 0) {
++        if ((float)txt_largura(sinopse_estilo(TXT_ILHA_TEXTO), tent) <= w || nl == 0) {
+           snprintf(sinCache.l[n], sizeof sinCache.l[n], "%s", tent); break; }
+         // tira a ultima palavra
+         while (nl && linha[nl - 1] != ' ') nl--;
+@@ -270,7 +271,7 @@ static void quebrarSinopse(const char *s, float w) {
+ #define LOGO_W   300.0f
+ #define LOGO_H    64.0f
+ #define NOTAS_H   30.0f
+-#define SIN_LEAD  28.0f
++#define SIN_LEAD  sinopse_entrelinha(TXT_ILHA_TEXTO, 28.0f)
+ #define LINHA_H   34.0f
+ #define ICONE     20.0f
+ 
+@@ -373,11 +374,12 @@ static float fazer(const CatItem *ci, const CtxInfoEstado *st, float x, float y,
+     y += 16.0f;
+     for (i = 0; i < sinCache.n; i++) {
+       if (desenhar) {
+-        TxtLinha t = txt_linha(TXT_ILHA_TEXTO, sinCache.l[i], 243, 242, 239, 255);
++        TxtLinha t = txt_linha_corta(sinopse_estilo(TXT_ILHA_TEXTO), sinCache.l[i], 243, 242, 239, 255, cw);
+         txt_desenhar_alpha(t, cx, y + (float)i * SIN_LEAD, .66f * ca);
+       }
+     }
+-    y += (float)sinCache.n * SIN_LEAD - (SIN_LEAD - 24.0f);
++    if (sinCache.n) y += (float)sinCache.n * SIN_LEAD -
++                         (SIN_LEAD - sinopse_entrelinha(TXT_ILHA_TEXTO, 24.0f));
+   }
+ 
+   // ONDE PAROU, AMIGOS, AGENDA.
+@@ -472,8 +474,8 @@ static float compactoN(const CatItem *ci, const CtxInfoEstado *st, float x, floa
+     sinMax = sinN; quebrarSinopse(m.sinopse, w); sinMax = CTXI_SIN_LINHAS;
+     for (i = 0; i < sinCache.n; i++) {
+       if (desenhar) {
+-        TxtLinha t = txt_linha(TXT_ILHA_TEXTO, sinCache.l[i], 243, 242, 239, 255);
+-        if (sombra) { TxtLinha d = txt_linha(TXT_ILHA_TEXTO, sinCache.l[i], 0, 0, 0, 255);
++        TxtLinha t = txt_linha_corta(sinopse_estilo(TXT_ILHA_TEXTO), sinCache.l[i], 243, 242, 239, 255, w);
++        if (sombra) { TxtLinha d = txt_linha_corta(sinopse_estilo(TXT_ILHA_TEXTO), sinCache.l[i], 0, 0, 0, 255, w);
+                       txt_desenhar_alpha(d, x + 1.5f, y + (float)i * SIN_LEAD + 1.5f, .7f * ca); }
+         txt_desenhar_alpha(t, x, y + (float)i * SIN_LEAD, (sombra ? .9f : .66f) * ca);
+       }
+diff --git a/src/descanso.c b/src/descanso.c
+index 56c49310..70f9e071 100644
+--- a/src/descanso.c
++++ b/src/descanso.c
+@@ -10,6 +10,7 @@
+ #include "gfx.h"
+ #include "layout.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "catalogo.h"
+ #include "agenda.h"
+@@ -322,7 +323,7 @@ static void desenharVitrine(unsigned agora, float a) {
+                                      : c->progresso > 0 ? i18n("Continuar assistindo")
+                                      : i18n("No seu catálogo"), 190, 194, 204, 255);
+     lMeta = txt_linha_corta(TXT_HERO_META, meta, 226, 228, 234, 255, DESC_TEXTO_W);
+-    lSin = sin[0] ? txt_linha_corta(TXT_HERO_SIN, sin, 200, 204, 212, 255, DESC_TEXTO_W)
++    lSin = sin[0] ? txt_linha_corta(sinopse_estilo(TXT_HERO_SIN), sin, 200, 204, 212, 255, DESC_TEXTO_W)
+                   : (TxtLinha){ 0 };
+     if (okHome) lOk = txt_linha(TXT_CAPTION2, i18n("OK para abrir"), 240, 242, 246, 255);
+     // De baixo para cima: dica, sinopse, meta, titulo, origem.
+diff --git a/src/detail.c b/src/detail.c
+index 46430db3..89d319c3 100644
+--- a/src/detail.c
++++ b/src/detail.c
+@@ -53,6 +53,7 @@ static TituloTempo detalheTempo;
+ #include "botoes.h"
+ #include "vertudo.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "focus.h"
+ #include "anim.h"
+@@ -1368,6 +1369,7 @@ static void auditoriaEpisodios(void) {
+ }
+ 
+ static void abrirInterno(const HomeItem *it) {
++  sinopse_fechar();
+   pediuMenu = 0;
+   audIdx = -1;
+   marco("detail_abrir");
+@@ -1526,6 +1528,7 @@ static void abrirInterno(const HomeItem *it) {
+ }
+ 
+ void detail_fechar(void) {
++  sinopse_fechar();
+   if (!aberto || saindo) return;
+   pessoaAberta = 0;
+   nivel = 0;
+@@ -1535,6 +1538,7 @@ void detail_fechar(void) {
+ // SECO: o proximo detail_atualizar ja a encerra (o mesmo fim da mola de
+ // saida, com o logo restaurado), sem a pagina recolher por cima da home.
+ void detail_fechar_seco(void) {
++  sinopse_fechar();
+   if (!aberto) return;
+   pessoaAberta = 0;
+   nivel = 0;
+@@ -2284,6 +2288,8 @@ static void maisDisponiveis(int d[DMAIS_N]) {
+   d[DMAIS_EXPLORAR] = temExplorar();
+   d[DMAIS_ARTE] = temArte();
+   d[DMAIS_RECOMENDAR] = temRecomendar();
++  { const char *sin = sinopseDe(idx);
++    d[DMAIS_SINOPSE] = sin && sin[0]; }
+ }
+ static int temMais(void) {
+   int d[DMAIS_N], i;
+@@ -2443,7 +2449,10 @@ static void abrirCredito(void) {
+ // O QUE A ILHA "MAIS OPCOES" ESCOLHEU (detmais.h). Eram os ramos dos quatro
+ // circulares que sairam da linha; o comportamento de cada um e o mesmo.
+ static void executarMais(int dm) {
+-  if (dm == DMAIS_TRAILER) {
++  if (dm == DMAIS_SINOPSE) {
++    const CatItem *ci = cat_item(idx);
++    sinopse_abrir(ci ? ci->titulo : "", sinopseDe(idx));
++  } else if (dm == DMAIS_TRAILER) {
+     tocarTrailerCheio(0);
+   } else if (dm == DMAIS_EXPLORAR) {
+     // O roteador (app.c) fecha a pagina e abre a toca neste titulo.
+@@ -2463,6 +2472,7 @@ static void executarMais(int dm) {
+ }
+ 
+ void detail_evento(const SDL_Event *e) {
++  if (sinopse_aberta()) { sinopse_evento(e); return; }
+   if (corpoSobArte()) {
+     if (trocaarte_aberto()) trocaarte_evento(e);
+     return;
+@@ -4295,7 +4305,7 @@ static void heroWeb(float a, float desloc) {
+   // o progresso agora e uma barra dentro do proprio botao de retomar.
+   float temRetom = 0.0f;
+   float hSin = 0.0f;
+-  if (sin) hSin = txt_bloco_corta(TXT_DET_SIN, sin, 255, 255, 255, -1.0f, 0.0f,
++  if (sin) hSin = sinopse_bloco_corta(TXT_DET_SIN, sin, 255, 255, 255, -1.0f, 0.0f,
+                             larguraTextoHero(), NV_DETW2_LD_SIN, 0.0f,
+                             NV_DETW2_SIN_LINHAS);
+   // DADO A CAMINHO: sinopse e meta chegam da rede depois que a pagina abre.
+@@ -4707,12 +4717,12 @@ static void heroWeb(float a, float desloc) {
+       else f = revela_saida(f);
+     }
+     if (f < 1.0f) {   // o que saiu esvanece por baixo do que entra
+-      if (sinAnt[0]) txt_bloco_corta(TXT_DET_SIN, sinAnt, 255, 255, 255, NV_DETW2_X, ySin,
++      if (sinAnt[0]) sinopse_bloco_corta(TXT_DET_SIN, sinAnt, 255, 255, 255, NV_DETW2_X, ySin,
+                                larguraTextoHero(), NV_DETW2_LD_SIN, a * (1.0f - f),
+                                NV_DETW2_SIN_LINHAS);
+       else esqueletoSinopse(NV_DETW2_X, ySin, a * (1.0f - f));
+     }
+-    if (sin) txt_bloco_corta(TXT_DET_SIN, sin, 255, 255, 255, NV_DETW2_X, ySin,
++    if (sin) sinopse_bloco_corta(TXT_DET_SIN, sin, 255, 255, 255, NV_DETW2_X, ySin,
+                        larguraTextoHero(), NV_DETW2_LD_SIN, a * f,
+                        NV_DETW2_SIN_LINHAS);
+     else if (esqSin) esqueletoSinopse(NV_DETW2_X, ySin, a * f); }
+@@ -5256,7 +5266,7 @@ static void desenhaEpisodio(GfxRect r, int c, float f, float a, Uint32 agora) {
+                                    246,247,250,255,textW);
+     txt_desenhar_alpha(name,textX,textY+30,a);
+     float y = textY+64;
+-    if (epSin) y += txt_bloco_corta(TXT_CAPTION,epSin,171,177,185,
++    if (epSin) y += sinopse_bloco_corta(TXT_CAPTION, epSin,171,177,185,
+                                    textX,y,textW,29,a,4);
+     if (epData) {
+       const char *date = epData;
+@@ -5353,7 +5363,7 @@ static void desenhaEpisodio(GfxRect r, int c, float f, float a, Uint32 agora) {
+   // e as notas em negrito para segundo plano. E o estilo que a sinopse ja usa no
+   // card do layout Apple (logo acima), com a entrelinha dele (NV_LD_CAPTION).
+   if (epSin)
+-    txt_bloco_corta(TXT_CAPTION, epSin, 255, 255, 255, tx,
++    sinopse_bloco_corta(TXT_CAPTION, epSin, 255, 255, 255, tx,
+                     r.y + NV_DETP_EP_SIN_Y, NV_DETP_EP_TEXTO_W,
+                     NV_DETP_EP_LD_SIN, a * 0.9f, 3);
+ 
+@@ -6160,7 +6170,7 @@ static void desenhaListaColecao(float a) {
+       txt_desenhar_alpha(lm, tx, y, a);
+       y += lm.h + 20.0f; }
+     if (extras_colecao_sinopse()[0])
+-      txt_bloco_corta(TXT_DET_META2, extras_colecao_sinopse(), 190, 195, 205,
++      sinopse_bloco_corta(TXT_DET_META2, extras_colecao_sinopse(), 190, 195, 205,
+                       tx, y, tw, 32.0f, a * 0.9f, detalheRetrato() ? 3 : 7);
+   }
+ 
+@@ -6234,7 +6244,7 @@ static void desenhaListaColecao(float a) {
+       }
+       ty += 40.0f; }
+     if (extras_colecao_sinopse_parte(i)[0])
+-      txt_bloco_corta(TXT_DET_META2, extras_colecao_sinopse_parte(i),
++      sinopse_bloco_corta(TXT_DET_META2, extras_colecao_sinopse_parte(i),
+                       foc ? 205 : 170, foc ? 210 : 175, foc ? 220 : 185,
+                       tx, ty, tw, 31.0f, a, 3);
+   }
+@@ -7363,6 +7373,7 @@ void detail_desenhar(Uint32 agora) {
+     reacaoPendente(s);
+     maisDesenhar();
+     if (amtui_aberta()) { ponteiro_camada(); amtui_desenhar(agora); }
++  if (sinopse_aberta()) sinopse_desenhar();
+     return;
+   }
+   desenhaEsqueletoEpisodios(a2 > pg ? a2 : pg);
+@@ -7383,6 +7394,7 @@ void detail_desenhar(Uint32 agora) {
+   menuDeVisto(agora);
+   maisDesenhar();
+   if (amtui_aberta()) { ponteiro_camada(); amtui_desenhar(agora); }
++  if (sinopse_aberta()) sinopse_desenhar();
+ }
+ 
+ static void ultimoEpisodio(int *t, int *e) {
+diff --git a/src/detmais.c b/src/detmais.c
+index 7a4a3f5e..772fb7a2 100644
+--- a/src/detmais.c
++++ b/src/detmais.c
+@@ -48,6 +48,7 @@ const char *detmais_rotulo(int acao) {
+     case DMAIS_EXPLORAR:   return "Explorar a partir daqui";
+     case DMAIS_ARTE:       return "Trocar arte";
+     case DMAIS_RECOMENDAR: return "Recomendar a um amigo";
++    case DMAIS_SINOPSE:    return "Ler sinopse";
+   }
+   return "";
+ }
+@@ -59,6 +60,7 @@ const char *detmais_icone(int acao) {
+     case DMAIS_EXPLORAR:   return "aj_compass";
+     case DMAIS_ARTE:       return "arte";
+     case DMAIS_RECOMENDAR: return "recomendar";
++    case DMAIS_SINOPSE:    return "aj_file-text";
+   }
+   return "";
+ }
+diff --git a/src/detmais.h b/src/detmais.h
+index 783a9a7d..81da8752 100644
+--- a/src/detmais.h
++++ b/src/detmais.h
+@@ -23,7 +23,7 @@
+ #include "gfx.h"
+ 
+ // Ordem FIXA das linhas (a do uso: o trailer e o que mais se procura).
+-enum { DMAIS_TRAILER = 0, DMAIS_EXPLORAR, DMAIS_ARTE, DMAIS_RECOMENDAR, DMAIS_N };
++enum { DMAIS_TRAILER = 0, DMAIS_EXPLORAR, DMAIS_ARTE, DMAIS_RECOMENDAR, DMAIS_SINOPSE, DMAIS_N };
+ 
+ // Abre com as acoes que existem neste titulo (`disp[i]` != 0), foco na
+ // primeira. Sem nenhuma disponivel, nao abre.
+diff --git a/src/episodios.c b/src/episodios.c
+index 6ffe12d8..a5021e1c 100644
+--- a/src/episodios.c
++++ b/src/episodios.c
+@@ -8,6 +8,7 @@
+ #include "gfx.h"
+ #include "tex_cache.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "layout.h"
+ #include "anim.h"
+ #include "vistoep.h"
+@@ -91,7 +92,7 @@ static int semMolaScroll;
+ // este menu, entao ele precisa carregar a porta que tomou. Dentro da folha de
+ // episodios a opcao nao existe — quem abriu a folha veio do player e ja tem
+ // fonte tocando; oferece-la ali seria uma linha que nao leva a lugar nenhum.
+-enum { VM_ESTE = 0, VM_ATE, VM_TEMP, VM_FONTES, VM_DAQUI, VM_N };
++enum { VM_ESTE = 0, VM_ATE, VM_TEMP, VM_FONTES, VM_DAQUI, VM_SINOPSE, VM_N };
+ static int vmAcoes[VM_N], vmN; // linhas visiveis -> gesto (daqui em diante e opcional)
+ // O MENU DA TEMPORADA (issue #108, "Pressing 'Season' brings up option to mark
+ // all as watched"): o mesmo cartao, aberto pela ABA e nao por um episodio, com
+@@ -119,7 +120,7 @@ static int vmFeito, vmFeitoN, vmFeitoVisto; static Uint32 vmFeitoAte;
+ // desta tela —, e por isso so podia existir dentro dela. Guardando o alvo o
+ // menu passa a servir tambem a pagina de detalhe, onde a folha nem esta aberta.
+ static int  vmIdx = -1, vmT, vmE;
+-static char vmNome[96];
++static char vmNome[96], vmSinopse[420];
+ // O TITULO, e nao so a posicao (#190). `titulo` e `vmIdx` sao indices no
+ // catalogo, e o catalogo e refeito com a folha aberta — a refacao de
+ // "Continuar assistindo" roda com o player tocando. A mesma posicao passava a
+@@ -189,6 +190,9 @@ static void montarRotulos(void) {
+     } else if (modo == VM_TEMP) {
+       snprintf(vmRot[i], sizeof vmRot[i], quantos == 1 ? i18n("Temporada inteira (%d episódio)") : i18n("Temporada inteira (%d episódios)"), quantos);
+       ic = "aj_list-video";
++    } else if (modo == VM_SINOPSE) {
++      snprintf(vmRot[i], sizeof vmRot[i], "%s", i18n("Ler sinopse"));
++      ic = "aj_file-text";
+     } else {
+       snprintf(vmRot[i], sizeof vmRot[i], "%s", i18n("Fontes deste episódio"));
+       ic = "aj_layers";
+@@ -239,6 +243,16 @@ static void menuAbrir(int idx, int t, int e, const char *nome, int so) {
+   }
+   vmAcoes[vmN++] = VM_TEMP;
+   if (so) vmAcoes[vmN++] = VM_FONTES;
++  vmSinopse[0] = 0;
++  if (so && e > 0) {
++    for (int i = 0; i < cat_n_episodios(idx); i++) {
++      const CatEp *ep = cat_episodio(idx, i);
++      if (ep && ep->temporada == t && ep->episodio == e) {
++        snprintf(vmSinopse, sizeof vmSinopse, "%s", ep->sinopse); break;
++      }
++    }
++    if (vmSinopse[0]) vmAcoes[vmN++] = VM_SINOPSE;
++  }
+   // Abre do zero: a mola de um menu que acabou de fechar nao e a deste.
+   vmAnim = vmAnimV = 0.0f;
+   memset(vmFocoAnim, 0, sizeof vmFocoAnim);
+@@ -551,6 +565,7 @@ static void menuDesenhar(GfxRect area, float a0) {
+   else gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0, 0, 0, 0, 0.55f * a);
+   if (vmFeito) meta = vmMsg;
+   else if (vmModoTemp) { const CatItem *ci = cat_item(vmIdx); meta = ci ? ci->titulo : ""; }
++  else if (vmAcoes[vmFoco] == VM_SINOPSE) meta = "Ler sinopse";
+   else meta = vmAcoes[vmFoco] != VM_DAQUI && vmVisto ? "Marcar como assistido" : "Desmarcar como assistido";
+   ctx_menu_desenhar(m, vmCab, meta, vmFeito ? 0.8f : 0.5f, vmLin, vmOpcoes(), vmFocoAnim,
+                     vmFeito ? 0.35f : 1.0f, a, vmAberto && !vmFeito ? ponteiroVmOpcao : NULL);
+@@ -582,6 +597,7 @@ static void menuEvento(const SDL_Event *ev) {
+     }
+     int modo = vmAcoes[vmFoco], v = modo == VM_DAQUI ? 0 : vmVisto;
+     if (modo == VM_FONTES) { vmFontesPed = 1; vmAberto = 0; return; }
++    if (modo == VM_SINOPSE) { sinopse_abrir(vmNome, vmSinopse); vmAberto = 0; return; }
+     menuFeito(aplicarVisto(modo, v), v);
+     return;
+   }
+@@ -868,7 +884,7 @@ static void linhaEp(int i, const CatItem *ci, float lx, float lw, float y, float
+     }
+     ty += 20.0f + 8.0f;
+     if (sel && ep->sinopse[0])
+-      txt_bloco_corta(TXT_ILHA_APOIO, ep->sinopse, 243, 242, 239, tx, ty, w, 23.0f, ra * 0.5f, 2);
++      sinopse_bloco_corta(TXT_ILHA_APOIO, ep->sinopse, 243, 242, 239, tx, ty, w, 23.0f, ra * 0.5f, 2);
+   }
+ }
+ 
+diff --git a/src/home.c b/src/home.c
+index 476a94dc..64335925 100644
+--- a/src/home.c
++++ b/src/home.c
+@@ -35,6 +35,7 @@ static void heroTempoInicio(int indice) {
+ }
+ #include "gfx.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "focus.h"
+ #include "anim.h"
+@@ -3800,13 +3801,18 @@ static HeroCopyLayout heroCopyLayout(float base, float hSin, int hasMeta,
+   HeroCopyLayout p;
+   float s = slot < 0.0f ? 0.0f : slot > 1.0f ? 1.0f : slot;
+   float slotH = btnH + btnGap;
++  float gap = NV_HERO_COPY_LINHA;
++  // A larger final synopsis line borrows decorative gaps in the compact
++  // phone hero, keeping its logo, metadata and action inside the same area.
++  if (heroCompactoTelefone())
++    gap = fmaxf(0, gap - (sinopse_entrelinha(TXT_HERO_SIN, NV_LD_HERO_SIN) - NV_LD_HERO_SIN));
+   p.synopsis = base - slotH * s - hSin;
+   p.action = p.synopsis + hSin + btnGap;
+-  p.secondary = p.synopsis - (hasSec ? (hSin > 0 ? NV_HERO_COPY_LINHA : 0) + NV_LD_HERO_SEC : 0);
+-  p.meta = p.secondary - (hasMeta ? ((hasSec || hSin > 0) ? NV_HERO_COPY_LINHA : 0) + NV_LD_HERO_META : 0);
++  p.secondary = p.synopsis - (hasSec ? (hSin > 0 ? gap : 0) + NV_LD_HERO_SEC : 0);
++  p.meta = p.secondary - (hasMeta ? ((hasSec || hSin > 0) ? gap : 0) + NV_LD_HERO_META : 0);
+   // A linha de AMIGOS (quem gostou / assistiu) fica logo acima da meta.
+-  p.friends = p.meta - (friendsH > 0 ? NV_HERO_COPY_LINHA + friendsH : 0);
+-  p.caption = p.friends - (captionH > 0 ? NV_HERO_COPY_LINHA + captionH : 0);
++  p.friends = p.meta - (friendsH > 0 ? gap + friendsH : 0);
++  p.caption = p.friends - (captionH > 0 ? gap + captionH : 0);
+   // Logo bottom one gap above the first information line.
+   float bottom = p.caption - btnGap;
+   float bottomCheio = bottom - slotH * (1.0f - s);   // where it is with the slot open
+@@ -3824,7 +3830,9 @@ static HeroCopyLayout heroCopyTelefone(float base, float *hSin, int hasMeta,
+                                        float btnH, float btnGap, float minTop,
+                                        float slot, float *friendsH, float minLogo) {
+   HeroCopyLayout p;
+-  *hSin = fminf(*hSin, 2.0f * NV_LD_HERO_SIN);
++  float sinLead = sinopse_entrelinha(TXT_HERO_SIN, NV_LD_HERO_SIN);
++  float sinMax = (float)sinopse_linhas(TXT_HERO_SIN, NV_LD_HERO_SIN, 2) * sinLead;
++  *hSin = fminf(*hSin, sinMax);
+   for (;;) {
+     p = heroCopyLayout(base, *hSin, hasMeta, hasSec, *captionH, logoH,
+                        btnH, btnGap, minTop, slot, *friendsH);
+@@ -3835,7 +3843,7 @@ static HeroCopyLayout heroCopyTelefone(float base, float *hSin, int hasMeta,
+       p.logo = bottom - p.logoHeight;
+       return p;
+     }
+-    if (*hSin > NV_LD_HERO_SIN) *hSin -= NV_LD_HERO_SIN;
++    if (*hSin > sinLead + .01f) *hSin -= sinLead;
+     else if (*friendsH > 0.0f) *friendsH = 0.0f;
+     else if (*hSin > 0.0f) *hSin = 0.0f;
+     else if (*captionH > 0.0f) *captionH = 0.0f;
+@@ -3996,7 +4004,7 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
+ 
+   const char *sinopse = (ci && ci->sinopse[0]) ? ci->sinopse : "";
+ 
+-  float hSin = sinopse[0] ? txt_bloco_corta(TXT_HERO_SIN, sinopse, 255, 255, 255, -1, 0,
++  float hSin = sinopse[0] ? sinopse_bloco_corta(TXT_HERO_SIN, sinopse, 255, 255, 255, -1, 0,
+                                             sinW, NV_LD_HERO_SIN, 0.0f, sinLinhas)
+                           : 0.0f;
+ 
+@@ -4181,7 +4189,7 @@ static float desenhaCopiaHero(const CatItem *ci, int principal, float x,
+   }
+ 
+   if (sinopse[0] && (!heroCompactoTelefone() || hSin > 0.0f) && aCopy > 0.004f)
+-    txt_bloco_corta(TXT_HERO_SIN, sinopse, 255, 255, 255, x, ySin, sinW,
++    sinopse_bloco_corta(TXT_HERO_SIN, sinopse, 255, 255, 255, x, ySin, sinW,
+                     NV_LD_HERO_SIN, aCopy, sinLinhas);
+   return copy.action;
+ }
+@@ -4374,7 +4382,7 @@ static void desenhaHero(Uint32 agora, float saida) {
+       if(p->meta[0])
+         txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,p->meta,190,194,205,255,homeTextoLargura(680)),x,364,a);
+       if(p->sinopse[0])
+-        txt_bloco(TXT_HERO_SIN,p->sinopse,229,231,237,x,402,homeTextoLargura(700),31,a,2);
++        sinopse_bloco(TXT_HERO_SIN, p->sinopse,229,231,237,x,402,homeTextoLargura(700),31,a,2);
+     } else {
+       // Sem a marca do Trakt: a fonte nao aparece na home (amigosfil.h).
+       txt_desenhar_alpha(txt_linha(TXT_HERO_META,"SUA COMUNIDADE",210,191,199,255),x,154,a);
+@@ -5663,9 +5671,10 @@ static void desenhaFicha(const CatItem *it, float px, float py, float w, float h
+   { int nota = imdbnota_obter(it->imdb, it->nota, !strcmp(it->tipo, "series"));
+     if (nota > 0) { badge_imdb(tx, y, nota, 0, 1.0f); y += BADGE_H + 12.0f; } }
+   if (it->sinopse[0]) {
++    // Larger one-line prose may use part of the20px decorative bottom pad.
+     int linhas = (int)((py + h - 20.0f - y) / 28.0f);
+     if (linhas > 4) linhas = 4;
+-    if (linhas > 0) txt_bloco(TXT_CAPTION, it->sinopse, 196, 201, 212, tx, y, tw, 28.0f, 0.92f, linhas);
++    if (linhas > 0) sinopse_bloco(TXT_CAPTION, it->sinopse, 196, 201, 212, tx, y, tw, 28.0f, 0.92f, linhas);
+   }
+ }
+ // LINHA DO TEMPO: a faixa dos anos sob os cartazes.
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index fe5a2bb5..1a1e46cb 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "До тук (епизоди: %d)"),
+   T("Até aqui (%d episódios)", "До тук (епизоди: %d)"),
+   T("Audiência da temporada", "Аудитория на сезона"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Увеличава само резюметата. На страницата на заглавието отворете Още опции › Прочети резюмето, за да прочетете целия текст."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Увеличава Настройките, управлението на плейъра, менютата, панелите и известията — удобно за големи телевизори или гледане отдалеч. Началният екран и страницата на заглавието запазват размера си. Важи веднага."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Увеличава контролите на плейъра, панелите и известията. Настройките имат собствен размер."),
+   T("Austrália", "Австралия"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Четене на препратката към файла през HTTP Range"),
+   T("Lendo o arquivo", "Четене на файла"),
+   T("Ler de novo", "Прочети отново"),
++  T("Ler sinopse", "Прочети резюмето"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Липсват стилизирани букви в имената на потоците"),
+   T("Letreiros", "Надписи"),
+   T("Letterboxd neste perfil", "Letterboxd в този профил"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Размер"),
+   T("Tamanho da interface", "Размер на интерфейса"),
+   T("Tamanho da segunda legenda", "Размер на вторите субтитри"),
++  T("Tamanho da sinopse", "Размер на текста на резюмето"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Размер на файла, който се възпроизвежда без спиране на този телевизор"),
+   T("Tamanho do buffer", "Размер на буфера"),
+   T("Tamanho do cartaz", "Размер на плаката"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index 7024f801..09c1f393 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Do ovdje (epizoda: %d)"),
+   T("Até aqui (%d episódios)", "Do ovdje (epizoda: %d)"),
+   T("Audiência da temporada", "Publika sezone"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Povećava samo sinopsise. Na stranici naslova otvorite Više opcija › Pročitaj sinopsis za cijeli tekst."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Povećava Postavke, kontrole plejera, menije, panele i obavještenja — dobro za velike televizore ili gledanje izdaleka. Početni ekran i stranica naslova zadržavaju svoju veličinu. Važi odmah."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Povećava kontrole playera, panele i obavijesti. Postavke imaju vlastitu veličinu."),
+   T("Austrália", "Australija"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Čitanje reference na datoteku putem HTTP Range"),
+   T("Lendo o arquivo", "Čitanje datoteke"),
+   T("Ler de novo", "Pročitaj ponovo"),
++  T("Ler sinopse", "Pročitaj sinopsis"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stilizovana slova nedostaju u nazivima streamova"),
+   T("Letreiros", "Natpisi"),
+   T("Letterboxd neste perfil", "Letterboxd na ovom profilu"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Veličina"),
+   T("Tamanho da interface", "Veličina interfejsa"),
+   T("Tamanho da segunda legenda", "Veličina drugog titla"),
++  T("Tamanho da sinopse", "Veličina teksta sinopsisa"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Veličina datoteke koja se na ovom TV-u reprodukuje bez zastajanja"),
+   T("Tamanho do buffer", "Veličina međuspremnika"),
+   T("Tamanho do cartaz", "Veličina postera"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index 659ac735..22e8e580 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Až sem (epizody: %d)"),
+   T("Até aqui (%d episódios)", "Až sem (epizody: %d)"),
+   T("Audiência da temporada", "Publikum sezóny"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Zvětšuje pouze synopse. Na stránce titulu otevřete Další možnosti › Přečíst synopsi a přečtěte si celý text."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Zvětší Nastavení, ovládání přehrávače, nabídky, panely a upozornění — hodí se pro velké televizory nebo sledování z dálky. Domovská obrazovka a stránka titulu si zachovají svou velikost. Platí okamžitě."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Zvětšuje ovládání přehrávače, panely a oznámení. Nastavení má vlastní velikost."),
+   T("Austrália", "Austrálie"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Čtení odkazu na soubor přes HTTP Range"),
+   T("Lendo o arquivo", "Čtení souboru"),
+   T("Ler de novo", "Načíst znovu"),
++  T("Ler sinopse", "Přečíst synopsi"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "V názvech streamů chybí stylizovaná písmena"),
+   T("Letreiros", "Nápisy"),
+   T("Letterboxd neste perfil", "Letterboxd v tomto profilu"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Velikost"),
+   T("Tamanho da interface", "Velikost rozhraní"),
+   T("Tamanho da segunda legenda", "Velikost druhých titulků"),
++  T("Tamanho da sinopse", "Velikost textu synopse"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Velikost souboru, který se na této televizi přehraje bez zastavení"),
+   T("Tamanho do buffer", "Velikost vyrovnávací paměti"),
+   T("Tamanho do cartaz", "Velikost plakátu"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index 3b314f3f..c736d900 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Hertil (%d afsnit)"),
+   T("Até aqui (%d episódios)", "Hertil (%d afsnit)"),
+   T("Audiência da temporada", "Sæsonens seere"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Forstørrer kun resuméer. Åbn Flere muligheder › Læs resumé på titelsiden for at læse hele teksten."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Forstørrer Indstillinger, afspillerens knapper, menuer, paneler og beskeder — godt til store tv'er eller hvis du ser på afstand. Startskærmen og titelsiden beholder deres størrelse. Gælder med det samme."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Gør afspillerknapper, paneler og beskeder større. Indstillinger har sin egen størrelse."),
+   T("Austrália", "Australien"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Læser filreferencen via HTTP Range"),
+   T("Lendo o arquivo", "Læser filen"),
+   T("Ler de novo", "Læs igen"),
++  T("Ler sinopse", "Læs resumé"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stiliserede bogstaver, der manglede i strømnavnene"),
+   T("Letreiros", "Skilte"),
+   T("Letterboxd neste perfil", "Letterboxd på denne profil"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Størrelse"),
+   T("Tamanho da interface", "Brugerfladens størrelse"),
+   T("Tamanho da segunda legenda", "Størrelse på sekundær undertekst"),
++  T("Tamanho da sinopse", "Tekststørrelse for resumé"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Filstørrelse, der afspilles uden afbrydelser på dette tv"),
+   T("Tamanho do buffer", "Bufferstørrelse"),
+   T("Tamanho do cartaz", "Plakatstørrelse"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index cdfd11fc..8630383f 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -838,6 +838,7 @@
+   T("Até aqui (%d episódio)", "Bis hierhin (%d Folge)"),
+   T("Até aqui (%d episódios)", "Bis hierhin (%d Folgen)"),
+   T("Audiência da temporada", "Publikum der Staffel"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Vergrößert nur Inhaltsangaben. Auf der Titelseite unter Weitere Optionen › Inhaltsangabe lesen steht der vollständige Text."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Vergrößert Einstellungen, Player-Steuerung, Menüs, Bereiche und Hinweise — gut für große Fernseher oder für größeren Sitzabstand. Startbildschirm und Titelseite behalten ihre Größe. Wirkt sofort."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Vergrößert Player-Steuerung, Bereiche und Hinweise. Einstellungen haben eine eigene Größe."),
+   T("Austrália", "Australien"),
+@@ -2345,6 +2346,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Dateireferenz wird per HTTP Range gelesen"),
+   T("Lendo o arquivo", "Datei wird gelesen"),
+   T("Ler de novo", "Neu lesen"),
++  T("Ler sinopse", "Inhaltsangabe lesen"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stilisierte Buchstaben, die in Namen von Videoquellen fehlten"),
+   T("Letreiros", "Schilder"),
+   T("Letterboxd neste perfil", "Letterboxd in diesem Profil"),
+@@ -4514,6 +4516,7 @@
+   T("Tamanho", "Größe"),
+   T("Tamanho da interface", "Größe der Oberfläche"),
+   T("Tamanho da segunda legenda", "Größe der Zweituntertitel"),
++  T("Tamanho da sinopse", "Größe der Inhaltsangabe"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Dateigröße, die auf diesem TV ohne Unterbrechung läuft"),
+   T("Tamanho do buffer", "Puffergröße"),
+   T("Tamanho do cartaz", "Postergröße"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index c8b418e5..c267fea2 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Μέχρι εδώ (%d επεισόδιο)"),
+   T("Até aqui (%d episódios)", "Μέχρι εδώ (%d επεισόδια)"),
+   T("Audiência da temporada", "Κοινό της σεζόν"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Μεγεθύνει μόνο τις συνόψεις. Στη σελίδα του τίτλου ανοίξτε Περισσότερες επιλογές › Ανάγνωση σύνοψης για όλο το κείμενο."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Μεγεθύνει τις Ρυθμίσεις, τα χειριστήρια της αναπαραγωγής, τα μενού, τα πάνελ και τις ειδοποιήσεις — καλό για μεγάλες τηλεοράσεις ή για προβολή από μακριά. Η αρχική οθόνη και η σελίδα του τίτλου κρατούν το μέγεθός τους. Ισχύει αμέσως."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Μεγαλώνει τα στοιχεία ελέγχου αναπαραγωγής, τα πλαίσια και τις ειδοποιήσεις. Οι Ρυθμίσεις έχουν δικό τους μέγεθος."),
+   T("Austrália", "Αυστραλία"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Ανάγνωση της αναφοράς αρχείου μέσω HTTP Range"),
+   T("Lendo o arquivo", "Ανάγνωση αρχείου"),
+   T("Ler de novo", "Ανάγνωση ξανά"),
++  T("Ler sinopse", "Ανάγνωση σύνοψης"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Γράμματα με στυλ που λείπουν από τα ονόματα των streams"),
+   T("Letreiros", "Πινακίδες"),
+   T("Letterboxd neste perfil", "Letterboxd σε αυτό το προφίλ"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Μέγεθος"),
+   T("Tamanho da interface", "Μέγεθος διεπαφής"),
+   T("Tamanho da segunda legenda", "Μέγεθος δεύτερων υποτίτλων"),
++  T("Tamanho da sinopse", "Μέγεθος κειμένου σύνοψης"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Μέγεθος αρχείου που παίζει χωρίς διακοπή σε αυτή την τηλεόραση"),
+   T("Tamanho do buffer", "Μέγεθος buffer"),
+   T("Tamanho do cartaz", "Μέγεθος αφίσας"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index 82f21598..91649966 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -838,6 +838,7 @@
+   T("Até aqui (%d episódio)", "Hasta aquí (%d episodio)"),
+   T("Até aqui (%d episódios)", "Hasta aquí (%d episodios)"),
+   T("Audiência da temporada", "Audiencia de la temporada"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Amplía solo las sinopsis. En la página del título, abre Más opciones › Leer sinopsis para leer el texto completo."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Agranda los Ajustes, los controles del reproductor, los menús, los paneles y los avisos — ideal para televisores grandes o para ver desde lejos. La pantalla de inicio y la página del título mantienen su tamaño. Se aplica al instante."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Amplía los controles del reproductor, los paneles y los avisos. Los ajustes tienen su propio tamaño."),
+   T("Austrália", "Australia"),
+@@ -2345,6 +2346,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Leyendo la referencia del archivo por HTTP Range"),
+   T("Lendo o arquivo", "Leyendo el archivo"),
+   T("Ler de novo", "Leer de nuevo"),
++  T("Ler sinopse", "Leer sinopsis"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Letras estilizadas que desaparecían de los nombres de las fuentes de video"),
+   T("Letreiros", "Carteles"),
+   T("Letterboxd neste perfil", "Letterboxd en este perfil"),
+@@ -4514,6 +4516,7 @@
+   T("Tamanho", "Tamaño"),
+   T("Tamanho da interface", "Tamaño de la interfaz"),
+   T("Tamanho da segunda legenda", "Tamaño del subtítulo secundario"),
++  T("Tamanho da sinopse", "Tamaño de la sinopsis"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Tamaño de archivo que se reproduce sin cortes en esta TV"),
+   T("Tamanho do buffer", "Tamaño del búfer"),
+   T("Tamanho do cartaz", "Tamaño del póster"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index de9e47bb..75507b98 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -838,6 +838,7 @@
+   T("Até aqui (%d episódio)", "Jusqu'ici (%d épisode)"),
+   T("Até aqui (%d episódios)", "Jusqu'ici (%d épisodes)"),
+   T("Audiência da temporada", "Audience de la saison"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Agrandit uniquement les synopsis. Sur la page du titre, ouvrez Plus d’options › Lire le synopsis pour lire le texte complet."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Agrandit les Réglages, les commandes du lecteur, les menus, les panneaux et les avis — idéal pour les grands téléviseurs ou pour regarder de loin. L'écran d'accueil et la page du titre gardent leur taille. S'applique tout de suite."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Agrandit les commandes du lecteur, les panneaux et les notifications. Les réglages ont leur propre taille."),
+   T("Austrália", "Australie"),
+@@ -2345,6 +2346,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Lecture de la référence du fichier par HTTP Range"),
+   T("Lendo o arquivo", "Lecture du fichier"),
+   T("Ler de novo", "Relire"),
++  T("Ler sinopse", "Lire le synopsis"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Lettres stylisées qui disparaissaient des noms des sources vidéo"),
+   T("Letreiros", "Panneaux"),
+   T("Letterboxd neste perfil", "Letterboxd sur ce profil"),
+@@ -4514,6 +4516,7 @@
+   T("Tamanho", "Taille"),
+   T("Tamanho da interface", "Taille de l'interface"),
+   T("Tamanho da segunda legenda", "Taille du sous-titre secondaire"),
++  T("Tamanho da sinopse", "Taille du synopsis"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Taille de fichier qui se lit sans interruption sur cette TV"),
+   T("Tamanho do buffer", "Taille du tampon"),
+   T("Tamanho do cartaz", "Taille de l'affiche"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index 0435ca05..fa80383b 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Idáig (%d epizód)"),
+   T("Até aqui (%d episódios)", "Idáig (%d epizód)"),
+   T("Audiência da temporada", "Az évad közönsége"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Csak az ismertetőket nagyítja. A cím oldalán a További lehetőségek › Ismertető olvasása alatt olvasható a teljes szöveg."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Megnöveli a Beállításokat, a lejátszó vezérlőit, a menüket, a paneleket és az értesítéseket — nagy tévékhez vagy távolról nézőknek. A kezdőképernyő és a címoldal megtartja a méretét. Azonnal érvényes."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Nagyítja a lejátszó vezérlőit, a paneleket és az értesítéseket. A Beállítások mérete külön állítható."),
+   T("Austrália", "Ausztrália"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "A fájlhivatkozás olvasása HTTP Range-gel"),
+   T("Lendo o arquivo", "A fájl olvasása"),
+   T("Ler de novo", "Újraolvasás"),
++  T("Ler sinopse", "Ismertető olvasása"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "A streamnevekből hiányoznak a díszített betűk"),
+   T("Letreiros", "Feliratok (táblák)"),
+   T("Letterboxd neste perfil", "Letterboxd ezen a profilon"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Méret"),
+   T("Tamanho da interface", "A felület mérete"),
+   T("Tamanho da segunda legenda", "A második felirat mérete"),
++  T("Tamanho da sinopse", "Ismertető betűmérete"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "A fájl mérete, amely megállás nélkül lejátszódik ezen a TV-n"),
+   T("Tamanho do buffer", "Pufferméret"),
+   T("Tamanho do cartaz", "Poszter mérete"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index 2afb3716..bd4185b0 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Sampai di sini (%d episode)"),
+   T("Até aqui (%d episódios)", "Sampai di sini (%d episode)"),
+   T("Audiência da temporada", "Penonton musim"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Hanya memperbesar sinopsis. Di halaman judul, buka Opsi lainnya › Baca sinopsis untuk membaca teks lengkap."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Memperbesar Pengaturan, kontrol pemutar, menu, panel, dan pemberitahuan — cocok untuk TV besar atau menonton dari jauh. Layar beranda dan halaman judul tetap berukuran sama. Langsung berlaku."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Memperbesar kontrol pemutar, panel, dan pemberitahuan. Pengaturan memiliki ukuran tersendiri."),
+   T("Austrália", "Australia"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Membaca referensi file lewat HTTP Range"),
+   T("Lendo o arquivo", "Membaca file"),
+   T("Ler de novo", "Baca ulang"),
++  T("Ler sinopse", "Baca sinopsis"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Huruf bergaya yang tidak ada di nama stream"),
+   T("Letreiros", "Tanda"),
+   T("Letterboxd neste perfil", "Letterboxd di profil ini"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Ukuran"),
+   T("Tamanho da interface", "Ukuran antarmuka"),
+   T("Tamanho da segunda legenda", "Ukuran subtitle kedua"),
++  T("Tamanho da sinopse", "Ukuran teks sinopsis"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Ukuran file yang diputar tanpa berhenti di TV ini"),
+   T("Tamanho do buffer", "Ukuran buffer"),
+   T("Tamanho do cartaz", "Ukuran poster"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index 5f69fa22..52da6f9e 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Fino a qui (%d episodio)"),
+   T("Até aqui (%d episódios)", "Fino a qui (%d episodi)"),
+   T("Audiência da temporada", "Pubblico della stagione"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Ingrandisce solo le sinossi. Nella pagina del titolo, apri Altre opzioni › Leggi la sinossi per leggere il testo completo."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Ingrandisce Impostazioni, controlli del player, menu, pannelli e avvisi — utile per TV grandi o per chi guarda da lontano. La schermata iniziale e la pagina del titolo mantengono la loro dimensione. Si applica subito."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Ingrandisce i controlli del player, i pannelli e gli avvisi. Le impostazioni hanno una dimensione propria."),
+   T("Austrália", "Australia"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Lettura del riferimento del file tramite HTTP Range"),
+   T("Lendo o arquivo", "Lettura del file"),
+   T("Ler de novo", "Rileggi"),
++  T("Ler sinopse", "Leggi la sinossi"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Lettere stilizzate mancanti nei nomi degli stream"),
+   T("Letreiros", "Cartelli"),
+   T("Letterboxd neste perfil", "Letterboxd su questo profilo"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Dimensione"),
+   T("Tamanho da interface", "Dimensione dell'interfaccia"),
+   T("Tamanho da segunda legenda", "Dimensione del sottotitolo secondario"),
++  T("Tamanho da sinopse", "Dimensione della sinossi"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Dimensione del file che si riproduce senza interruzioni su questa TV"),
+   T("Tamanho do buffer", "Dimensione del buffer"),
+   T("Tamanho do cartaz", "Dimensione delle locandine"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index ec048779..a2f37b12 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "ここまで（%d 話）"),
+   T("Até aqui (%d episódios)", "ここまで（%d 話）"),
+   T("Audiência da temporada", "シーズンの視聴者数"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "あらすじのみを拡大します。作品ページで「その他のオプション」›「あらすじを読む」を開くと全文を読めます。"),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "設定、プレーヤーの操作、メニュー、パネル、お知らせを大きくします。大画面のテレビや離れて見る場合に便利です。ホーム画面と作品ページの大きさは変わりません。すぐに反映されます。"),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "プレーヤーの操作、パネル、通知を拡大します。設定画面のサイズは個別です。"),
+   T("Austrália", "オーストラリア"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "HTTP Range でファイルの参照を読み取り中"),
+   T("Lendo o arquivo", "ファイルを読み込み中"),
+   T("Ler de novo", "読み直す"),
++  T("Ler sinopse", "あらすじを読む"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "映像ソース名で装飾文字が消える問題"),
+   T("Letreiros", "看板・字幕"),
+   T("Letterboxd neste perfil", "このプロフィールのLetterboxd"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "サイズ"),
+   T("Tamanho da interface", "インターフェースの大きさ"),
+   T("Tamanho da segunda legenda", "第2字幕のサイズ"),
++  T("Tamanho da sinopse", "あらすじの文字サイズ"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "このテレビで途切れず再生できるファイルサイズ"),
+   T("Tamanho do buffer", "バッファサイズ"),
+   T("Tamanho do cartaz", "ポスターのサイズ"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 132be074..94b5bfa7 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Iki čia (epizodų: %d)"),
+   T("Até aqui (%d episódios)", "Iki čia (epizodų: %d)"),
+   T("Audiência da temporada", "Sezono auditorija"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Padidina tik aprašymus. Kūrinio puslapyje atverkite Daugiau parinkčių › Skaityti aprašymą, kad perskaitytumėte visą tekstą."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Padidina Nustatymus, grotuvo valdiklius, meniu, skydelius ir pranešimus — patogu dideliems televizoriams arba žiūrint iš toli. Pradinis ekranas ir pavadinimo puslapis išlaiko savo dydį. Galioja iš karto."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Padidina grotuvo valdiklius, skydelius ir pranešimus. Nustatymai turi atskirą dydį."),
+   T("Austrália", "Australija"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Failo nuoroda skaitoma per HTTP Range"),
+   T("Lendo o arquivo", "Skaitomas failas"),
+   T("Ler de novo", "Skaityti iš naujo"),
++  T("Ler sinopse", "Skaityti aprašymą"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stilizuotų raidžių trūksta srautų pavadinimuose"),
+   T("Letreiros", "Užrašai"),
+   T("Letterboxd neste perfil", "Letterboxd šiame profilyje"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Dydis"),
+   T("Tamanho da interface", "Sąsajos dydis"),
+   T("Tamanho da segunda legenda", "Antrųjų subtitrų dydis"),
++  T("Tamanho da sinopse", "Aprašymo teksto dydis"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Failo dydis, kuris šiame televizoriuje groja be sustojimų"),
+   T("Tamanho do buffer", "Buferio dydis"),
+   T("Tamanho do cartaz", "Plakato dydis"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index b24b60cb..b8b86a83 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Tot hier (%d aflevering)"),
+   T("Até aqui (%d episódios)", "Tot hier (%d afleveringen)"),
+   T("Audiência da temporada", "Seizoenspubliek"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Vergroot alleen synopsissen. Open op de titelpagina Meer opties › Synopsis lezen om de volledige tekst te lezen."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Vergroot Instellingen, de spelerknoppen, menu's, panelen en meldingen — handig voor grote tv's of als je ver weg zit. Het startscherm en de titelpagina houden hun grootte. Werkt meteen."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Vergroot spelerbediening, panelen en meldingen. Instellingen heeft een eigen grootte."),
+   T("Austrália", "Australië"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Bestandsreferentie lezen via HTTP Range"),
+   T("Lendo o arquivo", "Bestand lezen"),
+   T("Ler de novo", "Opnieuw lezen"),
++  T("Ler sinopse", "Synopsis lezen"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Ontbrekende opgemaakte letters in streamnamen"),
+   T("Letreiros", "Borden"),
+   T("Letterboxd neste perfil", "Letterboxd op dit profiel"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Grootte"),
+   T("Tamanho da interface", "Grootte van de interface"),
+   T("Tamanho da segunda legenda", "Grootte van tweede ondertitel"),
++  T("Tamanho da sinopse", "Tekstgrootte synopsis"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Bestandsgrootte die zonder haperen afspeelt op deze tv"),
+   T("Tamanho do buffer", "Buffergrootte"),
+   T("Tamanho do cartaz", "Posterformaat"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 3793e7a4..0f066ef6 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Hit (%d episode)"),
+   T("Até aqui (%d episódios)", "Hit (%d episoder)"),
+   T("Audiência da temporada", "Sesongens publikum"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Forstørrer bare sammendrag. Åpne Flere alternativer › Les sammendrag på tittelsiden for å lese hele teksten."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Forstørrer Innstillinger, spillerkontrollene, menyer, paneler og varsler — fint for store TV-er eller når du ser på avstand. Startskjermen og tittelsiden beholder størrelsen sin. Gjelder med en gang."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Forstørrer spillerkontroller, paneler og varsler. Innstillinger har sin egen størrelse."),
+   T("Austrália", "Australia"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Leser filreferansen via HTTP Range"),
+   T("Lendo o arquivo", "Leser filen"),
+   T("Ler de novo", "Les på nytt"),
++  T("Ler sinopse", "Les sammendrag"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stiliserte bokstaver som manglet i strømnavnene"),
+   T("Letreiros", "Skilt"),
+   T("Letterboxd neste perfil", "Letterboxd på denne profilen"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Størrelse"),
+   T("Tamanho da interface", "Størrelse på grensesnittet"),
+   T("Tamanho da segunda legenda", "Størrelse på sekundær undertekst"),
++  T("Tamanho da sinopse", "Tekststørrelse for sammendrag"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Filstørrelse som spilles av uten avbrudd på denne TV-en"),
+   T("Tamanho do buffer", "Bufferstørrelse"),
+   T("Tamanho do cartaz", "Plakatstørrelse"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index 2157cec2..eac32e57 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Do tego miejsca (%d odcinek)"),
+   T("Até aqui (%d episódios)", "Do tego miejsca (%d odcinków)"),
+   T("Audiência da temporada", "Widownia sezonu"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Powiększa tylko opisy. Na stronie tytułu otwórz Więcej opcji › Czytaj opis, aby przeczytać cały tekst."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Powiększa Ustawienia, sterowanie odtwarzaczem, menu, panele i powiadomienia — przydatne przy dużych telewizorach lub oglądaniu z daleka. Ekran główny i strona tytułu zachowują swój rozmiar. Działa od razu."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Powiększa przyciski odtwarzacza, panele i powiadomienia. Ustawienia mają własny rozmiar."),
+   T("Austrália", "Australia"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Odczyt odwołania do pliku przez HTTP Range"),
+   T("Lendo o arquivo", "Czytanie pliku"),
+   T("Ler de novo", "Wczytaj ponownie"),
++  T("Ler sinopse", "Czytaj opis"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Brakujące stylizowane litery w nazwach strumieni"),
+   T("Letreiros", "Napisy ekranowe"),
+   T("Letterboxd neste perfil", "Letterboxd w tym profilu"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Rozmiar"),
+   T("Tamanho da interface", "Rozmiar interfejsu"),
+   T("Tamanho da segunda legenda", "Rozmiar drugich napisów"),
++  T("Tamanho da sinopse", "Rozmiar tekstu opisu"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Rozmiar pliku, który odtwarza się bez zatrzymań na tym telewizorze"),
+   T("Tamanho do buffer", "Rozmiar bufora"),
+   T("Tamanho do cartaz", "Rozmiar plakatu"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index 899c6ed2..8af2263f 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Até aqui (%d episódio)"),
+   T("Até aqui (%d episódios)", "Até aqui (%d episódios)"),
+   T("Audiência da temporada", "Audiência da temporada"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Aumenta as Definições, os controlos do leitor, os menus, os painéis e os avisos — bom para televisores grandes ou para quem vê de longe. O ecrã inicial e a página do título mantêm o tamanho. Aplica-se de imediato."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Aumenta os controlos do leitor, os painéis e os avisos. As Definições têm um tamanho próprio."),
+   T("Austrália", "Austrália"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "A ler a referência do ficheiro por HTTP Range"),
+   T("Lendo o arquivo", "A ler o ficheiro"),
+   T("Ler de novo", "Ler de novo"),
++  T("Ler sinopse", "Ler sinopse"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Letras estilizadas que desapareciam dos nomes das fontes de vídeo"),
+   T("Letreiros", "Legendas forçadas"),
+   T("Letterboxd neste perfil", "Letterboxd neste perfil"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Tamanho"),
+   T("Tamanho da interface", "Tamanho da interface"),
+   T("Tamanho da segunda legenda", "Tamanho da segunda legenda"),
++  T("Tamanho da sinopse", "Tamanho da sinopse"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Tamanho de ficheiro que reproduz sem paragens nesta TV"),
+   T("Tamanho do buffer", "Tamanho do buffer"),
+   T("Tamanho do cartaz", "Tamanho do cartaz"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index a1de7f4d..e2660923 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -838,6 +838,7 @@
+   T("Até aqui (%d episódio)", "Până aici (%d episod)"),
+   T("Até aqui (%d episódios)", "Până aici (%d episoade)"),
+   T("Audiência da temporada", "Audiența sezonului"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Mărește doar sinopsisurile. Pe pagina titlului, deschide Mai multe opțiuni › Citește sinopsisul pentru textul complet."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Mărește Setările, comenzile playerului, meniurile, panourile și notificările — bun pentru televizoare mari sau pentru cine privește de departe. Ecranul principal și pagina titlului își păstrează dimensiunea. Se aplică imediat."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Mărește comenzile playerului, panourile și notificările. Setările au propria dimensiune."),
+   T("Austrália", "Australia"),
+@@ -2345,6 +2346,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Se citește referința fișierului prin HTTP Range"),
+   T("Lendo o arquivo", "Citim fișierul"),
+   T("Ler de novo", "Citește din nou"),
++  T("Ler sinopse", "Citește sinopsisul"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Litere stilizate care dispăreau din numele surselor video"),
+   T("Letreiros", "Inscripții"),
+   T("Letterboxd neste perfil", "Letterboxd pe acest profil"),
+@@ -4514,6 +4516,7 @@
+   T("Tamanho", "Dimensiune"),
+   T("Tamanho da interface", "Dimensiunea interfeței"),
+   T("Tamanho da segunda legenda", "Dimensiunea subtitrării secundare"),
++  T("Tamanho da sinopse", "Dimensiunea sinopsisului"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Dimensiunea fișierului care rulează fără oprire pe acest televizor"),
+   T("Tamanho do buffer", "Dimensiunea bufferului"),
+   T("Tamanho do cartaz", "Dimensiunea afișului"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 76ae9f21..1387e2d2 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -838,6 +838,7 @@
+   T("Até aqui (%d episódio)", "До этого места (%d эпизод)"),
+   T("Até aqui (%d episódios)", "До этого места (эпизодов: %d)"),
+   T("Audiência da temporada", "Аудитория сезона"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Увеличивает только описания. На странице названия откройте Дополнительные параметры › Читать описание, чтобы прочитать весь текст."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Увеличивает Настройки, управление плеером, меню, панели и уведомления — удобно для больших телевизоров или просмотра издалека. Главный экран и страница названия сохраняют свой размер. Действует сразу."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Увеличивает элементы управления плеером, панели и уведомления. Настройки имеют свой размер."),
+   T("Austrália", "Австралия"),
+@@ -2345,6 +2346,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Чтение ссылки на файл через HTTP Range"),
+   T("Lendo o arquivo", "Читаем файл"),
+   T("Ler de novo", "Прочитать снова"),
++  T("Ler sinopse", "Читать описание"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Стилизованные буквы, пропадавшие из названий видеоисточников"),
+   T("Letreiros", "Надписи"),
+   T("Letterboxd neste perfil", "Letterboxd в этом профиле"),
+@@ -4514,6 +4516,7 @@
+   T("Tamanho", "Размер"),
+   T("Tamanho da interface", "Размер интерфейса"),
+   T("Tamanho da segunda legenda", "Размер вторых субтитров"),
++  T("Tamanho da sinopse", "Размер текста описания"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Размер файла, который воспроизводится без остановок на этом телевизоре"),
+   T("Tamanho do buffer", "Размер буфера"),
+   T("Tamanho do cartaz", "Размер постера"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index db958f2c..1eb084c4 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Až sem (epizódy: %d)"),
+   T("Até aqui (%d episódios)", "Až sem (epizódy: %d)"),
+   T("Audiência da temporada", "Publikum série"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Zväčšuje iba synopsy. Na stránke titulu otvorte Ďalšie možnosti › Prečítať synopsu a prečítajte si celý text."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Zväčší Nastavenia, ovládanie prehrávača, ponuky, panely a upozornenia — vhodné pre veľké televízory alebo sledovanie z diaľky. Domovská obrazovka a stránka titulu si zachovajú svoju veľkosť. Platí okamžite."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Zväčšuje ovládanie prehrávača, panely a oznámenia. Nastavenia majú vlastnú veľkosť."),
+   T("Austrália", "Austrália"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Čítanie odkazu na súbor cez HTTP Range"),
+   T("Lendo o arquivo", "Čítanie súboru"),
+   T("Ler de novo", "Načítať znova"),
++  T("Ler sinopse", "Prečítať synopsu"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "V názvoch streamov chýbajú štylizované písmená"),
+   T("Letreiros", "Nápisy"),
+   T("Letterboxd neste perfil", "Letterboxd v tomto profile"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Veľkosť"),
+   T("Tamanho da interface", "Veľkosť rozhrania"),
+   T("Tamanho da segunda legenda", "Veľkosť druhých titulkov"),
++  T("Tamanho da sinopse", "Veľkosť textu synopsy"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Veľkosť súboru, ktorý sa na tomto televízore prehrá bez zastavenia"),
+   T("Tamanho do buffer", "Veľkosť vyrovnávacej pamäte"),
+   T("Tamanho do cartaz", "Veľkosť plagátu"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index b55cfbcd..19082980 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Do sem (epizod: %d)"),
+   T("Até aqui (%d episódios)", "Do sem (epizod: %d)"),
+   T("Audiência da temporada", "Občinstvo sezone"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Poveča samo povzetke. Na strani naslova odprite Več možnosti › Preberi povzetek za celotno besedilo."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Poveča Nastavitve, kontrolnike predvajalnika, menije, plošče in obvestila — primerno za velike televizorje ali gledanje od daleč. Začetni zaslon in stran naslova ohranita svojo velikost. Velja takoj."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Poveča gumbe predvajalnika, plošče in obvestila. Nastavitve imajo svojo velikost."),
+   T("Austrália", "Avstralija"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Branje sklica na datoteko prek HTTP Range"),
+   T("Lendo o arquivo", "Branje datoteke"),
+   T("Ler de novo", "Preberi znova"),
++  T("Ler sinopse", "Preberi povzetek"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "V imenih tokov manjkajo stilizirane črke"),
+   T("Letreiros", "Napisi"),
+   T("Letterboxd neste perfil", "Letterboxd v tem profilu"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Velikost"),
+   T("Tamanho da interface", "Velikost vmesnika"),
+   T("Tamanho da segunda legenda", "Velikost drugih podnapisov"),
++  T("Tamanho da sinopse", "Velikost besedila povzetka"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Velikost datoteke, ki se na tem televizorju predvaja brez zaustavitve"),
+   T("Tamanho do buffer", "Velikost medpomnilnika"),
+   T("Tamanho do cartaz", "Velikost plakata"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index 66d544b8..ca8f037c 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Do ovde (epizoda: %d)"),
+   T("Até aqui (%d episódios)", "Do ovde (epizoda: %d)"),
+   T("Audiência da temporada", "Publika sezone"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Povećava samo sinopsise. Na stranici naslova otvorite Više opcija › Pročitaj sinopsis za ceo tekst."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Povećava Podešavanja, kontrole plejera, menije, panele i obaveštenja — dobro za velike televizore ili gledanje izdaleka. Početni ekran i stranica naslova zadržavaju svoju veličinu. Važi odmah."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Povećava kontrole plejera, panele i obaveštenja. Podešavanja imaju sopstvenu veličinu."),
+   T("Austrália", "Australija"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Čitanje reference na datoteku putem HTTP Range"),
+   T("Lendo o arquivo", "Čitanje datoteke"),
+   T("Ler de novo", "Pročitaj ponovo"),
++  T("Ler sinopse", "Pročitaj sinopsis"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stilizovana slova nedostaju u nazivima streamova"),
+   T("Letreiros", "Natpisi"),
+   T("Letterboxd neste perfil", "Letterboxd na ovom profilu"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Veličina"),
+   T("Tamanho da interface", "Veličina interfejsa"),
+   T("Tamanho da segunda legenda", "Veličina drugog titla"),
++  T("Tamanho da sinopse", "Veličina teksta sinopsisa"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Veličina datoteke koja se na ovom TV-u reprodukuje bez zastajanja"),
+   T("Tamanho do buffer", "Veličina bafera"),
+   T("Tamanho do cartaz", "Veličina postera"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index a75d2756..bb693ebe 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Hit (%d avsnitt)"),
+   T("Até aqui (%d episódios)", "Hit (%d avsnitt)"),
+   T("Audiência da temporada", "Säsongens publik"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Förstorar endast handlingstext. Öppna Fler alternativ › Läs handlingen på titelsidan för att läsa hela texten."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Förstorar Inställningar, spelarens kontroller, menyer, paneler och meddelanden — bra för stora tv-apparater eller om du sitter långt bort. Startskärmen och titelsidan behåller sin storlek. Gäller direkt."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Förstorar spelarkontroller, paneler och meddelanden. Inställningar har en egen storlek."),
+   T("Austrália", "Australien"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Läser filreferensen via HTTP Range"),
+   T("Lendo o arquivo", "Läser filen"),
+   T("Ler de novo", "Läs igen"),
++  T("Ler sinopse", "Läs handlingen"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Stiliserade bokstäver som saknades i strömnamnen"),
+   T("Letreiros", "Skyltar"),
+   T("Letterboxd neste perfil", "Letterboxd på den här profilen"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Storlek"),
+   T("Tamanho da interface", "Gränssnittets storlek"),
+   T("Tamanho da segunda legenda", "Storlek på andra undertext"),
++  T("Tamanho da sinopse", "Textstorlek för handlingen"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Filstorlek som spelas utan avbrott på den här TV:n"),
+   T("Tamanho do buffer", "Buffertstorlek"),
+   T("Tamanho do cartaz", "Affischstorlek"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index 3366a27c..6690ad71 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -838,6 +838,7 @@
+   { "Até aqui (%d episódio)", "Up to here (%d episode)" },
+   { "Até aqui (%d episódios)", "Up to here (%d episodes)" },
+   { "Audiência da temporada", "Season audience" },
++  { "Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Enlarges synopses only. On the title page, open More options › Read synopsis to read the full text." },
+   { "Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Enlarges Settings, the player controls, menus, panels and notices — good for big TVs or for watching from far away. The home screen and the title page keep their size. Takes effect right away." },
+   { "Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Enlarges player controls, panels and notices. Settings has its own size." },
+   { "Austrália", "Australia" },
+@@ -2345,6 +2346,7 @@
+   { "Lendo a referência do arquivo por HTTP Range", "Reading the file reference via HTTP Range" },
+   { "Lendo o arquivo", "Reading the file" },
+   { "Ler de novo", "Read again" },
++  { "Ler sinopse", "Read synopsis" },
+   { "Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Styled letters missing from stream names" },
+   { "Letreiros", "Signs" },
+   { "Letterboxd neste perfil", "Letterboxd on this profile" },
+@@ -4514,6 +4516,7 @@
+   { "Tamanho", "Size" },
+   { "Tamanho da interface", "Interface size" },
+   { "Tamanho da segunda legenda", "Second subtitle size" },
++  { "Tamanho da sinopse", "Synopsis text size" },
+   { "Tamanho de arquivo que toca sem parar nesta TV", "File size that plays without stopping on this TV" },
+   { "Tamanho do buffer", "Buffer size" },
+   { "Tamanho do cartaz", "Poster size" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index 1cc470ee..e93c697a 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Buraya kadar (%d bölüm)"),
+   T("Até aqui (%d episódios)", "Buraya kadar (%d bölüm)"),
+   T("Audiência da temporada", "Sezon izleyicileri"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Yalnızca özetleri büyütür. Metnin tamamını okumak için başlık sayfasında Diğer seçenekler › Özeti oku yolunu açın."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Ayarları, oynatıcı kontrollerini, menüleri, panelleri ve bildirimleri büyütür — büyük TV'ler veya uzaktan izleyenler için iyidir. Ana ekran ve başlık sayfası kendi boyutunu korur. Hemen uygulanır."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Oynatıcı kontrollerini, panelleri ve bildirimleri büyütür. Ayarların ayrı bir boyutu vardır."),
+   T("Austrália", "Avustralya"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Dosya referansı HTTP Range ile okunuyor"),
+   T("Lendo o arquivo", "Dosya okunuyor"),
+   T("Ler de novo", "Yeniden oku"),
++  T("Ler sinopse", "Özeti oku"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Yayın adlarında eksik stilli harfler"),
+   T("Letreiros", "Tabelalar"),
+   T("Letterboxd neste perfil", "Bu profilde Letterboxd"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Boyut"),
+   T("Tamanho da interface", "Arayüz boyutu"),
+   T("Tamanho da segunda legenda", "İkincil altyazı boyutu"),
++  T("Tamanho da sinopse", "Özet metni boyutu"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Bu TV'de takılmadan oynayan dosya boyutu"),
+   T("Tamanho do buffer", "Arabellek boyutu"),
+   T("Tamanho do cartaz", "Afiş boyutu"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index f5570426..b4cd1aa7 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -838,6 +838,7 @@
+   T("Até aqui (%d episódio)", "До цього місця (%d епізод)"),
+   T("Até aqui (%d episódios)", "До цього місця (епізодів: %d)"),
+   T("Audiência da temporada", "Аудиторія сезону"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Збільшує лише описи. На сторінці назви відкрийте Додаткові параметри › Читати опис, щоб прочитати весь текст."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Збільшує Налаштування, керування плеєром, меню, панелі та сповіщення — зручно для великих телевізорів або перегляду здалеку. Головний екран і сторінка назви зберігають свій розмір. Діє одразу."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Збільшує елементи керування програвачем, панелі та сповіщення. Налаштування мають власний розмір."),
+   T("Austrália", "Австралія"),
+@@ -2345,6 +2346,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Читання посилання на файл через HTTP Range"),
+   T("Lendo o arquivo", "Читаємо файл"),
+   T("Ler de novo", "Прочитати знову"),
++  T("Ler sinopse", "Читати опис"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Стилізовані літери, що зникали з назв відеоджерел"),
+   T("Letreiros", "Написи"),
+   T("Letterboxd neste perfil", "Letterboxd у цьому профілі"),
+@@ -4514,6 +4516,7 @@
+   T("Tamanho", "Розмір"),
+   T("Tamanho da interface", "Розмір інтерфейсу"),
+   T("Tamanho da segunda legenda", "Розмір других субтитрів"),
++  T("Tamanho da sinopse", "Розмір тексту опису"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Розмір файлу, який відтворюється без зупинок на цьому телевізорі"),
+   T("Tamanho do buffer", "Розмір буфера"),
+   T("Tamanho do cartaz", "Розмір постера"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 1288596b..c6d24e14 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "Đến đây (%d tập)"),
+   T("Até aqui (%d episódios)", "Đến đây (%d tập)"),
+   T("Audiência da temporada", "Khán giả của mùa"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "Chỉ phóng to phần tóm tắt. Trên trang phim, mở Tùy chọn khác › Đọc tóm tắt để đọc toàn bộ văn bản."),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "Phóng to Cài đặt, nút điều khiển trình phát, menu, bảng và thông báo — phù hợp với TV lớn hoặc khi xem từ xa. Màn hình chính và trang tiêu đề giữ nguyên kích thước. Áp dụng ngay."),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "Phóng to điều khiển trình phát, bảng và thông báo. Cài đặt có kích thước riêng."),
+   T("Austrália", "Úc"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "Đang đọc tham chiếu tệp qua HTTP Range"),
+   T("Lendo o arquivo", "Đang đọc tệp"),
+   T("Ler de novo", "Đọc lại"),
++  T("Ler sinopse", "Đọc tóm tắt"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "Chữ cái kiểu cách bị thiếu trong tên stream"),
+   T("Letreiros", "Chữ biển hiệu"),
+   T("Letterboxd neste perfil", "Letterboxd trên hồ sơ này"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "Kích thước"),
+   T("Tamanho da interface", "Kích thước giao diện"),
+   T("Tamanho da segunda legenda", "Cỡ phụ đề thứ hai"),
++  T("Tamanho da sinopse", "Cỡ chữ tóm tắt"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "Dung lượng tệp phát không ngắt quãng trên TV này"),
+   T("Tamanho do buffer", "Kích thước bộ đệm"),
+   T("Tamanho do cartaz", "Kích thước poster"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 78c412dc..f52dca2a 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "到此为止（%d 集）"),
+   T("Até aqui (%d episódios)", "到此为止（%d 集）"),
+   T("Audiência da temporada", "本季观众"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "仅放大简介。在作品页面打开更多选项 › 阅读简介，即可阅读完整内容。"),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "放大设置、播放器控件、菜单、面板和通知——适合大屏电视或远距离观看。主屏幕和作品页面保持原有大小。立即生效。"),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "放大播放器控件、面板和通知。设置具有独立的大小。"),
+   T("Austrália", "澳大利亚"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "正在通过 HTTP Range 读取文件引用"),
+   T("Lendo o arquivo", "正在读取文件"),
+   T("Ler de novo", "重新读取"),
++  T("Ler sinopse", "阅读简介"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "视频片源名称中的装饰字母丢失的问题"),
+   T("Letreiros", "标牌"),
+   T("Letterboxd neste perfil", "此个人资料的 Letterboxd"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "大小"),
+   T("Tamanho da interface", "界面大小"),
+   T("Tamanho da segunda legenda", "第二字幕大小"),
++  T("Tamanho da sinopse", "简介文字大小"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "这台电视上能不卡顿播放的文件大小"),
+   T("Tamanho do buffer", "缓冲区大小"),
+   T("Tamanho do cartaz", "海报大小"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index 36731428..1fb5bb46 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -839,6 +839,7 @@
+   T("Até aqui (%d episódio)", "到此為止（%d 集）"),
+   T("Até aqui (%d episódios)", "到此為止（%d 集）"),
+   T("Audiência da temporada", "本季觀眾"),
++  T("Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.", "僅放大簡介。在作品頁面開啟更多選項 › 閱讀簡介，即可閱讀完整內容。"),
+   T("Aumenta os Ajustes, os controles do player, os menus, os painéis e os avisos — bom para TVs grandes ou para quem assiste de longe. A tela inicial e a página do título continuam do mesmo tamanho. Vale na hora.", "放大設定、播放器控制項、選單、面板和通知——適合大螢幕電視或遠距離觀看。主畫面和作品頁面維持原本大小。立即生效。"),
+   T("Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.", "放大播放器控制、面板和通知。設定具有獨立的大小。"),
+   T("Austrália", "澳洲"),
+@@ -2346,6 +2347,7 @@
+   T("Lendo a referência do arquivo por HTTP Range", "正在透過 HTTP Range 讀取檔案參照"),
+   T("Lendo o arquivo", "正在讀取檔案"),
+   T("Ler de novo", "重新讀取"),
++  T("Ler sinopse", "閱讀簡介"),
+   T("Letras estilizadas que sumiam dos nomes das fontes de vídeo", "影片片源名稱中的裝飾字母遺失的問題"),
+   T("Letreiros", "標牌"),
+   T("Letterboxd neste perfil", "此個人檔案的 Letterboxd"),
+@@ -4515,6 +4517,7 @@
+   T("Tamanho", "大小"),
+   T("Tamanho da interface", "介面大小"),
+   T("Tamanho da segunda legenda", "第二字幕大小"),
++  T("Tamanho da sinopse", "簡介文字大小"),
+   T("Tamanho de arquivo que toca sem parar nesta TV", "這台電視上能不卡頓播放的檔案大小"),
+   T("Tamanho do buffer", "緩衝區大小"),
+   T("Tamanho do cartaz", "海報大小"),
+diff --git a/src/ilha.c b/src/ilha.c
+index 262635eb..ab2f31c9 100644
+--- a/src/ilha.c
++++ b/src/ilha.c
+@@ -25,6 +25,7 @@
+ #include "recomenda.h"
+ #include "salvosintro.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "plrui.h"
+ #include "desempenho.h"
+ #include "idioma.h"
+@@ -1225,10 +1226,16 @@ static void desenharCartao(const IlhaCartao *c, int qual, GfxRect r, float a) {
+ #define AT_W       640.0f   // painel da atividade (Home loading)
+ #define AT_H       292.0f
+ 
++static float modalSinopseExtra(void) {
++  return !modalAviso && !modalAtividade && modalC.sinopse[0]
++       ? fmaxf(0, sinopse_entrelinha(TXT_CAPTION, 30) - 30) : 0;
++}
++
+ static GfxRect modalAlvo(GfxRect p, int dir) {
+   int compacto = modalAtividade && atvTemCarga;
+   float mw = compacto ? AT_W : modalAviso && modalM.cabecalho ? MC_W : MD_W;
+   GfxRect m = { dir ? p.x + p.w - mw : p.x, p.y, mw, compacto ? AT_H : modalAviso ? modalAvisoH : MD_H };
++  if (!telefoneui_ativo()) m.h += modalSinopseExtra();
+   if (telefoneui_ativo()) {
+     m.w = telefoneui_largura(mw, NV_TELA_W, 40);
+     m.h = fminf(m.h, NV_TELA_H - 80);
+@@ -1238,6 +1245,7 @@ static GfxRect modalAlvo(GfxRect p, int dir) {
+   }
+   if (m.x + m.w > NV_TELA_W - 40.0f) m.x = NV_TELA_W - 40.0f - m.w;
+   if (m.x < 40.0f) m.x = 40.0f;
++  if (modalSinopseExtra() > 0) m.y = fmaxf(40, fminf(m.y, NV_TELA_H - 40 - m.h));
+   return m;
+ }
+ 
+@@ -1255,7 +1263,7 @@ static float arteLadoW(const char *url);
+ #ifdef NV_TOUCH_UI
+ /* Media and text share a scrollable body; the real action buttons stay
+  * inside its bounded footer. The original TV renderer remains below. */
+-static float modalTelefone(GfxRect m, const IlhaModal *c, float a, int desenha) {
++static float modalTelefone(GfxRect m, const IlhaModal *c, float a, int desenha, int ehSinopse) {
+   float w = m.w - 64, x = m.x + 32, footer = 92, bx = 0, by = 0;
+   GfxRect buttons[ILHA_MODAL_BOTOES];
+   int n = nBotoes(), salvos = modalTemSalvos();
+@@ -1268,7 +1276,7 @@ static float modalTelefone(GfxRect m, const IlhaModal *c, float a, int desenha)
+   footer += by + (salvos || c->rodape[0] ? 48 : 0);
+   float area = fmaxf(60, m.h - footer - 32), y = m.y + 32;
+   if (desenha) {
+-    float natural = modalTelefone(m, c, a, 0);
++    float natural = modalTelefone(m, c, a, 0, ehSinopse);
+     toqueModalY = toquerol_clamp(toqueModalY, 0, fmaxf(0, natural - footer - 32 - area));
+   }
+   float scroll = desenha ? toqueModalY : 0;
+@@ -1302,6 +1310,7 @@ static float modalTelefone(GfxRect m, const IlhaModal *c, float a, int desenha)
+   for (int i = 0; i < 6; i++) if (lines[i][0]) {
+     TxtEstilo e = i == 1 ? TXT_TITULO3 : i == 0 ? TXT_MINI : TXT_CAPTION;
+     float lead = i == 1 ? 52 : 30;
++    if (ehSinopse && i == 4) { e = sinopse_estilo(e); lead = sinopse_entrelinha(TXT_CAPTION, lead); }
+     y += txt_bloco_corta(e, lines[i], 243, 242, 239, x, y, w, lead, ad, 20) + 12;
+   }
+   for (int i = 0; i < 3 && c->lista[i][0]; i++) {
+@@ -1406,7 +1415,7 @@ static float arteLadoW(const char *url) {
+ static float layoutModalAviso(GfxRect m, float a, int desenha) {
+   const IlhaModal *c = &modalM;
+ #ifdef NV_TOUCH_UI
+-  if (telefoneui_ativo()) return modalTelefone(m, c, a, desenha);
++  if (telefoneui_ativo()) return modalTelefone(m, c, a, desenha, 0);
+ #endif
+   if (c->cabecalho) return layoutModalCabecalho(m, a, desenha);
+   float ax = m.x + MD_PAD, ay = m.y + MD_PAD;
+@@ -1604,7 +1613,7 @@ static void desenharModal(GfxRect m, float a) {
+     else if (modalQual == ILHA_AMIGO)
+       snprintf(mobile.estado, sizeof mobile.estado, i18n("%s · agora"), c->pessoa);
+     else snprintf(mobile.estado, sizeof mobile.estado, "%s", c->quando);
+-    modalTelefone(m, &mobile, a, 1);
++    modalTelefone(m, &mobile, a, 1, 1);
+     return;
+   }
+ #endif
+@@ -1613,7 +1622,8 @@ static void desenharModal(GfxRect m, float a) {
+   // no modal de aviso; antes ia centrado no 16:9 com sobra preta dos lados.
+   float ladoW = arteLadoW(c->arte[0] ? c->arte : c->poster);
+   float cx = ax + ladoW + 32.0f, cw = m.x + m.w - MD_PAD - cx;
+-  float y = ay, by = ay + MD_ARTE_H + 24.0f, sy, cr, cg, cb;
++  float extraSin = modalSinopseExtra();
++  float y = ay, by = ay + MD_ARTE_H + extraSin + 24.0f, sy, cr, cg, cb;
+   int i;
+   if (a < 0.01f) return;
+   ajustes_acento(&cr, &cg, &cb);
+@@ -1742,7 +1752,7 @@ static void desenharModal(GfxRect m, float a) {
+     else if (c->quando[0]) snprintf(b, sizeof b, "%s · %s", i18n("Episódio novo"), c->quando);
+     else snprintf(b, sizeof b, "%s", i18n("Episódio novo"));
+     t = txt_linha(TXT_CAPTION, b, 200, 204, 212, 255);
+-    sy = ay + MD_ARTE_H - (float)t.h;
++    sy = ay + MD_ARTE_H + extraSin - (float)t.h;
+     if (modalQual == ILHA_ESTREIA || modalQual == ILHA_AMIGO) {
+       // O ponto: acento no episodio novo, vermelho de "agora" no amigo.
+       if (modalQual == ILHA_AMIGO) gfx_cor((GfxRect){ cx, sy + (float)t.h * 0.5f - 5.0f, 10.0f, 10.0f }, 0.5f, 1.0f, 0.353f, 0.322f, a);
+@@ -1760,7 +1770,7 @@ static void desenharModal(GfxRect m, float a) {
+     int linhas = (int)((sy - 12.0f - y) / 30.0f);
+     if (linhas > 3) linhas = 3;
+     if (linhas >= 1)
+-      txt_bloco_corta(TXT_CAPTION, c->sinopse, 176, 180, 190, cx, y, cw, 30.0f, a, linhas);
++      sinopse_bloco_corta(TXT_CAPTION, c->sinopse, 176, 180, 190, cx, y, cw, 30.0f, a, linhas);
+   }
+   // Botoes. O ponteiro: o fundo inteiro fecha, o modal absorve, cada botao foca.
+   if (a > 0.3f) {
+diff --git a/src/pausao.c b/src/pausao.c
+index 87dd2eca..bf5eb8c9 100644
+--- a/src/pausao.c
++++ b/src/pausao.c
+@@ -3,6 +3,7 @@
+ #include "ajustes.h"
+ #include "gfx.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "anim.h"
+ #include "layout.h"
+ #include "telefoneui.h"
+@@ -224,7 +225,7 @@ static void pausao_desenharCorpo_(Uint32 agora, const PausaoCena *cena) {
+   }
+   if (c->meta[0]) { hMeta = 25.0f; alt += 12.0f + hMeta; }
+   if (c->sinopse[0]) {
+-    hSin = txt_bloco_corta(TXT_DET_META2, c->sinopse, 0, 0, 0, -1.0f, 0.0f,
++    hSin = sinopse_bloco_corta(TXT_DET_META2, c->sinopse, 0, 0, 0, -1.0f, 0.0f,
+                            PAUSAO_LARG, PAUSAO_LD_SIN, 0.0f, PAUSAO_SIN_LINHAS);
+     alt += 16.0f + hSin;
+   }
+@@ -246,7 +247,7 @@ static void pausao_desenharCorpo_(Uint32 agora, const PausaoCena *cena) {
+   if (hMeta > 0.0f) { y += 12.0f; metaPontos(c->meta, PAUSAO_X, y, PAUSAO_LARG, a); y += hMeta; }
+   if (hSin > 0.0f) {
+     y += 16.0f;
+-    txt_bloco_corta(TXT_DET_META2, c->sinopse, 243, 242, 239, PAUSAO_X, y, PAUSAO_LARG,
++    sinopse_bloco_corta(TXT_DET_META2, c->sinopse, 243, 242, 239, PAUSAO_X, y, PAUSAO_LARG,
+                     PAUSAO_LD_SIN, a * 0.78f, PAUSAO_SIN_LINHAS);
+     y += hSin;
+   }
+diff --git a/src/posplay.c b/src/posplay.c
+index b4c8096e..a8cf2cb7 100644
+--- a/src/posplay.c
++++ b/src/posplay.c
+@@ -9,6 +9,7 @@
+ #include "extras.h"
+ #include "gfx.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "layout.h"
+ #include "anim.h"
+@@ -742,7 +743,7 @@ static void posplay_desenharCorpo_(Uint32 agora, float baseY) {
+         { TxtLinha l = txt_linha_corta(TXT_ILHA_SUB, est, 243, 242, 239, 140, tw);
+           txt_desenhar_alpha(l, tx, ty, a); ty += (float)l.h + 10.0f; } }
+       if (px && px->sinopse[0])
+-        txt_bloco_corta(TXT_ILHA_SUB, px->sinopse, 243, 242, 239, tx, ty, tw, 28.5f, a * 0.68f, 2);
++        sinopse_bloco_corta(TXT_ILHA_SUB, px->sinopse, 243, 242, 239, tx, ty, tw, 28.5f, a * 0.68f, 2);
+       { float by = ilha.y + ilha.h - 28.0f - 60.0f;
+         if (aguardaCena && proxT) {   // continuar | proximo episodio, foco no OK
+           float b0 = plrui_botao(tx, by, "Continuar assistindo", "pl_play-f", foco == 0 ? 1.0f : 0.0f, a);
+diff --git a/src/sinopse.c b/src/sinopse.c
+new file mode 100644
+index 00000000..8c82dbe6
+--- /dev/null
++++ b/src/sinopse.c
+@@ -0,0 +1,241 @@
++#include "sinopse.h"
++#include "ajustes.h"
++#include "gfx.h"
++#include "idioma.h"
++#include "perfis.h"
++#include "plrui.h"
++#include "ponteiro.h"
++#include "rolagemtoque.h"
++#include <math.h>
++#include <stdio.h>
++#include <string.h>
++#define NV_ESCALA_TELA
++#include "escala.h"
++
++static int corpoOriginal(TxtEstilo e) {
++  switch (e) {
++    case TXT_ILHA_APOIO: return 16;
++    case TXT_AJ_ESTADO: return 18;
++    case TXT_ILHA_SUB: return 19;
++    case TXT_ILHA_TEXTO: return 20;
++    case TXT_CAPTION: case TXT_HERO_SIN: return 22;
++    case TXT_DET_META2: return 23;
++    case TXT_DET_SIN: return 26;
++    default: return 0;
++  }
++}
++static int corpo(TxtEstilo original) {
++  static const int PERCENTUAL[4] = { 100, 120, 130, 150 };
++  int n = corpoOriginal(original), tamanho = ajustes_sinopse_tamanho();
++  if (!tamanho || !n) return n;
++  return (n * PERCENTUAL[tamanho] + 50) / 100;
++}
++TxtEstilo sinopse_estilo(TxtEstilo original) {
++  if (!ajustes_sinopse_tamanho()) return original;
++  switch (corpo(original)) {
++    case 19: return TXT_SINOPSE_19;
++    case 21: return TXT_SINOPSE_21;
++    case 22: return TXT_SINOPSE_22;
++    case 23: return TXT_SINOPSE_23;
++    case 24: return TXT_SINOPSE_24;
++    case 25: return TXT_SINOPSE_25;
++    case 26: return TXT_SINOPSE_26;
++    case 27: return TXT_SINOPSE_27;
++    case 28: return TXT_SINOPSE_28;
++    case 29: return TXT_SINOPSE_29;
++    case 30: return TXT_SINOPSE_30;
++    case 31: return TXT_SINOPSE_31;
++    case 33: return TXT_SINOPSE_33;
++    case 34: return TXT_SINOPSE_34;
++    case 35: return TXT_SINOPSE_35;
++    case 39: return TXT_SINOPSE_39;
++    default: return original;
++  }
++}
++float sinopse_entrelinha(TxtEstilo original, float leading) {
++  int n = corpoOriginal(original);
++  if (!ajustes_sinopse_tamanho()) return leading;
++  return n ? leading * (float)corpo(original) / (float)n : leading;
++}
++int sinopse_linhas(TxtEstilo original, float leading, int maxLinhas) {
++  if (!ajustes_sinopse_tamanho()) return maxLinhas;
++  float novo = sinopse_entrelinha(original, leading);
++  int n = maxLinhas > 0 && novo > 0 ? (int)floorf((float)maxLinhas * leading / novo + .001f) : maxLinhas;
++  return maxLinhas > 0 && n < 1 ? 1 : n;
++}
++float sinopse_bloco_corta(TxtEstilo original, const char *texto, int r, int g, int b,
++                          float x, float y, float larg, float leading, float alpha, int maxLinhas) {
++  int linhas = sinopse_linhas(original, leading, maxLinhas);
++  if (maxLinhas > 0 && linhas <= 0) return 0;
++  return txt_bloco_corta(sinopse_estilo(original), texto, r, g, b, x, y, larg,
++                         sinopse_entrelinha(original, leading), alpha, linhas);
++}
++float sinopse_bloco(TxtEstilo original, const char *texto, int r, int g, int b,
++                    float x, float y, float larg, float leading, float alpha, int maxLinhas) {
++  if (!ajustes_sinopse_tamanho())
++    return txt_bloco(original, texto, r, g, b, x, y, larg, leading, alpha, maxLinhas);
++  return sinopse_bloco_corta(original, texto, r, g, b, x, y, larg, leading, alpha, maxLinhas);
++}
++
++// Copy metadata at open: a late catalog refresh cannot replace the text under
++// the reader or transfer it to another account/profile visit.
++static struct {
++  int aberta;
++  uint64_t sessao;
++  char titulo[160], texto[2048];
++  float scroll, max, pagina, passo;
++  float largura, escala;
++  TxtFamilia familia;
++  TxtEstilo estilo;
++  int nLinhas;
++  struct { unsigned short inicio, n; } linhas[2048];
++#ifdef NV_TOUCH_UI
++  ToqueRolagem toque;
++#endif
++} leitor;
++void sinopse_fechar(void) { memset(&leitor, 0, sizeof leitor); }
++int sinopse_aberta(void) {
++  if (leitor.aberta && !perfis_sessao_atual(leitor.sessao)) sinopse_fechar();
++  return leitor.aberta;
++}
++static void copiar(char *dst, size_t cap, const char *src) {
++  size_t n = strlen(src);
++  if (n >= cap) {
++    n = cap - 1;
++    while (n && ((unsigned char)src[n] & 0xc0) == 0x80) n--;
++  }
++  memcpy(dst, src, n); dst[n] = 0;
++}
++void sinopse_abrir(const char *titulo, const char *texto) {
++  sinopse_fechar();
++  if (!texto || !texto[0]) return;
++  copiar(leitor.titulo, sizeof leitor.titulo, titulo ? titulo : "");
++  copiar(leitor.texto, sizeof leitor.texto, texto);
++  leitor.sessao = perfis_sessao_geracao(); leitor.aberta = 1;
++}
++static void fecharPonteiro(int a, int b) { (void)a; (void)b; sinopse_fechar(); }
++#ifdef NV_TOUCH_UI
++static int rolar(const PonteiroRolagem *e) { return sinopse_aberta() && toquerol_evento(&leitor.toque, e); }
++#endif
++void sinopse_evento(const SDL_Event *e) {
++  SDL_Keycode k;
++  if (!sinopse_aberta() || e->type != SDL_KEYDOWN) return;
++  k = e->key.keysym.sym;
++  if (k == SDLK_ESCAPE || k == SDLK_AC_BACK || k == SDLK_BACKSPACE || k == SDLK_DELETE ||
++      k == SDLK_RETURN || k == SDLK_KP_ENTER || e->key.keysym.scancode == NV_SCANCODE_BACK) {
++    sinopse_fechar(); return;
++  }
++#ifdef NV_TOUCH_UI
++  if (toquerol_navegacao(e)) toquerol_limpar(&leitor.toque);
++#endif
++  if (k == SDLK_UP) leitor.scroll -= leitor.passo;
++  else if (k == SDLK_DOWN) leitor.scroll += leitor.passo;
++  else if (k == SDLK_PAGEUP) leitor.scroll -= leitor.pagina;
++  else if (k == SDLK_PAGEDOWN) leitor.scroll += leitor.pagina;
++  else if (k == SDLK_HOME) leitor.scroll = 0;
++  else if (k == SDLK_END) leitor.scroll = leitor.max;
++  if (leitor.scroll < 0) leitor.scroll = 0;
++  if (leitor.scroll > leitor.max) leitor.scroll = leitor.max;
++}
++
++// Complete UTF-8 wrapping, including a word longer than the viewport. Work in
++// codepoints rather than cutting bytes or dropping the rest of a long token.
++// The same pass measures and draws, so rotation/font changes cannot leave an
++// unreachable tail. Metadata is already bounded by the catalog's own limits.
++static size_t proximo(const char *p) {
++  size_t n = 1;
++  while (p[n] && ((unsigned char)p[n] & 0xc0) == 0x80) n++;
++  return n;
++}
++static float textoCompleto(TxtEstilo estilo, float x, float y, float w, float lead, int desenhar) {
++  char linha[2048];
++  int i;
++  if (!leitor.nLinhas || leitor.largura != w || leitor.estilo != estilo || leitor.escala != gfx_escala() || leitor.familia != txt_fonte_interface()) {
++    const char *p = leitor.texto;
++    leitor.nLinhas = 0; leitor.largura = w; leitor.estilo = estilo;
++    leitor.escala = gfx_escala(); leitor.familia = txt_fonte_interface();
++    while (*p) {
++      size_t n = 0, quebra = 0;
++      const char *inicio;
++      while (*p == ' ' || *p == '\r') p++;
++      if (!*p) break;
++      inicio = p;
++      while (*p && *p != '\n') {
++        size_t k = proximo(p);
++        if (n + k >= sizeof linha) break;
++        memcpy(linha + n, p, k); linha[n + k] = 0;
++        if (n && txt_largura(estilo, linha) > w) break;
++        if (*p == ' ') quebra = n;
++        n += k; p += k;
++      }
++      if (*p && *p != '\n' && quebra) { n = quebra; p = inicio + quebra; }
++      i = leitor.nLinhas++;
++      leitor.linhas[i].inicio = (unsigned short)(inicio - leitor.texto);
++      leitor.linhas[i].n = (unsigned short)n;
++      if (*p == '\n') p++;
++      // The minimum sheet width accommodates ordinary glyphs. In case of a
++      // malformed/wider glyph, still advance and keep drawing inside scissor.
++      if (p == inicio && *p) p += proximo(p);
++    }
++  }
++  if (desenhar) for (i = 0; i < leitor.nLinhas; i++) {
++    float top = (float)i * lead;
++    size_t n = leitor.linhas[i].n;
++    if (top + lead < leitor.scroll || top > leitor.scroll + leitor.pagina) continue;
++    memcpy(linha, leitor.texto + leitor.linhas[i].inicio, n); linha[n] = 0;
++    txt_desenhar_alpha(txt_linha(estilo, linha, 243, 242, 239, 255), x, y + top - leitor.scroll, 1);
++  }
++  return (float)leitor.nLinhas * lead;
++}
++void sinopse_desenhar(void) {
++  float w, h, pad, x, y, lead, altura;
++  GfxRect folha, texto, fechar, toqueFechar;
++  TxtLinha cab, titulo, botao;
++  TxtEstilo estilo = sinopse_estilo(TXT_DET_SIN);
++  if (!sinopse_aberta()) return;
++  ESCALA_INI();
++  w = fminf(1100, NV_TELA_W - 48); h = NV_TELA_H - 48;
++  pad = fminf(40, w * .06f); x = (NV_TELA_W - w) * .5f; y = 24;
++  folha = (GfxRect){ x, y, w, h };
++  cab = txt_linha_corta(TXT_AJ_INSP, i18n("Ler sinopse"), 243, 242, 239, 255, w - 2 * pad);
++  titulo = txt_linha_corta(TXT_ILHA_SUB, leitor.titulo, 243, 242, 239, 255, w - 2 * pad);
++  botao = txt_linha_corta(TXT_PG_ROTULO, i18n("Fechar"), 243, 242, 239, 255, w - 2 * pad - 40);
++  { float visualH = fmaxf(56, botao.h + 24), alvoH = visualH;
++#ifdef NV_TOUCH_UI
++    // The Mobile canvas normalizes the short edge to1080. Reserve48dp on a
++    // 360dp phone, independently of UI zoom, without covering scrollable text.
++    if (layout_modo_mobile()) alvoH = fmaxf(alvoH, 144.0f / gfx_escala());
++#endif
++    toqueFechar = (GfxRect){ x + pad, y + h - pad - alvoH, w - 2 * pad, alvoH };
++    fechar = toqueFechar; fechar.y += (alvoH - visualH) * .5f; fechar.h = visualH;
++  }
++  texto = (GfxRect){ x + pad, y + pad + cab.h + 8 + titulo.h + 24, w - 2 * pad - 12, 0 };
++  texto.h = toqueFechar.y - 24 - texto.y;
++  if (texto.h < 1) texto.h = 1;
++  lead = sinopse_entrelinha(TXT_DET_SIN, 40);
++  leitor.pagina = texto.h; leitor.passo = lead;
++  altura = textoCompleto(estilo, texto.x, texto.y, texto.w, lead, 0);
++  leitor.max = fmaxf(0, altura - texto.h);
++  leitor.scroll = fmaxf(0, fminf(leitor.max, leitor.scroll));
++  ponteiro_camada();
++  ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, NULL, 0, 0);
++  gfx_cor((GfxRect){ 0, 0, NV_TELA_W, NV_TELA_H }, 0, 0, 0, 0, .65f);
++  plrui_material(folha, 28, 1, 1);
++  txt_desenhar_alpha(cab, x + pad, y + pad, 1);
++  txt_desenhar_alpha(titulo, x + pad, y + pad + cab.h + 8, .65f);
++  gfx_recorte(texto.x, texto.y, texto.w, texto.h);
++  textoCompleto(estilo, texto.x, texto.y, texto.w, lead, 1);
++  gfx_sem_recorte();
++  if (leitor.max > 0) {
++    float bh = fmaxf(20, texto.h * texto.h / altura);
++    gfx_cor((GfxRect){ x + w - pad - 4, texto.y + (texto.h - bh) * leitor.scroll / leitor.max, 4, bh }, .5f, 1, 1, 1, .4f);
++  }
++  plrui_linha_foco(fechar, 20, 1);
++  txt_desenhar_alpha(botao, fechar.x + (fechar.w - botao.w) * .5f, fechar.y + (fechar.h - botao.h) * .5f, 1);
++  ponteiro_alvo(toqueFechar.x, toqueFechar.y, toqueFechar.w, toqueFechar.h, NULL, fecharPonteiro, 0, 0);
++#ifdef NV_TOUCH_UI
++  toquerol_vincular(&leitor.toque, texto, gfx_escala(), 0, leitor.max, 1, &leitor.scroll);
++  ponteiro_rolagem(rolar);
++#endif
++  ESCALA_FIM();
++}
+diff --git a/src/sinopse.h b/src/sinopse.h
+new file mode 100644
+index 00000000..18c9b77e
+--- /dev/null
++++ b/src/sinopse.h
+@@ -0,0 +1,22 @@
++// Synopsis-only typography and the full-text reader (#477).
++#ifndef NV_SINOPSE_H
++#define NV_SINOPSE_H
++#include "text.h"
++#include <SDL2/SDL.h>
++
++TxtEstilo sinopse_estilo(TxtEstilo original);
++float sinopse_entrelinha(TxtEstilo original, float leading);
++// Compact previews use fewer lines at larger sizes, retaining at least one.
++// Containers reserve the chosen leading; the full reader has no line cap.
++int sinopse_linhas(TxtEstilo original, float leading, int maxLinhas);
++float sinopse_bloco(TxtEstilo original, const char *texto, int r, int g, int b,
++                    float x, float y, float larg, float leading, float alpha, int maxLinhas);
++float sinopse_bloco_corta(TxtEstilo original, const char *texto, int r, int g, int b,
++                          float x, float y, float larg, float leading, float alpha, int maxLinhas);
++void sinopse_abrir(const char *titulo, const char *texto);
++void sinopse_fechar(void);
++int sinopse_aberta(void);
++void sinopse_evento(const SDL_Event *e);
++// Draw last: owns its pointer layer, clipped text area and fixed Close button.
++void sinopse_desenhar(void);
++#endif
+diff --git a/src/text.c b/src/text.c
+index 7325d3b3..2702da4c 100644
+--- a/src/text.c
++++ b/src/text.c
+@@ -429,6 +429,10 @@ static const struct { int corpo, peso; } ESTILOS[TXT_NFONTES] = {
+   { 28, PESO_BOLD    },   // TXT_V3_INSP_B
+   { NV_FT_DET_SIN, PESO_BOLD   },   // TXT_DET_META_FORTE
+   { NV_FT_DET_SIN, PESO_MEDIUM },   // TXT_DET_META_GEN
++  { 19, PESO_REGULAR }, { 21, PESO_REGULAR }, { 22, PESO_REGULAR }, { 23, PESO_REGULAR },
++  { 24, PESO_REGULAR }, { 25, PESO_REGULAR }, { 26, PESO_REGULAR }, { 27, PESO_REGULAR },
++  { 28, PESO_REGULAR }, { 29, PESO_REGULAR }, { 30, PESO_REGULAR }, { 31, PESO_REGULAR },
++  { 33, PESO_REGULAR }, { 34, PESO_REGULAR }, { 35, PESO_REGULAR }, { 39, PESO_REGULAR },
+ };
+ 
+ // RESERVA PARA O QUE A INTER NAO TEM.
+diff --git a/src/text.h b/src/text.h
+index 3c512ca0..cfd6284a 100644
+--- a/src/text.h
++++ b/src/text.h
+@@ -187,6 +187,11 @@ typedef enum {
+   // Medium nas outras). Mesmo corpo da sinopse (NV_FT_DET_SIN).
+   TXT_DET_META_FORTE,   // ano, duracao       26 / 700
+   TXT_DET_META_GEN,     // generos            26 / 600
++  // #477: corpos exclusivos das sinopses em 120/130/150%; 100% usa o original.
++  TXT_SINOPSE_19, TXT_SINOPSE_21, TXT_SINOPSE_22, TXT_SINOPSE_23,
++  TXT_SINOPSE_24, TXT_SINOPSE_25, TXT_SINOPSE_26, TXT_SINOPSE_27,
++  TXT_SINOPSE_28, TXT_SINOPSE_29, TXT_SINOPSE_30, TXT_SINOPSE_31,
++  TXT_SINOPSE_33, TXT_SINOPSE_34, TXT_SINOPSE_35, TXT_SINOPSE_39,
+   TXT_NFONTES
+ } TxtEstilo;
+ 
+diff --git a/src/vertudo.c b/src/vertudo.c
+index c53b5482..b33e79f5 100644
+--- a/src/vertudo.c
++++ b/src/vertudo.c
+@@ -7,6 +7,7 @@
+ #include "catalogo.h"
+ #include "gfx.h"
+ #include "text.h"
++#include "sinopse.h"
+ #include "tex_cache.h"
+ #include "perfiltv.h"
+ #include "layout.h"
+@@ -1100,13 +1101,16 @@ static void painel(float a) {
+   CatItem it;
+   float y = VT_PAN_Y;
+   if (!viewItem(foco, &it)) return;
++  float artH = VT_PAN_ART_H;
++  if (it.sinopse[0]) artH -= fmaxf(0, sinopse_entrelinha(TXT_DET_META2, 34) - 34);
++  float artW = artH * (VT_PAN_ART_W / VT_PAN_ART_H);
+ 
+   // O contexto lateral usa o cartaz, nunca repete a cena da timeline.
+   // Mantém a geometria 2:3 mesmo sem arte para não deslocar os metadados.
+-  { GfxRect r = { VT_PAN_X, y, VT_PAN_ART_W, VT_PAN_ART_H };
++  { GfxRect r = { VT_PAN_X, y, artW, artH };
+     const char *arte = it.poster[0] ? it.poster : it.backdrop;
+-    float raio = 12.0f / VT_PAN_ART_W;
+-    GLuint t = arte[0] ? tex_obter_larg(arte, VT_PAN_ART_W) : 0;
++    float raio = 12.0f / artW;
++    GLuint t = arte[0] ? tex_obter_larg(arte, artW) : 0;
+     gfx_cor(r, raio, 1, 1, 1, 0.05f * a);
+     if (t) {
+       gfx_tex_aspect_atual = tex_aspecto(arte);
+@@ -1116,7 +1120,7 @@ static void painel(float a) {
+       TxtLinha falta = txt_linha_corta(TXT_HERO_META, "Sem pôster", 185, 191, 204, 255, r.w-24);
+       txt_desenhar_alpha(falta, r.x+(r.w-falta.w)*.5f, r.y+(r.h-falta.h)*.5f, a);
+     } }
+-  y += VT_PAN_ART_H + 18.0f;
++  y += artH + 18.0f;
+   float badgeW=badges_desenhar(badges_provedor(it.provNome),VT_PAN_X,y,VT_PAN_W,28,a);
+   if(badgeW>0)y+=40;
+ 
+@@ -1168,7 +1172,7 @@ static void painel(float a) {
+     int linhas = (int)((NV_TELA_H - 48.0f - y) / 34.0f);
+     if (linhas > 8) linhas = 8;
+     if (linhas > 0)
+-      txt_bloco(TXT_DET_META2, it.sinopse, 236, 236, 236,
++      sinopse_bloco(TXT_DET_META2, it.sinopse, 236, 236, 236,
+                 VT_PAN_X, y, VT_PAN_W, 34.0f, a * 0.86f, linhas);
+   }
+ }
+@@ -1401,7 +1405,7 @@ static void timelineCard(int i,float cy,float a,float x0) {
+                             vtTelefone()?artRect.x+artRect.w*.5f-32.0f:x+158,vtTelefone()?artRect.y+artRect.h*.5f-10.0f:y+104,a*.9f); }
+   TxtLinha name=txt_linha_corta(TXT_CW_TITULO,it.titulo,242,243,247,255,tw);txt_desenhar_alpha(name,tx,cy+22,a);
+   TxtLinha genre=txt_linha_corta(TXT_HERO_META,it.genero,187,194,207,255,tw);txt_desenhar_alpha(genre,tx,cy+64,a);
+-  txt_bloco(TXT_DET_META2,it.sinopse,209,214,225,tx,cy+106,vtTelefone()?tw:545.0f,30,a,3);
++  sinopse_bloco(TXT_DET_META2, it.sinopse,209,214,225,tx,cy+106,vtTelefone()?tw:545.0f,30,a,3);
+ }
+ 
+ // --- PECAS COMUNS DAS EXIBICOES ----------------------------------------------

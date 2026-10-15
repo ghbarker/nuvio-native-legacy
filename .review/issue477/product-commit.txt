@@ -1,0 +1,6 @@
+tree 3a784281d39e007d05c1db606503da97c6e78578
+parent e3e21a590120ca283bcf7a96df1813ff5041eb66
+author Grant Barker <ghbarker@users.noreply.github.com> 1792068841 +0000
+committer Grant Barker <ghbarker@users.noreply.github.com> 1792069626 +0000
+
+Add adjustable synopsis text size and full reader
