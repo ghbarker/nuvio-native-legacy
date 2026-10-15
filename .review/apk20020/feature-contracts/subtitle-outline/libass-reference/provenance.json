@@ -1,0 +1,12 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/libass/libass/0.17.3/libass/ass.h",
+    "sha256": "c322bb1f03dfe3a2bdbcd61002ff92684cd6f6ef593bc4a9dbca13f79f9c6ba2",
+    "path": "independent-review/sdk/ass/ass.h"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/libass/libass/0.17.3/libass/ass_types.h",
+    "sha256": "b2f06eaaba5d80b3a23fb08726f1152f12a0f583346ad0086a80ebbdb4c48cf8",
+    "path": "independent-review/sdk/ass/ass_types.h"
+  }
+]

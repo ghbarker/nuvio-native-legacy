@@ -1,0 +1,39 @@
+{
+  "root_reviewed": true,
+  "approved_action": "Execute exact frozen APK20020 product and private source validation in the fork, using reviewed seven mandatory producer jobs then all-gates. No product PR or release action.",
+  "reviewed_unapproved_plan_sha256": "3bd546e62da904a1098a4a832d8648f9bf3e14ae4512070fe965ba663d2c6ab9",
+  "reviewed_unapproved_payload_sha256": "78aba355ae67adfae9886e6db65aac2e8e3cb42ad0b385c8cb58aed1f126c40e",
+  "review_manifest_sha256": "7a85193cbbd5715494c1cec62a03b2a82b3fa5a5e95d24581b4cfb38eab40355",
+  "root_assembly_check_sha256": "4e6ab3a3880e19521927dc9a4ef2cd487b4ccaaf3b42bb870aa8ff5cf51e9785",
+  "source_approval_sha256": "04953e018b1890a2d6f60e4e9f55f5baf0e143ba6527753f7ea2cf34db90925b",
+  "sources": {
+    "product": {
+      "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+      "parent": "95fbfa18c419cd9fc2926faf20c54bf74d58213e",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "fa43fcc2516e88c266c784e0bc24d3386a1a2e550af0331be04522e5ef959494",
+      "delta_patch_sha256": "1fa883f131c07443c5a9586ee508fdaa02baa530010c4c52e250abf959a1e08f"
+    },
+    "test": {
+      "commit": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+      "tree": "da60cd9eb1f7040fed54ac6888fb11c56c195b29",
+      "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "03365a761a52ef9a9fcc7162bf28296461a7d8e836b88c3cc8e2dda56e45ac6f",
+      "delta_patch_sha256": "5ca4ff44b34f7f85490e5730185635f205ef8a253fca6fb69e3676b08041dc0a"
+    }
+  },
+  "approved_finalization": "Set frozen/root_reviewed/ci_execution_permitted true; recipe_preparation_only false; root_approval_scope exact validation only; clear pending. Regenerate only plan/workflow/metadata/payload hashes. No executable, source, fixture, assertion or producer changes.",
+  "mandatory_gates": [
+    "native4fullapps",
+    "original-fontepref normal+ASan",
+    "original-fontepref_file normal+ASan",
+    "original-player_retido normal+ASan",
+    "Android product+private bothARM/signature/DEX/JNI/16KB",
+    "fresh47JVM/Media3",
+    "20freshfeaturecontracts",
+    "all-gates aggregate"
+  ],
+  "public_pr_or_release_authorized_by_this_receipt": false
+}

@@ -1,0 +1,19 @@
+{
+  "outcome": "passed",
+  "package": "build-stage/feature-contracts/collection-state",
+  "entrypoint": "run.py",
+  "cli": "--source SOURCE --output OUTPUT --cc CC [--sanitize] [--private]",
+  "files": {
+    "fixture-origin.json": "1ed56837864047206e36b334f67b4e497abbcc2af4a4c04d7c2bc6af38dff8ed",
+    "fixtures/collection-views.c": "bcd54856987f1b0ff842270d1d191d36e27dd026345a0589cf1f8de5b7fedd19",
+    "fixtures/original-adapter.diff": "2fb5f72cb885bcfaf038ef829189820386bb0c2901679ce1dcb4679329b150ac",
+    "fixtures/original-colecao-adapted.inc": "2b69df29d3c4d59ac165575c5ea4000bead31c47fea03bba33c548eb79dc4302",
+    "fixtures/original-collection.c": "f446b78fbb92195cf013ec681a3c66aea7eda3b3873849ec7187149b66c9f798",
+    "fixtures/profile-sync.c": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
+    "fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "run.py": "7a5701c2e5c9fef9477083a56eb4db22b6a374f8805518ca4195e5bc78fc90aa",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  },
+  "scope": "Portable actual collection/profile handlers with documented typed offline boundaries and deliberately adapted original fixture; no SDK, network, app build, or device execution claim."
+}

@@ -1,0 +1,212 @@
+{
+  "outcome": "passed",
+  "source": "/workspace/review/integration-apk20020-20261015/product",
+  "execution_source_path": "/workspace/review/integration-apk20020-20261015/product",
+  "declared_origin_path": "/workspace/review/integration-apk20020-20261015/product",
+  "layer": "product",
+  "source_commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+  "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+  "composition_manifest_sha256": "7c6f4624262defd4a5b6c14b4355bc1df452f244402410a3a202fb064938bc5e",
+  "declared_layer_binding": {
+    "layer": "product",
+    "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+    "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+    "parent": "95fbfa18c419cd9fc2926faf20c54bf74d58213e",
+    "source_clean": true,
+    "private_logs": false,
+    "path": "/workspace/review/integration-apk20020-20261015/product",
+    "manifest": "product-source-manifest.json",
+    "manifest_sha256": "fa43fcc2516e88c266c784e0bc24d3386a1a2e550af0331be04522e5ef959494",
+    "delta_patch_sha256": "1fa883f131c07443c5a9586ee508fdaa02baa530010c4c52e250abf959a1e08f"
+  },
+  "fixture_origin_sha256": "01b1a88f44e3b0eac33a24043b79f8537a95a554ff443f5bad62fdf670bc71d3",
+  "private_macro_delta": [],
+  "records": [
+    {
+      "name": "player-tv-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/build-player.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/player-tv-normal",
+        "--episode-buttons",
+        "--render"
+      ],
+      "returncode": 0,
+      "log_sha256": "ef3c3e9391a677bcc8d808234df600f767afc6a69ccc63dea652e91cb483cdcb"
+    },
+    {
+      "name": "player-tv-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/build-player.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/player-tv-asan",
+        "--episode-buttons",
+        "--render",
+        "--san"
+      ],
+      "returncode": 0,
+      "log_sha256": "ef3c3e9391a677bcc8d808234df600f767afc6a69ccc63dea652e91cb483cdcb"
+    },
+    {
+      "name": "player-touch-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/build-player.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/player-touch-normal",
+        "--episode-buttons",
+        "--render",
+        "--touch"
+      ],
+      "returncode": 0,
+      "log_sha256": "c0d8457f5390a479bc37646bb71e5f0925b3dc08523645e9849a560b9b74623f"
+    },
+    {
+      "name": "player-touch-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/build-player.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/player-touch-asan",
+        "--episode-buttons",
+        "--render",
+        "--touch",
+        "--san"
+      ],
+      "returncode": 0,
+      "log_sha256": "c0d8457f5390a479bc37646bb71e5f0925b3dc08523645e9849a560b9b74623f"
+    },
+    {
+      "name": "player-android-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/build-player.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/player-android-normal",
+        "--episode-buttons",
+        "--render",
+        "--touch",
+        "--android",
+        "--real-pointer"
+      ],
+      "returncode": 0,
+      "log_sha256": "c0d8457f5390a479bc37646bb71e5f0925b3dc08523645e9849a560b9b74623f"
+    },
+    {
+      "name": "player-android-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/build-player.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/player-android-asan",
+        "--episode-buttons",
+        "--render",
+        "--touch",
+        "--android",
+        "--real-pointer",
+        "--san"
+      ],
+      "returncode": 0,
+      "log_sha256": "c0d8457f5390a479bc37646bb71e5f0925b3dc08523645e9849a560b9b74623f"
+    },
+    {
+      "name": "app-tv-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/run-app-route.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/app-tv-normal"
+      ],
+      "returncode": 0,
+      "log_sha256": "29dfa166f1cdc40707a8cacf6df733c7d620d6b1afdee1a78234863bc6d9153b"
+    },
+    {
+      "name": "app-tv-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/run-app-route.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/app-tv-asan",
+        "--san"
+      ],
+      "returncode": 0,
+      "log_sha256": "29dfa166f1cdc40707a8cacf6df733c7d620d6b1afdee1a78234863bc6d9153b"
+    },
+    {
+      "name": "app-android-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/run-app-route.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/app-android-normal",
+        "--android"
+      ],
+      "returncode": 0,
+      "log_sha256": "29dfa166f1cdc40707a8cacf6df733c7d620d6b1afdee1a78234863bc6d9153b"
+    },
+    {
+      "name": "app-android-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/run-app-route.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/app-android-asan",
+        "--android",
+        "--san"
+      ],
+      "returncode": 0,
+      "log_sha256": "29dfa166f1cdc40707a8cacf6df733c7d620d6b1afdee1a78234863bc6d9153b"
+    },
+    {
+      "name": "posplay",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/run-posplay.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/posplay"
+      ],
+      "returncode": 0,
+      "log_sha256": "9388fe4645e8ae1b040ce8dc21af6090bf316ef3f1110155a2a8af3f93c8a227"
+    },
+    {
+      "name": "selectors",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20019-20261015/preflight/player496/run-selectors.py",
+        "--source",
+        "/workspace/review/integration-apk20020-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20020-20261015/review/player-preflight-product/selectors",
+        "--previous"
+      ],
+      "returncode": 0,
+      "log_sha256": "e6484bfbb76ae8a3a0dfc3e8a9ec4df038602d7054588f3a71330cea3282fbb8"
+    }
+  ],
+  "complete_source_clean_after": true,
+  "scope": "Cheap host actual player/event/renderer/pointer/profile/episode and exact app-helper routing/cancellation preflight with typed host service/GPU/text boundaries. Other changed-source/backend gates remain separately required. No real SDK app/decoder/CI/publication claim."
+}

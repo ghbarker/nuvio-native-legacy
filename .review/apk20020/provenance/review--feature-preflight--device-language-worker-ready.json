@@ -1,0 +1,224 @@
+{
+  "passed": true,
+  "sources": {
+    "product": {
+      "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+      "clean": true
+    },
+    "test": {
+      "commit": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+      "tree": "da60cd9eb1f7040fed54ac6888fb11c56c195b29",
+      "clean": true
+    }
+  },
+  "packages": {
+    "subtitle-outline": {
+      "runner_sha256": "5ede124db1eabd81f2c4a9d9964e83c28d345514189f6442616a1bc404718e21",
+      "asset_manifest_sha256": "243153e770fe35125c0b52088c8ad82c239672f94f5cef81556cc78196c49c15",
+      "files_sha256": {
+        "README.md": "1ce4a5188f15e8cb2d68299476e9545051f2da020ed59e1e13c91f8196c44aec",
+        "fixture-provenance.json": "4cc4f0d934440d43ca84eae4cbb4f17227925a8d87f4c9b837732a5814aa72bc",
+        "sdk-extra.h": "7fd0658da497e3a0ccc73ec9aedac6aff3fe95b1be81fd8f827a140af7299a7c",
+        "run.py": "5ede124db1eabd81f2c4a9d9964e83c28d345514189f6442616a1bc404718e21",
+        "clock.c": "b762fd031fc0e399dd91d79a0a418ebcc35c3550991227d1213c137cdb057ba0",
+        "asset-manifest.json": "243153e770fe35125c0b52088c8ad82c239672f94f5cef81556cc78196c49c15",
+        "fixtures/grid_font_bounds.c": "b7c0f783be970199887cfe568c477dd3b898c57de40c5d76c5a9f396bbb5acfa",
+        "fixtures/ass_outline.c": "8505c92bdfe6a35b10120e72dd9d80e11368a427c4c6eac76701108927e20d33",
+        "fixtures/palette_bounds.c": "46a8fa23bb159f9e801e136b7da1d6e1bda66a3c23decfb235d3018647da8f39",
+        "fixtures/secondary_outline.c": "74284d02826923ee71c454eb9746fc4d366f716f9a58e99655236b5bcf440c13",
+        "fixtures/player_outline.c": "314b54f6831e4685962efeb372c9e0500de1a2ab903666069095a88e66f1802a",
+        "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+        "libass-reference/provenance.json": "78dbb15cc424da976ad0bfa2a89d09e3ce86b13f71ace11e38d26365760f54fc",
+        "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+        "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+        "libass-reference/ass/ass.h": "c322bb1f03dfe3a2bdbcd61002ff92684cd6f6ef593bc4a9dbca13f79f9c6ba2",
+        "libass-reference/ass/ass_types.h": "b2f06eaaba5d80b3a23fb08726f1152f12a0f583346ad0086a80ebbdb4c48cf8"
+      }
+    },
+    "collection-settings": {
+      "runner_sha256": "dd49d68fb04c1b313d027552ebef4c7c3eb08496067baa9303faf1e089ea4ef5",
+      "asset_manifest_sha256": "9d4f0c1290bb9b533a4d7b96dcbfb53c610380616d8c5482c7bfadb2886cd912",
+      "files_sha256": {
+        "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+        "README.md": "7d0c74e796b1a2569c3a62f17562f104dcb1af85218f08798645ad57f423b41c",
+        "fixture-provenance.json": "1eefebfe4869e9293bbf6fc653f8d7d13e4c62d29e3e39078f0a79509c0c20c8",
+        "run.py": "dd49d68fb04c1b313d027552ebef4c7c3eb08496067baa9303faf1e089ea4ef5",
+        "asset-manifest.json": "9d4f0c1290bb9b533a4d7b96dcbfb53c610380616d8c5482c7bfadb2886cd912",
+        "tv-assertion-adaptation.json": "bcb6693edaab45cab2bfdb9977aced3f7ce371bfdff2b8d65f25988884180024",
+        "fixtures/collection-choice-composed.c": "0c90e07f3938c0d82aabf1b214c694164c8284f7f43388b1341a642c68dca886",
+        "fixtures/collection-choice.c": "73069f4fb264ad1964430c95f6f446daa9c4e16cdefb54d02133fdd7d47f863c",
+        "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+        "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+        "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+      }
+    }
+  },
+  "receipts": [
+    {
+      "recipe": "subtitle-outline",
+      "layer": "product",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-product-mobile-normal/receipt.json",
+      "sha256": "f86b0fa0be6f9340ba3c054e99b56a07fd82b5e5cd2875656d1aeca94eb9cece",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "product",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-product-tv-normal/receipt.json",
+      "sha256": "55e5149e0ad36038fdc6d8365a7630c936faa1991c2e5fa5f50609a7e0338723",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-style",
+      "layer": "product",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/style-product-normal/receipt.json",
+      "sha256": "8acaa74c00eb114bde3f38e8e6b38400245a8a490db3be477eed51eef4d1835b",
+      "passed": true
+    },
+    {
+      "recipe": "collection-settings",
+      "layer": "product",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/collection-product-all-normal-tvremote/receipt.json",
+      "sha256": "8759ce4d01d28bb4e4d5e0760d7233f6203d258c8f9a76e873ad8614ad17a4c7",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "product",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-product-mobile-asan/receipt.json",
+      "sha256": "f5b408333ca8cb3e72d09ae92d7dfcf49ab135a0533c5e6d612d7007055147ce",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "product",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-product-tv-asan/receipt.json",
+      "sha256": "e301ce5c1cb074161fc6211d26525593689fd482e74dba00528c03a11f7acdae",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-style",
+      "layer": "product",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/style-product-asan/receipt.json",
+      "sha256": "cf0e3b5a810d4f47863f7c73f7b1823d7c31adaed21500f1cdab3cc951d7b074",
+      "passed": true
+    },
+    {
+      "recipe": "collection-settings",
+      "layer": "product",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/collection-product-all-asan-tvremote/receipt.json",
+      "sha256": "88278998aba4f4687d0dc0c78165d65f480ae5ee985378e6701bab2ada1f7b1a",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "test",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-test-mobile-normal/receipt.json",
+      "sha256": "d946037c3eac019378465e9b271b6299d8e6b2f35f9b32312570919bb6ea9db8",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "test",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-test-tv-normal/receipt.json",
+      "sha256": "ba8daa1099349dc321b330920493f00c0422bea5bc39dac9ac3ecd1770df8645",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-style",
+      "layer": "test",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/style-test-normal/receipt.json",
+      "sha256": "d5c74d5295149f4c12f96eec8d9d8655cbf268f4bb7c2431114a54388b668a3b",
+      "passed": true
+    },
+    {
+      "recipe": "collection-settings",
+      "layer": "test",
+      "mode": "normal",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/collection-test-all-normal-tvremote/receipt.json",
+      "sha256": "f8ffc93aeced89f29731a2d3e97cfeb1e01170dfa1531f2de6b244f3446d7ab9",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "test",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-test-mobile-asan/receipt.json",
+      "sha256": "e0059795f4b965aa059d129c41f7675fb1018ef1c5a51a3d8a644154bf5d2ec7",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-outline",
+      "layer": "test",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/outline-test-tv-asan/receipt.json",
+      "sha256": "9cd1a79b408b983ca027634e0c3250c13ee87d310caaf46bf1d95733f68ca337",
+      "passed": true
+    },
+    {
+      "recipe": "subtitle-style",
+      "layer": "test",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/style-test-asan/receipt.json",
+      "sha256": "0b1aeab4f8615aa1c6a3aaabe4169a61eb70502d77668f2d6682154f4bb8d706",
+      "passed": true,
+      "binding_scope": "Existing same-source/fixture/compiler execution from producer1d7d80b6; final9fb6b0ab only changes sanitizer-list/logmap metadata. Compiled dependencies and assertion C verified; not labelled fresh whole-final-producer execution."
+    },
+    {
+      "recipe": "collection-settings",
+      "layer": "test",
+      "mode": "asan",
+      "receipt": "/workspace/review/integration-apk20020-20261015/review/feature-preflight/collection-test-all-asan-tvremote/receipt.json",
+      "sha256": "c7e6ee28c5fd52a43edc117ab665fc38c49ca1e553ed9dbf13f22e459df92dda",
+      "passed": true
+    }
+  ],
+  "counts": {
+    "subtitle_runtime_assertions": 56896,
+    "actual_libass_software_frames": 616,
+    "geometry_configurations": 96,
+    "geometry_assertions": 183840,
+    "style_assertions": 2192,
+    "collection_configurations": 144,
+    "collection_assertions": 33840
+  },
+  "scope": "Existing475actualcaption,prefs,libass,Style andgeometry;362global8choiceSettingsUI onexactapproved20020source. No newframework orproductedits.",
+  "producer_adapters": [
+    "Portablecompiler/path/linkflags andsource/dependency/logreceipts.",
+    "Actualhostlibass0.17.3runtimeAPI verifiedagainst matchingpinnedreferenceSDK forlocalpreflight; CIdefaultusesinstalledpkg-config developmentpair.",
+    "TypedfixedSDLclockforprivatecaptiondiagnostics.",
+    "Reused acceptedofflineaccount/emptyprovidercompanions for493credentialreload; realSettingsstorage stayslive.",
+    "Root-approvedTVinputadapter retainsallMobilepointerassertionbodies verbatim, usesactualremoteReturn/Back andassertsbothMobilefootertargetsabsent; all12TVconfigs retained.",
+    "Singlecommoncollectioncompile runsall36originalruntimeconfigs/layer/mode."
+  ],
+  "tv_assertion_adaptation": {
+    "path": "/workspace/review/integration-apk20020-20261015/build-stage/feature-contracts/collection-settings/tv-assertion-adaptation.json",
+    "sha256": "bcb6693edaab45cab2bfdb9977aced3f7ce371bfdff2b8d65f25988884180024"
+  },
+  "expected_negatives_not_passes": [
+    {
+      "paths": "collection-{product,test}-mobile-normal",
+      "reason": "Missing493offlineaccount/providercompanion, fixedwithoutproductorUIassertionchange."
+    },
+    {
+      "paths": "collection-{product,test}-all-normal",
+      "reason": "OldTVtouchfooterexpectation conflictedwithaccepted431TVpreservation. RootapprovedremoteinputadapterretainsallTVcoverage."
+    }
+  ],
+  "ci_launched": false,
+  "full_apps_built": false,
+  "product_edits": false,
+  "limits": "Typedfinite text/GFX/platform/account boundaries; actualC/layout/pointer/disk andhostlibasssoftwareframes. No physicaldevice/GPU/nativebackendclaim; sharedhostlibassuninstrumented."
+}

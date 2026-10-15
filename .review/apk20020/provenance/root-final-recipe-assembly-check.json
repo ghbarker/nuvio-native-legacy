@@ -1,0 +1,28 @@
+{
+  "payload_paths_verified": 157,
+  "payload_sha256": "78aba355ae67adfae9886e6db65aac2e8e3cb42ad0b385c8cb58aed1f126c40e",
+  "unapproved_plan_sha256": "3bd546e62da904a1098a4a832d8648f9bf3e14ae4512070fe965ba663d2c6ab9",
+  "recipe_pins_verified": 12,
+  "local_receipt_pins_verified": 10,
+  "bundle_bytes": 1195664,
+  "seven_required_producers": [
+    "android",
+    "feature-contracts",
+    "jvm",
+    "native",
+    "original-fontepref",
+    "original-fontepref_file",
+    "original-player_retido"
+  ],
+  "changed_since_peer_review": [
+    "apk20020-review.yml",
+    "package_payload.py"
+  ],
+  "generated_provenance_documents": [
+    "provenance/manual-steps-en.md",
+    "provenance/merge-resolutions.json",
+    "provenance/not-included.json",
+    "provenance/release-notes-en.md"
+  ],
+  "flags_deliberately_unapproved": true
+}

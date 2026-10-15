@@ -1,0 +1,89 @@
+{
+  "root_reviewed": true,
+  "source_frozen": true,
+  "scope": "Approve exact source composition for final recipe/source bundling. CI launch requires separate recipe review and approval after all focused fixture preflight. No product PR or release action.",
+  "composition_manifest_sha256": "7c6f4624262defd4a5b6c14b4355bc1df452f244402410a3a202fb064938bc5e",
+  "sources": {
+    "product": {
+      "layer": "product",
+      "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+      "parent": "95fbfa18c419cd9fc2926faf20c54bf74d58213e",
+      "source_clean": true,
+      "private_logs": false,
+      "path": "/workspace/review/integration-apk20020-20261015/product",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "fa43fcc2516e88c266c784e0bc24d3386a1a2e550af0331be04522e5ef959494",
+      "delta_patch_sha256": "1fa883f131c07443c5a9586ee508fdaa02baa530010c4c52e250abf959a1e08f"
+    },
+    "test": {
+      "layer": "test",
+      "commit": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+      "tree": "da60cd9eb1f7040fed54ac6888fb11c56c195b29",
+      "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "source_clean": true,
+      "private_logs": true,
+      "path": "/workspace/review/integration-apk20020-20261015/test",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "03365a761a52ef9a9fcc7162bf28296461a7d8e836b88c3cc8e2dda56e45ac6f",
+      "delta_patch_sha256": "5ca4ff44b34f7f85490e5730185635f205ef8a253fca6fb69e3676b08041dc0a"
+    }
+  },
+  "independent_source_checks_sha256": "653dc07cc9e7a0a5f14777d07e41c872c0bd41d9b134931f19ccffcccc43d7ef",
+  "reviewed_semantic_conflicts_sha256": "5d51662a3b1f66d2a1a356ff685e86f556cd88d0bcef3193b1aa6f5f6c6eeda7",
+  "reviewed_receipts": [
+    {
+      "path": "review/root-source-independence.json",
+      "sha256": "653dc07cc9e7a0a5f14777d07e41c872c0bd41d9b134931f19ccffcccc43d7ef"
+    },
+    {
+      "path": "review/schema/schema-verified.json",
+      "sha256": "6294ff0c1afbbac07e1e6f81349b1d9daab43ff73e76c8051136ee683dcebfd7"
+    },
+    {
+      "path": "review/player-preflight-product/preflight-result.json",
+      "sha256": "a7cd659118e7f46ac08dcbc776266de6f6a898b63b281d205e5ff8354b825c38"
+    },
+    {
+      "path": "review/player-preflight-test/preflight-result.json",
+      "sha256": "a022d9b0c77865370985b1c1def3bb2d940810df03e727dd776434a53bd965ba"
+    },
+    {
+      "path": "review/feature-preflight/collection-state-product-asan2/receipt.json",
+      "sha256": "a1871d9129e41efe7c2118042486e03990069100cd17966c26afee142b6ab266"
+    },
+    {
+      "path": "review/feature-preflight/collection-state-test-asan2/receipt.json",
+      "sha256": "d4742565a930fe5dda50a0650be7ca49e6f431b728624e38ccf7ae09312b3d1f"
+    }
+  ],
+  "preservation": {
+    "published493_sync_c_byte_identical_to20019": true,
+    "all496_460_player_reload_apis_retained": true,
+    "all477_synopsis_modules_unchanged": true,
+    "global362_appended_after_synopsis_and_android_download": true,
+    "private_overlay_same11_files": true,
+    "only_private_version_code_name_changed": true
+  },
+  "tests_workflows_unchanged": true,
+  "all8_views_preserved": [
+    "Automatic",
+    "Grid",
+    "Timeline",
+    "Ranking",
+    "Saga",
+    "Decades",
+    "Mural",
+    "Showcase"
+  ],
+  "private_identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20020,
+    "version_name": "2.0.20-test-logs10",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+    "verification_scope": "Expected compatible identity only; actual APK/signature checks require a fresh build."
+  },
+  "ci_launch_authorized": false,
+  "public_pr_or_release_authorized_by_this_receipt": false
+}

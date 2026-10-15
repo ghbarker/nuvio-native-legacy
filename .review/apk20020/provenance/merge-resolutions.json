@@ -1,0 +1,95 @@
+{
+  "composition_manifest_sha256": "7c6f4624262defd4a5b6c14b4355bc1df452f244402410a3a202fb064938bc5e",
+  "root_source_review_sha256": "04953e018b1890a2d6f60e4e9f55f5baf0e143ba6527753f7ea2cf34db90925b",
+  "resolutions": [
+    {
+      "path": "src/ajustes.c",
+      "block": 1,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "  // #366: discovery rows only, per profile on this device. Append-only.\n  AJ_OCULTAR_FILMES_VISTOS,\n  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile\n  // Shared exclusions live in fontefalha.txt; appended device-local views.\n  AJ_FILTROS_FONTES, AJ_FILTRO_TAM_MAX, AJ_FILTRO_GRUPOS,\n#ifdef NV_ANDROID\n  AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes\n#endif\n  AJ_TAMANHO_SINOPSE, // #477: so o texto das sinopses, padrao preservado\n",
+      "theirs": "  AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho\n",
+      "resolved": "  // #366: discovery rows only, per profile on this device. Append-only.\n  AJ_OCULTAR_FILMES_VISTOS,\n  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile\n  // Shared exclusions live in fontefalha.txt; appended device-local views.\n  AJ_FILTROS_FONTES, AJ_FILTRO_TAM_MAX, AJ_FILTRO_GRUPOS,\n#ifdef NV_ANDROID\n  AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes\n#endif\n  AJ_TAMANHO_SINOPSE, // #477: so o texto das sinopses, padrao preservado\n  AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho\n"
+    },
+    {
+      "path": "src/ajustes.c",
+      "block": 2,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "  ESC(\"Ocultar filmes assistidos\", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal\n\n  ESC(\"Configuração dos provedores\", V_PROVEDORES_ESCOPO, 2),\n\n  ACAO(\"Filtros das fontes\"),\n  NUM(\"Tamanho máximo da fonte\", 0, 1000, 1, \" GB\"),\n  ACAO(\"Grupos de lançamento excluídos\"),\n#ifdef NV_ANDROID\n  ACAO(\"Baixar registro\"),\n#endif\n  ESC(\"Tamanho da sinopse\", V_TAMANHO_SINOPSE, 3),\n",
+      "theirs": "  ESC(\"Exibição padrão das coleções\", V_COLECAO_EXIBICAO, VT_LAY_N),\n",
+      "resolved": "  ESC(\"Ocultar filmes assistidos\", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal\n\n  ESC(\"Configuração dos provedores\", V_PROVEDORES_ESCOPO, 2),\n\n  ACAO(\"Filtros das fontes\"),\n  NUM(\"Tamanho máximo da fonte\", 0, 1000, 1, \" GB\"),\n  ACAO(\"Grupos de lançamento excluídos\"),\n#ifdef NV_ANDROID\n  ACAO(\"Baixar registro\"),\n#endif\n  ESC(\"Tamanho da sinopse\", V_TAMANHO_SINOPSE, 3),\n  ESC(\"Exibição padrão das coleções\", V_COLECAO_EXIBICAO, VT_LAY_N),\n"
+    },
+    {
+      "path": "src/ajustes.c",
+      "block": 3,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "  \"hideWatchedMoviesLocal\",\n\n  \"-provedoresEscopo\",\n\n  \"-filtrosFontes\", \"-filtroTamanhoMax\", \"-filtroGrupos\",\n#ifdef NV_ANDROID\n  \"-baixarRegistro\",\n#endif\n  \"sinopseTamanhoLocal\",\n",
+      "theirs": "  \"colecaoExibicaoPadraoLocal\",\n",
+      "resolved": "  \"hideWatchedMoviesLocal\",\n\n  \"-provedoresEscopo\",\n\n  \"-filtrosFontes\", \"-filtroTamanhoMax\", \"-filtroGrupos\",\n#ifdef NV_ANDROID\n  \"-baixarRegistro\",\n#endif\n  \"sinopseTamanhoLocal\",\n  \"colecaoExibicaoPadraoLocal\",\n"
+    },
+    {
+      "path": "src/ajustes.c",
+      "block": 4,
+      "policy": "retain complete477 getter and add separate362 getter",
+      "ours": "int ajustes_sinopse_tamanho(void) {\n  int v = valor[AJ_TAMANHO_SINOPSE];\n  return v >= 0 && v < 3 ? v : 0;\n",
+      "theirs": "int ajustes_colecao_exibicao(void) {\n  int v = valor[AJ_COLECAO_EXIBICAO];\n  return v >= VT_LAY_AUTO && v < VT_LAY_N ? v : VT_LAY_AUTO;\n",
+      "resolved": "int ajustes_sinopse_tamanho(void) {\n  int v = valor[AJ_TAMANHO_SINOPSE];\n  return v >= 0 && v < 3 ? v : 0;\n}\nint ajustes_colecao_exibicao(void) {\n  int v = valor[AJ_COLECAO_EXIBICAO];\n  return v >= VT_LAY_AUTO && v < VT_LAY_N ? v : VT_LAY_AUTO;\n"
+    },
+    {
+      "path": "src/ajustes.c",
+      "block": 5,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "    case AJ_TAMANHO_SINOPSE: /* acessibilidade desta tela; sem par na conta */\n",
+      "theirs": "    case AJ_COLECAO_EXIBICAO: /* por perfil neste aparelho, sem par na conta */\n",
+      "resolved": "    case AJ_TAMANHO_SINOPSE: /* acessibilidade desta tela; sem par na conta */\n    case AJ_COLECAO_EXIBICAO: /* por perfil neste aparelho, sem par na conta */\n"
+    },
+    {
+      "path": "src/ajustes.c",
+      "block": 6,
+      "policy": "union profile-local classifications; keep366 and add362",
+      "ours": "  return i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL || i == AJ_OCULTAR_FILMES_VISTOS;\n",
+      "theirs": "  return i == AJ_COLECAO_EXIBICAO || i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL;\n",
+      "resolved": "  return i == AJ_COLECAO_EXIBICAO || i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL || i == AJ_OCULTAR_FILMES_VISTOS;\n"
+    },
+    {
+      "path": "src/ajustes.h",
+      "block": 1,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "// #477: 0 = Padrao, 1 = Grande, 2 = Extra grande. So sinopses.\nint ajustes_sinopse_tamanho(void);\n",
+      "theirs": "// #362: default for collections without an explicit view, active local profile.\n// Main UI thread: validated VtLayout ID (vertudo.h); 0 keeps automatic behavior.\nint ajustes_colecao_exibicao(void);\n",
+      "resolved": "// #477: 0 = Padrao, 1 = Grande, 2 = Extra grande. So sinopses.\nint ajustes_sinopse_tamanho(void);\n// #362: default for collections without an explicit view, active local profile.\n// Main UI thread: validated VtLayout ID (vertudo.h); 0 keeps automatic behavior.\nint ajustes_colecao_exibicao(void);\n"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "block": 1,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "  1, /* hide watched movies (#366): Desligado, per profile on this device */\n  0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */\n  0, 0, 0, /* shared exclusions parent, max-size view, release-group editor */\n#ifdef NV_ANDROID\n  0, /* Baixar registro: acao local, sem preferencia gravada */\n#endif\n  0, /* synopsis text size (#477): Padrao, current typography */\n",
+      "theirs": "  0, /* collection default view (#362): Automatic, existing layout */\n",
+      "resolved": "  1, /* hide watched movies (#366): Desligado, per profile on this device */\n  0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */\n  0, 0, 0, /* shared exclusions parent, max-size view, release-group editor */\n#ifdef NV_ANDROID\n  0, /* Baixar registro: acao local, sem preferencia gravada */\n#endif\n  0, /* synopsis text size (#477): Padrao, current typography */\n  0, /* collection default view (#362): Automatic, existing layout */\n"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "block": 1,
+      "policy": "retain all accepted20019 lines, append362 only after existing entries",
+      "ours": "      OPC(AJ_OCULTAR_FILMES_VISTOS),\n",
+      "theirs": "    ROT(\"Coleções\"), OPC(AJ_COLECAO_EXIBICAO),\n",
+      "resolved": "      OPC(AJ_OCULTAR_FILMES_VISTOS),\n    ROT(\"Coleções\"), OPC(AJ_COLECAO_EXIBICAO),\n"
+    }
+  ],
+  "preservation": {
+    "published493_sync_c_byte_identical_to20019": true,
+    "all496_460_player_reload_apis_retained": true,
+    "all477_synopsis_modules_unchanged": true,
+    "global362_appended_after_synopsis_and_android_download": true,
+    "private_overlay_same11_files": true,
+    "only_private_version_code_name_changed": true
+  },
+  "tests_workflows_unchanged": true,
+  "private_identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20020,
+    "version_name": "2.0.20-test-logs10",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+    "verification_scope": "Expected compatible identity only; actual APK/signature checks require a fresh build."
+  }
+}

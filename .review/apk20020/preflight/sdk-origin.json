@@ -1,0 +1,8 @@
+{
+  "scope": "Exact previously accepted typed offline declaration headers; no platform function implementation or product behavior shim.",
+  "headers": {
+    "sdk/SDL2/SDL.h": "904cc79914cfda7157463f2762cf9d70e79b45a81c74b48235ddb044f7a21ea8",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk-extra.h": "173524fe7bc2fba3dd38223e7acc34aa102d620cd9f20ad8570e3921d7e8c8ce"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "This update adds only frozen #475 and #362 to the accepted APK20019 product foundation.",
+  "included_new_issues": [
+    475,
+    362
+  ],
+  "excluded": [
+    "Other queued issues or unreviewed source changes",
+    "Any new public PR or release action",
+    "Private diagnostics in product PRs",
+    "Replacement of authored ASS styling or unsupported native/bitmap subtitle APIs"
+  ],
+  "ci_or_publication_performed_by_recipe_preparation": false
+}

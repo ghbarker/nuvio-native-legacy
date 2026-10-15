@@ -1,0 +1,9 @@
+{
+  "root_approved": true,
+  "origin": "/workspace/review/apk20019-android-verifier-retry-20261015/stage/android/verify_apk_retry.py",
+  "origin_sha256": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b",
+  "before_sha256": "265358d322fefbe6645ac985b0a5268c4a6b8aa5a4752adcda0379f04e70b113",
+  "after_sha256": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b",
+  "predicate": "Product exact CMake declares no private option and cache field must be absent; private exactlyoneBOOL=ON. Actual macro/DEX/JNI/signature/alignment gates unchanged.",
+  "product_source_modified": false
+}

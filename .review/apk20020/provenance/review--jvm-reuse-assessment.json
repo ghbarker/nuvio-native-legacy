@@ -1,0 +1,10 @@
+{
+  "component_source_graph_matches_20019": true,
+  "fixture_manifest_and_pinned_compiler_jars_match": true,
+  "current_resolved_runtime_java_emulator_toolchain_identity_witnessed": false,
+  "reuse_authorized": false,
+  "selected_recipe": "fresh47 unchanged actual contracts",
+  "reason": "A source-level match alone does not establish current Java/resolved runtime/emulator identity. Retain approved fresh runner unless root chooses exact proven component evidence.",
+  "old_preflight_sha256": "95edf1c24710468753727df3b0b96483a68512b82a00e276379a9cb2a1a06274",
+  "new_preflight_sha256": "626b1eff295fd2fa818300bd715d6ac403c3865ffad3ba84a1338b43a467b29d"
+}

@@ -1,0 +1,112 @@
+{
+  "outcome": "passed",
+  "source_frozen": true,
+  "ci_execution_permitted": false,
+  "composition": {
+    "path": "composition-manifest.json",
+    "sha256": "7c6f4624262defd4a5b6c14b4355bc1df452f244402410a3a202fb064938bc5e"
+  },
+  "sources": {
+    "product": {
+      "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+      "private_logs": false,
+      "source_clean": true,
+      "manifest": {
+        "path": "product-source-manifest.json",
+        "sha256": "fa43fcc2516e88c266c784e0bc24d3386a1a2e550af0331be04522e5ef959494"
+      }
+    },
+    "test": {
+      "commit": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+      "tree": "da60cd9eb1f7040fed54ac6888fb11c56c195b29",
+      "private_logs": true,
+      "source_clean": true,
+      "manifest": {
+        "path": "test-source-manifest.json",
+        "sha256": "03365a761a52ef9a9fcc7162bf28296461a7d8e836b88c3cc8e2dda56e45ac6f"
+      }
+    }
+  },
+  "independent_root_source_review": {
+    "path": "review/root-source-independence.json",
+    "sha256": "653dc07cc9e7a0a5f14777d07e41c872c0bd41d9b134931f19ccffcccc43d7ef"
+  },
+  "semantic_conflicts": {
+    "path": "review/semantic-conflicts.json",
+    "sha256": "5d51662a3b1f66d2a1a356ff685e86f556cd88d0bcef3193b1aa6f5f6c6eeda7"
+  },
+  "inherited_actual_player_preflight_and_other_checks": [
+    {
+      "path": "review/player-preflight-product/preflight-result.json",
+      "sha256": "a7cd659118e7f46ac08dcbc776266de6f6a898b63b281d205e5ff8354b825c38",
+      "group": "actual-player-app-routing",
+      "layer": "product",
+      "executed_groups": 12
+    },
+    {
+      "path": "review/player-preflight-test/preflight-result.json",
+      "sha256": "a022d9b0c77865370985b1c1def3bb2d940810df03e727dd776434a53bd965ba",
+      "group": "actual-player-app-routing",
+      "layer": "test",
+      "executed_groups": 12
+    },
+    {
+      "path": "review/schema/schema-verified.json",
+      "sha256": "6294ff0c1afbbac07e1e6f81349b1d9daab43ff73e76c8051136ee683dcebfd7",
+      "group": "compiled-Settings-schema-preservation"
+    },
+    {
+      "path": "review/translations-verified.json",
+      "sha256": "7102753335cf51192595d7eb7d42b58af25adb00dc7c535f06581f63ecaca2bc",
+      "group": "full-translation-gate"
+    },
+    {
+      "path": "review/collection-state-baseline-adapter-proof.json",
+      "sha256": "8daf1390cb1d635a6194adb2157395ccbc5bb2007346ecd1da15f9890f8cd260",
+      "group": "baseline-proven-original-fixture-constructor-adapter"
+    }
+  ],
+  "collection_state_package": {
+    "path": "review/collection-state-portable-manifest.json",
+    "sha256": "66e4b30af872533951eac91964c72bda19e5276e70fad6b4ce8c781466248ccd"
+  },
+  "collection_state_fresh_executions": [
+    {
+      "path": "review/feature-preflight/collection-state-product-normal3/receipt.json",
+      "sha256": "65de568c6c73540848c9afd457b51e9dc9aa1f5f71f2b86eacdeb7194c484799",
+      "layer": "product",
+      "sanitized": false,
+      "groups": 3
+    },
+    {
+      "path": "review/feature-preflight/collection-state-product-asan2/receipt.json",
+      "sha256": "a1871d9129e41efe7c2118042486e03990069100cd17966c26afee142b6ab266",
+      "layer": "product",
+      "sanitized": true,
+      "groups": 3
+    },
+    {
+      "path": "review/feature-preflight/collection-state-test-normal2/receipt.json",
+      "sha256": "704e2eca3eb20d768ba2861eebf2e0e1401f7145a10f68fd341c47c92517a61d",
+      "layer": "test",
+      "sanitized": false,
+      "groups": 3
+    },
+    {
+      "path": "review/feature-preflight/collection-state-test-asan2/receipt.json",
+      "sha256": "d4742565a930fe5dda50a0650be7ca49e6f431b728624e38ccf7ae09312b3d1f",
+      "layer": "test",
+      "sanitized": true,
+      "groups": 3
+    }
+  ],
+  "collection_state_integrity": {
+    "nested_group_receipts_verified": 12,
+    "dependency_hash_references_verified": 1500,
+    "log_hash_references_verified": 168,
+    "all_four_executions_exact_same_tooling": true
+  },
+  "reference_repair": "Root source-manifest paths now exist as exact byte copies of their build-stage manifests; composition JSON and hash unchanged.",
+  "scope": "Local cheap actual production-handler/headless tests with normal and ASan/UBSan coverage, original fixture adapters explicitly disclosed, source and dependency bindings checked. No macOS SDK, Android APK, physical device, remote CI, or publication claim. Other feature-owner UI/style/outline receipts are independently handled by CI owner."
+}

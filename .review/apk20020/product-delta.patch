@@ -1,0 +1,1570 @@
+diff --git a/src/ajustes.c b/src/ajustes.c
+index 10dc944ba..1aefc46ee 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -3,6 +3,7 @@
+ // cancela. A lista mostra valor e chevron, a ficha explica alcance e padrao.
+ // IDs, chaves persistidas e indices de valores continuam os legados.
+ #include "ajustes.h"
++#include "vertudo.h"
+ #include "ajlog.h"
+ #include "horafmt.h"
+ #include "ajustes_ux.h"
+@@ -563,6 +564,7 @@ typedef enum {
+   AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes
+ #endif
+   AJ_TAMANHO_SINOPSE, // #477: so o texto das sinopses, padrao preservado
++  AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho
+   AJ_N
+ } OpcaoId;
+ _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
+@@ -636,6 +638,12 @@ static const char *V_FONTE_MODELO[] = { "Personalizado", "Espanhol", "Português
+                                         "Multi-áudio (MULTI)", "Áudio duplo (DUAL)", "4K e Remux" };
+ // "Usar a ordem" dos add-ons (fonteregra.h FR_ORDEM_*): o indice e o gravado.
+ static const char *V_FONTE_ORDEM_USO[] = { "Não", "Para desempatar", "Ordem estrita" };
++// Mesmos IDs de VtLayout, usados tambem pelo arquivo de cada colecao.
++static const char *V_COLECAO_EXIBICAO[] = {
++  "Automático", "Grade", "Linha do tempo", "Ranking", "Saga", "Décadas", "Mural", "Vitrine"
++};
++_Static_assert(sizeof V_COLECAO_EXIBICAO / sizeof *V_COLECAO_EXIBICAO == VT_LAY_N,
++               "collection settings and persisted view IDs must match");
+ // Indice gravado em tamanhoUiLocal; o fator sai de ajustes_tamanho_ui.
+ static const char *V_TAMANHO_SINOPSE[] = { "Padrão", "Grande", "Extra grande" };
+ static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%" };
+@@ -1449,6 +1457,7 @@ static const Opcao OPCOES[AJ_N] = {
+   ACAO("Baixar registro"),
+ #endif
+   ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 3),
++  ESC("Exibição padrão das coleções", V_COLECAO_EXIBICAO, VT_LAY_N),
+ };
+ 
+ // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
+@@ -1702,6 +1711,7 @@ static const char *CHAVE[] = {
+   "-baixarRegistro",
+ #endif
+   "sinopseTamanhoLocal",
++  "colecaoExibicaoPadraoLocal",
+ };
+ // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
+ // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
+@@ -2321,6 +2331,10 @@ int ajustes_sinopse_tamanho(void) {
+   int v = valor[AJ_TAMANHO_SINOPSE];
+   return v >= 0 && v < 3 ? v : 0;
+ }
++int ajustes_colecao_exibicao(void) {
++  int v = valor[AJ_COLECAO_EXIBICAO];
++  return v >= VT_LAY_AUTO && v < VT_LAY_N ? v : VT_LAY_AUTO;
++}
+ float ajustes_tamanho_ui(void) {
+   static const float F[] = { 1.0f, 1.2f, 1.3f, 1.5f };
+   int v = valor[AJ_TAMANHO_UI];
+@@ -4628,6 +4642,7 @@ static int somenteDesteAparelho(int op) {
+     case AJ_FONTE_PRAZO:    /* o web nao tem: a rede e os addons sao desta casa */
+     case AJ_MEDIDOR:        /* o medidor e da GPU desta TV; o web nao tem */
+     case AJ_TAMANHO_SINOPSE: /* acessibilidade desta tela; sem par na conta */
++    case AJ_COLECAO_EXIBICAO: /* por perfil neste aparelho, sem par na conta */
+     case AJ_TAMANHO_UI:     /* o tamanho e desta tela, e o web nao tem */
+     case AJ_TAMANHO_AJUSTES:
+     case AJ_LAYOUT_AJUSTES: /* #339: o arranjo dos Ajustes e desta TV */
+@@ -4674,7 +4689,7 @@ static int somenteDesteAparelho(int op) {
+ // onde o historico vai e se o social existe. Entram na copia por perfil
+ // (ajustes-p<N>.txt) e continuam FORA do blob (somenteDesteAparelho).
+ static int perfilLocal(int i) {
+-  return i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL || i == AJ_OCULTAR_FILMES_VISTOS;
++  return i == AJ_COLECAO_EXIBICAO || i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL || i == AJ_OCULTAR_FILMES_VISTOS;
+ }
+ 
+ static int dePerfil(int i) {
+@@ -4716,14 +4731,18 @@ void ajustes_perfil_guardar(int perfil) {
+ 
+ int ajustes_perfil_restaurar(int perfil) {
+   char nome[32], *t, *l;
+-  int mudou = 0;
++  int mudou = 0, colecaoPropria = perfil == perfis_ativo();
+   if (perfil <= 0) return 0;
+   // As listas e a regex do auto-play (#202) seguem o perfil do mesmo jeito.
+   fonteregra_perfil_restaurar(perfil);
+   nomePerfil(nome, sizeof nome, perfil);
+   t = dados_ler(nome);
+-  if (!t) return 0;
+-  { int focoAntigo = -1, viuFoco = 0;
++  if (!t) {
++    // A new/older profile must not inherit another profile's collection default.
++    if (colecaoPropria && valor[AJ_COLECAO_EXIBICAO] != 0) { valor[AJ_COLECAO_EXIBICAO] = 0; gravar(); }
++    return 0;
++  }
++  { int focoAntigo = -1, viuFoco = 0, viuColecao = 0;
+   for (l = t; l && *l; ) {
+     char chave[64], *fim = strchr(l, '\n');
+     int v, i;
+@@ -4734,13 +4753,23 @@ int ajustes_perfil_restaurar(int perfil) {
+     else if (sscanf(l, "%63s %d", chave, &v) == 2)
+       for (i = 0; i < AJ_N; i++) {
+         if (!dePerfil(i) || strcmp(CHAVE[i], chave)) continue;
++        // sync may load the primary profile as a first-visit fallback for
++        // older shared settings; this local default belongs only to the active one.
++        if (i == AJ_COLECAO_EXIBICAO && !colecaoPropria) continue;
++        // This new profile-local choice must not inherit the previous profile
++        // through limita()'s legacy fallback when an old file is malformed.
++        if (i == AJ_COLECAO_EXIBICAO && (v < VT_LAY_AUTO || v >= VT_LAY_N)) v = VT_LAY_AUTO;
+         v = limita(i, v);
+         if (i == AJ_FOCO_TRAILER) viuFoco = 1;
++        if (i == AJ_COLECAO_EXIBICAO) viuColecao = 1;
+         if (v != valor[i]) { valor[i] = v; mudou++; }
+         break;
+       }
+     l = fim ? fim + 1 : NULL;
+   }
++  if (colecaoPropria && !viuColecao && valor[AJ_COLECAO_EXIBICAO] != 0) {
++    valor[AJ_COLECAO_EXIBICAO] = 0; mudou++;
++  }
+   if (!viuFoco && focoAntigo >= 0) {
+     int v = focoTrailerMigrar(focoAntigo);
+     if (v != valor[AJ_FOCO_TRAILER]) { valor[AJ_FOCO_TRAILER] = v; mudou++; }
+@@ -4765,6 +4794,7 @@ void ajustes_perfil_esquecer(void) {
+   // cobre com folga. Apagar arquivo que nao existe nao custa nada.
+   for (i = 1; i <= 32; i++) { nomePerfil(nome, sizeof nome, i); dados_apagar(nome); }
+   fonteregra_perfil_esquecer();
++  if (valor[AJ_COLECAO_EXIBICAO] != 0) { valor[AJ_COLECAO_EXIBICAO] = 0; gravar(); }
+ }
+ 
+ // Onde esta o valor de `chave` dentro de [ini,fim): *vi aponta o primeiro
+@@ -6048,6 +6078,7 @@ static const char *ajudaOpcaoBase(int op) {
+     case AJ_POSTER_CHAVE: return "Sua chave do RPDB (ratingposterdb.com). Fica só nesta TV e nunca aparece nos registros.";
+     case AJ_POSTER_MODELO: return "Endereço com {imdb}, {tmdb}, {type} (movie ou series) e {tipo_tmdb} (movie ou tv), por exemplo https://meu.servidor/{type}/{imdb}.jpg. Quem não tiver o dado que o modelo pede fica com o cartaz normal.";
+     case AJ_POSTER_TESTAR: return "Baixa o cartaz de um filme conhecido com a configuração atual e mostra se deu certo. O primeiro cartaz de cada título é montado no servidor e pode levar alguns segundos.";
++    case AJ_COLECAO_EXIBICAO: return "Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.";
+     case AJ_HOME_LAYOUT: return "Moderna: destaque atrás das fileiras. Padrão: destaque num banner no topo. Dinâmica: estilo Apple TV, com destaques grandes e Top 10.";
+     case AJ_VIDRO: return "Painéis, botões e menus viram ilhas translúcidas que deixam a arte aparecer. Desligado, as mesmas ilhas ficam opacas. Só muda o visual; nada muda de lugar.";
+     case AJ_PROVEDORES_ESCOPO: return "Compartilhada usa as mesmas contas de provedores neste aparelho. Separada guarda uma cópia para este perfil. Trocar de opção mantém as duas configurações.";
+diff --git a/src/ajustes.h b/src/ajustes.h
+index 233e3e3aa..fe9500c6c 100644
+--- a/src/ajustes.h
++++ b/src/ajustes.h
+@@ -442,6 +442,9 @@ int   ajustes_relogio_12h(void);   // 1 = 12 h com AM/PM (relogio.h)
+ // Tamanho da interface: 1, 1.2, 1.3 ou 1.5 (gfx_escala_ui). LOCAL.
+ // #477: 0 = Padrao, 1 = Grande, 2 = Extra grande. So sinopses.
+ int ajustes_sinopse_tamanho(void);
++// #362: default for collections without an explicit view, active local profile.
++// Main UI thread: validated VtLayout ID (vertudo.h); 0 keeps automatic behavior.
++int ajustes_colecao_exibicao(void);
+ float ajustes_tamanho_ui(void);
+ // Settings only: 0.8/0.9/1.0, default 0.9; independent of global UI zoom.
+ float ajustes_tamanho_ajustes(void);
+diff --git a/src/ajustes_ux_dados.inc b/src/ajustes_ux_dados.inc
+index a00441ff1..fe37afa51 100644
+--- a/src/ajustes_ux_dados.inc
++++ b/src/ajustes_ux_dados.inc
+@@ -199,6 +199,7 @@ static const char *uxSinonimos(int op) {
+     case AJ_PROXIMO_AUTO: case AJ_PROXIMO_CONTAGEM: return "proximo episodio automatico autoplay creditos contagem netflix sozinho next episode auto play countdown";
+     case AJ_CW_MINIMO: return "minimo continuar assistindo porcentagem percentual entrar fileira retomada progresso quanto assistir comecou piso minimum percent continue watching threshold row";
+     case AJ_FONTE_PREPARAR: return "preparar fonte ao abrir titulo antecipar resolver antecipado play instantaneo inicio rapido debrid painel arquivo prepare source ahead instant start";
++    case AJ_COLECAO_EXIBICAO: return "colecao colecoes exibicao padrao automatico grade linha tempo ranking saga decadas mural vitrine global collection collections default view automatic grid timeline showcase";
+     case AJ_FONTE_PRECARREGAR: return "precarregar video buffer episodio proximo creditos preload video next episode";
+     case AJ_FONTE_CONFERIR_VARIAS: return "conferir varias fontes ao mesmo tempo paralelo paralela simultaneo verificar verificacao automatico rapido inicio debrid painel arquivos parallel check several sources speed";
+     case AJ_FONTE_AQUECER: return "aquecer conexoes conexao rede dns tls antecipar preparar abrir titulo inicio rapido lento demora warm preconnect connection network speed";
+diff --git a/src/ajustes_ux_padrao.inc b/src/ajustes_ux_padrao.inc
+index 31ec5b9db..b22b8fab5 100644
+--- a/src/ajustes_ux_padrao.inc
++++ b/src/ajustes_ux_padrao.inc
+@@ -276,3 +276,4 @@
+   0, /* Baixar registro: acao local, sem preferencia gravada */
+ #endif
+   0, /* synopsis text size (#477): Padrao, current typography */
++  0, /* collection default view (#362): Automatic, existing layout */
+diff --git a/src/ajustes_ux_tela.inc b/src/ajustes_ux_tela.inc
+index 78a0d5b32..8e1607401 100644
+--- a/src/ajustes_ux_tela.inc
++++ b/src/ajustes_ux_tela.inc
+@@ -103,6 +103,7 @@ static const Item TELA[] = {
+       OPC(AJ_ESPACO_FILEIRAS), OPC(AJ_ESPACO_TITULOS),
+       OPC(AJ_OCULTAR_NLANC), OPC(AJ_NOTAS_HOME), OPC(AJ_SELO_VISTO),
+       OPC(AJ_OCULTAR_FILMES_VISTOS),
++    ROT("Coleções"), OPC(AJ_COLECAO_EXIBICAO),
+     ROT("Continuar assistindo"),
+       OPC(AJ_CW_LIGADO), OPC(AJ_CW_OK), OPC(AJ_CW_ESTILO), OPC(AJ_CW_THUMB),
+       OPC(AJ_CW_BLUR_PROX), OPC(AJ_CW_ORDEM), OPC(AJ_CW_NAO_EXIBIDOS),
+diff --git a/src/ajustes_ux_visual.inc b/src/ajustes_ux_visual.inc
+index e62e10963..a4f98af9f 100644
+--- a/src/ajustes_ux_visual.inc
++++ b/src/ajustes_ux_visual.inc
+@@ -1,6 +1,7 @@
+ // Glifos complementares: SVG Lucide embarcado, rasterizado no pacote para OpenGL.
+ static const char *ajVisualIcone(int op) {
+   switch (op) {
++    case AJ_COLECAO_EXIBICAO: return "aj_layout-dashboard";
+     case AJ_HOME_LAYOUT: return "aj_layout-dashboard";
+     case AJ_LANDSCAPE: return "aj_layout-dashboard";
+     case AJ_HERO: return "aj_layout-dashboard";
+diff --git a/src/assrender.c b/src/assrender.c
+index 681d80785..adcf16ef3 100644
+--- a/src/assrender.c
++++ b/src/assrender.c
+@@ -531,8 +531,11 @@ static void ass_plain_style_locked(const PlainAssStyle *p) {
+   }
+   s->FontSize = p->size;
+   s->PrimaryColour = s->SecondaryColour = ((uint32_t)p->rgb << 8);
+-  s->OutlineColour = 0x00000000u;
+-  s->BackColour = p->background ? (unsigned)(255 - (p->background * 255 * 16 / 100)) : 46u;
++  s->OutlineColour = (uint32_t)p->outlineRgb << 8;
++  // BorderStyle=4 uses BackColour for the existing black background box.
++  // Without that box, BackColour is the shadow, at its original opacity.
++  s->BackColour = p->background ? (unsigned)(255 - (p->background * 255 * 16 / 100))
++                   : (p->border == 2 ? (uint32_t)p->outlineRgb << 8 : 0u) | 46u;
+   s->Bold = (p->bold && !assArabe) ? 1 : 0;
+   s->BorderStyle = p->background ? 4 : 1;
+   s->Outline = p->border == 1 ? 2 : 0;
+diff --git a/src/faixas.c b/src/faixas.c
+index a3da57275..2e1e429b9 100644
+--- a/src/faixas.c
++++ b/src/faixas.c
+@@ -429,7 +429,7 @@ static int legendaAtiva(void) {
+ static int modo;
+ // Coluna dentro da folha de LEGENDA: 0 = lista, 1 = estilo.
+ #define FX_COL_ESTILO 2
+-#define FX_N_ESTILO   10
++#define FX_N_ESTILO   11
+ static int ctl = -1;       // ESTILO: item cujo controle esta aberto (-1 = a grade)
+ 
+ static int nLinhas(int col);
+@@ -555,9 +555,10 @@ static int nLinhas(int col) {
+ // Oito linhas "rotulo: valor". OK cicla o valor e aplica NA HORA — as
+ // personalizacoes abaixo usam somente metodos presentes no firmware. A ultima
+ // linha restaura o conjunto inteiro sem exigir dezenas de toques no controle.
++enum { EST_FONTE = 1, EST_COR = 2, EST_RESTAURAR = 9, EST_COR_BORDA = 10 };
+ static const char *const EST_ROT[FX_N_ESTILO] = {
+   "Tamanho", "Fonte OpenSubtitles", "Cor", "Opacidade", "Fundo", "Posição", "Borda", "Atraso",
+-  "Negrito", "Restaurar padrão"
++  "Negrito", "Restaurar padrão", "Cor da borda"
+ };
+ static const char *const EST_FUNDO[5] = { "Nenhum", "Escuro 25%", "Escuro 50%",
+                                           "Escuro 75%", "Escuro 100%" };
+@@ -571,7 +572,7 @@ static const char *const EST_OPAC[4]  = { "100%", "75%", "50%", "25%" };
+  * valem igual. */
+ static int estiloPreservadoAss(int linha) {
+   return assrender_ativo() && !assrender_texto_simples() && (linha == 1 || linha == 2 || linha == 4 ||
+-                               linha == 5 || linha == 6 || linha == 8);
++                               linha == 5 || linha == 6 || linha == 8 || linha == EST_COR_BORDA);
+ }
+ 
+ static void valorEstilo(int linha, char *dst, size_t tam) {
+@@ -603,6 +604,10 @@ static void valorEstilo(int linha, char *dst, size_t tam) {
+     // Negrito vale para o que o app desenha (OpenSubtitles e legenda externa);
+     // a faixa que o player da TV desenha segue o peso do aparelho.
+     case 8: snprintf(dst, tam, "%s", i18n(e->negrito ? "Ligado" : "Desligado")); break;
++    case EST_COR_BORDA: {
++      int c = e->corBorda >= 0 && e->corBorda < VIDEO_LEG_NCORES ? e->corBorda : 0;
++      snprintf(dst, tam, "%s", VIDEO_LEG_CORES_PT[c ? c - 1 : VIDEO_LEG_NCORES - 1]);
++      break; }
+     default: dst[0] = 0; break;   // "Restaurar padrao" e acao, nao valor
+   }
+ }
+@@ -617,7 +622,7 @@ static void ciclarEstilo(int linha) {
+     case 4: e->fundo   = (e->fundo + 1) % 5; break;
+     case 6: e->borda   = (e->borda + 1) % 3; break;
+     case 8: e->negrito = !e->negrito; break;
+-    case 9:
++    case EST_RESTAURAR:
+       *e = (VideoLegendaEstilo){ 120, 0, 0, 3, 1, 0, 0, TXT_FAMILIA_INTER };
+       // Restaurar e voltar ao normal do app, e o normal e respeitar o arquivo.
+       player_leg_estilo_tocou(PLR_LEG_NADA);
+@@ -630,10 +635,9 @@ static void ciclarEstilo(int linha) {
+ // --- CONTROLES DA ABA ESTILO (dono, 11/10) ------------------------------------
+ // OK em Tamanho, Opacidade, Posicao e Atraso abre um SLIDER logo abaixo do item;
+ // Cor abre a paleta de amostras; Fonte, a lista com cada nome na propria fonte.
+-// O painel NAO muda de altura (alturaEstilo): o controle ocupa o lugar da grade,
+-// com a mola da tela. Tudo aplica ao vivo; OK/Voltar fecham o controle e so o
++// O controle ocupa o lugar da grade, com a mola da tela. No Mobile a lista de
++// fontes reserva as quatro fileiras inteiras. Tudo aplica ao vivo; OK/Voltar fecham o controle e so o
+ // Voltar seguinte fecha o painel.
+-enum { EST_FONTE = 1, EST_COR = 2 };
+ typedef struct { int min, max, toque, segura, teto; } EstSlider;   // max == min: sem slider
+ // toque = passo de um toque; segura = passo de cada repeticao da tecla segurada;
+ // teto = quantas vezes o passo pode crescer segurando (aceleracao).
+@@ -645,7 +649,7 @@ static const EstSlider EST_SL[FX_N_ESTILO] = {
+ };
+ static int estSlider(int i) { return i >= 0 && i < FX_N_ESTILO && EST_SL[i].max > EST_SL[i].min; }
+ // 0 = sem controle, 1 = slider, 2 = paleta, 3 = lista de fontes.
+-static int estTipo(int i) { return estSlider(i) ? 1 : i == EST_COR ? 2 : i == EST_FONTE ? 3 : 0; }
++static int estTipo(int i) { return estSlider(i) ? 1 : i == EST_COR || i == EST_COR_BORDA ? 2 : i == EST_FONTE ? 3 : 0; }
+ 
+ static int ctlVis = -1;    // o ultimo aberto: o controle continua desenhado enquanto fecha
+ static int ctlSub;         // amostra / fonte com o foco
+@@ -690,7 +694,8 @@ static void estDeFrac(int i, float f) {
+ }
+ static void estAbrir(int i) {
+   ctl = ctlVis = i; ctlRep = 0;
+-  ctlSub = i == EST_COR ? player_leg_estilo()->cor : i == EST_FONTE ? player_leg_estilo()->familia : 0;
++  ctlSub = i == EST_COR ? player_leg_estilo()->cor : i == EST_COR_BORDA ? player_leg_estilo()->corBorda
++         : i == EST_FONTE ? player_leg_estilo()->familia : 0;
+   if (estSlider(i)) ctlFrac = estFrac(i);
+ }
+ static void estEscolher(int i) {   // amostra / fonte `i`: aplica ao vivo
+@@ -702,6 +707,9 @@ static void estEscolher(int i) {   // amostra / fonte `i`: aplica ao vivo
+     // COR: marca que a pessoa mexeu — dai em diante ela vence a cor que o
+     // arquivo ASS pede (ver player_leg_estilo_tocou em player.h).
+     player_leg_estilo_tocou(PLR_LEG_COR);
++  } else if (ctl == EST_COR_BORDA) {
++    if (e->corBorda == i) return;
++    e->corBorda = i;
+   } else {
+     if (e->familia == i) return;
+     e->familia = i;
+@@ -1090,7 +1098,7 @@ static int estiloTecla(SDL_Keycode k, int rep) {
+     return 1;
+   }
+   if (voltar) return 0;
+-  // A GRADE de FX_BARRA_COLS x 2: as quatro setas andam nela; a esquerda da
++  // A grade de FX_BARRA_COLS colunas: as quatro setas andam nela; a esquerda da
+   // primeira coluna volta para a lista de legendas.
+   if (dx < 0) { if (*f % FX_BARRA_COLS) (*f)--; else coluna = 1; }
+   else if (dx > 0) { if (*f % FX_BARRA_COLS < FX_BARRA_COLS - 1 && *f + 1 < FX_N_ESTILO) (*f)++; }
+@@ -1371,7 +1379,23 @@ static int ilVisN(int extra) {
+ // The audio sheet spends one line on the volume row (F07) and one more on the
+ // speed row (#202) where the platform has speed.
+ #define IL_VIS_COL(c) ilVisN((c) == 0 ? 1 + (velVisivel() ? 1 : 0) : 0)
+-#define IL_EST_CEL_H 92.0f
++// O canvas Mobile normaliza a borda curta em 1080: 144 unidades sao
++// 48 dp num telefone de 360 dp, antes da escala escolhida para a interface.
++static float estiloToqueMin(void) {
++#ifdef NV_TOUCH_UI
++  if (telefoneui_ativo()) {
++    float s = gfx_escala_ui();
++    return s > 0 ? 144.0f / s : 0;
++  }
++#endif
++  return 0;
++}
++static float estiloCelulaH(void) {
++  float min = estiloToqueMin();
++  return min > 92.0f ? min : 92.0f;
++}
++static float estiloPadX(void) { return telefoneui_ativo() ? 12.0f : IL_PAD_X; }
++#define IL_EST_CEL_H estiloCelulaH()
+ #define IL_EST_TOPO  56.0f
+ 
+ static const char *tituloSessao(void) {
+@@ -1737,7 +1761,7 @@ static void celulaEstiloTelefone(int i, GfxRect r, float a, int ativa) {
+   float x = r.x + 20, w = r.w - 40;
+   if (sel) plrui_linha_foco(r, 22, a);
+   if (ativa) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEstilo, NULL, i, 0);
+-  if (i == FX_N_ESTILO - 1) {
++  if (i == EST_RESTAURAR) {
+     int compacto = r.w < 154;
+     float tx = compacto ? r.x + 10 : r.x + 54, tw = compacto ? r.w - 20 : r.w - 74;
+     float h = txt_bloco_corta(TXT_G20B, EST_ROT[i], 243, 242, 239, 0, 0, tw, 24, 0, compacto ? 2 : 3);
+@@ -1749,7 +1773,7 @@ static void celulaEstiloTelefone(int i, GfxRect r, float a, int ativa) {
+     return;
+   }
+   char v[48];
+-  int cor = i == 2 && !pres, c = pres ? 120 : sel ? 255 : 217;
++  int cor = (i == EST_COR || i == EST_COR_BORDA) && !pres, c = pres ? 120 : sel ? 255 : 217;
+   valorEstilo(i, v, sizeof v);
+   float lh = txt_bloco_corta(TXT_G16B, EST_ROT[i], 243, 242, 239, 0, 0, w, 20, 0, 2);
+   TxtLinha lv = txt_linha_corta(TXT_ILHA_SECAO, v, c, c, c - 2, 255, w - (cor ? 30 : 0));
+@@ -1757,7 +1781,9 @@ static void celulaEstiloTelefone(int i, GfxRect r, float a, int ativa) {
+   txt_bloco_corta(TXT_G16B, EST_ROT[i], 243, 242, 239, x, y, w, 20, a * .5f, 2);
+   float yv = y + lh + 6;
+   if (cor) {
+-    int cr,cg,cb; corLegenda(player_leg_estilo()->cor, &cr,&cg,&cb);
++    int cr,cg,cb;
++    if (i == EST_COR_BORDA) { unsigned rgb = video_legenda_borda_rgb(player_leg_estilo()->corBorda); cr = (rgb >> 16) & 255; cg = (rgb >> 8) & 255; cb = rgb & 255; }
++    else corLegenda(player_leg_estilo()->cor, &cr,&cg,&cb);
+     gfx_cor((GfxRect){x,yv+(vh-20)*.5f,20,20},.5f,cr/255.0f,cg/255.0f,cb/255.0f,a);
+     x += 30;
+   }
+@@ -1774,7 +1800,7 @@ static void celulaEstilo(int i, GfxRect r, float a, int ativa) {
+   int pres = estiloPreservadoAss(i);
+   if (sel) plrui_linha_foco(r, 22.0f, a);
+   if (ativa) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEstilo, NULL, i, 0);
+-  if (i == FX_N_ESTILO - 1) {
++  if (i == EST_RESTAURAR) {
+     TxtLinha l = txt_linha(TXT_G20B, EST_ROT[i], 243, 242, 239, sel ? 255 : 191);
+     gfx_icone((GfxRect){ r.x + 20.0f, r.y + (r.h - 22.0f) * 0.5f, 22.0f, 22.0f }, "pl_rotate-ccw", 1, 1, 1, (sel ? 1.0f : 0.75f) * a);
+     txt_desenhar_alpha(l, r.x + 20.0f + 22.0f + 12.0f, r.y + (r.h - (float)l.h) * 0.5f, a);
+@@ -1789,16 +1815,27 @@ static void celulaEstilo(int i, GfxRect r, float a, int ativa) {
+     yv = r.y + (r.h - ((float)lr.h + 6.0f + (float)lv.h)) * 0.5f;
+     txt_desenhar_alpha(lr, x, yv, a);
+     yv += (float)lr.h + 6.0f;
+-    if (i == EST_COR && !pres) {
++    if ((i == EST_COR || i == EST_COR_BORDA) && !pres) {
+       int cr, cg, cb;
+-      corLegenda(player_leg_estilo()->cor, &cr, &cg, &cb);
++      if (i == EST_COR_BORDA) { unsigned rgb = video_legenda_borda_rgb(player_leg_estilo()->corBorda); cr = (rgb >> 16) & 255; cg = (rgb >> 8) & 255; cb = rgb & 255; }
++      else corLegenda(player_leg_estilo()->cor, &cr, &cg, &cb);
+       gfx_cor((GfxRect){ x, yv + ((float)lv.h - 20.0f) * 0.5f, 20.0f, 20.0f }, 0.5f, cr / 255.0f, cg / 255.0f, cb / 255.0f, a);
+       x += 20.0f + 10.0f;
+     }
+     txt_desenhar_alpha(lv, x, yv, a); }
+ }
+ 
+-#define IL_EST_GRADE_H (IL_EST_CEL_H * 2.0f + 6.0f)
++#define IL_EST_FILEIRAS ((FX_N_ESTILO + FX_BARRA_COLS - 1) / FX_BARRA_COLS)
++static float estiloGradeH(void) {
++  float h = IL_EST_CEL_H * IL_EST_FILEIRAS + 6.0f * (IL_EST_FILEIRAS - 1);
++  if (telefoneui_ativo() && (ctl == EST_FONTE || (ctlVis == EST_FONTE && ctlAnim > .005f))) {
++    int rows = (TXT_FAMILIA_N + 1) / 2;
++    float fontes = estiloToqueMin() * rows + 8.0f * (rows - 1);
++    if (fontes > h) h = fontes;
++  }
++  return h;
++}
++#define IL_EST_GRADE_H estiloGradeH()
+ 
+ static void fundoCtl(GfxRect r, float a) {
+   float raio = 22.0f / r.h;
+@@ -1862,31 +1899,49 @@ static void sliderCtl(int i, GfxRect r, float a, int ativo) {
+   }
+ }
+ 
++static int paletaColunas(float largura) {
++  float min = estiloToqueMin();
++  return min > 0 && largura + .01f < VIDEO_LEG_NCORES * min ? 3 : VIDEO_LEG_NCORES;
++}
+ static void paletaCtl(GfxRect r, float a, int ativo) {
+   float d = 56.0f, vao = 34.0f, tot = d * VIDEO_LEG_NCORES + vao * (VIDEO_LEG_NCORES - 1);
+   float x = r.x + (r.w - tot) * 0.5f, cy = r.y + r.h * 0.5f, ar, ag, ab;
+-  int i;
++  int i, telefone = telefoneui_ativo(), cols = paletaColunas(r.w);
++  float cw = 0, ch = 0;
++  if (telefone) {
++    int rows = (VIDEO_LEG_NCORES + cols - 1) / cols;
++    cw = estiloToqueMin(); if (cw < d + vao) cw = d + vao;
++    ch = (r.h - 6.0f * (rows - 1)) / rows;
++    x = r.x + (r.w - cw * cols) * .5f;
++  }
+   ajustes_acento_marca(&ar, &ag, &ab);
+   fundoCtl(r, a);
+   for (i = 0; i < VIDEO_LEG_NCORES; i++) {
+     int cr, cg, cb;
+     float s = ctlAmostra[i], dd = d * (1.0f + 0.16f * s);
+     float ai = a * anim_clamp(ctlAnim * 1.7f - (float)i * 0.12f, 0.0f, 1.0f);
+-    GfxRect c = { x + d * 0.5f - dd * 0.5f, cy - dd * 0.5f, dd, dd };
+-    corLegenda(i, &cr, &cg, &cb);
++    float cx = telefone ? x + cw * (i % cols + .5f) : x + d * .5f;
++    float yc = telefone ? r.y + (ch + 6.0f) * (i / cols) + ch * .5f : cy;
++    GfxRect c = { cx - dd * .5f, yc - dd * .5f, dd, dd };
++    if (ctlVis == EST_COR_BORDA) { unsigned rgb = video_legenda_borda_rgb(i); cr = (rgb >> 16) & 255; cg = (rgb >> 8) & 255; cb = rgb & 255; }
++    else corLegenda(i, &cr, &cg, &cb);
+     gfx_cor(c, 0.5f, cr / 255.0f, cg / 255.0f, cb / 255.0f, ai);
+     gfx_anel(c, 0.5f, 1.0f, 1, 1, 1, 0.22f * ai);                 // a amostra escura nao some no fundo
+-    if (i == player_leg_estilo()->cor) gfx_anel_fora(c, 0.5f, 5.0f, 3.0f, ar, ag, ab, ai);   // a em uso
++    if (i == (ctlVis == EST_COR_BORDA ? player_leg_estilo()->corBorda : player_leg_estilo()->cor)) gfx_anel_fora(c, 0.5f, 5.0f, 3.0f, ar, ag, ab, ai);   // a em uso
+     else if (i == ctlSub) gfx_anel_fora(c, 0.5f, 5.0f, 2.0f, 1, 1, 1, 0.7f * ai);            // so o foco
+-    if (ativo) ponteiro_alvo(x - 12.0f, r.y, d + 24.0f, r.h, ponteiroSub, ponteiroEscolher, i, 0);
+-    x += d + vao;
++    if (ativo) {
++      if (telefone) ponteiro_alvo(x + cw * (i % cols), r.y + (ch + 6.0f) * (i / cols), cw, ch, ponteiroSub, ponteiroEscolher, i, 0);
++      else ponteiro_alvo(x - 12.0f, r.y, d + 24.0f, r.h, ponteiroSub, ponteiroEscolher, i, 0);
++    }
++    if (!telefone) x += d + vao;
+   }
+ }
+ 
+ // A LISTA de fontes: cada nome escrito NA PROPRIA fonte, 2 colunas, no lugar da
+ // grade (mesma altura). A em uso leva o check no acento; o foco, a superficie.
+ static void fontesCtl(GfxRect r, float a, int ativo) {
+-  float vao = 8.0f, cw = (r.w - vao) * 0.5f, ch = (r.h - vao * 2.0f) / 3.0f, ar, ag, ab;
++  int rows = (TXT_FAMILIA_N + 1) / 2;
++  float vao = 8.0f, cw = (r.w - vao) * 0.5f, ch = (r.h - vao * (rows - 1)) / rows, ar, ag, ab;
+   int i;
+   ajustes_acento_marca(&ar, &ag, &ab);
+   for (i = 0; i < TXT_FAMILIA_N; i++) {
+@@ -1905,6 +1960,8 @@ static void fontesCtl(GfxRect r, float a, int ativo) {
+ static void controleEstilo(int i, GfxRect g, float a, int ativo) {
+   if (estTipo(i) == 3) { fontesCtl(g, a, ativo); return; }
+   { GfxRect ra = { g.x, g.y, g.w, IL_EST_CEL_H }, rb = { g.x, g.y + IL_EST_CEL_H + 6.0f, g.w, IL_EST_CEL_H };
++    if (telefoneui_ativo() && estTipo(i) == 2 && paletaColunas(g.w) < VIDEO_LEG_NCORES)
++      rb.h = g.h - (rb.y - g.y);
+     celulaEstilo(i, ra, a, 0);                          // o item, com o valor ao vivo
+     if (ativo) ponteiro_alvo(ra.x, ra.y, ra.w, ra.h, NULL, ponteiroFecharCtl, 0, 0);
+     if (estTipo(i) == 1) sliderCtl(i, rb, a, ativo); else paletaCtl(rb, a, ativo); }
+@@ -1913,7 +1970,7 @@ static void controleEstilo(int i, GfxRect g, float a, int ativo) {
+ static float alturaEstilo(void) { return IL_PAD_Y + IL_EST_TOPO + 14.0f + IL_EST_GRADE_H + IL_PAD_Y; }
+ 
+ static void corpoEstilo(GfxRect c, float a) {
+-  float x0 = c.x + IL_PAD_X, w = c.w - IL_PAD_X * 2.0f, y = c.y + IL_PAD_Y;
++  float pad = estiloPadX(), x0 = c.x + pad, w = c.w - pad * 2.0f, y = c.y + IL_PAD_Y;
+   float cw = (w - 4.0f * 6.0f) / FX_BARRA_COLS;
+   int i, assentada = a > 0.99f && ponteiro_ativo();
+   { TxtLinha t = txt_linha(TXT_G30B, "Legendas", 243, 242, 239, 255);
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index c2738396c..251a98c2f 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Токшоу"),
+   T("Converter DTS para a TV ouvir", "Преобразувай DTS, за да го пусне телевизорът"),
+   T("Cor", "Цвят"),
++  T("Cor da borda", "Цвят на контура"),
+   T("Cor da logo", "Цвят на логото"),
+   T("Cor da segunda legenda", "Цвят на вторите субтитри"),
+   T("Cor de destaque", "Акцентен цвят"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Пример и бърз път"),
+   T("Exemplo ilustrativo", "Илюстративен пример"),
+   T("Exibição", "Показване"),
++  T("Exibição padrão das coleções", "Изглед по подразбиране на колекциите"),
+   T("Exigir", "Изисквай"),
+   T("Expandir pôster ao focar", "Разшири плаката при фокус"),
+   T("Experimental", "Експериментално"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Важи от следващото видео. Ако екранът стане черен или се покаже началният екран на телевизора, изключете."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Важи от следващото видео. Без свободно място кешът става по-малък или се изключва."),
+   T("Vale para", "Важи за"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Важи за колекции без собствен изглед в този профил. Автоматично запазва първоначалния изглед. В меню Изглед изберете По подразбиране, за да следвате отново тази настройка."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Важи за този профил. При промяна редът се изгражда наново веднага."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Важи само за този телевизор и този профил · не променя Началото на други устройства"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Важи само за този телевизор · не променя Началото на вашите други устройства"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index c6228abbf..d1903a143 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talk show"),
+   T("Converter DTS para a TV ouvir", "Pretvori DTS da ga TV pusti"),
+   T("Cor", "Boja"),
++  T("Cor da borda", "Boja obruba"),
+   T("Cor da logo", "Boja logotipa"),
+   T("Cor da segunda legenda", "Boja drugog titla"),
+   T("Cor de destaque", "Akcentna boja"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Primjer i prečica"),
+   T("Exemplo ilustrativo", "Ilustrativni primjer"),
+   T("Exibição", "Prikaz"),
++  T("Exibição padrão das coleções", "Zadani prikaz kolekcija"),
+   T("Exigir", "Zahtijevaj"),
+   T("Expandir pôster ao focar", "Proširi poster na fokusu"),
+   T("Experimental", "Eksperimentalno"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Važi od sljedećeg videa. Ako ekran postane crn ili se pojavi početni ekran televizora, isključite."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Važi od sljedećeg videa. Bez slobodnog prostora keš je manji ili isključen."),
+   T("Vale para", "Važi za"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Važi za kolekcije bez vlastitog prikaza u ovom profilu. Automatski zadržava izvorni prikaz. U meniju Prikaz odaberite Zadano da ponovo pratite ovu postavku."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Vrijedi za ovaj profil. Pri promjeni se red odmah ponovo gradi."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Važi samo za ovaj TV i ovaj profil · ne mijenja Početnu na drugim uređajima"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Važi samo za ovaj TV · ne mijenja Početnu na vašim drugim uređajima"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index 8394796e8..81e643a02 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talk"),
+   T("Converter DTS para a TV ouvir", "Převádět DTS, aby ho televize přehrála"),
+   T("Cor", "Barva"),
++  T("Cor da borda", "Barva obrysu"),
+   T("Cor da logo", "Barva loga"),
+   T("Cor da segunda legenda", "Barva druhých titulků"),
+   T("Cor de destaque", "Barva zvýraznění"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Příklad a zkratka"),
+   T("Exemplo ilustrativo", "Ilustrační ukázka"),
+   T("Exibição", "Zobrazení"),
++  T("Exibição padrão das coleções", "Výchozí zobrazení kolekcí"),
+   T("Exigir", "Vyžadovat"),
+   T("Expandir pôster ao focar", "Zvětšit plakát při fokusu"),
+   T("Experimental", "Experimentální"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Platí od dalšího videa. Pokud obrazovka zčerná nebo se zobrazí domovská obrazovka televizoru, vypněte to."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Platí od dalšího videa. Bez volného místa je mezipaměť menší nebo vypnutá."),
+   T("Vale para", "Platí pro"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Platí pro kolekce bez vlastního zobrazení v tomto profilu. Automaticky zachová původní zobrazení. V nabídce Zobrazení zvolte Výchozí pro opětovné použití tohoto nastavení."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Platí pro tento profil. Po změně se řada okamžitě znovu sestaví."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Platí jen pro tuto televizi a tento profil · nemění úvodní obrazovku na jiných zařízeních"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Platí jen pro tuto televizi · nemění úvodní obrazovku na vašich dalších zařízeních"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index 2132aabb9..8c302514b 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talkshow"),
+   T("Converter DTS para a TV ouvir", "Konvertér DTS, så TV’et kan afspille det"),
+   T("Cor", "Farve"),
++  T("Cor da borda", "Konturfarve"),
+   T("Cor da logo", "Logoets farve"),
+   T("Cor da segunda legenda", "Farve på sekundær undertekst"),
+   T("Cor de destaque", "Accentfarve"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Eksempel og genvej"),
+   T("Exemplo ilustrativo", "Eksempelbillede"),
+   T("Exibição", "Visning"),
++  T("Exibição padrão das coleções", "Standardvisning for samlinger"),
+   T("Exigir", "Kræv"),
+   T("Expandir pôster ao focar", "Udvid plakat ved fokus"),
+   T("Experimental", "Eksperimentel"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Gælder fra næste video. Hvis skærmen bliver sort, eller tv'ets startskærm vises, så slå det fra."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Gælder fra næste video. Uden ledig plads bliver cachen mindre eller slås fra."),
+   T("Vale para", "Gælder for"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Gælder samlinger uden egen visning i denne profil. Automatisk bevarer den oprindelige visning. Vælg Standard under Visning for at følge indstillingen igen."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Gælder for denne profil. Ved ændring genopbygges rækken med det samme."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Gælder kun for dette tv og denne profil · ændrer ikke Hjem på andre enheder"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Gælder kun for dette tv · ændrer ikke Hjem på dine andre enheder"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index 04b24e5be..a86883069 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -1319,6 +1319,7 @@
+   T("Conversa", "Gespräch"),
+   T("Converter DTS para a TV ouvir", "DTS umwandeln, damit der Fernseher es abspielt"),
+   T("Cor", "Farbe"),
++  T("Cor da borda", "Konturfarbe"),
+   T("Cor da logo", "Logofarbe"),
+   T("Cor da segunda legenda", "Farbe der Zweituntertitel"),
+   T("Cor de destaque", "Akzentfarbe"),
+@@ -1884,6 +1885,7 @@
+   T("Exemplo e atalho", "Beispiel und Abkürzung"),
+   T("Exemplo ilustrativo", "Beispielbild"),
+   T("Exibição", "Anzeige"),
++  T("Exibição padrão das coleções", "Standardansicht für Sammlungen"),
+   T("Exigir", "Erzwingen"),
+   T("Expandir pôster ao focar", "Poster bei Fokus vergrößern"),
+   T("Experimental", "Experimentell"),
+@@ -4870,6 +4872,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Gilt ab dem nächsten Video. Wird der Bildschirm schwarz oder erscheint der Startbildschirm des Fernsehers, schalte die Option aus."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Gilt ab dem nächsten Video. Ohne freien Speicher wird der Cache kleiner oder abgeschaltet."),
+   T("Vale para", "Gilt für"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Gilt für Sammlungen ohne eigene Ansicht in diesem Profil. Automatisch behält die ursprüngliche Ansicht bei. Unter Ansicht mit Standard wieder dieser Einstellung folgen."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Gilt für dieses Profil. Bei einer Änderung wird die Reihe sofort neu aufgebaut."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Gilt nur für diesen TV und dieses Profil · ändert nicht die Startseite anderer Geräte"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Gilt nur für diesen TV · ändert nicht die Startseite deiner anderen Geräte"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index c9a90bd3b..48e432317 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Συζήτηση"),
+   T("Converter DTS para a TV ouvir", "Μετατροπή DTS για να το παίζει η τηλεόραση"),
+   T("Cor", "Χρώμα"),
++  T("Cor da borda", "Χρώμα περιγράμματος"),
+   T("Cor da logo", "Χρώμα λογοτύπου"),
+   T("Cor da segunda legenda", "Χρώμα δεύτερων υποτίτλων"),
+   T("Cor de destaque", "Χρώμα έμφασης"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Παράδειγμα και συντόμευση"),
+   T("Exemplo ilustrativo", "Ενδεικτικό παράδειγμα"),
+   T("Exibição", "Οθόνη"),
++  T("Exibição padrão das coleções", "Προεπιλεγμένη προβολή συλλογών"),
+   T("Exigir", "Υποχρεωτικό"),
+   T("Expandir pôster ao focar", "Μεγέθυνση αφίσας στην εστίαση"),
+   T("Experimental", "Πειραματικό"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Ισχύει από το επόμενο βίντεο. Αν η οθόνη μαυρίσει ή εμφανιστεί η αρχική οθόνη της τηλεόρασης, απενεργοποιήστε το."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Ισχύει από το επόμενο βίντεο. Χωρίς ελεύθερο χώρο, η μνήμη μικραίνει ή απενεργοποιείται."),
+   T("Vale para", "Ισχύει για"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Ισχύει για συλλογές χωρίς δική τους προβολή σε αυτό το προφίλ. Το Αυτόματο διατηρεί την αρχική προβολή. Στην Προβολή επιλέξτε Προεπιλογή για να ισχύει ξανά αυτή η ρύθμιση."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Ισχύει για αυτό το προφίλ. Με την αλλαγή, η σειρά ξαναχτίζεται αμέσως."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Ισχύει μόνο για αυτή την τηλεόραση και αυτό το προφίλ · δεν αλλάζει την Αρχική σε άλλες συσκευές"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Ισχύει μόνο για αυτή την τηλεόραση · δεν αλλάζει την Αρχική στις άλλες συσκευές σου"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index 923b62e2b..9eb836667 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -1319,6 +1319,7 @@
+   T("Conversa", "Conversación"),
+   T("Converter DTS para a TV ouvir", "Convertir DTS para que la TV lo reproduzca"),
+   T("Cor", "Color"),
++  T("Cor da borda", "Color del contorno"),
+   T("Cor da logo", "Color del logo"),
+   T("Cor da segunda legenda", "Color del subtítulo secundario"),
+   T("Cor de destaque", "Color de acento"),
+@@ -1884,6 +1885,7 @@
+   T("Exemplo e atalho", "Ejemplo y atajo"),
+   T("Exemplo ilustrativo", "Ejemplo ilustrativo"),
+   T("Exibição", "Visualización"),
++  T("Exibição padrão das coleções", "Vista predeterminada de colecciones"),
+   T("Exigir", "Exigir"),
+   T("Expandir pôster ao focar", "Ampliar póster al enfocar"),
+   T("Experimental", "Experimental"),
+@@ -4870,6 +4872,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Se aplica a partir del próximo vídeo. Si la pantalla se queda en negro o aparece la pantalla de inicio del televisor, desactívalo."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Se aplica desde el próximo vídeo. Sin espacio libre, la caché se reduce o se desactiva."),
+   T("Vale para", "Se aplica a"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Se aplica a colecciones sin vista propia en este perfil. Automático conserva la vista original. Elige Predeterminado en Vista para volver a seguir este ajuste."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Vale para este perfil. Al cambiar, la fila se rehace al instante."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Vale solo en esta TV y en este perfil · no cambia el Inicio de los otros dispositivos"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Vale solo en esta TV · no cambia el Inicio de los otros dispositivos"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index 1ca7f8843..6c8d0514b 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -1319,6 +1319,7 @@
+   T("Conversa", "Discussion"),
+   T("Converter DTS para a TV ouvir", "Convertir le DTS pour que la TV le lise"),
+   T("Cor", "Couleur"),
++  T("Cor da borda", "Couleur du contour"),
+   T("Cor da logo", "Couleur du logo"),
+   T("Cor da segunda legenda", "Couleur du sous-titre secondaire"),
+   T("Cor de destaque", "Couleur d'accent"),
+@@ -1884,6 +1885,7 @@
+   T("Exemplo e atalho", "Exemple et raccourci"),
+   T("Exemplo ilustrativo", "Exemple illustratif"),
+   T("Exibição", "Affichage"),
++  T("Exibição padrão das coleções", "Vue par défaut des collections"),
+   T("Exigir", "Exiger"),
+   T("Expandir pôster ao focar", "Agrandir l'affiche au focus"),
+   T("Experimental", "Expérimental"),
+@@ -4870,6 +4872,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "S'applique à partir de la prochaine vidéo. Si l'écran devient noir ou si l'écran d'accueil du téléviseur apparaît, désactivez l'option."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "S'applique à partir de la prochaine vidéo. Sans espace libre, le cache est réduit ou désactivé."),
+   T("Vale para", "S’applique à"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "S’applique aux collections sans vue propre dans ce profil. Automatique conserve la vue d’origine. Choisissez Par défaut dans Affichage pour suivre à nouveau ce réglage."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "S'applique à ce profil. Au changement, la rangée est reconstruite aussitôt."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "S'applique uniquement à cette TV et à ce profil · ne modifie pas l'Accueil des autres appareils"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "S'applique uniquement à cette TV · ne modifie pas l'Accueil des autres appareils"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index e0559473b..8f0e350b1 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talk-show"),
+   T("Converter DTS para a TV ouvir", "DTS átalakítása, hogy a TV lejátssza"),
+   T("Cor", "Szín"),
++  T("Cor da borda", "Körvonal színe"),
+   T("Cor da logo", "Logó színe"),
+   T("Cor da segunda legenda", "A második felirat színe"),
+   T("Cor de destaque", "Kiemelőszín"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Példa és parancsikon"),
+   T("Exemplo ilustrativo", "Szemléltető példa"),
+   T("Exibição", "Megjelenítés"),
++  T("Exibição padrão das coleções", "Gyűjtemények alapértelmezett nézete"),
+   T("Exigir", "Kötelező"),
+   T("Expandir pôster ao focar", "Poszter nagyítása fókuszban"),
+   T("Experimental", "Kísérleti"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "A következő videótól érvényes. Ha a képernyő elsötétül, vagy megjelenik a tévé kezdőképernyője, kapcsold ki."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "A következő videótól érvényes. Szabad hely nélkül a gyorsítótár kisebb lesz vagy kikapcsol."),
+   T("Vale para", "Érvényes"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Az e profilban saját nézet nélküli gyűjteményekre érvényes. Az Automatikus megtartja az eredeti nézetet. A Nézet alatt az Alapértelmezett ismét ezt a beállítást követi."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Erre a profilra érvényes. Módosításkor a sor azonnal újraépül."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Csak erre a TV-re és profilra érvényes · nem változtatja a főoldalt más eszközökön"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Csak erre a TV-re érvényes · nem változtatja a főoldalt a többi eszközödön"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index d9b33578f..3471084f4 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Bicara"),
+   T("Converter DTS para a TV ouvir", "Ubah DTS agar bisa diputar TV"),
+   T("Cor", "Warna"),
++  T("Cor da borda", "Warna garis tepi"),
+   T("Cor da logo", "Warna logo"),
+   T("Cor da segunda legenda", "Warna subtitle kedua"),
+   T("Cor de destaque", "Warna aksen"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Contoh dan pintasan"),
+   T("Exemplo ilustrativo", "Contoh ilustrasi"),
+   T("Exibição", "Layar"),
++  T("Exibição padrão das coleções", "Tampilan koleksi bawaan"),
+   T("Exigir", "Wajibkan"),
+   T("Expandir pôster ao focar", "Perbesar poster saat fokus"),
+   T("Experimental", "Eksperimental"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Berlaku mulai video berikutnya. Jika layar menjadi hitam atau layar beranda TV muncul, matikan."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Berlaku mulai video berikutnya. Tanpa ruang kosong, cache menjadi lebih kecil atau mati."),
+   T("Vale para", "Berlaku untuk"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Berlaku untuk koleksi tanpa tampilan sendiri di profil ini. Otomatis mempertahankan tampilan asli. Pilih Bawaan pada Tampilan untuk mengikuti pengaturan ini lagi."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Berlaku untuk profil ini. Saat diubah, baris dibangun ulang seketika."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Berlaku hanya untuk TV dan profil ini · tidak mengubah Beranda di perangkat lain"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Berlaku hanya untuk TV ini · tidak mengubah Beranda di perangkat lainmu"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index 8455e4a53..84f7fa571 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Dialoghi"),
+   T("Converter DTS para a TV ouvir", "Convertire il DTS perché la TV lo riproduca"),
+   T("Cor", "Colore"),
++  T("Cor da borda", "Colore del contorno"),
+   T("Cor da logo", "Colore del logo"),
+   T("Cor da segunda legenda", "Colore del sottotitolo secondario"),
+   T("Cor de destaque", "Colore d'accento"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Esempio e scorciatoia"),
+   T("Exemplo ilustrativo", "Esempio illustrativo"),
+   T("Exibição", "Visualizzazione"),
++  T("Exibição padrão das coleções", "Vista predefinita delle raccolte"),
+   T("Exigir", "Richiedi"),
+   T("Expandir pôster ao focar", "Ingrandisci la locandina al focus"),
+   T("Experimental", "Sperimentale"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Vale dal prossimo video. Se lo schermo diventa nero o compare la schermata iniziale del TV, disattivalo."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Vale dal prossimo video. Senza spazio libero, la cache diventa più piccola o si disattiva."),
+   T("Vale para", "Vale per"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Vale per le raccolte senza una vista propria in questo profilo. Automatico mantiene la vista originale. Scegli Predefinito in Vista per seguire di nuovo questa impostazione."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Vale per questo profilo. Al cambio, la riga viene ricostruita subito."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Vale solo per questa TV e questo profilo · non cambia la Home sugli altri dispositivi"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Vale solo per questa TV · non cambia la Home sugli altri tuoi dispositivi"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index 2b8f5fbce..c9c4fe734 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "トーク"),
+   T("Converter DTS para a TV ouvir", "テレビで再生できるよう DTS を変換"),
+   T("Cor", "色"),
++  T("Cor da borda", "縁取りの色"),
+   T("Cor da logo", "ロゴの色"),
+   T("Cor da segunda legenda", "第2字幕の色"),
+   T("Cor de destaque", "アクセントカラー"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "例とショートカット"),
+   T("Exemplo ilustrativo", "イメージ例"),
+   T("Exibição", "表示"),
++  T("Exibição padrão das coleções", "コレクションの標準表示"),
+   T("Exigir", "必須"),
+   T("Expandir pôster ao focar", "フォーカス時にポスターを拡大"),
+   T("Experimental", "試験的"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "次の動画から適用されます。画面が黒くなったり、テレビのホーム画面が表示されたりした場合はオフにしてください。"),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "次の動画から適用されます。空き容量がない場合、キャッシュは小さくなるかオフになります。"),
+   T("Vale para", "適用範囲"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "このプロフィールで個別の表示設定がないコレクションに適用します。自動は元の表示を維持します。表示で「標準」を選ぶと、この設定に戻ります。"),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "このプロフィールに有効です。変更すると、行はすぐに作り直されます。"),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "このテレビとこのプロフィールにのみ適用 · 他の端末のホームは変わりません"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "このテレビにのみ適用 · 他の端末のホームは変わりません"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 1c882baa1..47b21252b 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Pokalbių laida"),
+   T("Converter DTS para a TV ouvir", "Konvertuoti DTS, kad televizorius jį grotų"),
+   T("Cor", "Spalva"),
++  T("Cor da borda", "Kontūro spalva"),
+   T("Cor da logo", "Logotipo spalva"),
+   T("Cor da segunda legenda", "Antrųjų subtitrų spalva"),
+   T("Cor de destaque", "Akcento spalva"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Pavyzdys ir nuoroda"),
+   T("Exemplo ilustrativo", "Iliustracinis pavyzdys"),
+   T("Exibição", "Vaizdas"),
++  T("Exibição padrão das coleções", "Numatytasis kolekcijų rodinys"),
+   T("Exigir", "Reikalauti"),
+   T("Expandir pôster ao focar", "Išplėsti plakatą fokusuojant"),
+   T("Experimental", "Eksperimentinis"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Galioja nuo kito vaizdo įrašo. Jei ekranas pajuoduoja arba atsiranda televizoriaus pradžios ekranas, išjunkite."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Galioja nuo kito vaizdo įrašo. Trūkstant laisvos vietos podėlis sumažėja arba išsijungia."),
+   T("Vale para", "Galioja"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Taikoma kolekcijoms be savo rodinio šiame profilyje. Automatinis išlaiko pradinį rodinį. Rodinio meniu pasirinkite Numatytasis, kad vėl būtų taikomas šis nustatymas."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Galioja šiam profiliui. Pakeitus eilutė iškart perkuriama."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Taikoma tik šiam televizoriui ir profiliui · nekeičia Pradžios kituose įrenginiuose"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Taikoma tik šiam televizoriui · nekeičia Pradžios jūsų kituose įrenginiuose"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index 8efa851ba..e8770f137 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Dialoog"),
+   T("Converter DTS para a TV ouvir", "DTS omzetten zodat de tv het afspeelt"),
+   T("Cor", "Kleur"),
++  T("Cor da borda", "Omtrekkleur"),
+   T("Cor da logo", "Logokleur"),
+   T("Cor da segunda legenda", "Kleur van tweede ondertitel"),
+   T("Cor de destaque", "Accentkleur"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Voorbeeld en snelkoppeling"),
+   T("Exemplo ilustrativo", "Voorbeeld"),
+   T("Exibição", "Weergave"),
++  T("Exibição padrão das coleções", "Standaardweergave voor collecties"),
+   T("Exigir", "Vereisen"),
+   T("Expandir pôster ao focar", "Poster vergroten bij focus"),
+   T("Experimental", "Experimenteel"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Geldt vanaf de volgende video. Wordt het scherm zwart of verschijnt het startscherm van de tv, zet het dan uit."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Geldt vanaf de volgende video. Zonder vrije ruimte wordt de cache kleiner of uitgeschakeld."),
+   T("Vale para", "Geldt voor"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Geldt voor collecties zonder eigen weergave in dit profiel. Automatisch behoudt de oorspronkelijke weergave. Kies Standaard bij Weergave om deze instelling weer te volgen."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Geldt voor dit profiel. Bij een wijziging wordt de rij meteen opnieuw opgebouwd."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Geldt alleen voor deze tv en dit profiel · verandert Start op andere apparaten niet"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Geldt alleen voor deze tv · verandert Start op je andere apparaten niet"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 50dac5624..d34336dc1 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talkshow"),
+   T("Converter DTS para a TV ouvir", "Konverter DTS så TV-en kan spille det"),
+   T("Cor", "Farge"),
++  T("Cor da borda", "Omrissfarge"),
+   T("Cor da logo", "Logoens farge"),
+   T("Cor da segunda legenda", "Farge på sekundær undertekst"),
+   T("Cor de destaque", "Aksentfarge"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Eksempel og snarvei"),
+   T("Exemplo ilustrativo", "Eksempelbilde"),
+   T("Exibição", "Visning"),
++  T("Exibição padrão das coleções", "Standardvisning for samlinger"),
+   T("Exigir", "Krev"),
+   T("Expandir pôster ao focar", "Utvid plakat ved fokus"),
+   T("Experimental", "Eksperimentell"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Gjelder fra neste video. Hvis skjermen blir svart eller TV-ens startskjerm vises, slå det av."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Gjelder fra neste video. Uten ledig plass blir bufferen mindre eller slås av."),
+   T("Vale para", "Gjelder for"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Gjelder samlinger uten egen visning i denne profilen. Automatisk beholder den opprinnelige visningen. Velg Standard under Visning for å følge innstillingen igjen."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Gjelder for denne profilen. Ved endring bygges raden om med en gang."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Gjelder bare denne TV-en og denne profilen · endrer ikke Hjem på andre enheter"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Gjelder bare denne TV-en · endrer ikke Hjem på de andre enhetene dine"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index 696d7b00c..a61ed2061 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Dialogi"),
+   T("Converter DTS para a TV ouvir", "Konwertuj DTS, by telewizor go odtworzył"),
+   T("Cor", "Kolor"),
++  T("Cor da borda", "Kolor obrysu"),
+   T("Cor da logo", "Kolor logo"),
+   T("Cor da segunda legenda", "Kolor drugich napisów"),
+   T("Cor de destaque", "Kolor akcentu"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Przykład i skrót"),
+   T("Exemplo ilustrativo", "Przykład poglądowy"),
+   T("Exibição", "Wyświetlanie"),
++  T("Exibição padrão das coleções", "Domyślny widok kolekcji"),
+   T("Exigir", "Wymagaj"),
+   T("Expandir pôster ao focar", "Powiększ plakat po zaznaczeniu"),
+   T("Experimental", "Eksperymentalne"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Działa od następnego wideo. Jeśli ekran zrobi się czarny lub pojawi się ekran główny telewizora, wyłącz tę opcję."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Działa od następnego wideo. Bez wolnego miejsca pamięć jest mniejsza lub wyłączona."),
+   T("Vale para", "Dotyczy"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Dotyczy kolekcji bez własnego widoku w tym profilu. Automatycznie zachowuje oryginalny widok. Wybierz Domyślny w menu Widok, aby ponownie używać tego ustawienia."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Dotyczy tego profilu. Po zmianie rząd jest od razu budowany na nowo."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Dotyczy tylko tego telewizora i tego profilu · nie zmienia ekranu głównego na innych urządzeniach"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Dotyczy tylko tego telewizora · nie zmienia ekranu głównego na Twoich innych urządzeniach"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index 505dae8ea..ec75e0cd5 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Conversa"),
+   T("Converter DTS para a TV ouvir", "Converter DTS para a TV reproduzir"),
+   T("Cor", "Cor"),
++  T("Cor da borda", "Cor do contorno"),
+   T("Cor da logo", "Cor do logótipo"),
+   T("Cor da segunda legenda", "Cor da segunda legenda"),
+   T("Cor de destaque", "Cor de destaque"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Exemplo e atalho"),
+   T("Exemplo ilustrativo", "Exemplo ilustrativo"),
+   T("Exibição", "Apresentação"),
++  T("Exibição padrão das coleções", "Vista predefinida das coleções"),
+   T("Exigir", "Exigir"),
+   T("Expandir pôster ao focar", "Expandir cartaz ao focar"),
+   T("Experimental", "Experimental"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Aplica-se a partir do próximo vídeo. Se o ecrã ficar preto ou aparecer o ecrã inicial do televisor, desligue."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Aplica-se a partir do próximo vídeo. Sem espaço livre, a cache fica menor ou desligada."),
+   T("Vale para", "Vale para"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Aplica-se a coleções sem uma vista própria neste perfil. Automático mantém a vista original. Em Vista, escolha Predefinido para voltar a seguir esta definição."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Vale para este perfil. Ao alterar, a fila é reconstruída de imediato."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Vale só nesta TV e neste perfil · não altera o Início dos outros dispositivos"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Vale só nesta TV · não altera o Início dos outros dispositivos"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index fc9cf7921..bc14fb2d3 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -1319,6 +1319,7 @@
+   T("Conversa", "Conversație"),
+   T("Converter DTS para a TV ouvir", "Convertește DTS ca televizorul să-l redea"),
+   T("Cor", "Culoare"),
++  T("Cor da borda", "Culoarea conturului"),
+   T("Cor da logo", "Culoarea logo-ului"),
+   T("Cor da segunda legenda", "Culoarea subtitrării secundare"),
+   T("Cor de destaque", "Culoare de accent"),
+@@ -1884,6 +1885,7 @@
+   T("Exemplo e atalho", "Exemplu și scurtătură"),
+   T("Exemplo ilustrativo", "Exemplu ilustrativ"),
+   T("Exibição", "Afișare"),
++  T("Exibição padrão das coleções", "Vizualizarea implicită a colecțiilor"),
+   T("Exigir", "Obligatoriu"),
+   T("Expandir pôster ao focar", "Mărește afișul la focus"),
+   T("Experimental", "Experimental"),
+@@ -4870,6 +4872,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Se aplică de la următorul videoclip. Dacă ecranul devine negru sau apare ecranul de pornire al televizorului, dezactivează opțiunea."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Se aplică de la următorul videoclip. Fără spațiu liber, cache-ul devine mai mic sau se oprește."),
+   T("Vale para", "Se aplică la"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Se aplică colecțiilor fără o vizualizare proprie în acest profil. Automat păstrează vizualizarea originală. Alege Implicit la Vizualizare pentru a urma din nou această setare."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Se aplică acestui profil. La schimbare, rândul se reconstruiește pe loc."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Se aplică doar pe acest televizor și acest profil · nu schimbă Acasă pe celelalte dispozitive"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Se aplică doar pe acest televizor · nu schimbă Acasă pe celelalte dispozitive"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 1a7bfaff0..a70a1dd9d 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -1319,6 +1319,7 @@
+   T("Conversa", "Разговор"),
+   T("Converter DTS para a TV ouvir", "Преобразовывать DTS, чтобы телевизор его воспроизвёл"),
+   T("Cor", "Цвет"),
++  T("Cor da borda", "Цвет контура"),
+   T("Cor da logo", "Цвет логотипа"),
+   T("Cor da segunda legenda", "Цвет вторых субтитров"),
+   T("Cor de destaque", "Цвет акцента"),
+@@ -1884,6 +1885,7 @@
+   T("Exemplo e atalho", "Пример и переход"),
+   T("Exemplo ilustrativo", "Иллюстративный пример"),
+   T("Exibição", "Отображение"),
++  T("Exibição padrão das coleções", "Вид коллекций по умолчанию"),
+   T("Exigir", "Требовать"),
+   T("Expandir pôster ao focar", "Увеличивать постер в фокусе"),
+   T("Experimental", "Экспериментальное"),
+@@ -4870,6 +4872,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Применяется со следующего видео. Если экран станет чёрным или появится главный экран телевизора, отключите параметр."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Действует со следующего видео. Если свободного места мало, кэш уменьшается или отключается."),
+   T("Vale para", "Действует для"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Применяется к коллекциям без своего вида в этом профиле. Автоматически сохраняет исходный вид. В меню Вид выберите По умолчанию, чтобы снова применять эту настройку."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Действует для этого профиля. При изменении ряд сразу перестраивается."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Действует только на этом телевизоре и этом профиле · не меняет главную на других устройствах"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Действует только на этом телевизоре · не меняет главную на других устройствах"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index 1d458b783..64cc06e89 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talk"),
+   T("Converter DTS para a TV ouvir", "Prevádzať DTS, aby ho televízor prehral"),
+   T("Cor", "Farba"),
++  T("Cor da borda", "Farba obrysu"),
+   T("Cor da logo", "Farba loga"),
+   T("Cor da segunda legenda", "Farba druhých titulkov"),
+   T("Cor de destaque", "Farba zvýraznenia"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Príklad a skratka"),
+   T("Exemplo ilustrativo", "Ilustračná ukážka"),
+   T("Exibição", "Zobrazenie"),
++  T("Exibição padrão das coleções", "Predvolené zobrazenie kolekcií"),
+   T("Exigir", "Vyžadovať"),
+   T("Expandir pôster ao focar", "Zväčšiť plagát pri fokuse"),
+   T("Experimental", "Experimentálne"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Platí od ďalšieho videa. Ak obrazovka sčernie alebo sa zobrazí domovská obrazovka televízora, vypnite to."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Platí od ďalšieho videa. Bez voľného miesta je pamäť menšia alebo vypnutá."),
+   T("Vale para", "Platí pre"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Platí pre kolekcie bez vlastného zobrazenia v tomto profile. Automaticky zachová pôvodné zobrazenie. V ponuke Zobrazenie vyberte Predvolené a znova sa použije toto nastavenie."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Platí pre tento profil. Po zmene sa rad okamžite znova zostaví."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Platí len pre tento televízor a tento profil · nemení domovskú obrazovku na iných zariadeniach"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Platí len pre tento televízor · nemení domovskú obrazovku na vašich ďalších zariadeniach"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index b13170896..e824bd83e 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Pogovor"),
+   T("Converter DTS para a TV ouvir", "Pretvori DTS, da ga TV predvaja"),
+   T("Cor", "Barva"),
++  T("Cor da borda", "Barva obrobe"),
+   T("Cor da logo", "Barva logotipa"),
+   T("Cor da segunda legenda", "Barva drugih podnapisov"),
+   T("Cor de destaque", "Barva poudarka"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Primer in bližnjica"),
+   T("Exemplo ilustrativo", "Ponazoritveni primer"),
+   T("Exibição", "Prikaz"),
++  T("Exibição padrão das coleções", "Privzeti pogled zbirk"),
+   T("Exigir", "Zahtevaj"),
+   T("Expandir pôster ao focar", "Povečaj plakat ob fokusu"),
+   T("Experimental", "Eksperimentalno"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Velja od naslednjega videa. Če zaslon postane črn ali se prikaže začetni zaslon televizorja, to izklopite."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Velja od naslednjega videa. Brez prostega prostora je predpomnilnik manjši ali izklopljen."),
+   T("Vale para", "Velja za"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Velja za zbirke brez lastnega pogleda v tem profilu. Samodejno ohrani prvotni pogled. V meniju Pogled izberite Privzeto za ponovno uporabo te nastavitve."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Velja za ta profil. Ob spremembi se vrstica takoj znova sestavi."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Velja samo za ta televizor in ta profil · ne spremeni domačega zaslona na drugih napravah"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Velja samo za ta televizor · ne spremeni domačega zaslona na vaših drugih napravah"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index da624aa0e..81a4dfa60 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talk show"),
+   T("Converter DTS para a TV ouvir", "Pretvori DTS da ga TV pusti"),
+   T("Cor", "Boja"),
++  T("Cor da borda", "Boja konture"),
+   T("Cor da logo", "Boja logotipa"),
+   T("Cor da segunda legenda", "Boja drugog titla"),
+   T("Cor de destaque", "Akcentna boja"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Primer i prečica"),
+   T("Exemplo ilustrativo", "Ilustrativni primer"),
+   T("Exibição", "Prikaz"),
++  T("Exibição padrão das coleções", "Podrazumevani prikaz kolekcija"),
+   T("Exigir", "Zahtevaj"),
+   T("Expandir pôster ao focar", "Proširi poster na fokusu"),
+   T("Experimental", "Eksperimentalno"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Važi od sledećeg videa. Ako ekran postane crn ili se pojavi početni ekran televizora, isključite."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Važi od sledećeg videa. Bez slobodnog prostora keš je manji ili isključen."),
+   T("Vale para", "Važi za"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Važi za kolekcije bez sopstvenog prikaza u ovom profilu. Automatski zadržava izvorni prikaz. U meniju Prikaz izaberite Podrazumevano da ponovo pratite ovo podešavanje."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Važi za ovaj profil. Pri promeni se red odmah ponovo gradi."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Važi samo za ovaj TV i ovaj profil · ne menja Početnu na drugim uređajima"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Važi samo za ovaj TV · ne menja Početnu na vašim drugim uređajima"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index ef6ba47d5..c11147465 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Talkshow"),
+   T("Converter DTS para a TV ouvir", "Konvertera DTS så att TV:n kan spela det"),
+   T("Cor", "Färg"),
++  T("Cor da borda", "Konturfärg"),
+   T("Cor da logo", "Logotypens färg"),
+   T("Cor da segunda legenda", "Färg på andra undertext"),
+   T("Cor de destaque", "Accentfärg"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Exempel och genväg"),
+   T("Exemplo ilustrativo", "Exempelbild"),
+   T("Exibição", "Visning"),
++  T("Exibição padrão das coleções", "Standardvy för samlingar"),
+   T("Exigir", "Kräv"),
+   T("Expandir pôster ao focar", "Expandera affisch vid fokus"),
+   T("Experimental", "Experimentell"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Gäller från nästa video. Om skärmen blir svart eller tv:ns startskärm visas, stäng av det."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Gäller från nästa video. Utan ledigt utrymme blir cachen mindre eller stängs av."),
+   T("Vale para", "Gäller för"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Gäller samlingar utan egen vy i den här profilen. Automatisk behåller den ursprungliga vyn. Välj Standard under Vy för att följa inställningen igen."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Gäller för den här profilen. Vid ändring byggs raden om direkt."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Gäller bara den här TV:n och den här profilen · ändrar inte Hem på andra enheter"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Gäller bara den här TV:n · ändrar inte Hem på dina andra enheter"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index db1554a3e..c0bcd7bf6 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -1319,6 +1319,7 @@
+   { "Conversa", "Talk" },
+   { "Converter DTS para a TV ouvir", "Convert DTS so the TV can play it" },
+   { "Cor", "Color" },
++  { "Cor da borda", "Outline color" },
+   { "Cor da logo", "Logo color" },
+   { "Cor da segunda legenda", "Second subtitle color" },
+   { "Cor de destaque", "Accent color" },
+@@ -1884,6 +1885,7 @@
+   { "Exemplo e atalho", "Example and shortcut" },
+   { "Exemplo ilustrativo", "Illustrative example" },
+   { "Exibição", "Display" },
++  { "Exibição padrão das coleções", "Default collection view" },
+   { "Exigir", "Require" },
+   { "Expandir pôster ao focar", "Expand poster on focus" },
+   { "Experimental", "Experimental" },
+@@ -4870,6 +4872,7 @@
+   { "Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Applies from the next video. If the screen goes black or the TV home screen appears, turn it off." },
+   { "Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Applies from the next video. Without free space, the cache gets smaller or turns off." },
+   { "Vale para", "Applies to" },
++  { "Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Applies to collections without their own view in this profile. Automatic keeps the original view. Choose Default under Display to follow this setting again." },
+   { "Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Applies to this profile. On change, the row is rebuilt right away." },
+   { "Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Applies to this TV and this profile only · does not change Home on other devices" },
+   { "Vale só nesta TV · não altera a Home dos outros aparelhos", "Applies to this TV only · does not change Home on your other devices" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index 061a09bf6..880a3a526 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Diyalog"),
+   T("Converter DTS para a TV ouvir", "TV’nin çalabilmesi için DTS’yi dönüştür"),
+   T("Cor", "Renk"),
++  T("Cor da borda", "Anahat rengi"),
+   T("Cor da logo", "Logo rengi"),
+   T("Cor da segunda legenda", "İkincil altyazı rengi"),
+   T("Cor de destaque", "Vurgu rengi"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Örnek ve kısayol"),
+   T("Exemplo ilustrativo", "Örnek görsel"),
+   T("Exibição", "Görüntü"),
++  T("Exibição padrão das coleções", "Varsayılan koleksiyon görünümü"),
+   T("Exigir", "Zorunlu"),
+   T("Expandir pôster ao focar", "Odakta afişi büyüt"),
+   T("Experimental", "Deneysel"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Bir sonraki videodan itibaren geçerlidir. Ekran kararırsa veya TV'nin ana ekranı görünürse kapatın."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Sonraki videodan itibaren geçerlidir. Boş alan yoksa önbellek küçülür veya kapanır."),
+   T("Vale para", "Geçerli olduğu yer"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Bu profilde kendi görünümü olmayan koleksiyonlar için geçerlidir. Otomatik, özgün görünümü korur. Bu ayarı yeniden izlemek için Görünüm altında Varsayılanı seçin."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Bu profil için geçerlidir. Değiştirince satır hemen yeniden oluşturulur."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Yalnızca bu TV ve bu profil için geçerli · diğer cihazlardaki Ana ekranı değiştirmez"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Yalnızca bu TV için geçerli · diğer cihazlarındaki Ana ekranı değiştirmez"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index b788829d4..447445c7d 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -1319,6 +1319,7 @@
+   T("Conversa", "Розмова"),
+   T("Converter DTS para a TV ouvir", "Перетворювати DTS, щоб телевізор його відтворив"),
+   T("Cor", "Колір"),
++  T("Cor da borda", "Колір контуру"),
+   T("Cor da logo", "Колір логотипа"),
+   T("Cor da segunda legenda", "Колір других субтитрів"),
+   T("Cor de destaque", "Колір акценту"),
+@@ -1884,6 +1885,7 @@
+   T("Exemplo e atalho", "Приклад і перехід"),
+   T("Exemplo ilustrativo", "Ілюстративний приклад"),
+   T("Exibição", "Відображення"),
++  T("Exibição padrão das coleções", "Типовий вигляд колекцій"),
+   T("Exigir", "Вимагати"),
+   T("Expandir pôster ao focar", "Збільшувати постер у фокусі"),
+   T("Experimental", "Експериментальне"),
+@@ -4870,6 +4872,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Діє з наступного відео. Якщо екран стане чорним або з'явиться головний екран телевізора, вимкніть параметр."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Діє з наступного відео. Якщо бракує вільного місця, кеш стає меншим або вимикається."),
+   T("Vale para", "Діє для"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Діє для колекцій без власного вигляду в цьому профілі. Автоматично зберігає початковий вигляд. У меню Вигляд виберіть Типовий, щоб знову застосовувати це налаштування."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Діє для цього профілю. Після зміни ряд одразу перебудовується."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Діє лише на цьому телевізорі та цьому профілі · не змінює головну на інших пристроях"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Діє лише на цьому телевізорі · не змінює головну на інших пристроях"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 1888af97e..4962a7699 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "Trò chuyện"),
+   T("Converter DTS para a TV ouvir", "Chuyển DTS để TV phát được"),
+   T("Cor", "Màu"),
++  T("Cor da borda", "Màu viền"),
+   T("Cor da logo", "Màu logo"),
+   T("Cor da segunda legenda", "Màu phụ đề thứ hai"),
+   T("Cor de destaque", "Màu nhấn"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "Ví dụ và lối tắt"),
+   T("Exemplo ilustrativo", "Ví dụ minh họa"),
+   T("Exibição", "Hiển thị"),
++  T("Exibição padrão das coleções", "Chế độ xem bộ sưu tập mặc định"),
+   T("Exigir", "Bắt buộc"),
+   T("Expandir pôster ao focar", "Phóng to poster khi chọn"),
+   T("Experimental", "Thử nghiệm"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "Áp dụng từ video tiếp theo. Nếu màn hình chuyển đen hoặc màn hình chính của TV xuất hiện, hãy tắt."),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "Áp dụng từ video tiếp theo. Khi thiếu dung lượng trống, bộ nhớ đệm nhỏ lại hoặc tắt."),
+   T("Vale para", "Áp dụng cho"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "Áp dụng cho bộ sưu tập chưa có chế độ xem riêng trong hồ sơ này. Tự động giữ chế độ xem ban đầu. Chọn Mặc định trong Chế độ xem để dùng lại thiết lập này."),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "Áp dụng cho hồ sơ này. Khi đổi, hàng được dựng lại ngay."),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "Chỉ áp dụng cho TV và hồ sơ này · không đổi Trang chủ trên thiết bị khác"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "Chỉ áp dụng cho TV này · không đổi Trang chủ trên các thiết bị khác của bạn"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 49d9932e8..a39226bd1 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "对话"),
+   T("Converter DTS para a TV ouvir", "转换 DTS 以便电视播放"),
+   T("Cor", "颜色"),
++  T("Cor da borda", "描边颜色"),
+   T("Cor da logo", "Logo 颜色"),
+   T("Cor da segunda legenda", "第二字幕颜色"),
+   T("Cor de destaque", "强调色"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "示例和快捷方式"),
+   T("Exemplo ilustrativo", "示意图"),
+   T("Exibição", "显示"),
++  T("Exibição padrão das coleções", "收藏集默认视图"),
+   T("Exigir", "必须"),
+   T("Expandir pôster ao focar", "聚焦时放大海报"),
+   T("Experimental", "实验性"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "从下一个视频开始生效。如果屏幕变黑或出现电视主屏幕，请关闭。"),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "从下一个视频开始生效。可用空间不足时，缓存会变小或关闭。"),
+   T("Vale para", "适用于"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "适用于此个人资料中没有单独视图设置的收藏集。自动保留原始视图。在显示中选择默认，即可重新跟随此设置。"),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "对此档案有效。更改后,该行会立即重建。"),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "仅适用于这台电视和此个人资料 · 不会改变其他设备的主页"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "仅适用于这台电视 · 不会改变其他设备的主页"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index fb4c39430..a58a9f29c 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -1320,6 +1320,7 @@
+   T("Conversa", "對話"),
+   T("Converter DTS para a TV ouvir", "轉換 DTS 以便電視播放"),
+   T("Cor", "顏色"),
++  T("Cor da borda", "描邊顏色"),
+   T("Cor da logo", "Logo 顏色"),
+   T("Cor da segunda legenda", "第二字幕顏色"),
+   T("Cor de destaque", "強調色"),
+@@ -1885,6 +1886,7 @@
+   T("Exemplo e atalho", "示例和捷徑"),
+   T("Exemplo ilustrativo", "示意圖"),
+   T("Exibição", "顯示"),
++  T("Exibição padrão das coleções", "收藏集預設檢視"),
+   T("Exigir", "必須"),
+   T("Expandir pôster ao focar", "聚焦時放大海報"),
+   T("Experimental", "實驗性"),
+@@ -4871,6 +4873,7 @@
+   T("Vale a partir do próximo vídeo. Se a tela ficar preta ou aparecer a tela inicial da TV, desligue.", "從下一部影片開始生效。如果螢幕變黑或出現電視主畫面，請關閉。"),
+   T("Vale a partir do próximo vídeo. Sem espaço livre, o cache fica menor ou desligado.", "從下一部影片開始生效。可用空間不足時，快取會變小或關閉。"),
+   T("Vale para", "適用於"),
++  T("Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.", "適用於此個人檔案中沒有個別檢視設定的收藏集。自動保留原始檢視。在顯示中選擇預設，即可重新跟隨此設定。"),
+   T("Vale para este perfil. Ao mudar, a fileira é remontada na hora.", "對此設定檔有效。變更後,該列會立即重建。"),
+   T("Vale só nesta TV e neste perfil · não altera a Home dos outros aparelhos", "僅適用於這台電視和此個人檔案 · 不會改變其他裝置的首頁"),
+   T("Vale só nesta TV · não altera a Home dos outros aparelhos", "僅適用於這台電視 · 不會改變其他裝置的首頁"),
+diff --git a/src/legendasui.c b/src/legendasui.c
+index 6dd429638..3043ea7c9 100644
+--- a/src/legendasui.c
++++ b/src/legendasui.c
+@@ -1116,7 +1116,7 @@ static void visualLinha(TxtFamilia fam, TxtEstilo est, char *linha) {
+   if (txt_bidi_legenda(fam, est, linha, v, sizeof v) > 0) memcpy(linha, v, strlen(v) + 1);
+ }
+ 
+-static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int borda,
++static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int borda, unsigned corBorda,
+                    float maxW, Leg2Linha *out, int max) {
+   char texto[768], *linha, *salva;
+   TxtFamilia fam = (TxtFamilia)player_leg_estilo()->familia;
+@@ -1131,7 +1131,7 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int
+         if (n >= max) break;
+         visualLinha(fam, est, atual);
+         out[n].cor = txt_linha_corta_enfase(est, atual, r, g, b, 255, maxW, fam, enf);
+-        out[n].borda = borda ? txt_linha_corta_enfase(est, atual, 0, 0, 0, 255, maxW, fam, enf) : (TxtLinha){0};
++        out[n].borda = borda ? txt_linha_corta_enfase(est, atual, (corBorda >> 16) & 255, (corBorda >> 8) & 255, corBorda & 255, 255, maxW, fam, enf) : (TxtLinha){0};
+         n++;
+         snprintf(atual, sizeof atual, "%s", pal);
+       } else snprintf(atual, sizeof atual, "%s", tent);
+@@ -1139,7 +1139,7 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int
+     if (atual[0] && n < max) {
+       visualLinha(fam, est, atual);
+       out[n].cor = txt_linha_corta_enfase(est, atual, r, g, b, 255, maxW, fam, enf);
+-      out[n].borda = borda ? txt_linha_corta_enfase(est, atual, 0, 0, 0, 255, maxW, fam, enf) : (TxtLinha){0};
++      out[n].borda = borda ? txt_linha_corta_enfase(est, atual, (corBorda >> 16) & 255, (corBorda >> 8) & 255, corBorda & 255, 255, maxW, fam, enf) : (TxtLinha){0};
+       n++;
+     }
+   }
+@@ -1192,7 +1192,7 @@ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
+     }
+   }
+   for (i = 0; i < n && nl < LEG2_LINHAS; i++)
+-    nl += quebrar(&cues[i], est, r, gg, b, borda, x1 - x0, ln + nl, LEG2_LINHAS - nl);
++    nl += quebrar(&cues[i], est, r, gg, b, borda, video_legenda_borda_rgb(e->corBorda), x1 - x0, ln + nl, LEG2_LINHAS - nl);
+   if (g->junto) {
+     // Stacked: the whole block ends just above the primary (2-line cues grow
+     // upward, never over it) and stays inside the picture.
+@@ -1233,7 +1233,7 @@ float legendasui_altura_secundaria(const LegendasGeo *g) {
+   if (n <= 0) return 0.0f;
+   estiloSecundario(e, &est, &r, &gg, &b, &fundo, &borda);
+   for (i = 0; i < n && nl < LEG2_LINHAS; i++)
+-    nl += quebrar(&cues[i], est, r, gg, b, borda, larguraSecundaria(), ln + nl, LEG2_LINHAS - nl);
++    nl += quebrar(&cues[i], est, r, gg, b, borda, video_legenda_borda_rgb(e->corBorda), larguraSecundaria(), ln + nl, LEG2_LINHAS - nl);
+   for (i = 0; i < nl; i++) altura += (float)ln[i].cor.h + (i ? 5.0f : 0.0f);
+   return altura;
+ }
+diff --git a/src/plainass.h b/src/plainass.h
+index 43a819771..14bce3290 100644
+--- a/src/plainass.h
++++ b/src/plainass.h
+@@ -7,6 +7,7 @@
+ typedef struct {
+   char font[96];
+   int size, rgb, background, border, bold, marginV;
++  int outlineRgb;   // 0xRRGGBB; zero preserves the existing black edge
+ } PlainAssStyle;
+ 
+ int plainass_has_arabic(const char *text);
+diff --git a/src/player.c b/src/player.c
+index bf966edbf..1ee0b2d4a 100644
+--- a/src/player.c
++++ b/src/player.c
+@@ -1101,6 +1101,7 @@ static void prefsLer(void) {
+     else if (!strcmp(chave, "leg_fundo")   && v >= 0 && v <= 4)  legEstilo.fundo = v;
+     else if (!strcmp(chave, "leg_pos")     && v >= 0 && v <= 7)  legEstilo.posicao = v;
+     else if (!strcmp(chave, "leg_borda")   && v >= 0 && v <= 2)  legEstilo.borda = v;
++    else if (!strcmp(chave, "leg_cor_borda") && v >= 0 && v < VIDEO_LEG_NCORES) legEstilo.corBorda = v;
+     else if (!strcmp(chave, "leg_atraso")  && v >= -LEG_ATRASO_MANUAL_MAX && v <= LEG_ATRASO_MANUAL_MAX) legEstilo.atrasoMs = v;
+     else if (!strcmp(chave, "leg_opacidade") && v >= 0 && v <= 3) legEstilo.opacidade = v;
+     else if (!strcmp(chave, "leg_familia") && v >= 0 && v < TXT_FAMILIA_N) legEstilo.familia = v;
+@@ -1124,6 +1125,7 @@ static void prefsGravar(void) {
+   fprintf(f, "leg_familia %d\n", legEstilo.familia);
+   fprintf(f, "leg_negrito %d\n", legEstilo.negrito);
+   fprintf(f, "leg_tocado %d\n", legTocado);
++  fprintf(f, "leg_cor_borda %d\n", legEstilo.corBorda);
+   fclose(f);
+   dados_marcar_sujo(0);   // IDBFS (Samsung): ver o gravador de ajustes.c
+ }
+@@ -4315,7 +4317,8 @@ static void blocoLinha(LegBloco *bl, TxtEstilo est, const char *linha, int r, in
+   // Latin text comes back byte-identical.
+   if (txt_bidi_legenda(fam, est, linha, visual, sizeof visual) > 0) linha = visual;
+   bl->cor[bl->n]   = txt_linha_corta_enfase(est, linha, r, g, b, 255, PLR_LEG_LARG, fam, enf);
+-  bl->borda[bl->n] = legEstilo.borda ? txt_linha_corta_enfase(est, linha, 0, 0, 0, 255, PLR_LEG_LARG, fam, enf) : (TxtLinha){0};
++  { unsigned cor = video_legenda_borda_rgb(legEstilo.corBorda);
++    bl->borda[bl->n] = legEstilo.borda ? txt_linha_corta_enfase(est, linha, (cor >> 16) & 255, (cor >> 8) & 255, cor & 255, 255, PLR_LEG_LARG, fam, enf) : (TxtLinha){0}; }
+   if (bl->cor[bl->n].w > bl->w) bl->w = bl->cor[bl->n].w;
+   bl->h += bl->cor[bl->n].h + (bl->n ? 5 : 0);
+   bl->n++;
+@@ -4546,6 +4549,7 @@ static void desenharLegendaPrincipal(float *topoPilha){
+       style.rgb = (r << 16) | (g << 8) | b;
+       style.background = legEstilo.fundo >= 0 && legEstilo.fundo <= 4 ? legEstilo.fundo : 0;
+       style.border = legEstilo.borda; style.bold = legEstilo.negrito;
++      style.outlineRgb = (int)video_legenda_borda_rgb(legEstilo.corBorda);
+       style.marginV = (int)(1080.f - base);
+       assrender_definir_texto_estilo(&style);
+       /* Plain captions follow the old screen-space layout; authored ASS
+diff --git a/src/vertudo.c b/src/vertudo.c
+index 67c14b175..e8a0e86d2 100644
+--- a/src/vertudo.c
++++ b/src/vertudo.c
+@@ -146,7 +146,7 @@ static char catalogId[96];
+ // abas, e a escolha fica gravada por perfil e por pasta.
+ //
+ // AUTOMATICO (layAuto): Diretores = linha do tempo; todas as outras pastas
+-// usam Grade. As outras exibicoes so entram pela escolha no botao.
++// usam Grade. O ajuste global ou a escolha da pasta pode usar outra exibicao.
+ //
+ // TODAS AS EXIBICOES SAO A MESMA TELA: uma tabela de celulas (posicao e caixa
+ // de cada titulo, relativas ao inicio da grade) montada uma vez por mudanca, e
+@@ -156,12 +156,8 @@ static char catalogId[96];
+ // CUSTO NA TV: nenhuma passada de blur, nenhuma textura nova por quadro. As
+ // artes saem do mesmo tex_cache por largura; Mural pede a arte deitada, que o
+ // cache ja tem das fileiras da home.
+-typedef enum {
+-  VT_LAY_AUTO = 0, VT_LAY_GRADE, VT_LAY_LINHA, VT_LAY_RANKING,
+-  VT_LAY_SAGA, VT_LAY_DECADAS, VT_LAY_MURAL, VT_LAY_VITRINE, VT_LAY_N
+-} VtLayout;
+ static const char *LAY_NOME[VT_LAY_N] = {
+-  "Automático", "Grade", "Linha do tempo", "Ranking", "Saga", "Décadas", "Mural", "Vitrine"
++  "Padrão", "Grade", "Linha do tempo", "Ranking", "Saga", "Décadas", "Mural", "Vitrine"
+ };
+ static int layEscolha;            // gravada (VT_LAY_AUTO = nunca escolheu)
+ static int semVitrineAuto;        // aberta por vertudo_abrir (ver layAuto)
+@@ -349,9 +345,17 @@ static void gravarEscolha(const ColFolder *pasta, int v) {
+   if (!pasta) return;
+   chavePasta(pasta, k, sizeof k);
+   n = lerEscolhas(chaves, vals);
+-  for (i = 0; i < n; i++) if (!strcmp(chaves[i], k)) { vals[i] = v; achou = 1; }
++  for (i = 0; i < n; i++) if (!strcmp(chaves[i], k)) {
++    achou = 1;
++    if (v == VT_LAY_AUTO) {
++      memmove(chaves + i, chaves + i + 1, sizeof chaves[0] * (size_t)(n - i - 1));
++      memmove(vals + i, vals + i + 1, sizeof vals[0] * (size_t)(n - i - 1));
++      n--; i--; continue;
++    }
++    vals[i] = v;
++  }
+   // Cheio: a mais antiga sai (a lista e um historico, nao um cadastro).
+-  if (!achou) {
++  if (!achou && v != VT_LAY_AUTO) {
+     if (n == VT_ESC_MAX) { memmove(chaves, chaves + 1, sizeof chaves[0] * (VT_ESC_MAX - 1));
+                            memmove(vals, vals + 1, sizeof vals[0] * (VT_ESC_MAX - 1)); n--; }
+     snprintf(chaves[n], 160, "%s", k); vals[n++] = v;
+@@ -372,10 +376,16 @@ static int contem(const char *s, const char *termo) {
+ // AUTOMATICO, pelo conteudo da pasta. Ver o cabecalho de VtLayout.
+ static int layAuto(void) {
+   if (!collection) return VT_LAY_GRADE;
++  // An explicit collection choice is resolved first. A single-catalog
++  // See all must stay on its own list, even if it belongs to a collection.
++  if (!semVitrineAuto) {
++    int padrao = ajustes_colecao_exibicao();
++    if (padrao > VT_LAY_AUTO && padrao < VT_LAY_N) return padrao;
++  }
+   if (grupo("Directors")) return VT_LAY_LINHA;
+   // O PADRAO E O DA 2.0.3: Grade para toda pasta (com ou sem abas); so o
+   // Diretor vai para a Linha do tempo, como ja ia. Ranking, Saga, Decadas, Mural
+-  // e Vitrine so entram quando o dono escolhe no botao "Exibição".
++  // e Vitrine entram pela escolha global ou pelo botao "Exibição".
+   return VT_LAY_GRADE;
+ }
+ static void resolverLayout(void) {
+@@ -1021,7 +1031,7 @@ static int primeiraFonte(void) {
+ }
+ // A PROXIMA EXIBICAO, e ela fica gravada para esta pasta (o botao "Exibição").
+ static void alternarExibicao(void) {
+-  int antes = lay, prox = lay % (VT_LAY_N - 1) + 1;
++  int antes = lay, prox = (layEscolha + 1) % VT_LAY_N;
+   layEscolha = prox; gravarEscolha(collection, prox);
+   resolverLayout(); foco = 0; scrollY = velY = 0; armarOnda();
+   if (lay != antes && (lay == VT_LAY_VITRINE || antes == VT_LAY_VITRINE)) {
+@@ -1483,7 +1493,7 @@ static void themeHeader(float a,float x0) {
+     // quase transparentes. `tabAnim` cruza o repouso e o foco em vez de
+     // escalar.
+     // A faixa termina antes da coluna do painel: ali mora o botao "Exibição".
+-    const float H=52.0f,PAD=22.0f,GAP=12.0f,W=vtTelefone()?vtFim()-x0:VT_PAN_X-x0-28;
++    const float H=52.0f,PAD=22.0f,GAP=12.0f,W=VT_PAN_X-x0-28;
+     float margem = vtTelefone() ? 0.0f : 6.0f;
+     float textoW = vtTelefone() ? fminf(420.0f, W-PAD*2) : 420.0f;
+     float larg[COL_SOURCE_MAX],pos[COL_SOURCE_MAX],px=0;
+@@ -1516,7 +1526,8 @@ static void themeHeader(float a,float x0) {
+     // entao "seis por vez" nao existe mais. A aba com o cursor (ou a aberta,
+     // quando o cursor esta na grade) entra inteira; a rolagem so anda o que
+     // precisa, e o resto da faixa fica onde estava.
+-    int alvo=tabFocus?tabCursor:source;
++    int alvo=tabFocus && tabCursor>=0 && tabCursor<nAbas ? tabCursor : source;
++    if(alvo<0 || alvo>=nAbas)alvo=0;
+     float ini=pos[alvo],fim=pos[alvo]+larg[alvo];
+ #ifdef NV_TOUCH_UI
+     if (!toquerol_livre(&toqueAbas))
+@@ -1780,15 +1791,35 @@ static void cabecalhoDecada(int k, float x0, float y, float a) {
+ // preenchimento no acento das abas e a dica de que OK troca.
+ // SEM ABAS (uma fonte so) ele vai para o inicio da faixa, onde as abas
+ // estariam: a coluna do painel e do retrato do diretor fica livre.
++#ifdef NV_TOUCH_UI
++static void toqueExibicao(int a, int b) {
++  (void)a; (void)b;
++  if (!vtTelefone() || !collection || !aberta) return;
++  toqueLivre = 0; toquerol_limpar(&toqueAbas);
++  tabFocus = 1; tabCursor = nAbas();
++  alternarExibicao();
++}
++#endif
+ static void botaoExibicao(float a, float x0) {
+   float x = nAbas() ? VT_PAN_X : x0, y = 253.0f, H = 52.0f;
+   float maxW = nAbas() && grupo("Directors") ? 172.0f : VT_PAN_W;
+   float f = pillAnim, sr, sg, sb;
+   int cor = f > 0.5f ? ajustes_tinta_foco() : 214;
+-  TxtLinha t = txt_linha_corta(TXT_HERO_META, LAY_NOME[lay], cor, cor, cor, 255, maxW - 70.0f);
++  TxtLinha t = txt_linha_corta(TXT_HERO_META, LAY_NOME[layEscolha], cor, cor, cor, 255, maxW - 70.0f);
+   // VITRINE: no canto de cima, a direita do nome da colecao.
+   if (lay == VT_LAY_VITRINE) { x = NV_TELA_W - 104.0f - (t.w + 70.0f); y = 40.0f; }
+   GfxRect pill = { x, y, t.w + 70.0f, H };
++#ifdef NV_TOUCH_UI
++  if (vtTelefone()) {
++    // The drawing stays unchanged; reserve a 48dp touch target in the header.
++    float minimo = 144.0f / vtEscala();
++    float hitW = fmaxf(pill.w, minimo), hitH = fmaxf(pill.h, minimo);
++    float hitX = fminf(pill.x, NV_TELA_W - 48.0f - hitW);
++    float hitY = fmaxf(0.0f, pill.y + (pill.h - hitH) * .5f);
++    if (lay != VT_LAY_VITRINE) hitY = fminf(hitY, VT_TOPO - 12.0f - hitH);
++    ponteiro_alvo(hitX, hitY, hitW, hitH, NULL, toqueExibicao, 0, 0);
++  }
++#endif
+   corFocoFonte(&sr, &sg, &sb);
+   // Sobre a arte do destaque a pilula precisa de fundo proprio para ler.
+   if (lay == VT_LAY_VITRINE) gfx_cor(pill, NV_RAIO_PILL, 0, 0, 0, 0.42f * a * (1.0f - f));
+diff --git a/src/vertudo.h b/src/vertudo.h
+index 0266404b4..4d8df04a7 100644
+--- a/src/vertudo.h
++++ b/src/vertudo.h
+@@ -14,6 +14,12 @@
+ #define NV_VERTUDO_H
+ #include <SDL2/SDL.h>
+ #include "colecoes.h"
++// IDs persistidos por colecao e compartilhados pelo ajuste global. Acrescentar
++// novas exibicoes somente no fim; zero e automatico no global e herda-o na pasta.
++typedef enum {
++  VT_LAY_AUTO = 0, VT_LAY_GRADE, VT_LAY_LINHA, VT_LAY_RANKING,
++  VT_LAY_SAGA, VT_LAY_DECADAS, VT_LAY_MURAL, VT_LAY_VITRINE, VT_LAY_N
++} VtLayout;
+ void vertudo_colecao(const ColFolder *folder);
+ 
+ // Abre com o catalogo de uma fileira da home.
+diff --git a/src/video.h b/src/video.h
+index cde493fa0..e6c423038 100644
+--- a/src/video.h
++++ b/src/video.h
+@@ -408,9 +408,17 @@ typedef struct {
+   int opacidade;  // 0..3 = texto 100/75/50/25%
+   int familia;    // TxtFamilia; aplicada ao overlay externo (OpenSubtitles)
+   int negrito;    // 1 = peso negrito no overlay (so o que o app desenha)
++  int corBorda;   // 0 preto (padrao), 1 branco, 2 amarelo, 3 verde, 4 azul, 5 vermelho
+ } VideoLegendaEstilo;
+ 
+ #define VIDEO_LEG_NCORES 6
++// A borda tem preto puro como padrao; as demais amostras usam a paleta do texto.
++static inline unsigned video_legenda_borda_rgb(int indice) {
++  static const unsigned cores[VIDEO_LEG_NCORES] = {
++    0x000000u, 0xffffffu, 0xffde30u, 0x40e070u, 0x4e9cffu, 0xff5050u
++  };
++  return cores[indice >= 0 && indice < VIDEO_LEG_NCORES ? indice : 0];
++}
+ // Nomes que o uMS aceita em charColor. Expostos porque a folha desenha os
+ // rotulos e precisa da mesma ordem.
+ extern const char *const VIDEO_LEG_CORES[VIDEO_LEG_NCORES];

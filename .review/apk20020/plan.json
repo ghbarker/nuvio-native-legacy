@@ -1,0 +1,155 @@
+{
+  "format": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "review_only": false,
+  "launch_requires_root_review": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "sources": {
+    "product": {
+      "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+      "parent": "95fbfa18c419cd9fc2926faf20c54bf74d58213e",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "fa43fcc2516e88c266c784e0bc24d3386a1a2e550af0331be04522e5ef959494",
+      "delta_patch_sha256": "1fa883f131c07443c5a9586ee508fdaa02baa530010c4c52e250abf959a1e08f"
+    },
+    "test": {
+      "commit": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+      "tree": "da60cd9eb1f7040fed54ac6888fb11c56c195b29",
+      "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "03365a761a52ef9a9fcc7162bf28296461a7d8e836b88c3cc8e2dda56e45ac6f",
+      "delta_patch_sha256": "5ca4ff44b34f7f85490e5730185635f205ef8a253fca6fb69e3676b08041dc0a"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20020,
+    "version_name": "2.0.20-test-logs10",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "a767c9168ce08d75c53d8b334e8f562f6583a3243d85395b6534a28aeaece51c",
+    "bytes": 1195664
+  },
+  "layers": {
+    "base": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+    "cache499": [
+      "bf0eb3bcd77dbf3956915797d29627524052d3fd",
+      "980aec9552fb637cb1000ef38a6dc49b4d113fb5"
+    ],
+    "controls496_460": "8f00c05e35d01732856519183ce54540f042819b",
+    "font477": "58472e83ff1a39311026f747333a29c412dd6d7a",
+    "private_overlay": "260c83a604b2a35787714a2946566d1dfd049704",
+    "outline475": "a7b0294db4b471c38eb4d737e0317a8395666b97",
+    "collections362": "4bd41a9676b01b4592c206b70402c51db60e0abf"
+  },
+  "pending": [],
+  "proof_policy": {
+    "fresh": [
+      "macOS4fullapps",
+      "original3normal+ASan",
+      "changednative/settings/textclosures",
+      "Androidproduct+testbothABIs+16KB+signer+JNI+optin",
+      "fresh32 JVM helper contracts and15 actual Media3 contracts with current Java/toolchain/runtime evidence",
+      "bounded actual combined475caption/style/libass and362Settings/profile/view/touch contracts"
+    ],
+    "eligible_reuse": [
+      "same-invocation macOS object reuse only after exact preprocessor/dependency-byte equivalence under the isolated private macro delta"
+    ],
+    "never_reuse": [
+      "oldAPK/signature/ABI/DEX/16KB",
+      "oldfullsourceorchangednativeclosures",
+      "anyfailedincompletejob"
+    ]
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "7c6f4624262defd4a5b6c14b4355bc1df452f244402410a3a202fb064938bc5e"
+  },
+  "inherited_review": {
+    "commit": "fd28b407990dfa01c57637521899442c78848e66",
+    "tree": "822018c84856642090a1bd8934a6f9220dcca6b2",
+    "trees": {
+      ".review/logs8/native": "6140094cd3d7cb497b2b2d3a606550eddc83f7a1",
+      ".review/logs8/kotlin": "e4c69aa33ba15cfa6b749a6d5c3cf66d4caf26e8",
+      ".review/logs8/runtime": "fb602f5d1116c1f0a8d3318d8c25a1365af97c0a"
+    }
+  },
+  "excluded_from_this_update": [
+    "Any feature outside accepted APK20019 plus frozen #475 and #362",
+    "Changes to public issue/PR/release state"
+  ],
+  "source_composition_root_approved": true,
+  "local_preflight": {
+    "root-source-review.json": {
+      "sha256": "04953e018b1890a2d6f60e4e9f55f5baf0e143ba6527753f7ea2cf34db90925b",
+      "packaged_path": "provenance/root-source-review.json"
+    },
+    "review/exact-union-preflight.json": {
+      "sha256": "15d1495b3f62d6a9798ea764301ba1b0f0335db9bea99486008e9d01d961a329",
+      "packaged_path": "provenance/review--exact-union-preflight.json"
+    },
+    "review/schema/schema-verified.json": {
+      "sha256": "6294ff0c1afbbac07e1e6f81349b1d9daab43ff73e76c8051136ee683dcebfd7",
+      "packaged_path": "provenance/review--schema--schema-verified.json"
+    },
+    "review/player-preflight-product/preflight-result.json": {
+      "sha256": "a7cd659118e7f46ac08dcbc776266de6f6a898b63b281d205e5ff8354b825c38",
+      "packaged_path": "provenance/review--player-preflight-product--preflight-result.json"
+    },
+    "review/player-preflight-test/preflight-result.json": {
+      "sha256": "a022d9b0c77865370985b1c1def3bb2d940810df03e727dd776434a53bd965ba",
+      "packaged_path": "provenance/review--player-preflight-test--preflight-result.json"
+    },
+    "review/feature-preflight/device-language-worker-ready.json": {
+      "sha256": "4a4536cac628c7d612c8662b23053956d31167d4ead3f0619de76b1bc3e0debf",
+      "packaged_path": "provenance/review--feature-preflight--device-language-worker-ready.json"
+    },
+    "review/collection-state-portable-manifest.json": {
+      "sha256": "66e4b30af872533951eac91964c72bda19e5276e70fad6b4ce8c781466248ccd",
+      "packaged_path": "provenance/review--collection-state-portable-manifest.json"
+    },
+    "review/android-verifier-origin.json": {
+      "sha256": "103e4c3c7eb461e43554b746feaca70f02d8b5218bac7036443345b0fe2b674a",
+      "packaged_path": "provenance/review--android-verifier-origin.json"
+    },
+    "review/jvm-reuse-assessment.json": {
+      "sha256": "e455707098d0edc53df9475522dd936b5175cab353185e34e95cd3f074c60a4f",
+      "packaged_path": "provenance/review--jvm-reuse-assessment.json"
+    },
+    "review/apk20020-independent-recipe-review.json": {
+      "sha256": "68221d4a0a8e5dfb3fe9a920f7d7f08880d0b64ad17677b53add32b80dedd248",
+      "packaged_path": "provenance/review--apk20020-independent-recipe-review.json"
+    }
+  },
+  "ci_execution_permitted": true,
+  "root_approval_scope": "Execute exact frozen APK20020 product and private source validation in the fork, using reviewed seven mandatory producer jobs then all-gates. No product PR or release action.",
+  "recipe_pins": {
+    "aggregate.py": "917e285a2f5fcabb7ba117d3592d10eaf5de13ef3cceec4ff7c5245597b26b0e",
+    "native/run.py": "23a59d137babb48ec2df4859bd49e9bef4d2e6141b5a9d93f42e5e9dc0e6a988",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "d3ab4e1ec3b7627eb2bff46f851825653ed872e1ab6a9cc046b0b6a14fa87dd2",
+    "jvm/manifest.json": "933241afe4768d49a9ed759687211b5a04db97cad2c069994f3fdc979f34c8a9",
+    "feature-contracts/manifest.json": "844c71eddbd0ee3c8602f1f9bfebf354e53cadda1aa1498388c08fdb1e6fbc40",
+    "require_plan.py": "840fc27dfbe2624337178259b749387eba6172769e3aaf5aebff72e93e1293ed",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "8799cfc46798066bcc390f7a287ee463503c4a46a1e66de003ea07b13ec55b8e",
+    "preflight/tooling-manifest.json": "5472fc6d8a1877d9ab153a6427fd2a1772cbd9803534a9f45afa796f8021e367",
+    "preflight/cache-synopsis-portable-manifest.json": "d3ea86514355dc23682047477766aaff57a4f5885b729c966c81ab852756f773"
+  },
+  "recipe_preparation_only": false,
+  "source_root_approval_sha256": "04953e018b1890a2d6f60e4e9f55f5baf0e143ba6527753f7ea2cf34db90925b",
+  "root_ci_recipe_approval": {
+    "path": "provenance/root-ci-recipe-approval.json",
+    "sha256": "858a4321ca1477b8da1f7fc3bf212f804795c8d887fff7ca1552a5447569193d"
+  }
+}
