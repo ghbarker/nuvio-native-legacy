@@ -1,0 +1,388 @@
+{
+  "name": "Sources #529: exact-source macOS and Android validation",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue529-audio-language-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "issue529-${{ github.sha }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "SOURCE_LANGUAGE_PLAN_SHA256": "4054f2916ae499a1e285b5f933d496b904216603463091aceaf8c21860658874",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "jobs": {
+    "native": {
+      "name": "Fresh macOS TV/Mobile apps and language/Polish normal + sanitizers",
+      "runs-on": "macos-14",
+      "timeout-minutes": 65,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Recreate exact clean standalone language-filter source",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-python@v5",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Confirm Python runtime",
+          "run": "python3 --version"
+        },
+        {
+          "name": "Real compiler and SDK sanity before full links",
+          "run": "task_native_cc=\"$(command -v cc)\"\ntest \"$task_native_cc\" = /usr/bin/cc\necho \"NUVIO_REVIEW_REAL_CC=$task_native_cc\" >> \"$GITHUB_ENV\"\nbrew install sdl2 sdl2_image sdl2_ttf sdl3\nmkdir -p results/sdk\ncat > results/sdk/probe.c <<'C'\n#include <stdio.h>\n#include <AvailabilityMacros.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){puts(\"Real SDK ready\");return 0;}\nC\ntask_brew_prefix=\"$(brew --prefix)\"\n\"$task_native_cc\" -O1 -I\"$task_brew_prefix/include\" -I\"$task_brew_prefix/include/SDL2\" results/sdk/probe.c -L\"$task_brew_prefix/lib\" -Wl,-rpath,\"$task_brew_prefix/lib\" -lSDL2 -lSDL2_image -lSDL2_ttf -framework OpenGL -o results/sdk/probe\nresults/sdk/probe\n"
+        },
+        {
+          "name": "Run actual language/Polish/account-reset/i18n contracts then full apps",
+          "run": "python3 .review/issue529/native.py --source source-app --proof results/source-verified.json --output results/native"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-native-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "fontepref": {
+      "name": "Original full-source fontepref normal + ASan/UBSan",
+      "runs-on": "macos-14",
+      "timeout-minutes": 70,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Recreate exact clean standalone language-filter source",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Real compiler and SDK sanity before original scripts",
+          "run": "task_native_cc=\"$(command -v cc)\"\ntest \"$task_native_cc\" = /usr/bin/cc\necho \"NUVIO_REVIEW_REAL_CC=$task_native_cc\" >> \"$GITHUB_ENV\"\nbrew install sdl2 sdl2_image sdl2_ttf sdl3\nmkdir -p results/sdk\ncat > results/sdk/probe.c <<'C'\n#include <stdio.h>\n#include <AvailabilityMacros.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){puts(\"Real SDK ready\");return 0;}\nC\ntask_brew_prefix=\"$(brew --prefix)\"\n\"$task_native_cc\" -O1 -I\"$task_brew_prefix/include\" -I\"$task_brew_prefix/include/SDL2\" results/sdk/probe.c -L\"$task_brew_prefix/lib\" -Wl,-rpath,\"$task_brew_prefix/lib\" -lSDL2 -lSDL2_image -lSDL2_ttf -framework OpenGL -o results/sdk/probe\nresults/sdk/probe\n"
+        },
+        {
+          "name": "Original complete-source fontepref normal",
+          "run": "python3 .review/issue529/original3.py --source source-app --source-proof results/source-verified.json --suite fontepref --wrapper .review/issue529/cc_rpath.py --output results/fontepref/normal --mode normal"
+        },
+        {
+          "name": "Original complete-source fontepref asan",
+          "run": "python3 .review/issue529/original3.py --source source-app --source-proof results/source-verified.json --suite fontepref --wrapper .review/issue529/cc_rpath.py --output results/fontepref/asan --mode asan"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-fontepref-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "fontepref_file": {
+      "name": "Original full-source fontepref_file normal + ASan/UBSan",
+      "runs-on": "macos-14",
+      "timeout-minutes": 70,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Recreate exact clean standalone language-filter source",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Real compiler and SDK sanity before original scripts",
+          "run": "task_native_cc=\"$(command -v cc)\"\ntest \"$task_native_cc\" = /usr/bin/cc\necho \"NUVIO_REVIEW_REAL_CC=$task_native_cc\" >> \"$GITHUB_ENV\"\nbrew install sdl2 sdl2_image sdl2_ttf sdl3\nmkdir -p results/sdk\ncat > results/sdk/probe.c <<'C'\n#include <stdio.h>\n#include <AvailabilityMacros.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){puts(\"Real SDK ready\");return 0;}\nC\ntask_brew_prefix=\"$(brew --prefix)\"\n\"$task_native_cc\" -O1 -I\"$task_brew_prefix/include\" -I\"$task_brew_prefix/include/SDL2\" results/sdk/probe.c -L\"$task_brew_prefix/lib\" -Wl,-rpath,\"$task_brew_prefix/lib\" -lSDL2 -lSDL2_image -lSDL2_ttf -framework OpenGL -o results/sdk/probe\nresults/sdk/probe\n"
+        },
+        {
+          "name": "Original complete-source fontepref_file normal",
+          "run": "python3 .review/issue529/original3.py --source source-app --source-proof results/source-verified.json --suite fontepref_file --wrapper .review/issue529/cc_rpath.py --output results/fontepref_file/normal --mode normal"
+        },
+        {
+          "name": "Original complete-source fontepref_file asan",
+          "run": "python3 .review/issue529/original3.py --source source-app --source-proof results/source-verified.json --suite fontepref_file --wrapper .review/issue529/cc_rpath.py --output results/fontepref_file/asan --mode asan"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-fontepref_file-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "player_retido": {
+      "name": "Original full-source player_retido normal + ASan/UBSan",
+      "runs-on": "macos-14",
+      "timeout-minutes": 70,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Recreate exact clean standalone language-filter source",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Real compiler and SDK sanity before original scripts",
+          "run": "task_native_cc=\"$(command -v cc)\"\ntest \"$task_native_cc\" = /usr/bin/cc\necho \"NUVIO_REVIEW_REAL_CC=$task_native_cc\" >> \"$GITHUB_ENV\"\nbrew install sdl2 sdl2_image sdl2_ttf sdl3\nmkdir -p results/sdk\ncat > results/sdk/probe.c <<'C'\n#include <stdio.h>\n#include <AvailabilityMacros.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){puts(\"Real SDK ready\");return 0;}\nC\ntask_brew_prefix=\"$(brew --prefix)\"\n\"$task_native_cc\" -O1 -I\"$task_brew_prefix/include\" -I\"$task_brew_prefix/include/SDL2\" results/sdk/probe.c -L\"$task_brew_prefix/lib\" -Wl,-rpath,\"$task_brew_prefix/lib\" -lSDL2 -lSDL2_image -lSDL2_ttf -framework OpenGL -o results/sdk/probe\nresults/sdk/probe\n"
+        },
+        {
+          "name": "Original complete-source player_retido normal",
+          "run": "python3 .review/issue529/original3.py --source source-app --source-proof results/source-verified.json --suite player_retido --wrapper .review/issue529/cc_rpath.py --output results/player_retido/normal --mode normal"
+        },
+        {
+          "name": "Original complete-source player_retido asan",
+          "run": "python3 .review/issue529/original3.py --source source-app --source-proof results/source-verified.json --suite player_retido --wrapper .review/issue529/cc_rpath.py --output results/player_retido/asan --mode asan"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-player_retido-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "android": {
+      "name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 90,
+      "env": {
+        "NUVIO_ANDROID_JOBS": "2",
+        "NUVIO_BUILD_JOBS": "2",
+        "NUVIO_P2P_MOTOR": "none"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Recreate exact clean standalone language-filter source",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install normal Android toolchain",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "name": "Empty compile-only config, no service credentials",
+          "run": ": > \"$RUNNER_TEMP/issue529.properties\"\nchmod 600 \"$RUNNER_TEMP/issue529.properties\"\necho \"NUVIO_PROPERTIES=$RUNNER_TEMP/issue529.properties\" >> \"$GITHUB_ENV\""
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "issue529-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "issue362-native-v1-${{ runner.os }}-\nissue477-native-v1-${{ runner.os }}-\napk20022-native-v1-${{ runner.os }}-\napk20021-native-v1-${{ runner.os }}-\napk20020-native-v1-${{ runner.os }}-\napk20019-native-v1-${{ runner.os }}-\nlogs8-native-v2-${{ runner.os }}-\nandroid-touch-native-v1-${{ runner.os }}-"
+          }
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "issue529-gradle-v1-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts', 'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}",
+            "restore-keys": "issue362-gradle-v1-${{ runner.os }}-\nissue477-gradle-v1-${{ runner.os }}-\napk20022-gradle-v1-${{ runner.os }}-\napk20021-gradle-v1-${{ runner.os }}-\napk20020-gradle-v1-${{ runner.os }}-\napk20019-gradle-v1-${{ runner.os }}-\nlogs8-gradle-v2-${{ runner.os }}-\nandroid-touch-gradle-${{ runner.os }}-"
+          }
+        },
+        {
+          "name": "Build cached native dependencies for both ARM ABIs",
+          "working-directory": "source-app",
+          "run": "bash tools/android/deps.sh arm64-v8a armeabi-v7a"
+        },
+        {
+          "name": "Build exact standard debug APK with production tooling",
+          "working-directory": "source-app",
+          "run": "bash tools/android.sh"
+        },
+        {
+          "name": "Verify actual APK, changed native units, both ABIs and JNI",
+          "run": "python3 .review/issue529/android.py --source source-app --proof results/source-verified.json --output results/android/android-verified.json --aapt \"$ANDROID_HOME/build-tools/35.0.0/aapt\" --apksigner \"$ANDROID_HOME/build-tools/35.0.0/apksigner\"\ncp source-app/build/android/*-android-debug.apk results/android/standard-validation.apk"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-android-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "all_gates": {
+      "name": "Verify all exact-source successful producer proofs",
+      "needs": [
+        "native",
+        "fontepref",
+        "fontepref_file",
+        "player_retido",
+        "android"
+      ],
+      "if": "always()",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "pattern": "issue529-*-${{ github.sha }}",
+            "path": "incoming"
+          }
+        },
+        {
+          "name": "Require every real producer and exact source proof",
+          "env": {
+            "REQUIRED_JOB_RESULTS": "${{ toJSON(needs) }}"
+          },
+          "run": "python3 .review/issue529/aggregate.py --input incoming --output final/all-gates-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-all-gates-${{ github.sha }}",
+            "path": "final/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "source_ref": {
+      "name": "Publish only the exact green standalone feature ref",
+      "needs": [
+        "native",
+        "fontepref",
+        "fontepref_file",
+        "player_retido",
+        "android",
+        "all_gates"
+      ],
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "permissions": {
+        "contents": "write"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Recreate exact clean standalone language-filter source",
+          "run": "python3 .review/issue529/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Normal non-force push of the verified feature commit only",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}",
+            "GH_REPO": "${{ github.repository }}"
+          },
+          "run": "python3 .review/issue529/publish_source.py --source source-app --proof results/source-verified.json --output results/source-ref-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue529-source-ref-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

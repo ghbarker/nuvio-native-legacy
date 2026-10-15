@@ -1,0 +1,174 @@
+{
+  "format": 1,
+  "head": "24ae277c47ca90c37bc9e966d7f16617271e0e9e",
+  "tree": "77d8b100f339a8f1af44848bcc0664b5f452383d",
+  "base": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "paths": [
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "492e3f48f8b25743aeb1662b540dbe626c20bded7486619b721677eba9d93cdb",
+      "blob": "b86b915785dafc762201197811cc6d92be4a620c"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "e5b423769c9374d822aff5539e49899eb8b3c3d842825227b5fb92224ae050de",
+      "blob": "6446bd313d8693bcf19c8a5d2f7f96cb8e8a13c5"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "8489e1d4994e5cb3b242f5d2401d742f93f0f331a7ed7441cf60efb35e78ce1f",
+      "blob": "4336d70f622dd9ac4ca95cb0415174f540c143a1"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "07bae39b390092430dbf6c93e8821a1e5292dacb3c4e340161c73600c0bad914",
+      "blob": "20dfeff54b52bf1c7a9709bb1fb49e55dc1f4727"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "264bed0dd2944052aa3aaccf9f58b2eb47ec6d26748c54a5fe209aa995dd7895",
+      "blob": "7b5e1b28f54defdff1756df777f6c908ca97ef06"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "1458fe066f8b2a3a6c90e9af4d79988e344db4fac953899bddbccd0a643811e6",
+      "blob": "68e5b7317c393968d957992ee4f9cd818c358ba9"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "78fa69cee6552a9d33954d8cca0fb1434cdfcc71a069a96f1e78c362d67f4f48",
+      "blob": "abf7f93629c33ba7f0569a176fe07ab85b11b65e"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "4e7cb4e66ca5ab5bfdbbebdd8a1699b878a32ad1adc0269dfa946ab6f470dd1e",
+      "blob": "65259e9ffcc1347397b643f214b8ad3b288abd64"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "7a627d8624eda3faaeca604ab0e16bd582c398ccd8ee35286daf6e4a9d411b66",
+      "blob": "74d584442fdbf51d99a148fb1ecd5a400d9488da"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "299655492e3598b27c376eb8084e51a54470e351b901f60fe89710681bfd2a68",
+      "blob": "ac46b2c6e300dba4f8697162e1d92d59190aa787"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "828312856b55e4ac5366cccb33f0514e9e3a485001c41e5994560f65a7724780",
+      "blob": "f15dc8727e26e74bc9e977c9311ab539685027b4"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "f3f93526ad46fa20886200dd44b18175d786d609f2d2e9d50ae6aaaf424cc98a",
+      "blob": "b799e8827722bab3e2b9930c808ff8ab1da8ab43"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "f841453436136ea226d423c6569765ec1c80b6158327e4dd8bf4b14834c42938",
+      "blob": "76316f15707bb668b8a493be59b27bc01607446e"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "dc1b3e8871d6014c5cc5d0165274206c85d3870b11621af718ad91d013601985",
+      "blob": "1d734a6811313714f7cd9201a4edc8290b67707f"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "d7826c0f56a0f915d75a9a7a6fd5464750cb3efb27c8126c8d65286dae6b6a50",
+      "blob": "b85fcc2327282165905a264aaebc4f50363853f6"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "c12a7765218c03234963264dda66961985fc728a278bd2a74c26abe46104b3d3",
+      "blob": "f6ae8fd6ca40be6f4d90bea01a6f38878e781062"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "4a8ed00589b5eeceb05eca1cad6e7a4c4ccf9d9ff6a0b73e50af8e352f978baf",
+      "blob": "8e50fb8494d8bb73aaca2fe8529c958bf3c7e4b2"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "b99230fc600276ebe3d01b7af4b4c9c1850d8b0d8b2f151de0066f1970c33f0b",
+      "blob": "ffff0a97b3e1257d9a122412593b2ea179826f71"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "69c166af73ff814b29045014ce8ac8cecab855f1acc561fb578cd1776d5f4545",
+      "blob": "6cfc9588467615945e4a620101f92578a2856960"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "622c578fc998fe84ca49b72cba5cb3cb7c315986bd0b5fec4cba437f2f7d3ef9",
+      "blob": "c7e7e3b095dbebe69103e57f4f93c3197a540e3b"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "4d49b4ce30919bb64c82b896e9024503ef5b24db2ab0254fd2a20bf996cc9043",
+      "blob": "ae3ce3daf02f4f41f7cf7f915eff1c1a1da38d20"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "07c48ed2663fa4cef2aa11e2456b8fa0becb047d4726bb28ede137db9e9411e3",
+      "blob": "3b37002961a59b6762e1ba2495b68f8f1e8aff4c"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "19250d817d006c9ad8e8df7b931ae52e67edcb2621f9fcac4d67c23f308bc6f9",
+      "blob": "85ebf51085db71572244c798c89bf49e0a28b7e1"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "48530e044b4bb092e39494a5d637c56ee105051eadc25ba9f533c4a20466a4e4",
+      "blob": "29809146f790237ca23108110b835ee112e9c316"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "b27bd0193aa1ac8ceebfd0f39589c626462c2964949ba529cae976a150c427e6",
+      "blob": "d9dfb82f6220ea57de4988d84f10ca5264b3bae2"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "28a0964eaecb4a2ed4f868e26849b2751764246adbb271e2363d1cbe47211cef",
+      "blob": "4438f807000f84b7011be0a561669068f18a165e"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "e2af522cb04a3fa6cb7576ac2c5b4f5f2705a6d9c909174fcdf2eab0fe3bb989",
+      "blob": "4a84e6fd115f7ba12bb9dd33a3cc0dcb2c847052"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "1b925afe32c9e3776e1be7945479a590e2a41c51b7e01e0a43a9ce254fb8ef2e",
+      "blob": "823643f7b4be154f110976b3ab8a0f02f3dc072c"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "740117c79b23eab453a26c8e8e925b20ad00b68a6507624c17f5c6dfa5bd0da9",
+      "blob": "643d5688aa52841771650ddd6d63296fca40b96c"
+    },
+    {
+      "path": "src/linguas.c",
+      "sha256": "fa7eb7418e09d7850f54a780158cf284944d07b588dfc085517765a46437eef8",
+      "blob": "f69373dac57c5a5ee87c9c46aefa4418eb8e41ca"
+    },
+    {
+      "path": "src/linguas.h",
+      "sha256": "70cc62740c94ca804f2d8d64d15f5904bba47bc14de9dde3889e314cc1e32f86",
+      "blob": "6a3ea35ccdad0599f1685255c53e0d79965cb553"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "8002768740f2e724fd02df08311b30e1ef6d82198fefe90bd5fb263e49f34686",
+      "blob": "38e1e33a86b631e774bf0c9abcfc60ed5adcf42f"
+    }
+  ],
+  "patch_sha256": "df9a62a7eecebd27f6692ab725168bca51ce6bf88f9cf0e51301f6dd1d66f93c",
+  "issue": "https://github.com/iqui27/nuvio-native-legacy/issues/529",
+  "source_path": "/tmp/nuvio-source-language-529-20261015/source",
+  "product_only": true,
+  "source_clean": true,
+  "scope": "Standalone language-aware optional source audio filter;3C/header files and2newhelp keys in29catalogs. No tests/workflows/private overlay/playback preference/parser changes."
+}

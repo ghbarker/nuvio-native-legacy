@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "feature": "issue529-language-aware-source-audio-filter",
+  "base": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "source_commit": "24ae277c47ca90c37bc9e966d7f16617271e0e9e",
+  "source_tree": "77d8b100f339a8f1af44848bcc0664b5f452383d",
+  "source_manifest_sha256": "2a1e9652b7bfde2a74aa013be04ff82185e9b0828b079656630848e6aaf93305",
+  "recipe_inputs": {
+    "aggregate.py": "f5b7e01fb105270b6785fa8d6572d00e2aa54406b8d866ec6162a98681ea40bc",
+    "android.py": "61bd7130df5673ac5a2c2ce994141d095c83b3193d8449da5fb957c1aa16bfe8",
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "513657808f1f14fd5e06dbcb53daa828cc1e61927ab1fc73d3f95561c6c3fc3e",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixtures/language/account_reset.c": "0de89d8ec6acf182f2ebd2495076e67dda8bb99626b0ce8ffa2e80328d64abb9",
+    "fixtures/language/language_chip.c": "bd78f22d1c56982c88106d704687b75d88d6a9b3bbf558bf99b16ba205a0d9e0",
+    "fixtures/language/run.py": "7331a2c12ff9a99428195d6dcc860ca7f2d0dbb863f1fe4a951f03d8e9d38c8e",
+    "fixtures/language/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/language/sdk/SDL2/SDL.h": "0e9368c70c543886dfa2232bbb70a376def4bc6d99d76189e7e8694c26f126bd",
+    "fixtures/language/subtitle_groups.c": "1fbaa8854600eaf9643e2b53259ed7dce24d4c62a47d0417c5c631475276eb5e",
+    "materialize.py": "bd12813f8bcdb72d86805d54a8d7b323ff70d58bb267a329a43a3f6575ebf426",
+    "native.py": "dcb294a5e786755f7baf335b6e57f183ce36ab85c8b4c13c24178772f04e3da7",
+    "original3.py": "1f17ac22395c834903de72b2374c55e3e63b3e2252910344d02c533ba1ae6db9",
+    "product-commit.txt": "06ff480d6b3be96a86f0d391e91d2ec85b46938ef8880e9c8a48854137890637",
+    "product-delta.patch": "df9a62a7eecebd27f6692ab725168bca51ce6bf88f9cf0e51301f6dd1d66f93c",
+    "publish_source.py": "2fe7bc2c1ddf8bb96a47119311eb73dc139a17ddaff0c340a5f21150b93529c4",
+    "source-manifest.json": "2a1e9652b7bfde2a74aa013be04ff82185e9b0828b079656630848e6aaf93305"
+  },
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "source_ref": "refs/heads/fix/source-audio-language-529",
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref_after_success": true,
+  "no_private_overlay": true,
+  "no_pr_or_release_created": true,
+  "scope": "Clean standalone source audio-language fix, Closes529. Five fresh exact-source producers, aggregate, and guarded nonforce publication of only the clean source branch; root creates PR after green. No public APK/release.",
+  "focused_contracts": {
+    "platforms": [
+      "tv",
+      "android-touch"
+    ],
+    "modes": [
+      "normal",
+      "asan"
+    ],
+    "groups": [
+      "chip",
+      "account-reset",
+      "subtitles",
+      "original-languages",
+      "original-automatic",
+      "original-i18n"
+    ],
+    "chip_assertions_per_variant": 70,
+    "polish_assertions_per_variant": 8,
+    "account_reset_assertions_per_variant": 21
+  },
+  "prior_validation_policy": {
+    "historical_candidate": "664d42095a80eb65e5869562989233aba02fdf12",
+    "local51_preserved_as_historical": true,
+    "combined_Logs12_platform_execution_reused_as_standalone_pass": false,
+    "fresh_platforms_and_original3_required": true
+  }
+}
