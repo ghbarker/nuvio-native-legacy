@@ -8,8 +8,14 @@
 // espelha stdout/stderr no logcat (tag "nuvio") sem tirar nada do arquivo, e
 // pede ao SDL que o Voltar chegue ao app em vez de fechar a Activity.
 void android_iniciar(void);
+#ifdef NV_TEST_LOCAL_LOGS
+// Test-only download. The original live viewer and reporting stay unchanged.
+void android_salvar_registro_local(void);
+#endif
 // Saved device mode: changes the existing Activity, without recreating native state.
 void android_interface_modo(int mobile);
+// Android device classification captured before SDL starts; never a screen heuristic.
+int android_interface_mobile_auto(void);
 #ifdef NV_TOUCH_UI
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.

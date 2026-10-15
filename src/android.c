@@ -33,7 +33,27 @@ static void interfaceBool(const char *nome, int ativa) {
   (*env)->DeleteLocalRef(env, act);
 }
 
+#ifdef NV_TEST_LOCAL_LOGS
+void android_salvar_registro_local(void) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  if (!env) return;
+  jobject act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return;
+  jclass cls = (*env)->GetObjectClass(env, act);
+  if (cls) {
+    jmethodID metodo = (*env)->GetMethodID(env, cls, "salvarRegistroLocal", "()V");
+    if (metodo) (*env)->CallVoidMethod(env, act, metodo);
+    (*env)->DeleteLocalRef(env, cls);
+  }
+  if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+  (*env)->DeleteLocalRef(env, act);
+}
+#endif
 void android_interface_modo(int mobile) { interfaceBool("interfaceModo", mobile); }
+int android_interface_mobile_auto(void) {
+  const char *modo = getenv("NUVIO_INTERFACE_AUTO");
+  return modo && !strcmp(modo, "1");
+}
 
 #ifdef NV_TOUCH_UI
 static SDL_atomic_t toqueCancelEvento;

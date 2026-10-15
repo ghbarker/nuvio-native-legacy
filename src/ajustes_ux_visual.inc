@@ -18,6 +18,7 @@ static const char *ajVisualIcone(int op) {
     case AJ_NOME_ADDON: return "aj_rows-3";
     case AJ_SUFIXO_TIPO: return "aj_rows-3";
     case AJ_SELO_VISTO: return "aj_rows-3";
+    case AJ_OCULTAR_FILMES_VISTOS: return "aj_rows-3";
     case AJ_CW_LIGADO: return "aj_rotate-ccw-clock";
     case AJ_CW_OK: return "aj_rotate-ccw-clock";
     case AJ_CW_ESTILO: return "aj_rotate-ccw-clock";
@@ -118,6 +119,7 @@ static const char *ajVisualIcone(int op) {
     case AJ_FONTE_AUTO: return "aj_list-video";
     case AJ_FONTE_REPOR: return "aj_list-video";
     case AJ_FONTE_PREPARAR: return "aj_download";
+    case AJ_FONTE_PRECARREGAR: return "aj_download";
     case AJ_FONTE_CONFERIR_VARIAS: return "aj_layers";
     case AJ_FONTE_AQUECER: return "aj_wifi";
     case AJ_FONTE_TOCAR_CONFERINDO: return "aj_zap";
@@ -253,6 +255,9 @@ static const char *ajVisualIcone(int op) {
     case AJ_ATUALIZAR: return "aj_download";
     case AJ_AVISO_LEGAL: return "aj_file-text";
     case AJ_VER_REGISTRO: return "aj_scroll-text";
+#ifdef NV_TEST_LOCAL_LOGS
+    case AJ_TEST_LOG_DOWNLOAD: return "aj_download";
+#endif
     case AJ_ENVIAR_LOG: return "aj_send";
     case AJ_ENVIO_AUTO: return "aj_scroll-text";
 #if defined(NV_TPK) || defined(NV_ANDROID)

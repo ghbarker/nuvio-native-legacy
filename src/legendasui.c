@@ -102,6 +102,7 @@ int legendasui_montar(const VideoFaixa *const *emb, int nEmb,
       c->tipo = f->tipoLeg ? f->tipoLeg : f->letreiro ? LING_LEG_LETREIROS : LING_LEG_COMUM;
       snprintf(c->idioma, sizeof c->idioma, "%s", f->idioma);
       snprintf(c->rotulo, sizeof c->rotulo, "%s", f->rotulo);
+      snprintf(c->nome, sizeof c->nome, "%s", f->nome);
       snprintf(c->codec, sizeof c->codec, "%s", f->codec);
       formatoDoCodec(f->codec, c->formato);
     }
@@ -794,17 +795,21 @@ static void textoLinha(const LuiLinha *l, char *nome, size_t tn, char *sub, size
       if (!c) break;
       *idioma = c->idioma;
       *ativo = ativoNoSlot(l->slot, c) && (l->slot == 0 || legenda2_estado() == LEG2_ATIVA);
-      if (!mais && !ver) {
+      if (c->idioma[0] || !c->embutida)
         snprintf(nome, tn, "%s", nomeIdioma(c->idioma));
+      else
+        snprintf(nome, tn, i18n("Legenda %d"), c->indice + 1);
+      if (c->embutida) juntar(sub, ts, c->nome);
+      if (!mais && !ver) {
         juntar(sub, ts, c->embutida ? i18n("Embutida") : c->origem);
-        juntar(sub, ts, legendasui_tipo_rotulo(c));
+        { const char *t = legendasui_tipo_rotulo(c);
+          if (t && !strstr(sub, t)) juntar(sub, ts, t); }
       } else {
         const char *marca = c->embutida ? faixas_legenda_marca(c->indice) : NULL;
-        snprintf(nome, tn, "%s", c->embutida ? c->rotulo : nomeIdioma(c->idioma));
         juntar(sub, ts, c->embutida ? i18n("Embutida") : c->origem);
         juntar(sub, ts, c->formato);
         { const char *t = legendasui_tipo_rotulo(c);
-          if (t && !strstr(nome, t)) juntar(sub, ts, t); }   // the title may already say it
+          if (t && !strstr(sub, t)) juntar(sub, ts, t); }
         juntar(sub, ts, c->arquivo);
         if (l->slot == 0 && marca) juntar(sub, ts, marca);
       }
@@ -812,6 +817,7 @@ static void textoLinha(const LuiLinha *l, char *nome, size_t tn, char *sub, size
         sub[0] = 0;
         juntar(sub, ts, c->embutida ? i18n("Embutida como secundária: indisponível")
                                     : i18n("ASS como secundária: indisponível"));
+        if (c->embutida) juntar(sub, ts, c->nome);
         *apagada = 1;
       } else if (l->slot == 1 && ativoNoSlot(1, c) && estadoSecundaria()) {
         char b[160];
@@ -1009,7 +1015,7 @@ void legendasui_corpo(GfxRect c, float a) {
   y += LU_TIT_H + 14.0f;
 #ifdef NV_TOUCH_UI
   if (telefoneui_ativo()) {
-    if (!toqueLegendas.livre) {
+    if (!toquerol_livre(&toqueLegendas)) {
       ajustarRolagem(vis);
       toqueLegendasOffset = rolagem * (LU_LN_H + LU_LN_VAO);
     }
