@@ -56,6 +56,18 @@ const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nom
 const char *dados_dir(void)             { return ""; }
 const char *sessao_usuario(void)        { return ""; }
 int         perfis_ativo(void)          { return 1; }
+// Sessao fixa deste teste isolado; publicadores ainda validam e travam a
+// identidade capturada. Uma geracao diferente nunca pode publicar.
+static pthread_mutex_t sessaoTesteTrava = PTHREAD_MUTEX_INITIALIZER;
+uint64_t perfis_sessao_geracao(void) { return 1; }
+int perfis_sessao_atual(uint64_t g) { return g == perfis_sessao_geracao(); }
+int perfis_sessao_travar(uint64_t g) {
+  pthread_mutex_lock(&sessaoTesteTrava);
+  if (perfis_sessao_atual(g)) return 1;
+  pthread_mutex_unlock(&sessaoTesteTrava);
+  return 0;
+}
+void perfis_sessao_destravar(void) { pthread_mutex_unlock(&sessaoTesteTrava); }
 unsigned homeestado_geracao(void) { return 1; }
 int homeestado_contexto_valido(void) { return 0; }
 int homeestado_tem_fileira(const char *chave) { (void)chave; return 0; }
@@ -161,6 +173,9 @@ int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m;
 int   trakt_lista_cresc(const char *q, CatItem **s, int m) { (void)q; (void)s; (void)m; return 0; }
 // O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
 int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
+int recomenda_social_mesclar_sessao(CatItem *i, int nTrakt, int max, uint64_t s) {
+  return perfis_sessao_atual(s) ? recomenda_social_mesclar(i, nTrakt, max) : 0;
+}
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   addons_n(void)                       { return 0; }
