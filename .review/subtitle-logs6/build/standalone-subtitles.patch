@@ -1,0 +1,156 @@
+diff --git a/src/faixasmkv.c b/src/faixasmkv.c
+index 12cd881..b22faaa 100644
+--- a/src/faixasmkv.c
++++ b/src/faixasmkv.c
+@@ -185,6 +185,7 @@ static int aplicarUma(VideoFaixa *f, const MkvFaixa *m, int ordinal) {
+              (meio[0] || poeCh) ? SEP : "", meio,
+              (meio[0] && poeCh) ? " " : "", poeCh ? ch : "");
+   } else {
++    if (m->nome[0]) snprintf(f->nome, sizeof f->nome, "%s", m->nome);
+     // LETREIROS/FORCADA (FlagForced, "Forced", "Signs & Songs"): a pessoa
+     // precisa saber que essa nao traduz o dialogo. O nome do arquivo, quando
+     // ele ja diz isso ("Forced"), e o que o .wgt mostra; so a flag vira
+diff --git a/src/legendasui.c b/src/legendasui.c
+index 89ddb4c..d57d6f5 100644
+--- a/src/legendasui.c
++++ b/src/legendasui.c
+@@ -102,6 +102,7 @@ int legendasui_montar(const VideoFaixa *const *emb, int nEmb,
+       c->tipo = f->tipoLeg ? f->tipoLeg : f->letreiro ? LING_LEG_LETREIROS : LING_LEG_COMUM;
+       snprintf(c->idioma, sizeof c->idioma, "%s", f->idioma);
+       snprintf(c->rotulo, sizeof c->rotulo, "%s", f->rotulo);
++      snprintf(c->nome, sizeof c->nome, "%s", f->nome);
+       snprintf(c->codec, sizeof c->codec, "%s", f->codec);
+       formatoDoCodec(f->codec, c->formato);
+     }
+@@ -794,17 +795,21 @@ static void textoLinha(const LuiLinha *l, char *nome, size_t tn, char *sub, size
+       if (!c) break;
+       *idioma = c->idioma;
+       *ativo = ativoNoSlot(l->slot, c) && (l->slot == 0 || legenda2_estado() == LEG2_ATIVA);
+-      if (!mais && !ver) {
++      if (c->idioma[0] || !c->embutida)
+         snprintf(nome, tn, "%s", nomeIdioma(c->idioma));
++      else
++        snprintf(nome, tn, i18n("Legenda %d"), c->indice + 1);
++      if (c->embutida) juntar(sub, ts, c->nome);
++      if (!mais && !ver) {
+         juntar(sub, ts, c->embutida ? i18n("Embutida") : c->origem);
+-        juntar(sub, ts, legendasui_tipo_rotulo(c));
++        { const char *t = legendasui_tipo_rotulo(c);
++          if (t && !strstr(sub, t)) juntar(sub, ts, t); }
+       } else {
+         const char *marca = c->embutida ? faixas_legenda_marca(c->indice) : NULL;
+-        snprintf(nome, tn, "%s", c->embutida ? c->rotulo : nomeIdioma(c->idioma));
+         juntar(sub, ts, c->embutida ? i18n("Embutida") : c->origem);
+         juntar(sub, ts, c->formato);
+         { const char *t = legendasui_tipo_rotulo(c);
+-          if (t && !strstr(nome, t)) juntar(sub, ts, t); }   // the title may already say it
++          if (t && !strstr(sub, t)) juntar(sub, ts, t); }
+         juntar(sub, ts, c->arquivo);
+         if (l->slot == 0 && marca) juntar(sub, ts, marca);
+       }
+@@ -812,6 +817,7 @@ static void textoLinha(const LuiLinha *l, char *nome, size_t tn, char *sub, size
+         sub[0] = 0;
+         juntar(sub, ts, c->embutida ? i18n("Embutida como secundária: indisponível")
+                                     : i18n("ASS como secundária: indisponível"));
++        if (c->embutida) juntar(sub, ts, c->nome);
+         *apagada = 1;
+       } else if (l->slot == 1 && ativoNoSlot(1, c) && estadoSecundaria()) {
+         char b[160];
+diff --git a/src/legendasui.h b/src/legendasui.h
+index 160f4ed..f9dff04 100644
+--- a/src/legendasui.h
++++ b/src/legendasui.h
+@@ -90,6 +90,7 @@ typedef struct {
+   int  indice;       // embedded track index, or addon list index (snapshot)
+   char idioma[16];
+   char rotulo[64];   // embedded: track label; addon: the addon's label
++  char nome[128];    // actual embedded track name; empty when not supplied
+   char origem[64];   // provider name, "" for embedded
+   char arquivo[96];  // release/file name when the addon sent one
+   char codec[24];    // Matroska CodecID when probed
+diff --git a/src/video.c b/src/video.c
+index 658f7c5..e54614c 100644
+--- a/src/video.c
++++ b/src/video.c
+@@ -2049,6 +2049,8 @@ static void *lerMkv(void *arg) {
+              j >= 0 ? fx[j].codec : "", j >= 0 && fx[j].idioma[0] ? fx[j].idioma : "");
+       if (j < 0) continue;
+       m = &fx[j];
++      // O nome e dado de exibicao mesmo quando a TV ja informou o idioma.
++      if (m->nome[0]) snprintf(f->nome, sizeof f->nome, "%s", m->nome);
+       for (k = 0; k < j; k++) if (fx[k].tipo == 17) ordinal++;
+       ordinal++;
+       // O codec e o ordinal entram SEMPRE (a folha marca a faixa ASS pelo codec
+diff --git a/src/video.h b/src/video.h
+index 6e02468..e925e27 100644
+--- a/src/video.h
++++ b/src/video.h
+@@ -319,6 +319,9 @@ typedef struct {
+   int canais;        // original audio channels, 0 unknown
+   int stream_index;  // source demux index for DTS sessions, -1 in native webOS
+   int stream_id;     // original container track ID, -1 when unknown
++  // Nome ORIGINAL da legenda, quando o container/player informa. Separado do
++  // rotulo para a folha mostra-lo abaixo do idioma sem mudar a memoria da faixa.
++  char nome[128];
+ } VideoFaixa;
+ 
+ int  video_n_audio(void);
+diff --git a/src/video_android.c b/src/video_android.c
+index 08fcdb4..ce7c594 100644
+--- a/src/video_android.c
++++ b/src/video_android.c
+@@ -341,6 +341,9 @@ JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeFaixa(JNIEnv
+                 tipo ? nNovasL : nNovasA);
+   if (tipo) {
+     const char *r;
++    // O nome de exibicao nao passa pelo buffer curto usado pela classificacao.
++    // deJString preserva UTF-8 completo, inclusive emoji, ate o limite do campo.
++    deJString(env, nome, f->nome, sizeof f->nome);
+     f->tipoLeg = ling_tipo_legenda(nm, flags & 1, (flags & 2) != 0);
+     f->letreiro = f->tipoLeg == LING_LEG_FORCADA || f->tipoLeg == LING_LEG_LETREIROS;
+     r = ling_tipo_legenda_rotulo(f->tipoLeg);
+diff --git a/src/video_tizen.c b/src/video_tizen.c
+index 60d9188..713935b 100644
+--- a/src/video_tizen.c
++++ b/src/video_tizen.c
+@@ -1012,6 +1012,8 @@ static void aplicarIdiomasDoMkv(const MkvFaixa *fx, int n) {
+     else if (fx[j].tipo == TIPO_LEG && nL == nLeg && kL < nLeg)
+       f = &faixaLeg[kL++];
+     if (!f) continue;
++    if (fx[j].tipo == TIPO_LEG && fx[j].nome[0])
++      snprintf(f->nome, sizeof f->nome, "%s", fx[j].nome);
+     if (f->idioma[0]) continue;                 // o player ja sabia: nao mexer
+     if (!fx[j].idioma[0] || !strcmp(fx[j].idioma, "und")) continue;
+     snprintf(f->idioma, sizeof f->idioma, "%s", fx[j].idioma);
+@@ -1077,7 +1079,7 @@ static void lerFaixas(void) {
+   for (linha = buf; *linha; linha = fim) {
+     char tipo;
+     int idx = 0, ordinalMkv = -1;
+-    char idioma[8] = "", rot[48] = "";
++    char idioma[8] = "", rot[48] = "", nome[128] = "";
+     VideoFaixa *f;
+     fim = strchr(linha, '\n');
+     if (fim) *fim++ = 0; else fim = linha + strlen(linha);
+@@ -1093,6 +1095,14 @@ static void lerFaixas(void) {
+       idx = atoi(p1 + 1);
+       snprintf(idioma, sizeof idioma, "%s", p2 + 1);
+       snprintf(rot, sizeof rot, "%s", p3 + 1);
++      if (tipo == 'T') {
++        size_t k = strlen(p3 + 1);
++        if (k >= sizeof nome) {
++          k = sizeof nome - 1;
++          while (k && ((unsigned char)p3[1 + k] & 0xc0) == 0x80) k--;
++        }
++        memcpy(nome, p3 + 1, k); nome[k] = 0;
++      }
+       ordinalMkv = atoi(p4 + 1);
+     }
+     if (tipo == 'A') {
+@@ -1106,6 +1116,7 @@ static void lerFaixas(void) {
+     f->numero = idx;
+     f->ordinalMkv = tipo == 'T' ? ordinalMkv : -1;
+     snprintf(f->idioma, sizeof f->idioma, "%s", idioma);
++    snprintf(f->nome, sizeof f->nome, "%s", nome);
+     // O rotulo e escrito por ULTIMO, depois do idioma, e de uma vez so: e o
+     // campo que a tela desenha, e este arquivo — como o da LG — nao tem mutex
+     // nenhum. O dano possivel e um rotulo lido pela metade em UM quadro.

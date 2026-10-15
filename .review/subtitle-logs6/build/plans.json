@@ -1,0 +1,37 @@
+{
+  "schema": 2,
+  "validation_phase": "final",
+  "publish_release": true,
+  "media3_case": "combined-delivery",
+  "cases": [
+    {
+      "id": "standalone-subtitles",
+      "label": "Subtitle names beneath language",
+      "base": "edf625df044bf6b2cf8909b5e188aaffc994dee2",
+      "patch": "standalone-subtitles.patch",
+      "manifest": "standalone-subtitles-files.json",
+      "scope": "clean subtitle track-name feature",
+      "delivery": false,
+      "patch_sha256": "f1aa9fb113df3dd1c782bd6691326e6a21ce15f8025f2b94135e9a6fc189bff9"
+    },
+    {
+      "id": "combined-delivery",
+      "label": "TV/Mobile test with original logs and download",
+      "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+      "patch": "combined-delivery.patch",
+      "manifest": "combined-delivery-files.json",
+      "scope": "complete combined product candidate",
+      "delivery": true,
+      "patch_sha256": "71cf4b0dae6134dfccc94eae0231ad28e70918c395d75e8a71c46a295c428dfe"
+    }
+  ],
+  "test_release": {
+    "tag": "tv-mobile-test-local-logs-v6",
+    "apk": "Nuvio-TV-Mobile-Test-Logs6.apk",
+    "version_code": 20016,
+    "version_name": "2.0.16-test-logs6",
+    "package": "space.nuvio.nativelegacy.touch",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "required_test_only_isolation_proof": "test-log-isolation.json"
+}

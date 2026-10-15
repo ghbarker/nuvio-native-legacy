@@ -1,0 +1,20 @@
+{
+  "upstream_commit": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "files": {
+    "android/app/src/main/java/space/nuvio/nativelegacy/ArranqueVigia.kt": "97248184231025d83d26719c26b37a50c2d072adf3f0ab0933f992e0ad868af6",
+    "src/registro_envio.inc": "5d78466e22db407479e0a5aea086016ba694a25ee6de1a269d973d1e41cdd9d8",
+    "android/app/src/main/res/xml/caminhos_atualizacao.xml": "d8179ccd6a8764f9c4c5e798f3e07bb5d5ca4f5947b150a172c6167fdd495a65"
+  },
+  "functions": {
+    "src/avisos.c": {
+      "enviarRegistro": "427888b6061a5f0e4ac76c0e46960022ba67b97c63dba5659b4a65d3adc59ce7",
+      "enviarAgora": "b33898a62764a5bfa4abafcfa8a6597c47fae2e3362d91ab927c5549ebc350ab",
+      "avisos_envio_auto_passo": "5cde04e1de2864e5a22eed5b6fa97d2ae1df6bd2d28e8d53f2399612e787d003",
+      "avisos_enviar_registro_atual": "2511ef9fbc6d630c0f3d8795a6164a1e45f8c145415111075b5ce9e3fc85d24b",
+      "avisos_enviar_diagnostico": "bb319445dafc0cf29c2825b2da23b104231bb9a92e859de9facb19697a97352d"
+    },
+    "src/android.c": {
+      "Java_space_nuvio_nativelegacy_NuvioActivity_nativeRecUrl": "85cd92bf4361373f105af9bf7cf7b0979fb7b2886bcfc0bc75f210fc73cc36ed"
+    }
+  }
+}

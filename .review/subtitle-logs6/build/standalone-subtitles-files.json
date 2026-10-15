@@ -1,0 +1,41 @@
+{
+  "base": "edf625df044bf6b2cf8909b5e188aaffc994dee2",
+  "source_root": "/workspace/review/subtitle-logs6-build-20261015/source-snapshots-v2/standalone-subtitles",
+  "files": [
+    {
+      "path": "src/faixasmkv.c",
+      "mode": "100644",
+      "sha": "b22faaa74b0739cccd3cf6be726280bb60220c88"
+    },
+    {
+      "path": "src/legendasui.c",
+      "mode": "100644",
+      "sha": "d57d6f5bc3eb6747cc39024ae6d25ad8e4518661"
+    },
+    {
+      "path": "src/legendasui.h",
+      "mode": "100644",
+      "sha": "f9dff04337bfac711b2e4c85c2f26e37ffb3796f"
+    },
+    {
+      "path": "src/video.c",
+      "mode": "100644",
+      "sha": "e54614c1d78a24e47b103b9b51ee351732fd23e5"
+    },
+    {
+      "path": "src/video.h",
+      "mode": "100644",
+      "sha": "e925e277212af827e8c77756f825e8775f87dd6d"
+    },
+    {
+      "path": "src/video_android.c",
+      "mode": "100644",
+      "sha": "ce7c594aec57c445435350c356060576403619b4"
+    },
+    {
+      "path": "src/video_tizen.c",
+      "mode": "100644",
+      "sha": "713935b30e59c58856cfa3df102a46f41185d574"
+    }
+  ]
+}
