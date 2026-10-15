@@ -155,6 +155,7 @@
 #include "trakt.h"
 #include "visto.h"
 #include "faixas.h"
+#include "legenda2.h"
 #include "episodios.h"
 #include <pthread.h>
 #include <stdatomic.h>
@@ -2857,6 +2858,7 @@ static void perfilAbrirSessao(int antes) {
 }
 
 int app_iniciar(const char *dirArte) {
+  legenda2_vincular_atraso(ajustes_leg2_atraso(), ajustes_leg2_definir_atraso);
   perfis_ao_abrir_sessao(perfilEncerrarSessao);
   cat_cache_perfis(1);
   snprintf(perfilDirArte, sizeof perfilDirArte, "%s", dirArte ? dirArte : "");
