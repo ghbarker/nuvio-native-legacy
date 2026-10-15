@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "f85edaa220780f6bfb9114791467072b6ff0cfa4",
+  "candidate_head": "ff90e2d2bae61f5c3961acb6292b9402f77cd392",
+  "candidate_tree": "6344ffc1c5e4ccc08ce53d7055cef52bfb6a92b6",
+  "review_branch": "review/issue528-native-recovery-20261015",
+  "source_manifest_sha256": "e004745d5a29d5590722f5de483f9d000226134068401ec0ab0453f54f6a9868",
+  "retained_android_source_commit": "d3eddbcbc3180cd686207afa1a98b8fdf81536b1",
+  "retained_android_run_id": 38820981343,
+  "retained_android_job_id": 116717218371,
+  "retained_android_review_commit": "187e9c15751fbe119cdc6b0dae9c24469f3cefa1",
+  "required_jobs": [
+    "native"
+  ],
+  "recipe_inputs": {
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "f4d957b36baeee57432fb507b6f2ed5d3854ba3c144af9fa7b41a24205152dd9",
+    "materialize.py": "078b6d9dde9d3ab0ee7ee926ebf169aea2c6676b8ba5c049f5067bf99b3d7f21",
+    "native.py": "bae5d95fe84d20c939f87f6f46c19086502b0f5f690793b1832edcb1a05e3de6",
+    "preflight.py": "ee5f95ac8751dd24d1048108dd49224140fd22e26c578cfcb170005a4255bb96",
+    "retained-android.json": "8021e48f508a53542dcdd790e4610bf42df78275536be7409051de29a7419f92"
+  },
+  "scope": "One native recovery producer: exact checked-in cateps normal+ASan/UBSan with typed offline session doubles. No product or Android/build input changed. Original standard dualARM Android producer retains its actual old source/run/job provenance and must separately pass before readiness; no pass is relabelled as a fresh build.",
+  "workflow_normalized_sha256": "2c86edf7f9bbbaa0c8fe43e635135a979417bf60c910a3f0106aef71fc81ea4b"
+}

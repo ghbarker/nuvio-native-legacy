@@ -1,0 +1,20 @@
+{
+  "scope": "Retained original Android producer; not a new build or a claim of success before its actual job and proof are verified. Recovery changes tests/cateps.c only.",
+  "original_run_id": 38820981343,
+  "original_job_id": 116717218371,
+  "original_run_attempt": 1,
+  "original_review_commit": "187e9c15751fbe119cdc6b0dae9c24469f3cefa1",
+  "original_source_commit": "d3eddbcbc3180cd686207afa1a98b8fdf81536b1",
+  "original_source_tree": "865696793ffc2e3115dd619f2fa2e5278a883d09",
+  "original_plan_sha256": "c92950dda34690bdeecb0994c3ea67e07b8377eb74bde5e1717252709350e859",
+  "original_source_manifest_sha256": "906a49e4e06576b261c5ba35d70bfae29a6ec658e140c584488d497d32ca82eb",
+  "original_artifact_name_templates": [
+    "issue528-android-${{ github.sha }}-attempt${{ github.run_attempt }}",
+    "issue528-android-proof-${{ github.sha }}-attempt${{ github.run_attempt }}"
+  ],
+  "required_source_delta": [
+    "tests/cateps.c"
+  ],
+  "require_actual_original_job_success_and_raw_proof_before_ready": true,
+  "previous_pass_relabelled_as_new_execution": false
+}

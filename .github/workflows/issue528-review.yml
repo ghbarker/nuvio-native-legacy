@@ -1,0 +1,68 @@
+{
+  "name": "Issue528 native-only test-boundary recovery",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue528-native-recovery-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "issue528-native-recovery-${{ github.sha }}-${{ github.run_attempt }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "ISSUE528_PLAN_SHA256": "47939f29092cf23e4bd3bbe53e27a164e22fa2d0bea798dbeea33d1c83415911",
+    "ISSUE528_ID": "528"
+  },
+  "jobs": {
+    "native": {
+      "name": "Issue528 macOS exact cateps normal and ASan/UBSan",
+      "if": true,
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify closed source and recipe bindings",
+          "run": "python3 .review/issue528/preflight.py"
+        },
+        {
+          "name": "Materialize exact reviewed isolated candidate",
+          "run": "python3 .review/issue528/materialize.py --candidate 528 --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Install real Homebrew headers and SDL libraries",
+          "run": "test \"$(command -v cc)\" = /usr/bin/cc\nbrew install sdl2 sdl3\ntest -f /opt/homebrew/include/SDL2/SDL.h"
+        },
+        {
+          "name": "Run exact complete cateps source and worker regression normally and sanitized",
+          "run": "python3 .review/issue528/native.py --source source-app --proof results/source-verified.json --output results/native"
+        },
+        {
+          "name": "Reverify exact candidate after checks",
+          "run": "python3 .review/issue528/materialize.py --candidate 528 --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue528-native-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "528": {
+    "pr": 528,
+    "head": "ff90e2d2bae61f5c3961acb6292b9402f77cd392",
+    "tree": "6344ffc1c5e4ccc08ce53d7055cef52bfb6a92b6",
+    "base": "f85edaa220780f6bfb9114791467072b6ff0cfa4",
+    "base_tree": "c924ee694fb4970edd90f8deef4661342feae34a",
+    "parents": [
+      "d3eddbcbc3180cd686207afa1a98b8fdf81536b1"
+    ],
+    "exact_diff_paths": [
+      "src/descoberta.c",
+      "src/descoberta.h",
+      "tests/cateps.c"
+    ],
+    "paths": [
+      {
+        "path": "src/descoberta.c",
+        "blob": "bc2fb17e7fbd8f3ce57318c48b49bffd414362c8",
+        "sha256": "a398b1656c8c8fdca5c750f229542274d071df4a7f653952fc64cc28a712a825",
+        "bytes": 421904
+      },
+      {
+        "path": "src/descoberta.h",
+        "blob": "dad3f8360dbe876ca7cda8673ecb6b6bf6261ee8",
+        "sha256": "969670e7976bdffd53a96355588686256815a72cafa5646035cdf4983cdf2161",
+        "bytes": 20328
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "tests/cateps.c",
+        "blob": "0b6c6a06f034ece66e7a55574d0cdfa44ee27605",
+        "sha256": "5d119423734c6f2fe0ad25d711823bacdeda89ec344fe6c7eb46cf8b5a9ad6dc",
+        "bytes": 31918
+      },
+      {
+        "path": "tests/cateps.sh",
+        "blob": "a501f2bfb5943a2e6320f1b652f081002f74d015",
+        "sha256": "72c9618800b98560a817f0659df7129c7e08c10184ae6dc7514a4f0be88390e7",
+        "bytes": 912
+      },
+      {
+        "path": "tests/jellyfin_stub.inc",
+        "blob": "d2491346fe4474b0ff0a55a4660c7feb747f749d",
+        "sha256": "8b118e108a5a8aa60789cbbcf16b5dabd3d448c5e24b6c443a2f0e484ffe1eeb",
+        "bytes": 805
+      },
+      {
+        "path": "src/catalogo.c",
+        "blob": "165853ef8ff3595f405d98ca75cda893a5598932",
+        "sha256": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+        "bytes": 112607
+      },
+      {
+        "path": "src/catalogo.h",
+        "blob": "0dd9817dc23e5a74262e9da1d247a6557f1dc342",
+        "sha256": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+        "bytes": 32511
+      },
+      {
+        "path": "src/cwordem.c",
+        "blob": "60632f3e7be96b6a08b7a85cbfa2ff85599997aa",
+        "sha256": "ac94cec02576d4eb5ace3d2505845cafb9de153a631c2445a6c017312c2906c3",
+        "bytes": 7023
+      },
+      {
+        "path": "src/cotacat.c",
+        "blob": "3f1cd5a8d6e68f164c700b6f9d5f1580b11b0bb0",
+        "sha256": "792d0f416e3e29d1750c2dd42c4a9ad8fcd86c6eeaf9008e6c70b210417798e9",
+        "bytes": 2801
+      },
+      {
+        "path": "src/js.c",
+        "blob": "a354ee69661c451914001441fb4a70cbad937cfb",
+        "sha256": "600e01a70fc71d2152dabcbac3e21b13d91ac8b8a8b40c8b7a743207615c4d13",
+        "bytes": 13063
+      },
+      {
+        "path": "src/metaprov.c",
+        "blob": "b50daaac9f68a141a9620abcba6d821073e048ce",
+        "sha256": "e8ef4a1f3ee28897e70fd47a3d0d5ebe4063e054fad8b27626661432be0a0e16",
+        "bytes": 8498
+      },
+      {
+        "path": "src/colecoes.c",
+        "blob": "bea4572079262dca6eed0a38260ad9906802bbcc",
+        "sha256": "80cc61cb6e6de6d6fa92f8524a43cf28ae8357a6e0be2f8ee9974007397f3d28",
+        "bytes": 56794
+      },
+      {
+        "path": "src/redeurl.c",
+        "blob": "7ad27cacd0b025bcd1c05ead3c6a2898d047e4c5",
+        "sha256": "511cafc57442bb8fddd87f1a43c573b4a18caedfa23167bed8a2a79639c2b34c",
+        "bytes": 7235
+      },
+      {
+        "path": "src/catordem.c",
+        "blob": "4e70ec2416762560e49429651970caad6d02c241",
+        "sha256": "6939b4eee7d54c47d37a3897638fdd91f1a140614cc7e3bb4285e2be78080f90",
+        "bytes": 14952
+      },
+      {
+        "path": "tools/android.sh",
+        "blob": "d210069a7b98a84e0d2db1da27d0749f1e406d1f",
+        "sha256": "c7e6e81349d9c10c5d8ddbcd2f1dd411d1d28f9e490f166de34890b5a474a79d",
+        "bytes": 8245
+      },
+      {
+        "path": "tools/android/deps.sh",
+        "blob": "3bf09bc8908048dd2124705bf452b9816d9ff69e",
+        "sha256": "e96d5494018749f532845569d81220adc7e45bc23eea7bbd342376093535ee00",
+        "bytes": 12158
+      },
+      {
+        "path": "tools/android/ffmpeg-android.sh",
+        "blob": "574ad1d9701aee5b0b130c520da7944481516b09",
+        "sha256": "6e38ac24cd86ab1d4a3fe359cecc99cde6444cd02de9069755ac527fd25d8835",
+        "bytes": 7303
+      },
+      {
+        "path": "tools/env.sh",
+        "blob": "b0decde015a8c9b87116c328afb55ccc899edc54",
+        "sha256": "b81836b874205a3443526bfff58fc33fc462847ae9452140695592a2da72183f",
+        "bytes": 5500
+      },
+      {
+        "path": "android/app/src/main/cpp/CMakeLists.txt",
+        "blob": "e03e4f914effdd894f7d52f9ac39541cd28634c0",
+        "sha256": "d89efe715c3b53af6de309dd968c4cbb67f4a86b898088b9ad945ed9ba3a7ffb",
+        "bytes": 6672
+      },
+      {
+        "path": "android/app/build.gradle.kts",
+        "blob": "a09cc954745e15c1cc5210b389d45490ed1ccca7",
+        "sha256": "cff9eb3689c04c3c518700f75e5caeaf162931aee2da8693dec8963f7122b0c6",
+        "bytes": 5677
+      },
+      {
+        "path": "android/build.gradle.kts",
+        "blob": "c7ad7549e74f63b6958ba4e171cc08161976da49",
+        "sha256": "50425357e4449207a6e3098fa4f4dc66864a870859025051fc809589ddb858df",
+        "bytes": 142
+      },
+      {
+        "path": "android/gradle/wrapper/gradle-wrapper.properties",
+        "blob": "09523c0e5490700d1a647ecf95309b5f7f9a8199",
+        "sha256": "3d91f0932da99885c41e9dc4e85c9f9a2d3bfef4f0ad87473014dc0827a94884",
+        "bytes": 250
+      },
+      {
+        "path": "deploy/app/appinfo.json",
+        "blob": "0493c3cf8246141cc59e74ac24b19a2d8cedd920",
+        "sha256": "5ceb740232a38e518ab50796137081072f79271591afd934bf242776fd5e1533",
+        "bytes": 447
+      }
+    ],
+    "scope": "Issue528 product unchanged; tests/cateps.c adds typed profile/session offline boundaries required by the real worker regression."
+  }
+}
