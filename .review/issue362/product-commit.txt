@@ -1,0 +1,6 @@
+tree 917725d9e5f7fb465d0c5f3a96ab55cbc7efdd95
+parent e3e21a590120ca283bcf7a96df1813ff5041eb66
+author Grant Barker <granthbarker@gmail.com> 1792069480 +0000
+committer Grant Barker <granthbarker@gmail.com> 1792069480 +0000
+
+Collections: add a profile default and complete touch navigation
