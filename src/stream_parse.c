@@ -893,6 +893,7 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
       js_texto_linhas(p, fim, "title", titulo, sizeof titulo);
       int cache = cacheDeclarado(p, fim);
       s.emCache = cache > 0 || (cache == 0 && marcaEmCache(p, fim));
+      s.cacheNegado = cache < 0;
       metadadosFaixas(p, fim, &s);
       js_texto(p, fim, "filename", s.arquivo, sizeof s.arquivo);
       // behaviorHints.bingeGroup — ANCORADO NO OBJETO, e nao procurado solto.
