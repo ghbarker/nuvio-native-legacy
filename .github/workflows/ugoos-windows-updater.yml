@@ -1,0 +1,54 @@
+{
+  "name": "Attach reviewed Windows updater helpers to existing Logs18",
+  "on": {
+    "push": {
+      "branches": [
+        "review/ugoos-windows-updater-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "jobs": {
+    "publish": {
+      "if": "${{ true }}",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "permissions": {
+        "contents": "write"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 1
+          }
+        },
+        {
+          "name": "Parse the Windows helper without executing it",
+          "shell": "pwsh",
+          "run": "$parseTokens = $null\n$parseErrors = $null\n[void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE '.review/ugoos-updater/Nuvio-Ugoos-Update.ps1'), [ref]$parseTokens, [ref]$parseErrors)\nif ($parseErrors) { throw ($parseErrors | Out-String) }\nWrite-Host 'PowerShell syntax passed; no device commands executed.'\n"
+        },
+        {
+          "name": "Verify existing release and attach only reviewed helper bytes",
+          "env": {
+            "GITHUB_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/ugoos-updater/publish.py"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "ugoos-updater-publication-${{ github.sha }}",
+            "path": "results/ugoos-updater-publication.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
