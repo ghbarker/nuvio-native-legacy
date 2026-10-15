@@ -1,0 +1,107 @@
+{
+  "name": "Issue497 affected-only recovery with retained SDK origins",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue497-affected-recovery-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "issue497-recovery-${{ github.sha }}-${{ github.run_attempt }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "STARTUP497_PLAN_SHA256": "7ac995553648cdf267ae86b06588664f4d7d26b5a2c124575d05f9c3e3ca96f2",
+    "ISSUE497_RECOVERY_CONTRACT_SHA256": "00dcfe1a13d8d192d905aeb37229e48eb6fb348273135e2942c2468c6c207aa2",
+    "PYTHONPATH": "${{ github.workspace }}/.review/issue497-public",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1",
+    "GITHUB_TOKEN": "${{ github.token }}"
+  },
+  "jobs": {
+    "affected": {
+      "name": "Recover only affected startup/profile/progress/Home normal + ASan",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact one-token correction and untouched original kit",
+          "run": "python3 .review/issue497-recovery/recover.py --preflight-only"
+        },
+        {
+          "name": "Materialize the identical four-source candidate",
+          "run": "python3 .review/issue497-public/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Rerun only affected actual-C closures with corrected log guard",
+          "run": "python3 .review/issue497-recovery/affected.py --source source-app --proof results/source-verified.json --output results/affected"
+        },
+        {
+          "name": "Reverify unchanged exact source",
+          "run": "python3 .review/issue497-public/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue497-affected-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "all_gates": {
+      "name": "Verify fresh affected producer and five retained exact SDK successes",
+      "needs": [
+        "affected"
+      ],
+      "if": "always()",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 40,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact one-token correction and untouched original kit",
+          "run": "python3 .review/issue497-recovery/recover.py --preflight-only"
+        },
+        {
+          "name": "Require exact original SDK jobs and verify original raw bytes without rewriting receipts",
+          "env": {
+            "REQUIRED_JOB_RESULTS": "${{ toJSON(needs) }}"
+          },
+          "run": "python3 .review/issue497-recovery/recover.py --input \"$GITHUB_WORKSPACE/incoming\" --output final/all-gates-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue497-recovery-all-gates-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "final/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

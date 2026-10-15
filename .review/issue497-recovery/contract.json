@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "source_commit": "e54672fdfe0a2df5843c7fee685e1743e15d16fd",
+  "source_tree": "6e017811272138b061f38e98ddad72d132ea1275",
+  "original_review": "5f2b7cfb060c460ca71fb02287e334f4819499d8",
+  "original_review_tree": "466e6c961e051fca597e0daca43cd5e52bbe9668",
+  "original_plan_sha256": "7ac995553648cdf267ae86b06588664f4d7d26b5a2c124575d05f9c3e3ca96f2",
+  "original_run": 38814927257,
+  "original_attempt": 1,
+  "original_affected_job": 116697085186,
+  "original_runner_sha256": "df6acaa114a30b7eee671ababb8dbffedc403f67e07e35657d3c7b77eef6a1a6",
+  "corrected_runner_sha256": "3db08a7cb198cb96044dab84c7c1069816a80e8f8e7a5ef99b772e141e191d67",
+  "recovery_job_name": "Recover only affected startup/profile/progress/Home normal + ASan",
+  "review_branch": "review/issue497-affected-recovery-20261015",
+  "sdk_jobs": {
+    "native": {
+      "id": 116697085031,
+      "name": "Fresh full macOS TV/Mobile app links"
+    },
+    "fontepref": {
+      "id": 116697085225,
+      "name": "Original full-source fontepref normal + ASan/UBSan"
+    },
+    "fontepref_file": {
+      "id": 116697085266,
+      "name": "Original full-source fontepref_file normal + ASan/UBSan"
+    },
+    "player_retido": {
+      "id": 116697085522,
+      "name": "Original full-source player_retido normal + ASan/UBSan"
+    },
+    "android": {
+      "id": 116697085283,
+      "name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages"
+    }
+  },
+  "recipe_inputs": {
+    "affected.py": "3db08a7cb198cb96044dab84c7c1069816a80e8f8e7a5ef99b772e141e191d67",
+    "recover.py": "9c505a5eb76bbfe9c4b5a94ab1ba4ac102766cdc559556b1e07405b4c55e810f"
+  },
+  "allowed_new_paths": [
+    ".github/workflows/issue497-affected-recovery.yml",
+    ".review/issue497-recovery/affected.py",
+    ".review/issue497-recovery/contract.json",
+    ".review/issue497-recovery/recover.py"
+  ],
+  "scope": "Correct only the generic FALHOU text rejection. Fresh complete affected producer; preserve all five original successful SDK producers with exact job/run/review/plan and raw artifact provenance. No source changes, SDK rebuilds, receipt rewriting or copied pass claims."
+}
