@@ -170,7 +170,21 @@ const char *addons_nome(int i)            { (void)i; return "addon"; }
 unsigned addons_versao(void)             { return 1; }   // estatico no teste
 const char *addons_base_por_id(const char *id) { (void)id; return ""; }
 void  addons_manifesto_lido(int i, const char *corpo) { (void)i; (void)corpo; }
-char *rede_baixar(const char *u, int t)    { (void)u; (void)t; return NULL; }
+static int metaRedePedidos, metaObservarCatalogo = -1, metaPublicadoAntesTMDB;
+char *rede_baixar(const char *u, int t) {
+  (void)t;
+  metaRedePedidos++;
+  if (metaObservarCatalogo >= 0 && strstr(u, "api.themoviedb.org")) {
+    CatItem publicado;
+    assert(cat_copiar_item(metaObservarCatalogo, &publicado));
+    assert(publicado.nElenco == 1);
+    assert(!strcmp(publicado.elenco[0].nome, "Tim Robbins"));
+    assert(!strcmp(publicado.elenco[0].papel, "Andy Dufresne"));
+    assert(!strcmp(publicado.elenco[0].foto, "https://addon.test/tim.jpg"));
+    metaPublicadoAntesTMDB++;
+  }
+  return NULL;
+}
 char *rede_baixar_com(const char *u, int t, const char *const *c) {
   (void)c; return rede_baixar(u, t); }
 
@@ -231,7 +245,158 @@ static int temEpisodios(int alvo, const char *prefixo, int quantos) {
   return 1;
 }
 
+// #528: os retratos ja vieram na ficha; nao dependem de uma chamada ao TMDB.
+static void testarMetaElenco(void) {
+  static CatItem it;
+  const char *rico =
+    "{\"meta\":{\"videos\":[{\"cast\":[\"Wrong Person\"]}],"
+    "\"cast\":[\"Jacob Tremblay\",\"Shailene Woodley\"],\"app_extras\":{\"cast\":["
+    "{\"name\":\"Shailene Woodley\",\"character\":\"Joanne\",\"photo\":\"https://addon.test/sw.jpg\"},"
+    "{\"name\":\"Jacob Tremblay\",\"character\":\"Ted\",\"photo\":\"https://addon.test/jt.jpg\",\"id\":99}],"
+    "\"directors\":[{\"name\":\"Director Name\",\"character\":\"Director Name\",\"photo\":\"https://addon.test/director.jpg\"}]}}}";
+  memset(&it, 0, sizeof it);
+  assert(desc_meta_elenco(rico, &it, 0) == 2);
+  assert(!strcmp(it.elenco[0].nome, "Jacob Tremblay"));
+  assert(!strcmp(it.elenco[0].papel, "Ted"));
+  assert(!strcmp(it.elenco[0].foto, "https://addon.test/jt.jpg"));
+  assert(!strcmp(it.elenco[1].papel, "Joanne"));
+  assert(!strcmp(it.elenco[1].foto, "https://addon.test/sw.jpg"));
+  assert(!it.elenco[0].tmdb && !it.elenco[1].tmdb); // id do addon nao e TMDB
+  assert(!strcmp(it.direcao, "Director Name"));
+  puts("ok  meta cast rico casa por nome e preserva a ordem da raiz (#528)");
+
+  memset(&it, 0, sizeof it);
+  assert(desc_meta_elenco("{\"meta\":{\"app_extras\":{\"cast\":["
+    "{\"name\":\"Tim Robbins\",\"character\":\"Andy Dufresne\",\"photo\":\"https://image.tmdb.org/t/p/w500/tim.jpg\"},"
+    "{\"name\":\"Morgan Freeman\",\"character\":\"Red\",\"photo\":null},"
+    "{\"name\":\"Bob Gunton\"}]}}}", &it, 0) == 3);
+  assert(!strcmp(it.elenco[0].papel, "Andy Dufresne") && strstr(it.elenco[0].foto, "/tim.jpg"));
+  assert(!it.elenco[1].foto[0] && !it.elenco[2].foto[0]);
+  puts("ok  AIOMetadata sem cast na raiz e foto null mantem iniciais (#528)");
+
+  memset(&it, 0, sizeof it);
+  desc_meta_elenco("{\"meta\":{\"cast\":[\"Zo\\u00eb Kravitz\",\"宮崎駿\",\"高畑勲\",\"J. K. Simmons\"]}}", &it, 0);
+  desc_meta_elenco("{\"meta\":{\"app_extras\":{\"cast\":["
+    "{\"name\":\"JK Simmons\",\"photo\":\"https://addon.test/jk.jpg\"},"
+    "{\"name\":\"高畑勲\",\"photo\":\"https://addon.test/t.jpg\"},"
+    "{\"name\":\"ZOE KRAVITZ\",\"photo\":\"https://addon.test/zoe.jpg\"},"
+    "{\"name\":\"宮崎駿\",\"photo\":\"https://addon.test/m.jpg\"}]}}}", &it, 1);
+  assert(it.nElenco == 4);
+  assert(strstr(it.elenco[0].foto, "/zoe.jpg"));
+  assert(strstr(it.elenco[1].foto, "/m.jpg") && strstr(it.elenco[2].foto, "/t.jpg"));
+  assert(strstr(it.elenco[3].foto, "/jk.jpg"));
+  puts("ok  nomes UTF-8, escapes, acentos e pontuacao sem trocar pessoas (#528)");
+
+  memset(&it, 0, sizeof it);
+  desc_meta_elenco(rico, &it, 0);
+  it.elenco[0].tmdb = 3;
+  desc_meta_elenco("{\"meta\":{\"cast\":[\"Shailene Woodley\",\"Someone Else\",\"Jacob Tremblay\"]}}", &it, 0);
+  assert(it.nElenco == 3 && strstr(it.elenco[0].foto, "/sw.jpg"));
+  assert(!it.elenco[1].foto[0] && !it.elenco[1].papel[0] && !it.elenco[1].tmdb);
+  assert(strstr(it.elenco[2].foto, "/jt.jpg") && it.elenco[2].tmdb == 3);
+  desc_meta_elenco("{\"meta\":{\"name\":\"No cast\"}}", &it, 0);
+  assert(it.nElenco == 3 && strstr(it.elenco[2].foto, "/jt.jpg"));
+  puts("ok  reabrir preserva campos da mesma pessoa sem herdar os de outra (#528)");
+
+  memset(&it, 0, sizeof it);
+  desc_meta_elenco(rico, &it, 0);
+  desc_meta_elenco("{\"meta\":{\"app_extras\":{\"cast\":["
+    "{\"name\":\"Jacob Tremblay\",\"character\":\"Other role\",\"photo\":\"https://other.test/other.jpg\"},"
+    "{\"name\":\"New Person\",\"photo\":\"https://other.test/new.jpg\"}]}}}", &it, 1);
+  assert(!strcmp(it.elenco[0].papel, "Ted") && strstr(it.elenco[0].foto, "/jt.jpg"));
+  assert(it.nElenco == 3 && !strcmp(it.elenco[2].nome, "New Person"));
+  const char *tmdb = "{\"cast\":[{\"name\":\"Shailene Woodley\",\"id\":2,\"character\":\"TMDB role\",\"profile_path\":\"/tmdb.jpg\"},"
+    "{\"name\":\"Jacob Tremblay\",\"id\":3,\"character\":\"TMDB role\",\"profile_path\":\"/tmdb.jpg\"},"
+    "{\"name\":\"New Person\",\"id\":4,\"character\":\"New role\"}]}";
+  assert(tmdbElenco(tmdb, &it, 1) == 3);
+  assert(!strcmp(it.elenco[0].papel, "Ted") && strstr(it.elenco[0].foto, "/jt.jpg") && it.elenco[0].tmdb == 3);
+  assert(!strcmp(it.elenco[1].papel, "Joanne") && strstr(it.elenco[1].foto, "/sw.jpg") && it.elenco[1].tmdb == 2);
+  assert(!strcmp(it.elenco[2].papel, "New role") && strstr(it.elenco[2].foto, "/new.jpg"));
+  assert(desc_tmdb_elenco(tmdb, &it) == 3); // preferencia desligada mantem semantica TMDB
+  assert(!strcmp(it.elenco[0].papel, "TMDB role") && strstr(it.elenco[0].foto, "/tmdb.jpg"));
+  puts("ok  complemento nao troca campos primarios; TMDB ainda completa ids e lacunas (#528)");
+
+  memset(&it, 0, sizeof it);
+  assert(desc_meta_elenco("{\"meta\":{\"cast\":[\"\"]}}", &it, 0) == 0);
+  desc_meta_elenco("{\"meta\":{\"app_extras\":{\"cast\":["
+    "{\"name\":\"A\",\"photo\":\"file:///private/photo.jpg\"},"
+    "{\"name\":\"B\",\"photo\":{\"url\":\"https://addon.test/b.jpg\"}},"
+    "{\"name\":\"C\",\"photo\":\"https://addon.test/bad\\nphoto.jpg\"},"
+    "{\"name\":\"D\",\"photo\":\"http://addon.test/d.jpg\"}]}}}", &it, 0);
+  assert(it.nElenco == 4);
+  assert(!it.elenco[0].foto[0] && !it.elenco[1].foto[0] && !it.elenco[2].foto[0]);
+  assert(!strcmp(it.elenco[3].foto, "http://addon.test/d.jpg"));
+  char grande[900];
+  memset(grande, 'a', sizeof grande);
+  const char *prefixo = "{\"meta\":{\"app_extras\":{\"cast\":[{\"name\":\"Long\",\"photo\":\"https://addon.test/";
+  memcpy(grande, prefixo, strlen(prefixo));
+  strcpy(grande + 800, "\"}]}}}");
+  desc_meta_elenco(grande, &it, 0);
+  assert(it.nElenco == 1 && !it.elenco[0].foto[0]);
+  puts("ok  fotos ausentes, invalidas ou truncadas deixam iniciais (#528)");
+
+  memset(&it, 0, sizeof it);
+  char cheio[2048] = "{\"meta\":{\"cast\":[";
+  for (int k = 0; k < CAT_ELENCO_MAX + 4; k++) {
+    char nome[40]; snprintf(nome, sizeof nome, "%s\"Person %d\"", k ? "," : "", k);
+    strcat(cheio, nome);
+  }
+  strcat(cheio, "],\"app_extras\":{\"directors\":[{\"name\":\"Director\",\"photo\":\"https://addon.test/director.jpg\"}]}}}");
+  desc_meta_elenco(cheio, &it, 0);
+  assert(it.nElenco == CAT_ELENCO_MAX && !strcmp(it.elenco[11].nome, "Person 11"));
+  assert(!strcmp(it.direcao, "Director"));
+  // O limite e a ordem antigos ficam; nenhum diretor desloca ator da fileira.
+  desc_meta_elenco("{\"meta\":null}", &it, 0);
+  assert(it.nElenco == CAT_ELENCO_MAX);
+  desc_meta_elenco("{\"meta\":{\"app_extras\":{\"directors\":[{\"name\":\"Person 3\",\"character\":\"Person 3\",\"photo\":\"https://addon.test/p3.jpg\"}],"
+    "\"writers\":[{\"name\":\"Person 8\",\"character\":\"Writer\",\"photo\":\"https://addon.test/p8.jpg\"}]}}}", &it, 0);
+  assert(it.nElenco == CAT_ELENCO_MAX && !strcmp(it.elenco[11].nome, "Person 11"));
+  assert(strstr(it.elenco[3].foto, "/p3.jpg") && !it.elenco[3].papel[0]);
+  assert(strstr(it.elenco[8].foto, "/p8.jpg") && !it.elenco[8].papel[0]);
+  puts("ok  teto e ordem de elenco existentes; direcao rica vira texto (#528)");
+}
+
+// #528: o worker real publica o meta antes da cauda TMDB falhar. A resposta
+// vem do cache de metadados real; catalogo.c e os publicadores tambem sao reais.
+static void testarMetaTMDBOffline(void) {
+  static CatItem it, publicado;
+  const char *corpo = "{\"meta\":{\"id\":\"tt0111161\",\"type\":\"movie\","
+    "\"name\":\"The Shawshank Redemption\",\"description\":\"A real synopsis.\","
+    "\"app_extras\":{\"cast\":[{\"name\":\"Tim Robbins\",\"character\":\"Andy Dufresne\","
+    "\"photo\":\"https://addon.test/tim.jpg\"}]}}}";
+  int antes = metaRedePedidos;
+  char chave[96];
+  memset(&it, 0, sizeof it);
+  snprintf(it.imdb, sizeof it.imdb, "tt0111161");
+  snprintf(it.tipo, sizeof it.tipo, "movie");
+  snprintf(it.titulo, sizeof it.titulo, "The Shawshank Redemption");
+  // Nome raso ja existente: a publicacao parcial antiga nao preenche fotos.
+  it.nElenco = 1;
+  snprintf(it.elenco[0].nome, sizeof it.elenco[0].nome, "Tim Robbins");
+  cat_definir_tudo(&it, 1, NULL, 0);
+  desc_meta_chave(chave, sizeof chave, "movie", it.imdb);
+  metaCacheGuardar(chave, corpo);
+  epItem = 0;
+  epSessao = nv_perfil_sessao_ler();
+  epRodaPre = epCancelar = 0;
+  fioEpVivo = 1;
+  metaObservarCatalogo = 0;
+  metaPublicadoAntesTMDB = 0;
+  snprintf(tmdbChave, sizeof tmdbChave, "offline-test");
+  buscarEps(NULL);
+  tmdbChave[0] = 0;
+  metaObservarCatalogo = -1;
+  assert(metaRedePedidos == antes + 1); // /find tentou e o duble devolveu NULL
+  assert(metaPublicadoAntesTMDB == 1 && !fioEpVivo);
+  assert(cat_copiar_item(0, &publicado));
+  assert(publicado.nElenco == 1 && !strcmp(publicado.elenco[0].papel, "Andy Dufresne"));
+  assert(!strcmp(publicado.elenco[0].foto, "https://addon.test/tim.jpg"));
+  puts("ok  worker publica retrato antes do TMDB e conserva apos falha (#528)");
+}
+
 int main(void) {
+  testarMetaElenco();
+  testarMetaTMDBOffline();
   CatItem novo;
   CatItem lote[2];
 
