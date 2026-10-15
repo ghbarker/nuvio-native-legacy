@@ -291,11 +291,11 @@ static void lembrarFoco(void) {
   focoLembrado = foco;
 }
 #ifdef NV_TOUCH_UI
-static void vitPonteiroInvalidar(void);
+static void vitPonteiroInvalidar(int reiniciarRolagem);
 #endif
 static void limparFocoCatalogo(void) {
 #ifdef NV_TOUCH_UI
-  vitPonteiroInvalidar();
+  vitPonteiroInvalidar(1);
 #endif
   memset(&focoChave, 0, sizeof focoChave);
   gradeRevisaoValida = 0;
@@ -418,6 +418,7 @@ static const char *baseDaFonte(const ColSource *s) {
 }
 
 static void vitIniciar(void);
+static float vitPasso(void);
 static void carregarFonte(void);
 static void openSource(void) {
   const ColSource *s=&collection->sources[source];
@@ -831,11 +832,14 @@ static int vitPonteiroGeracao, vitPonteiroPronto;
 static uint64_t vitPonteiroSessao;
 static ToqueRolagem vitToqueY, vitToqueX[VIT_LIN_MAX];
 static int vitToqueLinha = -1, vitToqueGeracao;
-static void vitPonteiroInvalidar(void) {
+static void vitPonteiroInvalidar(int reiniciarRolagem) {
   vitPonteiroGeracao = vitPonteiroGeracao == INT_MAX ? 1 : vitPonteiroGeracao + 1;
-  vitPonteiroPronto = 0; vitToqueLinha = -1; vitToqueGeracao = 0;
-  memset(&vitToqueY, 0, sizeof vitToqueY);
-  memset(vitToqueX, 0, sizeof vitToqueX);
+  vitPonteiroPronto = 0;
+  if (reiniciarRolagem) {
+    vitToqueLinha = -1; vitToqueGeracao = 0;
+    memset(&vitToqueY, 0, sizeof vitToqueY);
+    memset(vitToqueX, 0, sizeof vitToqueX);
+  } else if (vitToqueGeracao) vitToqueGeracao = vitPonteiroGeracao;
   memset(vitPonteiroVisivel, 0, sizeof vitPonteiroVisivel);
 }
 #endif
@@ -865,7 +869,9 @@ static void vitProjetar(void) {
   unsigned revisao = cat_revisao_itens();
   if (!vitProjetoSujo && ocultar == vitOcultar && (!ocultar || revisao == vitRevisao)) return;
 #ifdef NV_TOUCH_UI
-  vitPonteiroInvalidar();
+  // A newly loaded row invalidates title targets, not the position the person
+  // has already scrolled to. Opening a new collection still resets both.
+  vitPonteiroInvalidar(0);
 #endif
   int linha = vitFR, coluna = vitFC;
   for (int r = 0; r < vitN; r++) {
@@ -881,7 +887,10 @@ static void vitProjetar(void) {
       l->n++;
     }
     if (vitColLemb[r] >= l->n) vitColLemb[r] = l->n ? l->n - 1 : 0;
-    vitSx[r] = vitSv[r] = 0.0f;
+#ifdef NV_TOUCH_UI
+    if (!vtTelefone())
+#endif
+      vitSx[r] = vitSv[r] = 0.0f;
   }
   vitFR = linha < vitN ? linha : (vitN ? vitN - 1 : 0);
   vitFC = coluna;
@@ -935,7 +944,7 @@ static void vitNomes(void) {
 
 static void vitIniciar(void) {
 #ifdef NV_TOUCH_UI
-  vitPonteiroInvalidar();
+  vitPonteiroInvalidar(1);
   vitPonteiroSessao = perfis_sessao_geracao();
 #endif
   if (!vitBuf) {
@@ -991,6 +1000,22 @@ static void vitAgrupar(int n) {
   static short chave[VT_MAX];
   static CatItem tmp;
   int chaves[VIT_LIN_MAX + 1], nc = 0, filmes = 0, series = 0;
+#ifdef NV_TOUCH_UI
+  // Later pages can insert a new decade before existing rows. Touch positions
+  // belong to those groups, not to the array slots they happened to occupy.
+  struct { char nome[96]; float x, v; int coluna, livre; } antes[VIT_LIN_MAX];
+  int antesN = vtTelefone() ? vitN : 0, ancora = -1, gesto = vitToqueLinha;
+  for (int r = 0; r < antesN; r++) {
+    snprintf(antes[r].nome, sizeof antes[r].nome, "%s", vitLin[r].nome);
+    antes[r].x = vitSx[r]; antes[r].v = vitSv[r];
+    antes[r].coluna = vitColLemb[r]; antes[r].livre = vitToqueX[r].livre;
+  }
+  if (antesN && toquerol_livre(&vitToqueY)) {
+    ancora = (int)(vitScroll / vitPasso());
+    if (ancora < 0) ancora = 0;
+    if (ancora >= antesN) ancora = antesN - 1;
+  }
+#endif
   if (n > VT_MAX) n = VT_MAX;
   for (int i = 0; i < n; i++)
     if (desc_vertudo_item_bruto(i, &tmp)) { if (!strcmp(tmp.tipo, "series")) series = 1; else filmes = 1; }
@@ -1035,6 +1060,23 @@ static void vitAgrupar(int n) {
     }
     l->estado = VIT_PRONTA;
   }
+#ifdef NV_TOUCH_UI
+  if (antesN) {
+    vitToqueLinha = -1;
+    memset(vitToqueX, 0, sizeof vitToqueX);
+    for (int r = 0; r < vitN; r++) {
+      vitSx[r] = vitSv[r] = 0.0f; vitColLemb[r] = 0;
+      for (int i = 0; i < antesN; i++) if (!strcmp(vitLin[r].nome, antes[i].nome)) {
+        vitSx[r] = antes[i].x; vitSv[r] = antes[i].v;
+        vitColLemb[r] = antes[i].coluna; vitToqueX[r].livre = antes[i].livre;
+        if (i == gesto) vitToqueLinha = r;
+        if (i == ancora) { vitScroll += (r - i) * vitPasso(); vitScrollV = 0.0f; }
+        break;
+      }
+    }
+    if (gesto >= 0 && vitToqueLinha < 0) vitToqueGeracao = 0;
+  }
+#endif
   vitProjetoSujo = 1;
 }
 
