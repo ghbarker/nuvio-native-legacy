@@ -20,7 +20,7 @@
     "collection-state/fixtures/original-collection.c": "f446b78fbb92195cf013ec681a3c66aea7eda3b3873849ec7187149b66c9f798",
     "collection-state/fixtures/profile-sync.c": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
     "collection-state/fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
-    "collection-state/run.py": "7a5701c2e5c9fef9477083a56eb4db22b6a374f8805518ca4195e5bc78fc90aa",
+    "collection-state/run.py": "549ec6670945aaea14b6e386e25867af8ed09fbdb2d14b3c73aace591e06b511",
     "collection-state/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
     "collection-state/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
     "run.py": "98c23361464ae7aa27612b9b61c21be062d983ea9ded85400130a28fbf91b225",

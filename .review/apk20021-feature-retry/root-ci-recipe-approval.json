@@ -1,0 +1,101 @@
+{
+  "format": 1,
+  "approved": true,
+  "approved_by": "/root",
+  "recorded_by": "/root/original_log_endpoint_lookup",
+  "authorization_source": "Parent instruction: Root approves preparing the FINAL frozen retry payload once all six genuine-success artifact pins are bound; may set frozen/root_reviewed flags and package metadata without another draft-only approval pause; root performs last concrete payload check before launch.",
+  "scope": "Only fresh24 focused feature groups and cross-origin aggregate, retaining six individually successful original producer jobs; no source/assertion changes or extra local suites",
+  "sources": {
+    "product": {
+      "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a"
+    },
+    "test": {
+      "commit": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+      "tree": "8db5e6d2bdf6ffff2867fb2bcf88d241d6f57fac"
+    }
+  },
+  "original_plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+  "original_aggregate_sha256": "7f7343c45bc33618855d872366453b3cf3ddb2274960124dbc1e62e88c1ee2fa",
+  "corrected_runner_sha256": "549ec6670945aaea14b6e386e25867af8ed09fbdb2d14b3c73aace591e06b511",
+  "corrected_feature_manifest_sha256": "fb36eebcfe462bf09fc0a1f4ca96384d42f72efce4947508a52a29359e742fcb",
+  "local_closure_proof_sha256": "552077435df6c82f5be8cd48e2339903eb44953ebd89490721eae26126414daa",
+  "retry_aggregate_sha256": "be93c0cac25fa84f3ee49d3a10c4cc3e5db7bdf8483cc322dddb56dec3f11d62",
+  "retry_guard_sha256": "bf134b8bffc9369dda4381f0d50b24b1b75017df27a19f2a07791aaf22576db1",
+  "retained_jobs": [
+    {
+      "scope": "native",
+      "job_id": 116413345815,
+      "job_name": "Complete macOS TV/Mobile + actual changed native contracts",
+      "actual_success_verified": true,
+      "artifact": {
+        "id": 11971428271,
+        "name": "apk20021-native-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "3b320f0be8ac54843e81f56ebaac495dda784188ef8b1a70a63160c0ee462cfe",
+        "bytes": 102277336
+      }
+    },
+    {
+      "scope": "original-fontepref",
+      "job_id": 116413345869,
+      "job_name": "Original complete fontepref normal + ASan/UBSan",
+      "actual_success_verified": true,
+      "artifact": {
+        "id": 11971078393,
+        "name": "apk20021-original-fontepref-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "10aebd0eb724955c83966bf625383d5a57a694c3334b83ec0c4de1c89cdf637b",
+        "bytes": 28451
+      }
+    },
+    {
+      "scope": "original-fontepref_file",
+      "job_id": 116413345921,
+      "job_name": "Original complete fontepref_file normal + ASan/UBSan",
+      "actual_success_verified": true,
+      "artifact": {
+        "id": 11971088294,
+        "name": "apk20021-original-fontepref_file-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "0d58fc3bec6e25e75f80419ea3f6729d3b8410aba7b495cd99f34d8321b5f8a6",
+        "bytes": 26605
+      }
+    },
+    {
+      "scope": "original-player_retido",
+      "job_id": 116413345705,
+      "job_name": "Original complete player_retido normal + ASan/UBSan",
+      "actual_success_verified": true,
+      "artifact": {
+        "id": 11970792841,
+        "name": "apk20021-original-player_retido-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "57fca9068c982f8a48340208fd690b257c7e8f4a9061475ada7b11756261d7a3",
+        "bytes": 21756
+      }
+    },
+    {
+      "scope": "android",
+      "job_id": 116413345783,
+      "job_name": "APK20021 clean product and compatible test APK (ARM32/ARM64)",
+      "actual_success_verified": true,
+      "artifact": {
+        "id": 11971313991,
+        "name": "apk20021-android-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "118ee72a1d964fe88536acb94bdaf264eff3e397d0aa55ee764144f104040698",
+        "bytes": 108641091
+      }
+    },
+    {
+      "scope": "jvm",
+      "job_id": 116413345786,
+      "job_name": "Fresh32 JVM helpers +15 real Media3 contracts",
+      "actual_success_verified": true,
+      "artifact": {
+        "id": 11971382997,
+        "name": "apk20021-jvm47-3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+        "sha256": "508d4a13b34198def50e07ea4a35bbaae5599242fc7d31e72ed5d250e62f74f2",
+        "bytes": 2014025
+      }
+    }
+  ],
+  "explicit_run_attempt_guards": true,
+  "source_or_ci_or_release_or_pr_action_performed_by_preparation": false
+}

@@ -1,0 +1,206 @@
+{
+  "format": 1,
+  "outcome": "passed-local-corrected-fixture-closure",
+  "source_commits": {
+    "product": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+    "test": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5"
+  },
+  "runner_sha256": "549ec6670945aaea14b6e386e25867af8ed09fbdb2d14b3c73aace591e06b511",
+  "patch_sha256": "38d9e011a4caf82df3e77aaf61798293f1765abde95e31f4cd9253cd432adbbf",
+  "feature_manifest_sha256": "fb36eebcfe462bf09fc0a1f4ca96384d42f72efce4947508a52a29359e742fcb",
+  "records": [
+    {
+      "layer": "product",
+      "sanitizers": [],
+      "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-normal-closure2/receipt.json",
+      "sha256": "9c45d2e809c9205c367ea81ee8e0c02079b857952abfad2685a41b66a6e23727",
+      "groups": [
+        {
+          "group": "profile",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-normal-closure2/profile/receipt.json",
+          "receipt_sha256": "c82cd1bf54548601dd92174109fff0b9b5361491be7c91f0b5ac6a20c26b465a",
+          "binary_sha256": "63a1f1ea81c48ec30d6da312931d4f3b89def41ef5b402d3e2936fc36b08b210",
+          "dependency_count": 152,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "views",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-normal-closure2/views/receipt.json",
+          "receipt_sha256": "4084962758f1f92b4850d10b3aee054954bafdb999f1c485dc35b5897af93134",
+          "binary_sha256": "9d0eb0a8e5b5172dc8acf0ea2275eb41defcafc95d5ee58ac647529744fd1838",
+          "dependency_count": 164,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "adapted-original",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-normal-closure2/adapted-original/receipt.json",
+          "receipt_sha256": "f1fb2c00221a223a99da6b6802edfb455ac1f5dc5c9d86679849bc7500cdeb04",
+          "binary_sha256": "545b1221ec55f87e9d1687712ed4aa257c2e62f011776129321759ae68f0ea98",
+          "dependency_count": 173,
+          "abort_traps_fired": false
+        }
+      ],
+      "outcome": "passed"
+    },
+    {
+      "layer": "product",
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-asan-closure2/receipt.json",
+      "sha256": "2b52969b46f33faada73dce00daf2381b3d8ec03cd03414acd1d9f7b3531ab08",
+      "groups": [
+        {
+          "group": "profile",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-asan-closure2/profile/receipt.json",
+          "receipt_sha256": "3612cf0f455ed66a2e17e2de18bb06c0043f4081ea4e2f8f6dde617189172821",
+          "binary_sha256": "9652117f874cf602b617ab725e796295b9de7ef0bd3c602cb7c4bfb16b10432b",
+          "dependency_count": 152,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "views",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-asan-closure2/views/receipt.json",
+          "receipt_sha256": "1399340b0c0ffa598a49223147f783ee870d5feb7291e43559d5574bd638f530",
+          "binary_sha256": "186c85215e904966b95bef5395165e85986eb61389f39457c6ac282b15c74993",
+          "dependency_count": 164,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "adapted-original",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/product-asan-closure2/adapted-original/receipt.json",
+          "receipt_sha256": "47d0b64f632317d56a1cdd3232715ba4f5325ea56a1e8854a71980f1e30fead5",
+          "binary_sha256": "1acc8d39851f975040090f001c1744e4d4c4a89c881f4afe1ec8220fc4c9c767",
+          "dependency_count": 173,
+          "abort_traps_fired": false
+        }
+      ],
+      "outcome": "passed"
+    },
+    {
+      "layer": "test",
+      "sanitizers": [],
+      "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-normal-closure2/receipt.json",
+      "sha256": "abfb78ca00972143266c59c448965b065e39cddf10c9ce25796a4a529dc4433b",
+      "groups": [
+        {
+          "group": "profile",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-normal-closure2/profile/receipt.json",
+          "receipt_sha256": "83f427f760ab58d9399e2512b343cc09b8968a6a81faf4ddac8a5811dae6aa07",
+          "binary_sha256": "9573dfaf9e21635e5d79bf11ed32265971e40a58dc34288582b6b158299c022c",
+          "dependency_count": 152,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "views",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-normal-closure2/views/receipt.json",
+          "receipt_sha256": "759d8aa5e93ca0371187a1fb43e7f95a69c5c6754646ac1024e193196f1c645f",
+          "binary_sha256": "b61f994e3ac5dc90fc64b120091848c3033da2000d01b6110aeae457ebf4818e",
+          "dependency_count": 164,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "adapted-original",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-normal-closure2/adapted-original/receipt.json",
+          "receipt_sha256": "25f7e2b02a9eb88b7e6e7242c898e8c35da70d943d323ea477042861d69eaa9e",
+          "binary_sha256": "16d479c0debfb1c989120fd357b14b33fb51eaabea55bef067510196e0fa464e",
+          "dependency_count": 173,
+          "abort_traps_fired": false
+        }
+      ],
+      "outcome": "passed"
+    },
+    {
+      "layer": "test",
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-asan-closure2/receipt.json",
+      "sha256": "822ee7d1537c782896bd28419e7eb21ae28640f3aca350f8017d0380247101bc",
+      "groups": [
+        {
+          "group": "profile",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-asan-closure2/profile/receipt.json",
+          "receipt_sha256": "e7df33d3b993fa6521251f26ca804114e241a35d021f24e8206fc2449a772ce7",
+          "binary_sha256": "c061d99a5e257c4608015438c9a52523123f3586cb236fda90f2ba84ef5cbe09",
+          "dependency_count": 152,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "views",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-asan-closure2/views/receipt.json",
+          "receipt_sha256": "97aa711c5fd0a8b84d1175d33e0c731c2aab1e0af54e41d6dcbf0024425f8236",
+          "binary_sha256": "cd1c47219a0d28cdbbc12f473d3f62106601421ece1d299c1cd261537dedd729",
+          "dependency_count": 164,
+          "abort_traps_fired": false
+        },
+        {
+          "group": "adapted-original",
+          "receipt": "/workspace/review/apk20021-feature-closure-fix-20261015/test-asan-closure2/adapted-original/receipt.json",
+          "receipt_sha256": "6c70d9c652abceb7eb49a7d622b8588fab181363c8042d5d3a9e503c40e1ed95",
+          "binary_sha256": "e16c94934c4dd77a2da67db35adb3e78c55b5e0bd1b0945f49ea7c3739d9578d",
+          "dependency_count": 173,
+          "abort_traps_fired": false
+        }
+      ],
+      "outcome": "passed"
+    }
+  ],
+  "actual_groups_executed": 12,
+  "fixture_assertions_or_boundaries_modified": false,
+  "unchanged_fixture_sdk_hashes": {
+    "fixture-origin.json": "1ed56837864047206e36b334f67b4e497abbcc2af4a4c04d7c2bc6af38dff8ed",
+    "fixtures/original-adapter.diff": "2fb5f72cb885bcfaf038ef829189820386bb0c2901679ce1dcb4679329b150ac",
+    "fixtures/original-colecao-adapted.inc": "2b69df29d3c4d59ac165575c5ea4000bead31c47fea03bba33c548eb79dc4302",
+    "fixtures/profile-sync.c": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
+    "fixtures/collection-views.c": "bcd54856987f1b0ff842270d1d191d36e27dd026345a0589cf1f8de5b7fedd19",
+    "fixtures/original-collection.c": "f446b78fbb92195cf013ec681a3c66aea7eda3b3873849ec7187149b66c9f798",
+    "fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  },
+  "external_dependency_correction": {
+    "views_added_actual_modules": [
+      "perfis",
+      "home",
+      "ajustes"
+    ],
+    "adapted_original_added_actual_modules": [
+      "perfis"
+    ],
+    "existing_profile_group_changed": false,
+    "views_ajustes_tu_only_aliases": [
+      "ajustes_colecao_exibicao",
+      "ajustes_conteudo_x",
+      "ajustes_rail_largura_fixa",
+      "ajustes_tinta_foco",
+      "ajustes_tinta_foco2",
+      "ajustes_acento",
+      "ajustes_ocultar_filmes_vistos"
+    ],
+    "alias_reason": "Retain all established controlled input functions in the unchanged view fixture while actual Home/remaining Settings geometry execute."
+  },
+  "reached_missing_dependencies_preserved": [
+    {
+      "stage": "actual originalCI",
+      "symbol": "perfis_sessao_geracao",
+      "original_job_conclusion": "failure"
+    },
+    {
+      "stage": "local perfis-only correction",
+      "symbol": "home_vitrine_medida",
+      "result": "all4views abort; saved prior outputdirs"
+    }
+  ],
+  "original_failed_feature_receipt": {
+    "path": "/workspace/review/integration-apk20021-20261015/monitor/38732464381/features/original-failure-verified.json",
+    "sha256": "62ed748ab0e46b6249cbf6bd54bbfc297d24b61def8e2be55ca89f40cdcfb9fe",
+    "job_still_failed": true
+  },
+  "other20feature_groups_rerun_locally": false,
+  "product_or_running_recipe_changed": false,
+  "ci_launch_or_publication_performed": false,
+  "root_retry_review_pending": true
+}

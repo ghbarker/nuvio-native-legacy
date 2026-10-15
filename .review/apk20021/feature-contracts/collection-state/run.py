@@ -20,7 +20,7 @@ if a.private:flags+=['-DNV_TEST_LOCAL_LOGS=1']
 san=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-sanitize-recover=all']if a.sanitize else[]
 linkflags=['-Wl,-dead_strip']if darwin else['-Wl,--gc-sections','-no-pie']
 env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1:print_stacktrace=1'}
-groups={'profile':('profile-sync.c',['dados','layout','linguas','fontefalha','fonteregra','regexjs','js','sync']),'views':('collection-views.c',['dados','layout','ponteiro','ctxlista']),'adapted-original':('original-collection.c',['dados','layout','ponteiro','ctxlista','salvos','home','ajustes','fileiras','linguas','fonteregra','fontefalha','regexjs','js'])}
+groups={'profile':('profile-sync.c',['dados','layout','linguas','fontefalha','fonteregra','regexjs','js','sync']),'views':('collection-views.c',['dados','layout','ponteiro','ctxlista','perfis','home','ajustes']),'adapted-original':('original-collection.c',['dados','layout','ponteiro','ctxlista','perfis','salvos','home','ajustes','fileiras','linguas','fonteregra','fontefalha','regexjs','js'])}
 records=[]
 producer=out/'actual-desc-filme-visto.c';discovery=(s/'src/descoberta.c').read_text();start=discovery.index('int desc_filme_visto(');end=discovery.index('\n}',start)+2;body=discovery[start:end];producer.write_text('#include "catalogo.h"\n#include <string.h>\n'+body+'\n');producer_origin={'source':'src/descoberta.c','source_sha256':sha(s/'src/descoberta.c'),'actual_function_sha256':hashlib.sha256(body.encode()).hexdigest(),'generated_sha256':sha(producer)}
 def invoke(cmd,log):
@@ -34,6 +34,11 @@ for group,(fixture,modules)in groups.items():
   if group=='profile':extra+=['-DPUBLISHED493_DEFAULTS=1','-DSETTINGS_SOURCE="'+str(s/'src/ajustes.c')+'"']
   else:extra+=['-DVERTUDO_SOURCE="'+str(s/'src/vertudo.c')+'"']
   if group!='profile'and module==s/'src/dados.c':extra+=['-Ddados_gravar=collection_real_dados_gravar']
+  if group=='views'and module==s/'src/ajustes.c':
+   # Preserve every existing controlled Settings boundary in this fixture;
+   # link the remaining real Settings geometry getters needed by actual home.c.
+   for name in ['ajustes_colecao_exibicao','ajustes_conteudo_x','ajustes_rail_largura_fixa','ajustes_tinta_foco','ajustes_tinta_foco2','ajustes_acento','ajustes_ocultar_filmes_vistos']:
+    extra+=['-D'+name+'=collection_real_'+name]
   cmd=[a.cc,*flags,*san,*extra,'-MMD','-MF',str(dep),'-c',str(module),'-o',str(obj)];invoke(cmd,d/(str(i)+'-compile.log'));commands.append(cmd);objects.append(str(obj))
   raw=dep.read_text().replace('\\\n',' ');assert ':'in raw;paths=raw.split(':',1)[1].split();assert paths
   for f in paths:

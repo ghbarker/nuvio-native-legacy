@@ -49,20 +49,16 @@
   "pending": [],
   "proof_policy": {
     "fresh": [
-      "macOS4fullapps",
-      "original3normal+ASan",
-      "changednative/settings/textclosures",
-      "Androidproduct+testbothABIs+16KB+signer+JNI+optin",
-      "fresh32 JVM helper contracts and15 actual Media3 contracts with current Java/toolchain/runtime evidence",
-      "Existing20 focused feature invocations plus four combined collection pointer producers, each gesture75+reachability36/all2160title activations, both exact layers normal and ASan/UBSan"
+      "All24 focused feature groups on identical frozen product/private source, with corrected realproducer closure",
+      "Cross-origin aggregate applies original6990plan context to six original successful jobs and current plan context to fresh feature24"
     ],
     "eligible_reuse": [
-      "same-invocation macOS object reuse only after exact preprocessor/dependency-byte equivalence under the isolated private macro delta"
+      "Only exact successful original native/original3/Android/JVM producer proofs, bound to their original run/review/plan/artifact bytes, with unchanged source graphs"
     ],
     "never_reuse": [
-      "oldAPK/signature/ABI/DEX/16KB",
-      "oldfullsourceorchangednativeclosures",
-      "anyfailedincompletejob"
+      "Original failed feature job, failed aggregate or failed overall run as a pass",
+      "Any rewritten receipt/review/plan identity",
+      "Other source/ref or missing/incomplete/failed producer"
     ]
   },
   "composition_manifest": {
@@ -111,14 +107,14 @@
     }
   },
   "ci_execution_permitted": true,
-  "root_approval_scope": "Execute exact frozen Logs11 product/private source validation in the fork, using seven fresh mandatory producer jobs and all-gates. Source PR and release publication remain on hold.",
+  "root_approval_scope": "Only fresh24 focused feature groups with corrected actual producer closure and cross-origin aggregate; retain six exact successful original source producers with original plan/proof bytes. No source, APK build, PR, release, backend or reference actions.",
   "recipe_pins": {
     "aggregate.py": "7f7343c45bc33618855d872366453b3cf3ddb2274960124dbc1e62e88c1ee2fa",
     "native/run.py": "23a59d137babb48ec2df4859bd49e9bef4d2e6141b5a9d93f42e5e9dc0e6a988",
     "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
     "android/recipe-manifest.json": "d4cc014c6308bc7d6f5d94d595c079459cbd0e4c1785ed32c1412e6ee8872dbf",
     "jvm/manifest.json": "2c7e8cd86b5165d5e2d797eef61d736ad4aa14a34a1ae6eac57967d6a1d8bbb2",
-    "feature-contracts/manifest.json": "7496e631c9a07132a33b89c3f55fd5218df0fa5b62523f48f2eadec5d2a3b557",
+    "feature-contracts/manifest.json": "fb36eebcfe462bf09fc0a1f4ca96384d42f72efce4947508a52a29359e742fcb",
     "require_plan.py": "e804756916f08f644cdfbd4952b10ddd422eb2f796993226a454b1eb7ebfd97f",
     "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
     "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
@@ -129,8 +125,8 @@
   "recipe_preparation_only": false,
   "source_root_approval_sha256": "dd977c3cb42814fb380f612dc2ec7d42a1783ae2ebf890d84e11310347069d28",
   "root_ci_recipe_approval": {
-    "path": "provenance/root-ci-recipe-approval.json",
-    "sha256": "7aa7e29d0217be415231fb777741450ea7c2ef49900beb8b71e753ec0b16d03c"
+    "path": "../apk20021-feature-retry/root-ci-recipe-approval.json",
+    "sha256": "7d89506b26128bc5f1f54e458905f5846b01ee76feb5bdaf06518ff4cc04a907"
   },
   "required_pointer_regression": {
     "bound": true,
@@ -183,5 +179,27 @@
     "review_commit": "7e4eab3bea86fe935fc1b9ccc05037bf16913a24",
     "run_id": 38691717385,
     "prior_results_eligible_for_new_execution_proof": false
+  },
+  "retry_scope": {
+    "correction": "External collection-state producer adds actual perfis/home/Settings call closure and seven recorded per-source aliases preserving existing fixture Settings readers; every product byte/assertion unchanged",
+    "retained_run_id": 38732464381,
+    "retained_review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+    "original_plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+    "original_plan_path": "../apk20021-feature-retry/original-plan.json",
+    "fresh_jobs": [
+      "feature-contracts",
+      "all-gates"
+    ],
+    "retained_jobs": [
+      "native",
+      "original-fontepref",
+      "original-fontepref_file",
+      "original-player_retido",
+      "android",
+      "jvm"
+    ],
+    "sources_manifests_bundle_unchanged": true,
+    "excluded_failed_feature_job": 116413345748,
+    "prior_failed_overall_run_is_pass": false
   }
 }

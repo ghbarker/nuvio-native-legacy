@@ -1,0 +1,119 @@
+{
+  "name": "APK20021 focused feature producer-closure retry",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20021-feature-retry-20261015"
+      ],
+      "paths": [
+        ".review/apk20021/plan.json",
+        ".review/apk20021/feature-contracts/collection-state/run.py",
+        ".review/apk20021/feature-contracts/manifest.json",
+        ".review/apk20021-feature-retry/**",
+        ".github/workflows/apk20021-feature-retry.yml"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "apk20021-feature-retry-${{ github.ref }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "NUVIO_REVIEW_PLAN_SHA256": "7edb8760a4ac6a4fdc6e7eb28ea21196c65183b2cb1f9735d65110d5b49bdc99",
+    "APK20021_RETRY_LOCK_SHA256": "19402b575482e46171ce7d273dd26ba7cb57e7e4040c93048f06acde9aee74b3",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "jobs": {
+    "feature-contracts": {
+      "name": "Focused caption/libass and collection source contracts",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify approved exact same-source feature-only retry",
+          "run": "python3 .review/apk20021-feature-retry/check_recipe.py"
+        },
+        {
+          "name": "Materialize exact approved product source",
+          "run": "python3 .review/apk20021/materialize.py --layer product --output source-product --proof build/review/apk20021/product-source.json --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "name": "Materialize exact approved test source",
+          "run": "python3 .review/apk20021/materialize.py --layer test --output source-test --proof build/review/apk20021/test-source.json --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "name": "Install proven actual libass and fixture compiler dependencies",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y build-essential pkg-config libass-dev python3-fonttools fonts-dejavu-core\n/usr/bin/cc --version\npkg-config --modversion libass"
+        },
+        {
+          "name": "Fresh actual combined caption/style and collection contracts, normal and ASan/UBSan",
+          "run": "python3 .review/apk20021/feature-contracts/run.py --product source-product --test source-test --product-proof build/review/apk20021/product-source.json --test-proof build/review/apk20021/test-source.json --cc /usr/bin/cc --output build/review/apk20021/feature-contracts"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "apk20021-features-${{ github.sha }}",
+            "path": "build/review/apk20021/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "all-gates": {
+      "name": "Require six retained successes and fresh focused feature gates",
+      "runs-on": "ubuntu-24.04",
+      "needs": [
+        "feature-contracts"
+      ],
+      "if": "always()",
+      "timeout-minutes": 20,
+      "env": {
+        "APK20021_RETRY_JOB_RESULTS": "${{ toJSON(needs) }}"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact approved retry lock",
+          "run": "python3 .review/apk20021-feature-retry/check_recipe.py"
+        },
+        {
+          "name": "Validate immutable retained origins and fresh corrected complete feature artifacts",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/apk20021-feature-retry/aggregate_retry.py --repository \"$GITHUB_REPOSITORY\" --job-results-json \"$APK20021_RETRY_JOB_RESULTS\" --output build/review/apk20021-retry/final"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "apk20021-retry-all-gates-${{ github.sha }}",
+            "path": "build/review/apk20021-retry/final/all-gates-verified.json\nbuild/review/apk20021-retry/final/validation-origin.json",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
