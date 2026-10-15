@@ -1,0 +1,298 @@
+{
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "old_head_lease": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+  "head": "c297e2f511629e659ce0c76d3dd106a5ee9f656a",
+  "tree": "a9936f7c7c0c671ed1593bcfd4af513d47e0ba00",
+  "commits": [
+    "8f97bbfafebf36f93b0fe821094232924e7e025e",
+    "c297e2f511629e659ce0c76d3dd106a5ee9f656a"
+  ],
+  "paths": [
+    {
+      "path": "src/agendaui.c",
+      "sha256": "c3352aefd2b0f59c25788707d01987777ab1cba73b9c43d804bec9edafa9a2f3",
+      "blob": "51f197dde0fab24352baff767775ab14b255e2ca"
+    },
+    {
+      "path": "src/ajustes.c",
+      "sha256": "7402831747d18d34f56e8f3a305579db6803c8b0df9f4ecd1a51b21a3b01fa30",
+      "blob": "271ceb875fa7f61a60c4a1e8221fd4dfc6dfb6a2"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "50b3421bcccc6d189e83dd0ddc9ba4966bc62d1c6cf87892285024d97f9a6a77",
+      "blob": "ba2c7d257fe061969bff7d911153e82db15c5e78"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha256": "aa7e2b80cdac206a7cd798e2d6f6dde54225a0628a89ba481b3b91b42a32506a",
+      "blob": "0e753b07458b9da6a3a8c07ef2f85154209e778a"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "e91a0117ed375db9032faf6494f3aca0667df0ea3fbe26b89e89215ca236c922",
+      "blob": "f33a08daed8ca9714521198f02ff979afaff667e"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "b3c68bd2756229f91388ba449fcfbe7fcbb7e07a596404552cb3412470a147fd",
+      "blob": "c9e181272afb2c45a56a84f0e9ca5b4aa337bdf3"
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "sha256": "38de6d2444c09f06a22c85fb7cd3c9b7ca7bbc5c8fe80c47a786acd78d4953a6",
+      "blob": "e62e1096329402ce40e6180873f8b59fc2e75eaa"
+    },
+    {
+      "path": "src/biblioteca.c",
+      "sha256": "023bb3520d8cf9e1545902229998b669d722c028282f580a87c1b7c5902b7cd8",
+      "blob": "e6368e38ded238f08202cb872c271be3dc53035b"
+    },
+    {
+      "path": "src/ctxinfo.c",
+      "sha256": "7346573807174a9c35917155ccb472c5d84f3268289c212f1890f59f0e65905d",
+      "blob": "a1566b5d30e8d18c225764fef8d9d01c1be38235"
+    },
+    {
+      "path": "src/descanso.c",
+      "sha256": "80d0fed0f6fba749ccb355cb1e83ac8597f6f9121c289e34eb32d5a13f234e53",
+      "blob": "70f9e07115da238d784e3e0bd75995f9abd066b9"
+    },
+    {
+      "path": "src/detail.c",
+      "sha256": "2b5fd9b6dcd79f5317859a3720a6aeae598cb03d28910c228cca229e9d84f3b5",
+      "blob": "89d319c301f0c4a8196273128ac404fbb7405d7a"
+    },
+    {
+      "path": "src/detmais.c",
+      "sha256": "6961bfc3583ffbafd64e464b0d1376e9e9c5acf84d2e6e52775a997766535aff",
+      "blob": "772fb7a2214e58b8963ad1a3272599ef7d1f6e29"
+    },
+    {
+      "path": "src/detmais.h",
+      "sha256": "a81dc2284830fdd5f39b21b085cf7e9c4b56ef0a47f877165edc15e2c9bae5bf",
+      "blob": "81da87520d937b8efadad9e351325d6a413c2dfe"
+    },
+    {
+      "path": "src/episodios.c",
+      "sha256": "f60d88031d1ce42bca45fbd07904bed92c12a004b36c97ff58adf9557c735f15",
+      "blob": "a5021e1cfba1c8d8f9f79326ce4cb99b6732baad"
+    },
+    {
+      "path": "src/home.c",
+      "sha256": "e4c1e7ac68b415005f4061f6795c55684170736a9603ac020bfecaa830ae26c1",
+      "blob": "61d06b9d90588d5b1536944f78c26243038af39b"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "ac3ad09f0a556ab23c8c4f1987ab39233e0df36f1f7c616f3c3779858cc42b6f",
+      "blob": "40ce94c73778fdb9e578704f643336e8a728aaf8"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "12f61c0172eaab0d1fdbe8dc8fdb1f71d5ca487e4999e04d93aedd005ec44eaf",
+      "blob": "706ec5d82e805759a83d7332cc86cfc9266637ce"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "c12049a6f64a50df73c3013468ed2199066867841f97f4bd468f4ad51e9a13d9",
+      "blob": "cd755d474f0e87336767ace76344ab4423d1d922"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "15a268ec7e571096886adbd3d55fece1284b0f895f732ec75dc20800523110ed",
+      "blob": "c807174305fd34254571b2c4064f06292d80fbf4"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "0638d00172f5e6f4a521be95fbb9e9ee892af60728020d33acbfa3123ec53f68",
+      "blob": "eb6d89cba844c73cdf443bd89544890156b700bf"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "82f67b45817a4a9a852c3dc6281c4424986f77aeca48975e69cad90d23b64a33",
+      "blob": "de05cbe177a41bbb56b5859eca965402a898dbb0"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "eda5e85413d80cc831a9a0beed70c5ce1f9a77660e943beca5a5b7bf887975f6",
+      "blob": "1a2f7956482b2c6a5c213afb0566040aef8160e0"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "9721194b427e9fe6ce95a57bb968e689129182e9317870e082e2d1d3ddab01f1",
+      "blob": "51dbaba92e14619d561b73e06ff04414c5867d2e"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "8cfe05618824a13821c53ca40d65476acd6ea25ddbc2b6fca51fd64e93550567",
+      "blob": "9df19cd700f45edc620763d2ffe02f92c413e819"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "6e33c8a92f35a274d8e3002f1eb05f7911658ce9216a8861b17812bafb17d99a",
+      "blob": "ff1cb5ac5c0b6ce71df29df2eca376e8cde4f440"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "faa8de5aa4b3ea87e2759e042c0ae40bfdf2c0cda4bc92061255a88626127ba4",
+      "blob": "00eda13a0a6300edd2dc8ce2bfaf8bef565a80d3"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "7e7ca5b0e3ccb9001d381ef6c632533b4347bafb0f3be7e624fb7d35eee1a4a0",
+      "blob": "f05b2376acf3639a1f80c26afd10934bef8c1768"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "d9bfec8d29efffa17b7f44c4f16e55410bfdd61b8e2a443e68799b2983caec9a",
+      "blob": "57fff32547f3a43fc7592387111a80a64878eeea"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "3e00e853e64fb9e396af18aab3216734df48fa76ee3b3e4fba8c13bb551aef49",
+      "blob": "ec816d2ff998021c1c7e6dd0dce53d886b73a643"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "3326d968b3a8ee42526d79c2a9fa0f60e165851f5420678f5a25761a7a29fb69",
+      "blob": "5ea22c4f0f995de07e1c3bd05f9bf5c087a19863"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "256a2583aa99289f7c0c6e68cd6be4be0ef07ff36c6eb02bee66611e96e6af52",
+      "blob": "1752c66e201f2bf5cd8ba6b2fe83090e155befd0"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "c2360fd03e16ac623ac3bb91ca5054bc0ad4e348da2a201dbc311180f5d69a10",
+      "blob": "052857b4aa8db3876945a627898eb76a452418e0"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "5224d5054c67161bc5d663dd0d170026f4126d0ca87cdf817ed9f97ab04d57fb",
+      "blob": "7cdc0cf8b43ef797014d8cd5cf33fe5c2cd7920d"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "8dfa416a52bd0f4caee1688bebbeb2698cec2391fd2823858ac3ff5ff5e82b50",
+      "blob": "25dae2519dded30ab32159f6c9ced262bbd1318e"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "7f62bc3a20ab21b274432f7ded146eaea71bdaa9c9bf9b05bf887d793691bf80",
+      "blob": "eed0401574d502e897dc17100e568f73b7850c2c"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "4307741594e8d534d5b51bd0c1d7592ea96dfd91a8f2821b013bdbff1a8452d2",
+      "blob": "3461096cc9cd1ba73987ebc0145f4f005e880177"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "e003535df60cc2f5d3df4afa9f618cf09b56b4eca00c0654f63367b19d2a874e",
+      "blob": "038b9e38e881c0d7ed8a994cf07ef63576c9d9bf"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "c9e5b984e058bbf868dfb5690c591d7280407142c20b805599bfaa6952cdeed0",
+      "blob": "d7bc52c1be32d113edf9c407b9f97e4b1c6fa04e"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "3c1acb9d918e13e5427ec4ac85f56d0f56b1a183753c4b9022a364a521187f52",
+      "blob": "8bbaacf5a982f602a25b1bb3037f12532af4db0d"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "c5d7339b1a9f0e03f4193dc2e915a382a2c143f35f08914242b0ab7fc02211a5",
+      "blob": "c7894b52dff3091ee9747feb6dc34e7bc2cb0532"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "243a2accbcce5f531844769f79c3f4c775083b3222ef4dd3e71bbaf849d8411a",
+      "blob": "6240c0c0a03d805c082bc249d762d46ccd013071"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "e401bde6f6ff360b1a5f030ffc9e223055436fa56555e0ffbc2b8f45242361ee",
+      "blob": "6283baf1c7be37af9340b5ea772cea472d33d786"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "149dc5f1ad803e092974b9927a8373d24f4cfe0eb62b18a2afaa93f537329eef",
+      "blob": "542b18330caf2bc7bba5759a0de39242417f0f15"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "d398124ee8bc4bf8706661840e2d4fe46164d1d26d64544df780d6081c251e3e",
+      "blob": "5f5711c3a48f143d60ee58f05391380abed1377e"
+    },
+    {
+      "path": "src/ilha.c",
+      "sha256": "1c8e71fcd458d864db80b1bcfa614d018286c6d3623696e2a9458351e2f33e1f",
+      "blob": "ab2f31c927b44dcfcdabceef2c03a587a26882da"
+    },
+    {
+      "path": "src/pausao.c",
+      "sha256": "d0a3f4bdd766a248689d27d3ca7c9117ed912444a94369e41da378c01c4fdfff",
+      "blob": "bf5eb8c91d039e086f862b079691f290b739fb15"
+    },
+    {
+      "path": "src/posplay.c",
+      "sha256": "67b79c993a260e68f55dfc1b3f20fc5cab512211949e0a3532a9ac7bf5910e8e",
+      "blob": "a8cf2cb7cbb85913281d9629fa88b603c6dee58f"
+    },
+    {
+      "path": "src/sinopse.c",
+      "sha256": "35d9bab285fd0f35b5ea1d2976f87744619838bd7d522ae8e351213111d4009e",
+      "blob": "d17d020b1632055c9e1b357c49c5768d327fa520"
+    },
+    {
+      "path": "src/sinopse.h",
+      "sha256": "07afd19702f58d25a6a16ffc3a3f29608cca707ea13e08c9c6b00e19138d32f4",
+      "blob": "18c9b77e38dbf132b27505375af488b76b4ee591"
+    },
+    {
+      "path": "src/text.c",
+      "sha256": "2d2d29417c09588bd4063c84934337dbde53fd63a2f62ac6a8b835b68642fdb0",
+      "blob": "262c9510fe7983d245e32ac9dbe7338847d25bb9"
+    },
+    {
+      "path": "src/text.h",
+      "sha256": "da0aac9f9bafc445fa88236f1f4fd68f61d72f394df867a289a1a75bdfec55b6",
+      "blob": "637e7176bdee3230a3763d5d218f912c60d547c6"
+    },
+    {
+      "path": "src/vertudo.c",
+      "sha256": "53fd19f883b73daa82468141a6789f5e19839f1a36247e691ee2bcef4ea32e6e",
+      "blob": "a42fae7258ee118b13495c1bfc519c76a0d7a568"
+    }
+  ],
+  "protected_trees_unchanged": true,
+  "scope": "Only original synopsis feature; newupstream490 behavior retained",
+  "remote_writes": false,
+  "schema_baseline": "d156e650eb01783713cb7812394f620b68be5895",
+  "base_tree": "e10402b5688ac58c19b6c66ea3b7f4de0be65c96",
+  "chain": [
+    {
+      "head": "8f97bbfafebf36f93b0fe821094232924e7e025e",
+      "tree": "de53f49887ed1efa043b224255023faf231403e4",
+      "parent": "d156e650eb01783713cb7812394f620b68be5895",
+      "patch": "commit-chain/0.patch",
+      "patch_sha256": "5a48fb6800d12d53a73cfd3f3f0de9c6c614e87484ed8d34a91af879dd1a3eeb",
+      "commit": "commit-chain/0.txt",
+      "commit_sha256": "ffdb1db8f05f73540275647281b3eaf64a06fd734e838bbc97316c18c0d778ac"
+    },
+    {
+      "head": "c297e2f511629e659ce0c76d3dd106a5ee9f656a",
+      "tree": "a9936f7c7c0c671ed1593bcfd4af513d47e0ba00",
+      "parent": "8f97bbfafebf36f93b0fe821094232924e7e025e",
+      "patch": "commit-chain/1.patch",
+      "patch_sha256": "8c039927f666902ed6bf38623bf94e8176f5e07d8ba0777028e2377d96e348f8",
+      "commit": "commit-chain/1.txt",
+      "commit_sha256": "78b446a0f97811b10895312a0c4a59c6da243268b0a160e36e2224226b73e604"
+    }
+  ],
+  "patch_sha256": "30c3f70e7856bcdce86a5e2dd12f69c290eeeb27157df7d270f273be06ae9090"
+}
