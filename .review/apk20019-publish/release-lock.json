@@ -1,0 +1,160 @@
+{
+  "format": 1,
+  "root_reviewed": true,
+  "all_gates_green": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "publisher_branch": "review/apk20019-publish-20261015",
+  "parent_review": "6c0bc3679c86f07538263d816a206ac0fee98bc9",
+  "parent_tree": "421cb4caa0120c018e091e137ca263457f1373c7",
+  "source_plan_sha256": "a5198e61b5f3d9c998de95000e4c2b9b43a9bbfeceac90a6d66d72a6d947595e",
+  "source_materializer_sha256": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+  "aggregate_recipe_sha256": "4eca0688e270399a6bbdbd06a8968d43dae80e1993d9ccc0a5e89053f258689e",
+  "bundle_sha256": "844bd9955df9e216a05abddabb056f961adceb5bdbe3394eaea3f0b38584c9dd",
+  "validation": {
+    "run_id": 38689343153,
+    "review_commit": "6c0bc3679c86f07538263d816a206ac0fee98bc9",
+    "workflow_path": ".github/workflows/apk20019-android-retry.yml",
+    "run_attempt": 1
+  },
+  "jobs": {
+    "native": {
+      "id": 116266667248,
+      "name": "Complete macOS TV/Mobile + actual changed native contracts",
+      "run_id": 38687834181,
+      "review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+      "artifact": {
+        "id": 11950884763,
+        "name": "apk20019-native-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "77b3dca21d284e72ef02d086cb460f1f92186bd4eed1f64195155f6a7fac9f5b",
+        "bytes": 102208891
+      }
+    },
+    "original-fontepref": {
+      "id": 116266667273,
+      "name": "Original complete fontepref normal + ASan/UBSan",
+      "run_id": 38687834181,
+      "review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+      "artifact": {
+        "id": 11950044364,
+        "name": "apk20019-original-fontepref-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "6c7f25732e03d0394e7ed71fe0a5e77b4003dff1e2a214919d41d9f2de11d01d",
+        "bytes": 28430
+      }
+    },
+    "original-fontepref_file": {
+      "id": 116266667105,
+      "name": "Original complete fontepref_file normal + ASan/UBSan",
+      "run_id": 38687834181,
+      "review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+      "artifact": {
+        "id": 11950559788,
+        "name": "apk20019-original-fontepref_file-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "b569d714de5d2485f924bfa9b81d03cd6a40a3ada3d01d1a71c24f76b1d33515",
+        "bytes": 26577
+      }
+    },
+    "original-player_retido": {
+      "id": 116266666810,
+      "name": "Original complete player_retido normal + ASan/UBSan",
+      "run_id": 38687834181,
+      "review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+      "artifact": {
+        "id": 11950824521,
+        "name": "apk20019-original-player_retido-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "c5510ec93d8a50b1775123c205812dcd44156b4785344aa7c39fb045254a5831",
+        "bytes": 21736
+      }
+    },
+    "jvm": {
+      "id": 116266667219,
+      "name": "Fresh32 JVM helpers +15 real Media3 contracts",
+      "run_id": 38687834181,
+      "review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+      "artifact": {
+        "id": 11951230196,
+        "name": "apk20019-jvm47-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "2bf2ef11de69b1d11353a536625022b8825e5b37f94979d2bf27478ef5c2579f",
+        "bytes": 2183920
+      }
+    },
+    "android": {
+      "id": 116271386542,
+      "name": "APK20019 clean product and compatible test APK (ARM32/ARM64)",
+      "run_id": 38689343153,
+      "review_commit": "6c0bc3679c86f07538263d816a206ac0fee98bc9"
+    },
+    "all-gates": {
+      "id": 116273783681,
+      "name": "Require five retained successes and fresh Android gates",
+      "run_id": 38689343153,
+      "review_commit": "6c0bc3679c86f07538263d816a206ac0fee98bc9"
+    }
+  },
+  "artifacts": {
+    "all_gates": {
+      "id": 11951917778,
+      "name": "apk20019-retry-all-gates-6c0bc3679c86f07538263d816a206ac0fee98bc9",
+      "sha256": "df802096cba1b84397fb601f6f7a8bd01af64e0351fc68e30f46f576772ca44a",
+      "bytes": 8898
+    },
+    "android": {
+      "id": 11951042246,
+      "name": "apk20019-android-6c0bc3679c86f07538263d816a206ac0fee98bc9",
+      "sha256": "e30ada9db4181a13db8ddeeb09a8a3c7e6c932d3c425735f381cdb06f5a17128",
+      "bytes": 108603916
+    }
+  },
+  "all_gates_json_sha256": "a1609e4607a047520753153bc931af859c4838e198f674ed6caaaabdbca9cce7",
+  "sources": {
+    "product": {
+      "commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "tree": "03980d7707a30d112cf9b22f090cf4fab9a6e4dd",
+      "parent": "81574e9eefc91b6f8a1a110ea763b05192d580e7",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "f1ef59ea29b0dde1f17b3d34eaf4fd98b356a5050d1adbd0864319f5d67233dc",
+      "delta_patch_sha256": "f440406576416e946660575595cb219a99a5755c185429b69bc995b7bd3afc56"
+    },
+    "test": {
+      "commit": "efff065b63bb1234718ca20999265612bacb50b4",
+      "tree": "db298030e77e126831f34139866067acbbb3aff3",
+      "parent": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "94f1517ee450d4f87f0ebbd6dc41f4131ce3bed04c1a14412acf67c42ad4e6c2",
+      "delta_patch_sha256": "55055a6bedd3c23f9cad5598ffafee9bbcf2b8b8f76470d9ee0199ea370aa8c6"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20019,
+    "version_name": "2.0.19-test-logs9",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "apk": {
+    "sha256": "39c4ff4e549d86de43e1db1969a56191e139e518c30137e75842402fbbb9b929",
+    "bytes": 58953604
+  },
+  "release": {
+    "tag": "tv-mobile-test-logs-v9",
+    "asset": "Nuvio-TV-Mobile-Test-Logs9.apk",
+    "proof_asset": "Logs9-validation.json",
+    "title": "Nuvio TV/Mobile Test \u2014 Logs9 update",
+    "prerelease": true,
+    "notes_sha256": "fccff7a6688457c2f8f9262bbf283c49f90952a6330d2f00c7a10be3513d466a"
+  },
+  "retained_validation": {
+    "run_id": 38687834181,
+    "review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+    "overall_run_success_required": false,
+    "conclusion": "failure"
+  },
+  "excluded_failed_android": {
+    "job_id": 116266667061,
+    "artifact_id": 11950529600,
+    "run_id": 38687834181,
+    "outcome": "failure",
+    "reuse_as_pass": false
+  },
+  "retry_lock_sha256": "a7be9ee4736acfb6f249735052069b7b51ed5cb1709baf5e545b5e45cb00f828",
+  "retry_aggregate_sha256": "ebb1dfe1c51bce2c0e4b52de87671b1c65e97e8c01da5e22656a0058de1a4d93"
+}
