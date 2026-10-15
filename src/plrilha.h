@@ -50,6 +50,8 @@ typedef struct {
 } PlrIlhaPedido;
 
 void plrilha_pedir(const PlrIlhaPedido *p);
+// Descarta apenas o corpo do dono que saiu de tela, inclusive sua animacao.
+void plrilha_esquecer_corpo(PlrIlhaCorpo corpo);
 // A pilula da hora acompanhando o OSD: `a` e a opacidade dos controles.
 // `falta` em segundos ate o fim do titulo (< 0 = sem "termina as": canal).
 void plrilha_relogio(float a, double falta);

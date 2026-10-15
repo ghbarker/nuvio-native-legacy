@@ -24,6 +24,13 @@ void faixas_abrir(void);
 // icone para cada, e abrir sempre no audio fazia os dois parecerem o mesmo
 // botao.
 void faixas_abrir_em(int col);
+// Abre apenas o editor persistente, sem sondar ou selecionar faixas.
+void faixas_abrir_estilo_ajustes(void);
+void faixas_fechar_estilo_ajustes(void);
+// Troca de tela/perfil: encerra so esta interface, sem mexer nas faixas.
+void faixas_encerrar_estilo_ajustes(void);
+// Inclui a animacao de saida, para a tela hospedar a ilha sem um player.
+int  faixas_estilo_ajustes(void);
 int  faixas_aberta(void);
 // A folha de legenda esta como BARRA DE ESTILO no topo (foco na coluna
 // Estilo): o player desenha a legenda onde ela vai tocar, com uma linha de

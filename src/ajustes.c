@@ -565,6 +565,7 @@ typedef enum {
 #endif
   AJ_TAMANHO_SINOPSE, // #477: so o texto das sinopses, padrao preservado
   AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho
+  AJ_ESTILO_LEGENDA,
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1458,6 +1459,7 @@ static const Opcao OPCOES[AJ_N] = {
 #endif
   ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 3),
   ESC("Exibição padrão das coleções", V_COLECAO_EXIBICAO, VT_LAY_N),
+  ACAO("Estilo da legenda"),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1712,6 +1714,7 @@ static const char *CHAVE[] = {
 #endif
   "sinopseTamanhoLocal",
   "colecaoExibicaoPadraoLocal",
+  "-estiloLegenda",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -1930,6 +1933,8 @@ int ajustes_pediu_plugins(void) { int v = pediuPlugins; pediuPlugins = 0; return
 static int pediuNovidades20;
 int ajustes_pediu_novidades20(void) { int v = pediuNovidades20; pediuNovidades20 = 0; return v; }
 static int pediuDiagnostico;
+static int pediuEstiloLegenda;
+int ajustes_pediu_estilo_legenda(void) { int v = pediuEstiloLegenda; pediuEstiloLegenda = 0; return v; }
 int ajustes_pediu_diagnostico(void) { int v = pediuDiagnostico; pediuDiagnostico = 0; return v; }
 static int pediuVelocidade;
 int ajustes_pediu_velocidade(void) { int v = pediuVelocidade; pediuVelocidade = 0; return v; }
@@ -6079,6 +6084,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_POSTER_MODELO: return "Endereço com {imdb}, {tmdb}, {type} (movie ou series) e {tipo_tmdb} (movie ou tv), por exemplo https://meu.servidor/{type}/{imdb}.jpg. Quem não tiver o dado que o modelo pede fica com o cartaz normal.";
     case AJ_POSTER_TESTAR: return "Baixa o cartaz de um filme conhecido com a configuração atual e mostra se deu certo. O primeiro cartaz de cada título é montado no servidor e pode levar alguns segundos.";
     case AJ_COLECAO_EXIBICAO: return "Vale para coleções sem escolha própria neste perfil. Automático mantém a exibição original. Em Exibição, escolha Padrão para seguir este ajuste novamente.";
+    case AJ_ESTILO_LEGENDA: return "Tamanho, fonte, cores, fundo e posição das legendas.";
     case AJ_HOME_LAYOUT: return "Moderna: destaque atrás das fileiras. Padrão: destaque num banner no topo. Dinâmica: estilo Apple TV, com destaques grandes e Top 10.";
     case AJ_VIDRO: return "Painéis, botões e menus viram ilhas translúcidas que deixam a arte aparecer. Desligado, as mesmas ilhas ficam opacas. Só muda o visual; nada muda de lugar.";
     case AJ_PROVEDORES_ESCOPO: return "Compartilhada usa as mesmas contas de provedores neste aparelho. Separada guarda uma cópia para este perfil. Trocar de opção mantém as duas configurações.";
@@ -7549,6 +7555,7 @@ static void eventoTela(const SDL_Event *e) {
       return;
     }
     if (focoOp == AJ_DIAGNOSTICO) { pediuDiagnostico = 1; return; }
+    if (focoOp == AJ_ESTILO_LEGENDA) { pediuEstiloLegenda = 1; return; }
     if (focoOp == AJ_HERO_CATALOGOS) { if (!inativa(focoOp)) heroFonteCiclar(+1); return; }
     if (focoOp == AJ_VELOCIDADE) { pediuVelocidade = 1; return; }
     if (focoOp == AJ_LIVETV_DIAG) { pediuLivetvDiag = 1; return; }

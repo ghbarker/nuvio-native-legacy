@@ -935,7 +935,7 @@ static int socialDoPerfil;
 static void trocarTela(Tela nova) {
   if (nova == tela) return;
   if (nova != TELA_SOCIAL) socialDoPerfil = 0;
-  if (tela == TELA_AJUSTES) ajustes_encerrar();
+  if (tela == TELA_AJUSTES) { faixas_encerrar_estilo_ajustes(); ajustes_encerrar(); }
   if (tela == TELA_LIVETV_DIAG) livetvdiag_encerrar();
   // ESQUERDA na borda do Perfil so pede a barra e deixa a pagina aberta (#371).
   // Se o roteador vai para OUTRA tela (barra proibida no PiP, ou um destino da
@@ -2801,6 +2801,7 @@ static void salvoParaConta(const CatItem *ci, int salvo) {
 // Finish under the outgoing identity. Selection advances the session epoch
 // immediately afterwards; old jobs may finish but cannot update the new UI.
 static void perfilEncerrarSessao(void) {
+  faixas_encerrar_estilo_ajustes();
   // End input capture before resetting the Home it belongs to. Hit targets
   // from the outgoing frame cannot activate under the destination profile.
   ponteiro_abrir_sessao();
@@ -3448,7 +3449,7 @@ void app_evento(const SDL_Event *e) {
   // A folha de fontes fica acima de tudo: ela e uma pergunta, e enquanto ela
   // esta em pe nada mais deve responder ao D-pad.
   if (faixas_pilula_tecla(e)) return;
-  if (faixas_aberta()) { faixas_evento(e); return; }
+  if (faixas_aberta() || faixas_estilo_ajustes()) { faixas_evento(e); return; }
   if (episodios_aberto()) { episodios_evento(e); return; }
   if (stream_folha_aberta()) { stream_folha_evento(e); return; }
   // O OVERLAY DO GUIA fica acima do player: aberto, ele e quem recebe o D-pad
@@ -4366,6 +4367,7 @@ void app_atualizar(float dt, Uint32 agora) {
     pluginsui_abrir();
     trocarTela(TELA_PLUGINS);
   }
+  if (tela == TELA_AJUSTES && ajustes_pediu_estilo_legenda()) faixas_abrir_estilo_ajustes();
   if (tela == TELA_AJUSTES && ajustes_pediu_diagnostico()) {
     diagDaHome = 0;
     trocarTela(TELA_DIAGNOSTICO);
@@ -5441,7 +5443,8 @@ void app_atualizar(float dt, Uint32 agora) {
   // O player devolve 1 para a coluna de audio e 2 para a de legenda.
   { int q = player_pediu_faixas();
     if (q) faixas_abrir_em(q == 2 ? 1 : 0); }
-  if (!player_retido()) faixas_atualizar(dt, agora);
+  if (tela != TELA_AJUSTES) faixas_encerrar_estilo_ajustes();
+  if (!player_retido() || faixas_estilo_ajustes()) faixas_atualizar(dt, agora);
   stream_folha_atualizar(dt, agora);
   // FOLHA FECHADA SEM ESCOLHER, com o player esperando por ela. Voltar na
   // folha e "desisti", nao "tente sozinho": abrir a fonte que a pessoa acabou
@@ -5857,7 +5860,7 @@ static void desenharTelas(Uint32 agora) {
   episodios_desenhar();
   CAMADA_SE(stream_folha_aberta());
   stream_folha_desenhar(agora);
-  CAMADA_SE(faixas_aberta());
+  CAMADA_SE(faixas_aberta() || faixas_estilo_ajustes());
   faixas_desenhar(agora);
   // A ILHA DO RELOGIO DENTRO DO PLAYER (plrilha.h), por cima de todas as
   // camadas dele: a pilula da hora, os avisos e o que nasce dela (Audio,
@@ -5869,7 +5872,7 @@ static void desenharTelas(Uint32 agora) {
     if (telefoneui_ativo()) { CAMADA_SE(central_aberta()); }
 #endif
     central_desenhar(agora); plrilha_desenhar(agora);
-  }
+  } else if (faixas_estilo_ajustes()) plrilha_desenhar(agora);
   gfx_osd_mult = 1.0f;
   // A TELA DO DOLBY VISION EM MKV (dvtela.h) por cima de TUDO do player, ilha
   // inclusive: ela cobre a troca do HDR10 pelo caminho do DV e esvai sobre o
@@ -5898,6 +5901,7 @@ static int relogioCamadaAberta(void) {
       recomenda_aberta() || pipintro_aberto() || diagnostico_intro_aberto();
 }
 static int relogioCabe(void) {
+  if (faixas_estilo_ajustes()) return 0;
   // AJUSTES NO GLASS UI (mockup de 03/10): o relogio fica no canto, em cima da
   // ilha de categorias — a tela nao tem mais titulo ali. Com folha, vinculo ou
   // teclado por cima ele some, como na home com um cartao na frente.
@@ -5931,7 +5935,7 @@ static int playerToquePermitido(void) {
   return 1;
 }
 static int miniToquePermitido(void) {
-  if (player_aberto() || !playerToquePermitido()) return 0;
+  if (player_aberto() || faixas_estilo_ajustes() || !playerToquePermitido()) return 0;
   if (telefoneui_ativo() && tela == TELA_AJUSTES && ajustes_edicao_ativa()) return 0;
   // In the Guide its own preview and modal controls own the video rectangle.
   return tela != TELA_GUIA;
@@ -6176,7 +6180,8 @@ void app_desenhar(Uint32 agora) {
       spainel_recolher_para(ok, ix, iy, iw, ih); }
     // O CARTAO DA ATUALIZACAO e a pilula crescida (atualizacao.c): enquanto
     // ele esta na tela, ela fica por baixo, medindo, sem se desenhar.
-    ilha_coberta(spainel_da_ilha() || atualizacao_cobre_ilha());
+    ilha_coberta(spainel_da_ilha() || atualizacao_cobre_ilha() ||
+        (faixas_estilo_ajustes() && !central_aberta() && !ilha_modal_aberto()));
 #ifdef NV_TOUCH_UI
     if (layout_modo_mobile()) CAMADA_SE(central_aberta() || ilha_modal_aberto());
 #endif

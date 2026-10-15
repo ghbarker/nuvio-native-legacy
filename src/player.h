@@ -282,6 +282,8 @@ void        player_aspecto_ciclar(void);       // proximo modo + aviso na tela
 // preferencia do APARELHO e nao do titulo. A folha de faixas edita a struct e
 // chama player_leg_estilo_mudou(), que aplica no pipeline e grava.
 VideoLegendaEstilo *player_leg_estilo(void);
+// O mesmo estilo persistente, tambem antes da primeira reproducao.
+void player_leg_estilo_carregar(void);
 void player_leg_estilo_mudou(void);
 
 // QUAIS CAMPOS A PESSOA MEXEU DE FATO.

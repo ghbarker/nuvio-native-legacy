@@ -38,7 +38,8 @@
 
 // 3 e nao 2: a folha de legenda tem a LISTA e o ESTILO, e FX_COL_ESTILO e o
 // indice 2. Com dois slots a coluna de estilo escrevia fora do vetor.
-static int aberta, coluna, foco[3];
+static int aberta, coluna, foco[3], estiloAjustes;
+static void corpoIlha(GfxRect c, float a, void *u);
 // #202: foco na linha da velocidade e o ultimo valor pedido pela folha.
 static int velFoco, velPedidaUi = VEL_NORMAL;
 // ROLAGEM POR COLUNA, em LINHAS (nao em pixels): a folha desenhava todas as
@@ -296,6 +297,7 @@ static void pilAtualizar(Uint32 agora) {
 
 // OK na pilula de falha: o caminho de volta para a lista de legendas.
 int faixas_pilula_tecla(const SDL_Event *e) {
+  if (estiloAjustes) return 0;
   if (pil.estado != PIL_FALHOU || faixas_aberta() || !player_aberto()) return 0;
   if (e->type != SDL_KEYDOWN) return 0;
   if (e->key.keysym.sym != SDLK_RETURN && e->key.keysym.sym != SDLK_KP_ENTER) return 0;
@@ -396,6 +398,7 @@ static int autoTroca(const char *idioma, const uint64_t *tent, int n, int voltar
 }
 
 static void reiniciarFaixas(int preservarPrebusca) {
+  estiloAjustes = 0;
   legsync_definir_trocador(autoTroca);
   legExterna = -1; legExternaId[0] = 0; legOverlay = legOverlayNoGo = legOverlayEsperando = -1; aberta = 0;
   legOverlayFalhas = legOverlayRecusas = legOverlayNoGoEstado = 0; legOverlayRetomar = 0;
@@ -463,6 +466,7 @@ void faixas_abrir(void) { faixas_abrir_em(0); }
 // existir); o que muda e onde o foco comeca.
 void faixas_abrir_em(int col) {
   int n;
+  estiloAjustes = 0;
   aberta = 1;
   modo = (col == 1) ? 1 : 0;
   coluna = modo;                 // audio -> col 0; legenda -> col 1
@@ -495,11 +499,27 @@ void faixas_abrir_em(int col) {
 }
 
 int faixas_aberta(void) { return aberta; }
+void faixas_abrir_estilo_ajustes(void) {
+  player_leg_estilo_carregar();
+  estiloAjustes = aberta = modo = 1;
+  coluna = FX_COL_ESTILO;
+  ctl = -1;
+  if (foco[FX_COL_ESTILO] < 0 || foco[FX_COL_ESTILO] >= FX_N_ESTILO) foco[FX_COL_ESTILO] = 0;
+}
+void faixas_fechar_estilo_ajustes(void) {
+  if (!estiloAjustes) return;
+  aberta = 0;
+  ctl = -1;
+}
+int faixas_estilo_ajustes(void) {
+  return estiloAjustes;
+}
 int faixas_estilo_controle(void) { return ctl; }
 int faixas_estilo_topo(void) { return aberta && modo && coluna == FX_COL_ESTILO; }
 float faixas_anim(void) { return anim; }
 void faixas_aba_estilo(int estilo) {
   if (!aberta || !modo) return;
+  if (estiloAjustes && !estilo) { faixas_fechar_estilo_ajustes(); return; }
   coluna = estilo ? FX_COL_ESTILO : 1;
   ctl = -1;
 }
@@ -571,7 +591,7 @@ static const char *const EST_OPAC[4]  = { "100%", "75%", "50%", "25%" };
  * web faz desde o 1.2.0. Tamanho vira escala proporcional; opacidade e atraso
  * valem igual. */
 static int estiloPreservadoAss(int linha) {
-  return assrender_ativo() && !assrender_texto_simples() && (linha == 1 || linha == 2 || linha == 4 ||
+  return !estiloAjustes && assrender_ativo() && !assrender_texto_simples() && (linha == 1 || linha == 2 || linha == 4 ||
                                linha == 5 || linha == 6 || linha == 8 || linha == EST_COR_BORDA);
 }
 
@@ -583,7 +603,7 @@ static void valorEstilo(int linha, char *dst, size_t tam) {
   }
   switch (linha) {
     case 0:
-      if (assrender_ativo() && !assrender_texto_simples())
+      if (!estiloAjustes && assrender_ativo() && !assrender_texto_simples())
         snprintf(dst, tam, "%d%% \xc2\xb7 ASS \xc3\x97%.2f", e->tamanho, e->tamanho / 120.0), idioma_decimal_texto(dst, ajustes_idioma());
       else
         snprintf(dst, tam, "%d%%", e->tamanho);
@@ -1100,7 +1120,7 @@ static int estiloTecla(SDL_Keycode k, int rep) {
   if (voltar) return 0;
   // A grade de FX_BARRA_COLS colunas: as quatro setas andam nela; a esquerda da
   // primeira coluna volta para a lista de legendas.
-  if (dx < 0) { if (*f % FX_BARRA_COLS) (*f)--; else coluna = 1; }
+  if (dx < 0) { if (*f % FX_BARRA_COLS) (*f)--; else if (estiloAjustes) faixas_fechar_estilo_ajustes(); else coluna = 1; }
   else if (dx > 0) { if (*f % FX_BARRA_COLS < FX_BARRA_COLS - 1 && *f + 1 < FX_N_ESTILO) (*f)++; }
   else if (dy < 0) { if (*f >= FX_BARRA_COLS) *f -= FX_BARRA_COLS; }
   else if (dy > 0) { if (*f + FX_BARRA_COLS < FX_N_ESTILO) *f += FX_BARRA_COLS; }
@@ -1198,7 +1218,35 @@ static void avisarQueda(int e) {
   player_toast_ex(b, 6000, "aj_triangle-alert", 1);
 }
 
+void faixas_encerrar_estilo_ajustes(void) {
+  if (!estiloAjustes) return;
+  ponteiro_cancelar_toque();
+  estiloAjustes = aberta = 0;
+  anim = animTopo = ctlAnim = 0;
+  ctl = -1;
+  plrilha_esquecer_corpo(corpoIlha);
+}
+
+static void estiloAtualizar(float dt) {
+  anim = anim_mola(anim, aberta ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
+  // ESTILO: a grade vira o controle aberto (mola da tela); o marcador do
+  // slider e a amostra em foco perseguem o alvo (segurar a seta desliza).
+  if (!aberta) ctl = -1;
+  ctlAnim = anim_mola(ctlAnim, ctl >= 0 ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
+  if (estSlider(ctl)) ctlFrac = anim_mola(ctlFrac, estFrac(ctl), dt, NV_MOLA_FOCO);
+  { int i; for (i = 0; i < VIDEO_LEG_NCORES; i++)
+      ctlAmostra[i] = anim_mola(ctlAmostra[i], ctl == EST_COR && i == ctlSub ? 1.0f : 0.0f, dt, NV_MOLA_FOCO); }
+  // Fechando a partir da barra, ela sai como barra: sem isto a folha inteira
+  // piscaria no caminho de volta.
+  if (aberta || anim < .01f) animTopo = anim_mola(animTopo, faixas_estilo_topo() ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
+}
+
 void faixas_atualizar(float dt, Uint32 agora) {
+  if (estiloAjustes) {
+    estiloAtualizar(dt);
+    if (!aberta && anim < .01f && plrilha_corpo_alfa() < .01f) estiloAjustes = 0;
+    return;
+  }
   if (aberta && modo && coluna == 1) legendasui_atualizar(dt);
   // #202: the platform refused the speed (LG/.tpk answer after the request):
   // the row is gone and playback is back at 1x; say it once.
@@ -1212,17 +1260,7 @@ void faixas_atualizar(float dt, Uint32 agora) {
     vel_log(video_velocidade_atual(), "indisponivel: audio em passthrough, volta a 1x");
     video_velocidade(VEL_NORMAL); velPedidaUi = VEL_NORMAL; velFoco = 0;
   }
-  anim = anim_mola(anim, aberta ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
-  // ESTILO: a grade vira o controle aberto (mola da tela); o marcador do
-  // slider e a amostra em foco perseguem o alvo (segurar a seta desliza).
-  if (!aberta) ctl = -1;
-  ctlAnim = anim_mola(ctlAnim, ctl >= 0 ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
-  if (estSlider(ctl)) ctlFrac = anim_mola(ctlFrac, estFrac(ctl), dt, NV_MOLA_FOCO);
-  { int i; for (i = 0; i < VIDEO_LEG_NCORES; i++)
-      ctlAmostra[i] = anim_mola(ctlAmostra[i], ctl == EST_COR && i == ctlSub ? 1.0f : 0.0f, dt, NV_MOLA_FOCO); }
-  // Fechando a partir da barra, ela sai como barra: sem isto a folha inteira
-  // piscaria no caminho de volta.
-  if (aberta || anim < .01f) animTopo = anim_mola(animTopo, faixas_estilo_topo() ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
+  estiloAtualizar(dt);
   legendaAutomatica(agora);
   pilAtualizar(agora);
   // Recuo vencido: a MESMA faixa de novo. O overlay nao foi desligado — o que
@@ -1396,7 +1434,11 @@ static float estiloCelulaH(void) {
 }
 static float estiloPadX(void) { return telefoneui_ativo() ? 12.0f : IL_PAD_X; }
 #define IL_EST_CEL_H estiloCelulaH()
-#define IL_EST_TOPO  56.0f
+static float estiloTopoH(void) {
+  float min = estiloAjustes ? estiloToqueMin() : 0;
+  return min > 56.0f ? min : 56.0f;
+}
+#define IL_EST_TOPO estiloTopoH()
 
 static const char *tituloSessao(void) {
   const CatItem *c = cat_item(player_indice());
@@ -1752,6 +1794,10 @@ static void ponteiroSlider(int a, int b) {
   if (ctl >= 0 && estSlider(ctl) && sliderTw > 1.0f)
     estDeFrac(ctl, (ponteiro_x() / gfx_escala() - sliderTx) / sliderTw);
 }
+static void ponteiroFecharEstiloAjustes(int a, int b) {
+  (void)a; (void)b;
+  if (estiloAjustes && aberta) faixas_fechar_estilo_ajustes();
+}
 static void ponteiroAba(int estilo, int b) { (void)b; faixas_aba_estilo(estilo); }
 
 #ifdef NV_TOUCH_UI
@@ -1973,7 +2019,16 @@ static void corpoEstilo(GfxRect c, float a) {
   float pad = estiloPadX(), x0 = c.x + pad, w = c.w - pad * 2.0f, y = c.y + IL_PAD_Y;
   float cw = (w - 4.0f * 6.0f) / FX_BARRA_COLS;
   int i, assentada = a > 0.99f && ponteiro_ativo();
-  { TxtLinha t = txt_linha(TXT_G30B, "Legendas", 243, 242, 239, 255);
+  if (estiloAjustes) {
+    float yc = y + IL_EST_TOPO * .5f, min = estiloToqueMin();
+    float bw = plrui_botao_largura("Fechar", "pl_x");
+    float hitW = bw > min ? bw : min, hitH = min > 60.0f ? min : 60.0f;
+    float bx = x0 + w - hitW;
+    TxtLinha t = txt_linha_corta(TXT_G30B, "Estilo da legenda", 243, 242, 239, 255, bx - x0 - 16.0f);
+    txt_desenhar_alpha(t, x0, yc - t.h * .5f, a);
+    plrui_botao(bx + (hitW - bw) * .5f, yc - 30.0f, "Fechar", "pl_x", 0, a);
+    if (assentada) ponteiro_alvo(bx, yc - hitH * .5f, hitW, hitH, NULL, ponteiroFecharEstiloAjustes, 0, 0);
+  } else { TxtLinha t = txt_linha(TXT_G30B, "Legendas", 243, 242, 239, 255);
     const char *rot[2] = { "Faixas", "Estilo" };
     int cont[2] = { nLinhas(1), -1 };
     float yc = y + IL_EST_TOPO * 0.5f;
@@ -2012,7 +2067,7 @@ static void corpoEstilo(GfxRect c, float a) {
 
 static void corpoIlha(GfxRect c, float a, void *u) {
   (void)u;
-  if (faixas_estilo_topo() || (!aberta && animTopo > 0.5f)) corpoEstilo(c, a);
+  if (estiloAjustes || faixas_estilo_topo() || (!aberta && animTopo > 0.5f)) corpoEstilo(c, a);
   else if (modo) legendasui_corpo(c, a);
   else corpoLista(c, a);
 }
@@ -2026,7 +2081,8 @@ void faixas_desenhar(Uint32 agora) {
 }
 static void faixas_desenharCorpo_(Uint32 agora) {
   (void)agora;
-  pilPedir();   // a pilula da legenda automatica (so com a folha fechada)
+  if (estiloAjustes) ponteiro_alvo(0, 0, NV_TELA_W, NV_TELA_H, NULL, NULL, 0, 0);
+  if (!estiloAjustes) pilPedir();   // a pilula da legenda automatica (so com a folha fechada)
   if (anim < .01f) return;
   { int dir = plrilha_direita(), est = faixas_estilo_topo();
     // O video fica sem veu cheio: so o degrade do lado da ilha (a lista) ou o
@@ -2039,6 +2095,7 @@ static void faixas_desenharCorpo_(Uint32 agora) {
       p.w = est ? NV_TELA_W - 192.0f : IL_W;
       p.h = est ? alturaEstilo() : modo ? legendasui_altura() : alturaLista(0);
       p.corpo = corpoIlha;
+      if (estiloAjustes) { p.semFim = 1; p.direita = i18n("Ajustes"); }
       plrilha_pedir(&p); } }
 }
 

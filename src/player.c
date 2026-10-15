@@ -1031,6 +1031,7 @@ static char   toastIcone[32];
 static int    toastCor;
 static int    avisouAudio;
 static char   dirPrefs[512];
+static int    prefsLidas;
 
 // Rotulos em portugues. Os do web sao "Fit (Original)", "Crop", "Stretch",
 // "Slight/Cinema/Ultra Zoom", "Fit Height", "Fit Width" — o resto do app fala
@@ -1062,6 +1063,7 @@ int player_aspecto(void) { return aspecto; }
 void player_dir(const char *dir) {
   if (!dir || !*dir) return;
   snprintf(dirPrefs, sizeof dirPrefs, "%s", dir);
+  prefsLidas = 0;
 }
 static const char *prefsArquivo(void) {
   static char caminho[600];
@@ -1084,6 +1086,7 @@ static VideoLegendaEstilo legEstilo = { 120, 0, 0, 3, 1, 0, 0, TXT_FAMILIA_INTER
 static int legTocado = PLR_LEG_NADA;
 
 static void prefsLer(void) {
+  prefsLidas = 1;
   FILE *f = fopen(prefsArquivo(), "r");
   char chave[64]; int v;
   if (!f) return;
@@ -1132,6 +1135,7 @@ static void prefsGravar(void) {
 
 // Lidos pela folha de faixas, que e quem desenha os controles.
 VideoLegendaEstilo *player_leg_estilo(void) { return &legEstilo; }
+void player_leg_estilo_carregar(void) { if (!prefsLidas) prefsLer(); }
 void player_leg_estilo_mudou(void) {
   video_legenda_estilo(&legEstilo);
   prefsGravar();

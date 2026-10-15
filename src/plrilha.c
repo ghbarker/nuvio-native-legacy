@@ -123,6 +123,10 @@ static char titulo[256];
 void plrilha_titulo(const char *t) { snprintf(titulo, sizeof titulo, "%s", t ? t : ""); }
 
 void plrilha_esconder(void) { escondida = 1; }
+void plrilha_esquecer_corpo(PlrIlhaCorpo corpo) {
+  if (temPed && ped.corpo == corpo) temPed = 0;
+  if (temUlt && ult.corpo == corpo) { temUlt = 0; corpoA = 0; }
+}
 
 int plrilha_direita(void) {
   return 1;   // sempre a direita (dono, 03/10)

@@ -277,3 +277,4 @@
 #endif
   0, /* synopsis text size (#477): Padrao, current typography */
   0, /* collection default view (#362): Automatic, existing layout */
+  0, /* subtitle style: opens the existing player preferences editor */
