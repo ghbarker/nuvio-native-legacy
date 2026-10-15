@@ -1,0 +1,53 @@
+{
+  "head": "99f1ae66f139ba9cc384bef4f4cc00c17e2d77f7",
+  "tree": "a9b052c1d07e73e25b391cea6fbc74b95c4e5d5d",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "base_tree": "e10402b5688ac58c19b6c66ea3b7f4de0be65c96",
+  "chain": [
+    {
+      "head": "8c7d084310e09fb01219447a812b296380b808cf",
+      "parent": "d156e650eb01783713cb7812394f620b68be5895",
+      "tree": "9e63ab6324f108e15d932b4f63e350c8986d0213",
+      "patch": "commit-chain/0.patch",
+      "patch_sha256": "a5ba55df7f890e5bc6776965075cfec5f3ac7b7c50cbe0ec1ec8f8e201783883",
+      "commit": "commit-chain/0.txt",
+      "commit_sha256": "604294d8cedb900a283dd4f6938b4132ef09c1b34306887e0aa0f633f5584578"
+    },
+    {
+      "head": "20a4306c6b57411a75d00187ac049dddda991f48",
+      "parent": "8c7d084310e09fb01219447a812b296380b808cf",
+      "tree": "5a56da4a3f342e2137473ce2e4a3dbffa83eae72",
+      "patch": "commit-chain/1.patch",
+      "patch_sha256": "56df3ba8356d0401bf74f136b51fddb3173d06e069cdb32c4567f8a50bb50cfe",
+      "commit": "commit-chain/1.txt",
+      "commit_sha256": "334d436355caeb320e9850d253a34dc254f5436f16b8faaefd7ca1def6990a00"
+    },
+    {
+      "head": "99f1ae66f139ba9cc384bef4f4cc00c17e2d77f7",
+      "parent": "20a4306c6b57411a75d00187ac049dddda991f48",
+      "tree": "a9b052c1d07e73e25b391cea6fbc74b95c4e5d5d",
+      "patch": "commit-chain/2.patch",
+      "patch_sha256": "35213d523412d773955e17339c7fd6732f946e8b10402f42cf55ab3799d1d730",
+      "commit": "commit-chain/2.txt",
+      "commit_sha256": "0868cd620898e753a8f37443b66a1d908ebcda3c1ba97ed2987559c972e5c1a9"
+    }
+  ],
+  "paths": [
+    {
+      "path": "src/stream_parse.c",
+      "sha256": "19f811c46954ed4bb9fedb85169ed9c2b662662dab09ddd6e26133482a58910e",
+      "blob": "f022aacd01cd1b0ebd892f9a1238a62208e0f0e3"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "c27dce2ad6d8c056326cf96265b8183756696a7eefc98d07c72f7f0f4cdc6e56",
+      "blob": "af127214f6bf3dc22f4b1c30172c4248f4ea6aed"
+    },
+    {
+      "path": "src/streams.h",
+      "sha256": "4da7589aab9e270e70e93a5450620c277f566eb227749b587699264aa2033a44",
+      "blob": "cf181582d420efe932755139a2d42f142afc5575"
+    }
+  ],
+  "scope": "Only confirmed cache metadata/row labels/icon/native display refresh and strict existing Cached chip; no shared filters, language chip, settings, translations, logging, tests or workflow imports."
+}
