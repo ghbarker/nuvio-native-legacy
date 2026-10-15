@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "checks": [
+    "All staged Python helpers parse without execution",
+    "Exact clean source commits, trees, all changed-file blobs, original tests tree, bundle bytes and bundle refs verify without duplicate worktrees",
+    "Product is a direct Logs17 child with only two quality files; private diagnostics and test identity remain isolated",
+    "Proven materializer and Android producer/verifier/signing/JNI/DEX/16 KB helpers are retained after identity normalization",
+    "android/prepare_env.py rejects the closed plan before side effects",
+    "android/run.py rejects the closed plan before side effects",
+    "run_focused.py rejects the closed plan before side effects",
+    "aggregate.py rejects the closed plan before side effects",
+    "Exact quality and private diagnostic fixture inputs are pinned outside runtime directories",
+    "Only scoped C/Linux/macOS, one private dual-ABI APK and aggregate jobs exist; both cache actions have at most ten total keys"
+  ],
+  "sources": {
+    "product": {
+      "commit": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "tree": "24204199e0b2d4dfee6eb0649b95b81cb8e77918",
+      "parent": "6a6b9cef697b3457b050addf479be6e7d1915036",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "3e7888013081cd8e2b3c154ea1115d208113d33ce99882c721ad3e162f559e31"
+    },
+    "test": {
+      "commit": "412d6bdc2a9eb6b3483626f765833e27fb82299d",
+      "tree": "c3277e06125065ea4c5144d67bc88cba7b3dd1b3",
+      "parent": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "bde53e993171885e92dbddef058147827daa8dc9365c15021c34cad64f77039f"
+    }
+  },
+  "plan_sha256": "6e11351e5b63a87ca8dc32ef814e2c98ca34972cf63d868ed41431c547b93cfc",
+  "product_tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "private_tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "no_c_or_android_build_launched": true,
+  "no_duplicate_materialization_worktrees_created": true,
+  "no_remote_write_or_publication": true,
+  "execution_flags": {
+    "frozen": false,
+    "root_reviewed": false,
+    "ci_execution_permitted": false
+  }
+}

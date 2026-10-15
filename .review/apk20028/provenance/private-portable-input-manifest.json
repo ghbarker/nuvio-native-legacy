@@ -1,0 +1,34 @@
+{
+  "cli": "python3 run.py --source PATH --out PATH --sanitize 0|1 [--helpers-only]",
+  "default_remote_full_detail_syntax_required": true,
+  "files": {
+    "baseline.json": {
+      "sha256": "870c1615a8de934f0fa9d626237267dccae0308d63c3986c218ee41d905eda21",
+      "bytes": 364
+    },
+    "cache-boundary.c": {
+      "sha256": "80a15d5c16fa45fea983cd576ac89ea99abcdd9c8dc9d4d183f6db05018946bc",
+      "bytes": 2190
+    },
+    "detail-probe.c": {
+      "sha256": "ac39a8f14d42cd7b4e93d7047a4329ae34188126c3da40b3c53c53ca774cd533",
+      "bytes": 5022
+    },
+    "run.py": {
+      "sha256": "c20d1f7e1551d5b11100c33b2d6638ba17533f9f7c80140c50472e471bcc3370",
+      "bytes": 7052
+    },
+    "sdk/GLES2/gl2.h": {
+      "sha256": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "bytes": 881
+    },
+    "sdk/SDL2/SDL.h": {
+      "sha256": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "bytes": 3858
+    },
+    "sdk/vistonao.h": {
+      "sha256": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+      "bytes": 4385
+    }
+  }
+}

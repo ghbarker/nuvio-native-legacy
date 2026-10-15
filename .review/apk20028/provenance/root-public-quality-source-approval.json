@@ -1,0 +1,10 @@
+{
+  "source_commit": "39f64efd3c88dd660fcb9450b632284543afb746",
+  "source_tree": "67baf2714ad3e8415459ecf659a9f1348b24832d",
+  "root_source_reviewed": true,
+  "only_known_native_high_metahub_background_upgrade": true,
+  "no_private_diagnostics_in_product": true,
+  "tests_reviewed": true,
+  "phone_selected_backdrop_cause_still_unproven": true,
+  "full_platform_ci_pending": true
+}

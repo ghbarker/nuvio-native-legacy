@@ -1,0 +1,17 @@
+{
+  "format": 1,
+  "source_neutral": true,
+  "files": {
+    "quality/artehero-fixture.c": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "quality/run.py": "b3474703b858dfecc50994f6d6fc6138333e0a451fde29f28c6cd21036fa1ead"
+  },
+  "native_case_groups": 27,
+  "browser_case_groups": 3,
+  "modes": [
+    "native-normal",
+    "native-asan",
+    "browser-normal",
+    "browser-asan"
+  ],
+  "scope": "Exact actual source artehero.c/header + accepted original and new Metahub URL selection regression assertions"
+}

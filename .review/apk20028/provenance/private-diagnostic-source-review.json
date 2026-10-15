@@ -1,0 +1,31 @@
+{
+  "frozen": true,
+  "private_only": true,
+  "base_commit": "813b65211ef6b0da05b0c7ad1462900c2f4d5596",
+  "source_commit": "e37ea804a702cae4331fed5f9d9f1fbb001304dc",
+  "source_tree": "8121c46aeb68c80071af4d237852837efb241018",
+  "source_clean": true,
+  "source_paths": {
+    "src/detail.c": "a2f7be277f5a62376cce34bd2faefdfd4ce7b64e51e692cc580731cd8047f6b8",
+    "src/tex_cache.c": "1572376b0685eb054fcea85053012ab06cac5f35955b722077e1099466824c96",
+    "src/tex_cache.h": "de3e4f15920cdcd679870a677e0d4bac0138c82abf345e0b2a5b19ef103a0617"
+  },
+  "patch": "/dev/shm/issue503-private-trace-20261015/private-diagnostics.patch",
+  "patch_sha256": "339c102ed2075e69d55b0fa60255317b52bf850f6d7904afe7fedadb03e14534",
+  "portable_manifest": "/dev/shm/issue503-private-trace-20261015/portable-manifest.json",
+  "portable_manifest_sha256": "d18cec606ad66df0bcefd95cf6c2a5882706faea6c8f5b83b6ad03e08bb3d72c",
+  "macro_off_nonblank_bytes_identical_to_base": true,
+  "historical_normal_receipt": "/dev/shm/issue503-private-trace-20261015/validation/normal/receipt.json",
+  "historical_normal_receipt_sha256": "6dd370794e72f13d434f567023f001398cea190dfbf8a9720babf36ad5e7ba05",
+  "historical_normal_source_hashes_match": true,
+  "historical_normal_stdout": "private-art-trace: 30 checks passed; cache-hit, upgrades, unknown source, privacy, lifecycle and event bound\n",
+  "current_bounded_recipe_executed": false,
+  "sanitizer_test_pass": false,
+  "sanitizer_note": "Prior whole-detail ASan compilation killed by host OOM before test execution; final bounded recipe awaits remote CI.",
+  "limitations": [
+    "Native source width0 remains unknown; decoded/GPU dimensions are separate.",
+    "Quality uses effective Settings getter, which may be constrained by safe mode.",
+    "Current fixture runs exact trace/cache helpers with typed service/GPU/SDL/cap boundaries; full detail syntax checks are separate."
+  ],
+  "no_build_pr_release_or_version_changes": true
+}

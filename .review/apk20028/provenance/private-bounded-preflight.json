@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "source_commit": "e37ea804a702cae4331fed5f9d9f1fbb001304dc",
+  "source_tree": "8121c46aeb68c80071af4d237852837efb241018",
+  "source_hashes": {
+    "src/detail.c": "a2f7be277f5a62376cce34bd2faefdfd4ce7b64e51e692cc580731cd8047f6b8",
+    "src/tex_cache.c": "1572376b0685eb054fcea85053012ab06cac5f35955b722077e1099466824c96",
+    "src/tex_cache.h": "de3e4f15920cdcd679870a677e0d4bac0138c82abf345e0b2a5b19ef103a0617"
+  },
+  "patch_sha256": "339c102ed2075e69d55b0fa60255317b52bf850f6d7904afe7fedadb03e14534",
+  "portable_manifest": "/dev/shm/issue503-private-trace-20261015/portable-manifest.json",
+  "portable_manifest_sha256": "8fa36311db7d26a08d60925eb2f8d666e268b0d62aeed6aebc5f5df892818167",
+  "runner_sha256": "c20d1f7e1551d5b11100c33b2d6638ba17533f9f7c80140c50472e471bcc3370",
+  "normal_and_asan_helpers_passed": true,
+  "full_detail_syntax_repeated": false,
+  "only_local_c_compiles": "two tiny extracted helper units, normal then ASan sequential",
+  "scope": "30 explicit logger/privacy/lifecycle/cache checks plus2000 actualmutex coherence snapshots per mode; preflight only. Remote default must still run complete detail syntax.",
+  "receipts": {
+    "normal": {
+      "path": "/dev/shm/issue503-private-trace-20261015/preflight-normal/receipt.json",
+      "sha256": "36a26386a17175103d90830a70f3e1a6263f7a366e496ef225c3eb144681b94e",
+      "sanitized": false,
+      "stdout": "private-art-trace: 30 checks passed; cache-hit, upgrades, unknown source, privacy, lifecycle and event bound\n"
+    },
+    "asan": {
+      "path": "/dev/shm/issue503-private-trace-20261015/preflight-asan/receipt.json",
+      "sha256": "4af6cc730f0370d4d9c8674b7c8ead13cb007ac662c87de7ef70bd8a5e836810",
+      "sanitized": true,
+      "stdout": "private-art-trace: 30 checks passed; cache-hit, upgrades, unknown source, privacy, lifecycle and event bound\n"
+    }
+  }
+}

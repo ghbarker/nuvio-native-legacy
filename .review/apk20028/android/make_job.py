@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Write a named job fragment; never load or slice another workflow's step list."""
+import argparse,json,re
+from pathlib import Path
+p=argparse.ArgumentParser();p.add_argument('--prefix',default='.review/apk20028');p.add_argument('--output',type=Path,default=Path(__file__).with_name('job-fragment.json'));p.add_argument('--plan-sha256',default='PENDING_ROOT_REVIEW');a=p.parse_args();root=a.prefix.rstrip('/');assert root and not root.startswith('/') and '..' not in Path(root).parts
+assert a.plan_sha256=='PENDING_ROOT_REVIEW' or re.fullmatch('[0-9a-f]{64}',a.plan_sha256)
+steps=[
+ {'uses':'actions/checkout@v4','with':{'persist-credentials':False,'fetch-depth':0}},
+ {'name':'Materialize and verify final product and isolated test layers','run':f'''python3 {root}/materialize.py --layer product --output "$GITHUB_WORKSPACE/source-product" --proof "$GITHUB_WORKSPACE/build/review/apk20028/product-source.json" --base-repository "$GITHUB_WORKSPACE"
+python3 {root}/materialize.py --layer test --output "$GITHUB_WORKSPACE/source-test" --proof "$GITHUB_WORKSPACE/build/review/apk20028/test-source.json" --base-repository "$GITHUB_WORKSPACE"'''},
+ {'uses':'actions/setup-java@v4','with':{'distribution':'temurin','java-version':'17'}},
+ {'uses':'android-actions/setup-android@v3','with':{'packages':'platform-tools','log-accepted-android-sdk-licenses':False}},
+ {'name':'Install real Android and native build SDKs','run':'''command -v sdkmanager >/dev/null
+sudo apt-get update -qq
+sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev
+sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' '''.rstrip()},
+ {'name':'Prepare private configuration and persistent debug signing','env':{'NUVIO_TOUCH_CORE_PROPERTIES':'${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}','NUVIO_TOUCH_DEBUG_KEYSTORE_B64':'${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}'},'run':f'python3 {root}/android/prepare_env.py --output "$RUNNER_TEMP/nuvio-apk20028-private"'},
+ {'uses':'actions/cache/restore@v4','id':'native-cache','with':{'path':'~/.cache/nuvio-android','key':"apk20028-native-v1-${{ runner.os }}-${{ hashFiles('source-product/tools/android/deps.sh', 'source-product/tools/android/ffmpeg-android.sh', 'source-product/android/app/src/main/cpp/CMakeLists.txt') }}",'restore-keys':'apk20028-native-v1-${{ runner.os }}-\napk20027-native-v1-${{ runner.os }}-\napk20026-native-v1-${{ runner.os }}-\napk20025-native-v1-${{ runner.os }}-\napk20024-native-v1-${{ runner.os }}-\napk20021-native-v1-${{ runner.os }}-\napk20020-native-v1-${{ runner.os }}-\napk20019-native-v1-${{ runner.os }}-\nlogs8-native-v2-${{ runner.os }}-'}},
+ {'uses':'actions/cache/restore@v4','id':'gradle-cache','with':{'path':'~/.gradle/caches\n~/.gradle/wrapper','key':"apk20028-gradle-v1-${{ runner.os }}-${{ hashFiles('source-product/android/**/*.gradle.kts', 'source-product/android/gradle/wrapper/gradle-wrapper.properties', 'source-test/android/**/*.gradle.kts') }}",'restore-keys':'apk20028-gradle-v1-${{ runner.os }}-\napk20027-gradle-v1-${{ runner.os }}-\napk20026-gradle-v1-${{ runner.os }}-\napk20025-gradle-v1-${{ runner.os }}-\napk20024-gradle-v1-${{ runner.os }}-\napk20021-gradle-v1-${{ runner.os }}-\napk20020-gradle-v1-${{ runner.os }}-\napk20019-gradle-v1-${{ runner.os }}-\nlogs8-gradle-v2-${{ runner.os }}-'}},
+ {'name':'Record safe cache restoration outcomes','env':{'APK20028_NATIVE_CACHE_PRIMARY':'${{ steps.native-cache.outputs.cache-primary-key }}','APK20028_NATIVE_CACHE_MATCHED':'${{ steps.native-cache.outputs.cache-matched-key }}','APK20028_NATIVE_CACHE_HIT':'${{ steps.native-cache.outputs.cache-hit }}','APK20028_GRADLE_CACHE_PRIMARY':'${{ steps.gradle-cache.outputs.cache-primary-key }}','APK20028_GRADLE_CACHE_MATCHED':'${{ steps.gradle-cache.outputs.cache-matched-key }}','APK20028_GRADLE_CACHE_HIT':'${{ steps.gradle-cache.outputs.cache-hit }}'},'run':f'python3 {root}/android/record_cache.py --output build/review/apk20028/cache-restoration.json'},
+ {'name':'Build and verify account-compatible APK20028 update with isolated diagnostics','run':f'python3 {root}/android/run.py --layer test --source source-test --source-proof build/review/apk20028/test-source.json --output build/review/apk20028/android-test --jobs 2'},
+ {'name':'Record only safe cache/output presence','id':'outputs','if':'always()','run':'''if [[ -d "$HOME/.cache/nuvio-android" ]]; then echo 'native_cache=true' >> "$GITHUB_OUTPUT"; fi
+if [[ -d "$HOME/.gradle/caches" || -d "$HOME/.gradle/wrapper" ]]; then echo 'gradle_cache=true' >> "$GITHUB_OUTPUT"; fi'''},
+ {'uses':'actions/cache/save@v4','if':"always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-primary-key != ''",'with':{'path':'~/.cache/nuvio-android','key':'${{ steps.native-cache.outputs.cache-primary-key }}'}},
+ {'uses':'actions/cache/save@v4','if':"always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true' && steps.gradle-cache.outputs.cache-primary-key != ''",'with':{'path':'~/.gradle/caches\n~/.gradle/wrapper','key':'${{ steps.gradle-cache.outputs.cache-primary-key }}'}},
+ {'uses':'actions/upload-artifact@v4','if':'always()','with':{'name':'apk20028-android-${{ github.sha }}','path':'build/review/apk20028/','if-no-files-found':'error','retention-days':14}},
+ {'name':'Delete private runner configuration','if':'always()','run':f'python3 {root}/android/cleanup_private.py --directory "$RUNNER_TEMP/nuvio-apk20028-private"'}
+]
+job={'name':'APK20028 compatible test APK (ARM32/ARM64)','runs-on':'ubuntu-24.04','timeout-minutes':90,'permissions':{'contents':'read'},'env':{'APK20028_REVIEW_ROOT':root,'NUVIO_REVIEW_PLAN_SHA256':a.plan_sha256,'NUVIO_ANDROID_JOBS':'2','NUVIO_BUILD_JOBS':'2'},'steps':steps};a.output.write_text(json.dumps(job,indent=2)+'\n');print('Named Android job fragment written:',a.output)

@@ -1,0 +1,110 @@
+{
+  "source_commit": "39f64efd3c88dd660fcb9450b632284543afb746",
+  "source_tree": "67baf2714ad3e8415459ecf659a9f1348b24832d",
+  "base_commit": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "branch": "fix/metahub-high-resolution-503-20261015",
+  "private_diagnostics_included": false,
+  "external_actions": false,
+  "files": {
+    "src/artehero.c": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+    "src/artehero.h": "faf719cb766d154dca568bcb946961f8eeb1c79bd8472af991003ade84334412",
+    "tests/artehero.c": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf"
+  },
+  "patch_sha256": "1e174f647bedb0a8b73357737b747ce61db451fe54e03fa216c3ab01734f4c9f",
+  "checks": [
+    {
+      "group": "final-candidate-native-normal",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "expected_exit": 0,
+      "pass": true,
+      "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+      "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+      "binary_sha256": "832b13ca244eb6f238fb1196b0f6ff66c306c3806a6f0654174c814001c99471",
+      "log_sha256": "c299a14bc9b55fd6739d10d86150a90dacedc7dd532c26024882be3cac842af6"
+    },
+    {
+      "group": "final-candidate-native-asan",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "expected_exit": 0,
+      "pass": true,
+      "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+      "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+      "binary_sha256": "22837447256395981ef3f2969853fe99ff2bbf0be4ab6b1381344468ef6bf080",
+      "log_sha256": "c299a14bc9b55fd6739d10d86150a90dacedc7dd532c26024882be3cac842af6"
+    },
+    {
+      "group": "final-candidate-browser-normal",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "expected_exit": 0,
+      "pass": true,
+      "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+      "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+      "binary_sha256": "693b63a4254e12ad13fa01a461a0da1a03bd57ffc4973e0f2751ceacb57ff213",
+      "log_sha256": "6ec58142139e1ecae374cb41d9696a9229d0953bde35d217bbfed318fc5d86d5"
+    },
+    {
+      "group": "final-candidate-browser-asan",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "expected_exit": 0,
+      "pass": true,
+      "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+      "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+      "binary_sha256": "6ff1c8d542eb44a5c09721ae6060e38cea85b8fe288c7aa2240ffa7ff3cf27a1",
+      "log_sha256": "6ec58142139e1ecae374cb41d9696a9229d0953bde35d217bbfed318fc5d86d5"
+    },
+    {
+      "group": "final-baseline-native-normal",
+      "compile_exit": 0,
+      "run_exit": -6,
+      "expected_exit": -6,
+      "pass": true,
+      "source_sha256": "1a9f4038b6c8b00603050e6d30caa89959b1609304c4802d7508d937dea516e4",
+      "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+      "binary_sha256": "55dd7f2e80ebd02bd604df80aacf81f1f342b7cc6525bb60e77a1eff26a6bdf9",
+      "log_sha256": "3a655d4b8f7198c3c07d22db401de2994dd41a4d4fdd503441d2f0f08baf3adc"
+    },
+    {
+      "group": "final-baseline-browser-normal",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "expected_exit": 0,
+      "pass": true,
+      "source_sha256": "1a9f4038b6c8b00603050e6d30caa89959b1609304c4802d7508d937dea516e4",
+      "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+      "binary_sha256": "3c648479fd464de582b2326e948fbc93365a93b6433ae673e56588adb1909122",
+      "log_sha256": "6ec58142139e1ecae374cb41d9696a9229d0953bde35d217bbfed318fc5d86d5"
+    }
+  ],
+  "unchanged_artetamanho_normal_asan": "both passed",
+  "verified_public_source": {
+    "imdb": "tt27165187",
+    "metahub_medium": {
+      "dimensions": [
+        1280,
+        720
+      ],
+      "bytes": 280582,
+      "same_bytes_as": "TMDB w1280"
+    },
+    "metahub_large": {
+      "http": 200,
+      "dimensions": [
+        3840,
+        2160
+      ],
+      "bytes": 1579891,
+      "same_bytes_as": "TMDB original",
+      "sha256": "1961f24a95b7c5ef32366fda52ce8f21ce77563f6a373906e65e2f73bd775ec6"
+    }
+  },
+  "limits": [
+    "Policy gap reproduced; exact phone-selected backdrop still unproven.",
+    "No full Android/macOS build launched.",
+    "Native High alone promotes known https Metahub background medium/small endpoint; Low/Standard/browser/cards/stills unchanged.",
+    "Existing callback and fallback order preserved; no network requests added to the policy module."
+  ]
+}

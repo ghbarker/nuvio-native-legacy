@@ -1,0 +1,182 @@
+{
+  "format": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "ci_execution_permitted": true,
+  "review_only": false,
+  "launch_requires_root_review": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "accepted_foundation": {
+    "product": "6a6b9cef697b3457b050addf479be6e7d1915036",
+    "test": "813b65211ef6b0da05b0c7ad1462900c2f4d5596"
+  },
+  "public_quality": {
+    "commit": "39f64efd3c88dd660fcb9450b632284543afb746",
+    "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+    "patch_sha256": "505dee09575e869805704645c094324b02cdbbb8fce2f207e107c6195cc4cb88",
+    "paths": [
+      "src/artehero.c",
+      "src/artehero.h"
+    ]
+  },
+  "sources": {
+    "product": {
+      "commit": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "tree": "24204199e0b2d4dfee6eb0649b95b81cb8e77918",
+      "parent": "6a6b9cef697b3457b050addf479be6e7d1915036",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "3e7888013081cd8e2b3c154ea1115d208113d33ce99882c721ad3e162f559e31"
+    },
+    "test": {
+      "commit": "412d6bdc2a9eb6b3483626f765833e27fb82299d",
+      "tree": "c3277e06125065ea4c5144d67bc88cba7b3dd1b3",
+      "parent": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "bde53e993171885e92dbddef058147827daa8dc9365c15021c34cad64f77039f"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20028,
+    "version_name": "2.0.28-test-logs18",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "3524919526a1eb2808472c4249a68c64ec16eb20d3b2955e7d3f12764fbb4b78",
+    "bytes": 1354651
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "8469eed7352dc89856c20f35feb563bb9bc2ffd6cf886589b224441c2578375a"
+  },
+  "review_parent": {
+    "commit": "412d6bdc2a9eb6b3483626f765833e27fb82299d",
+    "tree": "c3277e06125065ea4c5144d67bc88cba7b3dd1b3"
+  },
+  "required_artwork_quality": {
+    "bound": true,
+    "fixture_manifest": "quality-fixture-manifest.json",
+    "fixture_manifest_sha256": "97f4eb72fac402bf588cab272a67a0de3fb9de58980deeda38cfaf8f51410886",
+    "modes": [
+      "native-normal",
+      "native-asan",
+      "browser-normal",
+      "browser-asan"
+    ],
+    "native_case_groups": 27,
+    "browser_case_groups": 3,
+    "linux_layers": [
+      "product",
+      "test"
+    ],
+    "macos_layers": [
+      "product"
+    ]
+  },
+  "required_private_diagnostics": {
+    "bound": true,
+    "fixture_manifest": "diagnostic-fixture-manifest.json",
+    "fixture_manifest_sha256": "429489d72f48d1d053ddca14001ec32916718672261d426bbea56ccdb677ec38",
+    "layers": [
+      "test"
+    ],
+    "platforms": [
+      "Linux"
+    ],
+    "modes": [
+      "normal",
+      "address,undefined"
+    ],
+    "public_source_diagnostics_absent": true
+  },
+  "required_jobs": [
+    "focused-linux",
+    "focused-macos",
+    "android"
+  ],
+  "scope": {
+    "product_delta_paths": [
+      "src/artehero.c",
+      "src/artehero.h"
+    ],
+    "private_overlay_prior_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "private_overlay_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/detail.c",
+      "src/posplay.c",
+      "src/tex_cache.c",
+      "src/tex_cache.h"
+    ],
+    "private_selected_backdrop_diagnostics_only": true,
+    "compatible_private_apk_only": true,
+    "fresh_apk_signer_abi_jni_dex_16kb_verification": true,
+    "unchanged_java_jvm_suites_repeated": false,
+    "unchanged_removed_addon_20_cases_repeated": false,
+    "unchanged_feature_and_full_sdk_suites_repeated": false,
+    "old_passes_count_as_new_checks": false,
+    "publication_workflow": false
+  },
+  "recipe_pins": {
+    "aggregate.py": "4a664349c86fe1e913223df6bdc641c2cd616884f9eaea32b857333baac87c40",
+    "android/README.md": "ca223ad88ffac52921bb42e608079b9332cc38551674b0087f67803fc21f19dd",
+    "android/cleanup_private.py": "7008c8ce1ec1bf69fbf8b768c45f38b6bc98ba605266520dc69fb3e627d8cfe4",
+    "android/common.py": "5806efb41b54ff271ef9019f648fec18cda03f4a2fcd7956e311db1b7495fb8e",
+    "android/dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "android/job-fragment.json": "c9f1f14b86252c2aa761c1f34ea9d4cb6d4f705459842988af35efafa43822a8",
+    "android/legacy-jni-descriptors.json": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1",
+    "android/make_job.py": "ae06d39ce624150869c948702f92eee8910300295f47993a87a8e4d27f4f7e83",
+    "android/prepare_env.py": "e0f2fdffb9f2da487576e42e6cff40f0086ae2c0cdcdcf3c8f3394b78ae42dd9",
+    "android/prepare_source.py": "203694307e97f3c0614cffe300cbbda5e2ddc7559b9a3561e4bb83a09f6edcb1",
+    "android/recipe-manifest.json": "c111af17bf7bd45627f69188f11c75b563c7a2437b3a3ff061c4b88466ccdce6",
+    "android/record_cache.py": "37db02ec3625a0a3923aa22c696124b9e0fb17f3fb23e3649d9ab65e0a69305a",
+    "android/run.py": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f",
+    "android/safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe",
+    "android/verify_apk.py": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b",
+    "ci-cache-preflight.py": "3a67e825918e647707fdbe7493da6bf4f1d8c9cfdf6c6ffa4f09a2cfcf84ea43",
+    "composition-manifest.json": "8469eed7352dc89856c20f35feb563bb9bc2ffd6cf886589b224441c2578375a",
+    "diagnostic-fixture-manifest.json": "429489d72f48d1d053ddca14001ec32916718672261d426bbea56ccdb677ec38",
+    "focused/diagnostics/baseline.json": "870c1615a8de934f0fa9d626237267dccae0308d63c3986c218ee41d905eda21",
+    "focused/diagnostics/cache-boundary.c": "80a15d5c16fa45fea983cd576ac89ea99abcdd9c8dc9d4d183f6db05018946bc",
+    "focused/diagnostics/detail-probe.c": "ac39a8f14d42cd7b4e93d7047a4329ae34188126c3da40b3c53c53ca774cd533",
+    "focused/diagnostics/run.py": "c20d1f7e1551d5b11100c33b2d6638ba17533f9f7c80140c50472e471bcc3370",
+    "focused/diagnostics/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "focused/diagnostics/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "focused/diagnostics/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "focused/quality/artehero-fixture.c": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "focused/quality/run.py": "b3474703b858dfecc50994f6d6fc6138333e0a451fde29f28c6cd21036fa1ead",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "product-source-manifest.json": "3e7888013081cd8e2b3c154ea1115d208113d33ce99882c721ad3e162f559e31",
+    "quality-fixture-manifest.json": "97f4eb72fac402bf588cab272a67a0de3fb9de58980deeda38cfaf8f51410886",
+    "require_plan.py": "176a9a02b2c1eec07ea51fa64148a4eca5bf861727d90a80a3a4b792999835bb",
+    "run_focused.py": "760c57d00ade49632a73ea11cfd91a0e9f3bfbb7574b51fadea5c6b7c4f3ad93",
+    "test-source-manifest.json": "bde53e993171885e92dbddef058147827daa8dc9365c15021c34cad64f77039f"
+  },
+  "pending": []
+}

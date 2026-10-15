@@ -1,0 +1,90 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": false,
+  "ci_execution_permitted": false,
+  "accepted_foundation": {
+    "product": "6a6b9cef697b3457b050addf479be6e7d1915036",
+    "test": "813b65211ef6b0da05b0c7ad1462900c2f4d5596"
+  },
+  "public_quality": {
+    "commit": "39f64efd3c88dd660fcb9450b632284543afb746",
+    "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+    "patch_sha256": "505dee09575e869805704645c094324b02cdbbb8fce2f207e107c6195cc4cb88",
+    "paths": [
+      "src/artehero.c",
+      "src/artehero.h"
+    ]
+  },
+  "product": {
+    "commit": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+    "tree": "24204199e0b2d4dfee6eb0649b95b81cb8e77918",
+    "parent": "6a6b9cef697b3457b050addf479be6e7d1915036"
+  },
+  "tests_tree_unchanged": true,
+  "private_overlay_pending": false,
+  "no_build_or_external_writes_performed": true,
+  "sources": {
+    "product": {
+      "commit": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "tree": "24204199e0b2d4dfee6eb0649b95b81cb8e77918",
+      "parent": "6a6b9cef697b3457b050addf479be6e7d1915036",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "3e7888013081cd8e2b3c154ea1115d208113d33ce99882c721ad3e162f559e31"
+    },
+    "test": {
+      "commit": "412d6bdc2a9eb6b3483626f765833e27fb82299d",
+      "tree": "c3277e06125065ea4c5144d67bc88cba7b3dd1b3",
+      "parent": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "bde53e993171885e92dbddef058147827daa8dc9365c15021c34cad64f77039f"
+    }
+  },
+  "private_overlay": {
+    "prior_files": 11,
+    "prior_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/detail.c",
+      "src/posplay.c",
+      "src/tex_cache.c",
+      "src/tex_cache.h"
+    ],
+    "diagnostic_patch_sha256": "339c102ed2075e69d55b0fa60255317b52bf850f6d7904afe7fedadb03e14534",
+    "diagnostic_review_sha256": "909a92253741688113b9ed0fd857e444d45b8620369daeae7f55e4a9ce9af197",
+    "identity": {
+      "old_code": 20027,
+      "code": 20028,
+      "old_name": "2.0.27-test-logs17",
+      "name": "2.0.28-test-logs18"
+    }
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "3524919526a1eb2808472c4249a68c64ec16eb20d3b2955e7d3f12764fbb4b78",
+    "bytes": 1354651
+  },
+  "package_signer_unchanged": true,
+  "tests_unchanged": true
+}

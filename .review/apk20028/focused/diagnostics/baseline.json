@@ -1,0 +1,8 @@
+{
+  "base": "813b65211ef6b0da05b0c7ad1462900c2f4d5596",
+  "macro_off_nonblank_sha256": {
+    "src/detail.c": "e05aac02474bce8fa8f28a7afc193fac329abcda42a4a7b888dfd3ada785572e",
+    "src/tex_cache.c": "c141e8447750f516df0984bb678747b7b82fcd09111431e1fd92f4fd267454b6",
+    "src/tex_cache.h": "da9e84ded2fda045157e6f3e323db234ba1b9afb379951db342567fb73e1e8f3"
+  }
+}

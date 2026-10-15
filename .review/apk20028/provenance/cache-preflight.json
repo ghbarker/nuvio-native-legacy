@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checked": [
+    {
+      "job": "android",
+      "step": 6,
+      "keys": 10
+    },
+    {
+      "job": "android",
+      "step": 7,
+      "keys": 10
+    }
+  ],
+  "helper_sha256": "3a67e825918e647707fdbe7493da6bf4f1d8c9cfdf6c6ffa4f09a2cfcf84ea43"
+}

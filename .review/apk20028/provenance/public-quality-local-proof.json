@@ -1,0 +1,68 @@
+[
+  {
+    "group": "final-candidate-native-normal",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "expected_exit": 0,
+    "pass": true,
+    "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+    "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "binary_sha256": "832b13ca244eb6f238fb1196b0f6ff66c306c3806a6f0654174c814001c99471",
+    "log_sha256": "c299a14bc9b55fd6739d10d86150a90dacedc7dd532c26024882be3cac842af6"
+  },
+  {
+    "group": "final-candidate-native-asan",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "expected_exit": 0,
+    "pass": true,
+    "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+    "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "binary_sha256": "22837447256395981ef3f2969853fe99ff2bbf0be4ab6b1381344468ef6bf080",
+    "log_sha256": "c299a14bc9b55fd6739d10d86150a90dacedc7dd532c26024882be3cac842af6"
+  },
+  {
+    "group": "final-candidate-browser-normal",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "expected_exit": 0,
+    "pass": true,
+    "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+    "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "binary_sha256": "693b63a4254e12ad13fa01a461a0da1a03bd57ffc4973e0f2751ceacb57ff213",
+    "log_sha256": "6ec58142139e1ecae374cb41d9696a9229d0953bde35d217bbfed318fc5d86d5"
+  },
+  {
+    "group": "final-candidate-browser-asan",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "expected_exit": 0,
+    "pass": true,
+    "source_sha256": "857b93cb21db45b5eb13b1ce04c07be59815e26a60c9e2ffbb269cdff6e4edd9",
+    "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "binary_sha256": "6ff1c8d542eb44a5c09721ae6060e38cea85b8fe288c7aa2240ffa7ff3cf27a1",
+    "log_sha256": "6ec58142139e1ecae374cb41d9696a9229d0953bde35d217bbfed318fc5d86d5"
+  },
+  {
+    "group": "final-baseline-native-normal",
+    "compile_exit": 0,
+    "run_exit": -6,
+    "expected_exit": -6,
+    "pass": true,
+    "source_sha256": "1a9f4038b6c8b00603050e6d30caa89959b1609304c4802d7508d937dea516e4",
+    "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "binary_sha256": "55dd7f2e80ebd02bd604df80aacf81f1f342b7cc6525bb60e77a1eff26a6bdf9",
+    "log_sha256": "3a655d4b8f7198c3c07d22db401de2994dd41a4d4fdd503441d2f0f08baf3adc"
+  },
+  {
+    "group": "final-baseline-browser-normal",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "expected_exit": 0,
+    "pass": true,
+    "source_sha256": "1a9f4038b6c8b00603050e6d30caa89959b1609304c4802d7508d937dea516e4",
+    "tests_sha256": "e33e7838ef7d654269939595a5f52c54df63aa4a51eb9963c767bf01fb8371bf",
+    "binary_sha256": "3c648479fd464de582b2326e948fbc93365a93b6433ae673e56588adb1909122",
+    "log_sha256": "6ec58142139e1ecae374cb41d9696a9229d0953bde35d217bbfed318fc5d86d5"
+  }
+]

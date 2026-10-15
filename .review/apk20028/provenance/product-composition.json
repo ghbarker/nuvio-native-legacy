@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": false,
+  "ci_execution_permitted": false,
+  "accepted_foundation": {
+    "product": "6a6b9cef697b3457b050addf479be6e7d1915036",
+    "test": "813b65211ef6b0da05b0c7ad1462900c2f4d5596"
+  },
+  "public_quality": {
+    "commit": "39f64efd3c88dd660fcb9450b632284543afb746",
+    "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+    "patch_sha256": "505dee09575e869805704645c094324b02cdbbb8fce2f207e107c6195cc4cb88",
+    "paths": [
+      "src/artehero.c",
+      "src/artehero.h"
+    ]
+  },
+  "product": {
+    "commit": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+    "tree": "24204199e0b2d4dfee6eb0649b95b81cb8e77918",
+    "parent": "6a6b9cef697b3457b050addf479be6e7d1915036"
+  },
+  "tests_tree_unchanged": true,
+  "private_overlay_pending": true,
+  "no_build_or_external_writes_performed": true
+}

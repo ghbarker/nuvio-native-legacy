@@ -1,0 +1,14 @@
+{
+  "root_reviewed": true,
+  "private_only": true,
+  "source_commit": "e37ea804a702cae4331fed5f9d9f1fbb001304dc",
+  "source_tree": "8121c46aeb68c80071af4d237852837efb241018",
+  "patch_sha256": "339c102ed2075e69d55b0fa60255317b52bf850f6d7904afe7fedadb03e14534",
+  "read_only_mutex_snapshot": true,
+  "no_raw_url_token_title_or_custom_host_printed": true,
+  "normal_and_dynamic_cached_hits": true,
+  "bounded_events_per_open": 16,
+  "bounded_sampling_ms": 250,
+  "no_public_product_semantic_changes_when_macro_off": true,
+  "remote_sanitizer_check_pending": true
+}
