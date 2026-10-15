@@ -187,6 +187,9 @@ typedef enum {
   // Medium nas outras). Mesmo corpo da sinopse (NV_FT_DET_SIN).
   TXT_DET_META_FORTE,   // ano, duracao       26 / 700
   TXT_DET_META_GEN,     // generos            26 / 600
+  // #477: tamanhos exclusivos das sinopses; nao alteram metadados/legendas.
+  TXT_SINOPSE_20, TXT_SINOPSE_22, TXT_SINOPSE_24, TXT_SINOPSE_26,
+  TXT_SINOPSE_28, TXT_SINOPSE_32, TXT_SINOPSE_34, TXT_SINOPSE_38,
   TXT_NFONTES
 } TxtEstilo;
 
