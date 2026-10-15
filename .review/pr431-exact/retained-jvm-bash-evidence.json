@@ -1,0 +1,70 @@
+{
+  "scope": "Retained earlier focused JVM InterfaceMode/TouchViewport detection and Bash3.2 helper evidence because the complete production input graphs are byte-identical; not a fresh execution or substitute for fresh app/SDK/runtime/sanitizer gates.",
+  "prior_final_head": "85aa72edd5f033b8ef21d97744df229983db79d4",
+  "current_head": "eb4d43c4dabb7d33b3cd5055d9b306faf84b7da7",
+  "previous_proof_run": 38670089253,
+  "production_inputs": [
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+      "old_sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0",
+      "new_sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0",
+      "identical": true,
+      "earlier_build_sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0",
+      "earlier_build_origin": "prior successful combined-build manifest",
+      "earlier_build_graph_identical": true
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/TouchViewport.kt",
+      "old_sha256": "7b31a9a3e81b9452557c9563518e8d6e9fef811460310e681a584a3fdf37b209",
+      "new_sha256": "7b31a9a3e81b9452557c9563518e8d6e9fef811460310e681a584a3fdf37b209",
+      "identical": true,
+      "earlier_build_sha256": "7b31a9a3e81b9452557c9563518e8d6e9fef811460310e681a584a3fdf37b209",
+      "earlier_build_origin": "unchanged file in prior successful build base",
+      "earlier_build_graph_identical": true
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "old_sha256": "b96d291e75b03929dd1854ac223fe16e9d7a3ee238d2f8b8f50d39741d35d920",
+      "new_sha256": "b96d291e75b03929dd1854ac223fe16e9d7a3ee238d2f8b8f50d39741d35d920",
+      "identical": true,
+      "earlier_build_sha256": "b96d291e75b03929dd1854ac223fe16e9d7a3ee238d2f8b8f50d39741d35d920",
+      "earlier_build_origin": "prior successful combined-build manifest",
+      "earlier_build_graph_identical": true
+    },
+    {
+      "path": "tools/android/ffmpeg-android.sh",
+      "old_sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc",
+      "new_sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc",
+      "identical": true,
+      "earlier_build_sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc",
+      "earlier_build_origin": "prior successful combined-build manifest",
+      "earlier_build_graph_identical": true
+    },
+    {
+      "path": "tools/android-apk-pages.py",
+      "old_sha256": "d8f2b2fa840a7d530af5a0e7601f1e3adc0391c0407a2a6e1ccc359677805777",
+      "new_sha256": "d8f2b2fa840a7d530af5a0e7601f1e3adc0391c0407a2a6e1ccc359677805777",
+      "identical": true,
+      "earlier_build_sha256": "d8f2b2fa840a7d530af5a0e7601f1e3adc0391c0407a2a6e1ccc359677805777",
+      "earlier_build_origin": "unchanged file in prior successful build base",
+      "earlier_build_graph_identical": true
+    }
+  ],
+  "preserved_fixtures": [
+    {
+      "path": "pr431_android_interface_mode.py",
+      "sha256": "b7c3599a4a79d74cfebda13dde8e317664f832c6d01ab8f12f477702bf769da3",
+      "matches_actual_prior_run_fixture": true
+    },
+    {
+      "path": "pr431_android_ffmpeg_bash.py",
+      "sha256": "676e786672645ff42f7089004970714dee65c472c412aa88961d494e633fe8f0",
+      "matches_actual_prior_run_fixture": true
+    }
+  ],
+  "current_app_builds_will_be_fresh": true,
+  "window_geometry_fixture_not_reused": "NvPlayer.kt is outside the detector-only JVM graph; no inherited window fixture pass is claimed here.",
+  "earlier_build_source": "bd8bbfa7bb9fa7dfc5c2c870537d7029da2cc730",
+  "earlier_build_review": "ef233638ba6cbbf1b4b9d0b886b255cf35114a2a",
+  "earlier_build_manifest_sha256": "7d8cc3ffaa7eb2a4d5edb6a2b8505e23b2d655cffbe61caa39e3fe9053f9d926"
+}
