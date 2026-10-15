@@ -1,0 +1,8 @@
+tree 76584f199e177d5febe60ddd559fd5cbfc530942
+parent e3e21a590120ca283bcf7a96df1813ff5041eb66
+author ghbarker <ghbarker@users.noreply.github.com> 1792028786 +0000
+committer Codex <codex@users.noreply.github.com> 1792085254 +0000
+
+Add a per-profile option to hide watched movies from discovery
+
+Rebased on current upstream for validation.

@@ -1,0 +1,301 @@
+{
+  "base": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "old_head_lease": "dbf67f6996404a7465ca3e9ecf7175f0f43b753b",
+  "candidate": "b193d776a066145d97f1b9dfe2299aa19cdc85f5",
+  "tree": "76584f199e177d5febe60ddd559fd5cbfc530942",
+  "parent": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "paths": [
+    {
+      "path": "src/ajustes.c",
+      "sha256": "711f9e83ac5f14cae270a974f8647f9e7ace870c44ff77decd7eb11e1ba39ca6",
+      "blob": "7ccf296b42435a4c143e6d10d1b7f543b04dd964",
+      "bytes": 478892,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "897685a9376c5c7fcdcb1fef89b1708c13e34411b20d8569d6ba720cf705eb06",
+      "blob": "b9fbe4c62d42e39dace73eb8ba71e0395ce11465",
+      "bytes": 41934,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_cenas.inc",
+      "sha256": "6799db3636834d1938baf45a3ad997691869e020bd3ee017660485514a99a8c4",
+      "blob": "56b09bda8c33994198d5d0e779b23701581e769d",
+      "bytes": 49003,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_cenas_home.inc",
+      "sha256": "a3e11d675137d916724c22d4d1fe21711c49449751367d848d98f9d8e37b5590",
+      "blob": "7735b82a115cc5104764a3e086326aa923182588",
+      "bytes": 35847,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "ed1b1913776d80083fc4ea4c1f2e8dda381991f160c02eab57bbce30eec34f89",
+      "blob": "2742832f82a7b64db625aa3c6053573e8b69e73b",
+      "bytes": 18290,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "sha256": "5e0e89b43aa6d9eb7604c70e8d8457343ed50d5747dc1feefe4e8f7271bbe7ad",
+      "blob": "d08e80998ec63fe9b35f3513683c735e1b8039ae",
+      "bytes": 80602,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "7000ed573dc9873a88c1d1cd51fa0b1326fce76d5d255de5c331c126a9ee9290",
+      "blob": "09f51bac66f91f7cb65616f8a2a711eca1959e2f",
+      "bytes": 12232,
+      "mode": "100644"
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "sha256": "dcdc2007df8beacb4b895895ef28a5736b6a2534ec7150b8c4559b12053833f8",
+      "blob": "25a11c7c1b71ea673e79b93dd626ff1a3a166f01",
+      "bytes": 36624,
+      "mode": "100644"
+    },
+    {
+      "path": "src/descoberta.c",
+      "sha256": "b74906043c2b642237925e86356eaa7f4281baa3524db098066d2d1cb73cce82",
+      "blob": "13ee8dc17c83847521c5be7af9e9cbba092853e4",
+      "bytes": 416231,
+      "mode": "100644"
+    },
+    {
+      "path": "src/descoberta.h",
+      "sha256": "07c55c3d7aa1ebe628f31081b02e6faf48267a6ebd8cc8549314811e33b1b5b3",
+      "blob": "df6a73e7beb9fef63985b9da490dd540a34ab2b5",
+      "bytes": 19760,
+      "mode": "100644"
+    },
+    {
+      "path": "src/home.c",
+      "sha256": "447b116b0a98a554b5cd366d4897e69a65d5934a3359d390261cdb77ec123f67",
+      "blob": "f5c46affceb48940c984aad720d7040d40e3a7c1",
+      "bytes": 370840,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "118bcc46c88c750fe2a8f94eec04db6bbd124414a0bdd716f11dcd78d5b93737",
+      "blob": "9a6b9ec4dcda01ffd374bb741982629528b1be20",
+      "bytes": 689346,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "18b01e1f0c72e0a93ec62995f3ecd4415102bd1d509b3e6fa17e9e1be142240c",
+      "blob": "200dda91663d7be16442aa0b24bd2635d7091d38",
+      "bytes": 507845,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "d3a126ff463b9f4a24cb1d8595da8d0c2a4b64ad26d6218509c6180ac6a82763",
+      "blob": "f61555e85ad010ab9dea030db7844ac48a44d782",
+      "bytes": 520454,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "25775843977074ecad0b0edbba06c709bdb557509833eecc55072406a575f474",
+      "blob": "fa4dcfc82384277bbac44f8d2898ead6495be37e",
+      "bytes": 511383,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "e9fd4d5515009fbac0f32ee0662caec891ca2374696f383e195523616c04c330",
+      "blob": "e10f74392e938ccc7357326f7467532920c3dc58",
+      "bytes": 531494,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "86600b557d44281a34a5d987f65f791be5e4b7c7a1167fc7cee813a20589e3e3",
+      "blob": "e68420a052cf9ed3b569a5198d6fd45daa748660",
+      "bytes": 724164,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "44343b47a583cbb466d31506f3d0ce9826fd5b385545539eb716c468d4ab943c",
+      "blob": "7121003a12b0718d470985380d38d21a0bae1c4d",
+      "bytes": 521900,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "eb39876efa017c9d37ebec0fe4e09cf7ba05d98fba366c66a6d2856d71b30a6d",
+      "blob": "38f4c54af016b827bf6e79740164ad49177b61ec",
+      "bytes": 536563,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "8fdb84c972e96b9bed906d289a696d3f3a3f33b172324b44a3555347106b3a85",
+      "blob": "c281c2240978de021df123f3335fa2e76a04b1bc",
+      "bytes": 541419,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "09e3be37f3305f4d716d0b48459f0f45be24e0c753358a425e7d1256b5cd8baf",
+      "blob": "2a4a138e784dd322f9a03c86ec96883b1f4c9d68",
+      "bytes": 510648,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "5c4fb427d4361ce8874f4253ff25792b2b1844679d200ec0de392a2c1ff5d9cd",
+      "blob": "e850c2cebab0347545d07f7ae19151d2ce8fbc3d",
+      "bytes": 521612,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "67b186394aacf2684f3e7651d748a680fd83407007eae9f55a5c463a0a32ff58",
+      "blob": "55d27eedfe59b4ef437881a6ee54aac1668c5efc",
+      "bytes": 589639,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "4016cda84993220639b3611e6e1896cae9d0482a64097bb06490ee41636c9dc9",
+      "blob": "3e5d9b6694251d21c76662074674f386c0be840d",
+      "bytes": 525817,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "f1e6178649d37c8568d2a898ec0c0a8fc39ca44562a2ed3a5cb64015d2dd87b1",
+      "blob": "99b5660455faacfbed35036c0fe4f2c870c79839",
+      "bytes": 519977,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "4ff201ca17b1315f49efba341b9460c7c63fbfb3e8378b3f37c8d7d029997731",
+      "blob": "84d519e696db318758963f215d26622c9fadc38d",
+      "bytes": 508168,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "063d153e5daabbafa8e17ec6d51d825e90b58b00bd04737cf5295a763847abea",
+      "blob": "2a9d94fc53df680525959191e0e6668f6b9cb050",
+      "bytes": 523713,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "fe4b8835b6bc4923b561e99f42efc59141925c8f72a5a1e556975a34cff614e4",
+      "blob": "cb2950396cbe014a366e9aea0d45652b16a3000c",
+      "bytes": 513943,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "9da199792b063342d25ec9e35043f88b459dd5eec87bbaa865ee63c1ab8ad4f9",
+      "blob": "27560c3d423f1c89da8fceb4fd83b548cfcea953",
+      "bytes": 526334,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "7aad2063930b4feefb13bf9186716ea7f15c5dbfa8b69d1635bc3215e450f0c1",
+      "blob": "4719d5c8facf6053d93f82a8cbaa792a5aeb4008",
+      "bytes": 688392,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "566aeae679d8c8b1d718128e7c61c7afd949d99628a405a2cc2d59e3fd998caf",
+      "blob": "8a8362820abbc5c571447d6dfa0bd8a81243af15",
+      "bytes": 522447,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "9ba80c14a00a9fc004b5f79fd2f8d385c30ca6b92ae3963c725ee133092d3791",
+      "blob": "0b737cf8903817a8bccb3f282c3c836407439c11",
+      "bytes": 511523,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "66a3c16009305fd29b43985fad98dd6e1f193a745de66747b4e8a3972e9da163",
+      "blob": "82b91f0d67ef26fad5e31764858f89a1775089cc",
+      "bytes": 506964,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "1d0a9d44a55bd1073c8a78bb8e1f805851f4eed1590bbe317468dacba697fe51",
+      "blob": "8060a16bbf7da254116f8fd94ac1b9644128885a",
+      "bytes": 514031,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "19454e2a98e460e5d192067f564f7c12a4e88aaecbc3b27512df1cd97e740ad4",
+      "blob": "3199f297358c0408c5362bba140dc58f837e801a",
+      "bytes": 505293,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "7775f91226ba2dbbbe1ac1cf6d0094f6f0a08c7af4b3703af821ea902f1fe9d9",
+      "blob": "e131a2cefe456d929df5987080e5083b1ed2447b",
+      "bytes": 519343,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "be1c77cd551e9a3fc3032ac63d28e428922cab84d7a9c3f0874e974d22447efa",
+      "blob": "3e4a68b72fcda008cb63932c7005114ac27d0bd2",
+      "bytes": 680282,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "a8114ec7980dac9e55de09a526ce28f07d06d3ebc709d91dcc5120aadca79aa7",
+      "blob": "23a5c13220a514ceda09e6976dda8c309cba45e1",
+      "bytes": 562434,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "37d285962d94bb301dcde407d36ebcd0ec3cd4a47a696cb354e4ccd71cc63263",
+      "blob": "7581eab79473b7e78e50eb2e273113fd06153c1d",
+      "bytes": 496774,
+      "mode": "100644"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "e57ca46f7aa765d9b5d938873b21e28cec3ebb6ac8075bea4a260c6096fd207e",
+      "blob": "c38ac44fa6857cbecd128b28b940fd1b29405faa",
+      "bytes": 499186,
+      "mode": "100644"
+    },
+    {
+      "path": "src/vertudo.c",
+      "sha256": "6dc9ef2563efbeb740a993666b5bf88f979b56df598a4e5db1ab908ce4950991",
+      "blob": "f65072a1f53facca441e42e2e6d6b01e53ce3e38",
+      "bytes": 90573,
+      "mode": "100644"
+    }
+  ],
+  "diff_scope": "Only prior PR490 product feature; exact feature added/deleted lines retained; all upstream setting vectors retained",
+  "external_writes_performed": false,
+  "format": 1,
+  "head": "b193d776a066145d97f1b9dfe2299aa19cdc85f5",
+  "patch_sha256": "30a3b7c260a37580495d67f695a2a166f03b2f743064d02f83a0ba1baafa64ac"
+}

@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "feature": "pr490-hide-watched-discovery-rebase",
+  "base": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "base_tree": "3f117a27816728537a74596c040b208004ff1d4b",
+  "source_commit": "b193d776a066145d97f1b9dfe2299aa19cdc85f5",
+  "source_tree": "76584f199e177d5febe60ddd559fd5cbfc530942",
+  "source_manifest_sha256": "0d03111ae3f97a9c1b9b505b2b1b187a0ed33b34bf62f47ff46ea880cc764587",
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "expected_old_head": "dbf67f6996404a7465ca3e9ecf7175f0f43b753b",
+  "source_ref": "refs/heads/feat/hide-watched-discovery-366",
+  "review_ref": "refs/heads/review/pr490-rebase-20261015",
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref_after_success": true,
+  "no_private_overlay": true,
+  "no_pr_or_release_created": true,
+  "scope": "Only existing PR490 profile-local default-Off Hide watched movies, rebased on upstream e3e21a5. Five fresh exact-source producers, strict aggregate, then exact-old-head leased update of existing PR490 branch. No APK release or PR creation.",
+  "focused_contracts": {
+    "existing_watched_suites_per_mode": 10,
+    "modes": [
+      "normal",
+      "asan"
+    ],
+    "extra_groups": [
+      "profile-session",
+      "all-eight-tv",
+      "all-eight-touch"
+    ],
+    "all_eight_combinations_per_mode": 24,
+    "geometry": "Existing unchanged real-source geometry fixture with exact full TV object closure; normal mode",
+    "source_invariants": "Exact old feature added/deleted lines, append-only upstream Settings vectors, unchanged protected product trees"
+  },
+  "prior_validation_policy": {
+    "local_verified_sha256": "637aa7b9b280137965e1e1fe349fc17d72c4804f09b5d80e52300626b654b31f",
+    "historical_ci_reused_as_new_pass": false,
+    "fresh_platforms_and_original3_required": true,
+    "old_pre493_epoch_failure": "Expected negative control; no guard weakened"
+  },
+  "recipe_inputs": {
+    "aggregate.py": "d80299f669e120ffae219021353c09e3d99477e7543efd5a4896b59f4298e247",
+    "android.py": "61bd7130df5673ac5a2c2ce994141d095c83b3193d8449da5fb957c1aa16bfe8",
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "931cc30c82a29f509da3da84084700ad6e9a76e68946606a51b30db1dd8c6c36",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixtures/watched/run_ci.sh": "9c803c4d7af6562e6ab2f89268da15ccdb2546bc9f7fbd8951a670d90e1df4ab",
+    "fixtures/watched/run_extra.py": "4b7be5be6c6640dd562f0fdaa865ebf2b950898f1275cb1da37efc01465df5c5",
+    "fixtures/watched/tests/all-eight-watched.c": "944a326c15b71b33c230c181c7851c9cc584bd8fc49808ffb99b9316190e73ab",
+    "fixtures/watched/tests/colecao_exibicao_compat.c": "20eb57bb5da6b7aced2f1db9c4d03f13dbf8526216362280ee1522d9ceb118fe",
+    "fixtures/watched/tests/colfiltro_existing.c": "0f43fdf4ea51430f9ede3a32e709a7ac7cb72494e1cba23b27b5a030360fe452",
+    "fixtures/watched/tests/discovery-stub.c": "3e5e3206ca5bc37c5394f68313c9d9760f1e05336a13adfc0413e28563c2c8a7",
+    "fixtures/watched/tests/language-test-stubs.c": "eb61f5e153788d0dff2d924d866bcce183af8f9f514d2e7c60b481d9b0db3960",
+    "fixtures/watched/tests/profile-late-page.c": "8e6d743da4dd8b96de4c6fca8234fd6246320080537bd6a05127df5aade1c7a6",
+    "fixtures/watched/tests/sdk-extra.h": "88c1deffca5b22085aaeaad6ff577f04e5f3dd4c867618296797102768e22737",
+    "fixtures/watched/tests/settings_contract.c": "55350af1c250904a428b80ded58b52965bbbb50fc93172b024d92e9cc49839ff",
+    "fixtures/watched/tests/watched_catalog_ui.c": "7850901adc66c28ab5989bd44fb48e6341d4bb8f3ba3f9bb100e0d79645de453",
+    "fixtures/watched/tests/watched_discovery.c": "56cc3e4cc8afb7b914311f98a68a0bc02ab6dab765851156423a4c6b1af2e16f",
+    "fixtures/watched/tests/watched_home.c": "4cdca0ab46e8c6a4199367bed103c36ba07a81bc230ea5570ccb41302851bd3c",
+    "fixtures/watched/verify_source.py": "0d5de69c0ded3b0e6306652aafead5d49a07b18b38ac8522690310fab8830777",
+    "materialize.py": "bd12813f8bcdb72d86805d54a8d7b323ff70d58bb267a329a43a3f6575ebf426",
+    "native.py": "1737f4e95bea0a94e40cc83f7b878df2096b0ac5833a5cc2f73433d9e630187e",
+    "original3.py": "1f17ac22395c834903de72b2374c55e3e63b3e2252910344d02c533ba1ae6db9",
+    "product-commit.txt": "1a271d5b33475775b137e5d09f79c315d77e1d4f372232e8f720a25ac3c32219",
+    "product-delta.patch": "30a3b7c260a37580495d67f695a2a166f03b2f743064d02f83a0ba1baafa64ac",
+    "publish_source.py": "fa78dd92f15666610e991e6db72c1e31d19bfe6e4ac7e4a4f0d68248afdcd022",
+    "source-manifest.json": "0d03111ae3f97a9c1b9b505b2b1b187a0ed33b34bf62f47ff46ea880cc764587"
+  }
+}
