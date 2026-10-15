@@ -1528,7 +1528,7 @@ static void desenhaEstilosTelefone(float a) {
   int atual = fil_tipo(filChave);
   float maximo = fmaxf(0, estListaAltura() - g.lista.h);
   estRolY = toquerol_clamp(estRolY, 0, maximo);
-  if (!toqueEst.livre && estFoco >= 0 && estFoco < nEstilos) {
+  if (!toquerol_livre(&toqueEst) && estFoco >= 0 && estFoco < nEstilos) {
     float y = estFoco * (EST_TOQUE_LINHA + EST_GAP);
     if (y < estRolY) estRolY = y;
     if (y + EST_TOQUE_LINHA > estRolY + g.lista.h) estRolY = y + EST_TOQUE_LINHA - g.lista.h;

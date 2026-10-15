@@ -1164,6 +1164,7 @@ static float toqueVertudoMax(void) {
   return fmaxf(0.0f, VT_TOPO + celFim + VT_GAP_Y - NV_TELA_H + 120.0f);
 }
 static int toqueVertudoRolar(const PonteiroRolagem *e) {
+  if (!layout_modo_mobile()) { toqueLivre = toqueNasAbas = 0; return 0; }
   float escala = vtEscala();
   if (e->fase == PONT_ROL_INICIO) {
     toqueNasAbas = 0;
@@ -1183,7 +1184,7 @@ static int toqueVertudoRolar(const PonteiroRolagem *e) {
   return 1;
 }
 static void toqueVertudoRetomarFoco(void) {
-  if (toqueLivre && nItens() > 0) {
+  if (layout_modo_mobile() && toqueLivre && nItens() > 0) {
     float alvo = scrollY + NV_TELA_H * 0.30f - VT_TOPO, distancia = 1e9f;
     int coluna = celCol[foco];
     for (int i = 0; i < celN; i++) {
@@ -1256,6 +1257,9 @@ void vertudo_evento(const SDL_Event *e) {
 }
 
 void vertudo_atualizar(float dt, Uint32 agora) {
+#ifdef NV_TOUCH_UI
+  if (!layout_modo_mobile()) toqueLivre = toqueNasAbas = 0;
+#endif
   float alvo, maxY;
   int n = nItens();
   anim = anim_mola(anim, aberta ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
@@ -1570,7 +1574,7 @@ static void themeHeader(float a,float x0) {
     int alvo=tabFocus?tabCursor:source;
     float ini=pos[alvo],fim=pos[alvo]+larg[alvo];
 #ifdef NV_TOUCH_UI
-    if (!toqueAbas.livre)
+    if (!toquerol_livre(&toqueAbas))
 #endif
     { if(fim-tabRol>W)tabRol=fim-W; if(ini-tabRol<0)tabRol=ini; }
     if(tabRol<0)tabRol=0;
