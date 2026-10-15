@@ -276,3 +276,4 @@
   0, /* Baixar registro: acao local, sem preferencia gravada */
 #endif
   0, /* synopsis text size (#477): Padrao, current typography */
+  0, /* collection default view (#362): Automatic, existing layout */

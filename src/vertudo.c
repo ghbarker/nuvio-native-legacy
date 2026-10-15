@@ -146,7 +146,7 @@ static char catalogId[96];
 // abas, e a escolha fica gravada por perfil e por pasta.
 //
 // AUTOMATICO (layAuto): Diretores = linha do tempo; todas as outras pastas
-// usam Grade. As outras exibicoes so entram pela escolha no botao.
+// usam Grade. O ajuste global ou a escolha da pasta pode usar outra exibicao.
 //
 // TODAS AS EXIBICOES SAO A MESMA TELA: uma tabela de celulas (posicao e caixa
 // de cada titulo, relativas ao inicio da grade) montada uma vez por mudanca, e
@@ -156,12 +156,8 @@ static char catalogId[96];
 // CUSTO NA TV: nenhuma passada de blur, nenhuma textura nova por quadro. As
 // artes saem do mesmo tex_cache por largura; Mural pede a arte deitada, que o
 // cache ja tem das fileiras da home.
-typedef enum {
-  VT_LAY_AUTO = 0, VT_LAY_GRADE, VT_LAY_LINHA, VT_LAY_RANKING,
-  VT_LAY_SAGA, VT_LAY_DECADAS, VT_LAY_MURAL, VT_LAY_VITRINE, VT_LAY_N
-} VtLayout;
 static const char *LAY_NOME[VT_LAY_N] = {
-  "Automático", "Grade", "Linha do tempo", "Ranking", "Saga", "Décadas", "Mural", "Vitrine"
+  "Padrão", "Grade", "Linha do tempo", "Ranking", "Saga", "Décadas", "Mural", "Vitrine"
 };
 static int layEscolha;            // gravada (VT_LAY_AUTO = nunca escolheu)
 static int semVitrineAuto;        // aberta por vertudo_abrir (ver layAuto)
@@ -349,9 +345,17 @@ static void gravarEscolha(const ColFolder *pasta, int v) {
   if (!pasta) return;
   chavePasta(pasta, k, sizeof k);
   n = lerEscolhas(chaves, vals);
-  for (i = 0; i < n; i++) if (!strcmp(chaves[i], k)) { vals[i] = v; achou = 1; }
+  for (i = 0; i < n; i++) if (!strcmp(chaves[i], k)) {
+    achou = 1;
+    if (v == VT_LAY_AUTO) {
+      memmove(chaves + i, chaves + i + 1, sizeof chaves[0] * (size_t)(n - i - 1));
+      memmove(vals + i, vals + i + 1, sizeof vals[0] * (size_t)(n - i - 1));
+      n--; i--; continue;
+    }
+    vals[i] = v;
+  }
   // Cheio: a mais antiga sai (a lista e um historico, nao um cadastro).
-  if (!achou) {
+  if (!achou && v != VT_LAY_AUTO) {
     if (n == VT_ESC_MAX) { memmove(chaves, chaves + 1, sizeof chaves[0] * (VT_ESC_MAX - 1));
                            memmove(vals, vals + 1, sizeof vals[0] * (VT_ESC_MAX - 1)); n--; }
     snprintf(chaves[n], 160, "%s", k); vals[n++] = v;
@@ -372,10 +376,16 @@ static int contem(const char *s, const char *termo) {
 // AUTOMATICO, pelo conteudo da pasta. Ver o cabecalho de VtLayout.
 static int layAuto(void) {
   if (!collection) return VT_LAY_GRADE;
+  // An explicit collection choice is resolved first. A single-catalog
+  // See all must stay on its own list, even if it belongs to a collection.
+  if (!semVitrineAuto) {
+    int padrao = ajustes_colecao_exibicao();
+    if (padrao > VT_LAY_AUTO && padrao < VT_LAY_N) return padrao;
+  }
   if (grupo("Directors")) return VT_LAY_LINHA;
   // O PADRAO E O DA 2.0.3: Grade para toda pasta (com ou sem abas); so o
   // Diretor vai para a Linha do tempo, como ja ia. Ranking, Saga, Decadas, Mural
-  // e Vitrine so entram quando o dono escolhe no botao "Exibição".
+  // e Vitrine entram pela escolha global ou pelo botao "Exibição".
   return VT_LAY_GRADE;
 }
 static void resolverLayout(void) {
@@ -1021,7 +1031,7 @@ static int primeiraFonte(void) {
 }
 // A PROXIMA EXIBICAO, e ela fica gravada para esta pasta (o botao "Exibição").
 static void alternarExibicao(void) {
-  int antes = lay, prox = lay % (VT_LAY_N - 1) + 1;
+  int antes = lay, prox = (layEscolha + 1) % VT_LAY_N;
   layEscolha = prox; gravarEscolha(collection, prox);
   resolverLayout(); foco = 0; scrollY = velY = 0; armarOnda();
   if (lay != antes && (lay == VT_LAY_VITRINE || antes == VT_LAY_VITRINE)) {
@@ -1483,7 +1493,7 @@ static void themeHeader(float a,float x0) {
     // quase transparentes. `tabAnim` cruza o repouso e o foco em vez de
     // escalar.
     // A faixa termina antes da coluna do painel: ali mora o botao "Exibição".
-    const float H=52.0f,PAD=22.0f,GAP=12.0f,W=vtTelefone()?vtFim()-x0:VT_PAN_X-x0-28;
+    const float H=52.0f,PAD=22.0f,GAP=12.0f,W=VT_PAN_X-x0-28;
     float margem = vtTelefone() ? 0.0f : 6.0f;
     float textoW = vtTelefone() ? fminf(420.0f, W-PAD*2) : 420.0f;
     float larg[COL_SOURCE_MAX],pos[COL_SOURCE_MAX],px=0;
@@ -1516,7 +1526,8 @@ static void themeHeader(float a,float x0) {
     // entao "seis por vez" nao existe mais. A aba com o cursor (ou a aberta,
     // quando o cursor esta na grade) entra inteira; a rolagem so anda o que
     // precisa, e o resto da faixa fica onde estava.
-    int alvo=tabFocus?tabCursor:source;
+    int alvo=tabFocus && tabCursor>=0 && tabCursor<nAbas ? tabCursor : source;
+    if(alvo<0 || alvo>=nAbas)alvo=0;
     float ini=pos[alvo],fim=pos[alvo]+larg[alvo];
 #ifdef NV_TOUCH_UI
     if (!toquerol_livre(&toqueAbas))
@@ -1780,15 +1791,35 @@ static void cabecalhoDecada(int k, float x0, float y, float a) {
 // preenchimento no acento das abas e a dica de que OK troca.
 // SEM ABAS (uma fonte so) ele vai para o inicio da faixa, onde as abas
 // estariam: a coluna do painel e do retrato do diretor fica livre.
+#ifdef NV_TOUCH_UI
+static void toqueExibicao(int a, int b) {
+  (void)a; (void)b;
+  if (!vtTelefone() || !collection || !aberta) return;
+  toqueLivre = 0; toquerol_limpar(&toqueAbas);
+  tabFocus = 1; tabCursor = nAbas();
+  alternarExibicao();
+}
+#endif
 static void botaoExibicao(float a, float x0) {
   float x = nAbas() ? VT_PAN_X : x0, y = 253.0f, H = 52.0f;
   float maxW = nAbas() && grupo("Directors") ? 172.0f : VT_PAN_W;
   float f = pillAnim, sr, sg, sb;
   int cor = f > 0.5f ? ajustes_tinta_foco() : 214;
-  TxtLinha t = txt_linha_corta(TXT_HERO_META, LAY_NOME[lay], cor, cor, cor, 255, maxW - 70.0f);
+  TxtLinha t = txt_linha_corta(TXT_HERO_META, LAY_NOME[layEscolha], cor, cor, cor, 255, maxW - 70.0f);
   // VITRINE: no canto de cima, a direita do nome da colecao.
   if (lay == VT_LAY_VITRINE) { x = NV_TELA_W - 104.0f - (t.w + 70.0f); y = 40.0f; }
   GfxRect pill = { x, y, t.w + 70.0f, H };
+#ifdef NV_TOUCH_UI
+  if (vtTelefone()) {
+    // The drawing stays unchanged; reserve a 48dp touch target in the header.
+    float minimo = 144.0f / vtEscala();
+    float hitW = fmaxf(pill.w, minimo), hitH = fmaxf(pill.h, minimo);
+    float hitX = fminf(pill.x, NV_TELA_W - 48.0f - hitW);
+    float hitY = fmaxf(0.0f, pill.y + (pill.h - hitH) * .5f);
+    if (lay != VT_LAY_VITRINE) hitY = fminf(hitY, VT_TOPO - 12.0f - hitH);
+    ponteiro_alvo(hitX, hitY, hitW, hitH, NULL, toqueExibicao, 0, 0);
+  }
+#endif
   corFocoFonte(&sr, &sg, &sb);
   // Sobre a arte do destaque a pilula precisa de fundo proprio para ler.
   if (lay == VT_LAY_VITRINE) gfx_cor(pill, NV_RAIO_PILL, 0, 0, 0, 0.42f * a * (1.0f - f));

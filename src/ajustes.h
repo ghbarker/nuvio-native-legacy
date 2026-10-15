@@ -442,6 +442,9 @@ int   ajustes_relogio_12h(void);   // 1 = 12 h com AM/PM (relogio.h)
 // Tamanho da interface: 1, 1.2, 1.3 ou 1.5 (gfx_escala_ui). LOCAL.
 // #477: 0 = Padrao, 1 = Grande, 2 = Extra grande. So sinopses.
 int ajustes_sinopse_tamanho(void);
+// #362: default for collections without an explicit view, active local profile.
+// Main UI thread: validated VtLayout ID (vertudo.h); 0 keeps automatic behavior.
+int ajustes_colecao_exibicao(void);
 float ajustes_tamanho_ui(void);
 // Settings only: 0.8/0.9/1.0, default 0.9; independent of global UI zoom.
 float ajustes_tamanho_ajustes(void);
