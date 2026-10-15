@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "root_reviewed": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "publisher_branch": "review/logs8-publish-20261015",
+  "parent_review": "9204d4d71e8456e85ebfee329d7ee74609912262",
+  "source_plan_sha256": "efac80b5b9436720e32e16a8124f9b49b8e71d7d70d244afe6d82640e804f48b",
+  "source_materializer_sha256": "60bc1856822e621e7d09e4398d1e02faccb5f32b0ceb697b6fdccb52d357c595",
+  "original": {
+    "run_id": 38679339730,
+    "review_commit": "9204d4d71e8456e85ebfee329d7ee74609912262",
+    "android_job_id": 116240061121,
+    "excluded_native_job_id": 116240061458,
+    "excluded_native_artifact_id": 11946857868,
+    "overall_run_success_required": false
+  },
+  "final_validation": {
+    "run_id": 38681906448,
+    "review_commit": "fd28b407990dfa01c57637521899442c78848e66",
+    "workflow_path": ".github/workflows/logs8-native-portability.yml"
+  },
+  "artifacts": {
+    "all_gates": {
+      "id": 11948398479,
+      "name": "logs8-all-gates-fd28b407990dfa01c57637521899442c78848e66",
+      "sha256": "23ad2c99e47e13a64d25648d359ab43b7d72a313029e8384ee0659121535daf8",
+      "bytes": 4558
+    },
+    "android_product": {
+      "id": 11947769079,
+      "name": "logs8-android-9204d4d71e8456e85ebfee329d7ee74609912262",
+      "sha256": "f4e469ccca47189b67bc26286ffd51877b200a1001ce50277e1536d676adc99c",
+      "bytes": 108514575
+    },
+    "android_test": {
+      "id": 11948906564,
+      "name": "logs8-android-test-fd28b407990dfa01c57637521899442c78848e66",
+      "sha256": "9a47d8f1d8b18211f1e64b700bd580554f40ab27046fb67d6004aaa5cb6d6422",
+      "bytes": 54275437
+    }
+  },
+  "sources": {
+    "product": {
+      "commit": "68b520db152b7473be3500d04e01ca5bd4424719",
+      "tree": "f6debd8de31ac9ef6d0dbbde6922627b578a92e9",
+      "parent": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "532f9b2910070fc628dd97d2d474902791eb173657051b37c6ffdbcc4e42f595",
+      "delta_patch_sha256": "73799532680f3bf3173546052b28f7501e590f904c4258b788a318b44cdb6a2b"
+    },
+    "test": {
+      "commit": "260c83a604b2a35787714a2946566d1dfd049704",
+      "tree": "149fe2a25368e1c4b54de999daef5b95dc7b86d2",
+      "parent": "68b520db152b7473be3500d04e01ca5bd4424719",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "abb9931f1e987ed90a1edd424594ab52dcc41b0d1f97b0c63f76d5ce8f7405c3",
+      "delta_patch_sha256": "d8dc680ed3f9017e076bfce808c4d3bc091260df0cad205dbf68b35bef3451a4"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20018,
+    "version_name": "2.0.18-test-logs8",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "apk": {
+    "sha256": "4f5d34215ec5ad4f25f9283ef3ac82c75df6ad230c94a23b40b4c31495091130",
+    "bytes": 58922208
+  },
+  "release": {
+    "tag": "tv-mobile-test-logs-v8",
+    "asset": "Nuvio-TV-Mobile-Test-Logs8.apk",
+    "title": "Nuvio TV/Mobile Test \u2014 Logs8 update",
+    "prerelease": true,
+    "draft_notes_sha256": "debee5c8cc8edffe7108c022d84a2243663e010d315022a6f620832d9065037b"
+  },
+  "android_test_origin": {
+    "run_id": 38681906448,
+    "review_commit": "fd28b407990dfa01c57637521899442c78848e66",
+    "job_id": 116248106052
+  }
+}

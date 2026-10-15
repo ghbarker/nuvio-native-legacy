@@ -1,0 +1,72 @@
+{
+  "name": "Publish the verified Logs8 test update",
+  "on": {
+    "push": {
+      "branches": [
+        "review/logs8-publish-20261015"
+      ]
+    },
+    "workflow_dispatch": {}
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "logs8-test-release",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "LOGS8_RELEASE_LOCK_SHA": "d60ba1e9080444716c330b71ef25e174d8dc2a75e448176131ad805a05651a8f"
+  },
+  "jobs": {
+    "publish": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 15,
+      "permissions": {
+        "contents": "write",
+        "actions": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "name": "Check the root-reviewed immutable release lock",
+          "run": "python3 .review/logs8-publish/publish.py --check-lock"
+        },
+        {
+          "name": "Install only APK inspection tools",
+          "run": "sdkmanager \"build-tools;35.0.0\""
+        },
+        {
+          "name": "Verify exact source, complete gates and compatible APK before publishing",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/logs8-publish/publish.py --publish"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs8-publication-${{ github.sha }}",
+            "path": "publication/*.json\npublication/*.sha256\npublication/release-notes.md",
+            "if-no-files-found": "warn"
+          }
+        }
+      ]
+    }
+  }
+}
