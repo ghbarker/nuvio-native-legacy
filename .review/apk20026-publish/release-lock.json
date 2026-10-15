@@ -1,0 +1,137 @@
+{
+  "format": 1,
+  "root_reviewed": true,
+  "all_gates_green": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "publisher_branch": "review/apk20026-publish-20261015",
+  "parent_review": "7bf1f6df26bd6440733f3a1f92e65b357cd88d57",
+  "parent_tree": "73f75e19069a86ddaecb044313ce16d40c0156de",
+  "source_plan_sha256": "ee13dedfdf38dcb56a1b559fd3cf69c1c29d70eaaadae132ba0edaf088f3e96e",
+  "source_materializer_sha256": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+  "aggregate_recipe_sha256": "da6c14c5ec466caf1f6e8b9d810374c881a604f2810ce2f2b80b45cb304a4082",
+  "bundle_sha256": "0b76e6bdbc2be3b991c0e96794875cbebb9a6936666863f594c2b24861012f49",
+  "validation": {
+    "run_id": 38805446252,
+    "review_commit": "7bf1f6df26bd6440733f3a1f92e65b357cd88d57",
+    "workflow_path": ".github/workflows/apk20026-review.yml",
+    "run_attempt": 1
+  },
+  "jobs": {
+    "native": {
+      "id": 116664979002,
+      "name": "Complete macOS TV/Mobile + actual changed native contracts",
+      "execution_origin": {
+        "id": 116664979002,
+        "run_attempt": 1
+      }
+    },
+    "feature-contracts": {
+      "id": 116664978777,
+      "name": "Focused caption/libass and collection source contracts",
+      "execution_origin": {
+        "id": 116664978777,
+        "run_attempt": 1
+      }
+    },
+    "original-fontepref": {
+      "id": 116664979025,
+      "name": "Original complete fontepref normal + ASan/UBSan",
+      "execution_origin": {
+        "id": 116664979025,
+        "run_attempt": 1
+      }
+    },
+    "original-fontepref_file": {
+      "id": 116664979369,
+      "name": "Original complete fontepref_file normal + ASan/UBSan",
+      "execution_origin": {
+        "id": 116664979369,
+        "run_attempt": 1
+      }
+    },
+    "original-player_retido": {
+      "id": 116664979052,
+      "name": "Original complete player_retido normal + ASan/UBSan",
+      "execution_origin": {
+        "id": 116664979052,
+        "run_attempt": 1
+      }
+    },
+    "android": {
+      "id": 116664979026,
+      "name": "APK20026 clean product and compatible test APK (ARM32/ARM64)",
+      "execution_origin": {
+        "id": 116664979026,
+        "run_attempt": 1
+      }
+    },
+    "jvm": {
+      "id": 116664979104,
+      "name": "Fresh32 JVM helpers +15 real Media3 contracts",
+      "execution_origin": {
+        "id": 116664979104,
+        "run_attempt": 1
+      }
+    },
+    "all-gates": {
+      "id": 116669057875,
+      "name": "Require every fresh source-bound gate",
+      "execution_origin": {
+        "id": 116669057875,
+        "run_attempt": 1
+      }
+    }
+  },
+  "artifacts": {
+    "all_gates": {
+      "id": 12006323182,
+      "name": "apk20026-all-gates-7bf1f6df26bd6440733f3a1f92e65b357cd88d57",
+      "bytes": 70628,
+      "sha256": "c3a70e51116e6b5c1807e45984e39f10c305bdba6bddd25ff1d775bd2ea4298a"
+    },
+    "android": {
+      "id": 12005609722,
+      "name": "apk20026-android-7bf1f6df26bd6440733f3a1f92e65b357cd88d57",
+      "bytes": 108693228,
+      "sha256": "99e29e9cc7b96db3c0068a27345fcaa033e3c69b14d48937967e4d3c92cf3cba"
+    }
+  },
+  "all_gates_json_sha256": "88ba9cecc3a4f0bb750c0d6c19955a5b0f9c4dde0a7d94e956d4389d3eb7b9e7",
+  "sources": {
+    "product": {
+      "commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "755ec0579a0ca4312ed6bb259ec40ebd8bbc15978f59897f2e631655d2668a21",
+      "delta_patch_sha256": "1abc092b544b773f411a95262e1389d91ac36f401cc55c415cc7c762413c22ba"
+    },
+    "test": {
+      "commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "parent": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "f46e45885fa434bc9b7dda05cf4fa164a072541da15410123bab5e8ad1ae6bdf",
+      "delta_patch_sha256": "0d9271fe8c4747573d0ca19450151ebecb286318590a4e1bf9f0111a1496dea3"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20026,
+    "version_name": "2.0.26-test-logs16",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "apk": {
+    "sha256": "a7df8f26a03f0e1e4a71f930cdad9ee957de1e51869f1a47a8e1958c8b62f21a",
+    "bytes": 59000400
+  },
+  "release": {
+    "tag": "tv-mobile-test-logs-v16",
+    "asset": "Nuvio-TV-Mobile-Test-Logs16.apk",
+    "proof_asset": "Logs16-validation.json",
+    "title": "Nuvio TV/Mobile Test \u2014 Logs16 update",
+    "prerelease": true,
+    "notes_sha256": "04d7fe048d8673915dc18df54b4452ab31d76f384e1bcc004f3367c1e7f530e5"
+  }
+}
