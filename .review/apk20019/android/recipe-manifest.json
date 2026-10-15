@@ -1,0 +1,205 @@
+{
+  "format": 1,
+  "status": "review-only recipe frozen; final source composition and root approval still pending",
+  "scope": "Fresh actual product/test Android ARM32/ARM64 builds with fresh APK verification; no build, CI, public write or report-service action executed during recipe preparation",
+  "review_prefix": ".review/apk20019",
+  "job_fragment": "job-fragment.json",
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20019,
+    "version_name": "2.0.19-test-logs9",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+    "abis": [
+      "arm64-v8a",
+      "armeabi-v7a"
+    ],
+    "native_16kb_pages_required": true,
+    "allow_fallback_signer": false
+  },
+  "execution_gate": {
+    "plan": "../plan.json",
+    "required": {
+      "format": 1,
+      "frozen": true,
+      "root_reviewed": true,
+      "complete_source_commit_tree_manifest_and_bundle_pins": true
+    },
+    "explicit_environment_pin": "NUVIO_REVIEW_PLAN_SHA256",
+    "unapproved_job_pin": "PENDING_ROOT_REVIEW",
+    "review_bypass_available": false
+  },
+  "materializer_proof_required_fields": [
+    "verified",
+    "source_clean",
+    "original_tests_tree_unchanged",
+    "layer",
+    "source_commit",
+    "tree",
+    "review_commit",
+    "manifest_sha256",
+    "bundle_sha256"
+  ],
+  "source_pins": "Pending in parent-owned plan.json; none substituted from historical Logs8 builds",
+  "freshness": {
+    "forbidden_prior_source_outputs": [
+      "android/app/build",
+      "android/app/.cxx",
+      "android/app/.externalNativeBuild",
+      "build/android"
+    ],
+    "both_layers_run_original_tools": [
+      "tools/android/deps.sh arm64-v8a armeabi-v7a",
+      "tools/android.sh"
+    ],
+    "prior_apk_or_artifact_verification_reuse": false,
+    "component_test_reuse_inside_stage": false,
+    "dependency_cache_is_test_evidence": false
+  },
+  "corrections_retained": [
+    "Private opt-in via POSIX-safe GRADLE_OPTS Java project property; dotted environment property removed",
+    "Canonical .cxx CMakeCache found from actual compile entry directory and checked against source/ABI/build directory",
+    "Sanitized metadata stores hashes and booleans only",
+    "Exact successful setup-android@v3 options plus sdkmanager PATH and pinned executable guards"
+  ],
+  "sdk": {
+    "runner": "ubuntu-24.04",
+    "java": "Temurin17",
+    "setup_action": "android-actions/setup-android@v3",
+    "setup_options": {
+      "packages": "platform-tools",
+      "log-accepted-android-sdk-licenses": false
+    },
+    "platform": "android-35",
+    "build_tools": "35.0.0",
+    "ndk": "27.2.12479018",
+    "cmake": "3.22.1"
+  },
+  "recipe_provenance": {
+    "reference_only": true,
+    "not_eligible_for_new_apk_proof": true,
+    "successful_review_commit": "fd28b407990dfa01c57637521899442c78848e66",
+    "run_id": 38681906448,
+    "job_id": 116248106052,
+    "job_conclusion": "success",
+    "artifact_id": 11948906564,
+    "artifact_name": "logs8-android-test-fd28b407990dfa01c57637521899442c78848e66",
+    "origin_files": [
+      {
+        "destination": "run.py",
+        "origin": "/workspace/review/integration-logs8-20261015/native-retry/stage/android/run.py",
+        "origin_sha256": "e0bddf1a1b4ff6d7c57a68430e218f1f0f3d3cc9a6bfdbe51e0b47c837d24f96",
+        "copied_unchanged": false
+      },
+      {
+        "destination": "verify_apk.py",
+        "origin": "/workspace/review/integration-logs8-20261015/native-portability-retry/stage/android/verify_apk.py",
+        "origin_sha256": "f6e17bd5dc32662b9d7d9b35cb25b0c615813c2e98bf5311266991e9673b98ee",
+        "copied_unchanged": false
+      },
+      {
+        "destination": "safe_android_metadata.py",
+        "origin": "/workspace/review/integration-logs8-20261015/native-portability-retry/stage/android/safe_android_metadata.py",
+        "origin_sha256": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe",
+        "copied_unchanged": true
+      },
+      {
+        "destination": "dex_methods.py",
+        "origin": "/workspace/review/integration-logs8-20261015/build-stage/android/dex_methods.py",
+        "origin_sha256": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+        "copied_unchanged": true
+      },
+      {
+        "destination": "legacy-jni-descriptors.json",
+        "origin": "/workspace/review/integration-logs8-20261015/build-stage/android/legacy-jni-descriptors.json",
+        "origin_sha256": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1",
+        "copied_unchanged": true
+      }
+    ],
+    "historical_reference_receipts": [
+      {
+        "path": "/workspace/review/integration-logs8-20261015/monitor/38681906448/artifacts/android-final/android-test/build-receipt.json",
+        "sha256": "7357e592ae471d9c4eca3feb49d3abee73d6077e04bd3b1a9e62bc18a31977c8"
+      },
+      {
+        "path": "/workspace/review/integration-logs8-20261015/monitor/38681906448/artifacts/android-final/android-test/android-verified.json",
+        "sha256": "a093aed5bfaf09c0fbf0227909296564242e8ca171cc942f069cbc4266adee7a"
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "e4161aa21db3d507e30c1f979d611ac0c1120417837ea37d440b7b0bded751c6"
+    },
+    {
+      "path": "cleanup_private.py",
+      "sha256": "3f18d26895ce7757e9065ac542a2e5c4cae4e0b1367d7fbc2cff07608e32ed24"
+    },
+    {
+      "path": "common.py",
+      "sha256": "250fa65c141ffd1715ba6ae117170b89fcbf289fb85552d228a0c247e8aa177c"
+    },
+    {
+      "path": "dex_methods.py",
+      "sha256": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285"
+    },
+    {
+      "path": "job-fragment.json",
+      "sha256": "5ac5ba65d6261faca8c6a4295c02e08ce81a3a242538172b2650d2fa8934efe0"
+    },
+    {
+      "path": "legacy-jni-descriptors.json",
+      "sha256": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1"
+    },
+    {
+      "path": "make_job.py",
+      "sha256": "f88635e62f6a2a78ca52be14fba62f2ff62736de9b63aac68a829a475571dda6"
+    },
+    {
+      "path": "prepare_env.py",
+      "sha256": "e0f2fdffb9f2da487576e42e6cff40f0086ae2c0cdcdcf3c8f3394b78ae42dd9"
+    },
+    {
+      "path": "prepare_source.py",
+      "sha256": "203694307e97f3c0614cffe300cbbda5e2ddc7559b9a3561e4bb83a09f6edcb1"
+    },
+    {
+      "path": "record_cache.py",
+      "sha256": "78389079675223cfd1724b58a39ddb34977e6ed9f2c21fe712f6e5086c35743f"
+    },
+    {
+      "path": "run.py",
+      "sha256": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f"
+    },
+    {
+      "path": "safe_android_metadata.py",
+      "sha256": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+    },
+    {
+      "path": "static-preflight-receipt.json",
+      "sha256": "b897b3bdf6a2a92da5aad104304405e0d7359adb33504868d8cdd83f3aa8b822"
+    },
+    {
+      "path": "static-preflight.py",
+      "sha256": "29085cfe7475b5567a12ee11c8f96b590c2059ccee6e270d869d613dd9b713a1"
+    },
+    {
+      "path": "verify_apk.py",
+      "sha256": "265358d322fefbe6645ac985b0a5268c4a6b8aa5a4752adcda0379f04e70b113"
+    }
+  ],
+  "static_preflight": {
+    "receipt": "static-preflight-receipt.json",
+    "sha256": "b897b3bdf6a2a92da5aad104304405e0d7359adb33504868d8cdd83f3aa8b822",
+    "checks": 33,
+    "passed": true,
+    "scope": "Small offline recipe fixtures only; no actual source suites/SDK/build/APK/backend execution"
+  },
+  "remaining_before_execution": [
+    "Parent pins final clean combined product/private source manifests and bundle",
+    "Root reviews exact composition and complete pipeline",
+    "Set frozen/root_reviewed true and regenerate named job with explicit approved plan SHA256",
+    "All actual Android builds and actual APK verification remain fresh mandatory gates"
+  ]
+}

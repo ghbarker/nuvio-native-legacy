@@ -1,0 +1,127 @@
+{
+  "passed": true,
+  "groups": 24,
+  "records": [
+    {
+      "label": "product-tv-normal-close",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-tv-normal-preview",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-tv-normal-route",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-tv-asan-close",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-tv-asan-preview",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-tv-asan-route",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-touch-normal-close",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-touch-normal-preview",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-touch-normal-route",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-touch-asan-close",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-touch-asan-preview",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "product-touch-asan-route",
+      "returncode": 0,
+      "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17"
+    },
+    {
+      "label": "test-tv-normal-close",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-tv-normal-preview",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-tv-normal-route",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-tv-asan-close",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-tv-asan-preview",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-tv-asan-route",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-touch-normal-close",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-touch-normal-preview",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-touch-normal-route",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-touch-asan-close",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-touch-asan-preview",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    },
+    {
+      "label": "test-touch-asan-route",
+      "returncode": 0,
+      "source_commit": "efff065b63bb1234718ca20999265612bacb50b4"
+    }
+  ],
+  "scope": "Fresh actual integrated synopsis helper/no-blank/accessibility/pointer plus full detail/More reader route, both platform layouts and private macro, normal+ASan. Prior full multilingual UTF8 core behavior remains separately precise component-bound."
+}

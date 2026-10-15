@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": false,
+  "ci_execution_permitted": false,
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "accepted_product_base": "68b520db152b7473be3500d04e01ca5bd4424719",
+  "sources": {
+    "product": {
+      "layer": "product",
+      "commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "tree": "03980d7707a30d112cf9b22f090cf4fab9a6e4dd",
+      "parent": "81574e9eefc91b6f8a1a110ea763b05192d580e7",
+      "path": "/workspace/review/integration-apk20019-20261015/product",
+      "source_clean": true,
+      "private_logs": false,
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "f1ef59ea29b0dde1f17b3d34eaf4fd98b356a5050d1adbd0864319f5d67233dc",
+      "delta_patch_sha256": "f440406576416e946660575595cb219a99a5755c185429b69bc995b7bd3afc56"
+    },
+    "test": {
+      "layer": "test",
+      "commit": "efff065b63bb1234718ca20999265612bacb50b4",
+      "tree": "db298030e77e126831f34139866067acbbb3aff3",
+      "parent": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "path": "/workspace/review/integration-apk20019-20261015/test",
+      "source_clean": true,
+      "private_logs": true,
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "94f1517ee450d4f87f0ebbd6dc41f4131ce3bed04c1a14412acf67c42ad4e6c2",
+      "delta_patch_sha256": "55055a6bedd3c23f9cad5598ffafee9bbcf2b8b8f76470d9ee0199ea370aa8c6"
+    }
+  },
+  "inputs": [
+    {
+      "path": "/workspace/review/issue496-player-episode-controls-20261015/implementation-proofs/source-manifest.json",
+      "sha256": "b865e1fa59cf4619dac9ca5c768b4434794000dd0e94baa4ff9b6b6725740f56"
+    },
+    {
+      "path": "/workspace/review/issue477-synopsis-font-20261015/source-manifest.json",
+      "sha256": "120e077f78c5dca2b6f40ec9b0de9bd8c114297e52d931bb08936e0fbad0f35e"
+    },
+    {
+      "path": "/workspace/review/integration-apk20019-20261015/planning/cache499-combined.reference.patch",
+      "sha256": "d7fc137fc451e6000d45817a76844a1b7a2dd15513cf44a2374cb71cb4fff5ca"
+    },
+    {
+      "path": "/workspace/review/integration-apk20019-20261015/planning/logs8-private-overlay.reference.patch",
+      "sha256": "d8dc680ed3f9017e076bfce808c4d3bc091260df0cad205dbf68b35bef3451a4"
+    }
+  ],
+  "layers": {
+    "cache499": [
+      "bf0eb3bcd77dbf3956915797d29627524052d3fd",
+      "980aec9552fb637cb1000ef38a6dc49b4d113fb5"
+    ],
+    "controls496_460": "8f00c05e35d01732856519183ce54540f042819b",
+    "synopsis477": "58472e83ff1a39311026f747333a29c412dd6d7a",
+    "private_overlay": "260c83a604b2a35787714a2946566d1dfd049704"
+  },
+  "merge_resolutions": [
+    {
+      "path": "src/player.c",
+      "layer": "496/460",
+      "resolution": "Keep cinemaArteIniciar(NULL) and new mailbox/reset latch together on close."
+    },
+    {
+      "path": "src/ajustes.c",
+      "conflicts": 3,
+      "resolution": "Keep every integrated entry first; append477 entry, or retain detail mode synchronization before synopsis modal route."
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "conflicts": 1,
+      "resolution": "Keep every integrated entry first; append477 entry, or retain detail mode synchronization before synopsis modal route."
+    },
+    {
+      "path": "src/detail.c",
+      "conflicts": 1,
+      "resolution": "Keep every integrated entry first; append477 entry, or retain detail mode synchronization before synopsis modal route."
+    }
+  ],
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20019,
+    "version_name": "2.0.19-test-logs9",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "not_included": [
+    "unfrozen475 subtitle outline color"
+  ],
+  "tests_workflows_unchanged": true
+}

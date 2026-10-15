@@ -1,0 +1,155 @@
+{
+  "outcome": "passed",
+  "scope": "Offline recipe schema, fail-closed approval/source guards, narrow transformation policy and sanitized metadata fixtures only; no application source suites, Android build, APK verification or backend actions executed",
+  "checks": [
+    {
+      "check": "all Python helpers parse without execution",
+      "passed": true
+    },
+    {
+      "check": "complete approved pinned schema accepted",
+      "passed": true
+    },
+    {
+      "check": "frozen false refused",
+      "passed": true
+    },
+    {
+      "check": "root_reviewed false refused",
+      "passed": true
+    },
+    {
+      "check": "wrong explicit plan SHA refused",
+      "passed": true
+    },
+    {
+      "check": "missing explicit plan SHA refused",
+      "passed": true
+    },
+    {
+      "check": "product pending commit refused",
+      "passed": true
+    },
+    {
+      "check": "product pending tree refused",
+      "passed": true
+    },
+    {
+      "check": "product pending manifest_sha256 refused",
+      "passed": true
+    },
+    {
+      "check": "test pending commit refused",
+      "passed": true
+    },
+    {
+      "check": "test pending tree refused",
+      "passed": true
+    },
+    {
+      "check": "test pending manifest_sha256 refused",
+      "passed": true
+    },
+    {
+      "check": "pending bundle pin refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity version_code refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity package refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity certificate_sha256 refused",
+      "passed": true
+    },
+    {
+      "check": "wrong identity version_name refused",
+      "passed": true
+    },
+    {
+      "check": "modified source manifest refused",
+      "passed": true
+    },
+    {
+      "check": "prepare_env.py refuses unapproved plan before side effects",
+      "passed": true
+    },
+    {
+      "check": "run.py refuses unapproved plan before side effects",
+      "passed": true
+    },
+    {
+      "check": "matching source/proof/test-tree binding accepted",
+      "passed": true
+    },
+    {
+      "check": "another CI review commit refused",
+      "passed": true
+    },
+    {
+      "check": "exact product debug signer insertion accepted",
+      "passed": true
+    },
+    {
+      "check": "forged C mutation receipt refused",
+      "passed": true
+    },
+    {
+      "check": "test layer accepts only unchanged source",
+      "passed": true
+    },
+    {
+      "check": "unlisted test-layer source mutation refused",
+      "passed": true
+    },
+    {
+      "check": "canonical cache found through actual compile directory",
+      "passed": true
+    },
+    {
+      "check": "wrong ABI cache refused",
+      "passed": true
+    },
+    {
+      "check": "wrong source cache refused",
+      "passed": true
+    },
+    {
+      "check": "adjacent copied cache is never used as fallback",
+      "passed": true
+    },
+    {
+      "check": "sanitized metadata never records property values or commands",
+      "passed": true
+    },
+    {
+      "check": "named job has exact SDK setup, blocked pin and both fresh layers",
+      "passed": true
+    },
+    {
+      "check": "GRADLE_OPTS correction and no review bypass retained",
+      "passed": true
+    }
+  ],
+  "count": 33,
+  "recipe_files": {
+    "README.md": "e4161aa21db3d507e30c1f979d611ac0c1120417837ea37d440b7b0bded751c6",
+    "cleanup_private.py": "3f18d26895ce7757e9065ac542a2e5c4cae4e0b1367d7fbc2cff07608e32ed24",
+    "common.py": "250fa65c141ffd1715ba6ae117170b89fcbf289fb85552d228a0c247e8aa177c",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "job-fragment.json": "5ac5ba65d6261faca8c6a4295c02e08ce81a3a242538172b2650d2fa8934efe0",
+    "legacy-jni-descriptors.json": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1",
+    "make_job.py": "f88635e62f6a2a78ca52be14fba62f2ff62736de9b63aac68a829a475571dda6",
+    "prepare_env.py": "e0f2fdffb9f2da487576e42e6cff40f0086ae2c0cdcdcf3c8f3394b78ae42dd9",
+    "prepare_source.py": "203694307e97f3c0614cffe300cbbda5e2ddc7559b9a3561e4bb83a09f6edcb1",
+    "record_cache.py": "78389079675223cfd1724b58a39ddb34977e6ed9f2c21fe712f6e5086c35743f",
+    "run.py": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe",
+    "static-preflight.py": "29085cfe7475b5567a12ee11c8f96b590c2059ccee6e270d869d613dd9b713a1",
+    "verify_apk.py": "265358d322fefbe6645ac985b0a5268c4a6b8aa5a4752adcda0379f04e70b113"
+  }
+}

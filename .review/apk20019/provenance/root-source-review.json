@@ -1,0 +1,26 @@
+{
+  "source_composition_approved": true,
+  "ci_launch_approved": false,
+  "composition_manifest_sha256": "edee1a02a3b166ecce3ba74c0f5aa76fb3c32510917b816376687543ad6f7716",
+  "local_preflight_verified_sha256": "1bcadb4dc36a52b08757b6d5585ec85cb732169c33c0c4bd8b62573b6dd50847",
+  "reviewed_conflicts": [
+    "src/player.c close preserves artwork cleanup and transport request reset",
+    "src/ajustes.c enum/options/keys append after existing integrated IDs",
+    "src/ajustes_ux_padrao.inc preserves all previous defaults",
+    "src/detail.c keeps mode synchronization before synopsis modal event route"
+  ],
+  "source_cutoff": [
+    "496/460",
+    "477",
+    "499increment"
+  ],
+  "excluded_following_update": [
+    "475outlinecolor",
+    "362globalcollectiondefault"
+  ],
+  "pending_before_launch": [
+    "final changed backend/Settings/preparation fixture results",
+    "final source-bound CI plan/workflow/recipe payload review"
+  ],
+  "no_source_mutations": true
+}

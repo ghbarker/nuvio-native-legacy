@@ -1,0 +1,1060 @@
+{
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+  "tree": "03980d7707a30d112cf9b22f090cf4fab9a6e4dd",
+  "parent": "81574e9eefc91b6f8a1a110ea763b05192d580e7",
+  "layer": "product",
+  "private_logs": false,
+  "source_clean": true,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "16c1750bfa599ccb0eccd3451fd8c63b59e43312085b7ff55a293b2936a81e31",
+      "blob": "57ccd2422c20d72b65fdd54543dcddf8af0c1084"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+      "sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0",
+      "blob": "f9d8eae96d36d5d4e9237a823db6c470969537a0"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "sha256": "10e7d1cccd9575fe220741aeacfdd4dddab71592e66f94dd5a56f09e8e6a787d",
+      "blob": "be9fb270edfb802150d15415f25b93208c36dc11"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "sha256": "4b95ef44ed1c70ae397b40637bc15acd79eb31f13513160f984299eb8bd3332c",
+      "blob": "e10c18a3d111e13794908ad1b693fe0792673ac4"
+    },
+    {
+      "path": "docs/android/INTERFACE-MODES.md",
+      "sha256": "58ffadb94f231efc00a622f10cbb743039536fc8809e56638570eb4c6b32ec6b",
+      "blob": "df8586de519ff2a80b19983683caa934a0278c3e"
+    },
+    {
+      "path": "src/addons.c",
+      "sha256": "8fee3d63239cc89703f671a1dcbc78afa1904e1be952d3426c4bfe99e4cf9cad",
+      "blob": "86cffcf5d443b1ae106e5a6107bde5d6b890fa8e"
+    },
+    {
+      "path": "src/addons.h",
+      "sha256": "ac97e495629dc11888672275d909aa46c250136801e3aa0fa18ef41b505e181e",
+      "blob": "8f2b57f34981b5de3f55b8ec91df0026bcffe134"
+    },
+    {
+      "path": "src/addonstats.h",
+      "sha256": "69913c342025f6952e90d9775c5b35a50b9fd22ef51925578a83cabfb6ceebfb",
+      "blob": "e4a27576d086b03936145d35de8a31ef4d5e3ad1"
+    },
+    {
+      "path": "src/agendaui.c",
+      "sha256": "9d7e21174db6d0a97d47a73c6648cd3cd522a67d4d3ce82c2221f8a0d752dc84",
+      "blob": "7fa013a0a855cad57d0964f2730251fc4ff1f6c7"
+    },
+    {
+      "path": "src/agendaviso.c",
+      "sha256": "f3005e6310fb753aebf4b8c0769ad00ee53e8f16f5acb0d99b86a5df9009c781",
+      "blob": "3b90753c5b13ea340b7a8757a731ff52403c3c7e"
+    },
+    {
+      "path": "src/agendaviso.h",
+      "sha256": "fcb997bed286a0c46dd9207352dd8596a9f9c18e5d230a8cbca7f6a0004a0c51",
+      "blob": "66c1545e96e9e790c6ddedc02dc374205bc12ac7"
+    },
+    {
+      "path": "src/ajustes.c",
+      "sha256": "2c470ff7dd0792e57025f3c37d2fc860a8366e4577bd60845ef1d0506921db9b",
+      "blob": "10dc944ba11baa191f9ba66e8be27c6d09365ca2"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "4842ec066abe5bade21914e8c3d92462a4159da31195099629301930154b17d9",
+      "blob": "233e3e3aa2272d9de2f55d510bff9cb29eb2af25"
+    },
+    {
+      "path": "src/ajustes_ux_cenas.inc",
+      "sha256": "6799db3636834d1938baf45a3ad997691869e020bd3ee017660485514a99a8c4",
+      "blob": "56b09bda8c33994198d5d0e779b23701581e769d"
+    },
+    {
+      "path": "src/ajustes_ux_cenas_home.inc",
+      "sha256": "a3e11d675137d916724c22d4d1fe21711c49449751367d848d98f9d8e37b5590",
+      "blob": "7735b82a115cc5104764a3e086326aa923182588"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha256": "64f66ec4524dee4600ede5648e9e50000a05bcd3ca7ef42f9445b8f09a72c3b9",
+      "blob": "a00441ff18c04db718ac2ec8e6c7dfebd4967191"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha256": "caa916c58657e3b5420ce9010a19ea36adacbb76b711a3f3d028ae0d2c9e7617",
+      "blob": "2eadc40e604d3c3df48687cef1a452b7bc87bdea"
+    },
+    {
+      "path": "src/ajustes_ux_fileiras.inc",
+      "sha256": "2249ff6c66ed4b22bdb8ea2b2cfdc84cde2f3ff63883cad976e45ae7962bcb1e",
+      "blob": "a4ef4df504d056d8b3c26c33fc485be83bf11db3"
+    },
+    {
+      "path": "src/ajustes_ux_guia.inc",
+      "sha256": "d1b024b17dbcd9ae3d1d7765546bd8b9ae14824e13bd9ca9bca2bdbbd294d5eb",
+      "blob": "7cb3071195df5c7203ddcc3c305a082f4267a08e"
+    },
+    {
+      "path": "src/ajustes_ux_ilha.inc",
+      "sha256": "530df0a8da908888a5cfaede58a1f0de0b3b261654bf135a4a41c6dde663573a",
+      "blob": "4a791450acea874c9c46621664f62f454e4f9062"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "a39ba77e2940d7467acc4f600f975726bdeee57b4ebef2f8b701b8acd2aa2e84",
+      "blob": "31ec5b9db92434f5cb8048f2c34281fc907d910f"
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "sha256": "5e0e89b43aa6d9eb7604c70e8d8457343ed50d5747dc1feefe4e8f7271bbe7ad",
+      "blob": "d08e80998ec63fe9b35f3513683c735e1b8039ae"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "23b487a714acdb88f7af377efc52595bf21fb423ef8f4229af3ef6345a11f2e8",
+      "blob": "78a0d5b3270ebb5b3c14cde43b4771a38056f8df"
+    },
+    {
+      "path": "src/ajustes_ux_v2.inc",
+      "sha256": "8feb24a45c7d8eb02b20de1fb86953b0c4ecd622b6751dcaa0799a87c4a10361",
+      "blob": "b302b6e23dff53f4f2a0adc9156118d324cc27c2"
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "sha256": "38de6d2444c09f06a22c85fb7cd3c9b7ca7bbc5c8fe80c47a786acd78d4953a6",
+      "blob": "e62e1096329402ce40e6180873f8b59fc2e75eaa"
+    },
+    {
+      "path": "src/amigoperfil.c",
+      "sha256": "8cf33b5d5524387e48ce0f7910f09302c1b4cf4daa0781dbb23ce48ddfc993de",
+      "blob": "df45912ef140e839326ef6fbc4a12fe17247f331"
+    },
+    {
+      "path": "src/amigosfil.c",
+      "sha256": "2f5d30501be8b890a55dc13b3b75774b9b55806d4a2a12b7b09ed891fb008ffe",
+      "blob": "afa157d1a633c2552ff32dfb01c22c2a26e76313"
+    },
+    {
+      "path": "src/amigostitulo_ui.c",
+      "sha256": "e4d0cb514490cca6adfdbdffd3b392f4e2e2a6728ba9ff870db4f7ba492e222d",
+      "blob": "e0515ac53f49874a16dc5a830f019fc1e9085ce5"
+    },
+    {
+      "path": "src/android.c",
+      "sha256": "6f98ce92204cfb65ab6b4b14d04222092d3af3b2aae43a35ff6d12420bd43cb8",
+      "blob": "bdf240dc68bce3069c5975e59f6294528dda9e30"
+    },
+    {
+      "path": "src/android.h",
+      "sha256": "ef6d5f0ce8c2cf20a8f850d43c10bc3c06ccc810263a24016d7a4013a679ee8c",
+      "blob": "2ab27357408c5b9d9869350a4a95c2ebd1bb36fa"
+    },
+    {
+      "path": "src/aovivoui.c",
+      "sha256": "a64e1195dc08522f3d361dc77a594209f2950a83aa54d5a33abe9906fb673ebb",
+      "blob": "c732f496cafb7dd6a3864e9f9624a757595eea40"
+    },
+    {
+      "path": "src/app.c",
+      "sha256": "419e9ca859745bc8751fc33193331f5605f0a04012216ccffc54a16cb46bcf07",
+      "blob": "8a1f53f1aa710abed4105b296c1c83a2eaea5021"
+    },
+    {
+      "path": "src/atualizacao.c",
+      "sha256": "5a26a528ae908af939478f5354a7da62c8fe36598d0e34c27e0e6e91a8b2c6a9",
+      "blob": "0c182d6318f79e33ff285063741c51eb0dd7f56f"
+    },
+    {
+      "path": "src/avisos.c",
+      "sha256": "7d445dd14bb4d5fe3e50e834937157667005cd38b6a151905eee26568f09c14b",
+      "blob": "8d3a43cab9f62a462da15e55588c1b55df8401d7"
+    },
+    {
+      "path": "src/avisos.h",
+      "sha256": "6043cc46b7b437ce5eef0f01276f5e9a3bd83bb0fd71b8c74e60f74de7947aa4",
+      "blob": "130c06bfd03ff0c3226eb2572c6be32d4d9a9b89"
+    },
+    {
+      "path": "src/biblioteca.c",
+      "sha256": "5f4afc18641fba0aa22eba7f5af0fc15031744b07b1b83f3b7e83d07d4da3124",
+      "blob": "77e5e302e64a06c1a63b59caa6bc5995fd369f38"
+    },
+    {
+      "path": "src/biblioteca.h",
+      "sha256": "9504193c87bb713d8e9dbecf39c6f7f51a1c7d2032694d4f1b9a82fe75d3b6a6",
+      "blob": "4a1b37084c22def3ba782ba9d7faa576f26ff6cc"
+    },
+    {
+      "path": "src/busca.c",
+      "sha256": "6dd139420fc7c0013679b2a9ba046c2636bdc99b589866e527f9f3df60b19377",
+      "blob": "84e4faffdda9e27d4116e69173bc804388e01600"
+    },
+    {
+      "path": "src/catalogo.c",
+      "sha256": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+      "blob": "165853ef8ff3595f405d98ca75cda893a5598932"
+    },
+    {
+      "path": "src/catalogo.h",
+      "sha256": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+      "blob": "0dd9817dc23e5a74262e9da1d247a6557f1dc342"
+    },
+    {
+      "path": "src/central.c",
+      "sha256": "33c067f1fc944132c9457b5d519dc36bd1a794f7c615975784e3b9ff163e49cb",
+      "blob": "6d33a6c3a90be6b3aea15bb706e8da41c5ca7e93"
+    },
+    {
+      "path": "src/contalib.c",
+      "sha256": "52759b5039a284c0efd5c2210fd8d6b85be6eb407a87b8a168f875470bf887b2",
+      "blob": "1e8b0e31f62d2c1fa96f1c110318c363b68f66bc"
+    },
+    {
+      "path": "src/credfio.c",
+      "sha256": "2121ce1acd186010300f1b64e99745dfb3486fd2a4a53650bac7e3d327791812",
+      "blob": "82b5cf5c2c4c750fc83d0f15f5acc14ae5b165d3"
+    },
+    {
+      "path": "src/credfio.h",
+      "sha256": "15895d96c9f52401b1bf50ab1ac29f838efbddfc2242e692d28b48b4acb5e1b0",
+      "blob": "acc156b489d00a7f4a44c954889828ab039c0fc7"
+    },
+    {
+      "path": "src/ctxinfo.c",
+      "sha256": "7346573807174a9c35917155ccb472c5d84f3268289c212f1890f59f0e65905d",
+      "blob": "a1566b5d30e8d18c225764fef8d9d01c1be38235"
+    },
+    {
+      "path": "src/ctxmenu.c",
+      "sha256": "233fe930663d9c1be813f0a370d6a765081ecee40d428cbc743bbacc25af330e",
+      "blob": "988ceec0de4bdd7996f8bccb1d555e5ede553237"
+    },
+    {
+      "path": "src/ctxmenu.h",
+      "sha256": "a4da3e801dc7b1c18a1ea57bb3057033caa8aab402e4f1421ba1ad6256972a32",
+      "blob": "500b05c192eb715dbea0eb85fc91cd74b01fe8d2"
+    },
+    {
+      "path": "src/descanso.c",
+      "sha256": "80d0fed0f6fba749ccb355cb1e83ac8597f6f9121c289e34eb32d5a13f234e53",
+      "blob": "70f9e07115da238d784e3e0bd75995f9abd066b9"
+    },
+    {
+      "path": "src/descoberta.c",
+      "sha256": "56857475c4548894db890b921f6624fec1145b03906005265e72af84722b3d67",
+      "blob": "a8123e2eee1b90da968e777235f720727cdc5d95"
+    },
+    {
+      "path": "src/descoberta.h",
+      "sha256": "07c55c3d7aa1ebe628f31081b02e6faf48267a6ebd8cc8549314811e33b1b5b3",
+      "blob": "df6a73e7beb9fef63985b9da490dd540a34ab2b5"
+    },
+    {
+      "path": "src/detail.c",
+      "sha256": "273198a3c2dcac82e87048830b48705ea930f65db38b754bd1d2dd96f0ed3f90",
+      "blob": "f1bb9ade379805fe3a7608701d1b75bf3bf722a4"
+    },
+    {
+      "path": "src/detail.h",
+      "sha256": "fa0fc5129ef1b8a0090d74a2b41dd6e2e11e745966475a830a24141be1f62d83",
+      "blob": "af317fd48f4fb5be5a520b3164203dcc2aadf15e"
+    },
+    {
+      "path": "src/detmais.c",
+      "sha256": "6961bfc3583ffbafd64e464b0d1376e9e9c5acf84d2e6e52775a997766535aff",
+      "blob": "772fb7a2214e58b8963ad1a3272599ef7d1f6e29"
+    },
+    {
+      "path": "src/detmais.h",
+      "sha256": "a81dc2284830fdd5f39b21b085cf7e9c4b56ef0a47f877165edc15e2c9bae5bf",
+      "blob": "81da87520d937b8efadad9e351325d6a413c2dfe"
+    },
+    {
+      "path": "src/diagnostico.c",
+      "sha256": "64d3ccc1cdd5564a47766e7010a30314385e56f9c4d748f1741f723430db94b0",
+      "blob": "d2a813064f92c778b82c441ce2bdb6b0f3576580"
+    },
+    {
+      "path": "src/epg.c",
+      "sha256": "9dc405257d37a513616a6b033f97f363dfcb434ab4ed8888d90719130c743832",
+      "blob": "2b8ec391219c9bcc317b329329b240b6c74d0755"
+    },
+    {
+      "path": "src/epg.h",
+      "sha256": "e3519161d2a1792daab8ffc8d221d992e46b6a48bf01d75f45cbc3a94c76b36e",
+      "blob": "26480d15bcc3e14b998b752f0329c82cfabdd120"
+    },
+    {
+      "path": "src/episodios.c",
+      "sha256": "db31d1f278d734d9bb6c83eae20af64f0200258341a24da71030ab7920b1463b",
+      "blob": "e6c5982d5eef5a4128a21adb1cc1c2c2c2c4ae45"
+    },
+    {
+      "path": "src/explorar.c",
+      "sha256": "bcceb49cb69f8c5db93c669fb2cbe125235208d632a9e676f184da274918bc0e",
+      "blob": "9f08bed9db525959e605bda7dc30a12daa88b578"
+    },
+    {
+      "path": "src/extras.c",
+      "sha256": "854408ed18b4ffbc7712f2332cede75b94610aeabe2684e73ad8045f4cf619cf",
+      "blob": "d49b4955d691bc83bbdfdd905552de50f6533e35"
+    },
+    {
+      "path": "src/extras.h",
+      "sha256": "deeb367ee1158de9704be1579346601ee4d9c6b424cc7c1de9467e2007c96be1",
+      "blob": "1a160fccb2669799451788dbba3b5f3a47aaa1f1"
+    },
+    {
+      "path": "src/faixas.c",
+      "sha256": "50b3cc4831c37d87cd6673800dae0067f650b1034f5a32292da7b9c9abfc5120",
+      "blob": "a3da57275eb49a51a0b58e4ae2aad3f66638f4a4"
+    },
+    {
+      "path": "src/faixasmkv.c",
+      "sha256": "b7ec26ae34e9ba0821adfeb6830ce1b0f04fdd0df1ef4a20c4a4ee9ee732bc4f",
+      "blob": "b22faaa74b0739cccd3cf6be726280bb60220c88"
+    },
+    {
+      "path": "src/fontecache.c",
+      "sha256": "571bc2e0b74dbdd5eb205c703f22c12759ba4e16556614a75fb1b518fdd232dc",
+      "blob": "95060dba18ab7fe79428af2c8d202a75a0110d4a"
+    },
+    {
+      "path": "src/fontecache.h",
+      "sha256": "530254c68d4b062e589ba2d61ec188dc90239c87d230ea9d403a885e7e578259",
+      "blob": "4ad6b120a7545e86d632fd1efcc73d134d761498"
+    },
+    {
+      "path": "src/fontefalha.c",
+      "sha256": "a9a2ab8221dd56f81e3c915e0df63b16500aef8ff22c78385b2334deef372574",
+      "blob": "50e65e035a23d3e033b817dfd9ec6e61c3d19a9b"
+    },
+    {
+      "path": "src/fontefalha.h",
+      "sha256": "b4acb5b30bfdb8347c6cdea9a64352d5c23fbf1d886c6c498d5e1589cacd44bf",
+      "blob": "b8315e49e941b275e68d5a6ab623b9b54363a3ad"
+    },
+    {
+      "path": "src/fontefiltro.c",
+      "sha256": "1fb37b48bfb9beca5b53ebf29b0d68f249e346d10865ad661974918f531f6250",
+      "blob": "65c8da216107006f6e549ff65e095719541e3815"
+    },
+    {
+      "path": "src/fontefiltro.h",
+      "sha256": "62b4231792f742f8a40fd4ee87aee36ad541f619511eef27bce9b1f227638b06",
+      "blob": "06d423c45909e2bd90e597c7e637d86ea11cd524"
+    },
+    {
+      "path": "src/fonteregra.c",
+      "sha256": "3ff9e213934f3316d42c03142275a121e899e3d49618aef422a2b8d2fb7db255",
+      "blob": "9c67c8af72d371c129ef454c5b79f7750f379008"
+    },
+    {
+      "path": "src/fonteregra.h",
+      "sha256": "92faf3f566cb638af7fd504a5392386625bd0022e334c23e2bbfc3b205a75ce0",
+      "blob": "bd2aa1ac0d2097d6389af5eccf3e916e4dc823d6"
+    },
+    {
+      "path": "src/fontesmortas.c",
+      "sha256": "8c9e10879e0da292cf9c395fa4de644aa20a201060ba9756b94c673f3d67eaa8",
+      "blob": "697a10b046d3a65d9fe59825fadec4cf4ca4d224"
+    },
+    {
+      "path": "src/fontesmortas.h",
+      "sha256": "3acdf35ecd42c2b7e78406d6316b0321542c071385be9a0aca24d46820ce0c90",
+      "blob": "5b9d6d913c56dc08895b95945f02682ea3109836"
+    },
+    {
+      "path": "src/guia.c",
+      "sha256": "8dcdec47c6b120e54522c6190720dd9f3f9f551f145f210fd6fe4b47a68aaab8",
+      "blob": "1ab23477f2ee87ee6ec32fa32783fbcadf7432bc"
+    },
+    {
+      "path": "src/guia.h",
+      "sha256": "38b66ae334c60fcb83f48937912992ab4173a13359df43378d77bd10318f4ce6",
+      "blob": "941ca90c9f0a8c74ccba61db9fa86f8e0661e724"
+    },
+    {
+      "path": "src/guialembrete.c",
+      "sha256": "1d1716e91b68e144f2a1d978a612bc87aae74048eb77701f7ffec97612f9bfc5",
+      "blob": "4f187857c614c8c7e88e477adbeb95fdfe114479"
+    },
+    {
+      "path": "src/guialembrete.h",
+      "sha256": "68fce19099e9758dc4fbdf5123ceda9eac2760ccdbc9107aa14ef645e529b740",
+      "blob": "b2ff766b6665f75a8a5fdeab3106b37710639d6b"
+    },
+    {
+      "path": "src/home.c",
+      "sha256": "295dd1f09805364fe08fe803a7bf618fbbf1d9846bba851c3415ef26718682d2",
+      "blob": "ebe9e0b01e8b3dca2df4b891c46411e0ac65002a"
+    },
+    {
+      "path": "src/home.h",
+      "sha256": "c3d82c5e080d0fbf0d499f8d1a9b548420a75796f3486bf8104833797151ed9a",
+      "blob": "6b4fef7df4ed1ecc6fe13d89701f1750909183ef"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "bb0f9704eda2b35c942486eeaf31ad8399a74af0d222824b8cb35a05c40dcaae",
+      "blob": "c2738396c722d82550deef1c8496e41f42dcc818"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "519615dc46862bbbb16d2236ec55a866620e227269ca2c4182c0b803fd122ebd",
+      "blob": "c6228abbfa5550b71141f42add2f8f55e94028cd"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "72fcb9c8369d3ca82af0036b9ec43bb908c90f213afc6b0b204b535b94412c3d",
+      "blob": "8394796e8c205597cf7a5c36d39f0e2817cf0a39"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "9aeeb6a91db98024044ed61a2aba1ca5335d6805ada6c17c327dbac329e2f937",
+      "blob": "2132aabb92301e3ed421678d465b8eec775ad0aa"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "d4e2dee5629ddf46d825c924c72e4a17048d0e2876864630f78e5ea19b7a548c",
+      "blob": "04b24e5be213f3b5fdf6d494dacabe118252a897"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "512d6e8bdc6191e74d3dae72c403fb68404d060845e652c6d63eb4b11b14d873",
+      "blob": "c9a90bd3b00d5b36a6eee959b29eeae852736d8b"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "dd1d6814b6dfc5c913149e8563fe159eee37434699a292362e73b269b971e9bd",
+      "blob": "923b62e2bc3bf15278f1c5b74e392c638e3492db"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "2c141ba3a30656ab383b2ce28ea6ce238203a98b899fae3b706d833b968ed4d8",
+      "blob": "1ca7f884397567a316c58d5fce370cc2ff6d737e"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "d5adc1f01178023744901105045722f8904b378c600d4075f0fa45297d55f30e",
+      "blob": "e0559473b7d8e0ff3029dc42073a0d1b7b1a738b"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "7eca5a4f02b056d93e7ac228f99f526e9f16c9b781549341010a65cd5c48a911",
+      "blob": "d9b33578fc6e763edf87102e1deda3b7192ca84b"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "ebf8db844640d42416ff8d8320e25dc0c4b8171f71331661da9ab6278178b640",
+      "blob": "8455e4a53267cac67453a9042dfc268be901846c"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "2e5cc6af5033ce5ad04ef28ed534b74b26820c66c54928162ea8b75abe1df7ad",
+      "blob": "2b8f5fbceade7b538e35aba68635d18e53e6f873"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "fb3ee5a1ec24302ba8fe6afb94ec4f7185f396afc4c537dfdeb6f3102c13bbee",
+      "blob": "1c882baa122eaf1eb85ca361cccd596e21332b8a"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "cbbbed71433bdba3f708d821da456ab584a15a956fd1a56d0f95bf4c9c6f23c0",
+      "blob": "8efa851bad2568243664b14ecc7cb7c6e2fcf30f"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "4d3ebd3abeabd6235d938bf0edc8819f6744dcd5ba93988f7e2ba6cfa0651c64",
+      "blob": "50dac5624000a667baedb1c8acd7cf18b260e9f3"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "5cb8d53445186585488297d7c64c557c8d1b93763ccb4ca7bf07b8eb3b10bd89",
+      "blob": "696d7b00c37b822950b558bd017eaa9d0aee341e"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "aa8c5f109a0313fefcc7606d719c2aceb97352ffb2f1251ba48e5c67d65311cd",
+      "blob": "505dae8ea49a4f6a5ead1524eba814989ac909e2"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "b62c06b31fc461fa140e601d7f7284909d744436775b8594e4c657b7fdd76518",
+      "blob": "fc9cf7921f274157bdffb20a3bbb287720117b68"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "dccb531f411e55f5dd5883ca6fc7eed705f8f805fd53ae0fe8c873e085df586a",
+      "blob": "1a7bfaff0736db975ea8bd435b926ae860a28034"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "00617a952482263f137ce8b9ad1fea4762535c3a8021624bac97e6751cabee20",
+      "blob": "1d458b783d069ebb0a405f8dc656bada6d0b0d90"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "db4decd09cdbd4ed43b3fd7b9ddd6469ed5dafd4f37c926b313e9b8ce31c8739",
+      "blob": "b13170896dd951a475bdee0473fefa049d244216"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "8a0969a8d1f213d3145c9dd193c4071c54779a11131d3d8ec31a64c9cbdaea60",
+      "blob": "da624aa0ef93d523e57df3e918a850455af2d466"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "68e43fe0696513734ccdd5363a274c372caddc479b1581685fb9dbb02bf1c432",
+      "blob": "ef6ba47d5810bb4863c5429b9c88224e8a26d718"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "fcfd544201d3c3b8230b1f39853153475bcb8ad6b10d5e5b7f87a951285b63d1",
+      "blob": "db1554a3efa153f3e57b79c4e06dcd413593679a"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "351a754115beb053da76dffdf14b7e43ae9d87261e616c7b60f1266d2b99d8d1",
+      "blob": "061a09bf670c575c6da4f70df08ad8015ea59241"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "57f07f09613bf416980b7efb7332e7d356be71b95164930ec10e86b29b98b541",
+      "blob": "b788829d4be61f3bc45dd36f6baca5a6bdba0683"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "8d8099478bc78c6e659f289fb01bead96e9cade47579471dfc55f8e326bea39c",
+      "blob": "1888af97eee53061ba157ae2edefc34c557b84ff"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "e79b37191565106f2073273aff1e4e1c50d9b890ce7a1a75192a287207a97cc4",
+      "blob": "49d9932e80a32c499d9bc0e0061de97fc407aaf7"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "096d95ecc69b53b4cfeec94987689aa763abd3c659b71186b25156a32dab7d78",
+      "blob": "fb4c39430f8825eee6322407c4fbf152771c94fd"
+    },
+    {
+      "path": "src/ilha.c",
+      "sha256": "1c8e71fcd458d864db80b1bcfa614d018286c6d3623696e2a9458351e2f33e1f",
+      "blob": "ab2f31c927b44dcfcdabceef2c03a587a26882da"
+    },
+    {
+      "path": "src/ilha.h",
+      "sha256": "3c0e7330e15edef1f1eb21d98495b68fc09d878b9adfc0ae1ca6d0f262f3375e",
+      "blob": "d8bd5f15e033c2beffec55290d557ce9af94fe9c"
+    },
+    {
+      "path": "src/ilhaacao.c",
+      "sha256": "9f854e131c8261ccb011130fa51096090b1cd9c7b95ea71344385a38de629124",
+      "blob": "4077250b92f55a470a1ea848c745f5ec90c77a84"
+    },
+    {
+      "path": "src/ilhaacao.h",
+      "sha256": "2fdb7135b98f68e2ce74a94d650904c416c006bd3de6f3efc872297a9a772085",
+      "blob": "240fcb1b13c24cc4f53d35d259a1b9277d2259e0"
+    },
+    {
+      "path": "src/ilhasalvar.c",
+      "sha256": "987905ef077e61ee0d3b4c639813c4ee742f529caa1a0407d87c9ca1995462f5",
+      "blob": "70b3dfb3bd9b423a722886cdbf33345d31d44601"
+    },
+    {
+      "path": "src/ilhasalvar.h",
+      "sha256": "e8b962c2d6fcce7093954dd382d02b63832616c98db4bbd9a7edff727a637caa",
+      "blob": "09bc8123ddd59268c35ae56ed75aa74bf4c61d34"
+    },
+    {
+      "path": "src/ilhasinais.c",
+      "sha256": "42019aea65e0a39f880c6d968355d86e0fe98721b757d6976ea22b8a27f0276b",
+      "blob": "647e36c157774102f3fdc48415aa433d63183b44"
+    },
+    {
+      "path": "src/jellyfin.c",
+      "sha256": "e52ae05f21113e720a4a361ac8fd6b7906ff718a8fb6eaab161fd8696488a550",
+      "blob": "5da1177b8a6bd02ede24fef8cf60999993ca7e7b"
+    },
+    {
+      "path": "src/layout.c",
+      "sha256": "07d26ad56ac0cbfea49ee30d9d8482b3368d1445bc65bb5a145ed08b917b80fb",
+      "blob": "f46fe5fea1efa4750aef513491b6231cf9829a9b"
+    },
+    {
+      "path": "src/layout.h",
+      "sha256": "ccc6faa888a2af844535c93a854354a737f26927810fd7179437b701b12555cc",
+      "blob": "63ebefb6d452f6aeebb0dbbeed275ffbc4ee71f9"
+    },
+    {
+      "path": "src/legendasui.c",
+      "sha256": "dab793a7b26e0f30cece7e91e6ea7a7f6fd6d1f4c27b8bd1ef00188a2917048e",
+      "blob": "6dd429638d8c97f49b7748bd6e93f197e612d76c"
+    },
+    {
+      "path": "src/legendasui.h",
+      "sha256": "7f75d644b65a9a1d6cbd49681da5d7034895c9f31fde9c271c6086f1aea3eaa2",
+      "blob": "f9dff04337bfac711b2e4c85c2f26e37ffb3796f"
+    },
+    {
+      "path": "src/linguas.c",
+      "sha256": "fa7eb7418e09d7850f54a780158cf284944d07b588dfc085517765a46437eef8",
+      "blob": "f69373dac57c5a5ee87c9c46aefa4418eb8e41ca"
+    },
+    {
+      "path": "src/linguas.h",
+      "sha256": "70cc62740c94ca804f2d8d64d15f5904bba47bc14de9dde3889e314cc1e32f86",
+      "blob": "6a3ea35ccdad0599f1685255c53e0d79965cb553"
+    },
+    {
+      "path": "src/listas.c",
+      "sha256": "94e132e0e844ba6fafc82a743c3f619939f68abce39201a497ba4cbc4d483ecf",
+      "blob": "b7d6a514ea62b65e2413964270368cb9959aff14"
+    },
+    {
+      "path": "src/listas.h",
+      "sha256": "cd51a0465177bc6af48dda845a83de733d205a7987b0c313042211a89bf646a8",
+      "blob": "e43f59023470780940bb017b9c0e0a83a8ea5bf9"
+    },
+    {
+      "path": "src/livetvdiag.c",
+      "sha256": "b78dfd16710e2b98095c2d45223fa47616e8fe4ccc83f864145a5c68fb5cff0e",
+      "blob": "bb8f744d6f572e64d7b752cebc1bd37d8e6f48e3"
+    },
+    {
+      "path": "src/menu.c",
+      "sha256": "7085cb29e0128ae1fa376574631e0aee7127ac1d08bc7ef4c3ab093db82a570f",
+      "blob": "8fe75501d58c0a5a14ec835baab2080f21fccc9d"
+    },
+    {
+      "path": "src/pausao.c",
+      "sha256": "d0a3f4bdd766a248689d27d3ca7c9117ed912444a94369e41da378c01c4fdfff",
+      "blob": "bf5eb8c91d039e086f862b079691f290b739fb15"
+    },
+    {
+      "path": "src/perfil.c",
+      "sha256": "501d9686198b354f4bc27701bfb3d55420879d04b77c546b8bb9c7266aabd855",
+      "blob": "f0288b8d0e5faa112eb5c9c110049bd49e2098a1"
+    },
+    {
+      "path": "src/perfilsel.c",
+      "sha256": "dbe8d5e91be73e67d17211e9ab5de133576f7ccd89ec66ba4827dd12d0c38690",
+      "blob": "c395e232c38f96397609f4b124b293dea2c309aa"
+    },
+    {
+      "path": "src/perfis.c",
+      "sha256": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf",
+      "blob": "5a5bcce59c6cc67717e17863b092f9f4b85ef9c1"
+    },
+    {
+      "path": "src/perfis.h",
+      "sha256": "c2dfcee02333697a276dfc53754fd5eac4a79740bf722d02d7545229299b9cb5",
+      "blob": "a025afff685af897e618f52ac3b0943c875e8cc9"
+    },
+    {
+      "path": "src/pessoas.c",
+      "sha256": "8df9f956ce39bd208d15455ea1502f9b54c96e6ddcbb9e11acee2b1264d336f8",
+      "blob": "66b77a3905fe0436651356577340ce824b2ef9b2"
+    },
+    {
+      "path": "src/player.c",
+      "sha256": "34422652d83908419bdc5c574516d3626c4b466f3bf3551991a938746d1f07fe",
+      "blob": "bf966edbf13c15bc67c2353975b2eb63f2af0543"
+    },
+    {
+      "path": "src/player.h",
+      "sha256": "e6ad013e699f1397073f405e65592186f27de811cae338c5839fca16149f943f",
+      "blob": "da7a4da9150cfa2173539cb3e872284ce9925ad0"
+    },
+    {
+      "path": "src/plex.c",
+      "sha256": "e9bc589f7554ac6f93e7bbc236078fe1c6328abbf69ce2f2d68119cf0816acc8",
+      "blob": "a3e8dbce0077a88c16c08d62aa4171b28855bf72"
+    },
+    {
+      "path": "src/ponteiro.c",
+      "sha256": "5e379adc860dd8ad4831ccf133a846a4ac7c266539078015d4ed89baea40c3b4",
+      "blob": "abb43fe1fc25f8f08e373f7ac3f5d4fdd7fac7ce"
+    },
+    {
+      "path": "src/ponteiro.h",
+      "sha256": "252f5704ec72944905c4e1092b2696b12b298c0dcf4f894c82e9c3a9155c636c",
+      "blob": "db55071ce1362172b426b29d1a8a37ec7e838e55"
+    },
+    {
+      "path": "src/posplay.c",
+      "sha256": "6bbf0eee75ccb19cecc957c7266d1fb25553c9764965a1f0cf1fe05390fdc082",
+      "blob": "dabb4809101b5bf8cf87edf847490304366db2d6"
+    },
+    {
+      "path": "src/posplay.h",
+      "sha256": "7c986ffd2dc2fb47ab27f924e04823cf15b74a5f6020e21258e4f9dbdf398841",
+      "blob": "738d2ac8b58052f754734174f80cffedcd48d79b"
+    },
+    {
+      "path": "src/proximo.c",
+      "sha256": "cf9820b2550f30f580640ca6b9f94c5958b1aeba8654c0addc7a6b83a6d7123f",
+      "blob": "2decd5e7044c23d804a991bbfc20e2af7006d6f7"
+    },
+    {
+      "path": "src/proximo.h",
+      "sha256": "7ca1b7d026f3052f3b4354d2e72e91604c355c4cc26d2e0cd5a86b67480add2b",
+      "blob": "ae96d4f2ff008a7ec80a7c4de2c9a8858d62627a"
+    },
+    {
+      "path": "src/recenviar.c",
+      "sha256": "fe184aca7850ae034d060c06f5ddb521b53996c8768178dca50ddc30546a9d9e",
+      "blob": "f5426760d652d402c79fc65e797d2250ceeeed6b"
+    },
+    {
+      "path": "src/recomenda.c",
+      "sha256": "c533696e4ff24b215cda94c13987ca8a7e777b7256c6eb01cfaf7631d25ef4dc",
+      "blob": "2c28c3ae7169ad6b28bc6f8c6d0a389720ac571a"
+    },
+    {
+      "path": "src/recomenda.h",
+      "sha256": "3839ad1f0ba1a4e6a143675e25567336aa1e014fa98ca3275c5ebf9b628b40a2",
+      "blob": "55278a33284af66074ce0a283a3f65f980755e90"
+    },
+    {
+      "path": "src/recresp.c",
+      "sha256": "e069c6e510dc6e306f8d7714bbf72a3b04974b33c340a829533cce62fda01ace",
+      "blob": "9b646135f5fb67ed7523ab687a013cb8f378d0f3"
+    },
+    {
+      "path": "src/recresp.h",
+      "sha256": "d4a36760fffe0019be25bd845540da203cb9160ed55c98e69c0e2810d6d832e4",
+      "blob": "34329d2e4fb98c231ac2d9e1d87c97bb88b943e5"
+    },
+    {
+      "path": "src/registro.c",
+      "sha256": "e8583449002c2b6428f4ebe4eff1c3839eed7c3dbf1acc8af2908a13819d0fc0",
+      "blob": "2ba16f016123acfa135b677f541b90803e2a2298"
+    },
+    {
+      "path": "src/registro_ilha.inc",
+      "sha256": "28019062f8f2ebeb423695e6f70e9573f47f1f438f871872968b66f89b7a89b6",
+      "blob": "02f17e290390794491ba73ed5a36af93a85d7511"
+    },
+    {
+      "path": "src/rolagemtoque.h",
+      "sha256": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e",
+      "blob": "049653ca73bb3c130b065a78bbb691c994b709c9"
+    },
+    {
+      "path": "src/salvospainel.c",
+      "sha256": "2f4b4d0cc92b1b8391f4c679ac172117507f1098797a8316b659d92fa4aac618",
+      "blob": "be74374e30a317d4249c19d4c70f8dd8dd477702"
+    },
+    {
+      "path": "src/sessao.c",
+      "sha256": "c200330dab4859e4e71f7e50498e570b2d447a4f0b068f5ab7a5f1cedc252c66",
+      "blob": "7347ab0c9bbeb1c2a06e2872fcadc47b740d6ae5"
+    },
+    {
+      "path": "src/sessao.h",
+      "sha256": "9972c512e7ec415b1c74ef82bad8ac0b5f44536f0b88ee7ffe1d7926a565cb64",
+      "blob": "5a96b37e5da5a5113ad9dd9dcbcfe9e4ef3a1b84"
+    },
+    {
+      "path": "src/simkl.c",
+      "sha256": "96d0412acfc37bc49f50abf261fb52c1480250a28fb4b7c29baea74e882753bc",
+      "blob": "7c9fab14b6dec4bf5d6f03ca95e77561028d5ba6"
+    },
+    {
+      "path": "src/simkl.h",
+      "sha256": "6eade9ccdd5e6f0e415d60f72c21a1b2be7b3a4b830ea48c5799eb0b39915e24",
+      "blob": "53fc1e9e81a653ced43b345b64b63203495b6c69"
+    },
+    {
+      "path": "src/simklauth.c",
+      "sha256": "42f7fb1105b0c0c2aadfe0873c70b947290c4b4093248a23b53fa3ffd2522160",
+      "blob": "43cddb999cf6f50e42ebf4dbd2be10d8183909d7"
+    },
+    {
+      "path": "src/sinopse.c",
+      "sha256": "f9e377164ffc05c64feb16e289321a53ba0618f53b7ef024893666a3c3878298",
+      "blob": "a27ce3389e08f04d82b12d7d5effcecab409e1d0"
+    },
+    {
+      "path": "src/sinopse.h",
+      "sha256": "07afd19702f58d25a6a16ffc3a3f29608cca707ea13e08c9c6b00e19138d32f4",
+      "blob": "18c9b77e38dbf132b27505375af488b76b4ee591"
+    },
+    {
+      "path": "src/socialvis.c",
+      "sha256": "e7d53203d24a78ead4557a8dd45539233571cf91091ff6662998ae3ea322f02b",
+      "blob": "35026c890c7a6e822b8f1f2c5e00f5185d362f47"
+    },
+    {
+      "path": "src/spotlight.c",
+      "sha256": "05bc0debb10b91c26a6599f8bdb57d88188960c64f894de2c3d52629594bf7f3",
+      "blob": "26f915cc021bb3830b6a11ff77c901672afc085c"
+    },
+    {
+      "path": "src/stalker.c",
+      "sha256": "203c58b6c808c5ba6cc2d852b2b344a40425e8722a1bffa429232301d7640432",
+      "blob": "7c8d5804dcb1153b2a747fdafa36c72c982ec71a"
+    },
+    {
+      "path": "src/stalker.h",
+      "sha256": "208302a5653f25f1f75cf28ed4778fddbcd2efef5e4bc6d018e5a9666041bfd3",
+      "blob": "bad89e04d671503aa649333bea36ba7283fabbc6"
+    },
+    {
+      "path": "src/stream_parse.c",
+      "sha256": "4bd2bdf65e8c03de5d9796c4e474295da297da7f5588949a4ff45a65796f1fba",
+      "blob": "e7b178d63a0cda66a9eb60fc5c86982269e6dd31"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "57abfc5e5eeda853ae9a5c3df7308aedc2b1ee0b9dad7e2b67783821bfa219f5",
+      "blob": "3870355c5b4991caa922acaed4f669cd221a8cca"
+    },
+    {
+      "path": "src/streams.h",
+      "sha256": "4b75aa759d05b26aca8d3b071af1b8738799bbd953068e96c1931c6cffe0cf46",
+      "blob": "cce9fc8fe2dd135a0dd609f432944c231c2bfe06"
+    },
+    {
+      "path": "src/sync.c",
+      "sha256": "a515f4ade84e6ee54047b4b9151e57504d67131e5aaa7d306de009fa78614bc1",
+      "blob": "75ef0b46a211516e93ea967af89abd1fac120bc5"
+    },
+    {
+      "path": "src/sync.h",
+      "sha256": "298f9e8f5cac10ce795e1567a9514fdee337530db81996d7aa7f1f7c098b36d6",
+      "blob": "bc0e5d715958b035b64b40c0a418d72610e36755"
+    },
+    {
+      "path": "src/syncprog.c",
+      "sha256": "cd76235cf3e9b5da0938451ebfa7dcf4a5fc12af9f381304bbc1bab02db036f3",
+      "blob": "58c36e6288d36f1f58056a804fefad9e74a2731a"
+    },
+    {
+      "path": "src/syncprog.h",
+      "sha256": "22c7d8bcea2974e0c9045c6bb87ae37ddb62efb6c7fe18dd4db758fb202af7e4",
+      "blob": "71baed3df0003031700ec4f11e55bdd69663700b"
+    },
+    {
+      "path": "src/teclado.c",
+      "sha256": "2c9d48473db64fb50eb8bf97ca0e355ccd52f730a0a2ba6ad2fa32d2b36628a7",
+      "blob": "664381a302f4ea17ba275dc85b9506ba6fd36527"
+    },
+    {
+      "path": "src/teclado.h",
+      "sha256": "3d1ada6e293c226bd27865809dc8253e18681f694648250f00f58fd20ea24e75",
+      "blob": "cdafe14c0ed9296d861f84d4a58602ff1cadfbe3"
+    },
+    {
+      "path": "src/text.c",
+      "sha256": "bdae8ca8d3812e25058f21dd5b19189fc9a016c62f4f59952261318af4869287",
+      "blob": "35ac51fbb16e5735e9e9b95910aa9423d575354b"
+    },
+    {
+      "path": "src/text.h",
+      "sha256": "669033654d7d2f96c3462f170ee9da7a0a741fb22798e06955f6f8aebc71a13e",
+      "blob": "c463da8e9419cd85e4b459689414051663c34640"
+    },
+    {
+      "path": "src/tirarremoto.c",
+      "sha256": "b6cfba21c8a61f92a9ee921f65107c39b1b824dd26c9ac6041561ba62691a986",
+      "blob": "29a58d36e50dc89126bae08e2dfa7ea6951a5ef6"
+    },
+    {
+      "path": "src/tirarremoto.h",
+      "sha256": "42b70565b810896c7e474a9b4a70775eb0fcd7ef37d11d5e787b9fcb97efbbee",
+      "blob": "e7560f037a66d2a10ad31b3b24ebf1820231cd97"
+    },
+    {
+      "path": "src/trakt.c",
+      "sha256": "bf0c49df69e9454f1f17f738837398602018c98ca8bcdfbe6c99a0dd7f47a279",
+      "blob": "8325149914fdf46839ac10c253fa1695ec9b6872"
+    },
+    {
+      "path": "src/trakt.h",
+      "sha256": "742ae198fb8d4006f8ef4855ab4894faa4c57e3fd3e88a1fd34f95be348a34c6",
+      "blob": "d034567fac481bf0ad1c9fe2ce11b88f541f659d"
+    },
+    {
+      "path": "src/traktauth.c",
+      "sha256": "19a93cf0ee99f67b298a4afc8e1c434679385de5a324649498f034a7e1f0d085",
+      "blob": "677a4a895388b5778d991951ca4108ad9fd1cdbf"
+    },
+    {
+      "path": "src/trocaarte.c",
+      "sha256": "0d4e272c220375e362ed5f665de4f80d836bc1f41d44104cfbcc341d9fd45349",
+      "blob": "ab571496d518627d3586265dc70f61647688d66f"
+    },
+    {
+      "path": "src/vertudo.c",
+      "sha256": "1486ad2fdbda9af0ad88356251be4b76dea071287ae4fd8e7221b4372e98575a",
+      "blob": "67c14b175695be8353dc61b3bbd0b9439378d6f6"
+    },
+    {
+      "path": "src/video.c",
+      "sha256": "3deac4ddb92ef26c9c43437fdf5b4f4db07c83bf8e4738016aa094e17a68b6bc",
+      "blob": "9bd69e274173cfea7d0a02c43c47ae4ebd3e921b"
+    },
+    {
+      "path": "src/video.h",
+      "sha256": "b26026a44c527e537bca26892154a3a454b4456a39cefada71d9a2e0fb30dac3",
+      "blob": "cde493fa0ed679496b4cc06d812a230a45f61eee"
+    },
+    {
+      "path": "src/video_android.c",
+      "sha256": "f851ee112ece0e63e18d463b622a840cb89eb9fba6cfd7b20886811f6e06883c",
+      "blob": "d85b395ace3536d7b68d481c8a5074658f0e3860"
+    },
+    {
+      "path": "src/video_tizen.c",
+      "sha256": "90beb7a6806a687a93a5b293357371425a69a2062d499b0cb2d0cf92e79c6cc5",
+      "blob": "e2f1c740faaaa6ce333203f84f61f7027ab6d7ea"
+    },
+    {
+      "path": "src/video_tpk.c",
+      "sha256": "b7658dae18ad7731c163c53040b0d275c2d8aeeeb4159bc7d7d53c14871001b6",
+      "blob": "5a8faa21f463a81ee56c037358e03a0df23a4fc2"
+    },
+    {
+      "path": "src/visto.c",
+      "sha256": "0d96403f0b036fa3fa84da73bd8d5af1cb44f349e6e79cb684eeecb525e49b66",
+      "blob": "cd499f600ff7281f938ca672db9f73ccc57deb47"
+    },
+    {
+      "path": "src/visto.h",
+      "sha256": "f29548315032789a3b8741f37d5e55b78ebf0f9ae1221521f4bf3ace0b2bb921",
+      "blob": "fa544ac802cb01017d7b6532c9f5909285f84a72"
+    },
+    {
+      "path": "src/vistoep.c",
+      "sha256": "eac3cfa2e8741ecf73c8fd41cdd563b881bf1fd4612bb10421be6a1a74cfb121",
+      "blob": "82daf2ef629c1b06d851867625c585fc34101d1b"
+    },
+    {
+      "path": "src/vistoep.h",
+      "sha256": "ea8339cd8a1619616f916c4d45db4d1803e9d3eb55583c525e9fd23b89d64eaf",
+      "blob": "73d7c50e8e13eb4213dc6c11917b629591152096"
+    },
+    {
+      "path": "src/xtepg.c",
+      "sha256": "a6bdd8acf1bcba255d374e1e73b398e61b2ba0f8e485a1b53dc88feda3208a1c",
+      "blob": "b72d32f4bb0de728b521865335c4604c04d9f673"
+    },
+    {
+      "path": "src/xtream.c",
+      "sha256": "ec5eeca6681b3ae97bf15e70a7d39f3158d3187b8d5a44b46f2c1de4c302ea37",
+      "blob": "85d8e3bcead9650c5950ddce3b207479e2ba966e"
+    },
+    {
+      "path": "src/xtream.h",
+      "sha256": "9a5312c682df0f4ff5939a5d763ba0d6548caeedb2c48dd214ab1ac1b18ba1b2",
+      "blob": "fc5a628aa7b1569dbb8adb1903c32984b96c2168"
+    },
+    {
+      "path": "tools/android.sh",
+      "sha256": "c7e6e81349d9c10c5d8ddbcd2f1dd411d1d28f9e490f166de34890b5a474a79d",
+      "blob": "d210069a7b98a84e0d2db1da27d0749f1e406d1f"
+    },
+    {
+      "path": "tools/android/ffmpeg-android.sh",
+      "sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc",
+      "blob": "deff8b391e68d328fd6461930c6ebc779284baef"
+    },
+    {
+      "path": "tools/arm.sh",
+      "sha256": "d2751b8ed108ca220807bf5f5c866425b048135e69ae4f6bea90a4161fd90056",
+      "blob": "fde14de6e11fd6043e323854f2af70e0b5806528"
+    },
+    {
+      "path": "tools/varredura-i18n.py",
+      "sha256": "848112f16e8019f1a449110a384b77b70b2f27ac92e5c24bfd26d068e2435a58",
+      "blob": "3716df8fd6ad085fbb9eb1ab8c1e11f3055102ba"
+    }
+  ],
+  "layer_changed_paths": [
+    "src/agendaui.c",
+    "src/ajustes.c",
+    "src/ajustes.h",
+    "src/ajustes_ux_dados.inc",
+    "src/ajustes_ux_padrao.inc",
+    "src/ajustes_ux_tela.inc",
+    "src/ajustes_ux_visual.inc",
+    "src/app.c",
+    "src/biblioteca.c",
+    "src/ctxinfo.c",
+    "src/descanso.c",
+    "src/detail.c",
+    "src/detmais.c",
+    "src/detmais.h",
+    "src/episodios.c",
+    "src/home.c",
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h",
+    "src/ilha.c",
+    "src/pausao.c",
+    "src/player.c",
+    "src/player.h",
+    "src/posplay.c",
+    "src/posplay.h",
+    "src/proximo.c",
+    "src/proximo.h",
+    "src/sinopse.c",
+    "src/sinopse.h",
+    "src/stream_parse.c",
+    "src/streams.c",
+    "src/streams.h",
+    "src/text.c",
+    "src/text.h",
+    "src/vertudo.c",
+    "src/video.c",
+    "src/video.h",
+    "src/video_android.c",
+    "src/video_tizen.c",
+    "src/video_tpk.c"
+  ],
+  "tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "tests_tree_unchanged": true,
+  "workflows_tree": "cea68affa1c1b47365c2091224c153f45b6b60e9",
+  "workflows_tree_unchanged": true,
+  "review_only": true,
+  "no_ci_or_build_or_release_launched": true
+}

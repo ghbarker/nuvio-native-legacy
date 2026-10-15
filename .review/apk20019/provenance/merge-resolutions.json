@@ -1,0 +1,22 @@
+[
+  {
+    "path": "src/player.c",
+    "layer": "496/460",
+    "resolution": "Keep cinemaArteIniciar(NULL) and new mailbox/reset latch together on close."
+  },
+  {
+    "path": "src/ajustes.c",
+    "conflicts": 3,
+    "resolution": "Keep every integrated entry first; append477 entry, or retain detail mode synchronization before synopsis modal route."
+  },
+  {
+    "path": "src/ajustes_ux_padrao.inc",
+    "conflicts": 1,
+    "resolution": "Keep every integrated entry first; append477 entry, or retain detail mode synchronization before synopsis modal route."
+  },
+  {
+    "path": "src/detail.c",
+    "conflicts": 1,
+    "resolution": "Keep every integrated entry first; append477 entry, or retain detail mode synchronization before synopsis modal route."
+  }
+]

@@ -1,0 +1,510 @@
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+index a09cc9547..dd7c1b2b2 100644
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -5,6 +5,7 @@ plugins {
+ 
+ // Tudo que vem de fora do projeto entra por propriedade (-P) que o
+ // tools/android.sh passa; os padroes servem para abrir no Android Studio.
++val testLocalLogs = (findProperty("nuvio.testLocalLogs") as String?) == "true"
+ val raiz = rootProject.projectDir.parentFile                         // raiz do repo
+ val cache = file(System.getProperty("user.home") + "/.cache/nuvio-android")
+ val sdlSrc = (findProperty("nuvio.sdlSrc") as String?) ?: "$cache/src"
+@@ -24,12 +25,15 @@ android {
+     compileSdk = 35
+     ndkVersion = "27.2.12479018"
+ 
++    buildFeatures { buildConfig = true }
++
+     defaultConfig {
+-        applicationId = "space.nuvio.nativelegacy"
++        buildConfigField("boolean", "NV_TEST_LOCAL_LOGS", testLocalLogs.toString())
++        applicationId = "space.nuvio.nativelegacy.touch"
+         minSdk = 24
+         targetSdk = 35
+-        versionCode = vx * 10000 + vy * 100 + vz
+-        versionName = versao
++        versionCode = 20019
++        versionName = "2.0.19-test-logs9"
+         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+         externalNativeBuild {
+             cmake {
+@@ -41,6 +45,7 @@ android {
+                     "-DNUVIO_P2P_MOTOR=${(findProperty("nuvio.p2pMotor") as String?) ?: ""}",
+                 )
+                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
++                arguments += "-DNV_TEST_LOCAL_LOGS=${if (testLocalLogs) "ON" else "OFF"}"
+             }
+         }
+     }
+@@ -56,6 +61,12 @@ android {
+     // assembleRelease nem e chamado (tools/android.sh).
+     val ks = System.getenv("NUVIO_KEYSTORE")
+     signingConfigs {
++        getByName("debug") {
++            storeFile = file(System.getenv("NUVIO_TEST_DEBUG_KEYSTORE") ?: error("Persistent test signing key missing"))
++            storePassword = "android"
++            keyAlias = "androiddebugkey"
++            keyPassword = "android"
++        }
+         if (ks != null) create("release") {
+             storeFile = file(ks)
+             storePassword = System.getenv("NUVIO_KEYSTORE_PASS")
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index 251b80d57..e83d97dba 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -36,7 +36,7 @@
+     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+ 
+     <application
+-        android:label="@string/app_name"
++        android:label="Nuvio TV/Mobile Test"
+         android:icon="@mipmap/ic_launcher"
+         android:banner="@drawable/banner"
+         android:allowBackup="false"
+@@ -208,7 +208,7 @@
+         <!-- Entrega o APK baixado (dados/atualizacao) ao instalador do sistema. -->
+         <provider
+             android:name="androidx.core.content.FileProvider"
+-            android:authorities="space.nuvio.nativelegacy.atualizacao"
++            android:authorities="space.nuvio.nativelegacy.touch.atualizacao"
+             android:exported="false"
+             android:grantUriPermissions="true">
+             <meta-data
+diff --git a/android/app/src/main/cpp/CMakeLists.txt b/android/app/src/main/cpp/CMakeLists.txt
+index e03e4f914..7441c7752 100644
+--- a/android/app/src/main/cpp/CMakeLists.txt
++++ b/android/app/src/main/cpp/CMakeLists.txt
+@@ -79,6 +79,10 @@ list(FILTER NUVIO_SRC EXCLUDE REGEX "/(video_tizen|video_tpk|tpk)\\.c$")
+ add_library(main SHARED ${NUVIO_SRC})
+ target_include_directories(main PRIVATE "${NUVIO_RAIZ}/src" "${CMAKE_BINARY_DIR}/inc")
+ target_compile_definitions(main PRIVATE NV_ANDROID NV_TOUCH_UI)
++option(NV_TEST_LOCAL_LOGS "Isolated test APK: extra local log actions" OFF)
++if(NV_TEST_LOCAL_LOGS)
++  target_compile_definitions(main PRIVATE NV_TEST_LOCAL_LOGS=1)
++endif()
+ if(ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "x86_64")
+   # Both modes ship in one APK; NDK r27 needs a 16KB-aligned RELRO end.
+   foreach(t main SDL2)
+diff --git a/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt b/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt
+index e10c18a3d..f52a0a4b4 100644
+--- a/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt
++++ b/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt
+@@ -51,7 +51,8 @@ class RegistroDownload(private val activity: Activity) {
+         }
+         Thread({
+             val mensagem = try {
+-                val texto = limpar(lerFim(atual.arquivo)).toByteArray(Charsets.UTF_8)
++                val texto = if (BuildConfig.NV_TEST_LOCAL_LOGS) TestLocalLogs(activity).snapshot()
++                            else limpar(lerFim(atual.arquivo)).toByteArray(Charsets.UTF_8)
+                 activity.contentResolver.openOutputStream(uri, "wt")?.use { it.write(texto) }
+                     ?: throw IllegalStateException()
+                 atual.sucesso
+diff --git a/android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt b/android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt
+new file mode 100644
+index 000000000..f955fb02a
+--- /dev/null
++++ b/android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt
+@@ -0,0 +1,52 @@
++package space.nuvio.nativelegacy
++
++import android.app.Activity
++import java.io.File
++import java.io.RandomAccessFile
++
++/** Private test-only snapshot. The public RegistroDownload owns the sole file chooser. */
++class TestLocalLogs(private val activity: Activity) {
++    fun snapshot(): ByteArray {
++        val version = try { activity.packageManager.getPackageInfo(activity.packageName, 0).versionName ?: "?" }
++                      catch (_: Exception) { "?" }
++        val out = StringBuilder("Nuvio TV/Mobile Test — local diagnostic log\nVersion: $version\n")
++        for (name in listOf("nuvio-anterior.log", "nuvio.log")) {
++            out.append("\n--- ").append(name).append(" ---\n")
++            out.append(readTail(File(activity.filesDir, "dados/$name")))
++        }
++        out.append("\n--- current app logcat ---\n")
++        var process: java.lang.Process? = null
++        try {
++            process = ProcessBuilder("logcat", "-d", "--pid=${android.os.Process.myPid()}",
++                "-t", "1000", "-v", "threadtime").redirectErrorStream(true).start()
++            process.inputStream.reader(Charsets.UTF_8).use { reader ->
++                val chars = CharArray(4096)
++                var remaining = MAX_TAIL
++                while (remaining > 0) {
++                    val count = reader.read(chars, 0, minOf(chars.size, remaining))
++                    if (count < 0) break
++                    out.append(chars, 0, count)
++                    remaining -= count
++                }
++            }
++        } catch (_: Exception) { out.append("(logcat unavailable)\n") }
++        finally { process?.destroy() }
++        return RegistroDownload.limpar(out.toString()).toByteArray(Charsets.UTF_8)
++    }
++
++    companion object {
++        const val MAX_TAIL = 200 * 1024
++
++        fun readTail(file: File): String = try {
++            RandomAccessFile(file, "r").use { source ->
++                val start = maxOf(0L, source.length() - MAX_TAIL)
++                source.seek(start)
++                val data = ByteArray((source.length() - start).coerceAtMost(MAX_TAIL.toLong()).toInt())
++                source.readFully(data)
++                val text = String(data, Charsets.UTF_8)
++                // A partial first line may contain a URL without its scheme.
++                if (start == 0L) text else text.substringAfter('\n', "")
++            }
++        } catch (_: Exception) { "(log unavailable)\n" }
++    }
++}
+diff --git a/src/ajustes.c b/src/ajustes.c
+index 10dc944ba..a072e0440 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -72,6 +72,9 @@
+ #include <pthread.h>
+ #include <stdatomic.h>
+ #include <stdio.h>
++#ifdef NV_TEST_LOCAL_LOGS
++#include <errno.h>
++#endif
+ #include <stdlib.h>
+ #include <string.h>
+ #include <fcntl.h>
+@@ -2083,6 +2086,19 @@ void ajustes_voltar_de_lista(int plugins) { uxVoltarOp = plugins ? AJ_PLUGINS :
+ static int uxDifs[AJ_N], uxNDifs, uxDifFoco;
+ static int uxEditor, uxOp, uxPendente, uxOriginal, uxRodape;
+ static int uxRestaurar, uxConfirmar, uxAvisoRisco;
++#ifdef NV_TEST_LOCAL_LOGS
++// Structural local diagnostics only: never settings values, names, paths or credentials.
++static void ajTesteEvento(int acao, int op, int ok, int erro) {
++  int salvo = errno, emLinha = 0;
++#ifdef NV_TOUCH_UI
++  emLinha = ajPontInline;
++#endif
++  printf("[test-settings] action=%d op=%d ok=%d errno=%d mobile=%d editor=%d inline=%d restore=%d risk=%d vw=%.0f vh=%.0f ms=%u\n",
++    acao, op, ok, erro, layout_modo_mobile(), uxEditor, emLinha,
++    !!uxRestaurar, !!uxAvisoRisco, (double)NV_LAYOUT_REAL_W, (double)NV_LAYOUT_REAL_H, SDL_GetTicks());
++  errno = salvo;
++}
++#endif
+ int  ajustes_teste_editor(int *pendente, int *rodape, int *restaurar, int *confirmar) {
+   if (pendente) *pendente = uxPendente;
+   if (rodape) *rodape = uxRodape;
+@@ -2090,6 +2106,18 @@ int  ajustes_teste_editor(int *pendente, int *rodape, int *restaurar, int *confi
+   if (confirmar) *confirmar = uxConfirmar;
+   return uxEditor;
+ }
++// With the test guard disabled every macro expands to its original expression.
++#ifdef NV_TEST_LOCAL_LOGS
++static int ajTesteIO(int resultado, int acao) {
++  if (resultado) ajTesteEvento(acao, uxOp, 0, errno);
++  return resultado;
++}
++#define AJ_TEST_WRITE(ok, stage, err) (ajTesteEvento((stage), uxOp, (ok), (err)), (ok))
++#define AJ_TEST_IO(expression, stage) ajTesteIO((expression), (stage))
++#else
++#define AJ_TEST_WRITE(ok, stage, err) ok
++#define AJ_TEST_IO(expression, stage) expression
++#endif
+ static char uxAviso[160];
+ static Uint32 uxAvisoAte;
+ static const char *textoValor(int op);
+@@ -3790,11 +3818,11 @@ static int gravar(void) {
+   char caminho[600], tmp[600];
+   FILE *f;
+   int i;
+-  if (!dirAjustes[0]) return 0;
++  if (!dirAjustes[0]) return AJ_TEST_WRITE(0, 15, 0);
+   snprintf(caminho, sizeof caminho, "%s/ajustes.txt", dirAjustes);
+   snprintf(tmp, sizeof tmp, "%s/ajustes.tmp", dirAjustes);
+   f = fopen(tmp, "w");
+-  if (!f) return 0;
++  if (!f) return AJ_TEST_WRITE(0, 16, errno);
+   for (i = 0; i < AJ_N; i++) {
+     // "-" marca linha local (versao, espaco, conta): nao tem valor para
+     // guardar. Acao tambem nao. E chave ausente NUNCA vai para o arquivo — foi
+@@ -3811,9 +3839,9 @@ static int gravar(void) {
+     fprintf(f, "%s %d\n", CHAVE[i], valor[i]);
+   }
+   if (memoriaEscolhida) fprintf(f, "texturasEscolhaLocal 1\n");
+-  { int erro = ferror(f);
+-    if (fclose(f)) erro = 1;
+-    if (erro || rename(tmp, caminho)) { remove(tmp); return 0; } }
++  { int erro = AJ_TEST_IO(ferror(f), 17);
++    if (AJ_TEST_IO(fclose(f), 18)) erro = 1;
++    if (erro || AJ_TEST_IO(rename(tmp, caminho), 19)) { remove(tmp); return AJ_TEST_WRITE(0, 20, errno); } }
+   // SAMSUNG (#85, 21/09/2026): o arquivo fica no IDBFS, e o IDBFS so vai ao
+   // IndexedDB quando alguem marca o sistema de arquivos como sujo. Este
+   // gravador escreve por fora de dados_gravar e nunca marcava: qualquer
+@@ -3826,7 +3854,7 @@ static int gravar(void) {
+   // Provedor de poster ou idioma da interface mudaram? So reconfigura se a
+   // configuracao final for outra (reconfigurar zera a memoria de falhas).
+   pstAplicar();
+-  return 1;
++  return AJ_TEST_WRITE(1, 13, 0);
+ }
+ 
+ 
+diff --git a/src/ajustes_ux_desenho.inc b/src/ajustes_ux_desenho.inc
+index 2eadc40e6..945f59989 100644
+--- a/src/ajustes_ux_desenho.inc
++++ b/src/ajustes_ux_desenho.inc
+@@ -468,11 +468,17 @@ static int ajEditandoLinha(int op) {
+ }
+ #ifdef NV_TOUCH_UI
+ static void ajToqueInlineValor(int v, int op) {
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(9, op, ajPontInline && ajEditandoLinha(op) && v >= 0 && v < nValores(op), 0);
++#endif
+   if (!ajPontInline || !ajEditandoLinha(op) || v < 0 || v >= nValores(op)) return;
+   uxPendente = v; uxRodape = 0;
+ }
+ static void ajToqueConfirmar(int a, int b) {
+   (void)a; (void)b;
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(10, uxOp, uxEditor == 1 && !uxRestaurar && !uxAvisoRisco, 0);
++#endif
+   if (uxEditor == 1 && !uxRestaurar && !uxAvisoRisco) { uxRodape = 0; uxAplicar(); }
+ }
+ static void ajToqueCancelar(int a, int b) { (void)a; (void)b; if (uxEditor) uxCancelar(); }
+@@ -485,6 +491,19 @@ static void ajToqueBotoes(float direita, float yc, float a) {
+   for (int i = 0; i < 2; i++) {
+     TxtLinha t = i == 0 ? ajTxtT(TXT_V2_SEG, rot[i]) : ajTxt(TXT_V2_SEG, rot[i]);
+     GfxRect r = { direita - t.w - 40.0f, yc - 24.0f, t.w + 40.0f, 48.0f };
++#ifdef NV_TEST_LOCAL_LOGS
++    // One settled geometry record per editor/viewport, never an animation pulse.
++    static int ultimoOp[2] = {-1,-1}, ultimoEditor[2], ultimoMobile[2];
++    static float ultimoW[2], ultimoH[2];
++    if (a >= 0.95f && (ultimoOp[i] != uxOp || ultimoEditor[i] != uxEditor ||
++        ultimoMobile[i] != layout_modo_mobile() || ultimoW[i] != NV_LAYOUT_REAL_W || ultimoH[i] != NV_LAYOUT_REAL_H)) {
++      printf("[test-settings] action=14 op=%d button=%d mobile=%d editor=%d inline=%d x=%.0f y=%.0f w=%.0f h=%.0f vw=%.0f vh=%.0f\n",
++        uxOp, i, layout_modo_mobile(), uxEditor, ajPontInline,
++        (double)r.x, (double)r.y, (double)r.w, (double)r.h, (double)NV_LAYOUT_REAL_W, (double)NV_LAYOUT_REAL_H);
++      ultimoOp[i] = uxOp; ultimoEditor[i] = uxEditor; ultimoMobile[i] = layout_modo_mobile();
++      ultimoW[i] = NV_LAYOUT_REAL_W; ultimoH[i] = NV_LAYOUT_REAL_H;
++    }
++#endif
+     if (i == 0) ajPilulaAcento(r, 24.0f, a);
+     else ajNeutro(r, 24.0f, 0.10f, AJ_CHIP_SOL, a);
+     txt_desenhar_alpha(t, r.x + 20.0f, yc - t.h * 0.5f, a);
+diff --git a/src/ajustes_ux_ilha.inc b/src/ajustes_ux_ilha.inc
+index 4a791450a..d1bc9f37a 100644
+--- a/src/ajustes_ux_ilha.inc
++++ b/src/ajustes_ux_ilha.inc
+@@ -752,6 +752,9 @@ static int ajPontEdVale(void) { return uxEditor == 1 && uxOp >= 0 && !uxRestaura
+ static void ajPontEdRodape(int a, int b) { (void)a; (void)b; if (ajPontEdVale() && uxTemPadrao(uxOp)) uxRodape = 1; }
+ static void ajPontEdValor(int i, int b) {
+   (void)b;
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(11, uxOp, ajPontEdVale() && i >= 0 && i < nValores(uxOp), 0);
++#endif
+   if (!ajPontEdVale() || i < 0 || i >= nValores(uxOp) || (!uxRodape && uxPendente == i)) return;
+   if (uxOp == AJ_TEX_MB && texAcima(i)) return;
+   uxRodape = 0; uxPendente = i;
+diff --git a/src/ajustes_ux_interacao.inc b/src/ajustes_ux_interacao.inc
+index ccb761f17..fb1d7d135 100644
+--- a/src/ajustes_ux_interacao.inc
++++ b/src/ajustes_ux_interacao.inc
+@@ -15,6 +15,9 @@ static void uxNotificar(const char *s) {
+   uxAvisoAte = SDL_GetTicks() + 4500;
+ }
+ static void uxCancelar(void) {
++#ifdef NV_TEST_LOCAL_LOGS
++  if (uxEditor) ajTesteEvento(2, uxOp, 1, 0);
++#endif
+   uxEditor = uxRestaurar = uxConfirmar = uxRodape = uxAvisoRisco = 0;
+   emEdicao = 0;
+   if (faRetornarFolha) { frAberta = faRetornarFolha; faRetornarFolha = 0; faAddonEditar[0] = 0; }
+@@ -113,6 +116,9 @@ static void uxAbrirEditor(int op) {
+   uxCancelar();
+   uxOp = op; uxOriginal = uxValorAtual(op); uxPendente = uxOriginal;
+   uxEditor = inativa(op) ? 2 : 1;
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(1, op, 1, 0);
++#endif
+ }
+ static int uxRiscoFinal(int op, int novo) {
+   if (op == AJ_FIL_LIMITE && fil_limite_pede_aviso(uxValorAtual(op), novo))
+@@ -122,24 +128,43 @@ static int uxRiscoFinal(int op, int novo) {
+ }
+ static void uxAplicar(void) {
+   int antes = uxValorAtual(uxOp), bit;
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(3, uxOp, 1, 0);
++#endif
+   // Conta/sync pode ter mudado o valor enquanto o seletor estava aberto.
+   if (antes != uxOriginal) {
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(4, uxOp, 0, 0);
++#endif
+     uxOriginal = uxPendente = antes;
+     uxRestaurar = uxAvisoRisco = uxConfirmar = 0;
+     uxNotificar("O valor mudou em outra tela. Confira antes de confirmar.");
+     return;
+   }
+-  if (!uxRestaurar && inativa(uxOp)) { uxEditor = 2; return; }
++  if (!uxRestaurar && inativa(uxOp)) {
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(5, uxOp, 0, 0);
++#endif
++    uxEditor = 2; return; }
+   bit = uxRiscoFinal(uxOp, uxPendente);
+   if (bit && !seguro_aviso_visto(bit)) {
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(6, uxOp, 0, 0);
++#endif
+     uxAvisoRisco = bit; uxConfirmar = 0; return;
+   }
+   if (!definirValorDireto(uxOp, uxPendente)) {
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(7, uxOp, 0, 0);
++#endif
+     uxNotificar(uxOp == AJ_SEEKR_LIGADO && !seekrChave[0] ? seekrPedirChave() :
+                 "Não foi possível salvar. O valor anterior foi mantido.");
+     return;
+   }
+   riscoNotar(uxOp, antes);
++#ifdef NV_TEST_LOCAL_LOGS
++  ajTesteEvento(8, uxOp, 1, 0);
++#endif
+   uxCancelar();
+   uxNotificar(uxOp == AJ_PERFIL_PESQ ? "Pedido enviado ao perfil." : "Ajuste salvo nesta TV.");
+   // A lista de diferenças permanece estável até sair dela, mesmo após restaurar.
+diff --git a/src/app.c b/src/app.c
+index 8a1f53f1a..530f054bd 100644
+--- a/src/app.c
++++ b/src/app.c
+@@ -2131,6 +2131,11 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+       ? proximoIntento.sessaoPerfil : sessaoEntrada;
+   ProximoPreparoResultado preparada = {0};
+   int pronta = proximopreparo_consumir(alvo, &preparada);
++#ifdef NV_TEST_LOCAL_LOGS
++  printf("[test-next] event=handoff t=%d e=%d target_valid=%d prepared=%d pending=%d selected=%d actor_ok=%d owner_ok=%d ms=%u\n",
++    t, e, !!alvo[0], pronta, proximopreparo_em_curso(alvo), pronta ? preparada.indiceFonte : -1,
++    nv_perfil_sessao_atual(sessaoPerfil), !pronta || preparada.sessaoPerfil == sessaoPerfil, SDL_GetTicks());
++#endif
+   if (!nv_perfil_sessao_atual(sessaoPerfil) || (pronta && preparada.sessaoPerfil != sessaoPerfil)) {
+     proximopreparo_liberar_resultado(&preparada);
+     memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
+@@ -2140,6 +2145,10 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+   if (!pronta && proximopreparo_em_curso(alvo)) {
+     if (!proximoIntento.tem || strcmp(proximoIntento.alvo, alvo))
+       player_toast(i18n("Abrindo fonte"), 1500);
++#ifdef NV_TEST_LOCAL_LOGS
++    if (!proximoIntento.tem)
++      printf("[test-next] event=wait_preparation t=%d e=%d ms=%u\n", t, e, SDL_GetTicks());
++#endif
+     proximoIntento.tem = 1; proximoIntento.titulo = titulo;
+     proximoIntento.t = t; proximoIntento.e = e; proximoIntento.apontar = apontar;
+     proximoIntento.geracao = proximopreparo_geracao();
+@@ -2177,6 +2186,9 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+   }
+   player_abrir(titulo, NULL);
+   player_definir_episodio(t, e);
++#ifdef NV_TEST_LOCAL_LOGS
++  printf("[test-next] event=episode_opened t=%d e=%d prepared=%d ms=%u\n", t, e, pronta, SDL_GetTicks());
++#endif
+   // Abrir/fechar nao seguram a trava de identidade. Conferir outra vez antes
+   // de publicar a lista e seu orcamento como uma unica transferencia curta.
+   if (!nv_perfil_sessao_travar(sessaoPerfil)) {
+@@ -2246,6 +2258,12 @@ static void proximoPreparoPasso(void) {
+   if (!atual[0] || strcmp(atual, proximoIntento.atual) || player_indice() != proximoIntento.titulo ||
+       proximoIntento.geracao != proximopreparo_geracao() ||
+       !nv_perfil_sessao_atual(proximoIntento.sessaoPerfil)) {
++#ifdef NV_TEST_LOCAL_LOGS
++    printf("[test-next] event=cancel_pending player=%d exiting=%d episode_changed=%d title_changed=%d generation_changed=%d actor_changed=%d ms=%u\n",
++      player_aberto(), player_quer_sair(), !atual[0] || strcmp(atual, proximoIntento.atual) != 0,
++      player_indice() != proximoIntento.titulo, proximoIntento.geracao != proximopreparo_geracao(),
++      !nv_perfil_sessao_atual(proximoIntento.sessaoPerfil), SDL_GetTicks());
++#endif
+     memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
+     player_episodio_pedido_liberar();
+   } else if (!proximopreparo_em_curso(proximoIntento.alvo))
+@@ -5548,6 +5566,13 @@ void app_atualizar(float dt, Uint32 agora) {
+   // o titulo relacionado sai do player e abre o detalhe, que e onde o dono
+   // escolhe se quer mesmo assistir.
+   { int t = 0, e = 0;
++#ifdef NV_TEST_LOCAL_LOGS
++    static int testGuarda = -1;
++    if (testGuarda != aguardandoFonte) {
++      printf("[test-next] event=source_guard state=%d player=%d ms=%u\n", aguardandoFonte, player_aberto(), SDL_GetTicks());
++      testGuarda = aguardandoFonte;
++    }
++#endif
+     if (aguardandoFonte != 2 && posplay_pediu_episodio(&t, &e) && player_aberto())
+       abrirProximoEpisodio(t,e,1);
+   }
+diff --git a/src/posplay.c b/src/posplay.c
+index dabb48091..fb3a31731 100644
+--- a/src/posplay.c
++++ b/src/posplay.c
+@@ -222,6 +222,9 @@ void posplay_aguardar_busca(int aguardar) {
+ 
+ int posplay_pediu_episodio(int *t, int *e) {
+   if (!pedT) return 0;
++#ifdef NV_TEST_LOCAL_LOGS
++  printf("[test-next] event=request t=%d e=%d automatic=%d ms=%u\n", pedT, pedE, pedAutomatico, SDL_GetTicks());
++#endif
+   if (t) *t = pedT;
+   if (e) *e = pedE;
+   pedT = pedE = 0;
+@@ -532,6 +535,45 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
+     else fecharEm = posplay_contagem(agora, abriuEm, fecharEm, resta, ajustes_proximo_auto(), marcadorReal, ajustes_proximo_contagem());
+   }
+ 
++#ifdef NV_TEST_LOCAL_LOGS
++  // Test APK only: state changes and a bounded five-second pulse near Next.
++  // No source URLs, accounts, API keys or profile names enter these records.
++  {
++    static unsigned testEstado;
++    static Uint32 testQuando;
++    static int testT, testE;
++    int t = 0, e = 0;
++    const CatEp *testProximo = player_proximo_episodio();
++    long long testLancamento = prox_episodio_data_ms(testProximo);
++    int testDataConhecida = testLancamento != PROX_SEM_DATA;
++    int testFutura = testDataConhecida && testLancamento > (long long)time(NULL) * 1000;
++    player_episodio_atual(&t, &e);
++    unsigned estado = (unsigned)!!visivel | (unsigned)!!fecharEm << 1 |
++      (unsigned)!!marcadorReal << 2 | (unsigned)!!aguardaCena << 3 |
++      (unsigned)!!aguardaBusca << 4 | (unsigned)!!recuou << 5 |
++      (unsigned)!!dispensado << 6 | (unsigned)!!ajustes_proximo_auto() << 7 |
++      (unsigned)!!ajustes_pular_creditos() << 8 | (unsigned)!!janelaSerie << 9 |
++      (unsigned)!!preVideoTentou << 10 | (unsigned)!!preVideoRenovou << 11 |
++      (unsigned)!!pedT << 12 | (unsigned)!!video_terminou() << 13 |
++      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15 |
++      (unsigned)!!ajustes_fonte_precarregar() << 16 | (unsigned)!!ajustes_fonte_preparar() << 17 |
++      (unsigned)!!ajustes_fonte_manual() << 18 | (unsigned)!!testDataConhecida << 19 |
++      (unsigned)!!testFutura << 20;
++    int perto = visivel || janelaSerie || preVideoTentou || aguardaBusca;
++    if (ehSerie && (estado != testEstado || t != testT || e != testE ||
++                    (perto && agora - testQuando >= 5000u))) {
++      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d preload_enabled=%d prepare_enabled=%d manual=%d release_known=%d release_future=%d release_ms=%lld\n",
++        agora, t, e, proxT, proxE, posSeg, video_pos(), durSeg, video_terminou(), video_pronto(),
++        video_bufferando_ms(), player_velocidade_efetiva(), creditosSeg,
++        marcadorReal, janelaSerie, visivel, ajustes_proximo_auto(), ajustes_pular_creditos(),
++        aguardaCena, aguardaBusca, recuou, dispensado,
++        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou,
++        ajustes_fonte_precarregar(), ajustes_fonte_preparar(), ajustes_fonte_manual(),
++        testDataConhecida, testFutura, testDataConhecida ? testLancamento : 0LL);
++      testEstado = estado; testQuando = agora; testT = t; testE = e;
++    }
++  }
++#endif
+   // A contagem so vale para o proximo episodio.
+   if (visivel && fecharEm && agora >= fecharEm) {
+     pedT = proxT; pedE = proxE;
+@@ -547,6 +589,10 @@ int posplay_evento(const SDL_Event *e) {
+   if (toquerol_navegacao(e)) toquerol_limpar(&toquePP);
+ #endif
+   k = e->key.keysym.sym;
++#ifdef NV_TEST_LOCAL_LOGS
++  printf("[test-next] event=control key=%d focus=%d scene=%d series=%d next=%d:%d ms=%u\n",
++    k, foco, aguardaCena, serie, proxT, proxE, SDL_GetTicks());
++#endif
+   if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
+       e->key.keysym.scancode == NV_SCANCODE_BACK) {
+     // Dispensar CANCELA a contagem e deixa o video terminar em paz. E GRUDA:

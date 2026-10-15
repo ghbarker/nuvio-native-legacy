@@ -1,0 +1,64 @@
+{
+  "outcome": "offline-preflight-only",
+  "scope": "Python/recipe/input/hash checks only; no Java/Kotlin/Gradle/media/emulator execution, no contracts counted as passed",
+  "fixture_files_verified": 17,
+  "unchanged_media3_assertions": 15,
+  "current_player_components": {
+    "android/app/src/main/java/space/nuvio/nativelegacy/AudioSyncSink.kt": "3ea9927c8b80b9b4e7f9dbb8984cb40e1fe3d9bfaa01fcde2d1a9230a40bc0c1",
+    "android/app/src/main/java/space/nuvio/nativelegacy/AudioSyncTap.kt": "f0fcc355cb73a0b127e34ad3edc379cf81678dfd35152199fc5b5597c28d8263",
+    "android/app/src/main/java/space/nuvio/nativelegacy/CacheMidia.kt": "494606fb18b683dc7ed5a4d78a1b7790870deeccd24e445132179f59adca303d",
+    "android/app/src/main/java/space/nuvio/nativelegacy/CacheSessao.kt": "c05a8bcc909cb7df877fb19689d3dd3ee7d91825c4d6867da30dc8d462eb6b10",
+    "android/app/src/main/java/space/nuvio/nativelegacy/GanhoAudioProcessor.kt": "0d0a1c721a8edfe2049d4f69155c86c5f6a7be351e96a2129669a6b34112947c",
+    "android/app/src/main/java/space/nuvio/nativelegacy/GanhoMath.kt": "c4776a36ab0b4e33b07b1d70ebaa265ad04dea564b242156163de93a464d5129",
+    "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt": "09288bbb2f24163b85933e1c84d3ff39a1072c5fada9faf3b4672d1c7b360c90",
+    "android/app/src/main/java/space/nuvio/nativelegacy/ParaleloDataSource.kt": "0123ec85f436876cab0642fa0d6882f303b1f5a007d7e428850b723aed567d17",
+    "android/app/src/main/java/space/nuvio/nativelegacy/PassivoMedidor.kt": "4f3f738b254fef1c519d9ace6ca60e05cadeec7aa35db3cb778a75cdc4fdd2c4",
+    "android/app/src/main/java/space/nuvio/nativelegacy/RecriaHdr.kt": "fe57b92377d316d5ef1bd4a58c6864dfc14270751e158c923e6a8004bf1b1933"
+  },
+  "compiler_tools": [
+    {
+      "name": "kotlin-compiler-embeddable-1.9.24.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-compiler-embeddable/1.9.24/kotlin-compiler-embeddable-1.9.24.jar",
+      "sha256": "e71ff19e6b141ab85a9328fd010941531a302543026bd4244c95adc208d501f6"
+    },
+    {
+      "name": "kotlin-daemon-embeddable-1.9.24.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-daemon-embeddable/1.9.24/kotlin-daemon-embeddable-1.9.24.jar",
+      "sha256": "177bc8b2a4076dcce7878ad0d8fd07163af3178e3fa90ee63d4f733bb47bfdc9"
+    },
+    {
+      "name": "trove4j-1.0.20200330.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/intellij/deps/trove4j/1.0.20200330/trove4j-1.0.20200330.jar",
+      "sha256": "c5fd725bffab51846bf3c77db1383c60aaaebfe1b7fe2f00d23fe1b7df0a439d"
+    },
+    {
+      "name": "kotlin-script-runtime-1.9.24.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-script-runtime/1.9.24/kotlin-script-runtime-1.9.24.jar",
+      "sha256": "314c7d308fe750654365bac6144780613c9169cf3d9e1dafbab91cf80bdc357c"
+    },
+    {
+      "name": "kotlin-stdlib-1.9.24.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.9.24/kotlin-stdlib-1.9.24.jar",
+      "sha256": "858b902696da9cf585ab9d98ffc1c2712269828354dfe9107e3711b084a36468"
+    },
+    {
+      "name": "kotlin-reflect-1.6.10.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar",
+      "sha256": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203"
+    },
+    {
+      "name": "annotations-13.0.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.jar",
+      "sha256": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478"
+    }
+  ],
+  "legacy_kotlin_runner_sha256": "13f28fe41cf53e29de2cde7fe6d1700378a9ec5f85d5b01115d73d0b736c0c5c",
+  "fixture_manifest_sha256": "77ebcbd7ed8a0d99106a7d99bea829a926d181a8ccf404cd354acc803e8b1599",
+  "recipe_files": {
+    "README.md": "33a112cad9f2854cf9aef53721bb2ffa4fe896eb9bd6ead0e63b7458bf85b2e8",
+    "dependencies.init.gradle": "3172111844d1f9c0dbcc05c6f945fa2a1a4a9172848c7e7087e6a62a3c3b121c",
+    "job-fragment.json": "76b9e4a695daf7968ab138c271c48729dcfb4feaec2c5571118ac04656728a2c",
+    "preflight.py": "c2a85308816685b5bad508e6d615fd9b3ef04ca9d6902ae8b996f03f516c1601",
+    "run.py": "ba4ed7a0c6f2f95c1cf694bf8b820d23f619faccff3582585858c03777072ef9"
+  }
+}

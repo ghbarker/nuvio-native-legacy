@@ -1,0 +1,42 @@
+{
+  "outcome": "passed",
+  "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+  "source_tree": "03980d7707a30d112cf9b22f090cf4fab9a6e4dd",
+  "reports": {
+    "dispatch": {
+      "report": "legacy513/results-product-dispatch/report.json",
+      "sha256": "3bf43cc70b28ed5b83ae896ce25dd788f941cacabbbf771db653bec236cca317",
+      "cases": 4,
+      "assertions_per_case": 50
+    },
+    "owner": {
+      "report": "legacy513/results-product-owner/report.json",
+      "sha256": "c7bd3b90b152cd95f66e97bf53fa44166f929b53b53058e3a7c5775e0d170ac5",
+      "cases": 4,
+      "assertions_per_case": 18
+    }
+  },
+  "fixture_C_assertions_byte_identical": true,
+  "adapter_changes": [
+    "Both reduced link groups now compile/link genuine src/sinopse.c.",
+    "Source proof now binds sinopse.c/h and changedtext.h.",
+    "Darwin _DARWIN_C_SOURCE=1 and no Linux section flags; original real-profile producer/rename preserved.",
+    "Linux ASan nonPIE flags only; Darwin sanitizer flags unchanged."
+  ],
+  "no_new_success_behavior_stubs": true,
+  "config_boundary_added": false,
+  "Darwin_execution_pending": true,
+  "scope": "Actual existing513dispatch/owner TV/mobile normal/ASan fixtures on combined product; Linux SDK boundary execution, not macOS/fullSDK passes.",
+  "files": {
+    "adapter-origin.json": "08a5892b15217379ba730ced08918f5c588f77754c753585bf72c1f31143b927",
+    "dispatch/run.py": "bb1efbb3b6c1e6e413f5214593749672d2a1738f83f4ac086c6ae6fda6d1b9c1",
+    "dispatch/episode_requests.c": "6d23da918d1d2bc45f9adb6f11ed290734606bf7b77cf815cc3889c3f3b1c73d",
+    "owner/ancillary.c": "337b3dac31cbeb53e9f79a4ccb72677a1b1fe786bf8f5dbbcfdeaa311666140e",
+    "owner/run.py": "a2edac1e1a868d7611a2d8da28f54e6a59796ad37d09d48bb680f355af81e491",
+    "owner/streams_fixture.c": "4249a7997ac421152e6491f88fae4f83c7a108e6f0c9b7dab3a5b49c8706bb41",
+    "owner/queue_fixture.c": "6603703d79c20fca0e5c502112621d52e1c6702785e0e3e668c1883c959a192f",
+    "dispatch/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "dispatch/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "dispatch/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  }
+}

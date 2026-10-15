@@ -1,0 +1,110 @@
+{
+  "format": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "review_only": true,
+  "launch_requires_root_review": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "sources": {
+    "product": {
+      "commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "tree": "03980d7707a30d112cf9b22f090cf4fab9a6e4dd",
+      "parent": "81574e9eefc91b6f8a1a110ea763b05192d580e7",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "f1ef59ea29b0dde1f17b3d34eaf4fd98b356a5050d1adbd0864319f5d67233dc",
+      "delta_patch_sha256": "f440406576416e946660575595cb219a99a5755c185429b69bc995b7bd3afc56"
+    },
+    "test": {
+      "commit": "efff065b63bb1234718ca20999265612bacb50b4",
+      "tree": "db298030e77e126831f34139866067acbbb3aff3",
+      "parent": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "94f1517ee450d4f87f0ebbd6dc41f4131ce3bed04c1a14412acf67c42ad4e6c2",
+      "delta_patch_sha256": "55055a6bedd3c23f9cad5598ffafee9bbcf2b8b8f76470d9ee0199ea370aa8c6"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20019,
+    "version_name": "2.0.19-test-logs9",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "844bd9955df9e216a05abddabb056f961adceb5bdbe3394eaea3f0b38584c9dd",
+    "bytes": 1013611
+  },
+  "layers": {
+    "base": "68b520db152b7473be3500d04e01ca5bd4424719",
+    "cache499": [
+      "bf0eb3bcd77dbf3956915797d29627524052d3fd",
+      "980aec9552fb637cb1000ef38a6dc49b4d113fb5"
+    ],
+    "controls496_460": "8f00c05e35d01732856519183ce54540f042819b",
+    "font477": "58472e83ff1a39311026f747333a29c412dd6d7a",
+    "private_overlay": "260c83a604b2a35787714a2946566d1dfd049704"
+  },
+  "pending": [],
+  "proof_policy": {
+    "fresh": [
+      "macOS4fullapps",
+      "original3normal+ASan",
+      "changednative/settings/textclosures",
+      "Androidproduct+testbothABIs+16KB+signer+JNI+optin",
+      "fresh32 JVM helper contracts and15 actual Media3 contracts with current Java/toolchain/runtime evidence"
+    ],
+    "eligible_reuse": [
+      "same-invocation macOS object reuse only after exact preprocessor/dependency-byte equivalence under the isolated private macro delta"
+    ],
+    "never_reuse": [
+      "oldAPK/signature/ABI/DEX/16KB",
+      "oldfullsourceorchangednativeclosures",
+      "anyfailedincompletejob"
+    ]
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "edee1a02a3b166ecce3ba74c0f5aa76fb3c32510917b816376687543ad6f7716"
+  },
+  "inherited_review": {
+    "commit": "fd28b407990dfa01c57637521899442c78848e66",
+    "tree": "822018c84856642090a1bd8934a6f9220dcca6b2",
+    "trees": {
+      ".review/logs8/native": "6140094cd3d7cb497b2b2d3a606550eddc83f7a1",
+      ".review/logs8/kotlin": "e4c69aa33ba15cfa6b749a6d5c3cf66d4caf26e8",
+      ".review/logs8/runtime": "fb602f5d1116c1f0a8d3318d8c25a1365af97c0a"
+    }
+  },
+  "excluded_from_this_update": [
+    "475 subtitle outline color",
+    "362 later feature"
+  ],
+  "source_composition_root_approved": true,
+  "local_preflight": {
+    "root-source-review.json": "e3c1b1603d37e5a6507536cef8f4db07c06e86874a1eb92870e41c2977bc4af7",
+    "local-preflight-verified.json": "1bcadb4dc36a52b08757b6d5585ec85cb732169c33c0c4bd8b62573b6dd50847",
+    "legacy513-adapter-verified.json": "b3600657ecb1d47a56cc212d787fac753d94790032a22d5039746f17e5ec3c58",
+    "schema-review.json": "0b205c622fa78f848894c361a0629a244fe86e5adf9f9917d86ff8ef4a677410",
+    "reload-backend-review.json": "df9b773d737bd3a023a3c00646982ac4493d86b8bb431b84c1053cb97c65cf83",
+    "cache499-local.json": "914664b3916d51bf9ab8b9531cf9bdde80cce7879cdb7331bf5d5041157e3842",
+    "synopsis477-local.json": "eb6f4adf574dd894ddd2eb88533b56df5ab3d809b81bd7093671ac3720a6261f",
+    "ci-gate-guards.json": "fc6e523e04b328b3ef04b0419d0127525f805f24b76bd203d23e176b89c1f355",
+    "aggregate-guards.json": "67dd73718280fd9579e85d106c0768327ca60cd36057b6e14c8045a0d256db39"
+  },
+  "ci_execution_permitted": true,
+  "root_approval_scope": "Exact84e079 product/efff065 private layers and reviewed fresh-source CI recipe only; no publication, PR, source-reference writes or further features.",
+  "recipe_pins": {
+    "aggregate.py": "4eca0688e270399a6bbdbd06a8968d43dae80e1993d9ccc0a5e89053f258689e",
+    "native/run.py": "23a59d137babb48ec2df4859bd49e9bef4d2e6141b5a9d93f42e5e9dc0e6a988",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "00e7ec90d7cc94af7790d3ab5a13ab41f3f1fe709ff70269f47f1aa11c29efa8",
+    "jvm/manifest.json": "3536d586f4cb38345c0d54812433eea1edef524246820468def1828ab9d3b49d",
+    "preflight/tooling-manifest.json": "5472fc6d8a1877d9ab153a6427fd2a1772cbd9803534a9f45afa796f8021e367",
+    "preflight/cache-synopsis-portable-manifest.json": "d3ea86514355dc23682047477766aaff57a4f5885b729c966c81ab852756f773"
+  }
+}

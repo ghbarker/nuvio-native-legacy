@@ -1,0 +1,135 @@
+{
+  "outcome": "passed",
+  "scope": "Metadata-only plan/source/proof/inherited-tree rejection fixtures and original3 preflight; no source suites, compiler invocations, builds, CI or backend actions",
+  "stage_sha256": {
+    "require_plan.py": "195e98b900f1838648b3558de26442b44c1f6d098328e1204f20b2e397b677dd",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "native/run.py": "23a59d137babb48ec2df4859bd49e9bef4d2e6141b5a9d93f42e5e9dc0e6a988",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51"
+  },
+  "checks": [
+    {
+      "guard": "approved exact plan hash accepted",
+      "passed": true
+    },
+    {
+      "guard": "approved wrong plan hash refused",
+      "passed": true
+    },
+    {
+      "guard": "approved missing plan hash refused even with review flag",
+      "passed": true
+    },
+    {
+      "guard": "frozen false refuses execution",
+      "passed": true
+    },
+    {
+      "guard": "root_reviewed false refuses execution",
+      "passed": true
+    },
+    {
+      "guard": "source_frozen false refuses execution",
+      "passed": true
+    },
+    {
+      "guard": "explicit metadata review materialization remains available",
+      "passed": true
+    },
+    {
+      "guard": "exact source proof plus clean real Git tree accepted",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof source_commit refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof tree refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof manifest_sha256 refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof bundle_sha256 refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof base refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof review_commit refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof layer refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof verified refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof source_clean refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof review_only refused",
+      "passed": true
+    },
+    {
+      "guard": "wrong proof original_tests_tree_unchanged refused",
+      "passed": true
+    },
+    {
+      "guard": "missing CI review identity refused",
+      "passed": true
+    },
+    {
+      "guard": "dirty source refused",
+      "passed": true
+    },
+    {
+      "guard": "clean other checkout refused despite valid proof",
+      "passed": true
+    },
+    {
+      "guard": "original test tree mutation refused independently of claimed boolean",
+      "passed": true
+    },
+    {
+      "guard": "all exact inherited review subtrees accepted",
+      "passed": true
+    },
+    {
+      "guard": "wrong inherited subtree refused",
+      "passed": true
+    },
+    {
+      "guard": "unstaged inherited fixture mutation refused",
+      "passed": true
+    },
+    {
+      "guard": "staged inherited fixture mutation refused",
+      "passed": true
+    },
+    {
+      "guard": "original3 metadata-only preflight works before approval without build/output",
+      "passed": true
+    },
+    {
+      "guard": "original3 actual execution refuses unapproved or mismatched plan before build/output",
+      "passed": true
+    },
+    {
+      "guard": "fixed native output/path and shared source/materializer calls are wired",
+      "passed": true
+    }
+  ],
+  "count": 30,
+  "stage_unchanged": true,
+  "guard_sha256": "6943d1a714acabd7fe19474e5c20893162ffe183c84ecccd7ba310783cb6f272"
+}

@@ -1,0 +1,46 @@
+{
+  "outcome": "passed",
+  "scope": "Fresh host-only actual-body Reload lifecycle contracts and whole-TU C syntax independently for both composed source layers. Recording native engine boundaries from accepted harness; no new success stubs or native device/full SDK/app execution. No evidence reused across layers.",
+  "source_layers_backend_byte_identical": true,
+  "normal_and_asan_ubsan_contract_runs": 12,
+  "whole_tu_host_syntax_checks": 10,
+  "receipts": {
+    "product": {
+      "contracts": {
+        "path": "backend/product/contracts-receipt.json",
+        "sha256": "3b92c40e1a93c6ff1d4456abb2f92946ca8d22f954bd0d0d3bfb7c11bafabfc4",
+        "passed": 6,
+        "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+        "private_opt_in": false,
+        "runner_sha256": "db5bca72bbbcdfbe70b67d3956fb6182f25e3c481f5af02d708b01fe3fde4f3f"
+      },
+      "syntax": {
+        "path": "backend/product/syntax-receipt.json",
+        "sha256": "944549c9a239468b6777a9093b6bb6f400e194e974cd64a197eccde78d24fcf2",
+        "passed": 5,
+        "source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+        "private_opt_in": false,
+        "runner_sha256": "1d739785ba8d49affc591aff825f7121a0f63e4563c3a3df7e366d2b7ada5b16"
+      }
+    },
+    "test": {
+      "contracts": {
+        "path": "backend/test/contracts-receipt.json",
+        "sha256": "612ddf11809c1b210565255c5f4e9fe76d494ca0394e31e42558eb1ad2636d60",
+        "passed": 6,
+        "source_commit": "efff065b63bb1234718ca20999265612bacb50b4",
+        "private_opt_in": true,
+        "runner_sha256": "e094dfcbecc3003b4b8f2c203953e62f9e2660419b9d2087d23b021f408f2992"
+      },
+      "syntax": {
+        "path": "backend/test/syntax-receipt.json",
+        "sha256": "bd608d59e355e94c33a06cf116869a7bdcbc92b0bb89b9017a20e6b7596decf9",
+        "passed": 5,
+        "source_commit": "efff065b63bb1234718ca20999265612bacb50b4",
+        "private_opt_in": true,
+        "runner_sha256": "21e93f1307d1e3d0f5b9f2f4f27e5f71bc756d7f4e465f524d54457db2f9ec32"
+      }
+    }
+  },
+  "source_unchanged": true
+}

@@ -1,0 +1,31 @@
+{
+  "prepared_only": false,
+  "sources_not_ready": false,
+  "product_source_execution_performed": true,
+  "plumbing_self_checks": "passed",
+  "portable_source_paths": true,
+  "Darwin_actual_runtime_pending": true,
+  "local_final_receipt_sha256": "1bcadb4dc36a52b08757b6d5585ec85cb732169c33c0c4bd8b62573b6dd50847",
+  "files": {
+    "run.py": "45574f0d8b0e73d821b3ca72e243fac3fed82b06f0a7099c589a1bfd3afab697",
+    "test_portable.py": "69c487bd897da6aff18a232a2164dd40fdaec17220e0770db5b99d470e364137",
+    "finalize_local.py": "302c9244a8db60c0fa7366306b7b654536b369476c9b3cde278291e1008068e3",
+    "preflight-plan.json": "a2a48ce6aed76ecb8e5ecbd61ea3572b93e75ad5140b46f13a858c45ad0214e9",
+    "fixture-origin.json": "01b1a88f44e3b0eac33a24043b79f8537a95a554ff443f5bad62fdf670bc71d3",
+    "sdk-origin.json": "0ef6b10f3bc338987c3da3e6981b7b8eab4833dda2ef59d6e255207cc4e57814",
+    "sdk-extra.h": "173524fe7bc2fba3dd38223e7acc34aa102d620cd9f20ad8570e3921d7e8c8ce",
+    "player496/run-posplay.py": "021002e948c765f4de38f74ebc439bdcf913adaf2285f31aaef6f869c3b07454",
+    "player496/build-player.py": "3a1fe3e511ebfe85505f0e01298a1efe83cc647632f0eea002d10dc373c47126",
+    "player496/posplay-manual.c": "e7bb1c2d0ac2e44c1f1021d2641f5d750dd088993cac9839b0d03ec72236c359",
+    "player496/player-render.inc": "e9e237088137d4a84d67342060192339ad4b9f8d221cda65d48a1a9c6dc223be",
+    "player496/run-selectors.py": "83001e55c923ee02d32af3e0688a67fe63892eb2baad68b443890100a541ab65",
+    "player496/selector-cases.c": "479d7fef52219127530bf7cb42740f3baa36d153976a676cb89d9a5cec4c414c",
+    "player496/player-boundaries.inc": "9ed9962d0d2676ab4cffcfe6f5e41f7753c3ec9b4f7463c1928809e996938a9e",
+    "player496/app-route.c": "fc0410592f7d00abe03e7fb57b161ed1430d691543b8c56cd2a9b2580bde94b3",
+    "player496/run-app-route.py": "d5328e70eb06dad11cff5e4f256807a0825c8cd6e6b3ef7ddcc4dea5816787d5",
+    "player496/player-controls.c": "ab52fd21c26f8fbdb6ad7bfb8c6ce50afae5c322fb6b7cdbfb4b47433d295836",
+    "player496/portable.py": "42ac9be96da85f56d87c9fd895b2507f9fa5aff730e2263493aa12acc4bf8998",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "904cc79914cfda7157463f2762cf9d70e79b45a81c74b48235ddb044f7a21ea8"
+  }
+}
