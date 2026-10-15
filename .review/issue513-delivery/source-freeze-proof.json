@@ -1,0 +1,68 @@
+{
+  "sources_frozen": true,
+  "locally_preflighted_assertions": 544,
+  "records": [
+    {
+      "case": "standalone-issue513",
+      "fixture": "dispatch",
+      "report": "/workspace/review/issue513-apk-20261015/preflight/standalone-dispatch/report.json",
+      "report_sha256": "0d90b05e3b82774e32ce2d54a1f4ea4f816d07e204807a5b56ba86aab49cac10",
+      "executions": 4,
+      "assertions": 200
+    },
+    {
+      "case": "combined-delivery",
+      "fixture": "dispatch",
+      "report": "/workspace/review/issue513-apk-20261015/preflight/combined-dispatch/report.json",
+      "report_sha256": "1722b28f724f613822efdc218211d7b5488aa5f4eecf30603af3e38d5363e48a",
+      "executions": 4,
+      "assertions": 200
+    },
+    {
+      "case": "standalone-issue513",
+      "fixture": "owner",
+      "report": "/workspace/review/issue513-apk-20261015/preflight/standalone-owner-final/report.json",
+      "report_sha256": "52468a7ffac0009a7096abbbc1e25ded6b25b4d72cc0c64d6563c8d69d6fb5e1",
+      "executions": 4,
+      "assertions": 72
+    },
+    {
+      "case": "combined-delivery",
+      "fixture": "owner",
+      "report": "/workspace/review/issue513-apk-20261015/preflight/combined-owner-v2/report.json",
+      "report_sha256": "334e44ccd54bc4d645a94b42ed11ddf9ea05620c03d1931db8a6918bbe32a2bf",
+      "executions": 4,
+      "assertions": 72
+    }
+  ],
+  "physical_device_validation_claimed": false,
+  "ci_scope": "six jobs after matrix expansion: prepare, two macOS cases, one both-ARM build, exact unchanged20player component reuse, publish",
+  "review_parent": "1eac5860820e6e8b142140ceccd054ea02956793",
+  "only_new_product_paths": [
+    "src/detail.c",
+    "src/streams.c"
+  ],
+  "source_origins": {
+    "separate_product_commits": [
+      "6c2680e9648a8525e16807f68247d3696d4840e1",
+      "bb250672686ab4641cdcdc651c0491dd8ed4ce98"
+    ],
+    "immutable_manifests": [
+      {
+        "manifest": "origins/source-manifest.json",
+        "sha256": "44458df559ac0d17a022f744e18417db7e8142e8619b1aabe4d10edaf8d03727"
+      },
+      {
+        "manifest": "origins/owner-guard-manifest.json",
+        "sha256": "e149a89d7e695ae692a73a8d1ea8c9e7b18d4e2df48a6c53f5c71301474d73fc"
+      },
+      {
+        "manifest": "origins/complete-source-manifest.json",
+        "sha256": "f7036ed2dbb307d076dfaf112136890e2686e51733d7053a9a9d9b31fe5d7def"
+      }
+    ],
+    "existing_test_app_base": "04612e42fc58776d947062e908d32ce7322e58cf"
+  },
+  "fixture_sources_unchanged": true,
+  "fixture_ancillary": "stable idle account/cache identity only; does not model profile switching"
+}

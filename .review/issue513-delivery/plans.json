@@ -1,0 +1,58 @@
+{
+  "frozen_sources": true,
+  "publish_release": true,
+  "issue": "https://github.com/iqui27/nuvio-native-legacy/issues/513",
+  "cases": [
+    {
+      "id": "standalone-issue513",
+      "label": "Episode-card manual source selection and ownership",
+      "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "delivery": false,
+      "patch": "standalone-issue513.patch",
+      "manifest": "standalone-issue513-files.json",
+      "patch_sha256": "c31b15a77b94f26e43503c74bad9cb0e40128029c87949d73c6be85b45eadb89"
+    },
+    {
+      "id": "combined-delivery",
+      "label": "Compatible TV/Mobile issue513 test",
+      "base": "04612e42fc58776d947062e908d32ce7322e58cf",
+      "delivery": true,
+      "patch": "combined-delivery.patch",
+      "manifest": "combined-delivery-files.json",
+      "patch_sha256": "4deefc21d7b99a142fba1fd52639228c460fd9a606cc6dbeb524dab291f355b3"
+    }
+  ],
+  "source_origins": {
+    "separate_product_commits": [
+      "6c2680e9648a8525e16807f68247d3696d4840e1",
+      "bb250672686ab4641cdcdc651c0491dd8ed4ce98"
+    ],
+    "immutable_manifests": [
+      {
+        "manifest": "origins/source-manifest.json",
+        "sha256": "44458df559ac0d17a022f744e18417db7e8142e8619b1aabe4d10edaf8d03727"
+      },
+      {
+        "manifest": "origins/owner-guard-manifest.json",
+        "sha256": "e149a89d7e695ae692a73a8d1ea8c9e7b18d4e2df48a6c53f5c71301474d73fc"
+      },
+      {
+        "manifest": "origins/complete-source-manifest.json",
+        "sha256": "f7036ed2dbb307d076dfaf112136890e2686e51733d7053a9a9d9b31fe5d7def"
+      }
+    ],
+    "existing_test_app_base": "04612e42fc58776d947062e908d32ce7322e58cf"
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20017,
+    "version_name": "2.0.17-test-issue513",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "release": {
+    "tag": "tv-mobile-test-issue513-v7",
+    "name": "Nuvio TV/Mobile Test 7: episode source selection",
+    "apk": "Nuvio-TV-Mobile-Test-Issue513-Logs7.apk"
+  }
+}

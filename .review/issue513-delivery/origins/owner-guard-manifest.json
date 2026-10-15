@@ -1,0 +1,23 @@
+{
+  "issue": "https://github.com/iqui27/nuvio-native-legacy/issues/513",
+  "base": "6c2680e9648a8525e16807f68247d3696d4840e1",
+  "upstream_base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "head": "bb250672686ab4641cdcdc651c0491dd8ed4ce98",
+  "tree": "ca407d1ce109f14529875a6accd20f67f200c840",
+  "branch": "fix/episode-source-owner-513",
+  "source_root": "/workspace/review/issue513-20261015/owner-guard-source",
+  "paths": [
+    {
+      "path": "src/streams.c",
+      "mode": "100644",
+      "blob": "9118a7d586953bfaad06933769469151924c333c",
+      "sha256": "5b538082afadf3070db5b5a893d0ca34c5996e3f99478d02636687063ea15433"
+    }
+  ],
+  "patch": "/workspace/review/issue513-20261015/owner-guard.patch",
+  "patch_sha256": "2a1852d141c47c7c94e6c2dba0523328f1a1a52b0643cca310c4a2b51e797682",
+  "original_fix_preserved": "6c2680e9648a8525e16807f68247d3696d4840e1",
+  "tests_tree_unchanged": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "product_tests_workflows_logs_changed": false,
+  "behavior": "Opening Sources clears links owned by another requested target. A selected raw index is accepted only for the same list generation and current target; stale selections reopen Sources. Same-target appends remain valid. No changes to direct Play/Resume/Next/preload."
+}

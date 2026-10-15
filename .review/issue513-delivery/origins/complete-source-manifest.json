@@ -1,0 +1,26 @@
+{
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "head": "bb250672686ab4641cdcdc651c0491dd8ed4ce98",
+  "tree": "ca407d1ce109f14529875a6accd20f67f200c840",
+  "source_root": "/workspace/review/issue513-20261015/owner-guard-source",
+  "paths": [
+    {
+      "path": "src/detail.c",
+      "mode": "100644",
+      "blob": "753a107fdf709036cb307e0abafb06a6b00ab13e",
+      "sha256": "9603bfdc3136ff141177d824052ba0682821b0eedc995be00c9644e8bb0d5b71"
+    },
+    {
+      "path": "src/streams.c",
+      "mode": "100644",
+      "blob": "9118a7d586953bfaad06933769469151924c333c",
+      "sha256": "5b538082afadf3070db5b5a893d0ca34c5996e3f99478d02636687063ea15433"
+    }
+  ],
+  "patch": "/workspace/review/issue513-20261015/complete-product.patch",
+  "patch_sha256": "d216674490e8e93145ff9ba199b10584a0944569d20c018bc00a62714f4178b1",
+  "separate_commits": [
+    "6c2680e9648a8525e16807f68247d3696d4840e1",
+    "bb250672686ab4641cdcdc651c0491dd8ed4ce98"
+  ]
+}

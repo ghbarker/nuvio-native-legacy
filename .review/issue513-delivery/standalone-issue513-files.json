@@ -1,0 +1,15 @@
+{
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "files": [
+    {
+      "path": "src/detail.c",
+      "sha": "753a107fdf709036cb307e0abafb06a6b00ab13e",
+      "sha256": "9603bfdc3136ff141177d824052ba0682821b0eedc995be00c9644e8bb0d5b71"
+    },
+    {
+      "path": "src/streams.c",
+      "sha": "9118a7d586953bfaad06933769469151924c333c",
+      "sha256": "5b538082afadf3070db5b5a893d0ca34c5996e3f99478d02636687063ea15433"
+    }
+  ]
+}

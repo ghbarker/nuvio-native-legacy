@@ -1,0 +1,21 @@
+{
+  "issue": "https://github.com/iqui27/nuvio-native-legacy/issues/513",
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "head": "6c2680e9648a8525e16807f68247d3696d4840e1",
+  "tree": "090075f4480ad42e7ccf5b437d759985be739920",
+  "branch": "fix/series-episode-manual-selection-513",
+  "source_root": "/workspace/review/issue513-20261015/source",
+  "paths": [
+    {
+      "path": "src/detail.c",
+      "mode": "100644",
+      "blob": "753a107fdf709036cb307e0abafb06a6b00ab13e",
+      "sha256": "9603bfdc3136ff141177d824052ba0682821b0eedc995be00c9644e8bb0d5b71"
+    }
+  ],
+  "patch": "/workspace/review/issue513-20261015/product-delta.patch",
+  "patch_sha256": "a3e88ee487ca0dda790cf5fd4ab041a9266aa4589b089d99b53537c5bee287fa",
+  "tests_tree_unchanged": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "product_test_workflow_logging_changes": false,
+  "behavior": "Explicit episode cards open existing Sources selection when manual source mode is enabled. Primary Play/Resume, Continue Watching direct Play, automatic mode and Next stay unchanged."
+}
