@@ -274,3 +274,4 @@
 #ifdef NV_ANDROID
   0, /* Baixar registro: acao local, sem preferencia gravada */
 #endif
+  0, /* collection default view (#362): Automatic, existing layout */
