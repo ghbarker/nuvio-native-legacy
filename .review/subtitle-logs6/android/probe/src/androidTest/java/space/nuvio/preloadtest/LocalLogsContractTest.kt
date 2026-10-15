@@ -34,9 +34,15 @@ class LocalLogsContractTest {
     }
 
     @After fun finish() {
-        current.delete(); previous.delete()
-        instrumentation.runOnMainSync { logs.close(); activity.finish() }
-        instrumentation.waitForIdleSync()
+        if (this::current.isInitialized) current.delete()
+        if (this::previous.isInitialized) previous.delete()
+        if (this::logs.isInitialized || this::activity.isInitialized) {
+            instrumentation.runOnMainSync {
+                if (this::logs.isInitialized) logs.close()
+                if (this::activity.isInitialized && !activity.isFinishing) activity.finish()
+            }
+            instrumentation.waitForIdleSync()
+        }
     }
 
     @Test fun localLogRedactionRemovesProviderCredentialsAndKeepsNextState() {
@@ -76,7 +82,14 @@ class LocalLogsContractTest {
 
     @Test fun localDownloadUsesDocumentPickerAndPreventsStackedRequests() {
         // Intercept the picker: no external app, upload worker or network call is started.
-        val monitor = instrumentation.addMonitor(IntentFilter(Intent.ACTION_CREATE_DOCUMENT),
+        val filter = IntentFilter(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addDataType("text/plain")
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        assertTrue("The monitor must match the actual download intent",
+            filter.match(activity.contentResolver,
+                TestLocalLogs.documentIntent("Nuvio-Test-Log.txt"), false, "NuvioLogTest") >= 0)
+        val monitor = instrumentation.addMonitor(filter,
             Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null), true)
         try {
             instrumentation.runOnMainSync {

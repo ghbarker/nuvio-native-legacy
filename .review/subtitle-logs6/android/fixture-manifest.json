@@ -109,8 +109,8 @@
     },
     {
       "path": "probe/src/androidTest/java/space/nuvio/preloadtest/LocalLogsContractTest.kt",
-      "sha256": "b0424a1fdbf354b6ffd21418df5271d18ac510d3947d2fe1984d0765ea67653e",
-      "bytes": 5620
+      "sha256": "03e9acfc532f5e418aa956afabb7a91d5f196fc586c60f1eb6643d1e1623afd9",
+      "bytes": 6270
     },
     {
       "path": "probe/src/main/res/xml/caminhos_atualizacao.xml",

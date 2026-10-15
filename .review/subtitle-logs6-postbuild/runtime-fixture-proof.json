@@ -1,0 +1,20 @@
+{
+  "test_only": true,
+  "product_changed": false,
+  "source_fixture": "/workspace/review/logs-original-actions-20261015/test-local-logs/LocalLogsContractTest.kt",
+  "source_sha256": "b0424a1fdbf354b6ffd21418df5271d18ac510d3947d2fe1984d0765ea67653e",
+  "corrected_fixture": "/workspace/review/logs6-runtime-fixture-fix-20261015/LocalLogsContractTest.kt",
+  "corrected_sha256": "03e9acfc532f5e418aa956afabb7a91d5f196fc586c60f1eb6643d1e1623afd9",
+  "unchanged_product_helper": "/workspace/review/logs-original-actions-20261015/source-delivery/android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+  "product_sha256": "b273084725e91d9e5c3fdac79c8248b5ad90fe0a218e74c04cf7a8a9418bd038",
+  "contracts": 5,
+  "filter_action": "android.intent.action.CREATE_DOCUMENT",
+  "filter_mime": "text/plain",
+  "filter_category": "android.intent.category.OPENABLE",
+  "exactly_one_launch_assertion_retained": true,
+  "duplicate_request_guard_retained": true,
+  "manual_cancel_routing_assertion_retained": true,
+  "lateinit_safe_teardown": true,
+  "static_checks": "passed",
+  "fresh_api35_runtime": "pending build-stage rerun; not claimed as passed"
+}
