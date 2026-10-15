@@ -278,3 +278,5 @@
   0, /* synopsis text size (#477): 100%, current typography */
   0, /* collection default view (#362): Automatic, existing layout */
   0, /* subtitle style: opens the existing player preferences editor */
+  120, 0, 0, 0, 0, 3, 1, 0, 1, 0, 0, /* primary style views; player.txt is authoritative */
+  0, 0, 0, 0, 0, 0, 0, /* secondary appearance inherits primary, manual delay0 */

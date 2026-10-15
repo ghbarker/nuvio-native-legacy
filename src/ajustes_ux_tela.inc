@@ -51,7 +51,6 @@ static const Item TELA[] = {
   SEC("Idiomas e legendas", "Idioma da interface, áudio, legenda e metadados", "aj_languages"),
     ROT("Idiomas"),
       OPC(AJ_IDIOMA), OPC(AJ_AUD_LINGUA), OPC(AJ_LEG_LINGUA), OPC(AJ_LEG_FORCADA),
-      OPC(AJ_ESTILO_LEGENDA),
       OPC(AJ_LEG_MOSTRAR), OPC(AJ_LEG_SYNC_AUTO),
 #ifdef NV_ANDROID
       // Sincronia pelo audio (F06): so o player do Android entrega o PCM. Na LG e
@@ -59,9 +58,15 @@ static const Item TELA[] = {
       // dono, 04/10).
       OPC(AJ_LEG_SYNC_AUDIO),
 #endif
+    ROT("Legenda principal"),
+      OPC(AJ_LEG1_TAMANHO), OPC(AJ_LEG1_FONTE), OPC(AJ_LEG1_COR), OPC(AJ_LEG1_OPACIDADE),
+      OPC(AJ_LEG1_FUNDO), OPC(AJ_LEG1_POSICAO), OPC(AJ_LEG1_BORDA), OPC(AJ_LEG1_COR_BORDA),
+      OPC(AJ_LEG1_NEGRITO), OPC(AJ_LEG1_ATRASO), OPC(AJ_LEG1_RESTAURAR),
     ROT("Segunda legenda"),
       OPC(AJ_LEG_LINGUA2),
-      OPC(AJ_LEG2_POS), OPC(AJ_LEG2_TAMANHO), OPC(AJ_LEG2_COR), OPC(AJ_LEG2_FUNDO), OPC(AJ_LEG2_BORDA),
+      OPC(AJ_LEG2_TAMANHO), OPC(AJ_LEG2_FONTE), OPC(AJ_LEG2_COR), OPC(AJ_LEG2_OPACIDADE),
+      OPC(AJ_LEG2_FUNDO), OPC(AJ_LEG2_POSICAO), OPC(AJ_LEG2_BORDA), OPC(AJ_LEG2_COR_BORDA),
+      OPC(AJ_LEG2_NEGRITO), OPC(AJ_LEG2_ATRASO), OPC(AJ_LEG2_RESTAURAR), OPC(AJ_LEG2_POS),
     MAIS(),
     ROT("Idiomas"), OPC(AJ_TMDB_IDIOMA),
 

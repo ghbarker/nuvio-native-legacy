@@ -1114,9 +1114,12 @@ static void prefsLer(void) {
   fclose(f);
 }
 
-static void prefsGravar(void) {
-  FILE *f = fopen(prefsArquivo(), "w");
-  if (!f) return;
+static int prefsGravar(void) {
+  char destino[600], temporario[608];
+  snprintf(destino, sizeof destino, "%s", prefsArquivo());
+  snprintf(temporario, sizeof temporario, "%s.tmp", destino);
+  FILE *f = fopen(temporario, "w");
+  if (!f) return 0;
   fprintf(f, "aspecto %d\n", aspecto);
   fprintf(f, "leg_tamanho %d\n", legEstilo.tamanho);
   fprintf(f, "leg_cor %d\n",     legEstilo.cor);
@@ -1129,8 +1132,11 @@ static void prefsGravar(void) {
   fprintf(f, "leg_negrito %d\n", legEstilo.negrito);
   fprintf(f, "leg_tocado %d\n", legTocado);
   fprintf(f, "leg_cor_borda %d\n", legEstilo.corBorda);
-  fclose(f);
+  int erro = ferror(f);
+  if (fclose(f)) erro = 1;
+  if (erro || rename(temporario, destino)) { remove(temporario); return 0; }
   dados_marcar_sujo(0);   // IDBFS (Samsung): ver o gravador de ajustes.c
+  return 1;
 }
 
 // Lidos pela folha de faixas, que e quem desenha os controles.
@@ -1139,6 +1145,28 @@ void player_leg_estilo_carregar(void) { if (!prefsLidas) prefsLer(); }
 void player_leg_estilo_mudou(void) {
   video_legenda_estilo(&legEstilo);
   prefsGravar();
+}
+const VideoLegendaEstilo *player_leg_estilo_padrao(void) {
+  static const VideoLegendaEstilo padrao = {120, 0, 0, 3, 1, 0, 0, TXT_FAMILIA_INTER, 0, 0};
+  return &padrao;
+}
+int player_leg_estilo_definir(const VideoLegendaEstilo *estilo, int tocou) {
+  if (!estilo || estilo->tamanho < TXT_LEG_PCT_MIN || estilo->tamanho > TXT_LEG_PCT_MAX ||
+      estilo->tamanho % 10 || estilo->cor < 0 || estilo->cor >= VIDEO_LEG_NCORES ||
+      estilo->corBorda < 0 || estilo->corBorda >= VIDEO_LEG_NCORES ||
+      estilo->familia < 0 || estilo->familia >= TXT_FAMILIA_N ||
+      estilo->fundo < 0 || estilo->fundo > 4 || estilo->posicao < 0 || estilo->posicao > 7 ||
+      estilo->borda < 0 || estilo->borda > 2 || estilo->opacidade < 0 || estilo->opacidade > 3 ||
+      estilo->negrito < 0 || estilo->negrito > 1 ||
+      estilo->atrasoMs < -LEG_ATRASO_MANUAL_MAX || estilo->atrasoMs > LEG_ATRASO_MANUAL_MAX) return 0;
+  player_leg_estilo_carregar();
+  VideoLegendaEstilo antes = legEstilo;
+  int tocadoAntes = legTocado;
+  legEstilo = *estilo;
+  if (tocou >= 0) player_leg_estilo_tocou(tocou);
+  if (!prefsGravar()) { legEstilo = antes; legTocado = tocadoAntes; return 0; }
+  video_legenda_estilo(&legEstilo);
+  return 1;
 }
 void player_leg_estilo_tocou(int campos) {
   if (campos == PLR_LEG_NADA) legTocado = PLR_LEG_NADA;
@@ -4497,6 +4525,7 @@ static void desenharLegendaExternaCorpo(void) {
   // terminava. Com ASS (libass) a principal nao se move — ali a secundaria
   // continua em cima, estimada como sempre.
   leg2Reserva = 0.0f;
+  g2.baseY = baseLegendaPrincipal();   // safe anchor for an explicit secondary position
   if (junto) legendasui_banda_zerar(); else legendasui_desenhar_secundaria(&g2);
   if (junto && (!assrender_ativo() || assrender_texto_simples())) {
     float h2 = legendasui_altura_secundaria(&g2);
