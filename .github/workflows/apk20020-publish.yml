@@ -1,0 +1,81 @@
+{
+  "name": "Publish the verified compatible Logs10 test update",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20020-publish-20261015"
+      ],
+      "paths": [
+        ".review/apk20020-publish/**",
+        ".github/workflows/apk20020-publish.yml"
+      ]
+    },
+    "workflow_dispatch": {}
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "nuvio-test-logs10-release",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "APK20020_RELEASE_LOCK_SHA256": "e7ccda181d6f43a4eb2e8371d911dc0fd86b46934611606f7ee8c02945b37109",
+    "NUVIO_REVIEW_PLAN_SHA256": "cf27a518e8854bfbacdf867204141b2bb3cdbdf331197f80e41b4a1c74ac5935"
+  },
+  "jobs": {
+    "publish": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "permissions": {
+        "contents": "write",
+        "actions": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install verification tools only; no app build",
+          "run": "sdkmanager 'build-tools;35.0.0'"
+        },
+        {
+          "name": "Verify actual green validation/artifacts/APK and publish exact draft by ID",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/apk20020-publish/publish.py --publish"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "apk20020-publication-${{ github.sha }}",
+            "path": "publication/*-receipt.json\npublication/*-failure.json\npublication/draft-created.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "format": 1,
+  "root_reviewed": true,
+  "all_gates_green": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "publisher_branch": "review/apk20020-publish-20261015",
+  "parent_review": "7e4eab3bea86fe935fc1b9ccc05037bf16913a24",
+  "parent_tree": "b0cf3fa73447cc973a833768e1b1c0bccccfb0c8",
+  "source_plan_sha256": "cf27a518e8854bfbacdf867204141b2bb3cdbdf331197f80e41b4a1c74ac5935",
+  "source_materializer_sha256": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+  "aggregate_recipe_sha256": "917e285a2f5fcabb7ba117d3592d10eaf5de13ef3cceec4ff7c5245597b26b0e",
+  "bundle_sha256": "a767c9168ce08d75c53d8b334e8f562f6583a3243d85395b6534a28aeaece51c",
+  "validation": {
+    "run_id": 38691717385,
+    "review_commit": "7e4eab3bea86fe935fc1b9ccc05037bf16913a24",
+    "workflow_path": ".github/workflows/apk20020-review.yml",
+    "run_attempt": 1
+  },
+  "jobs": {
+    "native": {
+      "id": 116278896816,
+      "name": "Complete macOS TV/Mobile + actual changed native contracts"
+    },
+    "original-fontepref": {
+      "id": 116278896461,
+      "name": "Original complete fontepref normal + ASan/UBSan"
+    },
+    "original-fontepref_file": {
+      "id": 116278896824,
+      "name": "Original complete fontepref_file normal + ASan/UBSan"
+    },
+    "original-player_retido": {
+      "id": 116278896763,
+      "name": "Original complete player_retido normal + ASan/UBSan"
+    },
+    "android": {
+      "id": 116278896867,
+      "name": "APK20020 clean product and compatible test APK (ARM32/ARM64)"
+    },
+    "jvm": {
+      "id": 116278896921,
+      "name": "Fresh32 JVM helpers +15 real Media3 contracts"
+    },
+    "feature-contracts": {
+      "id": 116278896849,
+      "name": "Focused caption/libass and collection source contracts"
+    },
+    "all-gates": {
+      "id": 116281264984,
+      "name": "Require every fresh source-bound gate"
+    }
+  },
+  "artifacts": {
+    "all_gates": {
+      "id": 11951694878,
+      "name": "apk20020-all-gates-7e4eab3bea86fe935fc1b9ccc05037bf16913a24",
+      "sha256": "b0d4a1442adf969f488f174f64b3e1ee163fa91681f30a19902c892191e50467",
+      "bytes": 21650
+    },
+    "android": {
+      "id": 11951769937,
+      "name": "apk20020-android-7e4eab3bea86fe935fc1b9ccc05037bf16913a24",
+      "sha256": "595e0b217a8e848896ba6277662fe3baf11a1e4295fe5c874e72af453dce5e19",
+      "bytes": 108624850
+    }
+  },
+  "all_gates_json_sha256": "18696ae45e16a27c472923e7456fd024e57c55b66eda23cc8b0ec643a18623e4",
+  "sources": {
+    "product": {
+      "commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "tree": "c8ebd7c8bbc7cdd6b2ab793727ec3f0e77f51537",
+      "parent": "95fbfa18c419cd9fc2926faf20c54bf74d58213e",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "fa43fcc2516e88c266c784e0bc24d3386a1a2e550af0331be04522e5ef959494",
+      "delta_patch_sha256": "1fa883f131c07443c5a9586ee508fdaa02baa530010c4c52e250abf959a1e08f"
+    },
+    "test": {
+      "commit": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+      "tree": "da60cd9eb1f7040fed54ac6888fb11c56c195b29",
+      "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "03365a761a52ef9a9fcc7162bf28296461a7d8e836b88c3cc8e2dda56e45ac6f",
+      "delta_patch_sha256": "5ca4ff44b34f7f85490e5730185635f205ef8a253fca6fb69e3676b08041dc0a"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20020,
+    "version_name": "2.0.20-test-logs10",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "apk": {
+    "sha256": "2e90e7e8e3f43ce859027c4c6269f24a8ca8101a659722ab44fe83d1ee3c4545",
+    "bytes": 58964084
+  },
+  "release": {
+    "tag": "tv-mobile-test-logs-v10",
+    "asset": "Nuvio-TV-Mobile-Test-Logs10.apk",
+    "proof_asset": "Logs10-validation.json",
+    "title": "Nuvio TV/Mobile Test \u2014 Logs10 update",
+    "prerelease": true,
+    "notes_sha256": "14fd2e415f10406a562297d9e68817944265b179bd0e7f1d85ae3c9defe2abf7"
+  }
+}
