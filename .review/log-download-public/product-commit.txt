@@ -1,0 +1,6 @@
+tree 8cd25f39ec183133a61456ad56cdd78e5475cb89
+parent 3c28c0d73664fe82fabced499bd7171810e0c91b
+author ghbarker <ghbarker@users.noreply.github.com> 1792032456 +0000
+committer ghbarker <ghbarker@users.noreply.github.com> 1792032683 +0000
+
+Add Android log downloads alongside existing reporting

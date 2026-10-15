@@ -1,0 +1,1367 @@
+diff --git a/android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt b/android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt
+index da669a807..9002954dd 100644
+--- a/android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt
++++ b/android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt
+@@ -136,6 +136,13 @@ class NuvioActivity : SDLActivity() {
+         }
+     }
+ 
++    private val registroDownload by lazy { RegistroDownload(this) }
++
++    // Chamado pelo fio SDL, sem ler arquivos nem abrir a tela naquele fio.
++    fun baixarRegistro(arquivo: String, sucesso: String, falha: String) {
++        runOnUiThread { registroDownload.abrir(arquivo, sucesso, falha) }
++    }
++
+     // Vigia do arranque (#266, ArranqueVigia.kt) e o que ele le do C (android.c).
+     private var vigia: ArranqueVigia? = null
+     external fun nativeEtapa(): String
+@@ -526,7 +533,8 @@ class NuvioActivity : SDLActivity() {
+         } catch (_: Exception) {}
+         // Instalador ou tela de voz por cima NAO e sair do app: trocar o icone
+         // ali fecharia a tarefa embaixo deles (ver aplicarIconePendente).
+-        if (!instalando && !esperandoTela && !isChangingConfigurations) aplicarIconePendente()
++        if (!instalando && !esperandoTela && !isChangingConfigurations &&
++            !registroDownload.escolhendoArquivo) aplicarIconePendente()
+         super.onStop()
+         Log.i("nuvio", "[android] parada: ${SystemClock.elapsedRealtime() - ini} ms no fio da interface")
+     }
+@@ -556,6 +564,7 @@ class NuvioActivity : SDLActivity() {
+     }
+ 
+     override fun onDestroy() {
++        registroDownload.fechar()
+         vigia?.parar()
+         fecharRede()
+         NvPlayer.encerrar()
+@@ -1022,6 +1031,7 @@ class NuvioActivity : SDLActivity() {
+ 
+     @Deprecated("startActivityForResult e o que o SDLActivity (Activity) oferece")
+     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
++        if (registroDownload.resultado(requestCode, resultCode, data)) return
+         if (requestCode == PEDIDO_DITADO) esperandoTela = false
+         if (requestCode == PEDIDO_DITADO) {
+             val t = if (resultCode == RESULT_OK)
+diff --git a/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt b/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt
+new file mode 100644
+index 000000000..e10c18a3d
+--- /dev/null
++++ b/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt
+@@ -0,0 +1,119 @@
++package space.nuvio.nativelegacy
++
++import android.app.Activity
++import android.content.Intent
++import android.widget.Toast
++import java.io.File
++import java.io.RandomAccessFile
++import java.net.URI
++import java.text.SimpleDateFormat
++import java.util.Date
++import java.util.Locale
++
++/** Copia local do mesmo arquivo que o painel nativo le. Nao coleta nem envia logs. */
++class RegistroDownload(private val activity: Activity) {
++    private data class Pedido(val arquivo: File, val sucesso: String, val falha: String)
++    private var pedido: Pedido? = null
++    private var fechado = false
++    var escolhendoArquivo = false
++        private set
++
++    fun fechar() {
++        fechado = true
++        pedido = null
++        escolhendoArquivo = false
++    }
++
++    fun abrir(arquivo: String, sucesso: String, falha: String) {
++        if (fechado || pedido != null || activity.isFinishing || activity.isDestroyed) return
++        val novo = Pedido(File(arquivo), sucesso, falha)
++        pedido = novo
++        try {
++            escolhendoArquivo = true
++            @Suppress("DEPRECATION")
++            activity.startActivityForResult(documento(), PEDIDO)
++        } catch (_: Exception) {
++            pedido = null
++            escolhendoArquivo = false
++            avisar(falha)
++        }
++    }
++
++    fun resultado(codigo: Int, resultado: Int, data: Intent?): Boolean {
++        if (codigo != PEDIDO) return false
++        if (!escolhendoArquivo) return true
++        escolhendoArquivo = false
++        val atual = pedido ?: return true
++        val uri = data?.data
++        if (resultado != Activity.RESULT_OK || uri == null) {
++            pedido = null
++            return true
++        }
++        Thread({
++            val mensagem = try {
++                val texto = limpar(lerFim(atual.arquivo)).toByteArray(Charsets.UTF_8)
++                activity.contentResolver.openOutputStream(uri, "wt")?.use { it.write(texto) }
++                    ?: throw IllegalStateException()
++                atual.sucesso
++            } catch (_: Exception) {
++                atual.falha
++            }
++            activity.runOnUiThread {
++                if (pedido === atual) {
++                    pedido = null
++                    avisar(mensagem)
++                }
++            }
++        }, "nuvio-baixar-registro").start()
++        return true
++    }
++
++    private fun avisar(mensagem: String) {
++        if (!fechado && !activity.isFinishing && !activity.isDestroyed)
++            Toast.makeText(activity, mensagem, Toast.LENGTH_LONG).show()
++    }
++
++    companion object {
++        const val PEDIDO = 49117
++        const val MAX_BYTES = 200 * 1024
++
++        fun documento() = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
++            addCategory(Intent.CATEGORY_OPENABLE)
++            type = "text/plain"
++            putExtra(Intent.EXTRA_TITLE, "Nuvio-Log-" +
++                SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".txt")
++        }
++
++        fun lerFim(arquivo: File): String = RandomAccessFile(arquivo, "r").use { origem ->
++            val tamanho = origem.length()
++            val inicio = maxOf(0L, tamanho - MAX_BYTES)
++            origem.seek(inicio)
++            val dados = ByteArray((tamanho - inicio).toInt())
++            origem.readFully(dados)
++            val texto = String(dados, Charsets.UTF_8)
++            // Nao exponha uma URL/credencial cortada antes do inicio da janela.
++            if (inicio == 0L) texto else texto.substringAfter('\n', "")
++        }
++
++        fun limpar(texto: String): String {
++            var valor = texto.replace("\\/", "/")
++            valor = Regex("(?i)\\b(?:https?|ftp|stremio)://[^\\s<>\\\"']+").replace(valor) { trecho ->
++                try {
++                    val url = URI(trecho.value)
++                    "${url.scheme}://${url.host ?: "redacted"}/[…]"
++                } catch (_: Exception) { "[url]" }
++            }
++            valor = Regex("(?i)magnet:\\?[^\\s<>\\\"']+").replace(valor, "[magnet]")
++            valor = Regex("(?im)[\\\"']?(authorization|cookie|set-cookie)[\\\"']?\\s*[:=].*$")
++                .replace(valor, "[…] ")
++            // Quantificadores possessivos: um valor longo nao cresce a pilha
++            // do motor de regex, inclusive quando contem aspas escapadas.
++            // O arquivo pode terminar no meio de um campo ainda sendo escrito.
++            valor = Regex("""(?i)["']?\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|secret|token|chave|senha|username)\b["']?\s*[:=]\s*(?:"(?:[^"\\\r\n]++|\\[^\r\n]?)*+(?:"|(?=[\r\n]|\z))|'(?:[^'\\\r\n]++|\\[^\r\n]?)*+(?:'|(?=[\r\n]|\z))|[^\s,;}]++)""")
++                .replace(valor, "[…]")
++            valor = Regex("(?i)\\bBearer\\s+[^\\s,;]+").replace(valor, "Bearer […]")
++            return Regex("\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b")
++                .replace(valor, "[…]")
++        }
++    }
++}
+diff --git a/src/ajustes.c b/src/ajustes.c
+index 30c4ddf84..878d00874 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -78,7 +78,7 @@
+ #include "abertura.h"
+ #include "apoio.h"
+ #include "telefoneui.h"
+-#if defined(NV_ANDROID) && defined(NV_TOUCH_UI)
++#ifdef NV_ANDROID
+ #include "android.h"
+ #endif
+ 
+@@ -550,6 +550,9 @@ typedef enum {
+   AJ_FALHA_RD_LIMITE, AJ_FALHA_TB_LIMITE, AJ_FALHA_PM_LIMITE, AJ_FALHA_AD_LIMITE,
+   AJ_FALHA_ADDONS, AJ_FALHA_ADDON_ORDEM, AJ_FALHA_ADDON_LIMITE,
+   AJ_FONTE_PRECARREGAR, // local, append-only; video e proximo episodio, desligado
++#ifdef NV_ANDROID
++  AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes
++#endif
+   AJ_N
+ } OpcaoId;
+ _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
+@@ -1423,6 +1426,9 @@ static const Opcao OPCOES[AJ_N] = {
+   ACAO("Ordem e limites dos add-ons"),
+   NUM("Links neste add-on", 1, FONTEFALHA_MAX_LINKS, 1, ""),
+   ESC("Pré-carregar vídeo", V_LIGA, 2),
++#ifdef NV_ANDROID
++  ACAO("Baixar registro"),
++#endif
+ };
+ 
+ // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
+@@ -1667,6 +1673,9 @@ static const char *CHAVE[] = {
+   "-falhaRDLinks", "-falhaTBLinks", "-falhaPMLinks", "-falhaADLinks",
+   "-falhaAddons", "-falhaAddonOrdem", "-falhaAddonLinks",
+   "fontePrecarregarLocal",
++#ifdef NV_ANDROID
++  "-baixarRegistro",
++#endif
+ };
+ // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
+ // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
+@@ -5890,6 +5899,9 @@ static const char *ajudaOpcaoBase(int op) {
+         ? "Abre o cartão da versão nova, com o que mudou e o botão de instalar."
+         : "Procura agora uma versão nova do Nuvio. Se houver, abre o cartão com o que mudou e o botão de instalar. O app também confere sozinho a cada 6 horas.";
+     case AJ_VER_REGISTRO: return "Abre o registro do app por cima desta tela, ao vivo: o mesmo painel do botão vermelho do controle, para quem não tem esse botão.";
++#ifdef NV_ANDROID
++    case AJ_BAIXAR_REGISTRO: return "Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.";
++#endif
+     case AJ_MEDIDOR: return "Mostra quadros por segundo, o pior quadro e a memória dentro da ilha do relógio, atualizados a cada 3 s. Mínimo fica na linha da hora, Menor ganha uma segunda linha e Grande abre o painel completo. Quando a ilha mostra um aviso, o medidor se recolhe e volta depois.";
+     case AJ_AVISO_LEGAL: return "Aviso legal";
+     case AJ_GUIA: return "O que o Nuvio faz, em 12 capítulos. Cada recurso diz onde fica e tem um atalho para ele.";
+@@ -7152,6 +7164,13 @@ static void eventoTela(const SDL_Event *e) {
+     if (focoOp == AJ_ENVIAR_LOG) { registro_envio_abrir(); return; }
+     if (focoOp == AJ_AVISO_LEGAL) { registro_legal_abrir(); return; }
+     if (focoOp == AJ_VER_REGISTRO) { registro_abrir(); return; }
++#ifdef NV_ANDROID
++    if (focoOp == AJ_BAIXAR_REGISTRO) {
++      android_baixar_registro(registro_arquivo(), i18n("Registro salvo."),
++                             i18n("Não foi possível salvar o registro. Tente outro local."));
++      return;
++    }
++#endif
+     if (focoOp == AJ_GUIA) { guiaAbrir(0); return; }
+     if (focoOp == AJ_NOVIDADES20) { pediuNovidades20 = 1; return; }
+     if (focoOp == AJ_APOIAR) { apoioAbrir(); return; }
+@@ -7975,6 +7994,9 @@ static AjPreview familiaPreviaOpcao(int op) {
+       return AJPV_RASTREIO;
+     case AJ_VERSAO_I: case AJ_ATUALIZAR: case AJ_ENVIAR_LOG: case AJ_GUIA: case AJ_NOVIDADES20: case AJ_APOIAR:
+     case AJ_ENVIO_AUTO: case AJ_VER_REGISTRO:
++#ifdef NV_ANDROID
++    case AJ_BAIXAR_REGISTRO:
++#endif
+       return AJPV_ABOUT;
+     case AJ_TMDB_LIGADO: case AJ_TMDB_IDIOMA: case AJ_TMDB_ARTE:
+     case AJ_TMDB_BASICO: case AJ_TMDB_FICHA: case AJ_TMDB_DATAS:
+diff --git a/src/ajustes_ux_padrao.inc b/src/ajustes_ux_padrao.inc
+index 1e4602918..63b392d32 100644
+--- a/src/ajustes_ux_padrao.inc
++++ b/src/ajustes_ux_padrao.inc
+@@ -269,3 +269,6 @@
+   3, 3, 3, 3, /* total links per native provider */
+   1, 0, 3, /* addon failover off; instance order action; total links */
+   1, /* video preload and next episode buffer: Desligado, independent source setting */
++#ifdef NV_ANDROID
++  0, /* Baixar registro: acao local, sem preferencia gravada */
++#endif
+diff --git a/src/ajustes_ux_tela.inc b/src/ajustes_ux_tela.inc
+index 0b5ac53d5..889eb5288 100644
+--- a/src/ajustes_ux_tela.inc
++++ b/src/ajustes_ux_tela.inc
+@@ -209,6 +209,9 @@ static const Item TELA[] = {
+     ROTS("App", ""), OPC(AJ_VERSAO_I), OPC(AJ_ATUALIZAR),
+     ROTS("Registro", "para quem faz o app"),
+       OPC(AJ_VER_REGISTRO), OPC(AJ_ENVIAR_LOG), OPC(AJ_ENVIO_AUTO),
++#ifdef NV_ANDROID
++      OPC(AJ_BAIXAR_REGISTRO),
++#endif
+ };
+ #define AJ_N_TELA (int)(sizeof TELA / sizeof *TELA)
+ #define AJ_MAX_SECOES 16
+diff --git a/src/android.c b/src/android.c
+index efda3feb0..426c70a31 100644
+--- a/src/android.c
++++ b/src/android.c
+@@ -35,6 +35,33 @@ static void interfaceBool(const char *nome, int ativa) {
+ 
+ void android_interface_modo(int mobile) { interfaceBool("interfaceModo", mobile); }
+ 
++void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha) {
++  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
++  jobject act;
++  jclass cls;
++  jstring ja = NULL, js = NULL, jf = NULL;
++  if (!env) return;
++  act = (jobject)SDL_AndroidGetActivity();
++  if (!act) return;
++  cls = (*env)->GetObjectClass(env, act);
++  if (cls) {
++    jmethodID m = (*env)->GetMethodID(env, cls, "baixarRegistro",
++                                    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
++    if (m) {
++      ja = (*env)->NewStringUTF(env, arquivo ? arquivo : "");
++      if (ja && !(*env)->ExceptionCheck(env)) js = (*env)->NewStringUTF(env, sucesso);
++      if (js && !(*env)->ExceptionCheck(env)) jf = (*env)->NewStringUTF(env, falha);
++      if (jf && !(*env)->ExceptionCheck(env)) (*env)->CallVoidMethod(env, act, m, ja, js, jf);
++    }
++  }
++  if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
++  if (ja) (*env)->DeleteLocalRef(env, ja);
++  if (js) (*env)->DeleteLocalRef(env, js);
++  if (jf) (*env)->DeleteLocalRef(env, jf);
++  if (cls) (*env)->DeleteLocalRef(env, cls);
++  (*env)->DeleteLocalRef(env, act);
++}
++
+ #ifdef NV_TOUCH_UI
+ static SDL_atomic_t toqueCancelEvento;
+ 
+diff --git a/src/android.h b/src/android.h
+index 81d927536..d5b6aae86 100644
+--- a/src/android.h
++++ b/src/android.h
+@@ -10,6 +10,9 @@
+ void android_iniciar(void);
+ // Saved device mode: changes the existing Activity, without recreating native state.
+ void android_interface_modo(int mobile);
++// Salva uma copia local do registro pelo seletor de arquivos do Android.
++// As mensagens ja vem traduzidas; nao envia nem altera o registro original.
++void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha);
+ #ifdef NV_TOUCH_UI
+ #include <SDL2/SDL.h>
+ // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index 0181a8b90..de190db44 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Изтегляне на част от всеки източник"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Изтегля се откъс от всеки източник, един по един"),
+   T("Baixar", "Изтегли"),
++  T("Baixar registro", "Изтегли дневника"),
+   T("Baixe a versão nova no celular ou no computador:", "Изтеглете новата версия на телефона или компютъра:"),
+   T("Baixo", "Надолу"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Странична лента като хапче със Streaming и заглавия във въртележка. Настройки › Подредба."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Контролната точка не можа да се запази"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Дневникът не можа да бъде запазен. Опитайте друго място."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Неуспешно запазване. Остава предишната стойност."),
+   T("Não foi possível sincronizar os addons.", "Добавките не можаха да се синхронизират."),
+   T("Não foi possível. OK para tentar de novo", "Не успя. OK за нов опит"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Дневник на приложението в панел, с код за изпращане"),
+   T("Registro enviado", "Журналът е изпратен"),
+   T("Registro enviado. Obrigado.", "Дневникът е изпратен. Благодарим."),
++  T("Registro salvo.", "Дневникът е запазен."),
+   T("Regras do automático", "Правила на автоматичния избор"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Рестартирането на телевизора или повторното инсталиране на приложението може да го поправи."),
+   T("Reiniciar agora", "Рестартирай сега"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Изход въпреки това"),
+   T("Sair no meio e voltar pela ilha", "Излезте по средата и се върнете през островчето"),
+   T("Saiu T%dE%d de %s", "Излезе S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Запазва дневника на тази сесия в текстов файл без пароли и ключове."),
+   T("Salvando com +", "Запазване с +"),
+   T("Salvando...", "Запазване..."),
+   T("Salvar", "Запази"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index ecb6d362d..b7b38abd0 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Preuzimanje dijela svakog izvora"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Preuzimam dio svakog izvora, jedan po jedan"),
+   T("Baixar", "Preuzmi"),
++  T("Baixar registro", "Preuzmi dnevnik"),
+   T("Baixe a versão nova no celular ou no computador:", "Preuzmite novu verziju na telefonu ili računaru:"),
+   T("Baixo", "Dolje"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Bočna traka u obliku tablete sa Streaming i naslovima u karuselu. Postavke › Raspored elemenata."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Nije moguće sačuvati kontrolnu tačku"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Dnevnik nije moguće sačuvati. Pokušajte drugu lokaciju."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Spremanje nije uspjelo. Zadržana je prethodna vrijednost."),
+   T("Não foi possível sincronizar os addons.", "Nije moguće sinhronizirati dodatke."),
+   T("Não foi possível. OK para tentar de novo", "Nije uspjelo. OK za ponovni pokušaj"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Zapisnik aplikacije u panelu, s kodom za slanje"),
+   T("Registro enviado", "Zapisnik poslan"),
+   T("Registro enviado. Obrigado.", "Dnevnik poslan. Hvala."),
++  T("Registro salvo.", "Dnevnik sačuvan."),
+   T("Regras do automático", "Pravila automatike"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Ponovno pokretanje TV-a ili ponovna instalacija aplikacije može to riješiti."),
+   T("Reiniciar agora", "Ponovo pokreni sada"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Ipak izađi"),
+   T("Sair no meio e voltar pela ilha", "Izađi na pola i vrati se preko ostrva"),
+   T("Saiu T%dE%d de %s", "Izašla je S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Sprema dnevnik ove sesije u tekstualnu datoteku, bez lozinki i ključeva."),
+   T("Salvando com +", "Čuvanje sa +"),
+   T("Salvando...", "Čuvanje..."),
+   T("Salvar", "Sačuvaj"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index d12be01cc..b4b55dbb8 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Stahuje se kousek z každého zdroje"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Stahuje se úsek každého zdroje, jeden po druhém"),
+   T("Baixar", "Stáhnout"),
++  T("Baixar registro", "Stáhnout log"),
+   T("Baixe a versão nova no celular ou no computador:", "Stáhněte novou verzi v telefonu nebo počítači:"),
+   T("Baixo", "Dolů"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Boční panel ve tvaru pilulky se Streaming a tituly v karuselu. Nastavení › Rozvržení."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Kontrolní bod se nepodařilo uložit"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Log se nepodařilo uložit. Zkuste jiné umístění."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Uložení se nezdařilo. Zůstala předchozí hodnota."),
+   T("Não foi possível sincronizar os addons.", "Doplňky se nepodařilo synchronizovat."),
+   T("Não foi possível. OK para tentar de novo", "Nepodařilo se. OK pro nový pokus"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Záznam aplikace v panelu, s kódem pro odeslání"),
+   T("Registro enviado", "Záznam odeslán"),
+   T("Registro enviado. Obrigado.", "Log odeslán. Děkujeme."),
++  T("Registro salvo.", "Log uložen."),
+   T("Regras do automático", "Pravidla automatu"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Restart televize nebo přeinstalování aplikace to může vyřešit."),
+   T("Reiniciar agora", "Restartovat nyní"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Přesto ukončit"),
+   T("Sair no meio e voltar pela ilha", "Odejít uprostřed a vrátit se přes ostrov"),
+   T("Saiu T%dE%d de %s", "Vyšel S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Uloží log této relace do textového souboru bez hesel a klíčů."),
+   T("Salvando com +", "Ukládání pomocí +"),
+   T("Salvando...", "Ukládá se..."),
+   T("Salvar", "Uložit"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index 687faea4d..9e462dfaf 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Henter et stykke af hver kilde"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Henter et stykke af hver kilde, én ad gangen"),
+   T("Baixar", "Hent"),
++  T("Baixar registro", "Download logfil"),
+   T("Baixe a versão nova no celular ou no computador:", "Hent den nye version på telefonen eller computeren:"),
+   T("Baixo", "Ned"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Sidepanel som pille med Streaming og titler i en karrusel. Indstillinger › Layout."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Checkpointet kunne ikke gemmes"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Logfilen kunne ikke gemmes. Prøv en anden placering."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Kunne ikke gemme. Den tidligere værdi er bevaret."),
+   T("Não foi possível sincronizar os addons.", "Tilføjelserne kunne ikke synkroniseres."),
+   T("Não foi possível. OK para tentar de novo", "Det lykkedes ikke. OK for at prøve igen"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Appens log i et panel, med sendekode"),
+   T("Registro enviado", "Log sendt"),
+   T("Registro enviado. Obrigado.", "Log sendt. Tak."),
++  T("Registro salvo.", "Logfil gemt."),
+   T("Regras do automático", "Regler for automatik"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Genstart af tv'et eller ominstallation af appen kan løse det."),
+   T("Reiniciar agora", "Genstart nu"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Afslut alligevel"),
+   T("Sair no meio e voltar pela ilha", "Gå midtvejs og kom tilbage via øen"),
+   T("Saiu T%dE%d de %s", "S%dE%d af %s er ude"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Gemmer denne sessions log som en tekstfil uden adgangskoder eller nøgler."),
+   T("Salvando com +", "Gemmer med +"),
+   T("Salvando...", "Gemmer..."),
+   T("Salvar", "Gem"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index 3b1c1e720..e56198d94 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -889,6 +889,7 @@
+   T("Baixando um trecho de cada fonte", "Ein Abschnitt jeder Quelle wird heruntergeladen"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Ein Abschnitt jeder Quelle wird nacheinander heruntergeladen"),
+   T("Baixar", "Laden"),
++  T("Baixar registro", "Protokoll herunterladen"),
+   T("Baixe a versão nova no celular ou no computador:", "Lade die neue Version auf dem Handy oder Computer herunter:"),
+   T("Baixo", "Runter"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Seitenleiste als Pille mit Streaming und Titeln im Karussell. Einstellungen › Layout."),
+@@ -2965,6 +2966,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Der Checkpoint konnte nicht gespeichert werden"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Das Protokoll konnte nicht gespeichert werden. Versuche einen anderen Speicherort."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Speichern nicht möglich. Der vorherige Wert bleibt."),
+   T("Não foi possível sincronizar os addons.", "Add-ons konnten nicht synchronisiert werden."),
+   T("Não foi possível. OK para tentar de novo", "Hat nicht geklappt. OK zum Wiederholen"),
+@@ -3986,6 +3988,7 @@
+   T("Registro do app em painel, com código de envio", "App-Protokoll in einem Panel, mit Sendecode"),
+   T("Registro enviado", "Protokoll gesendet"),
+   T("Registro enviado. Obrigado.", "Protokoll gesendet. Danke."),
++  T("Registro salvo.", "Protokoll gespeichert."),
+   T("Regras do automático", "Regeln der Automatik"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Den TV neu zu starten oder die App neu zu installieren kann helfen."),
+   T("Reiniciar agora", "Jetzt neu starten"),
+@@ -4122,6 +4125,7 @@
+   T("Sair mesmo assim", "Trotzdem beenden"),
+   T("Sair no meio e voltar pela ilha", "Mittendrin raus und über die Insel zurück"),
+   T("Saiu T%dE%d de %s", "S%dE%d von %s ist da"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Speichert das Protokoll dieser Sitzung als Textdatei ohne Passwörter oder Schlüssel."),
+   T("Salvando com +", "Speichern mit +"),
+   T("Salvando...", "Wird gespeichert..."),
+   T("Salvar", "Speichern"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index 90b4dca71..d0c354203 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Λήψη ενός κομματιού από κάθε πηγή"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Λήψη τμήματος από κάθε πηγή, μία-μία"),
+   T("Baixar", "Λήψη"),
++  T("Baixar registro", "Λήψη αρχείου καταγραφής"),
+   T("Baixe a versão nova no celular ou no computador:", "Κατεβάστε τη νέα έκδοση στο κινητό ή στον υπολογιστή:"),
+   T("Baixo", "Κάτω"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Πλευρική γραμμή σε σχήμα χαπιού με Streaming και τίτλους σε καρουζέλ. Ρυθμίσεις › Διάταξη."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Δεν αποθηκεύτηκε το σημείο ελέγχου"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Δεν ήταν δυνατή η αποθήκευση του αρχείου καταγραφής. Δοκιμάστε άλλη τοποθεσία."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Η αποθήκευση απέτυχε. Κρατήθηκε η προηγούμενη τιμή."),
+   T("Não foi possível sincronizar os addons.", "Δεν ήταν δυνατός ο συγχρονισμός των πρόσθετων."),
+   T("Não foi possível. OK para tentar de novo", "Δεν ήταν δυνατό. OK για νέα προσπάθεια"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Αρχείο καταγραφής της εφαρμογής σε πάνελ, με κωδικό αποστολής"),
+   T("Registro enviado", "Η καταγραφή στάλθηκε"),
+   T("Registro enviado. Obrigado.", "Το αρχείο καταγραφής στάλθηκε. Ευχαριστούμε."),
++  T("Registro salvo.", "Το αρχείο καταγραφής αποθηκεύτηκε."),
+   T("Regras do automático", "Κανόνες αυτόματης επιλογής"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Η επανεκκίνηση της τηλεόρασης ή η επανεγκατάσταση της εφαρμογής μπορεί να το διορθώσει."),
+   T("Reiniciar agora", "Επανεκκίνηση τώρα"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Έξοδος παρ' όλα αυτά"),
+   T("Sair no meio e voltar pela ilha", "Βγείτε στη μέση και γυρίστε μέσω του νησιού"),
+   T("Saiu T%dE%d de %s", "Βγήκε το S%dE%d του %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Αποθηκεύει το αρχείο καταγραφής αυτής της συνεδρίας ως αρχείο κειμένου, χωρίς κωδικούς πρόσβασης ή κλειδιά."),
+   T("Salvando com +", "Αποθήκευση με +"),
+   T("Salvando...", "Αποθήκευση..."),
+   T("Salvar", "Αποθήκευση"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index add086ea0..c9cbc391f 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -889,6 +889,7 @@
+   T("Baixando um trecho de cada fonte", "Descargando un trozo de cada fuente"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Descargando un trozo de cada fuente, una por vez"),
+   T("Baixar", "Descargar"),
++  T("Baixar registro", "Descargar registro"),
+   T("Baixe a versão nova no celular ou no computador:", "Descarga la versión nueva en el móvil o en el ordenador:"),
+   T("Baixo", "Abajo"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Barra lateral en píldora con Streaming y títulos en carrusel. Ajustes › Layout."),
+@@ -2965,6 +2966,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "No se pudo guardar la clave. Se conservó la clave anterior."),
+   T("Não foi possível salvar o checkpoint", "No se pudo guardar el checkpoint"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "No se pudo guardar el registro. Prueba otra ubicación."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "No se pudo guardar. Se conservó el valor anterior."),
+   T("Não foi possível sincronizar os addons.", "No se pudieron sincronizar los add-ons."),
+   T("Não foi possível. OK para tentar de novo", "No se pudo. OK para reintentar"),
+@@ -3986,6 +3988,7 @@
+   T("Registro do app em painel, com código de envio", "Registro de la app en un panel, con código de envío"),
+   T("Registro enviado", "Registro enviado"),
+   T("Registro enviado. Obrigado.", "Registro enviado. Gracias."),
++  T("Registro salvo.", "Registro guardado."),
+   T("Regras do automático", "Reglas del automático"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Reiniciar la TV o reinstalar la app puede solucionarlo."),
+   T("Reiniciar agora", "Reiniciar ahora"),
+@@ -4122,6 +4125,7 @@
+   T("Sair mesmo assim", "Salir de todos modos"),
+   T("Sair no meio e voltar pela ilha", "Salir a medias y volver por la isla"),
+   T("Saiu T%dE%d de %s", "Salió T%dE%d de %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Guarda el registro de esta sesión en un archivo de texto, sin contraseñas ni claves."),
+   T("Salvando com +", "Guardando con +"),
+   T("Salvando...", "Guardando..."),
+   T("Salvar", "Guardar"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index a2b2d953e..f48bcc2ec 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -889,6 +889,7 @@
+   T("Baixando um trecho de cada fonte", "Téléchargement d'un extrait de chaque source"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Téléchargement d'un extrait de chaque source, une à la fois"),
+   T("Baixar", "Télécharger"),
++  T("Baixar registro", "Télécharger le journal"),
+   T("Baixe a versão nova no celular ou no computador:", "Téléchargez la nouvelle version sur votre téléphone ou ordinateur :"),
+   T("Baixo", "Bas"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Barre latérale en pilule avec Streaming et titres en carrousel. Réglages › Disposition."),
+@@ -2965,6 +2966,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Impossible d'enregistrer le point de contrôle"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Impossible d’enregistrer le journal. Essayez un autre emplacement."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Impossible d’enregistrer. La valeur précédente est conservée."),
+   T("Não foi possível sincronizar os addons.", "Impossible de synchroniser les add-ons."),
+   T("Não foi possível. OK para tentar de novo", "Échec. OK pour réessayer"),
+@@ -3986,6 +3988,7 @@
+   T("Registro do app em painel, com código de envio", "Journal de l’app dans un panneau, avec code d’envoi"),
+   T("Registro enviado", "Journal envoyé"),
+   T("Registro enviado. Obrigado.", "Journal envoyé. Merci."),
++  T("Registro salvo.", "Journal enregistré."),
+   T("Regras do automático", "Règles du choix automatique"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Redémarrer la TV ou réinstaller l'app peut résoudre le problème."),
+   T("Reiniciar agora", "Redémarrer maintenant"),
+@@ -4122,6 +4125,7 @@
+   T("Sair mesmo assim", "Quitter quand même"),
+   T("Sair no meio e voltar pela ilha", "Quitter en cours et revenir par l’îlot"),
+   T("Saiu T%dE%d de %s", "S%dE%d de %s est sorti"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Enregistre le journal de cette session dans un fichier texte, sans mots de passe ni clés."),
+   T("Salvando com +", "Enregistrement avec +"),
+   T("Salvando...", "Enregistrement..."),
+   T("Salvar", "Enregistrer"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index d7cafc42e..b7ac9f472 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Minden forrásból egy darab letöltése"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Minden forrásból letöltök egy szakaszt, egyenként"),
+   T("Baixar", "Letöltés"),
++  T("Baixar registro", "Napló letöltése"),
+   T("Baixe a versão nova no celular ou no computador:", "Töltsd le az új verziót telefonon vagy számítógépen:"),
+   T("Baixo", "Le"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Pirula alakú oldalsáv Streaminggel és körhintában lévő címekkel. Beállítások › Elrendezés."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Nem sikerült menteni az ellenőrzőpontot"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Nem sikerült menteni a naplót. Próbálj másik helyet."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Nem sikerült menteni. Az előző érték maradt."),
+   T("Não foi possível sincronizar os addons.", "Nem sikerült szinkronizálni a bővítményeket."),
+   T("Não foi possível. OK para tentar de novo", "Nem sikerült. OK az újrapróbáláshoz"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Az app naplója panelben, küldési kóddal"),
+   T("Registro enviado", "Napló elküldve"),
+   T("Registro enviado. Obrigado.", "Napló elküldve. Köszönjük."),
++  T("Registro salvo.", "Napló mentve."),
+   T("Regras do automático", "Az automatika szabályai"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "A TV újraindítása vagy az app újratelepítése megoldhatja."),
+   T("Reiniciar agora", "Újraindítás most"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Kilépés mégis"),
+   T("Sair no meio e voltar pela ilha", "Kilépés félúton és visszatérés a szigeten át"),
+   T("Saiu T%dE%d de %s", "Megjelent: S%dE%d · %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "A munkamenet naplóját szövegfájlba menti, jelszavak és kulcsok nélkül."),
+   T("Salvando com +", "Mentés a + gombbal"),
+   T("Salvando...", "Mentés..."),
+   T("Salvar", "Mentés"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index 29066ad12..27384c21a 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Mengunduh sepotong dari tiap sumber"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Mengunduh sebagian dari tiap sumber, satu per satu"),
+   T("Baixar", "Unduh"),
++  T("Baixar registro", "Unduh log"),
+   T("Baixe a versão nova no celular ou no computador:", "Unduh versi baru di ponsel atau komputer:"),
+   T("Baixo", "Bawah"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Bilah samping berbentuk pil dengan Streaming dan judul dalam karusel. Pengaturan › Tata letak."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Tidak dapat menyimpan titik pemeriksaan"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Tidak dapat menyimpan log. Coba lokasi lain."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Gagal menyimpan. Nilai sebelumnya dipertahankan."),
+   T("Não foi possível sincronizar os addons.", "Add-on tidak dapat disinkronkan."),
+   T("Não foi possível. OK para tentar de novo", "Gagal. OK untuk mencoba lagi"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Log aplikasi dalam panel, dengan kode kirim"),
+   T("Registro enviado", "Log terkirim"),
+   T("Registro enviado. Obrigado.", "Log terkirim. Terima kasih."),
++  T("Registro salvo.", "Log disimpan."),
+   T("Regras do automático", "Aturan otomatis"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Memulai ulang TV atau memasang ulang aplikasi mungkin memperbaikinya."),
+   T("Reiniciar agora", "Mulai ulang sekarang"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Tetap keluar"),
+   T("Sair no meio e voltar pela ilha", "Keluar di tengah dan kembali lewat pulau"),
+   T("Saiu T%dE%d de %s", "S%dE%d dari %s sudah rilis"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Menyimpan log sesi ini sebagai berkas teks, tanpa kata sandi atau kunci."),
+   T("Salvando com +", "Menyimpan dengan +"),
+   T("Salvando...", "Menyimpan..."),
+   T("Salvar", "Simpan"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index 66cfe2a44..ac90c49c1 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Download di un pezzo di ogni fonte"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Scarico un tratto di ogni fonte, una alla volta"),
+   T("Baixar", "Scarica"),
++  T("Baixar registro", "Scarica log"),
+   T("Baixe a versão nova no celular ou no computador:", "Scarica la nuova versione sul telefono o sul computer:"),
+   T("Baixo", "Giù"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Barra laterale a pillola con Streaming e titoli a carosello. Impostazioni › Layout."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Impossibile salvare il checkpoint"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Impossibile salvare il log. Prova un'altra posizione."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Impossibile salvare. È rimasto il valore precedente."),
+   T("Não foi possível sincronizar os addons.", "Impossibile sincronizzare gli add-on."),
+   T("Não foi possível. OK para tentar de novo", "Non è stato possibile. OK per riprovare"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Registro dell’app in un pannello, con codice di invio"),
+   T("Registro enviado", "Registro inviato"),
+   T("Registro enviado. Obrigado.", "Log inviato. Grazie."),
++  T("Registro salvo.", "Log salvato."),
+   T("Regras do automático", "Regole dell’automatico"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Riavviare la TV o reinstallare l'app potrebbe risolvere."),
+   T("Reiniciar agora", "Riavvia ora"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Esci comunque"),
+   T("Sair no meio e voltar pela ilha", "Uscire a metà e tornare dall’isola"),
+   T("Saiu T%dE%d de %s", "È uscito S%dE%d di %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Salva il log di questa sessione in un file di testo, senza password né chiavi."),
+   T("Salvando com +", "Salvataggio con +"),
+   T("Salvando...", "Salvataggio..."),
+   T("Salvar", "Salva"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index 2f0ae6a8f..ac67621a8 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "各ソースの一部をダウンロードしています"),
+   T("Baixando um trecho de cada fonte, uma por vez", "各ソースの一部を順番にダウンロード中"),
+   T("Baixar", "ダウンロード"),
++  T("Baixar registro", "ログをダウンロード"),
+   T("Baixe a versão nova no celular ou no computador:", "新しいバージョンをスマホかパソコンでダウンロード:"),
+   T("Baixo", "下"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Streaming とカルーセル形式のタイトルを備えたカプセル型サイドバー。設定 › レイアウト。"),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "チェックポイントを保存できませんでした"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "ログを保存できませんでした。別の保存先をお試しください。"),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "保存できませんでした。前の値のままです。"),
+   T("Não foi possível sincronizar os addons.", "アドオンを同期できませんでした。"),
+   T("Não foi possível. OK para tentar de novo", "できませんでした。OKで再試行"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "アプリのログをパネルで表示、送信コード付き"),
+   T("Registro enviado", "ログを送信しました"),
+   T("Registro enviado. Obrigado.", "ログを送信しました。ありがとうございます。"),
++  T("Registro salvo.", "ログを保存しました。"),
+   T("Regras do automático", "自動選択のルール"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "テレビを再起動するか、アプリを再インストールすると解決することがあります。"),
+   T("Reiniciar agora", "今すぐ再起動"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "それでも終了"),
+   T("Sair no meio e voltar pela ilha", "途中で出て、アイランドから戻る"),
+   T("Saiu T%dE%d de %s", "S%dE%d公開：%s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "このセッションのログを、パスワードやキーを含まないテキストファイルとして保存します。"),
+   T("Salvando com +", "+ で保存"),
+   T("Salvando...", "保存しています..."),
+   T("Salvar", "保存"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 72b837e15..ebd537c77 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Atsisiunčiama po dalį kiekvieno šaltinio"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Siunčiama kiekvieno šaltinio dalis, po vieną"),
+   T("Baixar", "Atsisiųsti"),
++  T("Baixar registro", "Atsisiųsti žurnalą"),
+   T("Baixe a versão nova no celular ou no computador:", "Atsisiųskite naują versiją telefone arba kompiuteryje:"),
+   T("Baixo", "Žemyn"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Šoninė juosta tabletės formos su Streaming ir pavadinimais karusele. Nustatymai › Išdėstymas."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Nepavyko išsaugoti kontrolinio taško"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Nepavyko išsaugoti žurnalo. Pabandykite kitą vietą."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Nepavyko išsaugoti. Liko ankstesnė reikšmė."),
+   T("Não foi possível sincronizar os addons.", "Nepavyko sinchronizuoti priedų."),
+   T("Não foi possível. OK para tentar de novo", "Nepavyko. OK – bandyti dar kartą"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Programos žurnalas skydelyje, su siuntimo kodu"),
+   T("Registro enviado", "Žurnalas išsiųstas"),
+   T("Registro enviado. Obrigado.", "Žurnalas išsiųstas. Ačiū."),
++  T("Registro salvo.", "Žurnalas išsaugotas."),
+   T("Regras do automático", "Automatinio pasirinkimo taisyklės"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Televizoriaus paleidimas iš naujo ar programos įdiegimas iš naujo gali padėti."),
+   T("Reiniciar agora", "Paleisti iš naujo dabar"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Vis tiek išeiti"),
+   T("Sair no meio e voltar pela ilha", "Išeik viduryje ir grįžk per salą"),
+   T("Saiu T%dE%d de %s", "Išėjo S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Išsaugo šio seanso žurnalą tekstiniame faile be slaptažodžių ir raktų."),
+   T("Salvando com +", "Išsaugojimas su +"),
+   T("Salvando...", "Saugoma..."),
+   T("Salvar", "Išsaugoti"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index 8d023c0b4..eba46a4e9 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Een stukje van elke bron downloaden"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Een stuk van elke bron downloaden, één voor één"),
+   T("Baixar", "Downloaden"),
++  T("Baixar registro", "Log downloaden"),
+   T("Baixe a versão nova no celular ou no computador:", "Download de nieuwe versie op je telefoon of computer:"),
+   T("Baixo", "Omlaag"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Zijbalk als pil met Streaming en titels in een carrousel. Instellingen › Indeling."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Kon het controlepunt niet opslaan"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Het log kon niet worden opgeslagen. Probeer een andere locatie."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Opslaan lukte niet. De vorige waarde blijft."),
+   T("Não foi possível sincronizar os addons.", "Add-ons synchroniseren is mislukt."),
+   T("Não foi possível. OK para tentar de novo", "Dat lukte niet. OK om opnieuw te proberen"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "App-logboek in een paneel, met verzendcode"),
+   T("Registro enviado", "Logboek verzonden"),
+   T("Registro enviado. Obrigado.", "Log verzonden. Bedankt."),
++  T("Registro salvo.", "Log opgeslagen."),
+   T("Regras do automático", "Regels van de automaat"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "De tv herstarten of de app opnieuw installeren kan het oplossen."),
+   T("Reiniciar agora", "Nu opnieuw starten"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Toch afsluiten"),
+   T("Sair no meio e voltar pela ilha", "Halverwege stoppen en via het eiland terugkomen"),
+   T("Saiu T%dE%d de %s", "S%dE%d van %s is uit"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Slaat het log van deze sessie op als tekstbestand, zonder wachtwoorden of sleutels."),
+   T("Salvando com +", "Bewaren met +"),
+   T("Salvando...", "Bewaren..."),
+   T("Salvar", "Bewaren"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 277b69d77..612418b2d 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Laster ned en bit av hver kilde"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Laster ned et stykke av hver kilde, én om gangen"),
+   T("Baixar", "Last ned"),
++  T("Baixar registro", "Last ned logg"),
+   T("Baixe a versão nova no celular ou no computador:", "Last ned den nye versjonen på mobilen eller datamaskinen:"),
+   T("Baixo", "Ned"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Sidefelt som pille med Streaming og titler i en karusell. Innstillinger › Layout."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Kunne ikke lagre sjekkpunktet"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Kunne ikke lagre loggen. Prøv en annen plassering."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Kunne ikke lagre. Den forrige verdien er beholdt."),
+   T("Não foi possível sincronizar os addons.", "Kunne ikke synkronisere tilleggene."),
+   T("Não foi possível. OK para tentar de novo", "Det gikk ikke. OK for å prøve igjen"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Appens logg i et panel, med sendekode"),
+   T("Registro enviado", "Logg sendt"),
+   T("Registro enviado. Obrigado.", "Logg sendt. Takk."),
++  T("Registro salvo.", "Loggen er lagret."),
+   T("Regras do automático", "Regler for automatikk"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Å starte TV-en på nytt eller installere appen på nytt kan løse det."),
+   T("Reiniciar agora", "Start på nytt nå"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Avslutt likevel"),
+   T("Sair no meio e voltar pela ilha", "Gå midt i og kom tilbake via øya"),
+   T("Saiu T%dE%d de %s", "S%dE%d av %s er ute"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Lagrer loggen fra denne økten som en tekstfil uten passord eller nøkler."),
+   T("Salvando com +", "Lagrer med +"),
+   T("Salvando...", "Lagrer..."),
+   T("Salvar", "Lagre"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index ded3dd64c..626979fa6 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Pobieranie fragmentu każdego źródła"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Pobieranie fragmentu każdego źródła, jedno po drugim"),
+   T("Baixar", "Pobierz"),
++  T("Baixar registro", "Pobierz dziennik"),
+   T("Baixe a versão nova no celular ou no computador:", "Pobierz nową wersję na telefonie lub komputerze:"),
+   T("Baixo", "Dół"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Boczny pasek w kształcie pigułki ze Streaming i tytułami w karuzeli. Ustawienia › Układ."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Nie udało się zapisać punktu kontrolnego"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Nie udało się zapisać dziennika. Spróbuj innej lokalizacji."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Nie udało się zapisać. Zostaje poprzednia wartość."),
+   T("Não foi possível sincronizar os addons.", "Nie udało się zsynchronizować dodatków."),
+   T("Não foi possível. OK para tentar de novo", "Nie udało się. OK, aby spróbować ponownie"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Dziennik aplikacji w panelu, z kodem wysyłki"),
+   T("Registro enviado", "Dziennik wysłany"),
+   T("Registro enviado. Obrigado.", "Dziennik wysłany. Dziękujemy."),
++  T("Registro salvo.", "Dziennik zapisany."),
+   T("Regras do automático", "Reguły automatu"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Ponowne uruchomienie telewizora lub ponowna instalacja aplikacji może pomóc."),
+   T("Reiniciar agora", "Uruchom ponownie teraz"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Wyjdź mimo to"),
+   T("Sair no meio e voltar pela ilha", "Wyjście w połowie i powrót przez wyspę"),
+   T("Saiu T%dE%d de %s", "Jest S%dE%d serialu %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Zapisuje dziennik tej sesji w pliku tekstowym, bez haseł i kluczy."),
+   T("Salvando com +", "Zapisywanie przez +"),
+   T("Salvando...", "Zapisywanie..."),
+   T("Salvar", "Zapisz"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index d1ce438ae..23012f99d 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "A transferir um troço de cada fonte"),
+   T("Baixando um trecho de cada fonte, uma por vez", "A transferir um excerto de cada fonte, uma de cada vez"),
+   T("Baixar", "Transferir"),
++  T("Baixar registro", "Transferir registo"),
+   T("Baixe a versão nova no celular ou no computador:", "Transfira a versão nova no telemóvel ou no computador:"),
+   T("Baixo", "Baixo"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Barra em pílula com o Streaming e títulos em carrossel. Definições › Disposição."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Não foi possível salvar a chave. A chave anterior foi mantida."),
+   T("Não foi possível salvar o checkpoint", "Não foi possível guardar o checkpoint"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Não foi possível guardar o registo. Tente outra localização."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Não foi possível guardar. O valor anterior foi mantido."),
+   T("Não foi possível sincronizar os addons.", "Não foi possível sincronizar os add-ons."),
+   T("Não foi possível. OK para tentar de novo", "Não foi possível. OK para tentar de novo"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Registo da aplicação num painel, com código de envio"),
+   T("Registro enviado", "Registo enviado"),
+   T("Registro enviado. Obrigado.", "Registo enviado. Obrigado."),
++  T("Registro salvo.", "Registo guardado."),
+   T("Regras do automático", "Regras do automático"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Reiniciar a TV ou reinstalar a app pode resolver."),
+   T("Reiniciar agora", "Reiniciar agora"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Sair mesmo assim"),
+   T("Sair no meio e voltar pela ilha", "Sair a meio e voltar pela ilha"),
+   T("Saiu T%dE%d de %s", "Saiu T%dE%d de %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Guarda o registo desta sessão num ficheiro de texto, sem palavras-passe nem chaves."),
+   T("Salvando com +", "A guardar com +"),
+   T("Salvando...", "A guardar..."),
+   T("Salvar", "Guardar"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index 7d2f782b4..4d95280e1 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -889,6 +889,7 @@
+   T("Baixando um trecho de cada fonte", "Se descarcă un fragment din fiecare sursă"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Se descarcă un fragment din fiecare sursă, pe rând"),
+   T("Baixar", "Descarcă"),
++  T("Baixar registro", "Descarcă jurnalul"),
+   T("Baixe a versão nova no celular ou no computador:", "Descarcă versiunea nouă pe telefon sau pe computer:"),
+   T("Baixo", "Jos"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Bară laterală în formă de pastilă cu Streaming și titluri în carusel. Setări › Aspect pagină."),
+@@ -2965,6 +2966,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Nu s-a putut salva punctul de control"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Jurnalul nu a putut fi salvat. Încearcă altă locație."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Nu s-a putut salva. S-a păstrat valoarea anterioară."),
+   T("Não foi possível sincronizar os addons.", "Nu s-au putut sincroniza add-ons."),
+   T("Não foi possível. OK para tentar de novo", "Nu a reușit. OK pentru a reîncerca"),
+@@ -3986,6 +3988,7 @@
+   T("Registro do app em painel, com código de envio", "Jurnalul aplicației într-un panou, cu cod de trimitere"),
+   T("Registro enviado", "Jurnal trimis"),
+   T("Registro enviado. Obrigado.", "Jurnal trimis. Mulțumim."),
++  T("Registro salvo.", "Jurnal salvat."),
+   T("Regras do automático", "Reguli pentru automat"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Repornirea televizorului sau reinstalarea aplicației poate rezolva."),
+   T("Reiniciar agora", "Repornește acum"),
+@@ -4122,6 +4125,7 @@
+   T("Sair mesmo assim", "Ieși oricum"),
+   T("Sair no meio e voltar pela ilha", "Ieși la jumătate și revii prin insulă"),
+   T("Saiu T%dE%d de %s", "A apărut S%dE%d din %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Salvează jurnalul acestei sesiuni într-un fișier text, fără parole sau chei."),
+   T("Salvando com +", "Se salvează cu +"),
+   T("Salvando...", "Se salvează..."),
+   T("Salvar", "Salvează"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 8b8da8be5..910c0b486 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -889,6 +889,7 @@
+   T("Baixando um trecho de cada fonte", "Загрузка фрагмента из каждого источника"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Загрузка фрагмента из каждого источника по очереди"),
+   T("Baixar", "Загрузить"),
++  T("Baixar registro", "Скачать журнал"),
+   T("Baixe a versão nova no celular ou no computador:", "Скачайте новую версию на телефон или компьютер:"),
+   T("Baixo", "Вниз"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Боковая панель-таблетка со Streaming и названиями каруселью. Настройки › Макет."),
+@@ -2965,6 +2966,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Не удалось сохранить контрольную точку"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Не удалось сохранить журнал. Попробуйте другое расположение."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Не удалось сохранить. Оставлено прежнее значение."),
+   T("Não foi possível sincronizar os addons.", "Не удалось синхронизировать дополнения."),
+   T("Não foi possível. OK para tentar de novo", "Не получилось. OK, чтобы повторить"),
+@@ -3986,6 +3988,7 @@
+   T("Registro do app em painel, com código de envio", "Журнал приложения в панели, с кодом отправки"),
+   T("Registro enviado", "Журнал отправлен"),
+   T("Registro enviado. Obrigado.", "Журнал отправлен. Спасибо."),
++  T("Registro salvo.", "Журнал сохранён."),
+   T("Regras do automático", "Правила автовыбора"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Может помочь перезапуск телевизора или переустановка приложения."),
+   T("Reiniciar agora", "Перезапустить сейчас"),
+@@ -4122,6 +4125,7 @@
+   T("Sair mesmo assim", "Всё равно выйти"),
+   T("Sair no meio e voltar pela ilha", "Выйти на середине и вернуться через остров"),
+   T("Saiu T%dE%d de %s", "Вышла S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Сохраняет журнал этого сеанса в текстовый файл без паролей и ключей."),
+   T("Salvando com +", "Сохранение через +"),
+   T("Salvando...", "Сохранение..."),
+   T("Salvar", "Сохранить"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index c55d81827..c165a98c1 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Sťahuje sa kúsok z každého zdroja"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Sťahuje sa úsek každého zdroja, jeden po druhom"),
+   T("Baixar", "Stiahnuť"),
++  T("Baixar registro", "Stiahnuť log"),
+   T("Baixe a versão nova no celular ou no computador:", "Stiahnite novú verziu v telefóne alebo počítači:"),
+   T("Baixo", "Dole"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Bočný panel v tvare pilulky so Streaming a titulmi v kolotoči. Nastavenia › Rozloženie."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Kontrolný bod sa nepodarilo uložiť"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Log sa nepodarilo uložiť. Skúste iné umiestnenie."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Uloženie sa nepodarilo. Zostala predchádzajúca hodnota."),
+   T("Não foi possível sincronizar os addons.", "Doplnky sa nepodarilo synchronizovať."),
+   T("Não foi possível. OK para tentar de novo", "Nepodarilo sa. OK pre nový pokus"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Záznam aplikácie v paneli, s kódom na odoslanie"),
+   T("Registro enviado", "Záznam odoslaný"),
+   T("Registro enviado. Obrigado.", "Log odoslaný. Ďakujeme."),
++  T("Registro salvo.", "Log bol uložený."),
+   T("Regras do automático", "Pravidlá automatu"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Reštart televízora alebo preinštalovanie aplikácie to môže vyriešiť."),
+   T("Reiniciar agora", "Reštartovať teraz"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Aj tak ukončiť"),
+   T("Sair no meio e voltar pela ilha", "Odísť v polovici a vrátiť sa cez ostrov"),
+   T("Saiu T%dE%d de %s", "Vyšiel S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Uloží log tejto relácie do textového súboru bez hesiel a kľúčov."),
+   T("Salvando com +", "Ukladanie pomocou +"),
+   T("Salvando...", "Ukladá sa..."),
+   T("Salvar", "Uložiť"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index 78025da0f..8b855e2f9 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Prenašanje dela vsakega vira"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Prenašam del vsakega vira, enega za drugim"),
+   T("Baixar", "Prenesi"),
++  T("Baixar registro", "Prenesi dnevnik"),
+   T("Baixe a versão nova no celular ou no computador:", "Novo različico prenesite na telefon ali računalnik:"),
+   T("Baixo", "Dol"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Stranska vrstica v obliki tablete s Streaming in naslovi v vrtiljaku. Nastavitve › Postavitev."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Kontrolne točke ni bilo mogoče shraniti"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Dnevnika ni bilo mogoče shraniti. Poskusite drugo mesto."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Shranjevanje ni uspelo. Ostala je prejšnja vrednost."),
+   T("Não foi possível sincronizar os addons.", "Dodatkov ni bilo mogoče sinhronizirati."),
+   T("Não foi possível. OK para tentar de novo", "Ni uspelo. OK za ponovni poskus"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Dnevnik aplikacije v plošči, s kodo za pošiljanje"),
+   T("Registro enviado", "Dnevnik poslan"),
+   T("Registro enviado. Obrigado.", "Dnevnik poslan. Hvala."),
++  T("Registro salvo.", "Dnevnik shranjen."),
+   T("Regras do automático", "Pravila samodejne izbire"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Ponovni zagon televizorja ali ponovna namestitev aplikacije bi to lahko rešila."),
+   T("Reiniciar agora", "Znova zaženi zdaj"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Vseeno zapusti"),
+   T("Sair no meio e voltar pela ilha", "Odidi na pol in se vrni prek otoka"),
+   T("Saiu T%dE%d de %s", "Izšla je S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Shrani dnevnik te seje v besedilno datoteko brez gesel in ključev."),
+   T("Salvando com +", "Shranjevanje s +"),
+   T("Salvando...", "Shranjevanje ..."),
+   T("Salvar", "Shrani"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index a2af838f4..65326de42 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Preuzimanje dela svakog izvora"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Preuzimam deo svakog izvora, jedan po jedan"),
+   T("Baixar", "Preuzmi"),
++  T("Baixar registro", "Preuzmi dnevnik"),
+   T("Baixe a versão nova no celular ou no computador:", "Preuzmite novu verziju na telefonu ili računaru:"),
+   T("Baixo", "Dole"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Bočna traka u obliku tablete sa Streaming i naslovima u vrtešci. Podešavanja › Raspored elemenata."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Nije moguće sačuvati kontrolnu tačku"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Nije moguće sačuvati dnevnik. Pokušajte drugu lokaciju."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Čuvanje nije uspelo. Zadržana je prethodna vrednost."),
+   T("Não foi possível sincronizar os addons.", "Nije moguće sinhronizovati dodatke."),
+   T("Não foi possível. OK para tentar de novo", "Nije uspelo. OK za ponovni pokušaj"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Zapisnik aplikacije u panelu, s kodom za slanje"),
+   T("Registro enviado", "Zapisnik poslat"),
+   T("Registro enviado. Obrigado.", "Dnevnik poslat. Hvala."),
++  T("Registro salvo.", "Dnevnik sačuvan."),
+   T("Regras do automático", "Pravila automatike"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Ponovno pokretanje TV-a ili ponovna instalacija aplikacije može to rešiti."),
+   T("Reiniciar agora", "Ponovo pokreni sada"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Ipak izađi"),
+   T("Sair no meio e voltar pela ilha", "Izađi na pola i vrati se preko ostrva"),
+   T("Saiu T%dE%d de %s", "Izašla je S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Čuva dnevnik ove sesije u tekstualnoj datoteci, bez lozinki i ključeva."),
+   T("Salvando com +", "Čuvanje sa +"),
+   T("Salvando...", "Čuvanje..."),
+   T("Salvar", "Sačuvaj"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index fc5bbe972..a1257fa3d 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Laddar ner en bit av varje källa"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Laddar ner en bit av varje källa, en i taget"),
+   T("Baixar", "Ladda ner"),
++  T("Baixar registro", "Hämta logg"),
+   T("Baixe a versão nova no celular ou no computador:", "Ladda ner den nya versionen på mobilen eller datorn:"),
+   T("Baixo", "Ned"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Sidofält som pill med Streaming och titlar i en karusell. Inställningar › Layout."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Det gick inte att spara kontrollpunkten"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Det gick inte att spara loggen. Försök med en annan plats."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Det gick inte att spara. Det tidigare värdet finns kvar."),
+   T("Não foi possível sincronizar os addons.", "Det gick inte att synkronisera tilläggen."),
+   T("Não foi possível. OK para tentar de novo", "Det gick inte. OK för att försöka igen"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Appens logg i en panel, med sändkod"),
+   T("Registro enviado", "Logg skickad"),
+   T("Registro enviado. Obrigado.", "Loggen skickad. Tack."),
++  T("Registro salvo.", "Loggen sparades."),
+   T("Regras do automático", "Regler för automatiken"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Att starta om TV:n eller installera om appen kan hjälpa."),
+   T("Reiniciar agora", "Starta om nu"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Avsluta ändå"),
+   T("Sair no meio e voltar pela ilha", "Lämna halvvägs och kom tillbaka via ön"),
+   T("Saiu T%dE%d de %s", "S%dA%d av %s är ute"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Sparar loggen för den här sessionen som en textfil, utan lösenord eller nycklar."),
+   T("Salvando com +", "Sparar med +"),
+   T("Salvando...", "Sparar..."),
+   T("Salvar", "Spara"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index ee7696c56..217f89993 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -889,6 +889,7 @@
+   { "Baixando um trecho de cada fonte", "Downloading a piece of each source" },
+   { "Baixando um trecho de cada fonte, uma por vez", "Downloading a stretch of each source, one at a time" },
+   { "Baixar", "Download" },
++  { "Baixar registro", "Download log" },
+   { "Baixe a versão nova no celular ou no computador:", "Download the new version on your phone or computer:" },
+   { "Baixo", "Down" },
+   { "Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Pill sidebar with Streaming, titles in a carousel. Settings › Layout." },
+@@ -2965,6 +2966,7 @@
+   { "Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept." },
+   { "Não foi possível salvar o checkpoint", "Could not save the checkpoint" },
+   { "Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored" },
++  { "Não foi possível salvar o registro. Tente outro local.", "Could not save the log. Try another location." },
+   { "Não foi possível salvar. O valor anterior foi mantido.", "Could not save. The previous value was kept." },
+   { "Não foi possível sincronizar os addons.", "Could not sync add-ons." },
+   { "Não foi possível. OK para tentar de novo", "That didn't work. OK to try again" },
+@@ -3986,6 +3988,7 @@
+   { "Registro do app em painel, com código de envio", "App log in a panel, with a send code" },
+   { "Registro enviado", "Log sent" },
+   { "Registro enviado. Obrigado.", "Log sent. Thank you." },
++  { "Registro salvo.", "Log saved." },
+   { "Regras do automático", "Auto-play rules" },
+   { "Reiniciar a TV ou reinstalar o app pode resolver.", "Restarting the TV or reinstalling the app may fix it." },
+   { "Reiniciar agora", "Restart now" },
+@@ -4122,6 +4125,7 @@
+   { "Sair mesmo assim", "Exit anyway" },
+   { "Sair no meio e voltar pela ilha", "Leave halfway and come back through the island" },
+   { "Saiu T%dE%d de %s", "S%dE%d of %s is out" },
++  { "Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Saves this session's log as a text file, without passwords or keys." },
+   { "Salvando com +", "Saving with +" },
+   { "Salvando...", "Saving..." },
+   { "Salvar", "Save" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index 2f9cfd803..fed4b3bff 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Her kaynaktan bir parça indiriliyor"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Her kaynaktan bir parça indiriliyor, sırayla"),
+   T("Baixar", "İndir"),
++  T("Baixar registro", "Günlüğü indir"),
+   T("Baixe a versão nova no celular ou no computador:", "Yeni sürümü telefonda veya bilgisayarda indirin:"),
+   T("Baixo", "Aşağı"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Streaming ve döngüde başlıklarla hap biçiminde kenar çubuğu. Ayarlar › Düzen."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Kontrol noktası kaydedilemedi"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Günlük kaydedilemedi. Başka bir konum deneyin."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Kaydedilemedi. Önceki değer korundu."),
+   T("Não foi possível sincronizar os addons.", "Eklentiler senkronize edilemedi."),
+   T("Não foi possível. OK para tentar de novo", "Olmadı. Tekrar denemek için OK"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Panelde uygulama günlüğü, gönderim koduyla"),
+   T("Registro enviado", "Günlük gönderildi"),
+   T("Registro enviado. Obrigado.", "Günlük gönderildi. Teşekkürler."),
++  T("Registro salvo.", "Günlük kaydedildi."),
+   T("Regras do automático", "Otomatik seçim kuralları"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "TV'yi yeniden başlatmak ya da uygulamayı yeniden kurmak sorunu çözebilir."),
+   T("Reiniciar agora", "Şimdi yeniden başlat"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Yine de çık"),
+   T("Sair no meio e voltar pela ilha", "Yarıda çık ve adadan dön"),
+   T("Saiu T%dE%d de %s", "S%dB%d çıktı: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Bu oturumun günlüğünü parola veya anahtar içermeyen bir metin dosyası olarak kaydeder."),
+   T("Salvando com +", "+ ile kaydetme"),
+   T("Salvando...", "Kaydediliyor..."),
+   T("Salvar", "Kaydet"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index 38b80310d..a0074135e 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -889,6 +889,7 @@
+   T("Baixando um trecho de cada fonte", "Завантаження фрагмента з кожного джерела"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Завантаження фрагмента з кожного джерела по черзі"),
+   T("Baixar", "Завантажити"),
++  T("Baixar registro", "Завантажити журнал"),
+   T("Baixe a versão nova no celular ou no computador:", "Завантажте нову версію на телефон або комп'ютер:"),
+   T("Baixo", "Вниз"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Бокова панель-пігулка зі Streaming і назвами каруселлю. Налаштування › Макет."),
+@@ -2965,6 +2966,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Не вдалося зберегти контрольну точку"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Не вдалося зберегти журнал. Спробуйте інше розташування."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Не вдалося зберегти. Залишено попереднє значення."),
+   T("Não foi possível sincronizar os addons.", "Не вдалося синхронізувати додатки."),
+   T("Não foi possível. OK para tentar de novo", "Не вдалося. OK, щоб спробувати ще"),
+@@ -3986,6 +3988,7 @@
+   T("Registro do app em painel, com código de envio", "Журнал застосунку в панелі, з кодом надсилання"),
+   T("Registro enviado", "Журнал надіслано"),
+   T("Registro enviado. Obrigado.", "Журнал надіслано. Дякуємо."),
++  T("Registro salvo.", "Журнал збережено."),
+   T("Regras do automático", "Правила автовибору"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Може допомогти перезапуск телевізора або перевстановлення застосунку."),
+   T("Reiniciar agora", "Перезапустити зараз"),
+@@ -4122,6 +4125,7 @@
+   T("Sair mesmo assim", "Все одно вийти"),
+   T("Sair no meio e voltar pela ilha", "Вийти посередині й повернутися через острів"),
+   T("Saiu T%dE%d de %s", "Вийшла S%dE%d: %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Зберігає журнал цього сеансу в текстовому файлі без паролів і ключів."),
+   T("Salvando com +", "Збереження через +"),
+   T("Salvando...", "Збереження..."),
+   T("Salvar", "Зберегти"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 9cae1be4f..3da992c49 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "Đang tải một đoạn từ mỗi nguồn"),
+   T("Baixando um trecho de cada fonte, uma por vez", "Đang tải một đoạn của từng nguồn, lần lượt từng nguồn"),
+   T("Baixar", "Tải về"),
++  T("Baixar registro", "Tải nhật ký xuống"),
+   T("Baixe a versão nova no celular ou no computador:", "Tải phiên bản mới trên điện thoại hoặc máy tính:"),
+   T("Baixo", "Xuống"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "Thanh bên dạng viên thuốc với Streaming và tiêu đề dạng băng chuyền. Cài đặt › Bố cục."),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "Không lưu được điểm kiểm tra"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "Không thể lưu nhật ký. Hãy thử vị trí khác."),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "Không lưu được. Giá trị trước đó được giữ nguyên."),
+   T("Não foi possível sincronizar os addons.", "Không thể đồng bộ tiện ích."),
+   T("Não foi possível. OK para tentar de novo", "Không thành công. OK để thử lại"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "Nhật ký ứng dụng trong một bảng, kèm mã gửi"),
+   T("Registro enviado", "Đã gửi nhật ký"),
+   T("Registro enviado. Obrigado.", "Đã gửi nhật ký. Cảm ơn bạn."),
++  T("Registro salvo.", "Đã lưu nhật ký."),
+   T("Regras do automático", "Quy tắc tự chọn"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "Khởi động lại TV hoặc cài lại ứng dụng có thể khắc phục."),
+   T("Reiniciar agora", "Khởi động lại ngay"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "Vẫn thoát"),
+   T("Sair no meio e voltar pela ilha", "Thoát giữa chừng và quay lại qua đảo"),
+   T("Saiu T%dE%d de %s", "Đã có S%dE%d của %s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "Lưu nhật ký của phiên này thành tệp văn bản, không có mật khẩu hay khóa."),
+   T("Salvando com +", "Lưu bằng +"),
+   T("Salvando...", "Đang lưu..."),
+   T("Salvar", "Lưu"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 88dd53cd8..44040b9aa 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "正在下载每个片源的一小段"),
+   T("Baixando um trecho de cada fonte, uma por vez", "正在依次下载每个片源的一小段"),
+   T("Baixar", "下载"),
++  T("Baixar registro", "下载日志"),
+   T("Baixe a versão nova no celular ou no computador:", "在手机或电脑上下载新版本："),
+   T("Baixo", "下"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "药丸形侧边栏，含 Streaming，标题以轮播呈现。设置 › 布局。"),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "无法保存检查点"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "无法保存日志。请尝试其他位置。"),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "无法保存。已保留之前的值。"),
+   T("Não foi possível sincronizar os addons.", "无法同步插件。"),
+   T("Não foi possível. OK para tentar de novo", "未能完成。按 OK 重试"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "面板中的应用日志，附发送代码"),
+   T("Registro enviado", "日志已发送"),
+   T("Registro enviado. Obrigado.", "日志已发送。谢谢。"),
++  T("Registro salvo.", "日志已保存。"),
+   T("Regras do automático", "自动选择规则"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "重启电视或重新安装应用可能会解决问题。"),
+   T("Reiniciar agora", "立即重新启动"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "仍然退出"),
+   T("Sair no meio e voltar pela ilha", "中途退出，再通过岛返回"),
+   T("Saiu T%dE%d de %s", "S%dE%d已上线：%s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "将本次会话的日志保存为文本文件，不包含密码或密钥。"),
+   T("Salvando com +", "用 + 保存"),
+   T("Salvando...", "正在保存..."),
+   T("Salvar", "保存"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index 8dc3fc3aa..4d035fe19 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -890,6 +890,7 @@
+   T("Baixando um trecho de cada fonte", "正在下載每個片源的一小段"),
+   T("Baixando um trecho de cada fonte, uma por vez", "正在依序下載每個片源的一小段"),
+   T("Baixar", "下載"),
++  T("Baixar registro", "下載日誌"),
+   T("Baixe a versão nova no celular ou no computador:", "在手機或電腦上下載新版本："),
+   T("Baixo", "下"),
+   T("Barra em pílula com o Streaming e títulos em carrossel. Ajustes › Layout.", "藥丸形側邊欄，含 Streaming，標題以輪播呈現。設定 › 版面配置。"),
+@@ -2966,6 +2967,7 @@
+   T("Não foi possível salvar a chave. A chave anterior foi mantida.", "Could not save the key. The previous key was kept."),
+   T("Não foi possível salvar o checkpoint", "無法儲存檢查點"),
+   T("Não foi possível salvar o perfil: configuração anterior restaurada", "Could not save the profile: previous settings restored"),
++  T("Não foi possível salvar o registro. Tente outro local.", "無法儲存日誌。請嘗試其他位置。"),
+   T("Não foi possível salvar. O valor anterior foi mantido.", "無法儲存。已保留先前的值。"),
+   T("Não foi possível sincronizar os addons.", "無法同步外掛。"),
+   T("Não foi possível. OK para tentar de novo", "未能完成。按 OK 重試"),
+@@ -3987,6 +3989,7 @@
+   T("Registro do app em painel, com código de envio", "面板中的應用程式記錄，附傳送代碼"),
+   T("Registro enviado", "日誌已傳送"),
+   T("Registro enviado. Obrigado.", "日誌已傳送。謝謝。"),
++  T("Registro salvo.", "日誌已儲存。"),
+   T("Regras do automático", "自動選擇規則"),
+   T("Reiniciar a TV ou reinstalar o app pode resolver.", "重新啟動電視或重新安裝應用程式可能會解決問題。"),
+   T("Reiniciar agora", "立即重新啟動"),
+@@ -4123,6 +4126,7 @@
+   T("Sair mesmo assim", "仍然離開"),
+   T("Sair no meio e voltar pela ilha", "中途退出，再通過島返回"),
+   T("Saiu T%dE%d de %s", "S%dE%d已上線：%s"),
++  T("Salva o registro desta sessão em um arquivo de texto, sem senhas nem chaves.", "將本次工作階段的日誌儲存為文字檔案，不包含密碼或金鑰。"),
+   T("Salvando com +", "用 + 儲存"),
+   T("Salvando...", "正在儲存..."),
+   T("Salvar", "儲存"),

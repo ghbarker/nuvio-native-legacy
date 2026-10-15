@@ -1,0 +1,23 @@
+{
+  "review_parent": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "review_branch": "review/public-log-download-20261015",
+  "product_source_commit": "1cd707586a5bc94579904e5601de996e62326067",
+  "product_source_tree": "8cd25f39ec183133a61456ad56cdd78e5475cb89",
+  "product_source_paths": 36,
+  "workflow_jobs": [
+    "macos",
+    "android"
+  ],
+  "no_ref_writes_from_ci": true,
+  "no_release_or_backend_action": true,
+  "host_preflight_reexecuted": false,
+  "new_ci_checks": [
+    "macOS complete TV/touch builds",
+    "unchanged original Settings/report preference and touch tests; original report code test",
+    "ASan/UBSan replay of original envio_auto test with original source/assertions",
+    "actual standard Android full Kotlin/Activity/helper API compilation",
+    "both ARM cores, all actual NvPlayer+new Activity download JNI descriptors in real APK DEX, native16KB packaging"
+  ],
+  "source_materialization": "Exact raw product commit object recreated from verified tree+parent+patch; no new source SHA or branch push",
+  "public_feature_test_overlay_integration_note": "The old private TestLocalLogs uses the same49117 result code. Replace or disable its Download row/result handler when integrating this public control, to avoid duplicate controls and result interception."
+}

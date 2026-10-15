@@ -1,0 +1,517 @@
+{
+  "outcome": "passed",
+  "baseline": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "records": [
+    {
+      "name": "baseline-desktop-tv-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/issue513-20261015/baseline/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-desktop-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-desktop-tv-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-desktop-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d"
+    },
+    {
+      "name": "baseline-desktop-tv-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-fsyntax-only",
+        "/workspace/review/issue513-20261015/baseline/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-desktop-tv-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/log-download-pr-20261015/source/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-desktop-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-desktop-tv-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-desktop-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d"
+    },
+    {
+      "name": "candidate-desktop-tv-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-fsyntax-only",
+        "/workspace/review/log-download-pr-20261015/source/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-desktop-touch-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/issue513-20261015/baseline/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-desktop-touch"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-desktop-touch-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-desktop-touch"
+      ],
+      "exit_code": 0,
+      "output_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d"
+    },
+    {
+      "name": "baseline-desktop-touch-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-fsyntax-only",
+        "/workspace/review/issue513-20261015/baseline/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-desktop-touch-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/log-download-pr-20261015/source/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-desktop-touch"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-desktop-touch-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-desktop-touch"
+      ],
+      "exit_code": 0,
+      "output_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d"
+    },
+    {
+      "name": "candidate-desktop-touch-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-fsyntax-only",
+        "/workspace/review/log-download-pr-20261015/source/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-android-tv-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/issue513-20261015/baseline/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-android-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-android-tv-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-android-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d"
+    },
+    {
+      "name": "baseline-android-tv-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-fsyntax-only",
+        "/workspace/review/issue513-20261015/baseline/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-android-tv-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/log-download-pr-20261015/source/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-android-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-android-tv-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-android-tv"
+      ],
+      "exit_code": 0,
+      "output_sha256": "00de858e77d47eeac6a143e6bd097e835ee198d61f61707198ade17cd8bee1b7"
+    },
+    {
+      "name": "candidate-android-tv-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-fsyntax-only",
+        "/workspace/review/log-download-pr-20261015/source/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-android-mobile-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/issue513-20261015/baseline/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-android-mobile"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "baseline-android-mobile-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/baseline-android-mobile"
+      ],
+      "exit_code": 0,
+      "output_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d"
+    },
+    {
+      "name": "baseline-android-mobile-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/issue513-20261015/baseline/src",
+        "-fsyntax-only",
+        "/workspace/review/issue513-20261015/baseline/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-android-mobile-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-DAJUSTES_SOURCE=\"/workspace/review/log-download-pr-20261015/source/src/ajustes.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/settings-tables.c",
+        "-Wl,--gc-sections",
+        "-lm",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-android-mobile"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "candidate-android-mobile-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/candidate-android-mobile"
+      ],
+      "exit_code": 0,
+      "output_sha256": "00de858e77d47eeac6a143e6bd097e835ee198d61f61707198ade17cd8bee1b7"
+    },
+    {
+      "name": "candidate-android-mobile-android-c",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Werror=implicit-function-declaration",
+        "-DNV_ANDROID",
+        "-DNV_TOUCH_UI",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-fsyntax-only",
+        "/workspace/review/log-download-pr-20261015/source/src/android.c"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "jni-normal-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-DNV_ANDROID",
+        "-DNV_TOUCH_UI",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-DANDROID_SOURCE=\"/workspace/review/log-download-pr-20261015/source/src/android.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/jni-bridge.c",
+        "-Wl,--gc-sections",
+        "-pthread",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/jni-normal"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "jni-normal-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/jni-normal"
+      ],
+      "exit_code": 0,
+      "output_sha256": "35dc782a338190d1b3fc1a6b5701be4443d2350e1f2c4a2b9c60b6b51ac432a8"
+    },
+    {
+      "name": "jni-asan-compile",
+      "arguments": [
+        "cc",
+        "-std=gnu11",
+        "-O1",
+        "-g",
+        "-DNV_ANDROID",
+        "-DNV_TOUCH_UI",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-fno-omit-frame-pointer",
+        "-include",
+        "/workspace/review/log-download-pr-20261015/preflight/c-compat.h",
+        "-I/workspace/review/log-download-pr-20261015/preflight/c-sdk",
+        "-I/workspace/review/log-download-pr-20261015/source/src",
+        "-DANDROID_SOURCE=\"/workspace/review/log-download-pr-20261015/source/src/android.c\"",
+        "/workspace/review/log-download-pr-20261015/preflight/jni-bridge.c",
+        "-Wl,--gc-sections",
+        "-pthread",
+        "-o",
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/jni-asan"
+      ],
+      "exit_code": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "jni-asan-execute",
+      "arguments": [
+        "/workspace/review/log-download-pr-20261015/preflight/c-results/jni-asan"
+      ],
+      "exit_code": 0,
+      "output_sha256": "35dc782a338190d1b3fc1a6b5701be4443d2350e1f2c4a2b9c60b6b51ac432a8"
+    }
+  ],
+  "settings_modes": [
+    "desktop-tv",
+    "desktop-touch",
+    "android-tv",
+    "android-mobile"
+  ],
+  "original_reporting_viewer_crash_backend_and_identity_unchanged": true,
+  "settings_source_sha256": "b59d31e0d6c87945a7cff97ab445c23fea096141fff5a158826be612e2258778",
+  "android_source_sha256": "5575f3387bb0bb5d1de244cfab29f98f162c60a5f09f997f5b3a1a13161375b9",
+  "sdk_scope": "public OpenJDK JNI headers; SDL/Android/GLES declaration doubles, no device or ARM execution"
+}

@@ -1,0 +1,141 @@
+name: 'Public Android log download: exact-source macOS and standard ARM validation'
+'on':
+  push:
+    branches:
+    - review/public-log-download-20261015
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: public-log-download-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    name: Complete macOS TV/touch builds and original report compatibility
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize the exact reviewed product commit without ref writes
+      run: python3 .review/log-download-public/materialize.py --target source-app
+        --proof results/source-verified.json
+    - name: Bind existing local JVM/C proof origins without repeating them
+      run: python3 .review/log-download-public/verify_host_origin.py --source source-app
+        --output results/host-preflight-origin.json
+    - name: Install real SDL libraries
+      run: brew install sdl2 sdl2_image sdl2_ttf
+    - name: Preserve original compiler flags and add only the real SDL runtime rpath
+      run: "mkdir -p \"$RUNNER_TEMP/public-log-cc\"\ncat > \"$RUNNER_TEMP/public-log-cc/cc\"\
+        \ <<'SH'\n#!/bin/sh\nexec python3 \"$GITHUB_WORKSPACE/.review/log-download-public/cc_rpath.py\"\
+        \ \"$@\"\nSH\nchmod +x \"$RUNNER_TEMP/public-log-cc/cc\"\necho \"REVIEW_REAL_CC=$(xcrun\
+        \ --find clang)\" >> \"$GITHUB_ENV\"\ntask_sdl_prefix=\"$(brew --prefix sdl3\
+        \ 2>/dev/null || true)\"\nif [ -n \"$task_sdl_prefix\" ] && [ -d \"$task_sdl_prefix/lib\"\
+        \ ]; then\n  task_sdl_lib=\"$task_sdl_prefix/lib\"\nelse\n  task_sdl_lib=\"\
+        $(brew --prefix sdl2)/lib\"\nfi\necho \"REVIEW_SDL3_LIBRARY_DIR=$task_sdl_lib\"\
+        \ >> \"$GITHUB_ENV\"\necho \"REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/results/compile\"\
+        \ >> \"$GITHUB_ENV\"\necho \"$RUNNER_TEMP/public-log-cc\" >> \"$GITHUB_PATH\"\
+        \n"
+    - name: Full application builds and unchanged original Settings/report tests
+      run: python3 .review/log-download-public/run_native.py --source source-app --proof
+        results/source-verified.json --output results/native
+    - name: Reverify exact unchanged product source
+      run: python3 .review/log-download-public/materialize.py --target source-app
+        --proof results/source-verified.json --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: public-log-download-macos-${{ github.sha }}
+        path: results/
+        if-no-files-found: error
+        retention-days: 14
+  android:
+    name: Standard Android APK with actual Kotlin/API and ARM32/ARM64 JNI checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: source-app
+    env:
+      NUVIO_ANDROID_JOBS: 2
+      NUVIO_BUILD_JOBS: 2
+      NUVIO_P2P_MOTOR: none
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize the exact reviewed product commit without ref writes
+      run: python3 .review/log-download-public/materialize.py --target source-app
+        --proof results/source-verified.json
+      working-directory: .
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Install standard build dependencies
+      run: 'sudo apt-get update -qq
+
+        sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev
+
+        sdkmanager ''platforms;android-35'' ''build-tools;35.0.0'' ''ndk;27.2.12479018''
+        ''cmake;3.22.1''
+
+        '
+    - name: Use empty compile-only application configuration, with no service secrets
+        or endpoints
+      run: 'test -z "${NUVIO_KEYSTORE:-}"
+
+        : > "$RUNNER_TEMP/public-log-download.properties"
+
+        chmod 600 "$RUNNER_TEMP/public-log-download.properties"
+
+        echo "NUVIO_PROPERTIES=$RUNNER_TEMP/public-log-download.properties" >> "$GITHUB_ENV"
+
+        '
+    - uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/nuvio-android
+        key: android-touch-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh',
+          'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt')
+          }}
+        restore-keys: android-touch-native-v1-${{ runner.os }}-
+    - uses: actions/cache/restore@v4
+      with:
+        path: '~/.gradle/caches
+
+          ~/.gradle/wrapper'
+        key: android-touch-gradle-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts',
+          'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: android-touch-gradle-${{ runner.os }}-
+    - name: Build native dependencies for both ARM ABIs
+      run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
+    - name: Build the unchanged standard debug package with production tooling
+      run: bash tools/android.sh
+    - name: Verify actual APK DEX, Activity/helper API, JNI, identity and native pages
+      working-directory: .
+      run: python3 .review/log-download-public/verify_android.py --source source-app
+        --proof results/source-verified.json --output results/android-verified.json
+        --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --apksigner "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+    - name: Reverify exact unchanged product source
+      working-directory: .
+      run: 'python3 .review/log-download-public/materialize.py --target source-app
+        --proof results/source-verified.json --reverify
+
+        cp source-app/build/android/*-android-debug.apk results/standard-compile-only-debug.apk'
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: public-log-download-android-${{ github.sha }}
+        path: results/
+        if-no-files-found: error
+        retention-days: 14

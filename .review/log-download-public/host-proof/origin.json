@@ -1,0 +1,67 @@
+{
+  "source_commit": "1cd707586a5bc94579904e5601de996e62326067",
+  "baseline": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "origin": "Previously completed local workspace preflight; not rerun or relabeled as this CI runtime execution.",
+  "kotlin_contracts": 26,
+  "c_settings_modes": 4,
+  "existing_settings_slots_compared": 290,
+  "jni_cases_per_normal_and_asan_ubsan": 9,
+  "files": [
+    {
+      "path": "host-proof/LongSecretPreflight.kt",
+      "sha256": "0ad95808a329ff841e1286a2130a9e330c3fc63dc9c7fc867cb32af23916cc40",
+      "bytes": 2809
+    },
+    {
+      "path": "host-proof/Preflight.kt",
+      "sha256": "bcf46ac34245d04e14034f42b738f08bacf57ada6977e5ca0d10874fb4cf4afa",
+      "bytes": 12043
+    },
+    {
+      "path": "host-proof/c-result.json",
+      "sha256": "184f81c44a0ff3d917aacc2d3249a7b43dbd8da17e02c5b2947b01b90055783a",
+      "bytes": 18954
+    },
+    {
+      "path": "host-proof/jni-bridge.c",
+      "sha256": "e6b3e42618c3fdc4fdc18c2add42201b1adf0e360518c4eb4446209d5b896e10",
+      "bytes": 2790
+    },
+    {
+      "path": "host-proof/kotlin-execute.log",
+      "sha256": "d3a7bf8848feab8da4889ee3ab4f38e366a72c099d5759d89000e74de998c722",
+      "bytes": 1552
+    },
+    {
+      "path": "host-proof/kotlin-result.json",
+      "sha256": "b5e651de35800a8ec981d1672f480537c9b8b89a4cbf36e216b6d1f1e0e4a656",
+      "bytes": 4651
+    },
+    {
+      "path": "host-proof/settings-tables.c",
+      "sha256": "f7bf998b5a221fc7f12902cc128d6b2f618c1485c7c60f095f04587c6942dcb6",
+      "bytes": 153
+    },
+    {
+      "path": "host-proof/stubs/Activity.kt",
+      "sha256": "06b1daab2f4a995177bd5520b0136593a761f2b4d06f0ed8f94cf97b2ffb2b1f",
+      "bytes": 986
+    },
+    {
+      "path": "host-proof/stubs/Intent.kt",
+      "sha256": "90b600342ad360ba2bab49a97b8dece6af17dd7e5966dfbc8c74789bc5d8fea9",
+      "bytes": 906
+    },
+    {
+      "path": "host-proof/stubs/Toast.kt",
+      "sha256": "2ce31b4948efb2af09f9dffad1d0c3e276704e56329a29a33336d12f4394014c",
+      "bytes": 578
+    },
+    {
+      "path": "host-proof/stubs/Uri.kt",
+      "sha256": "20d40e1bd09cb1a90aedbc995c24b35357a0dd86e90b56d31c9ee7247afe90bf",
+      "bytes": 122
+    }
+  ],
+  "scope": "Actual Kotlin helper and actual C sources with Android/SDL boundary doubles on the local JVM/host compiler; not emulator, ARM runtime, or device validation."
+}

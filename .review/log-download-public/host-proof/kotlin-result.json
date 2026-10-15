@@ -1,0 +1,72 @@
+{
+  "recorded_at_utc": "2026-10-15T02:50:36.643460+00:00",
+  "actual_product_source": "/workspace/review/log-download-pr-20261015/source/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+  "actual_product_sha256": "4b95ef44ed1c70ae397b40637bc15acd79eb31f13513160f984299eb8bd3332c",
+  "java": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+  "fixture_sha256": {
+    "Preflight.kt": "bcf46ac34245d04e14034f42b738f08bacf57ada6977e5ca0d10874fb4cf4afa",
+    "LongSecretPreflight.kt": "0ad95808a329ff841e1286a2130a9e330c3fc63dc9c7fc867cb32af23916cc40",
+    "stubs/Activity.kt": "06b1daab2f4a995177bd5520b0136593a761f2b4d06f0ed8f94cf97b2ffb2b1f",
+    "stubs/Intent.kt": "90b600342ad360ba2bab49a97b8dece6af17dd7e5966dfbc8c74789bc5d8fea9",
+    "stubs/Toast.kt": "2ce31b4948efb2af09f9dffad1d0c3e276704e56329a29a33336d12f4394014c",
+    "stubs/Uri.kt": "20d40e1bd09cb1a90aedbc995c24b35357a0dd86e90b56d31c9ee7247afe90bf"
+  },
+  "tool_sha256": {
+    "annotations-13.0.jar": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478",
+    "kotlin-compiler-embeddable-1.9.24.jar": "e71ff19e6b141ab85a9328fd010941531a302543026bd4244c95adc208d501f6",
+    "kotlin-daemon-embeddable-1.9.24.jar": "177bc8b2a4076dcce7878ad0d8fd07163af3178e3fa90ee63d4f733bb47bfdc9",
+    "kotlin-reflect-1.6.10.jar": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203",
+    "kotlin-script-runtime-1.9.24.jar": "314c7d308fe750654365bac6144780613c9169cf3d9e1dafbab91cf80bdc357c",
+    "kotlin-stdlib-1.9.24.jar": "858b902696da9cf585ab9d98ffc1c2712269828354dfe9107e3711b084a36468",
+    "trove4j-1.0.20200330.jar": "c5fd725bffab51846bf3c77db1383c60aaaebfe1b7fe2f00d23fe1b7df0a439d"
+  },
+  "commands": [
+    [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-cp",
+      "/workspace/review/log-download-pr-20261015/preflight/tools/annotations-13.0.jar:/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-compiler-embeddable-1.9.24.jar:/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-daemon-embeddable-1.9.24.jar:/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-reflect-1.6.10.jar:/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-script-runtime-1.9.24.jar:/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-stdlib-1.9.24.jar:/workspace/review/log-download-pr-20261015/preflight/tools/trove4j-1.0.20200330.jar",
+      "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler",
+      "-no-stdlib",
+      "-no-reflect",
+      "-jvm-target",
+      "17",
+      "-classpath",
+      "/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-stdlib-1.9.24.jar:/workspace/review/log-download-pr-20261015/preflight/tools/annotations-13.0.jar",
+      "-d",
+      "/workspace/review/log-download-pr-20261015/preflight/classes",
+      "/workspace/review/log-download-pr-20261015/preflight/stubs/Activity.kt",
+      "/workspace/review/log-download-pr-20261015/preflight/stubs/Intent.kt",
+      "/workspace/review/log-download-pr-20261015/preflight/stubs/Toast.kt",
+      "/workspace/review/log-download-pr-20261015/preflight/stubs/Uri.kt",
+      "/workspace/review/log-download-pr-20261015/source/android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "/workspace/review/log-download-pr-20261015/preflight/Preflight.kt",
+      "/workspace/review/log-download-pr-20261015/preflight/LongSecretPreflight.kt"
+    ],
+    [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-Dpreflight.data=/workspace/review/log-download-pr-20261015/preflight/runtime-data",
+      "-cp",
+      "/workspace/review/log-download-pr-20261015/preflight/classes:/workspace/review/log-download-pr-20261015/preflight/tools/kotlin-stdlib-1.9.24.jar",
+      "PreflightKt"
+    ]
+  ],
+  "results": [
+    {
+      "step": "compile",
+      "exit_code": 0,
+      "log": "/workspace/review/log-download-pr-20261015/preflight/compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "execute",
+      "exit_code": 0,
+      "log": "/workspace/review/log-download-pr-20261015/preflight/execute.log",
+      "log_sha256": "d3a7bf8848feab8da4889ee3ab4f38e366a72c099d5759d89000e74de998c722"
+    }
+  ],
+  "scope": "Actual helper code execution on the JVM with tiny Android stubs; not an emulator or device run.",
+  "status": "passed",
+  "passed_contracts": 26,
+  "actual_product_unchanged_during_run": true
+}
