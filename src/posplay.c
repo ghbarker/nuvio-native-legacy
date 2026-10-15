@@ -222,6 +222,9 @@ void posplay_aguardar_busca(int aguardar) {
 
 int posplay_pediu_episodio(int *t, int *e) {
   if (!pedT) return 0;
+#ifdef NV_TEST_LOCAL_LOGS
+  printf("[test-next] event=request t=%d e=%d automatic=%d ms=%u\n", pedT, pedE, pedAutomatico, SDL_GetTicks());
+#endif
   if (t) *t = pedT;
   if (e) *e = pedE;
   pedT = pedE = 0;
@@ -532,6 +535,45 @@ void posplay_atualizar(float dt, Uint32 agora, double posSeg, double durSeg,
     else fecharEm = posplay_contagem(agora, abriuEm, fecharEm, resta, ajustes_proximo_auto(), marcadorReal, ajustes_proximo_contagem());
   }
 
+#ifdef NV_TEST_LOCAL_LOGS
+  // Test APK only: state changes and a bounded five-second pulse near Next.
+  // No source URLs, accounts, API keys or profile names enter these records.
+  {
+    static unsigned testEstado;
+    static Uint32 testQuando;
+    static int testT, testE;
+    int t = 0, e = 0;
+    const CatEp *testProximo = player_proximo_episodio();
+    long long testLancamento = prox_episodio_data_ms(testProximo);
+    int testDataConhecida = testLancamento != PROX_SEM_DATA;
+    int testFutura = testDataConhecida && testLancamento > (long long)time(NULL) * 1000;
+    player_episodio_atual(&t, &e);
+    unsigned estado = (unsigned)!!visivel | (unsigned)!!fecharEm << 1 |
+      (unsigned)!!marcadorReal << 2 | (unsigned)!!aguardaCena << 3 |
+      (unsigned)!!aguardaBusca << 4 | (unsigned)!!recuou << 5 |
+      (unsigned)!!dispensado << 6 | (unsigned)!!ajustes_proximo_auto() << 7 |
+      (unsigned)!!ajustes_pular_creditos() << 8 | (unsigned)!!janelaSerie << 9 |
+      (unsigned)!!preVideoTentou << 10 | (unsigned)!!preVideoRenovou << 11 |
+      (unsigned)!!pedT << 12 | (unsigned)!!video_terminou() << 13 |
+      (unsigned)!!video_pronto() << 14 | (unsigned)!!video_bufferando_ms() << 15 |
+      (unsigned)!!ajustes_fonte_precarregar() << 16 | (unsigned)!!ajustes_fonte_preparar() << 17 |
+      (unsigned)!!ajustes_fonte_manual() << 18 | (unsigned)!!testDataConhecida << 19 |
+      (unsigned)!!testFutura << 20;
+    int perto = visivel || janelaSerie || preVideoTentou || aguardaBusca;
+    if (ehSerie && (estado != testEstado || t != testT || e != testE ||
+                    (perto && agora - testQuando >= 5000u))) {
+      printf("[test-next] event=state ms=%u current=%d:%d next=%d:%d pos=%.2f native_pos=%.2f dur=%.2f ended=%d ready=%d buffering_ms=%d rate=%d marker=%.2f real=%d window=%d visible=%d auto=%d skip=%d scene=%d seek=%d rewind=%d dismissed=%d countdown_ms=%u preload=%d refreshed=%d preload_enabled=%d prepare_enabled=%d manual=%d release_known=%d release_future=%d release_ms=%lld\n",
+        agora, t, e, proxT, proxE, posSeg, video_pos(), durSeg, video_terminou(), video_pronto(),
+        video_bufferando_ms(), player_velocidade_efetiva(), creditosSeg,
+        marcadorReal, janelaSerie, visivel, ajustes_proximo_auto(), ajustes_pular_creditos(),
+        aguardaCena, aguardaBusca, recuou, dispensado,
+        fecharEm && fecharEm > agora ? fecharEm - agora : 0u, preVideoTentou, preVideoRenovou,
+        ajustes_fonte_precarregar(), ajustes_fonte_preparar(), ajustes_fonte_manual(),
+        testDataConhecida, testFutura, testDataConhecida ? testLancamento : 0LL);
+      testEstado = estado; testQuando = agora; testT = t; testE = e;
+    }
+  }
+#endif
   // A contagem so vale para o proximo episodio.
   if (visivel && fecharEm && agora >= fecharEm) {
     pedT = proxT; pedE = proxE;
@@ -547,6 +589,10 @@ int posplay_evento(const SDL_Event *e) {
   if (toquerol_navegacao(e)) toquerol_limpar(&toquePP);
 #endif
   k = e->key.keysym.sym;
+#ifdef NV_TEST_LOCAL_LOGS
+  printf("[test-next] event=control key=%d focus=%d scene=%d series=%d next=%d:%d ms=%u\n",
+    k, foco, aguardaCena, serie, proxT, proxE, SDL_GetTicks());
+#endif
   if (k == SDLK_AC_BACK || k == SDLK_ESCAPE || k == SDLK_BACKSPACE ||
       e->key.keysym.scancode == NV_SCANCODE_BACK) {
     // Dispensar CANCELA a contagem e deixa o video terminar em paz. E GRUDA:
