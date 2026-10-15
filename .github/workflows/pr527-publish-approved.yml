@@ -1,0 +1,54 @@
+{
+  "name": "Publish approved exact-source PR527 update",
+  "on": {
+    "push": {
+      "branches": [
+        "review/pr527-publish-approved-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "write",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "publish-pr527-exact-source",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "COLLECTION_PLAN_SHA256": "4a07afd5cd17ead9540ceb0400ea842bc75a98cb9aefca99ced4a16e518cfd43"
+  },
+  "jobs": {
+    "publish": {
+      "name": "Verify successful aggregate and lease-update only PR527 source",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact source, all seven actual producer origins and reviewed lease",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/pr527-publish/publish.py"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr527-publication-${{ github.sha }}",
+            "path": "publication/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
