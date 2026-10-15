@@ -247,6 +247,7 @@ static float teGradeY(void) {
 static const char *alfa(void) { return alfabetoAtual ? alfabetoAtual : ALFABETO; }
 static char  texto[TECLADO_LONGO + 1];
 static int   n, maxN, resultado;
+static int   confirmarVazio;
 static char  tituloAtual[96], dicaAtual[160];
 static int   celRecebido;
 // SENHA (#216): o campo mostra pontos, nunca o texto. A modal fica na tela e
@@ -504,6 +505,7 @@ int teclado_teste_camada(int cam, int cx) {
 void teclado_abrir(const char *titulo, const char *dica, int max) {
   teclado_abrir_com(titulo, dica, max, NULL, NULL);
 }
+void teclado_permitir_vazio(int permitir) { confirmarVazio = aberto && permitir; }
 
 void teclado_abrir_com(const char *titulo, const char *dica, int max,
                        const char *alfabeto, const char *inicial) {
@@ -524,6 +526,7 @@ void teclado_abrir_com(const char *titulo, const char *dica, int max,
   voltaF = voltaC = 0; barraAntes = -1;
   medido = 0;
   resultado = TECLADO_NADA;
+  confirmarVazio = 0;
   maxN = max > 0 && max <= TECLADO_LONGO ? max : TECLADO_MAX;
   // TEXTO INICIAL: editar um portal ja cadastrado nao pode obrigar a redigitar
   // o endereco inteiro. Cortado em maxN, nunca truncado no meio de nada porque
@@ -714,10 +717,9 @@ static void aplicar(void) {
   if (coluna == 0) { if (n > 0) texto[--n] = 0; return; }
   if (coluna == 1) { n = 0; texto[0] = 0; return; }
   if (ehSenha && coluna == 2) { mascarar = !mascarar; return; }
-  // "pronto" com o campo vazio nao e uma confirmacao de nada: quem chega ali
-  // sem digitar quis olhar o teclado, e fechar a modal com resultado PRONTO
-  // mandaria a tela de amigos tentar vincular uma string vazia.
-  if (n < 1) return;
+  // Required fields stay nonempty (e.g. friends pairing). Optional fields
+  // explicitly opt in so their confirmed empty value can clear a setting.
+  if (n < 1 && !confirmarVazio) return;
   fechar(TECLADO_PRONTO);
 }
 
@@ -832,7 +834,7 @@ void teclado_atualizar(float dt, Uint32 agora) {
       if (!teTelefoneIme()) definirDoSistema(t);
       // "Concluir" no teclado da TV e o "pronto" da modal; o fim da FALA nao —
       // a pessoa confere o que o reconhecedor entendeu antes de enviar.
-      if (r == ST_FIM && !voz && n > 0) fechar(TECLADO_PRONTO);
+      if (r == ST_FIM && !voz && (n > 0 || confirmarVazio)) fechar(TECLADO_PRONTO);
     }
   }
   { float alvo = (aberto && celb_embutido(CELB_TECLADO)) ? 1.0f : 0.0f;
@@ -1195,7 +1197,7 @@ static void tePhoneBotao(TePhoneControle c, float a) {
   float h = tePhoneTexto(TXT_ILHA_SEG, c.rotulo, c.r.w - 32, 28);
   txt_bloco(TXT_ILHA_SEG, c.rotulo, tom, tom, tom, c.r.x + 16,
             c.r.y + (c.r.h - h) * .5f, c.r.w - 32, 28,
-            (c.id == TE_P_PRONTO && !n ? .4f : .95f) * a, 0);
+            (c.id == TE_P_PRONTO && !n && !confirmarVazio ? .4f : .95f) * a, 0);
 }
 static void tePhoneDesenhar(Uint32 agora) {
   if (anim < .005f && !aberto) return;
