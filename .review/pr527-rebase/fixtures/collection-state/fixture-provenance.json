@@ -1,0 +1,37 @@
+{
+  "fixtures": {
+    "collection-views.c": {
+      "original_path": "/workspace/review/issue362-global-collection-view-20261015/review/peer497/collection-views.c",
+      "original_sha256": "50df4342c1e5b0a79da2e9aa76b0b90705715592d5273b84588cab05f2d28e20",
+      "current_sha256": "9473fd821a059750ab29b9361467e7e59baa0573c75c67a2aa79376461a60c1d"
+    },
+    "original-collection.c": {
+      "original_path": "/workspace/review/issue362-global-collection-view-20261015/review/peer497/original-collection.c",
+      "original_sha256": "895eb0936257397ea5e36eb39f215f016a4b00c01822375ba37e3f7e3567c8ba",
+      "current_sha256": "f30639d5f43507c937f102a351a97fcb1d5fd29d2c5f30dd300bee0169e53e96"
+    },
+    "original-colecao-adapted.inc": {
+      "original_path": "/workspace/review/issue362-global-collection-view-20261015/review/peer497/original-colecao-adapted.inc",
+      "original_sha256": "8c08332e70251984b6acbcd3783d6ba32902f10067f28321d0c5b80f1d6f2dbd",
+      "current_sha256": "2b69df29d3c4d59ac165575c5ea4000bead31c47fea03bba33c548eb79dc4302"
+    },
+    "original-adapter.diff": {
+      "original_path": "/workspace/review/issue362-global-collection-view-20261015/review/peer497/original-adapter.diff",
+      "original_sha256": "917171d942cf16b2577a39085282c5c328c5bdf298df4ea260150d8b72e83526",
+      "current_sha256": "917171d942cf16b2577a39085282c5c328c5bdf298df4ea260150d8b72e83526"
+    }
+  },
+  "assertion_sites_original_preserved": 47,
+  "assertion_sites_added_explicit_grid": 1,
+  "views_assertions": 8287,
+  "constructor_model": "Projection-aware historical constructor: brute row counts plus actual vitProjetar; raw/visible catalog snapshots are the same when controlled hide-watched is Off.",
+  "portable_only_observer_adapter": "__wrap_dados_gravar -> dados_gravar and __real_dados_gravar -> collection_real_dados_gravar; compile real dados.c with -Ddados_gravar=collection_real_dados_gravar. All assertions unchanged.",
+  "strong_profile_lifecycle": true,
+  "profile_group_included": false,
+  "approved_real_producer_closure": "Approved 549ec667 collection-state runner: views links dados/layout/ponteiro/ctxlista/perfis/home/ajustes; adapted-original additionally salvos/fileiras/linguas/fonteregra/fontefalha/regexjs/js. Views retains its controlled Settings getter boundaries by renaming the corresponding real Settings object functions. Plus exact current desc_filme_visto function extracted byte-for-byte and compiled; no player/subtitle companion imported.",
+  "source_pin": "c67cea085816b24b77586a1c91726f619fbb6144",
+  "historical_original_product_test_sha256": "2f845953630cb6c36020df3bf0e8956bff650cb344ca445a63538f91f7f6eb72",
+  "current_product_test_sha256": "834353744e8dda30f2d2aa1996065e0a694034d1f725918832c4cdb4bf278bce",
+  "current_product_test_commit": "d156e650eb01783713cb7812394f620b68be5895",
+  "current_upstream_coverage_separate": "Latest upstream test adds watched empty/source-queue/resume cases. It is pinned here for product provenance; this runner still executes its historical47sites+1Gridsite, not that newer unchanged script."
+}

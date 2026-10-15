@@ -1,0 +1,13 @@
+--- reviewed/original-collection.c
++++ portable/original-collection.c
+@@ -43,8 +43,8 @@
+ void SDL_GetWindowSize(SDL_Window*w,int*x,int*y){(void)w;*x=1080;*y=2340;}
+ void SDL_GL_GetDrawableSize(SDL_Window*w,int*x,int*y){SDL_GetWindowSize(w,x,y);}
+ int SDL_ShowCursor(int q){(void)q;return 0;}
+-int __real_dados_gravar(const char*n,const char*t);
+-int __wrap_dados_gravar(const char*n,const char*t){writes++;return __real_dados_gravar(n,t);}
++int collection_real_dados_gravar(const char*n,const char*t);
++int dados_gravar(const char*n,const char*t){writes++;return collection_real_dados_gravar(n,t);}
+ 
+ int cat_indice_por_imdb(const char*i){(void)i;return -1;}
+ int cat_acrescentar(const CatItem*i){(void)i;return -1;}
