@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "base": "41c3e67a9472ff4d8f8b852d57a605c26c5cab3d",
+  "head": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+  "tree": "b4bcabb679b49538a4e45ac0b623bb83ebf288e5",
+  "source_clean": true,
+  "schema_baseline": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "patch_sha256": "666d9902aec69dcf5c93a23d6e2bf42c204c982a90f705db3e5f9825c18812bf",
+  "patch_bytes": 7362,
+  "paths": [
+    {
+      "path": "src/ajustes.c",
+      "sha256": "91742cb984ec5bd24226b59c41476aa669e363fdc24d80261effba96ff20f3a9",
+      "blob": "e8e57a18d6f11892aa8f83ddd3a130cf57c3b474"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "97f4cc8ad7563551a6e1ad4bc312214b54fc6c49347d73fa5f4413568db9e6a6",
+      "blob": "690bc7fb7aa9e376455ae9ca999dd4e418dd1224"
+    },
+    {
+      "path": "src/sinopse.c",
+      "sha256": "35d9bab285fd0f35b5ea1d2976f87744619838bd7d522ae8e351213111d4009e",
+      "blob": "d17d020b1632055c9e1b357c49c5768d327fa520"
+    },
+    {
+      "path": "src/text.c",
+      "sha256": "2d2d29417c09588bd4063c84934337dbde53fd63a2f62ac6a8b835b68642fdb0",
+      "blob": "262c9510fe7983d245e32ac9dbe7338847d25bb9"
+    },
+    {
+      "path": "src/text.h",
+      "sha256": "da0aac9f9bafc445fa88236f1f4fd68f61d72f394df867a289a1a75bdfec55b6",
+      "blob": "637e7176bdee3230a3763d5d218f912c60d547c6"
+    }
+  ],
+  "options": [
+    "100%",
+    "125%",
+    "150%"
+  ],
+  "new_key": "sinopsePercentualLocal",
+  "old_three_key": "sinopseTamanhoLocal",
+  "old_three_mapping": [
+    0,
+    1,
+    2
+  ],
+  "unreleased_four_key": "sinopseEscalaLocal",
+  "unreleased_four_mapping": [
+    0,
+    1,
+    1,
+    2
+  ],
+  "precedence": "current key, otherwise valid four-choice key, otherwise valid original three-choice key; independent of line order",
+  "append_only_font_ids": true,
+  "appended_font_size": 20,
+  "font_loader_unchanged": true
+}

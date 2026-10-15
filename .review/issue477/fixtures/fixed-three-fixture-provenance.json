@@ -1,0 +1,25 @@
+{
+  "owner_manifest_sha256": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6",
+  "source_commit": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+  "owner_inputs_imported": {
+    "synopsis477/close_refinement.c": "d9701f48c6c78fe52f09ea98c8a1d0ff4224885c964ffc97191fff2ba0a9ac00",
+    "synopsis477/portable.py": "4674660b53b4b70f17ee27112e6b6a039b09c8ddb565e1f65db01b2b38ef11e3",
+    "synopsis477/preview_refinement.c": "7c4145100a72d403f14c9941811ac281b2ed9996e6d862fd7fb71383846b3a52",
+    "synopsis477/reader_probe.c": "8d170469b12251bccb50702507e4615d0059aad04fe6badffe74e8e429b70f4e",
+    "synopsis477/route_probe.c": "08a8613834b5f0214d0d2e13928617ef5b0517793aa65800fee31341204bfcaa",
+    "synopsis477/run.py": "d9cba456cba277817f6a14ee5038002d573ce3644b8a4cf4a2c3f2c1719dcdd8",
+    "synopsis477/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "synopsis477/sdk/SDL2/SDL.h": "67ba36101aeafd1b9cf7215dd8d9598201d60a41815a963ec2d77a63b0dd5248",
+    "synopsis477/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "synopsis477/settings/run.py": "7b9516c976d24d0dd7363bdb895e8f0a6a049a1b689e578ffeefaf12baada653",
+    "synopsis477/settings/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "synopsis477/settings/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "synopsis477/settings/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "synopsis477/settings/settings.c": "c113affc99e8a5e5128de290db802c7c8673b86e89b3da87ea16d983d2af15e9"
+  },
+  "ci_owned_defaults_sha256": "22492a74622007d2bdf4e5eb8239a3db02b67eec470054958dc45d992693570f",
+  "ci_owned_defaults_change": "Only canonical sinopsePercentualLocal key and17 appended style expectation; every old setting row remains compared against upstreame3e21.",
+  "focused_owner_receipt": "/tmp/issue477-fixed-three-20261015/review/focused-preflight-verified.json",
+  "focused_owner_receipt_sha256": "7360074a2e8b6230f8e5abc8cb20ce0450e65a3a6a57aafaebd20051c4259aed",
+  "no_generated_font_metrics_binaries_or_old_outputs_imported": true
+}

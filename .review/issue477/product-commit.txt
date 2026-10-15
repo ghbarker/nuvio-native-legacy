@@ -1,0 +1,6 @@
+tree b4bcabb679b49538a4e45ac0b623bb83ebf288e5
+parent 41c3e67a9472ff4d8f8b852d57a605c26c5cab3d
+author Grant Barker <ghbarker@users.noreply.github.com> 1792072193 +0000
+committer Grant Barker <ghbarker@users.noreply.github.com> 1792072193 +0000
+
+Use fixed 100, 125 and 150 percent synopsis sizes
