@@ -1,0 +1,35 @@
+{
+  "source_base": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "ui": {
+    "original_path": "/workspace/review/issue362-global-collection-view-20261015/review/independent-settings/collection-choice.c",
+    "sha256": "73069f4fb264ad1964430c95f6f446daa9c4e16cdefb54d02133fdd7d47f863c",
+    "assertions_unchanged": true,
+    "runtime_semantics": "Original #362 saved TV and Mobile controls; no combined #431 TV assertion adapter."
+  },
+  "profile": {
+    "original_path": "/workspace/review/issue362-latest-pr-20261015/review/settings/profile-sync.c",
+    "sha256": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
+    "assertions_unchanged": true,
+    "runtime_semantics": "Published #493 independent defaults, actual latest sync, strong real perfis lifecycle; fixed offline profile identity boundaries."
+  },
+  "sdk_sha256": {
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  },
+  "counts": {
+    "ui_cases_per_variant": 36,
+    "ui_variants": [
+      "normal",
+      "asan-ubsan"
+    ],
+    "profile_assertions_per_variant": 133,
+    "profile_changes_per_variant": 17
+  },
+  "scope": "Headless actual Settings/UI/pointer/dados/profile/sync producers with typed SDL/GPU/text/offline companions. No application or physical-device UI/GPU claim.",
+  "offline_account_companion": {
+    "original_path": "/workspace/review/integration-apk20022-20261015/build-stage/feature-contracts/collection-settings/offline-account.c",
+    "sha256": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "scope": "Finite offline account identity and empty provider credential companion; no Settings navigation or persistence decisions are simulated."
+  }
+}

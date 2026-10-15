@@ -1,0 +1,442 @@
+diff --git a/src/addons.c b/src/addons.c
+index 86cffcf5d..dcb3e9fca 100644
+--- a/src/addons.c
++++ b/src/addons.c
+@@ -60,6 +60,7 @@ static struct {
+   int meta;      // declara o resource "meta" (ficha e lista de episodios)
+   int ativo, sondado;
+   char id[96];   // "id" do manifesto; as colecoes da conta apontam para ele
++  int identidadeFalhou;   // tentativa terminou sem id; nao e ausencia confirmada
+   // Catalogos de canal do manifesto (ver addons_catalogos_canal). `canalLido`
+   // separa "nao declara nenhum" de "manifesto ainda nao lido".
+   AddCatCanal canal[ADD_CANAL_MAX]; int nCanal, canalLido;
+@@ -436,6 +437,7 @@ static int carregarSemTrava(const char *dirArte) {
+       if (!nv_addon_url_cabe(linha, lenUrl)) continue; }
+     // Terceira coluna (opcional): 1 = fornece stream. Ausente vale 1, para
+     // arquivo antigo continuar funcionando.
++    memset(&addon[nAddon], 0, sizeof addon[nAddon]);
+     addon[nAddon].fonte = 1;
+     addon[nAddon].catalogo = 1;
+     addon[nAddon].legenda = 0;
+@@ -1765,6 +1767,33 @@ int addons_aceita_id(int i, const char *tipo, const char *id) {
+   return 0;
+ }
+ 
++static int identidadeDoManifesto(int i, const char *corpo) {
++  char id[sizeof addon[i].id];
++  if (corpo && js_texto_raiz(corpo, "id", id, sizeof id) && id[0]) {
++    snprintf(addon[i].id, sizeof addon[i].id, "%s", id);
++    addon[i].identidadeFalhou = 0;
++    return 1;
++  }
++  if (!addon[i].id[0]) addon[i].identidadeFalhou = 1;
++  return 0;
++}
++
++int addons_identidade_recebida(const char *base, unsigned versao, uint64_t sessao,
++                               const char *corpo) {
++  int aplicada = 0;
++  if (!base || !base[0] || !nv_perfil_sessao_travar(sessao)) return 0;
++  pthread_mutex_lock(&addonTrava);
++  if (versao == versaoLista)
++    for (int i = 0; i < nAddon; i++) if (!strcmp(addon[i].base, base)) {
++      identidadeDoManifesto(i, corpo);
++      aplicada = 1;
++      break;
++    }
++  pthread_mutex_unlock(&addonTrava);
++  nv_perfil_sessao_destravar();
++  return aplicada;
++}
++
+ static void capacidadesDoManifesto(int i, const char *corpo) {
+   const char *r = strstr(corpo, "\"resources\"");
+   int cat = 0, str = 0, leg = 0, met = 0;
+@@ -1787,7 +1816,7 @@ static void capacidadesDoManifesto(int i, const char *corpo) {
+   { char seg[120];
+     printf("[addons] %s: de %s\n", addon[i].nome,
+            rede_url_publica(addons_base(i), seg, sizeof seg)); }
+-  if (js_texto_raiz(corpo, "id", addon[i].id, sizeof addon[i].id))
++  if (identidadeDoManifesto(i, corpo))
+     printf("[addons] %s: id do manifesto = %s\n", addon[i].nome, addon[i].id);
+   // js_texto_raiz, e nao js_texto: exatamente a mesma armadilha que o
+   // comentario acima descreve para o "id", repetida na instrucao seguinte. Um
+@@ -1887,6 +1916,22 @@ typedef struct {
+   unsigned versao;
+   uint64_t sessao;
+ } PedidoSonda;
++int addons_manifesto_recebido(const char *base, unsigned versao, uint64_t sessao,
++                              const char *corpo) {
++  int aplicada = 0;
++  if (!base || !base[0] || !corpo || !nv_perfil_sessao_travar(sessao)) return 0;
++  pthread_mutex_lock(&addonTrava);
++  if (versao == versaoLista)
++    for (int i = 0; i < nAddon; i++) if (!strcmp(addon[i].base, base)) {
++      capacidadesDoManifesto(i, corpo);
++      aplicada = 1;
++      break;
++    }
++  pthread_mutex_unlock(&addonTrava);
++  nv_perfil_sessao_destravar();
++  return aplicada;
++}
++
+ static void *sondar(void *u) {
+   PedidoSonda *pedido = u;
+   for (int i = 0; i < pedido->n; i++) {
+@@ -1897,6 +1942,7 @@ static void *sondar(void *u) {
+     if (!nv_addon_pedido_coube(a->nome, nv_addon_url(url, sizeof url, a->base, "/manifest.json"), sizeof url)) continue;
+     corpo = desc_manifesto_cache_obter(url, pedido->versao);
+     if (!corpo) corpo = rede_baixar(url, 12);
++    addons_identidade_recebida(a->base, pedido->versao, pedido->sessao, corpo);
+     if (corpo && nv_perfil_sessao_travar(pedido->sessao)) {
+       pthread_mutex_lock(&addonTrava);
+       if (pedido->versao == versaoLista && i < nAddon && !strcmp(a->base, addon[i].base)) {
+@@ -3260,11 +3306,48 @@ void addons_encerrar(void) {
+ // URL. So a sonda sabe o id, entao a resposta e vazia ate ela passar por
+ // aquele addon — quem chama tenta de novo depois.
+ const char *addons_base_por_id(const char *id) {
+-  int i;
++  const char *base = "";
+   if (!id || !*id) return "";
+-  for (i = 0; i < nAddon; i++)
+-    if (addon[i].id[0] && !strcmp(addon[i].id, id)) return addon[i].base;
+-  return "";
++  pthread_mutex_lock(&addonTrava);
++  for (int i = 0; i < nAddon; i++)
++    if (addon[i].id[0] && !strcmp(addon[i].id, id)) { base = addon[i].base; break; }
++  pthread_mutex_unlock(&addonTrava);
++  return base;
++}
++
++int addons_base_por_id_copiar(const char *id, char *base, unsigned tam) {
++  int copiada = 0;
++  if (!base || !tam) return 0;
++  base[0] = 0;
++  if (!id || !id[0]) return 0;
++  pthread_mutex_lock(&addonTrava);
++  for (int i = 0; i < nAddon; i++) if (addon[i].id[0] && !strcmp(addon[i].id, id)) {
++    size_t n = strlen(addon[i].base);
++    if (n < tam) { memcpy(base, addon[i].base, n + 1); copiada = 1; }
++    break;
++  }
++  pthread_mutex_unlock(&addonTrava);
++  return copiada;
++}
++
++AddonIdentidadeEstado addons_identidade_estado(const char *id) {
++  AddonIdentidadeEstado estado = ADD_IDENTIDADE_AUSENTE;
++  if (!id || !id[0]) return estado;
++  pthread_mutex_lock(&addonTrava);
++  for (int i = 0; i < nAddon; i++) {
++    if (addon[i].id[0] && !strcmp(addon[i].id, id)) {
++      estado = ADD_IDENTIDADE_PRONTA;
++      break;
++    }
++    if (!addon[i].id[0]) {
++      // Disabled addons outside discovery's parallel slots may never be
++      // probed. An unknown disabled identity cannot keep a collection loading.
++      if (addon[i].ativo && !addon[i].identidadeFalhou) estado = ADD_IDENTIDADE_PENDENTE;
++      else if (estado != ADD_IDENTIDADE_PENDENTE) estado = ADD_IDENTIDADE_FALHOU;
++    }
++  }
++  pthread_mutex_unlock(&addonTrava);
++  return estado;
+ }
+ 
+ // Published configuration is copied before starting asynchronous requests.
+diff --git a/src/addons.h b/src/addons.h
+index 8f2b57f34..81363152f 100644
+--- a/src/addons.h
++++ b/src/addons.h
+@@ -12,6 +12,7 @@
+ #ifndef NV_ADDONS_H
+ #define NV_ADDONS_H
+ #include "addonurl.h"
++#include <stdint.h>
+ 
+ typedef enum { ADD_PARADO = 0, ADD_BUSCANDO, ADD_PRONTO, ADD_VAZIO } AddEstado;
+ 
+@@ -84,6 +85,22 @@ const char *addons_base(int i);   // URL base, sem /manifest.json
+ const char *addons_id_manifesto(int i);   // "id" do manifesto; "" ate a sonda ler
+ const char *addons_nome_por_id(const char *id);   // nome de exibicao; "" se nao ha
+ const char *addons_base_por_id(const char *idManifesto);   // "" ate a sonda conhecer o id
++int addons_base_por_id_copiar(const char *idManifesto, char *base, unsigned tam);
++typedef enum {
++  ADD_IDENTIDADE_AUSENTE = 0, ADD_IDENTIDADE_PENDENTE,
++  ADD_IDENTIDADE_FALHOU, ADD_IDENTIDADE_PRONTA
++} AddonIdentidadeEstado;
++// Ausencia so e confirmada depois de identificar toda a lista instalada.
++// Uma tentativa sem resposta/id e falha de identificacao, nao addon removido.
++AddonIdentidadeEstado addons_identidade_estado(const char *idManifesto);
++// Publica SOMENTE o id, sem esperar a montagem da Home/CW. O pedido pertence
++// a esta base, versao de lista e sessao; resposta velha nao altera a lista.
++// NULL/manifesto sem id encerra a tentativa com falha, preservando id conhecido.
++int addons_identidade_recebida(const char *base, unsigned versao, uint64_t sessao,
++                               const char *corpo);
++// Final capability publication keeps the same request ownership as identity.
++int addons_manifesto_recebido(const char *base, unsigned versao, uint64_t sessao,
++                              const char *corpo);
+ int  addons_tem_catalogo(int i);  // 1 quando o addon fornece catalogo
+ 
+ // Dispara a busca das fontes de `imdb` ("tt1234567", ou "tt1234567:1:2" para
+diff --git a/src/descoberta.c b/src/descoberta.c
+index 1f46f98d1..5dc395330 100644
+--- a/src/descoberta.c
++++ b/src/descoberta.c
+@@ -1769,6 +1769,7 @@ static void formatarTitulo(const char *nome, const char *tipo, char *dst, size_t
+ #define MANI_FIOS  4
+ static struct {
+   char  url[NV_ADDON_PEDIDO_MAX];   // <base>/manifest.json inteiro (addonurl.h)
++  char  base[NV_ADDON_URL_MAX];
+   char *corpo;
+   int   ativo, erro;
+   int   pronto;      // 1 = tentativa terminada (corpo pode ser NULL)
+@@ -1831,6 +1832,8 @@ static int  maniProx;
+ // addon. Ele descobre que ficou para tras aqui, joga o proprio download fora e
+ // sai.
+ static unsigned maniGeracao;
++static unsigned maniVersao;
++static NvPerfilSessao maniSessao;
+ 
+ static pthread_mutex_t cargaTrava = PTHREAD_MUTEX_INITIALIZER;
+ // 1 = a volta em curso foi pedida em segundo plano (desc_repetir_silencioso).
+@@ -1945,6 +1948,9 @@ static void *fioManifesto(void *u) {
+     int meu;
+     char *corpo;
+     char url[NV_ADDON_PEDIDO_MAX];
++    char base[NV_ADDON_URL_MAX];
++    unsigned versao;
++    NvPerfilSessao sessao;
+     pthread_mutex_lock(&maniTrava);
+     if (minha == maniGeracao)
+       while (maniProx < maniN && mani[maniProx].pronto) maniProx++;
+@@ -1953,12 +1959,27 @@ static void *fioManifesto(void *u) {
+     }
+     meu = maniProx++;
+     snprintf(url, sizeof url, "%s", mani[meu].url);
++    snprintf(base, sizeof base, "%s", mani[meu].base);
++    versao = maniVersao; sessao = maniSessao;
+     pthread_mutex_unlock(&maniTrava);
+     corpo = rede_baixar(url, 20);
++    // Colecoes precisam somente da identidade. Nao esperar o CW ou o leitor
++    // de catalogos da Home para resolver o addon que ja respondeu. A chamada
++    // fica fora de maniTrava (a sonda usa a ordem addonTrava -> maniTrava).
++    int aplicada = addons_identidade_recebida(base, versao, sessao, corpo);
+     pthread_mutex_lock(&maniTrava);
+     if (minha != maniGeracao) {
+       pthread_mutex_unlock(&maniTrava); free(corpo); return NULL;
+     }
++    if (!aplicada) {
++      // This generation belongs to a replaced list/session. Wake every
++      // waiter, including slots that no worker has started, without publishing.
++      for (int i = 0; i < maniN; i++) if (!mani[i].pronto) {
++        mani[i].erro = 1; mani[i].pronto = 1;
++      }
++      pthread_cond_broadcast(&maniCond);
++      pthread_mutex_unlock(&maniTrava); free(corpo); return NULL;
++    }
+     // ARMAZENA NA CACHE uma copia propria, se o corpo couber no teto de
+     // memoria. A copia vive enquanto a versao da lista nao mudar; o corpo
+     // original e consumido por maniPegar/lerManifesto e liberado por eles.
+@@ -1966,7 +1987,7 @@ static void *fioManifesto(void *u) {
+       size_t n = strlen(corpo);
+       if (n < MANI_CACHE_BYTES) {
+         char *copia = malloc(n + 1);
+-        if (copia) { memcpy(copia, corpo, n + 1); maniCacheColocar(url, addons_versao(), copia); }
++        if (copia) { memcpy(copia, corpo, n + 1); maniCacheColocar(url, versao, copia); }
+       }
+     }
+     if (mani[meu].largado && corpo) {
+@@ -1995,6 +2016,7 @@ static void *fioManifesto(void *u) {
+ static void maniLargar(void) {
+   int nAd = addons_n(), i, criados = 0;
+   unsigned versao = addons_versao();
++  NvPerfilSessao sessao = descSessao();
+   pthread_t fios[MANI_FIOS];
+   pthread_mutex_lock(&maniTrava);
+   // Sobra da volta anterior (ninguem pediu, addon trocado no meio): nao pode
+@@ -2006,8 +2028,9 @@ static void maniLargar(void) {
+     if (!!addons_ativo(ad) != (pass == 0)) continue;
+     i = maniN++;
+     mani[i].ativo = addons_ativo(ad);
++    snprintf(mani[i].base, sizeof mani[i].base, "%s", addons_base(ad));
+     int cache;
+-    nv_addon_url(mani[i].url, sizeof mani[i].url, addons_base(ad), "/manifest.json");
++    nv_addon_url(mani[i].url, sizeof mani[i].url, mani[i].base, "/manifest.json");
+     mani[i].pronto = 0; mani[i].erro = 0;
+     // CACHE HIT: o manifesto deste addon ja foi baixado numa volta com a
+     // MESMA versao da lista (lista inalterada). Reaproveita sem rede. A
+@@ -2027,6 +2050,7 @@ static void maniLargar(void) {
+   }
+   maniProx = 0;
+   maniGeracao++;
++  maniVersao = versao; maniSessao = sessao;
+   maniLargadaMs = descAgoraMs();
+   for (i = 0; i < maniN; i++) mani[i].largado = 0;
+   // Ninguem mais espera por um `pronto` que a volta passada deixou pendente.
+@@ -2035,6 +2059,21 @@ static void maniLargar(void) {
+   for (i = 0; i < maniN; i++) if (!mani[i].pronto) pendentes++;
+   { unsigned g = maniGeracao;
+     pthread_mutex_unlock(&maniTrava);
++  // Cache hits have no download worker. Publish their identities from an
++  // owned copy too, without lending a body that maniPegar can consume/free.
++  for (i = 0; i < MANI_MAX; i++) {
++    char base[NV_ADDON_URL_MAX], *copia = NULL;
++    pthread_mutex_lock(&maniTrava);
++    if (g == maniGeracao && i < maniN && mani[i].corpo) {
++      snprintf(base, sizeof base, "%s", mani[i].base);
++      copia = strdup(mani[i].corpo);
++    }
++    pthread_mutex_unlock(&maniTrava);
++    if (copia) {
++      addons_identidade_recebida(base, versao, sessao, copia);
++      free(copia);
++    }
++  }
+   if (maniN < 1) return;
+   // So dispara fios para os slots que NAO vieram da cache. Os outros ja
+   // estao prontos e maniPegar os entrega na hora.
+@@ -2063,6 +2102,12 @@ static char *maniPegar(const char *url, int esperar, int *tentado) {
+   *tentado = 0;
+   char *corpo = NULL;
+   pthread_mutex_lock(&maniTrava);
++  // A body is owned by the request context captured at launch, even when a
++  // new list happens to keep the same URL. Never relabel it with a new version.
++  if (maniVersao != addons_versao() || maniSessao != descSessao()) {
++    pthread_mutex_unlock(&maniTrava);
++    return NULL;
++  }
+   for (i = 0; i < maniN; i++) if (!strcmp(mani[i].url, url)) break;
+   if (i < maniN) {
+     unsigned g = maniGeracao;
+@@ -2104,6 +2149,18 @@ static char *maniObter(const char *url, int ativo) {
+   return corpo;
+ }
+ 
++static int maniIdentidadePendente(const char *url, unsigned versao, NvPerfilSessao sessao) {
++  int pendente = 0;
++  pthread_mutex_lock(&maniTrava);
++  if (maniVersao == versao && maniSessao == sessao)
++    for (int i = 0; i < maniN; i++) if (!strcmp(mani[i].url, url)) {
++      pendente = !mani[i].pronto;
++      break;
++    }
++  pthread_mutex_unlock(&maniTrava);
++  return pendente;
++}
++
+ // CATALOGO DE BUSCA NAO PODE VIRAR FILEIRA.
+ //
+ // O protocolo Stremio marca em cada `extra` se ele e obrigatorio:
+@@ -2375,17 +2432,26 @@ static int nManiFalhouVolta;
+ // home da C9 (24/09), e a fonte deles continuava fora das consultas. Desligado
+ // e desligado nos dois lugares.
+ static int lerManifesto(int iAddon, const char *base, Decl *saida, int max,
+-                         int ativo, int *totalReal, int *promovidos) {
++                         int ativo, int *totalReal, int *promovidos, unsigned versao) {
+   char url[NV_ADDON_PEDIDO_MAX], addonId[96] = "", nome[96], tipo[8], id[96];
++  char origem[NV_ADDON_URL_MAX];
+   char *corpo, *escolhido;
+   const char *p, *fim;
+   int n = 0, total = 0, e = 0, nEleg = 0;
+   if (totalReal) *totalReal = 0;
+   if (promovidos) *promovidos = 0;
++  snprintf(origem, sizeof origem, "%s", base);
++  base = origem;
+   // Ja largado em paralelo no comeco de montar(); so cai na rede aqui quando
+   // este addon nao estava na lista daquele instante.
+   corpo = descPedidoCoube(base, nv_addon_url(url, sizeof url, base, "/manifest.json"), sizeof url)
+           ? maniObter(url, ativo) : NULL;
++  // Covers the synchronous fallback too. A round that stopped waiting has
++  // not failed the still-running download; its worker publishes the outcome.
++  if ((corpo || !maniIdentidadePendente(url, versao, descSessao())) &&
++      !addons_identidade_recebida(base, versao, descSessao(), corpo)) {
++    free(corpo); return 0;
++  }
+   if (!corpo) {
+     // Sem esta linha o log dizia "0 catalogo(s) declarado(s)", igual a um
+     // addon que so tem stream.
+@@ -2400,7 +2466,9 @@ static int lerManifesto(int iAddon, const char *base, Decl *saida, int max,
+   // linha o id e as capacidades do addon so eram aprendidos por quem abrisse a
+   // tela de addons nos Ajustes, e sem o id nenhuma colecao da conta encontrava
+   // a URL do proprio addon (issue #10).
+-  addons_manifesto_lido(iAddon, corpo);
++  if (!addons_manifesto_recebido(base, versao, descSessao(), corpo)) {
++    free(corpo); return 0;
++  }
+   // Chave da RAIZ: um manifesto tem "id" tambem dentro de catalogs[] e de
+   // behaviorHints, e ha addon que escreve "catalogs" antes de "id" — a leitura
+   // crua trazia o id de um CATALOGO como se fosse o do addon. Ver js_texto_raiz.
+@@ -4548,7 +4616,7 @@ static void *montar(void *u) {
+         if (CONDENADA("lendo os manifestos")) goto condenada;
+         if (teto > DECL_MAX - nDecl) teto = DECL_MAX - nDecl;
+         lidos = lerManifesto(i, addons_base(i), decls + nDecl, teto,
+-                             addons_ativo(i), &real, &promovidos);
++                             addons_ativo(i), &real, &promovidos, versaoManifestos);
+         nDecl += lidos;
+         folga = lidos < cota + folga ? cota + folga - lidos : 0;
+         // ISSUE #42(a): a linha de sempre ("N catalogo(s) declarado(s)") nao
+diff --git a/src/vertudo.c b/src/vertudo.c
+index 4c770ba8f..fec6de49c 100644
+--- a/src/vertudo.c
++++ b/src/vertudo.c
+@@ -405,8 +405,20 @@ static void resolverLayout(void) {
+ // depois que a sonda leu o manifesto daquele addon. Uma pasta que veio do
+ // PACOTE ja traz a base escrita.
+ static const char *baseDaFonte(const ColSource *s) {
++  static _Thread_local char base[NV_ADDON_URL_MAX];
+   if (s->base[0]) return s->base;
+-  return s->addonId[0] ? addons_base_por_id(s->addonId) : "";
++  addons_base_por_id_copiar(s->addonId, base, sizeof base);
++  return base;
++}
++static const char *mensagemSemFonte(const ColSource *s) {
++  if (s && !strcmp(s->prov, "tmdb")) return i18n("O TMDB não está configurado nesta TV.");
++  if (s && !strcmp(s->prov, "trakt")) return i18n("O Trakt não está configurado nesta TV.");
++  AddonIdentidadeEstado estado = addons_identidade_estado(s ? s->addonId : "");
++  if (estado == ADD_IDENTIDADE_PENDENTE || estado == ADD_IDENTIDADE_PRONTA)
++    return i18n("Carregando…");
++  if (estado == ADD_IDENTIDADE_FALHOU)
++    return i18n("Não deu para carregar");
++  return i18n("O addon desta coleção não está instalado nesta TV.");
+ }
+ 
+ static void vitIniciar(void);
+@@ -1738,11 +1750,8 @@ static void themeHeader(float a,float x0) {
+   } else {TxtLinha title=txt_linha_corta(TXT_TITULO1,titulo,242,243,247,255,vtCabecalhoLargura(x0,940));txt_desenhar_alpha(title,x0,80,a);}
+   char caption[180];int n=nItens();
+   if(semFonte) {
+-    const char *pv=collection&&source<collection->nSources?collection->sources[source].prov:"";
+     snprintf(caption,sizeof caption,"%s",
+-      !strcmp(pv,"tmdb")?i18n("O TMDB não está configurado nesta TV."):
+-      !strcmp(pv,"trakt")?i18n("O Trakt não está configurado nesta TV."):
+-      i18n("O addon desta coleção não está instalado nesta TV."));
++      mensagemSemFonte(collection&&source<collection->nSources?&collection->sources[source]:NULL));
+   }
+   else if(desc_vertudo_erro())snprintf(caption,sizeof caption,"Não foi possível carregar. OK para tentar novamente.");
+   else if(!n)snprintf(caption,sizeof caption,"%s",desc_vertudo_carregando()?"Carregando títulos…":"Nenhum título nesta lista.");
+@@ -2194,7 +2203,9 @@ static void vitDesenhar(float a, float x0) {
+       }
+     } else if (l->estado == VIT_VAZIA || l->estado == VIT_PRONTA ||
+                (vitLin[r].mais && !vitLin[r].n)) {
+-      const char *msg = l->semFonte ? i18n("O addon desta coleção não está instalado nesta TV.")
++      const ColSource *s = vitMulti && collection && r < collection->nSources
++                            ? &collection->sources[r] : NULL;
++      const char *msg = l->semFonte ? mensagemSemFonte(s)
+                                     : i18n("Nenhum título nesta lista.");
+       TxtLinha m = txt_linha_corta(TXT_DET_META2, msg, 196, 202, 213, 255, 1200);
+       txt_desenhar_alpha(m, x0, cy + 12.0f, ac * 0.9f);
+@@ -2210,11 +2221,8 @@ static void vitDesenhar(float a, float x0) {
+     }
+   }
+   if (!vitN) {   // nada para repartir em fileiras ainda: diz por que
+-    const char *pv = collection && source < collection->nSources ? collection->sources[source].prov : "";
+     const char *msg = semFonte
+-      ? (!strcmp(pv, "tmdb") ? i18n("O TMDB não está configurado nesta TV.")
+-         : !strcmp(pv, "trakt") ? i18n("O Trakt não está configurado nesta TV.")
+-         : i18n("O addon desta coleção não está instalado nesta TV."))
++      ? mensagemSemFonte(collection && source < collection->nSources ? &collection->sources[source] : NULL)
+       : desc_vertudo_erro() ? "Não foi possível carregar. OK para tentar novamente."
+       : desc_vertudo_carregando() ? "Carregando títulos…" : "Nenhum título nesta lista.";
+     txt_desenhar_alpha(txt_linha_corta(TXT_DET_META2, msg, 196, 202, 213, 255, 1200),

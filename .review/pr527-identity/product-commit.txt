@@ -1,0 +1,6 @@
+tree f067a2edeb775833dd74abf56f98cca0967d2c67
+parent c67cea085816b24b77586a1c91726f619fbb6144
+author Codex <codex@openai.com> 1792090738 +0000
+committer Codex <codex@openai.com> 1792090738 +0000
+
+Resolve collection addon identities before Home loading finishes

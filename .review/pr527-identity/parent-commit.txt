@@ -1,0 +1,6 @@
+tree 1ca691996994f8167fb2ddba33f5ce9859176475
+parent d156e650eb01783713cb7812394f620b68be5895
+author Grant Barker <granthbarker@gmail.com> 1792069480 +0000
+committer ghbarker <117389362+ghbarker@users.noreply.github.com> 1792087739 +0000
+
+Collections: add a profile default and complete touch navigation
