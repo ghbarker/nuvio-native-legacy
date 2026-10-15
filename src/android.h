@@ -10,6 +10,8 @@
 void android_iniciar(void);
 // Saved device mode: changes the existing Activity, without recreating native state.
 void android_interface_modo(int mobile);
+// Android device classification captured before SDL starts; never a screen heuristic.
+int android_interface_mobile_auto(void);
 #ifdef NV_TOUCH_UI
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.
