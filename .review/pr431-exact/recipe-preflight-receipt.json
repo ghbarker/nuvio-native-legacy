@@ -1,0 +1,18 @@
+{
+  "outcome": "local-recipe-preflight-passed",
+  "source_commit": "85aa72edd5f033b8ef21d97744df229983db79d4",
+  "tree": "bc9a49e98919ce2c585490ad92d2b8325adfb7b6",
+  "bundle_actual_materialization_verified": true,
+  "unchanged_original3_producer_preflights": 3,
+  "publisher_synthetic_evidence_validation": "positive complete fixture and five negative fixtures passed; no actual SDK tests or external writes",
+  "negative_guards": [
+    "reject source_commit",
+    "reject tree",
+    "reject review_commit",
+    "reject manifest_sha256",
+    "reject missing original suite"
+  ],
+  "workflow_gates_before_write_verified": true,
+  "local_sdk_builds_or_original_sanitizer_passes_claimed": false,
+  "external_writes": 0
+}

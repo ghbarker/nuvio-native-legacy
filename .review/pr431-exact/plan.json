@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "frozen": true,
+  "launch_requires_root_review": true,
+  "scope": "Exact standalone PR431 validation and success-only existing branch update; no new feature PR or release.",
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "source": {
+    "commit": "85aa72edd5f033b8ef21d97744df229983db79d4",
+    "tree": "bc9a49e98919ce2c585490ad92d2b8325adfb7b6",
+    "manifest": "source-manifest.json",
+    "manifest_sha256": "86c5162d73717b69c9973dc63849e5cdfb5ddf18f90bc27390310297fcb7da2e"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "bytes": 698370,
+    "sha256": "a0696ac49d367d4a5dea91fd81a7dc5d549c93ff2164b4de6327917a91126845"
+  },
+  "publication": {
+    "repository": "ghbarker/nuvio-native-legacy",
+    "branch": "feat/android-tv-mobile",
+    "expected_old": "8b20bfdfe657af7a4d815dfd362f618bb7312b48",
+    "exact_new": "85aa72edd5f033b8ef21d97744df229983db79d4",
+    "review_branch": "review/pr431-exact-validation-20261015"
+  },
+  "ci_signing_certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+  "reuse_test_passes": false,
+  "required_groups": [
+    "native",
+    "android",
+    "original-fontepref",
+    "original-fontepref_file",
+    "original-player_retido"
+  ]
+}
