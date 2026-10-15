@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": false,
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "accepted_product_base": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+  "accepted_test_base": "11713d4fd76f241927e281ceaccfc9990bc209e2",
+  "sources": {
+    "product": {
+      "commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "487cfd5a2eaff12649b3022ee0f83882c24d15c19ef5cdb4a21ce9a903dc3444",
+      "delta_patch_sha256": "a456dc13835892bb5855eef8ffd9578bcfd954be5d8438a5d5c83752095c5b79",
+      "layer": "product",
+      "source_clean": true,
+      "private_logs": false,
+      "path": "/dev/shm/artwork-concurrency-20261015/source"
+    },
+    "test": {
+      "commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "19779cf927289d3eddc84870a4e5493363340433a76b1b889e135844198bce29",
+      "delta_patch_sha256": "963fe0fc7870b37ae9f6855870f76002747a9fe310a2874bc3aaea21fda00eac",
+      "layer": "test",
+      "source_clean": true,
+      "private_logs": true,
+      "path": "/dev/shm/artwork-concurrency-20261015/test"
+    }
+  },
+  "scope": [
+    "Prioritize Continue Watching without blocking collection rows/artwork",
+    "Preserve the accepted Logs14 foundation as direct parent",
+    "Preserve the private overlay with Logs15 identity only"
+  ],
+  "product_delta_from_foundation": {
+    "paths": [
+      "src/descoberta.c",
+      "src/main.c",
+      "src/sync.c",
+      "src/sync.h"
+    ],
+    "files": 4
+  },
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "files": 11,
+    "added_removed_lines_identical_after_identity_normalization": true,
+    "identity_only": {
+      "old_code": 20024,
+      "code": 20025,
+      "old_name": "2.0.24-test-logs14",
+      "name": "2.0.25-test-logs15"
+    }
+  },
+  "package_signer_unchanged": true,
+  "root_source_review_sha256": "67f3c7fbf76653391fad83fe57fd6b6df4bd922f8790f70d6f51cd39121b309a",
+  "no_ci_build_launch_or_publication_performed": true
+}

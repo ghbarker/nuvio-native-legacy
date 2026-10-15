@@ -1,0 +1,1 @@
+Logs15 test update: prioritize Continue Watching while allowing catalog rows and artwork to load concurrently. Exact source and validation links remain pending root source freeze and green fresh checks.

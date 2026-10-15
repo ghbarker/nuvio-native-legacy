@@ -1,0 +1,349 @@
+{
+  "format": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "review_only": true,
+  "launch_requires_root_review": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "sources": {
+    "product": {
+      "commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "487cfd5a2eaff12649b3022ee0f83882c24d15c19ef5cdb4a21ce9a903dc3444",
+      "delta_patch_sha256": "a456dc13835892bb5855eef8ffd9578bcfd954be5d8438a5d5c83752095c5b79"
+    },
+    "test": {
+      "commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "19779cf927289d3eddc84870a4e5493363340433a76b1b889e135844198bce29",
+      "delta_patch_sha256": "963fe0fc7870b37ae9f6855870f76002747a9fe310a2874bc3aaea21fda00eac"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20025,
+    "version_name": "2.0.25-test-logs15",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "de5773b464fd5e155c8cd8726a56d9c07c0fccccdb14b4f89263bad96497f68c",
+    "bytes": 1257764
+  },
+  "layers": {
+    "foundation_product": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+    "foundation_private": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+    "async_showcase_scroll": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
+    "settings_subtitle_style": "2bbf4b343b0a633f81de2cea600e1f840137bb56",
+    "private_overlay": "86fc15f1fb48f4d425923b040805db0e2dbd72f5",
+    "synopsis_percentage": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+    "subtitle_parity": "77051883c3fa4798d032d568975d2aaec618c3ab",
+    "late_addon_rows": "9e9d79805cc670e5a523c1d03aa9b11b06570165",
+    "long_artwork_registry": "eeabb9552cc5bb6cbf0b9403b57b9b420612e37e",
+    "collection_identity": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+    "startup_artwork_concurrency": "a570741e9482695c78158c52bbbb0e38b53b898a"
+  },
+  "pending": [
+    "Root review of final pinned recipe and concrete payload",
+    "Fresh seven-producer CI plus mandatory aggregate"
+  ],
+  "proof_policy": {
+    "fresh": [
+      "macOS four full application links and changed native contracts",
+      "Original three full-source suites normal and ASan/UBSan",
+      "Android product and compatible test APKs, both ARM ABIs,16KB,signer,JNI,DEX and diagnostic opt-in",
+      "Unchanged fresh47 JVM helper/Media3 contracts",
+      "Existing focused caption/style/collection contracts with approved corrected collection-state producer",
+      "Approved ordinary subtitle Settings parity, independent secondary renderer/delay/original unbound contracts, late-addon row recovery and long artwork registry cases on both exact combined sources normal and ASan/UBSan, while all inherited reader/percentage/collection/caption assertions remain mandatory.",
+      "Four collection identity lifecycle/worker/render invocations supplement all previous36 feature invocations.",
+      "Four actualstartupconcurrency groups on product/testnormalASan, each realdiscovery4+realsync3; local b9afbaseline only provenance."
+    ],
+    "eligible_reuse": [
+      "Same-invocation dependency-bound private macOS object reuse only; no oldsource/job pass reuse"
+    ],
+    "never_reuse": [
+      "oldAPK/signature/ABI/DEX/16KB",
+      "oldfullsourceorchangednativeclosures",
+      "anyfailedincompletejob"
+    ]
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "a87b3b0b4b9222f6752c0412dafdc0786b295fdb57bdabab103e9a5156ab1716"
+  },
+  "inherited_review": {
+    "commit": "e42359f743be69f1104a9a447d51c94183dc6c9d",
+    "tree": "f7f0f61fd6f2d106db7e3e1dcf00861e60ab0860",
+    "trees": {
+      ".review/logs8/native": "6140094cd3d7cb497b2b2d3a606550eddc83f7a1",
+      ".review/logs8/kotlin": "e4c69aa33ba15cfa6b749a6d5c3cf66d4caf26e8",
+      ".review/logs8/runtime": "fb602f5d1116c1f0a8d3318d8c25a1365af97c0a"
+    }
+  },
+  "excluded_from_this_update": [
+    "Later upstream d156 and its 490 merge",
+    "Unrelated new features, PRs or backend changes",
+    "Unproven claim to resolve every random blank poster"
+  ],
+  "source_composition_root_approved": true,
+  "ci_execution_permitted": true,
+  "root_approval_scope": "Exact source bound; execution gates remain closed pending root final recipe/payload review.",
+  "recipe_pins": {
+    "aggregate.py": "61088fa13fc009ca253fc6542e83e35af9be0b8794d0be168d9b515bcef846d9",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "b40a732fa254ac0c7bc524c77cd4afbfcddc0c3408eff83f79e1ca5defa58e89",
+    "jvm/manifest.json": "d78d72c791481760130b29261f48a1d9862f64d70eaffd682d6ff8bd2569571d",
+    "feature-contracts/manifest.json": "b2917f8d035bad1ceac5ab3b996f8d3dcf2dc329c56981b2231bc79ca3982fe5",
+    "require_plan.py": "47924fc282555aa589a84a40116637cc26d3e1985f7eb007344fbb9d79443e04",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "b191d422131ed5c207913be08ee88e28c08b4fc7f601ac4ef6e3398f6b5386f4",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "6195de0618179abe058f7043170c06cd6b21704df9d190b1f2c19a5058753474",
+    "feature-contracts/collection-identity/fixture-manifest.json": "10a590d9d95158217e73fff5aeadf9c197a165ebc81bcacac83c1a88b7b3d510",
+    "feature-contracts/startup-concurrency/fixture-manifest.json": "db3adcf749cb48fa7202e92d63d95d424b3388333ea474530d902d91622f2fb9"
+  },
+  "recipe_preparation_only": true,
+  "required_pointer_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/collection-taps/fixture-freeze.json",
+    "fixture_manifest_sha256": "4f5329ec82105b088e49907420556b73f9791afbc2ee20a0932d80a59fc9049d",
+    "invocations": 4,
+    "recipes": [
+      "collection-taps"
+    ],
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "scope": [
+      "actual full collection renderer and real pointer route",
+      "Showcase title activation, scroll and stale-target rejection",
+      "Decades clipping",
+      "any separately approved portrait mounting correction"
+    ],
+    "prior_execution_reuse_permitted": false,
+    "gesture_cases_per_invocation": 75,
+    "reachability_cases_per_invocation": 36,
+    "subproducers": {
+      "gesture": {
+        "fixture_frozen": true,
+        "source_binding_approved": true,
+        "fixture_manifest": "feature-contracts/collection-taps/fixture-freeze.json",
+        "fixture_manifest_sha256": "4f5329ec82105b088e49907420556b73f9791afbc2ee20a0932d80a59fc9049d",
+        "cases_per_invocation": 75
+      },
+      "reachability": {
+        "fixture_frozen": true,
+        "source_binding_approved": true,
+        "fixture_manifest": "feature-contracts/collection-taps/reachability-freeze.json",
+        "fixture_manifest_sha256": "6bd38defcb615e9aedcd79bb518ab71b83f722f96db482f8ab67eb0fc5d8244e",
+        "cases_per_invocation": 36,
+        "title_activations_per_invocation": 2160
+      },
+      "async": {
+        "fixture_frozen": true,
+        "source_binding_approved": true,
+        "fixture_manifest": "feature-contracts/collection-taps/async-freeze.json",
+        "fixture_manifest_sha256": "863b16464f5a89641a370218059858813dc42768a13e552242f49391b1a82760",
+        "cases_per_invocation": 15
+      }
+    },
+    "all_new_geometry_coverage_bound": true,
+    "async_row_load_regression_bound": true,
+    "async_cases_per_invocation": 15
+  },
+  "historical_recipe_origin": {
+    "reference_only": true,
+    "root": "/workspace/review/integration-apk20023-20261015",
+    "plan_sha256": "c1e859d17d0f827d0c49de2842f034d5e1ac26f8118d4a83db040bd7e0494167",
+    "review_commit": "e42359f743be69f1104a9a447d51c94183dc6c9d",
+    "run_id": 38743969192,
+    "prior_results_eligible_for_new_execution_proof": false
+  },
+  "required_settings_style_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/settings-subtitle-style/fixture-freeze.json",
+    "fixture_manifest_sha256": "c98b0046b687b1434f2257e7fd27ad27e597ae10bda2310b341d0a5ed3a7bc2f",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "baseline_candidate_preflight_required": true,
+    "scope": "Ordinary primary/secondary10-field Settings parity and existing in-player style drawer"
+  },
+  "required_synopsis_percentage_regression": {
+    "bound": true,
+    "fixture_manifest": "preflight/synopsis477/percentage-origin.json",
+    "fixture_manifest_sha256": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "baseline_candidate_preflight_required": true,
+    "reader_mode_required": true,
+    "choices_percent": [
+      100,
+      125,
+      150
+    ],
+    "appended_style_slots": 17
+  },
+  "accepted_foundation": {
+    "product": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+    "test": "11713d4fd76f241927e281ceaccfc9990bc209e2"
+  },
+  "required_subtitle_parity_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/subtitle-parity-renderer/fixture-manifest.json",
+    "fixture_manifest_sha256": "342d81b0f2adcb61e542ba375e7f2e5b8ea6e4c897c4a53fc68fb2fca6631f26",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "legacy_trace_cases": 16,
+    "independent_position_pairs": 256,
+    "original_script_sha256": "72f6c23ca20586d4fe7c4acfdd82387df28713753463162a1edeeb7d999331d4",
+    "original_assertions_sha256": "1b9caf0d9c13ea6baa01115251c27c8768c49f74c85e5b57e37b00af3a9c82d3",
+    "scope": "Actual resolved Settings/secondary renderer + actual bound delay engine + unchanged original unbound script"
+  },
+  "required_artwork_registry_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/artwork-registry/fixture-manifest.json",
+    "fixture_manifest_sha256": "e5808a1ee1459072a57660b0c9553cf37417706ee2badda7ccd459d8211ebf7a",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "cases": [
+      "original",
+      "long",
+      "arena"
+    ],
+    "scope": "Only actual long-URL registry fallback recovery; does not assert a fix for user random blank poster rows"
+  },
+  "required_collection_identity_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/collection-identity/fixture-manifest.json",
+    "fixture_manifest_sha256": "10a590d9d95158217e73fff5aeadf9c197a165ebc81bcacac83c1a88b7b3d510",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "invocations": 4,
+    "groups": [
+      "lifecycle",
+      "worker",
+      "renderer"
+    ],
+    "renderer_cases": [
+      "late-y",
+      "late-x",
+      "late-xy",
+      "active-y",
+      "active-x",
+      "regroup-xy",
+      "regroup-active-x",
+      "reset-active",
+      "stale-load-before-redraw",
+      "stale-load-after-redraw",
+      "stale-reorder-before-redraw",
+      "stale-reorder-after-redraw",
+      "tv-follow",
+      "late-addon-recovery",
+      "late-addon-inflight",
+      "identity-status"
+    ],
+    "scope": "Actual request-owned identity before CW/capabilities; pending/failed/absence, copied bases, final scoped capabilities, stale round wake, profile/list replacement,16 actual collection renderer cases."
+  },
+  "required_startup_concurrency_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/startup-concurrency/fixture-manifest.json",
+    "fixture_manifest_sha256": "db3adcf749cb48fa7202e92d63d95d424b3388333ea474530d902d91622f2fb9",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "invocations": 4,
+    "groups": [
+      "discovery",
+      "sync"
+    ],
+    "component_cases": {
+      "discovery": [
+        "fresh",
+        "cached",
+        "clear",
+        "stale"
+      ],
+      "sync": [
+        "concurrent",
+        "stale",
+        "thread-failure"
+      ]
+    },
+    "required_source_inputs": [
+      "src/descoberta.c",
+      "src/sync.c",
+      "src/sync.h",
+      "src/main.c",
+      "src/perfis.c",
+      "src/catalogo.c"
+    ],
+    "original_test_inputs_sha256": {
+      "tests/stub_contapend.c": "47c8b8e8e64e00114982da24a412a73b2ec909bcb89f2e4f5ee4335885ea91d9",
+      "tests/syncordem.c": "c4731d4f73c1b81a76b08e7fab73b3be623716402a2df5300edca27ab81bbfe1"
+    },
+    "baseline_provenance_sha256": "9008ded6a75545f3fae6eb4508ca9f32a0e65e3a2da68047339309c324634b9f",
+    "baseline_source_tree": "12691126c31b2c573f28198624f25bd3edb0b9ec",
+    "baseline_source_inputs_sha256": {
+      "sync": {
+        "src/sync.c": "a515f4ade84e6ee54047b4b9151e57504d67131e5aaa7d306de009fa78614bc1"
+      },
+      "discovery": {
+        "src/descoberta.c": "0a0496c61f9e1f6715c43652c0ffee99a38755aa8290ed40b16edfd3bd2c22a6",
+        "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+        "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+      }
+    },
+    "scope": "Actual discovery4scenario and sync3scenario assertions per source/mode; baseline is separately pinned local provenance only."
+  }
+}

@@ -1,0 +1,404 @@
+// JANELAS DAS FILEIRAS APONTANDO PARA ITENS DE OUTRO BLOCO.
+//
+// Medido na LG C9 do dono (A/B contra o master 226af57): com o trabalho do
+// Codex a fileira "Amigos assistindo" mostrava "The Martian" e "Project Hail
+// Mary" sem nome e sem acao, e "Continuar assistindo" mostrava Fallout/Widow's
+// Bay em vez de Imperfect Women/Adolescence. Titulos do CATALOGO DO PACOTE nas
+// janelas (ini, n) das fileiras sinteticas.
+//
+// A sequencia do log (codex-run.log): o pacote esta na tela (cat_n() > 0, logo
+// montar() NAO publica em partes); a assinatura do homeestado muda no meio da
+// montagem (perfil/colecoes/catordem chegando), o fim de montar() descarta o
+// lote SEM publicar — mas filsMontadas ja tinha as janelas desse lote; o sync
+// entrega as colecoes e chama desc_remontar_fileiras(), que republica
+// filsMontadas (janelas do lote descartado) por cima do bloco que esta na tela
+// (o do pacote). Resultado: "continue_watching" ini=0 n=2 aponta para os dois
+// primeiros titulos do pacote, "social_activity" para o terceiro.
+//
+// O catalogo aqui e um FALSO fiel: guarda o bloco publicado e corta as janelas
+// como catalogo.c (cat_definir_tudo / cat_republicar_fileiras), e
+// cat_copiar_fileira copia do bloco publicado. O teste confere, fileira por
+// fileira, que cada item veio de quem produziu aquela fileira.
+#include <assert.h>
+#include <unistd.h>
+// Duples da remocao do Continuar assistindo (fix/cw-remover): este teste nao
+// exercita a remocao, e o catalogo aqui e falso.
+void prog_remover(const char *chave) { (void)chave; }
+void prog_marcar_removido(const char *imdb) { (void)imdb; }
+int prog_oculto_vence(const char *imdb, long long ms) { (void)imdb; (void)ms; return 0; }
+int prog_oculto_soltar(const char *imdb, long long ms) { (void)imdb; (void)ms; return 0; }
+int  prog_removido_vence(const char *imdb, long long instanteMs) { (void)imdb; (void)instanteMs; return 0; }
+int  cat_tirar_continuar(const char *imdb) { (void)imdb; return 0; }
+int arte_reserva_episodios(const char *imdb, const char *corpo) { (void)imdb; (void)corpo; return 0; }
+
+int ajustes_social(void) { return 1; }
+int ajustes_hist_conta(void) { return 1; }
+int ajustes_busca_cinemeta(void) { return 1; }
+int ajustes_busca_nuvio(void) { return 0; }   // #311: Primeiro (padrao)
+int ajustes_ocultar_nao_lancados(void) { return 0; }   // #369: descoberta.c le o ajuste
+#include DISCOVERY_SOURCE
+#include "jellyfin_stub.inc"
+unsigned recomenda_geracao(void) { return 1; }
+Uint32 original_SDL_GetTicks(void) { return 0; }
+
+#define BASE "https://addon.example/abc"
+#define AID  "app.addon.demo"
+
+static const char *MANIFESTO =
+  "{\"id\":\"" AID "\",\"name\":\"Addon\",\"resources\":[\"catalog\"],\"catalogs\":["
+  "{\"type\":\"movie\",\"id\":\"cat_a\",\"name\":\"Cat A\"},"
+  "{\"type\":\"movie\",\"id\":\"cat_b\",\"name\":\"Cat B\"}]}";
+
+int   addons_n(void)                   { return 1; }
+const char *addons_base(int i)         { (void)i; return BASE; }
+const char *addons_id_manifesto(int i) { (void)i; return ""; }
+const char *addons_nome(int i)         { (void)i; return "addon"; }
+unsigned addons_versao(void)           { return 1; }
+const char *addons_base_por_id(const char *id) { return id && !strcmp(id, AID) ? BASE : ""; }
+void addons_manifesto_lido(int i, const char *c) { (void)i; (void)c; }
+
+// ------------------------------------------------------------ o homeestado
+// Fiel no que importa: a geracao muda quando o contexto muda, e o snapshot
+// so vale depois de salvo na geracao corrente.
+static volatile unsigned geracaoEstado = 1;
+static int snapshotValido;
+static char snapChaves[CAT_FIL_MAX][192];
+static int nSnap;
+unsigned homeestado_geracao(void) { return geracaoEstado; }
+int homeestado_contexto_valido(void) { return snapshotValido; }
+int homeestado_ordem_fileira(const char *c) {
+  int i;
+  if (!snapshotValido || !c) return -1;
+  for (i = 0; i < nSnap; i++) if (!strcmp(snapChaves[i], c)) return i;
+  return -1;
+}
+int homeestado_tem_fileira(const char *c) { return homeestado_ordem_fileira(c) >= 0; }
+int homeestado_salvar_se_geracao(const CatFileira *f, int n, unsigned g) {
+  int i;
+  if (g != geracaoEstado) return 0;
+  for (i = 0, nSnap = 0; i < n && i < CAT_FIL_MAX; i++)
+    snprintf(snapChaves[nSnap++], sizeof snapChaves[0], "%s", f[i].chave);
+  snapshotValido = 1;
+  return 1;
+}
+void homeestado_salvar(const CatFileira *f, int n) { homeestado_salvar_se_geracao(f, n, geracaoEstado); }
+int homeestado_identidade_geracao(unsigned g, char *d, unsigned z, int *p) {
+  if (g != geracaoEstado) return 0;
+  if (d && z) d[0] = 0;
+  if (p) *p = 1;
+  return 1;
+}
+// DESDE A 1.4.5 a montagem pergunta O QUE mudou, e so identidade/addons
+// descartam. O que este teste muda no meio (colecoes/ordem chegando) e
+// ESTRUTURA: a geracao entra na parte das colecoes, e o fim de montar() segue
+// o caminho "publica e remonta sem rede" — que tambem tem de manter cada
+// janela apontando para os itens da propria fileira.
+void original_homeestado_contexto(HomeContexto *c) {
+  *c = (HomeContexto){0}; c->perfil = 1; c->colecoes = geracaoEstado; }
+int original_homeestado_mudancas(const HomeContexto *a, const HomeContexto *b) {
+  return a->colecoes != b->colecoes ? HOMEESTADO_MUDOU_COLECOES : 0; }
+const char *homeestado_mudancas_texto(int m, char *b, unsigned t) {
+  if (b && t) snprintf(b, t, "%s", m ? "colecoes" : "nada"); return b; }
+const char *sessao_usuario(void) { return ""; }
+
+// ------------------------------------------------------ o catalogo publicado
+static pthread_mutex_t pubTravaT = PTHREAD_MUTEX_INITIALIZER;
+static CatItem pub[4096];
+static int nPub;
+static int n;
+static CatFileira pubFils[CAT_FIL_MAX];
+static int nPubFils;
+
+// Mesmo corte de catalogo.c: janela fora do bloco sai, janela que passa do
+// fim e cortada. E exatamente esse corte que fazia a janela velha "caber" no
+// bloco do pacote.
+static void pubFileiras(const CatFileira *f, int q) {
+  int k, v = 0;
+  for (k = 0; k < q && k < CAT_FIL_MAX; k++) {
+    CatFileira x = f[k];
+    if (x.ini < 0 || x.ini > nPub || (x.n < 1 && !x.estado)) continue;
+    if (x.ini + x.n > nPub) x.n = nPub - x.ini;
+    pubFils[v++] = x;
+  }
+  nPubFils = v;
+}
+void cat_definir_tudo(const CatItem *l, int q, const CatFileira *f, int n) {
+  pthread_mutex_lock(&pubTravaT);
+  if (q > (int)(sizeof pub / sizeof *pub)) q = (int)(sizeof pub / sizeof *pub);
+  if (q > 0) memcpy(pub, l, sizeof(CatItem) * (size_t)q);
+  nPub = q < 0 ? 0 : q;
+  pubFileiras(f, n);
+  pthread_mutex_unlock(&pubTravaT);
+}
+void original_cat_republicar_fileiras(const CatFileira *f, int n) {
+  pthread_mutex_lock(&pubTravaT); pubFileiras(f, n); pthread_mutex_unlock(&pubTravaT);
+}
+int cat_n(void) { return nPub; }
+/* This fixture seeds either a complete package or an empty catalogue. */
+int cat_home_apenas_fixas(void) { int fixed = 1; pthread_mutex_lock(&pubTravaT); for(int k=0;k<nPubFils;k++) if(strcmp(pubFils[k].chave,"continue_watching") && strcmp(pubFils[k].chave,"social_activity")) fixed=0; pthread_mutex_unlock(&pubTravaT); return fixed; }
+int cat_n_fileiras(void) { return nPubFils; }
+const CatFileira *cat_fileira(int r) { return (r >= 0 && r < nPubFils) ? &pubFils[r] : NULL; }
+int cat_copiar_fileira(const char *chave, CatItem *saida, int max, CatFileira *meta) {
+  int r, qtd, got = 0;
+  pthread_mutex_lock(&pubTravaT);
+  for (r = 0; r < nPubFils; r++) {
+    CatFileira *f = &pubFils[r];
+    if (strcmp(f->chave, chave) || f->n < 1) continue;
+    qtd = f->n < max ? f->n : max;
+    if (f->ini < 0 || f->ini + qtd > nPub) break;
+    memcpy(saida, pub + f->ini, sizeof(CatItem) * (size_t)qtd);
+    if (meta) *meta = *f;
+    got = qtd;
+    break;
+  }
+  pthread_mutex_unlock(&pubTravaT);
+  return got;
+}
+int cat_gravar_cache_se_identidade(const char *d, const char *u, int p) { (void)d; (void)u; (void)p; return 1; }
+int   cat_do_cache(void)              { return 0; }
+unsigned long cat_assinatura(void)    { return 0; }
+unsigned long cat_assinatura_de(const CatItem *l, int q, const CatFileira *f, int n) {
+  (void)l; (void)q; (void)f; (void)n; return 1; }   // sempre "mudou": publica
+
+// ------------------------------------------------------------------ a rede
+// Cada catalogo devolve 3 titulos cujo nome comeca com o catId: e assim que a
+// conferencia sabe de onde o item veio.
+static volatile int pedidosCatalogo, catBMudo;
+// O ULTRA MAX DO #126: 174 catalogos declarados, e mais um que so responde com
+// busca (nao pode gastar vaga da cota).
+#define ULTRA_N 174
+static char *manifestoUltra(void) {
+  size_t cap = 64u + (size_t)(ULTRA_N + 1) * 96u, k = 0;
+  char *b = (char *)malloc(cap);
+  int i;
+  k += (size_t)snprintf(b + k, cap - k, "{\"id\":\"ultramax\",\"name\":\"Ultra MAX\",\"catalogs\":[");
+  k += (size_t)snprintf(b + k, cap - k,
+                        "{\"type\":\"movie\",\"id\":\"busca\",\"name\":\"Busca\","
+                        "\"extra\":[{\"name\":\"search\",\"isRequired\":true}]}");
+  for (i = 0; i < ULTRA_N; i++)
+    k += (size_t)snprintf(b + k, cap - k,
+                          ",{\"type\":\"movie\",\"id\":\"u%d\",\"name\":\"U%d\"}", i, i);
+  snprintf(b + k, cap - k, "]}");
+  return b;
+}
+static volatile int bumpNoPrimeiroCatalogo = 1;
+char *original_rede_baixar(const char *url, int t) {
+  char buf[512];
+  const char *id;
+  (void)t;
+  if (strstr(url, "ultramax.test/manifest.json")) return manifestoUltra();
+  if (strstr(url, "/manifest.json")) return strdup(MANIFESTO);
+  if (!strstr(url, "/catalog/")) return NULL;
+  // PERFIL/CONFIG MUDANDO NO MEIO DA PRIMEIRA MONTAGEM: no log da LG o
+  // "[perfis] ... ativo=1" e as colecoes chegam enquanto os catalogos baixam.
+  if (__sync_fetch_and_add(&pedidosCatalogo, 1) == 0 && bumpNoPrimeiroCatalogo)
+    geracaoEstado++;
+  id = strstr(url, "cat_a") ? "cat_a" : strstr(url, "cat_b") ? "cat_b" : NULL;
+  if (!id) return NULL;
+  if (catBMudo && !strcmp(id, "cat_b")) return NULL;   // timeout/sem resposta
+  snprintf(buf, sizeof buf,
+           "{\"metas\":[{\"id\":\"tt%s1\",\"type\":\"movie\",\"name\":\"%s 1\",\"poster\":\"p.jpg\"},"
+           "{\"id\":\"tt%s2\",\"type\":\"movie\",\"name\":\"%s 2\",\"poster\":\"p.jpg\"},"
+           "{\"id\":\"tt%s3\",\"type\":\"movie\",\"name\":\"%s 3\",\"poster\":\"p.jpg\"}]}",
+           id + 4, id, id + 4, id, id + 4, id);
+  return strdup(buf);
+}
+char *rede_baixar_com(const char *u, int t, const char *const *c) { (void)c; return rede_baixar(u, t); }
+
+// ------------------------------------------------------------- o Trakt
+int original_trakt_continuar(CatItem *s, int m) {
+  int i;
+  for (i = 0; i < 2 && i < m; i++) {
+    memset(&s[i], 0, sizeof s[i]);
+    snprintf(s[i].imdb, sizeof s[i].imdb, "tt900%d", i + 1);
+    snprintf(s[i].tipo, sizeof s[i].tipo, "series");
+    snprintf(s[i].titulo, sizeof s[i].titulo, "CW %d", i + 1);
+    s[i].progresso = 50; s[i].temporada = 1; s[i].episodio = i + 1;
+  }
+  return i;
+}
+int   trakt_continuar_falhou(void)        { return 0; }
+// O servico social proprio (recomenda.c) fica fora deste teste: sem amigos Nuvio, a uniao e o que o Trakt trouxe.
+int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
+// Segunda chamada = segunda montagem. E ali, no log, entre "trakt continuar
+// assistindo" e "trakt atividade dos amigos", que o sync entrega as colecoes:
+// "[desc] fileiras remontadas sem rede: 12 de 12". A config muda junto.
+static volatile int chamadasSocial, errosNoRemontar = -1;
+static int conferir(const char *rotulo);
+int original_trakt_social(CatItem *s, int m) {
+  if (++chamadasSocial == 2) {
+    // O QUE A HOME MOSTRA NESTE INSTANTE, e nao so no fim: uma volta posterior
+    // que publique certo esconderia a janela torta que ficou na tela ate ela.
+    desc_remontar_fileiras();
+    errosNoRemontar = conferir("logo depois de desc_remontar_fileiras");
+    geracaoEstado++;
+  }
+  if (m < 1) return 0;
+  memset(&s[0], 0, sizeof s[0]);
+  snprintf(s[0].imdb, sizeof s[0].imdb, "tt9101");
+  snprintf(s[0].tipo, sizeof s[0].tipo, "series");
+  snprintf(s[0].titulo, sizeof s[0].titulo, "Social 1");
+  snprintf(s[0].socialNome, sizeof s[0].socialNome, "Kevin");
+  snprintf(s[0].pais, sizeof s[0].pais, "Kevin");
+  snprintf(s[0].socialAcao, sizeof s[0].socialAcao, "checkin");
+  return 1;
+}
+
+// ------------------------------------------------------------------ o resto
+void  SDL_Delay(Uint32 ms)                 { usleep(ms * 1000); }
+int   ajustes_cw_fonte(void)               { return AJ_CWF_TRAKT; }
+int   ajustes_itens_fileira(void)          { return 12; }   // padrao (#163)
+int   ajustes_cw_ordem(void)               { return 0; }   // Padrao (issue #127)
+int   ajustes_cw_concluido(void)           { return 90; }  // Percentual assistido de fabrica
+int   ajustes_cw_minimo(void)             { return 1; }
+int   ajustes_cw_mostrar_nao_exibidos(void) { return 1; }
+int   ajustes_cw_proximo(void) { return 1; }
+int   ajustes_idioma_ingles(void)          { return 0; }
+int ajustes_idioma(void) { return 0; }
+int   ajustes_tmdb_ligado(void)            { return 0; }
+int   ajustes_tmdb_basico(void)            { return 0; }
+int   ajustes_meta_externo(void)           { return 0; }
+int   ajustes_meta_so_cinemeta(void)        { return 0; }
+int   ajustes_fundo_addon(void)            { return 0; }
+int   ajustes_logo_addon(void)             { return 0; }
+int   addons_aceita_id(int i, const char *t, const char *id) { (void)i; (void)t; (void)id; return -1; }
+int   trakt_e_a_seguir(const char *id)     { (void)id; return 0; }
+int   trakt_progresso_ocultar(const char *i, int o) { (void)i; (void)o; return 0; }
+const char *ajustes_tmdb_idioma(void)      { return "pt-BR"; }
+int   cat_acrescentar(const CatItem *i)    { (void)i; return -1; }
+void  cat_atualizar_item(int i, const CatItem *n) { (void)i; (void)n; }
+void  cat_atualizar_item_sem_abas(int i, const CatItem *n) { (void)i; (void)n; }
+// 2.0.3: fios da descoberta copiam e escrevem por partes (2b4234eb, 70acffaf).
+int   cat_copiar_item(int i, CatItem *s) { if (i < 0 || i >= nPub || !s) return 0; *s = pub[i]; return 1; }
+int   cat_completar_sinopse(int i, const char *im, const char *si, const char *ti) { (void)i; (void)im; (void)si; (void)ti; return 0; }
+int cat_completar_basico(int i, const CatItem *c) { (void)i; (void)c; return 0; }
+int   cat_aplicar_localizado(int i, const char *im, const char *ti, const char *si, const char *lo, const char *fu) { (void)i; (void)im; (void)ti; (void)si; (void)lo; (void)fu; return 0; }
+void  cat_cache_substituido(void)          { }
+void  cat_definir_episodios(int i, const CatEp *l, int n) { (void)i; (void)l; (void)n; }
+int   cat_gravar_cache(const char *d)      { (void)d; return 0; }
+int   cat_indice_por_imdb(const char *s)   { (void)s; return -1; }
+int   cat_indice_vivo(int i, const char *s) { (void)s; return i; }
+const CatItem *cat_item(int i)             { return (i >= 0 && i < nPub) ? &pub[i] : NULL; }
+int   cat_n_episodios(int i)               { (void)i; return 0; }
+double cat_relogio_ms(void)                { return 0.0; }   // descoberta.c times publicarMontagem; the value is only logged
+void  fil_gravar_registro(void)            { }
+int   fil_lista_e_deste_perfil(int p)       { (void)p; return 1; }
+unsigned fil_perfil_geracao(void)          { return 0; }
+FilPassada fil_passada_ler(void)          { FilPassada p = {0, 0}; return p; }
+int   fil_passada_valida(const FilPassada *p) { (void)p; return 1; }
+void  fil_registrar_de(const FilPassada *p, const char *c, const char *t, const char *a, const char *k, int n) { (void)p; (void)c; (void)t; (void)a; (void)k; (void)n; }
+void  fil_registrar_se_couber_de(const FilPassada *p, const char *c, const char *t, const char *a, const char *k) { (void)p; (void)c; (void)t; (void)a; (void)k; }
+int   fil_podar_catalogos(const char *const *ids, const char *const *bases, int n,
+                          int perfilDaLista) {
+  (void)ids; (void)bases; (void)n; (void)perfilDaLista; return 0; }
+int fil_marcar_declaradas(const char *const *chaves, int n, int perfilDaLista) { (void)chaves; (void)n; (void)perfilDaLista; return 0; }
+int fil_marcar_sem_addon(const char *const *ids, const char *const *bases, const int *ativos, int n, int perfilDaLista) {
+  (void)ids; (void)bases; (void)ativos; (void)n; (void)perfilDaLista; return 0;
+}
+int   fil_addon_novo(const char *id, const char *base) { (void)id; (void)base; return 0; }
+int   addons_perfil_da_lista(void)         { return 0; }
+int addons_base_desligada(const char *b) { (void)b; return 0; }   // 203-desligados
+int   addons_ativo(int i)                  { (void)i; return 1; }
+int   addons_fornece(int i, int oque)     { (void)i; (void)oque; return 0; }
+int   addons_sondado(int i)              { (void)i; return 0; }
+int   fil_limite(void)                     { return 16; }
+int   fil_oculta(const char *c)            { (void)c; return 0; }
+int   fil_adicionada_na_tv(const char *c) { (void)c; return 0; }
+int   fil_estado_chave(const char *c) { (void)c; return -1; }
+const char *fil_hero_fonte(void) { return ""; }
+// Dubles da escolha da cota (#126): nada escolhido na TV, e o registro dos
+// catalogos fora da cota nao interessa a este teste.
+int fil_escolhida(const char *c) { (void)c; return -1; }
+int fil_migrar_197(const char *const *c, int n) { (void)c; (void)n; return 0; }
+void fil_registrar_se_couber(const char *c, const char *t, const char *a,
+                             const char *tp) { (void)c; (void)t; (void)a; (void)tp; }
+void  fil_registrar(const char *c, const char *t, const char *a, const char *tp, int itens) {
+  (void)c; (void)t; (void)a; (void)tp; (void)itens; }
+int   fil_tem_ordem(void)                  { return 0; }
+int   fil_unir(const char *const *c, int n, int *s, int m) {
+  int i; (void)c; for (i = 0; i < n && i < m; i++) s[i] = i; return i; }
+const char *i18n(const char *s)            { return s; }
+const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nomePt; }
+void  marco(const char *n)                 { (void)n; }
+void  prog_chave(char *d, unsigned n, const char *c, int t, int e) { (void)c; (void)t; (void)e; if (n) d[0] = 0; }
+void  prog_content_id(char *d, unsigned n, const char *i, int *t, int *e) { (void)i; (void)t; (void)e; if (n) d[0] = 0; }
+int   prog_ler(ProgRegistro *s, int m)     { (void)s; (void)m; return 0; }
+int   prog_por_chave(const char *c, ProgRegistro *s) { (void)c; (void)s; return 0; }
+int   simkl_ativo(void)                    { return 0; }
+int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
+int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
+int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
+int   ajustes_salvos_no_simkl(void)        { return 0; }
+int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; (void)n; return 0; }
+int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
+int   trakt_lista_cresc(const char *q, CatItem **s, int m) { (void)q; (void)s; (void)m; return 0; }
+void  original_cat_trocar_continuar(const CatItem *l, int q) { (void)l; (void)q; }
+// trakt_lista devolve 0 aqui: nada para mesclar.
+int   cat_mesclar_listas(const CatItem *v, int q) { (void)v; (void)q; return 0; }
+const char *nuvem_trakt_cliente(void)      { return ""; }
+
+// ------------------------------------------------------------------ o teste
+// Quieto = sem montagem no ar por 300 ms seguidos. O fim de montar() zera
+// `buscando` e pode disparar outra volta logo em seguida (repetirAoFim).
+static void esperarQuieto(void) {
+  int i, quieto = 0;
+  for (i = 0; i < 500 && !buscando; i++) usleep(2000);
+  for (i = 0; i < 10000 && quieto < 150; i++) {
+    usleep(2000);
+    quieto = buscando ? 0 : quieto + 1;
+  }
+  assert(quieto >= 150);
+}
+
+static void semear_pacote(void) {
+  static CatItem pk[30];
+  CatFileira f[3];
+  int i;
+  memset(pk, 0, sizeof pk); memset(f, 0, sizeof f);
+  for (i = 0; i < 30; i++) {
+    snprintf(pk[i].imdb, sizeof pk[i].imdb, "ttpkg%02d", i);
+    snprintf(pk[i].tipo, sizeof pk[i].tipo, "movie");
+    snprintf(pk[i].titulo, sizeof pk[i].titulo, "pacote %d", i);
+  }
+  for (i = 0; i < 3; i++) {
+    snprintf(f[i].chave, sizeof f[i].chave, "pkg_%d", i);
+    f[i].ini = i * 10; f[i].n = 10;
+  }
+  cat_definir_tudo(pk, 30, f, 3);
+}
+
+static int conta_linha(const char *chave) {
+  int r;
+  for (r = 0; r < nPubFils; r++) if (!strcmp(pubFils[r].chave, chave)) return r;
+  return -1;
+}
+
+// O CONTRATO: cada item publicado numa fileira foi produzido por ela.
+static int conferir(const char *rotulo) {
+  int r, i, erros = 0;
+  printf("    %s: %d fileiras, %d itens\n", rotulo, nPubFils, nPub);
+  for (r = 0; r < nPubFils; r++) {
+    const CatFileira *f = &pubFils[r];
+    printf("      %-18s ini=%-3d n=%d:", f->chave, f->ini, f->n);
+    for (i = 0; i < f->n; i++) {
+      const CatItem *it = &pub[f->ini + i];
+      int ok;
+      printf(" [%s]", it->titulo);
+      if (!strcmp(f->chave, "continue_watching"))
+        ok = !strncmp(it->titulo, "CW ", 3);
+      else if (!strcmp(f->chave, "social_activity"))
+        ok = it->socialNome[0] && !strncmp(it->titulo, "Social ", 7);
+      else if (!strncmp(f->chave, "pkg_", 4))
+        ok = !strncmp(it->titulo, "pacote ", 7);
+      else
+        ok = f->catId[0] && !strncmp(it->titulo, f->catId, strlen(f->catId));
+      if (!ok) { erros++; printf("<ERRADO>"); }
+    }
+    printf("\n");
+  }
+  return erros;
+}
+
+const char *dados_dir(void) { return ""; }
+int fixture_perfis_ativo(void) { return 1; }
+int ajustes_tmdb_arte(void) { return 0; }

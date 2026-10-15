@@ -1,0 +1,50 @@
+{
+  "approved": true,
+  "scope": "Execute the exact frozen a570/da430 seven-producer Android/macOS/features/JVM CI and mandatory aggregate in fork review/apk20025-20261015. No product PR publication or release approved by this record.",
+  "reviewed_plan_sha256": "0710f95fd970d16de827fd6953f6fdc27988e213636a3b0662dde63c08556376",
+  "reviewed_payload_sha256": "228e73562ddf38763fb5331218670dc486465276d7381b3ade7846a6d6d794bf",
+  "reviewed_recipe_pins": {
+    "aggregate.py": "61088fa13fc009ca253fc6542e83e35af9be0b8794d0be168d9b515bcef846d9",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "b40a732fa254ac0c7bc524c77cd4afbfcddc0c3408eff83f79e1ca5defa58e89",
+    "jvm/manifest.json": "d78d72c791481760130b29261f48a1d9862f64d70eaffd682d6ff8bd2569571d",
+    "feature-contracts/manifest.json": "b2917f8d035bad1ceac5ab3b996f8d3dcf2dc329c56981b2231bc79ca3982fe5",
+    "require_plan.py": "47924fc282555aa589a84a40116637cc26d3e1985f7eb007344fbb9d79443e04",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "b191d422131ed5c207913be08ee88e28c08b4fc7f601ac4ef6e3398f6b5386f4",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "6195de0618179abe058f7043170c06cd6b21704df9d190b1f2c19a5058753474",
+    "feature-contracts/collection-identity/fixture-manifest.json": "10a590d9d95158217e73fff5aeadf9c197a165ebc81bcacac83c1a88b7b3d510",
+    "feature-contracts/startup-concurrency/fixture-manifest.json": "db3adcf749cb48fa7202e92d63d95d424b3388333ea474530d902d91622f2fb9"
+  },
+  "reviewed_sources": {
+    "product": {
+      "commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "487cfd5a2eaff12649b3022ee0f83882c24d15c19ef5cdb4a21ce9a903dc3444",
+      "delta_patch_sha256": "a456dc13835892bb5855eef8ffd9578bcfd954be5d8438a5d5c83752095c5b79"
+    },
+    "test": {
+      "commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "19779cf927289d3eddc84870a4e5493363340433a76b1b889e135844198bce29",
+      "delta_patch_sha256": "963fe0fc7870b37ae9f6855870f76002747a9fe310a2874bc3aaea21fda00eac"
+    }
+  },
+  "existing_40_feature_groups_retained": true,
+  "new_4_actual_startup_groups_passed_locally": true,
+  "independent_peer_recipe_code_unchanged": true,
+  "approved_finalization_only": [
+    "Repin peer metadata to actual reviewed plan (no code/assertion change)",
+    "Add this approval record",
+    "Set frozen/root_reviewed/ci_execution_permitted true",
+    "Regenerate workflow and package exact metadata"
+  ],
+  "pr527_remains_draft": true
+}

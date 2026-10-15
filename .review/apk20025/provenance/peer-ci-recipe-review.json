@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "outcome": "accepted",
+  "reviewed_at_utc": "2026-10-15T19:59:28.751492+00:00",
+  "scope": "Bounded independent code and CI recipe review; no CI/build/publication launched by reviewer.",
+  "plan_sha256": "63a2526539968e7782284ecabd7b70216269d250e9b54b3b6aee1312c39edafe",
+  "execution_gates_remain_closed": true,
+  "source_bindings": {
+    "product": {
+      "commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a"
+    },
+    "test": {
+      "commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a"
+    }
+  },
+  "product_paths_exact": [
+    "src/descoberta.c",
+    "src/main.c",
+    "src/sync.c",
+    "src/sync.h"
+  ],
+  "private_overlay_paths": 11,
+  "private_overlay_identity_only_vs_logs14": true,
+  "original_tests_tree_unchanged": true,
+  "retained_feature_assertion_files_byte_identical": 86,
+  "retained_feature_groups": 40,
+  "new_feature_groups": 4,
+  "total_required_feature_groups": 44,
+  "startup_cases_per_group": {
+    "discovery": [
+      "fresh",
+      "cached",
+      "clear",
+      "stale"
+    ],
+    "sync": [
+      "concurrent",
+      "stale",
+      "thread-failure"
+    ]
+  },
+  "checks": {
+    "actual_source_and_compiler_invoked": true,
+    "private_sanitizer_compile_modes_bound": true,
+    "candidate_raw_receipt_logs_and_binary_chain_required": true,
+    "both_layers_normal_and_asan_required": true,
+    "baseline_separate_local_provenance_only": true,
+    "old_40_aggregate_assertions_retained": true,
+    "all_14_recipe_pins_match": true,
+    "feature_and_startup_manifests_match": true,
+    "publisher_delta_only_identity_and_40_to_44_startup_counts": true,
+    "decl_base_ownership_increment_accepted": true,
+    "decl_bounded_memory_tradeoff_accepted": true
+  },
+  "reviewed_recipe_sha256": {
+    "aggregate.py": "61088fa13fc009ca253fc6542e83e35af9be0b8794d0be168d9b515bcef846d9",
+    "feature-contracts/run.py": "b191d422131ed5c207913be08ee88e28c08b4fc7f601ac4ef6e3398f6b5386f4",
+    "feature-contracts/manifest.json": "b2917f8d035bad1ceac5ab3b996f8d3dcf2dc329c56981b2231bc79ca3982fe5",
+    "feature-contracts/startup-concurrency/fixture-manifest.json": "db3adcf749cb48fa7202e92d63d95d424b3388333ea474530d902d91622f2fb9",
+    "feature-contracts/startup-concurrency/run.py": "013a6fafb14ea89e2c8a6f03c52e7eddf8f650b1febac6b18265b2fea63715df",
+    "feature-contracts/startup-concurrency/discovery_contract.py": "71d93a58dd45c6cf2335caccef96994360e5626ab7476d0e33827d3e9eb25846",
+    "feature-contracts/startup-concurrency/sync_contract.py": "1a4ea7584792866eb156af23688f99ff3ff82534da068777876fac70081ae764"
+  },
+  "publisher_sha256": "3605b0c9f394922c83b2d19b08d1017961da2aca0b3d7a0d24417aba460c99de",
+  "blocking_findings": [],
+  "not_claimed": [
+    "Fresh CI passes",
+    "Physical device validation",
+    "Final release publication approval"
+  ]
+}

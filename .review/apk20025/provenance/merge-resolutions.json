@@ -1,0 +1,15 @@
+{
+  "scope": "Approved four-file fix on direct acceptedLogs14 parent, no merge/rebase",
+  "product_commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+  "test_commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+  "accepted_product_parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+  "private_overlay_conflict_count": 0,
+  "private_overlay_paths": 11,
+  "private_overlay_identity_only": true,
+  "product_paths": [
+    "src/descoberta.c",
+    "src/main.c",
+    "src/sync.c",
+    "src/sync.h"
+  ]
+}

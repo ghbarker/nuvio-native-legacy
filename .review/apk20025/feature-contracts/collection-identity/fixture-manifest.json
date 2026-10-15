@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "source_neutral": true,
+  "inputs": {
+    "identity_lifecycle.c": "d326b19109ee98e102b6322aea6bd3eb676b39f4059ae414aff4a584da91a3b5",
+    "identity_worker.c": "c27af2d8c865daedd2916b55277b89800635846e402c85d5ff3db26c675b2a58",
+    "identity_worker_trap.c": "c0e260acc1de74c3bb3724743f7b013ff5d5e8e294767873b08b07a81b8fb41b",
+    "run.py": "da0a8a1ca9be9ef21e25398d16b907104c654cbf476202fd1dae5b5e8d377cbf",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "904cc79914cfda7157463f2762cf9d70e79b45a81c74b48235ddb044f7a21ea8",
+    "ui/collection-taps.c": "0e9b3662a8080a9bf3f91d0ce6b4f3f58da03694a9e88c85c893ed8778853edc",
+    "ui/run.py": "d855a709e410044f9eee5f2777ec3417fe4f462053f6b646c8cf3fdadddc6664",
+    "ui/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "ui/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "ui/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+  },
+  "scope": "Frozen source-bound producers with typed offline boundaries; no product/test source edits."
+}

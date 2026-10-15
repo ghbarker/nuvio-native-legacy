@@ -1,0 +1,86 @@
+{
+  "outcome": "passed",
+  "scope": "Actual local final-frozen startup concurrency4invocations(discovery4+sync3 each), no platform/fullCI claim; all fresh7producer+aggregate gates remain required. Old2abbsourceproofs preserved separately, not retagged.",
+  "sources": {
+    "product": {
+      "commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "parent": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "487cfd5a2eaff12649b3022ee0f83882c24d15c19ef5cdb4a21ce9a903dc3444",
+      "delta_patch_sha256": "a456dc13835892bb5855eef8ffd9578bcfd954be5d8438a5d5c83752095c5b79"
+    },
+    "test": {
+      "commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "19779cf927289d3eddc84870a4e5493363340433a76b1b889e135844198bce29",
+      "delta_patch_sha256": "963fe0fc7870b37ae9f6855870f76002747a9fe310a2874bc3aaea21fda00eac"
+    }
+  },
+  "records": [
+    {
+      "layer": "product",
+      "mode": "normal",
+      "receipt": "/dev/shm/integration-apk20025-20261015/frozen-preflight/startup-product-normal/receipt.json",
+      "receipt_sha256": "dee2fc2db61755c00fcb038a1053c733a5a93dd0999b0f84aa5aa965f68b1e60",
+      "source_commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "source_tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "groups": [
+        "discovery",
+        "sync"
+      ],
+      "discovery_cases": 4,
+      "sync_cases": 3,
+      "passed": true
+    },
+    {
+      "layer": "product",
+      "mode": "asan",
+      "receipt": "/dev/shm/integration-apk20025-20261015/frozen-preflight/startup-product-asan/receipt.json",
+      "receipt_sha256": "6c5109302f775310b38afaff3ebb3a60ee5ee284f2f01c1ad9bf3cf8182c2ff4",
+      "source_commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "source_tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+      "groups": [
+        "discovery",
+        "sync"
+      ],
+      "discovery_cases": 4,
+      "sync_cases": 3,
+      "passed": true
+    },
+    {
+      "layer": "test",
+      "mode": "normal",
+      "receipt": "/dev/shm/integration-apk20025-20261015/frozen-preflight/startup-test-normal/receipt.json",
+      "receipt_sha256": "79715cb57edc9c776e386d5c89e207e2e5349f59ed20bcfe04e3391a32d909f9",
+      "source_commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "source_tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "groups": [
+        "discovery",
+        "sync"
+      ],
+      "discovery_cases": 4,
+      "sync_cases": 3,
+      "passed": true
+    },
+    {
+      "layer": "test",
+      "mode": "asan",
+      "receipt": "/dev/shm/integration-apk20025-20261015/frozen-preflight/startup-test-asan/receipt.json",
+      "receipt_sha256": "95bedf0de213ed5230df6b519573a192ab4a7a553c1f28c25ae3648fe95b1892",
+      "source_commit": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+      "source_tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+      "groups": [
+        "discovery",
+        "sync"
+      ],
+      "discovery_cases": 4,
+      "sync_cases": 3,
+      "passed": true
+    }
+  ],
+  "platform_ci_executed": false,
+  "publication_performed": false
+}

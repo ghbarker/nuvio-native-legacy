@@ -1,0 +1,14 @@
+{
+  "original_frozen_root": "integration-logs8/native-portability-retry/stage/native/issue513",
+  "behavioral_fixtures_unchanged": {
+    "dispatch/episode_requests.c": "6d23da918d1d2bc45f9adb6f11ed290734606bf7b77cf815cc3889c3f3b1c73d",
+    "owner/ancillary.c": "337b3dac31cbeb53e9f79a4ccb72677a1b1fe786bf8f5dbbcfdeaa311666140e",
+    "owner/streams_fixture.c": "4249a7997ac421152e6491f88fae4f83c7a108e6f0c9b7dab3a5b49c8706bb41",
+    "owner/queue_fixture.c": "6603703d79c20fca0e5c502112621d52e1c6702785e0e3e668c1883c959a192f"
+  },
+  "deltas": [
+    "Link genuine sinopse.c in both reduced groups.",
+    "Bind new producer/text header hashes.",
+    "Explicit Darwin source declarations and Linux-only ASan nonPIE plumbing; assertions unchanged."
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "frozen": true,
+  "origin_review": "Frozen issue496 review-result.json artifact",
+  "origin_review_sha256": "78abc87886d3eb17226897fb3e648812670a986ca1ff4ec0249adfcb18ee17ea",
+  "origin_product_commit": "8f00c05e35d01732856519183ce54540f042819b",
+  "copied_without_modification": {
+    "selector-cases.c": "479d7fef52219127530bf7cb42740f3baa36d153976a676cb89d9a5cec4c414c",
+    "run-selectors.py": "385607fab7f0816693f4099d0ead95263ad339bd617d465a154bbc677297459d",
+    "player-controls.c": "ab52fd21c26f8fbdb6ad7bfb8c6ce50afae5c322fb6b7cdbfb4b47433d295836",
+    "player-boundaries.inc": "9ed9962d0d2676ab4cffcfe6f5e41f7753c3ec9b4f7463c1928809e996938a9e",
+    "player-render.inc": "e9e237088137d4a84d67342060192339ad4b9f8d221cda65d48a1a9c6dc223be",
+    "build-player.py": "7dea4afa40199ab1a02e475e0be480ea7560b3fe80d4b03f559a57524e8777f2",
+    "app-route.c": "fc0410592f7d00abe03e7fb57b161ed1430d691543b8c56cd2a9b2580bde94b3",
+    "run-app-route.py": "3becf9d36a24ca477a85e5654911e781a43250fa64586215ae05d96921561c6f",
+    "posplay-manual.c": "5dcdedbab19e5369f793e0c21c62d6bc718e080803731e1ffdb6ad2041d834e2",
+    "run-posplay.py": "af51cfee4dd698ff767e5f7d7be45cd7bc78fe0ea566a5074f8e1cfc359c5f0f"
+  },
+  "execution": "Not run; waiting for frozen integrated source manifests.",
+  "scope": "External actual496/460 fixtures only; no product or CI changes.",
+  "adapter_delta": {
+    "purpose": "Portable local typed SDK paths/compiler/link/sanitizer plumbing and explicit private macro; behavioral C assertions unchanged.",
+    "paths": {
+      "build-player.py": "3a1fe3e511ebfe85505f0e01298a1efe83cc647632f0eea002d10dc373c47126",
+      "run-app-route.py": "d5328e70eb06dad11cff5e4f256807a0825c8cd6e6b3ef7ddcc4dea5816787d5",
+      "run-posplay.py": "021002e948c765f4de38f74ebc439bdcf913adaf2285f31aaef6f869c3b07454",
+      "run-selectors.py": "83001e55c923ee02d32af3e0688a67fe63892eb2baad68b443890100a541ab65",
+      "posplay-manual.c": "e7bb1c2d0ac2e44c1f1021d2641f5d750dd088993cac9839b0d03ec72236c359"
+    },
+    "private_posplay_clock": "Typed deterministic SDL_GetTicks boundary for private timestamp hook; all behavioral assertions unchanged."
+  },
+  "portable_plumbing_sha256": "42ac9be96da85f56d87c9fd895b2507f9fa5aff730e2263493aa12acc4bf8998",
+  "source_suites_executed": false,
+  "typed_sdk_manifest_sha256": "0ef6b10f3bc338987c3da3e6981b7b8eab4833dda2ef59d6e255207cc4e57814"
+}

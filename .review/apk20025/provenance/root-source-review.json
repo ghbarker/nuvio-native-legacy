@@ -1,0 +1,67 @@
+{
+  "approved": true,
+  "product": "a570741e9482695c78158c52bbbb0e38b53b898a",
+  "product_tree": "dfc0246c8187b1b7a9bc323f1d1cbfa80c73128d",
+  "test": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+  "test_tree": "65a485dcb5ca00f12a52fe809e3c8ff2c1647547",
+  "base": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+  "paths": [
+    "src/descoberta.c",
+    "src/main.c",
+    "src/sync.c",
+    "src/sync.h"
+  ],
+  "files": {
+    "src/descoberta.c": "6c1b125c6efc174e8cf3e3302209a24688f7b1cae595c69a9d7bff9102895588",
+    "src/main.c": "407b53595058d89b6d0709b2fa8651c4eebc7300ab5be146d9c8b6e97af487cc",
+    "src/sync.c": "24d65a12fed74d8b41a33b0a0ac5b48f7f6bbcada7ed9b3b219faf6a6b53f6a1",
+    "src/sync.h": "94287d82b41833c5854e3a65f8920b1cb9aa63ba4ec2f6d1bcb30736bed1861d"
+  },
+  "scope": "Concurrent startup reads and artwork alongside prioritized CW; preserved profile epochs, posted CW/removal generation, original tests, private overlay. Source approval does not attest CI passes.",
+  "independent_code_review": "/root/concurrency_final_review accepted4filesnoactionableblocker",
+  "sync_normal_asan_cases": [
+    "concurrent",
+    "stale",
+    "thread-failure"
+  ],
+  "discovery_first_normal_case": "CW/socialbothheld catalogs/posterrowsappear; lateCWrow0/socialpreservesrows",
+  "pending": [
+    "Fresh7producerplatformCI+aggregate"
+  ],
+  "pr527_stays_draft": true,
+  "additional_real_fix": "Own each retained Decl base URL; baseline b9af ASan reproduces stack-use-after-scope. Inline storage preserves ownership through value compaction. Source reopened before anyCIlaunch, supersedes2abb/6bc1.",
+  "discovery_final_validation": {
+    "normal": {
+      "path": "/dev/shm/artwork-queue-audit-20261015/results/a570-candidate-normal/receipt.json",
+      "sha256": "aeb9c7bedbaf7bbe4eda61475fcbaed8b5de0e7a679a680778c52294becc0c50",
+      "cases": [
+        "compile",
+        "fresh",
+        "cached",
+        "clear",
+        "stale"
+      ],
+      "source_sha256": {
+        "src/descoberta.c": "6c1b125c6efc174e8cf3e3302209a24688f7b1cae595c69a9d7bff9102895588",
+        "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+        "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+      }
+    },
+    "asan": {
+      "path": "/dev/shm/artwork-queue-audit-20261015/results/a570-candidate-asan/receipt.json",
+      "sha256": "e15a9aa94b429969a43113e5894efcee22c5d5aa6ee134bdfbcd8c91e252f6bf",
+      "cases": [
+        "compile",
+        "fresh",
+        "cached",
+        "clear",
+        "stale"
+      ],
+      "source_sha256": {
+        "src/descoberta.c": "6c1b125c6efc174e8cf3e3302209a24688f7b1cae595c69a9d7bff9102895588",
+        "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+        "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+      }
+    }
+  }
+}
