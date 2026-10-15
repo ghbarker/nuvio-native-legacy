@@ -1,0 +1,1 @@
+Logs14 makes collection addon identities available as their manifests finish, so collections can begin loading before the rest of Home finishes. Pending, failed and missing addons show separate messages. Install over the previous test build to retain accounts and settings.

@@ -1,0 +1,85 @@
+{
+  "name": "Publish the verified compatible Logs14 test update",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20024-publish-20261015"
+      ],
+      "paths": [
+        ".review/apk20024-publish/**",
+        ".github/workflows/apk20024-publish.yml"
+      ]
+    },
+    "workflow_dispatch": {}
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "nuvio-test-logs14-release",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "APK20024_RELEASE_LOCK_SHA256": "25f35b1d462dff1a38f227af24e92b10e30a21f32926a97eaf821306355cbba0",
+    "NUVIO_REVIEW_PLAN_SHA256": "a71c43ed8a68708475b1695289f1f9eb7f5748c03fbb0baaf262db1e37af3570"
+  },
+  "jobs": {
+    "publish": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "permissions": {
+        "contents": "write",
+        "actions": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Refuse incomplete or unapproved final pins before tool setup",
+          "run": "python3 .review/apk20024-publish/publish.py --check-lock"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install verification tools only; no app build",
+          "run": "sdkmanager 'build-tools;35.0.0'"
+        },
+        {
+          "name": "Verify actual green validation/artifacts/APK and publish exact draft by ID",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/apk20024-publish/publish.py --publish"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "apk20024-publication-${{ github.sha }}",
+            "path": "publication/*-receipt.json\npublication/*-failure.json\npublication/draft-created.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
