@@ -1,0 +1,132 @@
+diff --git a/src/stream_parse.c b/src/stream_parse.c
+index af7fce073..f022aacd0 100644
+--- a/src/stream_parse.c
++++ b/src/stream_parse.c
+@@ -893,6 +893,7 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida) {
+       js_texto_linhas(p, fim, "title", titulo, sizeof titulo);
+       int cache = cacheDeclarado(p, fim);
+       s.emCache = cache > 0 || (cache == 0 && marcaEmCache(p, fim));
++      s.cacheNegado = cache < 0;
+       metadadosFaixas(p, fim, &s);
+       js_texto(p, fim, "filename", s.arquivo, sizeof s.arquivo);
+       // behaviorHints.bingeGroup — ANCORADO NO OBJETO, e nao procurado solto.
+diff --git a/src/streams.c b/src/streams.c
+index 5e95af5b8..750944512 100644
+--- a/src/streams.c
++++ b/src/streams.c
+@@ -108,6 +108,13 @@ static void medirCabecalho(void);
+ 
+ static Stream *lista;
+ static int n = 0;
++static int cacheConfirmado(const Stream *s) {
++  return s->emCache && !s->foraCache && !s->cacheNegado && !s->urlP2P && !s->naoVideo;
++}
++static void cacheConfirmar(Stream *s) {
++  s->emCache = 1;
++  s->cacheNegado = 0;
++}
+ // ORDEM DE EXIBICAO (#221). `lista` so cresce no fim (stream_lista_acrescentar)
+ // e e por isso que os indices dela nao mudam com a busca em andamento: a
+ // verificacao, a fonte tocando, a preferida e as excluidas sao todas indices.
+@@ -1300,7 +1307,7 @@ static int verificarUma(int i, Conferencia *c) {
+       pthread_mutex_lock(&verTrava);
+       if (nv_perfil_sessao_atual(c->sessao) && listaGeracao == c->geracao && i < n) {
+         snprintf(lista[i].url, sizeof lista[i].url, "%s", url);
+-        lista[i].emCache = 1; // o resolvedor cache-only ja confirmou, sem nova consulta
++        cacheConfirmar(&lista[i]); // o resolvedor cache-only ja confirmou, sem nova consulta
+         ok = 1;
+       } else c->abortou = 1;
+       pthread_mutex_unlock(&verTrava);
+@@ -1491,7 +1498,7 @@ int stream_resolver_escolhida(int i, unsigned geracao, char *url, unsigned nu,
+     else {
+       lista[i].urlP2P = viaP2P;
+       lista[i].debridServico = viaP2P ? 0 : debrid_servico_por_nome(servico) + 1;
+-      if (!viaP2P) lista[i].emCache = 1;
++      if (!viaP2P) cacheConfirmar(&lista[i]);
+       if (!p2pmotor_e_url(url)) snprintf(lista[i].url, sizeof lista[i].url, "%s", url);
+       else lista[i].url[0] = 0;
+     }
+@@ -1942,7 +1949,7 @@ int stream_preparo_resolver(StreamPreparo *p, int (*cancelado)(void *), void *ct
+     if (!ok || !url[0] || !fontefalha_url_registrar(p->politica, url)) continue;
+     *fonte = *s; snprintf(fonte->url, sizeof fonte->url, "%s", url);
+     fonte->debridServico = r.servico + 1; fonte->urlP2P = 0;
+-    if (s->infoHash[0]) fonte->emCache = 1;
++    if (s->infoHash[0]) cacheConfirmar(fonte);
+     p->fontes[r.indice] = *fonte;
+     if (indice) *indice = r.indice;
+     if (politica && p->falhaAtiva) { *politica = p->politica; p->politica = NULL; }
+@@ -1974,7 +1981,7 @@ int stream_preparo_renovar(StreamPreparo *p, int indice, int (*cancelado)(void *
+   debrid_contexto_sair();
+   if (!ok || !url[0] || !nv_perfil_sessao_atual(p->sessaoPerfil) || (cancelado && cancelado(ctx))) return 0;
+   *fonte = *s; snprintf(fonte->url, sizeof fonte->url, "%s", url);
+-  if (s->infoHash[0]) fonte->emCache = 1;
++  if (s->infoHash[0]) cacheConfirmar(fonte);
+   p->fontes[indice] = *fonte;
+   return 1;
+ }
+@@ -2003,7 +2010,7 @@ int stream_falha_aplicar_sessao(int indice, unsigned geracao, int servico,
+     memmove(lista[indice].url, url, strlen(url) + 1);
+     lista[indice].debridServico = servico + 1;
+     lista[indice].urlP2P = 0;
+-    if (lista[indice].infoHash[0]) lista[indice].emCache = 1;
++    if (lista[indice].infoHash[0]) cacheConfirmar(&lista[indice]);
+     ok = 1;
+   }
+   pthread_mutex_unlock(&verTrava);
+@@ -2646,7 +2653,7 @@ static int temAudioPt(const Stream *s);
+ // aba; o addon so para a lista.
+ static int passaChips(int i) {
+   if (soMp4 && !lista[i].mp4) return 0;
+-  if (soCache && lista[i].foraCache) return 0;
++  if (soCache && !cacheConfirmado(&lista[i])) return 0;
+   if (soDub && !temAudioPt(&lista[i])) return 0;
+   return 1;
+ }
+@@ -2886,8 +2893,17 @@ static void tituloAddon(const Stream *s, char *buf, size_t tam) {
+ 
+ // O mesmo indicador nas duas apresentacoes, sem depender de emoji na fonte
+ // da TV. Negativa posterior, P2P e resposta que nao e video nunca sao prontas.
++static void legendaProvedor(const Stream *s, char *buf, size_t tam) {
++  char origem[160];
++  const char *estado = cacheConfirmado(s) ? "Em cache" : s->cacheNegado && !s->foraCache ? "Fora do cache" : NULL;
++  if (!s->url[0] && s->infoHash[0] && s->temSemeadores)
++    snprintf(origem, sizeof origem, "%d seeds · %s", s->semeadores, s->provedor);
++  else snprintf(origem, sizeof origem, "%s", s->provedor);
++  if (estado) snprintf(buf, tam, "%s · %s", i18n(estado), origem);
++  else snprintf(buf, tam, "%s", origem);
++}
+ static float desenharCache(const Stream *s, float x, float y, float anim) {
+-  if (!s->emCache || s->foraCache || s->urlP2P || s->naoVideo) return 0;
++  if (!cacheConfirmado(s)) return 0;
+   gfx_icone((GfxRect){x,y+4,22,22},"aj_zap",.88f,.78f,.46f,anim);
+   return 30;
+ }
+@@ -4347,9 +4363,7 @@ static void corpoFolha(float x, float w, float anim, Uint32 agora, int ilha) {
+       // em 30 s"); a pessoa escolhia as cegas. "seeds" fica sem traducao: e o
+       // termo que quem usa torrent conhece em qualquer idioma.
+       { char pv[160];
+-        if(!s->url[0] && s->infoHash[0] && s->temSemeadores)
+-          snprintf(pv,sizeof pv,"%d seeds · %s",s->semeadores,s->provedor);
+-        else snprintf(pv,sizeof pv,"%s",s->provedor);
++        legendaProvedor(s,pv,sizeof pv);
+         lp=txt_linha_corta(TXT_PG_FIM,pv,sel?150:110,sel?150:110,sel?148:108,255,340); }
+       colW=lp.w;
+       if(gb[0] && lg.w+6+lu.w>colW) colW=lg.w+6+lu.w;
+diff --git a/src/streams.h b/src/streams.h
+index 54931ef81..3f7bdff75 100644
+--- a/src/streams.h
++++ b/src/streams.h
+@@ -100,8 +100,12 @@ typedef struct Stream {
+   // Pronta no debrid: declaracao positiva do addon ou resolucao nativa que
+   // ja confirmou a disponibilidade. Zero tambem pode ser DESCONHECIDO; nao
+   // inferir cache de URL direta, nome do provedor ou ausencia de foraCache.
+-  // So serve ao indicador da folha; foraCache sempre vence se mudar depois.
++  // So serve ao indicador/filtro da folha; foraCache sempre vence se mudar depois.
+   int  emCache;
++  // isCached:false tambem pode vir com URL direta ainda tocavel. A negativa
++  // e visual: nao muda a elegibilidade operacional de foraCache. Uma consulta
++  // nativa que confirme a disponibilidade limpa esta declaracao anterior.
++  int  cacheNegado;
+   // A SONDA VIU A URL RESPONDER PAGINA (HTML/JSON/texto) e nao video (2.0.2,
+   // naovideo.h): linha de aviso do addon. A folha a mostra apagada ("Nao e
+   // video") e o automatico a pula. Marcada na verificacao, nunca no parser.
