@@ -15,6 +15,9 @@ static void uxNotificar(const char *s) {
   uxAvisoAte = SDL_GetTicks() + 4500;
 }
 static void uxCancelar(void) {
+#ifdef NV_TEST_LOCAL_LOGS
+  if (uxEditor) ajTesteEvento(2, uxOp, 1, 0);
+#endif
   uxEditor = uxRestaurar = uxConfirmar = uxRodape = uxAvisoRisco = 0;
   emEdicao = 0;
   if (faRetornarFolha) { frAberta = faRetornarFolha; faRetornarFolha = 0; faAddonEditar[0] = 0; }
@@ -113,6 +116,9 @@ static void uxAbrirEditor(int op) {
   uxCancelar();
   uxOp = op; uxOriginal = uxValorAtual(op); uxPendente = uxOriginal;
   uxEditor = inativa(op) ? 2 : 1;
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(1, op, 1, 0);
+#endif
 }
 static int uxRiscoFinal(int op, int novo) {
   if (op == AJ_FIL_LIMITE && fil_limite_pede_aviso(uxValorAtual(op), novo))
@@ -122,24 +128,43 @@ static int uxRiscoFinal(int op, int novo) {
 }
 static void uxAplicar(void) {
   int antes = uxValorAtual(uxOp), bit;
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(3, uxOp, 1, 0);
+#endif
   // Conta/sync pode ter mudado o valor enquanto o seletor estava aberto.
   if (antes != uxOriginal) {
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(4, uxOp, 0, 0);
+#endif
     uxOriginal = uxPendente = antes;
     uxRestaurar = uxAvisoRisco = uxConfirmar = 0;
     uxNotificar("O valor mudou em outra tela. Confira antes de confirmar.");
     return;
   }
-  if (!uxRestaurar && inativa(uxOp)) { uxEditor = 2; return; }
+  if (!uxRestaurar && inativa(uxOp)) {
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(5, uxOp, 0, 0);
+#endif
+    uxEditor = 2; return; }
   bit = uxRiscoFinal(uxOp, uxPendente);
   if (bit && !seguro_aviso_visto(bit)) {
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(6, uxOp, 0, 0);
+#endif
     uxAvisoRisco = bit; uxConfirmar = 0; return;
   }
   if (!definirValorDireto(uxOp, uxPendente)) {
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(7, uxOp, 0, 0);
+#endif
     uxNotificar(uxOp == AJ_SEEKR_LIGADO && !seekrChave[0] ? seekrPedirChave() :
                 "Não foi possível salvar. O valor anterior foi mantido.");
     return;
   }
   riscoNotar(uxOp, antes);
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(8, uxOp, 1, 0);
+#endif
   uxCancelar();
   uxNotificar(uxOp == AJ_PERFIL_PESQ ? "Pedido enviado ao perfil." : "Ajuste salvo nesta TV.");
   // A lista de diferenças permanece estável até sair dela, mesmo após restaurar.
