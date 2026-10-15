@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "source_commit": "cca9acf95b614bff17098f8eda4254472f1e62ca",
+  "source_tree": "a362daef159b17350cb76c97e8e47ff5bb4e43a9",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_manifest_sha256": "35fab3202d5bd8354305b5a8b4bfe1877a7aec319ef0a7b7bb94928a97a9dc28",
+  "final_branch": "review/player-episode-controls-final-20261015",
+  "excluded_failed_native": {
+    "run_id": 38782012892,
+    "review_commit": "114f79f104a4598129c4cc5d50b3b594ed839994",
+    "job_id": 116584365548,
+    "conclusion": "failure"
+  },
+  "origins": [
+    {
+      "directory": "episode-controls-origin",
+      "run_id": 38782012892,
+      "run_attempt": 1,
+      "review_commit": "114f79f104a4598129c4cc5d50b3b594ed839994",
+      "review_tree": "23fc4af1f00c98f71ba7957c5cc2b692e1504c97",
+      "branch": "review/player-episode-controls-496-460-20261015",
+      "workflow_path": ".github/workflows/player-episode-controls-review.yml",
+      "plan_sha256": "6daf475b5f3adfcb7d66838121fdc8625937e6467ca54618d1c560ff73f9ca3f",
+      "required_conclusion": "failure",
+      "producer_scopes": [
+        "fontepref",
+        "fontepref_file",
+        "player_retido",
+        "android"
+      ],
+      "producers": [
+        {
+          "scope": "fontepref",
+          "job_id": 116584365944,
+          "job_name": "Original full-source fontepref normal + ASan/UBSan",
+          "artifact": {
+            "id": 11996917321,
+            "name": "episode-controls-fontepref-114f79f104a4598129c4cc5d50b3b594ed839994",
+            "bytes": 27316,
+            "sha256": "84030e6858a5dcf6102edb00c0a12adf5a5199a3496a5c06400ca56d26f3a200"
+          }
+        },
+        {
+          "scope": "fontepref_file",
+          "job_id": 116584366079,
+          "job_name": "Original full-source fontepref_file normal + ASan/UBSan",
+          "artifact": {
+            "id": 11996917249,
+            "name": "episode-controls-fontepref_file-114f79f104a4598129c4cc5d50b3b594ed839994",
+            "bytes": 25394,
+            "sha256": "ce9066b256435605c6dd8957442690bb09dab909bc05f4e7cea14c7edcfb3e80"
+          }
+        },
+        {
+          "scope": "player_retido",
+          "job_id": 116584366084,
+          "job_name": "Original full-source player_retido normal + ASan/UBSan",
+          "artifact": {
+            "id": 11996154875,
+            "name": "episode-controls-player_retido-114f79f104a4598129c4cc5d50b3b594ed839994",
+            "bytes": 20476,
+            "sha256": "18f152a5f42ef86af37c6a30ae0433b160ae835290b0cf240f03dd34651e4dfd"
+          }
+        },
+        {
+          "scope": "android",
+          "job_id": 116584365902,
+          "job_name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages",
+          "artifact": {
+            "id": 11995549179,
+            "name": "episode-controls-android-114f79f104a4598129c4cc5d50b3b594ed839994",
+            "bytes": 54125289,
+            "sha256": "84addafa4c3be00c6e3af19a038d7175db636bdd7aaf2f3863e2f9f993af1358"
+          }
+        }
+      ]
+    },
+    {
+      "directory": "episode-controls-native",
+      "run_id": 38783142214,
+      "run_attempt": 1,
+      "review_commit": "8a23ad4f084b57e204f9ac42a92fc2b00456c492",
+      "review_tree": "61e555ba8ea0c4efc59110ca24f31dc87bed2d48",
+      "branch": "review/player-episode-controls-native-v3-20261015",
+      "workflow_path": ".github/workflows/player-episode-controls-native-v3.yml",
+      "plan_sha256": "5bd98e2b181bf16992b308819a2c58bda023228681c417f041fb5519e19602c8",
+      "required_conclusion": "success",
+      "producer_scopes": [
+        "native"
+      ],
+      "producers": [
+        {
+          "scope": "native",
+          "job_id": 116588235498,
+          "job_name": "Fresh macOS TV/Mobile apps and actual episode transport/backend contracts",
+          "artifact": {
+            "id": 11998385374,
+            "name": "episode-controls-native-8a23ad4f084b57e204f9ac42a92fc2b00456c492",
+            "bytes": 13574680,
+            "sha256": "94e215465e58022ac7281092f66ef8b7578b6a9321c360c15b972159640503f9"
+          }
+        }
+      ]
+    }
+  ],
+  "scope": "Four unchanged successful original producers retained with their actual original review/plan; fresh native producer from fixture repair. No old failed native relabeling; assertions retained.",
+  "strict_aggregate_sha256": "8ecd0ac3e832db87cb4801fd961a6cd602157438a9c5aeb379a02289b08f4213",
+  "additional_excluded_failed_native": [
+    {
+      "run_id": 38782628200,
+      "review_commit": "851b75e239df4e307362b8b5d4a129b15334caa2",
+      "job_id": 116586467553,
+      "conclusion": "failure"
+    }
+  ]
+}

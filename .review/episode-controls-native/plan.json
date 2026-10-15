@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "feature": "approved-player-episode-controls-native-fixture-repair-v3",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_commit": "cca9acf95b614bff17098f8eda4254472f1e62ca",
+  "source_tree": "a362daef159b17350cb76c97e8e47ff5bb4e43a9",
+  "source_manifest_sha256": "35fab3202d5bd8354305b5a8b4bfe1877a7aec319ef0a7b7bb94928a97a9dc28",
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "source_ref": "refs/heads/feat/player-episode-controls-496-460",
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref_after_success": false,
+  "no_private_overlay": true,
+  "no_pr_or_release_created": true,
+  "scope": "Fresh complete native producer only after documented fixture SDK type conflict. No source branch/PR/release publication in this workflow.",
+  "focused_contracts": {
+    "normal_groups": 9,
+    "asan_groups": 8,
+    "player_variants": [
+      "tv",
+      "mobile",
+      "android-touch"
+    ],
+    "action_checks_per_player_variant": 97,
+    "render_layouts_per_player_variant": {
+      "tv": 66,
+      "mobile": 264,
+      "android-touch": 264
+    },
+    "backend_contract_variants": [
+      "android",
+      "webos",
+      "tizen"
+    ],
+    "backend_syntax": [
+      "desktop",
+      "webos",
+      "android",
+      "tizen-tpk",
+      "tizen-browser"
+    ]
+  },
+  "android_cmake_target_exclusions": [
+    "video_tizen.c",
+    "video_tpk.c"
+  ],
+  "prior_validation_policy": {
+    "historical_commit": "8f00c05e35d01732856519183ce54540f042819b",
+    "combined_Logs12_platform_execution_reused_as_standalone_pass": false,
+    "fresh_platforms_and_original3_required": true
+  },
+  "recipe_inputs": {
+    "aggregate.py": "8ecd0ac3e832db87cb4801fd961a6cd602157438a9c5aeb379a02289b08f4213",
+    "android.py": "d0de4cf29de007e18dbf122bf99ca55c28759ed8391d51fb883fb66e36058e60",
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "486325029e7db588151ef88aea80ce731702e57f9c9b2caff1f7f9a9da3ff2a9",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixtures/episode/app-route.c": "fc0410592f7d00abe03e7fb57b161ed1430d691543b8c56cd2a9b2580bde94b3",
+    "fixtures/episode/build-player.py": "f9c9281f2159d9d62f2eef56b32a790bb6a807b60dc19e25ebac6c063cabb6c7",
+    "fixtures/episode/player-boundaries.inc": "9ed9962d0d2676ab4cffcfe6f5e41f7753c3ec9b4f7463c1928809e996938a9e",
+    "fixtures/episode/player-controls.c": "ab52fd21c26f8fbdb6ad7bfb8c6ce50afae5c322fb6b7cdbfb4b47433d295836",
+    "fixtures/episode/player-render.inc": "e9e237088137d4a84d67342060192339ad4b9f8d221cda65d48a1a9c6dc223be",
+    "fixtures/episode/posplay-manual.c": "5dcdedbab19e5369f793e0c21c62d6bc718e080803731e1ffdb6ad2041d834e2",
+    "fixtures/episode/reload-backend/run.py": "ffdce1681f45b34466210effa55c361a8af42a62dbff3e45e34c89e5697e4199",
+    "fixtures/episode/reload-backend/sdk/emscripten/proxying.h": "8e9aed96a15bc525311bd2a94ab8245f1c590217a3cf62fe38a42a4ec80c088b",
+    "fixtures/episode/reload-backend/sdk/emscripten/threading.h": "3f37977cf7bccfbf4f25efa7317e88db28992f70c9e593c16544f2c9466ffa68",
+    "fixtures/episode/reload-backend/sdk/emscripten.h": "59958a01b94aef1f3dbb0f28b13fbcece0b9f09ec2ef324e739392043e0ebe0b",
+    "fixtures/episode/reload-backend/sdk-extra.h": "4f39f4660276d4514933c0692ca64979c0ad72e8c80f957d5eecd22708e392aa",
+    "fixtures/episode/reload-backend/syntax.py": "b39e77ef5f5016526fcb3b1ad1b2611542ed2b065313a1340cdbd09ab06a1ed7",
+    "fixtures/episode/run-app-route.py": "a31428e2bd3f012949eaa61a97dd0d6e08da279977412d25cd50dd8626006da9",
+    "fixtures/episode/run-posplay.py": "f6c59daa7bf5ce5d9fb4051661cd662f5c0af3b00a84e269870ce8a30f8d1914",
+    "fixtures/episode/run-selectors.py": "52a303f0ed2fd20e41538ee6a577066647cba455943a7cad3d7566a1aec72b6d",
+    "fixtures/episode/run.py": "720c28167bfde8abd8baa1b345bc3e1d2ac721d676c1b721f1f4d58e0e30b18a",
+    "fixtures/episode/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/episode/sdk/SDL2/SDL.h": "904cc79914cfda7157463f2762cf9d70e79b45a81c74b48235ddb044f7a21ea8",
+    "fixtures/episode/sdk/jni.h": "99e64ebbe749e6df284f852f11b3c73f6ea97baf15120428f40f887fe0616e61",
+    "fixtures/episode/sdk/jni_md.h": "88cb5c33e306900dd35a78d5a439087123b8e91b0986bb5acb42cc9bd2fcc42e",
+    "fixtures/episode/sdk-extra.h": "173524fe7bc2fba3dd38223e7acc34aa102d620cd9f20ad8570e3921d7e8c8ce",
+    "fixtures/episode/selector-cases.c": "479d7fef52219127530bf7cb42740f3baa36d153976a676cb89d9a5cec4c414c",
+    "materialize.py": "bd12813f8bcdb72d86805d54a8d7b323ff70d58bb267a329a43a3f6575ebf426",
+    "native.py": "d4c3dd59d0696f1473d6fed8d317a4b8cb18c34b6db4a8a5b629648b637a1c0f",
+    "original3.py": "1f17ac22395c834903de72b2374c55e3e63b3e2252910344d02c533ba1ae6db9",
+    "product-commit.txt": "06e7312d6776d5cb849ea1ac14a5dd12736f32198a6af73cbe2f636adb0d43f5",
+    "product-delta.patch": "adb91a2686b85faf5c152f28bca57bb22822128014f788af92134e1bc34c69c1",
+    "publish_source.py": "dfe41be77a2c7fc760bc8b5a84cfb8cde2646032226348298e2d8b3e35faf331",
+    "source-manifest.json": "35fab3202d5bd8354305b5a8b4bfe1877a7aec319ef0a7b7bb94928a97a9dc28"
+  },
+  "ci_mode": "fresh-native-only-no-publication",
+  "origin_run_id": 38782012892,
+  "origin_review_commit": "114f79f104a4598129c4cc5d50b3b594ed839994",
+  "origin_plan_sha256": "6daf475b5f3adfcb7d66838121fdc8625937e6467ca54618d1c560ff73f9ca3f",
+  "retained_unmodified_producer_names": [
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "native_fixture_repair": "Only provide synthetic SDL_Rect for NV_LOCAL_SDL_H shim; real SDL SDK defines its own type. Selector ASan detect_leaks=0 on Darwin only,1 elsewhere. Address/undefined flags, assertions and product unchanged.",
+  "excluded_failed_native_runs": [
+    38782012892,
+    38782628200
+  ]
+}

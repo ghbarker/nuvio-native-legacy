@@ -1,0 +1,105 @@
+{
+  "name": "Episode controls: verify immutable producer origins and publish clean source",
+  "on": {
+    "push": {
+      "branches": [
+        "review/player-episode-controls-final-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "episode-origins-${{ github.sha }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "EPISODE_CONTROLS_PLAN_SHA256": "ea4e1e034896f58151f2dbfea7d0c5f733dd27cce0d3f83ca5a6684b970be589",
+    "EPISODE_ORIGIN_LOCK_SHA256": "b6339cd019900816f6e2463b7ad133c3d888b5ad160b1c2455bb1d922c1fb46d"
+  },
+  "jobs": {
+    "all_gates": {
+      "name": "Strict artifact validation with four retained and one fresh native origin",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact successful origin jobs and original artifact assertions",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/episode-controls-final/aggregate_origins.py --output final"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "episode-controls-origin-gates-${{ github.sha }}",
+            "path": "final/all-gates-verified.json\nfinal/*-validation/*.json\nfinal/*-validation/*.py",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "source_ref": {
+      "name": "Publish new episode-controls source after strict origin gates",
+      "needs": [
+        "all_gates"
+      ],
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "permissions": {
+        "contents": "write",
+        "actions": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "episode-controls-origin-gates-${{ github.sha }}",
+            "path": "incoming"
+          }
+        },
+        {
+          "name": "Recreate exact clean product source",
+          "run": "python3 .review/episode-controls-final/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Require strict exact-origin gates before non-force source publication",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}",
+            "GH_REPO": "${{ github.repository }}"
+          },
+          "run": "python3 .review/episode-controls-final/publish_source.py --source source-app --proof results/source-verified.json --gate incoming/all-gates-verified.json --output results/source-ref-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "episode-controls-source-ref-${{ github.sha }}",
+            "path": "results/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

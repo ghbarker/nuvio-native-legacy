@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "feature": "approved-episode-controls-final-origin-validation",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_commit": "cca9acf95b614bff17098f8eda4254472f1e62ca",
+  "source_tree": "a362daef159b17350cb76c97e8e47ff5bb4e43a9",
+  "source_manifest_sha256": "35fab3202d5bd8354305b5a8b4bfe1877a7aec319ef0a7b7bb94928a97a9dc28",
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref": "refs/heads/feat/player-episode-controls-496-460",
+  "source_ref_after_success": true,
+  "producer_execution": "Four exact successful producers in original run; fresh complete native producer in v3; original failures excluded",
+  "recipe_inputs": {
+    "aggregate_origins.py": "62a62e8e158a4728c536258744e8de4d9e975a6312a7f869ed0c1eaea4d6619c",
+    "common.py": "486325029e7db588151ef88aea80ce731702e57f9c9b2caff1f7f9a9da3ff2a9",
+    "materialize.py": "bd12813f8bcdb72d86805d54a8d7b323ff70d58bb267a329a43a3f6575ebf426",
+    "origin-lock.json": "b6339cd019900816f6e2463b7ad133c3d888b5ad160b1c2455bb1d922c1fb46d",
+    "product-commit.txt": "06e7312d6776d5cb849ea1ac14a5dd12736f32198a6af73cbe2f636adb0d43f5",
+    "product-delta.patch": "adb91a2686b85faf5c152f28bca57bb22822128014f788af92134e1bc34c69c1",
+    "publish_source.py": "4945fd9443b80cad7a5b3ecd81cdd5759b0de5322bb287c36b59cd7b347a02b8",
+    "source-manifest.json": "35fab3202d5bd8354305b5a8b4bfe1877a7aec319ef0a7b7bb94928a97a9dc28"
+  }
+}

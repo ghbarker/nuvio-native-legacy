@@ -1,0 +1,240 @@
+{
+  "schema": 1,
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "head": "cca9acf95b614bff17098f8eda4254472f1e62ca",
+  "tree": "a362daef159b17350cb76c97e8e47ff5bb4e43a9",
+  "paths": [
+    {
+      "path": "src/app.c",
+      "sha256": "c5d7a840c7c11d51abf70d2c03e30b003a5cd8dc35df36eafe2d8cd83b16c3c4",
+      "blob": "540922568a602ddf7c6c5a0d8afebefa2168d9d3"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "ccbb83dd7e1a4971370a10674fdf98846293a2628e5203b72ea2225deb9c72c8",
+      "blob": "f4717e6b26bd962c6c573eb96d9ac0e2b542f92e"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "5a0c5955ee28b26ec5e2112d0dbb829198e11d8540ff5c839b891999e8396fa6",
+      "blob": "e2df5f334e657f622daf28c9aac33d84b15cdefc"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "009d5e52a3143a9f2a55d4cf2ed3f0bccdd83e18433b179ae5678cbf20357047",
+      "blob": "ff54c09621f714eb3c20f3d30d39090df52f07ba"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "6bbb1853cb2ef2e6efeb816326d066a1f004118cd7986c28702a16e43900d67b",
+      "blob": "6ef1c7e67337031be07aad77d512fe807dd719d8"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "832762c783c4b860f04c6246872bf7e264357a89bb925ef573408623a7896427",
+      "blob": "7a464191c650abe86d7544e96974ae1db6e541e3"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "15e750978a2852981ca004a0fe88a1a01aca6e10e119627f3be5f8c8cbb6b26e",
+      "blob": "0fb0886c668de3ebf7e7d709d8efd1abc3c81d3b"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "8274007429a2aa54451867f6c2c5fd76edf0a8ef4679fb1f6ced056399dd3936",
+      "blob": "6043735dd51333dfc19bb62ab982a3717697de09"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "2438a4968ecd7b3e63fc713440d539a832c6b4c6cd380668e0eaf100baaf56e3",
+      "blob": "096c3a9aa1141e9b4210df7161638554039ed2e6"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "2a6e0d162acb69170f129400513b8c5f09daa18618fbc64632e50b2155ddeb67",
+      "blob": "3618729256705c6b0addaea81845dfc99471333b"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "159ec14bab0be71bbfccd193bc5913bd56cce83ba657edcda4065cca8dd7b4eb",
+      "blob": "04293ca799d9955bbf6935f9851a7fa1502899d6"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "20f78358bd7b1650719233200324b883eb27789a09df5c90ba4e75612911a774",
+      "blob": "70508cb18a9be50c797ab1bb4378b1ba5637f2f3"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "8fbb014bfb5b28540b59180f4d4c2938f5d46364996af6803fcfa3a7f7dec807",
+      "blob": "a89438bd1c3e9d316e07ea8df181ea9e9096d466"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "c6fc7a193f99d0eb7caba2990c4f36e58738050ec74a155b76c6db676bc1f65b",
+      "blob": "eedde4293a062fe85f2aedc506eb168f2831d8cc"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "11e9ea4eb2ebcde9b2b2275385941de40befd146c4a4a66f3dc0ebbc74032107",
+      "blob": "90ff3453af37092d68986ffadaa8b355c218b709"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "2ad716286dcf76e750393a262ee6d81f732ff767d15ae3ed91e98d7553229339",
+      "blob": "ba12ac10a60c0df374b6925f99bea1ab78d589c2"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "6bc26fa79e30610f7692706203b61c79d2bbb91757c2b9e1dd568d41d4328521",
+      "blob": "98bac848aad52f5b97b1aea2a2107073456846fe"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "a5ea0879d7a86093f25a007aba52bf0c5607cd5ac51be51201c38d95234b16e7",
+      "blob": "931114af58a0ca119ab265123b2d428672ed4c92"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "8c96db78b7996c8064e67eeb40fe32e1c0e9bd5aff910323fa812313dd01865c",
+      "blob": "071b0534d2379e31cf452b7b09d8a41cd904d87a"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "959851c2ebb5d9d63d2b6aef94be757a62585a9815b1a1e8ecff543e02b494d4",
+      "blob": "9ee2bcf957e9c276d426c28494a6c456341e2cdc"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "c4a5f3353e1aeeca834cd3100beaa0ee6fe40b89164b075855e7324eb3a2260f",
+      "blob": "34fd73bd705c66c4c70ce2484c4bd29bf64a02e6"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "974a3ebdf25a1a83a4457468dc5ad54c67465c3471cb612d05de76e41df70f81",
+      "blob": "0da8704deaf1558036bbaf23208fdc91f4d825d0"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "6b0f128ab9380a9de076155e85d5cc3d6af4a4889c850e8d21c5378d6018241d",
+      "blob": "1565fb8a0c48994f2e75da93dbb82e82d2ba13fa"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "a3447a31704c1f2b35df3d3fb309fc46bfa85574833d61cae3266ba1a1dc22f3",
+      "blob": "644f59b202436119a1aeaf15f66511273de92823"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "b247dcfe6d75808d2bf0912f5320c0d11c0b7c3c54973691f63409e39a000114",
+      "blob": "fc91ec0c3cdcdbbb6f24002380f772dd5143934e"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "1ab68862771bfa6777debd1fdf8308db2accaabf455c44cef156cf976f3097e0",
+      "blob": "492b85bbde46c46bffb27e292d1b8093ca790d97"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "22d735835342c58b73a16eba7ab929042514ca71a643766e4be3385007860a20",
+      "blob": "c0b448d0ec38aac5afaece3096a1062aedc35518"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "19f823c325f096e6f42e3a0ae77dfb402d87c8aa1430a5e44c58c120806b8f7b",
+      "blob": "e831065428fc5c26e7d995ee3ba2db5051d1b071"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "eb53d879bb28e7de4f899409b4c613e436e0bd3b0165125c64cf0cf648cedda8",
+      "blob": "fe61362cf079b06b0d95b74dc6c2a936d56e1d6d"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "7f5ac6bd987fbafd35973c2f9b55eba197824ab6973019bc603bd29e8f4112af",
+      "blob": "85c774d65e4eef5906e90a2bf30b21c0b9ad7b04"
+    },
+    {
+      "path": "src/player.c",
+      "sha256": "4e0d151c97d52c39134d6ee9cf8fcc84c91d0b0608a8786c4e4229896194576d",
+      "blob": "b326f0630a93824f1d5277406724d4598e565d5f"
+    },
+    {
+      "path": "src/player.h",
+      "sha256": "e6ad013e699f1397073f405e65592186f27de811cae338c5839fca16149f943f",
+      "blob": "da7a4da9150cfa2173539cb3e872284ce9925ad0"
+    },
+    {
+      "path": "src/posplay.c",
+      "sha256": "8d19fda280beed5ababcf07f9f0272a05732241de1bc2680bda617a55796c507",
+      "blob": "1ec0b379255a37938407061cf06d5e0e26395fd8"
+    },
+    {
+      "path": "src/posplay.h",
+      "sha256": "7c986ffd2dc2fb47ab27f924e04823cf15b74a5f6020e21258e4f9dbdf398841",
+      "blob": "738d2ac8b58052f754734174f80cffedcd48d79b"
+    },
+    {
+      "path": "src/proximo.c",
+      "sha256": "cf9820b2550f30f580640ca6b9f94c5958b1aeba8654c0addc7a6b83a6d7123f",
+      "blob": "2decd5e7044c23d804a991bbfc20e2af7006d6f7"
+    },
+    {
+      "path": "src/proximo.h",
+      "sha256": "7ca1b7d026f3052f3b4354d2e72e91604c355c4cc26d2e0cd5a86b67480add2b",
+      "blob": "ae96d4f2ff008a7ec80a7c4de2c9a8858d62627a"
+    },
+    {
+      "path": "src/video.c",
+      "sha256": "7f4a259c7d3b9c8bd617469495c0478ea7e07b413ecf98c008c97adc715a841d",
+      "blob": "66a3d679b9ca3f125c5d09d53b7efb8ecd57cff6"
+    },
+    {
+      "path": "src/video.h",
+      "sha256": "b3b3f672ce287344b55dac5f79bc6df40d3308129c397bd9d05728b77d00307d",
+      "blob": "f7d37f18c3cf70081488ecedd55f072d0348f6c1"
+    },
+    {
+      "path": "src/video_android.c",
+      "sha256": "5f0326255e539c11554d9927cf64fd21027cb9170e6c3b5b743a07b250fc2e9b",
+      "blob": "1fe1d956d35ed90b619e59cc52dd3c6af64c2166"
+    },
+    {
+      "path": "src/video_tizen.c",
+      "sha256": "05ab69c6c705da7e3fe1e49a715e623eb687a582649c0140179355ad1abc8a79",
+      "blob": "6191b97b28db5e2df349867ccb445d1932e3d2a2"
+    },
+    {
+      "path": "src/video_tpk.c",
+      "sha256": "b7658dae18ad7731c163c53040b0d275c2d8aeeeb4159bc7d7d53c14871001b6",
+      "blob": "5a8faa21f463a81ee56c037358e03a0df23a4fc2"
+    }
+  ],
+  "patch_sha256": "adb91a2686b85faf5c152f28bca57bb22822128014f788af92134e1bc34c69c1",
+  "protected_trees": {
+    "tests": {
+      "base": "1bc31b2e8d93a5938f1970f716fc2961c9b390eb",
+      "candidate": "1bc31b2e8d93a5938f1970f716fc2961c9b390eb"
+    },
+    ".github": {
+      "base": "cea68affa1c1b47365c2091224c153f45b6b60e9",
+      "candidate": "cea68affa1c1b47365c2091224c153f45b6b60e9"
+    },
+    "android": {
+      "base": "ba7591e0d7f77d40da335d39a3a5e6b6920a60b2",
+      "candidate": "ba7591e0d7f77d40da335d39a3a5e6b6920a60b2"
+    },
+    "tools": {
+      "base": "22e2b38ede8b93c8e44a87a3559e030c68778ada",
+      "candidate": "22e2b38ede8b93c8e44a87a3559e030c68778ada"
+    },
+    "deploy": {
+      "base": "a56de824ed1847b9042331cc021602e83185959f",
+      "candidate": "a56de824ed1847b9042331cc021602e83185959f"
+    }
+  },
+  "old_feature_commit": "8f00c05e35d01732856519183ce54540f042819b",
+  "scope": "Approved Previous/Next OSD controls and supported same-stream Reload only; no held profile/language/filter/cache/artwork/collection/subtitle/private logging features. Closes460; Refs496 because no dedicated global keypad shortcut is added.",
+  "previous_local_rebase": "1ded133b9b4c7c7ab095025420a6a5ce4901e16c",
+  "upstream_rebase_note": "Latest d156 merges PR490 maintainer changes; clean41path feature replay. All protected trees match this new base."
+}
