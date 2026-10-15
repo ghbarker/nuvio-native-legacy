@@ -1,0 +1,30 @@
+{
+  "outcome": "passed",
+  "sources": {
+    "product": {
+      "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+      "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
+      "manifest_sha256": "fd0bcdee01de59611fdfa510655eab4d7f59d5706851eddda1e07ce1085a1f1b"
+    },
+    "test": {
+      "commit": "4019da9045eaa14fae9f889abdff7d206555d664",
+      "tree": "79cd429bb319e75d7198037233ad1a4415642ad2",
+      "manifest_sha256": "8c0db561997b6df839d6757762e9bb6716b2e26c43e208c7c119538225ae72c0"
+    }
+  },
+  "affected_invocations": 28,
+  "async_cases": 52,
+  "style_menu_editor_process_cases": 48,
+  "percentage_mode_groups": 36,
+  "percentage_process_cases": 116,
+  "fixture_graph_sha256": "24323c7e66be7d435d9104971c749bd09358093b4573b48b33932883dbd5e6a9",
+  "percentage_fixture_origin_sha256": "e5f9974646a3404da655a944ef84b9518253662900839561c1b43424870a1563",
+  "percentage_dispatcher_adapter_sha256": "d00ff0c394ab732e178e08c21fdc7c3155b7446907cebc51132aeaf7484108a7",
+  "records": {
+    "affected-preflight-status.json": "0c06538e8ef2706ea158d32b26d7f7b4959d9572c8728f6478f3ba47dbeae860",
+    "percentage-preflight-status.json": "816d15b7e72140382b94e682d75985c16077ca7c5a033fc1caa8c957b6d22fde",
+    "draft-composition.json": "328b241f960e4a76f39ca9d2569cba68868db51b16b6c4cc3581b8c8d6ea40a5"
+  },
+  "source_composition_manifest_sha256": "2d55c657ddff38a5e38509cc1a603d225bcdebb98fe7966d7015bfe9e0788adc",
+  "scope": "Fresh exact combined affected suites only; existing75/36 matrices retained for CI. All previous source and proofs unchanged. Full macOS/Android/original/JVM CI is still pending."
+}

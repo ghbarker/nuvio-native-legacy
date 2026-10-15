@@ -1,0 +1,218 @@
+{
+  "format": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "review_only": false,
+  "launch_requires_root_review": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "sources": {
+    "product": {
+      "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+      "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
+      "parent": "694c844a93f6075113ac48ec39683599500e8270",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "fd0bcdee01de59611fdfa510655eab4d7f59d5706851eddda1e07ce1085a1f1b",
+      "delta_patch_sha256": "d829eae87a45732b6b8928018455ac60919aa5c91bc32ab556282c81a3031adf"
+    },
+    "test": {
+      "commit": "4019da9045eaa14fae9f889abdff7d206555d664",
+      "tree": "79cd429bb319e75d7198037233ad1a4415642ad2",
+      "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "8c0db561997b6df839d6757762e9bb6716b2e26c43e208c7c119538225ae72c0",
+      "delta_patch_sha256": "b0b7b0b538d0f235c8a01d27d0b6bdc6ecfa48b48a279f69ab168e867eccb010"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20022,
+    "version_name": "2.0.22-test-logs12",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "6abd29ebf5960cb80ec44540cbc6af651c87e4be6738acfd191253b80880fd7f",
+    "bytes": 1132190
+  },
+  "layers": {
+    "foundation_product": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+    "foundation_private": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+    "async_showcase_scroll": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
+    "settings_subtitle_style": "2bbf4b343b0a633f81de2cea600e1f840137bb56",
+    "private_overlay": "4019da9045eaa14fae9f889abdff7d206555d664",
+    "synopsis_percentage": "13a24961c1bed9a942b1481a5301b719307d0b85"
+  },
+  "pending": [],
+  "proof_policy": {
+    "fresh": [
+      "macOS four full application links and changed native contracts",
+      "Original three full-source suites normal and ASan/UBSan",
+      "Android product and compatible test APKs, both ARM ABIs,16KB,signer,JNI,DEX and diagnostic opt-in",
+      "Unchanged fresh47 JVM helper/Media3 contracts",
+      "Existing focused caption/style/collection contracts with approved corrected collection-state producer",
+      "New frozen async Showcase, Settings Subtitle style and synopsis percentage/migration affected fixtures on baseline and candidate before CI, then fresh exact combined source normal and ASan/UBSan"
+    ],
+    "eligible_reuse": [
+      "Same-invocation macOS object reuse only after exact preprocessor/dependency-byte equivalence; no historical execution reuse"
+    ],
+    "never_reuse": [
+      "oldAPK/signature/ABI/DEX/16KB",
+      "oldfullsourceorchangednativeclosures",
+      "anyfailedincompletejob"
+    ]
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "9bc00b60ddeabb4f5f45bd6a81cc40ad960c23c5ffcd4f54df96b36db55c8722"
+  },
+  "inherited_review": {
+    "commit": "fd28b407990dfa01c57637521899442c78848e66",
+    "tree": "822018c84856642090a1bd8934a6f9220dcca6b2",
+    "trees": {
+      ".review/logs8/native": "6140094cd3d7cb497b2b2d3a606550eddc83f7a1",
+      ".review/logs8/kotlin": "e4c69aa33ba15cfa6b749a6d5c3cf66d4caf26e8",
+      ".review/logs8/runtime": "fb602f5d1116c1f0a8d3318d8c25a1365af97c0a"
+    }
+  },
+  "excluded_from_this_update": [
+    "Upstream rebase or changes outside the complete Logs11 foundation plus the separately approved asynchronous Showcase scroll, Settings Subtitle style and synopsis percentage changes",
+    "Public PR publication or updates",
+    "Any backend/report-service interaction, release or source-ref publication by CI review jobs"
+  ],
+  "source_composition_root_approved": true,
+  "local_preflight": {
+    "root-source-review.json": {
+      "sha256": "e10821fce295780da20ccef1caee58d50c1c02a346a36721c474787bb90154f7",
+      "packaged_path": "provenance/root-source-review.json"
+    },
+    "peer-ci-recipe-review.json": {
+      "sha256": "59327f94a2b1fdb062edbad3a3ee0e6ed97d5763345eb0b20e2ffaf732c4acd5",
+      "packaged_path": "provenance/peer-ci-recipe-review.json"
+    },
+    "final-affected-preflight.json": {
+      "sha256": "f1dc2bc9a48f87b1d7a45c2323578d4e834d77afc5351f4be99734eebe077d84",
+      "packaged_path": "provenance/final-affected-preflight.json"
+    },
+    "preapproval-composition-manifest.json": {
+      "sha256": "2d55c657ddff38a5e38509cc1a603d225bcdebb98fe7966d7015bfe9e0788adc",
+      "packaged_path": "provenance/preapproval-composition-manifest.json"
+    }
+  },
+  "ci_execution_permitted": true,
+  "root_approval_scope": "Exact Logs12 source and CI review branch only. All seven fresh producers and final aggregate required before compatible APK publication. No public PR changes or backend interaction in CI.",
+  "recipe_pins": {
+    "aggregate.py": "be36ce19ceae988207505b82a6e02e33442ff3dbf15eb971deafe2f610d974c3",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "6a61d1a6e8cbe7f4d8031f72adedb8dae2c29daec9643dbfc29c00a0d17f1f89",
+    "jvm/manifest.json": "0eeabc6eb25003b08ad2e0164f0cd16e92e67486ff16618d88e9dfa79f456ff0",
+    "feature-contracts/manifest.json": "24323c7e66be7d435d9104971c749bd09358093b4573b48b33932883dbd5e6a9",
+    "require_plan.py": "61cf78b681fbf7882abc2a9e0b9c37445e4680f5a303369bb413de349d3b4fdc",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "4844a0ed94062343557f3f4b20e32544f06a278288fafb3264c506872b67529c",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "d6bc590c4ead8ab1d92794855abcc1ffbebd06ead211954449ded5b0bcc50c69"
+  },
+  "recipe_preparation_only": false,
+  "source_root_approval_sha256": "e10821fce295780da20ccef1caee58d50c1c02a346a36721c474787bb90154f7",
+  "root_ci_recipe_approval": {
+    "path": "provenance/root-ci-recipe-approval.json",
+    "sha256": "90de19891ababe55203c7af7c7aa2070e679f41dd36ff4c18fd8d71fd435c273"
+  },
+  "required_pointer_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/collection-taps/fixture-freeze.json",
+    "fixture_manifest_sha256": "2e39de51263d6a8539058bee37e41a02e2c96460319d0d2ff3aae7e80b31eea5",
+    "invocations": 4,
+    "recipes": [
+      "collection-taps"
+    ],
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "scope": [
+      "actual full collection renderer and real pointer route",
+      "Showcase title activation, scroll and stale-target rejection",
+      "Decades clipping",
+      "any separately approved portrait mounting correction"
+    ],
+    "prior_execution_reuse_permitted": false,
+    "gesture_cases_per_invocation": 75,
+    "reachability_cases_per_invocation": 36,
+    "subproducers": {
+      "gesture": {
+        "fixture_frozen": true,
+        "source_binding_approved": true,
+        "fixture_manifest": "feature-contracts/collection-taps/fixture-freeze.json",
+        "fixture_manifest_sha256": "2e39de51263d6a8539058bee37e41a02e2c96460319d0d2ff3aae7e80b31eea5",
+        "cases_per_invocation": 75
+      },
+      "reachability": {
+        "fixture_frozen": true,
+        "source_binding_approved": true,
+        "fixture_manifest": "feature-contracts/collection-taps/reachability-freeze.json",
+        "fixture_manifest_sha256": "88b55758ca71fa21824843e1c587a46218f3c1d5fa1d89abfe2c5a80fd3c4eaf",
+        "cases_per_invocation": 36,
+        "title_activations_per_invocation": 2160
+      },
+      "async": {
+        "fixture_frozen": true,
+        "source_binding_approved": true,
+        "fixture_manifest": "feature-contracts/collection-taps/async-freeze.json",
+        "fixture_manifest_sha256": "35a66410c8b8555fb9227602e49fc24d8904276a2f0cd46e9fada74a306cb638",
+        "cases_per_invocation": 13
+      }
+    },
+    "all_new_geometry_coverage_bound": true,
+    "async_row_load_regression_bound": true,
+    "async_cases_per_invocation": 13
+  },
+  "historical_recipe_origin": {
+    "reference_only": true,
+    "root": "/workspace/review/integration-apk20021-20261015",
+    "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
+    "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
+    "run_id": 38732464381,
+    "prior_results_eligible_for_new_execution_proof": false
+  },
+  "required_settings_style_regression": {
+    "bound": true,
+    "fixture_manifest": "feature-contracts/settings-subtitle-style/fixture-freeze.json",
+    "fixture_manifest_sha256": "74d274b726be62b9fefd8aac352d4690914ec9ff552a0cf820f25578801e3d9b",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "baseline_candidate_preflight_required": true
+  },
+  "required_synopsis_percentage_regression": {
+    "bound": true,
+    "fixture_manifest": "preflight/synopsis477/percentage-origin.json",
+    "fixture_manifest_sha256": "e5f9974646a3404da655a944ef84b9518253662900839561c1b43424870a1563",
+    "required_layers": [
+      "product",
+      "test"
+    ],
+    "required_sanitizers": [
+      "normal",
+      "address,undefined"
+    ],
+    "baseline_candidate_preflight_required": true,
+    "reader_mode_required": true
+  }
+}

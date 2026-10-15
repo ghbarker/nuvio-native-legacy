@@ -1,0 +1,59 @@
+--- original/tests/colecao_exibicao.c
++++ external/combined-original-colecao-adapted.inc
+@@ -16,7 +16,7 @@
+ // leu por uma semeada aqui.
+ #define desc_vertudo_n shot_vt_n
+ #define desc_vertudo_item shot_vt_item
+-#include "../src/vertudo.c"
++#include VERTUDO_SOURCE
+ #undef desc_vertudo_n
+ #undef desc_vertudo_item
+ #include <assert.h>
+@@ -153,6 +153,8 @@
+   salvos_perfil(1);
+   layEscolha = VT_LAY_AUTO; lay = VT_LAY_GRADE;
+   tecla(SDLK_RETURN);
++  assert(lay == VT_LAY_GRADE && layEscolha == VT_LAY_GRADE); /* Default now enters explicit Grid first. */
++  tecla(SDLK_RETURN);
+   assert(lay == VT_LAY_LINHA && layEscolha == VT_LAY_LINHA);
+   tecla(SDLK_RETURN); tecla(SDLK_RETURN);
+   assert(lay == VT_LAY_SAGA);
+@@ -166,7 +168,7 @@
+   salvos_perfil(1);
+   assert(escolhaGravada(&pasta) == VT_LAY_SAGA);
+   // Depois do Mural vem a Vitrine, e depois dela volta ao comeco (Grade).
+-  lay = VT_LAY_MURAL; tabFocus = 1; tabCursor = nAbas();
++  lay = VT_LAY_MURAL; layEscolha = VT_LAY_MURAL; tabFocus = 1; tabCursor = nAbas();
+   tecla(SDLK_RETURN); assert(lay == VT_LAY_VITRINE && tabFocus == 1);
+   assert(nAbas() == 0 && tabCursor == 0);
+   tecla(SDLK_RETURN); assert(lay == VT_LAY_GRADE);
+@@ -180,6 +182,7 @@
+   vitLin[1].n = 0; vitLin[1].estado = VIT_VAZIA;
+   for (i = 0; i < 5; i++) vitBuf[i] = semente[i];
+   vitCarga = vitN;
++  vitLin[0].brutoN = 5; vitLin[1].brutoN = 0; vitProjetoSujo = 1; vitProjetar();
+   // A fileira vazia e pulada; cima na primeira vai ao botao; esquerda na
+   // primeira coluna pede a barra; direita anda e para na ultima.
+   vitFR = 0; vitFC = 0; vitMexeu = 1;
+@@ -193,6 +196,7 @@
+   // Segunda fileira com itens: baixo desce lembrando a coluna de cada uma.
+   vitLin[1].n = 3; vitLin[1].estado = VIT_PRONTA;
+   for (i = 0; i < 3; i++) vitBuf[vitCap + i] = semente[7 + i];
++  vitLin[1].brutoN = 3; vitProjetoSujo = 1; vitProjetar();
+   vitFR = 0; vitFC = 4;
+   tecla(SDLK_DOWN); assert(vitFR == 1 && vitFC == 0);   // cada fileira lembra a sua coluna
+   tecla(SDLK_RIGHT);
+@@ -205,11 +209,11 @@
+   // viram Filmes e Series; so filmes, decadas da mais nova a mais velha.
+   pasta.nSources = 1; vitIniciar();
+   assert(!vitMulti);
+-  vitAgrupar(nSemente);
++  vitAgrupar(nSemente); vitProjetar();
+   assert(vitN == 6 && vitLin[0].n >= 1 && strstr(vitLin[0].nome, "2010"));
+   assert(!strcmp(vitLin[vitN - 1].nome, i18n("Sem data")));
+   snprintf(semente[1].tipo, sizeof semente[1].tipo, "series");
+-  vitAgrupar(nSemente);
++  vitAgrupar(nSemente); vitProjetar();
+   assert(vitN == 2 && !strcmp(vitLin[0].nome, i18n("Filmes")) && !strcmp(vitLin[1].nome, i18n("Séries")));
+ 
+   printf("colecao_exibicao: ok\n");

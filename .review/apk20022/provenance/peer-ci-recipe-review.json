@@ -1,0 +1,57 @@
+{
+  "outcome": "accepted-static-review",
+  "blockers": [],
+  "plan_sha256": "f7b2623ca8feef50b8334a013f07104fb4c10b93316cf283c6e287b369dbedf4",
+  "product": {
+    "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+    "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
+    "parent": "694c844a93f6075113ac48ec39683599500e8270",
+    "manifest": "product-source-manifest.json",
+    "manifest_sha256": "fd0bcdee01de59611fdfa510655eab4d7f59d5706851eddda1e07ce1085a1f1b",
+    "delta_patch_sha256": "d829eae87a45732b6b8928018455ac60919aa5c91bc32ab556282c81a3031adf"
+  },
+  "test": {
+    "commit": "4019da9045eaa14fae9f889abdff7d206555d664",
+    "tree": "79cd429bb319e75d7198037233ad1a4415642ad2",
+    "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+    "manifest": "test-source-manifest.json",
+    "manifest_sha256": "8c0db561997b6df839d6757762e9bb6716b2e26c43e208c7c119538225ae72c0",
+    "delta_patch_sha256": "b0b7b0b538d0f235c8a01d27d0b6bdc6ecfa48b48a279f69ab168e867eccb010"
+  },
+  "product_delta_from_foundation_paths": 47,
+  "private_overlay_paths": 11,
+  "bundle_sha256": "6abd29ebf5960cb80ec44540cbc6af651c87e4be6738acfd191253b80880fd7f",
+  "composition_manifest_sha256": "2d55c657ddff38a5e38509cc1a603d225bcdebb98fe7966d7015bfe9e0788adc",
+  "feature_graph_sha256": "24323c7e66be7d435d9104971c749bd09358093b4573b48b33932883dbd5e6a9",
+  "workflow_sha256": "f8c80f4d888f2f183f2ff8f8b869ac05e7af2e9e0ed34d8b5240dedd056367eb",
+  "reviewed_recipe_pins": {
+    "aggregate.py": "be36ce19ceae988207505b82a6e02e33442ff3dbf15eb971deafe2f610d974c3",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "6a61d1a6e8cbe7f4d8031f72adedb8dae2c29daec9643dbfc29c00a0d17f1f89",
+    "jvm/manifest.json": "0eeabc6eb25003b08ad2e0164f0cd16e92e67486ff16618d88e9dfa79f456ff0",
+    "feature-contracts/manifest.json": "24323c7e66be7d435d9104971c749bd09358093b4573b48b33932883dbd5e6a9",
+    "require_plan.py": "61cf78b681fbf7882abc2a9e0b9c37445e4680f5a303369bb413de349d3b4fdc",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "4844a0ed94062343557f3f4b20e32544f06a278288fafb3264c506872b67529c",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "d6bc590c4ead8ab1d92794855abcc1ffbebd06ead211954449ded5b0bcc50c69"
+  },
+  "local_affected_preflight_sha256": "f1dc2bc9a48f87b1d7a45c2323578d4e834d77afc5351f4be99734eebe077d84",
+  "verified": [
+    "Clean exact product/test commits, trees, complete manifest files, tests tree, raw bundle hash/size and composition manifest all match. Product delta47src-only paths from5aaf; private overlay exactly11 existing paths/version20022.",
+    "Corrected collection-state runner is exact549ec667; its real lifecycle/home dependency closure is retained. Full28feature invocations require both layers/normal+ASan and immutable fixture graph.",
+    "Combined pointer receipts mandate gesture75, reachability36/2160title activations and newasync13 in all4layers/modes; source/flags/rawlogs/dependency and fixture-freeze contracts remain strict.",
+    "Settings Style uses exact frozen owner fixtures; normalizer runs complete menu6+editor6 for all4invocations, verifies flags/source/dependencies/logs and forbids baseline/subset qualification.",
+    "Native fresh TV+Mobile full-reader/Close/preview/route and Mobile Settings percentage/migration contracts require all4choices100/120/130/150 with16appended styles; aggregate now expects36synopsis groups.",
+    "Fresh Mac4full-app links permit only same-invocation dependency-byte/private-macro-insensitive object reuse. Old execution proofs are not reused.",
+    "Three original full-source normal+ASan suites preserve original test content and accepted rpath-only repair; fresh47JVM/Media3 and fresh product/test AndroidbothABIs/JNI/DEX/16KB/signature/private-optin remain required.",
+    "Aggregate requires exactly7successful current producers, exact current source/review/plan/bundle and nested artifacts; it cannot publish release/refs/backend actions.",
+    "Compatible test APK identity stays package.touch/version20022/logs12/samecertificate; private settings logs and11path overlay stay separate from clean product. Secret configuration remains under runner temp with minimal safe hash/boolean receipts and cleanup; CI has read-only contents/actions permissions."
+  ],
+  "execution_preconditions": [
+    "Root must bind its composition/CI approval, flip final approval flags, regenerate workflow literal and package finalpayload; current draft intentionally remains blocked. No remote passes or publication are claimed."
+  ],
+  "scope_limits": "Read-only static recipe/fixture review and Git/blob/tree/metadata hash checks only. No fixture imports, tests, builds, network writes, source changes or CI launch."
+}

@@ -1,0 +1,12 @@
+{
+  "sourcepins": null,
+  "prepared_only": true,
+  "inputs": {
+    "fixture-origin.json": "1c8926b235146cd5a9080d07b409cd72109b7ae41cecf26abf6375b0dbc7deba",
+    "run.py": "9fb6b0ab18643d362aacff128de6604b8d18e5908377d0106af3e3ea0b1f6a01",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk-extra.h": "6dc0292fe237a62be97a1c38daf9499ffeddf292037aa842d762741650c81517",
+    "style-controls.c": "b94ff980e913816f37780b5f258a6f501a5ff1ad20084c512fe2f3c36c927f38"
+  }
+}

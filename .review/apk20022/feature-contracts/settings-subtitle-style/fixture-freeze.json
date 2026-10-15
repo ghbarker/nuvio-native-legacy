@@ -1,0 +1,17 @@
+{
+  "scope": "Existing shared Subtitle Style editor from Settings: actual Settings category/row pointer action; actual faixas+player preferences+island state producers. Explicitly seeded island presentation/fade, typed offline text/GFX and inactive services; no physical-device/GPU/decoder/full-app-shell execution claim.",
+  "entrypoint": "run.py",
+  "cli": "--source SOURCE --output OUT --cc CC [--sanitize] [--private]",
+  "files_sha256": {
+    "run.py": "45f503e15b0993971df792559cb16cbf5dc75fb719e5780e7faeea3ace5d1c56",
+    "settings-entry.c": "c46340195e62bc91782f441e8885eaa11e416421024d97c9d5d6f7f94f52980b",
+    "style-entry.c": "ac93012ae4dccaaebd369e04f4b618fc4448cb01f8e7ef80c51998153f819a8d",
+    "player-companion.c": "4110ea7b2bf34a9d0b8a76829ceacbf229bbddc8773209ef4572d826ee7e7df6",
+    "island-companion.c": "f90f061c3ea1bf3004d01b0f3c5af5d936be775eb4eb88fe58338f368134f85d",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9"
+  },
+  "baseline_cli": "--source BASE_SOURCE --output OUT --cc CC --only menu --baseline",
+  "all_assertions_preserved_in_CI": true
+}

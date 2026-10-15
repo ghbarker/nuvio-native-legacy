@@ -1,0 +1,34 @@
+{
+  "conflicts": [
+    {
+      "path": "src/ajustes.c",
+      "resolution": "Preserve every existing combined Settings row/enum/key/default position; replace only the targeted synopsis comment/choice count/key/default text",
+      "targeted_updates": [
+        {
+          "from": "AJ_TAMANHO_SINOPSE, // #477: so o texto das sinopses, padrao preservado",
+          "to": "AJ_TAMANHO_SINOPSE, // #477: 100/120/130/150%, local, padrao preservado"
+        },
+        {
+          "from": "ESC(\"Tamanho da sinopse\", V_TAMANHO_SINOPSE, 3),",
+          "to": "ESC(\"Tamanho da sinopse\", V_TAMANHO_SINOPSE, 4),"
+        },
+        {
+          "from": "\"sinopseTamanhoLocal\",",
+          "to": "\"sinopseEscalaLocal\","
+        }
+      ]
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "resolution": "Preserve every existing combined Settings row/enum/key/default position; replace only the targeted synopsis comment/choice count/key/default text",
+      "targeted_updates": [
+        {
+          "from": "0, /* synopsis text size (#477): Padrao, current typography */",
+          "to": "0, /* synopsis text size (#477): 100%, current typography */"
+        }
+      ]
+    }
+  ],
+  "unrelated_IDs_and_defaults_preserved": true,
+  "source_changes_outside_approved_deltas": false
+}

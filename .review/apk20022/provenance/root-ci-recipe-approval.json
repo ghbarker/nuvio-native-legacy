@@ -1,0 +1,17 @@
+{
+  "approved": true,
+  "scope": "Exact Logs12 source and CI review branch only. All seven fresh producers and final aggregate required before compatible APK publication. No public PR changes or backend interaction in CI.",
+  "preapproval_plan_sha256": "f7b2623ca8feef50b8334a013f07104fb4c10b93316cf283c6e287b369dbedf4",
+  "root_source_review_sha256": "e10821fce295780da20ccef1caee58d50c1c02a346a36721c474787bb90154f7",
+  "peer_recipe_review_sha256": "59327f94a2b1fdb062edbad3a3ee0e6ed97d5763345eb0b20e2ffaf732c4acd5",
+  "affected_preflight_sha256": "f1dc2bc9a48f87b1d7a45c2323578d4e834d77afc5351f4be99734eebe077d84",
+  "required_feature_groups": 28,
+  "required_synopsis_groups": 36,
+  "required_jvm_contracts": 47,
+  "approved_next_actions": [
+    "Set all documented approval/source binding flags true with this receipt",
+    "Regenerate exact workflow and inline payload without executable changes",
+    "Root rechecks final derived payload then launches only the review branch"
+  ],
+  "release_publication_approved": false
+}

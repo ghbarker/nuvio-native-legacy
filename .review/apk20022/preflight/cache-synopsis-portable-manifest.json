@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "inputs": {
+    "cache499/portable.py": "754c9c1e6943be8fc15be0a4b1e024c930c6f7a1a6c708e388cfb2a3dac3dced",
+    "cache499/fixture-compatibility.json": "0f05035d7249cd77b19e9198fda3e4d20e4847fff02449e9a1b269651f4e9c87",
+    "cache499/fixtures/metadata.c": "60b56741b1fbb30a6ec195645ba65cd5528ff1ffb595ef05c6fbb7fb0ec940f9",
+    "cache499/fixtures/native.c": "0cc641805b80a96dfda3bcb567b784bd96838e88a060affbcff975751bdb66d1",
+    "cache499/fixtures/caption.c": "c18ade791710dcdd17a09d3426435ad5aff09f0859959b3bfabd89e15a559384",
+    "cache499/fixtures/refresh.c": "0081ae5ca76963276d630c711a26c874ab49d4868531004ee072b1af86bf97f1",
+    "cache499/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "cache499/sdk/SDL2/SDL.h": "0e9368c70c543886dfa2232bbb70a376def4bc6d99d76189e7e8694c26f126bd",
+    "synopsis477/close_refinement.c": "b20d965d51f8409f31d23ca921291273460c95af7db054c77ad5388554387be5",
+    "synopsis477/percentage-adapter.json": "d00ff0c394ab732e178e08c21fdc7c3155b7446907cebc51132aeaf7484108a7",
+    "synopsis477/percentage-origin.json": "e5f9974646a3404da655a944ef84b9518253662900839561c1b43424870a1563",
+    "synopsis477/portable.py": "cbf0c59d622da07e47214c4e4402d485f78a221ff5ebf8a5557f420c5053e6f7",
+    "synopsis477/preview_refinement.c": "5ffa7b1a4331970c7c7a4903f4b6953aa7d3a5d73cd5aa5d18470e5a215fe670",
+    "synopsis477/reader_probe.c": "f40fb3e06f7a86e0db436afe3a3f5b181428115d81610edeb7162b6c2551449f",
+    "synopsis477/route_probe.c": "08a8613834b5f0214d0d2e13928617ef5b0517793aa65800fee31341204bfcaa",
+    "synopsis477/run.py": "d9cba456cba277817f6a14ee5038002d573ce3644b8a4cf4a2c3f2c1719dcdd8",
+    "synopsis477/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "synopsis477/sdk/SDL2/SDL.h": "67ba36101aeafd1b9cf7215dd8d9598201d60a41815a963ec2d77a63b0dd5248",
+    "synopsis477/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "synopsis477/settings/run.py": "7b9516c976d24d0dd7363bdb895e8f0a6a049a1b689e578ffeefaf12baada653",
+    "synopsis477/settings/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "synopsis477/settings/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "synopsis477/settings/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "synopsis477/settings/settings.c": "17f0d2404afc692b92099c5d481d48f8c9dc47495689eaa8b2aa85e6aa63f6f6"
+  },
+  "commands": [
+    "python3 cache499/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private]",
+    "python3 synopsis477/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private] [--mode close|preview|route|settings|all]"
+  ],
+  "compiler_boundary": "Linux host full actual source contract runs passed. Darwin flag selection included; actual Mac compile/run must happen before long app links. No host result is represented as a macOS pass.",
+  "dependency": "Python fontTools for shipped Inter hmtx; reader fonts bound to source. Typed SDL declarations and draw capture only, not actual SDL/OpenGL frames.",
+  "fixture_compatibility": "Root approved older native icon display expectation update only; negative writer/native provenance test135cases separately passes. Settings removes stale enum-adjacency requirement in integrated union, keeps exact persisted key/default/choice count and every Confirm/Cancel/reload assertion. Adds correctly typed empty offline provider/account boundaries newly reached by queued493 storage.",
+  "historical_source_origin": {
+    "product": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+    "test": "efff065b63bb1234718ca20999265612bacb50b4"
+  },
+  "source_product": null,
+  "source_test": null,
+  "prior_results_reused": false,
+  "percentage_adapter": "synopsis477/percentage-adapter.json"
+}

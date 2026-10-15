@@ -1,0 +1,17 @@
+{
+  "fixture": {
+    "original": "/workspace/review/issue362-global-collection-view-20261015/review/independent-settings/collection-choice.c",
+    "sha256": "73069f4fb264ad1964430c95f6f446daa9c4e16cdefb54d02133fdd7d47f863c",
+    "changes": []
+  },
+  "source_pin": null,
+  "scope": "Existing72-case global8choiceSettingsUI assertions, unchanged; producer may select platform/scales, no profile/sync correctness assertion added.",
+  "producer_adapters": {
+    "offline-account.c": {
+      "account_identity_origin": "/workspace/review/issue362-global-collection-view-20261015/review/peer497/profile-sync.c:sessao_usuario",
+      "empty_provider_companion_origin": "/workspace/review/integration-apk20019-20261015/preflight/synopsis477/settings/settings.c:debrid_conta_iniciar/debrid_conta_definir/debrid_aplicar_chaves_locais",
+      "sha256": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+      "scope": "Same accepted fixed offline account and empty-provider typed boundaries required by integrated493 credential reload. Original362UI assertion file unchanged; real Settings file-bank chooser, save and reload stay live."
+    }
+  }
+}

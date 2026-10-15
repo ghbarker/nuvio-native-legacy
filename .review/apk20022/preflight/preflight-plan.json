@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "frozen": false,
+  "waiting_for": "Composition owner's exact product/test commit, tree and manifest SHA pins; no source execution before those arrive.",
+  "source_rules": [
+    "Preserve product APIs in both layers: player_anterior_episodio, player_transporte_pedido_pendente, posplay_troca_manual, recarregarFonteVOD, video_recarregar.",
+    "Apply only the68b520-to260c83 private diagnostic delta on the final product; never overwrite entire app.c, ajustes.c or posplay.c with old private files.",
+    "Compile private layer with NV_TEST_LOCAL_LOGS=1 and record the exact macro delta."
+  ],
+  "groups": [
+    "Strict affected actual translation-unit syntax, using the accepted typed SDL/JNI/JS host SDK declarations, before runtime groups.",
+    "Actual full player/event/renderer and real pointer/layout/profile/episode modules: TV, touch and Android macros, normal and ASan/UBSan.",
+    "Exact production app routing/cleanup helpers: non-Android and Android, normal and ASan/UBSan.",
+    "Actual posplay manual reset and unchanged original episode-selector assertions plus focused previous/next cases, normal and ASan/UBSan.",
+    "Existing exact Reload backend fixture from its owner, after source/closure binding.",
+    "Only additional artwork/519/preload/profile/source-filter fixtures whose real helper/header/fixture closure intersects the final integration; no unrelated broad reruns."
+  ],
+  "limits": [
+    "Cheap Linux host preflight, not real SDK app build, decoder/network execution, CI, APK or publication.",
+    "Prior passes may be retained only with explicit actual helper/header/fixture graph and macro identity; a prior overall failed job is never represented as successful.",
+    "Original product tests, all product files, CI plans and source manifests remain unmodified."
+  ]
+}

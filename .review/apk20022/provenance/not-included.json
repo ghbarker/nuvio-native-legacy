@@ -1,0 +1,8 @@
+{
+  "public_PR_updates_or_new_PRs": false,
+  "upstream_rebase": false,
+  "backend_or_report_service_changes": false,
+  "unrelated_playback_filter_profile_or_artwork_changes": false,
+  "historical_CI_pass_reuse": false,
+  "scope": "Logs11 foundation plus the three approved Logs12 changes; private diagnostics remain in the separate eleven-file test overlay."
+}
