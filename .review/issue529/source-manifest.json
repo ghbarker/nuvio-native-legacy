@@ -1,0 +1,171 @@
+{
+  "head": "55de1850f95955daa931f9e7bfd98722ba79e077",
+  "tree": "25ec2a09e8ce64085bb2fa846ff660216f0ebac9",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "paths": [
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "aa529cdaf7f161e5a0c3e7c15fe165597e1fac66a0198b2a622f3f84f5d673f8",
+      "blob": "4f71671d6fa2b09ffb0f3dc884bb14a8c6f75407"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "ad809fa0a45dbd0d2fdf59a89291ec8dfbb1d5728cffe81de555ff8d34f20677",
+      "blob": "bc5a8e2a9c5a2725f99f41c7d47381570b0308c0"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "cd503abdc8378f36ed174056e2d9491112721b08e5810e0642c2f561476e3574",
+      "blob": "cbb8a716d5e012b7077b53635ce647af01535ec0"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "703cd37c2ccf64593eb859706bca6c7bb90633bb511395dde03d586eb0212077",
+      "blob": "602ef8b34b98a1921c1954978605c9f1b55b4ebc"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "0c6673204aae36a5f1633da0e0d0d95da67a2423183970e75d15e8ca92453b4c",
+      "blob": "455b7b2c2c973b036b91eca2a29a2eb691197c19"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "39f8311faf4f3020a8a3d2b90eb1d4a8dbb51ed62bc2d482d1be454aa5958441",
+      "blob": "988df6e4d145d52428dd625359621d0f590287eb"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "af865891e2137298bafee3caa4b4e5139b1fecd753f5b692f217413e3d1c3a52",
+      "blob": "3421cb5380ae695ffb01e1505768c600e3354758"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "0a4ddfecd890c0b634d84c52aa4aedf89f178438dac1d305b02d6d6fc90510c7",
+      "blob": "e9bb9ae655bbd3961908ca28910c5e1e9a9a7495"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "f432dd9357868abb3a1e905f1824cb4ec7d5ee9b705e0ee3cd6f13a3c6209fe0",
+      "blob": "9fc3b5a7d370c29709a4efe752131f7be067916b"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "3fd129ddcd2e5be3f2f108c6cecdb9b6cbc31df2d7cd5c75976f6d52d8c0fee9",
+      "blob": "14ddcb7ff7d8e787c2fdca8b7517ad202263e475"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "6d522589c59aecfbac81236aab3d733342ee40a220fd9bf7d66053b0d76dbc62",
+      "blob": "d679e4bb6d119aa9481ea5703d1f4a238201b77e"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "9e77de8de1e9a80a2e612786585f367c45612c03e51551db43320a823277a17e",
+      "blob": "38623719630f3e74a6108ea718afd0eb6526f555"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "9abffb6a4e427f6009ff9b012ab89dadb76515237a151952e1d23fac198f9505",
+      "blob": "fca6d8ba72737a27f49ca6896b68a3fa4b2e077a"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "03346b421ecc1852b7804fdb36c00bc843251b5a10ab38fc48d4f28f28999497",
+      "blob": "915c7b29161b25056f4a48060cf6321893282a1c"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "1cccd8774b7d790ff13df68f166d913d0b9a101f47d450526325f03bf22734b1",
+      "blob": "3c2adf593c8df9d1c7b7a11128ae56b69ff46a34"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "8f8f65503449965f9fb3cab6e49d79ac4c21188997c684f44ae9136de03485d2",
+      "blob": "8b12736b56077713afd47b208eca43ef05e9cde5"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "b0506b9a67ddf711af53ac6749702cd05bb4c3e2a150188cbe227ab4f8e0abee",
+      "blob": "e9b83a74a8a334d69de37c6f3e017799ee98fd04"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "cd8b888a6f8878a7a74b35e49cb8857ddb083e336bd5a35c1a0f74d7c1230575",
+      "blob": "22773cadfa934a2a98fc2b33f977c4553e4bad44"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "f262107e4915152a5780d113a21ec72446c700ebb957cd272b40933e4e89ce95",
+      "blob": "8f977e5887e575f25554cd81a3843c6f3376e333"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "6aac1100efb964ed6b703f0e0c1ea7fc674667eb84afc28bac804d555cff1fcb",
+      "blob": "51f29fe9d5db4cfd4ef9f4672fa7ec8648c14390"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "03d82403616370dd2560f69c6656d56ff9e3c4f34dcb1ae7518ec504e183026d",
+      "blob": "c082370c6bb700135213bfa3f1642959535aa62b"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "02696da760706e4eee2734a74b33a8d24e9734613538b28179e493f255685b6f",
+      "blob": "09b410981f519daed18731ea405c901a0b0def66"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "adf17517b95162b2df062287ca337ea10f46202fa7efbbc30ec9f2d07bfbb8d0",
+      "blob": "832e3b77e08c3a2fed418005722037cdafaaf0cc"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "0b5377c7923092dd86271eaead30ca251d4ab87bb52ff9f47e4c3161c430d10b",
+      "blob": "12f3dfee0e7be018a2f4d0000bbebd4bd410bb78"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "ee2c289f926954bb62e1230487967f22b8458a4e782bebb00f64dbc89714b864",
+      "blob": "8524559fff4912e1204813c19cc8ee33fb253ec8"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "a8e674b92438374876f07a1072a999760cb1ca662a2801990b86a7602703c304",
+      "blob": "f705e96f0e6f22b9a80790a348416e8d9ba2c3ef"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "52bc2ab752089bd7ec3639f1faec7d8e74cac0d8957297d520ccf98f5d46f577",
+      "blob": "5d2514b000b111da45aacb54a82c0c3e062cd8d7"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "343fc2758197fd0681c8270386d81cf0b63955788bfb73d375c1d7b95a3236a2",
+      "blob": "4f2151333bbfb691c7a26aaa621fa91ebd1af897"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "9cc257a24700fbbe10c0b5cf1b6ec0490135a8125bed7e4346e817a374fedfbd",
+      "blob": "1cd10f0946c73a3175433412b22349a36939ee3f"
+    },
+    {
+      "path": "src/linguas.c",
+      "sha256": "fa7eb7418e09d7850f54a780158cf284944d07b588dfc085517765a46437eef8",
+      "blob": "f69373dac57c5a5ee87c9c46aefa4418eb8e41ca"
+    },
+    {
+      "path": "src/linguas.h",
+      "sha256": "70cc62740c94ca804f2d8d64d15f5904bba47bc14de9dde3889e314cc1e32f86",
+      "blob": "6a3ea35ccdad0599f1685255c53e0d79965cb553"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "8002768740f2e724fd02df08311b30e1ef6d82198fefe90bd5fb263e49f34686",
+      "blob": "38e1e33a86b631e774bf0c9abcfc60ed5adcf42f"
+    }
+  ],
+  "patch_sha256": "35572442777069d214e989636e122c78765d6978d8c8adf42396370aa849f1f7",
+  "product_only": true,
+  "clean": true,
+  "scope": "Chosen-language audio metadata chip; no playback/subtitle preference changes; Closes529."
+}

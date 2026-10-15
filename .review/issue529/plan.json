@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "feature": "issue529-language-aware-source-audio-filter",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_commit": "55de1850f95955daa931f9e7bfd98722ba79e077",
+  "source_tree": "25ec2a09e8ce64085bb2fa846ff660216f0ebac9",
+  "source_manifest_sha256": "b3755900995af41fa209b01f9a31bf04e474a6ed075ed3ad7b7a7510d0296902",
+  "recipe_inputs": {
+    "aggregate.py": "9ac168005e18d25aec1aba39c303a5733bf92065d42661d07f1bd5f999d9ad80",
+    "android.py": "61bd7130df5673ac5a2c2ce994141d095c83b3193d8449da5fb957c1aa16bfe8",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "513657808f1f14fd5e06dbcb53daa828cc1e61927ab1fc73d3f95561c6c3fc3e",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixtures/language/account_reset.c": "0de89d8ec6acf182f2ebd2495076e67dda8bb99626b0ce8ffa2e80328d64abb9",
+    "fixtures/language/language_chip.c": "bd78f22d1c56982c88106d704687b75d88d6a9b3bbf558bf99b16ba205a0d9e0",
+    "fixtures/language/run.py": "7331a2c12ff9a99428195d6dcc860ca7f2d0dbb863f1fe4a951f03d8e9d38c8e",
+    "fixtures/language/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/language/sdk/SDL2/SDL.h": "0e9368c70c543886dfa2232bbb70a376def4bc6d99d76189e7e8694c26f126bd",
+    "fixtures/language/subtitle_groups.c": "1fbaa8854600eaf9643e2b53259ed7dce24d4c62a47d0417c5c631475276eb5e",
+    "materialize.py": "bd12813f8bcdb72d86805d54a8d7b323ff70d58bb267a329a43a3f6575ebf426",
+    "native.py": "dcb294a5e786755f7baf335b6e57f183ce36ab85c8b4c13c24178772f04e3da7",
+    "original3.py": "1f17ac22395c834903de72b2374c55e3e63b3e2252910344d02c533ba1ae6db9",
+    "product-commit.txt": "bba2ecb10614bc2bdee1dd90c18c1106238d9f3f82335093b600ef7cacd06aa5",
+    "product-delta.patch": "35572442777069d214e989636e122c78765d6978d8c8adf42396370aa849f1f7",
+    "publish_source.py": "b378f72f7dbee48a99e6218eda8d56ee21c1a85cfaf64bf6ba7d6e787fc40a63",
+    "source-manifest.json": "b3755900995af41fa209b01f9a31bf04e474a6ed075ed3ad7b7a7510d0296902"
+  },
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "source_ref": "refs/heads/fix/source-audio-language-529",
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref_after_success": true,
+  "no_private_overlay": true,
+  "no_pr_or_release_created": true,
+  "scope": "Clean standalone source audio-language fix, Closes529. Five fresh exact-source producers, aggregate, and guarded nonforce publication of only the clean source branch; root creates PR after green. No public APK/release.",
+  "focused_contracts": {
+    "platforms": [
+      "tv",
+      "android-touch"
+    ],
+    "modes": [
+      "normal",
+      "asan"
+    ],
+    "groups": [
+      "chip",
+      "account-reset",
+      "subtitles",
+      "original-languages",
+      "original-automatic",
+      "original-i18n"
+    ],
+    "chip_assertions_per_variant": 70,
+    "polish_assertions_per_variant": 8,
+    "account_reset_assertions_per_variant": 21
+  },
+  "prior_validation_policy": {
+    "historical_candidate": "664d42095a80eb65e5869562989233aba02fdf12",
+    "local51_preserved_as_historical": true,
+    "combined_Logs12_platform_execution_reused_as_standalone_pass": false,
+    "fresh_platforms_and_original3_required": true,
+    "old_e3_run": "38778372456 retained as historical only; no new-source passes reused"
+  },
+  "cache_key_preflight": [
+    {
+      "primary": "issue529-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt') }}",
+      "total_keys": 9
+    },
+    {
+      "primary": "issue529-gradle-v1-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts', 'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}",
+      "total_keys": 9
+    }
+  ]
+}

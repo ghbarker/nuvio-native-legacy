@@ -1,0 +1,546 @@
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index 9a6b9ec4..4f71671d 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Езикът е зададен от вашия акаунт · променете го в Настройки"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Езикът е зададен от системата на телевизора · променете го в Настройки"),
+   T("Idioma do app", "Език на приложението"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Език на аудио филтъра: %s. OK включва филтъра."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Език на аудио филтъра: %s. OK премахва филтъра."),
+   T("Idioma do áudio", "Език на звука"),
+   T("Idioma dos dados do título", "Език на данните за заглавието"),
+   T("Idioma dos metadados", "Език на метаданните"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index 200dda91..bc5a8e2a 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Jezik postavlja vaš račun · promijenite u Postavkama"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Jezik postavlja sistem TV-a · promijenite u Postavkama"),
+   T("Idioma do app", "Jezik aplikacije"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Jezik audio filtera: %s. OK uključuje filter."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Jezik audio filtera: %s. OK uklanja filter."),
+   T("Idioma do áudio", "Jezik zvuka"),
+   T("Idioma dos dados do título", "Jezik podataka o naslovu"),
+   T("Idioma dos metadados", "Jezik metapodataka"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index f61555e8..cbb8a716 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Jazyk nastavený vaším účtem · změníte ho v Nastavení"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Jazyk nastavený systémem televize · změníte ho v Nastavení"),
+   T("Idioma do app", "Jazyk aplikace"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Jazyk zvukového filtru: %s. OK zapne filtr."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Jazyk zvukového filtru: %s. OK zruší filtr."),
+   T("Idioma do áudio", "Jazyk zvuku"),
+   T("Idioma dos dados do título", "Jazyk údajů o titulu"),
+   T("Idioma dos metadados", "Jazyk metadat"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index fa4dcfc8..602ef8b3 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Sprog indstillet af din konto · skift det i Indstillinger"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Sprog indstillet af tv-systemet · skift det i Indstillinger"),
+   T("Idioma do app", "Appens sprog"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Lydfilterets sprog: %s. OK slår filteret til."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Lydfilterets sprog: %s. OK fjerner filteret."),
+   T("Idioma do áudio", "Lydsprog"),
+   T("Idioma dos dados do título", "Sprog for titeldata"),
+   T("Idioma dos metadados", "Sprog for metadata"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index e10f7439..455b7b2c 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -2178,6 +2178,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Sprache von Ihrem Konto festgelegt · in den Einstellungen änderbar"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Sprache vom Fernsehsystem festgelegt · in den Einstellungen änderbar"),
+   T("Idioma do app", "Sprache der App"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Sprache des Audiofilters: %s. OK aktiviert den Filter."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Sprache des Audiofilters: %s. OK entfernt den Filter."),
+   T("Idioma do áudio", "Audiosprache"),
+   T("Idioma dos dados do título", "Sprache der Titeldaten"),
+   T("Idioma dos metadados", "Sprache der Metadaten"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index e68420a0..988df6e4 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Γλώσσα που ορίζεται από τον λογαριασμό σου · άλλαξέ την στις Ρυθμίσεις"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Γλώσσα που ορίζεται από το σύστημα της τηλεόρασης · άλλαξέ την στις Ρυθμίσεις"),
+   T("Idioma do app", "Γλώσσα εφαρμογής"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Γλώσσα φίλτρου ήχου: %s. Το OK ενεργοποιεί το φίλτρο."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Γλώσσα φίλτρου ήχου: %s. Το OK καταργεί το φίλτρο."),
+   T("Idioma do áudio", "Γλώσσα ήχου"),
+   T("Idioma dos dados do título", "Γλώσσα στοιχείων τίτλου"),
+   T("Idioma dos metadados", "Γλώσσα μεταδεδομένων"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index 7121003a..3421cb53 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -2178,6 +2178,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Idioma definido por tu cuenta · cámbialo en Ajustes"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Idioma definido por el sistema de la TV · cámbialo en Ajustes"),
+   T("Idioma do app", "Idioma de la app"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Idioma del filtro de audio: %s. OK activa el filtro."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Idioma del filtro de audio: %s. OK quita el filtro."),
+   T("Idioma do áudio", "Idioma del audio"),
+   T("Idioma dos dados do título", "Idioma de los datos del título"),
+   T("Idioma dos metadados", "Idioma de los metadatos"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index 38f4c54a..e9bb9ae6 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -2178,6 +2178,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Langue définie par votre compte · à changer dans Réglages"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Langue définie par le système de la TV · à changer dans Réglages"),
+   T("Idioma do app", "Langue de l’app"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Langue du filtre audio : %s. OK active le filtre."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Langue du filtre audio : %s. OK retire le filtre."),
+   T("Idioma do áudio", "Langue de l'audio"),
+   T("Idioma dos dados do título", "Langue des données du titre"),
+   T("Idioma dos metadados", "Langue des métadonnées"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index c281c224..9fc3b5a7 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "A nyelvet a fiókod állítja be · módosítás a Beállításokban"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "A nyelvet a tévé rendszere állítja be · módosítás a Beállításokban"),
+   T("Idioma do app", "Az alkalmazás nyelve"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "A hangszűrő nyelve: %s. Az OK bekapcsolja a szűrőt."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "A hangszűrő nyelve: %s. Az OK kikapcsolja a szűrőt."),
+   T("Idioma do áudio", "Hang nyelve"),
+   T("Idioma dos dados do título", "A címadatok nyelve"),
+   T("Idioma dos metadados", "Metaadatok nyelve"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index 2a4a138e..14ddcb7f 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Bahasa ditentukan oleh akunmu · ubah di Pengaturan"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Bahasa ditentukan oleh sistem TV · ubah di Pengaturan"),
+   T("Idioma do app", "Bahasa aplikasi"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Bahasa filter audio: %s. OK mengaktifkan filter."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Bahasa filter audio: %s. OK menghapus filter."),
+   T("Idioma do áudio", "Bahasa audio"),
+   T("Idioma dos dados do título", "Bahasa data judul"),
+   T("Idioma dos metadados", "Bahasa metadata"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index e850c2ce..d679e4bb 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Lingua impostata dal tuo account · cambiala in Impostazioni"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Lingua impostata dal sistema della TV · cambiala in Impostazioni"),
+   T("Idioma do app", "Lingua dell’app"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Lingua del filtro audio: %s. OK attiva il filtro."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Lingua del filtro audio: %s. OK rimuove il filtro."),
+   T("Idioma do áudio", "Lingua dell'audio"),
+   T("Idioma dos dados do título", "Lingua dei dati del titolo"),
+   T("Idioma dos metadados", "Lingua dei metadati"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index 55d27eed..38623719 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "言語はアカウントの設定によります · 変更は「設定」で"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "言語はテレビのシステム設定によります · 変更は「設定」で"),
+   T("Idioma do app", "アプリの言語"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "音声フィルターの言語: %s。OKでフィルターを有効にします。"),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "音声フィルターの言語: %s。OKでフィルターを解除します。"),
+   T("Idioma do áudio", "音声の言語"),
+   T("Idioma dos dados do título", "作品データの言語"),
+   T("Idioma dos metadados", "メタデータの言語"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 3e5d9b66..fca6d8ba 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Kalbą nustato jūsų paskyra · pakeiskite Nustatymuose"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Kalbą nustato televizoriaus sistema · pakeiskite Nustatymuose"),
+   T("Idioma do app", "Programėlės kalba"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Garso filtro kalba: %s. OK įjungia filtrą."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Garso filtro kalba: %s. OK pašalina filtrą."),
+   T("Idioma do áudio", "Garso kalba"),
+   T("Idioma dos dados do título", "Pavadinimo duomenų kalba"),
+   T("Idioma dos metadados", "Metaduomenų kalba"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index 99b56604..915c7b29 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Taal ingesteld door je account · wijzig dit in Instellingen"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Taal ingesteld door het tv-systeem · wijzig dit in Instellingen"),
+   T("Idioma do app", "Taal van de app"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Taal van het audiofilter: %s. OK schakelt het filter in."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Taal van het audiofilter: %s. OK verwijdert het filter."),
+   T("Idioma do áudio", "Audiotaal"),
+   T("Idioma dos dados do título", "Taal van de titelgegevens"),
+   T("Idioma dos metadados", "Metadatataal"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 84d519e6..3c2adf59 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Språk satt av kontoen din · endre i Innstillinger"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Språk satt av TV-systemet · endre i Innstillinger"),
+   T("Idioma do app", "Appens språk"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Lydfilterets språk: %s. OK slår på filteret."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Lydfilterets språk: %s. OK fjerner filteret."),
+   T("Idioma do áudio", "Lydspråk"),
+   T("Idioma dos dados do título", "Språk for tittelinfo"),
+   T("Idioma dos metadados", "Språk for metadata"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index 2a9d94fc..8b12736b 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Język ustawiony przez Twoje konto · zmień w Ustawieniach"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Język ustawiony przez system telewizora · zmień w Ustawieniach"),
+   T("Idioma do app", "Język aplikacji"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Język filtra dźwięku: %s. OK włącza filtr."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Język filtra dźwięku: %s. OK usuwa filtr."),
+   T("Idioma do áudio", "Język dźwięku"),
+   T("Idioma dos dados do título", "Język danych tytułu"),
+   T("Idioma dos metadados", "Język metadanych"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index cb295039..e9b83a74 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Idioma definido pela tua conta · muda em Definições"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Idioma definido pelo sistema da TV · muda em Definições"),
+   T("Idioma do app", "Idioma da app"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Idioma do filtro de áudio: %s. OK liga o filtro."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Idioma do filtro de áudio: %s. OK retira o filtro."),
+   T("Idioma do áudio", "Idioma do áudio"),
+   T("Idioma dos dados do título", "Idioma dos dados do título"),
+   T("Idioma dos metadados", "Idioma dos metadados"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index 27560c3d..22773cad 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -2178,6 +2178,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Limba a fost aleasă de contul tău · schimb-o în Setări"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Limba a fost aleasă de sistemul televizorului · schimb-o în Setări"),
+   T("Idioma do app", "Limba aplicației"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Limba filtrului audio: %s. OK activează filtrul."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Limba filtrului audio: %s. OK elimină filtrul."),
+   T("Idioma do áudio", "Limba sunetului"),
+   T("Idioma dos dados do título", "Limba datelor titlului"),
+   T("Idioma dos metadados", "Limba metadatelor"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 4719d5c8..8f977e58 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -2178,6 +2178,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Язык выбран по вашей учётной записи · изменить в Настройках"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Язык выбран системой телевизора · изменить в Настройках"),
+   T("Idioma do app", "Язык приложения"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Язык аудиофильтра: %s. OK включает фильтр."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Язык аудиофильтра: %s. OK убирает фильтр."),
+   T("Idioma do áudio", "Язык звука"),
+   T("Idioma dos dados do título", "Язык данных о тайтле"),
+   T("Idioma dos metadados", "Язык метаданных"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index 8a836282..51f29fe9 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Jazyk nastavený vaším účtom · zmeníte ho v Nastaveniach"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Jazyk nastavený systémom televízora · zmeníte ho v Nastaveniach"),
+   T("Idioma do app", "Jazyk aplikácie"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Jazyk zvukového filtra: %s. OK zapne filter."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Jazyk zvukového filtra: %s. OK zruší filter."),
+   T("Idioma do áudio", "Jazyk zvuku"),
+   T("Idioma dos dados do título", "Jazyk údajov o titule"),
+   T("Idioma dos metadados", "Jazyk metadát"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index 0b737cf8..c082370c 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Jezik je nastavljen z vašim računom · spremenite ga v Nastavitve"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Jezik je nastavljen s sistemom televizorja · spremenite ga v Nastavitve"),
+   T("Idioma do app", "Jezik aplikacije"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Jezik zvočnega filtra: %s. OK vklopi filter."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Jezik zvočnega filtra: %s. OK odstrani filter."),
+   T("Idioma do áudio", "Jezik zvoka"),
+   T("Idioma dos dados do título", "Jezik podatkov o naslovu"),
+   T("Idioma dos metadados", "Jezik metapodatkov"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index 82b91f0d..09b41098 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Jezik postavlja vaš nalog · promenite u Podešavanjima"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Jezik postavlja sistem TV-a · promenite u Podešavanjima"),
+   T("Idioma do app", "Jezik aplikacije"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Jezik audio filtera: %s. OK uključuje filter."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Jezik audio filtera: %s. OK uklanja filter."),
+   T("Idioma do áudio", "Jezik zvuka"),
+   T("Idioma dos dados do título", "Jezik podataka o naslovu"),
+   T("Idioma dos metadados", "Jezik metapodataka"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index 8060a16b..832e3b77 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Språk inställt av ditt konto · ändra i Inställningar"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Språk inställt av TV-systemet · ändra i Inställningar"),
+   T("Idioma do app", "Appens språk"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Ljudfiltrets språk: %s. OK aktiverar filtret."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Ljudfiltrets språk: %s. OK tar bort filtret."),
+   T("Idioma do áudio", "Ljudspråk"),
+   T("Idioma dos dados do título", "Språk för titeldata"),
+   T("Idioma dos metadados", "Språk för metadata"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index 3199f297..12f3dfee 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -2178,6 +2178,8 @@
+   { "Idioma definido pela sua conta · mudar em Ajustes", "Language set by your account · change it in Settings" },
+   { "Idioma definido pelo sistema da TV · mudar em Ajustes", "Language set by the TV system · change it in Settings" },
+   { "Idioma do app", "App language" },
++  { "Idioma do filtro de áudio: %s. OK liga o filtro.", "Audio filter language: %s. OK enables the filter." },
++  { "Idioma do filtro de áudio: %s. OK tira o filtro.", "Audio filter language: %s. OK removes the filter." },
+   { "Idioma do áudio", "Audio language" },
+   { "Idioma dos dados do título", "Language of title data" },
+   { "Idioma dos metadados", "Metadata language" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index e131a2ce..8524559f 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Dil, hesabına göre ayarlandı · Ayarlar'dan değiştir"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Dil, TV sistemine göre ayarlandı · Ayarlar'dan değiştir"),
+   T("Idioma do app", "Uygulama dili"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Ses filtresi dili: %s. OK filtreyi açar."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Ses filtresi dili: %s. OK filtreyi kaldırır."),
+   T("Idioma do áudio", "Ses dili"),
+   T("Idioma dos dados do título", "Başlık verilerinin dili"),
+   T("Idioma dos metadados", "Üst veri dili"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index 3e4a68b7..f705e96f 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -2178,6 +2178,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Мову встановлено за вашим обліковим записом · змінити в Налаштуваннях"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Мову встановлено системою телевізора · змінити в Налаштуваннях"),
+   T("Idioma do app", "Мова застосунку"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Мова аудіофільтра: %s. OK вмикає фільтр."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Мова аудіофільтра: %s. OK прибирає фільтр."),
+   T("Idioma do áudio", "Мова звуку"),
+   T("Idioma dos dados do título", "Мова даних про тайтл"),
+   T("Idioma dos metadados", "Мова метаданих"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 23a5c132..5d2514b0 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "Ngôn ngữ do tài khoản của bạn đặt · đổi trong Cài đặt"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "Ngôn ngữ do hệ thống TV đặt · đổi trong Cài đặt"),
+   T("Idioma do app", "Ngôn ngữ ứng dụng"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "Ngôn ngữ bộ lọc âm thanh: %s. OK bật bộ lọc."),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "Ngôn ngữ bộ lọc âm thanh: %s. OK bỏ bộ lọc."),
+   T("Idioma do áudio", "Ngôn ngữ âm thanh"),
+   T("Idioma dos dados do título", "Ngôn ngữ dữ liệu phim"),
+   T("Idioma dos metadados", "Ngôn ngữ siêu dữ liệu"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 7581eab7..4f215133 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "语言由你的账号设定 · 可在设置中更改"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "语言由电视系统设定 · 可在设置中更改"),
+   T("Idioma do app", "应用语言"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "音频筛选语言：%s。按 OK 启用筛选。"),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "音频筛选语言：%s。按 OK 取消筛选。"),
+   T("Idioma do áudio", "音频语言"),
+   T("Idioma dos dados do título", "标题数据语言"),
+   T("Idioma dos metadados", "元数据语言"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index c38ac44f..1cd10f09 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -2179,6 +2179,8 @@
+   T("Idioma definido pela sua conta · mudar em Ajustes", "語言由你的帳號設定 · 可在設定中變更"),
+   T("Idioma definido pelo sistema da TV · mudar em Ajustes", "語言由電視系統設定 · 可在設定中變更"),
+   T("Idioma do app", "應用程式語言"),
++  T("Idioma do filtro de áudio: %s. OK liga o filtro.", "音訊篩選語言：%s。按 OK 啟用篩選。"),
++  T("Idioma do filtro de áudio: %s. OK tira o filtro.", "音訊篩選語言：%s。按 OK 取消篩選。"),
+   T("Idioma do áudio", "音訊語言"),
+   T("Idioma dos dados do título", "標題資料語言"),
+   T("Idioma dos metadados", "中繼資料語言"),
+diff --git a/src/linguas.c b/src/linguas.c
+index 8c87543a..f69373da 100644
+--- a/src/linguas.c
++++ b/src/linguas.c
+@@ -218,6 +218,7 @@ int ling_afinidade(const char *cod, const char *pref) {
+ 
+ static char contaLeg[16], contaLeg2[16], contaAud[16];
+ static char localLeg[16], localAud[16], localLeg2[16];
++static int contaAudLivre;
+ 
+ // As sentinelas do web viram vazio (= sem filtro) ou "none" (= nenhuma).
+ // "DEVICE"/"DEFAULT"/"ORIGINAL" dizem "deixe o arquivo decidir", que deste lado
+@@ -236,7 +237,12 @@ static void guardar(char *dest, size_t n, const char *v) {
+ 
+ void ling_conta_legenda(const char *v)  { guardar(contaLeg,  sizeof contaLeg,  v); }
+ void ling_conta_legenda2(const char *v) { guardar(contaLeg2, sizeof contaLeg2, v); }
+-void ling_conta_audio(const char *v)    { guardar(contaAud,  sizeof contaAud,  v); }
++void ling_conta_audio(const char *v) {
++  // Preserve the account's explicit unfiltered/original choice for the
++  // optional source chip, without changing playback's existing preferences.
++  contaAudLivre = v && (!strcmp(v, "*") || !strcasecmp(v, "original") || !strcasecmp(v, "off"));
++  guardar(contaAud, sizeof contaAud, v);
++}
+ const char *ling_conta_legenda_valor(void)  { return contaLeg; }
+ const char *ling_conta_legenda2_valor(void) { return contaLeg2; }
+ const char *ling_conta_audio_valor(void)    { return contaAud; }
+@@ -290,6 +296,11 @@ const char *ling_legenda2(void) {
+   return localLeg[0] ? "" : contaLeg2;
+ }
+ const char *ling_audio(void)    { return emVigor(localAud, contaAud); }
++const char *ling_audio_fonte(const char *padrao) {
++  const char *pref = ling_audio();
++  if (localAud[0] == '*' || localAud[0] == '~' || (!localAud[0] && contaAudLivre)) return pref;
++  return pref[0] ? pref : padrao ? padrao : "";
++}
+ 
+ // ------------------------------------------------------------ lista da UI
+ 
+diff --git a/src/linguas.h b/src/linguas.h
+index ac9fa45a..6a3ea35c 100644
+--- a/src/linguas.h
++++ b/src/linguas.h
+@@ -70,6 +70,11 @@ int ling_afinidade(const char *cod, const char *pref);
+ const char *ling_legenda(void);
+ const char *ling_legenda2(void);
+ const char *ling_audio(void);
++// Optional source-sheet audio filter. Explicit audio language wins; otherwise
++// use the resolved interface/device language supplied by the caller. "All"
++// stays unfiltered and local "Original" still resolves only from this title.
++// This does not change playback's automatic track-selection preferences.
++const char *ling_audio_fonte(const char *padrao);
+ 
+ // So a parte da CONTA, sem a escolha local por cima (para o log, #378).
+ const char *ling_conta_legenda_valor(void);
+diff --git a/src/streams.c b/src/streams.c
+index 1c370292..38e1e33a 100644
+--- a/src/streams.c
++++ b/src/streams.c
+@@ -2608,7 +2608,8 @@ static int grupo, filtro, soMp4, soCache, soDub;
+ // "EM CACHE" E "DUBLADO" (dono, 02/10, escolheu entre tres): filtros como o
+ // MP4, e nao grupos — resolucao x HDR/SDR ja da ate 8 grupos, e mais um eixo
+ // picotaria a lista em grupos de 1 ou 2 fontes. Em cache = o debrid ja tem o
+-// arquivo (Stream.foraCache e 0), toca agora; Dublado = audio em portugues.
++// arquivo (Stream.foraCache e 0), toca agora; Audio = idioma escolhido, ou o
++// idioma da interface (que em Automatico acompanha conta/aparelho).
+ enum { BT_RECARREGAR, BT_SEM_HDR, BT_SO_MP4, BT_CACHE, BT_DUB, BT_FECHAR };
+ static int botaoDe(int i) {
+   if (!video_pode_forcar_sdr()) i++;
+@@ -2620,11 +2621,19 @@ static int botaoDe(int i) {
+   return BT_FECHAR;
+ }
+ static int nBotoes(void) { return video_pode_forcar_sdr() ? 6 : 5; }
++static const char *idiomaFiltroAudio(void) {
++  return ling_audio_fonte(idioma_iso(ajustes_idioma()));
++}
+ static const char *rotuloBotao(int b) {
+   if (b == BT_SEM_HDR) return "Sem HDR";
+   if (b == BT_SO_MP4)  return "Só MP4";
+   if (b == BT_CACHE)   return "Em cache";
+-  if (b == BT_DUB)     return "Dublado";
++  if (b == BT_DUB) {
++    static char rotulo[96];
++    const char *pref = idiomaFiltroAudio();
++    snprintf(rotulo, sizeof rotulo, i18n("Áudio: %s"), pref[0] ? ling_selo(pref) : i18n("Todos"));
++    return rotulo;
++  }
+   return NULL;
+ }
+ static int botaoLigado(int b) {
+@@ -2636,13 +2645,13 @@ static const char *iconeBotao(int b) {
+ static char provedores[13][96];
+ static int nProvedores;
+ 
+-static int temAudioPt(const Stream *s);
++static int temAudioPreferido(const Stream *s);
+ // Os chips (MP4, cache, dublado) valem para a lista E para a contagem de cada
+ // aba; o addon so para a lista.
+ static int passaChips(int i) {
+   if (soMp4 && !lista[i].mp4) return 0;
+   if (soCache && lista[i].foraCache) return 0;
+-  if (soDub && !temAudioPt(&lista[i])) return 0;
++  if (soDub && !temAudioPreferido(&lista[i])) return 0;
+   return 1;
+ }
+ static int passaFiltro(int i) {
+@@ -3058,7 +3067,7 @@ static float desenharFaixas(const Stream *s, float x, float y, float w, int sel,
+   }
+   return altura;
+ }
+-static int audioDeclaradoPt(const Stream *s) {
++static int audioDeclaradoEm(const Stream *s, const char *pref) {
+   const char *p = s->audioIdiomas;
+   const char *fim = p + strnlen(p, sizeof s->audioIdiomas);
+   // A mesma lista que aparece em "Audio:" governa o chip. Legendas nunca
+@@ -3072,7 +3081,7 @@ static int audioDeclaradoPt(const Stream *s) {
+     memcpy(raw, p, len); raw[len] = 0;
+     const char *cod = faixaIdiomaDoNome(raw);
+     if (!cod && faixaIdiomaEtiqueta(raw, codigo, sizeof codigo)) cod = codigo;
+-    if (cod && ling_casa(cod, "pt")) return 1;
++    if (cod && ling_casa(cod, pref)) return 1;
+     p = f ? f + 1 : fim;
+   }
+   return 0;
+@@ -3081,7 +3090,7 @@ static int audioDeclaradoPt(const Stream *s) {
+ // fileira. Os rotulos antigos continuam onde o addon nao informa audio;
+ // quando informa, nenhum deles contradiz a lista declarada.
+ static const char *idiomaDa(const Stream *s) {
+-  int podePt = !s->audioIdiomas[0] || audioDeclaradoPt(s);
++  int podePt = !s->audioIdiomas[0] || audioDeclaradoEm(s, "pt");
+   if (podePt && (temNoTexto(s, "dublado") || temNoTexto(s, "dub"))) return "Dublado";
+   if (podePt && temNoTexto(s, "dual")) return "Dual áudio";
+   // Uma secao de legendas em portugues nao anuncia audio em portugues.
+@@ -3091,10 +3100,21 @@ static const char *idiomaDa(const Stream *s) {
+   if (temNoTexto(s, "legendado") || temNoTexto(s, "leg")) return "Legendado";
+   return NULL;
+ }
+-static int temAudioPt(const Stream *s) {
+-  if (s->audioIdiomas[0]) return audioDeclaradoPt(s);
+-  const char *id = idiomaDa(s);
+-  return id && strcmp(id, "Legendado");
++static int temAudioPreferido(const Stream *s) {
++  const char *pref = idiomaFiltroAudio();
++  // An explicit "All" (or an unresolved "Original") is not a guessed
++  // language. Otherwise require declared audio metadata, never subtitles,
++  // filenames or generic "dub/dual" labels whose language is unknown.
++  return !pref[0] || audioDeclaradoEm(s, pref);
++}
++static const char *ajudaFiltroAudio(void) {
++  static char ajuda[512];
++  const char *pref = idiomaFiltroAudio();
++  snprintf(ajuda, sizeof ajuda, i18n(soDub
++    ? "Idioma do filtro de áudio: %s. OK tira o filtro."
++    : "Idioma do filtro de áudio: %s. OK liga o filtro."),
++    pref[0] ? i18n(ling_nome(pref)) : i18n("Todos"));
++  return ajuda;
+ }
+ 
+ // O TITULO DA LINHA, modo "Do Nuvio": o NOME DO CONTEUDO (dono, 02/10: "deixar
+@@ -4172,9 +4192,7 @@ static void corpoFolha(float x, float w, float anim, Uint32 agora, int ilha) {
+         ? "Mostrando só fontes que o debrid já tem: tocam na hora. OK tira o filtro."
+         : "Filtra para fontes que o debrid já tem (tocam na hora, sem baixar antes). OK liga o filtro.";
+     else if(botaoDe(foco)==BT_DUB)
+-      ajuda=soDub
+-        ? "Mostrando só fontes com áudio em português. OK tira o filtro."
+-        : "Filtra para fontes dubladas ou com áudio em português. OK liga o filtro.";
++      ajuda=ajudaFiltroAudio();
+     else if(botaoDe(foco)==BT_SO_MP4)
+       ajuda=soMp4
+         ? "Mostrando só containers MP4 (útil para achar Dolby Vision em MP4). OK tira o filtro."
