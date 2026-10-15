@@ -1,0 +1,83 @@
+{
+  "name": "Publish unchanged green PR431/526/527 after live upstream clean-merge review",
+  "on": {
+    "push": {
+      "branches": [
+        "review/pr-rebase-publication-recovery-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "write",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "pr-rebase-publication-recovery-${{ github.ref }}",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "recover-existing-pr": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 12,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "include": [
+            {
+              "pr": "431",
+              "origin": "493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77"
+            },
+            {
+              "pr": "526",
+              "origin": "00dca74f2bfd807d07cae56a496dfc17655172f4"
+            },
+            {
+              "pr": "527",
+              "origin": "cbb05cbb4e94e7ff0a28580167265c370b1e3836"
+            }
+          ]
+        }
+      },
+      "env": {
+        "RECOVERY_LOCK_SHA256": "f0d431922f38ae4fabfe73d7fd088700e792708800df3eed3bbb3d726ba6188a"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 1
+          }
+        },
+        {
+          "name": "Read immutable original review source and recipe",
+          "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "with": {
+            "repository": "ghbarker/nuvio-native-legacy",
+            "ref": "${{ matrix.origin }}",
+            "path": "origin",
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify original successful checks, reviewed upstream clean merge and exact old lease; publish unchanged tested head",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/rebase-recovery/publish.py --pr ${{ matrix.pr }} --origin origin --output results/pr${{ matrix.pr }}"
+        },
+        {
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "if": "always()",
+          "with": {
+            "name": "pr${{ matrix.pr }}-publication-recovery-${{ github.sha }}",
+            "path": "results/pr${{ matrix.pr }}/publication-recovery-verified.json\nresults/pr${{ matrix.pr }}/source-verified.json\nresults/pr${{ matrix.pr }}/evidence/**/*.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

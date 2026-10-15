@@ -1,0 +1,221 @@
+{
+  "schema": 1,
+  "root_approved_scope": "Publication-only dynamic clean-merge recovery; exact already-green source objects and exact old leases. No source rewrite/rebase/retest. Original failed publishers remain failed.",
+  "repository": "ghbarker/nuvio-native-legacy",
+  "upstream_repository": "iqui27/nuvio-native-legacy",
+  "review_branch": "review/pr-rebase-publication-recovery-20261015",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "prs": {
+    "431": {
+      "source": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+      "tree": "44a8f49f17b1143f647709da52bc6d0a576fc321",
+      "feature_path_count": 82,
+      "chain": [
+        "3312ddc8163a0f6172f55f181718c29cdb4440bd",
+        "0a3845da7a85e86c48c272eaabf1ef78d20113b7",
+        "b6d1ac72ee7f650542a9e870de850ff5f394f638",
+        "4401da6706ec78950a8f82eb85ef30fd73a0f63d",
+        "7e99e534ef4114ee7cb54d805a9e4743b09b9be0",
+        "e130c8383e6b8d3b9c8668f24089315d5d420145"
+      ],
+      "old": "85aa72edd5f033b8ef21d97744df229983db79d4",
+      "branch": "feat/android-tv-mobile",
+      "origin_commit": "493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77",
+      "origin_branch": "review/pr431-rebase-d156e65-20261015",
+      "origin_run": 38782118286,
+      "origin_attempt": 1,
+      "recipe": ".review/pr431-exact",
+      "plan_env": "PR431_PLAN_SHA",
+      "plan_sha256": "e791670d36825113d847b6acb1ebf2192a844de5ca7f9ea3fc74f23ce842654a",
+      "manifest_sha256": "0c0c45780d7a31138c3044c88daafc8d5aeb8fcae213e9351b1dfa75eec2890f",
+      "successful_jobs": [
+        {
+          "id": 116584730430,
+          "name": "native"
+        },
+        {
+          "id": 116584730781,
+          "name": "android"
+        },
+        {
+          "id": 116584730856,
+          "name": "original3 (fontepref)"
+        },
+        {
+          "id": 116584730880,
+          "name": "original3 (fontepref_file)"
+        },
+        {
+          "id": 116584731080,
+          "name": "original3 (player_retido)"
+        }
+      ],
+      "failed_publisher": {
+        "id": 116597382562,
+        "name": "Publish only the green exact-source existing PR431 update"
+      },
+      "artifacts": [
+        {
+          "id": 11998510648,
+          "name": "pr431-exact-original-player_retido-493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77",
+          "size_in_bytes": 7201,
+          "digest": "sha256:11b16a6c926b6ea2eebca0ea7fe485ebbb7579c1ab6a2fc79f2d71e2441a9a91"
+        },
+        {
+          "id": 11998351064,
+          "name": "pr431-exact-original-fontepref_file-493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77",
+          "size_in_bytes": 10042,
+          "digest": "sha256:793be93e562be9257422c8867c650fdbf26ff9ac49507e6e3eb082cacfcb01dd"
+        },
+        {
+          "id": 11997095726,
+          "name": "pr431-exact-original-fontepref-493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77",
+          "size_in_bytes": 11166,
+          "digest": "sha256:1ab6f6b46ca32b8b35d88264db5dcfbe0b0c258c5c11bf7f7ce2cf466db3bf42"
+        },
+        {
+          "id": 11996692219,
+          "name": "pr431-exact-native-493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77",
+          "size_in_bytes": 512620,
+          "digest": "sha256:44fb833d05d817660acbafa753c48b18736ad65f2e1a4a3dfb8f1f027d923c14"
+        },
+        {
+          "id": 11995808548,
+          "name": "pr431-exact-android-493d4986cc226f2b8a1ec0c7ee52f857ae9d2f77",
+          "size_in_bytes": 54546052,
+          "digest": "sha256:899613e6e84a8c93cf24c179fe8c3ea1af9cdcb27d62f147f78303115f7d3292"
+        }
+      ],
+      "reviewed_merge_tree": "0284059b76caa619df174b57a2a59e11865f7336",
+      "reviewed_upstream_overlap_blobs": {
+        "src/app.c": "80cbba43efe13b2ef2edb23dfb03e5acc341b0ca",
+        "src/detail.c": "a2109286f27661dfe386a683b8dc1149163686ff",
+        "src/episodios.c": "a5b77bbfd7b22f39fac3ed3c9cf825ed6dba1226",
+        "src/legendasui.c": "c279d1341a25694241d972b9cd783acf9415aed8",
+        "src/streams.c": "7400a8ddef0b1518603396ede2e22d71fae8d15c"
+      }
+    },
+    "526": {
+      "source": "c297e2f511629e659ce0c76d3dd106a5ee9f656a",
+      "tree": "a9936f7c7c0c671ed1593bcfd4af513d47e0ba00",
+      "feature_path_count": 52,
+      "chain": [
+        "8f97bbfafebf36f93b0fe821094232924e7e025e",
+        "c297e2f511629e659ce0c76d3dd106a5ee9f656a"
+      ],
+      "old": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+      "branch": "feat/synopsis-text-size-477-20261015",
+      "origin_commit": "00dca74f2bfd807d07cae56a496dfc17655172f4",
+      "origin_branch": "review/pr526-rebase-20261015",
+      "origin_run": 38782625615,
+      "origin_attempt": 1,
+      "recipe": ".review/pr526-rebase",
+      "plan_env": "SYNOPSIS_PLAN_SHA256",
+      "plan_sha256": "cc301427e8ac00a20e56c252b23b0f88111da02afb0e55552301ee4f655b8bb7",
+      "manifest_sha256": "ddd38ef8df6465f1a111739cde521a525cd24f169f7bbeb0c70ddc0e854402c6",
+      "successful_jobs": [
+        {
+          "id": 116586459007,
+          "name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages"
+        },
+        {
+          "id": 116586459399,
+          "name": "Original full-source fontepref_file normal + ASan/UBSan"
+        },
+        {
+          "id": 116586459446,
+          "name": "Fresh macOS TV/Mobile apps and synopsis normal + sanitizers"
+        },
+        {
+          "id": 116586459479,
+          "name": "Original full-source fontepref normal + ASan/UBSan"
+        },
+        {
+          "id": 116586459657,
+          "name": "Original full-source player_retido normal + ASan/UBSan"
+        },
+        {
+          "id": 116601905831,
+          "name": "Verify all exact-source successful producer proofs"
+        }
+      ],
+      "failed_publisher": {
+        "id": 116602075273,
+        "name": "Lease-update existing PR526 only after all exact-source checks"
+      },
+      "artifacts": [
+        {
+          "id": 11997248955,
+          "name": "pr526-all-gates-00dca74f2bfd807d07cae56a496dfc17655172f4",
+          "size_in_bytes": 2735,
+          "digest": "sha256:229f896159d805e75e2c90c42df33781cec8cf140e96b974dbbeb1f1bb81ea04"
+        }
+      ],
+      "reviewed_merge_tree": "8446e63ef5f6521eeed07a22066ec1b87533b5c5",
+      "reviewed_upstream_overlap_blobs": {
+        "src/detail.c": "a2109286f27661dfe386a683b8dc1149163686ff",
+        "src/episodios.c": "a5b77bbfd7b22f39fac3ed3c9cf825ed6dba1226"
+      }
+    },
+    "527": {
+      "source": "c67cea085816b24b77586a1c91726f619fbb6144",
+      "tree": "1ca691996994f8167fb2ddba33f5ce9859176475",
+      "feature_path_count": 37,
+      "chain": [
+        "c67cea085816b24b77586a1c91726f619fbb6144"
+      ],
+      "old": "3d09825c2c4637baea9a45496e668b617e6adec1",
+      "branch": "feat/collection-view-default-362-20261015",
+      "origin_commit": "cbb05cbb4e94e7ff0a28580167265c370b1e3836",
+      "origin_branch": "review/pr527-rebase-20261015",
+      "origin_run": 38783937072,
+      "origin_attempt": 1,
+      "recipe": ".review/pr527-rebase",
+      "plan_env": "COLLECTION_PLAN_SHA256",
+      "plan_sha256": "467fb3c124c989608b106cb7adb4cc1895ecac3674f78f7297c4093c5ffa9954",
+      "manifest_sha256": "df3e097396e658f843bcae9ad57ba42c8db14b582f08ff73139700894c4ce883",
+      "successful_jobs": [
+        {
+          "id": 116590958533,
+          "name": "Original full-source player_retido normal + ASan/UBSan"
+        },
+        {
+          "id": 116590958957,
+          "name": "Original full-source fontepref normal + ASan/UBSan"
+        },
+        {
+          "id": 116590958962,
+          "name": "Original full-source fontepref_file normal + ASan/UBSan"
+        },
+        {
+          "id": 116590959124,
+          "name": "Fresh macOS TV/Mobile apps and collection normal + sanitizers"
+        },
+        {
+          "id": 116590959239,
+          "name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages"
+        },
+        {
+          "id": 116602909026,
+          "name": "Verify all exact-source successful producer proofs"
+        }
+      ],
+      "failed_publisher": {
+        "id": 116603089058,
+        "name": "Lease-update existing PR527 only after all exact-source checks"
+      },
+      "artifacts": [
+        {
+          "id": 11997349096,
+          "name": "pr527-all-gates-cbb05cbb4e94e7ff0a28580167265c370b1e3836",
+          "size_in_bytes": 2058,
+          "digest": "sha256:0cf53c2f636920745675921de89794bacf194c0a15be70a401d37d64c5da1967"
+        }
+      ],
+      "reviewed_merge_tree": "fe4a409ee6d39f146711a7651282d4bc8400b1b3",
+      "reviewed_upstream_overlap_blobs": {}
+    }
+  },
+  "reviewed_upstream": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "upstream_policy": "Inspect live master and clean-merge exact tested source; further disjoint paths allowed. Any overlapping file must equal a semantically reviewed upstream blob. Reject conflicts or changed old leases. Never rewrite product source or imply new-base platform validation."
+}
