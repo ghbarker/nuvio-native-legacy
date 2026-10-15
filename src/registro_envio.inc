@@ -47,6 +47,9 @@ static void envMedir(void) {
 }
 
 void registro_envio_abrir(void) {
+#ifdef NV_TEST_LOCAL_LOGS
+  fflush(stdout); android_salvar_registro_local(); return;
+#endif
 #ifdef NV_TOUCH_UI
   telefonecartao_limpar(&envTelefone); envTelefoneGeracao++;
 #endif

@@ -73,6 +73,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include "iconeapp.h"
 #include "logoapp.h"
 #include "abertura.h"
@@ -544,11 +547,15 @@ typedef enum {
   // #329-ideia (PR #351): pular os creditos sozinho, so com inicio e fim reais do marcador. Desligado.
   AJ_PULAR_CREDITOS,
   AJ_PROXIMO_CONTAGEM, // #256: segundos locais; append-only
-  AJ_INTERFACE_MODO, // local, append-only; 0 = TV, 1 = Mobile
+  AJ_INTERFACE_MODO, // local, append-only; TV=0, Mobile=1, Auto=2
   // Backend views: all failover preferences live in fontefalha, locally.
   AJ_FALHA_PROVEDORES, AJ_FALHA_PROVEDOR_ORDEM,
   AJ_FALHA_RD_LIMITE, AJ_FALHA_TB_LIMITE, AJ_FALHA_PM_LIMITE, AJ_FALHA_AD_LIMITE,
   AJ_FALHA_ADDONS, AJ_FALHA_ADDON_ORDEM, AJ_FALHA_ADDON_LIMITE,
+  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile
+  // #366: discovery rows only, per profile on this device. Append-only.
+  AJ_OCULTAR_FILMES_VISTOS,
+  AJ_FONTE_PRECARREGAR, // local, append-only; video e proximo episodio, desligado
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -556,6 +563,7 @@ _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD =
 
 // "Pacote de selos": so o TAMANHO importa aqui (3 pacotes + "Do Nuvio"); o texto
 // de cada valor vem de selospacote_nome (textoValor / uxValorTexto).
+static const char *V_PROVEDORES_ESCOPO[] = { "Compartilhada neste aparelho", "Separada para este perfil" };
 static const char *V_HDR_UI[] = { "Automático", "Desligado" };
 static const char *V_LEG_MOSTRAR[] = { "Só meus idiomas", "Todas" };
 static const char *V_SELOS_PACOTE[] = { "Do Nuvio", "Pacote 1", "Pacote 2", "Pacote 3" };
@@ -624,7 +632,7 @@ static const char *V_FONTE_ORDEM_USO[] = { "Não", "Para desempatar", "Ordem est
 // Indice gravado em tamanhoUiLocal; o fator sai de ajustes_tamanho_ui.
 static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%" };
 static const char *V_TAMANHO_AJUSTES[] = { "80%", "90%", "100%" };
-static const char *V_INTERFACE_MODO[] = { "TV", "Mobile" };
+static const char *V_INTERFACE_MODO[] = { "TV", "Mobile", "Automático" };
 // F07: the order is cacheboost_cache_mb's (0, 256, 512, 1024 MB).
 // #338: indice = preset do NvPlayer.kt (0 = o de sempre).
 static const char *V_BUFFER[] = { "Automático", "Pequeno", "Médio", "Grande" };
@@ -1411,7 +1419,7 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Tocar o próximo episódio automaticamente", V_LIGA, 2),   // local: proximoAutoLocal
   ESC("Pular os créditos automaticamente", V_LIGA, 2),   // local: pularCreditosLocal
   NUM("Contagem do próximo episódio", 1, 60, 1, "s"),
-  ESC("Modo da interface", V_INTERFACE_MODO, 2),
+  ESC("Modo da interface", V_INTERFACE_MODO, 3),
   ESC("Trocar provedor se falhar", V_LIGA, 2),
   ACAO("Ordem e limites dos provedores"),
   NUM("Links no Real-Debrid", 1, FONTEFALHA_MAX_LINKS, 1, ""),
@@ -1421,6 +1429,11 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Trocar add-on se falhar", V_LIGA, 2),
   ACAO("Ordem e limites dos add-ons"),
   NUM("Links neste add-on", 1, FONTEFALHA_MAX_LINKS, 1, ""),
+
+  ESC("Configuração dos provedores", V_PROVEDORES_ESCOPO, 2),
+
+  ESC("Ocultar filmes assistidos", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal
+  ESC("Pré-carregar vídeo", V_LIGA, 2),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1664,6 +1677,11 @@ static const char *CHAVE[] = {
   "-falhaProvedores", "-falhaProvedorOrdem",
   "-falhaRDLinks", "-falhaTBLinks", "-falhaPMLinks", "-falhaADLinks",
   "-falhaAddons", "-falhaAddonOrdem", "-falhaAddonLinks",
+
+  "-provedoresEscopo",
+
+  "hideWatchedMoviesLocal",
+  "fontePrecarregarLocal",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -1999,6 +2017,7 @@ static int ajToqueRolar(const PonteiroRolagem *e) {
 }
 // Guarda a escala durante o desenho: no fio de eventos a escala ja voltou a 1.
 static float ajToqueRegistrar(int id, GfxRect r, float *offset, float maximo, float alvo, int chave) {
+  if (!ajTelaCheia()) return alvo;
   float s = gfx_escala();
   if (ajToqueChave[id] != chave) {
     ajToqueLivre[id] = 0; ajToqueChave[id] = chave;
@@ -2086,7 +2105,11 @@ static int cinemetaInstalado(void) {
 int ajustes_animacoes_reduzidas(void) { return valor[AJ_ANIM] == 1; }
 int ajustes_interface_mobile(void) {
 #ifdef NV_TOUCH_UI
-  return valor[AJ_INTERFACE_MODO] == 1;
+  int automaticoMobile = 0;
+#ifdef NV_ANDROID
+  automaticoMobile = android_interface_mobile_auto();
+#endif
+  return layout_modo_resolver(valor[AJ_INTERFACE_MODO], automaticoMobile);
 #else
   return 0;
 #endif
@@ -2159,6 +2182,13 @@ int ajustes_fonte_tocar_conferindo(void) { return lig(AJ_FONTE_TOCAR_CONFERINDO)
 int ajustes_fonte_aquecer(void) { return lig(AJ_FONTE_AQUECER); }
 int ajustes_fonte_conferir_varias(void) { return lig(AJ_FONTE_CONFERIR_VARIAS); }
 int ajustes_fonte_preparar(void) { return lig(AJ_FONTE_PREPARAR); }
+int ajustes_fonte_precarregar(void) {
+#ifdef NV_ANDROID
+  return lig(AJ_FONTE_PRECARREGAR);
+#else
+  return 0;
+#endif
+}
 int ajustes_cw_proximo(void) { return lig(AJ_CW_PROXIMO); }
 int ajustes_busca_nuvio(void) { int v = valor[AJ_BUSCA_NUVIO]; return v < 0 || v > 2 ? 0 : v; }
 int ajustes_busca_origem(void) { return lig(AJ_BUSCA_ORIGEM); }
@@ -2289,6 +2319,9 @@ float ajustes_tamanho_ajustes(void) {
 static int ajLayoutSelecionavel(void) { return !telefoneui_ativo(); }
 static int ajOpcaoDisponivel(int op) {
   if (op == AJ_FALHA_ADDON_LIMITE) return faAddonEditar[0] != 0;
+#ifndef NV_ANDROID
+  if (op == AJ_FONTE_PRECARREGAR) return 0;
+#endif
 #ifndef NV_TOUCH_UI
   if (op == AJ_INTERFACE_MODO) return 0;
 #endif
@@ -2336,6 +2369,11 @@ int ajustes_leg2_borda(void) { int v = valor[AJ_LEG2_BORDA]; return v >= 1 && v 
 int ajustes_saida_player_home(void) { return lig(AJ_RELOGIO) && valor[AJ_SAIDA_PLAYER] == 0; }
 int ajustes_manter_video(void) { return ajustes_saida_player_home() && lig(AJ_MANTER_VIDEO) && !SEGURO; }
 int ajustes_selo_visto(void) { return lig(AJ_SELO_VISTO); }
+int ajustes_ocultar_filmes_vistos(void) { return lig(AJ_OCULTAR_FILMES_VISTOS); }
+void ajustes_definir_ocultar_filmes_vistos(int ligado) {
+  valor[AJ_OCULTAR_FILMES_VISTOS] = ligado ? 0 : 1;
+  AJ_COM_ORIGEM(AJLOG_CENTRAL, gravar());
+}
 static void riscoNotar(int op, int antes);
 void ajustes_definir_vidro(int ligado) { int a = valor[AJ_VIDRO]; valor[AJ_VIDRO] = ligado ? 0 : 1; AJ_COM_ORIGEM(AJLOG_CENTRAL, gravar()); riscoNotar(AJ_VIDRO, a); }
 #ifdef __EMSCRIPTEN__
@@ -2561,7 +2599,13 @@ float ajustes_trailer_zoom(void)      { static const float z[] = { 1.34f, 1.15f,
 int   ajustes_trailer_qualidade(void) { static const int t[] = { 0, 1080, 720, 480 }; int v = valor[AJ_TRAILER_QUAL]; return (v >= 0 && v < 4) ? t[v] : 0; }
 // Fonte do trailer: o TRF_* de trailerfonte.h. Fora da lista le Automatico.
 int   ajustes_trailer_fonte(void)     { int v = valor[AJ_TRAILER_FONTE]; return (v >= 0 && v < nValores(AJ_TRAILER_FONTE)) ? v : 0; }
-int  ajustes_envio_auto(void)         { return lig(AJ_ENVIO_AUTO); }
+int  ajustes_envio_auto(void)         {
+#ifdef NV_TEST_LOCAL_LOGS
+  return 0;
+#else
+  return lig(AJ_ENVIO_AUTO);
+#endif
+}
 int  ajustes_menu_explorar(void)      { return lig(AJ_MENU_EXPLORAR); }
 int  ajustes_menu_guia(void)          { return lig(AJ_MENU_GUIA); }
 int  ajustes_menu_agenda(void)        { return lig(AJ_MENU_AGENDA); }
@@ -3062,12 +3106,11 @@ static const char *p2pTesteTexto(void) {
   }
 }
 
-// CHAVES DE DEBRID DIGITADAS NESTA TV (debrid.h). Moram em debrid.txt na pasta
-// de dados, uma linha "servico=chave" por servico, por aparelho — credencial do
-// mesmo grau do fanart.txt. tools/arm.sh a tira do .ipk (ARQ_DE_PESSOA) e a tela
-// so a mostra mascarada. O valor NUNCA volta para o campo da modal.
+// As contas antigas permanecem em debrid.txt (compartilhadas). Optar por
+// separadas guarda uma copia propria da conta+perfil; voltar a compartilhar
+// nunca apaga essa copia nem altera o arquivo compartilhado.
 static const char *DEB_SERV[5] = { "alldebrid", "alldebrid", "realdebrid", "torbox", "premiumize" };
-static char debLocal[5][100];
+static char debLocal[5][200];
 static int debIdx(int op) {
   switch (op) {
     case AJ_DEBRID_AD: return 0;
@@ -3085,22 +3128,70 @@ static void debLimpar(char *dst, size_t n, const char *t) {
     if (strchr(DEB_ALFA, t[i]) && t[i]) dst[k++] = t[i];
   dst[k] = 0;
 }
-static void debGravar(void) {
-  char out[5 * 128];
-  int i, u = 0, algum = 0;
-  out[0] = 0;
-  for (i = 0; i < 5; i++) {
-    if (i == 1 || !debLocal[i][0]) continue;
-    u += snprintf(out + u, sizeof out - (size_t)u, "%s=%s\n", DEB_SERV[i], debLocal[i]);
-    algum = 1;
+static int debNomePerfil(char *dst, unsigned n, const char *base) {
+  const char *u = sessao_usuario();
+  size_t i, l = u ? strlen(u) : 0;
+  int k;
+  if (!dst || !n || !base || !*base || !l || l > 80) return 0;
+  for (i = 0; i < l; i++)
+    if (!strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-", u[i])) return 0;
+  k = snprintf(dst, n, "%s-%s-p%d.txt", base, u, perfis_ativo());
+  return k >= 0 && (unsigned)k < n;
+}
+int ajustes_provedores_compartilhados(void) { return valor[AJ_PROVEDORES_ESCOPO] == 0; }
+int ajustes_provedores_arquivo(char *dst, unsigned n, const char *base) {
+  int k;
+  if (!dst || !n || !base || !*base) return 0;
+  if (!ajustes_provedores_compartilhados()) return debNomePerfil(dst, n, base);
+  k = snprintf(dst, n, "%s.txt", base);
+  return k >= 0 && (unsigned)k < n;
+}
+// Mesmo contrato de dados_gravar, com 0600 desde a criacao: as credenciais
+// nunca passam por um arquivo temporario legivel por outros usuarios.
+static int debGravarArquivo(const char *nome, const char *texto) {
+  char caminho[640], tmp[660];
+  int fd, ok = 0;
+  size_t n = strlen(texto);
+  if (!dados_caminho(caminho, sizeof caminho, nome)) return 0;
+  snprintf(tmp, sizeof tmp, "%s.tmp.XXXXXX", caminho);
+  dados_fs_travar();
+  fd = mkstemp(tmp);
+  if (fd >= 0) {
+    ok = fchmod(fd, 0600) == 0 && write(fd, texto, n) == (ssize_t)n;
+    if (close(fd) != 0) ok = 0;
+    if (ok && rename(tmp, caminho) != 0) ok = 0;
+    if (!ok) unlink(tmp);
   }
-  if (algum) dados_gravar("debrid.txt", out);
-  else dados_apagar("debrid.txt");
+  dados_fs_liberar();
+  if (ok) dados_marcar_sujo(0);
+  return ok;
+}
+static int debGravarEm(const char *nome, const DebridConta *conta) {
+  char out[4 * 256];
+  size_t u = 0;
+  int i, ok;
+  out[0] = 0;
+  for (i = 0; i < 4; i++) {
+    static const char *const serv[] = { "realdebrid", "torbox", "premiumize", "alldebrid" };
+    int k;
+    if (!conta->chave[i][0]) continue;
+    k = snprintf(out + u, sizeof out - u, "%s=%s\n", serv[i], conta->chave[i]);
+    if (k < 0 || (size_t)k >= sizeof out - u) { memset(out, 0, sizeof out); return 0; }
+    u += (size_t)k;
+  }
+  // Um arquivo vazio e uma escolha valida: este perfil nao quer chaves
+  // locais. Nao remover, pois isso repetiria a copia do compartilhado.
+  ok = debGravarArquivo(nome, out);
+  memset(out, 0, sizeof out);
+  return ok;
 }
 static void debCarregar(void) {
-  char *t = dados_ler("debrid.txt"), *l, *fim;
+  DebridConta conta;
+  char nome[128], *t = NULL, *l, *fim;
   int i;
+  debrid_conta_iniciar(&conta);
   memset(debLocal, 0, sizeof debLocal);
+  if (ajustes_provedores_arquivo(nome, sizeof nome, "debrid")) t = dados_ler(nome);
   for (l = t; l && *l; l = fim ? fim + 1 : NULL) {
     char *eq;
     fim = strchr(l, '\n');
@@ -3114,14 +3205,66 @@ static void debCarregar(void) {
     if (!fim) break;
   }
   free(t);
-  for (i = 0; i < 5; i++) if (i != 1 && debLocal[i][0]) debrid_definir_chave_local(DEB_SERV[i], debLocal[i]);
+  for (i = 0; i < 5; i++) if (i != 1) debrid_conta_definir(&conta, DEB_SERV[i], debLocal[i]);
+  debrid_aplicar_chaves_locais(&conta);
+  memset(&conta, 0, sizeof conta);
+}
+void ajustes_provedores_abrir_sessao(void) {
+  char nome[128], *t;
+  valor[AJ_PROVEDORES_ESCOPO] = 0; // legado: compartilha, nenhuma conta se perde
+  if (debNomePerfil(nome, sizeof nome, "provider-scope")) {
+    t = dados_ler(nome);
+    if (t) { if (!strcmp(t, "1\n")) valor[AJ_PROVEDORES_ESCOPO] = 1; free(t); }
+  }
+  debCarregar();
+  if (ajustes_provedores_arquivo(nome, sizeof nome, "fontefalha")) fontefalha_arquivo(nome);
+  ajFalhaEspelhar();
+  ajSombra[AJ_PROVEDORES_ESCOPO] = valor[AJ_PROVEDORES_ESCOPO];
+}
+int ajustes_definir_provedores_compartilhados(int compartilhados) {
+  char escopo[128], privado[128], *t;
+  DebridContexto contexto;
+  DebridConta conta;
+  int novo = compartilhados ? 0 : 1;
+  if (novo == valor[AJ_PROVEDORES_ESCOPO]) return 1;
+  if (!debNomePerfil(escopo, sizeof escopo, "provider-scope")) return 0;
+  if (novo == 1) {
+    if (!debNomePerfil(privado, sizeof privado, "debrid")) return 0;
+    t = dados_ler(privado);
+    if (t) free(t);
+    else {
+      // Copia so na primeira escolha. Inclui a chave efetiva da conta,
+      // evitando pedir o login outra vez quando ela veio do sync.
+      debrid_contexto_capturar(&contexto);
+      memcpy(conta.chave, contexto.chave, sizeof conta.chave);
+      int ok = debGravarEm(privado, &conta);
+      memset(&conta, 0, sizeof conta); memset(&contexto, 0, sizeof contexto);
+      if (!ok) return 0;
+    }
+    if (!debNomePerfil(privado, sizeof privado, "fontefalha") ||
+        !fontefalha_preparar_privado(privado)) return 0;
+  }
+  if (!dados_gravar(escopo, novo ? "1\n" : "0\n")) return 0;
+  valor[AJ_PROVEDORES_ESCOPO] = novo;
+  debCarregar();
+  if (ajustes_provedores_arquivo(privado, sizeof privado, "fontefalha")) fontefalha_arquivo(privado);
+  ajFalhaEspelhar();
+  ajSombra[AJ_PROVEDORES_ESCOPO] = novo;
+  return 1;
 }
 static void debDefinir(int op, const char *txt) {
-  int i = debIdx(op);
-  if (i < 0) return;
-  debLimpar(debLocal[i], sizeof debLocal[i], txt);
-  debrid_definir_chave_local(DEB_SERV[i], debLocal[i]);   // vazio apaga
-  debGravar();
+  DebridConta conta;
+  char nome[128], nova[200];
+  int i = debIdx(op), k;
+  if (i < 0 || !ajustes_provedores_arquivo(nome, sizeof nome, "debrid")) return;
+  debLimpar(nova, sizeof nova, txt);
+  debrid_conta_iniciar(&conta);
+  for (k = 0; k < 5; k++) if (k != 1) debrid_conta_definir(&conta, DEB_SERV[k], k == i ? nova : debLocal[k]);
+  if (debGravarEm(nome, &conta)) {
+    snprintf(debLocal[i], sizeof debLocal[i], "%s", nova);
+    debrid_aplicar_chaves_locais(&conta);
+  } else uxNotificar("Não foi possível agora. Tente novamente.");
+  memset(&conta, 0, sizeof conta); memset(nova, 0, sizeof nova);
 }
 static const char *debValor(int op) {
   static char buf[64], m[24];
@@ -3144,10 +3287,15 @@ static int adFioVivo;
 static _Atomic int adTeste;             // 0 nunca/livre, 1 testando, 2 pronto, 3 fio terminou
 static int adTesteOk;
 static char adTesteMsg[64], adTesteData[16];
+static DebridContexto adTesteContexto;
+static uint64_t adTesteSessao;
+static unsigned adTesteBusca;
 static void *adTesteFio(void *u) {
   char m[64], d[16];
   (void)u;
+  debrid_contexto_entrar(&adTesteContexto);
   adTesteOk = debrid_testar_alldebrid(m, sizeof m, d, sizeof d);
+  debrid_contexto_sair();
   snprintf(adTesteData, sizeof adTesteData, "%s", d);
   snprintf(adTesteMsg, sizeof adTesteMsg, "%s", m);
   atomic_store_explicit(&adTeste, 3, memory_order_release);
@@ -3155,6 +3303,9 @@ static void *adTesteFio(void *u) {
 }
 static void adTesteIniciar(void) {
   if (adFioVivo) return;
+  debrid_contexto_capturar(&adTesteContexto);
+  adTesteSessao = adTesteContexto.sessao;
+  adTesteBusca = adTesteContexto.busca;
   atomic_store_explicit(&adTeste, 1, memory_order_release);
   if (pthread_create(&adFio, NULL, adTesteFio, NULL) != 0) {
     snprintf(adTesteMsg, sizeof adTesteMsg, "sem resposta do servidor");
@@ -3166,9 +3317,14 @@ static void adTesteIniciar(void) {
 }
 static void adTesteRecolher(void) {
   if (adFioVivo && atomic_load_explicit(&adTeste, memory_order_acquire) == 3) {
+    DebridContexto atual;
     pthread_join(adFio, NULL);
     adFioVivo = 0;
-    atomic_store_explicit(&adTeste, 2, memory_order_release);
+    debrid_contexto_capturar(&atual);
+    int pertence = atual.sessao == adTesteContexto.sessao && atual.busca == adTesteContexto.busca;
+    memset(&atual, 0, sizeof atual); memset(&adTesteContexto, 0, sizeof adTesteContexto);
+    if (!pertence) { adTesteOk = 0; adTesteMsg[0] = adTesteData[0] = 0; }
+    atomic_store_explicit(&adTeste, pertence ? 2 : 0, memory_order_release);
   }
 }
 // O texto vem de debrid_testar_alldebrid como CHAVE de i18n (frases fixas,
@@ -3176,6 +3332,17 @@ static void adTesteRecolher(void) {
 static const char *adTesteTexto(void) {
   static char buf[64];
   int e = atomic_load_explicit(&adTeste, memory_order_acquire);
+  if (e == 2) {
+    DebridContexto atual;
+    debrid_contexto_capturar(&atual);
+    int pertence = atual.sessao == adTesteSessao && atual.busca == adTesteBusca;
+    memset(&atual, 0, sizeof atual);
+    if (!pertence) {
+      adTesteOk = 0; adTesteMsg[0] = adTesteData[0] = 0;
+      atomic_store_explicit(&adTeste, 0, memory_order_release);
+      e = 0;
+    }
+  }
   if (e == 0) return debrid_origem("alldebrid") ? i18n("OK testa") : i18n("informe a chave primeiro");
   if (e == 1 || e == 3) return i18n("testando…");
   if (adTesteOk && adTesteData[0]) {
@@ -3339,8 +3506,8 @@ void ajustes_dir(const char *dir) {
   seekrCarregar();
   p2pCarregar();
   pstCarregar();
-  debCarregar();
-  fontefalha_dir(dirAjustes); ajFalhaEspelhar();
+  fontefalha_dir(dirAjustes);
+  ajustes_provedores_abrir_sessao();
   // ANTES DO LACO, e nao so no fim (#129): limita() confere as duas linhas de
   // idioma contra nValores() -> nLingua, e quem preenche nLingua e esta
   // chamada. No arranque ela ainda nao tinha rodado: a lista tinha "1 valor",
@@ -3365,7 +3532,30 @@ void ajustes_dir(const char *dir) {
     int medidorAntigo = -1, viuMedidor = 0, resAntiga = -1, viuRes = 0, prazoAntigo = -1, viuEspera = 0;
     int focoAntigo = -1, viuFoco = 0;
   while (fgets(linha, sizeof linha, f)) {
-    char chave[64]; int v, i;
+    char chave[64]; int v, i, inicio = 0;
+    if (sscanf(linha, "%63s%n", chave, &inicio) != 1) continue;
+    if (!strcmp(chave, "interfaceModoLocal")) {
+      // The host reads the same logical record: at most 94 UTF-8 bytes,
+      // excluding LF/CRLF. Drain an oversized record before the next key.
+      size_t bytes = strlen(linha);
+      int ultimo = bytes ? (unsigned char)linha[bytes - 1] : 0;
+      if (ultimo == '\n') {
+        bytes--;
+        ultimo = bytes ? (unsigned char)linha[bytes - 1] : 0;
+      } else if (bytes == sizeof linha - 1) {
+        int c;
+        while ((c = fgetc(f)) != EOF && c != '\n') { bytes++; ultimo = c; }
+      }
+      if (ultimo == '\r') bytes--;
+      if (bytes > 94) continue;
+      // Keep the last valid local choice, including old TV=0/Mobile=1.
+      // strtol rejects oversized values without sscanf's int overflow.
+      char *fim;
+      long modo = strtol(linha + inicio, &fim, 10);
+      if (fim != linha + inicio && modo >= 0 && modo <= 2)
+        valor[AJ_INTERFACE_MODO] = (int)modo;
+      continue;
+    }
     if (sscanf(linha, "%63s %d", chave, &v) != 2) continue;
     // O idioma nao passa pelo laco: o numero do disco e um IDIOMA_*, e o
     // indice da lista da tela e outro (ver "IDIOMA AUTOMATICO").
@@ -4354,6 +4544,7 @@ static int somenteDesteAparelho(int op) {
     case AJ_FONTE_AQUECER:
     case AJ_FONTE_CONFERIR_VARIAS:
     case AJ_FONTE_PREPARAR:
+    case AJ_FONTE_PRECARREGAR:
     case AJ_FONTE_TEXTO: case AJ_FONTE_ORDEM_ADDON:
     case AJ_SALVOS_DEST:
     case AJ_EPG_PAIS:       /* pais da grade: por aparelho, o web nao tem */
@@ -4429,6 +4620,7 @@ static int somenteDesteAparelho(int op) {
     case AJ_FUNDO:          /* o desfoque custa GPU desta TV; o web nao tem */
     case AJ_VIDRO_OPAC: case AJ_VIDRO_FOSCO: /* teste do vidro: visual desta TV */
     case AJ_SELO_VISTO:     /* o web nao tem a escolha */
+    case AJ_OCULTAR_FILMES_VISTOS: /* por perfil desta TV; fora do blob da conta */
     case AJ_REACAO_CREDITOS: /* o web nao tem a pergunta */
     case AJ_PULAR_ABERTURA: case AJ_PULAR_RESUMO: case AJ_PROXIMO_AUTO: case AJ_PULAR_CREDITOS: case AJ_PROXIMO_CONTAGEM: /* idem: local desta TV */
     case AJ_SEEKR_LIGADO: case AJ_SEEKR_FITA: case AJ_SEEKR_AJUSTE: /* o web nao tem o Seekr */
@@ -4456,7 +4648,7 @@ static int somenteDesteAparelho(int op) {
 // onde o historico vai e se o social existe. Entram na copia por perfil
 // (ajustes-p<N>.txt) e continuam FORA do blob (somenteDesteAparelho).
 static int perfilLocal(int i) {
-  return i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL;
+  return i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL || i == AJ_OCULTAR_FILMES_VISTOS;
 }
 
 static int dePerfil(int i) {
@@ -4469,6 +4661,13 @@ static int dePerfil(int i) {
 
 static void nomePerfil(char *dst, size_t tam, int perfil) {
   snprintf(dst, tam, "ajustes-p%d.txt", perfil);
+}
+
+void ajustes_perfil_padrao(void) {
+  int i;
+  for (i = 0; i < AJ_N; i++) if (dePerfil(i)) valor[i] = valorPadrao[i];
+  aplicarIdioma(AJ_LEG_LINGUA); aplicarIdioma(AJ_LEG_LINGUA2); aplicarIdioma(AJ_AUD_LINGUA);
+  ajSombraSync();
 }
 
 void ajustes_perfil_guardar(int perfil) {
@@ -4909,6 +5108,10 @@ static const char *rotuloNovo(int op) {
   }
 }
 static const char *rotuloOpcao(int op) {
+#ifdef NV_TEST_LOCAL_LOGS
+  if (op == AJ_ENVIAR_LOG) return "Test logs";
+  if (op == AJ_ENVIO_AUTO) return "Automatic log upload (disabled for testing)";
+#endif
   if (op == AJ_FALHA_ADDON_LIMITE && faAddonEditar[0]) return faAddonTitulo;
   if (op == AJ_ATUALIZAR && !atualizacao_nova()[0]) return "Procurar atualização";
   if (rotuloNovo(op)) return rotuloNovo(op);
@@ -5171,6 +5374,9 @@ static const char *textoLeitura(int op) {
   if (debIdx(op) >= 0) return debValor(op);
   if (op == AJ_DEBRID_AD_TESTAR) return adTesteTexto();
   if (op == AJ_ENVIAR_LOG) {
+#ifdef NV_TEST_LOCAL_LOGS
+    return "View / share / save";
+#endif
     static char b[48];
     AvisosEnvio env;
     switch (avisos_envio_info(&env)) {
@@ -5326,6 +5532,9 @@ static const char *textoLeitura(int op) {
 // ela continua no lugar, apagada e sem setas: a dependencia fica visivel em vez
 // de a linha sumir.
 static int inativa(int op) {
+#ifdef NV_TEST_LOCAL_LOGS
+  if (op == AJ_ENVIO_AUTO) return 1;
+#endif
   switch (op) {
     case AJ_VIDRO_CONTORNO: case AJ_VIDRO_OPAC: case AJ_VIDRO_FOSCO: return !lig(AJ_VIDRO);
     case AJ_RAIL:         return ajustes_rail_moderna();
@@ -5634,7 +5843,8 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_FONTE_TOCAR_CONFERINDO: return "Abre o player com a primeira fonte do automático na hora em que a conferência dela começa, em vez de esperar o resultado. Se a conferência reprovar a fonte, volta a esperar e segue para a próxima, sem baixar a qualidade. Torrent e fonte que precisa ser resolvida antes seguem o caminho de sempre.";
     case AJ_FONTE_AQUECER: return "Ao abrir a página de um título e quando as fontes chegam, abre antes a conexão com o debrid e com os hosts das primeiras fontes, para o Play não gastar esse tempo. Não resolve nenhum link e não cria arquivo no debrid.";
     case AJ_FONTE_CONFERIR_VARIAS: return "Confere até 3 fontes já prontas no debrid ao mesmo tempo, em vez de uma por vez, e toca a melhor que servir. Fontes que ainda não estão prontas seguem uma por vez, sem baixar nada a mais. Só vale com a Fonte automática em Melhor fonte.";
-    case AJ_FONTE_PREPARAR: return "Ao abrir a página do título, já escolhe e prepara a primeira fonte do automático, para o Play abrir na hora. Isso adiciona o arquivo ao painel do seu debrid mesmo que você não assista.";
+    case AJ_FONTE_PREPARAR: return "Escolhe e verifica a fonte automática ao abrir o título. Não carrega vídeo. Pode adicionar o arquivo ao painel do debrid mesmo sem assistir.";
+    case AJ_FONTE_PRECARREGAR: return "Carrega alguns segundos de vídeo ao abrir um título e prepara o próximo episódio perto dos créditos. O Play reaproveita o buffer. Usa mais dados e pode adicionar arquivos ao debrid mesmo sem assistir. Não marca episódios como vistos.";
     case AJ_FONTE_REPOR: return "Quantas outras fontes o automático tenta quando a escolhida não abre. Cada tentativa pode adicionar um arquivo na sua conta de debrid.";
     case AJ_FALHA_PROVEDORES: return "Se o vídeo não iniciar a tempo ou der erro, tenta os provedores Debrid configurados na ordem escolhida. O limite de cada provedor conta links distintos de todos os add-ons, incluindo o primeiro. Parar ou Voltar cancela as tentativas.";
     case AJ_FALHA_PROVEDOR_ORDEM: return "Suba ou desça os provedores Debrid e ajuste o total de links de cada um. O primeiro provedor tenta seus links antes do próximo. Provedores sem chave são ignorados.";
@@ -5685,6 +5895,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_PS_FUNDO: return "Fundo da tela de escolha de perfil. Filmes: os cartazes do que cada perfil assistiu, numa parede inclinada. Luz: preto com uma luz na cor do perfil. Projetor: sala de cinema antes da sessão. Arte do perfil: o fundo escolhido ao editar o perfil no app Nuvio; sem ele, o avatar desfocado. Ou as listras do login.";
     case AJ_DESCOBRIR: return "Onde fica a tela Descobrir: junto da Busca, como item próprio na barra lateral, ou em lugar nenhum.";
     case AJ_SELO_VISTO: return "Um check pequeno no canto de cima do pôster dos títulos que você já assistiu, pelo Trakt, pela conta ou marcados nesta TV.";
+    case AJ_OCULTAR_FILMES_VISTOS: return "Oculta filmes já assistidos nas fileiras de descoberta. Busca e Biblioteca continuam mostrando todos. Vale para este perfil neste aparelho.";
     case AJ_ROTULOS: return "Escreve o nome do título abaixo do cartaz. A maior parte da arte já traz o nome impresso.";
     case AJ_NOME_ADDON: return "Acrescenta o nome do addon ao título da fileira, para separar dois catálogos com o mesmo nome.";
     case AJ_SUFIXO_TIPO: return "Acrescenta \"Filme\" ou \"Série\" ao título da fileira, para separar as duas versões do mesmo catálogo.";
@@ -5768,7 +5979,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_GPU_EFEITOS: return "Automático mede a TV nos primeiros segundos e, se ela não der conta, tira os efeitos mais pesados. Completos mantém tudo; Leves tira desfoque e brilho para deixar a navegação mais lisa.";
     case AJ_FONTE_UI: return "Altera a tipografia dos menus. A fonte das legendas é escolhida separadamente no player.";
     case AJ_TAMANHO_UI: return "Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.";
-    case AJ_INTERFACE_MODO: return "TV para controle remoto. Mobile para toque, em retrato ou paisagem. A troca é imediata e fica salva só neste aparelho.";
+    case AJ_INTERFACE_MODO: return "Automático usa TV em aparelhos Android TV e Mobile nos demais aparelhos. TV mantém a interface do controle remoto; Mobile usa toque em retrato ou paisagem. A escolha fica salva só neste aparelho.";
     case AJ_TAMANHO_AJUSTES: return i18n("Muda só o tamanho dos Ajustes nesta TV. O padrão é 80%.");
     case AJ_LAYOUT_AJUSTES: return "Painel mostra uma prévia ao lado das opções. Lista põe as categorias e as opções uma embaixo da outra, com a explicação logo abaixo da linha em foco.";
     case AJ_TEMA: return "Cor do botão em foco e das marcas de estado. Os claros levam texto escuro, os profundos texto branco — sempre a 4,5:1 ou mais.";
@@ -5813,6 +6024,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_POSTER_TESTAR: return "Baixa o cartaz de um filme conhecido com a configuração atual e mostra se deu certo. O primeiro cartaz de cada título é montado no servidor e pode levar alguns segundos.";
     case AJ_HOME_LAYOUT: return "Moderna: destaque atrás das fileiras. Padrão: destaque num banner no topo. Dinâmica: estilo Apple TV, com destaques grandes e Top 10.";
     case AJ_VIDRO: return "Painéis, botões e menus viram ilhas translúcidas que deixam a arte aparecer. Desligado, as mesmas ilhas ficam opacas. Só muda o visual; nada muda de lugar.";
+    case AJ_PROVEDORES_ESCOPO: return "Compartilhada usa as mesmas contas de provedores neste aparelho. Separada guarda uma cópia para este perfil. Trocar de opção mantém as duas configurações.";
     case AJ_ADDONS_PRINCIPAL: return "Os outros perfis desta conta usam os addons do perfil principal. Desligado, cada perfil usa os seus — a não ser que a conta já diga para usar os do principal.";
     case AJ_VIDRO_CONTORNO: return "O contorno das linhas e dos cartões, inclusive o do foco. Desligado, o item em foco é marcado só por um fundo mais claro na cor de destaque.";
     case AJ_COR_LOGO: return "Com um tema dinâmico, a cor sai do logo do título em vez da arte de fundo. Logo branco ou preto usa a arte.";
@@ -5924,6 +6136,10 @@ static const char *ajudaOpcaoBase(int op) {
 // #410B: aviso primeiro para ficar visivel tambem nas ajudas compactas.
 // Traduz cada frase antes de juntar: i18n nao encontra uma chave composta.
 static const char *ajudaOpcao(int op) {
+#ifdef NV_TEST_LOCAL_LOGS
+  if (op == AJ_ENVIAR_LOG) return "View the current and previous session logs, share a redacted file through an app you choose, or save it on your phone.";
+  if (op == AJ_ENVIO_AUTO) return "This test build keeps logs on your phone. It does not upload them to the app maintainer.";
+#endif
   const char *base = ajudaOpcaoBase(op);
   static char b[2048];
   if (gpun_efeitos_automaticos() &&
@@ -6964,6 +7180,11 @@ static int definirValorDireto(int op, int novo) {
     uxNotificar(seekrPedirChave());
     return 0;
   }
+  if (op == AJ_PROVEDORES_ESCOPO) {
+    int ok = ajustes_definir_provedores_compartilhados(novo == 0);
+    if (!ok) uxNotificar("Não foi possível agora. Tente novamente.");
+    return ok;
+  }
   if (op == AJ_PERFIL_PESQ) {
     pessoas_definir_pesquisavel(novo == 0);
     return 1;
@@ -7412,7 +7633,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
   if (alvo < 0.0f) alvo = 0.0f;
   // (O "cabecalho inteiro ou nenhum" saiu: o cabecalho agora e fixo na folha.)
 #ifdef NV_TOUCH_UI
-  if (ajToqueLivre[AJT_LISTA]) velY = 0.0f;
+  if (ajTelaCheia() && ajToqueLivre[AJT_LISTA]) velY = 0.0f;
   else
 #endif
     scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
@@ -7905,7 +8126,7 @@ static AjPreview familiaPreviaOpcao(int op) {
     case AJ_DV_MKV:
     case AJ_LEG_FORCADA:
     case AJ_AUD_LINGUA: case AJ_PAUSA_OVERLAY: case AJ_PLR_CLASSIF: case AJ_TELA_ABERTURA: case AJ_FONTE_MANUAL:
-    case AJ_FONTE_AUTO: case AJ_FONTE_REPOR: case AJ_FONTE_TEXTO: case AJ_FONTE_ORDEM_ADDON: case AJ_SELOS_CORES: case AJ_FONTE_TOCAR_CONFERINDO: case AJ_FONTE_AQUECER: case AJ_FONTE_CONFERIR_VARIAS: case AJ_FONTE_PREPARAR:
+    case AJ_FONTE_AUTO: case AJ_FONTE_REPOR: case AJ_FONTE_TEXTO: case AJ_FONTE_ORDEM_ADDON: case AJ_SELOS_CORES: case AJ_FONTE_TOCAR_CONFERINDO: case AJ_FONTE_AQUECER: case AJ_FONTE_CONFERIR_VARIAS: case AJ_FONTE_PREPARAR: case AJ_FONTE_PRECARREGAR:
     case AJ_FONTE_PRIORIDADE: case AJ_FONTE_HDR:
     case AJ_SELOS_PACOTE:
     case AJ_REACAO_CREDITOS: case AJ_PULAR_ABERTURA: case AJ_PULAR_RESUMO: case AJ_PROXIMO_AUTO: case AJ_PULAR_CREDITOS: case AJ_PROXIMO_CONTAGEM:
@@ -7924,7 +8145,7 @@ static AjPreview familiaPreviaOpcao(int op) {
     case AJ_RAIL_BLUR: case AJ_HERO: case AJ_HERO_CATALOGOS:
     case AJ_PS_FUNDO: case AJ_PS_CONTINUAR: case AJ_DESCOBRIR: case AJ_ROTULOS:
     case AJ_NOME_ADDON: case AJ_SUFIXO_TIPO: case AJ_OCULTAR_NLANC:
-    case AJ_NOTAS_HOME: case AJ_GRAD_CLASSICO: case AJ_SELO_VISTO:
+    case AJ_NOTAS_HOME: case AJ_GRAD_CLASSICO: case AJ_SELO_VISTO: case AJ_OCULTAR_FILMES_VISTOS:
       return AJPV_HOME;
     case AJ_CW_LIGADO: case AJ_CW_OK: case AJ_CW_FONTE:
     case AJ_CW_ESTILO: case AJ_CW_THUMB: case AJ_CW_BLUR_PROX:
@@ -7954,7 +8175,7 @@ static AjPreview familiaPreviaOpcao(int op) {
     case AJ_DESCANSO_ESTILO: case AJ_DESCANSO_FONTE:
       return AJPV_INTERFACE;
     case AJ_PERFIL_ATIVO: case AJ_SYNC: case AJ_SAIR:
-    case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_ADDONS_PRINCIPAL: case AJ_ENQUETES:
+    case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_ADDONS_PRINCIPAL: case AJ_PROVEDORES_ESCOPO: case AJ_ENQUETES:
       return AJPV_CONTA;
     case AJ_SALVOS_DEST: case AJ_TRAKT: case AJ_SIMKL: case AJ_DISCORD: case AJ_HIST_CONTA: case AJ_SOCIAL:
       return AJPV_RASTREIO;

@@ -3,4 +3,6 @@
      ao instalador de pacotes, nada mais do app. -->
 <paths>
     <files-path name="atualizacao" path="dados/atualizacao/" />
+    <!-- Isolated test APK: only redacted user-selected diagnostic snapshots. -->
+    <cache-path name="test_logs" path="test-local-logs/" />
 </paths>
