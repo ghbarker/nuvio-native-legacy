@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "all_passed": true,
+  "review_commit": "c66dab066a6b05e5bbfa9a10ff62c672657a1df9",
+  "review_tree": "8592c5ec2920223c342fb13181793488316d3761",
+  "source_commit": "8fc06fddccc8e4b585805532f5c70549096fe284",
+  "source_tree": "6e32ea73aefc5da611867e6be8f3e5c1bff388bd",
+  "plan_sha256": "4eb3b0e0fdf4431a50a3a7b27cf384d20a4a5576cac56c49fde2e56f5108429c",
+  "run_id": 38824587500,
+  "run_attempt": 1,
+  "job": {
+    "id": 116728934219,
+    "name": "APK20029 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_bytes": 59006992,
+  "apk_sha256": "bc3f99cad26cff7c6b58ffbf4769b6f10fff2c7593a4d0025d77f5a0c92c49e0",
+  "build_receipt_sha256": "efbdc4364bd431e9deee8078eca5e1c46cb40788997d8287ce3c65d4f5f04ef0",
+  "apk_verification_sha256": "67c9eef7b8cacd9b9ffa75a286ac67f2600e39ed79f3e04714fc1597426b841d",
+  "source_proof_sha256": "2d020aca5575d4e83936ef644ece41e5831d7796f1d4d7544ec2917ba1cf584a",
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "version_code": 20029,
+    "version_name": "2.0.29-test-logs19",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "actual_arm_compiles": [
+    {
+      "abi": "arm64-v8a",
+      "builds": [
+        {
+          "compile_commands_sha256": "9b882c6c270467d257c35ef2f43880b50d56af8210d8459498b5156efa70068e",
+          "main_sources": 312,
+          "report_endpoint_configured": true,
+          "private_native_opt_in": true
+        },
+        {
+          "compile_commands_sha256": "9b882c6c270467d257c35ef2f43880b50d56af8210d8459498b5156efa70068e",
+          "main_sources": 312,
+          "report_endpoint_configured": true,
+          "private_native_opt_in": true
+        }
+      ]
+    },
+    {
+      "abi": "armeabi-v7a",
+      "builds": [
+        {
+          "compile_commands_sha256": "c75b7f5793d7dea68eadb934b47a2934cd5927c58879fd6f70f7b02662a622ea",
+          "main_sources": 312,
+          "report_endpoint_configured": true,
+          "private_native_opt_in": true
+        },
+        {
+          "compile_commands_sha256": "c75b7f5793d7dea68eadb934b47a2934cd5927c58879fd6f70f7b02662a622ea",
+          "main_sources": 312,
+          "report_endpoint_configured": true,
+          "private_native_opt_in": true
+        }
+      ]
+    }
+  ],
+  "jni_dex_16kb": "passed",
+  "private_logs_retained": true,
+  "issue528_only_new_product_change": true,
+  "private_overlay_unchanged_except_version": true,
+  "previous_results_count_as_fresh": false,
+  "fresh_scope": "Complete private Android ARM32/ARM64 APK build, actual package/signature/ABI/JNI/DEX/16KB verification. Existing issue528 metadata-worker tests were validated separately before this integration build.",
+  "no_pr_writes": true,
+  "no_rebuild_or_rerun": true
+}
