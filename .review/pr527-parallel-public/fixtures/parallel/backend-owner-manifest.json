@@ -1,0 +1,6 @@
+{
+  "fixture/reader.c": "8d2852404dbc67af1f877cb5cee62a583fe7eecbe340366ef4370fbffaa96daa",
+  "fixture/run.py": "259c55538acfef84a240843e65ffe4a5cb995e392752f5b9e9823bfab396eb7b",
+  "owned-url/retained.c": "cdf793e993a948c3a7a76389e500462e24ab2aa89774f2332131c8bb3a02e879",
+  "owned-url/run.py": "5c486aac51232151569db7b8671ea993cf7b6dc63f28ccdb1ab72b524f25ae06"
+}

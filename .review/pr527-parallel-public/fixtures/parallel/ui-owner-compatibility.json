@@ -1,0 +1,86 @@
+{
+  "scope": "Public PR527 only. Existing public portable runners/SDK retained. Typed owned-initial metadata boundary plus existing singleton page boundary. Actual vertudo/pointer/event/storage/layout/profile paths unchanged in fixture includes. No private/Home/CW/artwork implementation.",
+  "changed_files": [
+    {
+      "path": "taps/collection-taps.c",
+      "sha256": "59f182ac58e524b2fd6aba5041825946b0449bfe0e1e0953ce8c085305581907",
+      "original_sha256": "6bb51cdabca9d92716503ef62d6f159cb89502e09fc8686b0cd9d354122753d9"
+    },
+    {
+      "path": "async/collection-taps.c",
+      "sha256": "ad5650d199e3b0bbfedbbc9b2ba2bb3820f910adb69ca37aaa32b1b1a5eb4aa9",
+      "original_sha256": "27e8ffe2ac3357bea76a1947cb3215b5b47ebb176c84a94098f06d6aaebee85d"
+    },
+    {
+      "path": "async/run_parallel.py",
+      "sha256": "ecf21d38e20ed1019f0219b572ea50bd4953fd2fabd023857ea4f876268bc7c2",
+      "original_sha256": null
+    },
+    {
+      "path": "collection-state/fixture-provenance.json",
+      "sha256": "c1e9d608f06f17122c57693b71c66437b74ec88751709da342870ee981067af4",
+      "original_sha256": "db38811d725e6b55eceda6b3a1d2580a927702e56b5df648fd9a8f716a5927f8"
+    },
+    {
+      "path": "collection-state/fixtures/collection-views.c",
+      "sha256": "42db32fd04e987aee5c60827b9f86ca2e180fee708a8130777ba8a68f8510f6e",
+      "original_sha256": "4bea0730a1e42fcfe8938393aebb4317b6e819c01a6472d71107d0fe9f05b666"
+    },
+    {
+      "path": "collection-state/fixtures/original-collection.c",
+      "sha256": "83f258c5bd324ef988a92fc4de3bc81b01b8672149e18cf0ad1a274892761aa7",
+      "original_sha256": "c19d93bf3c9ac5563564baf75ebc5662c2a1df31c074da2865afb226358ccf2a"
+    },
+    {
+      "path": "collection-state/run.py",
+      "sha256": "9d1a45fe0cb65f97bfa6723ccac1436d2e0056dde0ef017fda41fc60095a5a4f",
+      "original_sha256": "1d4812b88b4455e2dda50cb892ed5c85f82f11420aa1078d6ff9c8acd9b08e35"
+    },
+    {
+      "path": "parallel-backend.inc",
+      "sha256": "6cb1926d9704abd2dfbf2a8ece86303332085ff248633f445dc775a869e604b0",
+      "original_sha256": null
+    },
+    {
+      "path": "parallel-cases.inc",
+      "sha256": "b1f716b9727f0dff1653ef024a2b71452f49273d3f337a16b63e46cf32843cc6",
+      "original_sha256": null
+    },
+    {
+      "path": "manual-pagination-backend.inc",
+      "sha256": "f98a17acba446441baad199ab3edf5b37b3d8e8edb911d1561ae5a2cd882bc0b",
+      "original_sha256": null
+    },
+    {
+      "path": "public-pagination-cases.inc",
+      "sha256": "d258ee8e6d7a031a85a4361d7f3f05f99ca9fdaa8ef50e44a706b33c5340ad31",
+      "original_sha256": null
+    }
+  ],
+  "retained_cases": {
+    "taps": 75,
+    "reachability": 36,
+    "title_activations": 2160,
+    "async": 13,
+    "profile_assertions": 133,
+    "profile_changes": 17,
+    "view_assertions": 8035,
+    "adapted_original_historical_sites": 47,
+    "settings_ui_configurations": 36,
+    "settings_ui_assertions_per_configuration": 235
+  },
+  "new_parallel_ui_cases": 10,
+  "portable_darwin_runners_retained": [
+    "taps/run.py",
+    "reachability/run.py",
+    "async/run.py",
+    "settings/run.py",
+    "collection-state/run.py"
+  ],
+  "parallel_runner_platform": "Linux/GNU Ubuntu job; parent typed includes supplied to compiler and pinned via dependency receipts.",
+  "transport_counter_change": "8287 minus252 old fake desc_vertudo_filtro CHECK calls =>8035; actual behavior assertions untouched; independent typed API validity assertions do not increment shared counter from worker threads.",
+  "source_commit": "f2a03e9797857bb0c1b9a671f2b32e85a536c545",
+  "source_tree": "89512738dbe24dea56b41fa61b5729d62a29b8f9",
+  "source_test_sha256": "1fe18e742611f5b3dbd298f6e2cb31673331b774ed11de8c6f351e8df6ddce57",
+  "async_initial_focus_adapter": "Once both fixed seed rows complete, explicitly focus row0 and remember its key before unchanged gesture assertions. Independent completion may focus row1 first; this setup removes completion-order assumptions without changing product behavior."
+}
