@@ -1,0 +1,29 @@
+PASS SAF action, MIME, openable category and bounded filename
+PASS short UTF-8 log is preserved byte-for-byte
+PASS exact 200 KiB limit keeps whole first line
+PASS oversize read discards partial first line and truncated UTF-8
+PASS oversize unbroken secret is entirely discarded
+PASS URL credentials, paths, queries and escaped URLs are removed
+PASS HTTP header credentials are removed, case-insensitively
+PASS quoted and unquoted credential fields are removed
+PASS standalone Bearer, JWT and magnet links are removed
+PASS ordinary playback diagnostics are preserved
+PASS picker busy guard and unrelated result isolation
+PASS cancel, null data and null URI never write or notify
+PASS background write uses chosen URI, truncation mode and closes stream
+PASS missing source reports failure and releases busy state
+PASS null resolver output reports failure
+PASS I/O write failure closes stream and reports failure
+PASS picker launch failure notifies and allows retry
+PASS finishing, destroyed and closed activities reject new picker
+PASS close during picker clears pending result without I/O
+PASS destroy, finish or close during background write suppress completion toast
+PASS long plain quoted secret
+PASS long escaped quoted secret
+REGISTRO_DOWNLOAD_LONG_SECRET_OK 2
+PASS unterminated double-quoted secret with spaces
+PASS unterminated single-quoted secret with spaces
+PASS trailing escape at EOF in quoted secrets
+PASS unterminated quoted secret stops before next diagnostic line
+REGISTRO_DOWNLOAD_MALFORMED_SECRET_OK 4
+REGISTRO_DOWNLOAD_PREFLIGHT_OK 26

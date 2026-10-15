@@ -1,0 +1,194 @@
+{
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "head": "d59e80233cd16d6f0b257aad650c498cc7130ac7",
+  "tree": "1138be6c3c5a1d11a1891cc0c433cc045bb752d0",
+  "expected_old_head": "a2aff4aa2890982c86dc80e0b4c6f422e73a192f",
+  "paths": [
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "sha256": "2f422992b7b097ef88ec2e19662f5efd544d200b72261c079b9a8ddc541ccf56",
+      "blob": "9002954dd6712916c457135e742ede277f01810b"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "sha256": "4b95ef44ed1c70ae397b40637bc15acd79eb31f13513160f984299eb8bd3332c",
+      "blob": "e10c18a3d111e13794908ad1b693fe0792673ac4"
+    },
+    {
+      "path": "src/ajustes.c",
+      "sha256": "36daab0230005b2ce3558f482c781a26502a5370d7f6323ad7b377da5634e9e8",
+      "blob": "d66b521129b4069c334110b6b143cb5bad7c10b3"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "d458d41beff7a80fe70541af1128a71c319b168dbdc5eb25455d5e9d7770ae16",
+      "blob": "6296bc8dcd350d782681e7ed2e16995895c7459f"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "f8f7a2535f6113906fbc774fa49897b07659bed1023bdd384bc67c75bfb36857",
+      "blob": "975d8abf03e5894eb58f1651fd42910cc3664b0b"
+    },
+    {
+      "path": "src/android.c",
+      "sha256": "5575f3387bb0bb5d1de244cfab29f98f162c60a5f09f997f5b3a1a13161375b9",
+      "blob": "426c70a31bde500bbfb007e4283c03af41e4ac63"
+    },
+    {
+      "path": "src/android.h",
+      "sha256": "4431e16edc92f11657e0284014d96f2f01d93ae78dccd0e7c458d2c0f669be0a",
+      "blob": "d5b6aae861ff986219128bb0a1448eb4c1ed60b7"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "df6844ccc7e0f9f4c8a9c88c901f68600b5e0641e95bb64f71017a52e4e72209",
+      "blob": "2d98e39be37ac1447ce9316e76f7c4f519e3cea9"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "2707245bebc1f5ca5324b9b6868a189860e2a338b886d81968a3e84f05308529",
+      "blob": "08499f24acddc890e399c153a4854fb67da0e8c3"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "d6a0e1170427ca5d602222b4f3ca593ca041f97a5cf508993cda18b45697ec7c",
+      "blob": "d80648b7a8d763b8d48abae164a921c3f8000df1"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "52a1352f434caac169b8897d9245c6e92438198dde2e521b71303bc7429a27c3",
+      "blob": "b99cd8e86b6bd5e5b7a43ea819814d770bf82776"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "e32df6fc1fa69a52deee9591401fbb0d6009c98f438307876f9f1ab6d2c70872",
+      "blob": "d262e231b22484c087283f5c90adf33eb4305740"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "0d51880413f7b37be9db6ba71e2957225701df908f69d24ab10ec4a8abfac7ab",
+      "blob": "df8f5cf0003537454a764b5272881bfebd2fba1b"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "85b38ba6e5674e8174b1bb5735ae9988606fe027b7cd68242fe7cfdc10b4bbcd",
+      "blob": "162194f9e46bae18debd525f138b5d284dc68b01"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "3efa10d8e7dec1b9aa263de4e75193695d22b22fbb86446ee4425329a9b225ee",
+      "blob": "9f5bfd91a6932096c0276cfd860b381103d30432"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "e6592cb7b7274b86b596fc64c159c0776cfed644c44b4213869db1204ae17ff0",
+      "blob": "04b7b8c580b3397ef863aadba4c7a8ed55ed1c28"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "6d2d81fa766f03a510243c6a78bb8fe8237dfe6e8e72f9db0621162d225e2a3c",
+      "blob": "89763c7e581dd72dc390037978655ca6837b372f"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "eea6f25588d777a82e326e62357f131e44bdf5a88ca1141992079324d63d8e39",
+      "blob": "40058d7a218034f4c4c3770614cae913d9974c36"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "8f345a9115d20c7b9d7efccd12ce97300bbb04a4196c18ebe62d08b2bef164e8",
+      "blob": "b20e4643ba2efdffbb84b828ce536cf63246fd6c"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "ff61b259c36a4d3836c7dc4e0844d714616397f7b60a56171136d4b88267c1d4",
+      "blob": "5a8076776cfbcad06437cf07091b72ff5ef50b89"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "60f349d76b47f1dd9511b346cf0736f3f695bcfe703c8577d3b406f161b28a83",
+      "blob": "687b39f79d8faf58cea23dca26c0ef2f7d40158b"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "8912f4a9a82356d2909c8bb14e405d2b9ad268e8fd4b75b908d8434658f7856f",
+      "blob": "d8eeb552ce1ea2c0266ea9190c4dca04f88c1ae8"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "fa62b0907ac8c59f39a77943a1166fe7d10b9cb38e4ff38a3aa4f75909c31f12",
+      "blob": "e8e2214ae89633439a97c0b381e818122823c893"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "75a16a35312ddf145ed1797b0b56602fc02cda7917d0fc039fb3c5ca47bda9ef",
+      "blob": "ef7a2205819aa64c7c50905bd3f62e93adcb5c66"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "0bba56c9272acd8c2cb25d18585877aedbc51bfbc2db3bf502f20a895b49f5b4",
+      "blob": "8226da8085cefcb481556119cbeab32704725155"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "c6c07ac20809ce4a1347ef0b3f4920624d93df5a4788e03a4995efac176f04cc",
+      "blob": "f2f74b18d4fe46379044937275ed0c75ab72d6ee"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "eacae4e9dd2efb6db204995e2a04839a6c43bce9ab565ab03b69ee5f74fea656",
+      "blob": "dc4798a5cb1b92fded91719ca67ca86404049c71"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "ffb02876acf51c32a6b9ed593197738cfaa9d1985427dbfa3b332bb5798d5949",
+      "blob": "2c9789694bd1c6b6c91aef295ac626ed809902b6"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "6a40780fe3c7cc0e874d69b4fe2d019940b3ded421e48d474a8aca6b82256677",
+      "blob": "706985950675b83c4ab549e62419a7ffa1ae936f"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "1ee609ba11a282f227b6db929e8d5f590f22766d322f91e9b763451a896c23d7",
+      "blob": "f4f93ed893149f1b62f08e111469aa0feeec44e9"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "305c3b28a1fb83ea00b30bee5d16922b8b21df56f79263a13c8eace8ccc86929",
+      "blob": "190b819ecfda6f2c14fad09bc2c997636301342f"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "e8fb0f0610476b54a40cd2e6b4221ebf1d8fe5aa341433b9b4edb27e9fd97cde",
+      "blob": "bc5c2eef1262619f156100158f6a003f348c5579"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "6d415b25629cc774fa034a4a6fb37383e8f4abe928686652c0d312430f741228",
+      "blob": "aea42d8b256d93dc866f4162f93ff8edea30d05e"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "a5f4be7c7fc1d23b61eb50e704f1d3a47619e24bbc4bca518d4d636ef12bd828",
+      "blob": "f7ad4fd972d6df08e57510aa0a266bbd944f262b"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "5b0acd91a482e512aaf75a1ced0a91218aa56cc1d63fd69761e554104550d9ee",
+      "blob": "2d947b1fd44d08dd7cda95e90540b84fdf662f8a"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "77150bbf549ca6a1535bd2eee3da410daecaf932481e8b65cbe7c67015248043",
+      "blob": "f4e0c14e16cfefd28a2fee6c3fa86c4d2c93e249"
+    }
+  ],
+  "patch_sha256": "5dbb74453dbcdd4e75424796b65c8f099667f295693da8de70b1dfe3f94a01cc",
+  "branch": "feat/android-log-download-20261015",
+  "source_root": "/tmp/pr520-rebase-20261015/source",
+  "private_test_overlay_in_product": false,
+  "comments_reviews_threads": 0,
+  "base_tree": "e10402b5688ac58c19b6c66ea3b7f4de0be65c96"
+}
