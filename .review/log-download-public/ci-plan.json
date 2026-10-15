@@ -6,9 +6,10 @@
   "product_source_paths": 36,
   "workflow_jobs": [
     "macos",
-    "android"
+    "android",
+    "source_ref"
   ],
-  "no_ref_writes_from_ci": true,
+  "no_ref_writes_from_ci": false,
   "no_release_or_backend_action": true,
   "host_preflight_reexecuted": false,
   "new_ci_checks": [
@@ -18,6 +19,20 @@
     "actual standard Android full Kotlin/Activity/helper API compilation",
     "both ARM cores, all actual NvPlayer+new Activity download JNI descriptors in real APK DEX, native16KB packaging"
   ],
-  "source_materialization": "Exact raw product commit object recreated from verified tree+parent+patch; no new source SHA or branch push",
-  "public_feature_test_overlay_integration_note": "The old private TestLocalLogs uses the same49117 result code. Replace or disable its Download row/result handler when integrating this public control, to avoid duplicate controls and result interception."
+  "source_materialization": "Exact raw product commit object recreated from verified tree+parent+patch; no new source SHA. Only the dedicated exact clean feature branch is published after both validation jobs succeed.",
+  "public_feature_test_overlay_integration_note": "The old private TestLocalLogs uses the same49117 result code. Replace or disable its Download row/result handler when integrating this public control, to avoid duplicate controls and result interception.",
+  "source_ref_publication": {
+    "needs": [
+      "macos",
+      "android"
+    ],
+    "contents_permission": "write only in source_ref job",
+    "repository": "ghbarker/nuvio-native-legacy",
+    "ref": "refs/heads/feat/android-log-download-20261015",
+    "source_commit": "1cd707586a5bc94579904e5601de996e62326067",
+    "if_absent": "normal non-force push",
+    "if_already_exact": "verify without mutation",
+    "if_other_commit": "fail without push",
+    "pr_or_release_created": false
+  }
 }

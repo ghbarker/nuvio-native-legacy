@@ -139,3 +139,32 @@ jobs:
         path: results/
         if-no-files-found: error
         retention-days: 14
+  source_ref:
+    name: Publish only the exact green clean feature branch
+    needs:
+    - macos
+    - android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Recreate and verify the exact checked product commit
+      run: python3 .review/log-download-public/materialize.py --target source-app
+        --proof results/source-verified.json
+    - name: Create only the dedicated feature branch or verify it is already exact
+      run: python3 .review/log-download-public/publish_source.py --source source-app
+        --proof results/source-verified.json --output results/source-ref.json
+    - uses: actions/upload-artifact@v4
+      with:
+        name: public-log-download-source-ref-${{ github.sha }}
+        path: results/source-ref.json
+        if-no-files-found: error
+        retention-days: 14
