@@ -116,6 +116,11 @@ static int nAddonsRem, temAddonsRem;
 // principal, e a barreira aqui e a mesma que `fioPronto` sempre foi: o valor so
 // e ligado DEPOIS de o buffer estar cheio.
 static int addonsCedo;   // PRONTO_PUBLICAR/PRONTO_LER, ver fioPronto
+// Progresso pronto nao espera biblioteca, colecoes nem credenciais. A caixa
+// de syncprog pertence ao principal depois desta publicacao; rodar guarda a
+// contagem no proprio ciclo e nao volta a le-la enquanto ela e consumida.
+static int progressoCedo;
+static int progressoAplicadoCedo; // so o principal: reavaliar se os ajustes da conta mudarem
 
 static char traktTok[300];
 static int  temTraktRem;
@@ -1126,7 +1131,7 @@ static void soLeituraDaCopia(int st) {
 static long long cicloInicioMs;
 
 static void *rodar(void *u) {
-  int puxouAddons;
+  int puxouAddons, nProgresso;
   (void)u;
   cicloInicioMs = contapend_agora_ms();
   foraCiclo = 0;
@@ -1205,8 +1210,13 @@ static void *rodar(void *u) {
   // vez de 27 s.
   //
   if (temAddonsRem) PRONTO_PUBLICAR(addonsCedo, 1);
+  // Retomar vem antes das credenciais e das outras superficies da conta.
+  // Os addons ja foram publicados: um pull de progresso lento nao atrasa a
+  // descoberta. A aplicacao continua no principal, com as regras de recencia
+  // e pendencia local de syncprog.
+  nProgresso = syncprog_puxar_sessao(perfilDoCiclo, sessaoDoCiclo);
+  if (nProgresso >= 0) PRONTO_PUBLICAR(progressoCedo, 1);
   puxarCredenciais();
-  syncprog_puxar_sessao(perfilDoCiclo, sessaoDoCiclo);
   puxarSoLeitura();
   // Empurrar DEPOIS de puxar, como o startupSyncService do web: puxar depois
   // de empurrar faria o aparelho sobrescrever com o que ele mesmo mandou.
@@ -1244,7 +1254,7 @@ static void *rodar(void *u) {
   { SyncResumo r;
     memset(&r, 0, sizeof r);
     r.pend = contapend_pendentes();
-    r.n[0] = nAddonsRem; r.n[1] = syncprog_puxadas();
+    r.n[0] = nAddonsRem; r.n[1] = nProgresso < 0 ? 0 : nProgresso;
     r.n[2] = cVistos < 0 ? 0 : cVistos; r.n[3] = cBiblio < 0 ? 0 : cBiblio;
     r.n[4] = cColecoes < 0 ? 0 : cColecoes;
     r.trakt = temTraktRem;
@@ -1328,6 +1338,8 @@ void sync_iniciar(void) {
   }
   estado = SYNC_RODANDO;
   __atomic_store_n(&fioPronto, 0, __ATOMIC_RELAXED);
+  __atomic_store_n(&progressoCedo, 0, __ATOMIC_RELAXED);
+  progressoAplicadoCedo = 0;
   if (pthread_create(&fio, NULL, rodar, NULL) == 0) { pthread_detach(fio); fioVivo = 1; if (manualPedido) manualRodando = 1; }
   else { estado = SYNC_FALHOU; resumoFixo("sem fio para sincronizar"); }
 }
@@ -1381,9 +1393,20 @@ static void spRelatar(void) {
 
 void sync_passo(unsigned agoraMs) {
   if (sessao_logada()) desc_sessao_passo();
+  // Consome apenas uma resposta da conta/perfil que a pediu. A rede segue no
+  // mesmo fio de sempre; uma colecao lenta nao segura o progresso recebido.
+  if (PRONTO_LER(progressoCedo)) {
+    __atomic_store_n(&progressoCedo, 0, __ATOMIC_RELAXED);
+    if (perfilDoCicloAtual()) {
+      if (syncprog_aplicar(NULL) > 0) {
+        progressoAplicadoCedo = 1;
+        desc_refazer_continuar();
+      }
+    } else syncprog_esquecer();
+  }
   // ANTES DA PORTEIRA de `fioPronto`: ver o comentario em rodar(). O resto do
-  // ciclo continua sendo aplicado de uma vez, no fim — so os addons saem na
-  // frente, porque so eles mudam O QUE a descoberta vai buscar.
+  // ciclo continua sendo aplicado de uma vez, no fim — addons e progresso
+  // saem na frente para a descoberta e o retorno ao que estava sendo visto.
   if (PRONTO_LER(addonsCedo)) {
     __atomic_store_n(&addonsCedo, 0, __ATOMIC_RELAXED);
     if (temAddonsRem && perfilDoCicloAtual()) {
@@ -1607,9 +1630,9 @@ void sync_passo(unsigned agoraMs) {
   else if (soAddons) desc_repetir_addons();
   else if (soFileiras) desc_remontar_fileiras();
   spMarcar(SP_REMONTAR); }
-  int blobAplicado = 0;
+  int blobAplicado = 0, ajustesMudaram = 0;
   if (temAjustesBlob && ajustesBlob) {
-    ajustes_aplicar_blob(ajustesBlob);
+    ajustesMudaram = ajustes_aplicar_blob(ajustesBlob);
     blobAplicado = 1;
     // O BLOB NAO E LIBERADO AQUI (mudou em #85): ele e a base da costura que
     // sobe no proximo ciclo. Quem o libera e o pull seguinte, que o substitui,
@@ -1636,7 +1659,8 @@ void sync_passo(unsigned agoraMs) {
   // o catalogo recebe so o que foi aceito.
   // Aceito novo refaz a fileira: sem isto o que o celular assistiu so aparecia
   // em "Continuar assistindo" no proximo ciclo de descoberta (issue #38).
-  if (syncprog_aplicar(NULL) > 0) desc_refazer_continuar();
+  if (syncprog_aplicar(NULL) > 0 || (progressoAplicadoCedo && ajustesMudaram))
+    desc_refazer_continuar();
   spMarcar(SP_PROGRESSO);
   spRelatar();
   if (estado == SYNC_PRONTO) ultimoOk = agoraMs;
@@ -2088,6 +2112,8 @@ void sync_esquecer_usuario(void) {
   perfilcont_esquecer();
   psparede_esquecer();   // a parede de cada perfil (fundo "Filmes") e da conta que saiu
   syncprog_esquecer();
+  __atomic_store_n(&progressoCedo, 0, __ATOMIC_RELAXED);
+  progressoAplicadoCedo = 0;
 
   // As caixas que o fio preenche tambem: um ciclo que terminou logo antes do
   // logout aplicaria os addons da conta anterior no proximo sync_passo.

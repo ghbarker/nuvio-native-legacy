@@ -4344,6 +4344,22 @@ static void *montar(void *u) {
   // Trakt (docs/ANALISE-ADDONS-AMIGOS.md): para elas a fileira so existia vazia.
   // A uniao (Trakt + amigos mutuos do nosso servico) ja vem pronta do fio.
   pthread_mutex_unlock(&contTrava);
+  // O Continuar ja esta pronto. Um feed social lento nao pode segura-lo no
+  // arranque; a publicacao seguinte acrescenta Amigos na mesma ordem de antes.
+  // Numa home completa seguimos silenciosos, como o restante da montagem.
+  if (nContinuar > 0 && progressivo && minhaGeracao == montagemGeracao &&
+      fonteIntacta(&ctxIni)) {
+    CatFileira *f0 = &filsMontadas[0];
+    memset(f0, 0, sizeof *f0);
+    snprintf(f0->chave, sizeof f0->chave, "continue_watching");
+    snprintf(f0->titulo, sizeof f0->titulo, "Continuar assistindo");
+    snprintf(f0->tipo, sizeof f0->tipo, "movie");
+    f0->ini = 0; f0->n = nContinuar;
+    nFileirasMontadas = 1;
+    nPublicado = n;
+    publicarParcial(&lote, &cap, n, filsMontadas, 1, listas, &listasNaTela);
+    marco("continuar assistindo na tela");
+  }
   if (socFio.viva) pthread_join(socFio.fio, NULL);
   else fioSocial(&socFio);
   nSocial = socFio.n;
