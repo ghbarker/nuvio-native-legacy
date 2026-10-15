@@ -1,0 +1,51 @@
+{
+  "name": "Publish approved Logs17 APK only",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20027-publish-20261015"
+      ]
+    },
+    "workflow_dispatch": {}
+  },
+  "permissions": {
+    "contents": "write",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "logs17-approved-publication",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "publish": {
+      "if": "github.repository == 'ghbarker/nuvio-native-legacy' && github.ref == 'refs/heads/review/apk20027-publish-20261015'",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify immutable CI proofs and publish only approved bytes",
+          "env": {
+            "GITHUB_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/apk20027-publisher/publish.py"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs17-publication-${{ github.sha }}",
+            "path": "build/logs17-publication/publication-receipt.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
