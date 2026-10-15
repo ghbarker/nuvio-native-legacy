@@ -1,0 +1,41 @@
+Update the Ugoos AM9 Pro from a Windows computer
+
+1. Put the computer and Ugoos on the same home network. On the Ugoos, enable
+   Developer options, then Wireless debugging.
+
+2. Download Nuvio-Ugoos-Update-v2.ps1 into your Windows Downloads folder.
+   Right-click Start and open Windows PowerShell. A normal window is enough.
+   Paste this command:
+
+   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\Nuvio-Ugoos-Update-v2.ps1"
+
+3. The helper finds ADB or downloads Google's official platform-tools. It
+   downloads Logs18 and verifies its exact SHA-256 before connecting.
+
+4. On the Ugoos, select "Pair device with pairing code". Enter the IP:port
+   from THAT POPUP when the helper asks. Type the pairing code directly into
+   ADB's next prompt. The helper does not save your IP or pairing code.
+
+5. Close the popup. Enter the IP:port on the MAIN Wireless debugging screen.
+   This uses the same IP but a DIFFERENT port from the pairing popup.
+
+6. The helper checks the Ugoos model and ARM ABI, then installs Logs18 with
+   "install -r -t". Open Nuvio TV/Mobile Test when it says Done.
+
+Accounts and settings stay with a compatible existing Nuvio TV/Mobile Test
+installation. The official app uses a different package and can remain
+alongside it. This helper never uninstalls an app or clears its data.
+
+If pairing or connection fails, check that Wireless debugging is still on
+and use the current on-screen ports. If installation reports a signature
+or version mismatch, keep the installed app and share the error. Do not
+uninstall it to get past the error.
+
+Published APK:
+https://github.com/ghbarker/nuvio-native-legacy/releases/download/tv-mobile-test-logs-v18/Nuvio-TV-Mobile-Test-Logs18.apk
+
+APK SHA-256:
+2c7d7155350b2a2db4202fa49229e56c250af09308a14a85e379aa68d5f2e0b7
+
+The helper caches only downloaded tools/APK files under:
+%LOCALAPPDATA%\Nuvio-Ugoos-Update\Logs18
