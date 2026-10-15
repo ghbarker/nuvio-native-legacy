@@ -1,0 +1,117 @@
+name: 'Independent Next fix: exact-source macOS gates'
+'on':
+  push:
+    branches:
+    - review/pr-submit-next-20261015
+permissions:
+  contents: read
+jobs:
+  core:
+    name: Full TV/Mobile builds and original seek guards
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact clean Next feature source
+      run: python3 .review/next-submit-20261015/build/verify_source.py --target source-app --proof build/review/source-verified.json
+    - name: Native libraries
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg
+    - name: Keep original compiler flags and add only SDL3 link rpath
+      run: 'set -euo pipefail
+
+        compiler="$(command -v cc)"
+
+        sdl3_library="$(brew --prefix sdl3)/lib"
+
+        test -d "$sdl3_library"
+
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+
+        cp .review/next-submit-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+
+        echo "CC=cc" >> "$GITHUB_ENV"
+
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"'
+    - name: Run exact-source checks
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/next-submit-20261015/build/run_checks.py" --suite "core" --output "$GITHUB_WORKSPACE/build/review/results"
+    - name: Reverify product and original test bytes
+      if: always()
+      run: python3 .review/next-submit-20261015/build/verify_source.py --target source-app --proof build/review/source-verified.json
+        --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: next-submit-20261015-core-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        retention-days: 14
+  original-asan:
+    name: 'Original full-source ASan: ${{ matrix.suite }}'
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        suite:
+        - fontepref
+        - fontepref_file
+        - player_retido
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact clean Next feature source
+      run: python3 .review/next-submit-20261015/build/verify_source.py --target source-app --proof build/review/source-verified.json
+    - name: Native libraries
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg
+    - name: Keep original compiler flags and add only SDL3 link rpath
+      run: 'set -euo pipefail
+
+        compiler="$(command -v cc)"
+
+        sdl3_library="$(brew --prefix sdl3)/lib"
+
+        test -d "$sdl3_library"
+
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+
+        cp .review/next-submit-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+
+        echo "CC=cc" >> "$GITHUB_ENV"
+
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"'
+    - name: Run exact-source checks
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/next-submit-20261015/build/run_checks.py" --suite "${{ matrix.suite }}" --output
+        "$GITHUB_WORKSPACE/build/review/results"
+    - name: Reverify product and original test bytes
+      if: always()
+      run: python3 .review/next-submit-20261015/build/verify_source.py --target source-app --proof build/review/source-verified.json
+        --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: next-submit-20261015-${{ matrix.suite }}-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        retention-days: 14

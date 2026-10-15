@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "base_commit": "17b7769dac4273557e1b07f5fb8734df91dd718f",
+  "source_commit": "d64a9f1a40d780d0164b22cf12ad4fbd5f4e8d62",
+  "source_branch": "fix/next-after-touch-seek-20261015",
+  "files": {
+    "src/player.c": {
+      "sha256": "b345bae6627a65334ae2e18ef90c900730a582c35d5f4c03a49d4202ec4b4011",
+      "git_blob_sha1": "71d839df905d6fdd2a561148d23e18611e071432"
+    },
+    "src/posplay.c": {
+      "sha256": "0e45ec52203a594e9cd7a930e7aa43a099eb5cdbd0701f91d1200d2f387c933a",
+      "git_blob_sha1": "eaf60d8d97ec8b43e6b65828bfef97aaacd3a208"
+    },
+    "src/posplay.h": {
+      "sha256": "34adcdf06b2a58e624f93c407a2d465c3620e90308d01d5c5588fb4729e715a6",
+      "git_blob_sha1": "5cec23ec7305ae44df6922384cfd0645d6cb0109"
+    }
+  }
+}
