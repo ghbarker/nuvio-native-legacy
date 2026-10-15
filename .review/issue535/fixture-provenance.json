@@ -1,0 +1,14 @@
+{
+  "accepted_fixture_sha256": "0081ae5ca76963276d630c711a26c874ab49d4868531004ee072b1af86bf97f1",
+  "accepted_runner_sha256": "39a428c5a084876fdc3b285a8e4d71e1307edbaa40c35805775b85a7075d7398",
+  "accepted_source_commit": "99f1ae66f139ba9cc384bef4f4cc00c17e2d77f7",
+  "accepted_checks_per_mode": 135,
+  "accepted_existing_resolver_calls_per_mode": 13,
+  "accepted_local_normal_receipt_sha256": "5b349921f164f79a4b13754e50fa98a838892964de1505fccd67d64ff00e05d2",
+  "accepted_local_asan_receipt_sha256": "2638efe4ef1c4a956994ce28046a6729f6899e68a5c38acf2aaaa0273de2e6e6",
+  "adaptation": "Retain all135 original assertions and13 original resolver calls. Configurable typed ajustes_idioma boundary keeps actual inline idioma_iso lookup. Append30 cached/preferred-audio composition assertions using actual included streams.c and actual linguas.c; no mocked passaChips/cacheConfirmado/audio policy. No new network/probe/resolver calls.",
+  "adapted_fixture_sha256": "75faa0b4d9600965a1beb28ced44e57225b2ce4fe5f4775632ea5b808d125a63",
+  "adapted_runner_sha256": "8cc2c0696e4d92bf7eaff9c7520b1050b537cd63e863db77fffea6870b456d7e",
+  "candidate_source_review_receipt_sha256": "fb513acf5ad48153894bd6614ca744582ace6256ccd1ea4884f5c0281cf1072e",
+  "candidate_small_module_receipt_sha256": "b656f7504c149dfcb9932063a10a0fede361e4d7b728e9fa23eeab853eee9e92"
+}

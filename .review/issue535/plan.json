@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "f85edaa220780f6bfb9114791467072b6ff0cfa4",
+  "candidate_head": "9eef1355b14a031b86ebc501d2d15f7467b04a7c",
+  "candidate_tree": "c269e15decfcaeb231910999e503568baf4446f0",
+  "review_branch": "review/pr535-cached-status-f85-20261015",
+  "source_manifest_sha256": "65e33f448e255931b5b8663e1dcb09ed3d96878ba24ae21599d1349517beb89c",
+  "workflow_normalized_sha256": "7c643deed8e00620e6840472bbd373cec09720f72e9cb4efed745f4e2cb26c9d",
+  "recipe_inputs": {
+    "android.py": "1feeca97cd62121dc8ce432e412ec22b4851c0b6d03d36f73c1c93b3f1243bd8",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "common.py": "4ba8a4bec1e4e84d86aceb38e25e9387a80145774cfcc9f1d02b88b872d1ca60",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixture-provenance.json": "62f7aab631f5bf5321de92e7589211967d6c3f83d3c4a4a17343fabae7a28106",
+    "fixtures/cache_refresh.c": "75faa0b4d9600965a1beb28ced44e57225b2ce4fe5f4775632ea5b808d125a63",
+    "fixtures/run.py": "8cc2c0696e4d92bf7eaff9c7520b1050b537cd63e863db77fffea6870b456d7e",
+    "fixtures/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/sdk/SDL2/SDL.h": "0e9368c70c543886dfa2232bbb70a376def4bc6d99d76189e7e8694c26f126bd",
+    "materialize.py": "09b5ca9bdedbd5c635268a1307b952998c0eaffd90852079cfcf6026035d1717",
+    "module_cc.py": "940d8c5424718f9e74fa9148eaedbce1f1d32f3165888ea61f19da526530531f",
+    "native.py": "a48bd08515e3f4a88572fb1ae487c07205b4bf69b67dd80d158b63707f96dd47",
+    "preflight.py": "eb90e4c7502c49f34c7008cf7c407ff4e6b79f560bff642301312351073d415f",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "scope": "Exactly two producers: fresh macOS complete production streams.c cache135+combined-audio30 per TV/mobile normal+ASan/UBSan plus current3small modules normal+ASan; standard Android dualARM compiled candidate. No unrelated original3/full-app repeats/private APK/publication."
+}
