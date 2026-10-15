@@ -1,0 +1,542 @@
+{
+  "431": {
+    "pr": 431,
+    "head": "3c9421898b3b9709a44e7cce2e63bce78b17a3d9",
+    "tree": "df0f8b6e92d8db94d59735ad5f1598ff634f23fd",
+    "base": "3a3c77b51dd51feb3b774ba2fd4ba59953c4b05b",
+    "base_tree": "800a959bf82b87af564c6cc5e3ddfa390ab8fdc5",
+    "parents": [
+      "7858564b38154b1aa55ec1f1328dec3570677881"
+    ],
+    "old_head": "e790d854ab4ec40430fd53cb9a7b88179861de1b",
+    "paths": [
+      {
+        "path": "README.md",
+        "blob": "19fc2714773ce303c616e9d25fe8cc5e25c64d8f",
+        "sha256": "c1019069de4441263c4fb1010f04b31535411b9fd240257090d2b896391052d8"
+      },
+      {
+        "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+        "blob": "f9d8eae96d36d5d4e9237a823db6c470969537a0",
+        "sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0"
+      },
+      {
+        "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+        "blob": "f4c3926ada23a3ff687fe6cca549efdb11fbb615",
+        "sha256": "c9bef9c28209d9fa8796203bb22facc1713886555e4b0e61101b169f433cf0cf"
+      },
+      {
+        "path": "docs/android/INTERFACE-MODES.md",
+        "blob": "df8586de519ff2a80b19983683caa934a0278c3e",
+        "sha256": "58ffadb94f231efc00a622f10cbb743039536fc8809e56638570eb4c6b32ec6b"
+      },
+      {
+        "path": "src/agendaui.c",
+        "blob": "7fa013a0a855cad57d0964f2730251fc4ff1f6c7",
+        "sha256": "9d7e21174db6d0a97d47a73c6648cd3cd522a67d4d3ce82c2221f8a0d752dc84"
+      },
+      {
+        "path": "src/ajustes.c",
+        "blob": "35a8c54ba95c94055bb6ce3b471c96eacc443bfb",
+        "sha256": "fdaa818a15e01d6e4f153aba315e910e53b71896ff8e9a62ee809361f1391f52"
+      },
+      {
+        "path": "src/ajustes.h",
+        "blob": "91ebfdfb72b9e562a1b3d09683c2fae3d94cbcbc",
+        "sha256": "650d0a00e7914460412e4e121c5540b7e9bfc66c5b9b1fc3f1a93aa04e20db7f"
+      },
+      {
+        "path": "src/ajustes_ux_desenho.inc",
+        "blob": "c0698bdaa46a5c5a837d85abd178fe1b4807581b",
+        "sha256": "09ea4e32943939d50d4c3e8fb7f0a125ad3cd7326dcaab868edf4f6bed5080bf"
+      },
+      {
+        "path": "src/ajustes_ux_fileiras.inc",
+        "blob": "a4ef4df504d056d8b3c26c33fc485be83bf11db3",
+        "sha256": "2249ff6c66ed4b22bdb8ea2b2cfdc84cde2f3ff63883cad976e45ae7962bcb1e"
+      },
+      {
+        "path": "src/ajustes_ux_guia.inc",
+        "blob": "7cb3071195df5c7203ddcc3c305a082f4267a08e",
+        "sha256": "d1b024b17dbcd9ae3d1d7765546bd8b9ae14824e13bd9ca9bca2bdbbd294d5eb"
+      },
+      {
+        "path": "src/ajustes_ux_ilha.inc",
+        "blob": "67005c944b068d86f71e3b5a9e9c066fe87c17cb",
+        "sha256": "8b8cd10a50f33d8861e3e6745d98beaaa3db57000e3013f825709c8cdcc13e87"
+      },
+      {
+        "path": "src/ajustes_ux_padrao.inc",
+        "blob": "3b46362a27c71e0356f2170926dab96586036bc1",
+        "sha256": "946f6ac1af53e62202b84c8503b0d0edf65c74ff4ed19115a27a65fcd828dae3"
+      },
+      {
+        "path": "src/ajustes_ux_v2.inc",
+        "blob": "b302b6e23dff53f4f2a0adc9156118d324cc27c2",
+        "sha256": "8feb24a45c7d8eb02b20de1fb86953b0c4ecd622b6751dcaa0799a87c4a10361"
+      },
+      {
+        "path": "src/amigoperfil.c",
+        "blob": "df45912ef140e839326ef6fbc4a12fe17247f331",
+        "sha256": "8cf33b5d5524387e48ce0f7910f09302c1b4cf4daa0781dbb23ce48ddfc993de"
+      },
+      {
+        "path": "src/amigosfil.c",
+        "blob": "afa157d1a633c2552ff32dfb01c22c2a26e76313",
+        "sha256": "2f5d30501be8b890a55dc13b3b75774b9b55806d4a2a12b7b09ed891fb008ffe"
+      },
+      {
+        "path": "src/amigostitulo_ui.c",
+        "blob": "e0515ac53f49874a16dc5a830f019fc1e9085ce5",
+        "sha256": "e4d0cb514490cca6adfdbdffd3b392f4e2e2a6728ba9ff870db4f7ba492e222d"
+      },
+      {
+        "path": "src/android.c",
+        "blob": "bdf240dc68bce3069c5975e59f6294528dda9e30",
+        "sha256": "6f98ce92204cfb65ab6b4b14d04222092d3af3b2aae43a35ff6d12420bd43cb8"
+      },
+      {
+        "path": "src/android.h",
+        "blob": "5984e55ffeb79fd8da6cf32dd90d1495fbdbd236",
+        "sha256": "326def3f717fc13897870e39f47c06b2aecdcd4e7a953ed329eb287cc47e281c"
+      },
+      {
+        "path": "src/aovivoui.c",
+        "blob": "c732f496cafb7dd6a3864e9f9624a757595eea40",
+        "sha256": "a64e1195dc08522f3d361dc77a594209f2950a83aa54d5a33abe9906fb673ebb"
+      },
+      {
+        "path": "src/app.c",
+        "blob": "a31a554fa1c27ce40b9d316ad941d7e70c5f6f7c",
+        "sha256": "bcbae49d54c79bb28a46010b9d398ffda9643900ad0ca639717a59c9fcfc7e3c"
+      },
+      {
+        "path": "src/atualizacao.c",
+        "blob": "0c182d6318f79e33ff285063741c51eb0dd7f56f",
+        "sha256": "5a26a528ae908af939478f5354a7da62c8fe36598d0e34c27e0e6e91a8b2c6a9"
+      },
+      {
+        "path": "src/avisos.c",
+        "blob": "8d3a43cab9f62a462da15e55588c1b55df8401d7",
+        "sha256": "7d445dd14bb4d5fe3e50e834937157667005cd38b6a151905eee26568f09c14b"
+      },
+      {
+        "path": "src/biblioteca.c",
+        "blob": "77e5e302e64a06c1a63b59caa6bc5995fd369f38",
+        "sha256": "5f4afc18641fba0aa22eba7f5af0fc15031744b07b1b83f3b7e83d07d4da3124"
+      },
+      {
+        "path": "src/busca.c",
+        "blob": "84e4faffdda9e27d4116e69173bc804388e01600",
+        "sha256": "6dd139420fc7c0013679b2a9ba046c2636bdc99b589866e527f9f3df60b19377"
+      },
+      {
+        "path": "src/central.c",
+        "blob": "6d33a6c3a90be6b3aea15bb706e8da41c5ca7e93",
+        "sha256": "33c067f1fc944132c9457b5d519dc36bd1a794f7c615975784e3b9ff163e49cb"
+      },
+      {
+        "path": "src/ctxmenu.c",
+        "blob": "988ceec0de4bdd7996f8bccb1d555e5ede553237",
+        "sha256": "233fe930663d9c1be813f0a370d6a765081ecee40d428cbc743bbacc25af330e"
+      },
+      {
+        "path": "src/detail.c",
+        "blob": "d95f288dfd3bdd6a5664ca640cfea6f51697e8d3",
+        "sha256": "fe11c26c12074212b1e53107eda94346b1f291ae6b4062d1e71290f55e8feaf7"
+      },
+      {
+        "path": "src/diagnostico.c",
+        "blob": "d2a813064f92c778b82c441ce2bdb6b0f3576580",
+        "sha256": "64d3ccc1cdd5564a47766e7010a30314385e56f9c4d748f1741f723430db94b0"
+      },
+      {
+        "path": "src/episodios.c",
+        "blob": "3001688c4c6d56addd538b4e441b2dc84e616220",
+        "sha256": "96866bab382db7553e4c826dd7a2cd0c061bd7034b034f00e3c75f7b4d63b748"
+      },
+      {
+        "path": "src/explorar.c",
+        "blob": "9f08bed9db525959e605bda7dc30a12daa88b578",
+        "sha256": "bcceb49cb69f8c5db93c669fb2cbe125235208d632a9e676f184da274918bc0e"
+      },
+      {
+        "path": "src/faixas.c",
+        "blob": "a3da57275eb49a51a0b58e4ae2aad3f66638f4a4",
+        "sha256": "50b3cc4831c37d87cd6673800dae0067f650b1034f5a32292da7b9c9abfc5120"
+      },
+      {
+        "path": "src/guia.c",
+        "blob": "1ab23477f2ee87ee6ec32fa32783fbcadf7432bc",
+        "sha256": "8dcdec47c6b120e54522c6190720dd9f3f9f551f145f210fd6fe4b47a68aaab8"
+      },
+      {
+        "path": "src/home.c",
+        "blob": "71bb13f3ec1dca934432b9b2b662dbfe8cbc5ff3",
+        "sha256": "20f1844d4d0bcbb7e4899f5b5e85bc4133c6a75f0a645fb8560088f3bcd55eb3"
+      },
+      {
+        "path": "src/idioma_bg.h",
+        "blob": "8b50c32c5422413f2ce6cc397e58c2809acf0646",
+        "sha256": "ba77ccd9fe778b4e6426e6a251c4e2d7fe27395e18565a56695781b19a1226d8"
+      },
+      {
+        "path": "src/idioma_bs.h",
+        "blob": "6e64437459929af83f8e751090e486c115bbef2b",
+        "sha256": "993447d7b4074e95bdfd401f3d15fb66a72a8080fb086dfe61e18a948bc027eb"
+      },
+      {
+        "path": "src/idioma_cs.h",
+        "blob": "7b3701a78f72087130a8834f6ca25bcdf57f4824",
+        "sha256": "53d6ea8002cae094af275b3b71286e8506f9c210c669e428b983fa23edfc2e26"
+      },
+      {
+        "path": "src/idioma_da.h",
+        "blob": "5b402e54ec3a7d1f51436fe1efd7abce43763379",
+        "sha256": "f0d6b7cd06cd2aaeef5bdf2a20a6df695f9f8a1847e928bbf4cec3e66c401a5e"
+      },
+      {
+        "path": "src/idioma_de.h",
+        "blob": "60c77932a3ab7ab440dc05a753e6df60792763e4",
+        "sha256": "584389b68ccd838770a3ff6756aa81422b376879cebe3f4f11832f86de17b929"
+      },
+      {
+        "path": "src/idioma_el.h",
+        "blob": "b60575aae7d2dd25f525c5ed592c1604e70743bd",
+        "sha256": "057658fbbca89c29d877efc3b08ba0eacfcee5ddc5d258c297a43143d036aa95"
+      },
+      {
+        "path": "src/idioma_es.h",
+        "blob": "c73435759eab21124853d3b7fc44ccc2f3bfcc67",
+        "sha256": "02a19c0b3efddba3b3545d5ab7295aa5779089e3b99b5595cd31d87f1df9be44"
+      },
+      {
+        "path": "src/idioma_fr.h",
+        "blob": "be6650fa1960fa751ecda1435ea97dc49a21915a",
+        "sha256": "0426432fedcc9058fe0a0760881c668a28c444af90275368249162d6cb507d2f"
+      },
+      {
+        "path": "src/idioma_hu.h",
+        "blob": "9bec49c92ce5f09785ce3c601f5a8809486f6826",
+        "sha256": "9a4b072417b646409289913bb169dde798460520f464887618cdaac365fa8355"
+      },
+      {
+        "path": "src/idioma_id.h",
+        "blob": "bd5c0330a6317dcf40c2d2592d588fca10483c45",
+        "sha256": "2dc4c52a0b902539f77088b8e99dcda614b2182f719c8b1f1020fd5843a7ce5d"
+      },
+      {
+        "path": "src/idioma_it.h",
+        "blob": "ef1d33d1015f2f1555114426c9695bb307d972d7",
+        "sha256": "1e348c29375b68a71fbf5dd5c01f2d44e3d0dc9bfd64222f00fe3ee9c9b964b9"
+      },
+      {
+        "path": "src/idioma_ja.h",
+        "blob": "5aca5637e7f6af5dbd72b6aaa84d1146f9187505",
+        "sha256": "b7544c0d30b39194b75551ad7107e2333b6c93d38dadcca376fd7e1e59a8be44"
+      },
+      {
+        "path": "src/idioma_lt.h",
+        "blob": "c684a1eacf20024fb611c6c158ac81ab4a9f9932",
+        "sha256": "f5f64e0dfc90de4ed3de4342046089b4f70510a22e4414125167b30ec642e456"
+      },
+      {
+        "path": "src/idioma_nl.h",
+        "blob": "6bdbb068767a3683840ef068df8315f9b9bec9b4",
+        "sha256": "95326a6448b44b88f9adf066ec2b183ad32fac4efc4a24894365e202432f124d"
+      },
+      {
+        "path": "src/idioma_no.h",
+        "blob": "ae4793c739c3ae1bef27066ccda3b5815fec2270",
+        "sha256": "50e6fcb79d0da7ead1b2cfe0fe8e96f1a2279379c31007cc2355de578c995659"
+      },
+      {
+        "path": "src/idioma_pl.h",
+        "blob": "0f35c314b0cab574330b41fd6505a70248d0d54d",
+        "sha256": "f5437b280ff89e87e7efd01e352333bd9faa4edcef1b27db80be6f60c45f8162"
+      },
+      {
+        "path": "src/idioma_ptpt.h",
+        "blob": "7ead1b7c3cbb2d51f0d05e3e68d5cf5db2bcb064",
+        "sha256": "8aa561254d265a49b42ebce031c84b5b7959481145b98b916aa7b97d11e00b78"
+      },
+      {
+        "path": "src/idioma_ro.h",
+        "blob": "f67c0f28f85abd2420339bdb0a0f15f6dfc8aeba",
+        "sha256": "42ece99ccb26bd7d0a63be081d7734a5419fb85c499cb79f566e769db0b8d5ce"
+      },
+      {
+        "path": "src/idioma_ru.h",
+        "blob": "df477983ae0f2ffe687598f3d59d37e1393633b9",
+        "sha256": "83112df013bc7316bdc78b62210d33a392ce115ed070cc5b8c37534718882e8f"
+      },
+      {
+        "path": "src/idioma_sk.h",
+        "blob": "28c4a41948ae3f134321cd2ca08158fcaab50041",
+        "sha256": "f8389d229621f9a6efb8c64b94a5e60b4d52b8d951320d892e012fcc72057618"
+      },
+      {
+        "path": "src/idioma_sl.h",
+        "blob": "be3a04c2169d97b09462898777289e1868a25d9c",
+        "sha256": "db89e47dea84a1d77aa38535df763784b4d6bf4263b871a76ca082b3795e6bd9"
+      },
+      {
+        "path": "src/idioma_sr.h",
+        "blob": "51be1acdfb2948421fa9f4dcade783209c8d18c4",
+        "sha256": "19e0b35046385b4fb3ad6634bc2321b7898f1efc8fc1f6901b6e5b6f0d18c433"
+      },
+      {
+        "path": "src/idioma_sv.h",
+        "blob": "59335fbadcc27e0cd6c7eb9fe40d9284ead73a5f",
+        "sha256": "237cad5211cc4eb1c76904a0f59fd3445b8a7ac5e0591204ffcaf31b2a55f0fe"
+      },
+      {
+        "path": "src/idioma_tab.h",
+        "blob": "0c9639f20a15240bf3a8824f8604b1840f5a0f60",
+        "sha256": "1708764d2bb118393be986fb66d84f81a9ae7888a1b19b0065260a0abb14d657"
+      },
+      {
+        "path": "src/idioma_tr.h",
+        "blob": "34139408c12bf0b652a8f4a05ceafcbee1bf6112",
+        "sha256": "34d56905820ef489bd901c5c689998230c20e065bdec5603001dbe787321c6c2"
+      },
+      {
+        "path": "src/idioma_uk.h",
+        "blob": "36b09757aae015d8ca1fa017dc8549c1ef70da75",
+        "sha256": "b8e13077a3547a808039a94578bf7a7f3f761185657cb9d8bb57e011083bbdc2"
+      },
+      {
+        "path": "src/idioma_vi.h",
+        "blob": "7c6c680f9f58881fbc5ffe7bc8fc07a7e9b9e252",
+        "sha256": "1f22ff87f8988c234972a6f38ae51f69c56f8c0fc9dd9bd437007048465adc5c"
+      },
+      {
+        "path": "src/idioma_zhcn.h",
+        "blob": "3b37fbadb2e650fb8cbf74f0ab481faa607d256c",
+        "sha256": "85522592e43ab62453ba126cbe8693de136363e0a151957c5b0e835d4e72557c"
+      },
+      {
+        "path": "src/idioma_zhtw.h",
+        "blob": "647dd29b4df8e445913a7d273e7aeee96d0452af",
+        "sha256": "5f26a6b3702e85867375d08c2e2ccf6b2d27222ae521e9e1df1d72c7ceed5673"
+      },
+      {
+        "path": "src/layout.c",
+        "blob": "f46fe5fea1efa4750aef513491b6231cf9829a9b",
+        "sha256": "07d26ad56ac0cbfea49ee30d9d8482b3368d1445bc65bb5a145ed08b917b80fb"
+      },
+      {
+        "path": "src/layout.h",
+        "blob": "63ebefb6d452f6aeebb0dbbeed275ffbc4ee71f9",
+        "sha256": "ccc6faa888a2af844535c93a854354a737f26927810fd7179437b701b12555cc"
+      },
+      {
+        "path": "src/legendasui.c",
+        "blob": "f96c4b366cfbf0795e82c5e6a6147ac21199132a",
+        "sha256": "63e4bd8010bd70adbdef7ab77160d073ea5d2224ad58a016759c0ac8d9203cf8"
+      },
+      {
+        "path": "src/livetvdiag.c",
+        "blob": "bb8f744d6f572e64d7b752cebc1bd37d8e6f48e3",
+        "sha256": "b78dfd16710e2b98095c2d45223fa47616e8fe4ccc83f864145a5c68fb5cff0e"
+      },
+      {
+        "path": "src/menu.c",
+        "blob": "8fe75501d58c0a5a14ec835baab2080f21fccc9d",
+        "sha256": "7085cb29e0128ae1fa376574631e0aee7127ac1d08bc7ef4c3ab093db82a570f"
+      },
+      {
+        "path": "src/perfil.c",
+        "blob": "f0288b8d0e5faa112eb5c9c110049bd49e2098a1",
+        "sha256": "501d9686198b354f4bc27701bfb3d55420879d04b77c546b8bb9c7266aabd855"
+      },
+      {
+        "path": "src/perfilsel.c",
+        "blob": "c395e232c38f96397609f4b124b293dea2c309aa",
+        "sha256": "dbe8d5e91be73e67d17211e9ab5de133576f7ccd89ec66ba4827dd12d0c38690"
+      },
+      {
+        "path": "src/pessoas.c",
+        "blob": "66b77a3905fe0436651356577340ce824b2ef9b2",
+        "sha256": "8df9f956ce39bd208d15455ea1502f9b54c96e6ddcbb9e11acee2b1264d336f8"
+      },
+      {
+        "path": "src/ponteiro.c",
+        "blob": "abb43fe1fc25f8f08e373f7ac3f5d4fdd7fac7ce",
+        "sha256": "5e379adc860dd8ad4831ccf133a846a4ac7c266539078015d4ed89baea40c3b4"
+      },
+      {
+        "path": "src/posplay.c",
+        "blob": "dabb4809101b5bf8cf87edf847490304366db2d6",
+        "sha256": "6bbf0eee75ccb19cecc957c7266d1fb25553c9764965a1f0cf1fe05390fdc082"
+      },
+      {
+        "path": "src/recenviar.c",
+        "blob": "f5426760d652d402c79fc65e797d2250ceeeed6b",
+        "sha256": "fe184aca7850ae034d060c06f5ddb521b53996c8768178dca50ddc30546a9d9e"
+      },
+      {
+        "path": "src/registro.c",
+        "blob": "2ba16f016123acfa135b677f541b90803e2a2298",
+        "sha256": "e8583449002c2b6428f4ebe4eff1c3839eed7c3dbf1acc8af2908a13819d0fc0"
+      },
+      {
+        "path": "src/registro_ilha.inc",
+        "blob": "02f17e290390794491ba73ed5a36af93a85d7511",
+        "sha256": "28019062f8f2ebeb423695e6f70e9573f47f1f438f871872968b66f89b7a89b6"
+      },
+      {
+        "path": "src/rolagemtoque.h",
+        "blob": "049653ca73bb3c130b065a78bbb691c994b709c9",
+        "sha256": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e"
+      },
+      {
+        "path": "src/salvospainel.c",
+        "blob": "be74374e30a317d4249c19d4c70f8dd8dd477702",
+        "sha256": "2f4b4d0cc92b1b8391f4c679ac172117507f1098797a8316b659d92fa4aac618"
+      },
+      {
+        "path": "src/spotlight.c",
+        "blob": "26f915cc021bb3830b6a11ff77c901672afc085c",
+        "sha256": "05bc0debb10b91c26a6599f8bdb57d88188960c64f894de2c3d52629594bf7f3"
+      },
+      {
+        "path": "src/streams.c",
+        "blob": "bdc6195fdbec4b4f60a3bb3a7337040e182c07f6",
+        "sha256": "3f59b390966ab95b87506dcd3a45a4cb28eaf7f9949d9d10fabe8c7d4272ff5b"
+      },
+      {
+        "path": "src/trocaarte.c",
+        "blob": "ab571496d518627d3586265dc70f61647688d66f",
+        "sha256": "0d4e272c220375e362ed5f665de4f80d836bc1f41d44104cfbcc341d9fd45349"
+      },
+      {
+        "path": "src/vertudo.c",
+        "blob": "47810b074acc3aacbaa9ef25985e0cc3b78d7b78",
+        "sha256": "463a3cb8c3d5dbdc460f549dfbfa0c9e12abcb1e5be5da1824f258e2dea3b883"
+      },
+      {
+        "path": "tools/android/ffmpeg-android.sh",
+        "blob": "deff8b391e68d328fd6461930c6ebc779284baef",
+        "sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "tests/registro_download.py",
+        "blob": "f627c0a403f7eaadf1720a9bb9775023fe75f8c9",
+        "sha256": "a3fb899211ee6f1f63b5381dea56e423b9112df05c33d7d63fa5ef61ea76e021"
+      },
+      {
+        "path": "android/app/src/main/java/space/nuvio/nativelegacy/TouchViewport.kt",
+        "blob": "5f65cc6a38012c2687f0e8adfd023687484f58a7",
+        "sha256": "7b31a9a3e81b9452557c9563518e8d6e9fef811460310e681a584a3fdf37b209"
+      },
+      {
+        "path": "src/fontenota.c",
+        "blob": "a2ec260a4fb9dc719870c9ee8f1fe2294c7d4576",
+        "sha256": "6be79480f64d3bb283f9a1674c89f051481f0ac54bb6e080f86dec734ce5e07b"
+      },
+      {
+        "path": "src/fontenota.h",
+        "blob": "2c916bdcfb4d256de1336562fcc4985774a41925",
+        "sha256": "bc44f43d99e43a43dae0ce385b87065eb9c69b4c72043fe2e4ea26b62c1a71ba"
+      },
+      {
+        "path": "src/sinopse.c",
+        "blob": "b827dd33072b4dd739401ce2164c119c2f6986c2",
+        "sha256": "8fa1217cad43a83c833aa839cd91f5c858459bcf643731a8a7a0aa3ec4f6a56f"
+      },
+      {
+        "path": "src/sinopse.h",
+        "blob": "18c9b77e38dbf132b27505375af488b76b4ee591",
+        "sha256": "07afd19702f58d25a6a16ffc3a3f29608cca707ea13e08c9c6b00e19138d32f4"
+      }
+    ],
+    "exact_diff_paths": [
+      "README.md",
+      "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "docs/android/INTERFACE-MODES.md",
+      "src/agendaui.c",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_fileiras.inc",
+      "src/ajustes_ux_guia.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_v2.inc",
+      "src/amigoperfil.c",
+      "src/amigosfil.c",
+      "src/amigostitulo_ui.c",
+      "src/android.c",
+      "src/android.h",
+      "src/aovivoui.c",
+      "src/app.c",
+      "src/atualizacao.c",
+      "src/avisos.c",
+      "src/biblioteca.c",
+      "src/busca.c",
+      "src/central.c",
+      "src/ctxmenu.c",
+      "src/detail.c",
+      "src/diagnostico.c",
+      "src/episodios.c",
+      "src/explorar.c",
+      "src/faixas.c",
+      "src/guia.c",
+      "src/home.c",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/layout.c",
+      "src/layout.h",
+      "src/legendasui.c",
+      "src/livetvdiag.c",
+      "src/menu.c",
+      "src/perfil.c",
+      "src/perfilsel.c",
+      "src/pessoas.c",
+      "src/ponteiro.c",
+      "src/posplay.c",
+      "src/recenviar.c",
+      "src/registro.c",
+      "src/registro_ilha.inc",
+      "src/rolagemtoque.h",
+      "src/salvospainel.c",
+      "src/spotlight.c",
+      "src/streams.c",
+      "src/trocaarte.c",
+      "src/vertudo.c",
+      "tools/android/ffmpeg-android.sh"
+    ],
+    "scope": "Six original TV/mobile feature commits rebased onto current upstream; no product changes beyond conflict context integration."
+  }
+}

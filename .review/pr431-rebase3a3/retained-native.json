@@ -1,0 +1,21 @@
+{
+  "scope": "Retained actual original full macOS TV/touch producer on the identical immutable source. Not reexecuted or claimed successful by this recovery; original actual job and raw proof must independently pass before readiness.",
+  "original_run_id": 38823040157,
+  "original_job_id": 116723923708,
+  "original_run_attempt": 1,
+  "original_review_commit": "707437ac6888d8b39bcafc7d861ee444681d7727",
+  "original_source_commit": "3c9421898b3b9709a44e7cce2e63bce78b17a3d9",
+  "original_source_tree": "df0f8b6e92d8db94d59735ad5f1598ff634f23fd",
+  "original_source_base": "3a3c77b51dd51feb3b774ba2fd4ba59953c4b05b",
+  "original_plan_sha256": "e7a808b06471a73769bc4a00a0123e5f8e0584101a8ca43fb13d251843dc5ed1",
+  "original_source_manifest_sha256": "b2b902cb3b7233b19f1a329a47cae7f760c2072e796a05cd7d4eb509aa025834",
+  "original_artifact_name_templates": [
+    "pr431-rebase3a3-native-${{ github.sha }}-attempt${{ github.run_attempt }}",
+    "pr431-rebase3a3-native-proof-${{ github.sha }}-attempt${{ github.run_attempt }}"
+  ],
+  "require_actual_original_job_success_and_raw_proof_before_ready": true,
+  "source_identity_required": true,
+  "previous_pass_relabelled_as_new_execution": false,
+  "fresh_runtime_and_kotlin_passes_required": true,
+  "product_source_changed": false
+}

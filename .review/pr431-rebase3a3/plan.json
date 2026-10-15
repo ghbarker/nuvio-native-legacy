@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "3a3c77b51dd51feb3b774ba2fd4ba59953c4b05b",
+  "candidate_head": "3c9421898b3b9709a44e7cce2e63bce78b17a3d9",
+  "candidate_tree": "df0f8b6e92d8db94d59735ad5f1598ff634f23fd",
+  "review_branch": "review/pr431-rebase3a3-android-recovery-20261015",
+  "source_manifest_sha256": "b2b902cb3b7233b19f1a329a47cae7f760c2072e796a05cd7d4eb509aa025834",
+  "required_jobs": [
+    "android"
+  ],
+  "recipe_inputs": {
+    "android.py": "97dbc5b9e49a411d7f345b7886f7f1c1910db055125588dd27f55b709b0df654",
+    "android_kotlin.py": "a4d2489b716ef192741463f1d161e544e09c200ae7de871f27025bc331a75043",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "common.py": "e13a73c0426d5d9cd9d87fecdf013fba5a757076d8e0c9e5e2986537f949b1a7",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixture-compatibility.json": "09031ce044bb69a01960fec25d767642c952783fd9b59e6d983dfa89ac4ab9ed",
+    "fixture-tail-review.json": "b2be608bdb0a01a1977d87a1eca1b6b0fc06aa98e1965fb24a3ebc60e7c6485f",
+    "fixtures/pr431/android_interface_mode.py": "53bfa4013aaa6c426e908f4ff1cf52c145d5579fe240ab739425ba3f44d38eb8",
+    "fixtures/pr431/entry.py": "257ebee2581560c63bd85e5b9b0e638cdbda84fe9d8409b0e29c2e266bce46c3",
+    "fixtures/pr431/fixture-review.json": "72122d0bc05b9eaecbff11a3e1f755ca1a513ab0e5436aa4e42bfc872de4e7c7",
+    "fixtures/pr431/runtime/fixtures/agenda_runtime.c": "4e8524a500e5babb661aecb3b8b917c7fe133881f7f9b2da98934da5372b8c80",
+    "fixtures/pr431/runtime/fixtures/busca_runtime.c": "6f276b9d978ad50d783b0818bd86bd7ab806eb913874c378c7e074b53fb61efe",
+    "fixtures/pr431/runtime/fixtures/interface_layout.c": "7e4ca69d17b22f569c7084e1ab92b114f7b42e167ba4ec0a631e2c788827e094",
+    "fixtures/pr431/runtime/fixtures/scroll_runtime.c": "19ffadfcd127934a2ef2993f30184c3e14abb8b9bbf0494db6e1e447c3cd9dc4",
+    "fixtures/pr431/runtime/fixtures/settings-save-failure.c": "2a345346ffdd8cbc9e9747cd5bfd3917f0c5cf02377bbcc8a45d9850920b6995",
+    "fixtures/pr431/runtime/fixtures/settings-values.c": "767615cdac15e8ef1b18719b3434e62fc01ef3ff940ca19f286874a9126f4d32",
+    "fixtures/pr431/runtime/fixtures/settings_runtime.c": "3046ea320ba769e6e0313dd310fdeff54c1ca9c07e11fcfd013167a28d2bd6f8",
+    "fixtures/pr431/runtime/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/pr431/runtime/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "fixtures/pr431/runtime/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "fixtures/pr431/runtime.py": "b165841851a1c55b49f96314e5aa7cd4066f66a7b849b20846dc75acf3512740",
+    "focused.py": "680b8e48a71130f68de46d6f28fc20c9dc1b51e208ec805b5a0c5cfd2893d7b0",
+    "materialize.py": "ccaf78cb93248869c02a44024f88d6be1ff2c20fff19d3e0be93836cca0f35c2",
+    "preflight.py": "2700cdf68c9683291d8ea66d185c7194f4a53ca100c2cb04904c69cb9e0c7f65",
+    "retained-native.json": "c6e5df2e964e07c8fa549a1e08445d677dbcdfefbeefd1866d0f466fe05bbae0",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "fresh_runtime": {
+    "compiled_fixtures": 22,
+    "executed_cases": 70,
+    "settings_cases": 48,
+    "storage_error_geometry_cases": 12,
+    "tv_notice_observations": 12,
+    "normal_and_sanitizer_modes": [
+      "normal",
+      "address+undefined"
+    ]
+  },
+  "fresh_android_kotlin": [
+    "interface-mode",
+    "registro-download"
+  ],
+  "required_upstream_translation_units": [
+    "src/fontenota.c",
+    "src/sinopse.c"
+  ],
+  "scope": "Exactly one fresh Android producer: full runtime70 normal/ASan, two production Kotlin regressions and standard dualARM Android APK. Only the external settings tail-compatibility assertion is enhanced; product source is identical. Original actual macOS TV/touch job keeps its real run/review/source provenance and must separately pass with raw proof; no prior runtime pass is reused.",
+  "workflow_normalized_sha256": "738074fc999263610e341ea1136ca8579619cb1021a7b90e9585d881b14299ac",
+  "retained_native_source_commit": "3c9421898b3b9709a44e7cce2e63bce78b17a3d9",
+  "retained_native_source_tree": "df0f8b6e92d8db94d59735ad5f1598ff634f23fd",
+  "retained_native_run_id": 38823040157,
+  "retained_native_job_id": 116723923708,
+  "retained_native_review_commit": "707437ac6888d8b39bcafc7d861ee444681d7727"
+}

@@ -1,0 +1,161 @@
+{
+  "candidate": "3c9421898b3b9709a44e7cce2e63bce78b17a3d9",
+  "tree": "df0f8b6e92d8db94d59735ad5f1598ff634f23fd",
+  "product_unchanged": true,
+  "source_clean": true,
+  "original_fixture": "/dev/shm/pr431-3a3-ci-20261015/stage/.review/pr431-rebase3a3/fixtures/pr431/runtime/fixtures/settings_runtime.c",
+  "original_fixture_sha256": "f0061ebd4e1b9eb3bad64d325f00beb8710dfa78768dfd51611b9ee5f1d2ef14",
+  "recovery_fixture": "/dev/shm/pr431-3a3-ci-20261015/recovery/fixture-patch/settings_runtime.c",
+  "recovery_fixture_sha256": "3046ea320ba769e6e0313dd310fdeff54c1ca9c07e11fcfd013167a28d2bd6f8",
+  "fixture_diff_sha256": "ee8dad06b8ed22688c3bcdd8f8b55145a5c2964c8f805549ee88cf3731b614dc",
+  "removed_assertion": "assert(AJ_PROVEDORES_ESCOPO + 1 == AJ_N);",
+  "all_other_assertions_and_geometry_statements_byte_identical": true,
+  "runtime_driver_unchanged": true,
+  "entry_unchanged": true,
+  "runtime70_count_unchanged": true,
+  "configuration_checks": [
+    {
+      "configuration": "native-tv",
+      "operation": "C preprocessor only; no C compilation/link/execution",
+      "command": [
+        "/usr/bin/cc",
+        "-E",
+        "-P",
+        "-UNV_ANDROID",
+        "-UNV_TOUCH_UI",
+        "-I/dev/shm/pr431-3a3-ci-20261015/stage/.review/pr431-rebase3a3/fixtures/pr431/runtime/sdk",
+        "-I/dev/shm/pr431-rebase-latest3a3-20261015/source/src",
+        "/dev/shm/pr431-rebase-latest3a3-20261015/source/src/ajustes.c",
+        "-o",
+        "/dev/shm/pr431-3a3-ci-20261015/recovery/fixture-patch/native-tv.i"
+      ],
+      "preprocessed_sha256": "7c04272f80a92932368061a9ae81faff6b29a2ce7976c25c42a3396b13f6aabb",
+      "enum_count": 295,
+      "all4parallel_array_counts": [
+        295,
+        295,
+        295,
+        295
+      ],
+      "all_slots_present": true,
+      "all_initial_values_equal_defaults": true,
+      "tail": {
+        "AJ_OCULTAR_FILMES_VISTOS": 290,
+        "AJ_PROVEDORES_ESCOPO": 291,
+        "AJ_MIC_BUSCA": 292,
+        "AJ_FONTE_IDIOMA_AUDIO": 293,
+        "AJ_HERO_SINOPSE": 294,
+        "AJ_N": 295
+      },
+      "tail_key_type_default_mapping": true
+    },
+    {
+      "configuration": "native-touch",
+      "operation": "C preprocessor only; no C compilation/link/execution",
+      "command": [
+        "/usr/bin/cc",
+        "-E",
+        "-P",
+        "-UNV_ANDROID",
+        "-DNV_TOUCH_UI=1",
+        "-I/dev/shm/pr431-3a3-ci-20261015/stage/.review/pr431-rebase3a3/fixtures/pr431/runtime/sdk",
+        "-I/dev/shm/pr431-rebase-latest3a3-20261015/source/src",
+        "/dev/shm/pr431-rebase-latest3a3-20261015/source/src/ajustes.c",
+        "-o",
+        "/dev/shm/pr431-3a3-ci-20261015/recovery/fixture-patch/native-touch.i"
+      ],
+      "preprocessed_sha256": "522b8175b9f0c548c6bf67ffdbf42b06f6587ead29195edb2e39f10f98677a62",
+      "enum_count": 295,
+      "all4parallel_array_counts": [
+        295,
+        295,
+        295,
+        295
+      ],
+      "all_slots_present": true,
+      "all_initial_values_equal_defaults": true,
+      "tail": {
+        "AJ_OCULTAR_FILMES_VISTOS": 290,
+        "AJ_PROVEDORES_ESCOPO": 291,
+        "AJ_MIC_BUSCA": 292,
+        "AJ_FONTE_IDIOMA_AUDIO": 293,
+        "AJ_HERO_SINOPSE": 294,
+        "AJ_N": 295
+      },
+      "tail_key_type_default_mapping": true
+    },
+    {
+      "configuration": "android-tv",
+      "operation": "C preprocessor only; no C compilation/link/execution",
+      "command": [
+        "/usr/bin/cc",
+        "-E",
+        "-P",
+        "-DNV_ANDROID=1",
+        "-UNV_TOUCH_UI",
+        "-I/dev/shm/pr431-3a3-ci-20261015/stage/.review/pr431-rebase3a3/fixtures/pr431/runtime/sdk",
+        "-I/dev/shm/pr431-rebase-latest3a3-20261015/source/src",
+        "/dev/shm/pr431-rebase-latest3a3-20261015/source/src/ajustes.c",
+        "-o",
+        "/dev/shm/pr431-3a3-ci-20261015/recovery/fixture-patch/android-tv.i"
+      ],
+      "preprocessed_sha256": "29b1c75f961a16cd0639315fe42962c27c004451bb4ae5ca413fb8a0357ad3b1",
+      "enum_count": 296,
+      "all4parallel_array_counts": [
+        296,
+        296,
+        296,
+        296
+      ],
+      "all_slots_present": true,
+      "all_initial_values_equal_defaults": true,
+      "tail": {
+        "AJ_OCULTAR_FILMES_VISTOS": 290,
+        "AJ_PROVEDORES_ESCOPO": 291,
+        "AJ_MIC_BUSCA": 292,
+        "AJ_FONTE_IDIOMA_AUDIO": 293,
+        "AJ_BAIXAR_REGISTRO": 294,
+        "AJ_HERO_SINOPSE": 295,
+        "AJ_N": 296
+      },
+      "tail_key_type_default_mapping": true
+    },
+    {
+      "configuration": "android-touch",
+      "operation": "C preprocessor only; no C compilation/link/execution",
+      "command": [
+        "/usr/bin/cc",
+        "-E",
+        "-P",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-I/dev/shm/pr431-3a3-ci-20261015/stage/.review/pr431-rebase3a3/fixtures/pr431/runtime/sdk",
+        "-I/dev/shm/pr431-rebase-latest3a3-20261015/source/src",
+        "/dev/shm/pr431-rebase-latest3a3-20261015/source/src/ajustes.c",
+        "-o",
+        "/dev/shm/pr431-3a3-ci-20261015/recovery/fixture-patch/android-touch.i"
+      ],
+      "preprocessed_sha256": "176835a9dc79d0c1de017b16b166b54b82b9f5f929fa91d0bf29fe62acf6da85",
+      "enum_count": 296,
+      "all4parallel_array_counts": [
+        296,
+        296,
+        296,
+        296
+      ],
+      "all_slots_present": true,
+      "all_initial_values_equal_defaults": true,
+      "tail": {
+        "AJ_OCULTAR_FILMES_VISTOS": 290,
+        "AJ_PROVEDORES_ESCOPO": 291,
+        "AJ_MIC_BUSCA": 292,
+        "AJ_FONTE_IDIOMA_AUDIO": 293,
+        "AJ_BAIXAR_REGISTRO": 294,
+        "AJ_HERO_SINOPSE": 295,
+        "AJ_N": 296
+      },
+      "tail_key_type_default_mapping": true
+    }
+  ],
+  "scope": "Static/preprocessor compatibility proof only. Fresh runtime70 normal/ASan and Android SDK recovery remains required; no pass for those executions claimed."
+}
