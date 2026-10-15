@@ -1,0 +1,59 @@
+{
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "local_commit": "872bd4299398348c7aaa4dd2c54ec401d339df0d",
+  "tree": "8a302b793ece4b2de525fcab4aba05af5ddbe5f1",
+  "source_root": "/workspace/review/subtitle-pr511-20261015/source",
+  "branch": "feat/subtitle-track-names-511",
+  "original_tested_clean_commit": "039b50d4f6d9eaea05504d906e77b2b3b6538a56",
+  "files": [
+    {
+      "path": "src/faixasmkv.c",
+      "mode": "100644",
+      "sha": "b22faaa74b0739cccd3cf6be726280bb60220c88",
+      "sha256": "b7ec26ae34e9ba0821adfeb6830ce1b0f04fdd0df1ef4a20c4a4ee9ee732bc4f",
+      "bytes": 11358
+    },
+    {
+      "path": "src/legendasui.c",
+      "mode": "100644",
+      "sha": "d57d6f5bc3eb6747cc39024ae6d25ad8e4518661",
+      "sha256": "fd333e4c06fa1bbcf6f4546d4806b03ed03ca384f9af6db56671b798164b0014",
+      "bytes": 54923
+    },
+    {
+      "path": "src/legendasui.h",
+      "mode": "100644",
+      "sha": "f9dff04337bfac711b2e4c85c2f26e37ffb3796f",
+      "sha256": "7f75d644b65a9a1d6cbd49681da5d7034895c9f31fde9c271c6086f1aea3eaa2",
+      "bytes": 6011
+    },
+    {
+      "path": "src/video.c",
+      "mode": "100644",
+      "sha": "e54614c1d78a24e47b103b9b51ee351732fd23e5",
+      "sha256": "1578b933c40edf7a83986ed0e1e90e732b03ddadb6c9add5cc6c760c493bb85b",
+      "bytes": 179681
+    },
+    {
+      "path": "src/video.h",
+      "mode": "100644",
+      "sha": "098fbc9ebb12d609eaf018c324c1a8e39636c265",
+      "sha256": "3358c53d6878d30b52595eadb9d93a96c0aec696637290dcca74df4c23db6ba5",
+      "bytes": 28844
+    },
+    {
+      "path": "src/video_android.c",
+      "mode": "100644",
+      "sha": "44f93f28c656f8ff6a1cc341de3df4eb19f68c4e",
+      "sha256": "1b8d0cd54dce442e4f154e517fdf9d3acbb72bce56402da2e755af429242eb4f",
+      "bytes": 49460
+    },
+    {
+      "path": "src/video_tizen.c",
+      "mode": "100644",
+      "sha": "713935b30e59c58856cfa3df102a46f41185d574",
+      "sha256": "5c4b5f1f500ae1352134ab61c84661d20b2eff2afbe47d3f05418b69b58cfbd6",
+      "bytes": 75909
+    }
+  ]
+}

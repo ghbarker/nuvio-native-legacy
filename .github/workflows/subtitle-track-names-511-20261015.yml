@@ -1,0 +1,142 @@
+name: 'Subtitle track names below language: exact clean source validation'
+'on':
+  push:
+    branches:
+    - review/subtitle-track-names-511-20261015
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: subtitle511-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: 'Subtitle names: full TV/touch and subtitle regressions (macOS)'
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize and verify exact pinned product source
+      run: python3 .review/subtitle511/build/verify_source.py --target source-app --proof build/review/source-verified.json
+    - uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: subtitle511-brew-v1-${{ runner.os }}-${{ runner.arch }}-sdl2-sdl3-image-ttf-ffmpeg
+        restore-keys: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+    - name: Native SDK and real SDL libraries
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+    - name: Add only link-time SDL3 rpath while preserving all original compiler flags
+      run: 'set -euo pipefail
+
+        compiler="$(command -v cc)"
+
+        sdl3_library="$(brew --prefix sdl3)/lib"
+
+        test -d "$sdl3_library"
+
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+
+        cp .review/subtitle511/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"'
+    - name: Fresh full TV/touch builds and original/focused subtitle checks
+      working-directory: source-app
+      env:
+        NUVIO_SUBTITLE_REVIEW: ${{ github.workspace }}/.review/subtitle511
+        NUVIO_SUBTITLE_RESULTS: ${{ github.workspace }}/build/review/native
+      run: bash "$NUVIO_SUBTITLE_REVIEW/build/run_native.sh"
+    - name: Reverify pinned product source after native checks
+      run: python3 .review/subtitle511/build/verify_source.py --target source-app --proof build/review/source-verified.json --reverify
+      if: always()
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: subtitle511-native-${{ github.sha }}
+        path: build/review/
+        retention-days: 14
+        if-no-files-found: error
+  android:
+    name: 'Subtitle names: standard Android ARM32/ARM64'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      NUVIO_ANDROID_JOBS: '2'
+      NUVIO_BUILD_JOBS: '2'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/subtitle511/build/verify_source.py --case "standalone-subtitles" --target source-app --proof "build/review/standalone-subtitles/source-verified.json"
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - uses: gradle/actions/setup-gradle@v4
+    - name: Install required Android/native build tools
+      run: 'sudo apt-get update -qq
+
+        sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev
+
+        sdkmanager ''platforms;android-35'' ''build-tools;35.0.0'' ''ndk;27.2.12479018'' ''cmake;3.22.1''
+
+        '
+    - uses: actions/cache@v4
+      with:
+        path: ~/.cache/nuvio-android
+        key: android-rebase-native-v2-${{ runner.os }}-ndk27.2.12479018-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh',
+          'source-app/tools/android.sh', 'source-app/tools/android-apk-pages.py', 'source-app/android/app/src/main/cpp/CMakeLists.txt')
+          }}
+        restore-keys: 'android-rebase-native-v2-${{ runner.os }}-ndk27.2.12479018-
+
+          android-touch-native-v1-${{ runner.os }}-'
+    - name: Configure the standard application build without modifying product sources
+      env:
+        NUVIO_TOUCH_CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+      working-directory: source-app
+      run: "python3 - <<'PYCFG'\nimport os\nfrom pathlib import Path\nbody = os.environ.get('NUVIO_TOUCH_CORE_PROPERTIES', '')\nif not\
+        \ body:\n    raise SystemExit('Required application build configuration is missing')\npath = Path('build/android/product.properties')\n\
+        path.parent.mkdir(parents=True, exist_ok=True)\npath.write_text(body)\npath.chmod(0o600)\nPYCFG\necho \"NUVIO_PROPERTIES=$GITHUB_WORKSPACE/source-app/build/android/product.properties\"\
+        \ >> \"$GITHUB_ENV\"\n"
+    - name: Recipe-verified native ARM dependencies (reuse identical dependency builds)
+      working-directory: source-app
+      run: /bin/bash tools/android/deps.sh arm64-v8a armeabi-v7a
+    - name: Unchanged production Android tool, actual ARM32 and ARM64 cores
+      working-directory: source-app
+      env:
+        NUVIO_P2P_MOTOR: none
+        NUVIO_REQUIRE_CORE: '1'
+      run: /bin/bash tools/android.sh
+    - name: Verify actual standard APK, ARM cores, 16KB and source-derived DEX/JNI descriptors
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/subtitle511/build/android_verify.py" --case "standalone-subtitles" --output "$GITHUB_WORKSPACE/build/review/standalone-subtitles/android"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/subtitle511/build/verify_source.py --case "standalone-subtitles" --target source-app --proof "build/review/standalone-subtitles/source-verified.json"
+        --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: subtitle511-android-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
