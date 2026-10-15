@@ -8,12 +8,12 @@ import urllib.request
 repo = os.environ['GITHUB_REPOSITORY']
 assert repo == 'ghbarker/nuvio-native-legacy'
 headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
-base = 'https://api.github.com/repos/' + repo + '/actions/runs/38667419517'
+base = 'https://api.github.com/repos/' + repo + '/actions/runs/38668819623'
 end = time.monotonic() + 1800
 while True:
     with urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30) as response:
         value = json.load(response)
-    assert value['head_sha'] == 'bb8d91167afa69b78a79722e12f40633a81df1c8'
+    assert value['head_sha'] == '2501484817c26215e5128110a3bd90529986cac0'
     assert value['run_attempt'] == 1
     if value['status'] == 'completed':
         break

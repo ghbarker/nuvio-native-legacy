@@ -13,7 +13,7 @@ reuse = json.loads((root / 'reuse-receipt.json').read_text())
 assert reuse['outcome'] == 'passed' and reuse['source_candidates_changed'] is False
 reused = {(r['case'], r['gate']): r for r in reuse['reused']}
 replaced = {(r['case'], r['gate']) for r in reuse['replaced']}
-assert len(reused) == 21 and len(replaced) == 7 and not set(reused) & replaced
+assert len(reused) == 23 and len(replaced) == 5 and not set(reused) & replaced
 reports = []
 for case_id, gate in sorted(set(reused) | replaced):
     path = root / case_id / gate / 'verified.json'
@@ -34,11 +34,11 @@ for case_id, gate in sorted(set(reused) | replaced):
 assert len(reports) == 28
 receipt = {'outcome': 'passed', 'review_commit': os.environ['GITHUB_SHA'], 'base': value['base'],
     'cases': [{'pr': c['pr'], 'id': c['id'], 'source_commit': c['head'], 'source_tree': c['tree']} for c in value['cases']],
-    'required_gates': reports, 'required_gate_count': len(reports), 'reused_required_gates': 21,
-    'repaired_required_gates': 7, 'product_tests_or_workflows_added': False,
+    'required_gates': reports, 'required_gate_count': len(reports), 'reused_required_gates': 23,
+    'repaired_required_gates': 5, 'product_tests_or_workflows_added': False,
     'diagnostic_jobs_counted_as_test_passes': False,
-    'ci_speed_changes': ['Repair three independent reduced-fixture groups in parallel',
-        'Reuse 21 successful exact-source gates with original run/job/hash provenance',
+    'ci_speed_changes': ['Retest the complete remaining tracker and HTTP batch',
+        'Reuse23 successful exact-source gates with original run/job/hash provenance',
         'Bounded concurrent wait for remaining original gates', 'Upload proofs and logs without intermediate binaries']}
 (root / 'all-required-gates-verified.json').write_text(json.dumps(receipt, indent=2) + '\n')
-print('All28 required gates passed:',21,'unchanged-source passes reused and7 repaired gates rerun')
+print('All28 required gates passed:',23,'unchanged-source passes reused and5 repaired gates rerun')

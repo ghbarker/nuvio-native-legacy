@@ -6,6 +6,8 @@ args=sys.argv[1:];root=Path(os.environ['PROFILE_LEGACY_COMPANIONS']);extra=[];la
 if 'tests/jellyfin.c' in args:
  args[args.index('tests/jellyfin.c')]=str(root/'tests/jellyfin.c')
  label='original HTTP assertions with initialized secret buffer'
+if 'tests/plex.c' in args or 'tests/emby.c' in args:
+ extra.append(str(root/'epoch.c'))
 if 'tests/player_android_retomada.c' in args:
  extra.append(str(root/'android-player-preload-off.c'))
 if 'tests/perfilsel.c' in args:
