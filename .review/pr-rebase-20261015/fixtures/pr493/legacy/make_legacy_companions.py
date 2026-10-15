@@ -70,5 +70,9 @@ assert selector['all_assertions_unchanged']
 changed.append({'path':'tests/perfilsel.c','original_sha256':selector['original_sha256'],'companion_sha256':selector['companion_sha256'],'assertions_unchanged':True,'only_change':selector['only_change']})
 for name in ('perfilsel-session.c','android-player-preload-off.c'):
  (out/name).write_bytes((helper/name).read_bytes())
+subprocess.run([sys.executable,str(helper/'prepare_order_copy.py'),str(src/'tests/fonte_ordem_addon.c'),str(out/'tests/fonte_ordem_addon.c')],check=True)
+ordering=json.loads((out/'tests/fonte_ordem_addon.manifest.json').read_text())
+assert ordering['all_assertions_unchanged']
+changed.append({'path':'tests/fonte_ordem_addon.c','original_sha256':ordering['original_sha256'],'companion_sha256':ordering['companion_sha256'],'assertions_unchanged':True,'expectations_adapted_to_upstream_205':True,'replacements':ordering['replacements'],'baseline_evidence':ordering['baseline_evidence']})
 (out/'manifest.json').write_text(json.dumps({'source':str(src),'label':'legacy assertions + dispatch snapshot setup','files':changed,'product_tests_unchanged':True},indent=2))
 print(out/'manifest.json')

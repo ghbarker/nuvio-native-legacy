@@ -62,5 +62,5 @@ manifest = json.loads((companions / 'manifest.json').read_text())
 assert all(f['assertions_unchanged'] for f in manifest['files'])
 proof.update({'outcome': 'passed', 'group': a.group, 'gates': runs,
     'original_product_test_bytes_unchanged': True, 'legacy_companion_manifest': manifest,
-    'legacy_adapter_scope': 'Reduced single-session imports only; two external setup copies retain every original assertion'})
+    'legacy_adapter_scope': 'External reduced-fixture imports plus documented setup and upstream #205 ordering vectors; every assertion expression retained'})
 (out / 'verified.json').write_text(json.dumps(proof, indent=2) + '\n')

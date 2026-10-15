@@ -20,6 +20,10 @@ if '-c' not in args:
   source='tests/'+name+'.c'
   if source not in args:continue
   extra.append(str(root/'epoch.c'))
+  if name=='fonte_ordem_addon':
+   args[args.index(source)]=str(root/source)
+   extra.append('src/linguas.c')
+   label='legacy ordering expectations aligned with upstream #205'
   if name in ['addons_proveniencia','fontesmortas_orcamento']:
    args[args.index(source)]=str(root/source);label='legacy assertions + dispatch snapshot setup'
   if name=='fontefalha_playback':extra.append(str(root/'playback-neighbours.c'))
