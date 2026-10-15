@@ -1,0 +1,30 @@
+{
+  "base_commit": "a267cf58784f40a5f26dd79d1f959ab2369e6e8b",
+  "branch": "review/public-log-download-macos-retry-20261015",
+  "source_commit": "1cd707586a5bc94579904e5601de996e62326067",
+  "source_tree": "8cd25f39ec183133a61456ad56cdd78e5475cb89",
+  "product_changes": false,
+  "android_rebuilt": false,
+  "new_validation": "Complete macOS TV/touch full-source builds, original four suites, original auto-send sanitizer replay and translation scan; early SDK sanity on same driver",
+  "successful_android_origin": {
+    "run_id": 38674815293,
+    "job_id": 116225902823,
+    "artifact_id": 11946190514,
+    "artifact_zip_sha256": "067e27a19e3af189ed07948e8fa9301e4cecfb75e1dc005847281b5ebcf17e11"
+  },
+  "original_macos_failure_preserved": {
+    "job_id": 116225903161,
+    "conclusion": "failure",
+    "cause": "Direct absolute Xcode clang bypassed Apple SDK compiler driver; unchanged source standard headers missing",
+    "counted_as_pass": false
+  },
+  "new_source_ref_gate": "Fresh macOS job success AND strict successful original Android job/artifact/source/APK/JNI verification; normal non-force exact feature ref push only",
+  "pr_release_or_backend_actions": false,
+  "semantic_workflow_preflight": {
+    "one_compiler_setup": true,
+    "no_xcrun_export": true,
+    "driver_capture_before_wrapper_PATH": true,
+    "sdk_immediately_before_exact_original_full_run_native": true,
+    "no_android_job": true
+  }
+}
