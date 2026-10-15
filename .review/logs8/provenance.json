@@ -1,0 +1,118 @@
+{
+  "upstream": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "features": [
+    {
+      "original_commit": "8b20bfdfe657af7a4d815dfd362f618bb7312b48",
+      "integrated_commit": "e3082c529e7c7a37227b190acbe36d6b7f607880",
+      "title": "Add automatic TV and Mobile modes to the standard Android APK"
+    },
+    {
+      "original_commit": "dbf67f6996404a7465ca3e9ecf7175f0f43b753b",
+      "integrated_commit": "79326c2bc2ab74744553ed904d2c9fc7255e2808",
+      "title": "Add a per-profile option to hide watched movies from discovery"
+    },
+    {
+      "original_commit": "5694694cc764faa727fe5574cf451f6b5c740ffc",
+      "integrated_commit": "cbb7348456b8765291b722af1ea6c1e89f14d606",
+      "title": "Isolate profile sessions and reset profile-owned state on opening"
+    },
+    {
+      "original_commit": "acb7208b3a106fb27f0b0d2ba39a4d161d3011e7",
+      "integrated_commit": "58ff8422f63f28bb7cfc1bbd07e698f3a4b2a3f4",
+      "title": "Subtitles: show track names below their language"
+    },
+    {
+      "original_commit": "ac81ae7ef86668fe975efdbabb26aabfd8c43d83",
+      "integrated_commit": "713d72bd50d9260190416e94b53c1f7efd875408",
+      "title": "Episode-card manual source selection and ownership"
+    },
+    {
+      "original_commit": "09728e7019a8f9ed8f211b9b58a79ff141c5d4ed",
+      "integrated_commit": "7cd3fd703ccc2e2f7ae5b9163062ed03d88b52ba",
+      "title": "fix: upgrade recommendation poster fallback when backdrop arrives"
+    },
+    {
+      "original_commit": "4a15f8e0c539bbbf1112f61cdc4feb460ef2e4bc",
+      "integrated_commit": "61851aec31b0cdc256d2a7f53d9db58501faaa88",
+      "title": "refactor: expose selected detail artwork with title ownership"
+    },
+    {
+      "original_commit": "a2a2c3e978bfe9c618474d40011e14d1c78d7fcf",
+      "integrated_commit": "7d3e97d8ba88c5f3315e69be8ea61bab383f8266",
+      "title": "feat: keep clear title artwork on the Cinema loading screen"
+    },
+    {
+      "original_commit": "d0a512c8ed0f2d8214f395a1bbd4995a3a0fe42a",
+      "integrated_commit": "81e541b593fd1d5446e549b209b6a17f0dfdaf75",
+      "title": "fix: upgrade temporary Cinema poster when title backdrop arrives"
+    },
+    {
+      "original_commit": "5b70915f57144cd4ebbc8dc92d62f5914360a791",
+      "integrated_commit": "95c218e48e22b64d3ad2d0f526c1ae6fcd3ccdf1",
+      "title": "Prioritize Continue Watching within isolated profile sessions"
+    },
+    {
+      "original_commit": "e42cbe1f60d0534b460c17f75c12f174c11077ac",
+      "integrated_commit": "43b62046a784a9d399b09d75b6609b5b2f41225b",
+      "title": "sources: show cached-ready debrid indicator in the source list"
+    },
+    {
+      "original_commit": "01d757a233800f4d199b21b30fe96eb039187949",
+      "integrated_commit": "179b26a5f04f5ecfe6b3adc78380bcd0823eb12b",
+      "title": "sources: integrate shared exclusions with profile provider setup"
+    },
+    {
+      "original_commit": "664d42095a80eb65e5869562989233aba02fdf12",
+      "integrated_commit": "753399e5b485194e90214a29c89e22290850fb14",
+      "title": "Use the chosen audio language in the sources filter"
+    },
+    {
+      "original_commit": "1cd707586a5bc94579904e5601de996e62326067",
+      "integrated_commit": "0c6bf8c41318d096d007e0c79400f24cca99ae64",
+      "title": "Add Android log downloads alongside existing reporting"
+    },
+    {
+      "original_commit": "cf8c5ca4b395ad902a6390ae3311fa9c68c1b8f4",
+      "integrated_commit": "6875a5078a28f91419ad9c79ee0284bc1cd7f98c",
+      "title": "Complete temporary title artwork after synopsis metadata arrives"
+    },
+    {
+      "original_commit": "259bf6c338db581d9ba99fa4d89438127734c76c",
+      "integrated_commit": "5d49a73ef8ef61119b3ef8b08d3c5dd756e45e21",
+      "title": "Keep the first-run log tip inside the Mobile canvas"
+    },
+    {
+      "original_commit": "86b48ae3ef66cce013d60adaa6b2d000b1264493",
+      "integrated_commit": "3b4b90e86e2ccdb7eb0d014c974933513f0d6095",
+      "title": "fix: expose add-on block reordering on mobile"
+    },
+    {
+      "original_commit": "202700e378d20234ae06f34b3a1a840e014fc709",
+      "integrated_commit": "1cd4520feb509dc8a7319c90a0aceabbe53bda47",
+      "title": "fix(android): close unavailable settings explanations by touch"
+    },
+    {
+      "original_commit": "1de446824eb09ec25bda402e54dd26024e6fab65",
+      "integrated_commit": "a70118cc3c553d7dae9f817c93a1144371877f51",
+      "title": "sources: preserve declared audio outside exclusion taxonomy"
+    },
+    {
+      "original_commit": "8c9c3aea743e78f6724a00731edf892713cc4f2c",
+      "integrated_commit": "69a816a479457a34f07b4e6de24d37e374a81cc4",
+      "title": "fix(android): show inline settings save feedback on mobile"
+    },
+    {
+      "original_commit": "9ae2e69b3a5b6de8c09c7195674664743084192d",
+      "integrated_commit": "68b520db152b7473be3500d04e01ca5bd4424719",
+      "title": "Yield retained PiP to Mobile Settings editors"
+    }
+  ],
+  "conflicts": "merge-resolutions.json",
+  "private_overlay": {
+    "parent": "68b520db152b7473be3500d04e01ca5bd4424719",
+    "commit": "260c83a604b2a35787714a2946566d1dfd049704",
+    "scope": "NV_TEST_LOCAL_LOGS diagnostics/snapshot supplier and compatible package/label/code/persistent-signer hook only; no old private chooser/row/JNI"
+  },
+  "frozen_feature_roots_untouched": true,
+  "test_tree_unchanged": true
+}

@@ -1,0 +1,100 @@
+{
+  "purpose": "Review-only source-bound Logs8 standard product and account-compatible Android build recipe",
+  "publication": "No workflow launch, commit, push, release, or asset upload performed",
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20018,
+    "version_name": "2.0.18-test-logs8",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "source_binding": "Adjacent plan.json and materializer proofs at execution time; helpers reject unfrozen plans by default and use no hardcoded product/test commits. Test identity/signing already pinned by its overlay and is verified without mutations. Standard product only gets an exact temporary debug signer hook.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "e41e056d40e77b0f4fd1d05fd911e712a5efd7551618f14f3c93249ccbde41ca"
+    },
+    {
+      "path": "cleanup_private.py",
+      "sha256": "ef2b7d6e0243be2ceacf3940edb4d3c6ff3f9fb6d27924aa9f65bb80a38cb96b"
+    },
+    {
+      "path": "common.py",
+      "sha256": "79a4e6168b1a0dc12e6657e06b72ea5dcaf73c31df2b7ac63142344151f2a327"
+    },
+    {
+      "path": "dex_methods.py",
+      "sha256": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285"
+    },
+    {
+      "path": "job-fragment.json",
+      "sha256": "660c2bc44b1580317fa1f8b11261b1fb2cffac568bf8b14aa7afe4792857c89e"
+    },
+    {
+      "path": "legacy-jni-descriptors.json",
+      "sha256": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1"
+    },
+    {
+      "path": "make_job.py",
+      "sha256": "97d20508ac0f24b9ada306b021606fdf5af800ce21a4d8d067e78fb5314805f2"
+    },
+    {
+      "path": "prepare_env.py",
+      "sha256": "936d40fe99413d82fbfc4e76f9cf9e86cdabfdcc95efd649ed8e92633e979bb7"
+    },
+    {
+      "path": "prepare_source.py",
+      "sha256": "562794831e6a7662bfe47421695d54dba92c2c8c04268f509e41b34cd02f603f"
+    },
+    {
+      "path": "record_cache.py",
+      "sha256": "db234ad53db1b0688235b847f975595f95cd979bb263afc4a9269fbb480a9022"
+    },
+    {
+      "path": "run.py",
+      "sha256": "6989f3c908f9a2b6acf72e6ddc30079680f8cbd754c4ceb9c3f1046c167b4e8e"
+    },
+    {
+      "path": "verify_apk.py",
+      "sha256": "70983cf388437fea3dcd8e8104ace30867cbccc0b0488c344c7b28561c2bb538"
+    }
+  ],
+  "unchanged_copied_utilities": [
+    {
+      "origin": "/workspace/review/log-download-pr-20261015/review/dex_methods.py",
+      "destination": "dex_methods.py",
+      "sha256": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285"
+    },
+    {
+      "origin": "/workspace/review/subtitle-logs6-build-20261015/legacy-jni-descriptors.json",
+      "destination": "legacy-jni-descriptors.json",
+      "sha256": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1"
+    }
+  ],
+  "adapted_origins": [
+    "/workspace/review/issue513-apk-20261015/verify_apk.py",
+    "/workspace/review/log-download-pr-20261015/review/verify_android.py",
+    "/workspace/review/subtitle-logs6-build-20261015/verify_log_build.py",
+    "/workspace/review/subtitle-logs6-build-20261015/verify_jni.py"
+  ],
+  "local_preflight": {
+    "receipt": "/workspace/review/integration-logs8-20261015/android-recipe-preflight/receipt.json",
+    "sha256": "b262b5583ea98d0a7463adec63e20940b2db0b9d9ae556e066c866a48d197aff",
+    "gates": 26,
+    "all_passed": true,
+    "scope": "Local offline recipe source transforms/restoration, fail-closed guards, job structure, prior accepted DEX utility checks only; no Android build/SDK/device/signature execution claimed"
+  },
+  "ci_verification_required": [
+    "Final frozen source materialization and original tests preservation",
+    "Complete actual standard product and compatible test Android Kotlin/ARM32/ARM64 compilation",
+    "Actual APK DEX/JNI methods, original legacy overloads and public Download bridge",
+    "Actual package/version/label/FileProvider/persistent signing certificate",
+    "Actual 16KB page packaging and required native libs/assets",
+    "Test-only diagnostics present/enabled only in test layer",
+    "Exact tracked source restoration and final source proof"
+  ],
+  "review_prefix": ".review/logs8",
+  "job_fragment": "job-fragment.json",
+  "verifier_hardening": "Independently reconstructed singleton product signer insertion; test changes[] empty; source-proof SHA256 and CI GITHUB_SHA binding enforced.",
+  "cache_optimization": "Unchanged Logs8 primary keys, ordered proven Android-touch fallback families, safe explicit hit/restore receipt and job summary. Production deps.sh always runs for both layers and remains authoritative for recipe/NDK stamps."
+}

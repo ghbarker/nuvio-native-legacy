@@ -1,0 +1,391 @@
+{
+  "name": "Logs8 integrated review build",
+  "on": {
+    "push": {
+      "branches": [
+        "review/logs8-integration-20261015"
+      ]
+    },
+    "workflow_dispatch": {
+      "inputs": {
+        "plan_sha256": {
+          "description": "SHA256 of the root-frozen plan.json",
+          "required": false,
+          "type": "string"
+        }
+      }
+    }
+  },
+  "env": {
+    "LOGS8_PLAN_SHA": "efac80b5b9436720e32e16a8124f9b49b8e71d7d70d244afe6d82640e804f48b"
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "logs8-review-${{ github.ref }}",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "native": {
+      "runs-on": "macos-14",
+      "timeout-minutes": 45,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require the exact root-frozen plan",
+          "env": {
+            "INPUT_PLAN_SHA": "${{ inputs.plan_sha256 }}"
+          },
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path(\".review/logs8/plan.json\")\nexpected=os.environ['LOGS8_PLAN_SHA']\nassert hashlib.sha256(p.read_bytes()).hexdigest()==expected, 'Wrong frozen plan hash'\nprovided=os.environ.get('INPUT_PLAN_SHA','')\nassert not provided or provided==expected, 'Manual input must match the pinned push plan'\nassert json.loads(p.read_text())['frozen'], 'Review-only plan has not been frozen'\nCHECK\n"
+        },
+        {
+          "name": "Materialize and verify product/test commit objects and unchanged tests",
+          "run": "python3 .review/logs8/materialize.py --layer product --output source-product --proof build/review/logs8/product-source.json --base-repository \"$GITHUB_WORKSPACE\"\npython3 .review/logs8/materialize.py --layer test --output source-test --proof build/review/logs8/test-source.json --base-repository \"$GITHUB_WORKSPACE\"\n"
+        },
+        {
+          "name": "Install real SDL SDK and pin the system C driver",
+          "run": "brew install sdl2 sdl2_image sdl2_ttf\necho \"LOGS8_REAL_CC=/usr/bin/cc\" >> \"$GITHUB_ENV\"\n/usr/bin/cc --version\n"
+        },
+        {
+          "name": "Complete TV/touch product and private app links plus focused actual C normal/sanitized",
+          "run": "python3 .review/logs8/native/run.py --product source-product --test source-test --output build/review/logs8/native --cc \"$LOGS8_REAL_CC\" --product-proof build/review/logs8/product-source.json --test-proof build/review/logs8/test-source.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs8-native-${{ github.sha }}",
+            "path": "build/review/logs8",
+            "if-no-files-found": "error"
+          }
+        }
+      ]
+    },
+    "kotlin": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 15,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require the exact root-frozen plan",
+          "env": {
+            "INPUT_PLAN_SHA": "${{ inputs.plan_sha256 }}"
+          },
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path(\".review/logs8/plan.json\")\nexpected=os.environ['LOGS8_PLAN_SHA']\nassert hashlib.sha256(p.read_bytes()).hexdigest()==expected, 'Wrong frozen plan hash'\nprovided=os.environ.get('INPUT_PLAN_SHA','')\nassert not provided or provided==expected, 'Manual input must match the pinned push plan'\nassert json.loads(p.read_text())['frozen'], 'Review-only plan has not been frozen'\nCHECK\n"
+        },
+        {
+          "name": "Materialize and verify product/test commit objects and unchanged tests",
+          "run": "python3 .review/logs8/materialize.py --layer product --output source-product --proof build/review/logs8/product-source.json --base-repository \"$GITHUB_WORKSPACE\"\npython3 .review/logs8/materialize.py --layer test --output source-test --proof build/review/logs8/test-source.json --base-repository \"$GITHUB_WORKSPACE\"\n"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "21"
+          }
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.cache/nuvio-kotlin-preflight",
+            "key": "logs8-kotlin-tools-${{ hashFiles('.review/logs8/kotlin/tools.json') }}"
+          }
+        },
+        {
+          "name": "Run actual integrated Download and private snapshot32contracts",
+          "run": "python3 .review/logs8/kotlin/run.py --source source-test --output build/review/logs8/kotlin --tools \"$HOME/.cache/nuvio-kotlin-preflight\" --source-proof build/review/logs8/test-source.json"
+        },
+        {
+          "name": "Bind only15unchanged historical player contracts to exact current graph",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/logs8/runtime/verify_reuse.py --source source-test --source-proof build/review/logs8/test-source.json --output build/review/logs8/player-reuse --repository \"$GITHUB_REPOSITORY\""
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs8-kotlin-player-${{ github.sha }}",
+            "path": "build/review/logs8",
+            "if-no-files-found": "error"
+          }
+        }
+      ]
+    },
+    "android": {
+      "name": "Logs8 clean product and compatible test APK (ARM32/ARM64)",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 90,
+      "permissions": {
+        "contents": "read"
+      },
+      "env": {
+        "LOGS8_REVIEW_ROOT": ".review/logs8",
+        "NUVIO_ANDROID_JOBS": "2",
+        "NUVIO_BUILD_JOBS": "2"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require the exact root-frozen plan",
+          "env": {
+            "INPUT_PLAN_SHA": "${{ inputs.plan_sha256 }}"
+          },
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path(\".review/logs8/plan.json\")\nexpected=os.environ['LOGS8_PLAN_SHA']\nassert hashlib.sha256(p.read_bytes()).hexdigest()==expected, 'Wrong frozen plan hash'\nprovided=os.environ.get('INPUT_PLAN_SHA','')\nassert not provided or provided==expected, 'Manual input must match the pinned push plan'\nassert json.loads(p.read_text())['frozen'], 'Review-only plan has not been frozen'\nCHECK\n"
+        },
+        {
+          "name": "Materialize and verify final product and isolated test layers",
+          "run": "python3 .review/logs8/materialize.py --layer product --output \"$GITHUB_WORKSPACE/source-product\" --proof \"$GITHUB_WORKSPACE/build/review/logs8/product-source.json\" --base-repository \"$GITHUB_WORKSPACE\"\npython3 .review/logs8/materialize.py --layer test --output \"$GITHUB_WORKSPACE/source-test\" --proof \"$GITHUB_WORKSPACE/build/review/logs8/test-source.json\" --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install real Android and native build SDKs",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "name": "Prepare private configuration and persistent debug signing",
+          "env": {
+            "NUVIO_TOUCH_CORE_PROPERTIES": "${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}",
+            "NUVIO_TOUCH_DEBUG_KEYSTORE_B64": "${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}"
+          },
+          "run": "python3 .review/logs8/android/prepare_env.py --output \"$RUNNER_TEMP/nuvio-logs8-private\""
+        },
+        {
+          "uses": "actions/cache/restore@v4",
+          "id": "native-cache",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "logs8-native-v2-${{ runner.os }}-${{ hashFiles('source-product/tools/android/deps.sh', 'source-product/tools/android/ffmpeg-android.sh', 'source-product/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "logs8-native-v2-${{ runner.os }}-\nandroid-touch-native-v1-${{ runner.os }}-"
+          }
+        },
+        {
+          "uses": "actions/cache/restore@v4",
+          "id": "gradle-cache",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "logs8-gradle-v2-${{ runner.os }}-${{ hashFiles('source-product/android/**/*.gradle.kts', 'source-product/android/gradle/wrapper/gradle-wrapper.properties', 'source-test/android/**/*.gradle.kts') }}",
+            "restore-keys": "logs8-gradle-v2-${{ runner.os }}-\nandroid-touch-gradle-${{ runner.os }}-"
+          }
+        },
+        {
+          "name": "Record safe cache restoration outcomes",
+          "env": {
+            "LOGS8_NATIVE_CACHE_PRIMARY": "${{ steps.native-cache.outputs.cache-primary-key }}",
+            "LOGS8_NATIVE_CACHE_MATCHED": "${{ steps.native-cache.outputs.cache-matched-key }}",
+            "LOGS8_NATIVE_CACHE_HIT": "${{ steps.native-cache.outputs.cache-hit }}",
+            "LOGS8_GRADLE_CACHE_PRIMARY": "${{ steps.gradle-cache.outputs.cache-primary-key }}",
+            "LOGS8_GRADLE_CACHE_MATCHED": "${{ steps.gradle-cache.outputs.cache-matched-key }}",
+            "LOGS8_GRADLE_CACHE_HIT": "${{ steps.gradle-cache.outputs.cache-hit }}"
+          },
+          "run": "python3 .review/logs8/android/record_cache.py --output build/review/logs8/cache-restoration.json"
+        },
+        {
+          "name": "Build and verify clean standard product APK with both ARM cores",
+          "run": "python3 .review/logs8/android/run.py --layer product --source source-product --source-proof build/review/logs8/product-source.json --output build/review/logs8/android-product --jobs 2"
+        },
+        {
+          "name": "Build and verify account-compatible Logs8 update with isolated diagnostics",
+          "run": "python3 .review/logs8/android/run.py --layer test --source source-test --source-proof build/review/logs8/test-source.json --output build/review/logs8/android-test --jobs 2"
+        },
+        {
+          "name": "Record only safe cache/output presence",
+          "id": "outputs",
+          "if": "always()",
+          "run": "if [[ -d \"$HOME/.cache/nuvio-android\" ]]; then echo 'native_cache=true' >> \"$GITHUB_OUTPUT\"; fi\nif [[ -d \"$HOME/.gradle/caches\" || -d \"$HOME/.gradle/wrapper\" ]]; then echo 'gradle_cache=true' >> \"$GITHUB_OUTPUT\"; fi"
+        },
+        {
+          "uses": "actions/cache/save@v4",
+          "if": "always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-primary-key != ''",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "${{ steps.native-cache.outputs.cache-primary-key }}"
+          }
+        },
+        {
+          "uses": "actions/cache/save@v4",
+          "if": "always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true' && steps.gradle-cache.outputs.cache-primary-key != ''",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "${{ steps.gradle-cache.outputs.cache-primary-key }}"
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs8-android-${{ github.sha }}",
+            "path": "build/review/logs8/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "name": "Delete private runner configuration",
+          "if": "always()",
+          "run": "python3 .review/logs8/android/cleanup_private.py --directory \"$RUNNER_TEMP/nuvio-logs8-private\""
+        }
+      ]
+    },
+    "original3": {
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "suite": [
+            "fontepref",
+            "fontepref_file",
+            "player_retido"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require the exact root-frozen plan",
+          "env": {
+            "INPUT_PLAN_SHA": "${{ inputs.plan_sha256 }}"
+          },
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path(\".review/logs8/plan.json\")\nexpected=os.environ['LOGS8_PLAN_SHA']\nassert hashlib.sha256(p.read_bytes()).hexdigest()==expected, 'Wrong frozen plan hash'\nprovided=os.environ.get('INPUT_PLAN_SHA','')\nassert not provided or provided==expected, 'Manual input must match the pinned push plan'\nassert json.loads(p.read_text())['frozen'], 'Review-only plan has not been frozen'\nCHECK\n"
+        },
+        {
+          "name": "Materialize and verify product/test commit objects and unchanged tests",
+          "run": "python3 .review/logs8/materialize.py --layer product --output source-product --proof build/review/logs8/product-source.json --base-repository \"$GITHUB_WORKSPACE\"\npython3 .review/logs8/materialize.py --layer test --output source-test --proof build/review/logs8/test-source.json --base-repository \"$GITHUB_WORKSPACE\"\n"
+        },
+        {
+          "name": "Install the same real SDK libraries and pin system compiler before wrapper PATH",
+          "run": "brew install sdl2 sdl2_image sdl2_ttf sdl3\n/usr/bin/cc --version\n"
+        },
+        {
+          "name": "Replay the unchanged original full-source ownership sanitizer script",
+          "run": "python3 .review/logs8/original3/run.py --source source-product --source-proof build/review/logs8/product-source.json --suite \"${{ matrix.suite }}\" --wrapper .review/logs8/original3/cc_rpath.py --output build/review/logs8/original-${{ matrix.suite }}"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs8-original-${{ matrix.suite }}-${{ github.sha }}",
+            "path": "build/review/logs8",
+            "if-no-files-found": "error"
+          }
+        }
+      ]
+    },
+    "review-ready": {
+      "runs-on": "ubuntu-24.04",
+      "needs": [
+        "native",
+        "kotlin",
+        "android",
+        "original3"
+      ],
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require the exact root-frozen plan",
+          "env": {
+            "INPUT_PLAN_SHA": "${{ inputs.plan_sha256 }}"
+          },
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path(\".review/logs8/plan.json\")\nexpected=os.environ['LOGS8_PLAN_SHA']\nassert hashlib.sha256(p.read_bytes()).hexdigest()==expected, 'Wrong frozen plan hash'\nprovided=os.environ.get('INPUT_PLAN_SHA','')\nassert not provided or provided==expected, 'Manual input must match the pinned push plan'\nassert json.loads(p.read_text())['frozen'], 'Review-only plan has not been frozen'\nCHECK\n"
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "logs8-native-${{ github.sha }}",
+            "path": "review-results/native"
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "logs8-kotlin-player-${{ github.sha }}",
+            "path": "review-results/kotlin"
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "logs8-android-${{ github.sha }}",
+            "path": "review-results/android"
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "logs8-original-fontepref-${{ github.sha }}",
+            "path": "review-results/original-fontepref"
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "logs8-original-fontepref_file-${{ github.sha }}",
+            "path": "review-results/original-fontepref_file"
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "logs8-original-player_retido-${{ github.sha }}",
+            "path": "review-results/original-player_retido"
+          }
+        },
+        {
+          "name": "Bind all successful receipts to the exact frozen source and identity",
+          "run": "python3 .review/logs8/aggregate.py --results review-results --output build/review/logs8/all-gates-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "with": {
+            "name": "logs8-all-gates-${{ github.sha }}",
+            "path": "build/review/logs8/all-gates-verified.json",
+            "if-no-files-found": "error"
+          }
+        }
+      ]
+    }
+  }
+}

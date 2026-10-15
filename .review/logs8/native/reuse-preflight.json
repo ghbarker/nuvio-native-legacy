@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "scope": "Pure recipe fail-closed reuse preflight, no application runtime claim",
+  "gates": [
+    "equal translation sets accepted",
+    "identical complete dependency closure reused",
+    "empty snapshot rejected",
+    "empty depfile rejected",
+    "missing source dependency rejected",
+    "wrong object target rejected",
+    "missing dependency rejected",
+    "test-only C unit rejected",
+    "same-byte macro-sensitive closure recompiled",
+    "changed private dependency recompiled",
+    "mutated compiled dependency rejected"
+  ]
+}

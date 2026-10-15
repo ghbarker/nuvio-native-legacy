@@ -1,0 +1,177 @@
+{
+  "outcome": "passed",
+  "source_commit": "04612e42fc58776d947062e908d32ce7322e58cf",
+  "review_commit": "1eac5860820e6e8b142140ceccd054ea02956793",
+  "case": "combined-delivery",
+  "source_scope": "complete combined product candidate",
+  "real_media3_version": "1.8.0",
+  "emulator": "API35 x86_64",
+  "required_tests": [
+    "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+    "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults",
+    "cancelQueuedRequestsAndStaleTokensStaySilent",
+    "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+    "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+    "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+    "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+    "localDownloadUsesDocumentPickerAndPreventsStackedRequests",
+    "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
+    "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
+    "localLogResultWritesRedactedFileThroughContentResolver",
+    "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
+    "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+    "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+    "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+    "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+    "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset",
+    "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+    "percentageResumeAndCacheAreTransferredAndHeadersMustMatch",
+    "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition"
+  ],
+  "original_v1_contracts": [
+    "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+    "cancelQueuedRequestsAndStaleTokensStaySilent",
+    "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+    "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+    "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+    "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+    "percentageResumeAndCacheAreTransferredAndHeadersMustMatch",
+    "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition"
+  ],
+  "startup_tests": [
+    "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults",
+    "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+    "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+    "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+    "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+    "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+    "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset"
+  ],
+  "required_test_classes": {
+    "space.nuvio.preloadtest.PreloadContractTest": [
+      "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+      "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+      "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+      "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+      "cancelQueuedRequestsAndStaleTokensStaySilent",
+      "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition",
+      "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+      "percentageResumeAndCacheAreTransferredAndHeadersMustMatch"
+    ],
+    "space.nuvio.preloadtest.StartupContractTest": [
+      "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset",
+      "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+      "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+      "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+      "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+      "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+      "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults"
+    ],
+    "space.nuvio.preloadtest.LocalLogsContractTest": [
+      "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
+      "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
+      "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
+      "localDownloadUsesDocumentPickerAndPreventsStackedRequests",
+      "localLogResultWritesRedactedFileThroughContentResolver"
+    ]
+  },
+  "test_classes_seen": {
+    "space.nuvio.preloadtest.LocalLogsContractTest": [
+      "localDownloadUsesDocumentPickerAndPreventsStackedRequests",
+      "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
+      "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
+      "localLogResultWritesRedactedFileThroughContentResolver",
+      "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions"
+    ],
+    "space.nuvio.preloadtest.PreloadContractTest": [
+      "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+      "cancelQueuedRequestsAndStaleTokensStaySilent",
+      "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+      "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+      "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+      "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+      "percentageResumeAndCacheAreTransferredAndHeadersMustMatch",
+      "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition"
+    ],
+    "space.nuvio.preloadtest.StartupContractTest": [
+      "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults",
+      "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+      "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+      "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+      "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+      "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+      "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset"
+    ]
+  },
+  "fixture_manifest_sha256": "77ebcbd7ed8a0d99106a7d99bea829a926d181a8ccf404cd354acc803e8b1599",
+  "tests_seen": [
+    "adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack",
+    "audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults",
+    "cancelQueuedRequestsAndStaleTokensStaySilent",
+    "earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack",
+    "earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks",
+    "highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork",
+    "hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption",
+    "localDownloadUsesDocumentPickerAndPreventsStackedRequests",
+    "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
+    "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
+    "localLogResultWritesRedactedFileThroughContentResolver",
+    "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
+    "nextEpisodePercentageResumeAndCancellationPreserveCurrentSession",
+    "nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition",
+    "nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice",
+    "nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault",
+    "opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset",
+    "pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay",
+    "percentageResumeAndCacheAreTransferredAndHeadersMustMatch",
+    "resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition"
+  ],
+  "exact_staged_product_sources": [
+    {
+      "path": "space/nuvio/nativelegacy/AudioSyncSink.kt",
+      "sha256": "3ea9927c8b80b9b4e7f9dbb8984cb40e1fe3d9bfaa01fcde2d1a9230a40bc0c1"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/AudioSyncTap.kt",
+      "sha256": "f0fcc355cb73a0b127e34ad3edc379cf81678dfd35152199fc5b5597c28d8263"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/CacheMidia.kt",
+      "sha256": "494606fb18b683dc7ed5a4d78a1b7790870deeccd24e445132179f59adca303d"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/CacheSessao.kt",
+      "sha256": "c05a8bcc909cb7df877fb19689d3dd3ee7d91825c4d6867da30dc8d462eb6b10"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/GanhoAudioProcessor.kt",
+      "sha256": "0d0a1c721a8edfe2049d4f69155c86c5f6a7be351e96a2129669a6b34112947c"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/GanhoMath.kt",
+      "sha256": "c4776a36ab0b4e33b07b1d70ebaa265ad04dea564b242156163de93a464d5129"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/NvPlayer.kt",
+      "sha256": "09288bbb2f24163b85933e1c84d3ff39a1072c5fada9faf3b4672d1c7b360c90"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/ParaleloDataSource.kt",
+      "sha256": "0123ec85f436876cab0642fa0d6882f303b1f5a007d7e428850b723aed567d17"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/PassivoMedidor.kt",
+      "sha256": "4f3f738b254fef1c519d9ace6ca60e05cadeec7aa35db3cb778a75cdc4fdd2c4"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/RecriaHdr.kt",
+      "sha256": "fe57b92377d316d5ef1bd4a58c6864dfc14270751e158c923e6a8004bf1b1933"
+    },
+    {
+      "path": "space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "sha256": "b273084725e91d9e5c3fdac79c8248b5ad90fe0a218e74c04cf7a8a9418bd038"
+    }
+  ],
+  "probe_scope": "Real NvPlayer and Media3 with tiny Activity and JNI doubles; production FFmpeg decoder extension absent",
+  "physical_device_startup_validation": "pending"
+}

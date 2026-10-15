@@ -1,0 +1,94 @@
+[
+  {
+    "feature": "493",
+    "path": "src/ajustes.c",
+    "ours": "  // #366: discovery rows only, per profile on this device. Append-only.\n  AJ_OCULTAR_FILMES_VISTOS,\n",
+    "theirs": "  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile\n",
+    "result": "  // #366: discovery rows only, per profile on this device. Append-only.\n  AJ_OCULTAR_FILMES_VISTOS,\n  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile\n"
+  },
+  {
+    "feature": "493",
+    "path": "src/ajustes.c",
+    "ours": "  ESC(\"Ocultar filmes assistidos\", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal\n",
+    "theirs": "\n  ESC(\"Configuração dos provedores\", V_PROVEDORES_ESCOPO, 2),\n\n",
+    "result": "  ESC(\"Ocultar filmes assistidos\", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal\n\n  ESC(\"Configuração dos provedores\", V_PROVEDORES_ESCOPO, 2),\n\n"
+  },
+  {
+    "feature": "493",
+    "path": "src/ajustes.c",
+    "ours": "  \"hideWatchedMoviesLocal\",\n",
+    "theirs": "\n  \"-provedoresEscopo\",\n\n",
+    "result": "  \"hideWatchedMoviesLocal\",\n\n  \"-provedoresEscopo\",\n\n"
+  },
+  {
+    "feature": "493",
+    "path": "src/ajustes_ux_padrao.inc",
+    "ours": "  1, /* hide watched movies (#366): Desligado, per profile on this device */\n",
+    "theirs": "  0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */\n",
+    "result": "  1, /* hide watched movies (#366): Desligado, per profile on this device */\n  0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */\n"
+  },
+  {
+    "feature": "493",
+    "path": "src/descoberta.c",
+    "ours": "  if (geracaoPaginas != generation) { geracaoPaginas = generation; paginas = 0; }\n  paginas++;\n  antes = vtProjetar();\n",
+    "theirs": "  NvPerfilSessao sessao = vtSessao;\n",
+    "result": "  if (geracaoPaginas != generation) { geracaoPaginas = generation; paginas = 0; }\n  paginas++;\n  antes = vtProjetar();\n  NvPerfilSessao sessao = vtSessao;\n"
+  },
+  {
+    "feature": "493",
+    "path": "src/descoberta.c",
+    "ours": "    if(generation!=vtGeracao){pthread_mutex_unlock(&vtTrava);free(lote);continue;}\n    int seguir = 0;\n",
+    "theirs": "    if(generation!=vtGeracao || !descSessaoAtual()){pthread_mutex_unlock(&vtTrava);free(lote);continue;}\n",
+    "result": "    if(generation!=vtGeracao || !descSessaoAtual()){pthread_mutex_unlock(&vtTrava);free(lote);continue;}\n    int seguir = 0;\n"
+  },
+  {
+    "feature": "493",
+    "path": "src/home.c",
+    "ours": "#ifdef NV_TOUCH_UI\n  if (!telefoneui_ativo()) { toqueHomeLimpar(); toqueHeroCancelar(); }\n#endif\n",
+    "theirs": "  // Nao conservar ponteiros para o catalogo de outro quadro/perfil quando\n  // nenhuma tela de titulo publica um item (pasta, social ou estado vazio).\n  temItemFoco = 0;\n",
+    "result": "#ifdef NV_TOUCH_UI\n  if (!telefoneui_ativo()) { toqueHomeLimpar(); toqueHeroCancelar(); }\n#endif\n  // Nao conservar ponteiros para o catalogo de outro quadro/perfil quando\n  // nenhuma tela de titulo publica um item (pasta, social ou estado vazio).\n  temItemFoco = 0;\n"
+  },
+  {
+    "feature": "source_filters493_vs499",
+    "path": "src/stream_parse.c",
+    "ours": "      { char nome[1024];\n        if (js_texto_linhas(p, fim, \"name\", nome, sizeof nome) && strlen(nome) < sizeof nome - 1)\n          fhd = fhdNoNome(nome); }\n      js_texto_linhas(p, fim, \"description\", s.descricao, sizeof s.descricao);\n      js_texto_linhas(p, fim, \"title\", titulo, sizeof titulo);\n      int cache = cacheDeclarado(p, fim);\n      s.emCache = cache > 0 || (cache == 0 && marcaEmCache(p, fim));\n",
+    "theirs": "      if (textoRaizLinhas(p, fim, \"name\", nomeFonte, sizeof nomeFonte) && strlen(nomeFonte) < sizeof nomeFonte - 1)\n        fhd = fhdNoNome(nomeFonte);\n      textoRaizLinhas(p, fim, \"description\", s.descricao, sizeof s.descricao);\n      textoRaizLinhas(p, fim, \"title\", titulo, sizeof titulo);\n",
+    "result": "      if (textoRaizLinhas(p, fim, \"name\", nomeFonte, sizeof nomeFonte) && strlen(nomeFonte) < sizeof nomeFonte - 1)\n        fhd = fhdNoNome(nomeFonte);\n      textoRaizLinhas(p, fim, \"description\", s.descricao, sizeof s.descricao);\n      textoRaizLinhas(p, fim, \"title\", titulo, sizeof titulo);\n      int cache = cacheDeclarado(p, fim);\n      s.emCache = cache > 0 || (cache == 0 && marcaEmCache(p, fim));\n",
+    "why": "Anchored metadata and validated audio filter bridge coexist with explicit confirmed cache-ready metadata."
+  },
+  {
+    "feature": "public_log_download",
+    "path": "src/ajustes.c",
+    "ours": "  // #366: discovery rows only, per profile on this device. Append-only.\n  AJ_OCULTAR_FILMES_VISTOS,\n  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile\n  // Shared exclusions live in fontefalha.txt; appended device-local views.\n  AJ_FILTROS_FONTES, AJ_FILTRO_TAM_MAX, AJ_FILTRO_GRUPOS,\n",
+    "theirs": "#ifdef NV_ANDROID\n  AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes\n#endif\n",
+    "result": "  // #366: discovery rows only, per profile on this device. Append-only.\n  AJ_OCULTAR_FILMES_VISTOS,\n  AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile\n  // Shared exclusions live in fontefalha.txt; appended device-local views.\n  AJ_FILTROS_FONTES, AJ_FILTRO_TAM_MAX, AJ_FILTRO_GRUPOS,\n#ifdef NV_ANDROID\n  AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes\n#endif\n"
+  },
+  {
+    "feature": "public_log_download",
+    "path": "src/ajustes.c",
+    "ours": "  ESC(\"Ocultar filmes assistidos\", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal\n\n  ESC(\"Configuração dos provedores\", V_PROVEDORES_ESCOPO, 2),\n\n  ACAO(\"Filtros das fontes\"),\n  NUM(\"Tamanho máximo da fonte\", 0, 1000, 1, \" GB\"),\n  ACAO(\"Grupos de lançamento excluídos\"),\n",
+    "theirs": "#ifdef NV_ANDROID\n  ACAO(\"Baixar registro\"),\n#endif\n",
+    "result": "  ESC(\"Ocultar filmes assistidos\", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal\n\n  ESC(\"Configuração dos provedores\", V_PROVEDORES_ESCOPO, 2),\n\n  ACAO(\"Filtros das fontes\"),\n  NUM(\"Tamanho máximo da fonte\", 0, 1000, 1, \" GB\"),\n  ACAO(\"Grupos de lançamento excluídos\"),\n#ifdef NV_ANDROID\n  ACAO(\"Baixar registro\"),\n#endif\n"
+  },
+  {
+    "feature": "public_log_download",
+    "path": "src/ajustes.c",
+    "ours": "  \"hideWatchedMoviesLocal\",\n\n  \"-provedoresEscopo\",\n\n  \"-filtrosFontes\", \"-filtroTamanhoMax\", \"-filtroGrupos\",\n",
+    "theirs": "#ifdef NV_ANDROID\n  \"-baixarRegistro\",\n#endif\n",
+    "result": "  \"hideWatchedMoviesLocal\",\n\n  \"-provedoresEscopo\",\n\n  \"-filtrosFontes\", \"-filtroTamanhoMax\", \"-filtroGrupos\",\n#ifdef NV_ANDROID\n  \"-baixarRegistro\",\n#endif\n"
+  },
+  {
+    "feature": "public_log_download",
+    "path": "src/ajustes_ux_padrao.inc",
+    "ours": "  1, /* hide watched movies (#366): Desligado, per profile on this device */\n  0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */\n  0, 0, 0, /* shared exclusions parent, max-size view, release-group editor */\n",
+    "theirs": "#ifdef NV_ANDROID\n  0, /* Baixar registro: acao local, sem preferencia gravada */\n#endif\n",
+    "result": "  1, /* hide watched movies (#366): Desligado, per profile on this device */\n  0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */\n  0, 0, 0, /* shared exclusions parent, max-size view, release-group editor */\n#ifdef NV_ANDROID\n  0, /* Baixar registro: acao local, sem preferencia gravada */\n#endif\n"
+  },
+  {
+    "feature": "public_log_download",
+    "path": "src/android.h",
+    "ours": "// Android device classification captured before SDL starts; never a screen heuristic.\nint android_interface_mobile_auto(void);\n",
+    "theirs": "// Salva uma copia local do registro pelo seletor de arquivos do Android.\n// As mensagens ja vem traduzidas; nao envia nem altera o registro original.\nvoid android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha);\n",
+    "result": "// Android device classification captured before SDL starts; never a screen heuristic.\nint android_interface_mobile_auto(void);\n// Salva uma copia local do registro pelo seletor de arquivos do Android.\n// As mensagens ja vem traduzidas; nao envia nem altera o registro original.\nvoid android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha);\n"
+  }
+]

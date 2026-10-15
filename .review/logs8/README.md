@@ -1,0 +1,7 @@
+This is a review-only Logs8 build stage. Source product and private-test commits are transported in one hash-bound Git bundle and materialized separately. Original upstream tests are unchanged. No PR, tag, release or backend action is performed by this workflow.
+
+The exact review/logs8-integration-20261015 push branch runs complete macOS TV/touch product and private links, source-focused normal/ASan/UBSan checks, three unchanged original full-source ownership sanitizer scripts,32 newly executed Kotlin log contracts, precisely scoped reuse of15 unchanged historical player contracts, and standard/compatible ARM32+ARM64 APK signature/16KB/DEX/JNI checks. All receipts must match the frozen source, tree, plan and review SHA.
+
+The native object optimization is restricted to the same invocation with equal translation-unit sets, captured complete dependency hashes and no sensitivity to the one differing private macro. Every macro-sensitive/changed closure is recompiled. The three original ownership scripts use the previously successful SDL3-rpath-only wrapper and keep their flags, sources and assertions.
+
+CI launch remains a root action after payload review and required local/owner preflight acceptance. Source layer pins and expected update identity are in plan.json. The private test APK keeps space.nuvio.nativelegacy.touch, persistent signer862d7ef6..., and versionCode20018; no uninstall is needed.

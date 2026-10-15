@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "frozen": true,
+  "source_frozen": true,
+  "launch_requires_root_review": true,
+  "review_only": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "sources": {
+    "product": {
+      "commit": "68b520db152b7473be3500d04e01ca5bd4424719",
+      "tree": "f6debd8de31ac9ef6d0dbbde6922627b578a92e9",
+      "parent": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "532f9b2910070fc628dd97d2d474902791eb173657051b37c6ffdbcc4e42f595",
+      "delta_patch_sha256": "73799532680f3bf3173546052b28f7501e590f904c4258b788a318b44cdb6a2b"
+    },
+    "test": {
+      "commit": "260c83a604b2a35787714a2946566d1dfd049704",
+      "tree": "149fe2a25368e1c4b54de999daef5b95dc7b86d2",
+      "parent": "68b520db152b7473be3500d04e01ca5bd4424719",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "abb9931f1e987ed90a1edd424594ab52dcc41b0d1f97b0c63f76d5ce8f7405c3",
+      "delta_patch_sha256": "d8dc680ed3f9017e076bfce808c4d3bc091260df0cad205dbf68b35bef3451a4"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20018,
+    "version_name": "2.0.18-test-logs8",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "bb0efd19a708fdcf520d7f4b7ff0d4020088a96e806c84eb4cf3b46a15015919",
+    "bytes": 1079607
+  },
+  "pending": [
+    "Root payload review and final focused owner receipt acceptance; no launch from this workroot"
+  ],
+  "reuse_runtime_scope": "Only unchanged15player tests may be considered for hash-bound reuse. All5old privateDownload tests are invalidated; integrated32download JVM contracts newly executed."
+}
