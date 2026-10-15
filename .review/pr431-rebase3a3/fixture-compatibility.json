@@ -1,0 +1,29 @@
+{
+  "scope": "Static compatibility and unchanged fixture provenance only; fresh CI execution pending.",
+  "candidate": "3c9421898b3b9709a44e7cce2e63bce78b17a3d9",
+  "tree": "df0f8b6e92d8db94d59735ad5f1598ff634f23fd",
+  "base": "3a3c77b51dd51feb3b774ba2fd4ba59953c4b05b",
+  "source_review_sha256": "809bdbefb9556bdc14f3cd72e32db541c7f7b6ff53ffb2434acd9c56e20cc6c8",
+  "all_runtime_and_android_fixture_bytes_unchanged": true,
+  "fixture_files_sha256": {
+    "android_interface_mode.py": "53bfa4013aaa6c426e908f4ff1cf52c145d5579fe240ab739425ba3f44d38eb8",
+    "entry.py": "257ebee2581560c63bd85e5b9b0e638cdbda84fe9d8409b0e29c2e266bce46c3",
+    "fixture-review.json": "72122d0bc05b9eaecbff11a3e1f755ca1a513ab0e5436aa4e42bfc872de4e7c7",
+    "runtime/fixtures/agenda_runtime.c": "4e8524a500e5babb661aecb3b8b917c7fe133881f7f9b2da98934da5372b8c80",
+    "runtime/fixtures/busca_runtime.c": "6f276b9d978ad50d783b0818bd86bd7ab806eb913874c378c7e074b53fb61efe",
+    "runtime/fixtures/interface_layout.c": "7e4ca69d17b22f569c7084e1ab92b114f7b42e167ba4ec0a631e2c788827e094",
+    "runtime/fixtures/scroll_runtime.c": "19ffadfcd127934a2ef2993f30184c3e14abb8b9bbf0494db6e1e447c3cd9dc4",
+    "runtime/fixtures/settings-save-failure.c": "2a345346ffdd8cbc9e9747cd5bfd3917f0c5cf02377bbcc8a45d9850920b6995",
+    "runtime/fixtures/settings-values.c": "767615cdac15e8ef1b18719b3434e62fc01ef3ff940ca19f286874a9126f4d32",
+    "runtime/fixtures/settings_runtime.c": "f0061ebd4e1b9eb3bad64d325f00beb8710dfa78768dfd51611b9ee5f1d2ef14",
+    "runtime/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "runtime/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "runtime/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "runtime.py": "b165841851a1c55b49f96314e5aa7cd4066f66a7b849b20846dc75acf3512740"
+  },
+  "runtime_option_compatibility_sha256": "e75f57d94a66e5e8929f235a4c7a699097f4f756774304d0d6252a1a894cc56a",
+  "android_kotlin_driver_unchanged": true,
+  "standard_android_verifier_delta": "Only adds required existing upstream fontenota.c/sinopse.c to actual ARM compile-unit coverage; all old checks retained.",
+  "native_driver_delta": "Removes unreachable PR526 fixture route and requires existing upstream fontenota.c/sinopse.c; all full TV/touch compile/link checks retained.",
+  "runtime_host": "Unchanged Linux-only runner executes in Ubuntu Android lane; no macOS port."
+}
