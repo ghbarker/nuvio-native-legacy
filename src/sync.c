@@ -121,6 +121,11 @@ static int addonsCedo;   // PRONTO_PUBLICAR/PRONTO_LER, ver fioPronto
 // contagem no proprio ciclo e nao volta a le-la enquanto ela e consumida.
 static int progressoCedo;
 static int progressoAplicadoCedo; // so o principal: reavaliar se os ajustes da conta mudarem
+// Ordem e colecoes nao dependem do progresso nem das subidas deste ciclo.
+// Os dois corpos deixam de pertencer ao fio depois desta porteira; nenhum
+// push os consulta. A prontidao da Home e distinta do ciclo completo aplicado.
+static int estruturaCedo, estruturaAplicada, estruturaPerfilAplicado;
+static NvPerfilSessao estruturaSessaoAplicada;
 
 static char traktTok[300];
 static int  temTraktRem;
@@ -1130,8 +1135,29 @@ static void soLeituraDaCopia(int st) {
 // ANTES disto ja esta refletido no pull deste ciclo (contapend_podar).
 static long long cicloInicioMs;
 
+typedef struct {
+  pthread_t fio;
+  int perfil, n;
+  NvPerfilSessao sessao;
+} ProgressoSync;
+
+static int progressoPuxar(int perfil, NvPerfilSessao sessao) {
+  int n = syncprog_puxar_sessao(perfil, sessao);
+  if (n >= 0 && nv_perfil_sessao_travar(sessao)) {
+    if (perfilDoCicloAtual()) PRONTO_PUBLICAR(progressoCedo, 1);
+    nv_perfil_sessao_destravar();
+  }
+  return n;
+}
+static void *fioProgresso(void *u) {
+  ProgressoSync *p = u;
+  p->n = progressoPuxar(p->perfil, p->sessao);
+  return NULL;
+}
+
 static void *rodar(void *u) {
-  int puxouAddons, nProgresso;
+  int puxouAddons, nProgresso = -1;
+  ProgressoSync *progresso = NULL;
   (void)u;
   cicloInicioMs = contapend_agora_ms();
   foraCiclo = 0;
@@ -1210,14 +1236,31 @@ static void *rodar(void *u) {
   // vez de 27 s.
   //
   if (temAddonsRem) PRONTO_PUBLICAR(addonsCedo, 1);
-  // Retomar vem antes das credenciais e das outras superficies da conta.
-  // Os addons ja foram publicados: um pull de progresso lento nao atrasa a
-  // descoberta. A aplicacao continua no principal, com as regras de recencia
-  // e pendencia local de syncprog.
-  nProgresso = syncprog_puxar_sessao(perfilDoCiclo, sessaoDoCiclo);
-  if (nProgresso >= 0) PRONTO_PUBLICAR(progressoCedo, 1);
+  // Retomar larga primeiro, mas nao e uma barreira para credenciais,
+  // colecoes ou ordem. O pedido tem perfil/sessao proprios e a caixa continua
+  // sendo aplicada no principal pelas regras de recencia de syncprog.
+  progresso = calloc(1, sizeof *progresso);
+  if (progresso) {
+    progresso->perfil = perfilDoCiclo;
+    progresso->sessao = sessaoDoCiclo;
+    if (pthread_create(&progresso->fio, NULL, fioProgresso, progresso) != 0) {
+      free(progresso); progresso = NULL;
+    }
+  }
+  // Sem memoria/fio, a mesma operacao em serie preserva o resultado.
+  if (!progresso) nProgresso = progressoPuxar(perfilDoCiclo, sessaoDoCiclo);
   puxarCredenciais();
   puxarSoLeitura();
+  // Somente estes dois corpos passam ao principal. Os pushes nao os leem;
+  // ajustesBlob, credenciais e as demais caixas conservam a porteira final.
+  PRONTO_PUBLICAR(estruturaCedo, 1);
+  // O dono do ciclo nao sai nem comeca push antes de o pull de progresso
+  // terminar. Assim nenhum pedido sobrevive aos seus dados ou a um novo sync.
+  if (progresso) {
+    pthread_join(progresso->fio, NULL);
+    nProgresso = progresso->n;
+    free(progresso);
+  }
   // Empurrar DEPOIS de puxar, como o startupSyncService do web: puxar depois
   // de empurrar faria o aparelho sobrescrever com o que ele mesmo mandou.
   // O puxado NAO e aplicado aqui, e sim em sync_passo, no fio principal — e
@@ -1339,6 +1382,7 @@ void sync_iniciar(void) {
   estado = SYNC_RODANDO;
   __atomic_store_n(&fioPronto, 0, __ATOMIC_RELAXED);
   __atomic_store_n(&progressoCedo, 0, __ATOMIC_RELAXED);
+  __atomic_store_n(&estruturaCedo, 0, __ATOMIC_RELAXED);
   progressoAplicadoCedo = 0;
   if (pthread_create(&fio, NULL, rodar, NULL) == 0) { pthread_detach(fio); fioVivo = 1; if (manualPedido) manualRodando = 1; }
   else { estado = SYNC_FALHOU; resumoFixo("sem fio para sincronizar"); }
@@ -1391,6 +1435,43 @@ static void spRelatar(void) {
   }
 }
 
+// No fio principal: consome cada corpo uma vez, antes ou no fim do ciclo.
+// Nenhum destes corpos participa de um push; o restante conserva fioPronto.
+static int aplicarEstruturaDaConta(int medir) {
+  int mudou = 0;
+  int atualizarColecoes = temColBlob || temCatHomeBlob;
+  // Uma remontagem por ciclo de sync custaria a home inteira a cada 5 minutos,
+  // e o baseline de jank desta TV nao tem essa folga; duas remontagens no mesmo
+  // quadro (addons e ordem) custariam o dobro por nada.
+  if (temCatHomeBlob && catHomeBlob) {
+    if (catordem_ler(catHomeBlob)) {
+      catordem_cache_gravar(perfis_ativo(), sessao_usuario(), catHomeBlob);
+      if (catordem_tem_ocultar_nao_lancados())
+        ajustes_definir_ocultar_nao_lancados(catordem_ocultar_nao_lancados());
+      // `hide_catalog_underline` e lido e NAO aplicado: nao ha sublinhado de
+      // catalogo desenhado neste app. Ler ja evita confundir "a conta nao
+      // mandou" com "a conta mandou false" quando a fileira ganhar rotulo.
+      mudou = 1;
+    }
+    free(catHomeBlob);
+    catHomeBlob = NULL;
+    temCatHomeBlob = 0;
+  }
+  if (medir) spMarcar(SP_ORDEM);
+  if (temColBlob && colBlob) {
+    unsigned antes = col_revisao();
+    colfileiras_receber(colBlob);
+    if (antes != col_revisao()) mudou = 1;
+    free(colBlob); colBlob = NULL; temColBlob = 0;
+  }
+  if (medir) spMarcar(SP_COLECOES);
+  // Publish account additions, removals and visibility while Settings is open;
+  // relying on the next Home draw left the editor on an older snapshot (#233).
+  if (atualizarColecoes) colfileiras_sincronizar();
+  if (medir) spMarcar(SP_SINCRONIZAR);
+  return mudou;
+}
+
 void sync_passo(unsigned agoraMs) {
   if (sessao_logada()) desc_sessao_passo();
   // Consome apenas uma resposta da conta/perfil que a pediu. A rede segue no
@@ -1422,6 +1503,18 @@ void sync_passo(unsigned agoraMs) {
         if (mudou || (nAddonsRem > 0 && antes > 0 && antes != perfilDoCiclo))
           desc_repetir_addons(); }
       temAddonsRem = 0;
+    }
+  }
+  if (PRONTO_LER(estruturaCedo)) {
+    __atomic_store_n(&estruturaCedo, 0, __ATOMIC_RELAXED);
+    if (nv_perfil_sessao_travar(sessaoDoCiclo)) {
+      if (perfilDoCicloAtual()) {
+        if (aplicarEstruturaDaConta(0)) desc_remontar_fileiras();
+        PRONTO_PUBLICAR(estruturaSessaoAplicada, sessaoDoCiclo);
+        PRONTO_PUBLICAR(estruturaPerfilAplicado, perfilDoCiclo);
+        PRONTO_PUBLICAR(estruturaAplicada, 1);
+      }
+      nv_perfil_sessao_destravar();
     }
   }
   // TAMBEM ANTES DA PORTEIRA, e por um motivo diferente do dos addons: a
@@ -1484,7 +1577,6 @@ void sync_passo(unsigned agoraMs) {
   // publica um conjunto diferente do anterior, a home carregava um catalogo,
   // trocava por outro e so entao assentava na ordem final.
   { int remontar = 0, soFileiras = 0, soAddons = 0;
-    int atualizarColecoes = temColBlob || temCatHomeBlob;
   // SO REMONTA QUANDO A LISTA MUDOU DE VERDADE. Ligar `remontar` porque a
   // resposta chegou fazia um ciclo de descoberta completo a cada cinco minutos
   // com a lista identica — ver listaIgual em addons.c.
@@ -1527,36 +1619,9 @@ void sync_passo(unsigned agoraMs) {
   if (temTmdb)      { desc_tmdb_definir(tmdbKey);   temTmdb = 0; }
   if (temMdb)       { extras_definir_chave(mdbKey); temMdb = 0; }
   spMarcar(SP_CRED);
-  // A ordem da home entra no MESMO remontar, e so quando MUDOU de verdade.
-  // Uma remontagem por ciclo de sync custaria a home inteira a cada 5 minutos,
-  // e o baseline de jank desta TV nao tem essa folga; duas remontagens no mesmo
-  // quadro (addons e ordem) custariam o dobro por nada.
-  if (temCatHomeBlob && catHomeBlob) {
-    if (catordem_ler(catHomeBlob)) {
-      catordem_cache_gravar(perfis_ativo(), sessao_usuario(), catHomeBlob);
-      if (catordem_tem_ocultar_nao_lancados())
-        ajustes_definir_ocultar_nao_lancados(catordem_ocultar_nao_lancados());
-      // `hide_catalog_underline` e lido e NAO aplicado: nao ha sublinhado de
-      // catalogo desenhado neste app. Ler ja evita confundir "a conta nao
-      // mandou" com "a conta mandou false" quando a fileira ganhar rotulo.
-      soFileiras = 1;
-    }
-    free(catHomeBlob);
-    catHomeBlob = NULL;
-    temCatHomeBlob = 0;
-  }
-  spMarcar(SP_ORDEM);
-  if (temColBlob && colBlob) {
-    unsigned antes = col_revisao();
-    colfileiras_receber(colBlob);
-    if (antes != col_revisao()) soFileiras = 1;
-    free(colBlob); colBlob = NULL; temColBlob = 0;
-  }
-  spMarcar(SP_COLECOES);
-  // Publish account additions, removals and visibility while Settings is open;
-  // relying on the next Home draw left the editor on an older snapshot (#233).
-  if (atualizarColecoes) colfileiras_sincronizar();
-  spMarcar(SP_SINCRONIZAR);
+  // A mesma aplicacao que pode ter ocorrido cedo: as caixas consumidas
+  // estao vazias, e nao repetem o parse, a gravacao nem a remontagem.
+  soFileiras |= aplicarEstruturaDaConta(1);
   // A BIBLIOTECA DA CONTA. Ler e aplicar sao passos separados de proposito:
   // contalib_ler_biblioteca pode RECUSAR a resposta (lista remota vazia com
   // lista guardada — secao 1.6, regra 1), e nesse caso o que ja esta no
@@ -1672,7 +1737,12 @@ void sync_passo(unsigned agoraMs) {
     copiaQuando = copiaQuandoCiclo;
     addonsFora = addonsCiclo;
   }
-  if (!cicloInterrompido) perfilAplicado = perfilDoCiclo;
+  if (!cicloInterrompido) {
+    perfilAplicado = perfilDoCiclo;
+    PRONTO_PUBLICAR(estruturaSessaoAplicada, sessaoDoCiclo);
+    PRONTO_PUBLICAR(estruturaPerfilAplicado, perfilDoCiclo);
+    PRONTO_PUBLICAR(estruturaAplicada, 1);
+  }
   // A VOLTA QUE FOI PEDIDA COM O FIO VIVO. So quando ela serve para algo: o
   // ciclo que acabou parou na pergunta de perfil (e a pergunta ja foi
   // respondida) ou puxou para um perfil que nao e mais o ativo. Quando a
@@ -1962,6 +2032,8 @@ void sync_trocar_perfil(int antes) {
   free(t);
   dados_apagar(nome);
   perfilAplicado = 0;
+  PRONTO_PUBLICAR(estruturaAplicada, 0);
+  __atomic_store_n(&estruturaCedo, 0, __ATOMIC_RELAXED);
   syncprog_esquecer();
 }
 
@@ -1978,6 +2050,8 @@ void sync_abrir_sessao(int antes) {
     nv_perfil_sessao_destravar();
   }
   perfilAplicado = 0;
+  PRONTO_PUBLICAR(estruturaAplicada, 0);
+  __atomic_store_n(&estruturaCedo, 0, __ATOMIC_RELAXED);
   syncprog_esquecer();
   catordemCachePerfil = -1;
   addonsRestauradosPerfil = 0;
@@ -1996,6 +2070,12 @@ void sync_abrir_sessao(int antes) {
 
 int sync_perfil_pronto(void) {
   return !fioVivo && perfilAplicado == perfis_ativo();
+}
+
+int sync_home_fontes_prontas(void) {
+  return PRONTO_LER(estruturaAplicada) &&
+         PRONTO_LER(estruturaPerfilAplicado) == perfis_ativo() &&
+         nv_perfil_sessao_atual(PRONTO_LER(estruturaSessaoAplicada));
 }
 
 void sync_proteger_ajustes_locais(void) {
@@ -2113,6 +2193,8 @@ void sync_esquecer_usuario(void) {
   psparede_esquecer();   // a parede de cada perfil (fundo "Filmes") e da conta que saiu
   syncprog_esquecer();
   __atomic_store_n(&progressoCedo, 0, __ATOMIC_RELAXED);
+  __atomic_store_n(&estruturaCedo, 0, __ATOMIC_RELAXED);
+  PRONTO_PUBLICAR(estruturaAplicada, 0);
   progressoAplicadoCedo = 0;
 
   // As caixas que o fio preenche tambem: um ciclo que terminou logo antes do
