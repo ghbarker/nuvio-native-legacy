@@ -20,7 +20,7 @@ cc "${flags[@]}" "$fixture/credfio-isolation.c" src/credfio.c src/perfis.c -o "$
 cc "${flags[@]}" "$fixture/visto-isolation.c" src/visto.c src/contapend.c src/simkl.c src/syncprog.c src/progresso.c src/trakt.c tests/stub_fichameta.c src/traktscrobble.c src/cwordem.c src/vistoep.c src/js.c src/metaprov.c src/jsw.c src/perfis.c -o "$build/visto"
 cc "${flags[@]}" "$fixture/account-removal.c" src/syncprog.c src/perfis.c src/jsw.c src/js.c -o "$build/account-removal"
 cc "${flags[@]}" "$fixture/jellyfin-reports.c" src/js.c src/jsw.c -o "$build/jellyfin-reports"
-cc "${flags[@]}" "$fixture/plex-reports.c" src/jellyfin.c src/js.c src/jsw.c -o "$build/plex-reports"
+cc "${flags[@]}" "$fixture/plex-reports.c" "$fixture/plex-report-session.c" src/jellyfin.c src/js.c src/jsw.c -o "$build/plex-reports"
 cc "${flags[@]}" "$fixture/sync-progress-isolation.c" src/syncprog.c src/perfis.c src/progresso.c src/jsw.c src/js.c -o "$build/sync-progress"
 for name in trakt simkl credfio visto account-removal jellyfin-reports plex-reports sync-progress; do "$build/$name"; done
 printf 'All eight tracker/profile integration suites passed (SANITIZE=%s).\n' "${SANITIZE:-0}"

@@ -1,0 +1,179 @@
+name: 'Rebased PRs: targeted reduced-fixture repair and exact-source pass reuse'
+'on':
+  push:
+    branches:
+    - review/pr-conflicts-retry-20261015
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: pr-rebase-targeted-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  retries:
+    name: 'Repair reduced fixtures: ${{ matrix.label }}'
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+        - label: profile-trackers-http
+          kind: behavior
+          group: ''
+          groups: trackers,trackers-existing,auth-owned,auth-existing,http
+        - label: providers
+          kind: originals
+          group: providers
+          groups: ''
+        - label: profile-state
+          kind: originals
+          group: profile-state
+          groups: ''
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-bb8d91167afa69b78a79722e12f40633a81df1c8-1
+        path: .review/pr-rebase-20261015
+        run-id: 38667419517
+        github-token: ${{ github.token }}
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "pr493" --target source-app --proof "build/review/pr493/source-verified.json"
+    - uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-sdl2-sdl3-image-ttf-ffmpeg-kotlin
+        restore-keys: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+    - name: Install real native SDK libraries
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Preserve original compiler flags and add only SDL3 link rpath
+      run: |
+        set -euo pipefail
+        compiler="$(command -v cc)"
+        sdl3_library="$(brew --prefix sdl3)/lib"
+        test -d "$sdl3_library"
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+        cp .review/pr-rebase-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"
+        /bin/bash --version | head -1
+    - name: Retest original tracker/profile/HTTP assertions with scoped missing neighbours
+      if: matrix.kind == 'behavior'
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/group_batch.py" --case pr493 --groups "${{ matrix.groups }}"
+        --output "$GITHUB_WORKSPACE/build/review/pr493"
+    - name: Retest unchanged original scripts and retain every original assertion
+      if: matrix.kind == 'originals'
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/originals.py" --group "${{ matrix.group }}" --output "$GITHUB_WORKSPACE/build/review/pr493/originals-${{
+        matrix.group }}"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "pr493" --target source-app --proof "build/review/pr493/source-verified.json"
+        --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-retry-proof-${{ matrix.label }}-${{ github.sha }}
+        path: |
+          build/review/pr493/**/*.json
+          build/review/pr493/**/*.log
+          build/review/compile/*.json
+          build/review/compile/*.txt
+        if-no-files-found: error
+        retention-days: 14
+  prior-passes:
+    name: Verify and reuse successful original exact-source gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-bb8d91167afa69b78a79722e12f40633a81df1c8-1
+        path: .review/pr-rebase-20261015
+        run-id: 38667419517
+        github-token: ${{ github.token }}
+    - name: Bounded wait for remaining original checks while repairs run in parallel
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 .review/pr-rebase-20261015/build/wait_prior.py
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: rebased-proof-*-bb8d91167afa69b78a79722e12f40633a81df1c8-1
+        path: prior-proofs
+        merge-multiple: true
+        run-id: 38667419517
+        github-token: ${{ github.token }}
+    - name: Validate successful jobs, exact source trees and original test bytes before reusing any pass
+      run: python3 .review/pr-rebase-20261015/build/verify_prior.py prior-proofs build/review/reused
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-retry-proof-prior-${{ github.sha }}
+        path: build/review/reused/
+        if-no-files-found: error
+        retention-days: 14
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-retry-prior-metadata-${{ github.sha }}
+        path: build/review/prior-*.json
+        retention-days: 14
+  verify-all:
+    name: Require all28 exact-source gates and publish verified commit statuses
+    needs:
+    - retries
+    - prior-passes
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-bb8d91167afa69b78a79722e12f40633a81df1c8-1
+        path: .review/pr-rebase-20261015
+        run-id: 38667419517
+        github-token: ${{ github.token }}
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: rebased-retry-proof-*-${{ github.sha }}
+        path: all-proofs
+        merge-multiple: true
+    - name: Reject missing, failed or incorrectly reused proof groups
+      env:
+        REQUIRED_JOB_RESULTS: ${{ toJSON(needs) }}
+      run: python3 .review/pr-rebase-20261015/build/aggregate_retry.py
+    - name: Attach verified status to each exact unchanged source candidate
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 .review/pr-rebase-20261015/build/post_status.py
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-retry-all-required-proofs-${{ github.sha }}
+        path: all-proofs/
+        retention-days: 14

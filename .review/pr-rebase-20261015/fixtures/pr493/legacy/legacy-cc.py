@@ -6,6 +6,12 @@ args=sys.argv[1:];root=Path(os.environ['PROFILE_LEGACY_COMPANIONS']);extra=[];la
 if 'tests/jellyfin.c' in args:
  args[args.index('tests/jellyfin.c')]=str(root/'tests/jellyfin.c')
  label='original HTTP assertions with initialized secret buffer'
+if 'tests/player_android_retomada.c' in args:
+ extra.append(str(root/'android-player-preload-off.c'))
+if 'tests/perfilsel.c' in args:
+ args[args.index('tests/perfilsel.c')]=str(root/'tests/perfilsel.c')
+ extra.append(str(root/'perfilsel-session.c'))
+ label='original selector assertions with captured-identity RPC transport'
 names=['fontecache_vod','fonte_ordem_addon','stream_faixas_ui','addons_proveniencia','fontefalha_worker','fontefalha_playback','addons_legendas','fontesmortas_orcamento']
 if '-c' not in args:
  for name in names:
