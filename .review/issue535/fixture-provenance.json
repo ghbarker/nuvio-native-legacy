@@ -1,0 +1,22 @@
+{
+  "accepted_fixture_sha256": "0081ae5ca76963276d630c711a26c874ab49d4868531004ee072b1af86bf97f1",
+  "accepted_runner_sha256": "39a428c5a084876fdc3b285a8e4d71e1307edbaa40c35805775b85a7075d7398",
+  "accepted_source_commit": "99f1ae66f139ba9cc384bef4f4cc00c17e2d77f7",
+  "accepted_checks_per_mode": 135,
+  "accepted_existing_resolver_calls_per_mode": 13,
+  "accepted_local_normal_receipt_sha256": "5b349921f164f79a4b13754e50fa98a838892964de1505fccd67d64ff00e05d2",
+  "accepted_local_asan_receipt_sha256": "2638efe4ef1c4a956994ce28046a6729f6899e68a5c38acf2aaaa0273de2e6e6",
+  "adaptation": "Retain all135 original assertions and13 original resolver calls. Configurable typed ajustes_idioma boundary keeps actual inline idioma_iso lookup. Append30 cached/preferred-audio composition assertions using actual included streams.c and actual linguas.c; no mocked passaChips/cacheConfirmado/audio policy. No new network/probe/resolver calls.",
+  "adapted_fixture_sha256": "75faa0b4d9600965a1beb28ced44e57225b2ce4fe5f4775632ea5b808d125a63",
+  "adapted_runner_sha256": "58179eec404cfc7ef2e9eaf1c204ea33c2162087453943b24a668973008f78a3",
+  "previous_candidate": "9eef1355b14a031b86ebc501d2d15f7467b04a7c",
+  "candidate": "b833e3169bc8e7f63815e52b76ac33d1f25a4fb9",
+  "current_base": "d02e228d9e1961e081723001c1fb00974e08db56",
+  "d02_adaptation": "All135original+30combined cache/audio assertions and13resolver calls unchanged. Link real merged fontefiltro.c/fontenota.c and update exact current parser-script unit graphs; no source-policy stubs. Prior-source local results are historical only.",
+  "candidate_source_review_receipt_sha256": "073c4e0697a896aae0dbd294924aee4de1a59012180d87308d4642529d6b431d",
+  "candidate_small_module_receipt_sha256": "348379b4ac2fadd84f4799e7fc1e5ca810beb01259648f3588b097fa5869788a",
+  "current_d02_normal_receipt_sha256": "c312c946e43f38a88824ac74907dbc222e0f12ec2b15f548dcbd6e09a79a03f8",
+  "current_d02_asan_receipt_sha256": "cb1b96297d8e4a0cf0d9b39f4bddd4748dc8399d63bd238acdf866e575cc1d3e",
+  "fixture_assertions_byte_identical_to_accepted_165": true,
+  "android_workspace_guard": "after runs only if the strictly clean before snapshot succeeded; always preserves failed-build evidence after successful snapshot."
+}
