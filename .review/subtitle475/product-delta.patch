@@ -1,0 +1,2073 @@
+diff --git a/src/ajustes.c b/src/ajustes.c
+index 89238576d4..88d1c8e39f 100644
+--- a/src/ajustes.c
++++ b/src/ajustes.c
+@@ -3,6 +3,9 @@
+ // cancela. A lista mostra valor e chevron, a ficha explica alcance e padrao.
+ // IDs, chaves persistidas e indices de valores continuam os legados.
+ #include "ajustes.h"
++#include "player.h"
++#include "legenda.h"
++#include "legenda2.h"
+ #include "ajlog.h"
+ #include "horafmt.h"
+ #include "ajustes_ux.h"
+@@ -556,6 +559,13 @@ typedef enum {
+   // #366: discovery rows only, per profile on this device. Append-only.
+   AJ_OCULTAR_FILMES_VISTOS,
+   AJ_PROVEDORES_ESCOPO, // local, append-only; 0 = shared, 1 = separate for this profile
++  // Player-backed primary style views: no second copy in ajustes.txt.
++  AJ_LEG1_TAMANHO, AJ_LEG1_FONTE, AJ_LEG1_COR, AJ_LEG1_OPACIDADE,
++  AJ_LEG1_FUNDO, AJ_LEG1_POSICAO, AJ_LEG1_BORDA, AJ_LEG1_ATRASO,
++  AJ_LEG1_NEGRITO, AJ_LEG1_COR_BORDA, AJ_LEG1_RESTAURAR,
++  // Secondary additions inherit the main appearance unless explicitly chosen.
++  AJ_LEG2_FONTE, AJ_LEG2_OPACIDADE, AJ_LEG2_POSICAO, AJ_LEG2_ATRASO,
++  AJ_LEG2_NEGRITO, AJ_LEG2_COR_BORDA, AJ_LEG2_RESTAURAR,
+   AJ_N
+ } OpcaoId;
+ _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
+@@ -665,9 +675,7 @@ static const char *V_VIDRO_FOSCO[] = { "Desligado", "Ligado" };
+ // R4: segunda legenda. 0 = No topo (como sempre); 1 = empilhada logo acima da
+ // principal, no pe da tela.
+ static const char *V_LEG2_POS[] = { "No topo", "Junto da principal" };
+-static const char *V_LEG2_TAMANHO[] = { "Automático", "60%", "80%", "100%", "120%", "140%", "160%",
+-  "170%", "180%", "190%", "200%", "210%", "220%", "230%", "240%",
+-  "250%", "260%", "270%", "280%", "290%", "300%" };
++static const char *V_LEG2_TAMANHO[] = { "Automático", "50%", "60%", "70%", "80%", "90%", "100%", "110%", "120%", "130%", "140%", "150%", "160%", "170%", "180%", "190%", "200%", "210%", "220%", "230%", "240%", "250%", "260%", "270%", "280%", "290%", "300%" };
+ static const char *V_LEG2_COR[] = { "Igual à principal", "Branco", "Amarelo", "Verde", "Azul", "Vermelho", "Preto" };
+ static const char *V_LEG2_FUNDO[] = { "Igual à principal", "Nenhum", "Escuro 25%", "Escuro 50%", "Escuro 75%", "Escuro 100%" };
+ static const char *V_LEG2_BORDA[] = { "Igual à principal", "Nenhuma", "Contorno", "Sombra" };
+@@ -776,6 +784,21 @@ static const char *V_FONTE_UI[]  = { "Inter", "LG Display", "Droid Sans",
+ // para a janela (o nivel 3 de gpunivel.h), em qualquer plataforma.
+ // Order = RES_* (resolucao.h). The old order lives only in res_migrar.
+ static const char *V_RESOLUCAO[] = { "Automática", "1080p", "4K (experimental)", "720p (leve)" };
++
++static const char *V_LEG_COR[] = { "Branco", "Amarelo", "Verde", "Azul", "Vermelho", "Preto" };
++static const char *V_LEG_COR_BORDA[] = { "Preto", "Branco", "Amarelo", "Verde", "Azul", "Vermelho" };
++static const char *V_LEG_FUNDO[] = { "Nenhum", "Escuro 25%", "Escuro 50%", "Escuro 75%", "Escuro 100%" };
++static const char *V_LEG_BORDA[] = { "Nenhuma", "Contorno", "Sombra" };
++static const char *V_LEG_OPAC[] = { "100%", "75%", "50%", "25%" };
++static const char *V_LEG_POS[] = { "1", "2", "3", "4", "5", "6", "7", "8" };
++static const char *V_LEG2_FONTE[] = { "Igual à principal", "Inter", "LG Display", "Droid Sans", "Montserrat", "Roboto", "Atkinson Hyperlegible Next", "JetBrains Sans" };
++static const char *V_LEG2_OPAC[] = { "Igual à principal", "100%", "75%", "50%", "25%" };
++static const char *V_LEG2_COR_BORDA[] = { "Igual à principal", "Preto", "Branco", "Amarelo", "Verde", "Azul", "Vermelho" };
++static const char *V_LEG2_NEGRITO[] = { "Igual à principal", "Ligado", "Desligado" };
++static const char *V_LEG2_POSICAO[] = { "Automático", "1", "2", "3", "4", "5", "6", "7", "8" };
++_Static_assert(sizeof V_FONTE_UI / sizeof *V_FONTE_UI == TXT_FAMILIA_N,
++               "Subtitle and interface font views share stable family IDs");
++
+ // `collapseSidebar`: recolhida = a rail some e o conteudo comeca em 104.
+ static const char *V_RAIL[]      = { "Recolhida", "Fixa" };
+ // `continueWatchingCardStyle`, validado em layoutPreferences.js contra
+@@ -1351,10 +1374,10 @@ static const Opcao OPCOES[AJ_N] = {
+   ACAO("Sair do Jellyfin"),
+   ESC("Mostrar opções avançadas",       V_LIGA, 2),   // local: avancadasLocal
+   ESC("Posição da segunda legenda",      V_LEG2_POS, 2),      // local: legenda2PosLocal
+-  ESC("Tamanho da segunda legenda",      V_LEG2_TAMANHO, 21),  // local: legenda2TamanhoLocal
+-  ESC("Cor da segunda legenda",          V_LEG2_COR, 7),      // local: legenda2CorLocal
+-  ESC("Fundo da segunda legenda",        V_LEG2_FUNDO, 6),    // local: legenda2FundoLocal
+-  ESC("Borda da segunda legenda",        V_LEG2_BORDA, 4),    // local: legenda2BordaLocal
++  ESC("Tamanho", V_LEG2_TAMANHO, 27),  // local: legenda2TamanhoLocal
++  ESC("Cor",          V_LEG2_COR, 7),      // local: legenda2CorLocal
++  ESC("Fundo",        V_LEG2_FUNDO, 6),    // local: legenda2FundoLocal
++  ESC("Borda",        V_LEG2_BORDA, 4),    // local: legenda2BordaLocal
+   ACAO("Endereço do Emby"),
+   ACAO("Entrar no Emby"),
+   ACAO("Sair do Emby"),
+@@ -1433,6 +1456,24 @@ static const Opcao OPCOES[AJ_N] = {
+   ESC("Ocultar filmes assistidos", V_LIGA, 2), // por perfil, local: hideWatchedMoviesLocal
+ 
+   ESC("Configuração dos provedores", V_PROVEDORES_ESCOPO, 2),
++  NUM("Tamanho", TXT_LEG_PCT_MIN, TXT_LEG_PCT_MAX, 10, "%"),
++  ESC("Fonte da legenda", V_FONTE_UI, TXT_FAMILIA_N),
++  ESC("Cor", V_LEG_COR, VIDEO_LEG_NCORES),
++  ESC("Opacidade", V_LEG_OPAC, 4),
++  ESC("Fundo", V_LEG_FUNDO, 5),
++  ESC("Posição", V_LEG_POS, 8),
++  ESC("Borda", V_LEG_BORDA, 3),
++  NUM("Atraso", -LEG_ATRASO_MANUAL_MAX, LEG_ATRASO_MANUAL_MAX, 100, " ms"),
++  ESC("Negrito", V_LIGA, 2),
++  ESC("Cor da borda", V_LEG_COR_BORDA, VIDEO_LEG_NCORES),
++  ACAO("Restaurar padrão"),
++  ESC("Fonte da legenda", V_LEG2_FONTE, TXT_FAMILIA_N + 1),
++  ESC("Opacidade", V_LEG2_OPAC, 5),
++  ESC("Posição", V_LEG2_POSICAO, 9),
++  NUM("Atraso", -LEG_ATRASO_MANUAL_MAX, LEG_ATRASO_MANUAL_MAX, 100, " ms"),
++  ESC("Negrito", V_LEG2_NEGRITO, 3),
++  ESC("Cor da borda", V_LEG2_COR_BORDA, VIDEO_LEG_NCORES + 1),
++  ACAO("Restaurar padrão"),
+ };
+ 
+ // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
+@@ -1621,7 +1662,7 @@ static const char *CHAVE[] = {
+   // LOCAL e SEM o "-" (sobrevive ao fechamento); o resto e acao/estado.
+   "jellyfinLocal", "-jellyfinServidor", "-jellyfinEntrar", "-jellyfinSair",
+   "avancadasLocal",
+-  "legenda2PosLocal", "legenda2TamanhoLocal", "legenda2CorLocal", "legenda2FundoLocal", "legenda2BordaLocal",
++  "legenda2PosLocal", "legenda2EscalaLocal", "legenda2CorLocal", "legenda2FundoLocal", "legenda2BordaLocal",
+   "-embyServidor", "-embyEntrar", "-embySair", "-plexEntrar", "-plexServidor", "-plexSair",
+   "fontePrioridadeLocal", "fonteHdrLocal",
+   "logoAppLocal", "aberturaAppLocal",
+@@ -1680,6 +1721,12 @@ static const char *CHAVE[] = {
+   "hideWatchedMoviesLocal",
+ 
+   "-provedoresEscopo",
++
++  "-legenda1Tamanho", "-legenda1Fonte", "-legenda1Cor", "-legenda1Opacidade",
++  "-legenda1Fundo", "-legenda1Posicao", "-legenda1Borda", "-legenda1Atraso",
++  "-legenda1Negrito", "-legenda1CorBorda", "-legenda1Restaurar",
++  "legenda2FonteLocal", "legenda2OpacidadeLocal", "legenda2PosicaoLocal", "legenda2AtrasoLocal",
++  "legenda2NegritoLocal", "legenda2CorBordaLocal", "-legenda2Restaurar",
+ };
+ // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
+ // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
+@@ -1852,6 +1899,52 @@ static int ajFalhaDefinir(int op, int novo) {
+   if (ok) ajFalhaEspelhar();
+   return ok;
+ }
++// These rows are views of player.txt, not independent Settings values.
++static int ajLegendaPrincipal(int op) { return op >= AJ_LEG1_TAMANHO && op <= AJ_LEG1_COR_BORDA; }
++static int ajLegendaSecundaria(int op) {
++  return (op >= AJ_LEG2_POS && op <= AJ_LEG2_BORDA) || (op >= AJ_LEG2_FONTE && op <= AJ_LEG2_RESTAURAR);
++}
++static int ajLegendaValor(int op) {
++  player_leg_estilo_carregar();
++  const VideoLegendaEstilo *e = player_leg_estilo();
++  switch (op) {
++    case AJ_LEG1_TAMANHO: return e->tamanho;
++    case AJ_LEG1_FONTE: return e->familia;
++    case AJ_LEG1_COR: return e->cor;
++    case AJ_LEG1_OPACIDADE: return e->opacidade;
++    case AJ_LEG1_FUNDO: return e->fundo;
++    case AJ_LEG1_POSICAO: return e->posicao;
++    case AJ_LEG1_BORDA: return e->borda;
++    case AJ_LEG1_ATRASO: return e->atrasoMs;
++    case AJ_LEG1_NEGRITO: return !e->negrito;
++    default: return e->corBorda;
++  }
++}
++static void ajLegendaEspelhar(void) {
++  for (int op = AJ_LEG1_TAMANHO; op <= AJ_LEG1_COR_BORDA; op++) valor[op] = ajLegendaValor(op);
++}
++static int ajLegendaDefinir(int op, int v) {
++  player_leg_estilo_carregar();
++  VideoLegendaEstilo e = *player_leg_estilo();
++  int tocou = -1;
++  switch (op) {
++    case AJ_LEG1_TAMANHO: e.tamanho = v; break;
++    case AJ_LEG1_FONTE: e.familia = v; break;
++    case AJ_LEG1_COR: if (e.cor != v) tocou = PLR_LEG_COR; e.cor = v; break;
++    case AJ_LEG1_OPACIDADE: e.opacidade = v; break;
++    case AJ_LEG1_FUNDO: e.fundo = v; break;
++    case AJ_LEG1_POSICAO: e.posicao = v; break;
++    case AJ_LEG1_BORDA: e.borda = v; break;
++    case AJ_LEG1_ATRASO: e.atrasoMs = v; break;
++    case AJ_LEG1_NEGRITO: e.negrito = !v; break;
++    case AJ_LEG1_COR_BORDA: e.corBorda = v; break;
++    default: return 0;
++  }
++  int ok = player_leg_estilo_definir(&e, tocou);
++  if (ok) ajLegendaEspelhar();
++  return ok;
++}
++
+ _Static_assert(sizeof valor / sizeof *valor == AJ_N,
+                "valor[]: um padrao por opcao do enum AJ_*, na ordem dele");
+ // LOG DE MUDANCA (ajlog.h): gravar() e o unico lugar por onde todo valor muda de
+@@ -2349,16 +2442,43 @@ int ajustes_abertura(void) { int v = valor[AJ_ABERTURA]; return v < 0 || v > 2 ?
+ // R4: estilo proprio da segunda legenda. -1 / 0 = segue a principal.
+ int ajustes_legendas_todas(void) { return valor[AJ_LEG_MOSTRAR] == 1; }
+ int ajustes_abertura_detalhada(void) { return valor[AJ_TELA_ABERTURA] == 1; }
+-int ajustes_leg2_junto(void) { return valor[AJ_LEG2_POS] == 1; }
++int ajustes_leg2_junto(void) { return valor[AJ_LEG2_POSICAO] == 0 && valor[AJ_LEG2_POS] == 1; }
+ int ajustes_leg2_tamanho(void) {
+-  static const int P[] = { 0, 60, 80, 100, 120, 140, 160, 170, 180, 190, 200,
+-                           210, 220, 230, 240, 250, 260, 270, 280, 290, 300 };
+   int v = valor[AJ_LEG2_TAMANHO];
+-  return v >= 0 && v < (int)(sizeof P / sizeof *P) ? P[v] : 0;
++  return v >= 1 && v <= 26 ? TXT_LEG_PCT_MIN + (v - 1) * 10 : 0;
+ }
+ int ajustes_leg2_cor(void) { int v = valor[AJ_LEG2_COR]; return v >= 1 && v <= 6 ? v - 1 : -1; }
+ int ajustes_leg2_fundo(void) { int v = valor[AJ_LEG2_FUNDO]; return v >= 1 && v <= 5 ? v - 1 : -1; }
+ int ajustes_leg2_borda(void) { int v = valor[AJ_LEG2_BORDA]; return v >= 1 && v <= 3 ? v - 1 : -1; }
++int ajustes_leg2_posicao(void) { int v = valor[AJ_LEG2_POSICAO]; return v >= 1 && v <= 8 ? v - 1 : -1; }
++int ajustes_leg2_atraso(void) { return valor[AJ_LEG2_ATRASO]; }
++int ajustes_leg2_definir_atraso(int ms) {
++  int antes = valor[AJ_LEG2_ATRASO];
++  ms = ms < -LEG_ATRASO_MANUAL_MAX ? -LEG_ATRASO_MANUAL_MAX : ms > LEG_ATRASO_MANUAL_MAX ? LEG_ATRASO_MANUAL_MAX : ms;
++  if (antes == ms) return 1;
++  valor[AJ_LEG2_ATRASO] = ms;
++  if (!gravar()) { valor[AJ_LEG2_ATRASO] = antes; return 0; }
++  return 1;
++}
++void ajustes_leg2_estilo(const VideoLegendaEstilo *principal, VideoLegendaEstilo *out) {
++  if (!principal || !out) return;
++  *out = *principal;
++  int pct = ajustes_leg2_tamanho(), c = ajustes_leg2_cor(), f = ajustes_leg2_fundo(), b = ajustes_leg2_borda();
++  out->tamanho = pct > 0 ? pct : principal->tamanho * 9 / 10;
++  if (out->tamanho < TXT_LEG_PCT_MIN) out->tamanho = TXT_LEG_PCT_MIN;
++  if (out->tamanho > TXT_LEG_PCT_MAX) out->tamanho = TXT_LEG_PCT_MAX;
++  out->tamanho = out->tamanho / 10 * 10;
++  if (c >= 0) out->cor = c;
++  if (f >= 0) out->fundo = f;
++  if (b >= 0) out->borda = b;
++  if (valor[AJ_LEG2_FONTE] > 0) out->familia = valor[AJ_LEG2_FONTE] - 1;
++  if (valor[AJ_LEG2_OPACIDADE] > 0) out->opacidade = valor[AJ_LEG2_OPACIDADE] - 1;
++  if (valor[AJ_LEG2_NEGRITO] > 0) out->negrito = valor[AJ_LEG2_NEGRITO] == 1;
++  if (valor[AJ_LEG2_COR_BORDA] > 0) out->corBorda = valor[AJ_LEG2_COR_BORDA] - 1;
++  if (ajustes_leg2_posicao() >= 0) out->posicao = ajustes_leg2_posicao();
++  out->atrasoMs = ajustes_leg2_atraso();
++}
++
+ int ajustes_saida_player_home(void) { return lig(AJ_RELOGIO) && valor[AJ_SAIDA_PLAYER] == 0; }
+ int ajustes_manter_video(void) { return ajustes_saida_player_home() && lig(AJ_MANTER_VIDEO) && !SEGURO; }
+ int ajustes_selo_visto(void) { return lig(AJ_SELO_VISTO); }
+@@ -3512,12 +3632,14 @@ void ajustes_dir(const char *dir) {
+     if (valor[AJ_TEX_MB] > 0) tex_definir_orcamento_mb(ajustes_tex_mb());
+ #endif
+     interfaceAplicar();
++    legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
+     ajSombraSync();
+     return;
+   }
+   { int viuIdioma = 0, viuAuto = 0, idiomaGravado = IDIOMA_EN, autoGravado = 0;
+     int medidorAntigo = -1, viuMedidor = 0, resAntiga = -1, viuRes = 0, prazoAntigo = -1, viuEspera = 0;
+     int focoAntigo = -1, viuFoco = 0;
++    int leg2TamanhoAntigo = -1, viuLeg2Escala = 0;
+   while (fgets(linha, sizeof linha, f)) {
+     char chave[64]; int v, i;
+     if (sscanf(linha, "%63s %d", chave, &v) != 2) continue;
+@@ -3545,6 +3667,10 @@ void ajustes_dir(const char *dir) {
+       if (v >= IDA_TMDB && v <= IDA_PADRAO) idiomaFonteGravada = v;
+       continue;
+     }
++    if (!strcmp(chave, "legenda2TamanhoLocal")) {
++      if (v >= 0 && v <= 20) leg2TamanhoAntigo = v;
++      continue;
++    }
+     for (i = 0; i < AJ_N; i++) {
+       if (!CHAVE[i] || strcmp(CHAVE[i], chave)) continue;
+       if (OPCOES[i].tipo == OP_LEITURA || OPCOES[i].tipo == OP_ACAO) continue;
+@@ -3555,9 +3681,15 @@ void ajustes_dir(const char *dir) {
+       if (i == AJ_RESOLUCAO) viuRes = 1;
+       if (i == AJ_FONTE_PRAZO) viuEspera = 1;
+       if (i == AJ_FOCO_TRAILER) viuFoco = 1;
++      if (i == AJ_LEG2_TAMANHO && v >= 0 && v < 27) viuLeg2Escala = 1;
+       break;
+     }
+   }
++  if (!viuLeg2Escala && leg2TamanhoAntigo >= 0) {
++    static const int pct[] = {0,60,80,100,120,140,160,170,180,190,200,210,220,230,240,250,260,270,280,290,300};
++    int p = pct[leg2TamanhoAntigo];
++    valor[AJ_LEG2_TAMANHO] = p ? 1 + (p - TXT_LEG_PCT_MIN) / 10 : 0;
++  }
+   if (!viuMedidor && medidorAntigo >= 0) valor[AJ_MEDIDOR] = medidorAntigo == 0 ? 3 : 0;
+   if (!viuRes && resAntiga >= 0) {
+     valor[AJ_RESOLUCAO] = res_migrar(resAntiga);
+@@ -3722,6 +3854,7 @@ void ajustes_dir(const char *dir) {
+   // de Ajustes e aberta. tex_iniciar ja rodou (main.c); isto so o corrige.
+   if (valor[AJ_TEX_MB] > 0) tex_definir_orcamento_mb(ajustes_tex_mb());
+   pstAplicar();
++  legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
+   ajSombraSync();   // o que veio do disco nao e mudanca de ninguem
+ }
+ 
+@@ -3762,6 +3895,7 @@ static int gravar(void) {
+   // onde voltava ao padrao. Na LG o disco e real e nada disto acontecia.
+   dados_marcar_sujo(0);
+   ajLogDiff();
++  legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
+   // Provedor de poster ou idioma da interface mudaram? So reconfigura se a
+   // configuracao final for outra (reconfigurar zera a memoria de falhas).
+   pstAplicar();
+@@ -4480,6 +4614,7 @@ int ajustes_aplicar_blob(const char *json) {
+ // exigiria adivinhar a feature e o `type`, e um blob com forma errada e pior
+ // que uma chave a menos.
+ static int somenteDesteAparelho(int op) {
++  if (ajLegendaPrincipal(op) || ajLegendaSecundaria(op)) return 1;
+   if (op >= AJ_FALHA_PROVEDORES && op < AJ_N) return 1;
+   if (op == AJ_ICONE_APP || op == AJ_LOGO_APP || op == AJ_ABERTURA) return 1;
+   switch (op) {
+@@ -4960,7 +5095,7 @@ static void conferirPadroes(void) {
+ static void ajMovReiniciar(void);
+ int ajustes_iniciar(void) {
+   ajMovReiniciar();
+-  faRetornarFolha = 0; faAddonEditar[0] = 0; ajFalhaEspelhar();
++  faRetornarFolha = 0; faAddonEditar[0] = 0; ajFalhaEspelhar(); ajLegendaEspelhar();
+   uxVeioBusca = uxAbrirOp >= 0;
+   montarTela();
+   conferirTela();
+@@ -5687,6 +5822,10 @@ static void focarOpcao(int op) {
+ // separado de proposito: as duas perguntas sao diferentes e juntas viram um
+ // paragrafo que ninguem le do sofa.
+ static const char *ajudaOpcaoBase(int op) {
++  if (ajLegendaPrincipal(op) || op == AJ_LEG1_RESTAURAR)
++    return "Tamanho, fonte, cores, fundo e posição das legendas.";
++  if (op >= AJ_LEG2_FONTE && op <= AJ_LEG2_RESTAURAR)
++    return "Aparência só da segunda legenda. \"Igual à principal\" segue o estilo da principal, definido no player.";
+   if (op == AJ_ICONE_APP) return "Escolha uma marca alternativa para o Nuvio nesta TV. Um agradecimento a quem apoia o projeto.";
+   if (inativa(op)) {
+     if (op == AJ_VIDRO_CONTORNO) return "Ative a interface de vidro para ajustar o contorno.";
+@@ -7170,6 +7309,7 @@ static int definirValorDireto(int op, int novo) {
+   if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op) ||
+       (OPCOES[op].tipo != OP_ESCOLHA && OPCOES[op].tipo != OP_NUMERO)) return 0;
+   novo = limita(op, novo);
++  if (ajLegendaPrincipal(op)) return ajLegendaDefinir(op, novo);
+   if (ajFalhaBackend(op)) return ajFalhaDefinir(op, novo);
+   if (op == AJ_SEEKR_LIGADO && novo == 0 && !seekrChave[0]) {
+     uxNotificar(seekrPedirChave());
+@@ -7184,14 +7324,16 @@ static int definirValorDireto(int op, int novo) {
+     pessoas_definir_pesquisavel(novo == 0);
+     return 1;
+   }
++  int posicaoAntes = valor[AJ_LEG2_POSICAO];
++  if (op == AJ_LEG2_POS) valor[AJ_LEG2_POSICAO] = 0;
+   antes = valor[op];
+-  if (novo == antes && (op != AJ_TEX_MB || memoriaEscolhida)) return 1;
++  if (novo == antes && !(op == AJ_LEG2_POS && posicaoAntes != 0) && (op != AJ_TEX_MB || memoriaEscolhida)) return 1;
+   if (op == AJ_TEX_MB && texAcima(novo)) return 0;
+   if (op == AJ_TEX_MB) memoriaEscolhida = 1;
+   valor[op] = novo;
+   if (novo == 0) notaLigarPar(op);
+   { int ok; ajOrigem = ajOrigemDireto; ok = gravar(); ajOrigem = 0;
+-    if (!ok) { valor[op] = antes; memoriaEscolhida = memoriaAntes; return 0; } }
++    if (!ok) { valor[op] = antes; valor[AJ_LEG2_POSICAO] = posicaoAntes; memoriaEscolhida = memoriaAntes; return 0; } }
+   if (op == AJ_FIL_LIMITE) {
+     fil_ajustar_limite(novo);
+     valor[op] = fil_limite_gravado();
+@@ -7365,6 +7507,20 @@ static void eventoTela(const SDL_Event *e) {
+     }
+     if (focoOp == AJ_FONTE_REGEX_PADRAO) { frRegexAbrir(); return; }
+     if (focoOp == AJ_DIAGNOSTICO) { pediuDiagnostico = 1; return; }
++    if (focoOp == AJ_LEG1_RESTAURAR || focoOp == AJ_LEG2_RESTAURAR) {
++      int ok;
++      if (focoOp == AJ_LEG1_RESTAURAR) {
++        ok = player_leg_estilo_definir(player_leg_estilo_padrao(), PLR_LEG_NADA);
++        if (ok) ajLegendaEspelhar();
++      } else {
++        int salvo[AJ_N]; memcpy(salvo, valor, sizeof salvo);
++        for (int op = 0; op < AJ_N; op++) if (ajLegendaSecundaria(op)) valor[op] = valorPadrao[op];
++        ok = gravar();
++        if (!ok) memcpy(valor, salvo, sizeof salvo);
++      }
++      uxNotificar(ok ? "Ajuste salvo nesta TV." : "Não foi possível salvar. O valor anterior foi mantido.");
++      return;
++    }
+     if (focoOp == AJ_HERO_CATALOGOS) { if (!inativa(focoOp)) heroFonteCiclar(+1); return; }
+     if (focoOp == AJ_VELOCIDADE) { pediuVelocidade = 1; return; }
+     if (focoOp == AJ_LIVETV_DIAG) { pediuLivetvDiag = 1; return; }
+@@ -7493,6 +7649,7 @@ static void eventoTela(const SDL_Event *e) {
+ 
+ static void aj2Atualizar(float dt);
+ void ajustes_atualizar(float dt, Uint32 agora) {
++  ajLegendaEspelhar();
+   AJ_ESCALA_INI();
+   guiaAtualizar(dt);
+   if (uxAviso[0] && SDL_TICKS_PASSED(agora, uxAvisoAte)) uxAviso[0] = 0;
+@@ -8106,6 +8263,7 @@ typedef enum {
+ } AjPreview;
+ 
+ static AjPreview familiaPreviaOpcao(int op) {
++  if (ajLegendaPrincipal(op) || op == AJ_LEG1_RESTAURAR || ajLegendaSecundaria(op)) return AJPV_REPRO;
+   switch (op) {
+     case AJ_LEG2_POS: case AJ_LEG2_TAMANHO: case AJ_LEG2_COR: case AJ_LEG2_FUNDO: case AJ_LEG2_BORDA:
+     case AJ_QUALIDADE: case AJ_DV: case AJ_ATMOS: case AJ_LEG_LINGUA: case AJ_LEG_LINGUA2: case AJ_CACHE_SEEK: case AJ_BUFFER:
+diff --git a/src/ajustes.h b/src/ajustes.h
+index b9fbe4c62d..d3bd9d813e 100644
+--- a/src/ajustes.h
++++ b/src/ajustes.h
+@@ -12,6 +12,7 @@
+ #include <SDL2/SDL.h>
+ #include "idiomacod.h"
+ #include "gfx.h"
++#include "video.h"
+ 
+ int  ajustes_iniciar(void);
+ // Per device: 0 = TV (default), 1 = Mobile. Applied before the initial viewport.
+@@ -446,7 +447,7 @@ float ajustes_tamanho_ajustes(void);
+ int   ajustes_layout_lista(void);
+ int   ajustes_esconder_logo_trailer(void);   // 1 = hide the corner title logo while a trailer plays
+ // R4: second subtitle placement and own style (local). junto: 1 = stacked right above the
+-// primary at the bottom, 0 = top band. tamanho: percent (60..160), 0 = automatic (90% of the
++// primary at the bottom, 0 = top band. tamanho: percent (50..300), 0 = automatic (90% of the
+ // primary). cor/fundo/borda: the same indices as the primary style (VideoLegendaEstilo), -1 = same as primary.
+ int   ajustes_legendas_todas(void); // #425: abrir todas as faixas
+ // #205: 1 = tela de abertura Detalhada (o cartao com fonte e passos); 0 = Cinema.
+@@ -456,6 +457,11 @@ int   ajustes_leg2_tamanho(void);
+ int   ajustes_leg2_cor(void);
+ int   ajustes_leg2_fundo(void);
+ int   ajustes_leg2_borda(void);
++// Independent secondary overrides; absent fields inherit the main style.
++void ajustes_leg2_estilo(const VideoLegendaEstilo *principal, VideoLegendaEstilo *out);
++int ajustes_leg2_posicao(void); // -1 keeps the existing Top/Stacked placement
++int ajustes_leg2_atraso(void);
++int ajustes_leg2_definir_atraso(int ms);
+ int   ajustes_legenda_forcada_auto(void);    // #287: 1 = audio in the subtitle language -> only the forced track (local, default on)
+ int   ajustes_legenda_sync_auto(void);       // local, ligada por padrão
+ int   ajustes_legenda_sync_audio(void);      // 1 = offer "Por audio" in subtitle AutoSync (F06; local, default off)
+diff --git a/src/ajustes_ux_dados.inc b/src/ajustes_ux_dados.inc
+index 12bf03b68c..2f2becebe8 100644
+--- a/src/ajustes_ux_dados.inc
++++ b/src/ajustes_ux_dados.inc
+@@ -3,7 +3,7 @@
+  * valor[], nunca uma fotografia de preferencias ja carregadas do usuario. */
+ 
+ static int uxTemPadrao(int op) {
+-  if (ajFalhaBackend(op)) return 1;
++  if (ajFalhaBackend(op) || ajLegendaPrincipal(op)) return 1;
+   return op >= 0 && op < AJ_N &&
+     (OPCOES[op].tipo == OP_ESCOLHA || OPCOES[op].tipo == OP_NUMERO) &&
+     CHAVE[op] && CHAVE[op][0] && CHAVE[op][0] != '-' &&
+@@ -17,6 +17,7 @@ static int uxValorPadrao(int op) {
+ /* Fileiras tem uma fonte propria. valor[] e apenas seu espelho na tela. */
+ static int uxValorAtual(int op) {
+   if (op < 0 || op >= AJ_N) return 0;
++  if (ajLegendaPrincipal(op)) return ajLegendaValor(op);
+   if (ajFalhaBackend(op)) return ajFalhaValor(op);
+   if (op == AJ_SEEKR_LIGADO && !seekrChave[0]) return 1;
+   return op == AJ_FIL_LIMITE ? fil_limite_gravado() : valor[op];
+@@ -157,6 +158,8 @@ static void uxNormalizar(const char *src, char *dst, size_t tam) {
+ }
+ 
+ static const char *uxSinonimos(int op) {
++  if (ajLegendaPrincipal(op) || op == AJ_LEG1_RESTAURAR || ajLegendaSecundaria(op))
++    return "legenda estilo fonte tamanho cor opacidade fundo posicao borda contorno negrito atraso subtitle style font size color opacity position outline bold delay";
+   switch (op) {
+     case AJ_IDIOMA: return "idioma interface menus language portugues ingles espanhol";
+     case AJ_AUD_LINGUA: return "idioma audio dublado dublagem original voz language";
+diff --git a/src/ajustes_ux_desenho.inc b/src/ajustes_ux_desenho.inc
+index b01bf8193f..00cd01f7d3 100644
+--- a/src/ajustes_ux_desenho.inc
++++ b/src/ajustes_ux_desenho.inc
+@@ -693,6 +693,7 @@ static void ajAjudaLinhaDesenhar(int op, float x, float y, float a) {
+ // escolhe a fonte; o padrao e o modelo sao do filtro; o estilo da segunda
+ // legenda e dela.
+ static int uxPaiVisual(int op) {
++  if (ajLegendaSecundaria(op)) return AJ_LEG_LINGUA2;
+   switch (op) {
+     case AJ_FONTE_PRIORIDADE: case AJ_FONTE_PRAZO: return AJ_FONTE_MANUAL;
+     case AJ_FONTE_REGEX_PADRAO: case AJ_FONTE_REGEX_MODELO: return AJ_FONTE_REGEX;
+diff --git a/src/ajustes_ux_padrao.inc b/src/ajustes_ux_padrao.inc
+index cbe0b89f8f..33147b711c 100644
+--- a/src/ajustes_ux_padrao.inc
++++ b/src/ajustes_ux_padrao.inc
+@@ -271,3 +271,5 @@
+   1, /* video preload and next episode buffer: Desligado, independent source setting */
+   1, /* hide watched movies (#366): Desligado, per profile on this device */
+   0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */
++  120, 0, 0, 0, 0, 3, 1, 0, 1, 0, 0, /* primary style views; player.txt is authoritative */
++  0, 0, 0, 0, 0, 0, 0, /* secondary appearance inherits primary, manual delay0 */
+diff --git a/src/ajustes_ux_secoes.inc b/src/ajustes_ux_secoes.inc
+index d08e80998e..b9634cb3ad 100644
+--- a/src/ajustes_ux_secoes.inc
++++ b/src/ajustes_ux_secoes.inc
+@@ -157,6 +157,8 @@ enum {
+   AJC_N
+ };
+ static int ajCenaSecao(int op) {
++  if (ajLegendaPrincipal(op) || op == AJ_LEG1_RESTAURAR) return AJC_IDI_FAIXAS;
++  if (ajLegendaSecundaria(op)) return AJC_IDI_LEGENDA2;
+   switch (op) {
+     case AJ_LANDSCAPE: case AJ_HERO: case AJ_HERO_CHEIO: case AJ_HERO_CATALOGOS: case AJ_HERO_TRANSICAO:
+       return AJC_HOME_ESTILO;
+diff --git a/src/ajustes_ux_tela.inc b/src/ajustes_ux_tela.inc
+index 09f51bac66..7a7ddd057b 100644
+--- a/src/ajustes_ux_tela.inc
++++ b/src/ajustes_ux_tela.inc
+@@ -58,9 +58,15 @@ static const Item TELA[] = {
+       // dono, 04/10).
+       OPC(AJ_LEG_SYNC_AUDIO),
+ #endif
++    ROT("Legenda principal"),
++      OPC(AJ_LEG1_TAMANHO), OPC(AJ_LEG1_FONTE), OPC(AJ_LEG1_COR), OPC(AJ_LEG1_OPACIDADE),
++      OPC(AJ_LEG1_FUNDO), OPC(AJ_LEG1_POSICAO), OPC(AJ_LEG1_BORDA), OPC(AJ_LEG1_COR_BORDA),
++      OPC(AJ_LEG1_NEGRITO), OPC(AJ_LEG1_ATRASO), OPC(AJ_LEG1_RESTAURAR),
+     ROT("Segunda legenda"),
+       OPC(AJ_LEG_LINGUA2),
+-      OPC(AJ_LEG2_POS), OPC(AJ_LEG2_TAMANHO), OPC(AJ_LEG2_COR), OPC(AJ_LEG2_FUNDO), OPC(AJ_LEG2_BORDA),
++      OPC(AJ_LEG2_TAMANHO), OPC(AJ_LEG2_FONTE), OPC(AJ_LEG2_COR), OPC(AJ_LEG2_OPACIDADE),
++      OPC(AJ_LEG2_FUNDO), OPC(AJ_LEG2_POSICAO), OPC(AJ_LEG2_BORDA), OPC(AJ_LEG2_COR_BORDA),
++      OPC(AJ_LEG2_NEGRITO), OPC(AJ_LEG2_ATRASO), OPC(AJ_LEG2_RESTAURAR), OPC(AJ_LEG2_POS),
+     MAIS(),
+     ROT("Idiomas"), OPC(AJ_TMDB_IDIOMA),
+ 
+diff --git a/src/ajustes_ux_visual.inc b/src/ajustes_ux_visual.inc
+index 25a11c7c1b..c0c979caa3 100644
+--- a/src/ajustes_ux_visual.inc
++++ b/src/ajustes_ux_visual.inc
+@@ -1,5 +1,6 @@
+ // Glifos complementares: SVG Lucide embarcado, rasterizado no pacote para OpenGL.
+ static const char *ajVisualIcone(int op) {
++  if (ajLegendaPrincipal(op) || op == AJ_LEG1_RESTAURAR || ajLegendaSecundaria(op)) return "aj_captions";
+   switch (op) {
+     case AJ_HOME_LAYOUT: return "aj_layout-dashboard";
+     case AJ_LANDSCAPE: return "aj_layout-dashboard";
+diff --git a/src/app.c b/src/app.c
+index 80cbba43ef..c535dca24d 100644
+--- a/src/app.c
++++ b/src/app.c
+@@ -155,6 +155,7 @@
+ #include "trakt.h"
+ #include "visto.h"
+ #include "faixas.h"
++#include "legenda2.h"
+ #include "episodios.h"
+ #include <pthread.h>
+ #include <stdatomic.h>
+@@ -2857,6 +2858,7 @@ static void perfilAbrirSessao(int antes) {
+ }
+ 
+ int app_iniciar(const char *dirArte) {
++  legenda2_vincular_atraso(ajustes_leg2_atraso(), ajustes_leg2_definir_atraso);
+   perfis_ao_abrir_sessao(perfilEncerrarSessao);
+   cat_cache_perfis(1);
+   snprintf(perfilDirArte, sizeof perfilDirArte, "%s", dirArte ? dirArte : "");
+diff --git a/src/assrender.c b/src/assrender.c
+index 681d807856..adcf16ef31 100644
+--- a/src/assrender.c
++++ b/src/assrender.c
+@@ -531,8 +531,11 @@ static void ass_plain_style_locked(const PlainAssStyle *p) {
+   }
+   s->FontSize = p->size;
+   s->PrimaryColour = s->SecondaryColour = ((uint32_t)p->rgb << 8);
+-  s->OutlineColour = 0x00000000u;
+-  s->BackColour = p->background ? (unsigned)(255 - (p->background * 255 * 16 / 100)) : 46u;
++  s->OutlineColour = (uint32_t)p->outlineRgb << 8;
++  // BorderStyle=4 uses BackColour for the existing black background box.
++  // Without that box, BackColour is the shadow, at its original opacity.
++  s->BackColour = p->background ? (unsigned)(255 - (p->background * 255 * 16 / 100))
++                   : (p->border == 2 ? (uint32_t)p->outlineRgb << 8 : 0u) | 46u;
+   s->Bold = (p->bold && !assArabe) ? 1 : 0;
+   s->BorderStyle = p->background ? 4 : 1;
+   s->Outline = p->border == 1 ? 2 : 0;
+diff --git a/src/faixas.c b/src/faixas.c
+index 7ed7f442d1..72406aada0 100644
+--- a/src/faixas.c
++++ b/src/faixas.c
+@@ -429,7 +429,7 @@ static int legendaAtiva(void) {
+ static int modo;
+ // Coluna dentro da folha de LEGENDA: 0 = lista, 1 = estilo.
+ #define FX_COL_ESTILO 2
+-#define FX_N_ESTILO   10
++#define FX_N_ESTILO   11
+ static int ctl = -1;       // ESTILO: item cujo controle esta aberto (-1 = a grade)
+ 
+ static int nLinhas(int col);
+@@ -555,9 +555,10 @@ static int nLinhas(int col) {
+ // Oito linhas "rotulo: valor". OK cicla o valor e aplica NA HORA — as
+ // personalizacoes abaixo usam somente metodos presentes no firmware. A ultima
+ // linha restaura o conjunto inteiro sem exigir dezenas de toques no controle.
++enum { EST_FONTE = 1, EST_COR = 2, EST_RESTAURAR = 9, EST_COR_BORDA = 10 };
+ static const char *const EST_ROT[FX_N_ESTILO] = {
+   "Tamanho", "Fonte OpenSubtitles", "Cor", "Opacidade", "Fundo", "Posição", "Borda", "Atraso",
+-  "Negrito", "Restaurar padrão"
++  "Negrito", "Restaurar padrão", "Cor da borda"
+ };
+ static const char *const EST_FUNDO[5] = { "Nenhum", "Escuro 25%", "Escuro 50%",
+                                           "Escuro 75%", "Escuro 100%" };
+@@ -571,7 +572,7 @@ static const char *const EST_OPAC[4]  = { "100%", "75%", "50%", "25%" };
+  * valem igual. */
+ static int estiloPreservadoAss(int linha) {
+   return assrender_ativo() && !assrender_texto_simples() && (linha == 1 || linha == 2 || linha == 4 ||
+-                               linha == 5 || linha == 6 || linha == 8);
++                               linha == 5 || linha == 6 || linha == 8 || linha == EST_COR_BORDA);
+ }
+ 
+ static void valorEstilo(int linha, char *dst, size_t tam) {
+@@ -603,6 +604,10 @@ static void valorEstilo(int linha, char *dst, size_t tam) {
+     // Negrito vale para o que o app desenha (OpenSubtitles e legenda externa);
+     // a faixa que o player da TV desenha segue o peso do aparelho.
+     case 8: snprintf(dst, tam, "%s", i18n(e->negrito ? "Ligado" : "Desligado")); break;
++    case EST_COR_BORDA: {
++      int c = e->corBorda >= 0 && e->corBorda < VIDEO_LEG_NCORES ? e->corBorda : 0;
++      snprintf(dst, tam, "%s", VIDEO_LEG_CORES_PT[c ? c - 1 : VIDEO_LEG_NCORES - 1]);
++      break; }
+     default: dst[0] = 0; break;   // "Restaurar padrao" e acao, nao valor
+   }
+ }
+@@ -617,7 +622,7 @@ static void ciclarEstilo(int linha) {
+     case 4: e->fundo   = (e->fundo + 1) % 5; break;
+     case 6: e->borda   = (e->borda + 1) % 3; break;
+     case 8: e->negrito = !e->negrito; break;
+-    case 9:
++    case EST_RESTAURAR:
+       *e = (VideoLegendaEstilo){ 120, 0, 0, 3, 1, 0, 0, TXT_FAMILIA_INTER };
+       // Restaurar e voltar ao normal do app, e o normal e respeitar o arquivo.
+       player_leg_estilo_tocou(PLR_LEG_NADA);
+@@ -630,10 +635,9 @@ static void ciclarEstilo(int linha) {
+ // --- CONTROLES DA ABA ESTILO (dono, 11/10) ------------------------------------
+ // OK em Tamanho, Opacidade, Posicao e Atraso abre um SLIDER logo abaixo do item;
+ // Cor abre a paleta de amostras; Fonte, a lista com cada nome na propria fonte.
+-// O painel NAO muda de altura (alturaEstilo): o controle ocupa o lugar da grade,
+-// com a mola da tela. Tudo aplica ao vivo; OK/Voltar fecham o controle e so o
++// O controle ocupa o lugar da grade, com a mola da tela. No Mobile a lista de
++// fontes reserva as quatro fileiras inteiras. Tudo aplica ao vivo; OK/Voltar fecham o controle e so o
+ // Voltar seguinte fecha o painel.
+-enum { EST_FONTE = 1, EST_COR = 2 };
+ typedef struct { int min, max, toque, segura, teto; } EstSlider;   // max == min: sem slider
+ // toque = passo de um toque; segura = passo de cada repeticao da tecla segurada;
+ // teto = quantas vezes o passo pode crescer segurando (aceleracao).
+@@ -645,7 +649,7 @@ static const EstSlider EST_SL[FX_N_ESTILO] = {
+ };
+ static int estSlider(int i) { return i >= 0 && i < FX_N_ESTILO && EST_SL[i].max > EST_SL[i].min; }
+ // 0 = sem controle, 1 = slider, 2 = paleta, 3 = lista de fontes.
+-static int estTipo(int i) { return estSlider(i) ? 1 : i == EST_COR ? 2 : i == EST_FONTE ? 3 : 0; }
++static int estTipo(int i) { return estSlider(i) ? 1 : i == EST_COR || i == EST_COR_BORDA ? 2 : i == EST_FONTE ? 3 : 0; }
+ 
+ static int ctlVis = -1;    // o ultimo aberto: o controle continua desenhado enquanto fecha
+ static int ctlSub;         // amostra / fonte com o foco
+@@ -690,7 +694,8 @@ static void estDeFrac(int i, float f) {
+ }
+ static void estAbrir(int i) {
+   ctl = ctlVis = i; ctlRep = 0;
+-  ctlSub = i == EST_COR ? player_leg_estilo()->cor : i == EST_FONTE ? player_leg_estilo()->familia : 0;
++  ctlSub = i == EST_COR ? player_leg_estilo()->cor : i == EST_COR_BORDA ? player_leg_estilo()->corBorda
++         : i == EST_FONTE ? player_leg_estilo()->familia : 0;
+   if (estSlider(i)) ctlFrac = estFrac(i);
+ }
+ static void estEscolher(int i) {   // amostra / fonte `i`: aplica ao vivo
+@@ -702,6 +707,9 @@ static void estEscolher(int i) {   // amostra / fonte `i`: aplica ao vivo
+     // COR: marca que a pessoa mexeu — dai em diante ela vence a cor que o
+     // arquivo ASS pede (ver player_leg_estilo_tocou em player.h).
+     player_leg_estilo_tocou(PLR_LEG_COR);
++  } else if (ctl == EST_COR_BORDA) {
++    if (e->corBorda == i) return;
++    e->corBorda = i;
+   } else {
+     if (e->familia == i) return;
+     e->familia = i;
+@@ -1090,7 +1098,7 @@ static int estiloTecla(SDL_Keycode k, int rep) {
+     return 1;
+   }
+   if (voltar) return 0;
+-  // A GRADE de FX_BARRA_COLS x 2: as quatro setas andam nela; a esquerda da
++  // A grade de FX_BARRA_COLS colunas: as quatro setas andam nela; a esquerda da
+   // primeira coluna volta para a lista de legendas.
+   if (dx < 0) { if (*f % FX_BARRA_COLS) (*f)--; else coluna = 1; }
+   else if (dx > 0) { if (*f % FX_BARRA_COLS < FX_BARRA_COLS - 1 && *f + 1 < FX_N_ESTILO) (*f)++; }
+@@ -1371,7 +1379,23 @@ static int ilVisN(int extra) {
+ // The audio sheet spends one line on the volume row (F07) and one more on the
+ // speed row (#202) where the platform has speed.
+ #define IL_VIS_COL(c) ilVisN((c) == 0 ? 1 + (velVisivel() ? 1 : 0) : 0)
+-#define IL_EST_CEL_H 92.0f
++// O canvas Mobile normaliza a borda curta em 1080: 144 unidades sao
++// 48 dp num telefone de 360 dp, antes da escala escolhida para a interface.
++static float estiloToqueMin(void) {
++#ifdef NV_TOUCH_UI
++  if (telefoneui_ativo()) {
++    float s = gfx_escala_ui();
++    return s > 0 ? 144.0f / s : 0;
++  }
++#endif
++  return 0;
++}
++static float estiloCelulaH(void) {
++  float min = estiloToqueMin();
++  return min > 92.0f ? min : 92.0f;
++}
++static float estiloPadX(void) { return telefoneui_ativo() ? 12.0f : IL_PAD_X; }
++#define IL_EST_CEL_H estiloCelulaH()
+ #define IL_EST_TOPO  56.0f
+ 
+ static const char *tituloSessao(void) {
+@@ -1737,7 +1761,7 @@ static void celulaEstiloTelefone(int i, GfxRect r, float a, int ativa) {
+   float x = r.x + 20, w = r.w - 40;
+   if (sel) plrui_linha_foco(r, 22, a);
+   if (ativa) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEstilo, NULL, i, 0);
+-  if (i == FX_N_ESTILO - 1) {
++  if (i == EST_RESTAURAR) {
+     int compacto = r.w < 154;
+     float tx = compacto ? r.x + 10 : r.x + 54, tw = compacto ? r.w - 20 : r.w - 74;
+     float h = txt_bloco_corta(TXT_G20B, EST_ROT[i], 243, 242, 239, 0, 0, tw, 24, 0, compacto ? 2 : 3);
+@@ -1749,7 +1773,7 @@ static void celulaEstiloTelefone(int i, GfxRect r, float a, int ativa) {
+     return;
+   }
+   char v[48];
+-  int cor = i == 2 && !pres, c = pres ? 120 : sel ? 255 : 217;
++  int cor = (i == EST_COR || i == EST_COR_BORDA) && !pres, c = pres ? 120 : sel ? 255 : 217;
+   valorEstilo(i, v, sizeof v);
+   float lh = txt_bloco_corta(TXT_G16B, EST_ROT[i], 243, 242, 239, 0, 0, w, 20, 0, 2);
+   TxtLinha lv = txt_linha_corta(TXT_ILHA_SECAO, v, c, c, c - 2, 255, w - (cor ? 30 : 0));
+@@ -1757,7 +1781,9 @@ static void celulaEstiloTelefone(int i, GfxRect r, float a, int ativa) {
+   txt_bloco_corta(TXT_G16B, EST_ROT[i], 243, 242, 239, x, y, w, 20, a * .5f, 2);
+   float yv = y + lh + 6;
+   if (cor) {
+-    int cr,cg,cb; corLegenda(player_leg_estilo()->cor, &cr,&cg,&cb);
++    int cr,cg,cb;
++    if (i == EST_COR_BORDA) { unsigned rgb = video_legenda_borda_rgb(player_leg_estilo()->corBorda); cr = (rgb >> 16) & 255; cg = (rgb >> 8) & 255; cb = rgb & 255; }
++    else corLegenda(player_leg_estilo()->cor, &cr,&cg,&cb);
+     gfx_cor((GfxRect){x,yv+(vh-20)*.5f,20,20},.5f,cr/255.0f,cg/255.0f,cb/255.0f,a);
+     x += 30;
+   }
+@@ -1774,7 +1800,7 @@ static void celulaEstilo(int i, GfxRect r, float a, int ativa) {
+   int pres = estiloPreservadoAss(i);
+   if (sel) plrui_linha_foco(r, 22.0f, a);
+   if (ativa) ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroEstilo, NULL, i, 0);
+-  if (i == FX_N_ESTILO - 1) {
++  if (i == EST_RESTAURAR) {
+     TxtLinha l = txt_linha(TXT_G20B, EST_ROT[i], 243, 242, 239, sel ? 255 : 191);
+     gfx_icone((GfxRect){ r.x + 20.0f, r.y + (r.h - 22.0f) * 0.5f, 22.0f, 22.0f }, "pl_rotate-ccw", 1, 1, 1, (sel ? 1.0f : 0.75f) * a);
+     txt_desenhar_alpha(l, r.x + 20.0f + 22.0f + 12.0f, r.y + (r.h - (float)l.h) * 0.5f, a);
+@@ -1789,16 +1815,27 @@ static void celulaEstilo(int i, GfxRect r, float a, int ativa) {
+     yv = r.y + (r.h - ((float)lr.h + 6.0f + (float)lv.h)) * 0.5f;
+     txt_desenhar_alpha(lr, x, yv, a);
+     yv += (float)lr.h + 6.0f;
+-    if (i == EST_COR && !pres) {
++    if ((i == EST_COR || i == EST_COR_BORDA) && !pres) {
+       int cr, cg, cb;
+-      corLegenda(player_leg_estilo()->cor, &cr, &cg, &cb);
++      if (i == EST_COR_BORDA) { unsigned rgb = video_legenda_borda_rgb(player_leg_estilo()->corBorda); cr = (rgb >> 16) & 255; cg = (rgb >> 8) & 255; cb = rgb & 255; }
++      else corLegenda(player_leg_estilo()->cor, &cr, &cg, &cb);
+       gfx_cor((GfxRect){ x, yv + ((float)lv.h - 20.0f) * 0.5f, 20.0f, 20.0f }, 0.5f, cr / 255.0f, cg / 255.0f, cb / 255.0f, a);
+       x += 20.0f + 10.0f;
+     }
+     txt_desenhar_alpha(lv, x, yv, a); }
+ }
+ 
+-#define IL_EST_GRADE_H (IL_EST_CEL_H * 2.0f + 6.0f)
++#define IL_EST_FILEIRAS ((FX_N_ESTILO + FX_BARRA_COLS - 1) / FX_BARRA_COLS)
++static float estiloGradeH(void) {
++  float h = IL_EST_CEL_H * IL_EST_FILEIRAS + 6.0f * (IL_EST_FILEIRAS - 1);
++  if (telefoneui_ativo() && (ctl == EST_FONTE || (ctlVis == EST_FONTE && ctlAnim > .005f))) {
++    int rows = (TXT_FAMILIA_N + 1) / 2;
++    float fontes = estiloToqueMin() * rows + 8.0f * (rows - 1);
++    if (fontes > h) h = fontes;
++  }
++  return h;
++}
++#define IL_EST_GRADE_H estiloGradeH()
+ 
+ static void fundoCtl(GfxRect r, float a) {
+   float raio = 22.0f / r.h;
+@@ -1862,31 +1899,49 @@ static void sliderCtl(int i, GfxRect r, float a, int ativo) {
+   }
+ }
+ 
++static int paletaColunas(float largura) {
++  float min = estiloToqueMin();
++  return min > 0 && largura + .01f < VIDEO_LEG_NCORES * min ? 3 : VIDEO_LEG_NCORES;
++}
+ static void paletaCtl(GfxRect r, float a, int ativo) {
+   float d = 56.0f, vao = 34.0f, tot = d * VIDEO_LEG_NCORES + vao * (VIDEO_LEG_NCORES - 1);
+   float x = r.x + (r.w - tot) * 0.5f, cy = r.y + r.h * 0.5f, ar, ag, ab;
+-  int i;
++  int i, telefone = telefoneui_ativo(), cols = paletaColunas(r.w);
++  float cw = 0, ch = 0;
++  if (telefone) {
++    int rows = (VIDEO_LEG_NCORES + cols - 1) / cols;
++    cw = estiloToqueMin(); if (cw < d + vao) cw = d + vao;
++    ch = (r.h - 6.0f * (rows - 1)) / rows;
++    x = r.x + (r.w - cw * cols) * .5f;
++  }
+   ajustes_acento_marca(&ar, &ag, &ab);
+   fundoCtl(r, a);
+   for (i = 0; i < VIDEO_LEG_NCORES; i++) {
+     int cr, cg, cb;
+     float s = ctlAmostra[i], dd = d * (1.0f + 0.16f * s);
+     float ai = a * anim_clamp(ctlAnim * 1.7f - (float)i * 0.12f, 0.0f, 1.0f);
+-    GfxRect c = { x + d * 0.5f - dd * 0.5f, cy - dd * 0.5f, dd, dd };
+-    corLegenda(i, &cr, &cg, &cb);
++    float cx = telefone ? x + cw * (i % cols + .5f) : x + d * .5f;
++    float yc = telefone ? r.y + (ch + 6.0f) * (i / cols) + ch * .5f : cy;
++    GfxRect c = { cx - dd * .5f, yc - dd * .5f, dd, dd };
++    if (ctlVis == EST_COR_BORDA) { unsigned rgb = video_legenda_borda_rgb(i); cr = (rgb >> 16) & 255; cg = (rgb >> 8) & 255; cb = rgb & 255; }
++    else corLegenda(i, &cr, &cg, &cb);
+     gfx_cor(c, 0.5f, cr / 255.0f, cg / 255.0f, cb / 255.0f, ai);
+     gfx_anel(c, 0.5f, 1.0f, 1, 1, 1, 0.22f * ai);                 // a amostra escura nao some no fundo
+-    if (i == player_leg_estilo()->cor) gfx_anel_fora(c, 0.5f, 5.0f, 3.0f, ar, ag, ab, ai);   // a em uso
++    if (i == (ctlVis == EST_COR_BORDA ? player_leg_estilo()->corBorda : player_leg_estilo()->cor)) gfx_anel_fora(c, 0.5f, 5.0f, 3.0f, ar, ag, ab, ai);   // a em uso
+     else if (i == ctlSub) gfx_anel_fora(c, 0.5f, 5.0f, 2.0f, 1, 1, 1, 0.7f * ai);            // so o foco
+-    if (ativo) ponteiro_alvo(x - 12.0f, r.y, d + 24.0f, r.h, ponteiroSub, ponteiroEscolher, i, 0);
+-    x += d + vao;
++    if (ativo) {
++      if (telefone) ponteiro_alvo(x + cw * (i % cols), r.y + (ch + 6.0f) * (i / cols), cw, ch, ponteiroSub, ponteiroEscolher, i, 0);
++      else ponteiro_alvo(x - 12.0f, r.y, d + 24.0f, r.h, ponteiroSub, ponteiroEscolher, i, 0);
++    }
++    if (!telefone) x += d + vao;
+   }
+ }
+ 
+ // A LISTA de fontes: cada nome escrito NA PROPRIA fonte, 2 colunas, no lugar da
+ // grade (mesma altura). A em uso leva o check no acento; o foco, a superficie.
+ static void fontesCtl(GfxRect r, float a, int ativo) {
+-  float vao = 8.0f, cw = (r.w - vao) * 0.5f, ch = (r.h - vao * 2.0f) / 3.0f, ar, ag, ab;
++  int rows = (TXT_FAMILIA_N + 1) / 2;
++  float vao = 8.0f, cw = (r.w - vao) * 0.5f, ch = (r.h - vao * (rows - 1)) / rows, ar, ag, ab;
+   int i;
+   ajustes_acento_marca(&ar, &ag, &ab);
+   for (i = 0; i < TXT_FAMILIA_N; i++) {
+@@ -1905,6 +1960,8 @@ static void fontesCtl(GfxRect r, float a, int ativo) {
+ static void controleEstilo(int i, GfxRect g, float a, int ativo) {
+   if (estTipo(i) == 3) { fontesCtl(g, a, ativo); return; }
+   { GfxRect ra = { g.x, g.y, g.w, IL_EST_CEL_H }, rb = { g.x, g.y + IL_EST_CEL_H + 6.0f, g.w, IL_EST_CEL_H };
++    if (telefoneui_ativo() && estTipo(i) == 2 && paletaColunas(g.w) < VIDEO_LEG_NCORES)
++      rb.h = g.h - (rb.y - g.y);
+     celulaEstilo(i, ra, a, 0);                          // o item, com o valor ao vivo
+     if (ativo) ponteiro_alvo(ra.x, ra.y, ra.w, ra.h, NULL, ponteiroFecharCtl, 0, 0);
+     if (estTipo(i) == 1) sliderCtl(i, rb, a, ativo); else paletaCtl(rb, a, ativo); }
+@@ -1913,7 +1970,7 @@ static void controleEstilo(int i, GfxRect g, float a, int ativo) {
+ static float alturaEstilo(void) { return IL_PAD_Y + IL_EST_TOPO + 14.0f + IL_EST_GRADE_H + IL_PAD_Y; }
+ 
+ static void corpoEstilo(GfxRect c, float a) {
+-  float x0 = c.x + IL_PAD_X, w = c.w - IL_PAD_X * 2.0f, y = c.y + IL_PAD_Y;
++  float pad = estiloPadX(), x0 = c.x + pad, w = c.w - pad * 2.0f, y = c.y + IL_PAD_Y;
+   float cw = (w - 4.0f * 6.0f) / FX_BARRA_COLS;
+   int i, assentada = a > 0.99f && ponteiro_ativo();
+   { TxtLinha t = txt_linha(TXT_G30B, "Legendas", 243, 242, 239, 255);
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index 9a6b9ec4dc..1fbcb8fbff 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Токшоу"),
+   T("Converter DTS para a TV ouvir", "Преобразувай DTS, за да го пусне телевизорът"),
+   T("Cor", "Цвят"),
++  T("Cor da borda", "Цвят на контура"),
+   T("Cor da logo", "Цвят на логото"),
+   T("Cor da segunda legenda", "Цвят на вторите субтитри"),
+   T("Cor de destaque", "Акцентен цвят"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Автоматичен източник"),
+   T("Fonte da interface", "Шрифт на интерфейса"),
+   T("Fonte da interface e Animações", "Шрифт на интерфейса и Анимации"),
++  T("Fonte da legenda", "Шрифт на субтитрите"),
+   T("Fonte do \"Continuar assistindo\"", "Източник за \"Продължи гледането\""),
+   T("Fonte do trailer", "Източник на трейлъра"),
+   T("Fonte e animações", "Шрифт и анимации"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Външни субтитри"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Външните субтитри са непълни; синхронизирането е невъзможно"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Принудителни субтитри, когато звукът е на вашия език"),
++  T("Legenda principal", "Основни субтитри"),
+   T("Legenda sincronizada · %s · %s", "Субтитрите са синхронизирани · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Субтитри: не успяха да се съпоставят пътеките с файла; изобразява ги телевизорът"),
+   T("Legendado", "Със субтитри"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index 200dda9166..9fdd6ce9ea 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talk show"),
+   T("Converter DTS para a TV ouvir", "Pretvori DTS da ga TV pusti"),
+   T("Cor", "Boja"),
++  T("Cor da borda", "Boja obruba"),
+   T("Cor da logo", "Boja logotipa"),
+   T("Cor da segunda legenda", "Boja drugog titla"),
+   T("Cor de destaque", "Akcentna boja"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatski izvor"),
+   T("Fonte da interface", "Font interfejsa"),
+   T("Fonte da interface e Animações", "Font interfejsa i Animacije"),
++  T("Fonte da legenda", "Font titlova"),
+   T("Fonte do \"Continuar assistindo\"", "Izvor za \"Nastavi gledanje\""),
+   T("Fonte do trailer", "Izvor trailera"),
+   T("Fonte e animações", "Font i animacije"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Vanjski titl"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Vanjski titl nije potpun; sinhronizacija nije moguća"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Forsirani titlovi kad je zvuk na vašem jeziku"),
++  T("Legenda principal", "Glavni titl"),
+   T("Legenda sincronizada · %s · %s", "Titl sinhronizovan · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Titlovi: nije uspjelo povezivanje zapisa s datotekom; crta ih TV"),
+   T("Legendado", "Titlovano"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index f61555e85a..fc4db217b9 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talk"),
+   T("Converter DTS para a TV ouvir", "Převádět DTS, aby ho televize přehrála"),
+   T("Cor", "Barva"),
++  T("Cor da borda", "Barva obrysu"),
+   T("Cor da logo", "Barva loga"),
+   T("Cor da segunda legenda", "Barva druhých titulků"),
+   T("Cor de destaque", "Barva zvýraznění"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatický zdroj"),
+   T("Fonte da interface", "Písmo rozhraní"),
+   T("Fonte da interface e Animações", "Písmo rozhraní a Animace"),
++  T("Fonte da legenda", "Písmo titulků"),
+   T("Fonte do \"Continuar assistindo\"", "Zdroj pro \"Pokračovat ve sledování\""),
+   T("Fonte do trailer", "Zdroj upoutávky"),
+   T("Fonte e animações", "Písmo a animace"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Externí titulky"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Externí titulky jsou neúplné; synchronizace není možná"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Vynucené titulky, když je zvuk ve vašem jazyce"),
++  T("Legenda principal", "Hlavní titulky"),
+   T("Legenda sincronizada · %s · %s", "Titulky synchronizovány · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Titulky: stopy se nepodařilo spárovat se souborem; vykreslí je televize"),
+   T("Legendado", "S titulky"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index fa4dcfc823..cbf43b1099 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talkshow"),
+   T("Converter DTS para a TV ouvir", "Konvertér DTS, så TV’et kan afspille det"),
+   T("Cor", "Farve"),
++  T("Cor da borda", "Konturfarve"),
+   T("Cor da logo", "Logoets farve"),
+   T("Cor da segunda legenda", "Farve på sekundær undertekst"),
+   T("Cor de destaque", "Accentfarve"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatisk kilde"),
+   T("Fonte da interface", "Brugerfladens skrifttype"),
+   T("Fonte da interface e Animações", "Brugerfladens skrifttype og Animationer"),
++  T("Fonte da legenda", "Undertekstskrifttype"),
+   T("Fonte do \"Continuar assistindo\"", "Kilde til \"Fortsæt med at se\""),
+   T("Fonte do trailer", "Trailerkilde"),
+   T("Fonte e animações", "Skrifttype og animationer"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Ekstern undertekst"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Ekstern undertekst ufuldstændig; kan ikke synkronisere"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Tvungne undertekster, når lyden er på dit sprog"),
++  T("Legenda principal", "Primær undertekst"),
+   T("Legenda sincronizada · %s · %s", "Undertekster synkroniseret · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Undertekster: sporene kunne ikke matches med filen; tv'et tegner dem"),
+   T("Legendado", "Med undertekster"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index e10f74392e..9cc43cb5cd 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -1311,6 +1311,7 @@
+   T("Conversa", "Gespräch"),
+   T("Converter DTS para a TV ouvir", "DTS umwandeln, damit der Fernseher es abspielt"),
+   T("Cor", "Farbe"),
++  T("Cor da borda", "Konturfarbe"),
+   T("Cor da logo", "Logofarbe"),
+   T("Cor da segunda legenda", "Farbe der Zweituntertitel"),
+   T("Cor de destaque", "Akzentfarbe"),
+@@ -2002,6 +2003,7 @@
+   T("Fonte automática", "Automatische Quelle"),
+   T("Fonte da interface", "Schriftart der Oberfläche"),
+   T("Fonte da interface e Animações", "Schrift der Oberfläche und Animationen"),
++  T("Fonte da legenda", "Untertitelschrift"),
+   T("Fonte do \"Continuar assistindo\"", "Quelle für \"Weiterschauen\""),
+   T("Fonte do trailer", "Trailer-Quelle"),
+   T("Fonte e animações", "Schrift und Animationen"),
+@@ -2317,6 +2319,7 @@
+   T("Legenda externa", "Externe Untertitel"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Externe Untertitel unvollständig; Synchronisierung nicht möglich"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Erzwungene Untertitel, wenn der Ton in Ihrer Sprache ist"),
++  T("Legenda principal", "Hauptuntertitel"),
+   T("Legenda sincronizada · %s · %s", "Untertitel synchronisiert · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Untertitel: Spuren ließen sich nicht der Datei zuordnen; der Fernseher zeichnet sie"),
+   T("Legendado", "Untertitelt"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index e68420a052..955296b4fc 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Συζήτηση"),
+   T("Converter DTS para a TV ouvir", "Μετατροπή DTS για να το παίζει η τηλεόραση"),
+   T("Cor", "Χρώμα"),
++  T("Cor da borda", "Χρώμα περιγράμματος"),
+   T("Cor da logo", "Χρώμα λογοτύπου"),
+   T("Cor da segunda legenda", "Χρώμα δεύτερων υποτίτλων"),
+   T("Cor de destaque", "Χρώμα έμφασης"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Αυτόματη πηγή"),
+   T("Fonte da interface", "Γραμματοσειρά διεπαφής"),
+   T("Fonte da interface e Animações", "Γραμματοσειρά διεπαφής και Κινήσεις"),
++  T("Fonte da legenda", "Γραμματοσειρά υποτίτλων"),
+   T("Fonte do \"Continuar assistindo\"", "Πηγή για το \"Συνέχεια προβολής\""),
+   T("Fonte do trailer", "Πηγή τρέιλερ"),
+   T("Fonte e animações", "Γραμματοσειρά και κινήσεις"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Εξωτερικοί υπότιτλοι"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Οι εξωτερικοί υπότιτλοι είναι ελλιπείς, δεν γίνεται συγχρονισμός"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Αναγκαστικοί υπότιτλοι όταν ο ήχος είναι στη γλώσσα σας"),
++  T("Legenda principal", "Κύριοι υπότιτλοι"),
+   T("Legenda sincronizada · %s · %s", "Οι υπότιτλοι συγχρονίστηκαν · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Υπότιτλοι: δεν αντιστοιχίστηκαν τα κομμάτια με το αρχείο· τους σχεδιάζει η τηλεόραση"),
+   T("Legendado", "Με υπότιτλους"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index 7121003a12..23bf25c1a4 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -1311,6 +1311,7 @@
+   T("Conversa", "Conversación"),
+   T("Converter DTS para a TV ouvir", "Convertir DTS para que la TV lo reproduzca"),
+   T("Cor", "Color"),
++  T("Cor da borda", "Color del contorno"),
+   T("Cor da logo", "Color del logo"),
+   T("Cor da segunda legenda", "Color del subtítulo secundario"),
+   T("Cor de destaque", "Color de acento"),
+@@ -2002,6 +2003,7 @@
+   T("Fonte automática", "Fuente automática"),
+   T("Fonte da interface", "Fuente de la interfaz"),
+   T("Fonte da interface e Animações", "Fuente de la interfaz y Animaciones"),
++  T("Fonte da legenda", "Fuente de los subtítulos"),
+   T("Fonte do \"Continuar assistindo\"", "Fuente de \"Seguir viendo\""),
+   T("Fonte do trailer", "Fuente del tráiler"),
+   T("Fonte e animações", "Fuente y animaciones"),
+@@ -2317,6 +2319,7 @@
+   T("Legenda externa", "Subtítulo externo"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Subtítulo externo incompleto; no se puede sincronizar"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Subtítulos forzados cuando el audio está en tu idioma"),
++  T("Legenda principal", "Subtítulo principal"),
+   T("Legenda sincronizada · %s · %s", "Subtítulos sincronizados · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Subtítulos: no se pudieron asociar las pistas con el archivo; la TV los dibuja"),
+   T("Legendado", "Subtitulado"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index 38f4c54af0..4fdafcc43d 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -1311,6 +1311,7 @@
+   T("Conversa", "Discussion"),
+   T("Converter DTS para a TV ouvir", "Convertir le DTS pour que la TV le lise"),
+   T("Cor", "Couleur"),
++  T("Cor da borda", "Couleur du contour"),
+   T("Cor da logo", "Couleur du logo"),
+   T("Cor da segunda legenda", "Couleur du sous-titre secondaire"),
+   T("Cor de destaque", "Couleur d'accent"),
+@@ -2002,6 +2003,7 @@
+   T("Fonte automática", "Source automatique"),
+   T("Fonte da interface", "Police de l'interface"),
+   T("Fonte da interface e Animações", "Police de l’interface et Animations"),
++  T("Fonte da legenda", "Police des sous-titres"),
+   T("Fonte do \"Continuar assistindo\"", "Source de \"Reprendre la lecture\""),
+   T("Fonte do trailer", "Source de la bande-annonce"),
+   T("Fonte e animações", "Police et animations"),
+@@ -2317,6 +2319,7 @@
+   T("Legenda externa", "Sous-titres externes"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Sous-titres externes incomplets; synchronisation impossible"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Sous-titres forcés quand l’audio est dans votre langue"),
++  T("Legenda principal", "Sous-titre principal"),
+   T("Legenda sincronizada · %s · %s", "Sous-titres synchronisés · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Sous-titres: impossible d'associer les pistes au fichier; la TV les dessine"),
+   T("Legendado", "Sous-titré"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index c281c22409..67e38bde63 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talk-show"),
+   T("Converter DTS para a TV ouvir", "DTS átalakítása, hogy a TV lejátssza"),
+   T("Cor", "Szín"),
++  T("Cor da borda", "Körvonal színe"),
+   T("Cor da logo", "Logó színe"),
+   T("Cor da segunda legenda", "A második felirat színe"),
+   T("Cor de destaque", "Kiemelőszín"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatikus forrás"),
+   T("Fonte da interface", "A felület betűtípusa"),
+   T("Fonte da interface e Animações", "A felület betűtípusa és Animációk"),
++  T("Fonte da legenda", "Felirat betűtípusa"),
+   T("Fonte do \"Continuar assistindo\"", "A \"Folytatás\" forrása"),
+   T("Fonte do trailer", "Előzetes forrása"),
+   T("Fonte e animações", "Betűtípus és animációk"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Külső felirat"),
+   T("Legenda externa incompleta; não dá para sincronizar", "A külső felirat hiányos; nem szinkronizálható"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Kényszerített felirat, ha a hang a saját nyelveden szól"),
++  T("Legenda principal", "Elsődleges felirat"),
+   T("Legenda sincronizada · %s · %s", "Felirat szinkronizálva · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Feliratok: a sávokat nem sikerült párosítani a fájllal; a TV rajzolja"),
+   T("Legendado", "Feliratos"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index 2a4a138e78..80e21807ec 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Bicara"),
+   T("Converter DTS para a TV ouvir", "Ubah DTS agar bisa diputar TV"),
+   T("Cor", "Warna"),
++  T("Cor da borda", "Warna garis tepi"),
+   T("Cor da logo", "Warna logo"),
+   T("Cor da segunda legenda", "Warna subtitle kedua"),
+   T("Cor de destaque", "Warna aksen"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Sumber otomatis"),
+   T("Fonte da interface", "Font antarmuka"),
+   T("Fonte da interface e Animações", "Font antarmuka dan Animasi"),
++  T("Fonte da legenda", "Font subtitel"),
+   T("Fonte do \"Continuar assistindo\"", "Sumber untuk \"Lanjutkan menonton\""),
+   T("Fonte do trailer", "Sumber trailer"),
+   T("Fonte e animações", "Font dan animasi"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Subtitel eksternal"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Subtitle eksternal tidak lengkap; tidak bisa disinkronkan"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Subtitle paksa saat audio dalam bahasa Anda"),
++  T("Legenda principal", "Subtitel utama"),
+   T("Legenda sincronizada · %s · %s", "Subtitle disinkronkan · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Subtitel: trek tidak cocok dengan file; digambar oleh TV"),
+   T("Legendado", "Bersubtitel"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index e850c2ceba..54a77852d0 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Dialoghi"),
+   T("Converter DTS para a TV ouvir", "Convertire il DTS perché la TV lo riproduca"),
+   T("Cor", "Colore"),
++  T("Cor da borda", "Colore del contorno"),
+   T("Cor da logo", "Colore del logo"),
+   T("Cor da segunda legenda", "Colore del sottotitolo secondario"),
+   T("Cor de destaque", "Colore d'accento"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Fonte automatica"),
+   T("Fonte da interface", "Carattere dell'interfaccia"),
+   T("Fonte da interface e Animações", "Carattere dell’interfaccia e Animazioni"),
++  T("Fonte da legenda", "Carattere dei sottotitoli"),
+   T("Fonte do \"Continuar assistindo\"", "Fonte per \"Continua a guardare\""),
+   T("Fonte do trailer", "Fonte del trailer"),
+   T("Fonte e animações", "Carattere e animazioni"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Sottotitolo esterno"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Sottotitolo esterno incompleto; impossibile sincronizzare"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Sottotitoli forzati quando l’audio è nella tua lingua"),
++  T("Legenda principal", "Sottotitolo principale"),
+   T("Legenda sincronizada · %s · %s", "Sottotitoli sincronizzati · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Sottotitoli: impossibile abbinare le tracce al file; li disegna la TV"),
+   T("Legendado", "Sottotitolato"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index 55d27eedfe..2de6f0b88a 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "トーク"),
+   T("Converter DTS para a TV ouvir", "テレビで再生できるよう DTS を変換"),
+   T("Cor", "色"),
++  T("Cor da borda", "縁取りの色"),
+   T("Cor da logo", "ロゴの色"),
+   T("Cor da segunda legenda", "第2字幕の色"),
+   T("Cor de destaque", "アクセントカラー"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "自動ソース"),
+   T("Fonte da interface", "インターフェースのフォント"),
+   T("Fonte da interface e Animações", "表示フォントとアニメーション"),
++  T("Fonte da legenda", "字幕フォント"),
+   T("Fonte do \"Continuar assistindo\"", "\"続きを見る\"のソース"),
+   T("Fonte do trailer", "予告編のソース"),
+   T("Fonte e animações", "フォントとアニメーション"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "外部字幕"),
+   T("Legenda externa incompleta; não dá para sincronizar", "外部字幕が不完全なため同期できません"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "音声が自分の言語のときは強制字幕"),
++  T("Legenda principal", "主字幕"),
+   T("Legenda sincronizada · %s · %s", "字幕を同期しました · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "字幕: トラックをファイルと照合できなかったため、テレビが描画します"),
+   T("Legendado", "字幕あり"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 3e5d9b6694..d76e72f477 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Pokalbių laida"),
+   T("Converter DTS para a TV ouvir", "Konvertuoti DTS, kad televizorius jį grotų"),
+   T("Cor", "Spalva"),
++  T("Cor da borda", "Kontūro spalva"),
+   T("Cor da logo", "Logotipo spalva"),
+   T("Cor da segunda legenda", "Antrųjų subtitrų spalva"),
+   T("Cor de destaque", "Akcento spalva"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatinis šaltinis"),
+   T("Fonte da interface", "Sąsajos šriftas"),
+   T("Fonte da interface e Animações", "Sąsajos šriftas ir Animacijos"),
++  T("Fonte da legenda", "Subtitrų šriftas"),
+   T("Fonte do \"Continuar assistindo\"", "\"Tęsti žiūrėjimą\" šaltinis"),
+   T("Fonte do trailer", "Anonso šaltinis"),
+   T("Fonte e animações", "Šriftas ir animacijos"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Išoriniai subtitrai"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Išoriniai subtitrai nepilni; sinchronizuoti negalima"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Priverstiniai subtitrai, kai garsas jūsų kalba"),
++  T("Legenda principal", "Pagrindiniai subtitrai"),
+   T("Legenda sincronizada · %s · %s", "Subtitrai sinchronizuoti · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Subtitrai: nepavyko susieti takelių su failu; juos piešia televizorius"),
+   T("Legendado", "Su subtitrais"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index 99b5660455..7ff2bdf28c 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Dialoog"),
+   T("Converter DTS para a TV ouvir", "DTS omzetten zodat de tv het afspeelt"),
+   T("Cor", "Kleur"),
++  T("Cor da borda", "Omtrekkleur"),
+   T("Cor da logo", "Logokleur"),
+   T("Cor da segunda legenda", "Kleur van tweede ondertitel"),
+   T("Cor de destaque", "Accentkleur"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatische bron"),
+   T("Fonte da interface", "Interfacelettertype"),
+   T("Fonte da interface e Animações", "Lettertype van de interface en Animaties"),
++  T("Fonte da legenda", "Lettertype voor ondertitels"),
+   T("Fonte do \"Continuar assistindo\"", "Bron voor \"Verder kijken\""),
+   T("Fonte do trailer", "Trailerbron"),
+   T("Fonte e animações", "Lettertype en animaties"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Externe ondertitel"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Externe ondertitels onvolledig; synchroniseren niet mogelijk"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Geforceerde ondertitels als de audio in je taal is"),
++  T("Legenda principal", "Hoofdondertitel"),
+   T("Legenda sincronizada · %s · %s", "Ondertiteling gesynchroniseerd · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Ondertitels: kon de sporen niet aan het bestand koppelen; de tv tekent ze"),
+   T("Legendado", "Ondertiteld"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 84d519e696..b34239d7ad 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talkshow"),
+   T("Converter DTS para a TV ouvir", "Konverter DTS så TV-en kan spille det"),
+   T("Cor", "Farge"),
++  T("Cor da borda", "Omrissfarge"),
+   T("Cor da logo", "Logoens farge"),
+   T("Cor da segunda legenda", "Farge på sekundær undertekst"),
+   T("Cor de destaque", "Aksentfarge"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatisk kilde"),
+   T("Fonte da interface", "Skrifttype for grensesnittet"),
+   T("Fonte da interface e Animações", "Grensesnittets skrifttype og Animasjoner"),
++  T("Fonte da legenda", "Undertekstskrift"),
+   T("Fonte do \"Continuar assistindo\"", "Kilde for \"Fortsett å se\""),
+   T("Fonte do trailer", "Trailerkilde"),
+   T("Fonte e animações", "Skrifttype og animasjoner"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Ekstern undertekst"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Ekstern undertekst ufullstendig; kan ikke synkronisere"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Tvungne undertekster når lyden er på ditt språk"),
++  T("Legenda principal", "Hovedundertekst"),
+   T("Legenda sincronizada · %s · %s", "Undertekster synkronisert · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Undertekster: kunne ikke matche sporene med filen; TV-en tegner dem"),
+   T("Legendado", "Med undertekster"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index 2a9d94fc53..3f6c8f490f 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Dialogi"),
+   T("Converter DTS para a TV ouvir", "Konwertuj DTS, by telewizor go odtworzył"),
+   T("Cor", "Kolor"),
++  T("Cor da borda", "Kolor obrysu"),
+   T("Cor da logo", "Kolor logo"),
+   T("Cor da segunda legenda", "Kolor drugich napisów"),
+   T("Cor de destaque", "Kolor akcentu"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Źródło automatyczne"),
+   T("Fonte da interface", "Czcionka interfejsu"),
+   T("Fonte da interface e Animações", "Czcionka interfejsu i Animacje"),
++  T("Fonte da legenda", "Czcionka napisów"),
+   T("Fonte do \"Continuar assistindo\"", "Źródło dla \"Kontynuuj oglądanie\""),
+   T("Fonte do trailer", "Źródło zwiastuna"),
+   T("Fonte e animações", "Czcionka i animacje"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Napisy zewnętrzne"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Zewnętrzne napisy niepełne; nie można zsynchronizować"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Napisy wymuszone, gdy dźwięk jest w Twoim języku"),
++  T("Legenda principal", "Napisy główne"),
+   T("Legenda sincronizada · %s · %s", "Napisy zsynchronizowane · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Napisy: nie udało się dopasować ścieżek do pliku; rysuje je telewizor"),
+   T("Legendado", "Z napisami"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index cb2950396c..e56a5c410a 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Conversa"),
+   T("Converter DTS para a TV ouvir", "Converter DTS para a TV reproduzir"),
+   T("Cor", "Cor"),
++  T("Cor da borda", "Cor do contorno"),
+   T("Cor da logo", "Cor do logótipo"),
+   T("Cor da segunda legenda", "Cor da segunda legenda"),
+   T("Cor de destaque", "Cor de destaque"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Fonte automática"),
+   T("Fonte da interface", "Tipo de letra da interface"),
+   T("Fonte da interface e Animações", "Tipo de letra da interface e Animações"),
++  T("Fonte da legenda", "Tipo de letra das legendas"),
+   T("Fonte do \"Continuar assistindo\"", "Fonte de \"Continuar a ver\""),
+   T("Fonte do trailer", "Fonte do trailer"),
+   T("Fonte e animações", "Tipo de letra e animações"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Legenda externa"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Legenda externa incompleta; não é possível sincronizar"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Legenda forçada automática quando o áudio estiver no seu idioma"),
++  T("Legenda principal", "Legenda principal"),
+   T("Legenda sincronizada · %s · %s", "Legenda sincronizada · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Legenda: não foi possível associar as faixas ao ficheiro; a TV desenha-as"),
+   T("Legendado", "Legendado"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index 27560c3d42..6a98b82d7a 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -1311,6 +1311,7 @@
+   T("Conversa", "Conversație"),
+   T("Converter DTS para a TV ouvir", "Convertește DTS ca televizorul să-l redea"),
+   T("Cor", "Culoare"),
++  T("Cor da borda", "Culoarea conturului"),
+   T("Cor da logo", "Culoarea logo-ului"),
+   T("Cor da segunda legenda", "Culoarea subtitrării secundare"),
+   T("Cor de destaque", "Culoare de accent"),
+@@ -2002,6 +2003,7 @@
+   T("Fonte automática", "Sursă automată"),
+   T("Fonte da interface", "Fontul interfeței"),
+   T("Fonte da interface e Animações", "Fontul interfeței și Animații"),
++  T("Fonte da legenda", "Fontul subtitrării"),
+   T("Fonte do \"Continuar assistindo\"", "Sursa pentru \"Continuă vizionarea\""),
+   T("Fonte do trailer", "Sursa trailerului"),
+   T("Fonte e animações", "Font și animații"),
+@@ -2317,6 +2319,7 @@
+   T("Legenda externa", "Subtitrare externă"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Subtitrare externă incompletă; nu se poate sincroniza"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Subtitrare forțată când audio e în limba ta"),
++  T("Legenda principal", "Subtitrare principală"),
+   T("Legenda sincronizada · %s · %s", "Subtitrare sincronizată · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Subtitrări: nu s-au putut potrivi pistele cu fișierul; le desenează televizorul"),
+   T("Legendado", "Subtitrat"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 4719d5c8fa..3dc7d1d8f2 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -1311,6 +1311,7 @@
+   T("Conversa", "Разговор"),
+   T("Converter DTS para a TV ouvir", "Преобразовывать DTS, чтобы телевизор его воспроизвёл"),
+   T("Cor", "Цвет"),
++  T("Cor da borda", "Цвет контура"),
+   T("Cor da logo", "Цвет логотипа"),
+   T("Cor da segunda legenda", "Цвет вторых субтитров"),
+   T("Cor de destaque", "Цвет акцента"),
+@@ -2002,6 +2003,7 @@
+   T("Fonte automática", "Автоматический источник"),
+   T("Fonte da interface", "Шрифт интерфейса"),
+   T("Fonte da interface e Animações", "Шрифт интерфейса и Анимации"),
++  T("Fonte da legenda", "Шрифт субтитров"),
+   T("Fonte do \"Continuar assistindo\"", "Источник для \"Продолжить просмотр\""),
+   T("Fonte do trailer", "Источник трейлера"),
+   T("Fonte e animações", "Шрифт и анимации"),
+@@ -2317,6 +2319,7 @@
+   T("Legenda externa", "Внешние субтитры"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Внешние субтитры неполные; синхронизация невозможна"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Форсированные субтитры, когда аудио на вашем языке"),
++  T("Legenda principal", "Основные субтитры"),
+   T("Legenda sincronizada · %s · %s", "Субтитры синхронизированы · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Субтитры: не удалось сопоставить дорожки с файлом; рисует телевизор"),
+   T("Legendado", "С субтитрами"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index 8a8362820a..a15b78124c 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talk"),
+   T("Converter DTS para a TV ouvir", "Prevádzať DTS, aby ho televízor prehral"),
+   T("Cor", "Farba"),
++  T("Cor da borda", "Farba obrysu"),
+   T("Cor da logo", "Farba loga"),
+   T("Cor da segunda legenda", "Farba druhých titulkov"),
+   T("Cor de destaque", "Farba zvýraznenia"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatický zdroj"),
+   T("Fonte da interface", "Písmo rozhrania"),
+   T("Fonte da interface e Animações", "Písmo rozhrania a Animácie"),
++  T("Fonte da legenda", "Písmo titulkov"),
+   T("Fonte do \"Continuar assistindo\"", "Zdroj pre \"Pokračovať v sledovaní\""),
+   T("Fonte do trailer", "Zdroj upútavky"),
+   T("Fonte e animações", "Písmo a animácie"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Externé titulky"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Externé titulky sú neúplné; synchronizácia nie je možná"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Vynútené titulky, keď je zvuk vo vašom jazyku"),
++  T("Legenda principal", "Hlavné titulky"),
+   T("Legenda sincronizada · %s · %s", "Titulky synchronizované · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Titulky: stopy sa nepodarilo spárovať so súborom; vykreslí ich televízor"),
+   T("Legendado", "S titulkami"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index 0b737cf890..5b19140b19 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Pogovor"),
+   T("Converter DTS para a TV ouvir", "Pretvori DTS, da ga TV predvaja"),
+   T("Cor", "Barva"),
++  T("Cor da borda", "Barva obrobe"),
+   T("Cor da logo", "Barva logotipa"),
+   T("Cor da segunda legenda", "Barva drugih podnapisov"),
+   T("Cor de destaque", "Barva poudarka"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Samodejni vir"),
+   T("Fonte da interface", "Pisava vmesnika"),
+   T("Fonte da interface e Animações", "Pisava vmesnika in Animacije"),
++  T("Fonte da legenda", "Pisava podnapisov"),
+   T("Fonte do \"Continuar assistindo\"", "Vir za \"Nadaljuj z ogledom\""),
+   T("Fonte do trailer", "Vir napovednika"),
+   T("Fonte e animações", "Pisava in animacije"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Zunanji podnapisi"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Zunanji podnapisi so nepopolni; sinhronizacija ni mogoča"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Vsiljeni podnapisi, ko je zvok v vašem jeziku"),
++  T("Legenda principal", "Glavni podnapisi"),
+   T("Legenda sincronizada · %s · %s", "Podnapisi sinhronizirani · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Podnapisi: sledi ni bilo mogoče povezati z datoteko; izriše jih televizor"),
+   T("Legendado", "S podnapisi"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index 82b91f0d67..4ab7607120 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talk show"),
+   T("Converter DTS para a TV ouvir", "Pretvori DTS da ga TV pusti"),
+   T("Cor", "Boja"),
++  T("Cor da borda", "Boja konture"),
+   T("Cor da logo", "Boja logotipa"),
+   T("Cor da segunda legenda", "Boja drugog titla"),
+   T("Cor de destaque", "Akcentna boja"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatski izvor"),
+   T("Fonte da interface", "Font interfejsa"),
+   T("Fonte da interface e Animações", "Font interfejsa i Animacije"),
++  T("Fonte da legenda", "Font titlova"),
+   T("Fonte do \"Continuar assistindo\"", "Izvor za \"Nastavi gledanje\""),
+   T("Fonte do trailer", "Izvor trejlera"),
+   T("Fonte e animações", "Font i animacije"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Spoljni titl"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Spoljni titl nije potpun; sinhronizacija nije moguća"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Forsirani titlovi kada je zvuk na vašem jeziku"),
++  T("Legenda principal", "Glavni titl"),
+   T("Legenda sincronizada · %s · %s", "Titl sinhronizovan · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Titlovi: nije uspelo povezivanje zapisa sa datotekom; crta ih TV"),
+   T("Legendado", "Titlovano"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index 8060a16bbf..f5d9618897 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Talkshow"),
+   T("Converter DTS para a TV ouvir", "Konvertera DTS så att TV:n kan spela det"),
+   T("Cor", "Färg"),
++  T("Cor da borda", "Konturfärg"),
+   T("Cor da logo", "Logotypens färg"),
+   T("Cor da segunda legenda", "Färg på andra undertext"),
+   T("Cor de destaque", "Accentfärg"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Automatisk källa"),
+   T("Fonte da interface", "Gränssnittets typsnitt"),
+   T("Fonte da interface e Animações", "Gränssnittets typsnitt och Animationer"),
++  T("Fonte da legenda", "Undertextens teckensnitt"),
+   T("Fonte do \"Continuar assistindo\"", "Källa för \"Fortsätt titta\""),
+   T("Fonte do trailer", "Trailerkälla"),
+   T("Fonte e animações", "Typsnitt och animationer"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Extern undertext"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Extern undertext ofullständig; kan inte synkronisera"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Tvingade undertexter när ljudet är på ditt språk"),
++  T("Legenda principal", "Huvudundertext"),
+   T("Legenda sincronizada · %s · %s", "Undertexter synkade · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Undertexter: det gick inte att para ihop spåren med filen; TV:n ritar dem"),
+   T("Legendado", "Textat"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index 3199f29735..e2ee8f005e 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -1311,6 +1311,7 @@
+   { "Conversa", "Talk" },
+   { "Converter DTS para a TV ouvir", "Convert DTS so the TV can play it" },
+   { "Cor", "Color" },
++  { "Cor da borda", "Outline color" },
+   { "Cor da logo", "Logo color" },
+   { "Cor da segunda legenda", "Second subtitle color" },
+   { "Cor de destaque", "Accent color" },
+@@ -2002,6 +2003,7 @@
+   { "Fonte automática", "Automatic source" },
+   { "Fonte da interface", "Interface font" },
+   { "Fonte da interface e Animações", "Interface font and Animations" },
++  { "Fonte da legenda", "Subtitle font" },
+   { "Fonte do \"Continuar assistindo\"", "Source for \"Continue Watching\"" },
+   { "Fonte do trailer", "Trailer source" },
+   { "Fonte e animações", "Font and animations" },
+@@ -2317,6 +2319,7 @@
+   { "Legenda externa", "External subtitle" },
+   { "Legenda externa incompleta; não dá para sincronizar", "External subtitle incomplete; cannot sync" },
+   { "Legenda forçada automática quando o áudio for no seu idioma", "Forced subtitles when the audio is in your language" },
++  { "Legenda principal", "Main subtitle" },
+   { "Legenda sincronizada · %s · %s", "Subtitles synced · %s · %s" },
+   { "Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Subtitles: couldn't match the tracks to the file; the TV draws them" },
+   { "Legendado", "Subtitled" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index e131a2cefe..565c1800b2 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Diyalog"),
+   T("Converter DTS para a TV ouvir", "TV’nin çalabilmesi için DTS’yi dönüştür"),
+   T("Cor", "Renk"),
++  T("Cor da borda", "Anahat rengi"),
+   T("Cor da logo", "Logo rengi"),
+   T("Cor da segunda legenda", "İkincil altyazı rengi"),
+   T("Cor de destaque", "Vurgu rengi"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Otomatik kaynak"),
+   T("Fonte da interface", "Arayüz yazı tipi"),
+   T("Fonte da interface e Animações", "Arayüz yazı tipi ve Animasyonlar"),
++  T("Fonte da legenda", "Altyazı yazı tipi"),
+   T("Fonte do \"Continuar assistindo\"", "\"İzlemeye devam et\" için kaynak"),
+   T("Fonte do trailer", "Fragman kaynağı"),
+   T("Fonte e animações", "Yazı tipi ve animasyonlar"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Harici altyazı"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Harici altyazı eksik; senkronize edilemiyor"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Ses kendi dilinizdeyken zorunlu altyazı"),
++  T("Legenda principal", "Ana altyazı"),
+   T("Legenda sincronizada · %s · %s", "Altyazı senkronize edildi · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Altyazılar: parçalar dosyayla eşleştirilemedi; TV çiziyor"),
+   T("Legendado", "Altyazılı"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index 3e4a68b72f..9c87a00d2a 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -1311,6 +1311,7 @@
+   T("Conversa", "Розмова"),
+   T("Converter DTS para a TV ouvir", "Перетворювати DTS, щоб телевізор його відтворив"),
+   T("Cor", "Колір"),
++  T("Cor da borda", "Колір контуру"),
+   T("Cor da logo", "Колір логотипа"),
+   T("Cor da segunda legenda", "Колір других субтитрів"),
+   T("Cor de destaque", "Колір акценту"),
+@@ -2002,6 +2003,7 @@
+   T("Fonte automática", "Автоматичне джерело"),
+   T("Fonte da interface", "Шрифт інтерфейсу"),
+   T("Fonte da interface e Animações", "Шрифт інтерфейсу та Анімації"),
++  T("Fonte da legenda", "Шрифт субтитрів"),
+   T("Fonte do \"Continuar assistindo\"", "Джерело для \"Продовжити перегляд\""),
+   T("Fonte do trailer", "Джерело трейлера"),
+   T("Fonte e animações", "Шрифт і анімації"),
+@@ -2317,6 +2319,7 @@
+   T("Legenda externa", "Зовнішні субтитри"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Зовнішні субтитри неповні; синхронізація неможлива"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Примусові субтитри, коли аудіо вашою мовою"),
++  T("Legenda principal", "Основні субтитри"),
+   T("Legenda sincronizada · %s · %s", "Субтитри синхронізовано · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Субтитри: не вдалося зіставити доріжки з файлом; малює телевізор"),
+   T("Legendado", "Із субтитрами"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 23a5c13220..274135b8cc 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "Trò chuyện"),
+   T("Converter DTS para a TV ouvir", "Chuyển DTS để TV phát được"),
+   T("Cor", "Màu"),
++  T("Cor da borda", "Màu viền"),
+   T("Cor da logo", "Màu logo"),
+   T("Cor da segunda legenda", "Màu phụ đề thứ hai"),
+   T("Cor de destaque", "Màu nhấn"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "Nguồn tự động"),
+   T("Fonte da interface", "Phông chữ giao diện"),
+   T("Fonte da interface e Animações", "Phông chữ giao diện và Hiệu ứng động"),
++  T("Fonte da legenda", "Phông chữ phụ đề"),
+   T("Fonte do \"Continuar assistindo\"", "Nguồn cho \"Xem tiếp\""),
+   T("Fonte do trailer", "Nguồn trailer"),
+   T("Fonte e animações", "Phông chữ và hiệu ứng động"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "Phụ đề ngoài"),
+   T("Legenda externa incompleta; não dá para sincronizar", "Phụ đề ngoài không đầy đủ; không thể đồng bộ"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "Phụ đề bắt buộc khi âm thanh là ngôn ngữ của bạn"),
++  T("Legenda principal", "Phụ đề chính"),
+   T("Legenda sincronizada · %s · %s", "Đã đồng bộ phụ đề · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "Phụ đề: không khớp được các track với tệp; TV tự vẽ"),
+   T("Legendado", "Có phụ đề"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 7581eab794..d8624eb9bd 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "对话"),
+   T("Converter DTS para a TV ouvir", "转换 DTS 以便电视播放"),
+   T("Cor", "颜色"),
++  T("Cor da borda", "描边颜色"),
+   T("Cor da logo", "Logo 颜色"),
+   T("Cor da segunda legenda", "第二字幕颜色"),
+   T("Cor de destaque", "强调色"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "自动片源"),
+   T("Fonte da interface", "界面字体"),
+   T("Fonte da interface e Animações", "界面字体和动画"),
++  T("Fonte da legenda", "字幕字体"),
+   T("Fonte do \"Continuar assistindo\"", "“继续观看”的来源"),
+   T("Fonte do trailer", "预告片来源"),
+   T("Fonte e animações", "字体和动画"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "外挂字幕"),
+   T("Legenda externa incompleta; não dá para sincronizar", "外挂字幕不完整，无法同步"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "音频为你的语言时使用强制字幕"),
++  T("Legenda principal", "主字幕"),
+   T("Legenda sincronizada · %s · %s", "已同步字幕 · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "字幕：无法将轨道与文件匹配，由电视绘制"),
+   T("Legendado", "带字幕"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index c38ac44fa6..32e1d6f672 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -1312,6 +1312,7 @@
+   T("Conversa", "對話"),
+   T("Converter DTS para a TV ouvir", "轉換 DTS 以便電視播放"),
+   T("Cor", "顏色"),
++  T("Cor da borda", "描邊顏色"),
+   T("Cor da logo", "Logo 顏色"),
+   T("Cor da segunda legenda", "第二字幕顏色"),
+   T("Cor de destaque", "強調色"),
+@@ -2003,6 +2004,7 @@
+   T("Fonte automática", "自動片源"),
+   T("Fonte da interface", "介面字體"),
+   T("Fonte da interface e Animações", "介面字體和動畫"),
++  T("Fonte da legenda", "字幕字型"),
+   T("Fonte do \"Continuar assistindo\"", "「繼續觀看」的來源"),
+   T("Fonte do trailer", "預告片來源"),
+   T("Fonte e animações", "字體和動畫"),
+@@ -2318,6 +2320,7 @@
+   T("Legenda externa", "外掛字幕"),
+   T("Legenda externa incompleta; não dá para sincronizar", "外掛字幕不完整，無法同步"),
+   T("Legenda forçada automática quando o áudio for no seu idioma", "音訊為你的語言時使用強制字幕"),
++  T("Legenda principal", "主字幕"),
+   T("Legenda sincronizada · %s · %s", "已同步字幕 · %s · %s"),
+   T("Legenda: não deu para casar as faixas com o arquivo; a TV desenha", "字幕：無法將軌道與檔案比對，由電視繪製"),
+   T("Legendado", "有字幕"),
+diff --git a/src/legenda2.c b/src/legenda2.c
+index 25a7f967a7..85938a334c 100644
+--- a/src/legenda2.c
++++ b/src/legenda2.c
+@@ -19,6 +19,8 @@ static Leg2Estado estado;
+ static char ident[128];
+ static LegendaDocumento *doc;
+ static int offManual, offAuto;
++static Leg2SalvarAtraso salvarAtraso;
++static unsigned atrasoVinculo;
+ 
+ typedef struct {
+   int pendente;
+@@ -158,7 +160,7 @@ void legenda2_reiniciar(void) {
+   pthread_mutex_lock(&trava);
+   d = limpar();
+   sessao++;
+-  offManual = 0;
++  if (!salvarAtraso) offManual = 0;   // the unbound loader keeps its original session contract
+   pthread_mutex_unlock(&trava);
+   legenda_documento_liberar(d);
+ }
+@@ -217,13 +219,32 @@ static int limitarManual(int ms) {
+   return ms > LEG_ATRASO_MANUAL_MAX ? LEG_ATRASO_MANUAL_MAX : ms < -LEG_ATRASO_MANUAL_MAX ? -LEG_ATRASO_MANUAL_MAX : ms;
+ }
+ static int limitar(int ms) { return ms > 30000 ? 30000 : ms < -30000 ? -30000 : ms; }
++void legenda2_vincular_atraso(int ms, Leg2SalvarAtraso salvar) {
++  pthread_mutex_lock(&trava);
++  offManual = limitarManual(ms);
++  salvarAtraso = salvar;
++  atrasoVinculo++;
++  pthread_mutex_unlock(&trava);
++}
++void legenda2_atualizar_offset_manual(int ms) {
++  pthread_mutex_lock(&trava); offManual = limitarManual(ms); pthread_mutex_unlock(&trava);
++}
+ int legenda2_offset_manual(void) {
+   int v;
+   pthread_mutex_lock(&trava); v = offManual; pthread_mutex_unlock(&trava);
+   return v;
+ }
+ void legenda2_definir_offset_manual(int ms) {
+-  pthread_mutex_lock(&trava); offManual = limitarManual(ms); pthread_mutex_unlock(&trava);
++  Leg2SalvarAtraso salvar;
++  unsigned vinculo;
++  ms = limitarManual(ms);
++  pthread_mutex_lock(&trava); salvar = salvarAtraso; vinculo = atrasoVinculo; pthread_mutex_unlock(&trava);
++  // Settings may write to disk and publish the committed value back to us.
++  // Neither filesystem work nor callbacks run while the subtitle lock is held.
++  if (salvar && !salvar(ms)) return;
++  pthread_mutex_lock(&trava);
++  if (vinculo == atrasoVinculo) offManual = ms;
++  pthread_mutex_unlock(&trava);
+ }
+ void legenda2_definir_offset_auto(int ms) {
+   pthread_mutex_lock(&trava); offAuto = limitar(ms); pthread_mutex_unlock(&trava);
+@@ -250,7 +271,7 @@ int legenda2_cues(double posSeg, LegendaCue *dst, int max) {
+   double (*f)(double) = tempoMapa;
+   if (f) posSeg = f(posSeg);   // fora da trava: legsync tem a sua
+   pthread_mutex_lock(&trava);
+-  if (doc && estado == LEG2_ATIVA) { d = legenda_documento_reter(doc); off = limitar(offManual + offAuto); }
++  if (doc && estado == LEG2_ATIVA) { d = legenda_documento_reter(doc); off = limitarManual(offManual + offAuto); }
+   pthread_mutex_unlock(&trava);
+   if (!d) return 0;
+   // The offset is applied HERE and only here (legenda_documento_cues adds it
+diff --git a/src/legenda2.h b/src/legenda2.h
+index 94c3a543ba..27f6a112c8 100644
+--- a/src/legenda2.h
++++ b/src/legenda2.h
+@@ -11,7 +11,7 @@
+ //   - two generation guards: the SESSION (media; legenda2_reiniciar) and the
+ //     SELECTION (every choose/turn-off). A late download is published only if
+ //     both still match, so a file for the previous episode/choice never shows;
+-//   - its own offset (manual + optional automatic from AutoSync), applied
++//   - its own persisted manual offset + optional automatic from AutoSync, applied
+ //     exactly once in legenda2_cues, and AutoSync's time map for framerate /
+ //     cut corrections (legenda2_definir_tempo);
+ //   - explicit states: loading, active, failed, unsupported. A selection is
+@@ -47,8 +47,10 @@ typedef int (*Leg2Baixador)(const char *url, long maxBytes, unsigned prazoMs,
+                             int (*parar)(void *), void *u, char **corpo, long *n);
+ void legenda2_definir_baixador(Leg2Baixador b);   // NULL = default
+ 
+-// New media session: cancels any download, drops the document, offset back to
+-// zero. Called when faixas resets (new playback).
++// New media session: cancels downloads, drops the document and resets AutoSync.
++// A bound manual delay stays persisted, like the primary subtitle's style.
++// Without a persistence binding the original manual-reset contract is kept.
++// Called when faixas resets (new playback).
+ void legenda2_reiniciar(void);
+ uint64_t legenda2_sessao(void);
+ 
+@@ -65,12 +67,25 @@ Leg2Estado legenda2_estado(void);
+ // until legenda2_estado() says so.
+ const char *legenda2_identidade(void);
+ 
+-// Offsets in ms, positive = earlier (same sign as legenda_cues).
++// Offsets in ms, positive = earlier (same sign as legenda_cues). The manual
++// getter/setter use a mutex-protected mirror. The app binds its one persisted
++// Settings value below; the standalone loader needs no Settings dependency.
++// Manual and combined offsets are bounded to LEG_ATRASO_MANUAL_MAX; AutoSync
++// itself remains bounded to 30 seconds and is cleared on selection/session reset.
+ int  legenda2_offset_manual(void);
+ void legenda2_definir_offset_manual(int ms);
+ void legenda2_definir_offset_auto(int ms);   // AutoSync (F05); 0 = none
+ int  legenda2_offset_total(void);
+ 
++// Optional UI-thread persistence binding. Read the initial saved value before
++// calling this; NULL writer restores unbound/session-only behavior. The writer
++// returns nonzero on success and runs OUTSIDE the subtitle mutex. Failed saves
++// leave the published manual value unchanged. Rebinding supersedes an old save.
++typedef int (*Leg2SalvarAtraso)(int ms);
++void legenda2_vincular_atraso(int ms, Leg2SalvarAtraso salvar);
++// Publish a successful Settings load/save, without writing or calling back.
++void legenda2_atualizar_offset_manual(int ms);
++
+ // Cues of the second document at `posSeg`, with the total offset applied
+ // once. 0 when nothing is active.
+ int legenda2_cues(double posSeg, LegendaCue *dst, int max);
+diff --git a/src/legendasui.c b/src/legendasui.c
+index c279d1341a..0e7348bdb3 100644
+--- a/src/legendasui.c
++++ b/src/legendasui.c
+@@ -1162,11 +1162,11 @@ static void visualLinha(TxtFamilia fam, TxtEstilo est, char *linha) {
+   if (txt_bidi_legenda(fam, est, linha, v, sizeof v) > 0) memcpy(linha, v, strlen(v) + 1);
+ }
+ 
+-static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int borda,
++static int quebrar(const LegendaCue *c, const VideoLegendaEstilo *e, TxtEstilo est, int r, int g, int b, int borda, unsigned corBorda,
+                    float maxW, Leg2Linha *out, int max) {
+   char texto[768], *linha, *salva;
+-  TxtFamilia fam = (TxtFamilia)player_leg_estilo()->familia;
+-  int enf = (c->negrito || player_leg_estilo()->negrito ? TXT_ENF_NEGRITO : 0) | (c->italico ? TXT_ENF_ITALICO : 0);
++  TxtFamilia fam = (TxtFamilia)e->familia;
++  int enf = (c->negrito || e->negrito ? TXT_ENF_NEGRITO : 0) | (c->italico ? TXT_ENF_ITALICO : 0);
+   int n = 0;
+   snprintf(texto, sizeof texto, "%s", c->texto);
+   for (linha = strtok_r(texto, "\n", &salva); linha && n < max; linha = strtok_r(NULL, "\n", &salva)) {
+@@ -1177,7 +1177,7 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int
+         if (n >= max) break;
+         visualLinha(fam, est, atual);
+         out[n].cor = txt_linha_corta_enfase(est, atual, r, g, b, 255, maxW, fam, enf);
+-        out[n].borda = borda ? txt_linha_corta_enfase(est, atual, 0, 0, 0, 255, maxW, fam, enf) : (TxtLinha){0};
++        out[n].borda = borda ? txt_linha_corta_enfase(est, atual, (corBorda >> 16) & 255, (corBorda >> 8) & 255, corBorda & 255, 255, maxW, fam, enf) : (TxtLinha){0};
+         n++;
+         snprintf(atual, sizeof atual, "%s", pal);
+       } else snprintf(atual, sizeof atual, "%s", tent);
+@@ -1185,7 +1185,7 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int
+     if (atual[0] && n < max) {
+       visualLinha(fam, est, atual);
+       out[n].cor = txt_linha_corta_enfase(est, atual, r, g, b, 255, maxW, fam, enf);
+-      out[n].borda = borda ? txt_linha_corta_enfase(est, atual, 0, 0, 0, 255, maxW, fam, enf) : (TxtLinha){0};
++      out[n].borda = borda ? txt_linha_corta_enfase(est, atual, (corBorda >> 16) & 255, (corBorda >> 8) & 255, corBorda & 255, 255, maxW, fam, enf) : (TxtLinha){0};
+       n++;
+     }
+   }
+@@ -1194,26 +1194,38 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int
+ 
+ void legendasui_banda_zerar(void) { bandaFim = 0.0f; }
+ 
++// Same eight vertical offsets as baseLegendaPrincipal. The player supplies its
++// actual safe bottom anchor (controls, mobile transport and next-episode card).
++// Remove the primary's offset before applying the independent secondary one.
++static float deslocamentoPosicao(int posicao) {
++  return posicao >= 3 ? -(posicao - 3) * 48.0f : (3 - posicao) * 20.0f;
++}
++
+ // Estilo proprio da segunda legenda (Ajustes): cada campo "igual a principal"
+ // (0 / -1) segue o estilo da principal, como era antes.
+-static void estiloSecundario(const VideoLegendaEstilo *e, TxtEstilo *est, int *r, int *g, int *b,
+-                             int *fundo, int *borda) {
+-  int pct = ajustes_leg2_tamanho(), c = ajustes_leg2_cor(), f = ajustes_leg2_fundo(), bd = ajustes_leg2_borda();
+-  if (pct <= 0) pct = e->tamanho * 9 / 10;
++static VideoLegendaEstilo estiloSecundario(const VideoLegendaEstilo *e, TxtEstilo *est, int *r, int *g, int *b,
++                                           int *fundo, int *borda) {
++  VideoLegendaEstilo secundario;
++  int pct;
++  ajustes_leg2_estilo(e, &secundario);
++  pct = secundario.tamanho;
+   if (pct < TXT_LEG_PCT_MIN) pct = TXT_LEG_PCT_MIN;
+   if (pct > TXT_LEG_PCT_MAX) pct = TXT_LEG_PCT_MAX;
+   pct = (pct / 10) * 10;
+   *est = (TxtEstilo)(TXT_LEG_50 + (pct - TXT_LEG_PCT_MIN) / 10);
+-  corEstilo(c >= 0 ? c : e->cor, r, g, b);
+-  *fundo = f >= 0 ? f : e->fundo;
+-  *borda = bd >= 0 ? bd : e->borda;
++  corEstilo(secundario.cor, r, g, b);
++  *fundo = secundario.fundo;
++  *borda = secundario.borda;
++  return secundario;
+ }
+ 
+ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
+   LegendaCue cues[LEGENDA_SIMULTANEAS];
+   Leg2Linha ln[LEG2_LINHAS];
+-  const VideoLegendaEstilo *e = player_leg_estilo();
+-  int n, i, nl = 0, r, gg, b, fundo, borda;
++  const VideoLegendaEstilo *principal = player_leg_estilo();
++  VideoLegendaEstilo secundario;
++  const VideoLegendaEstilo *e = &secundario;
++  int n, i, nl = 0, r, gg, b, fundo, borda, posicao = ajustes_leg2_posicao();
+   float topo, x0 = 60.0f, x1 = 60.0f + larguraSecundaria(), alpha, y, altura = 0.0f;
+   TxtEstilo est;
+   GfxRect il;
+@@ -1221,13 +1233,14 @@ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
+   // Minimised player / window animation: the second line has nowhere honest
+   // to go, and the primary still identifies the scene.
+   if (!g || g->videoW < NV_TELA_W * 0.6f) return;
++  if (posicao >= 0 && g->baseY <= 0.0f) return;   // explicit position needs the real safe anchor
+   n = legenda2_cues(g->pos, cues, LEGENDA_SIMULTANEAS);
+   if (n <= 0) return;
+-  estiloSecundario(e, &est, &r, &gg, &b, &fundo, &borda);
++  secundario = estiloSecundario(principal, &est, &r, &gg, &b, &fundo, &borda);
+   alpha = (e->opacidade == 3 ? .25f : e->opacidade == 2 ? .5f : e->opacidade == 1 ? .75f : 1.f) * g->alpha;
+   topo = 48.0f + 72.0f * (g->osd < 0 ? 0 : g->osd > 1 ? 1 : g->osd);
+   if (g->videoY > topo) topo = g->videoY + 24.0f;   // letterbox: start on the picture
+-  if (!g->junto && plrilha_rect(&il)) {
++  if (posicao < 0 && !g->junto && plrilha_rect(&il)) {
+     float s = gfx_escala_ui();
+     il.x *= s; il.y *= s; il.w *= s; il.h *= s;
+     if (il.y < topo + 260.0f && il.y + il.h > topo) {
+@@ -1238,12 +1251,14 @@ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
+     }
+   }
+   for (i = 0; i < n && nl < LEG2_LINHAS; i++)
+-    nl += quebrar(&cues[i], est, r, gg, b, borda, x1 - x0, ln + nl, LEG2_LINHAS - nl);
+-  if (g->junto) {
++    nl += quebrar(&cues[i], e, est, r, gg, b, borda, video_legenda_borda_rgb(e->corBorda), x1 - x0, ln + nl, LEG2_LINHAS - nl);
++  if (g->junto || posicao >= 0) {
+     // Stacked: the whole block ends just above the primary (2-line cues grow
+     // upward, never over it) and stays inside the picture.
+     for (i = 0; i < nl; i++) altura += (float)ln[i].cor.h + (i ? 5.0f : 0.0f);
+-    topo = g->baseY - 10.0f - altura;
++    if (posicao >= 0)
++      topo = g->baseY - deslocamentoPosicao(principal->posicao) + deslocamentoPosicao(posicao) - altura;
++    else topo = g->baseY - 10.0f - altura;
+     if (topo < 8.0f) topo = 8.0f;
+   }
+   y = topo;
+@@ -1262,7 +1277,7 @@ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
+     txt_desenhar_alpha(l, x, y, alpha);
+     y += (float)l.h + 5.0f;
+   }
+-  if (!g->junto) bandaFim = y;
++  if (posicao < 0 && !g->junto) bandaFim = y;
+ }
+ 
+ // Altura do bloco da segunda legenda agora (0 = nada a mostrar). O player usa
+@@ -1270,16 +1285,19 @@ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
+ float legendasui_altura_secundaria(const LegendasGeo *g) {
+   LegendaCue cues[LEGENDA_SIMULTANEAS];
+   Leg2Linha ln[LEG2_LINHAS];
+-  const VideoLegendaEstilo *e = player_leg_estilo();
++  const VideoLegendaEstilo *principal = player_leg_estilo();
++  VideoLegendaEstilo secundario;
++  const VideoLegendaEstilo *e = &secundario;
+   int n, i, nl = 0, r, gg, b, fundo, borda;
+   float altura = 0.0f;
+   TxtEstilo est;
+   if (!g || g->videoW < NV_TELA_W * 0.6f) return 0.0f;
++  if (ajustes_leg2_posicao() >= 0) return 0.0f;   // manual position overrides stacking
+   n = legenda2_cues(g->pos, cues, LEGENDA_SIMULTANEAS);
+   if (n <= 0) return 0.0f;
+-  estiloSecundario(e, &est, &r, &gg, &b, &fundo, &borda);
++  secundario = estiloSecundario(principal, &est, &r, &gg, &b, &fundo, &borda);
+   for (i = 0; i < n && nl < LEG2_LINHAS; i++)
+-    nl += quebrar(&cues[i], est, r, gg, b, borda, larguraSecundaria(), ln + nl, LEG2_LINHAS - nl);
++    nl += quebrar(&cues[i], e, est, r, gg, b, borda, video_legenda_borda_rgb(e->corBorda), larguraSecundaria(), ln + nl, LEG2_LINHAS - nl);
+   for (i = 0; i < nl; i++) altura += (float)ln[i].cor.h + (i ? 5.0f : 0.0f);
+   return altura;
+ }
+diff --git a/src/plainass.h b/src/plainass.h
+index 43a819771c..14bce32903 100644
+--- a/src/plainass.h
++++ b/src/plainass.h
+@@ -7,6 +7,7 @@
+ typedef struct {
+   char font[96];
+   int size, rgb, background, border, bold, marginV;
++  int outlineRgb;   // 0xRRGGBB; zero preserves the existing black edge
+ } PlainAssStyle;
+ 
+ int plainass_has_arabic(const char *text);
+diff --git a/src/player.c b/src/player.c
+index 4f1e4e4630..492ed7418c 100644
+--- a/src/player.c
++++ b/src/player.c
+@@ -980,6 +980,7 @@ static char   toastIcone[32];
+ static int    toastCor;
+ static int    avisouAudio;
+ static char   dirPrefs[512];
++static int    prefsLidas;
+ 
+ // Rotulos em portugues. Os do web sao "Fit (Original)", "Crop", "Stretch",
+ // "Slight/Cinema/Ultra Zoom", "Fit Height", "Fit Width" — o resto do app fala
+@@ -1011,6 +1012,7 @@ int player_aspecto(void) { return aspecto; }
+ void player_dir(const char *dir) {
+   if (!dir || !*dir) return;
+   snprintf(dirPrefs, sizeof dirPrefs, "%s", dir);
++  prefsLidas = 0;
+ }
+ static const char *prefsArquivo(void) {
+   static char caminho[600];
+@@ -1033,6 +1035,7 @@ static VideoLegendaEstilo legEstilo = { 120, 0, 0, 3, 1, 0, 0, TXT_FAMILIA_INTER
+ static int legTocado = PLR_LEG_NADA;
+ 
+ static void prefsLer(void) {
++  prefsLidas = 1;
+   FILE *f = fopen(prefsArquivo(), "r");
+   char chave[64]; int v;
+   if (!f) return;
+@@ -1050,6 +1053,7 @@ static void prefsLer(void) {
+     else if (!strcmp(chave, "leg_fundo")   && v >= 0 && v <= 4)  legEstilo.fundo = v;
+     else if (!strcmp(chave, "leg_pos")     && v >= 0 && v <= 7)  legEstilo.posicao = v;
+     else if (!strcmp(chave, "leg_borda")   && v >= 0 && v <= 2)  legEstilo.borda = v;
++    else if (!strcmp(chave, "leg_cor_borda") && v >= 0 && v < VIDEO_LEG_NCORES) legEstilo.corBorda = v;
+     else if (!strcmp(chave, "leg_atraso")  && v >= -LEG_ATRASO_MANUAL_MAX && v <= LEG_ATRASO_MANUAL_MAX) legEstilo.atrasoMs = v;
+     else if (!strcmp(chave, "leg_opacidade") && v >= 0 && v <= 3) legEstilo.opacidade = v;
+     else if (!strcmp(chave, "leg_familia") && v >= 0 && v < TXT_FAMILIA_N) legEstilo.familia = v;
+@@ -1059,9 +1063,12 @@ static void prefsLer(void) {
+   fclose(f);
+ }
+ 
+-static void prefsGravar(void) {
+-  FILE *f = fopen(prefsArquivo(), "w");
+-  if (!f) return;
++static int prefsGravar(void) {
++  char destino[600], temporario[608];
++  snprintf(destino, sizeof destino, "%s", prefsArquivo());
++  snprintf(temporario, sizeof temporario, "%s.tmp", destino);
++  FILE *f = fopen(temporario, "w");
++  if (!f) return 0;
+   fprintf(f, "aspecto %d\n", aspecto);
+   fprintf(f, "leg_tamanho %d\n", legEstilo.tamanho);
+   fprintf(f, "leg_cor %d\n",     legEstilo.cor);
+@@ -1073,16 +1080,43 @@ static void prefsGravar(void) {
+   fprintf(f, "leg_familia %d\n", legEstilo.familia);
+   fprintf(f, "leg_negrito %d\n", legEstilo.negrito);
+   fprintf(f, "leg_tocado %d\n", legTocado);
+-  fclose(f);
++  fprintf(f, "leg_cor_borda %d\n", legEstilo.corBorda);
++  int erro = ferror(f);
++  if (fclose(f)) erro = 1;
++  if (erro || rename(temporario, destino)) { remove(temporario); return 0; }
+   dados_marcar_sujo(0);   // IDBFS (Samsung): ver o gravador de ajustes.c
++  return 1;
+ }
+ 
+ // Lidos pela folha de faixas, que e quem desenha os controles.
+ VideoLegendaEstilo *player_leg_estilo(void) { return &legEstilo; }
++void player_leg_estilo_carregar(void) { if (!prefsLidas) prefsLer(); }
+ void player_leg_estilo_mudou(void) {
+   video_legenda_estilo(&legEstilo);
+   prefsGravar();
+ }
++const VideoLegendaEstilo *player_leg_estilo_padrao(void) {
++  static const VideoLegendaEstilo padrao = {120, 0, 0, 3, 1, 0, 0, TXT_FAMILIA_INTER, 0, 0};
++  return &padrao;
++}
++int player_leg_estilo_definir(const VideoLegendaEstilo *estilo, int tocou) {
++  if (!estilo || estilo->tamanho < TXT_LEG_PCT_MIN || estilo->tamanho > TXT_LEG_PCT_MAX ||
++      estilo->tamanho % 10 || estilo->cor < 0 || estilo->cor >= VIDEO_LEG_NCORES ||
++      estilo->corBorda < 0 || estilo->corBorda >= VIDEO_LEG_NCORES ||
++      estilo->familia < 0 || estilo->familia >= TXT_FAMILIA_N ||
++      estilo->fundo < 0 || estilo->fundo > 4 || estilo->posicao < 0 || estilo->posicao > 7 ||
++      estilo->borda < 0 || estilo->borda > 2 || estilo->opacidade < 0 || estilo->opacidade > 3 ||
++      estilo->negrito < 0 || estilo->negrito > 1 ||
++      estilo->atrasoMs < -LEG_ATRASO_MANUAL_MAX || estilo->atrasoMs > LEG_ATRASO_MANUAL_MAX) return 0;
++  player_leg_estilo_carregar();
++  VideoLegendaEstilo antes = legEstilo;
++  int tocadoAntes = legTocado;
++  legEstilo = *estilo;
++  if (tocou >= 0) player_leg_estilo_tocou(tocou);
++  if (!prefsGravar()) { legEstilo = antes; legTocado = tocadoAntes; return 0; }
++  video_legenda_estilo(&legEstilo);
++  return 1;
++}
+ void player_leg_estilo_tocou(int campos) {
+   if (campos == PLR_LEG_NADA) legTocado = PLR_LEG_NADA;
+   else legTocado |= campos;
+@@ -4156,7 +4190,8 @@ static void blocoLinha(LegBloco *bl, TxtEstilo est, const char *linha, int r, in
+   // Latin text comes back byte-identical.
+   if (txt_bidi_legenda(fam, est, linha, visual, sizeof visual) > 0) linha = visual;
+   bl->cor[bl->n]   = txt_linha_corta_enfase(est, linha, r, g, b, 255, PLR_LEG_LARG, fam, enf);
+-  bl->borda[bl->n] = legEstilo.borda ? txt_linha_corta_enfase(est, linha, 0, 0, 0, 255, PLR_LEG_LARG, fam, enf) : (TxtLinha){0};
++  { unsigned cor = video_legenda_borda_rgb(legEstilo.corBorda);
++    bl->borda[bl->n] = legEstilo.borda ? txt_linha_corta_enfase(est, linha, (cor >> 16) & 255, (cor >> 8) & 255, cor & 255, 255, PLR_LEG_LARG, fam, enf) : (TxtLinha){0}; }
+   if (bl->cor[bl->n].w > bl->w) bl->w = bl->cor[bl->n].w;
+   bl->h += bl->cor[bl->n].h + (bl->n ? 5 : 0);
+   bl->n++;
+@@ -4329,6 +4364,7 @@ static void desenharLegendaExternaCorpo(void) {
+   // terminava. Com ASS (libass) a principal nao se move — ali a secundaria
+   // continua em cima, estimada como sempre.
+   leg2Reserva = 0.0f;
++  g2.baseY = baseLegendaPrincipal();   // safe anchor for an explicit secondary position
+   if (junto) legendasui_banda_zerar(); else legendasui_desenhar_secundaria(&g2);
+   if (junto && (!assrender_ativo() || assrender_texto_simples())) {
+     float h2 = legendasui_altura_secundaria(&g2);
+@@ -4385,6 +4421,7 @@ static void desenharLegendaPrincipal(float *topoPilha){
+       style.rgb = (r << 16) | (g << 8) | b;
+       style.background = legEstilo.fundo >= 0 && legEstilo.fundo <= 4 ? legEstilo.fundo : 0;
+       style.border = legEstilo.borda; style.bold = legEstilo.negrito;
++      style.outlineRgb = (int)video_legenda_borda_rgb(legEstilo.corBorda);
+       style.marginV = (int)(1080.f - base);
+       assrender_definir_texto_estilo(&style);
+       /* Plain captions follow the old screen-space layout; authored ASS
+diff --git a/src/player.h b/src/player.h
+index 8f797fb46e..9e81b8d9ca 100644
+--- a/src/player.h
++++ b/src/player.h
+@@ -278,7 +278,13 @@ void        player_aspecto_ciclar(void);       // proximo modo + aviso na tela
+ // preferencia do APARELHO e nao do titulo. A folha de faixas edita a struct e
+ // chama player_leg_estilo_mudou(), que aplica no pipeline e grava.
+ VideoLegendaEstilo *player_leg_estilo(void);
++// The same persisted style, before the first playback as well.
++void player_leg_estilo_carregar(void);
+ void player_leg_estilo_mudou(void);
++// Settings commits a complete draft only after confirmation. A failed write
++// leaves both the playing style and its authored-ASS override flags intact.
++int player_leg_estilo_definir(const VideoLegendaEstilo *estilo, int tocou);
++const VideoLegendaEstilo *player_leg_estilo_padrao(void);
+ 
+ // QUAIS CAMPOS A PESSOA MEXEU DE FATO.
+ //
+diff --git a/src/video.h b/src/video.h
+index 098fbc9ebb..5708f7db31 100644
+--- a/src/video.h
++++ b/src/video.h
+@@ -404,9 +404,17 @@ typedef struct {
+   int opacidade;  // 0..3 = texto 100/75/50/25%
+   int familia;    // TxtFamilia; aplicada ao overlay externo (OpenSubtitles)
+   int negrito;    // 1 = peso negrito no overlay (so o que o app desenha)
++  int corBorda;   // 0 preto (padrao), 1 branco, 2 amarelo, 3 verde, 4 azul, 5 vermelho
+ } VideoLegendaEstilo;
+ 
+ #define VIDEO_LEG_NCORES 6
++// A borda tem preto puro como padrao; as demais amostras usam a paleta do texto.
++static inline unsigned video_legenda_borda_rgb(int indice) {
++  static const unsigned cores[VIDEO_LEG_NCORES] = {
++    0x000000u, 0xffffffu, 0xffde30u, 0x40e070u, 0x4e9cffu, 0xff5050u
++  };
++  return cores[indice >= 0 && indice < VIDEO_LEG_NCORES ? indice : 0];
++}
+ // Nomes que o uMS aceita em charColor. Expostos porque a folha desenha os
+ // rotulos e precisa da mesma ordem.
+ extern const char *const VIDEO_LEG_CORES[VIDEO_LEG_NCORES];

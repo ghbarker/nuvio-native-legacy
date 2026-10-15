@@ -1,0 +1,20 @@
+--- original-secondary-outline.c
++++ secondary_outline.c
+@@ -26,3 +26,17 @@
+ Sample fg=drawing[draws-1];unsigned foreground=((unsigned)fg.r<<16)|((unsigned)fg.g<<8)|(unsigned)fg.b;check(foreground==(own?0x4e9cffu:0xffde30u),"independent secondary text color override remains separate from edge color");check(fabsf(fg.alpha-alpha)<.00001f,"secondary foreground opacity unchanged");check(bg_calls==(own?0:1),"independent secondary background override preserved");if(!own)check(fabsf(bg_alpha-.32f*alpha)<.00001f,"secondary black background alpha unchanged");
+ check(fg.x>=0&&fg.x+216<=NV_TELA_W&&fg.y>=0&&fg.y+54<=NV_TELA_H,"colored edge does not move caption outside canvas");float oldHeight=legendasui_altura_secundaria(&geo);style.corBorda=(c+1)%6;float newHeight=legendasui_altura_secundaria(&geo);check(oldHeight==newHeight&&oldHeight>0,"changing only edge color preserves stacked subtitle height");}
+ printf("PASS secondaryGL checks=%d colors=6 border_modes=3 opacity_modes=4 override_modes=2 placements=2\n",checks);return 0;}
++
++/* Approved API-boundary adapter: keep the fixture's exact preexisting controlled
++ * Settings fields; new fields inherit. Full new Settings behavior is tested
++ * separately with the actual production resolver. */
++int ajustes_leg2_posicao(void) { return -1; }
++void ajustes_leg2_estilo(const VideoLegendaEstilo *main, VideoLegendaEstilo *out) {
++  *out = *main;
++  int size = ajustes_leg2_tamanho(), color = ajustes_leg2_cor();
++  int background = ajustes_leg2_fundo(), border = ajustes_leg2_borda();
++  out->tamanho = size > 0 ? size : main->tamanho * 9 / 10;
++  if (color >= 0) out->cor = color;
++  if (background >= 0) out->fundo = background;
++  if (border >= 0) out->borda = border;
++}

@@ -1,0 +1,6 @@
+tree 15dabcd6a9e395f13993ca2013df7ceacfe09a20
+parent 5d2f8c8c99113e416e1fb06f8b60da1d13635e85
+author ghbarker <117389362+ghbarker@users.noreply.github.com> 1792090419 +0000
+committer ghbarker <117389362+ghbarker@users.noreply.github.com> 1792090419 +0000
+
+Add matching subtitle Settings controls and outline color

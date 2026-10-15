@@ -1,0 +1,7 @@
+{
+  "origin": "/tmp/subtitle-parity-settings-20261015/source/src/rolagemtoque.h",
+  "origin_sha256": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e",
+  "helper_body_copied_exactly": "static inline int toquerol_livre(ToqueRolagem *r) {\n  if (!layout_modo_mobile()) r->livre = 0;\n  return r->livre;\n}",
+  "adapter_sha256": "b910e59a2382f82958944b9291b206aba857024619d6245b1c771f045e88f170",
+  "scope": "Baseline comparison compile only; candidate compiles against actual latest headers. Frozen four C fixture bytes and all assertions unchanged."
+}

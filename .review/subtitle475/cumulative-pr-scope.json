@@ -1,0 +1,77 @@
+{
+  "source_commit": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+  "tree": "15dabcd6a9e395f13993ca2013df7ceacfe09a20",
+  "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "changed_paths": 47,
+  "paths": [
+    "src/ajustes.c",
+    "src/ajustes.h",
+    "src/ajustes_ux_dados.inc",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_padrao.inc",
+    "src/ajustes_ux_secoes.inc",
+    "src/ajustes_ux_tela.inc",
+    "src/ajustes_ux_visual.inc",
+    "src/app.c",
+    "src/assrender.c",
+    "src/faixas.c",
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h",
+    "src/legenda2.c",
+    "src/legenda2.h",
+    "src/legendasui.c",
+    "src/plainass.h",
+    "src/player.c",
+    "src/player.h",
+    "src/video.h"
+  ],
+  "protected_trees": {
+    "tests": {
+      "base": "62f26c32fd6cb3bf9c1b2820c80b79e21aab07a4",
+      "source": "62f26c32fd6cb3bf9c1b2820c80b79e21aab07a4"
+    },
+    ".github": {
+      "base": "cea68affa1c1b47365c2091224c153f45b6b60e9",
+      "source": "cea68affa1c1b47365c2091224c153f45b6b60e9"
+    },
+    "android": {
+      "base": "ba7591e0d7f77d40da335d39a3a5e6b6920a60b2",
+      "source": "ba7591e0d7f77d40da335d39a3a5e6b6920a60b2"
+    },
+    "tools": {
+      "base": "22e2b38ede8b93c8e44a87a3559e030c68778ada",
+      "source": "22e2b38ede8b93c8e44a87a3559e030c68778ada"
+    },
+    "deploy": {
+      "base": "a56de824ed1847b9042331cc021602e83185959f",
+      "source": "a56de824ed1847b9042331cc021602e83185959f"
+    }
+  }
+}

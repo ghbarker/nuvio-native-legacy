@@ -1,0 +1,22 @@
+{
+  "fixture_origin": "/tmp/subtitle-parity-settings-20261015/secondary-proof",
+  "approved_origin_commit": "77051883c3fa4798d032d568975d2aaec618c3ab",
+  "fixture_c_bytes_and_assertions_unchanged": true,
+  "fixture_sha256": {
+    "render-boundaries.c": "9cf7bb35a3ab52195725dfce1e4cb30810c4f2e8f8165c0554e2a1db73d3d75d",
+    "settings-companion.c": "b2430904fb9b5744d3a2aa15cbfb258a1b6d79952d0b4e759d349330741cff9b",
+    "baseline-legendasui.c": "f2a2c1adffeeddf0da257b010ef698fa3bba844751a4b4d1ef0fa489df935738",
+    "delay-boundaries.c": "e254e0f858bf25e3286939f540f7d3dcf59d132023bfa81eeebffca4a37155a8"
+  },
+  "source_pins_in_runner": false,
+  "portable_cli": "python3 run.py --source CLEAN_SOURCE --output FRESH_OUTPUT [--cc COMPILER]",
+  "default_groups": "Existing renderer/bound-delay/original-standalone, each normal + ASan/UBSan; 16 legacy traces compared in normal mode.",
+  "platform": "Linux focused fixture kit; existing original standalone script executes SANITIZE=1, with original flags unchanged.",
+  "baseline_api_adapter": "Exact old helper body; baseline-only include; actual candidate always compiles against its own latest headers.",
+  "packaging_changes": "Relative SDK/fixture paths; SHA equality checks replace absolute frozen file reads; explicit compiler selector and PATH cc wrapper for unchanged original script. No C/assertion or compiler-flag changes.",
+  "locally_executed_runner_sha256": "7a1187f49232b4f02cd343659f7b18b5c3a69a1fd46dcf7282612f020df29e45",
+  "portable_runner_sha256": "508dea3749e664a6c8f395d61e51d248844d1e7740fc0f00d22f97b79f19cb82",
+  "local_proof": "../final-replay-api-compatible/secondary-final-binding.json",
+  "portable_runner_locally_reexecuted": false,
+  "reason_not_reexecuted": "Only portable path and compiler selection packaging changed; owner starts Settings sanitizer after completion. Final CI will execute this portable graph."
+}

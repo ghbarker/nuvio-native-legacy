@@ -1,0 +1,270 @@
+{
+  "schema": 1,
+  "head": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+  "tree": "15dabcd6a9e395f13993ca2013df7ceacfe09a20",
+  "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "schema_baseline": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "patch_sha256": "ebae10de9ddb848e2e0ebdb61877d37bf3c3c5e0dc082d85b0d975ca87f443ab",
+  "paths": [
+    {
+      "path": "src/ajustes.c",
+      "sha256": "da5314cea8290c67acc0bcf4b3d55f09e3bd1fbbce89595974acd724f1253274",
+      "blob": "88d1c8e39f0476aad6912041e73a615a9b36e625"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "d152eb6352b5b8952bbc1249c3cb4d1b41773a27f9ea60b7ca7efd32554cddce",
+      "blob": "d3bd9d813e6ee356272ce9581998db0e02cc0e97"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha256": "0b67444e0f13cf6fdd7b359367e5e5515a972244b83be7b2e3d1778c09c26c19",
+      "blob": "2f2becebe8285d2955ba5d724e4518441e38297a"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha256": "97702db5a3de71d52bf40966eb318d3e5778edc026f7efed1a4f7994aace343d",
+      "blob": "00cd01f7d3f2abc9533cff2b87d780645ff32e99"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "f555f94d4608317140453055d362a9b880bb606bc83bf51c3609219e08d9e4d6",
+      "blob": "33147b711c646e5b1a045ad5fedf8b303aeb80d2"
+    },
+    {
+      "path": "src/ajustes_ux_secoes.inc",
+      "sha256": "b81bd17f833b2844c47c8e96238803c7988eb8ddca74a264f69e88d264e10747",
+      "blob": "b9634cb3adc96e264ff6aa926ca98b8c3f3a1111"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "6de4ab3ddb298b26f4430e74137773182f0c5e3d8266c34fc94e9df47518b5f1",
+      "blob": "7a7ddd057b5e4223d0b7f8571c6b9be22b6f6fe4"
+    },
+    {
+      "path": "src/ajustes_ux_visual.inc",
+      "sha256": "35cdbe7e66d9f37789987284172ae3c75b9a70a5fd929da2532feb3658ae3a77",
+      "blob": "c0c979caa3fda23f4835f773061ab2a76bf9dec8"
+    },
+    {
+      "path": "src/app.c",
+      "sha256": "34a9c80bcacc4754ac19877dbb306f1c745a2d9dd4a6514d5f717e88d1429abb",
+      "blob": "c535dca24d786dc9b04d04612bc2a8caa27b2779"
+    },
+    {
+      "path": "src/assrender.c",
+      "sha256": "182bf1405ff5c48f90e18fd61848953e92cafecdeae73c0ce117cfeff011da76",
+      "blob": "adcf16ef318b3d3826bb97d97c92192866d673f8"
+    },
+    {
+      "path": "src/faixas.c",
+      "sha256": "3b3b782ebbab1395732220c1cde36be203c85331c1a3a88bd90d27342eccb52c",
+      "blob": "72406aada0d802fd45332861eadfbfa6849414f3"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "64be5c8a1f258c29a92594209c7a5cb3f30e39c14c79f36d5848f71207b3e3dc",
+      "blob": "1fbcb8fbff5bce573239f47dbd83b8395478fb6c"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "d51661d9b920bc063cf833d944a48e0807311b5cbf3e496c4103c572d59ee831",
+      "blob": "9fdd6ce9ea1b82554b98fb99071c1f669f26c0b5"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "4650d5c34ec149ece477e4a4363100f8664ec118b7d9997d442ea65060a4adfa",
+      "blob": "fc4db217b9cbb566c0fef86a75be0c8833350560"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "a5f916399d317c17857812def488e919236d170c8a88b225b492f8473dbbbcd3",
+      "blob": "cbf43b109971b0205315c11035db28e7a2563c11"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "7f7d0a5dfed5fbec8a3bf412cbdf04f104d477febc4a2e7c1fbd3fd5cc7a77a3",
+      "blob": "9cc43cb5cdd5e77e9daa73d50abf33bdf0ee21c7"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "d1a99928af3b2da05669848dcfb76920b6f5ea8771aee725f44e14d6f995cb07",
+      "blob": "955296b4fc993a21785a4aed5f9853f559aee106"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "f0dc07ddc20b841786447724cc19c20b0ea6d480b03b571c6de10615e07029ce",
+      "blob": "23bf25c1a4b4c4fedbe9ed91a5e15d558c79aa22"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "258f76ae0b2ef1aac2bd8d8751f7aef7f8454059d7b36b2b052c5a18c05439f4",
+      "blob": "4fdafcc43d838ae9ecef1ef737c92bbb40907269"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "81a60b0025a967002fa4fe218272802bf1340cc57a7e651f9fbd7122ade8400d",
+      "blob": "67e38bde633c440c45d460ae0fc38b796a1d19f8"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "a1968dbc47490e28c565eb5ad2f3b1417f4b9276a0a71a84508b0a5ce26c0dd5",
+      "blob": "80e21807ec24a831775964d7071b97aede23ff94"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "d04eb62083a399bd6a3dbb79bfe8daf1cfbab8092ae5704f972e8f45cbe8dc4c",
+      "blob": "54a77852d019a57c34330a88ae018d53056f648f"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "04ca5cc18c5ace8a686e8df6f54056e63aa26b350b1b37305dfa46970407413f",
+      "blob": "2de6f0b88a0bab5e72de2aefdea78724c8662836"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "1eed67e0449e51d08552cf7c43f27a86db64066eee7afe85134284da6093bc46",
+      "blob": "d76e72f4775d9f6de1e7d9f5cd33fe19d9a70250"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "05d5128f537bcad83ca6dabf0b9931f9ad86052ecfd8312e908c3f6dea26342a",
+      "blob": "7ff2bdf28c0809792b9a37f614a0130e71f4a6f0"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "34dd9727efc17c1f092d9ad1046186b713a00a6dc6c54b94b9a2c7d35f119a3e",
+      "blob": "b34239d7ad81895152cbecca4ecdd16e6a07e3ad"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "eda7cd1aa2ba6a1d9f76eddda588d96478c6655660af491695be6598e00f315b",
+      "blob": "3f6c8f490f131bce84bb746ec9b5052d63754ec9"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "7109560718200308b4be9e15e8b1886546e08e719d8a1ade74e571361ee1c8bc",
+      "blob": "e56a5c410aff342b8203c559d35e9ba76641f7f5"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "d730e632da44ea66226549b71c432b36febdc78fc61d2f81e7c8f5c813015627",
+      "blob": "6a98b82d7a073117280c6c394ee7bd9cd99ef90c"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "2fcb92d42c4fb4dd4a44593d93646a9214d586759e24487c0150c97734cc8798",
+      "blob": "3dc7d1d8f29332d091972e6455b49e55944872df"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "fc7a716d9da451594b6c2075f73056c4a25bf8055f803ab4445f85b6dc15bee9",
+      "blob": "a15b78124c876667e69f26dfe7d4b53fb4372b2a"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "7c72a557167bb6bbd094e72c52c0948995c5ed91f333bb7ea678efb3483f59d3",
+      "blob": "5b19140b196364a597bb92e486d04a0c4ebb0a99"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "848fef11a1de8c31a0dce853243a8ea03c4e67563dcdcf55165252d747521f09",
+      "blob": "4ab76071207ab58fcd9eac41d6305510c7a8363e"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "375d5a11c7f915bb81373ae30c6d566042ebaa7336020f55ffad5197a4e545db",
+      "blob": "f5d96188975c46bef0f82376ddd501a0f61919b3"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "d39f578281b36d4f6728be5dd6e9a85ad74b2eb7c5abde1c893415c6421cec90",
+      "blob": "e2ee8f005e054a3aec3716a3eeeeb0c55f86c275"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "d3741c82ae4cc9bf907ae4f4976bfa2a5a0d3fe9dd6d5c39e4ff2ad162209967",
+      "blob": "565c1800b2cb378c84dc25a2d9bc26d214295684"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "f6180f15d506a0892ed7fb40ed0101bb09e41110d8b95da4066c6c5d1b57a01e",
+      "blob": "9c87a00d2ab28464afbc0d84d99f6cd6554bb425"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "617bc55a5b5571844193af03350fc48530fa5d6384765df94b9ee4a5c9d2e268",
+      "blob": "274135b8cc806d2b4da63f3048e89dd58794bb96"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "c33eac41f6609c617b45709accf3dcd514cf8ef7c74fc2dd2ca57a5440761c7a",
+      "blob": "d8624eb9bdbb47a706e241654cc5b1b00b54f7c1"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "fb487a78638909a209aebd2000e40d45c415dee3890cfe1ed60dd4d38bec1d9e",
+      "blob": "32e1d6f67273e277fd820a4d3321387415566c6c"
+    },
+    {
+      "path": "src/legenda2.c",
+      "sha256": "b0c9a9b25f9e7b6ad8eb76c15f1a410293ba0c5d510d22bdb4000cdfd9ed2d1c",
+      "blob": "85938a334c073dc4ed4cb5b309d11b5a814b2a66"
+    },
+    {
+      "path": "src/legenda2.h",
+      "sha256": "dfc608ebd058548d46ac75874f252d4833b73ee5e57c81a1021f4425f607e03b",
+      "blob": "27f6a112c83720db5f63c8b65c27b0cf753803e9"
+    },
+    {
+      "path": "src/legendasui.c",
+      "sha256": "6d192c5db22719bcb87349392bf4e05ba81e746639f594754a732a42bae5a60b",
+      "blob": "0e7348bdb3ab10f293e38572a43db48632713365"
+    },
+    {
+      "path": "src/plainass.h",
+      "sha256": "bfcfbf05c8193bae5beb54afbdf7ed422670c4e422d594af5aa83edef8c45ab2",
+      "blob": "14bce32903d0dfbfa1a7ab86dfc7727349b22ca9"
+    },
+    {
+      "path": "src/player.c",
+      "sha256": "9ebe8e99fdb5fe2bfaafcbe0af45a7cb3a1da69582a00ab3ef95ff5d3e83d611",
+      "blob": "492ed7418c4dcdc31e64df456a12bced52c36989"
+    },
+    {
+      "path": "src/player.h",
+      "sha256": "049b22105bb56c3458e1388e609f229b07dff90513dc7b363737ee704636b36b",
+      "blob": "9e81b8d9caee45daf1b93085945c67968aa4d4e9"
+    },
+    {
+      "path": "src/video.h",
+      "sha256": "e08a5c84a496c5ba3a43f8d60ab7d4c0e58516843708deaf54abe8db6f9117cb",
+      "blob": "5708f7db315141df9cfb7b15b52b6c9225bee0cb"
+    }
+  ],
+  "protected_trees": {
+    "tests": {
+      "base": "62f26c32fd6cb3bf9c1b2820c80b79e21aab07a4",
+      "source": "62f26c32fd6cb3bf9c1b2820c80b79e21aab07a4"
+    },
+    ".github": {
+      "base": "cea68affa1c1b47365c2091224c153f45b6b60e9",
+      "source": "cea68affa1c1b47365c2091224c153f45b6b60e9"
+    },
+    "android": {
+      "base": "ba7591e0d7f77d40da335d39a3a5e6b6920a60b2",
+      "source": "ba7591e0d7f77d40da335d39a3a5e6b6920a60b2"
+    },
+    "tools": {
+      "base": "22e2b38ede8b93c8e44a87a3559e030c68778ada",
+      "source": "22e2b38ede8b93c8e44a87a3559e030c68778ada"
+    },
+    "deploy": {
+      "base": "a56de824ed1847b9042331cc021602e83185959f",
+      "source": "a56de824ed1847b9042331cc021602e83185959f"
+    }
+  },
+  "subtitle_only": true,
+  "merged_track_names_preserved": true,
+  "private_overlay_absent": true
+}
