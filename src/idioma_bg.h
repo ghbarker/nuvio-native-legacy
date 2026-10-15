@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Разгледай, ТВ ръководство, Разписание и Профил и статистика могат да се махнат от менюто. Свитата лента става плочка с икони под островчето на часовника."),
   T("Explorar: climas e títulos parecidos", "Разгледай: настроения и подобни заглавия"),
   T("Extensões CloudStream: só no app Android", "Разширения на CloudStream: само в приложението за Android"),
-  T("Extra grande", "Много голям"),
   T("FILEIRA SELECIONADA", "ИЗБРАН РЕД"),
   T("FILMOGRAFIA", "ФИЛМОГРАФИЯ"),
   T("FINALIZADA", "ПРИКЛЮЧИЛ"),

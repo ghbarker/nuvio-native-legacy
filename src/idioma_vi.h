@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Khám phá, Hướng dẫn TV, Lịch chiếu và Hồ sơ và thống kê có thể bỏ khỏi menu. Thanh thu gọn trở thành viên thuốc biểu tượng dưới đảo đồng hồ."),
   T("Explorar: climas e títulos parecidos", "Khám phá: tâm trạng và nội dung tương tự"),
   T("Extensões CloudStream: só no app Android", "Tiện ích CloudStream: chỉ có trên ứng dụng Android"),
-  T("Extra grande", "Rất lớn"),
   T("FILEIRA SELECIONADA", "HÀNG ĐÃ CHỌN"),
   T("FILMOGRAFIA", "DANH SÁCH PHIM"),
   T("FINALIZADA", "ĐÃ KẾT THÚC"),

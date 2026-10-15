@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Objavovať, TV sprievodca, Rozvrh a Profil a štatistiky môžeš z menu odobrať. Zbalený panel sa zmení na pilulku ikon pod ostrovom hodín."),
   T("Explorar: climas e títulos parecidos", "Objavovať: nálady a podobné tituly"),
   T("Extensões CloudStream: só no app Android", "Rozšírenia CloudStream: len v aplikácii pre Android"),
-  T("Extra grande", "Veľmi veľké"),
   T("FILEIRA SELECIONADA", "VYBRANÝ RAD"),
   T("FILMOGRAFIA", "FILMOGRAFIA"),
   T("FINALIZADA", "UKONČENÉ"),

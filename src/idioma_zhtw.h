@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "探索、電視指南、日程以及個人檔案和統計可以從選單中移除。收起的欄會變成時鐘島下方的圖標膠囊。"),
   T("Explorar: climas e títulos parecidos", "探索：心情和相似作品"),
   T("Extensões CloudStream: só no app Android", "CloudStream 擴充功能：僅限 Android 應用程式"),
-  T("Extra grande", "特大"),
   T("FILEIRA SELECIONADA", "所選列"),
   T("FILMOGRAFIA", "參演作品"),
   T("FINALIZADA", "已完結"),

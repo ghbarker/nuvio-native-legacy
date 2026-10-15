@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "A Felfedezés, a TV-útmutató, a Menetrend és a Profil és statisztika kivehető a menüből. Összecsukva a sáv ikonokból álló kapszulává válik az óra-sziget alatt."),
   T("Explorar: climas e títulos parecidos", "Felfedezés: hangulatok és hasonló címek"),
   T("Extensões CloudStream: só no app Android", "CloudStream-bővítmények: csak az Android-alkalmazásban"),
-  T("Extra grande", "Extra nagy"),
   T("FILEIRA SELECIONADA", "KIJELÖLT SOR"),
   T("FILMOGRAFIA", "FILMOGRÁFIA"),
   T("FINALIZADA", "BEFEJEZVE"),

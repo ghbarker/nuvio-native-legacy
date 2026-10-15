@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Η Εξερεύνηση, ο Τηλεοπτικός Οδηγός, το Πρόγραμμα και το Προφίλ και στατιστικά μπορούν να βγουν από το μενού. Η μπάρα σε σύμπτυξη γίνεται κάψουλα με εικονίδια κάτω από το νησί του ρολογιού."),
   T("Explorar: climas e títulos parecidos", "Εξερεύνηση: διαθέσεις και παρόμοιοι τίτλοι"),
   T("Extensões CloudStream: só no app Android", "Επεκτάσεις CloudStream: μόνο στην εφαρμογή Android"),
-  T("Extra grande", "Πολύ μεγάλο"),
   T("FILEIRA SELECIONADA", "ΕΠΙΛΕΓΜΕΝΗ ΣΕΙΡΑ"),
   T("FILMOGRAFIA", "ΦΙΛΜΟΓΡΑΦΙΑ"),
   T("FINALIZADA", "ΟΛΟΚΛΗΡΩΘΗΚΕ"),

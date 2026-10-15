@@ -25,26 +25,30 @@ static int corpoOriginal(TxtEstilo e) {
   }
 }
 static int corpo(TxtEstilo original) {
+  static const int PERCENTUAL[4] = { 100, 120, 130, 150 };
   int n = corpoOriginal(original), tamanho = ajustes_sinopse_tamanho();
   if (!tamanho || !n) return n;
-  if (n <= 16) return tamanho == 1 ? 20 : 24;
-  if (n <= 18) return tamanho == 1 ? 22 : 26;
-  if (n <= 20) return tamanho == 1 ? 24 : 28;
-  if (n <= 22) return tamanho == 1 ? 26 : 32;
-  if (n <= 24) return tamanho == 1 ? 28 : 34;
-  return tamanho == 1 ? 32 : 38;
+  return (n * PERCENTUAL[tamanho] + 50) / 100;
 }
 TxtEstilo sinopse_estilo(TxtEstilo original) {
   if (!ajustes_sinopse_tamanho()) return original;
   switch (corpo(original)) {
-    case 20: return TXT_SINOPSE_20;
+    case 19: return TXT_SINOPSE_19;
+    case 21: return TXT_SINOPSE_21;
     case 22: return TXT_SINOPSE_22;
+    case 23: return TXT_SINOPSE_23;
     case 24: return TXT_SINOPSE_24;
+    case 25: return TXT_SINOPSE_25;
     case 26: return TXT_SINOPSE_26;
+    case 27: return TXT_SINOPSE_27;
     case 28: return TXT_SINOPSE_28;
-    case 32: return TXT_SINOPSE_32;
+    case 29: return TXT_SINOPSE_29;
+    case 30: return TXT_SINOPSE_30;
+    case 31: return TXT_SINOPSE_31;
+    case 33: return TXT_SINOPSE_33;
     case 34: return TXT_SINOPSE_34;
-    case 38: return TXT_SINOPSE_38;
+    case 35: return TXT_SINOPSE_35;
+    case 39: return TXT_SINOPSE_39;
     default: return original;
   }
 }

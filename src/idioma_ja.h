@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "探索、テレビガイド、スケジュール、プロフィールと統計はメニューから外せます。折りたたんだバーは、時計アイランドの下のアイコンのピルになります。"),
   T("Explorar: climas e títulos parecidos", "探索：気分と似た作品"),
   T("Extensões CloudStream: só no app Android", "CloudStream 拡張機能: Android アプリのみ"),
-  T("Extra grande", "特大"),
   T("FILEIRA SELECIONADA", "選択中の行"),
   T("FILMOGRAFIA", "フィルモグラフィー"),
   T("FINALIZADA", "完結"),

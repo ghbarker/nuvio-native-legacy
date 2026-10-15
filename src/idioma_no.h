@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Utforsk, TV-guide, Oversikt og Profil og Statistikk kan fjernes fra menyen. Sammenslått blir linjen en pille med ikoner under ur-øya."),
   T("Explorar: climas e títulos parecidos", "Utforsk: stemninger og lignende titler"),
   T("Extensões CloudStream: só no app Android", "CloudStream-utvidelser: bare i Android-appen"),
-  T("Extra grande", "Ekstra stor"),
   T("FILEIRA SELECIONADA", "VALGT RAD"),
   T("FILMOGRAFIA", "FILMOGRAFI"),
   T("FINALIZADA", "AVSLUTTET"),

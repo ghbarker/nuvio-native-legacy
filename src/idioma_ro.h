@@ -1906,7 +1906,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Explorează, Ghid TV, Program și Profil și statistici pot ieși din meniu. Restrânsă, bara devine o pastilă cu pictograme sub insula ceasului."),
   T("Explorar: climas e títulos parecidos", "Explorează: stări și titluri asemănătoare"),
   T("Extensões CloudStream: só no app Android", "Extensii CloudStream: doar în aplicația Android"),
-  T("Extra grande", "Foarte mare"),
   T("FILEIRA SELECIONADA", "RÂND SELECTAT"),
   T("FILMOGRAFIA", "FILMOGRAFIE"),
   T("FINALIZADA", "ÎNCHEIAT"),

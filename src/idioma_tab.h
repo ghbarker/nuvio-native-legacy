@@ -1906,7 +1906,6 @@
   { "Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Explore, TV Guide, Schedule and Profile and Stats can be removed from the menu. Collapsed, the bar becomes a pill of icons under the clock island." },
   { "Explorar: climas e títulos parecidos", "Explore: moods and similar titles" },
   { "Extensões CloudStream: só no app Android", "CloudStream extensions: Android app only" },
-  { "Extra grande", "Extra large" },
   { "FILEIRA SELECIONADA", "SELECTED ROW" },
   { "FILMOGRAFIA", "FILMOGRAPHY" },
   { "FINALIZADA", "ENDED" },

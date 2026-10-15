@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Odkrywaj, Przewodnik TV, Harmonogram oraz Profil i statystyki mogą zniknąć z menu. Zwinięty pasek staje się pigułką z ikonami pod wyspą zegara."),
   T("Explorar: climas e títulos parecidos", "Odkrywaj: nastroje i podobne tytuły"),
   T("Extensões CloudStream: só no app Android", "Rozszerzenia CloudStream: tylko w aplikacji na Androida"),
-  T("Extra grande", "Bardzo duży"),
   T("FILEIRA SELECIONADA", "WYBRANY RZĄD"),
   T("FILMOGRAFIA", "FILMOGRAFIA"),
   T("FINALIZADA", "ZAKOŃCZONE"),

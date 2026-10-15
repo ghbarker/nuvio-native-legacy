@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Naršyti, TV vadovą, Tvarkaraštį ir Profilį ir statistiką galima išimti iš meniu. Suskleista juosta tampa piktogramų piliule po laikrodžio sala."),
   T("Explorar: climas e títulos parecidos", "Naršyti: nuotaikos ir panašūs pavadinimai"),
   T("Extensões CloudStream: só no app Android", "CloudStream plėtiniai: tik Android programėlėje"),
-  T("Extra grande", "Labai didelis"),
   T("FILEIRA SELECIONADA", "PASIRINKTA EILĖ"),
   T("FILMOGRAFIA", "FILMOGRAFIJA"),
   T("FINALIZADA", "BAIGĖSI"),

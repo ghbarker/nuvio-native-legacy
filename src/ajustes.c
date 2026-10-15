@@ -563,7 +563,7 @@ typedef enum {
 #ifdef NV_ANDROID
   AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes
 #endif
-  AJ_TAMANHO_SINOPSE, // #477: so o texto das sinopses, padrao preservado
+  AJ_TAMANHO_SINOPSE, // #477: 100/120/130/150%, local, padrao preservado
   AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho
   AJ_ESTILO_LEGENDA,
   AJ_N
@@ -646,7 +646,7 @@ static const char *V_COLECAO_EXIBICAO[] = {
 _Static_assert(sizeof V_COLECAO_EXIBICAO / sizeof *V_COLECAO_EXIBICAO == VT_LAY_N,
                "collection settings and persisted view IDs must match");
 // Indice gravado em tamanhoUiLocal; o fator sai de ajustes_tamanho_ui.
-static const char *V_TAMANHO_SINOPSE[] = { "Padrão", "Grande", "Extra grande" };
+static const char *V_TAMANHO_SINOPSE[] = { "100%", "120%", "130%", "150%" };
 static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%" };
 static const char *V_TAMANHO_AJUSTES[] = { "80%", "90%", "100%" };
 static const char *V_INTERFACE_MODO[] = { "TV", "Mobile", "Automático" };
@@ -1457,7 +1457,7 @@ static const Opcao OPCOES[AJ_N] = {
 #ifdef NV_ANDROID
   ACAO("Baixar registro"),
 #endif
-  ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 3),
+  ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 4),
   ESC("Exibição padrão das coleções", V_COLECAO_EXIBICAO, VT_LAY_N),
   ACAO("Estilo da legenda"),
 };
@@ -1712,7 +1712,7 @@ static const char *CHAVE[] = {
 #ifdef NV_ANDROID
   "-baixarRegistro",
 #endif
-  "sinopseTamanhoLocal",
+  "sinopseEscalaLocal",
   "colecaoExibicaoPadraoLocal",
   "-estiloLegenda",
 };
@@ -2334,7 +2334,7 @@ int ajustes_tamanho_max_gb(void) { int v = valor[AJ_TAM_MAX]; return v < 0 || v 
 int ajustes_tamanho_min_gb(void) { int v = valor[AJ_TAM_MIN]; return v < 0 || v >= (int)(sizeof TAMANHO_GB / sizeof *TAMANHO_GB) ? 0 : TAMANHO_GB[v]; }
 int ajustes_sinopse_tamanho(void) {
   int v = valor[AJ_TAMANHO_SINOPSE];
-  return v >= 0 && v < 3 ? v : 0;
+  return v >= 0 && v < 4 ? v : 0;
 }
 int ajustes_colecao_exibicao(void) {
   int v = valor[AJ_COLECAO_EXIBICAO];
@@ -3575,6 +3575,7 @@ void ajustes_dir(const char *dir) {
   { int viuIdioma = 0, viuAuto = 0, idiomaGravado = IDIOMA_EN, autoGravado = 0;
     int medidorAntigo = -1, viuMedidor = 0, resAntiga = -1, viuRes = 0, prazoAntigo = -1, viuEspera = 0;
     int focoAntigo = -1, viuFoco = 0;
+    int sinopseAntiga = -1, viuSinopse = 0;
   while (fgets(linha, sizeof linha, f)) {
     char chave[64]; int v, i, inicio = 0;
     if (sscanf(linha, "%63s%n", chave, &inicio) != 1) continue;
@@ -3625,6 +3626,12 @@ void ajustes_dir(const char *dir) {
       if (v >= IDA_TMDB && v <= IDA_PADRAO) idiomaFonteGravada = v;
       continue;
     }
+    // Legacy preview choices map to 100/120/150%. The new percentage
+    // choice wins in either file order; the other interface sizes stay local.
+    if (!strcmp(chave, "sinopseTamanhoLocal")) {
+      if (v >= 0 && v < 3) sinopseAntiga = v;
+      continue;
+    }
     for (i = 0; i < AJ_N; i++) {
       if (!CHAVE[i] || strcmp(CHAVE[i], chave)) continue;
       if (OPCOES[i].tipo == OP_LEITURA || OPCOES[i].tipo == OP_ACAO) continue;
@@ -3635,8 +3642,13 @@ void ajustes_dir(const char *dir) {
       if (i == AJ_RESOLUCAO) viuRes = 1;
       if (i == AJ_FONTE_PRAZO) viuEspera = 1;
       if (i == AJ_FOCO_TRAILER) viuFoco = 1;
+      if (i == AJ_TAMANHO_SINOPSE) viuSinopse = 1;
       break;
     }
+  }
+  if (!viuSinopse && sinopseAntiga >= 0) {
+    static const int DE_PARA[3] = { 0, 1, 3 }; // 100%, 120%, 150%
+    valor[AJ_TAMANHO_SINOPSE] = DE_PARA[sinopseAntiga];
   }
   if (!viuMedidor && medidorAntigo >= 0) valor[AJ_MEDIDOR] = medidorAntigo == 0 ? 3 : 0;
   if (!viuRes && resAntiga >= 0) {

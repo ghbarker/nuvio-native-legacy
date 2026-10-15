@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Keşfet, TV Rehberi, Program ve Profil ve istatistikler menüden çıkarılabilir. Daraltıldığında çubuk saat adasının altında simgelerden oluşan bir hap olur."),
   T("Explorar: climas e títulos parecidos", "Keşfet: ruh halleri ve benzer yapımlar"),
   T("Extensões CloudStream: só no app Android", "CloudStream uzantıları: yalnızca Android uygulamasında"),
-  T("Extra grande", "Çok büyük"),
   T("FILEIRA SELECIONADA", "SEÇİLİ SATIR"),
   T("FILMOGRAFIA", "FİLMOGRAFİ"),
   T("FINALIZADA", "BİTTİ"),

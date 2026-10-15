@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Jelajahi, Panduan TV, Jadwal, dan Profil dan statistik bisa dihapus dari menu. Bilah yang diciutkan menjadi kapsul ikon di bawah pulau jam."),
   T("Explorar: climas e títulos parecidos", "Jelajahi: suasana dan judul serupa"),
   T("Extensões CloudStream: só no app Android", "Ekstensi CloudStream: hanya di aplikasi Android"),
-  T("Extra grande", "Sangat besar"),
   T("FILEIRA SELECIONADA", "BARIS TERPILIH"),
   T("FILMOGRAFIA", "FILMOGRAFI"),
   T("FINALIZADA", "TAMAT"),

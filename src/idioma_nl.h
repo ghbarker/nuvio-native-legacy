@@ -1907,7 +1907,6 @@
   T("Explorar, Guia TV, Agenda e Perfil e Stats podem sair do menu. Recolhida, a barra vira uma pílula de ícones embaixo da ilha do relógio.", "Ontdekken, Tv-gids, Schema en Profiel en statistieken kunnen uit het menu. Ingeklapt wordt de balk een pilletje met iconen onder het klokeiland."),
   T("Explorar: climas e títulos parecidos", "Ontdekken: sferen en vergelijkbare titels"),
   T("Extensões CloudStream: só no app Android", "CloudStream-extensies: alleen in de Android-app"),
-  T("Extra grande", "Extra groot"),
   T("FILEIRA SELECIONADA", "GESELECTEERDE RIJ"),
   T("FILMOGRAFIA", "FILMOGRAFIE"),
   T("FINALIZADA", "AFGELOPEN"),
