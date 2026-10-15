@@ -270,3 +270,4 @@
   1, 0, 3, /* addon failover off; instance order action; total links */
   1, /* video preload and next episode buffer: Desligado, independent source setting */
   0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */
+  0, /* synopsis text size (#477): 100%, current typography */
