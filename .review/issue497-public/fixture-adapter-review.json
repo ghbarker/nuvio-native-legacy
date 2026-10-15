@@ -1,0 +1,39 @@
+{
+  "scope": "External fixture neighbours and completion observers only; no product source, original test file or assertion changes. Bounded normal C preflight passed on exact e546 candidate; full normal/ASan CI remains required.",
+  "files_sha256": {
+    "home-window/adapter.c": "86a3f32169c985c33052bc94d25e14723836608aa6ec2f6248739009b3371580",
+    "home-window/cw-splice.inc": "9d57f36435ecb65d16f339a92cbf8b2577fd0189d90fb0c487af571b7bee721d",
+    "home-window/prepare.py": "0ce55de928237157b543b16833cd903624e7d2fe9ae4b8b49e25cb188feedec5",
+    "profile-data/discovery-reopen.c": "37c3a46c1ccedffad463563559ec0021491051a4320bb3a7fa00ba594e9f62e3",
+    "profile-data/reopen-neighbours.h": "e7bf39b0665bc9bc30dd1556c7d84a3b67dc34e3d9aa0d5eb4947227f607464b",
+    "homejanelas-dependencies.c": "1c01bc7aec80a88b52e5f2bd119cf219f7f094e946c4bcde3e76f7125668886a"
+  },
+  "profile": [
+    {
+      "path": "profile-data/discovery-reopen.c",
+      "original_sha256": "c8328782cf7b822ac074e6e1c02d3464af4cf1af770c0f77844504a99d931d67",
+      "adapted_sha256": "37c3a46c1ccedffad463563559ec0021491051a4320bb3a7fa00ba594e9f62e3",
+      "assertions": 26,
+      "assertions_unchanged": true
+    },
+    {
+      "path": "profile-data/reopen-neighbours.h",
+      "original_sha256": "dbbf888877378e6102845e9f889f4114351098adba880c61c4496db6e83c346a",
+      "adapted_sha256": "e7bf39b0665bc9bc30dd1556c7d84a3b67dc34e3d9aa0d5eb4947227f607464b",
+      "assertions": 24,
+      "assertions_unchanged": true
+    }
+  ],
+  "home_original_assertion_sites": 26,
+  "home_original_assertions_sha256": "89a9d2f7d351eeccf9a9f1a61ccd857fa4cd143cde06e107233a99030d0845c9",
+  "runtime_requirements": "Full normal/ASan execution remains required in CI. prepare.py verifies unchanged original assertion expressions/order, current production catalogue helper and prior CW splice before generating body.",
+  "normal_home_preflight": {
+    "receipt": "/dev/shm/issue497-public-ci-20261015/local-home-preflight-v3/receipt.json",
+    "sha256": "fd7bf333032fd782791f5f6c264465b5715988bbcb0fa3f4e023d61c7e47dd30",
+    "source": "e54672fdfe0a2df5843c7fee685e1743e15d16fd",
+    "sanitized": false,
+    "passed": true,
+    "seconds": 4.22
+  },
+  "binding_notes": "Thread-local n binds the production helper global without macro-renaming struct member .n; count refreshed under existing storage mutex. Duplicate neighbours already provided by current upstream test are omitted."
+}

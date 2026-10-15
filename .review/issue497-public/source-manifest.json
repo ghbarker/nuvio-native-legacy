@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "head": "e54672fdfe0a2df5843c7fee685e1743e15d16fd",
+  "tree": "6e017811272138b061f38e98ddad72d132ea1275",
+  "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "base_tree": "2b72f6359237638d17182ad30db872e965798e14",
+  "parents": [
+    "5d2f8c8c99113e416e1fb06f8b60da1d13635e85"
+  ],
+  "paths": [
+    {
+      "path": "src/descoberta.c",
+      "sha256": "23c26dbf5fd0ceb37777df3294bb5524918f7551398927d87e078deb60bb7636"
+    },
+    {
+      "path": "src/main.c",
+      "sha256": "407b53595058d89b6d0709b2fa8651c4eebc7300ab5be146d9c8b6e97af487cc"
+    },
+    {
+      "path": "src/sync.c",
+      "sha256": "44559dfb377598f1ecfede23d4892909ef25577fb7b54efbec12daa5b9838c6a"
+    },
+    {
+      "path": "src/sync.h",
+      "sha256": "94287d82b41833c5854e3a65f8920b1cb9aa63ba4ec2f6d1bcb30736bed1861d"
+    }
+  ],
+  "tests_unchanged": true,
+  "all_non_source_paths_unchanged": true,
+  "scope": "Exact 95c218+a570 four-source-only composition onto current upstream; no private overlay."
+}

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actual_sync": "/tmp/integration-apk20024-20261015/product/src/sync.c",
+  "source_sha256": "a515f4ade84e6ee54047b4b9151e57504d67131e5aaa7d306de009fa78614bc1",
+  "sanitize": false,
+  "baseline": true,
+  "scenarios": {
+    "concurrent": "ea47312788efedb1302bed597f414e6ade606fc6316c3f8431c74af75262b154"
+  }
+}

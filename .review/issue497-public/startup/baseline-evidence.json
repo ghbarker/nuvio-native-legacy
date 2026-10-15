@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "scope": "ActuallocalLogs14baseline reproduction provenance only; not a freshCI or finalcandidate pass",
+  "fresh_ci_evidence": false,
+  "source_commit": "b9af2f0da4f9b2f88088409782e5f040b772091a",
+  "source_tree": "12691126c31b2c573f28198624f25bd3edb0b9ec",
+  "components": {
+    "sync": {
+      "source_inputs_sha256": {
+        "src/sync.c": "a515f4ade84e6ee54047b4b9151e57504d67131e5aaa7d306de009fa78614bc1"
+      },
+      "receipt": "baseline/sync/receipt.json",
+      "receipt_sha256": "355b93f1887993d67231cfa436ec88e6b686b59aab27ba2ce85e0d73d6e984cf",
+      "logs": {
+        "baseline/sync/concurrent.txt": "ea47312788efedb1302bed597f414e6ade606fc6316c3f8431c74af75262b154"
+      }
+    },
+    "discovery": {
+      "source_inputs_sha256": {
+        "src/descoberta.c": "0a0496c61f9e1f6715c43652c0ffee99a38755aa8290ed40b16edfd3bd2c22a6",
+        "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+        "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+      },
+      "receipt": "baseline/discovery/receipt.json",
+      "receipt_sha256": "bc66287100871a10f86ba9a142bfe2b1917c2348fd02fc98cfc8e1ca3e763ba3",
+      "logs": {
+        "baseline/discovery/fresh.txt": "125952392a953d3574df7f72207c0b145d1970c26a1b1a036963e1a98d6cb72f",
+        "baseline/discovery/compile.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  }
+}

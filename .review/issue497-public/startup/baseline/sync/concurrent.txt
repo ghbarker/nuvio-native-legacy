@@ -1,0 +1,6 @@
+[sync] addons: perfil 1 (ativo 1) -> 1 linha(s)
+REPRODUCED: Logs14 progress blocks credentials and collection/order pulls
+[sync] plugins: resposta nao e lista, ignorada
+[catordem] 2 na ordem da conta, 0 desligadas
+[catordem] ordem guardada no cache local (perfil 1)
+PASS: progress applied once, joined before pushes, structure consumed once

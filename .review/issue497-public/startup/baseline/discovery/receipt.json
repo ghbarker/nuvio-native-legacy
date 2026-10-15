@@ -1,0 +1,77 @@
+{
+  "all_passed": true,
+  "fixed": false,
+  "sanitized": false,
+  "source": "/dev/shm/integration-apk20024-source-20261015/product",
+  "private": false,
+  "source_sha256": {
+    "src/descoberta.c": "0a0496c61f9e1f6715c43652c0ffee99a38755aa8290ed40b16edfd3bd2c22a6",
+    "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+    "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+  },
+  "fixture_sha256": {
+    "candidate-normal": "ae9f845554d6a24b70b123f18a128a47ed53e42c4dfeda29c48bd6d36bb2fece",
+    "candidate-normal-cached.log": "e2b2a31d84385599368a393a007bfc00a89049e7b230cbf41e6101d5edbd2399",
+    "candidate-normal-clear.log": "bcb52c39086506f97832d486c8ddb8c806782e2ea6821c5bedd7031f3f039089",
+    "candidate-normal-command.json": "08c2e2fbf12aa760bb8670ac2d2bc52c880a8f5801cbc6dbaf8370b6124ea99d",
+    "candidate-normal-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate-normal-fresh-remount.log": "f5d7b9f1b3d1309342dbf2919c6cc41c4375d13dd799b116356feb19066a706b",
+    "candidate-normal-fresh.log": "b3e1f0dc6d1dd4312b684a2bd23fc9020da2e1f53c795abb17f6ebefe8fcec2c",
+    "candidate-normal-results.json": "3625b690d8ea9d62be66ae430ed1dc340fa0e1f7cccbbc554d00cb043ec30c58",
+    "candidate-normal-stale.log": "b89a98db207e6b3d1cbdf19608e923f7541828b060dce53414f50a0b6f15809c",
+    "catalog-republish-actual.inc": "d0da735f8950b4fd51f459791002a1d2ac7c6ad2d562c3b49b9a6f5d1828c8fb",
+    "home-boundaries.inc": "869d07abfc6295969b537a8977ec3e807cc5ce81f78d1e0ac165d4d7d46f6b59",
+    "homejanelas-dependencies.c": "7a8055d6a2180f6659a4451a2a8b4df16acc642e7d79aca08c38e072ebed4af6",
+    "latch.c": "07a0d8161dbec9573e052a08001d9a6cff26ee8d39049c5b2fc76304df0b8191",
+    "run.py": "4a06e6cb51e36bd064f6591cc30840772f1f6b85f2c504606c6f4bbf1cde7ea4"
+  },
+  "catalog_boundary": "Existing Home catalogue storage double with faithful CW splice; production cat_republicar_fileiras helper is copied verbatim and bound only to fixture storage/mutex/no-op notifications. Actual discovery/perfis compiled unchanged. Full-source catalogue ownership suites remain separate required gates.",
+  "records": [
+    {
+      "name": "compile",
+      "command": [
+        "cc",
+        "-O1",
+        "-g",
+        "-Isrc",
+        "-Itests",
+        "-I/dev/shm/artwork-queue-audit-20261015/latch/sdk",
+        "-I/dev/shm/artwork-queue-audit-20261015/latch",
+        "-pthread",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Wl,--gc-sections",
+        "-DDISCOVERY_SOURCE=\"/dev/shm/integration-apk20024-source-20261015/product/src/descoberta.c\"",
+        "/dev/shm/artwork-queue-audit-20261015/latch/latch.c",
+        "/dev/shm/artwork-queue-audit-20261015/latch/homejanelas-dependencies.c",
+        "src/perfis.c",
+        "src/cwordem.c",
+        "src/cotacat.c",
+        "src/js.c",
+        "src/metaprov.c",
+        "src/colecoes.c",
+        "src/redeurl.c",
+        "src/catordem.c",
+        "-o",
+        "/dev/shm/artwork-queue-audit-20261015/results/baseline-normal/discovery-latch"
+      ],
+      "exit_code": 0,
+      "seconds": 2.997,
+      "log": "compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fresh",
+      "command": [
+        "/dev/shm/artwork-queue-audit-20261015/results/baseline-normal/discovery-latch",
+        "0",
+        "fresh"
+      ],
+      "exit_code": 0,
+      "seconds": 0.014,
+      "log": "fresh.log",
+      "log_sha256": "125952392a953d3574df7f72207c0b145d1970c26a1b1a036963e1a98d6cb72f"
+    }
+  ],
+  "binary_sha256": "bf04d8a08fc9421e84d4aacc301760579982ba88954688c0bf5c0ff82971e4bc"
+}

@@ -1,0 +1,55 @@
+{
+  "sync": {
+    "origin": "/dev/shm/artwork-concurrency-20261015/sync-validation",
+    "files": {
+      "run.sh": {
+        "origin_sha256": "5f3a3ac2554d052d1b7123b104cbe9d092d9ed31eda888dd9b52e3cbef39310c",
+        "staged_sha256": "0d9dc5e931827b2ad50d5ec9b7196269cafdc289e33162b4e93527ad556d5ea2",
+        "assertions_unchanged": true
+      },
+      "latch.c": {
+        "origin_sha256": "2d61286c6aaa426374bb78886e509d17376659cca4646032e1dd47aaf08ae9e1",
+        "staged_sha256": "2d61286c6aaa426374bb78886e509d17376659cca4646032e1dd47aaf08ae9e1",
+        "assertions_unchanged": true
+      },
+      "inject.h": {
+        "origin_sha256": "085b87448862157f36c5e77093499e7ff74f3c460fcd1232d027829bc1dffb4a",
+        "staged_sha256": "085b87448862157f36c5e77093499e7ff74f3c460fcd1232d027829bc1dffb4a",
+        "assertions_unchanged": true
+      }
+    },
+    "adapter_scope": "run.sh appends explicit privatecompile macro and establishedLinuxASan-noPIE flags only; actual3scenario assertions unchanged."
+  },
+  "baseline": "Local frozen Logs14 reproduction provenance only, not a fresh CI or sourcebound pass.",
+  "discovery": {
+    "origin": "/dev/shm/artwork-queue-audit-20261015/latch",
+    "files": {
+      "run.py": {
+        "origin_sha256": "9a0c3d678247a6c7f7f550a07b867fb274ccf0506a4f040a8cc1869ca9e7baf1",
+        "staged_sha256": "9a0c3d678247a6c7f7f550a07b867fb274ccf0506a4f040a8cc1869ca9e7baf1",
+        "assertions_unchanged": true
+      },
+      "latch.c": {
+        "origin_sha256": "07a0d8161dbec9573e052a08001d9a6cff26ee8d39049c5b2fc76304df0b8191",
+        "staged_sha256": "07a0d8161dbec9573e052a08001d9a6cff26ee8d39049c5b2fc76304df0b8191",
+        "assertions_unchanged": true
+      },
+      "home-boundaries.inc": {
+        "origin_sha256": "869d07abfc6295969b537a8977ec3e807cc5ce81f78d1e0ac165d4d7d46f6b59",
+        "staged_sha256": "869d07abfc6295969b537a8977ec3e807cc5ce81f78d1e0ac165d4d7d46f6b59",
+        "assertions_unchanged": true
+      },
+      "homejanelas-dependencies.c": {
+        "origin_sha256": "7a8055d6a2180f6659a4451a2a8b4df16acc642e7d79aca08c38e072ebed4af6",
+        "staged_sha256": "7a8055d6a2180f6659a4451a2a8b4df16acc642e7d79aca08c38e072ebed4af6",
+        "assertions_unchanged": true
+      },
+      "catalog-republish-actual.inc": {
+        "origin_sha256": "d0da735f8950b4fd51f459791002a1d2ac7c6ad2d562c3b49b9a6f5d1828c8fb",
+        "staged_sha256": "d0da735f8950b4fd51f459791002a1d2ac7c6ad2d562c3b49b9a6f5d1828c8fb",
+        "assertions_unchanged": true
+      }
+    },
+    "adapter_scope": "Copied unchangedactualdiscoveryorchestration and actualcatalogrepublishbody with documentedtypedstorage/transport boundaries."
+  }
+}
