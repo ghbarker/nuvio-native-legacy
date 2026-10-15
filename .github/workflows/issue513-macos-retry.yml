@@ -1,0 +1,86 @@
+name: Logs7 complete macOS fixture retry with preserved signed ARM APK
+'on':
+  push:
+    branches:
+    - review/issue513-macos-retry-20261015
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: issue513-macos-retry-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: Complete combined macOS group with typed idle identity
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize and verify exact pinned source
+      run: python3 .review/issue513-delivery/verify_source.py --case "combined-delivery" --source-commit "02777c0802d7d5ce1b6dd405f871db6c3c6b46b8"
+        --target source-app --proof build/review/source-verified.json
+    - name: Real native SDL SDK
+      run: brew install sdl2 sdl2_image sdl2_ttf
+    - name: Full TV/touch app builds and 272 actual C assertions normal/ASan
+      run: python3 .review/issue513-delivery/run_native.py --source source-app --source-proof build/review/source-verified.json
+        --output build/review/native
+    - name: Reverify unchanged source after checks
+      run: python3 .review/issue513-delivery/verify_source.py --case "combined-delivery" --source-commit "02777c0802d7d5ce1b6dd405f871db6c3c6b46b8"
+        --target source-app --proof build/review/source-verified.json --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: issue513-combined-native-retry-${{ github.sha }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  publish:
+    name: Verify successful existing APK/checks and publish compatible update
+    needs: native
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: issue513-combined-native-retry-${{ github.sha }}
+        path: delivery/native-combined-delivery
+    - name: Reuse only successful source-bound original jobs and exact ARM APK
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: python3 .review/issue513-macos-retry/reuse_success.py
+    - name: Gate complete native rerun and preserve honest validation origins
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        PLANNED_SOURCE: 02777c0802d7d5ce1b6dd405f871db6c3c6b46b8
+      run: "python3 .review/issue513-macos-retry/prepare_release.py\nif gh release view tv-mobile-test-issue513-v7\
+        \ >/dev/null 2>&1; then\n  echo 'Unique test release already exists; no overwrite.'\n  exit 1\nfi\npython3\
+        \ .review/issue513-delivery/create_release_tag.py\ngh release create tv-mobile-test-issue513-v7 --verify-tag\
+        \ \\\n  delivery/Nuvio-TV-Mobile-Test-Issue513-Logs7.apk \\\n  delivery/Nuvio-TV-Mobile-Test-Issue513-Logs7.apk.sha256\
+        \ \\\n  delivery/validation.json delivery/validation-proofs.zip delivery/release-tag.json \\\n  --target\
+        \ \"$PLANNED_SOURCE\" --prerelease --latest=false \\\n  --title 'Nuvio TV/Mobile Test7: episode source selection'\
+        \ \\\n  --notes-file delivery/release-notes.txt\n"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: issue513-retry-publication-proof-${{ github.sha }}
+        path: 'delivery/*.json
+
+          delivery/*.zip
+
+          delivery/*.sha256
+
+          delivery/release-notes.txt'
+        if-no-files-found: warn
+        retention-days: 14

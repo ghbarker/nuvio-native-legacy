@@ -1,0 +1,40 @@
+{
+  "owner_four_contexts_pass": true,
+  "assertions": 72,
+  "actual_headers": [
+    "perfis.h",
+    "sessao.h",
+    "fontecache.h"
+  ],
+  "profile_symbols_strongly_typed": [
+    "_perfis_sessao_atual",
+    "_perfis_sessao_destravar",
+    "_perfis_sessao_geracao",
+    "_perfis_sessao_travar"
+  ],
+  "darwin_parser_failure_reproduced_from_actual_log": true,
+  "darwin_execution_claimed": false,
+  "companion_guard_probes": [
+    {
+      "argument_count": 0,
+      "returncode": 0,
+      "expected": "passes"
+    },
+    {
+      "argument_count": 1,
+      "returncode": -6,
+      "expected": "rejects unexpected epoch/unbalanced guard"
+    },
+    {
+      "argument_count": 2,
+      "returncode": -6,
+      "expected": "rejects unexpected epoch/unbalanced guard"
+    },
+    {
+      "argument_count": 3,
+      "returncode": -6,
+      "expected": "rejects unexpected epoch/unbalanced guard"
+    }
+  ],
+  "companion_sha256": "e6161a10f3b137267be9aad12b46287508cb27a74e263e3978ba11844f342aad"
+}
