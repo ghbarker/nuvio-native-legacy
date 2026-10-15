@@ -752,6 +752,9 @@ static int ajPontEdVale(void) { return uxEditor == 1 && uxOp >= 0 && !uxRestaura
 static void ajPontEdRodape(int a, int b) { (void)a; (void)b; if (ajPontEdVale() && uxTemPadrao(uxOp)) uxRodape = 1; }
 static void ajPontEdValor(int i, int b) {
   (void)b;
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(11, uxOp, ajPontEdVale() && i >= 0 && i < nValores(uxOp), 0);
+#endif
   if (!ajPontEdVale() || i < 0 || i >= nValores(uxOp) || (!uxRodape && uxPendente == i)) return;
   if (uxOp == AJ_TEX_MB && texAcima(i)) return;
   uxRodape = 0; uxPendente = i;
