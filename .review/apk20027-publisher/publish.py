@@ -36,7 +36,7 @@ def api(path,method='GET',body=None,allow404=False):
 def download(spec,out):
  metadata=api('actions/artifacts/'+str(spec['id']));assert metadata['name']==spec['name']and metadata['size_in_bytes']==spec['bytes']and metadata['digest']=='sha256:'+spec['sha256']and not metadata['expired']
  assert metadata['workflow_run']['id']==RUN and metadata['workflow_run']['head_sha']==REVIEW
- with request(API+'/actions/artifacts/'+str(spec['id'])+'/zip',accept='application/octet-stream')as response,out.open('xb')as target:
+ with request(API+'/actions/artifacts/'+str(spec['id'])+'/zip')as response,out.open('xb')as target:
   h=hashlib.sha256();n=0
   while True:
    part=response.read(1024*1024)
