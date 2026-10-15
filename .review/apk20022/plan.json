@@ -3,7 +3,7 @@
   "frozen": true,
   "root_reviewed": true,
   "source_frozen": true,
-  "review_only": false,
+  "review_only": true,
   "launch_requires_root_review": true,
   "upstream": {
     "url": "https://github.com/iqui27/nuvio-native-legacy.git",
@@ -11,20 +11,20 @@
   },
   "sources": {
     "product": {
-      "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
-      "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
-      "parent": "694c844a93f6075113ac48ec39683599500e8270",
+      "commit": "1f14099b82222953a7a801205203847ff914b02d",
+      "tree": "373f13fec6dadff78b979e21f27ce5bea77c072b",
+      "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
       "manifest": "product-source-manifest.json",
-      "manifest_sha256": "fd0bcdee01de59611fdfa510655eab4d7f59d5706851eddda1e07ce1085a1f1b",
-      "delta_patch_sha256": "d829eae87a45732b6b8928018455ac60919aa5c91bc32ab556282c81a3031adf"
+      "manifest_sha256": "914a95bdebb57fe8aff6a487dcb85504fbb2f8334df7630435b62628bdf24495",
+      "delta_patch_sha256": "94989b9ab897d3c036ad6e6d22b55946fb5337558328213d1ecc35479c24fe11"
     },
     "test": {
-      "commit": "4019da9045eaa14fae9f889abdff7d206555d664",
-      "tree": "79cd429bb319e75d7198037233ad1a4415642ad2",
-      "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+      "commit": "86fc15f1fb48f4d425923b040805db0e2dbd72f5",
+      "tree": "2df457fa52bb4f7fc6a74f02a4eed4fc61657237",
+      "parent": "1f14099b82222953a7a801205203847ff914b02d",
       "manifest": "test-source-manifest.json",
-      "manifest_sha256": "8c0db561997b6df839d6757762e9bb6716b2e26c43e208c7c119538225ae72c0",
-      "delta_patch_sha256": "b0b7b0b538d0f235c8a01d27d0b6bdc6ecfa48b48a279f69ab168e867eccb010"
+      "manifest_sha256": "bbf4622d300769aead3cb5ed71c85fd2b70f65971820c46c11d08475cf4f2587",
+      "delta_patch_sha256": "d5c7a2dd7d328e727de1029b56ba6ee459d3c94b1772a98391c1657c00e4e907"
     }
   },
   "identity": {
@@ -36,16 +36,16 @@
   },
   "bundle": {
     "path": "source.bundle.base64",
-    "sha256": "6abd29ebf5960cb80ec44540cbc6af651c87e4be6738acfd191253b80880fd7f",
-    "bytes": 1132190
+    "sha256": "77835719111a04621d67065ab084b290924e4f283fb60c57f53bd35c935e7199",
+    "bytes": 1216920
   },
   "layers": {
     "foundation_product": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
     "foundation_private": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
     "async_showcase_scroll": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
     "settings_subtitle_style": "2bbf4b343b0a633f81de2cea600e1f840137bb56",
-    "private_overlay": "4019da9045eaa14fae9f889abdff7d206555d664",
-    "synopsis_percentage": "13a24961c1bed9a942b1481a5301b719307d0b85"
+    "private_overlay": "86fc15f1fb48f4d425923b040805db0e2dbd72f5",
+    "synopsis_percentage": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb"
   },
   "pending": [],
   "proof_policy": {
@@ -58,7 +58,7 @@
       "New frozen async Showcase, Settings Subtitle style and synopsis percentage/migration affected fixtures on baseline and candidate before CI, then fresh exact combined source normal and ASan/UBSan"
     ],
     "eligible_reuse": [
-      "Same-invocation macOS object reuse only after exact preprocessor/dependency-byte equivalence; no historical execution reuse"
+      "Same-invocation dependency-bound private macOS object reuse only; no oldsource/job pass reuse"
     ],
     "never_reuse": [
       "oldAPK/signature/ABI/DEX/16KB",
@@ -68,11 +68,11 @@
   },
   "composition_manifest": {
     "path": "composition-manifest.json",
-    "sha256": "9bc00b60ddeabb4f5f45bd6a81cc40ad960c23c5ffcd4f54df96b36db55c8722"
+    "sha256": "57c6e9b90e136fb4b9fd20dc68710e48d901184202a946c64f39d7dc39b94340"
   },
   "inherited_review": {
-    "commit": "fd28b407990dfa01c57637521899442c78848e66",
-    "tree": "822018c84856642090a1bd8934a6f9220dcca6b2",
+    "commit": "e42359f743be69f1104a9a447d51c94183dc6c9d",
+    "tree": "f7f0f61fd6f2d106db7e3e1dcf00861e60ab0860",
     "trees": {
       ".review/logs8/native": "6140094cd3d7cb497b2b2d3a606550eddc83f7a1",
       ".review/logs8/kotlin": "e4c69aa33ba15cfa6b749a6d5c3cf66d4caf26e8",
@@ -86,44 +86,34 @@
   ],
   "source_composition_root_approved": true,
   "local_preflight": {
-    "root-source-review.json": {
-      "sha256": "e10821fce295780da20ccef1caee58d50c1c02a346a36721c474787bb90154f7",
-      "packaged_path": "provenance/root-source-review.json"
-    },
-    "peer-ci-recipe-review.json": {
-      "sha256": "59327f94a2b1fdb062edbad3a3ee0e6ed97d5763345eb0b20e2ffaf732c4acd5",
-      "packaged_path": "provenance/peer-ci-recipe-review.json"
-    },
-    "final-affected-preflight.json": {
-      "sha256": "f1dc2bc9a48f87b1d7a45c2323578d4e834d77afc5351f4be99734eebe077d84",
-      "packaged_path": "provenance/final-affected-preflight.json"
-    },
-    "preapproval-composition-manifest.json": {
-      "sha256": "2d55c657ddff38a5e38509cc1a603d225bcdebb98fe7966d7015bfe9e0788adc",
-      "packaged_path": "provenance/preapproval-composition-manifest.json"
-    }
+    "path": "review/final-affected-preflight.json",
+    "sha256": "2af4320511f613cf14f5fde465618dcbd105f685df976eb36a50d6d0a2765d1d",
+    "outcome": "passed",
+    "invocations": 36,
+    "source_bound": true
   },
   "ci_execution_permitted": true,
-  "root_approval_scope": "Exact Logs12 source and CI review branch only. All seven fresh producers and final aggregate required before compatible APK publication. No public PR changes or backend interaction in CI.",
+  "root_approval_scope": "Exact new three-choice combined source, corrected external outline link closure and accepted affected fixtures; one fresh seven-producer plus aggregate review run. No prior-source pass reuse or release by review CI.",
   "recipe_pins": {
     "aggregate.py": "be36ce19ceae988207505b82a6e02e33442ff3dbf15eb971deafe2f610d974c3",
     "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
     "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
     "android/recipe-manifest.json": "6a61d1a6e8cbe7f4d8031f72adedb8dae2c29daec9643dbfc29c00a0d17f1f89",
     "jvm/manifest.json": "0eeabc6eb25003b08ad2e0164f0cd16e92e67486ff16618d88e9dfa79f456ff0",
-    "feature-contracts/manifest.json": "24323c7e66be7d435d9104971c749bd09358093b4573b48b33932883dbd5e6a9",
+    "feature-contracts/manifest.json": "ba04974f5dc46a14b047fc9ae47b3b69a01343ff7b0121a9684838a98c81167b",
     "require_plan.py": "61cf78b681fbf7882abc2a9e0b9c37445e4680f5a303369bb413de349d3b4fdc",
     "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
     "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
     "feature-contracts/run.py": "4844a0ed94062343557f3f4b20e32544f06a278288fafb3264c506872b67529c",
     "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
-    "preflight/cache-synopsis-portable-manifest.json": "d6bc590c4ead8ab1d92794855abcc1ffbebd06ead211954449ded5b0bcc50c69"
+    "preflight/cache-synopsis-portable-manifest.json": "a61e63ae6fc1792735d9f2f26ba924745fa057ce4e53536d4256ad80b089c0c8"
   },
   "recipe_preparation_only": false,
-  "source_root_approval_sha256": "e10821fce295780da20ccef1caee58d50c1c02a346a36721c474787bb90154f7",
+  "source_root_approval_sha256": "d2eee3efe0230915ecd8e626975e246a75476d8f8a8508d61e09a87e675abcaf",
   "root_ci_recipe_approval": {
-    "path": "provenance/root-ci-recipe-approval.json",
-    "sha256": "90de19891ababe55203c7af7c7aa2070e679f41dd36ff4c18fd8d71fd435c273"
+    "path": "review/root-ci-recipe-approval.json",
+    "sha256": "e4adedcbe3556b6885928c6c0911087275a56faa72cee734495fadc519d033dc",
+    "peer_review_sha256": "23426762b46058d20486817221fea78f73c82c6c002a13b8d8dedf2fc579da5b"
   },
   "required_pointer_regression": {
     "bound": true,
@@ -180,10 +170,10 @@
   },
   "historical_recipe_origin": {
     "reference_only": true,
-    "root": "/workspace/review/integration-apk20021-20261015",
-    "plan_sha256": "6990f3fb16828c3bbfd8fecf4173f0fd2f04b5c185d34922832f9e10231a479b",
-    "review_commit": "3b7ea260e5401daf47d806a9a6ddb0d144c5dd08",
-    "run_id": 38732464381,
+    "root": "/workspace/review/integration-apk20022-20261015",
+    "plan_sha256": "c1e859d17d0f827d0c49de2842f034d5e1ac26f8118d4a83db040bd7e0494167",
+    "review_commit": "e42359f743be69f1104a9a447d51c94183dc6c9d",
+    "run_id": 38743969192,
     "prior_results_eligible_for_new_execution_proof": false
   },
   "required_settings_style_regression": {
@@ -203,7 +193,7 @@
   "required_synopsis_percentage_regression": {
     "bound": true,
     "fixture_manifest": "preflight/synopsis477/percentage-origin.json",
-    "fixture_manifest_sha256": "e5f9974646a3404da655a944ef84b9518253662900839561c1b43424870a1563",
+    "fixture_manifest_sha256": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6",
     "required_layers": [
       "product",
       "test"
@@ -213,6 +203,12 @@
       "address,undefined"
     ],
     "baseline_candidate_preflight_required": true,
-    "reader_mode_required": true
+    "reader_mode_required": true,
+    "choices_percent": [
+      100,
+      125,
+      150
+    ],
+    "appended_style_slots": 17
   }
 }

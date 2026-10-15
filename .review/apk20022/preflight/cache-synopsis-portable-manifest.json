@@ -9,12 +9,12 @@
     "cache499/fixtures/refresh.c": "0081ae5ca76963276d630c711a26c874ab49d4868531004ee072b1af86bf97f1",
     "cache499/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
     "cache499/sdk/SDL2/SDL.h": "0e9368c70c543886dfa2232bbb70a376def4bc6d99d76189e7e8694c26f126bd",
-    "synopsis477/close_refinement.c": "b20d965d51f8409f31d23ca921291273460c95af7db054c77ad5388554387be5",
-    "synopsis477/percentage-adapter.json": "d00ff0c394ab732e178e08c21fdc7c3155b7446907cebc51132aeaf7484108a7",
-    "synopsis477/percentage-origin.json": "e5f9974646a3404da655a944ef84b9518253662900839561c1b43424870a1563",
+    "synopsis477/close_refinement.c": "d9701f48c6c78fe52f09ea98c8a1d0ff4224885c964ffc97191fff2ba0a9ac00",
+    "synopsis477/percentage-adapter.json": "1b8d5c0862c9d490c321cc272fca04dadd8f485274f20e5eebcc682949e35b1e",
+    "synopsis477/percentage-origin.json": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6",
     "synopsis477/portable.py": "cbf0c59d622da07e47214c4e4402d485f78a221ff5ebf8a5557f420c5053e6f7",
-    "synopsis477/preview_refinement.c": "5ffa7b1a4331970c7c7a4903f4b6953aa7d3a5d73cd5aa5d18470e5a215fe670",
-    "synopsis477/reader_probe.c": "f40fb3e06f7a86e0db436afe3a3f5b181428115d81610edeb7162b6c2551449f",
+    "synopsis477/preview_refinement.c": "7c4145100a72d403f14c9941811ac281b2ed9996e6d862fd7fb71383846b3a52",
+    "synopsis477/reader_probe.c": "8d170469b12251bccb50702507e4615d0059aad04fe6badffe74e8e429b70f4e",
     "synopsis477/route_probe.c": "08a8613834b5f0214d0d2e13928617ef5b0517793aa65800fee31341204bfcaa",
     "synopsis477/run.py": "d9cba456cba277817f6a14ee5038002d573ce3644b8a4cf4a2c3f2c1719dcdd8",
     "synopsis477/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
@@ -24,11 +24,11 @@
     "synopsis477/settings/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
     "synopsis477/settings/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
     "synopsis477/settings/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
-    "synopsis477/settings/settings.c": "17f0d2404afc692b92099c5d481d48f8c9dc47495689eaa8b2aa85e6aa63f6f6"
+    "synopsis477/settings/settings.c": "c113affc99e8a5e5128de290db802c7c8673b86e89b3da87ea16d983d2af15e9"
   },
   "commands": [
     "python3 cache499/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private]",
-    "python3 synopsis477/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private] [--mode close|preview|route|settings|all]"
+    "python3 synopsis477/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private] [--mode reader|close|preview|route|settings|all]"
   ],
   "compiler_boundary": "Linux host full actual source contract runs passed. Darwin flag selection included; actual Mac compile/run must happen before long app links. No host result is represented as a macOS pass.",
   "dependency": "Python fontTools for shipped Inter hmtx; reader fonts bound to source. Typed SDL declarations and draw capture only, not actual SDL/OpenGL frames.",
@@ -40,5 +40,6 @@
   "source_product": null,
   "source_test": null,
   "prior_results_reused": false,
-  "percentage_adapter": "synopsis477/percentage-adapter.json"
+  "percentage_adapter": "synopsis477/percentage-adapter.json",
+  "percentage_fixture_origin_sha256": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6"
 }

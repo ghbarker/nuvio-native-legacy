@@ -1,8 +1,8 @@
 {
   "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
-  "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
-  "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
-  "parent": "694c844a93f6075113ac48ec39683599500e8270",
+  "commit": "1f14099b82222953a7a801205203847ff914b02d",
+  "tree": "373f13fec6dadff78b979e21f27ce5bea77c072b",
+  "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
   "layer": "product",
   "private_logs": false,
   "source_clean": true,
@@ -53,11 +53,11 @@
     },
     {
       "path": "src/ajustes.c",
-      "sha256": "241559cec8e89066039c4aec7dbd65028f1c257b5a916fe0e8dedbc85877bc96"
+      "sha256": "0cf53c8f732efc0407fd2ea1cb77e11578f3b4973fd55aff77b32125802e32c2"
     },
     {
       "path": "src/ajustes.h",
-      "sha256": "acb7bd3aa5526f6f837d1cbe408dd2f64bff7e1346fa408ab5a63e4c802daef6"
+      "sha256": "b1efce24215d16dbf1b4e96d46a3b8ce3bfa06c29eea96c7394007c06b8c0713"
     },
     {
       "path": "src/ajustes_ux_cenas.inc",
@@ -649,7 +649,7 @@
     },
     {
       "path": "src/sinopse.c",
-      "sha256": "25ffb5cedd63aed21be7fbb0259af7e56e0c90a8f10d852bb203c6ed2da53e5d"
+      "sha256": "35d9bab285fd0f35b5ea1d2976f87744619838bd7d522ae8e351213111d4009e"
     },
     {
       "path": "src/sinopse.h",
@@ -709,11 +709,11 @@
     },
     {
       "path": "src/text.c",
-      "sha256": "b2dbb5e58270a480eeede19bb282df1d46dd8a73d9ecbc608a7f5dcc4b7b2f69"
+      "sha256": "2d2d29417c09588bd4063c84934337dbde53fd63a2f62ac6a8b835b68642fdb0"
     },
     {
       "path": "src/text.h",
-      "sha256": "4bea75e552265e710f9fe3b2d4c5fdf644835b7604a343c3c0177a58a1362313"
+      "sha256": "da0aac9f9bafc445fa88236f1f4fd68f61d72f394df867a289a1a75bdfec55b6"
     },
     {
       "path": "src/tirarremoto.c",

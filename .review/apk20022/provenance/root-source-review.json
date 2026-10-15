@@ -1,25 +1,34 @@
 {
-  "approved_for_exact_ci": true,
-  "sources": {
-    "product": {
-      "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
-      "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
-      "manifest_sha256": "fd0bcdee01de59611fdfa510655eab4d7f59d5706851eddda1e07ce1085a1f1b"
-    },
-    "test": {
-      "commit": "4019da9045eaa14fae9f889abdff7d206555d664",
-      "tree": "79cd429bb319e75d7198037233ad1a4415642ad2",
-      "manifest_sha256": "8c0db561997b6df839d6757762e9bb6716b2e26c43e208c7c119538225ae72c0"
-    }
-  },
-  "source_manifest_paths_verified": {
-    "product": 201,
-    "test": 206
-  },
-  "composition_manifest_sha256": "2d55c657ddff38a5e38509cc1a603d225bcdebb98fe7966d7015bfe9e0788adc",
-  "affected_preflight_sha256": "f1dc2bc9a48f87b1d7a45c2323578d4e834d77afc5351f4be99734eebe077d84",
-  "bundle_sha256": "6abd29ebf5960cb80ec44540cbc6af651c87e4be6738acfd191253b80880fd7f",
-  "reviewed_scope": "Only accepted async scroll and same-editor Settings style plus exact4percentage synopsis increment; combined append-only IDs/defaults preserved. Same eleven-file private overlay, update version20022. Public PRs remain separate.",
-  "recipe_review_pending": false,
-  "peer_recipe_review_sha256": "59327f94a2b1fdb062edbad3a3ee0e6ed97d5763345eb0b20e2ffaf732c4acd5"
+  "outcome": "combined-source-reviewed",
+  "product": "1f14099b82222953a7a801205203847ff914b02d",
+  "product_tree": "373f13fec6dadff78b979e21f27ce5bea77c072b",
+  "private": "86fc15f1fb48f4d425923b040805db0e2dbd72f5",
+  "private_tree": "2df457fa52bb4f7fc6a74f02a4eed4fc61657237",
+  "public_synopsis": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+  "incremental_product_paths": [
+    "src/ajustes.c",
+    "src/ajustes.h",
+    "src/sinopse.c",
+    "src/text.c",
+    "src/text.h"
+  ],
+  "incremental_added_removed_lines_exactly_match_public_patch": true,
+  "private_overlay_added_removed_lines_unchanged": true,
+  "same11private_paths": [
+    "android/app/build.gradle.kts",
+    "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/cpp/CMakeLists.txt",
+    "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+    "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+    "src/ajustes.c",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_ilha.inc",
+    "src/ajustes_ux_interacao.inc",
+    "src/app.c",
+    "src/posplay.c"
+  ],
+  "all_source_clean": true,
+  "product_protected_trees_unchanged": true,
+  "execution_claim": false,
+  "ci_launch_approved": false
 }

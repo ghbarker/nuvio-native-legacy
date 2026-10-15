@@ -28,11 +28,12 @@ for group in groups:
  files=[R/'fixtures'/fixture]
  if group=='secondary':files+=[S/'src/layout.c']
  if group in ['palette','grid-font']:files+=[S/'src/layout.c',S/'src/ponteiro.c']
+ if group=='grid-font':files+=[S/'src/plrui.c',R/'plrui_grid_boundary.c']
  if group=='ass':flags+=['-DNV_ASS_LIBASS=1',*libass['cflags']]
  if group in ['player','secondary','ass']:files+=[R/'clock.c']
  objects=[];commands=[];closure={}
  for i,f in enumerate(files):
-  obj=out/(str(i)+'.o');dep=out/(str(i)+'.d');cmd=[cc,*flags,'-MMD','-MF',str(dep),'-c',str(f),'-o',str(obj)];z=subprocess.run(cmd,capture_output=True,text=True,timeout=180);(out/(str(i)+'.compile.log')).write_text(z.stdout+z.stderr);assert z.returncode==0,z.stderr;commands.append(cmd);objects.append(str(obj))
+  obj=out/(str(i)+'.o');dep=out/(str(i)+'.d');tu_flags=['-D'+name+'=nv_fixture_unused_'+name for name in ['plrui_linha_foco','plrui_seg','plrui_dicas','plrui_decimal']]if group=='grid-font'and f==S/'src/plrui.c'else[];cmd=[cc,*flags,*tu_flags,'-MMD','-MF',str(dep),'-c',str(f),'-o',str(obj)];z=subprocess.run(cmd,capture_output=True,text=True,timeout=180);(out/(str(i)+'.compile.log')).write_text(z.stdout+z.stderr);assert z.returncode==0,z.stderr;commands.append(cmd);objects.append(str(obj))
   for raw in shlex.split(dep.read_text().replace('\\\n',' ').split(':',1)[1]):
    q=Path(raw).resolve();digest=sha(q);assert str(q)in initial and initial[str(q)]==digest,'Dependency changed during compile: '+str(q);closure[str(q)]=digest
  link=[cc,*objects,'-Wl,-dead_strip'if darwin else'-Wl,--gc-sections','-pthread','-lm','-o',str(out/'probe')]

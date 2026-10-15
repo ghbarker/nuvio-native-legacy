@@ -1939,7 +1939,7 @@ index 76c94e96..66c1545e 100644
  void agendaviso_evento(const SDL_Event *e);
  void agendaviso_atualizar(float dt, Uint32 agora);
 diff --git a/src/ajustes.c b/src/ajustes.c
-index 30c4ddf8..dacd1513 100644
+index 30c4ddf8..cddfe4ed 100644
 --- a/src/ajustes.c
 +++ b/src/ajustes.c
 @@ -3,6 +3,7 @@
@@ -1992,7 +1992,7 @@ index 30c4ddf8..dacd1513 100644
 +#ifdef NV_ANDROID
 +  AJ_BAIXAR_REGISTRO, // acao local; no fim para preservar os IDs existentes
 +#endif
-+  AJ_TAMANHO_SINOPSE, // #477: 100/120/130/150%, local, padrao preservado
++  AJ_TAMANHO_SINOPSE, // #477: 100/125/150%, local, padrao preservado
 +  AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho
 +  AJ_ESTILO_LEGENDA,
    AJ_N
@@ -2026,7 +2026,7 @@ index 30c4ddf8..dacd1513 100644
 +_Static_assert(sizeof V_COLECAO_EXIBICAO / sizeof *V_COLECAO_EXIBICAO == VT_LAY_N,
 +               "collection settings and persisted view IDs must match");
  // Indice gravado em tamanhoUiLocal; o fator sai de ajustes_tamanho_ui.
-+static const char *V_TAMANHO_SINOPSE[] = { "100%", "120%", "130%", "150%" };
++static const char *V_TAMANHO_SINOPSE[] = { "100%", "125%", "150%" };
  static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%" };
  static const char *V_TAMANHO_AJUSTES[] = { "80%", "90%", "100%" };
 -static const char *V_INTERFACE_MODO[] = { "TV", "Mobile" };
@@ -2066,7 +2066,7 @@ index 30c4ddf8..dacd1513 100644
 +#ifdef NV_ANDROID
 +  ACAO("Baixar registro"),
 +#endif
-+  ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 4),
++  ESC("Tamanho da sinopse", V_TAMANHO_SINOPSE, 3),
 +  ESC("Exibição padrão das coleções", V_COLECAO_EXIBICAO, VT_LAY_N),
 +  ACAO("Estilo da legenda"),
  };
@@ -2084,7 +2084,7 @@ index 30c4ddf8..dacd1513 100644
 +#ifdef NV_ANDROID
 +  "-baixarRegistro",
 +#endif
-+  "sinopseEscalaLocal",
++  "sinopsePercentualLocal",
 +  "colecaoExibicaoPadraoLocal",
 +  "-estiloLegenda",
  };
@@ -2152,7 +2152,7 @@ index 30c4ddf8..dacd1513 100644
  int ajustes_tamanho_min_gb(void) { int v = valor[AJ_TAM_MIN]; return v < 0 || v >= (int)(sizeof TAMANHO_GB / sizeof *TAMANHO_GB) ? 0 : TAMANHO_GB[v]; }
 +int ajustes_sinopse_tamanho(void) {
 +  int v = valor[AJ_TAMANHO_SINOPSE];
-+  return v >= 0 && v < 4 ? v : 0;
++  return v >= 0 && v < 3 ? v : 0;
 +}
 +int ajustes_colecao_exibicao(void) {
 +  int v = valor[AJ_COLECAO_EXIBICAO];
@@ -2428,7 +2428,7 @@ index 30c4ddf8..dacd1513 100644
    { int viuIdioma = 0, viuAuto = 0, idiomaGravado = IDIOMA_EN, autoGravado = 0;
      int medidorAntigo = -1, viuMedidor = 0, resAntiga = -1, viuRes = 0, prazoAntigo = -1, viuEspera = 0;
      int focoAntigo = -1, viuFoco = 0;
-+    int sinopseAntiga = -1, viuSinopse = 0;
++    int sinopseAntiga = -1, sinopseQuatro = -1, viuSinopse = 0;
    while (fgets(linha, sizeof linha, f)) {
 -    char chave[64]; int v, i;
 +    char chave[64]; int v, i, inicio = 0;
@@ -2458,20 +2458,25 @@ index 30c4ddf8..dacd1513 100644
      if (sscanf(linha, "%63s %d", chave, &v) != 2) continue;
      // O idioma nao passa pelo laco: o numero do disco e um IDIOMA_*, e o
      // indice da lista da tela e outro (ver "IDIOMA AUTOMATICO").
-@@ -3404,6 +3626,12 @@ void ajustes_dir(const char *dir) {
+@@ -3404,6 +3626,17 @@ void ajustes_dir(const char *dir) {
        if (v >= IDA_TMDB && v <= IDA_PADRAO) idiomaFonteGravada = v;
        continue;
      }
-+    // Legacy preview choices map to 100/120/150%. The new percentage
-+    // choice wins in either file order; the other interface sizes stay local.
++    // Legacy three-choice previews keep their size. The unreleased four-
++    // choice preview maps its intermediate values to 125% and keeps 150%.
++    // The current key wins regardless of file order.
 +    if (!strcmp(chave, "sinopseTamanhoLocal")) {
 +      if (v >= 0 && v < 3) sinopseAntiga = v;
++      continue;
++    }
++    if (!strcmp(chave, "sinopseEscalaLocal")) {
++      if (v >= 0 && v < 4) sinopseQuatro = v;
 +      continue;
 +    }
      for (i = 0; i < AJ_N; i++) {
        if (!CHAVE[i] || strcmp(CHAVE[i], chave)) continue;
        if (OPCOES[i].tipo == OP_LEITURA || OPCOES[i].tipo == OP_ACAO) continue;
-@@ -3414,9 +3642,14 @@ void ajustes_dir(const char *dir) {
+@@ -3414,9 +3647,15 @@ void ajustes_dir(const char *dir) {
        if (i == AJ_RESOLUCAO) viuRes = 1;
        if (i == AJ_FONTE_PRAZO) viuEspera = 1;
        if (i == AJ_FOCO_TRAILER) viuFoco = 1;
@@ -2479,14 +2484,15 @@ index 30c4ddf8..dacd1513 100644
        break;
      }
    }
-+  if (!viuSinopse && sinopseAntiga >= 0) {
-+    static const int DE_PARA[3] = { 0, 1, 3 }; // 100%, 120%, 150%
-+    valor[AJ_TAMANHO_SINOPSE] = DE_PARA[sinopseAntiga];
++  if (!viuSinopse) {
++    static const int DE_QUATRO[4] = { 0, 1, 1, 2 }; // 100%, 125%, 125%, 150%
++    if (sinopseQuatro >= 0) valor[AJ_TAMANHO_SINOPSE] = DE_QUATRO[sinopseQuatro];
++    else if (sinopseAntiga >= 0) valor[AJ_TAMANHO_SINOPSE] = sinopseAntiga;
 +  }
    if (!viuMedidor && medidorAntigo >= 0) valor[AJ_MEDIDOR] = medidorAntigo == 0 ? 3 : 0;
    if (!viuRes && resAntiga >= 0) {
      valor[AJ_RESOLUCAO] = res_migrar(resAntiga);
-@@ -4425,6 +4658,8 @@ static int somenteDesteAparelho(int op) {
+@@ -4425,6 +4664,8 @@ static int somenteDesteAparelho(int op) {
      case AJ_ESPACO_FILEIRAS: case AJ_ESPACO_TITULOS: /* o web nao tem espacamento */
      case AJ_FONTE_PRAZO:    /* o web nao tem: a rede e os addons sao desta casa */
      case AJ_MEDIDOR:        /* o medidor e da GPU desta TV; o web nao tem */
@@ -2495,7 +2501,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_TAMANHO_UI:     /* o tamanho e desta tela, e o web nao tem */
      case AJ_TAMANHO_AJUSTES:
      case AJ_LAYOUT_AJUSTES: /* #339: o arranjo dos Ajustes e desta TV */
-@@ -4443,6 +4678,7 @@ static int somenteDesteAparelho(int op) {
+@@ -4443,6 +4684,7 @@ static int somenteDesteAparelho(int op) {
      case AJ_FUNDO:          /* o desfoque custa GPU desta TV; o web nao tem */
      case AJ_VIDRO_OPAC: case AJ_VIDRO_FOSCO: /* teste do vidro: visual desta TV */
      case AJ_SELO_VISTO:     /* o web nao tem a escolha */
@@ -2503,7 +2509,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_REACAO_CREDITOS: /* o web nao tem a pergunta */
      case AJ_PULAR_ABERTURA: case AJ_PULAR_RESUMO: case AJ_PROXIMO_AUTO: case AJ_PULAR_CREDITOS: case AJ_PROXIMO_CONTAGEM: /* idem: local desta TV */
      case AJ_SEEKR_LIGADO: case AJ_SEEKR_FITA: case AJ_SEEKR_AJUSTE: /* o web nao tem o Seekr */
-@@ -4470,7 +4706,7 @@ static int somenteDesteAparelho(int op) {
+@@ -4470,7 +4712,7 @@ static int somenteDesteAparelho(int op) {
  // onde o historico vai e se o social existe. Entram na copia por perfil
  // (ajustes-p<N>.txt) e continuam FORA do blob (somenteDesteAparelho).
  static int perfilLocal(int i) {
@@ -2512,7 +2518,7 @@ index 30c4ddf8..dacd1513 100644
  }
  
  static int dePerfil(int i) {
-@@ -4485,6 +4721,13 @@ static void nomePerfil(char *dst, size_t tam, int perfil) {
+@@ -4485,6 +4727,13 @@ static void nomePerfil(char *dst, size_t tam, int perfil) {
    snprintf(dst, tam, "ajustes-p%d.txt", perfil);
  }
  
@@ -2526,7 +2532,7 @@ index 30c4ddf8..dacd1513 100644
  void ajustes_perfil_guardar(int perfil) {
    char nome[32], buf[AJ_N * 56];
    size_t p = 0;
-@@ -4505,14 +4748,18 @@ void ajustes_perfil_guardar(int perfil) {
+@@ -4505,14 +4754,18 @@ void ajustes_perfil_guardar(int perfil) {
  
  int ajustes_perfil_restaurar(int perfil) {
    char nome[32], *t, *l;
@@ -2548,7 +2554,7 @@ index 30c4ddf8..dacd1513 100644
    for (l = t; l && *l; ) {
      char chave[64], *fim = strchr(l, '\n');
      int v, i;
-@@ -4523,13 +4770,23 @@ int ajustes_perfil_restaurar(int perfil) {
+@@ -4523,13 +4776,23 @@ int ajustes_perfil_restaurar(int perfil) {
      else if (sscanf(l, "%63s %d", chave, &v) == 2)
        for (i = 0; i < AJ_N; i++) {
          if (!dePerfil(i) || strcmp(CHAVE[i], chave)) continue;
@@ -2572,7 +2578,7 @@ index 30c4ddf8..dacd1513 100644
    if (!viuFoco && focoAntigo >= 0) {
      int v = focoTrailerMigrar(focoAntigo);
      if (v != valor[AJ_FOCO_TRAILER]) { valor[AJ_FOCO_TRAILER] = v; mudou++; }
-@@ -4554,6 +4811,7 @@ void ajustes_perfil_esquecer(void) {
+@@ -4554,6 +4817,7 @@ void ajustes_perfil_esquecer(void) {
    // cobre com folga. Apagar arquivo que nao existe nao custa nada.
    for (i = 1; i <= 32; i++) { nomePerfil(nome, sizeof nome, i); dados_apagar(nome); }
    fonteregra_perfil_esquecer();
@@ -2580,7 +2586,7 @@ index 30c4ddf8..dacd1513 100644
  }
  
  // Onde esta o valor de `chave` dentro de [ini,fim): *vi aponta o primeiro
-@@ -4736,6 +4994,10 @@ static void focarOpcao(int op);
+@@ -4736,6 +5000,10 @@ static void focarOpcao(int op);
  // D1: "Posicao do relogio" 238 pessoas, "Sincronia por audio" 157, "Zoom do
  // trailer" 86, P2P no .wgt 6), escondendo o aviso que importa.
  static int foraDestaPlataforma(int op) {
@@ -2591,7 +2597,7 @@ index 30c4ddf8..dacd1513 100644
  #ifndef NV_TOUCH_UI
    if (op == AJ_INTERFACE_MODO) return 1;
  #endif
-@@ -5111,6 +5373,7 @@ static void pxAtivar(int op) {
+@@ -5111,6 +5379,7 @@ static void pxAtivar(int op) {
  static const char *frResumo(int plugin);
  static const char *frOrdemResumo(void);
  static const char *faResumo(int provedores);
@@ -2599,7 +2605,7 @@ index 30c4ddf8..dacd1513 100644
  static const char *frRegexTexto(void);
  static const char *textoLeitura(int op) {
    static char buf[64];
-@@ -5170,6 +5433,7 @@ static const char *textoLeitura(int op) {
+@@ -5170,6 +5439,7 @@ static const char *textoLeitura(int op) {
      return pf.apelido[0] ? pf.apelido : i18n("Não configurado");
    }
    if (op == AJ_FALHA_PROVEDOR_ORDEM || op == AJ_FALHA_ADDON_ORDEM) return faResumo(op == AJ_FALHA_PROVEDOR_ORDEM);
@@ -2607,7 +2613,7 @@ index 30c4ddf8..dacd1513 100644
    if (op == AJ_FONTE_ORDEM) return frOrdemResumo();
    if (op == AJ_FONTE_ADDONS_PERM) return frResumo(0);
    if (op == AJ_FONTE_PLUGINS_PERM) return frResumo(1);
-@@ -5652,6 +5916,9 @@ static const char *ajudaOpcaoBase(int op) {
+@@ -5652,6 +5922,9 @@ static const char *ajudaOpcaoBase(int op) {
      case AJ_FONTE_PRECARREGAR: return "Carrega alguns segundos de vídeo ao abrir um título e prepara o próximo episódio perto dos créditos. O Play reaproveita o buffer. Usa mais dados e pode adicionar arquivos ao debrid mesmo sem assistir. Não marca episódios como vistos.";
      case AJ_FONTE_REPOR: return "Quantas outras fontes o automático tenta quando a escolhida não abre. Cada tentativa pode adicionar um arquivo na sua conta de debrid.";
      case AJ_FALHA_PROVEDORES: return "Se o vídeo não iniciar a tempo ou der erro, tenta os provedores Debrid configurados na ordem escolhida. O limite de cada provedor conta links distintos de todos os add-ons, incluindo o primeiro. Parar ou Voltar cancela as tentativas.";
@@ -2617,7 +2623,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_FALHA_PROVEDOR_ORDEM: return "Suba ou desça os provedores Debrid e ajuste o total de links de cada um. O primeiro provedor tenta seus links antes do próximo. Provedores sem chave são ignorados.";
      case AJ_FALHA_RD_LIMITE: case AJ_FALHA_TB_LIMITE: case AJ_FALHA_PM_LIMITE: case AJ_FALHA_AD_LIMITE:
        return "Total de links distintos deste provedor, incluindo o primeiro, somando todos os add-ons. De 1 a 10. Se a troca de add-on estiver ligada, o limite de cada add-on também vale; não repete o mesmo link.";
-@@ -5700,6 +5967,7 @@ static const char *ajudaOpcaoBase(int op) {
+@@ -5700,6 +5973,7 @@ static const char *ajudaOpcaoBase(int op) {
      case AJ_PS_FUNDO: return "Fundo da tela de escolha de perfil. Filmes: os cartazes do que cada perfil assistiu, numa parede inclinada. Luz: preto com uma luz na cor do perfil. Projetor: sala de cinema antes da sessão. Arte do perfil: o fundo escolhido ao editar o perfil no app Nuvio; sem ele, o avatar desfocado. Ou as listras do login.";
      case AJ_DESCOBRIR: return "Onde fica a tela Descobrir: junto da Busca, como item próprio na barra lateral, ou em lugar nenhum.";
      case AJ_SELO_VISTO: return "Um check pequeno no canto de cima do pôster dos títulos que você já assistiu, pelo Trakt, pela conta ou marcados nesta TV.";
@@ -2625,7 +2631,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_ROTULOS: return "Escreve o nome do título abaixo do cartaz. A maior parte da arte já traz o nome impresso.";
      case AJ_NOME_ADDON: return "Acrescenta o nome do addon ao título da fileira, para separar dois catálogos com o mesmo nome.";
      case AJ_SUFIXO_TIPO: return "Acrescenta \"Filme\" ou \"Série\" ao título da fileira, para separar as duas versões do mesmo catálogo.";
-@@ -5782,8 +6050,9 @@ static const char *ajudaOpcaoBase(int op) {
+@@ -5782,8 +6056,9 @@ static const char *ajudaOpcaoBase(int op) {
      case AJ_IDIOMA: return "Idioma de toda a interface. Automático segue a sua conta e, sem ela, o idioma da TV. Não muda o idioma das legendas nem do áudio.";
      case AJ_GPU_EFEITOS: return "Automático mede a TV nos primeiros segundos e, se ela não der conta, tira os efeitos mais pesados. Completos mantém tudo; Leves tira desfoque e brilho para deixar a navegação mais lisa.";
      case AJ_FONTE_UI: return "Altera a tipografia dos menus. A fonte das legendas é escolhida separadamente no player.";
@@ -2636,7 +2642,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_TAMANHO_AJUSTES: return i18n("Muda só o tamanho dos Ajustes nesta TV. O padrão é 80%.");
      case AJ_LAYOUT_AJUSTES: return "Painel mostra uma prévia ao lado das opções. Lista põe as categorias e as opções uma embaixo da outra, com a explicação logo abaixo da linha em foco.";
      case AJ_TEMA: return "Cor do botão em foco e das marcas de estado. Os claros levam texto escuro, os profundos texto branco — sempre a 4,5:1 ou mais.";
-@@ -5826,8 +6095,11 @@ static const char *ajudaOpcaoBase(int op) {
+@@ -5826,8 +6101,11 @@ static const char *ajudaOpcaoBase(int op) {
      case AJ_POSTER_CHAVE: return "Sua chave do RPDB (ratingposterdb.com). Fica só nesta TV e nunca aparece nos registros.";
      case AJ_POSTER_MODELO: return "Endereço com {imdb}, {tmdb}, {type} (movie ou series) e {tipo_tmdb} (movie ou tv), por exemplo https://meu.servidor/{type}/{imdb}.jpg. Quem não tiver o dado que o modelo pede fica com o cartaz normal.";
      case AJ_POSTER_TESTAR: return "Baixa o cartaz de um filme conhecido com a configuração atual e mostra se deu certo. O primeiro cartaz de cada título é montado no servidor e pode levar alguns segundos.";
@@ -2648,7 +2654,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_ADDONS_PRINCIPAL: return "Os outros perfis desta conta usam os addons do perfil principal. Desligado, cada perfil usa os seus — a não ser que a conta já diga para usar os do principal.";
      case AJ_VIDRO_CONTORNO: return "O contorno das linhas e dos cartões, inclusive o do foco. Desligado, o item em foco é marcado só por um fundo mais claro na cor de destaque.";
      case AJ_COR_LOGO: return "Com um tema dinâmico, a cor sai do logo do título em vez da arte de fundo. Logo branco ou preto usa a arte.";
-@@ -5890,6 +6162,9 @@ static const char *ajudaOpcaoBase(int op) {
+@@ -5890,6 +6168,9 @@ static const char *ajudaOpcaoBase(int op) {
          ? "Abre o cartão da versão nova, com o que mudou e o botão de instalar."
          : "Procura agora uma versão nova do Nuvio. Se houver, abre o cartão com o que mudou e o botão de instalar. O app também confere sozinho a cada 6 horas.";
      case AJ_VER_REGISTRO: return "Abre o registro do app por cima desta tela, ao vivo: o mesmo painel do botão vermelho do controle, para quem não tem esse botão.";
@@ -2658,7 +2664,7 @@ index 30c4ddf8..dacd1513 100644
      case AJ_MEDIDOR: return "Mostra quadros por segundo, o pior quadro e a memória dentro da ilha do relógio, atualizados a cada 3 s. Mínimo fica na linha da hora, Menor ganha uma segunda linha e Grande abre o painel completo. Quando a ilha mostra um aviso, o medidor se recolhe e volta depois.";
      case AJ_AVISO_LEGAL: return "Aviso legal";
      case AJ_GUIA: return "O que o Nuvio faz, em 12 capítulos. Cada recurso diz onde fica e tem um atalho para ele.";
-@@ -6672,13 +6947,14 @@ static void riscoFolhaEvento(SDL_Keycode k) {
+@@ -6672,13 +6953,14 @@ static void riscoFolhaEvento(SDL_Keycode k) {
  }
  static void desenhaRiscoFolha(void);
  static void desenhaFolhaFalha(void);
@@ -2674,7 +2680,7 @@ index 30c4ddf8..dacd1513 100644
  // Failover order uses native IDs / opaque instance keys, never display names.
  typedef struct {
    int servico, instalado;
-@@ -6786,6 +7062,110 @@ static const char *faResumo(int provedores) {
+@@ -6786,6 +7068,110 @@ static const char *faResumo(int provedores) {
    return buf;
  }
  
@@ -2785,7 +2791,7 @@ index 30c4ddf8..dacd1513 100644
  static int frFoco;
  static int frCol;               // folha da ordem: 0 = subir, 1 = descer
  static int frN;
-@@ -6886,6 +7266,7 @@ static void frEventoOrdem(SDL_Keycode k) {
+@@ -6886,6 +7272,7 @@ static void frEventoOrdem(SDL_Keycode k) {
  }
  static void frEvento(SDL_Keycode k) {
    int plugin = frAberta == 2;
@@ -2793,7 +2799,7 @@ index 30c4ddf8..dacd1513 100644
    if (frAberta >= 4) { faEvento(k); return; }
    if (frAberta == 3) { frEventoOrdem(k); return; }
    frMontar();
-@@ -6979,6 +7360,11 @@ static int definirValorDireto(int op, int novo) {
+@@ -6979,6 +7366,11 @@ static int definirValorDireto(int op, int novo) {
      uxNotificar(seekrPedirChave());
      return 0;
    }
@@ -2805,7 +2811,7 @@ index 30c4ddf8..dacd1513 100644
    if (op == AJ_PERFIL_PESQ) {
      pessoas_definir_pesquisavel(novo == 0);
      return 1;
-@@ -7152,11 +7538,19 @@ static void eventoTela(const SDL_Event *e) {
+@@ -7152,11 +7544,19 @@ static void eventoTela(const SDL_Event *e) {
      if (focoOp == AJ_ENVIAR_LOG) { registro_envio_abrir(); return; }
      if (focoOp == AJ_AVISO_LEGAL) { registro_legal_abrir(); return; }
      if (focoOp == AJ_VER_REGISTRO) { registro_abrir(); return; }
@@ -2825,7 +2831,7 @@ index 30c4ddf8..dacd1513 100644
      if (focoOp == AJ_FALHA_PROVEDOR_ORDEM || focoOp == AJ_FALHA_ADDON_ORDEM) { faAbrir(focoOp == AJ_FALHA_PROVEDOR_ORDEM); return; }
      if (focoOp == AJ_FONTE_ORDEM) { frAbrir(3); return; }
      if (focoOp == AJ_FONTE_ADDONS_PERM || focoOp == AJ_FONTE_PLUGINS_PERM) {
-@@ -7173,6 +7567,7 @@ static void eventoTela(const SDL_Event *e) {
+@@ -7173,6 +7573,7 @@ static void eventoTela(const SDL_Event *e) {
        return;
      }
      if (focoOp == AJ_DIAGNOSTICO) { pediuDiagnostico = 1; return; }
@@ -2833,7 +2839,7 @@ index 30c4ddf8..dacd1513 100644
      if (focoOp == AJ_HERO_CATALOGOS) { if (!inativa(focoOp)) heroFonteCiclar(+1); return; }
      if (focoOp == AJ_VELOCIDADE) { pediuVelocidade = 1; return; }
      if (focoOp == AJ_LIVETV_DIAG) { pediuLivetvDiag = 1; return; }
-@@ -7330,6 +7725,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
+@@ -7330,6 +7731,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
        else if (stCampo == AJ_SEEKR_CHAVE)     { seekrDefinir(teclado_texto()); atomic_store_explicit(&skTeste, 0, memory_order_release); }
        else if (stCampo == AJ_SELOS_PACOTE_ADD) spAdicionar(teclado_texto());
        else if (stCampo == AJ_P2P_URL)         ajustes_definir_p2p_url(teclado_texto());
@@ -2841,7 +2847,7 @@ index 30c4ddf8..dacd1513 100644
        else if (stCampo == AJ_FONTE_REGEX_PADRAO) {
          int e = fonteregra_definir_regex(teclado_texto());
          sync_proteger_ajustes_locais();
-@@ -7427,7 +7823,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
+@@ -7427,7 +7829,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
    if (alvo < 0.0f) alvo = 0.0f;
    // (O "cabecalho inteiro ou nenhum" saiu: o cabecalho agora e fixo na folha.)
  #ifdef NV_TOUCH_UI
@@ -2850,7 +2856,7 @@ index 30c4ddf8..dacd1513 100644
    else
  #endif
      scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
-@@ -7481,6 +7877,10 @@ static const char *textoValor(int op) {
+@@ -7481,6 +7883,10 @@ static const char *textoValor(int op) {
    if (ajFalhaBackend(op)) {
      int v = ajFalhaValor(op);
      if (op == AJ_FALHA_PROVEDORES || op == AJ_FALHA_ADDONS) return i18n(V_LIGA[v]);
@@ -2861,7 +2867,7 @@ index 30c4ddf8..dacd1513 100644
      snprintf(buf, sizeof buf, "%d", v); return buf;
    }
    const Opcao *o = &OPCOES[op];
-@@ -7939,7 +8339,7 @@ static AjPreview familiaPreviaOpcao(int op) {
+@@ -7939,7 +8345,7 @@ static AjPreview familiaPreviaOpcao(int op) {
      case AJ_RAIL_BLUR: case AJ_HERO: case AJ_HERO_CATALOGOS:
      case AJ_PS_FUNDO: case AJ_PS_CONTINUAR: case AJ_DESCOBRIR: case AJ_ROTULOS:
      case AJ_NOME_ADDON: case AJ_SUFIXO_TIPO: case AJ_OCULTAR_NLANC:
@@ -2870,7 +2876,7 @@ index 30c4ddf8..dacd1513 100644
        return AJPV_HOME;
      case AJ_CW_LIGADO: case AJ_CW_OK: case AJ_CW_FONTE:
      case AJ_CW_ESTILO: case AJ_CW_THUMB: case AJ_CW_BLUR_PROX:
-@@ -7963,18 +8363,21 @@ static AjPreview familiaPreviaOpcao(int op) {
+@@ -7963,18 +8369,21 @@ static AjPreview familiaPreviaOpcao(int op) {
      case AJ_IDIOMA: case AJ_ANIM: case AJ_TEMA:
      case AJ_COR_LOGO: case AJ_FONTE_UI: case AJ_VIDRO: case AJ_VIDRO_CONTORNO:
      case AJ_RELOGIO: case AJ_RELOGIO_POS: case AJ_SAIDA_PLAYER: case AJ_RELOGIO_12H:
@@ -2894,7 +2900,7 @@ index 30c4ddf8..dacd1513 100644
        return AJPV_ABOUT;
      case AJ_TMDB_LIGADO: case AJ_TMDB_IDIOMA: case AJ_TMDB_ARTE:
      case AJ_TMDB_BASICO: case AJ_TMDB_FICHA: case AJ_TMDB_DATAS:
-@@ -8057,7 +8460,8 @@ static void ajDesenharTudo(Uint32 agora) {
+@@ -8057,7 +8466,8 @@ static void ajDesenharTudo(Uint32 agora) {
  #endif
      ESCALA_REAL_INI(); desenhaFileiras(); ESCALA_REAL_FIM(); }
    if (riscoFolha) desenhaRiscoFolha();
@@ -2904,7 +2910,7 @@ index 30c4ddf8..dacd1513 100644
    else if (frAberta == 3) desenhaFolhaOrdem();
    else if (frAberta) desenhaFolhaPermitidos();
  
-@@ -8086,6 +8490,7 @@ static void ajDesenharTudo(Uint32 agora) {
+@@ -8086,6 +8496,7 @@ static void ajDesenharTudo(Uint32 agora) {
  }
  
  float ajustes_ilha_x(void) { return aj2X0() * ajustes_tamanho_ajustes(); }
@@ -2913,7 +2919,7 @@ index 30c4ddf8..dacd1513 100644
    TraEstado ta = traktauth_estado();
    SmkEstado sa = simklauth_estado();
 diff --git a/src/ajustes.h b/src/ajustes.h
-index c3601ce9..4409ae73 100644
+index c3601ce9..69980dbb 100644
 --- a/src/ajustes.h
 +++ b/src/ajustes.h
 @@ -28,6 +28,7 @@ int  ajustes_pediu_addons(void);
@@ -2936,7 +2942,7 @@ index c3601ce9..4409ae73 100644
  int   ajustes_relogio_pos(void);
  int   ajustes_relogio_12h(void);   // 1 = 12 h com AM/PM (relogio.h)
  // Tamanho da interface: 1, 1.2, 1.3 ou 1.5 (gfx_escala_ui). LOCAL.
-+// #477: 0 = 100%, 1 = 120%, 2 = 130%, 3 = 150%. So sinopses.
++// #477: 0 = 100%, 1 = 125%, 2 = 150%. So sinopses.
 +int ajustes_sinopse_tamanho(void);
 +// #362: default for collections without an explicit view, active local profile.
 +// Main UI thread: validated VtLayout ID (vertudo.h); 0 keeps automatic behavior.
@@ -27595,10 +27601,10 @@ index d8a56420..43cddb99 100644
    if (fioVivo) return;
 diff --git a/src/sinopse.c b/src/sinopse.c
 new file mode 100644
-index 00000000..8c82dbe6
+index 00000000..d17d020b
 --- /dev/null
 +++ b/src/sinopse.c
-@@ -0,0 +1,241 @@
+@@ -0,0 +1,242 @@
 +#include "sinopse.h"
 +#include "ajustes.h"
 +#include "gfx.h"
@@ -27626,7 +27632,7 @@ index 00000000..8c82dbe6
 +  }
 +}
 +static int corpo(TxtEstilo original) {
-+  static const int PERCENTUAL[4] = { 100, 120, 130, 150 };
++  static const int PERCENTUAL[3] = { 100, 125, 150 };
 +  int n = corpoOriginal(original), tamanho = ajustes_sinopse_tamanho();
 +  if (!tamanho || !n) return n;
 +  return (n * PERCENTUAL[tamanho] + 50) / 100;
@@ -27635,6 +27641,7 @@ index 00000000..8c82dbe6
 +  if (!ajustes_sinopse_tamanho()) return original;
 +  switch (corpo(original)) {
 +    case 19: return TXT_SINOPSE_19;
++    case 20: return TXT_SINOPSE_20;
 +    case 21: return TXT_SINOPSE_21;
 +    case 22: return TXT_SINOPSE_22;
 +    case 23: return TXT_SINOPSE_23;
@@ -30865,10 +30872,10 @@ index 80b1d8c9..cdafe14c 100644
  // caractere; EMAIL e SENHA pedem o teclado certo ao sistema (Android). A
  // proxima abertura volta a TEXTO.
 diff --git a/src/text.c b/src/text.c
-index 7325d3b3..2702da4c 100644
+index 7325d3b3..262c9510 100644
 --- a/src/text.c
 +++ b/src/text.c
-@@ -429,6 +429,10 @@ static const struct { int corpo, peso; } ESTILOS[TXT_NFONTES] = {
+@@ -429,6 +429,11 @@ static const struct { int corpo, peso; } ESTILOS[TXT_NFONTES] = {
    { 28, PESO_BOLD    },   // TXT_V3_INSP_B
    { NV_FT_DET_SIN, PESO_BOLD   },   // TXT_DET_META_FORTE
    { NV_FT_DET_SIN, PESO_MEDIUM },   // TXT_DET_META_GEN
@@ -30876,22 +30883,24 @@ index 7325d3b3..2702da4c 100644
 +  { 24, PESO_REGULAR }, { 25, PESO_REGULAR }, { 26, PESO_REGULAR }, { 27, PESO_REGULAR },
 +  { 28, PESO_REGULAR }, { 29, PESO_REGULAR }, { 30, PESO_REGULAR }, { 31, PESO_REGULAR },
 +  { 33, PESO_REGULAR }, { 34, PESO_REGULAR }, { 35, PESO_REGULAR }, { 39, PESO_REGULAR },
++  { 20, PESO_REGULAR }, // TXT_SINOPSE_20
  };
  
  // RESERVA PARA O QUE A INTER NAO TEM.
 diff --git a/src/text.h b/src/text.h
-index 3c512ca0..cfd6284a 100644
+index 3c512ca0..637e7176 100644
 --- a/src/text.h
 +++ b/src/text.h
-@@ -187,6 +187,11 @@ typedef enum {
+@@ -187,6 +187,12 @@ typedef enum {
    // Medium nas outras). Mesmo corpo da sinopse (NV_FT_DET_SIN).
    TXT_DET_META_FORTE,   // ano, duracao       26 / 700
    TXT_DET_META_GEN,     // generos            26 / 600
-+  // #477: corpos exclusivos das sinopses em 120/130/150%; 100% usa o original.
++  // #477: corpos exclusivos das sinopses; 100% usa o original.
 +  TXT_SINOPSE_19, TXT_SINOPSE_21, TXT_SINOPSE_22, TXT_SINOPSE_23,
 +  TXT_SINOPSE_24, TXT_SINOPSE_25, TXT_SINOPSE_26, TXT_SINOPSE_27,
 +  TXT_SINOPSE_28, TXT_SINOPSE_29, TXT_SINOPSE_30, TXT_SINOPSE_31,
 +  TXT_SINOPSE_33, TXT_SINOPSE_34, TXT_SINOPSE_35, TXT_SINOPSE_39,
++  TXT_SINOPSE_20, // 125% de 16px; append-only, preserva os estilos anteriores
    TXT_NFONTES
  } TxtEstilo;
  

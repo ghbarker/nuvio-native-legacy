@@ -2,13 +2,10 @@
   "schema": 1,
   "source_neutral": true,
   "inputs": {
-    "defaults.c": "8cbffef5d357cfc4af39d7e5dbeef3394830ce06b1a1735459932c8fb9f9cc76",
-    "defaults.py": "1b3658bc4db90cf8a42294f5583544d7f1b02c22c38b58e597a47bb5f5857a82",
-    "sdk/pre.h": "08d3425602affbb139e11c32cd556feb81e3310ce0359892e9cde5c5cd33650c",
-    "synopsis477/close_refinement.c": "b20d965d51f8409f31d23ca921291273460c95af7db054c77ad5388554387be5",
+    "synopsis477/close_refinement.c": "d9701f48c6c78fe52f09ea98c8a1d0ff4224885c964ffc97191fff2ba0a9ac00",
     "synopsis477/portable.py": "4674660b53b4b70f17ee27112e6b6a039b09c8ddb565e1f65db01b2b38ef11e3",
-    "synopsis477/preview_refinement.c": "5ffa7b1a4331970c7c7a4903f4b6953aa7d3a5d73cd5aa5d18470e5a215fe670",
-    "synopsis477/reader_probe.c": "f40fb3e06f7a86e0db436afe3a3f5b181428115d81610edeb7162b6c2551449f",
+    "synopsis477/preview_refinement.c": "7c4145100a72d403f14c9941811ac281b2ed9996e6d862fd7fb71383846b3a52",
+    "synopsis477/reader_probe.c": "8d170469b12251bccb50702507e4615d0059aad04fe6badffe74e8e429b70f4e",
     "synopsis477/route_probe.c": "08a8613834b5f0214d0d2e13928617ef5b0517793aa65800fee31341204bfcaa",
     "synopsis477/run.py": "d9cba456cba277817f6a14ee5038002d573ce3644b8a4cf4a2c3f2c1719dcdd8",
     "synopsis477/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
@@ -18,21 +15,39 @@
     "synopsis477/settings/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
     "synopsis477/settings/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
     "synopsis477/settings/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
-    "synopsis477/settings/settings.c": "17f0d2404afc692b92099c5d481d48f8c9dc47495689eaa8b2aa85e6aa63f6f6"
+    "synopsis477/settings/settings.c": "c113affc99e8a5e5128de290db802c7c8673b86e89b3da87ea16d983d2af15e9"
   },
+  "source_baseline": "41c3e67a9472ff4d8f8b852d57a605c26c5cab3d",
+  "source_candidate": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb",
+  "schema_baseline": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
+  "origin_graph": "/tmp/issue477-public-pr-20261015/build-stage/fixtures/synopsis477",
+  "choices_percent": [
+    100,
+    125,
+    150
+  ],
+  "legacy_three_mapping": [
+    0,
+    1,
+    2
+  ],
+  "unreleased_four_mapping": [
+    0,
+    1,
+    1,
+    2
+  ],
+  "new_key": "sinopsePercentualLocal",
+  "styles_appended_to_original_upstream": 17,
   "commands": [
     "python3 synopsis477/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--mode all|close|preview|route|settings] [--sanitize] [--private]",
-    "SOURCE=SOURCE PROOF_OUTPUT=OUTPUT REVIEW_CC=CC python3 synopsis477/run.py [--tv] [--san]",
-    "python3 defaults.py --baseline BASELINE --source SOURCE --output OUTPUT --cc CC"
+    "SOURCE=SOURCE PROOF_OUTPUT=OUTPUT REVIEW_CC=CC PRIVATE_TEST=0|1 python3 synopsis477/run.py [--tv] [--san]"
   ],
-  "source_baseline": "e3e21a590120ca283bcf7a96df1813ff5041eb66",
-  "source_candidate": "41c3e67a9472ff4d8f8b852d57a605c26c5cab3d",
-  "origin_graph": "/workspace/review/integration-apk20021-20261015/preflight/synopsis477",
+  "dispatcher_note": "portable all means close+preview+route+settings; broad reader is the second command with no --close/--preview/--route option. Existing reader-mode dispatch adapters may invoke that exact command.",
   "adaptations": [
-    "Four choices and16rounded point styles instead of3sizes/8styles;4separate full-editor hit targets; actual key navigation before touchConfirm/Cancel.",
-    "10original-key migration/new-key precedence/persistence cases; pixel/leading/default preview checks retain all prior assertions.",
-    "Settings link only real modules present in source, including fontefiltro when combined source contains it; unreachable boundaries remain abort traps.",
-    "touch_compiled metadata now derives from actual-DNV_TOUCH_UI flag, rather than unused CLI flag."
+    "Exactly three synopsis size modes, expected rounded 125-percent point matrix, and the one appended 20-point style are asserted. Existing 16 appended style IDs remain in the product unchanged.",
+    "16 original-key, unpublished-four-choice, newest-key precedence and persistence migration cases; 3 actual inline choice hit targets and actual finger selection/Confirm/Cancel/file reload.",
+    "Existing reader/Close/preview/More-route assertions and typed SDK boundaries retained. No production file, product tests or workflow was changed by these fixtures."
   ],
   "product_changed_by_fixture": false,
   "rendering_limits": "Shipped Inter hmtx glyph advances without shaping/kerning; captured production draw geometry, not GPU/device screenshot."

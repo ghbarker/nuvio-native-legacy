@@ -55,7 +55,7 @@
     "settings-subtitle-style/fixture-freeze.json": "74d274b726be62b9fefd8aac352d4690914ec9ff552a0cf820f25578801e3d9b",
     "settings-subtitle-style/run.py": "bc785b617690458af9d2024b110d7385101c329009295e9b9f653a90be30c766",
     "subtitle-outline/README.md": "1ce4a5188f15e8cb2d68299476e9545051f2da020ed59e1e13c91f8196c44aec",
-    "subtitle-outline/asset-manifest.json": "243153e770fe35125c0b52088c8ad82c239672f94f5cef81556cc78196c49c15",
+    "subtitle-outline/asset-manifest.json": "0e6dc50794099ebe66cb51797cec1ded9af2856aec49333b863b0e856c0a5f2b",
     "subtitle-outline/clock.c": "b762fd031fc0e399dd91d79a0a418ebcc35c3550991227d1213c137cdb057ba0",
     "subtitle-outline/fixture-provenance.json": "4cc4f0d934440d43ca84eae4cbb4f17227925a8d87f4c9b837732a5814aa72bc",
     "subtitle-outline/fixtures/ass_outline.c": "8505c92bdfe6a35b10120e72dd9d80e11368a427c4c6eac76701108927e20d33",
@@ -66,7 +66,7 @@
     "subtitle-outline/libass-reference/ass/ass.h": "c322bb1f03dfe3a2bdbcd61002ff92684cd6f6ef593bc4a9dbca13f79f9c6ba2",
     "subtitle-outline/libass-reference/ass/ass_types.h": "b2f06eaaba5d80b3a23fb08726f1152f12a0f583346ad0086a80ebbdb4c48cf8",
     "subtitle-outline/libass-reference/provenance.json": "78dbb15cc424da976ad0bfa2a89d09e3ce86b13f71ace11e38d26365760f54fc",
-    "subtitle-outline/run.py": "5ede124db1eabd81f2c4a9d9964e83c28d345514189f6442616a1bc404718e21",
+    "subtitle-outline/run.py": "bd49d678646176fe8ae2ead30a8e98d737892c545d5d2e863eca1b95bfd5ea8e",
     "subtitle-outline/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
     "subtitle-outline/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
     "subtitle-outline/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
@@ -76,7 +76,8 @@
     "subtitle-style/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
     "subtitle-style/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
     "subtitle-style/sdk-extra.h": "6dc0292fe237a62be97a1c38daf9499ffeddf292037aa842d762741650c81517",
-    "subtitle-style/style-controls.c": "b94ff980e913816f37780b5f258a6f501a5ff1ad20084c512fe2f3c36c927f38"
+    "subtitle-style/style-controls.c": "b94ff980e913816f37780b5f258a6f501a5ff1ad20084c512fe2f3c36c927f38",
+    "subtitle-outline/plrui_grid_boundary.c": "fa5161a33058ed72b80f69d13a6f57344094052f1a498160330865991beb5cce"
   },
   "groups": [
     "collection-state",

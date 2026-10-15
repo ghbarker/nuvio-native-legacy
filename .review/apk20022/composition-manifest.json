@@ -9,33 +9,33 @@
   "sources": {
     "product": {
       "layer": "product",
-      "commit": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
-      "tree": "23c9240552e9d217be63f3e40fcf2adc3721c6bf",
-      "parent": "694c844a93f6075113ac48ec39683599500e8270",
+      "commit": "1f14099b82222953a7a801205203847ff914b02d",
+      "tree": "373f13fec6dadff78b979e21f27ce5bea77c072b",
+      "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
       "source_clean": true,
       "private_logs": false,
-      "path": "/tmp/nuvio-logs12-draft/product",
+      "path": "/tmp/nuvio-logs12-three-percent/product",
       "manifest": "product-source-manifest.json",
-      "manifest_sha256": "fd0bcdee01de59611fdfa510655eab4d7f59d5706851eddda1e07ce1085a1f1b",
-      "delta_patch_sha256": "d829eae87a45732b6b8928018455ac60919aa5c91bc32ab556282c81a3031adf"
+      "manifest_sha256": "914a95bdebb57fe8aff6a487dcb85504fbb2f8334df7630435b62628bdf24495",
+      "delta_patch_sha256": "94989b9ab897d3c036ad6e6d22b55946fb5337558328213d1ecc35479c24fe11"
     },
     "test": {
       "layer": "test",
-      "commit": "4019da9045eaa14fae9f889abdff7d206555d664",
-      "tree": "79cd429bb319e75d7198037233ad1a4415642ad2",
-      "parent": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+      "commit": "86fc15f1fb48f4d425923b040805db0e2dbd72f5",
+      "tree": "2df457fa52bb4f7fc6a74f02a4eed4fc61657237",
+      "parent": "1f14099b82222953a7a801205203847ff914b02d",
       "source_clean": true,
       "private_logs": true,
-      "path": "/tmp/nuvio-logs12-draft/test",
+      "path": "/tmp/nuvio-logs12-three-percent/test",
       "manifest": "test-source-manifest.json",
-      "manifest_sha256": "8c0db561997b6df839d6757762e9bb6716b2e26c43e208c7c119538225ae72c0",
-      "delta_patch_sha256": "b0b7b0b538d0f235c8a01d27d0b6bdc6ecfa48b48a279f69ab168e867eccb010"
+      "manifest_sha256": "bbf4622d300769aead3cb5ed71c85fd2b70f65971820c46c11d08475cf4f2587",
+      "delta_patch_sha256": "d5c7a2dd7d328e727de1029b56ba6ee459d3c94b1772a98391c1657c00e4e907"
     }
   },
   "scope": [
     "Complete Logs11 foundation, with approved asynchronous Showcase row loading preserving scroll",
     "Existing Subtitle Style editor reachable from Settings before playback",
-    "Fixed synopsis100%,120%,130%,150% choices with old size migration",
+    "Fixed synopsis100%,125%,150% choices, preserving old3-choice and migrating unreleased4-choice settings",
     "Same eleven-file private diagnostics overlay applied last, only versionCode/name updated to20022/Logs12"
   ],
   "product_delta_from_foundation": {
@@ -91,7 +91,8 @@
     "commits": {
       "async": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
       "style": "2bbf4b343b0a633f81de2cea600e1f840137bb56",
-      "percentage_increment": "13a24961c1bed9a942b1481a5301b719307d0b85"
+      "percentage_increment": "13a24961c1bed9a942b1481a5301b719307d0b85",
+      "three_choice_increment": "1a2cf641a832e22b69418231c6a8f4c31a1bc2eb"
     }
   },
   "private_overlay": {
@@ -108,8 +109,9 @@
       "src/app.c",
       "src/posplay.c"
     ],
-    "only_identity_version_changed": true,
-    "package_and_signer_unchanged": true
+    "only_identity_version_changed": false,
+    "package_and_signer_unchanged": true,
+    "change_hunks_unchanged_from_prior_Logs12": true
   },
   "merge_resolutions": "planning/merge-resolutions.json",
   "no_upstream_rebase": true,
@@ -117,7 +119,19 @@
   "affected_preflight_final_binding_pending": false,
   "bundle": {
     "path": "source.bundle.base64",
-    "sha256": "6abd29ebf5960cb80ec44540cbc6af651c87e4be6738acfd191253b80880fd7f",
-    "bytes": 1132190
-  }
+    "sha256": "77835719111a04621d67065ab084b290924e4f283fb60c57f53bd35c935e7199",
+    "bytes": 1216920
+  },
+  "historical_only_superseded_source": {
+    "product": "85a3a8957d8ddced999674df9ceaf0dfccca9f76",
+    "test": "4019da9045eaa14fae9f889abdff7d206555d664",
+    "review": "e42359f743be69f1104a9a447d51c94183dc6c9d",
+    "no_execution_reuse": true
+  },
+  "affected_preflight": {
+    "sha256": "2af4320511f613cf14f5fde465618dcbd105f685df976eb36a50d6d0a2765d1d",
+    "outcome": "passed",
+    "invocations": 36
+  },
+  "source_root_approval_sha256": "d2eee3efe0230915ecd8e626975e246a75476d8f8a8508d61e09a87e675abcaf"
 }

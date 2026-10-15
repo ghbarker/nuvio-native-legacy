@@ -201,43 +201,48 @@ static int findFocus(PonteiroFn fn,int a,float*x,float*y){const PonteiroAlvo*v;i
 static void migration_case(const char *tmp,const char *lines,int expected){
  char path[600];snprintf(path,sizeof path,"%s/ajustes.txt",tmp);FILE*f=fopen(path,"w");assert(f);assert(fputs(lines,f)>=0);assert(!fclose(f));
  valor[AJ_TAMANHO_SINOPSE]=0;ajustes_dir(tmp);assert(ajustes_sinopse_tamanho()==expected);assert(gravar());
- char*t=dados_ler("ajustes.txt");assert(t&&strstr(t,"sinopseEscalaLocal ")&&!strstr(t,"sinopseTamanhoLocal "));free(t);
+ char*t=dados_ler("ajustes.txt");assert(t&&strstr(t,"sinopsePercentualLocal ")&&!strstr(t,"sinopseTamanhoLocal ")&&!strstr(t,"sinopseEscalaLocal "));free(t);
  valor[AJ_TAMANHO_SINOPSE]=0;ajustes_dir(tmp);assert(ajustes_sinopse_tamanho()==expected);
 }
 int main(void){
  setbuf(stdout,NULL);char tmp[]="/tmp/nuvio-synopsis-settings-XXXXXX";assert(mkdtemp(tmp));setenv("NUVIO_DADOS",tmp,1);dados_iniciar(tmp);snprintf(dirAjustes,sizeof dirAjustes,"%s",tmp);
  migration_case(tmp,"sinopseTamanhoLocal 0\n",0);
  migration_case(tmp,"sinopseTamanhoLocal 1\n",1);
- migration_case(tmp,"sinopseTamanhoLocal 2\n",3);
- migration_case(tmp,"sinopseTamanhoLocal -1\n",0);
- migration_case(tmp,"sinopseTamanhoLocal 3\n",0);
- migration_case(tmp,"sinopseTamanhoLocal 2\nsinopseEscalaLocal 2\n",2);
- migration_case(tmp,"sinopseEscalaLocal 2\nsinopseTamanhoLocal 2\n",2);
- migration_case(tmp,"sinopseEscalaLocal 3\n",3);
- migration_case(tmp,"sinopseEscalaLocal 99\n",0);
+ migration_case(tmp,"sinopseTamanhoLocal 2\n",2);
+ migration_case(tmp,"sinopseEscalaLocal 0\n",0);
+ migration_case(tmp,"sinopseEscalaLocal 1\n",1);
+ migration_case(tmp,"sinopseEscalaLocal 2\n",1);
+ migration_case(tmp,"sinopseEscalaLocal 3\n",2);
+ migration_case(tmp,"sinopseTamanhoLocal 2\nsinopseEscalaLocal 1\n",1);
+ migration_case(tmp,"sinopseEscalaLocal 1\nsinopseTamanhoLocal 2\n",1);
+ migration_case(tmp,"sinopseTamanhoLocal 2\nsinopsePercentualLocal 1\n",1);
+ migration_case(tmp,"sinopsePercentualLocal 1\nsinopseTamanhoLocal 2\n",1);
+ migration_case(tmp,"sinopseEscalaLocal 3\nsinopsePercentualLocal 1\n",1);
+ migration_case(tmp,"sinopsePercentualLocal 1\nsinopseEscalaLocal 3\n",1);
+ migration_case(tmp,"sinopsePercentualLocal 2\n",2);
+ migration_case(tmp,"sinopsePercentualLocal 99\n",0);
  migration_case(tmp,"",0);
  assert(!strcmp(OPCOES[AJ_TAMANHO_SINOPSE].valores[0],"100%"));
- assert(!strcmp(OPCOES[AJ_TAMANHO_SINOPSE].valores[1],"120%"));
- assert(!strcmp(OPCOES[AJ_TAMANHO_SINOPSE].valores[2],"130%"));
- assert(!strcmp(OPCOES[AJ_TAMANHO_SINOPSE].valores[3],"150%"));
+ assert(!strcmp(OPCOES[AJ_TAMANHO_SINOPSE].valores[1],"125%"));
+ assert(!strcmp(OPCOES[AJ_TAMANHO_SINOPSE].valores[2],"150%"));
  layout_modo_definir(1);layout_tela_definir(1080,2340);valor[AJ_TAMANHO_AJUSTES]=2;valor[AJ_ANIM]=0;valor[AJ_INTERFACE_MODO]=1;
  assert(ajustes_sinopse_tamanho()==0);assert(somenteDesteAparelho(AJ_TAMANHO_SINOPSE));
- assert(!strcmp(CHAVE[AJ_TAMANHO_SINOPSE],"sinopseEscalaLocal"));
- assert(OPCOES[AJ_TAMANHO_SINOPSE].n==4); /* Exact persisted key/default preserved; independent appended IDs may precede it. */
+ assert(!strcmp(CHAVE[AJ_TAMANHO_SINOPSE],"sinopsePercentualLocal"));
+ assert(OPCOES[AJ_TAMANHO_SINOPSE].n==3); /* Exact persisted key/default preserved; independent appended IDs may precede it. */
  ponteiro_iniciar();ponteiro_teste_toque(1);assert(ajustes_iniciar());settle();
  int target=-1,section=-1;for(int i=0;i<AJ_N_TELA;i++)if(TELA[i].tipo==IT_OPC&&TELA[i].op==AJ_TAMANHO_SINOPSE){target=i;section=secDoItem[i];}
  float x,y;assert(target>=0);assert(findFocus(aj2PonteiroSec,section,&x,&y));tap(x,y);settle();
  assert(findFocus(ajPonteiroItem,target,&x,&y));tap(x,y);settle();
- for(int i=0;i<4;i++)assert(findFocus(ajPontEdValor,i,&x,&y));
- for(int i=0;i<3;i++)settings_key(SDLK_DOWN);frame();assert(uxPendente==3&&ajustes_sinopse_tamanho()==0);
- assert(find(ajToqueConfirmar,0,&x,&y));tap(x,y);assert(ajustes_sinopse_tamanho()==3&&!uxEditor);
- ajustes_encerrar();valor[AJ_TAMANHO_SINOPSE]=0;ajustes_dir(tmp);assert(ajustes_sinopse_tamanho()==3);assert(ajustes_iniciar());settle();
+ for(int i=0;i<3;i++)assert(find(ajToqueInlineValor,i,&x,&y));
+ assert(find(ajToqueInlineValor,2,&x,&y));tap(x,y);frame();assert(uxPendente==2&&ajustes_sinopse_tamanho()==0);
+ assert(find(ajToqueConfirmar,0,&x,&y));tap(x,y);assert(ajustes_sinopse_tamanho()==2&&!uxEditor);
+ ajustes_encerrar();valor[AJ_TAMANHO_SINOPSE]=0;ajustes_dir(tmp);assert(ajustes_sinopse_tamanho()==2);assert(ajustes_iniciar());settle();
  assert(findFocus(aj2PonteiroSec,section,&x,&y));tap(x,y);settle();
  assert(findFocus(ajPonteiroItem,target,&x,&y));tap(x,y);settle();
- for(int i=0;i<2;i++)settings_key(SDLK_UP);frame();assert(uxPendente==1&&ajustes_sinopse_tamanho()==3);
- assert(find(ajToqueCancelar,0,&x,&y));tap(x,y);assert(ajustes_sinopse_tamanho()==3&&!uxEditor);
- ajustes_perfil_guardar(1);assert(ajustes_sinopse_tamanho()==3);ajustes_perfil_restaurar(2);assert(ajustes_sinopse_tamanho()==3);
- ajustes_encerrar();valor[AJ_TAMANHO_SINOPSE]=0;ajustes_dir(tmp);assert(ajustes_sinopse_tamanho()==3);
+ assert(find(ajToqueInlineValor,1,&x,&y));tap(x,y);frame();assert(uxPendente==1&&ajustes_sinopse_tamanho()==2);
+ assert(find(ajToqueCancelar,0,&x,&y));tap(x,y);assert(ajustes_sinopse_tamanho()==2&&!uxEditor);
+ ajustes_perfil_guardar(1);assert(ajustes_sinopse_tamanho()==2);ajustes_perfil_restaurar(2);assert(ajustes_sinopse_tamanho()==2);
+ ajustes_encerrar();valor[AJ_TAMANHO_SINOPSE]=0;ajustes_dir(tmp);assert(ajustes_sinopse_tamanho()==2);
  valor[AJ_TAMANHO_SINOPSE]=-1;assert(ajustes_sinopse_tamanho()==0);valor[AJ_TAMANHO_SINOPSE]=99;assert(ajustes_sinopse_tamanho()==0);
  puts("PASS actual Settings menu->Appearance->Synopsis size->150%->Confirm->file reload, Cancel, profile-local policy and range fallback");return 0;
 }
