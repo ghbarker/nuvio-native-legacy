@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Vijf stappen, in deze volgorde"),
   T("Cinema", "Bioscoop"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Bioscoop (standaard): de afbeelding en het logo van de titel blijven in beeld tot de video start. Gedetailleerd: de bron, de add-on en elke stap van het openen. In Bioscoop toont Omhoog of Omlaag de details. Alleen op deze tv."),
+  T("Cinema (sem desfoque)", "Bioscoop (scherp beeld)"),
   T("Cinema, legendas e perfis.", "Bioscoop, ondertitels en profielen."),
   T("Claro", "Licht"),
   T("Claros", "Licht"),

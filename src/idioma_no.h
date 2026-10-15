@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Fem trinn, i denne rekkefølgen"),
   T("Cinema", "Kino"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Kino (standard): tittelens bilde og logo blir på skjermen til videoen starter. Detaljert: kilden, tillegget og hvert steg i åpningen. I Kino viser Opp eller Ned detaljene. Gjelder bare denne TV-en."),
+  T("Cinema (sem desfoque)", "Kino (skarpt bilde)"),
   T("Cinema, legendas e perfis.", "Kino, undertekster og profiler."),
   T("Claro", "Lys"),
   T("Claros", "Lyse"),

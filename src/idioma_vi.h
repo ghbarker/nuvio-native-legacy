@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Năm bước, theo thứ tự này"),
   T("Cinema", "Rạp phim"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Rạp phim (mặc định): ảnh và logo của tựa phim ở lại trên màn hình cho đến khi video bắt đầu. Chi tiết: nguồn, add-on và từng bước mở. Ở Rạp phim, Lên hoặc Xuống hiện chi tiết. Chỉ trên TV này."),
+  T("Cinema (sem desfoque)", "Điện ảnh (ảnh rõ nét)"),
   T("Cinema, legendas e perfis.", "Rạp phim, phụ đề và hồ sơ."),
   T("Claro", "Sáng"),
   T("Claros", "Sáng"),

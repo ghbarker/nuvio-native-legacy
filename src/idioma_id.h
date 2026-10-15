@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Lima langkah, dengan urutan ini"),
   T("Cinema", "Bioskop"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Bioskop (bawaan): gambar dan logo judul tetap di layar sampai video mulai. Terperinci: sumber, add-on, dan setiap langkah pembukaan. Di Bioskop, Atas atau Bawah menampilkan detail. Hanya di TV ini."),
+  T("Cinema (sem desfoque)", "Sinema (gambar tajam)"),
   T("Cinema, legendas e perfis.", "Bioskop, subtitel, dan profil."),
   T("Claro", "Terang"),
   T("Claros", "Terang"),

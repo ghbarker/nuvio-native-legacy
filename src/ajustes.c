@@ -573,7 +573,7 @@ static const char *V_ICONE_APP[ICONEAPP_N] = {
   "Play tricolor", "Arco", "TV viva", "Clube retrô", "Arcade N",
 };
 static const char *V_FONTE_ORDEM_ADDON[] = { "Por qualidade", "Do addon" };
-static const char *V_TELA_ABERTURA[] = { "Cinema", "Detalhada" };
+static const char *V_TELA_ABERTURA[] = { "Cinema", "Detalhada", "Cinema (sem desfoque)" };
 static const char *V_QUALIDADE[] = { "Automática", "4K", "1080p", "720p" };
 static const char *V_LIGA[]      = { "Ligado", "Desligado" };
 // TRAILER DO CARTAZ EM FOCO EM TRES MODOS (dono, 07/10/2026). O indice e o
@@ -1411,7 +1411,7 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Mostrar no player", V_LEG_MOSTRAR, 2),
   ACAO("Aviso legal"),
   ESC("Brilho da interface em HDR", V_HDR_UI, 2),   // local: hdrUiLocal (#205)
-  ESC("Tela de abertura do vídeo", V_TELA_ABERTURA, 2),   // local: telaAberturaLocal (#205)
+  ESC("Tela de abertura do vídeo", V_TELA_ABERTURA, 3),   // local: telaAberturaLocal (#205/#508); 0/1 preservados
   NUM("Mínimo para entrar no Continuar", 1, 20, 1, "%"),   // local: cwMinimoLocal
   ESC("Tamanho do buffer", V_BUFFER, 4),                 // local: bufferPlayerLocal (Android)
   ESC("Pular a abertura automaticamente", V_LIGA, 2),   // local: pularAberturaLocal
@@ -2356,6 +2356,7 @@ int ajustes_abertura(void) { int v = valor[AJ_ABERTURA]; return v < 0 || v > 2 ?
 // R4: estilo proprio da segunda legenda. -1 / 0 = segue a principal.
 int ajustes_legendas_todas(void) { return valor[AJ_LEG_MOSTRAR] == 1; }
 int ajustes_abertura_detalhada(void) { return valor[AJ_TELA_ABERTURA] == 1; }
+int ajustes_abertura_fundo_nitido(void) { return valor[AJ_TELA_ABERTURA] == 2; }
 int ajustes_leg2_junto(void) { return valor[AJ_LEG2_POS] == 1; }
 int ajustes_leg2_tamanho(void) {
   static const int P[] = { 0, 60, 80, 100, 120, 140, 160, 170, 180, 190, 200,

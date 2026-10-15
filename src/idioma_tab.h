@@ -1141,6 +1141,7 @@
   { "Cinco etapas, nesta ordem", "Five steps, in this order" },
   { "Cinema", "Cinema" },
   { "Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Cinema (default): the title's art and logo stay on screen until the video starts. Detailed: the source, the add-on and each opening step. In Cinema, Up or Down shows the details. Applies to this TV only." },
+  { "Cinema (sem desfoque)", "Cinema (clear artwork)" },
   { "Cinema, legendas e perfis.", "Cinema, subtitles and profiles." },
   { "Claro", "Light" },
   { "Claros", "Light" },

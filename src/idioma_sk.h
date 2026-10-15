@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Päť krokov v tomto poradí"),
   T("Cinema", "Kino"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Kino (predvolené): obrázok a logo titulu zostanú na obrazovke, kým sa video nespustí. Podrobná: zdroj, doplnok a každý krok otvárania. V režime Kino zobrazí podrobnosti Hore alebo Dole. Platí len pre tento televízor."),
+  T("Cinema (sem desfoque)", "Kino (bez rozmazania)"),
   T("Cinema, legendas e perfis.", "Kino, titulky a profily."),
   T("Claro", "Svetlý"),
   T("Claros", "Svetlé"),

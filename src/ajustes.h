@@ -451,6 +451,8 @@ int   ajustes_esconder_logo_trailer(void);   // 1 = hide the corner title logo w
 int   ajustes_legendas_todas(void); // #425: abrir todas as faixas
 // #205: 1 = tela de abertura Detalhada (o cartao com fonte e passos); 0 = Cinema.
 int   ajustes_abertura_detalhada(void);
+// #508: Cinema com a arte nitida; o Cinema de fabrica continua desfocado.
+int   ajustes_abertura_fundo_nitido(void);
 int   ajustes_leg2_junto(void);
 int   ajustes_leg2_tamanho(void);
 int   ajustes_leg2_cor(void);

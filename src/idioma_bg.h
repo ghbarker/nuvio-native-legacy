@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Пет стъпки, в този ред"),
   T("Cinema", "Кино"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Кино (по подразбиране): изображението и логото на заглавието остават на екрана, докато видеото започне. Подробно: източникът, добавката и всяка стъпка от отварянето. В режим Кино Нагоре или Надолу показва подробностите. Само на този телевизор."),
+  T("Cinema (sem desfoque)", "Кино (без замъгляване)"),
   T("Cinema, legendas e perfis.", "Кино, субтитри и профили."),
   T("Claro", "Светъл"),
   T("Claros", "Светли"),

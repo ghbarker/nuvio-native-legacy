@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "五个步骤，按此顺序"),
   T("Cinema", "影院"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "影院（默认）：视频开始前，作品的图片和标志一直留在屏幕上。详细：片源、插件以及打开的每一步。在影院模式下，按上或下显示详情。仅限这台电视。"),
+  T("Cinema (sem desfoque)", "影院（清晰图片）"),
   T("Cinema, legendas e perfis.", "影院、字幕和个人资料。"),
   T("Claro", "浅色"),
   T("Claros", "浅色"),

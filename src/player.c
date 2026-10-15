@@ -47,6 +47,7 @@
 #include "telefoneui.h"
 #include "catalogo.h"
 #include "artehero.h"
+#include "detail.h"
 #include "logotitulo.h"
 #include "corviva.h"
 
@@ -426,6 +427,28 @@ static int     miniGuia;
 // vale; o indice e re-resolvido pelo IMDb quando alguem precisa dele (ver
 // idxAtual).
 static CatItem itemFixo; static int temFixo;
+// A mesma URL que a pagina mostrava ao pedir Play. So a URL e copiada:
+// texturas continuam no cache assincrono e nunca seguram a entrada do video.
+static char cinemaArte[NV_TEX_URL_MAX];
+static int cinemaPoster;
+static void cinemaArteIniciar(const CatItem *c) {
+  cinemaArte[0] = 0; cinemaPoster = 0;
+  if (c) detail_arte_titulo(c, cinemaArte, sizeof cinemaArte, &cinemaPoster);
+}
+static const char *cinemaArteObter(const CatItem *c) {
+  const char *u;
+  if (cinemaArte[0] && !tex_falhou(cinemaArte)) return cinemaArte;
+  cinemaArte[0] = 0; cinemaPoster = 0;
+  // Next e Play direto da Home nao precisam passar pela pagina. Usam a mesma
+  // politica dela, inclusive arte alternativa, escolha manual e fundo por id.
+  u = artehero_url_destaque(c, ajustes_hero_fonte(), ajustes_hero_arte_diferente());
+  if (u && *u && strlen(u) < sizeof cinemaArte) {
+    snprintf(cinemaArte, sizeof cinemaArte, "%s", u);
+    cinemaPoster = c && c->poster[0] && !strcmp(u, c->poster);
+    return cinemaArte;
+  }
+  return NULL;
+}
 static const CatItem *item(void) {
   if (canalSessao) return &itemCanal;
   if (temFixo) return &itemFixo;
@@ -1436,6 +1459,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
     // A COPIA e feita AQUI, no unico instante em que o indice e sabidamente o
     // do titulo pedido. Ver item().
     if (ci) { itemFixo = *ci; temFixo = 1; } else temFixo = 0;
+    cinemaArteIniciar(temFixo ? &itemFixo : NULL);
     artehero_logo_sessao_iniciar(temFixo ? &itemFixo : NULL);
     canalSessao = ci && (!strcmp(ci->tipo, "channel") || !strcmp(ci->tipo, "tv"));
     if (canalSessao) itemCanal = *ci;
@@ -2176,6 +2200,7 @@ static void fecharSessao(int manter) {
   retido = manter; if (!manter) retidoVoo = 0;
   prepararRetencao = 0; saidaIlhaDesde = 0;
   esperandoFonte = 0; aberto = 0; saindo = 0; pediuSair = 0;
+  cinemaArteIniciar(NULL);
   scrubbing = scrubToque = 0; scrubInicio = 0.0;
   mini = 0; querMini = 0; miniGuia = 0; janAtiva = 0;
   avisarCascaAberto(0);
@@ -4899,18 +4924,20 @@ void player_fundo_fora_do_furo(GfxRect furo, int recuado, const CatItem *c) {
 
 // A TELA CINEMA DA ABERTURA (#205, abrecine.h). Tudo multiplicado pelo veu,
 // que so cai com o quadro real (o crossfade e o veu saindo por cima dele).
-// CUSTO: a arte desfocada e a copia 96x54 de sempre (gfx_desfocado), uma
-// passada; a nitida so enquanto recua (~1 s); o preto so com o furo aberto
+// CUSTO: no Cinema padrao, a arte desfocada e a copia 96x54 de sempre
+// (gfx_desfocado), uma passada; a nitida so enquanto recua (~1 s). O Cinema
+// sem desfoque usa so a textura do detalhe, sem pedir a copia pequena.
+// O preto so com o furo aberto
 // (sem furo o preto opaco de baixo ja esta la). Logo, trilho e linha sao
 // retangulos pequenos.
 static void desenharCinema(Uint32 agora, const CatItem *c, int furou) {
   GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
   float v = cine.veu, f = cine.foco, t = (float)(agora - cine.desde) / 1000.0f;
   float resp, entra, cy = NV_TELA_H * 0.46f, base;
-  int reduz = ajustes_animacoes_reduzidas();
-  const char *arte = c && c->backdrop[0] ? artehero_url(c) : NULL;
+  int reduz = ajustes_animacoes_reduzidas(), nitida = ajustes_abertura_fundo_nitido();
+  const char *arte = cinemaArteObter(c);
   const char *marca = c ? artehero_logo_sessao(c) : NULL;
-  GLuint ts = arte ? tex_obter_hero(arte) : 0, tb = arte ? tex_obter_larg(arte, 480) : 0, lg;
+  GLuint ts = arte ? tex_obter_hero(arte) : 0, tb = arte && !nitida ? tex_obter_larg(arte, 480) : 0, lg;
   if (v <= 0.0f) return;
   if (furou || !player_carregando()) gfx_cor(tela, 0.0f, 0, 0, 0, v);
   if (tb) tb = gfx_desfocado(tb, arte);
@@ -4920,9 +4947,22 @@ static void desenharCinema(Uint32 agora, const CatItem *c, int furou) {
   // mesma passada (uFoco), como o fundo da tela DV: o GFX_CARD nao tem ruido,
   // e a arte desfocada e escura saia em faixas de 8 bits no OLED (dono, 11/10:
   // "falta o dither no background"). A copia desfocada ja e 16:9 como a tela.
-  if (tb) gfx_rect(tela, tb, GFX_SNAP, 0.55f * f, 2.0f, 0.0f, 0.0f, 0, 0, 0, v);
-  { float as = v * (tb ? 1.0f - f : 1.0f - 0.55f * f);
-    if (ts && as > 0.01f) gfx_rect(tela, ts, GFX_CARD, 0, 0, 0, 0.0f, 0, 0, 0, as); }
+  if (nitida) {
+    GfxRect alvo = tela;
+    // Reserva em pe: mantem a proporcao, como a pagina do titulo. Nao
+    // transforma o cartaz num fundo esticado quando nao existe backdrop.
+    if (cinemaPoster && gfx_tex_aspect_atual > 0.0f) {
+      float ar = gfx_tex_aspect_atual;
+      if (ar < tela.w / tela.h) { alvo.w = tela.h * ar; alvo.x = (tela.w - alvo.w) * 0.5f; }
+      else { alvo.h = tela.w / ar; alvo.y = (tela.h - alvo.h) * 0.5f; }
+    }
+    if (ts) gfx_rect(alvo, ts, GFX_CARD, 0, 0, 0, 0.0f, 0, 0, 0, v);
+    gfx_cor(tela, 0.0f, 0, 0, 0, 0.55f * f * v);
+  } else {
+    if (tb) gfx_rect(tela, tb, GFX_SNAP, 0.55f * f, 2.0f, 0.0f, 0.0f, 0, 0, 0, v);
+    { float as = v * (tb ? 1.0f - f : 1.0f - 0.55f * f);
+      if (ts && as > 0.01f) gfx_rect(tela, ts, GFX_CARD, 0, 0, 0, 0.0f, 0, 0, 0, as); }
+  }
   gfx_tex_aspect_atual = 0.0f;
 
   // O logo fica PARADO (dono, 11/10: sem aumentar e diminuir); so o trilho anda.

@@ -1141,6 +1141,7 @@
   T("Cinco etapas, nesta ordem", "Cinci pași, în această ordine"),
   T("Cinema", "Cinema"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Cinema (implicit): imaginea și logoul titlului rămân pe ecran până pornește videoclipul. Detaliat: sursa, add-on-ul și fiecare pas al deschiderii. În Cinema, Sus sau Jos arată detaliile. Doar pe acest televizor."),
+  T("Cinema (sem desfoque)", "Cinema (imagine clară)"),
   T("Cinema, legendas e perfis.", "Cinema, subtitrări și profiluri."),
   T("Claro", "Deschis"),
   T("Claros", "Deschise"),

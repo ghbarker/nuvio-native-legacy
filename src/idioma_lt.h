@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Penki žingsniai, tokia tvarka"),
   T("Cinema", "Kinas"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Kinas (numatytasis): pavadinimo paveikslas ir logotipas lieka ekrane, kol prasideda vaizdo įrašas. Išsamus: šaltinis, priedas ir kiekvienas atidarymo žingsnis. Kino režime Aukštyn arba Žemyn rodo informaciją. Tik šiame televizoriuje."),
+  T("Cinema (sem desfoque)", "Kinas (ryškus vaizdas)"),
   T("Cinema, legendas e perfis.", "Kinas, subtitrai ir profiliai."),
   T("Claro", "Šviesus"),
   T("Claros", "Šviesios"),

@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Πέντε βήματα, με αυτή τη σειρά"),
   T("Cinema", "Σινεμά"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Σινεμά (προεπιλογή): η εικόνα και το λογότυπο του τίτλου μένουν στην οθόνη μέχρι να ξεκινήσει το βίντεο. Αναλυτική: η πηγή, το πρόσθετο και κάθε βήμα του ανοίγματος. Στο Σινεμά, το Πάνω ή το Κάτω δείχνει τις λεπτομέρειες. Μόνο σε αυτή την τηλεόραση."),
+  T("Cinema (sem desfoque)", "Σινεμά (καθαρή εικόνα)"),
   T("Cinema, legendas e perfis.", "Σινεμά, υπότιτλοι και προφίλ."),
   T("Claro", "Ανοιχτό"),
   T("Claros", "Ανοιχτά"),

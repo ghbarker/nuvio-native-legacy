@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Cinque passaggi, in quest'ordine"),
   T("Cinema", "Cinema"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Cinema (predefinito): l'immagine e il logo del titolo restano sullo schermo finché parte il video. Dettagliata: la fonte, l'add-on e ogni passo dell'apertura. In Cinema, Su o Giù mostra i dettagli. Solo su questa TV."),
+  T("Cinema (sem desfoque)", "Cinema (immagine nitida)"),
   T("Cinema, legendas e perfis.", "Cinema, sottotitoli e profili."),
   T("Claro", "Chiaro"),
   T("Claros", "Chiari"),

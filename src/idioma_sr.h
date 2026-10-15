@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Pet koraka, ovim redosledom"),
   T("Cinema", "Bioskop"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Bioskop (podrazumevano): slika i logo naslova ostaju na ekranu dok video ne krene. Detaljno: izvor, dodatak i svaki korak otvaranja. U režimu Bioskop, Gore ili Dole prikazuje detalje. Samo na ovom TV-u."),
+  T("Cinema (sem desfoque)", "Bioskop (oštra slika)"),
   T("Cinema, legendas e perfis.", "Bioskop, titlovi i profili."),
   T("Claro", "Svetao"),
   T("Claros", "Svetle"),

@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Öt lépés, ebben a sorrendben"),
   T("Cinema", "Mozi"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Mozi (alapértelmezett): a cím képe és logója a képernyőn marad, amíg a videó el nem indul. Részletes: a forrás, a bővítmény és a megnyitás minden lépése. Mozi módban a Fel vagy a Le mutatja a részleteket. Csak ezen a tévén."),
+  T("Cinema (sem desfoque)", "Mozi (éles kép)"),
   T("Cinema, legendas e perfis.", "Mozi, feliratok és profilok."),
   T("Claro", "Világos"),
   T("Claros", "Világos"),

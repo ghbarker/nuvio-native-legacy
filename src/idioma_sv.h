@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Fem steg, i den här ordningen"),
   T("Cinema", "Bio"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Bio (standard): titelns bild och logotyp stannar kvar tills videon startar. Detaljerad: källan, tillägget och varje steg i öppningen. I Bio visar Upp eller Ner detaljerna. Gäller bara den här tv:n."),
+  T("Cinema (sem desfoque)", "Bio (skarp bild)"),
   T("Cinema, legendas e perfis.", "Bio, undertexter och profiler."),
   T("Claro", "Ljus"),
   T("Claros", "Ljusa"),

@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "5 つのステップ（この順番で）"),
   T("Cinema", "シネマ"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "シネマ（標準）：動画が始まるまで作品のアートとロゴを表示します。詳細：ソース、アドオン、オープニングの各ステップ。シネマでは上または下で詳細を表示します。このテレビのみ。"),
+  T("Cinema (sem desfoque)", "シネマ（ぼかしなし）"),
   T("Cinema, legendas e perfis.", "シネマ、字幕、プロフィール。"),
   T("Claro", "明るい色"),
   T("Claros", "明るい色"),

@@ -1142,6 +1142,7 @@
   T("Cinco etapas, nesta ordem", "Beş adım, bu sırayla"),
   T("Cinema", "Sinema"),
   T("Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.", "Sinema (varsayılan): başlığın görseli ve logosu video başlayana kadar ekranda kalır. Ayrıntılı: kaynak, eklenti ve açılışın her adımı. Sinema'da Yukarı veya Aşağı ayrıntıları gösterir. Yalnızca bu TV'de."),
+  T("Cinema (sem desfoque)", "Sinema (net görsel)"),
   T("Cinema, legendas e perfis.", "Sinema, altyazılar ve profiller."),
   T("Claro", "Açık"),
   T("Claros", "Açık"),
