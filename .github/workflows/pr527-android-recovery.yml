@@ -1,0 +1,162 @@
+{
+  "name": "PR527 Android cache recovery and exact-source retained producer verification",
+  "on": {
+    "push": {
+      "branches": [
+        "review/pr527-android-recovery-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "pr527-android-recovery-${{ github.sha }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "COLLECTION_PLAN_SHA256": "4a07afd5cd17ead9540ceb0400ea842bc75a98cb9aefca99ced4a16e518cfd43",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "jobs": {
+    "android": {
+      "name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 90,
+      "env": {
+        "NUVIO_ANDROID_JOBS": "2",
+        "NUVIO_BUILD_JOBS": "2",
+        "NUVIO_P2P_MOTOR": "none"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Materialize exact public candidate on pinned current upstream",
+          "run": "python3 .review/pr527-parallel-public/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install normal Android toolchain",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "name": "Empty compile-only config, no service credentials",
+          "run": ": > \"$RUNNER_TEMP/pr527.properties\"\nchmod 600 \"$RUNNER_TEMP/pr527.properties\"\necho \"NUVIO_PROPERTIES=$RUNNER_TEMP/pr527.properties\" >> \"$GITHUB_ENV\""
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "pr527-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "apk20026-native-v1-${{ runner.os }}-\napk20025-native-v1-${{ runner.os }}-\nissue362-native-v1-${{ runner.os }}-\nissue477-native-v1-${{ runner.os }}-\npr520-native-v1-${{ runner.os }}-\napk20022-native-v1-${{ runner.os }}-\napk20021-native-v1-${{ runner.os }}-\napk20020-native-v1-${{ runner.os }}-\napk20019-native-v1-${{ runner.os }}-"
+          }
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "pr527-gradle-v1-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts', 'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}",
+            "restore-keys": "apk20026-gradle-v1-${{ runner.os }}-\napk20025-gradle-v1-${{ runner.os }}-\nissue362-gradle-v1-${{ runner.os }}-\nissue477-gradle-v1-${{ runner.os }}-\npr520-gradle-v1-${{ runner.os }}-\napk20022-gradle-v1-${{ runner.os }}-\napk20021-gradle-v1-${{ runner.os }}-\napk20020-gradle-v1-${{ runner.os }}-\napk20019-gradle-v1-${{ runner.os }}-"
+          }
+        },
+        {
+          "name": "Capture strictly clean Android workspace before build",
+          "run": "python3 .review/pr527-parallel-public/android_workspace.py --source source-app --output results/android-workspace --phase before"
+        },
+        {
+          "name": "Build cached native dependencies for both ARM ABIs",
+          "working-directory": "source-app",
+          "run": "bash tools/android/deps.sh arm64-v8a armeabi-v7a"
+        },
+        {
+          "name": "Build exact standard debug APK with production tooling",
+          "working-directory": "source-app",
+          "run": "bash tools/android.sh"
+        },
+        {
+          "name": "Preserve actual standard APK before strict validation",
+          "run": "mkdir -p results/android\ncp source-app/build/android/*-android-debug.apk results/android/standard-validation.apk"
+        },
+        {
+          "name": "Preserve and verify post-build Android workspace",
+          "if": "always()",
+          "run": "python3 .review/pr527-parallel-public/android_workspace.py --source source-app --output results/android-workspace --phase after"
+        },
+        {
+          "name": "Verify actual APK, changed native units, both ABIs and JNI",
+          "run": "python3 .review/pr527-parallel-public/android.py --source source-app --proof results/source-verified.json --output results/android/android-verified.json --aapt \"$ANDROID_HOME/build-tools/35.0.0/aapt\" --apksigner \"$ANDROID_HOME/build-tools/35.0.0/apksigner\""
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/pr527-parallel-public/materialize.py --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr527-android-${{ github.sha }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "all_gates": {
+      "name": "Verify recovered Android and six retained exact-source successes",
+      "needs": [
+        "android"
+      ],
+      "if": "always()",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require all seven actual successful source-bound producer origins and raw proofs",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/pr527-recovery/aggregate.py --input incoming --output final/all-gates-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr527-recovery-all-gates-${{ github.sha }}",
+            "path": "final/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
