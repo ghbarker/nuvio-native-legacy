@@ -1,0 +1,1 @@
+Logs13 adds matching appearance and delay controls for Main subtitle and Second subtitle in Settings, while preserving existing placement options. It also includes bounded late-addon collection-row recovery and complete long artwork URL registry handling. Install over the previous test build to retain accounts and settings.
