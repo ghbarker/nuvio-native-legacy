@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": false,
+  "ci_execution_permitted": false,
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "accepted_product_base": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+  "accepted_test_base": "0c8cdf7908972ba766a3542d8b10d2059825d8ca",
+  "sources": {
+    "product": {
+      "layer": "product",
+      "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+      "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+      "source_clean": true,
+      "private_logs": false,
+      "path": "/workspace/review/integration-apk20021-20261015/product",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "f6d6f367cfb35a470641b7db60195e7cf629a2cec2220a31ead57a30e6e55818",
+      "delta_patch_sha256": "fbab0133937148f8e3c5ca6219449d58911000f8a08443e0cdbbdf1b19ec2da0"
+    },
+    "test": {
+      "layer": "test",
+      "commit": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+      "tree": "8db5e6d2bdf6ffff2867fb2bcf88d241d6f57fac",
+      "parent": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "source_clean": true,
+      "private_logs": true,
+      "path": "/workspace/review/integration-apk20021-20261015/test",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "17586f1b72b2bded45318e1f295e056051988b0cd35d6f1dc1abe02725a3cc6f",
+      "delta_patch_sha256": "f07bae45a21d0a2eff089c910e21200216bb013857c868c47bd8c575c504c5d5"
+    }
+  },
+  "scope": [
+    "Only the root-approved combined collection tap/scroll/stale-target/Decades/Mobile reachability fix on the complete Logs10 foundation",
+    "Same11-file private overlay applied last; only versionCode/name changed to20021/Logs11"
+  ],
+  "product_delta_from_foundation": {
+    "paths": [
+      "src/vertudo.c"
+    ],
+    "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+    "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+    "sha256": "db994c06150a36c4697dc1689858cf7a95271c6d8b94d3f78aed71a6c838769c"
+  },
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "historical_delta_sha256": "5ca4ff44b34f7f85490e5730185635f205ef8a253fca6fb69e3676b08041dc0a",
+    "tracked_changes_vs_old_private": [
+      "android/app/build.gradle.kts",
+      "src/vertudo.c"
+    ],
+    "only_identity_version_changed": true,
+    "package_and_signer_unchanged": true
+  },
+  "no_upstream_rebase": true,
+  "no_external_writes_build_ci_or_release": true
+}

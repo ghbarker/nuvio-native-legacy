@@ -1,0 +1,32 @@
+{
+  "fixtures": {
+    "fixtures/player_outline.c": {
+      "original": "/workspace/review/issue475-subtitle-outline-20261015/independent-review/player_outline.c",
+      "sha256": "314b54f6831e4685962efeb372c9e0500de1a2ab903666069095a88e66f1802a",
+      "changes": []
+    },
+    "fixtures/secondary_outline.c": {
+      "original": "/workspace/review/issue475-subtitle-outline-20261015/independent-review/secondary_outline.c",
+      "sha256": "74284d02826923ee71c454eb9746fc4d366f716f9a58e99655236b5bcf440c13",
+      "changes": []
+    },
+    "fixtures/ass_outline.c": {
+      "original": "/workspace/review/issue475-subtitle-outline-20261015/independent-review/ass_outline.c",
+      "sha256": "8505c92bdfe6a35b10120e72dd9d80e11368a427c4c6eac76701108927e20d33",
+      "changes": []
+    },
+    "fixtures/palette_bounds.c": {
+      "original": "/workspace/review/issue475-subtitle-outline-20261015/independent-review/palette_bounds.c",
+      "sha256": "46a8fa23bb159f9e801e136b7da1d6e1bda66a3c23decfb235d3018647da8f39",
+      "changes": []
+    },
+    "fixtures/grid_font_bounds.c": {
+      "original": "/workspace/review/issue475-subtitle-outline-20261015/independent-review/grid_font_bounds.c",
+      "sha256": "b7c0f783be970199887cfe568c477dd3b898c57de40c5d76c5a9f396bbb5acfa",
+      "changes": []
+    }
+  },
+  "source_pin": null,
+  "scope": "Existing475actualprimary/secondarycaption,prefs,libass andactualpointergeometry assertions unchanged. Style keyboard/callback assertions are separate sibling subtitle-style producer owned513.",
+  "libass": "Original matching0.17.3publicheaders retained as provenance only; CI compilation uses actual installed pkg-config libass SDK/library pair and records both."
+}

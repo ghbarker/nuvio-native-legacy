@@ -1,0 +1,40 @@
+{
+  "outcome": "passed",
+  "source_commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+  "source_tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+  "source_parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+  "source_status": "clean",
+  "changed_files_from_parent": [
+    "src/vertudo.c"
+  ],
+  "source_vertudo_sha256": "1fbdd6db0d75265693813299d055207f30a168ed898cd580ae8d73312c1dab10",
+  "assertions_unchanged": true,
+  "fixture_freeze_sha256": "2e39de51263d6a8539058bee37e41a02e2c96460319d0d2ff3aae7e80b31eea5",
+  "frozen_tooling_sha256": {
+    "collection-taps.c": "5ec3d9293dabfa30d71829e8f5f08cd790a9a1b50d9fe9250a7470bf7bd52959",
+    "run.py": "d9712196b426e6af84f3fac0daba3376b1f26b89e76633c30ff887b0885008ae",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+  },
+  "normal_and_sanitized_cases_per_variant": 75,
+  "records": [
+    {
+      "variant": "normal",
+      "receipt": "/workspace/review/issue362-collection-taps-20261015/peer/final-combined-normal/receipt.json",
+      "receipt_sha256": "90c369b5c3af8c621ef76ff31af7ad9a163c34d3bd3de5e2cf6c0e77d34ad6a4",
+      "passed_cases": 75,
+      "abort_traps_fired": false,
+      "binary_sha256": "c73996b6f2807e8ecd5d51ed2125de9f0d23d5fb641fa99fcea5e34b299c7a98"
+    },
+    {
+      "variant": "asan-ubsan",
+      "receipt": "/workspace/review/issue362-collection-taps-20261015/peer/final-combined-asan/receipt.json",
+      "receipt_sha256": "1c55c8a700a8fba20bf694ec3c32332e51c8461b26483782ee01f0b6969485e9",
+      "passed_cases": 75,
+      "abort_traps_fired": false,
+      "binary_sha256": "aeab051592c5a0494b7f07dc1505f22d95765b88cbbe185944b4931cc4b5bf2d"
+    }
+  ],
+  "scope": "Frozen focused headless full collection render/production pointer/handler/opening ownership matrix. Complete per-index reachability is independently owned by497. No product or fixture edits during final replay."
+}

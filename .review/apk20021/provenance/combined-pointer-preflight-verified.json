@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "source_manifest_sha256": "22bb7408c997881d09d982a80667741b079f6a039e7cb9f9d646544f52ddd5f5",
+  "wrapper_sha256": "9715491a6646879dcea03f950c2f0ad30f0233a7719c5cb53c376c2433546329",
+  "records": [
+    {
+      "label": "product-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/run.py",
+        "--source",
+        "/workspace/review/integration-apk20021-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/product-normal",
+        "--cc",
+        "/usr/bin/cc"
+      ],
+      "returncode": 0,
+      "log_sha256": "e9b9b67343c984495bcb7e699b5cf4862d2829dd82bc411168f30ca8975890d4",
+      "receipt_sha256": "029ee971fed338e9078c043c555e082f8203ed0d662a5f8ea2961a7f685a06a4"
+    },
+    {
+      "label": "product-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/run.py",
+        "--source",
+        "/workspace/review/integration-apk20021-20261015/product",
+        "--output",
+        "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/product-asan",
+        "--cc",
+        "/usr/bin/cc",
+        "--sanitize"
+      ],
+      "returncode": 0,
+      "log_sha256": "e9b9b67343c984495bcb7e699b5cf4862d2829dd82bc411168f30ca8975890d4",
+      "receipt_sha256": "6653b07907a80822f3f54a0bc89e3324c86d6b30775c73ab1670e51e52515125"
+    },
+    {
+      "label": "test-normal",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/run.py",
+        "--source",
+        "/workspace/review/integration-apk20021-20261015/test",
+        "--output",
+        "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal",
+        "--cc",
+        "/usr/bin/cc",
+        "--private"
+      ],
+      "returncode": 0,
+      "log_sha256": "e9b9b67343c984495bcb7e699b5cf4862d2829dd82bc411168f30ca8975890d4",
+      "receipt_sha256": "19227b59e8ba8534aa05831f2de708288e3f03300f93bbe241ba61cdb820c7fd"
+    },
+    {
+      "label": "test-asan",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/run.py",
+        "--source",
+        "/workspace/review/integration-apk20021-20261015/test",
+        "--output",
+        "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-asan",
+        "--cc",
+        "/usr/bin/cc",
+        "--private",
+        "--sanitize"
+      ],
+      "returncode": 0,
+      "log_sha256": "e9b9b67343c984495bcb7e699b5cf4862d2829dd82bc411168f30ca8975890d4",
+      "receipt_sha256": "f999568266f42dfce8b51e67916ac9ab3035541049a13cf3242527ce30adb09b"
+    }
+  ],
+  "scope": "Only exact changed collection-render/pointer wrappers:75 gesture +36 reachability/2160title activations, both immutable source layers normal and ASan/UBSan. No other20 suite replay and no SDK/CI/build/release action."
+}

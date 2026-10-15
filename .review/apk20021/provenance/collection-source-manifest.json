@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "source_clean": true,
+  "base": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+  "upstream_basis": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+  "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+  "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+  "files": [
+    {
+      "path": "src/vertudo.c",
+      "sha256": "1fbdd6db0d75265693813299d055207f30a168ed898cd580ae8d73312c1dab10"
+    }
+  ],
+  "changed_paths": [
+    "src/vertudo.c"
+  ],
+  "delta_patch_sha256": "8ca067284b70584871ac918ec7ea25ab3a516f9be4b943a8d0eb4df8878e334f",
+  "delta_patch_bytes": 17391,
+  "tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "tests_tree_unchanged": true,
+  "workflows_unchanged": true,
+  "behavior": [
+    "Mobile Showcase title hit areas open the title actually tapped through guarded real source activation",
+    "Generation, title key and live profile session reject stale activation without synthetic Return fallback",
+    "Independent Showcase page and row swipe offsets survive updates; remote resumes visible focus and savedTV clears free scrolling",
+    "Decades targets clip below the actually drawn sticky heading",
+    "Mobile Ranking/Saga/Decades/Mural fit available width and reflow on live resize; TV layout tables retain their existing formulas"
+  ],
+  "proof_scope": "Fresh exact-commit actual full-render/pointer cases:75gesture +36reachability, each normal and ASan/UBSan. Typed GPU/text/SDL and offline catalog boundaries; no full app/platform/device/build/CI claim.",
+  "gesture_cases": {
+    "normal": 75,
+    "asan_ubsan": 75,
+    "final_binding_sha256": "807f38da258554d1fb4203e0ff82fb30b5ca39c43e1c30a7636482f99aae1f84"
+  },
+  "reachability_final_binding": {
+    "path": "review/reachability-final-verified.json",
+    "sha256": "2d9ae7528fec7073792cdfa25b33bc36f015c9136ed8d5994e619b9fc59256f3",
+    "normal_cases": 36,
+    "asan_ubsan_cases": 36,
+    "title_activations_per_mode": 2160,
+    "real_drags_per_mode": 863,
+    "assertions_total": 224220
+  },
+  "evidence": {
+    "peer/final-combined-binding.json": "807f38da258554d1fb4203e0ff82fb30b5ca39c43e1c30a7636482f99aae1f84",
+    "peer/final-combined-normal/receipt.json": "90c369b5c3af8c621ef76ff31af7ad9a163c34d3bd3de5e2cf6c0e77d34ad6a4",
+    "peer/final-combined-asan/receipt.json": "1c55c8a700a8fba20bf694ec3c32332e51c8461b26483782ee01f0b6969485e9",
+    "peer/peer-findings.json": "cd05472b074d9e9c7f9d7891cff9d335583a36b84f05468d0db5476c5957664d",
+    "peer/fixture-freeze.json": "2e39de51263d6a8539058bee37e41a02e2c96460319d0d2ff3aae7e80b31eea5",
+    "review/log-evidence.json": "24434f48b58ebae6892da9b9913cc9272b88259c2899f370e06c9ac8d03ecb12",
+    "upstream-followup-audit.json": "c6392ec592c2db0865596ba14a5b4674b4ade93693d643e58b24838020735073",
+    "review/reachability-final-verified.json": "2d9ae7528fec7073792cdfa25b33bc36f015c9136ed8d5994e619b9fc59256f3"
+  },
+  "product_contains_no_tests_workflows_or_private_diagnostics": true,
+  "ci_or_publication_performed": false,
+  "root_approval_is_separate_from_this_manifest": true,
+  "all_requested_local_preflight_passed": true,
+  "separate_geometry_commit": "17ae4a668b2924a387fc4ff5a2dfc085865b4d1e",
+  "tv_geometry_comparison": {
+    "cells_and_order": 360,
+    "receipt_sha256": "89a75edcb5dc743d92617fe13cb406d2c82c4868f7ca16b62f791577ec825724",
+    "scope": "Actual mounting/table comparison, not a TV full-render/device claim."
+  }
+}

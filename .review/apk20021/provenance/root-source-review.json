@@ -1,0 +1,45 @@
+{
+  "approved": true,
+  "scope": "Frozen Logs11 source composition only; CI launch and publication approval remain separate.",
+  "product_only_change_from_logs10": "src/vertudo.c",
+  "private_only_changes_from_logs10": [
+    "src/vertudo.c",
+    "android/app/build.gradle.kts versionCode/name"
+  ],
+  "source_receipt_sha256": "e32e6cc5ac1b58be70b01842898b135cf2678114c95b71e25a7f68140a6609fb",
+  "composition_manifest_sha256": "22bb7408c997881d09d982a80667741b079f6a039e7cb9f9d646544f52ddd5f5",
+  "bundle_sha256": "93676243578a6be5f4aae19a13eac5b58f957ae74123ddf83a102b30cd03f4fe",
+  "sources": [
+    {
+      "layer": "product",
+      "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+      "manifest_sha256": "f6d6f367cfb35a470641b7db60195e7cf629a2cec2220a31ead57a30e6e55818",
+      "file_hashes_verified": 198
+    },
+    {
+      "layer": "test",
+      "commit": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+      "tree": "8db5e6d2bdf6ffff2867fb2bcf88d241d6f57fac",
+      "manifest_sha256": "17586f1b72b2bded45318e1f295e056051988b0cd35d6f1dc1abe02725a3cc6f",
+      "file_hashes_verified": 203
+    }
+  ],
+  "private_overlay_paths": [
+    "android/app/build.gradle.kts",
+    "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/cpp/CMakeLists.txt",
+    "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+    "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+    "src/ajustes.c",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_ilha.inc",
+    "src/ajustes_ux_interacao.inc",
+    "src/app.c",
+    "src/posplay.c"
+  ],
+  "same_package_certificate_required": true,
+  "ci_launch_approved": false,
+  "publication_approved": false,
+  "all_pr_writes_held": true
+}

@@ -1,0 +1,35 @@
+{
+  "approved": true,
+  "scope": "APK20021 CI recipe and internal fork review branch only; public PRs held. Exact final upload payload must be rechecked before branch creation.",
+  "preapproval_plan_sha256": "de5e2f267db5749c5516bbfc67afc9235f7b6f065b23d07b26cf85f8049adb31",
+  "source_review_sha256": "dd977c3cb42814fb380f612dc2ec7d42a1783ae2ebf890d84e11310347069d28",
+  "peer_static_review_sha256": "ae1ee2b588b3b1fd275df01eb81f41fa124db6ae356dd0f50b934894ae8e85f8",
+  "changed_closure_preflight_sha256": "4830c8b77a91bdec886da66aa29c1e07ccc3ae8649337dd3815bb3d8beed9b0d",
+  "required_feature_outer_groups": 24,
+  "required_pointer_subcases": {
+    "gesture": 75,
+    "reachability": 36,
+    "reachability_title_activations": 2160
+  },
+  "reviewed_recipe_pins": {
+    "aggregate.py": "7f7343c45bc33618855d872366453b3cf3ddb2274960124dbc1e62e88c1ee2fa",
+    "native/run.py": "23a59d137babb48ec2df4859bd49e9bef4d2e6141b5a9d93f42e5e9dc0e6a988",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "d4cc014c6308bc7d6f5d94d595c079459cbd0e4c1785ed32c1412e6ee8872dbf",
+    "jvm/manifest.json": "2c7e8cd86b5165d5e2d797eef61d736ad4aa14a34a1ae6eac57967d6a1d8bbb2",
+    "feature-contracts/manifest.json": "7496e631c9a07132a33b89c3f55fd5218df0fa5b62523f48f2eadec5d2a3b557",
+    "require_plan.py": "e804756916f08f644cdfbd4952b10ddd422eb2f796993226a454b1eb7ebfd97f",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "98c23361464ae7aa27612b9b61c21be062d983ea9ded85400130a28fbf91b225",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "c0a1270251fbcc9c89285cde607825e584d1ca72640238253988579efb5aa9bc"
+  },
+  "approved_next_actions": [
+    "Set frozen/root_reviewed/ci_execution_permitted true and record this approval",
+    "Regenerate workflow plan hash and package final exact payload for root upload check"
+  ],
+  "source_or_executable_recipe_edits_after_this_approval": false,
+  "release_publication_approved": false,
+  "all_pr_writes_held": true
+}

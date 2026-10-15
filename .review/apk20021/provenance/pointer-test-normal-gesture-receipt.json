@@ -1,0 +1,1313 @@
+{
+  "scope": "Actual full vertudo render and production pointer/event/ctxhold/abrirItem/layout/local-storage/profile epoch paths; typed headless SDL/GPU/text/catalog/TMDB boundaries. Grid cases prove one visible noninitial card per view, not complete grid reachability. No app/SDK/device/network build claim.",
+  "source": "/workspace/review/integration-apk20021-20261015/test",
+  "source_commit": "eaab077eefb1a2300473d7f68a8ff4577cff9bb5",
+  "actual_watched_producer_origin": {
+    "source_sha256": "56857475c4548894db890b921f6624fec1145b03906005265e72af84722b3d67",
+    "generated_sha256": "ed04fc06321fd8f80073839d73175c10594283f75ce4df39c2513e3765fcf66b",
+    "actual_function_present": true
+  },
+  "source_status": "",
+  "runs": [
+    {
+      "case": "v0-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v0-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v0-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v0-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v0-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v0-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v1-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v1-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v1-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v1-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v1-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v1-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v2-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v2-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v2-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v2-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v2-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v2-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v3-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v3-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v3-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v3-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v3-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v3-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v4-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v4-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v4-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v4-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v4-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v4-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v6-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v6-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v6-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v6-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v6-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v6-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o1-z0-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o1-z1-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o1-z2-r0-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r1-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z1-r1-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z2-r1-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o1-z0-r1-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o1-z1-r1-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o1-z2-r1-open",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-filter",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-reopen",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-source",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-session",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-mode",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-closed",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-layout",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-stale-key",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-drag-x",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-drag-y",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-drag-diag-x",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-drag-diag-y",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-resume-x",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-resume-y",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-transition-x",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-transition-y",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-clip-top",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-multi",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-hold",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v7-o0-z0-r0-tmdb",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    },
+    {
+      "case": "v5-o0-z0-r0-decades-clip",
+      "exit_code": 0,
+      "abort_traps_fired": false
+    }
+  ],
+  "exit_code": false,
+  "private": true,
+  "sanitized": false,
+  "commands": [
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/0.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/collection-taps.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/0.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-Ddados_gravar=collection_real_dados_gravar",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/1.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/test/src/dados.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/1.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/2.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/test/src/layout.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/2.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/3.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/test/src/ponteiro.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/3.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/4.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/test/src/ctxlista.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/4.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/5.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/test/src/perfis.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/5.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-MMD",
+      "-MF",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/6.d",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/actual-desc-filme-visto.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/6.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/traps.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/0.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/1.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/2.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/3.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/4.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/5.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/6.o",
+      "-Wl,--gc-sections",
+      "-no-pie",
+      "-lm",
+      "-pthread",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe"
+    ],
+    [
+      "/usr/bin/cc",
+      "-std=gnu11",
+      "-O1",
+      "-g",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-pie",
+      "-I/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk",
+      "-I/workspace/review/integration-apk20021-20261015/test/src",
+      "-include",
+      "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h",
+      "-DNV_ANDROID=1",
+      "-DNV_TOUCH_UI=1",
+      "-DVERTUDO_SOURCE=\"/workspace/review/integration-apk20021-20261015/test/src/vertudo.c\"",
+      "-DHAS_VIT_PROJECTION=1",
+      "-DNV_TEST_LOCAL_LOGS=1",
+      "-c",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/traps.c",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/traps.o"
+    ],
+    [
+      "/usr/bin/cc",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/traps.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/0.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/1.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/2.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/3.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/4.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/5.o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/6.o",
+      "-Wl,--gc-sections",
+      "-no-pie",
+      "-lm",
+      "-pthread",
+      "-o",
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "0",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "0",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "0",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "0",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "0",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "0",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "1",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "1",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "1",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "1",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "1",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "1",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "2",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "2",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "2",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "2",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "2",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "2",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "3",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "3",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "3",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "3",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "3",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "3",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "4",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "4",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "4",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "4",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "4",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "4",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "6",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "6",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "6",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "6",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "6",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "6",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "1",
+      "0",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "1",
+      "1",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "1",
+      "2",
+      "0",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "1",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "1",
+      "1",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "2",
+      "1",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "1",
+      "0",
+      "1",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "1",
+      "1",
+      "1",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "1",
+      "2",
+      "1",
+      "open"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-filter"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-reopen"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-source"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-session"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-mode"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-closed"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-layout"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "stale-key"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "drag-x"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "drag-y"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "drag-diag-x"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "drag-diag-y"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "resume-x"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "resume-y"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "transition-x"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "transition-y"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "clip-top"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "multi"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "hold"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "7",
+      "0",
+      "0",
+      "0",
+      "tmdb"
+    ],
+    [
+      "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/probe",
+      "5",
+      "0",
+      "0",
+      "0",
+      "decades-clip"
+    ]
+  ],
+  "dependency_sha256": {
+    "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/collection-taps.c": "5ec3d9293dabfa30d71829e8f5f08cd790a9a1b50d9fe9250a7470bf7bd52959",
+    "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "/workspace/review/integration-apk20021-20261015/test/src/vertudo.c": "1fbdd6db0d75265693813299d055207f30a168ed898cd580ae8d73312c1dab10",
+    "/workspace/review/integration-apk20021-20261015/test/src/imdbnota.h": "b0cc39f37050086079ed89ed38218a81b124dfa22d9b06fc13320ddd25eb491b",
+    "/workspace/review/integration-apk20021-20261015/test/src/vertudo.h": "1d6d3723df795cc05805d8042d45b87a52e1b5c90b9c9d008579794bb54a9706",
+    "/workspace/review/integration-apk20021-20261015/test/src/colecoes.h": "bb9439ab769a2827c1d9ad1f3f37d6cd65b132b30204ccfeca97b952f03fb7e9",
+    "/workspace/review/integration-apk20021-20261015/test/src/posterprov.h": "d36f224330402073977889f5b0cb85a7f7cdff9012c9cfb235d4e0c218e136c2",
+    "/workspace/review/integration-apk20021-20261015/test/src/idioma.h": "77b2985bccf7c8925a8c8963a64320210ef2d848489d0527f8518afc37cf9257",
+    "/workspace/review/integration-apk20021-20261015/test/src/badges.h": "b5845d94e59afd6c24e387f601351819f81791926068bde3231fd390bf4c1168",
+    "/workspace/review/integration-apk20021-20261015/test/src/text.h": "669033654d7d2f96c3462f170ee9da7a0a741fb22798e06955f6f8aebc71a13e",
+    "/workspace/review/integration-apk20021-20261015/test/src/gl_compat.h": "41d0be967e34d02a153a55506eaa67fda4c0a9193634b127b159081aabfff192",
+    "/workspace/review/integration-apk20021-20261015/build-stage/feature-contracts/collection-taps/fixture/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "/workspace/review/integration-apk20021-20261015/test/src/descoberta.h": "07c55c3d7aa1ebe628f31081b02e6faf48267a6ebd8cc8549314811e33b1b5b3",
+    "/workspace/review/integration-apk20021-20261015/test/src/catalogo.h": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+    "/workspace/review/integration-apk20021-20261015/test/src/arteurl.h": "39ec02d8e8f14787156ee0dab0d5297878effe237f665a8d830f0fb8978f9b13",
+    "/workspace/review/integration-apk20021-20261015/test/src/addonurl.h": "c90fc9eb497eff1116628a0e1a1d540947bb446920936dc2c6d69a0fe3349375",
+    "/workspace/review/integration-apk20021-20261015/test/src/gfx.h": "ecd04272101f8a0bd733423971342c5e112cbe44e75016eec25df24dcfb1415a",
+    "/workspace/review/integration-apk20021-20261015/test/src/sinopse.h": "07afd19702f58d25a6a16ffc3a3f29608cca707ea13e08c9c6b00e19138d32f4",
+    "/workspace/review/integration-apk20021-20261015/test/src/tex_cache.h": "7387b3d9231634fdca6bc29e308e22ee34f0bb105658f1a7952bf79e9d2209b1",
+    "/workspace/review/integration-apk20021-20261015/test/src/perfiltv.h": "121723f11708c7519a91aa2b83254d76d78398f7d649ddc0cda5e07577d84d5c",
+    "/workspace/review/integration-apk20021-20261015/test/src/layout.h": "ccc6faa888a2af844535c93a854354a737f26927810fd7179437b701b12555cc",
+    "/workspace/review/integration-apk20021-20261015/test/src/anim.h": "e4f1c6454f788e62fbca501fcfad12a44447ed986cde2b63aad3dd5bf817a61f",
+    "/workspace/review/integration-apk20021-20261015/test/src/revela.h": "11d8af3fad029d353f1f2985a69da1888dd269ef79a87513393c0b9db4a9e30a",
+    "/workspace/review/integration-apk20021-20261015/test/src/ajustes.h": "c4dd4ac7b82203f6854fe2deeeef820f4b410386c42cdaf33ca5d7bd5776d6f8",
+    "/workspace/review/integration-apk20021-20261015/test/src/idiomacod.h": "bd384f3112ea3db429f83bb7e5d14d29d722627d5f98c2aa51b3ffe340f02b5a",
+    "/workspace/review/integration-apk20021-20261015/test/src/diretor.h": "fc0ffbbb5181046b21c5e216045741567dd9ef87508f97e66d5fce0c23ef5e47",
+    "/workspace/review/integration-apk20021-20261015/test/src/addons.h": "ac97e495629dc11888672275d909aa46c250136801e3aa0fa18ef41b505e181e",
+    "/workspace/review/integration-apk20021-20261015/test/src/nuvem.h": "936cfbcdc5a77eb67af6541a9ae6db8aa4c636a461ea136103755e2ec4790390",
+    "/workspace/review/integration-apk20021-20261015/test/src/fundo.h": "70e24403c9f7ebbab60d33591f05b8858a2d1561f13ae9d60c6de2d3581147f2",
+    "/workspace/review/integration-apk20021-20261015/test/src/focoprof.h": "1eaaa82323fbbe8f9e53c24b2f51301aee47338ebf63bc6ef57f45e71a9f5c32",
+    "/workspace/review/integration-apk20021-20261015/test/src/corviva.h": "95fa3982eac82ec5c884781e214f913b715a721123e1f0e5cef3bc6fd70960da",
+    "/workspace/review/integration-apk20021-20261015/test/src/ctxlista.h": "c49eeb4ae4b146f24978fc95450df234a17985aec6a0c061310aeffe81df0a50",
+    "/workspace/review/integration-apk20021-20261015/test/src/ctxmenu.h": "a4da3e801dc7b1c18a1ea57bb3057033caa8aab402e4f1421ba1ad6256972a32",
+    "/workspace/review/integration-apk20021-20261015/test/src/listas.h": "cd51a0465177bc6af48dda845a83de733d205a7987b0c313042211a89bf646a8",
+    "/workspace/review/integration-apk20021-20261015/test/src/ponteiro.h": "252f5704ec72944905c4e1092b2696b12b298c0dcf4f894c82e9c3a9155c636c",
+    "/workspace/review/integration-apk20021-20261015/test/src/rolagemtoque.h": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e",
+    "/workspace/review/integration-apk20021-20261015/test/src/telefoneui.h": "11a4c52cba19a5fa5137da13cf58a01a0af39676097429c9c06fb85f7b9a5174",
+    "/workspace/review/integration-apk20021-20261015/test/src/escala.h": "24acc01b9345a96a6be0478ea68aa4cf0c11c9eda43de9f34584f5813d25534d",
+    "/workspace/review/integration-apk20021-20261015/test/src/anos.h": "aa0eed4ab45cf1d87f5d69dd3f745d24db40bfd0c7f7c1406e1491c0ac07002a",
+    "/workspace/review/integration-apk20021-20261015/test/src/salvos.h": "2f75a4a5b60dc3d3040aaa36d720dd430beb1a00264112e895c83834ab6ce1f7",
+    "/workspace/review/integration-apk20021-20261015/test/src/dados.h": "7708a0f524065bc00ddfe97e65a320f63a5b5b184ac00ab5a0b6094edd3ea75b",
+    "/workspace/review/integration-apk20021-20261015/test/src/home.h": "c3d82c5e080d0fbf0d499f8d1a9b548420a75796f3486bf8104833797151ed9a",
+    "/workspace/review/integration-apk20021-20261015/test/src/perfis.h": "c2dfcee02333697a276dfc53754fd5eac4a79740bf722d02d7545229299b9cb5",
+    "/workspace/review/integration-apk20021-20261015/test/src/dados.c": "a8a159631639f14feb5dd7c05883d89348d7c97a96cb6a1eb412fbef9d09e3b1",
+    "/workspace/review/integration-apk20021-20261015/test/src/app_id.h": "ba85710b6b7b0f86a862df12bc63be2077546a46faac3769562ba769a4f6c963",
+    "/workspace/review/integration-apk20021-20261015/test/src/espaco.inc": "836b03928604e0e68f17b68d6775e70cdb2ae31a7bd5f0908c3d9886cf987075",
+    "/workspace/review/integration-apk20021-20261015/test/src/layout.c": "07d26ad56ac0cbfea49ee30d9d8482b3368d1445bc65bb5a145ed08b917b80fb",
+    "/workspace/review/integration-apk20021-20261015/test/src/ponteiro.c": "5e379adc860dd8ad4831ccf133a846a4ac7c266539078015d4ed89baea40c3b4",
+    "/workspace/review/integration-apk20021-20261015/test/src/ctxlista.c": "302d960f1534a1d80e5efe78f048a96e164636895dd87ae745e420682d4f73ac",
+    "/workspace/review/integration-apk20021-20261015/test/src/ilha.h": "3c0e7330e15edef1f1eb21d98495b68fc09d878b9adfc0ae1ca6d0f262f3375e",
+    "/workspace/review/integration-apk20021-20261015/test/src/segurar.h": "df2a0f66f2fd69997dc6be4bbe1b05861c482158d9968c4c3b759756bb49d632",
+    "/workspace/review/integration-apk20021-20261015/test/src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf",
+    "/workspace/review/integration-apk20021-20261015/test/src/sessao.h": "9972c512e7ec415b1c74ef82bad8ac0b5f44536f0b88ee7ffe1d7926a565cb64",
+    "/workspace/review/integration-apk20021-20261015/test/src/fileiras.h": "f90042cff11c641a94ec51a5858124960a2018c5d915ab7500ea080ba5017ab1",
+    "/workspace/review/integration-apk20021-20261015/test/src/js.h": "d368cf856eac2042f6722e65eb23d02842f03ceb10e58c42d801162b68f9b52f",
+    "/workspace/review/integration-apk20021-20261015/test/src/jsw.h": "2ab32d136cb4fc4f39ab4675fda34429315010f546c07222cef67a921041b956",
+    "/workspace/review/integration-apk20021-20261015/review/combined-pointer-preflight/test-normal/gesture/actual-desc-filme-visto.c": "ed04fc06321fd8f80073839d73175c10594283f75ce4df39c2513e3765fcf66b"
+  },
+  "unreached_abort_traps": [
+    "ajustes_idioma",
+    "badges_desenhar",
+    "badges_provedor",
+    "cat_item",
+    "cat_n",
+    "ctx_aberto",
+    "ctx_abrir_cartaz",
+    "ctx_dispensar_retomar",
+    "ctx_fileira",
+    "diretor_foto",
+    "diretor_pedir",
+    "imdbnota_obter",
+    "sinopse_entrelinha",
+    "tex_aspecto",
+    "tex_marca_escura",
+    "tex_obter_hero",
+    "tex_obter_logo_larg"
+  ],
+  "abort_traps_fired": false,
+  "binary_sha256": "d2d12193f04e507b831f3daf4b844aea846114ed2ed17deb003284648799f22b",
+  "tooling_sha256": {
+    "collection-taps.c": "5ec3d9293dabfa30d71829e8f5f08cd790a9a1b50d9fe9250a7470bf7bd52959",
+    "run.py": "d9712196b426e6af84f3fac0daba3376b1f26b89e76633c30ff887b0885008ae",
+    "sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  }
+}

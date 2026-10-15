@@ -1,0 +1,9 @@
+{
+  "excluded": [
+    "Upstream rebase",
+    "Any additional feature beyond accepted Logs10 foundation plus root-approved collection interaction/geometry correction",
+    "Public PR publication or updates",
+    "Any backend/report-service traffic or release/ref action in source validation CI"
+  ],
+  "subtitle_style_access": "No product fix; the existing Style entry remains in the player Subtitles panel."
+}

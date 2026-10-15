@@ -1,0 +1,30 @@
+{
+  "status": "approved narrow source fix; final affected normal/sanitized checks passed; composition authorized",
+  "source_commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+  "source_tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+  "parent_commit": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+  "changed_paths": [
+    "src/vertudo.c"
+  ],
+  "vertudo_sha256": "1fbdd6db0d75265693813299d055207f30a168ed898cd580ae8d73312c1dab10",
+  "review": [
+    "Actual Mobile Showcase target registration and correct XY scroll state",
+    "Explicit stale activation consumed across source/projection/profile generations",
+    "Decades targets clipped below actual sticky heading",
+    "Mobile columns and Mural scale fit content; original TV formulas retained",
+    "Mobile content size invalidates cached mounting for rotation/scale changes"
+  ],
+  "allowed_next_action": "Compose APK20021 product and same11file privateoverlay, onlyversionbump. Run bounded exact changed closure and freeze manifests for final root CI review.",
+  "ci_launch_approved": false,
+  "publication_approved": false,
+  "pr_publication_held": true,
+  "final_affected_receipts": {
+    "/workspace/review/issue362-collection-taps-20261015/peer/final-combined-binding.json": "807f38da258554d1fb4203e0ff82fb30b5ca39c43e1c30a7636482f99aae1f84",
+    "/workspace/review/issue362-collection-taps-20261015/peer/final-combined-normal/receipt.json": "90c369b5c3af8c621ef76ff31af7ad9a163c34d3bd3de5e2cf6c0e77d34ad6a4",
+    "/workspace/review/issue362-collection-taps-20261015/peer/final-combined-asan/receipt.json": "1c55c8a700a8fba20bf694ec3c32332e51c8461b26483782ee01f0b6969485e9",
+    "/workspace/review/issue362-mobile-layout-20261015/review/final-combined-normal/receipt.json": "877f29dbf784d4f271606183a2ca5faba090e04edec1903513182d7faa7c4933",
+    "/workspace/review/issue362-mobile-layout-20261015/review/final-combined-asan/receipt.json": "f17a068273be787e7ddd2591690e4a016c2e8590e66a224e0c8b9f26e52ddde5",
+    "/workspace/review/issue362-mobile-layout-20261015/review/tv-geometry-verified.json": "89a75edcb5dc743d92617fe13cb406d2c82c4868f7ca16b62f791577ec825724"
+  },
+  "scope": "Headless production collection rendering, SDL pointer routing, handlers and title selection with typed catalog/GPU boundaries. No app/SDK/device build claim."
+}

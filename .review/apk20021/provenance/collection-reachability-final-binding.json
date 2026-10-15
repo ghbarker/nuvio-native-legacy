@@ -1,0 +1,62 @@
+{
+  "outcome": "passed",
+  "geometry_source": {
+    "commit": "17ae4a668b2924a387fc4ff5a2dfc085865b4d1e",
+    "tree": "fb64a2463881d4d9162245b652ff2fb455fed8a2",
+    "parent": "c8b7f4a3c287f64531f3734d46564d79e23847ca",
+    "product_files": [
+      "src/vertudo.c"
+    ],
+    "patch_sha256": "4d89f010c0572875b6306de8d6e785fedbec248b73913ac5c0512df4ad17a9fe"
+  },
+  "final_combined_source": {
+    "path": "/workspace/review/issue362-collection-taps-20261015/source",
+    "commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+    "tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+    "src/vertudo.c": "1fbdd6db0d75265693813299d055207f30a168ed898cd580ae8d73312c1dab10",
+    "clean": true
+  },
+  "portable_producer": {
+    "path": "/workspace/review/issue362-mobile-layout-20261015/review/portable",
+    "manifest_sha256": "88b55758ca71fa21824843e1c587a46218f3c1d5fa1d89abfe2c5a80fd3c4eaf",
+    "runner_sha256": "f6a22e85a8451a348377be86e4c479d61c3da3611e05ee692c566ce8a9585f4f",
+    "fixture_sha256": "98b971960115c82e9d1c7e9807fd6c032954b1c774d9fc81fd925992a807bf57",
+    "cli": "--source SOURCE --output OUTPUT --cc CC [--sanitize] [--private]"
+  },
+  "fresh_final_combined_reports": [
+    {
+      "path": "/workspace/review/issue362-mobile-layout-20261015/review/final-combined-normal/receipt.json",
+      "sha256": "877f29dbf784d4f271606183a2ca5faba090e04edec1903513182d7faa7c4933",
+      "sanitized": false,
+      "cases": 36,
+      "title_activations": 2160,
+      "assertions": 112110,
+      "real_drags": 863
+    },
+    {
+      "path": "/workspace/review/issue362-mobile-layout-20261015/review/final-combined-asan/receipt.json",
+      "sha256": "f17a068273be787e7ddd2591690e4a016c2e8590e66a224e0c8b9f26e52ddde5",
+      "sanitized": true,
+      "cases": 36,
+      "title_activations": 2160,
+      "assertions": 112110,
+      "real_drags": 863
+    }
+  ],
+  "assertions_total": 224220,
+  "tv_geometry": {
+    "path": "/workspace/review/issue362-mobile-layout-20261015/review/tv-geometry-verified.json",
+    "sha256": "89a75edcb5dc743d92617fe13cb406d2c82c4868f7ca16b62f791577ec825724",
+    "cells_and_title_order_compared": 360,
+    "scope": "Completed actual mounting/table comparison against unchanged c8b7; not a TV full-render/device claim."
+  },
+  "preserved_diagnostics": {
+    "baseline_reachability_red": "baseline-red/receipt.json",
+    "excluded_failed_interim_TV_draw": [
+      "tv-baseline/receipt.json",
+      "tv-candidate/receipt.json"
+    ],
+    "note": "Interim TV full draws reached unprovided side-panel badge boundary; neither counts as a pass. Completed table comparison is independently green."
+  },
+  "scope": "Bounded actual complete collection renderer, real pointer and title mailbox selection with real storage/layout/profile/ctxhold producers and typed offline catalog/text/GPU/SDL boundaries. Source tests/workflows unchanged; no CI, APK/SDK build, physical-device or PR claim."
+}
