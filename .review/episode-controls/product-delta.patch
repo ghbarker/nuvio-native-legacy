@@ -1,0 +1,1490 @@
+diff --git a/src/app.c b/src/app.c
+index 5f91d407aefcb5c866d64a07d0efb69fd45c05f8..540922568a602ddf7c6c5a0d8afebefa2168d9d3 100644
+--- a/src/app.c
++++ b/src/app.c
+@@ -2116,7 +2116,9 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+   int titulo = player_indice();
+   char atual[64], alvo[64];
+   alvoPlayer(atual, sizeof atual);
+-  cat_id_stream(titulo, t, e, alvo, sizeof alvo);
++  if (!cat_id_stream(titulo, t, e, alvo, sizeof alvo) || !alvo[0]) {
++    player_episodio_pedido_liberar(); return;
++  }
+   uint64_t sessaoPerfil = proximoIntento.tem && !strcmp(proximoIntento.alvo, alvo)
+       ? proximoIntento.sessaoPerfil : sessaoEntrada;
+   ProximoPreparoResultado preparada = {0};
+@@ -2124,6 +2126,7 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+   if (!nv_perfil_sessao_atual(sessaoPerfil) || (pronta && preparada.sessaoPerfil != sessaoPerfil)) {
+     proximopreparo_liberar_resultado(&preparada);
+     memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
++    player_episodio_pedido_liberar();
+     return;
+   }
+   if (!pronta && proximopreparo_em_curso(alvo)) {
+@@ -2142,6 +2145,7 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+   // sob o mesmo ator; nao segurar esta trava ao salvar/fechar o player.
+   if (!nv_perfil_sessao_travar(sessaoPerfil)) {
+     proximopreparo_liberar_resultado(&preparada); proximopreparo_cancelar();
++    player_episodio_pedido_liberar();
+     return;
+   }
+ #ifdef NV_ANDROID
+@@ -2221,6 +2225,12 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
+   }
+ }
+ static void proximoPreparoPasso(void) {
++  // O gesto novo tem prioridade sobre uma contagem ja entregue. O worker
++  // fica para o roteador consumir se for o mesmo Next, ou cancelar no Anterior.
++  if (player_transporte_pedido_pendente()) {
++    memset(&proximoIntento, 0, sizeof proximoIntento);
++    return;
++  }
+   char atual[64] = "";
+   if (player_aberto() && !player_quer_sair() && !player_id_canal()[0]) alvoPlayer(atual, sizeof atual);
+   proximopreparo_passo(atual);
+@@ -2229,6 +2239,7 @@ static void proximoPreparoPasso(void) {
+       proximoIntento.geracao != proximopreparo_geracao() ||
+       !nv_perfil_sessao_atual(proximoIntento.sessaoPerfil)) {
+     memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
++    player_episodio_pedido_liberar();
+   } else if (!proximopreparo_em_curso(proximoIntento.alvo))
+     abrirProximoEpisodio(proximoIntento.t, proximoIntento.e, proximoIntento.apontar);
+ }
+@@ -2589,6 +2600,20 @@ static void guardarPosicaoFonteFalha(void) {
+     if (pos >= 0.0 && isfinite(pos)) fonteFalhaPos = pos;
+   }
+ }
++static void recarregarFonteVOD(void) {
++  uint64_t sessaoPerfil = nv_perfil_sessao_ler();
++  if (!player_aberto() || player_quer_sair() || player_id_canal()[0] ||
++      aguardandoFonte != 0 || !nv_perfil_sessao_atual(sessaoPerfil)) return;
++  // Reabrir o pipeline pode chamar firmware; nao segurar a trava do perfil.
++  int aceita = video_recarregar();
++  if (!nv_perfil_sessao_atual(sessaoPerfil)) return;
++  if (!aceita) { player_toast(i18n("Indisponível agora"), 2000); return; }
++  // A mesma fonte ganha prazo para reabrir, sem recomecar seu orcamento,
++  // refazer a escolha ou marcar o episodio como concluido.
++  Uint32 agora = SDL_GetTicks() | 1u;
++  if (fonteVODAutomatica) fonteVODDesde = agora;
++  else fonteManualDesde = agora;
++}
+ static void tentarProximaFonteVOD(void) {
+   Uint32 desde;
+   int atual, motivo = 0;
+@@ -5366,12 +5391,13 @@ void app_atualizar(float dt, Uint32 agora) {
+       else guia_carregar();
+     } }
+ 
+-  // RECARREGAR (botao do OSD do canal): mesma acao do zap com deslocamento 0 —
+-  // o proprio canal, fonte buscada de novo.
++  // Canal conserva o zap zero. Filme/serie reabre so o pipeline da fonte
++  // corrente, sem consultar addons ou pedir outro link ao provedor.
+   if (player_pediu_recarregar() && player_aberto() && aguardandoFonte != 2) {
+     const char *id = player_id_canal();
+     CatItem it;
+-    if (id[0] && guia_zap(id, 0, &it)) tocarCanal(&it);
++    if (id[0]) { if (guia_zap(id, 0, &it)) tocarCanal(&it); }
++    else recarregarFonteVOD();
+   }
+ 
+   // BAIXO/AZUL COM CANAL NO AR: o overlay do guia abre focado no canal que
+diff --git a/src/idioma_bg.h b/src/idioma_bg.h
+index 9a6b9ec4dcda01ffd374bb741982629528b1be20..f4717e6b26bd962c6c573eb96d9ac0e2b542f92e 100644
+--- a/src/idioma_bg.h
++++ b/src/idioma_bg.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Епизод"),
+   T("Episódio %d", "Епизод %d"),
+   T("Episódio 3", "Епизод 3"),
++  T("Episódio anterior", "Предишен епизод"),
+   T("Episódio certo", "Правилният епизод"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Правилен епизод, без повторения в Trakt."),
+   T("Episódio novo", "Нов епизод"),
+diff --git a/src/idioma_bs.h b/src/idioma_bs.h
+index 200dda91663d7be16442aa0b24bd2635d7091d38..e2df5f334e657f622daf28c9aac33d84b15cdefc 100644
+--- a/src/idioma_bs.h
++++ b/src/idioma_bs.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizoda"),
+   T("Episódio %d", "Epizoda %d"),
+   T("Episódio 3", "Epizoda 3"),
++  T("Episódio anterior", "Prethodna epizoda"),
+   T("Episódio certo", "Ispravna epizoda"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Ispravna epizoda, bez duplih na Traktu."),
+   T("Episódio novo", "Nova epizoda"),
+diff --git a/src/idioma_cs.h b/src/idioma_cs.h
+index f61555e85ad010ab9dea030db7844ac48a44d782..ff54c09621f714eb3c20f3d30d39090df52f07ba 100644
+--- a/src/idioma_cs.h
++++ b/src/idioma_cs.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizoda"),
+   T("Episódio %d", "Epizoda %d"),
+   T("Episódio 3", "Epizoda 3"),
++  T("Episódio anterior", "Předchozí epizoda"),
+   T("Episódio certo", "Správná epizoda"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Správná epizoda, bez duplicit v Trakt."),
+   T("Episódio novo", "Nová epizoda"),
+diff --git a/src/idioma_da.h b/src/idioma_da.h
+index fa4dcfc82384277bbac44f8d2898ead6495be37e..6ef1c7e67337031be07aad77d512fe807dd719d8 100644
+--- a/src/idioma_da.h
++++ b/src/idioma_da.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Afsnit"),
+   T("Episódio %d", "Afsnit %d"),
+   T("Episódio 3", "Afsnit 3"),
++  T("Episódio anterior", "Forrige afsnit"),
+   T("Episódio certo", "Det rette afsnit"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Rigtigt afsnit, ingen dubletter i Trakt."),
+   T("Episódio novo", "Nyt afsnit"),
+diff --git a/src/idioma_de.h b/src/idioma_de.h
+index e10f74392e938ccc7357326f7467532920c3dc58..7a464191c650abe86d7544e96974ae1db6e541e3 100644
+--- a/src/idioma_de.h
++++ b/src/idioma_de.h
+@@ -1695,6 +1695,7 @@
+   T("Episódio", "Folge"),
+   T("Episódio %d", "Folge %d"),
+   T("Episódio 3", "Folge 3"),
++  T("Episódio anterior", "Vorherige Folge"),
+   T("Episódio certo", "Die richtige Folge"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Richtige Folge, keine Doppelungen auf Trakt."),
+   T("Episódio novo", "Neue Folge"),
+diff --git a/src/idioma_el.h b/src/idioma_el.h
+index e68420a052cf9ed3b569a5198d6fd45daa748660..0fb0886c668de3ebf7e7d709d8efd1abc3c81d3b 100644
+--- a/src/idioma_el.h
++++ b/src/idioma_el.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Επεισόδιο"),
+   T("Episódio %d", "Επεισόδιο %d"),
+   T("Episódio 3", "Επεισόδιο 3"),
++  T("Episódio anterior", "Προηγούμενο επεισόδιο"),
+   T("Episódio certo", "Το σωστό επεισόδιο"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Σωστό επεισόδιο, χωρίς διπλά στο Trakt."),
+   T("Episódio novo", "Νέο επεισόδιο"),
+diff --git a/src/idioma_es.h b/src/idioma_es.h
+index 7121003a12b0718d470985380d38d21a0bae1c4d..6043735dd51333dfc19bb62ab982a3717697de09 100644
+--- a/src/idioma_es.h
++++ b/src/idioma_es.h
+@@ -1695,6 +1695,7 @@
+   T("Episódio", "Episodio"),
+   T("Episódio %d", "Episodio %d"),
+   T("Episódio 3", "Episodio 3"),
++  T("Episódio anterior", "Episodio anterior"),
+   T("Episódio certo", "El episodio correcto"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Episodio correcto, sin repeticiones en Trakt."),
+   T("Episódio novo", "Episodio nuevo"),
+diff --git a/src/idioma_fr.h b/src/idioma_fr.h
+index 38f4c54af016b827bf6e79740164ad49177b61ec..096c3a9aa1141e9b4210df7161638554039ed2e6 100644
+--- a/src/idioma_fr.h
++++ b/src/idioma_fr.h
+@@ -1695,6 +1695,7 @@
+   T("Episódio", "Épisode"),
+   T("Episódio %d", "Épisode %d"),
+   T("Episódio 3", "Épisode 3"),
++  T("Episódio anterior", "Épisode précédent"),
+   T("Episódio certo", "Le bon épisode"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Bon épisode, sans doublons sur Trakt."),
+   T("Episódio novo", "Nouvel épisode"),
+diff --git a/src/idioma_hu.h b/src/idioma_hu.h
+index c281c2240978de021df123f3335fa2e76a04b1bc..3618729256705c6b0addaea81845dfc99471333b 100644
+--- a/src/idioma_hu.h
++++ b/src/idioma_hu.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizód"),
+   T("Episódio %d", "%d. epizód"),
+   T("Episódio 3", "3. epizód"),
++  T("Episódio anterior", "Előző epizód"),
+   T("Episódio certo", "A megfelelő epizód"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Helyes epizód, nincs duplázás a Trakton."),
+   T("Episódio novo", "Új epizód"),
+diff --git a/src/idioma_id.h b/src/idioma_id.h
+index 2a4a138e784dd322f9a03c86ec96883b1f4c9d68..04293ca799d9955bbf6935f9851a7fa1502899d6 100644
+--- a/src/idioma_id.h
++++ b/src/idioma_id.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Episode"),
+   T("Episódio %d", "Episode %d"),
+   T("Episódio 3", "Episode 3"),
++  T("Episódio anterior", "Episode sebelumnya"),
+   T("Episódio certo", "Episode yang tepat"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Episode tepat, tanpa duplikat di Trakt."),
+   T("Episódio novo", "Episode baru"),
+diff --git a/src/idioma_it.h b/src/idioma_it.h
+index e850c2cebab0347545d07f7ae19151d2ce8fbc3d..70508cb18a9be50c797ab1bb4378b1ba5637f2f3 100644
+--- a/src/idioma_it.h
++++ b/src/idioma_it.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Episodio"),
+   T("Episódio %d", "Episodio %d"),
+   T("Episódio 3", "Episodio 3"),
++  T("Episódio anterior", "Episodio precedente"),
+   T("Episódio certo", "L'episodio giusto"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Episodio giusto, senza doppioni su Trakt."),
+   T("Episódio novo", "Nuovo episodio"),
+diff --git a/src/idioma_ja.h b/src/idioma_ja.h
+index 55d27eedfe59b4ef437881a6ee54aac1668c5efc..a89438bd1c3e9d316e07ea8df181ea9e9096d466 100644
+--- a/src/idioma_ja.h
++++ b/src/idioma_ja.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "エピソード"),
+   T("Episódio %d", "エピソード %d"),
+   T("Episódio 3", "エピソード 3"),
++  T("Episódio anterior", "前のエピソード"),
+   T("Episódio certo", "正しいエピソード"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "正しい次の話。Trakt の重複再生もなし。"),
+   T("Episódio novo", "新エピソード"),
+diff --git a/src/idioma_lt.h b/src/idioma_lt.h
+index 3e5d9b6694251d21c76662074674f386c0be840d..eedde4293a062fe85f2aedc506eb168f2831d8cc 100644
+--- a/src/idioma_lt.h
++++ b/src/idioma_lt.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizodas"),
+   T("Episódio %d", "%d epizodas"),
+   T("Episódio 3", "3 epizodas"),
++  T("Episódio anterior", "Ankstesnis epizodas"),
+   T("Episódio certo", "Tinkamas epizodas"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Tinkama serija, be pasikartojimų Trakt."),
+   T("Episódio novo", "Naujas epizodas"),
+diff --git a/src/idioma_nl.h b/src/idioma_nl.h
+index 99b5660455faacfbed35036c0fe4f2c870c79839..90ff3453af37092d68986ffadaa8b355c218b709 100644
+--- a/src/idioma_nl.h
++++ b/src/idioma_nl.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Aflevering"),
+   T("Episódio %d", "Aflevering %d"),
+   T("Episódio 3", "Aflevering 3"),
++  T("Episódio anterior", "Vorige aflevering"),
+   T("Episódio certo", "De juiste aflevering"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Juiste aflevering, geen dubbele in Trakt."),
+   T("Episódio novo", "Nieuwe aflevering"),
+diff --git a/src/idioma_no.h b/src/idioma_no.h
+index 84d519e696db318758963f215d26622c9fadc38d..ba12ac10a60c0df374b6925f99bea1ab78d589c2 100644
+--- a/src/idioma_no.h
++++ b/src/idioma_no.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Episode"),
+   T("Episódio %d", "Episode %d"),
+   T("Episódio 3", "Episode 3"),
++  T("Episódio anterior", "Forrige episode"),
+   T("Episódio certo", "Riktig episode"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Riktig episode, ingen dobler i Trakt."),
+   T("Episódio novo", "Ny episode"),
+diff --git a/src/idioma_pl.h b/src/idioma_pl.h
+index 2a9d94fc53df680525959191e0e6668f6b9cb050..98bac848aad52f5b97b1aea2a2107073456846fe 100644
+--- a/src/idioma_pl.h
++++ b/src/idioma_pl.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Odcinek"),
+   T("Episódio %d", "Odcinek %d"),
+   T("Episódio 3", "Odcinek 3"),
++  T("Episódio anterior", "Poprzedni odcinek"),
+   T("Episódio certo", "Właściwy odcinek"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Właściwy odcinek, bez powtórek w Trakt."),
+   T("Episódio novo", "Nowy odcinek"),
+diff --git a/src/idioma_ptpt.h b/src/idioma_ptpt.h
+index cb2950396cbe014a366e9aea0d45652b16a3000c..931114af58a0ca119ab265123b2d428672ed4c92 100644
+--- a/src/idioma_ptpt.h
++++ b/src/idioma_ptpt.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Episódio"),
+   T("Episódio %d", "Episódio %d"),
+   T("Episódio 3", "Episódio 3"),
++  T("Episódio anterior", "Episódio anterior"),
+   T("Episódio certo", "O episódio certo"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Episódio certo, sem plays repetidos no Trakt."),
+   T("Episódio novo", "Episódio novo"),
+diff --git a/src/idioma_ro.h b/src/idioma_ro.h
+index 27560c3d423f1c89da8fceb4fd83b548cfcea953..071b0534d2379e31cf452b7b09d8a41cd904d87a 100644
+--- a/src/idioma_ro.h
++++ b/src/idioma_ro.h
+@@ -1695,6 +1695,7 @@
+   T("Episódio", "Episod"),
+   T("Episódio %d", "Episodul %d"),
+   T("Episódio 3", "Episodul 3"),
++  T("Episódio anterior", "Episodul anterior"),
+   T("Episódio certo", "Episodul potrivit"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Episod corect, fără redări repetate în Trakt."),
+   T("Episódio novo", "Episod nou"),
+diff --git a/src/idioma_ru.h b/src/idioma_ru.h
+index 4719d5c8facf6053d93f82a8cbaa792a5aeb4008..9ee2bcf957e9c276d426c28494a6c456341e2cdc 100644
+--- a/src/idioma_ru.h
++++ b/src/idioma_ru.h
+@@ -1695,6 +1695,7 @@
+   T("Episódio", "Эпизод"),
+   T("Episódio %d", "Эпизод %d"),
+   T("Episódio 3", "Эпизод 3"),
++  T("Episódio anterior", "Предыдущий эпизод"),
+   T("Episódio certo", "Нужный эпизод"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Верный эпизод, без повторов в Trakt."),
+   T("Episódio novo", "Новый эпизод"),
+diff --git a/src/idioma_sk.h b/src/idioma_sk.h
+index 8a8362820abbc5c571447d6dfa0bd8a81243af15..34fd73bd705c66c4c70ce2484c4bd29bf64a02e6 100644
+--- a/src/idioma_sk.h
++++ b/src/idioma_sk.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizóda"),
+   T("Episódio %d", "Epizóda %d"),
+   T("Episódio 3", "Epizóda 3"),
++  T("Episódio anterior", "Predchádzajúca epizóda"),
+   T("Episódio certo", "Správna epizóda"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Správna epizóda, bez duplicít v Trakt."),
+   T("Episódio novo", "Nová epizóda"),
+diff --git a/src/idioma_sl.h b/src/idioma_sl.h
+index 0b737cf8903817a8bccb3f282c3c836407439c11..0da8704deaf1558036bbaf23208fdc91f4d825d0 100644
+--- a/src/idioma_sl.h
++++ b/src/idioma_sl.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizoda"),
+   T("Episódio %d", "Epizoda %d"),
+   T("Episódio 3", "Epizoda 3"),
++  T("Episódio anterior", "Prejšnja epizoda"),
+   T("Episódio certo", "Prava epizoda"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Pravi del, brez dvojnikov v Trakt."),
+   T("Episódio novo", "Nova epizoda"),
+diff --git a/src/idioma_sr.h b/src/idioma_sr.h
+index 82b91f0d67ef26fad5e31764858f89a1775089cc..1565fb8a0c48994f2e75da93dbb82e82d2ba13fa 100644
+--- a/src/idioma_sr.h
++++ b/src/idioma_sr.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Epizoda"),
+   T("Episódio %d", "Epizoda %d"),
+   T("Episódio 3", "Epizoda 3"),
++  T("Episódio anterior", "Prethodna epizoda"),
+   T("Episódio certo", "Ispravna epizoda"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Ispravna epizoda, bez duplih na Traktu."),
+   T("Episódio novo", "Nova epizoda"),
+diff --git a/src/idioma_sv.h b/src/idioma_sv.h
+index 8060a16bbf7da254116f8fd94ac1b9644128885a..644f59b202436119a1aeaf15f66511273de92823 100644
+--- a/src/idioma_sv.h
++++ b/src/idioma_sv.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Avsnitt"),
+   T("Episódio %d", "Avsnitt %d"),
+   T("Episódio 3", "Avsnitt 3"),
++  T("Episódio anterior", "Föregående avsnitt"),
+   T("Episódio certo", "Rätt avsnitt"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Rätt avsnitt, inga dubbletter i Trakt."),
+   T("Episódio novo", "Nytt avsnitt"),
+diff --git a/src/idioma_tab.h b/src/idioma_tab.h
+index 3199f297358c0408c5362bba140dc58f837e801a..fc91ec0c3cdcdbbb6f24002380f772dd5143934e 100644
+--- a/src/idioma_tab.h
++++ b/src/idioma_tab.h
+@@ -1695,6 +1695,7 @@
+   { "Episódio", "Episode" },
+   { "Episódio %d", "Episode %d" },
+   { "Episódio 3", "Episode 3" },
++  { "Episódio anterior", "Previous episode" },
+   { "Episódio certo", "The right episode" },
+   { "Episódio certo, sem plays repetidos no Trakt.", "The right episode, no repeated plays on Trakt." },
+   { "Episódio novo", "New episode" },
+diff --git a/src/idioma_tr.h b/src/idioma_tr.h
+index e131a2cefe456d929df5987080e5083b1ed2447b..492b85bbde46c46bffb27e292d1b8093ca790d97 100644
+--- a/src/idioma_tr.h
++++ b/src/idioma_tr.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Bölüm"),
+   T("Episódio %d", "Bölüm %d"),
+   T("Episódio 3", "Bölüm 3"),
++  T("Episódio anterior", "Önceki bölüm"),
+   T("Episódio certo", "Doğru bölüm"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Doğru bölüm, Trakt’ta tekrar yok."),
+   T("Episódio novo", "Yeni bölüm"),
+diff --git a/src/idioma_uk.h b/src/idioma_uk.h
+index 3e4a68b72fcda008cb63932c7005114ac27d0bd2..c0b448d0ec38aac5afaece3096a1062aedc35518 100644
+--- a/src/idioma_uk.h
++++ b/src/idioma_uk.h
+@@ -1695,6 +1695,7 @@
+   T("Episódio", "Епізод"),
+   T("Episódio %d", "Епізод %d"),
+   T("Episódio 3", "Епізод 3"),
++  T("Episódio anterior", "Попередній епізод"),
+   T("Episódio certo", "Потрібний епізод"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Правильний епізод, без повторів у Trakt."),
+   T("Episódio novo", "Новий епізод"),
+diff --git a/src/idioma_vi.h b/src/idioma_vi.h
+index 23a5c13220a514ceda09e6976dda8c309cba45e1..e831065428fc5c26e7d995ee3ba2db5051d1b071 100644
+--- a/src/idioma_vi.h
++++ b/src/idioma_vi.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "Tập"),
+   T("Episódio %d", "Tập %d"),
+   T("Episódio 3", "Tập 3"),
++  T("Episódio anterior", "Tập trước"),
+   T("Episódio certo", "Đúng tập"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "Đúng tập, không lặp lượt phát trên Trakt."),
+   T("Episódio novo", "Tập mới"),
+diff --git a/src/idioma_zhcn.h b/src/idioma_zhcn.h
+index 7581eab79473b7e78e50eb2e273113fd06153c1d..fe61362cf079b06b0d95b74dc6c2a936d56e1d6d 100644
+--- a/src/idioma_zhcn.h
++++ b/src/idioma_zhcn.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "剧集"),
+   T("Episódio %d", "第 %d 集"),
+   T("Episódio 3", "第 3 集"),
++  T("Episódio anterior", "上一集"),
+   T("Episódio certo", "正确的剧集"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "下一集更准确，Trakt 不再重复播放。"),
+   T("Episódio novo", "新剧集"),
+diff --git a/src/idioma_zhtw.h b/src/idioma_zhtw.h
+index c38ac44fa6857cbecd128b28b940fd1b29405faa..85c774d65e4eef5906e90a2bf30b21c0b9ad7b04 100644
+--- a/src/idioma_zhtw.h
++++ b/src/idioma_zhtw.h
+@@ -1696,6 +1696,7 @@
+   T("Episódio", "集數"),
+   T("Episódio %d", "第 %d 集"),
+   T("Episódio 3", "第 3 集"),
++  T("Episódio anterior", "上一集"),
+   T("Episódio certo", "正確的集數"),
+   T("Episódio certo, sem plays repetidos no Trakt.", "下一集更準確，Trakt 不再重複播放。"),
+   T("Episódio novo", "新集數"),
+diff --git a/src/player.c b/src/player.c
+index 4f1e4e463042919d3b9c1231485b815f3d072689..b326f0630a93824f1d5277406724d4598e565d5f 100644
+--- a/src/player.c
++++ b/src/player.c
+@@ -163,6 +163,7 @@ static void avisarCascaAberto(int v) { (void)v; }
+ #define PLR_BTN_D         68.0f
+ #define PLR_BTN_GAP       12.0f
+ #define PLR_GAP_ROW       38.0f   // topo da barra -> topo dos botoes
++#define PLR_TOQUE_CELULA  144.0f  // antes da escala UI; 48 dp numa tela de 360 dp
+ // Onde a barra fica (topo do trilho): com o OSD inteiro, e na busca so com a
+ // barra (#128) — mais baixa, sem nada embaixo dela alem do tempo. Com o Seekr
+ // ligado a busca deixa 30 px a mais para a ilha da miniatura.
+@@ -196,10 +197,10 @@ static void avisarCascaAberto(int v) { (void)v; }
+ #define PG_LIMITE_SEG     45.0f
+ 
+ // Transporte compacto. Os saltos continuam acessiveis pelas setas na barra.
+-// A ORDEM DO MOCKUP APROVADO (03/10): Play, Legendas, Audio, Proporcao,
+-// Fontes, Episodios/Relacionados — o que se usa junto fica junto.
++// IDs estaveis: a ordem visual e de navegacao vem de transporteAcoes.
++// Na serie, Anterior/Proximo ficam ao lado do Play; o restante conserva a ordem.
+ enum { PLR_PLAY, PLR_CC, PLR_AUDIO, PLR_ASPECTO,
+-       PLR_FONTES, PLR_EPISODIOS, PLR_NBTNS };
++       PLR_FONTES, PLR_EPISODIOS, PLR_ANTERIOR, PLR_PROXIMO, PLR_RECARREGAR, PLR_NBTNS };
+ 
+ // Avanco em curso: enquanto vale, posSeg e do DONO e nao do pipeline.
+ static int    scrubbing, scrubPassos, scrubTocava, scrubDir, scrubToque;
+@@ -558,6 +559,9 @@ static double retomarFonteSeg = -1.0;
+ static double basePos, baseDur;
+ static int basePct, baseTocou, baseT = -1, baseE = -1;
+ static int epT, epE, pedFontes, erroFonte, pedProxT, pedProxE;
++static int trocaEpisodio, episodioPedidoMarcado, confirmacaoTransporteRetida;
++static Uint32 episodioPedidoEm, recarregarPedidoEm;
++static int recarregarPedidoMarcado;
+ static void medirAssistido(void) {
+   double m = monoSeg(), p = video_pos();
+   int ok = fontePrincipal() && video_ativo() && video_pronto() && video_tocando() &&
+@@ -677,6 +681,18 @@ int player_pediu_proximo(int *t,int *e) {
+   if(!pedProxT||!pedProxE)return 0;
+   if(t)*t=pedProxT;if(e)*e=pedProxE;pedProxT=pedProxE=0;return 1;
+ }
++int player_transporte_pedido_pendente(void) {
++  return (pedProxT > 0 && pedProxE > 0) || (!ehCanal() && pedRecarregar);
++}
++void player_episodio_pedido_liberar(void) {
++  if (!pedProxT && !pedProxE) trocaEpisodio = 0;
++}
++const CatEp *player_anterior_episodio(void) {
++  int ix = idxAtual(), n = cat_n_episodios(ix);
++  const CatEp *base = n > 0 ? cat_episodio(ix, 0) : NULL;
++  int i = prox_indice_anterior(base, n, epT, epE);
++  return i >= 0 ? cat_episodio(ix, i) : NULL;
++}
+ // A regra mora em prox_indice_seguinte (proximo.h), a mesma do cartao.
+ const CatEp *player_proximo_episodio(void) {
+   int ix=idxAtual(),n=cat_n_episodios(ix),i;
+@@ -1453,7 +1469,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
+     // overlay do guia dependem dela. Idempotente.
+     if (canalSessao) { guia_carregar(); epg_iniciar(); } }
+   tocando = 1; pausaPessoa = 0; retomandoSalto = 0; visivel = 1; anim = 0.0f; entrada = 0.0f; soBarra = 0; cheio = 1.0f; fileira = 1.0f;
+-  pedFontes = erroFonte = pedFaixas = pedProxT = pedProxE = 0; inicioImagem = 0;
++  pedFontes = erroFonte = pedFaixas = pedProxT = pedProxE = trocaEpisodio = 0; inicioImagem = 0;
+   durFonteAvisada = durFontePulou = pedProximaFonte = 0;
+   durFonteAcaoAte = 0;
+   abrindoExp = 0; abrindoT = 0.0f; abrindoDesde = 0;
+@@ -2176,6 +2192,7 @@ static void fecharSessao(int manter) {
+   retido = manter; if (!manter) retidoVoo = 0;
+   prepararRetencao = 0; saidaIlhaDesde = 0;
+   esperandoFonte = 0; aberto = 0; saindo = 0; pediuSair = 0;
++  pedProxT = pedProxE = trocaEpisodio = pedRecarregar = 0;
+   scrubbing = scrubToque = 0; scrubInicio = 0.0;
+   mini = 0; querMini = 0; miniGuia = 0; janAtiva = 0;
+   avisarCascaAberto(0);
+@@ -2538,6 +2555,70 @@ static int temUltimoBotao(void) {
+   return epT > 0 || extras_n_relacionados() > 0;
+ }
+ 
++typedef struct { int id, habilitada; } PlrAcao;
++static int transporteSerie(void) { return !ehCanal() && epT > 0 && epE > 0; }
++static int transporteAcoes(PlrAcao a[PLR_NBTNS]) {
++  int n = 0, serie = transporteSerie();
++  int pronto = serie && !trocaEpisodio && !pedRecarregar && !player_carregando() && !erroFonte && !saindo;
++  if (serie) a[n++] = (PlrAcao){PLR_ANTERIOR, pronto && player_anterior_episodio() != NULL};
++  a[n++] = (PlrAcao){PLR_PLAY, 1};
++  if (serie) a[n++] = (PlrAcao){PLR_PROXIMO, pronto && player_proximo_episodio() != NULL};
++  if (!ehCanal()) a[n++] = (PlrAcao){PLR_RECARREGAR,
++      !trocaEpisodio && !pedRecarregar && comVideo && !player_carregando() &&
++      !erroFonte && !saindo && !video_reconectando() && video_url_atual()[0]};
++  a[n++] = (PlrAcao){PLR_CC, 1};
++  a[n++] = (PlrAcao){PLR_AUDIO, 1};
++  a[n++] = (PlrAcao){PLR_ASPECTO, 1};
++  a[n++] = (PlrAcao){PLR_FONTES, 1};
++  if (temUltimoBotao()) a[n++] = (PlrAcao){PLR_EPISODIOS, 1};
++  return n;
++}
++static int transporteHabilitado(int id) {
++  PlrAcao a[PLR_NBTNS]; int n = transporteAcoes(a);
++  for (int i = 0; i < n; i++) if (a[i].id == id) return a[i].habilitada;
++  return 0;
++}
++static void transporteMover(int direcao) {
++  if (direcao != -1 && direcao != 1) return;
++  PlrAcao a[PLR_NBTNS]; int n = transporteAcoes(a), atual = -1;
++  for (int i = 0; i < n; i++) if (a[i].id == botao) atual = i;
++  if (atual < 0) { botao = PLR_PLAY; return; }
++  for (int i = atual + direcao; i >= 0 && i < n; i += direcao)
++    if (a[i].habilitada) { botao = a[i].id; return; }
++}
++static int transporteToque(void) { return telefoneui_ativo() && !ehCanal(); }
++static int transporteDuasLinhas(void) {
++  if (!transporteToque()) return 0;
++  PlrAcao a[PLR_NBTNS]; int n = transporteAcoes(a);
++  return NV_LAYOUT_REAL_H > NV_LAYOUT_REAL_W ||
++      (NV_VTELA_W - PLR_MARGEM * 2.0f) * gfx_escala_ui() < n * PLR_TOQUE_CELULA;
++}
++static int transportePrimeiraLinha(void) { return transporteSerie() ? 4 : 2; }
++static float transporteCelulaH(void) { return PLR_TOQUE_CELULA / gfx_escala_ui(); }
++static float transporteBarraY(void) {
++  if (!transporteToque()) return PLR_BARRA_Y;
++  int linhas = transporteDuasLinhas() ? 2 : 1;
++  return NV_VTELA_H - (64.0f + PLR_TOQUE_CELULA * linhas + 12.0f * (linhas - 1)) / gfx_escala_ui() - PLR_GAP_ROW;
++}
++static int transporteCompacto(void) {
++  return transporteToque() || (!ehCanal() && NV_VTELA_W - PLR_MARGEM * 2.0f < 1280.0f);
++}
++static int transporteMoverLinha(int direcao) {
++  if (!transporteDuasLinhas()) return 0;
++  PlrAcao a[PLR_NBTNS]; int n = transporteAcoes(a), p = transportePrimeiraLinha(), atual = -1;
++  for (int i = 0; i < n; i++) if (a[i].id == botao) atual = i;
++  if (atual < 0 || (direcao < 0 && atual < p) || (direcao > 0 && atual >= p)) return 0;
++  int inicio = direcao > 0 ? p : 0, quantidade = direcao > 0 ? n - p : p;
++  float coluna = atual < p ? (atual + 0.5f) / p : (atual - p + 0.5f) / (n - p);
++  int melhor = -1; float distancia = 2.0f;
++  for (int i = 0; i < quantidade; i++) if (a[inicio + i].habilitada) {
++    float d = fabsf((i + 0.5f) / quantidade - coluna);
++    if (d < distancia) { distancia = d; melhor = inicio + i; }
++  }
++  if (melhor < 0) return 0;
++  botao = a[melhor].id; return 1;
++}
++
+ // A JANELA DO CARTAO DE PROXIMO EPISODIO.
+ //
+ // O marcador de creditos vem de fora (intro.c, dados de terceiro) e as vezes
+@@ -3144,7 +3225,57 @@ static void terminarSalto(void) {
+   scrubToque = 0; scrubInicio = 0.0;
+ }
+ 
++static int ativarBotao(int i, int repetiu) {
++  if (!aberto || saindo || !transporteHabilitado(i)) return 0;
++  // Uma abertura rapida pode devolver o foco ao Play antes do OK ser solto.
++  // So uma confirmacao nova pode aciona-lo depois de trocar de episodio.
++  if (repetiu && confirmacaoTransporteRetida) return 0;
++  switch (i) {
++    case PLR_ANTERIOR: case PLR_PROXIMO: {
++      Uint32 agora = SDL_GetTicks();
++      const CatEp *ep;
++      char alvo[64];
++      if (repetiu || trocaEpisodio ||
++          (episodioPedidoMarcado && agora - episodioPedidoEm < 400u)) return 0;
++      ep = i == PLR_ANTERIOR ? player_anterior_episodio() : player_proximo_episodio();
++      if (!ep || ep->temporada <= 0 || ep->episodio <= 0 ||
++          !cat_id_stream(idxAtual(), ep->temporada, ep->episodio, alvo, sizeof alvo) || !alvo[0]) return 0;
++      // Copiar os numeros agora: a lista do catalogo pode ser republicada.
++      // Nao aprender creditos nem marcar o episodio atual como terminado.
++      pedProxT = ep->temporada; pedProxE = ep->episodio;
++      trocaEpisodio = episodioPedidoMarcado = 1; episodioPedidoEm = agora;
++      confirmacaoTransporteRetida = 1;
++      posplay_troca_manual();
++      return 1;
++    }
++    case PLR_RECARREGAR: {
++      Uint32 agora = SDL_GetTicks();
++      if (repetiu || (recarregarPedidoMarcado && agora - recarregarPedidoEm < 400u)) return 0;
++      pedRecarregar = recarregarPedidoMarcado = confirmacaoTransporteRetida = 1;
++      recarregarPedidoEm = agora;
++      posplay_troca_manual();
++      return 1;
++    }
++    case PLR_PLAY: alternarTocando(); break;
++    case PLR_ASPECTO: player_aspecto_ciclar(); break;
++    case PLR_CC: pedFaixas = 2; break;
++    case PLR_AUDIO: pedFaixas = 1; break;
++    case PLR_FONTES: pedFontes = 1; break;
++    case PLR_EPISODIOS:
++      if (ehCanal()) pedGuia = 1;
++      else if (epT > 0) episodios_abrir(idxAtual(), epT, epE);
++      else posplay_abrir_relacionados(idxAtual());
++      break;
++    default: return 0;
++  }
++  if (!repetiu) confirmacaoTransporteRetida = 0;
++  return 1;
++}
++
+ void player_evento(const SDL_Event *e) {
++  if (e->type == SDL_KEYUP && (e->key.keysym.sym == SDLK_RETURN ||
++      e->key.keysym.sym == SDLK_KP_ENTER || e->key.keysym.sym == SDLK_SPACE))
++    confirmacaoTransporteRetida = 0;
+   // O painel de pos-reproducao come a tecla quando esta no ar; ele e a coisa
+   // mais recente na tela e o dono esta olhando para ele. O 2 e o BAIXO: ele
+   // dispensa o painel E pede a barra de tempo de volta, que e o gesto que o
+@@ -3166,6 +3297,8 @@ void player_evento(const SDL_Event *e) {
+     if (r) { if (r == 2) acordar(); return; } }
+   if (!aberto || saindo || e->type != SDL_KEYDOWN) return;
+   SDL_Keycode k = e->key.keysym.sym;
++  if (e->key.repeat && confirmacaoTransporteRetida &&
++      (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE)) return;
+ 
+   if (durFonteAcaoAte && durFonteAcaoAte == toastAte && SDL_GetTicks() < durFonteAcaoAte &&
+       (k == SDLK_RETURN || k == SDLK_KP_ENTER)) { durFonteTentar(0, 0); return; }
+@@ -3334,27 +3467,7 @@ void player_evento(const SDL_Event *e) {
+     // Na barra o OK pausa/retoma: e o que sobra de util, ja que a barra nao
+     // tem acao propria no web.
+     if (barraFoco) { alternarTocando(); acordar(); return; }
+-    switch (botao) {
+-      case PLR_PLAY:    alternarTocando(); break;
+-      case PLR_ASPECTO: player_aspecto_ciclar(); break;
+-      // CC e AUDIO abrem a MESMA folha, mas em colunas diferentes: apertar
+-      // "legendas" e cair no audio fazia os dois botoes parecerem um so.
+-      case PLR_CC:      pedFaixas = 2;     break;   // 2 = coluna da legenda
+-      case PLR_FONTES:  pedFontes = 1; break;
+-      // MESMO LUGAR, DOIS PAPEIS. Numa serie o ultimo botao abre a lista de
+-      // episodios; num filme nao ha lista, e o lugar passa a ser a porta de
+-      // volta para os relacionados — que o dono pediu depois de a dispensa
+-      // passar a grudar. Um botao a mais na fileira custaria largura que a
+-      // serie nao tem sobrando.
+-      case PLR_EPISODIOS:
+-        // Canal nao tem episodio nem "relacionados": o mesmo lugar vira a
+-        // porta do guia, que e a lista de escolha dele.
+-        if (ehCanal()) pedGuia = 1;
+-        else if (epT > 0) episodios_abrir(idxAtual(), epT, epE);
+-        else posplay_abrir_relacionados(idxAtual());
+-        break;
+-      default:          pedFaixas = 1;     break;   // 1 = coluna do audio
+-    }
++    ativarBotao(botao, e->key.repeat);
+     acordar();
+     return;
+   }
+@@ -3368,6 +3481,7 @@ void player_evento(const SDL_Event *e) {
+   // Audio e Legendas ficam nos botoes deles. O unico alvo acima da barra e o
+   // "Pular abertura", quando existe — e esse esta mesmo em cima dela.
+   if (k == SDLK_UP) {
++    if (!barraFoco && transporteMoverLinha(-1)) { acordar(); return; }
+     if (!barraFoco) barraFoco = 1;
+     else if (trechoPulavel(NULL)) skipFoco = 1;
+     else { esconderControles(); return; }   // #305: CIMA no topo tira a interface da frente
+@@ -3383,6 +3497,7 @@ void player_evento(const SDL_Event *e) {
+     return;
+   }
+   if (k == SDLK_DOWN) {
++    if (transporteMoverLinha(1)) { acordar(); return; }
+     // BAIXO a partir da fileira significa "tirar os controles da frente".
+     // Nao chama acordar(): isso recolocaria a barra no mesmo evento e faria o
+     // comando parecer quebrado. O proximo toque direcional a revela de novo.
+@@ -3391,10 +3506,8 @@ void player_evento(const SDL_Event *e) {
+   }
+   // Sem rotacao nas pontas: a fileira e curta e cabe inteira no olhar; dar a
+   // volta no fim le como erro, nao como atalho.
+-  if (k == SDLK_LEFT  && botao > 0)          botao--;
+-  // O ULTIMO BOTAO existe no filme tambem: la ele e "Relacionados". Antes so a
+-  // serie chegava nele (era so "Episodios") e o filme parava um antes.
+-  else if (k == SDLK_RIGHT && botao < PLR_NBTNS - (temUltimoBotao() ? 1 : 2)) botao++;
++  if (k == SDLK_LEFT) transporteMover(-1);
++  else if (k == SDLK_RIGHT) transporteMover(1);
+   acordar();
+ }
+ 
+@@ -3948,9 +4061,12 @@ void player_atualizar(float dt, Uint32 agora) {
+                       soBarra ? NV_MOLA_DESFOCO : NV_MOLA_FOCO);
+   { float alvoF = (barraFoco && !ponteiroNoPlayer()) ? 0.0f : 1.0f;
+     fileira = anim_mola(fileira, alvoF, dt, alvoF > fileira ? NV_MOLA_FOCO : NV_MOLA_DESFOCO); }
++  PlrAcao acoes[PLR_NBTNS]; int nAcoes = transporteAcoes(acoes), habilitadas[PLR_NBTNS] = {0};
++  for (int i = 0; i < nAcoes; i++) habilitadas[acoes[i].id] = acoes[i].habilitada;
++  if (botao < 0 || botao >= PLR_NBTNS || !habilitadas[botao]) botao = PLR_PLAY;
+   for (int i = 0; i < PLR_NBTNS; i++) {
+     // Foco na barra: o botao fecha (antes ficava aberto sem texto).
+-    float alvo = (visivel && botao == i && !barraFoco) ? 1.0f : 0.0f;
++    float alvo = (visivel && habilitadas[i] && botao == i && !barraFoco) ? 1.0f : 0.0f;
+     focoB[i] = anim_mola(focoB[i], alvo, dt,
+                          alvo > focoB[i] ? NV_MOLA_FOCO : NV_MOLA_DESFOCO);
+   }
+@@ -4117,6 +4233,9 @@ static const char *iconeBotao(int i) {
+     case PLR_AUDIO:     return "pl_audio-lines";
+     case PLR_ASPECTO:   return "pl_ratio";
+     case PLR_FONTES:    return "pl_layers";
++    case PLR_ANTERIOR:  return "pl_chevron-left";
++    case PLR_PROXIMO:   return "pl_chevron-right";
++    case PLR_RECARREGAR:return "pl_rotate-ccw";
+     default:            return epT > 0 ? "pl_list-video" : "pl_film";
+   }
+ }
+@@ -4127,6 +4246,9 @@ static const char *rotuloBotao(int i) {
+     case PLR_AUDIO:     return "\xc3\x81udio";
+     case PLR_ASPECTO:   return "Propor\xc3\xa7\xc3\xa3o";
+     case PLR_FONTES:    return "Fontes";
++    case PLR_ANTERIOR:  return "Episódio anterior";
++    case PLR_PROXIMO:   return "Próximo episódio";
++    case PLR_RECARREGAR:return "Recarregar";
+     default:            return ehCanal() ? "Guia" : epT > 0 ? "Epis\xc3\xb3""dios" : "Relacionados";
+   }
+ }
+@@ -4289,6 +4411,8 @@ float player_base_legenda(float baseNormal, int cartaoProximoNoAr) {
+ }
+ static float baseLegendaPrincipal(void) {
+   float base = (visivel && !faixas_estilo_topo() ? 760.f : 1000.f) - leg2Reserva;
++  if (visivel && transporteToque() && !faixas_estilo_topo())
++    base = fminf(base, (transporteBarraY() - 48.0f) * gfx_escala_ui() - leg2Reserva);
+   // A LEGENDA SOBE SO ENQUANTO O CARTAO ESTA NA TELA (2.0.3). Subia pela
+   // JANELA do cartao (a oferta do proximo), nao pelo cartao: ela continua
+   // verdadeira depois de Voltar/Baixo dispensar o cartao (e ate o fim do
+@@ -4491,9 +4615,19 @@ static void ponteiroPlayPause(int a, int b) {
+ }
+ static void ponteiroBotao(int i, int b) {
+   (void)b;
+-  if (i < 0 || i >= PLR_NBTNS) return;
++  if (i < 0 || i >= PLR_NBTNS || !transporteHabilitado(i)) return;
+   botao = i; barraFoco = 0; skipFoco = 0; acordar();
+ }
++static void ponteiroAtivarBotao(int i, int b) {
++  (void)b;
++  if (!transporteHabilitado(i)) return;
++  ponteiroBotao(i, 0);
++  // Conservar a prioridade dos paineis, como o Enter sintetizado do ponteiro.
++  SDL_Event e; SDL_zero(e); e.type = SDL_KEYDOWN; e.key.keysym.sym = SDLK_RETURN;
++  player_evento(&e);
++  e.type = SDL_KEYUP; player_evento(&e);
++}
++static void ponteiroBotaoInativo(int i, int b) { (void)i; (void)b; }
+ static void ponteiroBarra(int a, int b) { (void)a; (void)b; barraFoco = 1; skipFoco = 0; acordar(); }
+ // Clique na barra PROCURA ali — o que o mouse faz em qualquer player. Canal ao
+ // vivo nao tem para onde ir.
+@@ -4557,7 +4691,7 @@ static void desenharAcoesEpisodioCorpo(void){
+     const float h=64.0f;
+     float w=22.0f+26.0f+12.0f+(float)t.w+28.0f;
+     float k=anim, xa=posplay_visivel() ? NV_VTELA_W-PLR_MARGEM-w : PLR_MARGEM, ya=NV_VTELA_H-120.0f;
+-    float xb=NV_VTELA_W-PLR_MARGEM-w, yb=PLR_BARRA_Y-36.0f-h;
++    float xb=NV_VTELA_W-PLR_MARGEM-w, yb=transporteBarraY()-36.0f-h;
+     GfxRect p={xa+(xb-xa)*k,ya+(yb-ya)*k,w,h};
+     int tinta=sel?plrui_tinta():243;
+     float kt=tinta/255.0f;
+@@ -5526,12 +5660,15 @@ static void desenharOsdCorpo(Uint32 agora, float a, float ac, const CatItem *c)
+   // botoes 38 abaixo dela, o tempo na linha dos botoes, o titulo 36 acima.
+   // Tudo entre as margens da ilha (PLR_MARGEM): a barra nao vai de ponta a ponta.
+   float ySo = ajustes_seekr_ligado() ? PLR_BARRA_Y_SEEKR : PLR_BARRA_Y_SO;
+-  float yBarra   = (PLR_BARRA_Y + (ySo - PLR_BARRA_Y) * (1.0f - cheio)) + desce;
++  float yCheio = transporteBarraY();
++  float yBarra   = (yCheio + (ySo - yCheio) * (1.0f - cheio)) + desce;
+   float yRowTopo = yBarra + PLR_GAP_ROW;
+   float cyBotoes = yRowTopo + PLR_BTN_D * 0.5f;
+   float bx = PLR_MARGEM, bw = NV_VTELA_W - PLR_MARGEM * 2.0f;
+   float cx = PLR_MARGEM;
+   float cw = bw;
++  int transporteCurto = transporteCompacto();
++  float cyTempo = transporteCurto ? yRowTopo - 16.0f : cyBotoes;
+   float frac = ehCanal()
+              ? fracCanal()
+              : (duracaoSeg > 0.0f ? anim_clamp(posVis / duracaoSeg, 0.0f, 1.0f) : 0.0f);
+@@ -5628,29 +5765,57 @@ static void desenharOsdCorpo(Uint32 agora, float a, float ac, const CatItem *c)
+   // Com o foco na barra a fileira desce PLR_DESLIZE/2 e apaga (`fileira`).
+   if (fileira > 0.01f) {
+     float x = cx, af = ac * fileira, dy = (1.0f - fileira) * PLR_DESLIZE * 0.5f;
+-    float yRow = yRowTopo + dy, cyB = cyBotoes + dy;
+-    for (int i = 0; i < PLR_NBTNS - (temUltimoBotao() ? 0 : 1); i++) {
+-      float f = focoB[i];
++    PlrAcao acoes[PLR_NBTNS]; int nAcoes = transporteAcoes(acoes);
++    int toque = transporteToque(), duas = transporteDuasLinhas(), primeira = transportePrimeiraLinha();
++    float celulaH = transporteCelulaH(), espaco = 12.0f / gfx_escala_ui();
++    float diametro = toque ? (PLR_TOQUE_CELULA - 16.0f) / gfx_escala_ui() : transporteCurto ?
++        fminf(PLR_BTN_D, (cw - (nAcoes - 1) * PLR_BTN_GAP) / nAcoes) : PLR_BTN_D;
++    float yRow = yRowTopo + dy;
++    for (int j = 0; j < nAcoes; j++) {
++      int i = acoes[j].id, habilitada = acoes[j].habilitada;
++      float f = habilitada ? focoB[i] : 0.0f, alpha = habilitada ? af : af * 0.35f;
+       const char *ic = iconeBotao(i), *rot = rotuloBotao(i);
+       TxtLinha lr = txt_linha(TXT_G21B, rot, 0, 0, 0, 255);
+       float wCheio = 22.0f + 30.0f + 12.0f + (float)lr.w + 28.0f;
+-      float w = PLR_BTN_D + (wCheio - PLR_BTN_D) * f;
+-      GfxRect r = { x, yRow, w, PLR_BTN_D };
++      float w = transporteCurto ? diametro : PLR_BTN_D + (wCheio - PLR_BTN_D) * f;
++      GfxRect r = { x, yRow, w, diametro }, alvo = r;
++      if (toque) {
++        int linha = duas && j >= primeira, inicio = linha ? primeira : 0;
++        int colunas = duas ? (linha ? nAcoes - primeira : primeira) : nAcoes;
++        float celulaW = cw / colunas;
++        alvo = (GfxRect){cx + (j - inicio) * celulaW, yRow + linha * (celulaH + espaco), celulaW, celulaH};
++        r = (GfxRect){alvo.x + (celulaW - diametro) * 0.5f,
++                      alvo.y + (celulaH - diametro) * 0.5f, diametro, diametro};
++      }
++      float cyB = r.y + r.h * 0.5f;
+       int tinta = (int)(242.0f + (plrui_tinta() - 242.0f) * f);
+       float k = tinta / 255.0f;
+-      if (f > 0.02f) plrui_pilula_foco(r, af * f);
+-      if (f < 0.98f) plrui_disco_osd(r, af * (1.0f - f));
++      if (f > 0.02f) plrui_pilula_foco(r, alpha * f);
++      if (f < 0.98f) plrui_disco_osd(r, alpha * (1.0f - f));
+       if (ponteiroNoPlayer() && af > 0.3f)
+-        ponteiro_alvo(r.x, r.y, r.w, r.h, ponteiroBotao, NULL, i, 0);
+-      { float ix = x + (PLR_BTN_D - 30.0f) * 0.5f + (22.0f - (PLR_BTN_D - 30.0f) * 0.5f) * f;
+-        gfx_icone((GfxRect){ ix, cyB - 15.0f, 30.0f, 30.0f }, ic, k, k, k, af * 0.96f);
+-        if (f > 0.05f) {
++        ponteiro_alvo(alvo.x, alvo.y, alvo.w, alvo.h, habilitada ? ponteiroBotao : NULL,
++                      habilitada ? ponteiroAtivarBotao : ponteiroBotaoInativo, i, 0);
++      { float tamanho = toque ? 64.0f / gfx_escala_ui() : 30.0f;
++        float ix = transporteCurto ? r.x + (diametro - tamanho) * 0.5f :
++          x + (PLR_BTN_D - 30.0f) * 0.5f + (22.0f - (PLR_BTN_D - 30.0f) * 0.5f) * f;
++        gfx_icone((GfxRect){ ix, cyB - tamanho * 0.5f, tamanho, tamanho }, ic, k, k, k, alpha * 0.96f);
++        if (!transporteCurto && f > 0.05f) {
+           TxtLinha l = txt_linha(TXT_G21B, rot, tinta, tinta, tinta, 255);
+           gfx_recorte(r.x, r.y, r.w, r.h);
+           txt_desenhar_alpha(l, ix + 30.0f + 12.0f, cyB - (float)l.h * 0.5f, af * f);
+           gfx_sem_recorte();
+         } }
+-      x += w + PLR_BTN_GAP;
++      if (!toque) x += w + PLR_BTN_GAP;
++    }
++    if (transporteCurto && !barraFoco && transporteHabilitado(botao)) {
++      char atual[24], dur[24], total[32];
++      plrui_tempo(atual, sizeof atual, posVisSolto ? posVis : posSeg);
++      plrui_tempo(dur, sizeof dur, duracaoSeg); snprintf(total, sizeof total, "/ %s", dur);
++      float reserva = txt_largura(TXT_G22M, atual) + txt_largura(TXT_G22M, total) + 32.0f;
++      if (cw > reserva) {
++        TxtLinha l = txt_linha_corta(TXT_G21B, rotuloBotao(botao), 243, 242, 239, 235, cw - reserva);
++        txt_desenhar_alpha(l, cx, cyTempo - (float)l.h * 0.5f, af);
++      }
+     }
+   }
+ 
+@@ -5663,15 +5828,16 @@ static void desenharOsdCorpo(Uint32 agora, float a, float ac, const CatItem *c)
+     char t1[24], t2[32], d[24];
+     if (ehCanal()) {
+       TxtLinha l = txt_linha(TXT_ILHA_NOME, i18n("AO VIVO"), 243, 242, 239, 235);
+-      txt_desenhar_alpha(l, cx + cw - l.w, cyBotoes - (float)l.h * 0.5f, a);
++      txt_desenhar_alpha(l, cx + cw - l.w, cyTempo - (float)l.h * 0.5f, a);
+     } else {
+       plrui_tempo(t1, sizeof t1, posVisSolto ? posVis : posSeg);
+       plrui_tempo(d, sizeof d, duracaoSeg);
+       snprintf(t2, sizeof t2, "/ %s", d);
+       if (cheio > 0.01f) {
+-        TxtLinha l2 = txt_linha(TXT_ILHA_NOME, t2, 243, 242, 239, 128);
+-        TxtLinha l1 = txt_linha(TXT_ILHA_NOME, t1, 243, 242, 239, 235);
+-        float xr = cx + cw - l2.w, y = cyBotoes - (float)l1.h * 0.5f;
++        TxtEstilo estilo = transporteCurto ? TXT_G22M : TXT_ILHA_NOME;
++        TxtLinha l2 = txt_linha(estilo, t2, 243, 242, 239, 128);
++        TxtLinha l1 = txt_linha(estilo, t1, 243, 242, 239, 235);
++        float xr = cx + cw - l2.w, y = cyTempo - (float)l1.h * 0.5f;
+         txt_desenhar_alpha(l2, xr, y, a * cheio);
+         txt_desenhar_alpha(l1, xr - 8.0f - l1.w, y, a * cheio);
+       }
+diff --git a/src/player.h b/src/player.h
+index 8f797fb46e5f4aaa3a5cc57ad8ceafe217c9ed5c..da7a4da9150cfa2173539cb3e872284ce9925ad0 100644
+--- a/src/player.h
++++ b/src/player.h
+@@ -51,6 +51,10 @@ int  player_pediu_ajustes_fonte(void);
+ // Ha quantos ms o player abriu (o Play); 0 fechado. Para o log do inicio (#202).
+ Uint32 player_aberto_ha_ms(void);
+ int player_pediu_proximo(int *temporada, int *episodio);
++int player_transporte_pedido_pendente(void);
++// Libera somente uma troca ja consumida que o roteador cancelou; preserva a fila.
++void player_episodio_pedido_liberar(void);
++const CatEp *player_anterior_episodio(void);
+ const CatEp *player_proximo_episodio(void);
+ // A REGRA DO CARTAO DE PROXIMO EPISODIO, isolada do estado do player para
+ // poder ser exercitada por teste. `cred` e o segundo em que os creditos
+diff --git a/src/posplay.c b/src/posplay.c
+index b4c8096e58e40182190e89d4cce5cc4b2339d050..1ec0b379255a37938407061cf06d5e0e26395fd8 100644
+--- a/src/posplay.c
++++ b/src/posplay.c
+@@ -195,6 +195,15 @@ void posplay_busca_usuario(void) {
+   aguardaBusca = 1;
+ }
+ 
++void posplay_troca_manual(void) {
++  cancelarPreparo(0);
++  pedT = pedE = 0;
++  pedAutomatico = automaticoEntregue = 0;
++  visivel = 0; fecharEm = 0; foco = 0; dispensado = 1;
++  // Nao chamar proximopreparo_cancelar: consumir/adotar vem antes de fechar
++  // o player. Um pedido de Anterior cancela o alvo diferente no roteador.
++}
++
+ // Recuar e pedir para ficar neste episodio. O cartao continua servindo ao OK,
+ // mas a contagem nao volta enquanto a pessoa ainda esta na mesma janela.
+ void posplay_recuar(void) {
+diff --git a/src/posplay.h b/src/posplay.h
+index 5cec23ec7305ae44df6922384cfd0645d6cb0109..738d2ac8b58052f754734174f80cffedcd48d79b 100644
+--- a/src/posplay.h
++++ b/src/posplay.h
+@@ -60,6 +60,9 @@ void posplay_recuar(void);
+ // Inicio de busca explicita: revoga Next pendente e suspende novo preparo
+ // ate a confirmacao pelo player. Nao marca recuo nem altera o OK manual.
+ void posplay_busca_usuario(void);
++// Troca explicita pela barra: descarta contagem/pedido antigo, conservando o
++// worker independente. O roteador adota Next do mesmo alvo ou cancela outro.
++void posplay_troca_manual(void);
+ // Seek automatico em voo: suspende so a contagem/pedido automatico. OK segue
+ // disponivel; o player libera quando o video progride ou termina de verdade.
+ void posplay_aguardar_busca(int aguardar);
+diff --git a/src/proximo.c b/src/proximo.c
+index d43bc632ffaf037040e53357261e3f71d486a948..2decd5e7044c23d804a991bbfc20e2af7006d6f7 100644
+--- a/src/proximo.c
++++ b/src/proximo.c
+@@ -188,3 +188,18 @@ int prox_indice_seguinte(const CatEp *eps, int n, int t, int e) {
+   }
+   return melhor;
+ }
++
++int prox_indice_anterior(const CatEp *eps, int n, int t, int e) {
++  int i, melhor = -1;
++  if (!eps || n < 1) return -1;
++  for (i = 0; i < n; i++) {
++    const CatEp *p = &eps[i];
++    if (p->episodio < 1 || p->temporada < 0) continue;
++    if (p->temporada == 0 && t > 0) continue;
++    if (p->temporada > t || (p->temporada == t && p->episodio >= e)) continue;
++    if (melhor < 0 || p->temporada > eps[melhor].temporada ||
++        (p->temporada == eps[melhor].temporada && p->episodio > eps[melhor].episodio))
++      melhor = i;
++  }
++  return melhor;
++}
+diff --git a/src/proximo.h b/src/proximo.h
+index 095166c3200f5cbbde01a4f5806b7f6bce6bcb1f..ae96d4f2ff008a7ec80a7c4de2c9a8858d62627a 100644
+--- a/src/proximo.h
++++ b/src/proximo.h
+@@ -152,4 +152,7 @@ int prox_seguinte(const CatItem *ci, const CatEp *eps, int n, int limiarPct,
+ // O cartao (posplay.c) e a janela (player.c) usam esta mesma regra: antes cada
+ // um tinha a sua e podiam discordar.
+ int prox_indice_seguinte(const CatEp *eps, int n, int temporada, int episodio);
++// Predecessor estrito, pela mesma ordem e politica de especiais do seguinte.
++// Nao depende de a ancora estar na lista, de contiguidade ou de numeros sem buracos.
++int prox_indice_anterior(const CatEp *eps, int n, int temporada, int episodio);
+ #endif
+diff --git a/src/video.c b/src/video.c
+index 658f7c5def6a1ceefb4fad3c5338858dbc5c4d89..66a3d679b9ca3f125c5d09d53b7efb8ecd57cff6 100644
+--- a/src/video.c
++++ b/src/video.c
+@@ -37,6 +37,8 @@
+ #include <ctype.h>
+ #include <stdint.h>
+ #include <unistd.h>
++#include <math.h>
++#include <limits.h>
+ 
+ static DtsPlayback *dtsSessao;
+ static char dtsSaida[64];
+@@ -226,6 +228,7 @@ static char  legUrlAtual[1024];
+ // Avanco pendente: alvo e quando manda-lo. Ver SEEK_REPOUSO_MS.
+ static int    pausaPedida;   // 1 enquanto a pausa foi pedida por nos
+ static int    pausaConfirmada;
++static int    recarregarPausa = -1;
+ // Sonda de MKV pedida, esperando o buffer. Ver a nota no sourceInfo.
+ static int    mkvPendente;
+ // 1 quando a fonte foi anunciada como MP4. Ver video_definir_mp4.
+@@ -348,6 +351,7 @@ void video_legenda_externa(const char *u) { (void)u; }
+ void video_legenda_estilo(const VideoLegendaEstilo *e) { (void)e; }
+ void video_definir_mp4(int m) { (void)m; }
+ void video_definir_reconexao(int sim) { (void)sim; }
++int  video_recarregar(void) { return 0; }
+ int  video_reconectando(void) { return SIM.reconectando; }
+ // No Mac quem toca e o pipeline do sistema por outro caminho; os cabecalhos do
+ // addon so tem efeito no payload do load da webOS. Stub para o alvo linkar.
+@@ -580,7 +584,7 @@ static int dvPedido;
+ // tabela e mantinha uma propria, com tres idiomas.
+ 
+ static char      midia[64];
+-static double    posSeg, durSeg;
++static double    posSeg, durSeg, posNativa;
+ static int       tocando, pronto, ligado, falhou, terminou;
+ // VELOCIDADE (#202, video.h). velPedida e o que a pessoa quer; velEnviada o
+ // que este pipeline ja recebeu (nasce 100 a cada load). O setPlayRate do uMS e
+@@ -1213,7 +1217,7 @@ static int eventoPayload(const char *p, unsigned minhaSessao) {
+     // decode no pipeline; fazer isso DEPOIS do seek jogaria a posicao fora.
+     if (audioAoCarregar >= 0) {
+       int a2 = audioAoCarregar; audioAoCarregar = -1;
+-      if (a2 > 0) video_escolher_audio(a2);
++      video_escolher_audio(a2);
+     }
+     if (legUrlAoCarregar[0]) {
+       char u[1024];
+@@ -1223,8 +1227,16 @@ static int eventoPayload(const char *p, unsigned minhaSessao) {
+     } else if (legAoCarregar >= 0) {
+       int l2 = legAoCarregar; legAoCarregar = -1;
+       video_escolher_legenda(l2);
++    } else if (recarregarPausa >= 0) {
++      video_escolher_legenda(-1);
+     }
+-    if (posAoCarregar > 1.0) {
++    if (recarregarPausa >= 0) {
++      // Zero tambem e um ponto valido. O pedido manual usa o relogio que
++      // veio da TV, sem confundir um seek ainda pendente com a posicao vista.
++      double alvo = posAoCarregar;
++      posAoCarregar = 0.0;
++      seekAgora(alvo);
++    } else if (posAoCarregar > 1.0) {
+       double alvo = posAoCarregar, entrada = dvEntradaSeg;
+       posAoCarregar = 0.0;
+       video_buscar(alvo);
+@@ -1234,6 +1246,11 @@ static int eventoPayload(const char *p, unsigned minhaSessao) {
+     // O pipeline e novo: o estilo da legenda nao sobrevive ao load anterior.
+     aplicarEstilo();
+     pronto = 1;
++    if (recarregarPausa >= 0) {
++      int pausado = recarregarPausa;
++      recarregarPausa = -1;
++      if (pausado) video_pausar(1);
++    }
+     dvSilenciarTv();   // a tela do DV cobre este HDR10: sem som (dvtela.h)
+     if (cronPediu && !cronLoad) {
+       cronLoad = 1;
+@@ -1389,7 +1406,7 @@ static int eventoPayload(const char *p, unsigned minhaSessao) {
+   }
+   { double v = numeroDe(p, "\"currentTime\":");
+     if (v >= 0) {
+-      posSeg = v / 1000.0;
++      posSeg = posNativa = v / 1000.0;
+       // Primeiro quadro com avanco: o numero de inicio de verdade.
+       if (cronPediu && !cronQuadro && posSeg > 0.0) {
+         cronQuadro = 1;
+@@ -2138,6 +2155,24 @@ static int recarregarMesmaFonte(double alvo, int aud, int leg, const char *legUr
+ }
+ 
+ void video_definir_reconexao(int sim) { reconProxima = sim ? 1 : 0; }
++int video_recarregar(void) {
++  double alvo = posNativa;
++  int pausado = pausaPedida;
++  if (!ligado || !midia[0] || !pronto || !urlAtual[0] || falhou || terminou ||
++      dtsSessao || dtsModoDv || dtsNativePending ||
++      dtsEstado == VIDEO_DTS_PREPARANDO || dtsEstado == VIDEO_DTS_CONVERTIDO ||
++      dvSilencio || dvSegurar || recuperando || reconErroPend ||
++      video_reconectando() || recarregarPausa >= 0 || !isfinite(alvo) ||
++      alvo < 0 || alvo > INT_MAX / 1000.0)
++    return 0;
++  if (!recarregarMesmaFonte(alvo, audioAtual, legAtual, legUrlAtual)) return 0;
++  reconAudio = audioAoCarregar; reconLeg = legAoCarregar;
++  snprintf(reconLegUrl, sizeof reconLegUrl, "%s", legUrlAoCarregar);
++  posAoCarregar = alvo;
++  pausaPedida = pausado;
++  recarregarPausa = pausado;
++  return 1;
++}
+ int  video_reconectando(void) {
+   return nv_recon_ativa(&recon) && (recon.pendente || !pronto) ? recon.tentativa : 0;
+ }
+@@ -2277,8 +2312,9 @@ void video_bombear(void) {
+     int antes = recon.tentativa;
+     reconErroPend = 0;
+     if (reconPermitida && urlAtual[0] && (reconIniciou || recon.tentativa) &&
+-        nv_recon_erro(&recon, reconErroRede, SDL_GetTicks(), posSeg)) {
+-      if (!antes) {
++        nv_recon_erro(&recon, reconErroRede, SDL_GetTicks(),
++                      recarregarPausa >= 0 ? posAoCarregar : posSeg)) {
++      if (!antes && recarregarPausa < 0) {
+         reconAudio = audioAtual; reconLeg = legAtual;
+         snprintf(reconLegUrl, sizeof reconLegUrl, "%s", legUrlAtual);
+       }
+@@ -2295,14 +2331,21 @@ void video_bombear(void) {
+       falhou = 1;
+     }
+   }
++  if (recarregarPausa >= 0 && (falhou || terminou))
++    recarregarPausa = -1;
+   if (nv_recon_vencida(&recon, SDL_GetTicks())) {
+     char m[64];
+     snprintf(m, sizeof m, "reconectando: alvo %.0fs, tentativa %d", recon.alvo, recon.tentativa);
+     marco(m);
+     // Load que nem sai daqui conta como a proxima tentativa.
++    int pausado = recarregarPausa;
+     if (!recarregarMesmaFonte(recon.alvo, reconAudio, reconLeg, reconLegUrl)) {
+       reconErroRede = 1; reconErroPend = 1;
+     }
++    if (pausado >= 0) {
++      recarregarPausa = pausaPedida = pausado;
++      posAoCarregar = recon.alvo;
++    }
+   }
+   // O recuo por prazo foi REMOVIDO por nao funcionar: o gatilho era "o pipeline
+   // nao reportou videoInfo", e o uMS reporta videoInfo, sourceInfo e
+@@ -2420,7 +2463,7 @@ static int tocarInterno(const char *url, int comDV) {
+   // (semUms NAO zera: se esta TV nao entende o recorte de fonte, nao passa a
+   // entender no titulo seguinte, e insistir so arrisca a imagem de novo.)
+   fonX = -1; dstX = dstY = dstW = dstH = -1;
+-  posSeg = durSeg = bufferSeg = 0; tocando = pronto = 0; midia[0] = 0;
++  posSeg = posNativa = durSeg = bufferSeg = 0; tocando = pronto = 0; midia[0] = 0;
+   velEnviada = 100;   // pipeline novo nasce em 1x; video_bombear reaplica
+   bufferandoDesde = 0;
+   nAudio = nLeg = 0; audioAtual = 0; legAtual = -1; vidAtmos = 0;
+@@ -2610,6 +2653,7 @@ static void pararSessao(void) {
+   audioAoCarregar = legAoCarregar = -1;
+   legUrlAoCarregar[0] = 0;
+   pausaPedida = 0; seekEm = 0; mkvPendente = 0;
++  recarregarPausa = -1;
+   nv_seek_zerar(&seekRetry); seekRetryEm = 0;
+   seekEnvEm = 0;   // seek sem seekDone morre com a sessao (iniciarDts le os tres)
+   dvSilenciado = 0;   // o mudo e por mediaId: o pipeline novo nasce com som
+@@ -3027,6 +3071,7 @@ void video_pausar(int pausado) {
+   snprintf(b, sizeof b, "{\"mediaId\":\"%s\"}", midia);
+   pausaConfirmada = 0;
+   pausaPedida = pausado;
++  if (recarregarPausa >= 0) recarregarPausa = !!pausado;
+   chamar(pausado ? "pause" : "play", b, soLog);
+   tocando = !pausado;
+ }
+@@ -3528,6 +3573,7 @@ void video_escolher_legenda(int i) {
+     snprintf(b, sizeof b, "{\"mediaId\":\"%s\",\"enable\":false}", midia);
+     chamar("setSubtitleEnable", b, soLog);
+     legAtual = -1;
++    legUrlAtual[0] = 0;
+     return;
+   }
+   { const VideoFaixa *f = video_legenda(i);
+diff --git a/src/video.h b/src/video.h
+index 81e708ad7dbfaf374f90d38cd6a858b3f9430701..f7d37f18c3cf70081488ecedd55f072d0348f6c1 100644
+--- a/src/video.h
++++ b/src/video.h
+@@ -156,6 +156,10 @@ void video_definir_mp4(int ehMp4);
+ // (video_tocar consome). Quem nao pede — trailer, canal ao vivo, que tem o
+ // watchdog proprio em app.c — segue caindo em video_falhou na hora.
+ void video_definir_reconexao(int sim);
++// Reabre somente a fonte VOD corrente, sem resolver outra URL nem reiniciar
++// o limite de reconexao. Preserva o ponto informado pelo backend, faixas,
++// velocidade e pausa. 1 = pedido aceito; 0 = indisponivel neste estado/alvo.
++int  video_recarregar(void);
+ // MODO DO LOAD para o PROXIMO video_tocar (#158, LG C4: dado chega, VDEC
+ // concedido, decoder nunca anuncia). 0 = o de sempre; 1 = sem o selectTrack
+ // de video logo depois do load; 2 = o 1 e mais o payload enxuto de live
+diff --git a/src/video_android.c b/src/video_android.c
+index 35a950b313b125e7bcc4959eed809bca9b128ee1..1fe1d956d35ed90b619e59cc52dd3c6af64c2166 100644
+--- a/src/video_android.c
++++ b/src/video_android.c
+@@ -331,7 +331,7 @@ static volatile int conflito, semDecoderAudio;
+ // DEPOIS dele. O evento chega do fio principal ~3 ms depois (medido na TCL,
+ // 02/10); um evento 2 (tocando) no meio desfaz a confirmacao.
+ static volatile int pausaPedida, pausaVista;
+-static volatile int durMs, bufferando, posMs;
++static volatile int durMs, bufferando, posMs, posNativoMs;
+ // VELOCIDADE (#202, video.h): o ExoPlayer novo de cada abertura nasce em 1x
+ // (velEnviada = 100 no abrirSessao) e o video_bombear reaplica o pedido assim
+ // que ele esta pronto. setPlaybackSpeed aceita qualquer valor positivo; com o
+@@ -360,6 +360,7 @@ static volatile int reconErroPend, reconErroCod, reconErroVideo;
+ static int reconAudio = -1, reconLeg = -1;
+ static volatile int reconFaixasPend;
+ static int reconBuscarMs = -1;
++static int recarregarPausa = -1, recarregarPosMs;
+ static char erroTxt[64];
+ 
+ // Codigos do PlaybackException (Media3) que sao de REDE: IO_UNSPECIFIED 2000,
+@@ -453,10 +454,10 @@ JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeFaixasFim(JN
+   fflush(stdout);
+   // Recarregar de reconexao: devolve as faixas que a pessoa tinha.
+   if (reconFaixasPend) {
+-    if (!releitura && reconLeg >= 0 && reconLeg < nLeg) video_escolher_legenda(reconLeg);
++    if (!releitura && reconLeg >= -1 && reconLeg < nLeg) video_escolher_legenda(reconLeg);
+     if (nAudio > 0) {
+       reconFaixasPend = 0;
+-      if (reconAudio > 0 && reconAudio < nAudio) video_escolher_audio(reconAudio);
++      if (reconAudio >= 0 && reconAudio < nAudio) video_escolher_audio(reconAudio);
+     }
+     printf("[video] reconexao: faixas devolvidas (audio %d, legenda %d)\n", reconAudio, reconLeg);
+     fflush(stdout);
+@@ -480,7 +481,7 @@ JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeLegenda(JNIE
+ 
+ JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativePos(JNIEnv *env, jclass cls, jint ms) {
+   (void)env; (void)cls;
+-  posMs = ms;
++  posMs = posNativoMs = ms;
+ }
+ 
+ // ESTATISTICAS AO VIVO (video.h, VideoStats): o Kotlin manda 1x/s, do fio
+@@ -651,7 +652,7 @@ static int abrirSessao(int inicioMs, int fracao) {
+   JNIEnv *env;
+   ativo = 1; superficieEstavel = 0; prontoLoad = primeiroQuadro = falhou = terminou = tocando = 0;
+   velEnviada = 100;
+-  largura = altura = durMs = posMs = 0; bufferando = 1; bufferDesde = SDL_GetTicks();
++  largura = altura = durMs = posMs = posNativoMs = 0; bufferando = 1; bufferDesde = SDL_GetTicks();
+   tocandoDesde = 0; semDecoderAudio = 0; erroTxt[0] = 0; reconErroVideo = 0;
+   pausaPedida = pausaVista = 0;
+   hdrAtual = "none"; dvAtual = atmosAtual = 0;
+@@ -733,7 +734,9 @@ static int abrirSessao(int inicioMs, int fracao) {
+     (*env)->DeleteLocalRef(env, u);
+     (*env)->DeleteLocalRef(env, c);
+   }
++  int chamadaFalhou = (*env)->ExceptionCheck(env);
+   fimChamada(env);
++  if (chamadaFalhou) { falhou = 1; return 0; }
+   // Every Kotlin open starts at 100%: a player session re-applies its volume
+   // (source change, reconnection) after the open in the same queue.
+   ganhoEnviado = CB_VOL_NORMAL;
+@@ -753,6 +756,7 @@ int video_tocar_retomada(const char *u, double segundos, double pct) {
+   reconPermitida = reconProxima; reconProxima = 0;
+   reconIniciou = 0; reconErroPend = 0;
+   reconAudio = reconLeg = -1; reconFaixasPend = 0; reconBuscarMs = -1;
++  recarregarPausa = -1;
+   playerSessao = cacheArmado >= 0;
+   cacheSessao = cacheArmado > 0 ? cacheArmado : 0;
+   cacheArmado = -1;
+@@ -772,12 +776,39 @@ void cacheboost_backend_ganho(int pct) {
+ int video_tocar(const char *u) { return video_tocar_posicao(u, 0.0); }
+ 
+ void video_definir_reconexao(int sim) { reconProxima = sim ? 1 : 0; }
++int video_recarregar(void) {
++  int alvo = posNativoMs, pausado = pausaPedida;
++  if (!ativo || !prontoLoad || !urlAtual[0] || falhou || terminou ||
++      reconErroPend || video_reconectando() || recarregarPausa >= 0 ||
++      alvo < 0 || !ambiente()) return 0;
++  reconAudio = audioAtual; reconLeg = legAtual; reconFaixasPend = 1;
++  reconBuscarMs = -1;
++  recarregarPosMs = alvo;
++  if (!abrirSessao(alvo, 0)) { recarregarPausa = -1; return 0; }
++  recarregarPausa = pausado;
++  // As duas chamadas entram na mesma fila do Kotlin: a pausa pertence ao
++  // player novo, antes do prepare completar, sem alterar o audio preferido.
++  if (pausado) video_pausar(1);
++  return 1;
++}
+ int  video_reconectando(void) {
+   return nv_recon_ativa(&recon) && (recon.pendente || !prontoLoad) ? recon.tentativa : 0;
+ }
+ 
+ void video_bombear(void) {
+   double pos = video_pos();
++  int eraRecarga = recarregarPausa >= 0;
++  if (recarregarPausa >= 0) {
++    if (falhou || terminou || !ativo) recarregarPausa = -1;
++    else if (prontoLoad && !reconErroPend && !recon.pendente) {
++      // Cascas antigas podem recusar a posicao de abertura. Nesse caso a
++      // mesma sessao recebe o seek, inclusive se a pessoa estava pausada.
++      if (recarregarPosMs > 0 && video_retomada_inicial_estado() < 0)
++        kInt(mBuscar, recarregarPosMs);
++      if (recarregarPausa) video_pausar(1);
++      recarregarPausa = -1;
++    }
++  }
+   if (mVelocidade && ativo && prontoLoad && velEnviada != velPedida) {
+     velEnviada = velPedida;
+     kInt(mVelocidade, velEnviada);
+@@ -799,8 +830,9 @@ void video_bombear(void) {
+     int rede = erroDeRede(reconErroCod);
+     reconErroPend = 0;
+     if (reconPermitida && urlAtual[0] && (reconIniciou || recon.tentativa) &&
+-        nv_recon_erro(&recon, rede, SDL_GetTicks(), pos)) {
+-      if (!antes) { reconAudio = audioAtual; reconLeg = legAtual; }
++        nv_recon_erro(&recon, rede, SDL_GetTicks(),
++                      eraRecarga ? recarregarPosMs / 1000.0 : pos)) {
++      if (!antes && !eraRecarga) { reconAudio = audioAtual; reconLeg = legAtual; }
+       if (recon.tentativa != antes) {
+         printf("[video] conexao caiu (%d): tentativa %d/%d, espera %us\n",
+                reconErroCod, recon.tentativa, NV_RECON_MAX,
+@@ -813,12 +845,15 @@ void video_bombear(void) {
+       falhou = 1;
+     }
+   }
++  if (falhou) recarregarPausa = -1;
+   if (nv_recon_vencida(&recon, SDL_GetTicks())) {
+     printf("[video] reconectando: alvo %.0fs, tentativa %d\n", recon.alvo, recon.tentativa);
+     fflush(stdout);
+     reconFaixasPend = 1;
+-    reconBuscarMs = recon.alvo > 1.0 ? (int)(recon.alvo * 1000.0) : -1;
+-    if (!abrirSessao(0, 0)) { reconErroCod = -1; reconErroPend = 1; }
++    reconBuscarMs = recarregarPausa < 0 && recon.alvo > 1.0 ? (int)(recon.alvo * 1000.0) : -1;
++    if (!abrirSessao(recarregarPausa >= 0 ? recarregarPosMs : 0, 0))
++      { reconErroCod = -1; reconErroPend = 1; }
++    else if (recarregarPausa > 0) video_pausar(1);
+   }
+ }
+ void video_parar(void) {
+@@ -826,6 +861,7 @@ void video_parar(void) {
+   capmkv_zerar();   // fio de capitulos em voo nao alimenta o proximo titulo
+   nv_recon_zerar(&recon);
+   reconErroPend = 0; reconErroVideo = 0; reconFaixasPend = 0; reconBuscarMs = -1;
++  recarregarPausa = -1;
+   if (ativo) {
+     // Troca de episodio: o consumidor ja destacou o proximo buffer. Soltar
+     // o decoder atual nao pode cancelar esse preparo nem o token da abertura.
+@@ -837,7 +873,11 @@ void video_parar(void) {
+   ativo = prontoLoad = primeiroQuadro = tocando = 0; superficieEstavel = 0;
+   pausaPedida = pausaVista = 0;
+ }
+-void video_pausar(int p) { pausaVista = 0; pausaPedida = p ? 1 : 0; kInt(mPausar, p ? 1 : 0); }
++void video_pausar(int p) {
++  pausaVista = 0; pausaPedida = p ? 1 : 0;
++  if (recarregarPausa >= 0) recarregarPausa = pausaPedida;
++  kInt(mPausar, pausaPedida);
++}
+ int video_pausa_confirmada(void) {
+   return pausaPedida && pausaVista && !tocando && ativo && prontoLoad && primeiroQuadro &&
+          !falhou && !terminou && !video_reconectando();
+diff --git a/src/video_tizen.c b/src/video_tizen.c
+index 60d9188f7215691ea3047f06f0c54de8baadab5d..6191b97b28db5e2df349867ccb445d1932e3d2a2 100644
+--- a/src/video_tizen.c
++++ b/src/video_tizen.c
+@@ -98,6 +98,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <strings.h>
++#include <math.h>
++#include <limits.h>
+ 
+ // ============================================================================
+ // A PORTA UNICA PARA O JS
+@@ -818,6 +820,7 @@ static NvReconexao recon;
+ static int    reconProxima, reconPermitida, reconIniciou;
+ static int    reconAudio = -1, reconLeg = -1, reconFaixasPend;
+ static double reconBuscar = -1.0;
++static int recarregarPausa = -1, pausaPedida;
+ // As listas como estavam na queda. O AVPlay nao da idioma: o rotulo veio da
+ // sonda do MKV (aplicarIdiomasDoMkv), e o recarregar releria "Audio 1".
+ static VideoFaixa reconFxA[NV_FAIXA_MAX], reconFxL[NV_FAIXA_MAX];
+@@ -897,6 +900,7 @@ int video_tocar(const char *url) {
+   nv_recon_zerar(&recon);
+   reconPermitida = reconProxima; reconProxima = 0; reconIniciou = 0;
+   reconAudio = reconLeg = -1; reconFaixasPend = 0; reconBuscar = -1.0;
++  recarregarPausa = -1; pausaPedida = 0;
+   nAudio = nLeg = 0; audioAtual = 0; legAtual = -1; faixasLidas = 0;
+   posSeg = durSeg = 0; vidW = vidH = 0; houveErro = 0; erroTexto[0] = 0;
+   terminou = 0;
+@@ -1133,8 +1137,8 @@ static void lerFaixas(void) {
+     reconFaixasPend = 0;
+     if (nAudio == reconNA) memcpy(faixaAudio, reconFxA, sizeof faixaAudio);
+     if (nLeg == reconNL)   memcpy(faixaLeg, reconFxL, sizeof faixaLeg);
+-    if (reconAudio > 0 && reconAudio < nAudio) video_escolher_audio(reconAudio);
+-    if (reconLeg >= 0 && reconLeg < nLeg) video_escolher_legenda(reconLeg);
++    if (reconAudio >= 0 && reconAudio < nAudio) video_escolher_audio(reconAudio);
++    if (reconLeg >= -1 && reconLeg < nLeg) video_escolher_legenda(reconLeg);
+     printf("[video] reconexao: faixas devolvidas (audio %d, legenda %d)\n", reconAudio, reconLeg);
+     fflush(stdout);
+     return;
+@@ -1167,6 +1171,40 @@ static void *lerMkv(void *arg) {
+   return NULL;
+ }
+ 
++// O mesmo open da reconexao, sem consumir configuracao de fonte nova nem
++// apagar as faixas guardadas antes da recarga.
++static int reabrirMesmaFonte(double alvo) {
++  pronto = tocando = 0; faixasLidas = 0;
++  nAudio = nLeg = 0; audioAtual = 0; legAtual = -1; posSeg = 0; seekEm = 0;
++  reconFaixasPend = 1; reconBuscar = alvo;
++  if (AVS("abrir", urlAtual) < 1) {
++    logarErro("reabrir"); return 0;
++  }
++  ativo = 1;
++  houveErro = terminou = 0; erroTexto[0] = 0;
++  aberturaEm = SDL_GetTicks();
++  avChamar("rect", NULL, janX, janY, janW, janH, NULL, 0);
++  return 1;
++}
++
++int video_recarregar(void) {
++  double est[EST_N];
++  int pausado = pausaPedida;
++  if (!temAvplay || !ativo || !pronto || !urlAtual[0] || houveErro || terminou ||
++      video_reconectando() || recarregarPausa >= 0) return 0;
++  memset(est, 0, sizeof est);
++  if (avChamar("estado", NULL, 0, 0, 0, 0, (char *)est, sizeof est) < 1 ||
++      !est[EST_PRONTO] || !est[EST_ABERTO] || est[EST_ERRO] || est[EST_FIM] ||
++      !isfinite(est[EST_POS]) || est[EST_POS] < 0 ||
++      est[EST_POS] > INT_MAX / 1000.0) return 0;
++  reconAudio = audioAtual; reconLeg = legAtual;
++  memcpy(reconFxA, faixaAudio, sizeof reconFxA); reconNA = nAudio;
++  memcpy(reconFxL, faixaLeg, sizeof reconFxL); reconNL = nLeg;
++  if (!reabrirMesmaFonte(est[EST_POS])) { houveErro = 1; return 0; }
++  recarregarPausa = pausado;
++  return 1;
++}
++
+ void video_bombear(void) {
+   double est[EST_N];
+   int estavaPronto = pronto;
+@@ -1187,13 +1225,9 @@ void video_bombear(void) {
+     char m[64];
+     snprintf(m, sizeof m, "reconectando: alvo %.0fs, tentativa %d", recon.alvo, recon.tentativa);
+     marco(m);
+-    pronto = tocando = 0; estavaPronto = 0; faixasLidas = 0;
+-    nAudio = nLeg = 0; audioAtual = 0; legAtual = -1; posSeg = 0; seekEm = 0;
+-    reconFaixasPend = 1;
+-    reconBuscar = recon.alvo;
+-    AVS("abrir", urlAtual);
+-    ativo = 1;
+-    avChamar("rect", NULL, janX, janY, janW, janH, NULL, 0);
++    estavaPronto = 0;
++    if (!reabrirMesmaFonte(recon.alvo) &&
++        !nv_recon_erro(&recon, 1, SDL_GetTicks(), recon.alvo)) houveErro = 1;
+   }
+ 
+   if (!temAvplay || !ativo) return;
+@@ -1216,9 +1250,10 @@ void video_bombear(void) {
+     int antes = recon.tentativa;
+     logarErro("onerror");
+     if (reconPermitida && urlAtual[0] && (reconIniciou || recon.tentativa) &&
+-        nv_recon_erro(&recon, nv_recon_rede_avplay(erroTexto), SDL_GetTicks(), posSeg)) {
++        nv_recon_erro(&recon, nv_recon_rede_avplay(erroTexto), SDL_GetTicks(),
++                      recarregarPausa >= 0 ? reconBuscar : posSeg)) {
+       char m[96];
+-      if (!antes) {
++      if (!antes && recarregarPausa < 0) {
+         reconAudio = audioAtual; reconLeg = legAtual;
+         memcpy(reconFxA, faixaAudio, sizeof reconFxA); reconNA = nAudio;
+         memcpy(reconFxL, faixaLeg, sizeof reconFxL);   reconNL = nLeg;
+@@ -1246,9 +1281,20 @@ void video_bombear(void) {
+   if (pronto && !faixasLidas) lerFaixas();
+   // A posicao da queda, depois das faixas (trocar faixa pode reiniciar o decode).
+   if (reconBuscar >= 0.0 && pronto) {
+-    if (reconBuscar > 1.0) video_buscar(reconBuscar);
++    if (recarregarPausa >= 0) {
++      if (AVN("buscar", reconBuscar * 1000.0) < 1) houveErro = 1;
++      else posSeg = reconBuscar;
++    } else if (reconBuscar > 1.0) video_buscar(reconBuscar);
+     reconBuscar = -1.0;
+   }
++  if (recarregarPausa >= 0 && (pronto || houveErro || terminou)) {
++    int pausado = recarregarPausa;
++    recarregarPausa = -1;
++    if (pronto && !houveErro && pausado) {
++      if (AVN("pausar", 1) < 1) houveErro = 1;
++      else tocando = 0;
++    }
++  }
+ 
+   // SONDA DE MKV. Gatilho diferente do da LG e explicado no bloco de
+   // `mkvPendente`: sem bufferRange, o sinal de que ha banda sobrando e o tempo
+@@ -1274,6 +1320,7 @@ void video_sondar_mkv_agora(void) {
+ void video_parar(void) {
+   nv_recon_zerar(&recon);
+   reconFaixasPend = 0; reconBuscar = -1.0;
++  recarregarPausa = -1; pausaPedida = 0;
+   seekEm = 0; mkvPendente = 0;
+   if (temAvplay) AV0("parar");
+   ativo = tocando = pronto = terminou = 0;
+@@ -1292,7 +1339,10 @@ void video_escala_definir(int sw, int sh) { (void)sw; (void)sh; }
+ 
+ void video_pausar(int pausado) {
+   if (!temAvplay || !ativo) return;
+-  if (AVN("pausar", pausado ? 1 : 0) >= 1) tocando = !pausado;
++  if (AVN("pausar", pausado ? 1 : 0) >= 1) {
++    tocando = !pausado; pausaPedida = !!pausado;
++    if (recarregarPausa >= 0) recarregarPausa = pausaPedida;
++  }
+ }
+ 
+ int video_pausa_confirmada(void) {
+diff --git a/src/video_tpk.c b/src/video_tpk.c
+index badece33d2034ee8869a1c1f4fedb203fed4e147..5a8faa21f463a81ee56c037358e03a0df23a4fc2 100644
+--- a/src/video_tpk.c
++++ b/src/video_tpk.c
+@@ -404,6 +404,7 @@ int video_tocar(const char *u) {
+ }
+ 
+ void video_definir_reconexao(int sim) { reconProxima = sim ? 1 : 0; }
++int  video_recarregar(void) { return 0; }
+ int  video_reconectando(void) {
+   return nv_recon_ativa(&recon) && (recon.pendente || !pronto) ? recon.tentativa : 0;
+ }
