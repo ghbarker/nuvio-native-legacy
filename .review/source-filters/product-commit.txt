@@ -1,0 +1,6 @@
+tree 7bef74f8cd4d002425d36767a10c6526682d190f
+parent d156e650eb01783713cb7812394f620b68be5895
+author ghbarker <ghbarker@users.noreply.github.com> 1792033564 +0000
+committer Grant Barker <granthbarker@gmail.com> 1792086798 +0000
+
+sources: integrate shared exclusions with profile provider setup

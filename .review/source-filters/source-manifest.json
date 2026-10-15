@@ -1,0 +1,236 @@
+{
+  "head": "791a6e15a9092d2951c886938289a436824994f3",
+  "tree": "7bef74f8cd4d002425d36767a10c6526682d190f",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "paths": [
+    {
+      "path": "src/ajustes.c",
+      "sha256": "163f4e1b078134c13dab833df40023afc365070ed13b74d6b3b5d9fb2e45d303",
+      "blob": "7af68fadebd46b302071f402ca9668b7b6d4dfbf"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha256": "cf3eb97074b22b9ff3e38e31fb108881b48111d0f9784deb5dd253ef8eb3be94",
+      "blob": "7416f7e9e84f9ca33b04ed7d709a978b77012aa8"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha256": "71624c78a2c8dcc847d720cb52e9dc98ba2807567842e2ba1683ead07842072a",
+      "blob": "1ad10132352de24694e142454acaea398f64ace5"
+    },
+    {
+      "path": "src/ajustes_ux_ilha.inc",
+      "sha256": "e53549a6e3be34ae6939cc89ef520aa026eee366d9600e0fbf20678a65d61802",
+      "blob": "ba167fc2e5feac7ad9b1a7270fa2824cc40fb522"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "37503e23e2398cf93e4db42058ca90f5128709917c512275933813e365eff7d7",
+      "blob": "182bf41b0d171c5c81f7874d1e566cf5c7a0e0a2"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "a5fadae5079414022a7558c10b5a3de9b17cdee13908836a309c63a2a5d3b7b6",
+      "blob": "7c7ee4dfe1b56d2cb5207851423c19826e95a2e9"
+    },
+    {
+      "path": "src/app.c",
+      "sha256": "bb6fe1799abe08d185fb8836ad129d0ccd04d15c38fe939b7c0ca14caa00d477",
+      "blob": "c086512409da7257712a7bae2b276cff96f87a1f"
+    },
+    {
+      "path": "src/fontefalha.c",
+      "sha256": "a9a2ab8221dd56f81e3c915e0df63b16500aef8ff22c78385b2334deef372574",
+      "blob": "50e65e035a23d3e033b817dfd9ec6e61c3d19a9b"
+    },
+    {
+      "path": "src/fontefalha.h",
+      "sha256": "b4acb5b30bfdb8347c6cdea9a64352d5c23fbf1d886c6c498d5e1589cacd44bf",
+      "blob": "b8315e49e941b275e68d5a6ab623b9b54363a3ad"
+    },
+    {
+      "path": "src/fontefiltro.c",
+      "sha256": "843e8f3a225aea862d5d1b507d57991ad542278da86e6cbc8b2e80d8d44e6b12",
+      "blob": "27c54438263ae82e1d3e8a594414f62c2cafe4ed"
+    },
+    {
+      "path": "src/fontefiltro.h",
+      "sha256": "ab13902d3e5d2d10313df3f928b34e3390a8e2f118b55704677a2dca3f32484b",
+      "blob": "0bd751a4af3732a9063c8a5e0894357cea75be00"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "801fdd4f8b22373cadc3047962f15743b335e65384f9636320c6c9891b75183f",
+      "blob": "83b72f54a7333aa044d57747dd2a2790ff6bece0"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "acbbd840953ed0d52937f92333b201b9d3b89c03e45c383f029931c3640391c3",
+      "blob": "75747fd98887849c95f1dee1507046a9e5e833f7"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "feb4b3de721ddbdeba0b78455040b2f2797202ac76a7638060ee9365d6857853",
+      "blob": "13efef9af17b6c2cc99e584472c408fc9e75e34e"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "1508db842237c5233669a81dc91ca2a0e4b6a16dae0d758b53fafc17268aa480",
+      "blob": "bd084de76d04b0e4a6d7f74d5efe60a39df2cc52"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "74fa50c0cf8f836f8afff544719c6a53702dde2780e07866290b21f6badb6d08",
+      "blob": "70ca6e2c211843844b535d0129269cfb9cae2bef"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "e0eaa93fddb51d5c556c387ed4b8f8ea0d3e697204845213b09a3a1e1d89863c",
+      "blob": "e38339ff7708f5f04dd168a008b8abe4ecd894df"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "1df26d2712488a07a5c1849403ce0744235aea56bfdba3fb81939aafc98e2e81",
+      "blob": "ed710d4d9d211d1521ef042ac591f8701f145d88"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "37cd28cb145bedd9b2ed3ef6e6b63ff81af800729f504d3c5ce995727b8d5e6d",
+      "blob": "ffb9c9467ba694367ea1fe62c17b34098f149217"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "0f4df6e60d3187b1704b23a214940518e49642a8a572f8264ab2a6f501f8209e",
+      "blob": "bacef45bac1af68d4adc4f9bf4d367f982b84e14"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "d943d8a60eb971c8bc63e7f391f08d628c526eccee18b7527eb2984d518a1117",
+      "blob": "1c167f5412edd49b41de037acd6f59c7d177fc09"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "97ea7e4be919462dbd664c9eed2806a8a316ea1ba514f753f6592bb82bfc9dd5",
+      "blob": "80bfa377a7aba7f11a164e4499671fca64f94c9d"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "795abfde86addbb5c3ee16a030d6199a9c02a670699c56fa3d49ff3daa5cd0e0",
+      "blob": "5a9d6082aaa1db3691dbd7ccf436ae7eed122239"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "b0f5fb89e33d37ee4d4e47d38c0ef4fe660729c50716905205326c49bb4e7686",
+      "blob": "63071a90a2f4c128a949340b100fe4fc1e0e520b"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "4bbd6b3c99f7c4b5c547fcf1521e376678aeb965444d430dd87b8f66c93a7890",
+      "blob": "9ecd2a84b58ffb33a938c532cd2417cefaae177b"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "427afe6616dd185e1a6668449bb3db5e07016676d69907f9ddcabb6cb1bdfbcf",
+      "blob": "1401fa17ebd099cd9497fdb7aacc87f873195c65"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "831d29a309f43e2e094faf3881e5245cdf6e10a324de8c5bc5b9063cc8734abc",
+      "blob": "f059ffc53c49897fdf83344cafd78a880d388917"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "6477003736d929a948e7fd03a89597bd962a800289aceab470bbc8eb546c612e",
+      "blob": "188043a630c2c5f9071bc3e95d3ee9c3ff134d36"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "210cfbe2497f8ef6c24236e8ff5eb15e796731743f9a782710fe5f851d15956e",
+      "blob": "a7b30c5880888f3d73f664114004b2f38975c657"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "96c12ac052932b7a2b5ec19c160401e1339fec9193eee9674bbe204d063ffd20",
+      "blob": "15f94687b8d3627a19a1bce71e32bcc63ab3eb87"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "e3cf6bf3e076b24b99021c76a25da061a796a27494af85e64dd1c361da4f139d",
+      "blob": "5409cdf01a2232fa41de2adec90a3e2bd08c5530"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "c03e1b815e301008a41fdda557c9ee5532e3e4e3797a6fa2be42a1b6724a42f7",
+      "blob": "b37996e17cac3a34b5a8290e9a27df403d849378"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "b17a781f7a943a276c1f7826f57b248739354311bbd5cc4ddc5a3eb660a5008d",
+      "blob": "ac3ff94ff1f6273d0f256a67f7ec3b2378e9dc4d"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "8871a73a491aa41b1283c378447a7a2614bd48c836d27e5884c9fb84ce061203",
+      "blob": "d132c0fbe1b7c3719495cdda620036c3b88382c5"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "2ed9aed7193eb17d237c556b899677f55ce7d7ab459912288b498486eee5278d",
+      "blob": "5633eeb9c7492e581d341ebc8d4de7726898529c"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "e917c0dccf7203724e7262fbf422c7cba34a22936be0aee2be26d93e8b9917aa",
+      "blob": "08285e9f69e47fe53c196db7c332ec5ea8221fae"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "f7fb22cff6e6e1e709399fb6a67d1cf044f38262fe86daa9552a052d7706943c",
+      "blob": "d99b18fd586e3bb36886937227ecef2b3bfbe42a"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "29399f850b2c4ef871d93a77d1b4639b015b5eb50a2ca388dc8aa7804fef5cae",
+      "blob": "6acbc78cf2a9f1724de1bd51435ae490f6d39f69"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "5ef40614ea20576acd422d88cacbe72de7fe3071e4614c7f44f5bd60b0c2eb1a",
+      "blob": "5037bf7caae0df49dffb33addbe7c46f9e276677"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "f6db9ee2fc9d46924e1aee75c319dbb3298cd06063929eb029aae1e0360e19f3",
+      "blob": "183fec03d4501da6ea6d12636b9aecc61e08e05c"
+    },
+    {
+      "path": "src/stream_parse.c",
+      "sha256": "0da434d94f57a9f02e517007927a6347f6b6a64f7267ac2680c214095811b5f3",
+      "blob": "d60280ec6ca4c574df85d01fad8496bdbb61d7ac"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "310e170ad231595bdd0c3131a7f2ce0ed06df91ac4303ed6f52a49060eda3e12",
+      "blob": "1a64d5ae56e03c217725b1eb855cf9f871260f18"
+    },
+    {
+      "path": "src/streams.h",
+      "sha256": "a386f9750906d139ef1026108a6894f620d9c9770f37f11da7d7e8f4affb901d",
+      "blob": "e0104bf5572457b44fd758cf7fb502a6c967d3d5"
+    },
+    {
+      "path": "src/teclado.c",
+      "sha256": "7d4ab858edbaa51ab5b16b91acc170e38481a4a145f4363a9105cc7cfb0a7404",
+      "blob": "7be42af089a700aa90f8b7671b7e957c8703ba05"
+    },
+    {
+      "path": "src/teclado.h",
+      "sha256": "f82f4e915fba80f68168a3c7aff225fe29c33ea64cbe43d056650b7ff00da9ff",
+      "blob": "2954daa350e035010fce1f502aa795cc39e1edc4"
+    }
+  ],
+  "patch_sha256": "c5f75f4e90096495e2f6dc2c4465500204990583567a6fb7aac773e514f2d287",
+  "product_only": true,
+  "clean": true,
+  "scope": "Shared source exclusions before provider budgets, current merged watched/profile policy preserved."
+}

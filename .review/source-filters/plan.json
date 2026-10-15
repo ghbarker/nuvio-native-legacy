@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "feature": "shared-source-exclusions-before-link-budgets",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_commit": "791a6e15a9092d2951c886938289a436824994f3",
+  "source_tree": "7bef74f8cd4d002425d36767a10c6526682d190f",
+  "source_manifest_sha256": "3a669e4c54b88fb7ef22f1a2322cd0e7b9ce709c1e9217708346bacb1aa5969d",
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "source_ref": "refs/heads/feat/shared-source-exclusions",
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref_after_success": true,
+  "no_private_overlay": true,
+  "no_pr_or_release_created": true,
+  "scope": "Clean45src-only source exclusions, existing reviewed policy, latest merged493 and regex retained. All five producers fresh; no historical combined pass relabeled.",
+  "focused_groups": [
+    "original-parser",
+    "original-planner",
+    "core",
+    "parser",
+    "planner",
+    "worker",
+    "ui-handlers",
+    "preparation",
+    "concurrency",
+    "profile-bank",
+    "profile-scope"
+  ],
+  "focused_modes": [
+    "normal",
+    "asan"
+  ],
+  "policy_checks_reused_from_existing_fixtures_only": true,
+  "recipe_inputs": {
+    "aggregate.py": "91688547ae779f28c9113bc2373610c6d168d95acf9dde10b5202fa67b4e466c",
+    "android.py": "78c0fef8fba13af50f7466a7988bb53b0bf476e764396a2d0afbaca09fe7e462",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "04c8eb53ef4aae86be4248a85bea6337c67907c48a4f632a29fb4afc543f75c2",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixtures/filters/config_concurrency.c": "d3b04608e9905c783bf36a1cce95cfc292ec23bad2ce5f3b6f501c72e7bd46ec",
+    "fixtures/filters/preparation_filters.c": "5792c1aeab5b403d1a56f10583b4c65cc52173b3a2d4dfe10d75ddf68e7266b1",
+    "fixtures/filters/prepare_ui.py": "9c3375ec1c906ac4d332139c094912920eb8be40a8b8145666ca523e25fe3870",
+    "fixtures/filters/profile-bank-filters.c": "0c54843302c17526d2a67b41f88356c647e6011747c136330cad24f0f8579d0b",
+    "fixtures/filters/profile-scope-filters.c": "55663e05718c0fa4d9c7e66f68f8f8cef9fcddfcd0868a933a9d82cbc4439662",
+    "fixtures/filters/reviewed-fontefalha.c": "4a4f9ef8f80b3780b43498f636a1d0a446040b34e9aad6c7c3cc00a2e7b6d28e",
+    "fixtures/filters/reviewed-fontefalha_worker.c": "fe21adf972426e0dd952fe20bc4c7f365fdce3a2bd4010b51eac9e568343a09d",
+    "fixtures/filters/reviewed-fontefiltro.c": "7c5562ba0abbec170772a632308eb341238813ac044e434f5ad21594f8e6b393",
+    "fixtures/filters/reviewed-fontefiltro_parse.c": "5893d86a6df9fb082a2d71c5fe8c293fd9a0061fa1002764a1e23f4275bee609",
+    "fixtures/filters/run.py": "8ead6102ee5c543f2fe98ca6497ed3084bfbbe0a13d96e5e090e1ced24d78b6e",
+    "fixtures/filters/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/filters/sdk/SDL2/SDL.h": "904cc79914cfda7157463f2762cf9d70e79b45a81c74b48235ddb044f7a21ea8",
+    "fixtures/filters/settings-tables.c": "f7bf998b5a221fc7f12902cc128d6b2f618c1485c7c60f095f04587c6942dcb6",
+    "fixtures/filters/settings_ids.py": "73de6ebfd562f38705e3a68ffb6abe958bd44beba0fd731a02be526d0e366bff",
+    "materialize.py": "bd12813f8bcdb72d86805d54a8d7b323ff70d58bb267a329a43a3f6575ebf426",
+    "native.py": "9960b8f734beb22bfdf6b79e8a754b3e1033a29877967481e16cb1a30dd1349f",
+    "original3.py": "1f17ac22395c834903de72b2374c55e3e63b3e2252910344d02c533ba1ae6db9",
+    "product-commit.txt": "208b6282dc451a50fa34315c081cc07d0660eafec6c41e17df81adf14a05ffa0",
+    "product-delta.patch": "c5f75f4e90096495e2f6dc2c4465500204990583567a6fb7aac773e514f2d287",
+    "publish_source.py": "3665189551be4e7a60a25f3011cde7129e9a7c88f2886c992b3e698e27ad6f92",
+    "source-manifest.json": "3a669e4c54b88fb7ef22f1a2322cd0e7b9ce709c1e9217708346bacb1aa5969d"
+  },
+  "cache_key_preflight": [
+    {
+      "primary": "source-filters-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt') }}",
+      "total_keys": 9
+    },
+    {
+      "primary": "source-filters-gradle-v1-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts', 'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}",
+      "total_keys": 9
+    }
+  ],
+  "settings_schema_check": "Original full Settings table producer:292 existing IDs/keys/defaults/labels unchanged,3 filter entries appended; TV and mobile"
+}
