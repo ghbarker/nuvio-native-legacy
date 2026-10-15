@@ -272,3 +272,6 @@
   1, /* hide watched movies (#366): Desligado, per profile on this device */
   0, /* provider setup: shared legacy accounts; choice itself belongs to this profile */
   0, 0, 0, /* shared exclusions parent, max-size view, release-group editor */
+#ifdef NV_ANDROID
+  0, /* Baixar registro: acao local, sem preferencia gravada */
+#endif

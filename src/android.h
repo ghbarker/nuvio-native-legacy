@@ -12,6 +12,9 @@ void android_iniciar(void);
 void android_interface_modo(int mobile);
 // Android device classification captured before SDL starts; never a screen heuristic.
 int android_interface_mobile_auto(void);
+// Salva uma copia local do registro pelo seletor de arquivos do Android.
+// As mensagens ja vem traduzidas; nao envia nem altera o registro original.
+void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha);
 #ifdef NV_TOUCH_UI
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.
