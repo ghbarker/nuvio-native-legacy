@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "f85edaa220780f6bfb9114791467072b6ff0cfa4",
+  "candidate_head": "d3eddbcbc3180cd686207afa1a98b8fdf81536b1",
+  "candidate_tree": "865696793ffc2e3115dd619f2fa2e5278a883d09",
+  "review_branch": "review/issue528-metadata-20261015",
+  "source_manifest_sha256": "906a49e4e06576b261c5ba35d70bfae29a6ec658e140c584488d497d32ca82eb",
+  "workflow_normalized_sha256": "6b106612ae44b8dfee6757778c4aef10d059fed33770b57982e10d232d564eee",
+  "recipe_inputs": {
+    "android.py": "f88d76b5b711bcf2d6549da38d99d01f8ee592f34123d3e30b9f8c0597214618",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "common.py": "f4d957b36baeee57432fb507b6f2ed5d3854ba3c144af9fa7b41a24205152dd9",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "materialize.py": "078b6d9dde9d3ab0ee7ee926ebf169aea2c6676b8ba5c049f5067bf99b3d7f21",
+    "native.py": "bae5d95fe84d20c939f87f6f46c19086502b0f5f690793b1832edcb1a05e3de6",
+    "preflight.py": "ad008273831bba6ed09c0021f01c440da06de013e9f600ec7ff610990c00f786",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "scope": "Two SDK producers only: exact checked-in cateps normal and ASan/UBSan on macOS, and standard dualARM Android build; no private test APK, no full-app TV/touch duplication, no extracted-helper substitute."
+}

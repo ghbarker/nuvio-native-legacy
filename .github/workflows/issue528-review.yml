@@ -1,0 +1,185 @@
+{
+  "name": "Issue528 exact cateps and standard Android validation",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue528-metadata-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "issue528-${{ github.sha }}-${{ github.run_attempt }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "ISSUE528_PLAN_SHA256": "c92950dda34690bdeecb0994c3ea67e07b8377eb74bde5e1717252709350e859",
+    "ISSUE528_ID": "528"
+  },
+  "jobs": {
+    "native": {
+      "name": "Issue528 macOS exact cateps normal and ASan/UBSan",
+      "if": true,
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify closed source and recipe bindings",
+          "run": "python3 .review/issue528/preflight.py"
+        },
+        {
+          "name": "Materialize exact reviewed isolated candidate",
+          "run": "python3 .review/issue528/materialize.py --candidate 528 --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Install real Homebrew headers and SDL libraries",
+          "run": "test \"$(command -v cc)\" = /usr/bin/cc\nbrew install sdl2 sdl3\ntest -f /opt/homebrew/include/SDL2/SDL.h"
+        },
+        {
+          "name": "Run exact complete cateps source and worker regression normally and sanitized",
+          "run": "python3 .review/issue528/native.py --source source-app --proof results/source-verified.json --output results/native"
+        },
+        {
+          "name": "Reverify exact candidate after checks",
+          "run": "python3 .review/issue528/materialize.py --candidate 528 --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue528-native-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "android": {
+      "name": "Issue528 standard Android ARM32/ARM64",
+      "if": true,
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 90,
+      "env": {
+        "NUVIO_ANDROID_JOBS": "2",
+        "NUVIO_BUILD_JOBS": "2",
+        "NUVIO_P2P_MOTOR": "none"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify closed source and recipe bindings",
+          "run": "python3 .review/issue528/preflight.py"
+        },
+        {
+          "name": "Materialize exact reviewed isolated candidate",
+          "run": "python3 .review/issue528/materialize.py --candidate 528 --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install standard Android toolchain",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "name": "Compile-only configuration without service credentials",
+          "run": ": > \"$RUNNER_TEMP/issue528.properties\"\nchmod 600 \"$RUNNER_TEMP/issue528.properties\"\necho \"NUVIO_PROPERTIES=$RUNNER_TEMP/issue528.properties\" >> \"$GITHUB_ENV\""
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "issue528-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "issue528-native-v1-${{ runner.os }}-\nrebases10e3-native-v1-${{ runner.os }}-\nissue497-native-v1-${{ runner.os }}-\npr527-native-v1-${{ runner.os }}-\napk20028-native-v1-${{ runner.os }}-\n"
+          }
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "issue528-gradle-v1-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts', 'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}",
+            "restore-keys": "issue528-gradle-v1-${{ runner.os }}-\nrebases10e3-gradle-v1-${{ runner.os }}-\nissue497-gradle-v1-${{ runner.os }}-\npr527-gradle-v1-${{ runner.os }}-\napk20028-gradle-v1-${{ runner.os }}-\n"
+          }
+        },
+        {
+          "name": "Capture strictly clean source before build",
+          "run": "python3 .review/issue528/android_workspace.py --source source-app --output results/android-workspace --phase before"
+        },
+        {
+          "name": "Build cached dependencies for both standard ARM ABIs",
+          "working-directory": "source-app",
+          "run": "bash tools/android/deps.sh arm64-v8a armeabi-v7a"
+        },
+        {
+          "name": "Build exact standard Android debug APK",
+          "working-directory": "source-app",
+          "run": "bash tools/android.sh"
+        },
+        {
+          "name": "Preserve actual standard APK",
+          "run": "mkdir -p results/android\ncp source-app/build/android/*-android-debug.apk results/android/standard-validation.apk"
+        },
+        {
+          "name": "Record and verify post-build workspace",
+          "if": "always()",
+          "run": "python3 .review/issue528/android_workspace.py --source source-app --output results/android-workspace --phase after"
+        },
+        {
+          "name": "Verify source-bound ARM compile databases, APK pages and JNI",
+          "run": "python3 .review/issue528/android.py --source source-app --proof results/source-verified.json --output results/android/android-verified.json --aapt \"$ANDROID_HOME/build-tools/35.0.0/aapt\" --apksigner \"$ANDROID_HOME/build-tools/35.0.0/apksigner\""
+        },
+        {
+          "name": "Reverify exact candidate after checks",
+          "run": "python3 .review/issue528/materialize.py --candidate 528 --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue528-android-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue528-android-proof-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.apk\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
