@@ -1,0 +1,34 @@
+{
+  "format": 1,
+  "scope": "Review-only retry recipes. Frozen product/test sources and original plan/bundle unchanged.",
+  "base_review_commit": "9204d4d71e8456e85ebfee329d7ee74609912262",
+  "base_review_tree": "153ff69e4c9e3326b7c12fdd82d33be029e6c690",
+  "push_branch": "review/logs8-native-retry-20261015",
+  "plan_sha256": "efac80b5b9436720e32e16a8124f9b49b8e71d7d70d244afe6d82640e804f48b",
+  "sources": {
+    "product": "68b520db152b7473be3500d04e01ca5bd4424719",
+    "test": "260c83a604b2a35787714a2946566d1dfd049704"
+  },
+  "changed_helpers": {
+    "native/run.py": "f64906e1817cc26b97f9fb2a39852c99f9b6daf95e92055100f32fff1a94c210",
+    "native/fixture-provenance.json": "36848042be11fe14fc05b1c62645b5233cfe68dee7a512fde5c7907226ec48a0",
+    "native/issue513/dispatch/run.py": "6d3209e69b7c278328caddcb6ccecf369f33379a9ed7963f1e80d9803b638432",
+    "native/issue513/owner/run.py": "ff6fd389590deb94a867db4fd81d0a2094e2e48d08fcb2c786cd86bb4c49afdc",
+    "android/run.py": "e0bddf1a1b4ff6d7c57a68430e218f1f0f3d3cc9a6bfdbe51e0b47c837d24f96",
+    "retry_aggregate.py": "a4f3eca924926a4ee5f6aaab7f6ab4bef29843ff8e7745872ad046cfd15d6e77",
+    "retained-successes.json": "28f002225fa840a33f6d028cf935bf24574967e0d8d9b64e8e254929f8b5f5b8"
+  },
+  "workflow_sha256": "f5857c5edea408d83c7de2e724a95b2e1f48019c042e5d7c1885b3871a470dc5",
+  "native_assertions_unchanged": true,
+  "native_local_preflight": {
+    "focused_normal_asan_groups_passed": 16,
+    "actual513_tv_mobile_normal_asan_runs_passed": 8,
+    "dispatch_assertions_each": 50,
+    "owner_assertions_each": 18,
+    "receipt_sha256": "68acd86fd05598eacb1273ec1d291ecefaea23c93b7f2f89be6f71d4ac100887"
+  },
+  "android_wrapper_preflight_sha256": "8dad300de1d061f349df7a7d050ac539e75d3146724f6f67080f78cc2474747a",
+  "retained_scope": "4successful original jobs + individually successful standard Android phase. Old native failed, old whole Android job failed, old private test APK rejected. New complete native and compatible-test APK jobs required.",
+  "product_and_test_source_edits": false,
+  "pr_release_or_backend_actions": false
+}

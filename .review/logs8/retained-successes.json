@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "frozen": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "plan_sha256": "efac80b5b9436720e32e16a8124f9b49b8e71d7d70d244afe6d82640e804f48b",
+  "original_run_id": 38679339730,
+  "original_review_commit": "9204d4d71e8456e85ebfee329d7ee74609912262",
+  "retained": [
+    {
+      "scope": "kotlin-player",
+      "job_id": 116240061490,
+      "job_name": "kotlin",
+      "artifact": {
+        "id": 11947413334,
+        "name": "logs8-kotlin-player-9204d4d71e8456e85ebfee329d7ee74609912262",
+        "sha256": "7e66e4977f322a0d9480d9886a29caa169004dbd31174d6acdfe9a6a7a9ede1d"
+      }
+    },
+    {
+      "scope": "original-fontepref",
+      "job_id": 116240061412,
+      "job_name": "original3 (fontepref)",
+      "artifact": {
+        "id": 11947858007,
+        "name": "logs8-original-fontepref-9204d4d71e8456e85ebfee329d7ee74609912262",
+        "sha256": "72b22554246a3911893f787d57ecff90bea2c2e89111b0205114c3f21aabaacc"
+      }
+    },
+    {
+      "scope": "original-fontepref_file",
+      "job_id": 116240061382,
+      "job_name": "original3 (fontepref_file)",
+      "artifact": {
+        "id": 11947288910,
+        "name": "logs8-original-fontepref_file-9204d4d71e8456e85ebfee329d7ee74609912262",
+        "sha256": "b21f6789a79832be256e592905a9953f7a301ab3ec6363c6f7e129e2da0f1436"
+      }
+    },
+    {
+      "scope": "original-player_retido",
+      "job_id": 116240061383,
+      "job_name": "original3 (player_retido)",
+      "artifact": {
+        "id": 11947573752,
+        "name": "logs8-original-player_retido-9204d4d71e8456e85ebfee329d7ee74609912262",
+        "sha256": "3a8b9a3f96e65e47e6d234bb90365e2b62e1b13012c3d5591bf76f362d59ac5a"
+      }
+    }
+  ],
+  "excluded_failed_native": {
+    "job_id": 116240061458,
+    "artifact_id": 11946857868
+  },
+  "retained_android_product_phase": {
+    "root_approved_successful_phase_reuse": true,
+    "job_id": 116240061121,
+    "job_name": "Logs8 clean product and compatible test APK (ARM32/ARM64)",
+    "job_conclusion": "failure",
+    "step_name": "Build and verify clean standard product APK with both ARM cores",
+    "step_number": 12,
+    "artifact": {
+      "id": 11947769079,
+      "name": "logs8-android-9204d4d71e8456e85ebfee329d7ee74609912262",
+      "sha256": "f4e469ccca47189b67bc26286ffd51877b200a1001ce50277e1536d676adc99c"
+    },
+    "apk_sha256": "d20c026d1772f708475102ddef349fd5b7002bf5e52c4478b8eeb79da1439c3d",
+    "old_private_test_excluded": true
+  },
+  "scope": "Four successful original jobs and only the individually successful standard Android product phase; original overall run/Android job and old private-test APK are failures, not reused passes. Fresh complete native and compatible-private Android jobs are mandatory."
+}

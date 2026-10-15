@@ -15,9 +15,11 @@ transform=out/'ci-transforms.json';common=['--source',str(s),'--proof',str(a.sou
 def run(c,env=None):subprocess.run(c,cwd=s,env=env,check=True)
 run([sys.executable,str(here/'prepare_source.py'),*common,'--output',str(transform),*allow])
 env=dict(os.environ,NUVIO_P2P_MOTOR='none',NUVIO_REQUIRE_CORE='1',NUVIO_ANDROID_JOBS=str(a.jobs),NUVIO_BUILD_JOBS=str(a.jobs))
-# Gradle supports project properties from this exact environment-key suffix.
-# This avoids editing tools/android.sh merely to pass the isolated diagnostic flag.
-env['ORG_GRADLE_PROJECT_nuvio.testLocalLogs']='true' if a.layer=='test' else 'false'
+# gradlew runs under /bin/sh, which drops environment keys containing dots.
+# Its POSIX-safe GRADLE_OPTS reaches Java as an explicit project system property.
+env.pop('ORG_GRADLE_PROJECT_nuvio.testLocalLogs', None)
+flag = 'true' if a.layer=='test' else 'false'
+env['GRADLE_OPTS'] = (env.get('GRADLE_OPTS', '') + ' -Dorg.gradle.project.nuvio.testLocalLogs=' + flag).strip()
 run(['bash','tools/android/deps.sh','arm64-v8a','armeabi-v7a'],env)
 run(['bash','tools/android.sh'],env)
 version=json.loads((s/'deploy/app/appinfo.json').read_text())['version'];built=s/'build/android'/('Nuvio-'+version+'-android-debug.apk');assert built.is_file()

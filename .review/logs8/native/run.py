@@ -25,6 +25,18 @@ def execute(label,cmd):
 records.append(execute('translations',['python3',str(product/'tools/idiomas.py')]))
 # Detect compiler/SDK errors before spending time on whole-source compilation.
 sanity=out/'sdk-sanity.c';sanity.write_text('#include <stdio.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){printf("SDL %d.%d.%d SDK ready\\n",SDL_MAJOR_VERSION,SDL_MINOR_VERSION,SDL_PATCHLEVEL);return 0;}\n');records.append(execute('sdk-compile',[cc,*base,str(sanity),*libs,'-o',str(out/'sdk-sanity')]));records.append(execute('sdk-run',[str(out/'sdk-sanity')]))
+# Actual merged parser/cache/filter/preparation/worker/profile storage, both normal and sanitizers.
+f=here/'fixtures';s=product/'src';parser=[s/n for n in ['stream_parse.c','fontefiltro.c','js.c','badges.c']]
+groups={'original-parser':([product/'tests/stream_parser.c']+parser,False),'cache-metadata':([f/'cache_metadata.c']+parser,False),'exclusion-parser':([f/'reviewed-fontefiltro_parse.c']+parser,False),'preparation':([f/'preparation_filters.c',s/'fontefalha.c',s/'fontefiltro.c',s/'fonteauto.c',s/'perfis.c'],True),'profile-bank':([f/'profile-bank-filters.c',s/'fontefalha.c',s/'fontefiltro.c'],False),'profile-scope':([f/'profile-scope-filters.c',s/'debrid.c',s/'fontefalha.c',s/'fontefiltro.c'],False),'worker':([f/'reviewed-fontefalha_worker.c',s/'fontefalha.c',s/'fontefiltro.c',s/'fonteauto.c',s/'perfis.c'],True),'cache-indicator':([f/'cache_indicator.c'],False)}
+for name,(inputs,data) in groups.items():
+ for san in [False,True]:
+  label='focused-'+name+('-asan' if san else '-normal');binary=out/label;flags=['-ffunction-sections','-fdata-sections','-I'+str(s),'-DNV_STREAMS_SOURCE="'+str(s/'streams.c')+'"','-DNV_CACHE_FIX=1']+(['-fsanitize=address,undefined,float-cast-overflow','-fno-omit-frame-pointer','-fno-sanitize-recover=all'] if san else [])
+  records.append(execute(label+'-compile',[cc,*base,*flags,*map(str,inputs),'-Wl,-dead_strip','-lpthread','-lm','-o',str(binary)]))
+  with tempfile.TemporaryDirectory(prefix='logs8-focus-') as d:records.append(execute(label+'-run',[str(binary)]+([d] if data else [])))
+for kind in ['dispatch','owner']:
+ records.append(execute('actual513-'+kind,['python3',str(here/'issue513'/kind/'run.py'),'--source',str(product),'--output',str(out/('actual513-'+kind)),'--mode','both']))
+
+(out/'focused-verified.json').write_text(json.dumps({'source_bindings':bindings,'outcome':'passed','records':records,'fixture_provenance_sha256':sha(here/'fixture-provenance.json')},indent=2)+'\n')
 units=assert_translation_sets(product,test)
 full=[]
 for ui in ['tv','touch']:
@@ -42,16 +54,6 @@ for ui in ['tv','touch']:
   target=directory/(f'{i:04d}-{path.stem}-private.o');cmd=[cc,*base,*ui_flags,'-DNV_TEST_LOCAL_LOGS=1','-I'+str(test/'src'),'-c',str(test/path.relative_to(product)),'-o',str(target)];records.append(execute('private-'+ui+'-'+path.stem,cmd));test_objects.append(target);compiled.append(str(path.relative_to(product)))
  assert {'src/ajustes.c','src/app.c','src/posplay.c'}<=set(compiled),compiled
  binary=out/('app-test-'+ui);records.append(execute('link-test-'+ui,[cc,*map(str,test_objects),*libs,'-o',str(binary)]));full.append({'layer':'test','ui':ui,'sha256':sha(binary),'bytes':binary.stat().st_size,'objects':len(test_objects),'new_private_objects':compiled,'translation_unit_sets_identical':True,'private_macro_delta':['-DNV_TEST_LOCAL_LOGS=1'],'same_invocation_dependency_bound_object_reuse':reused})
-# Actual merged parser/cache/filter/preparation/worker/profile storage, both normal and sanitizers.
-f=here/'fixtures';s=product/'src';parser=[s/n for n in ['stream_parse.c','fontefiltro.c','js.c','badges.c']]
-groups={'original-parser':([product/'tests/stream_parser.c']+parser,False),'cache-metadata':([f/'cache_metadata.c']+parser,False),'exclusion-parser':([f/'reviewed-fontefiltro_parse.c']+parser,False),'preparation':([f/'preparation_filters.c',s/'fontefalha.c',s/'fontefiltro.c',s/'fonteauto.c'],True),'profile-bank':([f/'profile-bank-filters.c',s/'fontefalha.c',s/'fontefiltro.c'],False),'profile-scope':([f/'profile-scope-filters.c',s/'debrid.c',s/'fontefalha.c',s/'fontefiltro.c'],False),'worker':([f/'reviewed-fontefalha_worker.c',s/'fontefalha.c',s/'fontefiltro.c',s/'fonteauto.c'],True),'cache-indicator':([f/'cache_indicator.c'],False)}
-for name,(inputs,data) in groups.items():
- for san in [False,True]:
-  label='focused-'+name+('-asan' if san else '-normal');binary=out/label;flags=['-ffunction-sections','-fdata-sections','-I'+str(s),'-DNV_STREAMS_SOURCE="'+str(s/'streams.c')+'"','-DNV_CACHE_FIX=1']+(['-fsanitize=address,undefined,float-cast-overflow','-fno-omit-frame-pointer','-fno-sanitize-recover=all'] if san else [])
-  records.append(execute(label+'-compile',[cc,*base,*flags,*map(str,inputs),'-Wl,-dead_strip','-lpthread','-lm','-o',str(binary)]))
-  with tempfile.TemporaryDirectory(prefix='logs8-focus-') as d:records.append(execute(label+'-run',[str(binary)]+([d] if data else [])))
-for kind in ['dispatch','owner']:
- records.append(execute('actual513-'+kind,['python3',str(here/'issue513'/kind/'run.py'),'--source',str(product),'--output',str(out/('actual513-'+kind)),'--mode','both']))
 
 for source in [product,test]:assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain'],text=True).strip()
 receipt={'source_bindings':bindings,'outcome':'passed','scope':'Complete linked macOS TV/touch product and private-test apps, same-job exact-dependency object reuse only; focused actual C normal/ASan/UBSan plus513 dispatch/owner','compiler':cc,'compiler_version':subprocess.check_output([cc,'--version'],text=True).splitlines()[0],'sdk_sanity_passed':True,'full_apps':full,'records':records,'fixture_provenance_sha256':sha(here/'fixture-provenance.json')};(out/'native-verified.json').write_text(json.dumps(receipt,indent=2)+'\n');print('Passed complete four app links and focused native source gates')

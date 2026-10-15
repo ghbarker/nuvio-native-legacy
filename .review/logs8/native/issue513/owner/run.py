@@ -7,7 +7,7 @@ p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p
 p.add_argument('--mode',choices=('normal','asan','both'),default='both');a=p.parse_args()
 here=Path(__file__).resolve().parent;source=a.source.resolve();out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
-watched=['src/streams.c','src/streams.h','src/addons.c','src/addons.h','src/fontefiltro.c','src/fontefalha.c','src/linguas.c']
+watched=['src/streams.c','src/streams.h','src/addons.c','src/addons.h','src/fontefiltro.c','src/fontefalha.c','src/linguas.c','src/perfis.c','src/perfis.h']
 before={r:sha(source/r) for r in watched}
 records=[];darwin=platform.system()=='Darwin';cc=os.environ.get('CC','cc')
 for mode in (('normal','asan') if a.mode=='both' else (a.mode,)):
@@ -31,6 +31,9 @@ for mode in (('normal','asan') if a.mode=='both' else (a.mode,)):
   # Integration adds real filter/config/language prerequisites; original18 assertions stay byte-identical.
   for name in ('fontefiltro','fontefalha','linguas'):
    obj=run/(name+'.o');build([cc,*flags,'-c',str(source/'src'/(name+'.c')),'-o',str(obj)]);objects.append(obj)
+  # The fixture keeps its stable-active-profile boundary; real epoch/mutex functions
+  # come from the actual producer with only its unused active-getter symbol renamed.
+  obj=run/'perfis.o';build([cc,*flags,'-Dperfis_ativo=nv_fixture_unused_perfis_ativo','-c',str(source/'src/perfis.c'),'-o',str(obj)]);objects.append(obj)
   link=[cc,*map(str,objects),'-Wl,-dead_strip' if darwin else '-Wl,--gc-sections','-lm','-lpthread',*san,'-o',str(run/'dispatch')]
   initial=build(link,expected=None)
   pattern=r'^\s*"([^"\n]+)", referenced from:' if darwin else r"undefined reference to [`']([^'`]+)['`]"

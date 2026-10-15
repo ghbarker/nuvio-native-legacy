@@ -7,7 +7,7 @@ p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p
 p.add_argument('--mode',choices=('normal','asan','both'),default='both');a=p.parse_args()
 here=Path(__file__).resolve().parent;source=a.source.resolve();out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
-watched=['src/detail.c','src/app.c','src/fontepref.c','src/fontepref.h','src/dados.c','src/dados.h']
+watched=['src/detail.c','src/app.c','src/fontepref.c','src/fontepref.h','src/dados.c','src/dados.h','src/perfis.c','src/perfis.h']
 before={r:sha(source/r) for r in watched}
 gate=re.findall(r'if \((ajustes_fonte_manual\(\) && stream_n\(\) > 0 && lembrada < 0)\)',(source/'src/app.c').read_text())
 assert len(gate)==1
@@ -29,7 +29,7 @@ for mode in (('normal','asan') if a.mode=='both' else (a.mode,)):
    return result
   build([cc,*flags,'-c',str(here/'episode_requests.c'),'-o',str(run/'fixture.o')])
   objects=[run/'fixture.o']
-  for name in ('fontepref','dados'):
+  for name in ('fontepref','dados','perfis'):
    obj=run/(name+'.o');build([cc,*flags,'-c',str(source/'src'/(name+'.c')),'-o',str(obj)]);objects.append(obj)
   link=[cc,*map(str,objects),'-Wl,-dead_strip' if darwin else '-Wl,--gc-sections','-lm','-lpthread',*san,'-o',str(run/'dispatch')]
   initial=build(link,expected=None)
