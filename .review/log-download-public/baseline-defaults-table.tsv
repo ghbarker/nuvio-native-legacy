@@ -1,0 +1,290 @@
+0	qualidade	0	Qualidade máxima
+1	dolbyVision	0	Dolby Vision
+2	dolbyAtmos	0	Dolby Atmos
+3	legendaIdioma	0	Idioma da legenda
+4	audioIdioma	30	Idioma do áudio
+5	pauseOverlayEnabled	0	Painel ao pausar
+6	escolherFonteManual	1	Escolher a fonte ao reproduzir
+7	fonteAutoLocal	0	Fonte automática
+8	fonteReporLocal	2	Outra fonte se falhar
+9	fonteTextoLocal	0	Texto das fontes
+10	modernLandscapePostersEnabled	0	Pôsteres horizontais
+11	modernHeroFullScreenBackdropEnabled	0	Fundo em tela cheia
+12	heroFundoLocal	0	Background do hero
+13	heroDifferentFromCard	1	Destaque com outra arte
+14	trailerHero	1	Trailer no destaque
+15	-limiteFileiras	7	Limite de fileiras
+16	-ordenarFileiras	0	Ordenar e ativar fileiras
+17	collapseSidebar	0	Barra lateral
+18	modernSidebar	1	Barra lateral moderna
+19	modernSidebarBlur	0	Desfoque da barra moderna
+20	heroSectionEnabled	0	Mostrar destaque
+21	-heroCatalogKeys	0	Catálogos do destaque
+22	perfilFundoLocal	0	Fundo da escolha de perfil
+23	discoverLocation	0	Local do Descobrir
+24	posterLabelsEnabled	1	Rótulos nos pôsteres
+25	catalogAddonNameEnabled	0	Nome do addon no catálogo
+26	catalogTypeSuffixEnabled	0	Tipo de conteúdo
+27	hideUnreleasedContent	1	Ocultar não lançados
+28	homeImdbRatingsVisibility	0	Avaliações gerais
+29	classicFocusGradientEnabled	1	Gradiente de foco clássico
+30	continueWatchingEnabled	0	Mostrar "Continuar assistindo"
+31	cwOkLocal	0	OK no card
+32	cwFonteLocal	0	Fonte do "Continuar assistindo"
+33	continueWatchingCardStyle	0	Estilo do "Continuar assistindo"
+34	useEpisodeThumbnailsInCw	0	Miniatura do episódio
+35	blurContinueWatchingNextUp	1	Desfocar próximo episódio
+36	nextUpFromFurthestEpisode	0	Próximo do episódio mais alto
+37	showUnairedNextUp	0	Mostrar episódios não exibidos
+38	continueWatchingSortMode	0	Ordenação
+39	blurUnwatchedEpisodes	1	Desfocar não assistidos
+40	detailPageTrailerButtonEnabled	0	Botão de trailer
+41	preferExternalMetaAddonDetail	0	Priorizar metadados externos
+42	showFullReleaseDate	0	Data de lançamento completa
+43	detalheVeu	100	Escurecimento do fundo
+44	trailerAuto	0	Trailer automático
+45	trailerQualidade	0	Qualidade do trailer
+46	trailerAspecto	0	Proporção do trailer
+47	trailerFonteLocal	0	Fonte do trailer
+48	focusedPosterBackdropExpandEnabled	0	Expandir pôster ao focar
+49	focusedPosterBackdropExpandDelaySeconds	3	Atraso da expansão
+50	fastHorizontalNavigationEnabled	1	Navegação horizontal rápida
+51	bordaFocoCartaz	0	Borda no cartaz em foco
+52	cardDepthEnabled	0	Efeito de profundidade
+53	cardDepthEdgeStrength	28	Brilho da borda
+54	cardDepthSheenStrength	100	Reflexo
+55	cardDepthEdgeCoverage	0	Cobertura da borda
+56	cardDepthPostersEnabled	0	Profundidade nos pôsteres
+57	cardDepthContinueWatchingEnabled	0	Profundidade no "Continuar"
+58	cardDepthEpisodeCardsEnabled	0	Profundidade nos episódios
+59	cardDepthCastEnabled	0	Profundidade no elenco
+60	cardDepthTrailersEnabled	0	Profundidade nos trailers
+61	posterCardWidthDp	126	Largura do item
+62	posterCardCornerRadiusDp	12	Arredondamento
+63	qualidadeImagem	1	Qualidade da imagem
+64	idioma	0	Idioma do app
+65	animacoes	0	Animações
+66	resolucaoUi	0	Resolução da interface
+67	selected_theme	12	Cor de destaque
+68	corDaLogoLocal	0	Cor da logo
+69	-perfil	0	Perfil
+70	-sync	0	Sincronização
+71	-addons	0	Addons
+72	-stalkerPortal	0	Portal Stalker (MAC)
+73	-stalkerMac	0	MAC do portal
+74	-stalkerLimpar	0	Remover o portal Stalker
+75	-xtreamServidor	0	Servidor Xtream
+76	-xtreamUsuario	0	Usuário Xtream
+77	-xtreamSenha	0	Senha Xtream
+78	-xtreamLimpar	0	Remover o Xtream
+79	-xtreamConta	0	Conta Xtream
+80	epgPaisLocal	0	Grade de programação
+81	salvosDestino	1	Onde o + salva
+82	-trakt	0	Trakt
+83	-simkl	0	Simkl
+84	-sair	0	Sair da conta
+85	-versao	0	Versão
+86	-atualizar	0	Atualizar o aplicativo
+87	-registro	0	Enviar registro
+88	envioAuto	0	Enviar registros sozinho
+89	-espaco	0	Memória usada por imagens
+90	texturasMB	0	Memória para imagens
+91	tmdb_enabled	0	TMDB
+92	tmdb_language	0	Idioma dos metadados
+93	tmdb_use_artwork	0	Arte localizada
+94	tmdb_use_basic_info	0	Título e sinopse
+95	tmdb_use_details	0	Ficha técnica
+96	tmdb_use_release_dates	0	Datas de lançamento
+97	tmdb_use_credits	0	Elenco e equipe
+98	tmdb_use_productions	0	Produtoras
+99	tmdb_use_networks	0	Redes e estúdios
+100	tmdb_use_episodes	0	Episódios
+101	tmdb_use_trailers	0	Trailers
+102	tmdb_use_more_like_this	0	"Mais como este"
+103	tmdb_use_collections	0	Coleções e sagas
+104	tmdb_enrich_continue_watching	0	Enriquecer "Continuar assistindo"
+105	mdblist_enabled	0	MDBList
+106	-mdblistChave	0	Chave do MDBList
+107	mdblist_show_trakt	0	Notas do Trakt
+108	mdblist_show_imdb	0	Notas do IMDb
+109	mdblist_show_tmdb	0	Notas do TMDB
+110	mdblist_show_letterboxd	0	Notas do Letterboxd
+111	mdblist_show_tomatoes	0	Notas do Rotten Tomatoes
+112	mdblist_show_audience	0	Nota da audiência
+113	mdblist_show_metacritic	0	Notas do Metacritic
+114	mdblist_show_mal	0	Notas do MyAnimeList
+115	-fanartChave	0	Chave do fanart.tv
+116	-diagnostico	0	Diagnóstico e otimização
+117	-velocidade	0	Teste de velocidade
+118	menuExplorarLocal	0	Explorar na barra lateral
+119	menuGuiaLocal	0	Guia TV na barra lateral
+120	menuAgendaLocal	0	Agenda na barra lateral
+121	menuPerfilLocal	0	Perfil e Stats na barra lateral
+122	trailerCartazModo	0	Trailer do cartaz em foco
+123	itensFileiraLocal	0	Itens por fileira
+124	fonteInterface	0	Fonte da interface
+125	gpuEfeitosLocal	0	Efeitos visuais
+126	vidroLocal	1	Interface de vidro
+127	p2pLocal	1	Servidor P2P (experimental)
+128	-p2pEndereco	0	Endereço do servidor P2P
+129	-p2pTestar	0	Testar servidor P2P
+130	posterProvLocal	0	Pôsteres personalizados
+131	-posterInst	0	Endereço do SpatialPosters
+132	-posterToken	0	Token do SpatialPosters
+133	-posterExtra	0	Parâmetros do SpatialPosters
+134	-posterChave	0	Chave do RPDB
+135	-posterModelo	0	Modelo de URL dos pôsteres
+136	-posterTestar	0	Testar pôsteres
+137	homeLayoutLocal	0	Layout da home
+138	-debridAD	0	Chave do AllDebrid
+139	-debridADTestar	0	Testar chave do AllDebrid
+140	-debridRD	0	Chave do Real-Debrid
+141	-debridTB	0	Chave do TorBox
+142	-debridPM	0	Chave do Premiumize
+143	soCinemetaLocal	1	Usar sempre o catálogo do Nuvio
+144	notaTituloImdb	0	IMDb
+145	notaTituloTomates	0	Rotten Tomatoes (crítica)
+146	notaTituloAudiencia	1	Popcornmeter (público)
+147	notaTituloMeta	1	Metacritic (crítica)
+148	notaTituloMetaUser	1	Metacritic (usuários)
+149	notaTituloTrakt	0	Trakt
+150	notaTituloTmdb	1	TMDB
+151	notaTituloLetter	1	Letterboxd
+152	notaTituloMal	1	MyAnimeList
+153	notaTituloEbert	1	Roger Ebert (crítica)
+154	notaTituloScore	1	Nota do MDBList
+155	-perfilPesquisavel	1	Perfil pesquisável
+156	-perfilEditar	0	Meu perfil público
+157	vidroContornoLocal	0	Contorno do vidro
+158	trailerDestaqueSomLocal	1	Som do trailer no destaque
+159	trailerDestaqueEsperaLocal	22	Espera do trailer no destaque
+160	cwConcluidoLocal	90	Percentual assistido
+161	addonsPrincipalLocal	1	Usar os addons do perfil principal
+162	heroTransicaoLocal	0	Transição do destaque
+163	posterAddonLocal	1	Pôsteres do addon
+164	fundoAddonLocal	1	Fundo do destaque do addon
+165	logoAddonLocal	1	Logo do addon
+166	colArteContaLocal	1	Arte das pastas da conta
+167	selosColoridosLocal	1	Selos coloridos
+168	trailerDetalheSomLocal	1	Som do trailer na página do título
+169	liveTvResolucaoLocal	0	Resolução principal
+170	xtreamFormatoLocal	0	Formato do Xtream
+171	liveTvEsperaLocal	0	Espera para abrir o canal
+172	-liveTvDiag	0	Diagnóstico da Live TV
+173	liveTvModoLocal	0	Modo do player da Live TV
+174	liveTvProxyLocal	0	Proxy de TS da Live TV
+175	relogioTelaLocal	0	Relógio na tela
+176	relogioPosLocal	0	Posição do relógio
+177	seloVistoLocal	0	Selo de assistido nos pôsteres
+178	seekrLocal	1	Miniaturas na barra de tempo
+179	-seekrChave	0	Chave do Seekr
+180	-seekrTestar	0	Testar chave do Seekr
+181	seekrFitaLocal	1	Fita de miniaturas
+182	seekrAjusteLocal	0	Sincronia da miniatura
+183	saidaPlayerLocal	0	Ao sair do player
+184	reacaoCreditosLocal	0	Perguntar o que achou nos créditos
+185	fonteEsperaLocal	2	Espera pelos add-ons
+186	-verRegistro	0	Ver o registro na tela
+187	medidorFormaLocal	0	Medidor de desempenho
+188	-guiaUso	0	Guia de uso
+189	-selosPacote	0	Pacote de selos
+190	-selosPacoteAdd	0	Adicionar pacote de selos
+191	-selosPacoteRem	0	Remover pacote
+192	tamanhoUiLocal	0	Tamanho da interface
+193	fundoLocal	2	Fundo
+194	vidroOpacLocal	2	Opacidade do vidro
+195	vidroFoscoLocal	0	Vidro fosco
+196	iconeAppLocal	0	Ícone do app
+197	-discord	0	Discord
+198	tamanhoAjustesLocal	0	Tamanho dos ajustes
+199	logoTrailerLocal	1	Esconder logo durante o trailer
+200	legendaSecundariaIdioma	0	Idioma da legenda secundária
+201	legendaSyncAudioLocal	1	Sincronia por áudio
+202	cacheSeekLocal	0	Cache de seek em disco
+203	trailerZoomTpkLocal	1	Zoom no trailer e no player (experimental)
+204	-plugins	0	Plugins
+205	jellyfinLocal	1	Servidores pessoais (experimental)
+206	-jellyfinServidor	0	Endereço do Jellyfin
+207	-jellyfinEntrar	0	Entrar no Jellyfin
+208	-jellyfinSair	0	Sair do Jellyfin
+209	avancadasLocal	1	Mostrar opções avançadas
+210	legenda2PosLocal	0	Posição da segunda legenda
+211	legenda2TamanhoLocal	0	Tamanho da segunda legenda
+212	legenda2CorLocal	0	Cor da segunda legenda
+213	legenda2FundoLocal	0	Fundo da segunda legenda
+214	legenda2BordaLocal	0	Borda da segunda legenda
+215	-embyServidor	0	Endereço do Emby
+216	-embyEntrar	0	Entrar no Emby
+217	-embySair	0	Sair do Emby
+218	-plexEntrar	0	Entrar no Plex
+219	-plexServidor	0	Servidor do Plex
+220	-plexSair	0	Sair do Plex
+221	fontePrioridadeLocal	0	A escolha automática prioriza
+222	fonteHdrLocal	0	HDR e Dolby Vision
+223	logoAppLocal	0	Logo do app
+224	aberturaAppLocal	0	Abertura do app
+225	enquetesLocal	0	Receber enquetes
+226	buscaCinemetaLocal	0	Buscar no Cinemeta
+227	esmaecerLocal	3	Tela de descanso
+228	brilhoPlayerLocal	1	Brilho da interface no player
+229	-novidades20	0	Novidades 2.0
+230	manterVideoLocal	1	Manter o vídeo pronto ao sair
+231	descansoEstiloLocal	0	Estilo do descanso
+232	descansoFonteLocal	0	Títulos da vitrine
+233	relogio12hLocal	0	Formato do relógio
+234	tamanhoMaxLocal	0	Tamanho máximo
+235	tamanhoMinLocal	0	Tamanho mínimo
+236	-apoiar	0	Apoiar o projeto
+237	legendaForcadaLocal	0	Legenda forçada automática quando o áudio for no seu idioma
+238	classifPlayerLocal	0	Classificação no player
+239	streamAutoPlaySource	0	Fontes do automático
+240	-fonteAddonsPermitidos	0	Add-ons permitidos
+241	-fontePluginsPermitidos	0	Plugins permitidos
+242	fonteOutrosLocal	0	Usar os outros se não houver
+243	fonteRegexLocal	0	Coincidência por regex
+244	-fonteRegexPadrao	0	Padrão da regex
+245	-fonteRegexModelo	0	Modelo de regex
+246	espacoFileirasLocal	100	Espaço entre fileiras
+247	espacoTitulosLocal	100	Espaço entre títulos
+248	proporcaoPadraoLocal	0	Proporção padrão
+249	cwRetidoTambemLocal	1	Também em Continuar assistindo
+250	psContinuarLocal	0	Continuar na escolha de perfil
+251	dtsSaidaLocal	0	DTS convertido em
+252	dvMkvLocal	1	Dolby Vision em MKV (experimental)
+253	histContaLocal	0	Enviar histórico para a conta Nuvio
+254	socialLocal	0	Recursos sociais
+255	-fonteOrdem	0	Ordem dos add-ons
+256	fonteOrdemUsoLocal	0	Usar a ordem
+257	fonteTocarConferindoLocal	0	Tocar enquanto confere a fonte
+258	fonteAquecerLocal	0	Aquecer conexões ao abrir o título
+259	fonteConferirVariasLocal	0	Conferir várias fontes ao mesmo tempo
+260	fontePrepararLocal	1	Preparar a fonte ao abrir o título
+261	cwProximoLocal	0	Próximo episódio no Continuar
+262	buscaNuvioLocal	0	Resultados do catálogo do Nuvio na busca
+263	buscaOrigemLocal	0	Mostrar a fonte nos resultados da busca
+264	ajustesLayoutLocal	0	Layout dos Ajustes
+265	p2pLimiteLocal	0	Limite de espaço do P2P
+266	fonteOrdemLocal	0	Ordem das fontes
+267	legendaSyncAutoLocal	0	Sincronia automática da legenda
+268	legendaMostrarLocal	0	Mostrar no player
+269	-avisoLegal	0	Aviso legal
+270	hdrUiLocal	0	Brilho da interface em HDR
+271	telaAberturaLocal	0	Tela de abertura do vídeo
+272	cwMinimoLocal	1	Mínimo para entrar no Continuar
+273	bufferPlayerLocal	0	Tamanho do buffer
+274	pularAberturaLocal	1	Pular a abertura automaticamente
+275	pularResumoLocal	1	Pular o resumo automaticamente
+276	proximoAutoLocal	1	Tocar o próximo episódio automaticamente
+277	pularCreditosLocal	1	Pular os créditos automaticamente
+278	proximoContagemLocal	5	Contagem do próximo episódio
+279	interfaceModoLocal	0	Modo da interface
+280	-falhaProvedores	1	Trocar provedor se falhar
+281	-falhaProvedorOrdem	0	Ordem e limites dos provedores
+282	-falhaRDLinks	3	Links no Real-Debrid
+283	-falhaTBLinks	3	Links no TorBox
+284	-falhaPMLinks	3	Links no Premiumize
+285	-falhaADLinks	3	Links no AllDebrid
+286	-falhaAddons	1	Trocar add-on se falhar
+287	-falhaAddonOrdem	0	Ordem e limites dos add-ons
+288	-falhaAddonLinks	3	Links neste add-on
+289	fontePrecarregarLocal	1	Pré-carregar vídeo

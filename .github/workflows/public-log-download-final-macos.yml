@@ -1,0 +1,87 @@
+name: 'Public log download: complete macOS compatibility with explicit baseline enum-tail adapter'
+'on':
+  push:
+    branches:
+    - review/public-log-download-final-macos-20261015
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: public-log-download-final-macos-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    name: Complete macOS TV/touch, original reporting and baseline-adapted defaults
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Materialize the exact reviewed product commit without ref writes
+      run: python3 .review/log-download-public/materialize.py --target source-app --proof results/source-verified.json
+    - name: Bind existing local JVM/C proof origins without repeating them
+      run: python3 .review/log-download-public/verify_host_origin.py --source source-app --output results/host-preflight-origin.json
+    - name: Install real SDL libraries
+      run: brew install sdl2 sdl2_image sdl2_ttf
+    - name: Preserve original compiler flags and add only the real SDL runtime rpath
+      run: "compiler=\"$(command -v cc)\"\ntest -n \"$compiler\"\ntest \"$compiler\" = /usr/bin/cc\nmkdir -p \"$RUNNER_TEMP/public-log-cc\"\
+        \ncat > \"$RUNNER_TEMP/public-log-cc/cc\" <<'SH'\n#!/bin/sh\nexec python3 \"$GITHUB_WORKSPACE/.review/log-download-public/cc_rpath.py\"\
+        \ \"$@\"\nSH\nchmod +x \"$RUNNER_TEMP/public-log-cc/cc\"\necho \"REVIEW_REAL_CC=$compiler\" >> \"$GITHUB_ENV\"\ntask_sdl_prefix=\"\
+        $(brew --prefix sdl3 2>/dev/null || true)\"\nif [ -n \"$task_sdl_prefix\" ] && [ -d \"$task_sdl_prefix/lib\" ]; then\n\
+        \  task_sdl_lib=\"$task_sdl_prefix/lib\"\nelse\n  task_sdl_lib=\"$(brew --prefix sdl2)/lib\"\nfi\necho \"REVIEW_SDL3_LIBRARY_DIR=$task_sdl_lib\"\
+        \ >> \"$GITHUB_ENV\"\necho \"REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/results/compile\" >> \"$GITHUB_ENV\"\necho \"$RUNNER_TEMP/public-log-cc\"\
+        \ >> \"$GITHUB_PATH\"\n"
+    - name: Cheap SDK preprocess and compile using the same accepted Apple driver
+      run: python3 .review/log-download-retry/sdk_sanity.py --output results/sdk
+    - name: Complete full-source builds, original reporting/touch suites and adapted defaults tail metadata
+      run: python3 .review/log-download-public/run_native.py --source source-app --proof results/source-verified.json --output
+        results/native
+    - name: Reverify exact unchanged product source
+      run: python3 .review/log-download-public/materialize.py --target source-app --proof results/source-verified.json --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: public-log-download-final-macos-${{ github.sha }}
+        path: results/
+        if-no-files-found: error
+        retention-days: 14
+  source_ref:
+    name: Verify original green Android and fresh macOS then publish only exact feature source
+    needs:
+    - macos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Recreate the exact reviewed clean source without ref writes
+      run: python3 .review/log-download-public/materialize.py --target source-app --proof results/source-verified.json
+    - uses: actions/download-artifact@v4
+      with:
+        name: public-log-download-final-macos-${{ github.sha }}
+        path: results/macos
+    - name: Verify immutable successful Android job and artifact and complete fresh macOS evidence
+      run: python3 .review/log-download-retry/reuse_android.py --source source-app --macos results/macos --output results/validation
+    - name: Publish only the exact clean feature ref after both source-bound validations
+      run: python3 .review/log-download-retry/publish_checked_source.py --source source-app --proof results/source-verified.json
+        --origin results/validation/validation-origin.json --output results/source-ref.json
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: public-log-download-final-provenance-${{ github.sha }}
+        path: results/
+        if-no-files-found: error
+        retention-days: 14

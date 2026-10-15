@@ -1,0 +1,13 @@
+{
+  "outcome": "baseline_failure_reproduced_from_actual_compiled_enum_tables",
+  "base": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "candidate": "1cd707586a5bc94579904e5601de996e62326067",
+  "actual_desktop_settings_tables_byte_identical": true,
+  "baseline_and_candidate_AJ_N": 290,
+  "baseline_and_candidate_AJ_PROXIMO_CONTAGEM": 278,
+  "stale_assertion_expected_AJ_N": 279,
+  "baseline_last_key": "fontePrecarregarLocal",
+  "table_sha256": "c2ab61a22f8468ca7db0e56abc9f21a41ad1cf4d9a028987f93aa62e4943e92d",
+  "source_original_test_sha256": "9ac5e166c34c2f5fb7e36da57bd603c3c41668c57aa501bd1cf4a08487efa078",
+  "scope": "Reconciles already-executed real whole-Settings compile outputs; no repeat build or behavioral test and no claim original stale assertion passed"
+}

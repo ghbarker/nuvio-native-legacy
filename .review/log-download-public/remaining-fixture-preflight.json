@@ -1,0 +1,107 @@
+{
+  "aggregate": "/workspace/review/log-native-fixture-preflight-20261015/preflight-receipt.json",
+  "aggregate_sha256": "4eea695b86f2d5545c8b7528489f919f416e0ecf0be5b716fcd2a4bd4006d874",
+  "outcome": "all selected host preflights passed",
+  "baseline": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+  "candidate": "1cd707586a5bc94579904e5601de996e62326067",
+  "product_and_original_tests_modified": false,
+  "remote_CI_started": false,
+  "scope": "Typed SDL/GPU/service doubles and linker GC. Original macOS full-source scripts/framework/SDL linkage must still run natively. These host runs are not native macOS passes.",
+  "fresh_data": "toque_modo original script uses fresh NUVIO_DADOS, preserved via a new mkdtemp per execution. Reusing earlier failed-run data can reverse initial order and produce false failures.",
+  "records": [
+    {
+      "source": "baseline",
+      "head": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "name": "regcodigo",
+      "original_script_executed_unchanged": true,
+      "script_sha256": "09dd6e17b3c1c564f6c6cf3a98fceb1202344291ba047e36f9b60961737d0640",
+      "fixture_sha256": "9f7e86ceb0c3859ba8fdddf064c046a470980bff5c4b230b130b2017e42df735",
+      "returncode": 0
+    },
+    {
+      "source": "candidate",
+      "head": "1cd707586a5bc94579904e5601de996e62326067",
+      "name": "regcodigo",
+      "original_script_executed_unchanged": true,
+      "script_sha256": "09dd6e17b3c1c564f6c6cf3a98fceb1202344291ba047e36f9b60961737d0640",
+      "fixture_sha256": "9f7e86ceb0c3859ba8fdddf064c046a470980bff5c4b230b130b2017e42df735",
+      "returncode": 0
+    },
+    {
+      "source": "/workspace/review/issue513-20261015/baseline",
+      "head": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "test": "ajustes_padroes",
+      "original_script_sha256": "97e694be9232f34a10433fde8b62d5e87267afe54ddf2dcbca7b289df82f99f7",
+      "original_fixture_sha256": "9ac5e166c34c2f5fb7e36da57bd603c3c41668c57aa501bd1cf4a08487efa078",
+      "original_mode_define": [],
+      "added_sanitizers": false,
+      "original_final_enum_metadata_adapted": true,
+      "returncode": 0,
+      "receipt": "baseline-adapted-ajustes_padroes-normal/result.json"
+    },
+    {
+      "source": "/workspace/review/issue513-20261015/baseline",
+      "head": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "test": "ajustes_envio_auto",
+      "original_script_sha256": "39a9da8a9756ed4b2befa236ce06ec30dcfa1a9b96909c6694616983591277b5",
+      "original_fixture_sha256": "bc23a64c58d95431fa1cecac682ea32697b394b0b35e99e5917255c75a73560c",
+      "original_mode_define": [],
+      "added_sanitizers": true,
+      "original_final_enum_metadata_adapted": false,
+      "returncode": 0,
+      "receipt": "baseline-ajustes_envio_auto-asan/result.json"
+    },
+    {
+      "source": "/workspace/review/issue513-20261015/baseline",
+      "head": "3c28c0d73664fe82fabced499bd7171810e0c91b",
+      "test": "ajustes_ux_toque_modo",
+      "original_script_sha256": "9f855d10c4d7bedc1106be70a8ad56cddca42620e1e8cd75084ccd62b48e4ff2",
+      "original_fixture_sha256": "6b8b38ee0e6ac5889001d44d0113a94646a4da0e496ed29cdae93b6e9e3993dc",
+      "original_mode_define": [
+        "-DNV_TOUCH_UI"
+      ],
+      "added_sanitizers": false,
+      "original_final_enum_metadata_adapted": false,
+      "returncode": 0,
+      "receipt": "baseline-ajustes_ux_toque_modo-normal/result.json"
+    },
+    {
+      "source": "/workspace/review/log-download-pr-20261015/source",
+      "head": "1cd707586a5bc94579904e5601de996e62326067",
+      "test": "ajustes_padroes",
+      "original_script_sha256": "97e694be9232f34a10433fde8b62d5e87267afe54ddf2dcbca7b289df82f99f7",
+      "original_fixture_sha256": "9ac5e166c34c2f5fb7e36da57bd603c3c41668c57aa501bd1cf4a08487efa078",
+      "original_mode_define": [],
+      "added_sanitizers": false,
+      "original_final_enum_metadata_adapted": true,
+      "returncode": 0,
+      "receipt": "candidate-adapted-ajustes_padroes-normal/result.json"
+    },
+    {
+      "source": "/workspace/review/log-download-pr-20261015/source",
+      "head": "1cd707586a5bc94579904e5601de996e62326067",
+      "test": "ajustes_envio_auto",
+      "original_script_sha256": "39a9da8a9756ed4b2befa236ce06ec30dcfa1a9b96909c6694616983591277b5",
+      "original_fixture_sha256": "bc23a64c58d95431fa1cecac682ea32697b394b0b35e99e5917255c75a73560c",
+      "original_mode_define": [],
+      "added_sanitizers": true,
+      "original_final_enum_metadata_adapted": false,
+      "returncode": 0,
+      "receipt": "candidate-ajustes_envio_auto-asan/result.json"
+    },
+    {
+      "source": "/workspace/review/log-download-pr-20261015/source",
+      "head": "1cd707586a5bc94579904e5601de996e62326067",
+      "test": "ajustes_ux_toque_modo",
+      "original_script_sha256": "9f855d10c4d7bedc1106be70a8ad56cddca42620e1e8cd75084ccd62b48e4ff2",
+      "original_fixture_sha256": "6b8b38ee0e6ac5889001d44d0113a94646a4da0e496ed29cdae93b6e9e3993dc",
+      "original_mode_define": [
+        "-DNV_TOUCH_UI"
+      ],
+      "added_sanitizers": false,
+      "original_final_enum_metadata_adapted": false,
+      "returncode": 0,
+      "receipt": "candidate-ajustes_ux_toque_modo-normal/result.json"
+    }
+  ]
+}

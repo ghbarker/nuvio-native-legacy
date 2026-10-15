@@ -54,7 +54,7 @@ def validate_macos(root, source, review):
     proof(json.loads((root / 'source-verified.json').read_text()), review)
     native = json.loads((root / 'native/native-verified.json').read_text())
     assert native['outcome'] == 'passed' and native['source_commit'] == SOURCE and native['review_commit'] == review
-    names = ['translations', 'full-source-tv', 'full-source-touch', 'ajustes_envio_auto-original', 'ajustes_padroes-original',
+    names = ['translations', 'full-source-tv', 'full-source-touch', 'ajustes_envio_auto-original', 'ajustes_padroes-adapted-append-only-expectation',
              'ajustes_ux_toque_modo-original', 'regcodigo-original', 'ajustes_envio_auto-sanitized-replay']
     assert [g['name'] for g in native['gates']] == names and all(g['exit_code'] == 0 for g in native['gates'])
     for gate in native['gates']: assert sha(root / 'native' / (gate['name'] + '.log')) == gate['log_sha256']
@@ -63,6 +63,12 @@ def validate_macos(root, source, review):
         assert sha(source / name) == digest
         assert hashlib.sha256(subprocess.check_output(['git', '-C', str(source), 'show', BASE + ':' + name])).hexdigest() == digest
     assert len(native['original_test_sha256']) == 8 and native['original_reporting_viewer_crash_backend_unchanged']
+    defaults = native['defaults_final_enum_metadata_adapter']
+    assert defaults['exit_code'] == 0 and defaults['behavioral_default_assertions_unchanged']
+    assert defaults['old_final_enum_expectation'] == 'assert(AJ_N == AJ_PROXIMO_CONTAGEM + 1);'
+    assert defaults['new_final_enum_expectation'] == 'assert(AJ_N == AJ_FONTE_PRECARREGAR + 1);'
+    assert defaults['original_fixture_sha256'] == native['original_test_sha256']['tests/ajustes_padroes.c']
+    assert not defaults['original_unadapted_test_counted_as_pass'] and not defaults['product_and_original_tests_modified']
     sanitized = native['sanitized_original_replay']; assert sanitized['exit_code'] == 0 and sanitized['original_source_arguments_and_assertions_unchanged']
     sdk = json.loads((root / 'sdk/sdk-verified.json').read_text())
     assert sdk['outcome'] == 'passed' and sdk['review_commit'] == review and sdk['compiler'] == '/usr/bin/cc'
@@ -113,6 +119,10 @@ def main():
         'original_mac_failure': {'run_id': OLD_RUN, 'job_id': 116225903161, 'conclusion': 'failure', 'artifact_id': 11944904976,
             'artifact_zip_sha256': '2b9cd8eb4f172bd1e8f9b2a6a1d4981f46cb7afdf736106e6c256e3d47bc1d7d',
             'cause': 'Absolute Xcode clang bypassed Apple /usr/bin/cc SDK driver; unchanged-source standard headers unavailable', 'counted_as_pass': False},
+        'original_defaults_failure': {'run_id': 38675944719, 'job_id': 116229449952, 'conclusion': 'failure',
+            'artifact_id': 11945843631, 'artifact_zip_sha256': '0e853bf4fa62f7c5bcad26053ea264a49f4842dd3ab1605719e7da88bc2300b4',
+            'cause': 'Original stale AJ_N tail assertion expects279 on both baseline and feature; actual baseline tail is290',
+            'counted_as_pass': False, 'external_metadata_adapter_explicit': True},
         'no_product_source_changes': True, 'no_pr_release_backend_actions': True}
     (out / 'validation-origin.json').write_text(json.dumps(origin, indent=2) + '\n')
     (out / 'original-android-job.json').write_text(json.dumps(job, indent=2) + '\n')

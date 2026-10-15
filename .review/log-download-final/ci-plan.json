@@ -1,0 +1,52 @@
+{
+  "base_commit": "b62a873fdd6d3c0695067ff720148373e210f13f",
+  "branch": "review/public-log-download-final-macos-20261015",
+  "source_commit": "1cd707586a5bc94579904e5601de996e62326067",
+  "source_tree": "8cd25f39ec183133a61456ad56cdd78e5475cb89",
+  "product_changes": false,
+  "original_product_tests_modified": false,
+  "android_rebuilt": false,
+  "validation": "Full complete Mac group rerun: SDK sanity, translations, TV/touch app compiles; original auto-send, touch-mode, report-code fixtures and original auto-send ASan/UBSan; defaults behavioral assertions retained with one explicit stale final-enum metadata expectation adapter",
+  "defaults_adapter": {
+    "old": "AJ_N == AJ_PROXIMO_CONTAGEM + 1",
+    "new": "AJ_N == AJ_FONTE_PRECARREGAR + 1",
+    "behavioral_assertions_unchanged": true,
+    "original_stale_test_counted_as_pass": false,
+    "known_baseline_failure": "Actual compiled baseline/current desktop tables identical: AJ_N290, oldlast278, real lastpreload289"
+  },
+  "android_origin": {
+    "run": 38674815293,
+    "job": 116225902823,
+    "artifact": 11946190514,
+    "zip_sha256": "067e27a19e3af189ed07948e8fa9301e4cecfb75e1dc005847281b5ebcf17e11"
+  },
+  "preserved_failures": [
+    {
+      "run": 38674815293,
+      "job": 116225903161,
+      "reason": "Absolute clang bypassed Apple SDK driver",
+      "counted_as_pass": false
+    },
+    {
+      "run": 38675944719,
+      "job": 116229449952,
+      "reason": "Stale original defaults enum-tail metadata assertion, same baseline/current failure",
+      "counted_as_pass": false
+    }
+  ],
+  "source_publish": "Normal non-force exact dedicated source branch only after complete fresh Mac success and strict unchanged successful original Android artifact verification",
+  "pr_release_backend_actions": false,
+  "semantic_preflight": {
+    "one_driver_setup_before_PATH": true,
+    "sdk_before_actual_full_native_runner": true,
+    "no_android_job": true
+  },
+  "all_remaining_fixture_preflight": {
+    "compact_receipt_sha256": "8a5270415984e81cc69ff25b78143af7b10b578994aa89d462a282b4217c39ec",
+    "aggregate_sha256": "4eea695b86f2d5545c8b7528489f919f416e0ecf0be5b716fcd2a4bd4006d874",
+    "both_source_pins": true,
+    "all_four_suites_green": true,
+    "real_idioma_module": true,
+    "scope": "Linux headless typed boundaries/GC; actual native full-source Mac scripts still rerun completely; not Mac pass reuse"
+  }
+}
