@@ -28,14 +28,19 @@ sanity=out/'sdk-sanity.c';sanity.write_text('#include <stdio.h>\n#include <SDL2/
 # Actual merged parser/cache/filter/preparation/worker/profile storage, both normal and sanitizers.
 f=here/'fixtures';s=product/'src';parser=[s/n for n in ['stream_parse.c','fontefiltro.c','js.c','badges.c']]
 groups={'original-parser':([product/'tests/stream_parser.c']+parser,False),'cache-metadata':([f/'cache_metadata.c']+parser,False),'exclusion-parser':([f/'reviewed-fontefiltro_parse.c']+parser,False),'preparation':([f/'preparation_filters.c',s/'fontefalha.c',s/'fontefiltro.c',s/'fonteauto.c',s/'perfis.c'],True),'profile-bank':([f/'profile-bank-filters.c',s/'fontefalha.c',s/'fontefiltro.c'],False),'profile-scope':([f/'profile-scope-filters.c',s/'debrid.c',s/'fontefalha.c',s/'fontefiltro.c'],False),'worker':([f/'reviewed-fontefalha_worker.c',s/'fontefalha.c',s/'fontefiltro.c',s/'fonteauto.c',s/'perfis.c'],True),'cache-indicator':([f/'cache_indicator.c'],False)}
+failures=[]
 for name,(inputs,data) in groups.items():
  for san in [False,True]:
-  label='focused-'+name+('-asan' if san else '-normal');binary=out/label;flags=['-ffunction-sections','-fdata-sections','-I'+str(s),'-DNV_STREAMS_SOURCE="'+str(s/'streams.c')+'"','-DNV_CACHE_FIX=1']+(['-fsanitize=address,undefined,float-cast-overflow','-fno-omit-frame-pointer','-fno-sanitize-recover=all'] if san else [])
-  records.append(execute(label+'-compile',[cc,*base,*flags,*map(str,inputs),'-Wl,-dead_strip','-lpthread','-lm','-o',str(binary)]))
-  with tempfile.TemporaryDirectory(prefix='logs8-focus-') as d:records.append(execute(label+'-run',[str(binary)]+([d] if data else [])))
+  label='focused-'+name+('-asan' if san else '-normal');binary=out/label;flags=['-D_DARWIN_C_SOURCE=1','-ffunction-sections','-fdata-sections','-I'+str(s),'-DNV_STREAMS_SOURCE="'+str(s/'streams.c')+'"','-DNV_CACHE_FIX=1']+(['-fsanitize=address,undefined,float-cast-overflow','-fno-omit-frame-pointer','-fno-sanitize-recover=all'] if san else [])
+  try:
+   records.append(execute(label+'-compile',[cc,*base,*flags,*map(str,inputs),'-Wl,-dead_strip','-lpthread','-lm','-o',str(binary)]))
+   with tempfile.TemporaryDirectory(prefix='logs8-focus-') as d:records.append(execute(label+'-run',[str(binary)]+([d] if data else [])))
+  except AssertionError as error:failures.append({'label':label,'error':str(error)});print('FAILED',label,str(error),flush=True)
 for kind in ['dispatch','owner']:
- records.append(execute('actual513-'+kind,['python3',str(here/'issue513'/kind/'run.py'),'--source',str(product),'--output',str(out/('actual513-'+kind)),'--mode','both']))
-
+ try:records.append(execute('actual513-'+kind,['python3',str(here/'issue513'/kind/'run.py'),'--source',str(product),'--output',str(out/('actual513-'+kind)),'--mode','both']))
+ except AssertionError as error:failures.append({'label':'actual513-'+kind,'error':str(error)});print('FAILED actual513-'+kind,str(error),flush=True)
+(out/'focused-preflight-status.json').write_text(json.dumps({'source_bindings':bindings,'outcome':'failed' if failures else 'passed','records':records,'failures':failures},indent=2)+'\n')
+assert not failures,failures
 (out/'focused-verified.json').write_text(json.dumps({'source_bindings':bindings,'outcome':'passed','records':records,'fixture_provenance_sha256':sha(here/'fixture-provenance.json')},indent=2)+'\n')
 units=assert_translation_sets(product,test)
 full=[]

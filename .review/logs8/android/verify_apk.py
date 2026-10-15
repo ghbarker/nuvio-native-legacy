@@ -4,11 +4,16 @@ from pathlib import Path
 import argparse,hashlib,json,re,shlex,subprocess,sys,zipfile
 from common import file_sha,transformed
 from dex_methods import apk_methods
+from safe_android_metadata import collect,cache_for_commands
 p=argparse.ArgumentParser()
 for k in ('source','proof','transforms','apk','output'):p.add_argument('--'+k,type=Path,required=True)
 for k in ('aapt','apksigner'):p.add_argument('--'+k,required=True)
 p.add_argument('--layer',choices=['product','test'],required=True);p.add_argument('--allow-review-plan',action='store_true');a=p.parse_args();s=a.source.resolve();apk=a.apk.resolve()
 plan,v,m,tr=transformed(s,a.proof,a.layer,a.transforms,a.allow_review_plan);test=a.layer=='test';ident=plan['identity'];assert apk.is_file()
+# Persist safe facts before any later verifier assertion can abort the job.
+safe=collect(s,a.layer);safe.update(source_commit=v['source_commit'],tree=v['tree'],review_commit=v['review_commit'],apk_sha256=file_sha(apk))
+a.output.parent.mkdir(parents=True,exist_ok=True)
+a.output.with_name('android-metadata-evidence.json').write_text(json.dumps(safe,indent=2)+'\n')
 badging=subprocess.check_output([a.aapt,'dump','badging',str(apk)],text=True)
 package=ident['package'] if test else 'space.nuvio.nativelegacy'
 version=ident['version_name'] if test else json.loads((s/'deploy/app/appinfo.json').read_text())['version']
@@ -87,9 +92,9 @@ for abi in ('arm64-v8a','armeabi-v7a'):
   if not main:continue
   assert {'app.c','posplay.c','avisos.c','android.c','ajustes.c','stream_parse.c','fontefiltro.c'}<=set(main)
   assert reports=={True},'Original Send logs endpoint must be configured'
-  cache=f.parent/'CMakeCache.txt'
   if test:
-   assert cache.is_file() and re.search(r'^NV_TEST_LOCAL_LOGS:[^=\n]+=ON\s*$',cache.read_text(),re.M)
+   cache=cache_for_commands(s,f,abi,json.loads(f.read_text()))
+   assert re.search(r'^NV_TEST_LOCAL_LOGS:[^=\n]+=ON\s*$',cache.read_text(),re.M)
   records.append({'compile_commands_sha256':file_sha(f),'main_sources':len(main),'report_endpoint_configured':True,'private_native_opt_in':test})
  assert records,'Missing actual full native compile proof: '+abi;arms.append({'abi':abi,'builds':records})
 # Recheck every permitted CI mutation and all other manifest files after compilation.

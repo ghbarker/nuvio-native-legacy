@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "base_review_commit": "7336716a4f3bcf375310eaa14fce4af5c9ee6fd6",
+  "base_review_tree": "044e01ce5f8f8b87024e8ca67c57d55bded504df",
+  "push_branch": "review/logs8-native-portability-20261015",
+  "plan_sha256": "efac80b5b9436720e32e16a8124f9b49b8e71d7d70d244afe6d82640e804f48b",
+  "sources": {
+    "product": "68b520db152b7473be3500d04e01ca5bd4424719",
+    "test": "260c83a604b2a35787714a2946566d1dfd049704"
+  },
+  "changed_helpers": {
+    "native/run.py": "1fd81f45612a7def155a14c5a9af28da517c352c10c57ef33b67ff54aced6f3a",
+    "native/fixture-provenance.json": "71def32bd896d96fe9256a250601927ea98fb72ee1e560b8da3b896eb3dd583e",
+    "native/issue513/dispatch/run.py": "4afd48c1ce4b663c6b699835b1dc128133d7fa764a95b694b311ba4d19a69309",
+    "native/issue513/owner/run.py": "86d83dea8f1f88a41e4f4ac243fbd4eabd14919cbb0f804b890b530e2e65c4b5",
+    "android/verify_apk.py": "f6e17bd5dc32662b9d7d9b35cb25b0c615813c2e98bf5311266991e9673b98ee",
+    "android/safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "workflow_sha256": "11542f1931d752323c2df3422c0cd92b26d9df896260d11b495909377816895e",
+  "native_fix": "Darwin fixture extension declaration visibility only; no source/fixture assertion changes. All16focused groups and both513drivers collect all errors before full app phase; each513driver collects all4normal/sanitizedTV/mobile cases.",
+  "native_negative_preflight": {
+    "collect-all-negative.json": "0f6dff652b83b0071a2c4ae84622b75d826d5994e638e92a81944f9eeafe2ef7",
+    "native-collect-all-negative.json": "289c369f89b5995d9a2935a6c801f1c45e5429e2ddf9d4061e5e8f48ddf4d72f"
+  },
+  "native_actual513_preflight": {
+    "dispatch": "3cca7800f85eeb54650f5bd004dbbb473572c388e4d75c3fea7dcf9dac77b912",
+    "owner": "a12c36c71a35f2a433b9022f633c03c114e846e6492d45bb210dd7e4de0ef163"
+  },
+  "android_fix": "Resolve canonical CMakeCache from actual unique main compile directory, strictly source/ABI/build bound; preserve all ON/compile/DEX/signature/page/source gates. Early proof contains safe facts/hashes only.",
+  "android_cache_preflight_sha256": "7880e791b81cd856e872a23ecc1f5e32d19761c2602ac2b1164a5e5a64f0bcbf",
+  "android_cache_manifest_sha256": "6442af436ee29571c98adc61759ed0b2ee01a149b1f260ffcbd84c6a5397cc8b",
+  "aggregate_adapter_sha256": "a4f3eca924926a4ee5f6aaab7f6ab4bef29843ff8e7745872ad046cfd15d6e77",
+  "retained_manifest_sha256": "28f002225fa840a33f6d028cf935bf24574967e0d8d9b64e8e254929f8b5f5b8",
+  "retained_scope": "Original9204four successful jobs and individually successful standard Android phase only. Fresh complete native and compatible Android test jobs mandatory. Both failed733jobs and old9204failures are excluded; no partial native or private APK output reused.",
+  "product_source_changes": false,
+  "plan_bundle_changes": false,
+  "pr_release_backend_actions": false
+}

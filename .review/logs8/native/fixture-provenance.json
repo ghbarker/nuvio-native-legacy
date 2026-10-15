@@ -1,5 +1,5 @@
 {
-  "scope": "Actual product C, unchanged focused assertions from reviewed freezes; reduced worker/preparation and513 fixtures explicitly link real profile epoch producer. Owner renames only unused perfis_ativo getter to retain its existing stable-profile boundary.",
+  "scope": "Actual product C, unchanged focused assertions from reviewed freezes; reduced worker/preparation and513 fixtures explicitly link real profile epoch producer. Owner renames only unused perfis_ativo getter to retain its existing stable-profile boundary. Darwin focused fixtures explicitly enable genuine SDK extension declarations; reduced runners collect every existing case failure before abort.",
   "files": {
     "fixtures/profile-bank-filters.c": "0c54843302c17526d2a67b41f88356c647e6011747c136330cad24f0f8579d0b",
     "fixtures/preparation_filters.c": "5792c1aeab5b403d1a56f10583b4c65cc52173b3a2d4dfe10d75ddf68e7266b1",
@@ -8,10 +8,10 @@
     "fixtures/reviewed-fontefiltro_parse.c": "5893d86a6df9fb082a2d71c5fe8c293fd9a0061fa1002764a1e23f4275bee609",
     "fixtures/profile-scope-filters.c": "55663e05718c0fa4d9c7e66f68f8f8cef9fcddfcd0868a933a9d82cbc4439662",
     "fixtures/cache_indicator.c": "9210978a81a370cca17b6ee05e10861364e06ffeb796ea26674d20b8d6820aac",
-    "issue513/dispatch/run.py": "6d3209e69b7c278328caddcb6ccecf369f33379a9ed7963f1e80d9803b638432",
+    "issue513/dispatch/run.py": "4afd48c1ce4b663c6b699835b1dc128133d7fa764a95b694b311ba4d19a69309",
     "issue513/dispatch/episode_requests.c": "6d23da918d1d2bc45f9adb6f11ed290734606bf7b77cf815cc3889c3f3b1c73d",
     "issue513/owner/ancillary.c": "337b3dac31cbeb53e9f79a4ccb72677a1b1fe786bf8f5dbbcfdeaa311666140e",
-    "issue513/owner/run.py": "ff6fd389590deb94a867db4fd81d0a2094e2e48d08fcb2c786cd86bb4c49afdc",
+    "issue513/owner/run.py": "86d83dea8f1f88a41e4f4ac243fbd4eabd14919cbb0f804b890b530e2e65c4b5",
     "issue513/owner/streams_fixture.c": "4249a7997ac421152e6491f88fae4f83c7a108e6f0c9b7dab3a5b49c8706bb41",
     "issue513/owner/queue_fixture.c": "6603703d79c20fca0e5c502112621d52e1c6702785e0e3e668c1883c959a192f",
     "issue513/dispatch/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
