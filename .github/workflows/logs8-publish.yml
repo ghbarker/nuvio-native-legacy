@@ -47,6 +47,9 @@
           "run": "python3 .review/logs8-publish/publish.py --check-lock"
         },
         {
+          "uses": "android-actions/setup-android@v3"
+        },
+        {
           "name": "Install only APK inspection tools",
           "run": "sdkmanager \"build-tools;35.0.0\""
         },
