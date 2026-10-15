@@ -1320,6 +1320,7 @@
   T("Conversa", "Συζήτηση"),
   T("Converter DTS para a TV ouvir", "Μετατροπή DTS για να το παίζει η τηλεόραση"),
   T("Cor", "Χρώμα"),
+  T("Cor da borda", "Χρώμα περιγράμματος"),
   T("Cor da logo", "Χρώμα λογοτύπου"),
   T("Cor da segunda legenda", "Χρώμα δεύτερων υποτίτλων"),
   T("Cor de destaque", "Χρώμα έμφασης"),

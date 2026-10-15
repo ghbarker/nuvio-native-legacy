@@ -1320,6 +1320,7 @@
   T("Conversa", "Bicara"),
   T("Converter DTS para a TV ouvir", "Ubah DTS agar bisa diputar TV"),
   T("Cor", "Warna"),
+  T("Cor da borda", "Warna garis tepi"),
   T("Cor da logo", "Warna logo"),
   T("Cor da segunda legenda", "Warna subtitle kedua"),
   T("Cor de destaque", "Warna aksen"),

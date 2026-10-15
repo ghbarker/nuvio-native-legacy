@@ -1320,6 +1320,7 @@
   T("Conversa", "Talk show"),
   T("Converter DTS para a TV ouvir", "Pretvori DTS da ga TV pusti"),
   T("Cor", "Boja"),
+  T("Cor da borda", "Boja konture"),
   T("Cor da logo", "Boja logotipa"),
   T("Cor da segunda legenda", "Boja drugog titla"),
   T("Cor de destaque", "Akcentna boja"),

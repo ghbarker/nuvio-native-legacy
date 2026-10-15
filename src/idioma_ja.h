@@ -1320,6 +1320,7 @@
   T("Conversa", "トーク"),
   T("Converter DTS para a TV ouvir", "テレビで再生できるよう DTS を変換"),
   T("Cor", "色"),
+  T("Cor da borda", "縁取りの色"),
   T("Cor da logo", "ロゴの色"),
   T("Cor da segunda legenda", "第2字幕の色"),
   T("Cor de destaque", "アクセントカラー"),

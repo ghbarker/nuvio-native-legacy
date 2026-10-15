@@ -1319,6 +1319,7 @@
   T("Conversa", "Conversație"),
   T("Converter DTS para a TV ouvir", "Convertește DTS ca televizorul să-l redea"),
   T("Cor", "Culoare"),
+  T("Cor da borda", "Culoarea conturului"),
   T("Cor da logo", "Culoarea logo-ului"),
   T("Cor da segunda legenda", "Culoarea subtitrării secundare"),
   T("Cor de destaque", "Culoare de accent"),

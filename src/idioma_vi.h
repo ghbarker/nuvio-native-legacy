@@ -1320,6 +1320,7 @@
   T("Conversa", "Trò chuyện"),
   T("Converter DTS para a TV ouvir", "Chuyển DTS để TV phát được"),
   T("Cor", "Màu"),
+  T("Cor da borda", "Màu viền"),
   T("Cor da logo", "Màu logo"),
   T("Cor da segunda legenda", "Màu phụ đề thứ hai"),
   T("Cor de destaque", "Màu nhấn"),

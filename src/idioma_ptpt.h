@@ -1320,6 +1320,7 @@
   T("Conversa", "Conversa"),
   T("Converter DTS para a TV ouvir", "Converter DTS para a TV reproduzir"),
   T("Cor", "Cor"),
+  T("Cor da borda", "Cor do contorno"),
   T("Cor da logo", "Cor do logótipo"),
   T("Cor da segunda legenda", "Cor da segunda legenda"),
   T("Cor de destaque", "Cor de destaque"),

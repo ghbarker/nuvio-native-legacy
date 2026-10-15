@@ -1116,7 +1116,7 @@ static void visualLinha(TxtFamilia fam, TxtEstilo est, char *linha) {
   if (txt_bidi_legenda(fam, est, linha, v, sizeof v) > 0) memcpy(linha, v, strlen(v) + 1);
 }
 
-static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int borda,
+static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int borda, unsigned corBorda,
                    float maxW, Leg2Linha *out, int max) {
   char texto[768], *linha, *salva;
   TxtFamilia fam = (TxtFamilia)player_leg_estilo()->familia;
@@ -1131,7 +1131,7 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int 
         if (n >= max) break;
         visualLinha(fam, est, atual);
         out[n].cor = txt_linha_corta_enfase(est, atual, r, g, b, 255, maxW, fam, enf);
-        out[n].borda = borda ? txt_linha_corta_enfase(est, atual, 0, 0, 0, 255, maxW, fam, enf) : (TxtLinha){0};
+        out[n].borda = borda ? txt_linha_corta_enfase(est, atual, (corBorda >> 16) & 255, (corBorda >> 8) & 255, corBorda & 255, 255, maxW, fam, enf) : (TxtLinha){0};
         n++;
         snprintf(atual, sizeof atual, "%s", pal);
       } else snprintf(atual, sizeof atual, "%s", tent);
@@ -1139,7 +1139,7 @@ static int quebrar(const LegendaCue *c, TxtEstilo est, int r, int g, int b, int 
     if (atual[0] && n < max) {
       visualLinha(fam, est, atual);
       out[n].cor = txt_linha_corta_enfase(est, atual, r, g, b, 255, maxW, fam, enf);
-      out[n].borda = borda ? txt_linha_corta_enfase(est, atual, 0, 0, 0, 255, maxW, fam, enf) : (TxtLinha){0};
+      out[n].borda = borda ? txt_linha_corta_enfase(est, atual, (corBorda >> 16) & 255, (corBorda >> 8) & 255, corBorda & 255, 255, maxW, fam, enf) : (TxtLinha){0};
       n++;
     }
   }
@@ -1192,7 +1192,7 @@ void legendasui_desenhar_secundaria(const LegendasGeo *g) {
     }
   }
   for (i = 0; i < n && nl < LEG2_LINHAS; i++)
-    nl += quebrar(&cues[i], est, r, gg, b, borda, x1 - x0, ln + nl, LEG2_LINHAS - nl);
+    nl += quebrar(&cues[i], est, r, gg, b, borda, video_legenda_borda_rgb(e->corBorda), x1 - x0, ln + nl, LEG2_LINHAS - nl);
   if (g->junto) {
     // Stacked: the whole block ends just above the primary (2-line cues grow
     // upward, never over it) and stays inside the picture.
@@ -1233,7 +1233,7 @@ float legendasui_altura_secundaria(const LegendasGeo *g) {
   if (n <= 0) return 0.0f;
   estiloSecundario(e, &est, &r, &gg, &b, &fundo, &borda);
   for (i = 0; i < n && nl < LEG2_LINHAS; i++)
-    nl += quebrar(&cues[i], est, r, gg, b, borda, larguraSecundaria(), ln + nl, LEG2_LINHAS - nl);
+    nl += quebrar(&cues[i], est, r, gg, b, borda, video_legenda_borda_rgb(e->corBorda), larguraSecundaria(), ln + nl, LEG2_LINHAS - nl);
   for (i = 0; i < nl; i++) altura += (float)ln[i].cor.h + (i ? 5.0f : 0.0f);
   return altura;
 }

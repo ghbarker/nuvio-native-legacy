@@ -1320,6 +1320,7 @@
   T("Conversa", "對話"),
   T("Converter DTS para a TV ouvir", "轉換 DTS 以便電視播放"),
   T("Cor", "顏色"),
+  T("Cor da borda", "描邊顏色"),
   T("Cor da logo", "Logo 顏色"),
   T("Cor da segunda legenda", "第二字幕顏色"),
   T("Cor de destaque", "強調色"),

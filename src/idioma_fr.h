@@ -1319,6 +1319,7 @@
   T("Conversa", "Discussion"),
   T("Converter DTS para a TV ouvir", "Convertir le DTS pour que la TV le lise"),
   T("Cor", "Couleur"),
+  T("Cor da borda", "Couleur du contour"),
   T("Cor da logo", "Couleur du logo"),
   T("Cor da segunda legenda", "Couleur du sous-titre secondaire"),
   T("Cor de destaque", "Couleur d'accent"),

@@ -1319,6 +1319,7 @@
   { "Conversa", "Talk" },
   { "Converter DTS para a TV ouvir", "Convert DTS so the TV can play it" },
   { "Cor", "Color" },
+  { "Cor da borda", "Outline color" },
   { "Cor da logo", "Logo color" },
   { "Cor da segunda legenda", "Second subtitle color" },
   { "Cor de destaque", "Accent color" },

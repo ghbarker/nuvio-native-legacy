@@ -1320,6 +1320,7 @@
   T("Conversa", "Talk"),
   T("Converter DTS para a TV ouvir", "Převádět DTS, aby ho televize přehrála"),
   T("Cor", "Barva"),
+  T("Cor da borda", "Barva obrysu"),
   T("Cor da logo", "Barva loga"),
   T("Cor da segunda legenda", "Barva druhých titulků"),
   T("Cor de destaque", "Barva zvýraznění"),

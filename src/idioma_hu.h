@@ -1320,6 +1320,7 @@
   T("Conversa", "Talk-show"),
   T("Converter DTS para a TV ouvir", "DTS átalakítása, hogy a TV lejátssza"),
   T("Cor", "Szín"),
+  T("Cor da borda", "Körvonal színe"),
   T("Cor da logo", "Logó színe"),
   T("Cor da segunda legenda", "A második felirat színe"),
   T("Cor de destaque", "Kiemelőszín"),

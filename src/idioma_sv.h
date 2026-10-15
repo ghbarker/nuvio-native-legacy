@@ -1320,6 +1320,7 @@
   T("Conversa", "Talkshow"),
   T("Converter DTS para a TV ouvir", "Konvertera DTS så att TV:n kan spela det"),
   T("Cor", "Färg"),
+  T("Cor da borda", "Konturfärg"),
   T("Cor da logo", "Logotypens färg"),
   T("Cor da segunda legenda", "Färg på andra undertext"),
   T("Cor de destaque", "Accentfärg"),

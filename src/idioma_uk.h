@@ -1319,6 +1319,7 @@
   T("Conversa", "Розмова"),
   T("Converter DTS para a TV ouvir", "Перетворювати DTS, щоб телевізор його відтворив"),
   T("Cor", "Колір"),
+  T("Cor da borda", "Колір контуру"),
   T("Cor da logo", "Колір логотипа"),
   T("Cor da segunda legenda", "Колір других субтитрів"),
   T("Cor de destaque", "Колір акценту"),

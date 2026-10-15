@@ -1320,6 +1320,7 @@
   T("Conversa", "Токшоу"),
   T("Converter DTS para a TV ouvir", "Преобразувай DTS, за да го пусне телевизорът"),
   T("Cor", "Цвят"),
+  T("Cor da borda", "Цвят на контура"),
   T("Cor da logo", "Цвят на логото"),
   T("Cor da segunda legenda", "Цвят на вторите субтитри"),
   T("Cor de destaque", "Акцентен цвят"),

@@ -1320,6 +1320,7 @@
   T("Conversa", "Pokalbių laida"),
   T("Converter DTS para a TV ouvir", "Konvertuoti DTS, kad televizorius jį grotų"),
   T("Cor", "Spalva"),
+  T("Cor da borda", "Kontūro spalva"),
   T("Cor da logo", "Logotipo spalva"),
   T("Cor da segunda legenda", "Antrųjų subtitrų spalva"),
   T("Cor de destaque", "Akcento spalva"),
