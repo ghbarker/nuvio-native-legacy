@@ -1093,6 +1093,10 @@ static void vitCarregar(Uint32 agora) {
     if (semFonte && baseDaFonte(&collection->sources[source])[0]) vitIniciar();
     return;
   }
+  // A recovered addon may reopen an earlier row. Rows after it can already
+  // be complete; skip those without interrupting a pending/in-flight source.
+  while (vitCarga < vitN && (vitLin[vitCarga].estado == VIT_PRONTA ||
+                            vitLin[vitCarga].estado == VIT_VAZIA)) vitCarga++;
   if (vitCarga < vitN) {
     VitLin *l = &vitLin[vitCarga];
     if (l->estado == VIT_PEND) {
