@@ -437,7 +437,19 @@ static void cinemaArteIniciar(const CatItem *c) {
 }
 static const char *cinemaArteObter(const CatItem *c) {
   const char *u;
-  if (cinemaArte[0] && !tex_falhou(cinemaArte)) return cinemaArte;
+  if (cinemaArte[0] && !tex_falhou(cinemaArte)) {
+    // O cartaz da semente e temporario (#503). Se a ficha do MESMO titulo
+    // ganhou um fundo enquanto a fonte abria, acompanha a pagina uma vez.
+    // Fundo de verdade fica congelado; o getter so copia estado ja local.
+    if (cinemaPoster) {
+      char atual[sizeof cinemaArte]; int poster;
+      if (detail_arte_titulo(c, atual, sizeof atual, &poster) && !poster) {
+        snprintf(cinemaArte, sizeof cinemaArte, "%s", atual);
+        cinemaPoster = 0;
+      }
+    }
+    return cinemaArte;
+  }
   cinemaArte[0] = 0; cinemaPoster = 0;
   // Next e Play direto da Home nao precisam passar pela pagina. Usam a mesma
   // politica dela, inclusive arte alternativa, escolha manual e fundo por id.
