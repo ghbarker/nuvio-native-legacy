@@ -1,0 +1,445 @@
+name: 'Rebased PRs: exact-source parallel validation'
+'on':
+  push:
+    branches:
+    - review/pr-conflicts-20261015
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: pr-rebase-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  prepare:
+    name: Materialize three exact-tree candidate commits
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      matrix: ${{ steps.materialize.outputs.matrix }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Freeze small patches into isolated validation refs
+      id: materialize
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 .review/pr-rebase-20261015/build/materialize.py
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/candidate-plan/
+        if-no-files-found: error
+        retention-days: 14
+  native-apps:
+    name: ${{ matrix.id }} full TV and Mobile builds
+    needs: prepare
+    runs-on: macos-14
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: .review/pr-rebase-20261015
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "${{ matrix.id }}" --target source-app --proof "build/review/${{
+        matrix.id }}/source-verified.json"
+    - uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-sdl2-sdl3-image-ttf-ffmpeg-kotlin
+        restore-keys: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+    - name: Install real native SDK libraries
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Preserve original compiler flags and add only SDL3 link rpath
+      run: |
+        set -euo pipefail
+        compiler="$(command -v cc)"
+        sdl3_library="$(brew --prefix sdl3)/lib"
+        test -d "$sdl3_library"
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+        cp .review/pr-rebase-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"
+        /bin/bash --version | head -1
+    - name: Build both complete application modes once
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/native_apps.py" --case "${{ matrix.id }}" --output "$GITHUB_WORKSPACE/build/review/${{
+        matrix.id }}/apps"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "${{ matrix.id }}" --target source-app --proof "build/review/${{
+        matrix.id }}/source-verified.json" --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-proof-apps-${{ matrix.id }}-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  behavior:
+    name: ${{ matrix.id }} ${{ matrix.group }} normal and ASan
+    needs: prepare
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        include:
+        - id: pr431
+          group: behavior
+          groups: behavior
+        - id: pr490
+          group: watched
+          groups: watched
+        - id: pr493
+          group: profile-core-ui
+          groups: core,data,ui,provider
+        - id: pr493
+          group: profile-playback-tv
+          groups: native-failover,playback,live-tv
+        - id: pr493
+          group: profile-trackers-http
+          groups: trackers,trackers-existing,auth-owned,auth-existing,http
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: .review/pr-rebase-20261015
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "${{ matrix.id }}" --target source-app --proof "build/review/${{
+        matrix.id }}/source-verified.json"
+    - uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-sdl2-sdl3-image-ttf-ffmpeg-kotlin
+        restore-keys: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+    - name: Install real native SDK libraries
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Preserve original compiler flags and add only SDL3 link rpath
+      run: |
+        set -euo pipefail
+        compiler="$(command -v cc)"
+        sdl3_library="$(brew --prefix sdl3)/lib"
+        test -d "$sdl3_library"
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+        cp .review/pr-rebase-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"
+        /bin/bash --version | head -1
+    - uses: actions/setup-java@v4
+      if: matrix.id == 'pr431'
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: gradle/actions/setup-gradle@v4
+      if: matrix.id == 'pr431'
+      with:
+        gradle-version: '8.9'
+    - name: Resolve pinned Kotlin compiler for unchanged window fixture
+      if: matrix.id == 'pr431'
+      run: gradle -p .review/pr-rebase-20261015/window-compiler --console=plain resolveWindowCompiler
+    - name: Run focused actual-source normal and sanitizer guards
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/group_batch.py" --case "${{ matrix.id }}" --groups "${{ matrix.groups
+        }}" --output "$GITHUB_WORKSPACE/build/review/${{ matrix.id }}"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "${{ matrix.id }}" --target source-app --proof "build/review/${{
+        matrix.id }}/source-verified.json" --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-proof-behavior-${{ matrix.id }}-${{ matrix.group }}-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  original-asan:
+    name: PR493 original full-source ${{ matrix.suite }} ASan
+    needs: prepare
+    runs-on: macos-14
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        suite:
+        - fontepref
+        - fontepref_file
+        - player_retido
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: .review/pr-rebase-20261015
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "pr493" --target source-app --proof "build/review/pr493/source-verified.json"
+    - uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-sdl2-sdl3-image-ttf-ffmpeg-kotlin
+        restore-keys: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+    - name: Install real native SDK libraries
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Preserve original compiler flags and add only SDL3 link rpath
+      run: |
+        set -euo pipefail
+        compiler="$(command -v cc)"
+        sdl3_library="$(brew --prefix sdl3)/lib"
+        test -d "$sdl3_library"
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+        cp .review/pr-rebase-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"
+        /bin/bash --version | head -1
+    - name: Run original complete-source ASan/UBSan script unmodified
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/original_asan.py" --case pr493 --suite "${{ matrix.suite }}"
+        --output "$GITHUB_WORKSPACE/build/review/pr493/original-asan-${{ matrix.suite }}"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "pr493" --target source-app --proof "build/review/pr493/source-verified.json"
+        --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-proof-original-asan-${{ matrix.suite }}-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  original-regressions:
+    name: PR493 original regressions ${{ matrix.group }}
+    needs: prepare
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        group:
+        - profile-state
+        - source-prefs
+        - failover
+        - providers
+        - catalog
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: .review/pr-rebase-20261015
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "pr493" --target source-app --proof "build/review/pr493/source-verified.json"
+    - uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-sdl2-sdl3-image-ttf-ffmpeg-kotlin
+        restore-keys: rebase-brew-downloads-v1-${{ runner.os }}-${{ runner.arch }}-
+    - name: Install real native SDK libraries
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: brew install sdl2 sdl3 sdl2_image sdl2_ttf ffmpeg ripgrep kotlin
+    - name: Preserve original compiler flags and add only SDL3 link rpath
+      run: |
+        set -euo pipefail
+        compiler="$(command -v cc)"
+        sdl3_library="$(brew --prefix sdl3)/lib"
+        test -d "$sdl3_library"
+        mkdir -p "$GITHUB_WORKSPACE/build/review/cc-bin" "$GITHUB_WORKSPACE/build/review/compile"
+        cp .review/pr-rebase-20261015/build/cc_rpath.py "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        chmod +x "$GITHUB_WORKSPACE/build/review/cc-bin/cc"
+        echo "REVIEW_REAL_CC=$compiler" >> "$GITHUB_ENV"
+        echo "REVIEW_SDL3_LIBRARY_DIR=$sdl3_library" >> "$GITHUB_ENV"
+        echo "REVIEW_CC_OUTPUT=$GITHUB_WORKSPACE/build/review/compile" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/build/review/cc-bin" >> "$GITHUB_PATH"
+        /bin/bash --version | head -1
+    - name: Run unchanged legacy scripts and retain all original assertions
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/originals.py" --group "${{ matrix.group }}" --output "$GITHUB_WORKSPACE/build/review/pr493/originals-${{
+        matrix.group }}"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "pr493" --target source-app --proof "build/review/pr493/source-verified.json"
+        --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-proof-originals-${{ matrix.group }}-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  android:
+    name: ${{ matrix.id }} standard Android ARM32/ARM64
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      NUVIO_ANDROID_JOBS: '2'
+      NUVIO_BUILD_JOBS: '2'
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: .review/pr-rebase-20261015
+    - name: Verify exact source and unchanged original tests
+      if: success()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "${{ matrix.id }}" --target source-app --proof "build/review/${{
+        matrix.id }}/source-verified.json"
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - uses: gradle/actions/setup-gradle@v4
+    - name: Install required Android/native build tools
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev
+        sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+    - uses: actions/cache@v4
+      with:
+        path: ~/.cache/nuvio-android
+        key: android-rebase-native-v2-${{ runner.os }}-ndk27.2.12479018-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh',
+          'source-app/tools/android.sh', 'source-app/tools/android-apk-pages.py', 'source-app/android/app/src/main/cpp/CMakeLists.txt')
+          }}
+        restore-keys: |-
+          android-rebase-native-v2-${{ runner.os }}-ndk27.2.12479018-
+          android-touch-native-v1-${{ runner.os }}-
+    - name: Configure the standard application build without modifying product sources
+      env:
+        NUVIO_TOUCH_CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+      working-directory: source-app
+      run: |
+        python3 - <<'PYCFG'
+        import os
+        from pathlib import Path
+        body = os.environ.get('NUVIO_TOUCH_CORE_PROPERTIES', '')
+        if not body:
+            raise SystemExit('Required application build configuration is missing')
+        path = Path('build/android/product.properties')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body)
+        path.chmod(0o600)
+        PYCFG
+        echo "NUVIO_PROPERTIES=$GITHUB_WORKSPACE/source-app/build/android/product.properties" >> "$GITHUB_ENV"
+    - name: Recipe-verified native ARM dependencies (reuse identical dependency builds)
+      working-directory: source-app
+      run: /bin/bash tools/android/deps.sh arm64-v8a armeabi-v7a
+    - name: Unchanged production Android tool, actual ARM32 and ARM64 cores
+      working-directory: source-app
+      env:
+        NUVIO_P2P_MOTOR: none
+        NUVIO_REQUIRE_CORE: '1'
+      run: /bin/bash tools/android.sh
+    - name: Verify standard APK and both ARM cores
+      working-directory: source-app
+      run: python3 "$GITHUB_WORKSPACE/.review/pr-rebase-20261015/build/android_verify.py" --case "${{ matrix.id }}" --output "$GITHUB_WORKSPACE/build/review/${{
+        matrix.id }}/android"
+    - name: Reverify exact source and unchanged original tests
+      if: always()
+      run: python3 .review/pr-rebase-20261015/build/verify_source.py --case "${{ matrix.id }}" --target source-app --proof "build/review/${{
+        matrix.id }}/source-verified.json" --reverify
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-proof-android-${{ matrix.id }}-${{ github.sha }}-${{ github.run_attempt }}
+        path: build/review/
+        if-no-files-found: error
+        retention-days: 14
+  verify-all:
+    name: Require every exact-source gate to pass
+    needs:
+    - prepare
+    - native-apps
+    - behavior
+    - original-asan
+    - original-regressions
+    - android
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/download-artifact@v4
+      with:
+        name: rebased-source-pins-${{ github.sha }}-${{ github.run_attempt }}
+        path: .review/pr-rebase-20261015
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: rebased-proof-*-${{ github.sha }}-${{ github.run_attempt }}
+        path: all-proofs
+        merge-multiple: true
+    - name: Fail on any missing, skipped, canceled or failed required gate
+      env:
+        REQUIRED_JOB_RESULTS: ${{ toJSON(needs) }}
+      run: python3 .review/pr-rebase-20261015/build/aggregate.py all-proofs
+    - name: Attach verified status to each exact candidate source commit
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 .review/pr-rebase-20261015/build/post_status.py
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rebased-all-required-proofs-${{ github.sha }}-${{ github.run_attempt }}
+        path: all-proofs/
+        retention-days: 14
