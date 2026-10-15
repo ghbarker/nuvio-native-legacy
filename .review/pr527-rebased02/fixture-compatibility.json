@@ -1,0 +1,26 @@
+{
+  "old_recipe": "/dev/shm/rebases-10e3-ci-20261015/stage/.review/rebases10e3/fixtures/pr527",
+  "fixture_root": "/dev/shm/pr527-latest3a3-20261015/ci-fixtures/pr527",
+  "candidate": "da81255206452243158b9ceba70282e417a77b2f",
+  "tree": "a21050e06e80e9b7a9af58ccd9871bf89bf2a8fd",
+  "base": "d02e228d9e1961e081723001c1fb00974e08db56",
+  "changed_recipe_paths": [
+    "collection-state/run.py",
+    "settings/run.py",
+    "settings_layout.py"
+  ],
+  "adaptations": {
+    "settings_layout.py": "New reviewed source/base pins and core hashes; preserve Download by exact upstream slot rather than stale tail position; every upstream enum/row/key/default compared under all four configurations",
+    "settings/run.py": "Link actual new upstream fontefiltro.c alongside existing fontefalha.c in UI/profile closures",
+    "collection-state/run.py": "Link actual upstream sinopse.c in both closures and actual fontefiltro.c in adapted-original closure"
+  },
+  "all_fixture_assertions_and_sdk_bytes_unchanged": true,
+  "fixture_manifest_sha256": "f0938293d497572d1f86d1cf30d2b54b012b20f75afbef83f870269854957267",
+  "candidate_review": "/dev/shm/pr527-latest3a3-20261015/validation/candidate-review-d02.json",
+  "candidate_review_sha256": "232cafe8bde4ad52d5aabaccc9a10f9393f2a0ce8de3f2fc4b84c436bf6e8dd0",
+  "table_receipt": "/dev/shm/pr527-latest3a3-20261015/validation/settings-layout-d02.json",
+  "table_receipt_sha256": "79e7eebae2ef4af986ebc856b2752b9100736af8a190dec4e403dc3a49b09d2e",
+  "syntax_receipt": "/dev/shm/pr527-latest3a3-20261015/validation/sdk-syntax-d02/receipt.json",
+  "syntax_receipt_sha256": "73cd4db93bfcf3590f34f0a6ce7d3a6be755f149db2d5537b5ff21bb69dd69d8",
+  "python_ast_all_passed": true
+}
