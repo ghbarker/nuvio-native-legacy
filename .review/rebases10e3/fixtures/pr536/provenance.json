@@ -1,0 +1,20 @@
+{
+  "accepted_run": 38791598052,
+  "accepted_source": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+  "candidate": "75ae817afee0a0ff112f60c9a40635ea6cb1a88a",
+  "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+  "assertion_fixtures_unchanged": {
+    "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "parity-player-companion.c": "20536e76d1838216851e3e3a5ef33ae00f8609a94d67b411eda0923eb873024f",
+    "run.py": "580437f325a8fedbc16152aa384534dbee8788daa6c48d44b82df7d4261042ce",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "settings-entry.c": "61fae42631de05a1b0a81a862bc01378b0e2bde8402f5c0f0a944d0f1d172b64"
+  },
+  "menu_only_forced_by_entry": true,
+  "preserved_typed_offline_boundaries": true,
+  "schema_origin_sha256": "e10b45a5327f2e8e52e0c9ff0d2d579b2cdb26a5b273b7f1d1ef58a3e6b5ebb9",
+  "schema_scope": "Completed local Python/cpp rebase-preservation check, bound to this candidate; runtime menu normal/ASan executes freshly in this recipe.",
+  "retained_renderer_proof_scope": "Secondary/render/outline actual source bytes unchanged from accepted source; no replay or fresh pass claimed here."
+}

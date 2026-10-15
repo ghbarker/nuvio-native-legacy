@@ -1,0 +1,100 @@
+{
+  "candidates": [
+    {
+      "pr": 431,
+      "old_head": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+      "source_commit": "e790d854ab4ec40430fd53cb9a7b88179861de1b",
+      "source_tree": "7adb4dbc2e0ed7606b028880d05d518b8fb50d44",
+      "upstream": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+      "files": [
+        {
+          "path": "src/android.h",
+          "sha256": "326def3f717fc13897870e39f47c06b2aecdcd4e7a953ed329eb287cc47e281c",
+          "matches_reviewed_proposal": true
+        }
+      ],
+      "diff_check_passed": true
+    },
+    {
+      "pr": 526,
+      "old_head": "531284c2e2330332b2b25e52d9635c9d69b3ead4",
+      "source_commit": "6477f54bba7d95d0ee0f6ab4440449f587831af9",
+      "source_tree": "fc9ca6f79d7b976a145e37db2937ac6f57afd65c",
+      "upstream": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+      "files": [
+        {
+          "path": "src/ajustes.c",
+          "sha256": "f5e4855e20ed0648a4f47cd53ca1deb5839e09fb5fdc87d84752797ef62d9751",
+          "matches_reviewed_proposal": true
+        },
+        {
+          "path": "src/ajustes_ux_padrao.inc",
+          "sha256": "576a090dd57f9bba7aaee90daab5bfe56c0017eb9ce1096793b3a9a5c4d47358",
+          "matches_reviewed_proposal": true
+        }
+      ],
+      "diff_check_passed": true
+    },
+    {
+      "pr": 527,
+      "old_head": "f2a03e9797857bb0c1b9a671f2b32e85a536c545",
+      "source_commit": "c2d75fab4735d276b46ba75c9556568aa19e3b9a",
+      "source_tree": "b58042b718c59df6d7a288334ded193cddfdb8fa",
+      "upstream": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+      "files": [
+        {
+          "path": "src/ajustes.c",
+          "sha256": "f55820a0a1756c109bfd8b2974ba5deea4831d1941a900eb4af86532464f5f41",
+          "matches_reviewed_proposal": true
+        },
+        {
+          "path": "src/ajustes_ux_padrao.inc",
+          "sha256": "c5963c5248008d739882e57866c8af418d7e87541f9004d5dd7fec5f5ac86f78",
+          "matches_reviewed_proposal": true
+        }
+      ],
+      "diff_check_passed": true
+    },
+    {
+      "pr": 533,
+      "old_head": "791a6e15a9092d2951c886938289a436824994f3",
+      "source_commit": "7006085b2a31bae3f8c361af439eb556fd2d0fde",
+      "source_tree": "977b228b0625027cd37380202009d95965a34433",
+      "upstream": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+      "files": [
+        {
+          "path": "src/ajustes.c",
+          "sha256": "725a473b0ee025c2e09c915843b4e8224683500744ae2e57464192dc223e9a25",
+          "matches_reviewed_proposal": true
+        },
+        {
+          "path": "src/ajustes_ux_padrao.inc",
+          "sha256": "c284a0fe0fda2abf21c4a86140101f2a649e7f40902419a1a8bb8c49ccc28e18",
+          "matches_reviewed_proposal": true
+        }
+      ],
+      "diff_check_passed": true
+    },
+    {
+      "pr": 536,
+      "old_head": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+      "source_commit": "75ae817afee0a0ff112f60c9a40635ea6cb1a88a",
+      "source_tree": "bef91da622f9599cfe6a98024c945f7c93055118",
+      "upstream": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+      "files": [
+        {
+          "path": "src/ajustes.c",
+          "sha256": "5aec8dc31a3361120fc47ebe68379136269beb3c11e4b5abcfd1318eb8be1063",
+          "matches_reviewed_proposal": true
+        },
+        {
+          "path": "src/ajustes_ux_padrao.inc",
+          "sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+          "matches_reviewed_proposal": true
+        }
+      ],
+      "diff_check_passed": true
+    }
+  ],
+  "scope": "Resolution files match reviewed additive proposals; parent contains pinned upstream. SDK and feature validation pending."
+}

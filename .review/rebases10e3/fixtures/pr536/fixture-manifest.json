@@ -1,0 +1,55 @@
+{
+  "staged": true,
+  "local_runtime_executed": false,
+  "old_fixture_assertion_bytes_unchanged": true,
+  "cli": "python3 entry.py --source PATH --proof JSON --output PATH --cc /usr/bin/cc",
+  "entry_receipt": "receipt.json",
+  "fresh_groups": [
+    "settings-menu-normal",
+    "settings-menu-asan"
+  ],
+  "cases_per_group": 6,
+  "source_binding_import": "inherited shared common.source_binding",
+  "files": {
+    "entry.py": {
+      "sha256": "6013a58978ddc0c9eebf3f5ea4051650cf743075702782c8ac745e98524f1ec4",
+      "bytes": 4580
+    },
+    "offline-account.c": {
+      "sha256": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+      "bytes": 532
+    },
+    "parity-player-companion.c": {
+      "sha256": "20536e76d1838216851e3e3a5ef33ae00f8609a94d67b411eda0923eb873024f",
+      "bytes": 409
+    },
+    "provenance.json": {
+      "sha256": "02b23192113e16bbf1f69d3d0abf6f98c38923690382814f5ec4a53f9879cf28",
+      "bytes": 1379
+    },
+    "run.py": {
+      "sha256": "580437f325a8fedbc16152aa384534dbee8788daa6c48d44b82df7d4261042ce",
+      "bytes": 5142
+    },
+    "schema-preservation.origin.json": {
+      "sha256": "e10b45a5327f2e8e52e0c9ff0d2d579b2cdb26a5b273b7f1d1ef58a3e6b5ebb9",
+      "bytes": 12388
+    },
+    "sdk/GLES2/gl2.h": {
+      "sha256": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "bytes": 881
+    },
+    "sdk/SDL2/SDL.h": {
+      "sha256": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "bytes": 3858
+    },
+    "sdk/vistonao.h": {
+      "sha256": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+      "bytes": 4385
+    },
+    "settings-entry.c": {
+      "sha256": "61fae42631de05a1b0a81a862bc01378b0e2bde8402f5c0f0a944d0f1d172b64",
+      "bytes": 20222
+    }
+  }
+}

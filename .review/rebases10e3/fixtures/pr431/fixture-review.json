@@ -1,0 +1,43 @@
+{
+  "scope": "External PR431 CI fixtures only; no product, original test or assertion edits. No build, SDK, JVM test or CI execution performed while staging.",
+  "candidate": "e790d854ab4ec40430fd53cb9a7b88179861de1b",
+  "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+  "runtime_original_sha256": "ca0d56d1b4a654870f53c8a1d77983b0b3ffa2f11aa36a53ee561daf2f299c00",
+  "runtime_binding_adapted_sha256": "b165841851a1c55b49f96314e5aa7cd4066f66a7b849b20846dc75acf3512740",
+  "runtime_assertions_unchanged": true,
+  "all_runtime_fixture_and_sdk_bytes_unchanged": true,
+  "entry": "/dev/shm/rebases-10e3-ci-20261015/stage/.review/rebases10e3/fixtures/pr431/entry.py",
+  "entry_sha256": "257ebee2581560c63bd85e5b9b0e638cdbda84fe9d8409b0e29c2e266bce46c3",
+  "entry_runs_producer_once": true,
+  "expected_fresh_runtime": {
+    "normal_and_ASan_UBSan": true,
+    "compiled_fixture_variants": 22,
+    "runs": 70,
+    "mode_leaf_runs": 18,
+    "Settings_apply_cancel_persistence": 48,
+    "storage_error_geometries": 12,
+    "TV_notice_observations": 12
+  },
+  "JVM_original_sha256": "b7c3599a4a79d74cfebda13dde8e317664f832c6d01ab8f12f477702bf769da3",
+  "JVM_root_only_adapted_sha256": "53bfa4013aaa6c426e908f4ff1cf52c145d5579fe240ab739425ba3f44d38eb8",
+  "JVM_Kotlin_assertion_fixture_unchanged": true,
+  "required_runtime_host": "Linux (run in Ubuntu Android worker before SDK build; accepted producer uses ELF flags)",
+  "runtime_command": "python3 fixtures/pr431/entry.py --source <source> --proof <proof.json> --output <fresh-output> --cc /usr/bin/cc",
+  "android_detector_command": "NUVIO_REVIEW_SOURCE=<source> KOTLINC=<kotlinc-executable> JAVA=<java-executable> python3 fixtures/pr431/android_interface_mode.py",
+  "android_detector_tools": "Kotlin CLI executable accepting normal kotlinc args; JVM java. Defaults KOTLINC=kotlinc and JAVA=java. Only production InterfaceMode.kt/TouchViewport.kt plus unchanged test fixture compile; no Android SDK required by this detector.",
+  "files_sha256": {
+    "android_interface_mode.py": "53bfa4013aaa6c426e908f4ff1cf52c145d5579fe240ab739425ba3f44d38eb8",
+    "entry.py": "257ebee2581560c63bd85e5b9b0e638cdbda84fe9d8409b0e29c2e266bce46c3",
+    "runtime/fixtures/agenda_runtime.c": "4e8524a500e5babb661aecb3b8b917c7fe133881f7f9b2da98934da5372b8c80",
+    "runtime/fixtures/busca_runtime.c": "6f276b9d978ad50d783b0818bd86bd7ab806eb913874c378c7e074b53fb61efe",
+    "runtime/fixtures/interface_layout.c": "7e4ca69d17b22f569c7084e1ab92b114f7b42e167ba4ec0a631e2c788827e094",
+    "runtime/fixtures/scroll_runtime.c": "19ffadfcd127934a2ef2993f30184c3e14abb8b9bbf0494db6e1e447c3cd9dc4",
+    "runtime/fixtures/settings-save-failure.c": "2a345346ffdd8cbc9e9747cd5bfd3917f0c5cf02377bbcc8a45d9850920b6995",
+    "runtime/fixtures/settings-values.c": "767615cdac15e8ef1b18719b3434e62fc01ef3ff940ca19f286874a9126f4d32",
+    "runtime/fixtures/settings_runtime.c": "f0061ebd4e1b9eb3bad64d325f00beb8710dfa78768dfd51611b9ee5f1d2ef14",
+    "runtime/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "runtime/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "runtime/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "runtime.py": "b165841851a1c55b49f96314e5aa7cd4066f66a7b849b20846dc75acf3512740"
+  }
+}

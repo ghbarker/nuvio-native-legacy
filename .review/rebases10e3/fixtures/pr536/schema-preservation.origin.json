@@ -1,0 +1,499 @@
+{
+  "passed": true,
+  "old_head": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+  "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+  "candidate": "75ae817afee0a0ff112f60c9a40635ea6cb1a88a",
+  "tree": "bef91da622f9599cfe6a98024c945f7c93055118",
+  "modes": [
+    {
+      "mode": "native",
+      "upstream_count": 292,
+      "candidate_count": 310,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    },
+    {
+      "mode": "android",
+      "upstream_count": 293,
+      "candidate_count": 311,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    }
+  ],
+  "all_original_feature_fields_preserved_by_id": true,
+  "all_upstream_setting_ids_and_defaults_preserved": true,
+  "download_action_preserved": true,
+  "main_secondary_common_controls": [
+    "ATRASO",
+    "BORDA",
+    "COR",
+    "COR_BORDA",
+    "FONTE",
+    "FUNDO",
+    "NEGRITO",
+    "OPACIDADE",
+    "POSICAO",
+    "RESTAURAR",
+    "TAMANHO"
+  ],
+  "renderer_behavior_byte_identical_paths": [
+    "src/ajustes.h",
+    "src/ajustes_ux_dados.inc",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_secoes.inc",
+    "src/ajustes_ux_visual.inc",
+    "src/app.c",
+    "src/assrender.c",
+    "src/faixas.c",
+    "src/legenda2.c",
+    "src/legenda2.h",
+    "src/legendasui.c",
+    "src/plainass.h",
+    "src/player.c",
+    "src/player.h",
+    "src/video.h"
+  ],
+  "translation_tables_preserve_both_inputs": [
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h"
+  ],
+  "changed_paths": [
+    "src/ajustes.c",
+    "src/ajustes.h",
+    "src/ajustes_ux_dados.inc",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_padrao.inc",
+    "src/ajustes_ux_secoes.inc",
+    "src/ajustes_ux_tela.inc",
+    "src/ajustes_ux_visual.inc",
+    "src/app.c",
+    "src/assrender.c",
+    "src/faixas.c",
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h",
+    "src/legenda2.c",
+    "src/legenda2.h",
+    "src/legendasui.c",
+    "src/plainass.h",
+    "src/player.c",
+    "src/player.h",
+    "src/video.h"
+  ],
+  "protected_trees_unchanged": [
+    "tests",
+    "tools",
+    ".github",
+    "android"
+  ],
+  "cpp_only_no_c_objects_or_sdk_builds": true,
+  "commands": [
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "12e4f0d3717a2cc1566da08f09ab8d1a03b921c68593a7cf6b4ca534d1132311",
+      "output_sha256": "87d746322e117d8d5957e957ce586e69e61d2a6bc99e86dc1a6512e73bdab1c3"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "c73572b2843463f00e945b25b5a4b015ba438dc4b9986f200dc7d8705c28ac60",
+      "output_sha256": "9fb8905ca4fc5714fdd48bd6039633c917e101689c4f5bef930e448ef00bb581"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "69f4e0bebbd0f8faae249805d17b253051b40546e4863d2185d5d3fc3ed29e82",
+      "output_sha256": "c679123470e5a7746c81bdd7dfc01271d8e92845ff3e5ed01761cd5dc61f0c2a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "d458d41beff7a80fe70541af1128a71c319b168dbdc5eb25455d5e9d7770ae16",
+      "output_sha256": "512108a14fe58d3b097af4875f9425e440c481c09bc58724055cf596c1076f57"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "eb085f4de91c58c66bab7027968977812dc477125f04ed8a008b6526862d6afb",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "e0ee0a2153248b853967927204984d3bc3f14ec4f7540c91de2bd95146752ca6",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "216c599bc2f95eb11fc20e541d89203f11969f8c724b4036137f9ac9ea42fe12",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "f555f94d4608317140453055d362a9b880bb606bc83bf51c3609219e08d9e4d6",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "12e4f0d3717a2cc1566da08f09ab8d1a03b921c68593a7cf6b4ca534d1132311",
+      "output_sha256": "b463cc29e94baf72a5acb533cef5b2e2a30c8a507b8622a282cc98ca8c84dff8"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "c73572b2843463f00e945b25b5a4b015ba438dc4b9986f200dc7d8705c28ac60",
+      "output_sha256": "077ce15fadaa77034ca0bff7693513035259b25d16de271d3d2b449ba79e530c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "69f4e0bebbd0f8faae249805d17b253051b40546e4863d2185d5d3fc3ed29e82",
+      "output_sha256": "b89b91f2c9b319e71362227e8d8478e7045e479cb123a0ea012e8fa605403ec7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "d458d41beff7a80fe70541af1128a71c319b168dbdc5eb25455d5e9d7770ae16",
+      "output_sha256": "16580704b5c448dce6bc48fa0099a9897e307e6c89d2a0cad7e4ce2183db3532"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "eb085f4de91c58c66bab7027968977812dc477125f04ed8a008b6526862d6afb",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "e0ee0a2153248b853967927204984d3bc3f14ec4f7540c91de2bd95146752ca6",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "216c599bc2f95eb11fc20e541d89203f11969f8c724b4036137f9ac9ea42fe12",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "f555f94d4608317140453055d362a9b880bb606bc83bf51c3609219e08d9e4d6",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "b5f35c9c6690f304aa7a8e6c2e00b56b15ff9469471c5c93c6ecb8a9ad1e0708"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "991f8ae4db5df55bbc731e6280b6ca33c8e9c65719096d12e20c51b584167417"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e5f30254f44ca3adbe13898b5974d3ce1cd57263adcb445e154a994cde42468"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "8545a487a70766b2f066cc63270b959b1e7ef53391f0ed68e3186d4af19548b8"
+    }
+  ]
+}

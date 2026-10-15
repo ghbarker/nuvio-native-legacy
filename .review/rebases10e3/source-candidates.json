@@ -1,0 +1,1448 @@
+{
+  "431": {
+    "pr": 431,
+    "head": "e790d854ab4ec40430fd53cb9a7b88179861de1b",
+    "tree": "7adb4dbc2e0ed7606b028880d05d518b8fb50d44",
+    "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+    "base_tree": "965240d1a5b3fa9a5339a8074b18a15c80cc7c3b",
+    "parents": [
+      "0958a5c2ab0a9fbfcc52164f5ba9c02ad8637fa9"
+    ],
+    "old_head": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+    "paths": [
+      {
+        "path": "README.md",
+        "blob": "57ccd2422c20d72b65fdd54543dcddf8af0c1084"
+      },
+      {
+        "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+        "blob": "f9d8eae96d36d5d4e9237a823db6c470969537a0"
+      },
+      {
+        "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+        "blob": "f4c3926ada23a3ff687fe6cca549efdb11fbb615"
+      },
+      {
+        "path": "docs/android/INTERFACE-MODES.md",
+        "blob": "df8586de519ff2a80b19983683caa934a0278c3e"
+      },
+      {
+        "path": "src/agendaui.c",
+        "blob": "96d5c867db2856692f394b45cfa86302a7d07f6a"
+      },
+      {
+        "path": "src/ajustes.c",
+        "blob": "c10b2acfd15fd90e85d989f063e0115f47bb2b3f"
+      },
+      {
+        "path": "src/ajustes.h",
+        "blob": "761a62487db97e003da35eee7508c81e829c241e"
+      },
+      {
+        "path": "src/ajustes_ux_desenho.inc",
+        "blob": "e2011ab690d9af271df2311d24a403693e548d02"
+      },
+      {
+        "path": "src/ajustes_ux_fileiras.inc",
+        "blob": "a4ef4df504d056d8b3c26c33fc485be83bf11db3"
+      },
+      {
+        "path": "src/ajustes_ux_guia.inc",
+        "blob": "7cb3071195df5c7203ddcc3c305a082f4267a08e"
+      },
+      {
+        "path": "src/ajustes_ux_ilha.inc",
+        "blob": "67005c944b068d86f71e3b5a9e9c066fe87c17cb"
+      },
+      {
+        "path": "src/ajustes_ux_padrao.inc",
+        "blob": "a0f78077bdd43527060eb7f9f68f4997a9b81881"
+      },
+      {
+        "path": "src/ajustes_ux_v2.inc",
+        "blob": "b302b6e23dff53f4f2a0adc9156118d324cc27c2"
+      },
+      {
+        "path": "src/amigoperfil.c",
+        "blob": "df45912ef140e839326ef6fbc4a12fe17247f331"
+      },
+      {
+        "path": "src/amigosfil.c",
+        "blob": "afa157d1a633c2552ff32dfb01c22c2a26e76313"
+      },
+      {
+        "path": "src/amigostitulo_ui.c",
+        "blob": "e0515ac53f49874a16dc5a830f019fc1e9085ce5"
+      },
+      {
+        "path": "src/android.c",
+        "blob": "bdf240dc68bce3069c5975e59f6294528dda9e30"
+      },
+      {
+        "path": "src/android.h",
+        "blob": "5984e55ffeb79fd8da6cf32dd90d1495fbdbd236",
+        "sha256": "326def3f717fc13897870e39f47c06b2aecdcd4e7a953ed329eb287cc47e281c"
+      },
+      {
+        "path": "src/aovivoui.c",
+        "blob": "c732f496cafb7dd6a3864e9f9624a757595eea40"
+      },
+      {
+        "path": "src/app.c",
+        "blob": "c6fa147768ba993f321f2bc214db3429e869fe16"
+      },
+      {
+        "path": "src/atualizacao.c",
+        "blob": "0c182d6318f79e33ff285063741c51eb0dd7f56f"
+      },
+      {
+        "path": "src/avisos.c",
+        "blob": "8d3a43cab9f62a462da15e55588c1b55df8401d7"
+      },
+      {
+        "path": "src/biblioteca.c",
+        "blob": "80dbdea4365045e32259a553bd3bdddd382f8f33"
+      },
+      {
+        "path": "src/busca.c",
+        "blob": "84e4faffdda9e27d4116e69173bc804388e01600"
+      },
+      {
+        "path": "src/central.c",
+        "blob": "6d33a6c3a90be6b3aea15bb706e8da41c5ca7e93"
+      },
+      {
+        "path": "src/ctxmenu.c",
+        "blob": "988ceec0de4bdd7996f8bccb1d555e5ede553237"
+      },
+      {
+        "path": "src/detail.c",
+        "blob": "a9d4e50b8f87e46ffe777d1100c2015506885510"
+      },
+      {
+        "path": "src/diagnostico.c",
+        "blob": "d2a813064f92c778b82c441ce2bdb6b0f3576580"
+      },
+      {
+        "path": "src/episodios.c",
+        "blob": "7e2976ca2c9333d435a4f53b42ccfad34429a4e6"
+      },
+      {
+        "path": "src/explorar.c",
+        "blob": "9f08bed9db525959e605bda7dc30a12daa88b578"
+      },
+      {
+        "path": "src/faixas.c",
+        "blob": "a3da57275eb49a51a0b58e4ae2aad3f66638f4a4"
+      },
+      {
+        "path": "src/guia.c",
+        "blob": "1ab23477f2ee87ee6ec32fa32783fbcadf7432bc"
+      },
+      {
+        "path": "src/home.c",
+        "blob": "04f8709327d7f04db4f74cf69636162bc18e45a8"
+      },
+      {
+        "path": "src/idioma_bg.h",
+        "blob": "5f186da96f8ce1efcf0031f27c1cc2f251932dc4"
+      },
+      {
+        "path": "src/idioma_bs.h",
+        "blob": "fce2faad099a65cd2557dce353514043c8810646"
+      },
+      {
+        "path": "src/idioma_cs.h",
+        "blob": "4886a8037958c5ef55090eb90bd589deb2eb2cc2"
+      },
+      {
+        "path": "src/idioma_da.h",
+        "blob": "f70dafb6f5648b9362b717bb97339322647bbc12"
+      },
+      {
+        "path": "src/idioma_de.h",
+        "blob": "984a0555ec7c4903dc3c516508183dc0a8386cd2"
+      },
+      {
+        "path": "src/idioma_el.h",
+        "blob": "1b616d6e2fb8fa7f1f09c07bcb3c79a0b49d1317"
+      },
+      {
+        "path": "src/idioma_es.h",
+        "blob": "95d7b3a15ecd804d4457b96cd436cb07a083cd3f"
+      },
+      {
+        "path": "src/idioma_fr.h",
+        "blob": "7e110a78b2686d0d122a377e28a402cf1a15acd4"
+      },
+      {
+        "path": "src/idioma_hu.h",
+        "blob": "edea27392fbea258b39e6e32765fdd1d02546aa8"
+      },
+      {
+        "path": "src/idioma_id.h",
+        "blob": "b498e0895a7c7961377bd241da3a3506f00a3d61"
+      },
+      {
+        "path": "src/idioma_it.h",
+        "blob": "cb749fccf5a131ba13e8e79795c8a246ff3ded96"
+      },
+      {
+        "path": "src/idioma_ja.h",
+        "blob": "c0c001833cdc16b1d3e9697ee4b5ebdc61b8643d"
+      },
+      {
+        "path": "src/idioma_lt.h",
+        "blob": "b1ef0ba80074e3178ff724a3b49417d1e7b9c3f0"
+      },
+      {
+        "path": "src/idioma_nl.h",
+        "blob": "4cfff789979c011ce4dc93bfd5d9aeb11414ed69"
+      },
+      {
+        "path": "src/idioma_no.h",
+        "blob": "cbe61f7810332bebfa18233b7eb94bc5370473f8"
+      },
+      {
+        "path": "src/idioma_pl.h",
+        "blob": "2acc7008ba110d14db39fe061d7c9e974bcf8454"
+      },
+      {
+        "path": "src/idioma_ptpt.h",
+        "blob": "3069efb8bf658e5fdb5fab46557cf97ab13a514e"
+      },
+      {
+        "path": "src/idioma_ro.h",
+        "blob": "9b93cc06f5a430f8b67c8f02b5837e4512f901fc"
+      },
+      {
+        "path": "src/idioma_ru.h",
+        "blob": "31c639b98236a2da8ad20c0d8a5bcd73ecb2e02c"
+      },
+      {
+        "path": "src/idioma_sk.h",
+        "blob": "03eea441a90b86a147e252176239b706714f9270"
+      },
+      {
+        "path": "src/idioma_sl.h",
+        "blob": "fbcbf9e9d0dff0727cd817628ff600530b902ba1"
+      },
+      {
+        "path": "src/idioma_sr.h",
+        "blob": "86058e5e9eb76e8900db9277d7999cef7d62c5b4"
+      },
+      {
+        "path": "src/idioma_sv.h",
+        "blob": "c74e856b23119b866f6cdaa9d8fde7a34b92d365"
+      },
+      {
+        "path": "src/idioma_tab.h",
+        "blob": "edd59f9b4c21df531709da883612953df8dbddd8"
+      },
+      {
+        "path": "src/idioma_tr.h",
+        "blob": "3454d7a763bbf3fd74fd020987b0c8cad51801d1"
+      },
+      {
+        "path": "src/idioma_uk.h",
+        "blob": "a0b997354d0e918d769505786f03f7d61a5affde"
+      },
+      {
+        "path": "src/idioma_vi.h",
+        "blob": "5653c0bb0bc45fae35b5c7dd4b91577662ff8e9c"
+      },
+      {
+        "path": "src/idioma_zhcn.h",
+        "blob": "0eb7d298082d526421340940c94afc639275ba99"
+      },
+      {
+        "path": "src/idioma_zhtw.h",
+        "blob": "53f856db3f8cd912c909c6a9a02e49e9d5798f21"
+      },
+      {
+        "path": "src/layout.c",
+        "blob": "f46fe5fea1efa4750aef513491b6231cf9829a9b"
+      },
+      {
+        "path": "src/layout.h",
+        "blob": "63ebefb6d452f6aeebb0dbbeed275ffbc4ee71f9"
+      },
+      {
+        "path": "src/legendasui.c",
+        "blob": "f96c4b366cfbf0795e82c5e6a6147ac21199132a"
+      },
+      {
+        "path": "src/livetvdiag.c",
+        "blob": "bb8f744d6f572e64d7b752cebc1bd37d8e6f48e3"
+      },
+      {
+        "path": "src/menu.c",
+        "blob": "8fe75501d58c0a5a14ec835baab2080f21fccc9d"
+      },
+      {
+        "path": "src/perfil.c",
+        "blob": "f0288b8d0e5faa112eb5c9c110049bd49e2098a1"
+      },
+      {
+        "path": "src/perfilsel.c",
+        "blob": "c395e232c38f96397609f4b124b293dea2c309aa"
+      },
+      {
+        "path": "src/pessoas.c",
+        "blob": "66b77a3905fe0436651356577340ce824b2ef9b2"
+      },
+      {
+        "path": "src/ponteiro.c",
+        "blob": "abb43fe1fc25f8f08e373f7ac3f5d4fdd7fac7ce"
+      },
+      {
+        "path": "src/posplay.c",
+        "blob": "ccc49aada21edec8de3bfa67ff986cd5be068831"
+      },
+      {
+        "path": "src/recenviar.c",
+        "blob": "f5426760d652d402c79fc65e797d2250ceeeed6b"
+      },
+      {
+        "path": "src/registro.c",
+        "blob": "2ba16f016123acfa135b677f541b90803e2a2298"
+      },
+      {
+        "path": "src/registro_ilha.inc",
+        "blob": "02f17e290390794491ba73ed5a36af93a85d7511"
+      },
+      {
+        "path": "src/rolagemtoque.h",
+        "blob": "049653ca73bb3c130b065a78bbb691c994b709c9"
+      },
+      {
+        "path": "src/salvospainel.c",
+        "blob": "be74374e30a317d4249c19d4c70f8dd8dd477702"
+      },
+      {
+        "path": "src/spotlight.c",
+        "blob": "26f915cc021bb3830b6a11ff77c901672afc085c"
+      },
+      {
+        "path": "src/streams.c",
+        "blob": "bd5cc0dee05a6244076cf99eee0bc63ba1d5f63a"
+      },
+      {
+        "path": "src/trocaarte.c",
+        "blob": "ab571496d518627d3586265dc70f61647688d66f"
+      },
+      {
+        "path": "src/vertudo.c",
+        "blob": "fe3562fe8bcb57af44688fc5bce4708dc45261ea"
+      },
+      {
+        "path": "tools/android/ffmpeg-android.sh",
+        "blob": "deff8b391e68d328fd6461930c6ebc779284baef"
+      }
+    ],
+    "reviewed_test_paths": [],
+    "exact_diff_paths": [
+      "README.md",
+      "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "docs/android/INTERFACE-MODES.md",
+      "src/agendaui.c",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_fileiras.inc",
+      "src/ajustes_ux_guia.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_v2.inc",
+      "src/amigoperfil.c",
+      "src/amigosfil.c",
+      "src/amigostitulo_ui.c",
+      "src/android.c",
+      "src/android.h",
+      "src/aovivoui.c",
+      "src/app.c",
+      "src/atualizacao.c",
+      "src/avisos.c",
+      "src/biblioteca.c",
+      "src/busca.c",
+      "src/central.c",
+      "src/ctxmenu.c",
+      "src/detail.c",
+      "src/diagnostico.c",
+      "src/episodios.c",
+      "src/explorar.c",
+      "src/faixas.c",
+      "src/guia.c",
+      "src/home.c",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/layout.c",
+      "src/layout.h",
+      "src/legendasui.c",
+      "src/livetvdiag.c",
+      "src/menu.c",
+      "src/perfil.c",
+      "src/perfilsel.c",
+      "src/pessoas.c",
+      "src/ponteiro.c",
+      "src/posplay.c",
+      "src/recenviar.c",
+      "src/registro.c",
+      "src/registro_ilha.inc",
+      "src/rolagemtoque.h",
+      "src/salvospainel.c",
+      "src/spotlight.c",
+      "src/streams.c",
+      "src/trocaarte.c",
+      "src/vertudo.c",
+      "tools/android/ffmpeg-android.sh"
+    ]
+  },
+  "526": {
+    "pr": 526,
+    "head": "6477f54bba7d95d0ee0f6ab4440449f587831af9",
+    "tree": "fc9ca6f79d7b976a145e37db2937ac6f57afd65c",
+    "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+    "base_tree": "965240d1a5b3fa9a5339a8074b18a15c80cc7c3b",
+    "parents": [
+      "4c07d0510acb41d3d8913d46d7f245ffa7d466a8"
+    ],
+    "old_head": "531284c2e2330332b2b25e52d9635c9d69b3ead4",
+    "paths": [
+      {
+        "path": "src/agendaui.c",
+        "blob": "51f197dde0fab24352baff767775ab14b255e2ca"
+      },
+      {
+        "path": "src/ajustes.c",
+        "blob": "3ad9393ce3b70acd6470e586105717f4c2773241",
+        "sha256": "f5e4855e20ed0648a4f47cd53ca1deb5839e09fb5fdc87d84752797ef62d9751"
+      },
+      {
+        "path": "src/ajustes.h",
+        "blob": "a354aea2cb4e08b5242c190ed6b1f01f278755e5"
+      },
+      {
+        "path": "src/ajustes_ux_dados.inc",
+        "blob": "530fb49652e15676c5f92d029e984446ab63e3f5"
+      },
+      {
+        "path": "src/ajustes_ux_padrao.inc",
+        "blob": "0013f8ff5cb1b08d88b7e8fa2c517fc0b438df42",
+        "sha256": "576a090dd57f9bba7aaee90daab5bfe56c0017eb9ce1096793b3a9a5c4d47358"
+      },
+      {
+        "path": "src/ajustes_ux_tela.inc",
+        "blob": "2228c047655dba7627e70d66c45b75eae1701aaf"
+      },
+      {
+        "path": "src/ajustes_ux_visual.inc",
+        "blob": "af44c567dbf9e7fcabe19e64a0d91bfd0f65011c"
+      },
+      {
+        "path": "src/app.c",
+        "blob": "2ad5aa15981e4e3ad0417df2b313b7e90504b3f2"
+      },
+      {
+        "path": "src/biblioteca.c",
+        "blob": "e6368e38ded238f08202cb872c271be3dc53035b"
+      },
+      {
+        "path": "src/ctxinfo.c",
+        "blob": "a1566b5d30e8d18c225764fef8d9d01c1be38235"
+      },
+      {
+        "path": "src/descanso.c",
+        "blob": "70f9e07115da238d784e3e0bd75995f9abd066b9"
+      },
+      {
+        "path": "src/detail.c",
+        "blob": "60d7b1cb6df61f370343c3746f03af640150372e"
+      },
+      {
+        "path": "src/detmais.c",
+        "blob": "772fb7a2214e58b8963ad1a3272599ef7d1f6e29"
+      },
+      {
+        "path": "src/detmais.h",
+        "blob": "81da87520d937b8efadad9e351325d6a413c2dfe"
+      },
+      {
+        "path": "src/episodios.c",
+        "blob": "1a8200b857120675bbac74f1b19316485e073e2e"
+      },
+      {
+        "path": "src/home.c",
+        "blob": "61d06b9d90588d5b1536944f78c26243038af39b"
+      },
+      {
+        "path": "src/idioma_bg.h",
+        "blob": "117cc2c3397d210491d170160bbb62bef6f75dcb"
+      },
+      {
+        "path": "src/idioma_bs.h",
+        "blob": "f8e6030c2d286273c7d32af0f09bf2fad05b616f"
+      },
+      {
+        "path": "src/idioma_cs.h",
+        "blob": "f24f00dd1a4fb89300165e56e6f4b4cf0a821a18"
+      },
+      {
+        "path": "src/idioma_da.h",
+        "blob": "55eccd39da36bc61b12c98ea25fd5f1ed10fa4a6"
+      },
+      {
+        "path": "src/idioma_de.h",
+        "blob": "6d9ea552e1ff2278c90208203796a10b99a01a9c"
+      },
+      {
+        "path": "src/idioma_el.h",
+        "blob": "dcea8c0374d7c433ccd1588cba35b4a46037d864"
+      },
+      {
+        "path": "src/idioma_es.h",
+        "blob": "a79b8eed0843c7f125238ad21d380c1d88c6930c"
+      },
+      {
+        "path": "src/idioma_fr.h",
+        "blob": "a447e67cc4925d8eaf75352323915ff121bfc256"
+      },
+      {
+        "path": "src/idioma_hu.h",
+        "blob": "e3fb7b2a2f114991da7726e9a5c6597013a4fc23"
+      },
+      {
+        "path": "src/idioma_id.h",
+        "blob": "da1516260f059b94de62140df02b3e61ff831572"
+      },
+      {
+        "path": "src/idioma_it.h",
+        "blob": "e0eb0012f36b358caa4457eb8c35d474f5a8bd78"
+      },
+      {
+        "path": "src/idioma_ja.h",
+        "blob": "b2a5cd9c260d2c532642936a372cd7f818202846"
+      },
+      {
+        "path": "src/idioma_lt.h",
+        "blob": "7a515ed2259a10d1686df73a241e682b4bacf76e"
+      },
+      {
+        "path": "src/idioma_nl.h",
+        "blob": "78485e09514f7a08cf064c36acc910423a2040fe"
+      },
+      {
+        "path": "src/idioma_no.h",
+        "blob": "1006fb14dbdcf83395d9424113a02f5c9be9d08d"
+      },
+      {
+        "path": "src/idioma_pl.h",
+        "blob": "fdaec24e8e99b15dc5d335518d53810627f64360"
+      },
+      {
+        "path": "src/idioma_ptpt.h",
+        "blob": "6c0fe4334130ef2f34f731d412155ade4a4214ef"
+      },
+      {
+        "path": "src/idioma_ro.h",
+        "blob": "1a954dbbb6e775f87251282aeaf24dc71014395a"
+      },
+      {
+        "path": "src/idioma_ru.h",
+        "blob": "31de6911446573e31057b584747ea787f51d2481"
+      },
+      {
+        "path": "src/idioma_sk.h",
+        "blob": "e2ea2729fb4551e1edbc1be621c174ca8a9e311e"
+      },
+      {
+        "path": "src/idioma_sl.h",
+        "blob": "a8f91146465301363febb098ea9847f19500fe04"
+      },
+      {
+        "path": "src/idioma_sr.h",
+        "blob": "d7c4dbcdf9ffb41312d361f06a52b67ac028cb54"
+      },
+      {
+        "path": "src/idioma_sv.h",
+        "blob": "99c9ab8d334daf923001206b20b91ba0a6e6da0c"
+      },
+      {
+        "path": "src/idioma_tab.h",
+        "blob": "f283e902a1532f354430a494f24da15e49f03c0c"
+      },
+      {
+        "path": "src/idioma_tr.h",
+        "blob": "3f35d7a2b21fc6c63988dbbfcc233802e31d0019"
+      },
+      {
+        "path": "src/idioma_uk.h",
+        "blob": "0efcd0171dead4cb7684cae9feedb49f5247ea65"
+      },
+      {
+        "path": "src/idioma_vi.h",
+        "blob": "6f1d3655c20f03cbdf1227ebe449105c28aa8a8e"
+      },
+      {
+        "path": "src/idioma_zhcn.h",
+        "blob": "ebf67358d0c3aa1331928de4a74ebf863ef41ec7"
+      },
+      {
+        "path": "src/idioma_zhtw.h",
+        "blob": "5032a6339582bc16f28d1431206c3a93374eb055"
+      },
+      {
+        "path": "src/ilha.c",
+        "blob": "ab2f31c927b44dcfcdabceef2c03a587a26882da"
+      },
+      {
+        "path": "src/pausao.c",
+        "blob": "bf5eb8c91d039e086f862b079691f290b739fb15"
+      },
+      {
+        "path": "src/posplay.c",
+        "blob": "a8cf2cb7cbb85913281d9629fa88b603c6dee58f"
+      },
+      {
+        "path": "src/sinopse.c",
+        "blob": "b827dd33072b4dd739401ce2164c119c2f6986c2"
+      },
+      {
+        "path": "src/sinopse.h",
+        "blob": "18c9b77e38dbf132b27505375af488b76b4ee591"
+      },
+      {
+        "path": "src/text.c",
+        "blob": "262c9510fe7983d245e32ac9dbe7338847d25bb9"
+      },
+      {
+        "path": "src/text.h",
+        "blob": "637e7176bdee3230a3763d5d218f912c60d547c6"
+      },
+      {
+        "path": "src/vertudo.c",
+        "blob": "a42fae7258ee118b13495c1bfc519c76a0d7a568"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "tests/synopsis_review.c",
+        "blob": "20a5490dbaa857ee77a793c3382c4fd2f384ae61"
+      },
+      {
+        "path": "tests/synopsis_review.sh",
+        "blob": "cacd37c6c7ae24d578c8cc1e9c87512a7948130e"
+      }
+    ],
+    "exact_diff_paths": [
+      "src/agendaui.c",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_dados.inc",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_tela.inc",
+      "src/ajustes_ux_visual.inc",
+      "src/app.c",
+      "src/biblioteca.c",
+      "src/ctxinfo.c",
+      "src/descanso.c",
+      "src/detail.c",
+      "src/detmais.c",
+      "src/detmais.h",
+      "src/episodios.c",
+      "src/home.c",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/ilha.c",
+      "src/pausao.c",
+      "src/posplay.c",
+      "src/sinopse.c",
+      "src/sinopse.h",
+      "src/text.c",
+      "src/text.h",
+      "src/vertudo.c",
+      "tests/synopsis_review.c",
+      "tests/synopsis_review.sh"
+    ]
+  },
+  "527": {
+    "pr": 527,
+    "head": "c2d75fab4735d276b46ba75c9556568aa19e3b9a",
+    "tree": "b58042b718c59df6d7a288334ded193cddfdb8fa",
+    "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+    "base_tree": "965240d1a5b3fa9a5339a8074b18a15c80cc7c3b",
+    "parents": [
+      "bb8902ee430876057aef253b101a25a8f256d001"
+    ],
+    "old_head": "f2a03e9797857bb0c1b9a671f2b32e85a536c545",
+    "paths": [
+      {
+        "path": "src/addons.c",
+        "blob": "dcb3e9fca241b52d96ed30a0bfe7573b5c16c4b5"
+      },
+      {
+        "path": "src/addons.h",
+        "blob": "81363152f16a7112349ecded1dbdba67d50e2a5b"
+      },
+      {
+        "path": "src/ajustes.c",
+        "blob": "40e3f8674dfade4afc2a6902a66ec6417024b456",
+        "sha256": "f55820a0a1756c109bfd8b2974ba5deea4831d1941a900eb4af86532464f5f41"
+      },
+      {
+        "path": "src/ajustes.h",
+        "blob": "20315d725e22766546e90e580ecc0ba1e1f4a5ed"
+      },
+      {
+        "path": "src/ajustes_ux_dados.inc",
+        "blob": "e38adad40d97ada5bd6845c1dd3318f6c5a5809d"
+      },
+      {
+        "path": "src/ajustes_ux_padrao.inc",
+        "blob": "9b749c5ddcda4d7c84e564ab3601084f3e8686e9",
+        "sha256": "c5963c5248008d739882e57866c8af418d7e87541f9004d5dd7fec5f5ac86f78"
+      },
+      {
+        "path": "src/ajustes_ux_tela.inc",
+        "blob": "424d066e4783df8371255c76baa384a7c06b52b9"
+      },
+      {
+        "path": "src/ajustes_ux_visual.inc",
+        "blob": "c4efb2eab27687e8bb6547c6a76f36854d0c538d"
+      },
+      {
+        "path": "src/descoberta.c",
+        "blob": "a94742dad82f491ab02adb6c0c1af594def88b72"
+      },
+      {
+        "path": "src/descoberta.h",
+        "blob": "12096d4c0cbe047c69ec9fa0759ffedf042a1f96"
+      },
+      {
+        "path": "src/idioma_bg.h",
+        "blob": "1cbbdf65b549046a70891550cc7a172f34438ad6"
+      },
+      {
+        "path": "src/idioma_bs.h",
+        "blob": "3e46e6875a685b1118a28e8a248f5ef1b865895e"
+      },
+      {
+        "path": "src/idioma_cs.h",
+        "blob": "4b7752144ef3a7fb6f4e35be269f6ea8f80fde18"
+      },
+      {
+        "path": "src/idioma_da.h",
+        "blob": "d1038168b974ee7e695f557a7e5751b3ec31e1f0"
+      },
+      {
+        "path": "src/idioma_de.h",
+        "blob": "bd7264ec48d698ea209ea705384dd9515791358b"
+      },
+      {
+        "path": "src/idioma_el.h",
+        "blob": "8b55a4dfe1276de028baea28653346e0b0b8565c"
+      },
+      {
+        "path": "src/idioma_es.h",
+        "blob": "fe0050e56d0c44187df3d99c4c5cd1c7ec617109"
+      },
+      {
+        "path": "src/idioma_fr.h",
+        "blob": "e32a73f5f48d82d544320b91053fe36959f48904"
+      },
+      {
+        "path": "src/idioma_hu.h",
+        "blob": "a26c2046a49f75d92905d00a33fde857d68314b2"
+      },
+      {
+        "path": "src/idioma_id.h",
+        "blob": "4d69a3cc343af833476330bc73aa5aa6ab124804"
+      },
+      {
+        "path": "src/idioma_it.h",
+        "blob": "5479e9006dfe61c63bc865920f8400bf5f1f5115"
+      },
+      {
+        "path": "src/idioma_ja.h",
+        "blob": "64ab5291d513bf41ad1d543f5e6fb51da0b3aa0c"
+      },
+      {
+        "path": "src/idioma_lt.h",
+        "blob": "ff05fe4213896ad89e25f42b935750b858b3c540"
+      },
+      {
+        "path": "src/idioma_nl.h",
+        "blob": "580e5b36cdb3d0a22751453e99572215b61d142a"
+      },
+      {
+        "path": "src/idioma_no.h",
+        "blob": "050c0624d6677af918a37b21df9c19a220f01772"
+      },
+      {
+        "path": "src/idioma_pl.h",
+        "blob": "e75050b0d52f4dd6fbec4258e3b89944e2a34ca1"
+      },
+      {
+        "path": "src/idioma_ptpt.h",
+        "blob": "e415d70fcc2e3ca011be4579e9f5c5a11038e0d2"
+      },
+      {
+        "path": "src/idioma_ro.h",
+        "blob": "08754f7a9eff7fa5c82602429aa683f8e36be0ab"
+      },
+      {
+        "path": "src/idioma_ru.h",
+        "blob": "0eeb98004b2fab67546b8b8faa1dfec7d3b84995"
+      },
+      {
+        "path": "src/idioma_sk.h",
+        "blob": "b015917edbd57e9db42a189736cf285c52089398"
+      },
+      {
+        "path": "src/idioma_sl.h",
+        "blob": "bcf0241f65b996c2c333988a9240a9c135a6abff"
+      },
+      {
+        "path": "src/idioma_sr.h",
+        "blob": "9ef49638d3870cece420b52a682dded2c2323b5c"
+      },
+      {
+        "path": "src/idioma_sv.h",
+        "blob": "0480b4b34c5461c36920362e929f30b4edcbad24"
+      },
+      {
+        "path": "src/idioma_tab.h",
+        "blob": "8ec6c756baa4bc81a2480ee81ec612da246f15e3"
+      },
+      {
+        "path": "src/idioma_tr.h",
+        "blob": "1b4dd5633ecd7a26a3b57b7d932a001299d512a3"
+      },
+      {
+        "path": "src/idioma_uk.h",
+        "blob": "7d28dc05f49b1ee9488f6147951438733038916f"
+      },
+      {
+        "path": "src/idioma_vi.h",
+        "blob": "de930f982e8c27f23277b89bed046855814447fb"
+      },
+      {
+        "path": "src/idioma_zhcn.h",
+        "blob": "2aa26ccbb525c33557362f2504adc870cfe87b7a"
+      },
+      {
+        "path": "src/idioma_zhtw.h",
+        "blob": "800f855445a96cb443e2e1dfca8d9e0a992252cb"
+      },
+      {
+        "path": "src/vertudo.c",
+        "blob": "ab1bb76da74faf59edc95b3fa707d4b1784808e2"
+      },
+      {
+        "path": "src/vertudo.h",
+        "blob": "4d8df04a7e854bf28430c33032bd05885e5b9a0f"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "tests/colecao_exibicao.c",
+        "blob": "ef6ffd85d7f4790093b5a6bde245347ab0d97e9f"
+      }
+    ],
+    "exact_diff_paths": [
+      "src/addons.c",
+      "src/addons.h",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_dados.inc",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_tela.inc",
+      "src/ajustes_ux_visual.inc",
+      "src/descoberta.c",
+      "src/descoberta.h",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/vertudo.c",
+      "src/vertudo.h",
+      "tests/colecao_exibicao.c"
+    ]
+  },
+  "533": {
+    "pr": 533,
+    "head": "7006085b2a31bae3f8c361af439eb556fd2d0fde",
+    "tree": "977b228b0625027cd37380202009d95965a34433",
+    "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+    "base_tree": "965240d1a5b3fa9a5339a8074b18a15c80cc7c3b",
+    "parents": [
+      "10e3d5803a9b9dd5c36775aab298ab0534fc982e"
+    ],
+    "old_head": "791a6e15a9092d2951c886938289a436824994f3",
+    "paths": [
+      {
+        "path": "src/ajustes.c",
+        "blob": "a078bda5f391e592bbb34fd838d63b416c4a8526",
+        "sha256": "725a473b0ee025c2e09c915843b4e8224683500744ae2e57464192dc223e9a25"
+      },
+      {
+        "path": "src/ajustes_ux_dados.inc",
+        "blob": "7416f7e9e84f9ca33b04ed7d709a978b77012aa8"
+      },
+      {
+        "path": "src/ajustes_ux_desenho.inc",
+        "blob": "1ad10132352de24694e142454acaea398f64ace5"
+      },
+      {
+        "path": "src/ajustes_ux_ilha.inc",
+        "blob": "ba167fc2e5feac7ad9b1a7270fa2824cc40fb522"
+      },
+      {
+        "path": "src/ajustes_ux_padrao.inc",
+        "blob": "baa77ba6ebafd37c5bb54e98c2d431de4c860c81",
+        "sha256": "c284a0fe0fda2abf21c4a86140101f2a649e7f40902419a1a8bb8c49ccc28e18"
+      },
+      {
+        "path": "src/ajustes_ux_tela.inc",
+        "blob": "5dd6d445869287b687184bd672514d076bb6f4b6"
+      },
+      {
+        "path": "src/app.c",
+        "blob": "1ab63ba46a02b68ea0671990db5316d0911fd2bc"
+      },
+      {
+        "path": "src/fontefalha.c",
+        "blob": "50e65e035a23d3e033b817dfd9ec6e61c3d19a9b"
+      },
+      {
+        "path": "src/fontefalha.h",
+        "blob": "b8315e49e941b275e68d5a6ab623b9b54363a3ad"
+      },
+      {
+        "path": "src/fontefiltro.c",
+        "blob": "27c54438263ae82e1d3e8a594414f62c2cafe4ed"
+      },
+      {
+        "path": "src/fontefiltro.h",
+        "blob": "0bd751a4af3732a9063c8a5e0894357cea75be00"
+      },
+      {
+        "path": "src/idioma_bg.h",
+        "blob": "4cb2c4f710b68f65cd5ccab32a32d78fccfa5789"
+      },
+      {
+        "path": "src/idioma_bs.h",
+        "blob": "b966c0af4a57bcf4cb54f402fbb713e7fcac3460"
+      },
+      {
+        "path": "src/idioma_cs.h",
+        "blob": "df834d7b68240075063bc226164f4260cc82315d"
+      },
+      {
+        "path": "src/idioma_da.h",
+        "blob": "528c56fb7f92bf0720de6a6996bfc09d1349ed1c"
+      },
+      {
+        "path": "src/idioma_de.h",
+        "blob": "45502eb1cb45df0f99f2c7dd924ac20ee2695fb6"
+      },
+      {
+        "path": "src/idioma_el.h",
+        "blob": "460f3db4c78fec5bbb5c425a0d6a0e5de4fb1203"
+      },
+      {
+        "path": "src/idioma_es.h",
+        "blob": "e472838ab6168573afa21e9b0f81123d6fa592e7"
+      },
+      {
+        "path": "src/idioma_fr.h",
+        "blob": "931cd062efaffd625ca363fc48b8bd03ef9293d9"
+      },
+      {
+        "path": "src/idioma_hu.h",
+        "blob": "e810afcf0001511039c6973a8d6191bc0736efd1"
+      },
+      {
+        "path": "src/idioma_id.h",
+        "blob": "664668b51820cdbf78d00a306fd822d3654d5841"
+      },
+      {
+        "path": "src/idioma_it.h",
+        "blob": "92131b49a0843274d53767dde9a36e4860010539"
+      },
+      {
+        "path": "src/idioma_ja.h",
+        "blob": "fb3f13808976de3b89fed7e93eee12be4bf8739b"
+      },
+      {
+        "path": "src/idioma_lt.h",
+        "blob": "9d42aca0fec1c4c7370500b442623a0f683afa20"
+      },
+      {
+        "path": "src/idioma_nl.h",
+        "blob": "80dc1da6f943d91bf9bee4796708bd8d368b081c"
+      },
+      {
+        "path": "src/idioma_no.h",
+        "blob": "a3f12f4d5379d73d8a4bde819ed547c8b4e05366"
+      },
+      {
+        "path": "src/idioma_pl.h",
+        "blob": "19741d000541196ab8d04dc35195708d4baa83b9"
+      },
+      {
+        "path": "src/idioma_ptpt.h",
+        "blob": "51054b688db5c8557fcd7946525e2e01b9f7bd80"
+      },
+      {
+        "path": "src/idioma_ro.h",
+        "blob": "f03ded8a2d0533da0df40243d22ba77b706ad329"
+      },
+      {
+        "path": "src/idioma_ru.h",
+        "blob": "f7856376b836e280ffc58d44990328928905b280"
+      },
+      {
+        "path": "src/idioma_sk.h",
+        "blob": "9cb1615bcad02c4ca8c5d13b9bae92a50a232e6f"
+      },
+      {
+        "path": "src/idioma_sl.h",
+        "blob": "430f1c03d8854d356c22c4af1189b59dfc1c3d82"
+      },
+      {
+        "path": "src/idioma_sr.h",
+        "blob": "84263638a7a3789d66aa36c3d2f42417eebc7d75"
+      },
+      {
+        "path": "src/idioma_sv.h",
+        "blob": "a06c003c327740d2c9ecb191cc6761d132f28963"
+      },
+      {
+        "path": "src/idioma_tab.h",
+        "blob": "9dc2cfc25030421bbb66953de10344b92c5cdbd2"
+      },
+      {
+        "path": "src/idioma_tr.h",
+        "blob": "764dcc85d97ce1920fe9f41516fc870221ae8709"
+      },
+      {
+        "path": "src/idioma_uk.h",
+        "blob": "6b688f8af5000601a3940a43f98d5fbb16d4e5c9"
+      },
+      {
+        "path": "src/idioma_vi.h",
+        "blob": "641d2c5ec6274fa818a8d4399abf04a4ec2c2b54"
+      },
+      {
+        "path": "src/idioma_zhcn.h",
+        "blob": "eeeb7efaf7dfb7a621de63c9b6956bc03e969ee7"
+      },
+      {
+        "path": "src/idioma_zhtw.h",
+        "blob": "c0778f0cdaca309901499f2f34c0edf1a936bfff"
+      },
+      {
+        "path": "src/stream_parse.c",
+        "blob": "d60280ec6ca4c574df85d01fad8496bdbb61d7ac"
+      },
+      {
+        "path": "src/streams.c",
+        "blob": "d6daad6e7619e3aee4816c2cc9cedce294b63204"
+      },
+      {
+        "path": "src/streams.h",
+        "blob": "e0104bf5572457b44fd758cf7fb502a6c967d3d5"
+      },
+      {
+        "path": "src/teclado.c",
+        "blob": "7be42af089a700aa90f8b7671b7e957c8703ba05"
+      },
+      {
+        "path": "src/teclado.h",
+        "blob": "2954daa350e035010fce1f502aa795cc39e1edc4"
+      }
+    ],
+    "reviewed_test_paths": [],
+    "exact_diff_paths": [
+      "src/ajustes.c",
+      "src/ajustes_ux_dados.inc",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_tela.inc",
+      "src/app.c",
+      "src/fontefalha.c",
+      "src/fontefalha.h",
+      "src/fontefiltro.c",
+      "src/fontefiltro.h",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/stream_parse.c",
+      "src/streams.c",
+      "src/streams.h",
+      "src/teclado.c",
+      "src/teclado.h"
+    ]
+  },
+  "536": {
+    "pr": 536,
+    "head": "75ae817afee0a0ff112f60c9a40635ea6cb1a88a",
+    "tree": "bef91da622f9599cfe6a98024c945f7c93055118",
+    "base": "10e3d5803a9b9dd5c36775aab298ab0534fc982e",
+    "base_tree": "965240d1a5b3fa9a5339a8074b18a15c80cc7c3b",
+    "parents": [
+      "10e3d5803a9b9dd5c36775aab298ab0534fc982e"
+    ],
+    "old_head": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+    "paths": [
+      {
+        "path": "src/ajustes.c",
+        "blob": "207ed2a8426a8e54f05b284da125aded39800855",
+        "sha256": "5aec8dc31a3361120fc47ebe68379136269beb3c11e4b5abcfd1318eb8be1063"
+      },
+      {
+        "path": "src/ajustes.h",
+        "blob": "d3bd9d813e6ee356272ce9581998db0e02cc0e97"
+      },
+      {
+        "path": "src/ajustes_ux_dados.inc",
+        "blob": "2f2becebe8285d2955ba5d724e4518441e38297a"
+      },
+      {
+        "path": "src/ajustes_ux_desenho.inc",
+        "blob": "00cd01f7d3f2abc9533cff2b87d780645ff32e99"
+      },
+      {
+        "path": "src/ajustes_ux_padrao.inc",
+        "blob": "00cf7aa6c0e7e691a8eda4b38d7fa38c48ccf059",
+        "sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4"
+      },
+      {
+        "path": "src/ajustes_ux_secoes.inc",
+        "blob": "b9634cb3adc96e264ff6aa926ca98b8c3f3a1111"
+      },
+      {
+        "path": "src/ajustes_ux_tela.inc",
+        "blob": "d910f8f548afeafdf3a1994a544acfdaea607b40"
+      },
+      {
+        "path": "src/ajustes_ux_visual.inc",
+        "blob": "c0c979caa3fda23f4835f773061ab2a76bf9dec8"
+      },
+      {
+        "path": "src/app.c",
+        "blob": "c535dca24d786dc9b04d04612bc2a8caa27b2779"
+      },
+      {
+        "path": "src/assrender.c",
+        "blob": "adcf16ef318b3d3826bb97d97c92192866d673f8"
+      },
+      {
+        "path": "src/faixas.c",
+        "blob": "72406aada0d802fd45332861eadfbfa6849414f3"
+      },
+      {
+        "path": "src/idioma_bg.h",
+        "blob": "9ceb7f672bd1a93e315f9faf20fa78d08c669f9d"
+      },
+      {
+        "path": "src/idioma_bs.h",
+        "blob": "0eef2214709d0e4638892ac5c7d181753fb68d1a"
+      },
+      {
+        "path": "src/idioma_cs.h",
+        "blob": "ad76e10fae91f0d8cff6cb959937d872b3b7a62a"
+      },
+      {
+        "path": "src/idioma_da.h",
+        "blob": "d55f9ea4d27289943cd7ffd07076af1d8693759d"
+      },
+      {
+        "path": "src/idioma_de.h",
+        "blob": "1c4fd4864221e0c005d0416e0acb3412d9430eb1"
+      },
+      {
+        "path": "src/idioma_el.h",
+        "blob": "f95a4096f3808e5b8e6fc0eba113b350006052dc"
+      },
+      {
+        "path": "src/idioma_es.h",
+        "blob": "11fd27c9f03dc270338009ed0dfb02f5f7ed8711"
+      },
+      {
+        "path": "src/idioma_fr.h",
+        "blob": "ca0913f146ee4c5032fbb3817ed8e3f50384b03d"
+      },
+      {
+        "path": "src/idioma_hu.h",
+        "blob": "0bf60bacc5d1b7773fb70ec4c01a001241fcfff0"
+      },
+      {
+        "path": "src/idioma_id.h",
+        "blob": "c68405bb053ea53ccec7d2dc3e7e3e84c9e87054"
+      },
+      {
+        "path": "src/idioma_it.h",
+        "blob": "df15c4ef007354a0866c8692223af7ae8594c02c"
+      },
+      {
+        "path": "src/idioma_ja.h",
+        "blob": "5ebaecd097f8be9b2fb7363ec390a6e14e520427"
+      },
+      {
+        "path": "src/idioma_lt.h",
+        "blob": "16f5f61ae825fd5e95b0f2cf5e66f2048b3a537a"
+      },
+      {
+        "path": "src/idioma_nl.h",
+        "blob": "33db15de32104c7ce6c37ecb0b625c6ce234d492"
+      },
+      {
+        "path": "src/idioma_no.h",
+        "blob": "1973410efa36c7189e0ddfaa17e4bcb2c57cbd21"
+      },
+      {
+        "path": "src/idioma_pl.h",
+        "blob": "14e131264785ce6c427879fd320310d6679f0ad1"
+      },
+      {
+        "path": "src/idioma_ptpt.h",
+        "blob": "116f9ee0f46b7cebba258b8e2698dbd7f46c7b08"
+      },
+      {
+        "path": "src/idioma_ro.h",
+        "blob": "aff6c21e24997d69c63303c88cbba76d8024dd2c"
+      },
+      {
+        "path": "src/idioma_ru.h",
+        "blob": "ffda092bb64ddc291911bed76707d7391c44b3f4"
+      },
+      {
+        "path": "src/idioma_sk.h",
+        "blob": "7835a1bc5ad481002366ccdc467fa4e4c5716196"
+      },
+      {
+        "path": "src/idioma_sl.h",
+        "blob": "1b66b81e0ee4b981d7fbb59af79a2500038df258"
+      },
+      {
+        "path": "src/idioma_sr.h",
+        "blob": "bf02b18aea0228fbfec93cb473ad4a44c5139f37"
+      },
+      {
+        "path": "src/idioma_sv.h",
+        "blob": "4c3f564379433f874566be81ca8a3a67cf25c166"
+      },
+      {
+        "path": "src/idioma_tab.h",
+        "blob": "ecfdcfeb96df437ab5eee3f4ce02ccae9859ddb2"
+      },
+      {
+        "path": "src/idioma_tr.h",
+        "blob": "4049525adf715620efbb51766f57502c6e177aba"
+      },
+      {
+        "path": "src/idioma_uk.h",
+        "blob": "4cd75149b338a82e4cc30f019f65da15c05c2959"
+      },
+      {
+        "path": "src/idioma_vi.h",
+        "blob": "6f709a1dfb4f95a0e19a2072d8eed730c4035c98"
+      },
+      {
+        "path": "src/idioma_zhcn.h",
+        "blob": "76383298c84470709c141d2c954e205284049a5d"
+      },
+      {
+        "path": "src/idioma_zhtw.h",
+        "blob": "8e3f8c3d42e9dfc4a54d23086c59646bf1c44d16"
+      },
+      {
+        "path": "src/legenda2.c",
+        "blob": "85938a334c073dc4ed4cb5b309d11b5a814b2a66"
+      },
+      {
+        "path": "src/legenda2.h",
+        "blob": "27f6a112c83720db5f63c8b65c27b0cf753803e9"
+      },
+      {
+        "path": "src/legendasui.c",
+        "blob": "0e7348bdb3ab10f293e38572a43db48632713365"
+      },
+      {
+        "path": "src/plainass.h",
+        "blob": "14bce32903d0dfbfa1a7ab86dfc7727349b22ca9"
+      },
+      {
+        "path": "src/player.c",
+        "blob": "492ed7418c4dcdc31e64df456a12bced52c36989"
+      },
+      {
+        "path": "src/player.h",
+        "blob": "9e81b8d9caee45daf1b93085945c67968aa4d4e9"
+      },
+      {
+        "path": "src/video.h",
+        "blob": "5708f7db315141df9cfb7b15b52b6c9225bee0cb"
+      }
+    ],
+    "reviewed_test_paths": [],
+    "exact_diff_paths": [
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_dados.inc",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_secoes.inc",
+      "src/ajustes_ux_tela.inc",
+      "src/ajustes_ux_visual.inc",
+      "src/app.c",
+      "src/assrender.c",
+      "src/faixas.c",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/legenda2.c",
+      "src/legenda2.h",
+      "src/legendasui.c",
+      "src/plainass.h",
+      "src/player.c",
+      "src/player.h",
+      "src/video.h"
+    ]
+  }
+}
