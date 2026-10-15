@@ -1,0 +1,133 @@
+{
+  "format": 1,
+  "approved": true,
+  "root_reviewed": true,
+  "authority": {
+    "approved_by": "/root",
+    "channel": "Explicit parent task message",
+    "scope": "Root authorized exact source and CI recipe; this receipt records that approval without executing tests, CI or publication",
+    "recorded_utc": "2026-10-15T17:58:55.812533+00:00"
+  },
+  "sources": {
+    "product": {
+      "commit": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "tree": "37b0f455b7acef7dc88c132ef3fc8bc84f9ed0f2",
+      "parent": "77051883c3fa4798d032d568975d2aaec618c3ab",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "999924f7a70a17b8f0eb4d5a24ea5a7b5099ec36d4770de4055088d6ed1e35ba",
+      "delta_patch_sha256": "509b3c3b6cef92d29b2a9fcf5330c1714fe04385d252bf986768862e707f77ec"
+    },
+    "test": {
+      "commit": "1ea3cc8f36d6cb0160bfacf96c61793c30d930e4",
+      "tree": "04c08c96a033edb280c6e1ab84e97c65eb61b2ad",
+      "parent": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "cfbf7678e605acd4384a36c27d1095ad5e0a7c6c7d294f3b879c9d8d6cb8b44e",
+      "delta_patch_sha256": "b24a99b9d56f5aeebd35a48eb649369b4feea11886cff71425f96c1d6ac78886"
+    }
+  },
+  "composition_manifest_sha256": "7ed04e6581916857082b7da532f2f8ace87cda953152468f0b8c20fe5008cf0e",
+  "accepted_product_base": "1f14099b82222953a7a801205203847ff914b02d",
+  "accepted_test_base": "86fc15f1fb48f4d425923b040805db0e2dbd72f5",
+  "included_product_layers": {
+    "subtitle_parity": "77051883c3fa4798d032d568975d2aaec618c3ab",
+    "late_addon_row": "9e9d79805cc670e5a523c1d03aa9b11b06570165",
+    "long_artwork_registry": "eeabb9552cc5bb6cbf0b9403b57b9b420612e37e"
+  },
+  "product_src_only_delta_paths": [
+    "src/ajustes.c",
+    "src/ajustes.h",
+    "src/ajustes_ux_dados.inc",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_padrao.inc",
+    "src/ajustes_ux_secoes.inc",
+    "src/ajustes_ux_tela.inc",
+    "src/ajustes_ux_visual.inc",
+    "src/app.c",
+    "src/artereserva.c",
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h",
+    "src/legenda2.c",
+    "src/legenda2.h",
+    "src/legendasui.c",
+    "src/player.c",
+    "src/player.h",
+    "src/vertudo.c"
+  ],
+  "product_src_only_delta_count": 45,
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "files": 11,
+    "added_removed_lines_identical_after_identity_normalization": true,
+    "identity_only": {
+      "old_code": 20022,
+      "code": 20023,
+      "old_name": "2.0.22-test-logs12",
+      "name": "2.0.23-test-logs13"
+    }
+  },
+  "same_package_and_certificate": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20023,
+    "version_name": "2.0.23-test-logs13",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "private_overlay_existing_hunks_unchanged_except_identity": true,
+  "local_preflight": {
+    "path": "final-affected-preflight.json",
+    "sha256": "98560837826cc1f2af3f2aa33f81caec78bfe752c1572cb7c87118f603e67951",
+    "producer_invocations": 56,
+    "scope": "Bounded local actual-source host contracts; does not replace fresh required CI SDK/app/APK gates"
+  },
+  "limitations": [
+    "Late-addon terminal row recovery and complete long artwork URL registry are bounded verified fixes; neither proves every random blank poster report resolved.",
+    "No later upstream d156 merge included."
+  ],
+  "source_bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "348af7cafff24cb905afc428d45d0a64c1c171769fe0407d50d2e5ff18e0761e",
+    "bytes": 1231189
+  },
+  "source_frozen": true,
+  "publication_or_release_approved": false
+}

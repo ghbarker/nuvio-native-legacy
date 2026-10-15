@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "approved": true,
+  "root_reviewed": true,
+  "authority": {
+    "approved_by": "/root",
+    "channel": "Explicit parent task message",
+    "scope": "Root authorized exact source and CI recipe; this receipt records that approval without executing tests, CI or publication",
+    "recorded_utc": "2026-10-15T17:58:55.812533+00:00"
+  },
+  "reviewed_draft_plan_sha256": "8b16d2a289cc3a61881e67ee721fc75c13d757a583c296c2606800916a7363bd",
+  "source_approval_sha256": "ad36152eae8abe448646da93c5307cbfefe89c2dd868ce671a31e91dff0078be",
+  "peer_review_sha256": "a9164692c94ac0f6c8c6762ec91fbe27dc6e00e084150886f82928e1919e0803",
+  "composition_manifest_sha256": "7ed04e6581916857082b7da532f2f8ace87cda953152468f0b8c20fe5008cf0e",
+  "sources": {
+    "product": {
+      "commit": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "tree": "37b0f455b7acef7dc88c132ef3fc8bc84f9ed0f2",
+      "parent": "77051883c3fa4798d032d568975d2aaec618c3ab",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "999924f7a70a17b8f0eb4d5a24ea5a7b5099ec36d4770de4055088d6ed1e35ba",
+      "delta_patch_sha256": "509b3c3b6cef92d29b2a9fcf5330c1714fe04385d252bf986768862e707f77ec"
+    },
+    "test": {
+      "commit": "1ea3cc8f36d6cb0160bfacf96c61793c30d930e4",
+      "tree": "04c08c96a033edb280c6e1ab84e97c65eb61b2ad",
+      "parent": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "cfbf7678e605acd4384a36c27d1095ad5e0a7c6c7d294f3b879c9d8d6cb8b44e",
+      "delta_patch_sha256": "b24a99b9d56f5aeebd35a48eb649369b4feea11886cff71425f96c1d6ac78886"
+    }
+  },
+  "compatible_identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20023,
+    "version_name": "2.0.23-test-logs13",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
+  },
+  "fresh_required_producers": [
+    "native",
+    "original-fontepref",
+    "original-fontepref_file",
+    "original-player_retido",
+    "android",
+    "jvm",
+    "feature-contracts"
+  ],
+  "required_aggregate": "all-gates",
+  "focused_feature_groups": 36,
+  "freshness": "All seven producers fresh on exact combined sources; no historical successful execution reused. Native complete TV/touch links, original three normal+ASan, fresh JVM47 and actual both-ABI standard/compatible APK signature/JNI/DEX/16KB checks remain mandatory.",
+  "reviewed_recipe_pins": {
+    "aggregate.py": "f263798e689244e7f71e89b8b0a515d52eb0e1f0baba582140dd1d25197da7b8",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "6bd508e0cf9f0f3fd29de78b03aa6fa4f872a7a50de495877b74db62aee8863d",
+    "jvm/manifest.json": "cd98046307c67d2ee015cd3618e2ccbaac197ceb61124e6eb2aaaf1e5f1a0da7",
+    "feature-contracts/manifest.json": "9b7c5b473cc54585318896905ac409d91238bea03ec0353db90dfaadc136025b",
+    "require_plan.py": "1bc05529250288c28bcc73f672944333d47ee1ee50b18b19efc322104c855c5d",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "63bc8ad50918b68b6a93f48a449d834c88c352ccacc794ee912ed2a26fa24e5b",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "6195de0618179abe058f7043170c06cd6b21704df9d190b1f2c19a5058753474"
+  },
+  "approved_metadata_finalization_only": [
+    "Set frozen/root_reviewed/ci_execution_permitted/source_composition_root_approved true",
+    "Close preparation-only/review-only status and clear pending approvals",
+    "Regenerate workflow literal and upload metadata/payload hashes"
+  ],
+  "executable_source_fixture_assertion_changes_authorized": false,
+  "ci_launch_owner": "/root",
+  "external_writes_by_preparer": false,
+  "publication_or_release_approved": false
+}

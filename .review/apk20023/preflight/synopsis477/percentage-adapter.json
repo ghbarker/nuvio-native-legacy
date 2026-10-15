@@ -1,0 +1,29 @@
+{
+  "origin_manifest_sha256": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6",
+  "owner_public_kit_unchanged": true,
+  "scope": "Logs12-only CLI dispatcher adds reader mode invoking the existing complete run.py with no mode flag. All C assertions, typography metrics, Settings migration vectors and typed boundaries remain byte-identical to the frozen percentage kit.",
+  "original_portable_sha256": "4674660b53b4b70f17ee27112e6b6a039b09c8ddb565e1f65db01b2b38ef11e3",
+  "adapted_portable_sha256": "cbf0c59d622da07e47214c4e4402d485f78a221ff5ebf8a5557f420c5053e6f7",
+  "root_approved_reader_mode": true,
+  "updated_semantics": {
+    "choices": [
+      100,
+      125,
+      150
+    ],
+    "point_style_slots": 17,
+    "legacy_three_mapping": [
+      0,
+      1,
+      2
+    ],
+    "unreleased_four_mapping": [
+      0,
+      1,
+      1,
+      2
+    ],
+    "new_key": "sinopsePercentualLocal",
+    "owner_updated_assertions_unchanged": true
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "public_PR_updates_or_new_PRs": false,
+  "upstream_rebase": false,
+  "backend_or_report_service_changes": false,
+  "unrelated_playback_filter_profile_changes": false,
+  "historical_CI_pass_reuse": false,
+  "scope": "Released Logs12 foundation plus frozen subtitle parity, four-line terminal row cursor recovery and bounded long artwork URL registry. Private diagnostics remain the accepted separate eleven-file overlay; identity changes only to 20023/Logs13. No later upstream d156 merge is included.",
+  "blank_random_posters_root_cause_claimed": false
+}

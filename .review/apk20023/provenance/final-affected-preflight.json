@@ -1,0 +1,68 @@
+{
+  "format": 1,
+  "passed": true,
+  "source_clean": true,
+  "sources": {
+    "product": {
+      "commit": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "tree": "37b0f455b7acef7dc88c132ef3fc8bc84f9ed0f2"
+    },
+    "test": {
+      "commit": "1ea3cc8f36d6cb0160bfacf96c61793c30d930e4",
+      "tree": "04c08c96a033edb280c6e1ab84e97c65eb61b2ad"
+    }
+  },
+  "composition_manifest_sha256": "7ed04e6581916857082b7da532f2f8ace87cda953152468f0b8c20fe5008cf0e",
+  "source_bundle_sha256": "348af7cafff24cb905afc428d45d0a64c1c171769fe0407d50d2e5ff18e0761e",
+  "producer_invocations": 56,
+  "records": [
+    {
+      "path": "review/affected-preflight/verified.json",
+      "sha256": "45ed2ec9b39a8b592e2ac51c587a77857cec23cee2721a14f1cefa9f0739eee2",
+      "scope": "28 exact combined-source affected producer invocations, actual assertion bodies and typed offline boundaries",
+      "producer_invocations": 28
+    },
+    {
+      "path": "review/player-app-product/preflight-result.json",
+      "sha256": "f903dd504da003a80a1c54f54346605af0351a9210ac154093b784dd6edce492",
+      "scope": "12 actual player/app/router/posplay/selector groups; typed host prerequisites, not a complete SDK build",
+      "producer_invocations": 12
+    },
+    {
+      "path": "review/synopsis-settings-product-normal/receipt.json",
+      "sha256": "802873ac7f24dc4675096dabb7cd16cf5669049c297cbd11b6bd801e59fca860",
+      "scope": "Unchanged existing synopsis Settings assertions with newly required genuine backend producer closure",
+      "producer_invocations": 1
+    },
+    {
+      "path": "review/synopsis-settings-product-asan/receipt.json",
+      "sha256": "f2ce0f685eb9d61d6ab82a835ce0deac4355c925de8d1b725f3edacd6845fb35",
+      "scope": "Unchanged existing synopsis Settings assertions with newly required genuine backend producer closure",
+      "producer_invocations": 1
+    },
+    {
+      "path": "review/player-app-test/preflight-result.json",
+      "sha256": "fd0a4162e9e512d3ec798bf2d24bc8afc4d5083986bae98cc0080ee3acd5910c",
+      "scope": "12 actual player/app/router/posplay/selector groups; typed host prerequisites, not a complete SDK build",
+      "producer_invocations": 12
+    },
+    {
+      "path": "review/synopsis-settings-test-normal/receipt.json",
+      "sha256": "1f1ab53e58c644eb245f8861ea3f64e88fcec1b76154b7d4ed99f7ca2269c802",
+      "scope": "Unchanged existing synopsis Settings assertions with newly required genuine backend producer closure",
+      "producer_invocations": 1
+    },
+    {
+      "path": "review/synopsis-settings-test-asan/receipt.json",
+      "sha256": "e15ce4d724138e28258cb473fd8c20e7fa39a14057b284c96fb066b113afc7ec",
+      "scope": "Unchanged existing synopsis Settings assertions with newly required genuine backend producer closure",
+      "producer_invocations": 1
+    }
+  ],
+  "additional_read_only_checks": {
+    "review/fixture-adaptations.json": "b56f784ff1ac2446f59169183afa1cbde06d169a313874fdd07f0b9e46a4c4a2",
+    "build-stage/android/static-preflight-receipt.json": "b7868b9a51eb29bd3501cbc25d0fa8410a7735df48674deddffa95f1b79220dc",
+    "review/regenerable-object-reclamation-final.json": "02e427563d38d18393005afa4eb9f0c0a128462a2df8de098a5eb7d2ac09f843"
+  },
+  "scope": "Completed bounded local host preflight only. Fresh complete macOS TV/touch links, original three normal+ASan suites, JVM47 and actual both-ABI Android APK verification remain required in CI. Existing 75 gesture, 36 reachability and all 15 async assertions are required fresh in the integration job; local async replay was bounded to the two newly added cases. Object reclamation retained all binaries, dependencies, logs and receipts."
+}

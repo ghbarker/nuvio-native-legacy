@@ -1,0 +1,85 @@
+{
+  "outcome": "passed",
+  "source_commit": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
+  "source_tree": "611328388242aebb557a27842245d770fecfa4d6",
+  "source_parent": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+  "source_status": "clean",
+  "changed_files_from_parent": [
+    "src/vertudo.c"
+  ],
+  "source_vertudo_sha256": "4a791364d81852e81bdf254c7cc6de33123397f53f48042b4d2100eb5c348ccd",
+  "fixture_files_sha256": {
+    "sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "run.py": "797924797f8b2f7e497991d1d5d617162b41e4b76125211219a4bfa799faeb31",
+    "collection-taps.c": "ba04525731e9530895de038d741a02db74ecf9cf816dcd8e7aec7b06237922bc",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+  },
+  "inherited_approved_75_assertions_unchanged": true,
+  "inherited_approved_75_files_sha256": {
+    "collection-taps.c": "5ec3d9293dabfa30d71829e8f5f08cd790a9a1b50d9fe9250a7470bf7bd52959",
+    "run.py": "d9712196b426e6af84f3fac0daba3376b1f26b89e76633c30ff887b0885008ae",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+  },
+  "inherited_approved_75_freeze_sha256": "2e39de51263d6a8539058bee37e41a02e2c96460319d0d2ff3aae7e80b31eea5",
+  "focused_cases": 15,
+  "records": [
+    {
+      "variant": "baseline-red",
+      "passed_cases": 6,
+      "total_cases": 13,
+      "receipt": "/workspace/review/issue362-async-rows-scroll-20261015/peer/baseline-red/receipt.json",
+      "receipt_sha256": "838e3b4585aa95717bda7409f68d8e1b2a8fc754b1c54a1bb9c18706ae05ff90",
+      "original_probe_output": "/tmp/issue362-async-rows-peer-build-baseline-v3",
+      "binary_sha256": "48ab989c6e2fa9dd2657b187b408597ccf777c1e2288ba9f6612e6dcaaffdc4d",
+      "source_commit": "5aafef086c4f9df2ec7c0867b0eb3f3ffcd3c070",
+      "source_tree": "444c1bb58092e0aed08cb850f3eefa3fa20e203a",
+      "failed_cases": [
+        "v7-o0-z0-r0-late-y",
+        "v7-o0-z0-r0-late-x",
+        "v7-o0-z0-r0-late-xy",
+        "v7-o0-z0-r0-active-y",
+        "v7-o0-z0-r0-active-x",
+        "v7-o0-z0-r0-regroup-xy",
+        "v7-o0-z0-r0-regroup-active-x"
+      ],
+      "abort_traps_fired": false
+    },
+    {
+      "variant": "candidate-normal",
+      "passed_cases": 13,
+      "total_cases": 13,
+      "receipt": "/workspace/review/issue362-async-rows-scroll-20261015/peer/candidate-normal/receipt.json",
+      "receipt_sha256": "43aeb9f8d0f6dc8106c48154e603524c708b063ed2d2e01c33b5818ea02b6fd0",
+      "original_probe_output": "/tmp/issue362-async-rows-peer-build-candidate-v3",
+      "binary_sha256": "a58a8652915f7cdd1462ff7549602a2786382933a2b0dc581d53f8f655992523",
+      "source_commit": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
+      "source_tree": "611328388242aebb557a27842245d770fecfa4d6",
+      "failed_cases": [],
+      "abort_traps_fired": false
+    },
+    {
+      "variant": "candidate-asan",
+      "passed_cases": 13,
+      "total_cases": 13,
+      "receipt": "/workspace/review/issue362-async-rows-scroll-20261015/peer/candidate-asan/receipt.json",
+      "receipt_sha256": "1d1df5e2b063a45c4aeaebafb6d7a42faeba4df90dca4bd8aa50ef7a7f469bf5",
+      "original_probe_output": "/tmp/issue362-async-rows-peer-build-candidate-asan-v3",
+      "binary_sha256": "2faaec76df5f09ab7daa6bec1fa3b0236d729e2ecabeab8ddeba667923ba4d33",
+      "source_commit": "c0f15be3eda525b7f682447bc1d5a1687e3552ec",
+      "source_tree": "611328388242aebb557a27842245d770fecfa4d6",
+      "failed_cases": [],
+      "abort_traps_fired": false
+    }
+  ],
+  "cli": "python3 run.py --source SOURCE --output FRESH_OUTPUT --cc cc [--private] [--sanitize]",
+  "scope": "Actual full collection drawing, production pointer events, full update handler, async source-row loader/grouping, title opening, profile epoch, local storage and watched producer; typed SDL/GPU/text/catalog boundaries. No product edits, network, private logs, or application build. Complete reachability is independently owned by agent497.",
+  "independent_review": "No blocker in the narrow split between full reset and in-place projection invalidation. Mobile viewport/free-row offsets persist; active scrolling advances to the new projection generation while immutable title callback generations remain stale. Single-catalog group positions follow group identity, and exact TV row-X projection zeroing is retained.",
+  "case_count": 15,
+  "approved_extension_origin": "/tmp/issue362-late-addon-recovery-20261015/validation-verified.json",
+  "approved_extension_sha256": "e4933ce9b42967ef8a0f00e77763a86af89c0a4d7480c4897ac151a5d1abbd27",
+  "historical_scroll_cases": 13,
+  "historical_evidence_note": "The source identity and records above retain the accepted original 13-case scroll proof as historical provenance only; no old execution is reused. Current fixture inputs include two approved late-addon cases, and all 15 must execute on each current combined source in CI."
+}

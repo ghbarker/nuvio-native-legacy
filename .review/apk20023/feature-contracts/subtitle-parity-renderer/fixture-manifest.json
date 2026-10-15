@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "source_neutral": true,
+  "inputs": {
+    "fixture/baseline-legendasui.c": "f2a2c1adffeeddf0da257b010ef698fa3bba844751a4b4d1ef0fa489df935738",
+    "fixture/delay-boundaries.c": "e254e0f858bf25e3286939f540f7d3dcf59d132023bfa81eeebffca4a37155a8",
+    "fixture/render-boundaries.c": "9cf7bb35a3ab52195725dfce1e4cb30810c4f2e8f8165c0554e2a1db73d3d75d",
+    "fixture/settings-companion.c": "b2430904fb9b5744d3a2aa15cbfb258a1b6d79952d0b4e759d349330741cff9b",
+    "run.py": "843798b92eabe0d0763cf6d686d17bcf111ca9084f699c3d197f1792f1761d88"
+  },
+  "scope": "Frozen existing owner assertion bodies with portable source/tool/output paths. New Settings producer separately tests real storage and new renderer fields."
+}

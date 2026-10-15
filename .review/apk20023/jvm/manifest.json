@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "status": "Final Logs13 source/recipe preparation; execution requires root approval",
+  "scope": "Fresh32 JVM helpers and15 real-Media3 API35 x86_64 contracts; no historical execution reuse or full-app/native/physical-device timing claim",
+  "execution_gate": {
+    "shared_helper": "../require_plan.py",
+    "requires": [
+      "frozen root-reviewed plan",
+      "explicit NUVIO_REVIEW_PLAN_SHA256 inherited from parent workflow",
+      "exact current test source proof",
+      "all pinned fd28 inherited review subtrees"
+    ]
+  },
+  "inherited_fixture_origin": "fd28b407990dfa01c57637521899442c78848e66",
+  "groups": [
+    {
+      "contracts": 32,
+      "kind": "fresh JVM",
+      "runner": ".review/logs8/kotlin/run.py",
+      "fixtures": "unchanged accepted helper/Android-boundary assertions",
+      "kotlin_compiler": "1.9.24 hash-pinned compilerJAR set",
+      "java": "Temurin21 actual executable/release/modules SHA256 and version recorded"
+    },
+    {
+      "contracts": 15,
+      "kind": "fresh isolated real-Media3 emulator",
+      "fixture_graph": ".review/logs8/runtime/fixture-graph",
+      "original_fixture_manifest_sha256": "77ebcbd7ed8a0d99106a7d99bea829a926d181a8ccf404cd354acc803e8b1599",
+      "original_assertions_byte_unchanged": true,
+      "obsolete_local_log_tests_excluded": 5,
+      "obsolete_TestLocalLogs_helper_not_staged": true,
+      "current_player_components": 10,
+      "emulator": "API35 x86_64 google_apis",
+      "media3": "1.8.0",
+      "AGP": "8.7.3",
+      "kotlin_plugin": "2.0.21",
+      "gradle": "8.9",
+      "jdk": "21",
+      "ndk": "27.2.12479018",
+      "cmake": "3.22.1"
+    }
+  ],
+  "current_runtime_evidence": [
+    "Java binary/release/modules hashes + sanitized version",
+    "actual resolved runtime/test/plugin/compiler artifact hashes via metadata-only Gradle init task",
+    "Gradle distribution JARs/tool binaries hashes",
+    "generated media hashes/probe APK hashes",
+    "both exact testcase XML classes and15successes/no skip",
+    "original9 startup observations complete",
+    "emulator fingerprint/API/ABI/system-image package hash"
+  ],
+  "phases": [
+    "helpers",
+    "prepare-media3",
+    "media3",
+    "verify"
+  ],
+  "job_fragment": "job-fragment.json",
+  "read_only_repository_permissions": true,
+  "source_editing": false,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "33a112cad9f2854cf9aef53721bb2ffa4fe896eb9bd6ead0e63b7458bf85b2e8"
+    },
+    {
+      "path": "dependencies.init.gradle",
+      "sha256": "f888e1c37403cf60eb9d73ca58efb468bf9d4b0965b1750719905cdab3a5879a"
+    },
+    {
+      "path": "job-fragment.json",
+      "sha256": "20a4180147ecbb0f803843951628ed86674d8b7d4c0d1e5f99a9bee17cc96210"
+    },
+    {
+      "path": "preflight.py",
+      "sha256": "81382be3965dac8d07621e53d2db1d153eac34caf52de175e559d69e4434d658"
+    },
+    {
+      "path": "run.py",
+      "sha256": "07a09ee32dd78f99160fa298b60ce35ecc079516ac0a49107e72b2862ddcecd5"
+    }
+  ],
+  "no_CI_build_release_backend_or_public_write_performed": true
+}

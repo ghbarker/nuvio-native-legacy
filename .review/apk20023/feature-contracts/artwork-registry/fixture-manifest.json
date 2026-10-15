@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "source_neutral": true,
+  "inputs": {
+    "fixture/original_artereserva.c": "5e8c87e84c0db25c007e32914d2eef94e5e85552417ebd8fbf889ac925bd40c6",
+    "fixture/registry_long_url.c": "ef1a55ed6dc7f7ca1ffc2190860dba043d77263eec6f3fd81e65c5922ac13adb",
+    "fixture/run.py": "8702fc16db041ccbbf91c2a8d4977d8f1fc915f1ee15ab04c9e156228fc4faf6",
+    "fixture/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "run.py": "da10d61eb801a638a8269d0ab99f211764e96668ef9670fd11641cab9fdf5f7c"
+  },
+  "scope": "Frozen existing owner assertion bodies with portable source/tool/output paths. New Settings producer separately tests real storage and new renderer fields."
+}

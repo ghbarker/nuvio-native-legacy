@@ -1,0 +1,14 @@
+{
+  "approval": "Root approved precise obsolete display assertion adapter; #499980aec owner independently confirmed.",
+  "original_sha256": "283bb6fdf90244649f20e15e40937885f0fbce9c38364f55253da05595518d37",
+  "adapted_sha256": "0cc641805b80a96dfda3bcb567b784bd96838e88a060affbcff975751bdb66d1",
+  "meaning": "Newer native-confirmed readiness wins over retained foraCache for display; operational flag, cacheNegado, negative writer, all native calls and provider budgets unchanged.",
+  "changes": [
+    {
+      "old": "expected && !s->foraCache",
+      "new": "expected && (!s->foraCache || s->cacheNativo)"
+    }
+  ],
+  "original_failed_groups": 8,
+  "retained_passed_groups": 24
+}

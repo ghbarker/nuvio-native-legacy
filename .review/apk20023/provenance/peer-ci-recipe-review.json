@@ -1,0 +1,60 @@
+{
+  "accepted_for_root_launch_review": true,
+  "blocking_findings": [],
+  "scope": "Bounded read-only CI contract/wiring review; no execution, source edits, API calls, CI launch or publication by reviewer. Root owns source composition and existing local56-group evidence.",
+  "plan_sha256": "8b16d2a289cc3a61881e67ee721fc75c13d757a583c296c2606800916a7363bd",
+  "sources": {
+    "product": {
+      "commit": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "tree": "37b0f455b7acef7dc88c132ef3fc8bc84f9ed0f2",
+      "parent": "77051883c3fa4798d032d568975d2aaec618c3ab",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "999924f7a70a17b8f0eb4d5a24ea5a7b5099ec36d4770de4055088d6ed1e35ba",
+      "delta_patch_sha256": "509b3c3b6cef92d29b2a9fcf5330c1714fe04385d252bf986768862e707f77ec"
+    },
+    "test": {
+      "commit": "1ea3cc8f36d6cb0160bfacf96c61793c30d930e4",
+      "tree": "04c08c96a033edb280c6e1ab84e97c65eb61b2ad",
+      "parent": "372129ef4e3a0202c4aee8e0b24a271780e2687e",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "cfbf7678e605acd4384a36c27d1095ad5e0a7c6c7d294f3b879c9d8d6cb8b44e",
+      "delta_patch_sha256": "b24a99b9d56f5aeebd35a48eb649369b4feea11886cff71425f96c1d6ac78886"
+    }
+  },
+  "reviewed_sha256": {
+    "plan.json": "8b16d2a289cc3a61881e67ee721fc75c13d757a583c296c2606800916a7363bd",
+    "apk20023-review.yml": "e9b99382d6655fb36f4217f60dfa2be0e24eb4ce85e73f2e68975dc6beec0bc7",
+    "aggregate.py": "f263798e689244e7f71e89b8b0a515d52eb0e1f0baba582140dd1d25197da7b8",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "native/reuse.py": "76ae678991139e486f8d5b22454d93c0c391c67a81ba197a968b3b3daa0bcc14",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "original3/cc_rpath.py": "bdcf2d60839e9445da53f70778aac662601af031745ca28b2dc3da2ed7c012b9",
+    "android/verify_apk.py": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b",
+    "feature-contracts/run.py": "63bc8ad50918b68b6a93f48a449d834c88c352ccacc794ee912ed2a26fa24e5b",
+    "feature-contracts/subtitle-outline/run.py": "bd49d678646176fe8ae2ead30a8e98d737892c545d5d2e863eca1b95bfd5ea8e",
+    "feature-contracts/subtitle-outline/fixture-provenance.json": "b9ee3be80d489ef993f87101d04f1b886997f27bce9335a769a5a9ad3ed486c9",
+    "feature-contracts/subtitle-parity-renderer/run.py": "843798b92eabe0d0763cf6d686d17bcf111ca9084f699c3d197f1792f1761d88"
+  },
+  "confirmed": [
+    "Seven fresh producers and always-run aggregate requiring every producer success; no release/PR writer",
+    "Both product/private source proofs verified before and after grouped producers; four native full links with same-job dependency/macro-guarded object reuse only",
+    "36 focused feature groups preserve old28 and add four parity/four artwork groups across both layers and sanitizer modes",
+    "Actual legacy475 fixture hashes are enforced; added real plrui producer/finite companion preserves accepted assertion files",
+    "Actual Android package/version/certificate, ARM32/ARM64 compile database, declared DEX/JNI and upstream16KB checks remain mandatory; private class/macro must be absent from product and present in test",
+    "Three original full-source scripts/C hashes and flags retained for normal+ASan; only proven rpath shim allowed",
+    "Fresh47 JVM/Media3 runtime evidence required; historical execution is explicitly forbidden",
+    "All actual actions/cache key sets contain <=10 keys"
+  ],
+  "cache_key_counts": [
+    {
+      "job": "jvm",
+      "keys": 4
+    }
+  ],
+  "read_limits": [
+    "Did not rerun any local or platform suite",
+    "Did not independently rederive all196 payload files or source composition; reviewed manifest pins and critical producer/aggregate entrypoints",
+    "Physical-device/GL/backend playback behavior remains outside these CI claims"
+  ],
+  "no_new_gates_or_edits": true
+}
