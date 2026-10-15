@@ -1,0 +1,25 @@
+{
+  "source": "Official public iqui27/nuvio-native-legacy v2.0.5 GitHub release APK",
+  "apk_url": "https://github.com/iqui27/nuvio-native-legacy/releases/download/v2.0.5/Nuvio-2.0.5-android.apk",
+  "github_release_digest": "sha256:633306db91eb84b6d81eb920fa0e292b619c76092eca99e2f1fdac85c7630451",
+  "sha256": "633306db91eb84b6d81eb920fa0e292b619c76092eca99e2f1fdac85c7630451",
+  "bytes": 63301633,
+  "documented_public_base": "https://nuvio-recomendacoes.henriquef29.workers.dev",
+  "readme_provenance": "https://github.com/iqui27/nuvio-native-legacy/blob/master/README.md#hisense-vidaa-experimental",
+  "registration_url": "https://nuvio-recomendacoes.henriquef29.workers.dev/v1/registro",
+  "service_requests_performed": false,
+  "native_checks": [
+    {
+      "entry": "lib/arm64-v8a/libmain.so",
+      "native_sha256": "a6de602c096b02ade119ec057d0f2547f7b8d38c984899ad49244f6a563c4caa",
+      "exact_documented_base_literal_present": true,
+      "report_url_format_present": true
+    },
+    {
+      "entry": "lib/armeabi-v7a/libmain.so",
+      "native_sha256": "ed9c5e7e1ed67990d4c7b204b0abe6573d6b0709ea4cf3eb085c1f951d72d6fe",
+      "exact_documented_base_literal_present": true,
+      "report_url_format_present": true
+    }
+  ]
+}
