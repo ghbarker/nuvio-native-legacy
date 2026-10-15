@@ -1,0 +1,53 @@
+{
+  "name": "Publish only the exact validated PR527 startup identity candidate",
+  "on": {
+    "push": {
+      "branches": [
+        "review/pr527-identity-source-publisher-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "write",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "pr527-identity-source-publication-${{ github.ref }}",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "publish-candidate": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 15,
+      "env": {
+        "IDENTITY_PUBLICATION_PLAN_SHA256": "b540ca85c2fc72749a32c2d2a1215c110ee3040bc8c7226d3b4c84a87d8682f8"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify original green run and all artifact bytes; replay original aggregate; publish only the new unchanged candidate ref",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 -B .review/pr527-identity-publisher/publish.py --output results"
+        },
+        {
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "if": "always()",
+          "with": {
+            "name": "pr527-identity-source-publication-${{ github.sha }}",
+            "path": "results/*.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

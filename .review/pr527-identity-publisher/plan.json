@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "feature": "validated-pr527-startup-identity-candidate-source-publication",
+  "repository": "ghbarker/nuvio-native-legacy",
+  "review_branch": "review/pr527-identity-source-publisher-20261015",
+  "candidate_ref": "refs/heads/candidate/pr527-startup-identity-16194b4-20261015",
+  "existing_pr_ref_read_only": "refs/heads/feat/collection-view-default-362-20261015",
+  "source_commit": "16194b499c273c9b1e602b8e158c92c34d6a9ef8",
+  "source_tree": "f067a2edeb775833dd74abf56f98cca0967d2c67",
+  "source_parent": "c67cea085816b24b77586a1c91726f619fbb6144",
+  "source_parent_tree": "1ca691996994f8167fb2ddba33f5ce9859176475",
+  "source_base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_manifest_sha256": "ccbe5a58d8ff73bbc632b49d0e12fa8b6dcd12f3a08d9bde644d083ae9ef7489",
+  "origin_run_id": 38792587124,
+  "origin_attempt": 1,
+  "origin_review_commit": "ab6c7643712fe6d96d3847245d76599eab597025",
+  "origin_review_tree": "70f6f1548081127b304234537231c795c0d6b6b1",
+  "origin_branch": "review/pr527-identity-20261015",
+  "origin_recipe": ".review/pr527-identity",
+  "origin_plan_sha256": "2aadeb98421d5ccba85cdf314a8fa112edc33452528e53fdaa680f6b6e5de178",
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "origin_evidence_final": true,
+  "publisher_sha256": "616e8af339e64f71d73411831401bc713257af9fb0dd9c13c51c8e1e2dabfda4",
+  "jobs": {
+    "fontepref": {
+      "id": 116620662698,
+      "name": "Original full-source fontepref normal + ASan/UBSan"
+    },
+    "player_retido": {
+      "id": 116620662818,
+      "name": "Original full-source player_retido normal + ASan/UBSan"
+    },
+    "android": {
+      "id": 116620662988,
+      "name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages"
+    },
+    "native": {
+      "id": 116620663243,
+      "name": "Fresh macOS TV/Mobile apps and collection normal + sanitizers"
+    },
+    "fontepref_file": {
+      "id": 116620663377,
+      "name": "Original full-source fontepref_file normal + ASan/UBSan"
+    },
+    "all_gates": {
+      "id": 116624076810,
+      "name": "Verify all exact-source successful producer proofs"
+    }
+  },
+  "artifacts": {
+    "native": {
+      "id": 12000628582,
+      "name": "pr527-native-ab6c7643712fe6d96d3847245d76599eab597025",
+      "size_in_bytes": 15048373,
+      "digest": "sha256:2dc5c631e7b26d5c10ef461949936bdaa5dcef7a62eb91c6f2760dbea4360696"
+    },
+    "fontepref": {
+      "id": 12001001308,
+      "name": "pr527-fontepref-ab6c7643712fe6d96d3847245d76599eab597025",
+      "size_in_bytes": 27336,
+      "digest": "sha256:ee8b56d1cccbe7606a36998b6c40bfe213ac61ceb8152663bc84b5827e106d0c"
+    },
+    "fontepref_file": {
+      "id": 12000614458,
+      "name": "pr527-fontepref_file-ab6c7643712fe6d96d3847245d76599eab597025",
+      "size_in_bytes": 25427,
+      "digest": "sha256:9180ea9b1a0ab9489c15047a7b1da72f6268784e8781d05c88e02a9354a6aeed"
+    },
+    "player_retido": {
+      "id": 12000428592,
+      "name": "pr527-player_retido-ab6c7643712fe6d96d3847245d76599eab597025",
+      "size_in_bytes": 20583,
+      "digest": "sha256:89a61c5d7d55f5ecb634612b9becb3c1b61664e77ef152c9184f96f4f1749690"
+    },
+    "android": {
+      "id": 12001205939,
+      "name": "pr527-android-ab6c7643712fe6d96d3847245d76599eab597025",
+      "size_in_bytes": 54138921,
+      "digest": "sha256:3dad5f418af521037cc0ae91e7b65e642d8e2659f662b8b1a52a689f143da20c"
+    },
+    "all_gates": {
+      "id": 12000389095,
+      "name": "pr527-all-gates-ab6c7643712fe6d96d3847245d76599eab597025",
+      "size_in_bytes": 2056,
+      "digest": "sha256:4f71e22e18e3e92c4b89a7f2cc35af9224b9d631218583f5e68c456dba3ca224"
+    }
+  },
+  "scope": "Publisher only. Verify exact successful original five producers and aggregate, rehash six immutable artifact archives and replay unchanged original aggregate with original review/run/attempt bindings. Reconstruct exact two-commit source using unchanged original materializer. Ordinary non-force absent-or-exact push to new candidate ref only. No SDK/test rerun, proof retag, existing PR branch update, PR or release creation."
+}
