@@ -1,0 +1,279 @@
+{
+  "name": "PR431 exact rebased SDK/runtime/sanitizer checks and guarded update",
+  "on": {
+    "push": {
+      "branches": [
+        "review/pr431-rebase-d156e65-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "pr431-exact-validation-${{ github.ref }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "PR431_PLAN_SHA": "e791670d36825113d847b6acb1ebf2192a844de5ca7f9ea3fc74f23ce842654a"
+  },
+  "jobs": {
+    "native": {
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify root-reviewed immutable source plan",
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path('.review/pr431-exact/plan.json')\nassert hashlib.sha256(p.read_bytes()).hexdigest()==os.environ['PR431_PLAN_SHA']\nassert json.loads(p.read_text())['frozen'] is True\nCHECK"
+        },
+        {
+          "name": "Materialize original standalone Git commit and verify unchanged tests",
+          "run": "python3 .review/pr431-exact/materialize.py --output source-pr431 --proof build/review/pr431-exact/source.json --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "name": "Install real macOS SDK libraries including proven SDL3 runtime path",
+          "run": "brew install sdl2 sdl2_image sdl2_ttf sdl3\n/usr/bin/cc --version"
+        },
+        {
+          "name": "Fresh complete TV and touch app compile/link",
+          "run": "python3 .review/pr431-exact/native.py --source source-pr431 --proof build/review/pr431-exact/source.json --output build/review/pr431-exact/native"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr431-exact-native-${{ github.sha }}",
+            "path": "build/review/pr431-exact/**/*.json\nbuild/review/pr431-exact/**/*.log\nbuild/review/pr431-exact/**/*.d\nbuild/review/pr431-exact/**/*.apk",
+            "if-no-files-found": "error",
+            "retention-days": 14,
+            "compression-level": 1
+          }
+        }
+      ]
+    },
+    "original3": {
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "suite": [
+            "fontepref",
+            "fontepref_file",
+            "player_retido"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify root-reviewed immutable source plan",
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path('.review/pr431-exact/plan.json')\nassert hashlib.sha256(p.read_bytes()).hexdigest()==os.environ['PR431_PLAN_SHA']\nassert json.loads(p.read_text())['frozen'] is True\nCHECK"
+        },
+        {
+          "name": "Materialize original standalone Git commit and verify unchanged tests",
+          "run": "python3 .review/pr431-exact/materialize.py --output source-pr431 --proof build/review/pr431-exact/source.json --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "name": "Cheap unchanged-script/source/rpath-wrapper preflight before SDK setup",
+          "run": "python3 .review/pr431-exact/original3/run.py --source source-pr431 --source-proof build/review/pr431-exact/source.json --suite ${{ matrix.suite }} --wrapper .review/pr431-exact/original3/cc_rpath.py --output build/review/pr431-exact/original-${{ matrix.suite }} --preflight-only"
+        },
+        {
+          "name": "Install real macOS SDK libraries including proven SDL3 runtime path",
+          "run": "brew install sdl2 sdl2_image sdl2_ttf sdl3\n/usr/bin/cc --version"
+        },
+        {
+          "name": "Execute unchanged full-source ASan/UBSan suite on exact standalone head",
+          "run": "python3 .review/pr431-exact/original3/run.py --source source-pr431 --source-proof build/review/pr431-exact/source.json --suite ${{ matrix.suite }} --wrapper .review/pr431-exact/original3/cc_rpath.py --output build/review/pr431-exact/original-${{ matrix.suite }}"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr431-exact-original-${{ matrix.suite }}-${{ github.sha }}",
+            "path": "build/review/pr431-exact/**/*.json\nbuild/review/pr431-exact/**/*.log\nbuild/review/pr431-exact/**/*.d\nbuild/review/pr431-exact/**/*.apk",
+            "if-no-files-found": "error",
+            "retention-days": 14,
+            "compression-level": 1
+          }
+        }
+      ]
+    },
+    "android": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 50,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify root-reviewed immutable source plan",
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path('.review/pr431-exact/plan.json')\nassert hashlib.sha256(p.read_bytes()).hexdigest()==os.environ['PR431_PLAN_SHA']\nassert json.loads(p.read_text())['frozen'] is True\nCHECK"
+        },
+        {
+          "name": "Materialize original standalone Git commit and verify unchanged tests",
+          "run": "python3 .review/pr431-exact/materialize.py --output source-pr431 --proof build/review/pr431-exact/source.json --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "name": "Cheap exact-source CPU Settings/TV-mode preflight before Android SDK setup",
+          "run": "python3 .review/pr431-exact/runtime.py --source source-pr431 --proof build/review/pr431-exact/source.json --output build/review/pr431-exact/runtime"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install actual Android/NDK build SDKs",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "name": "Prepare isolated core configuration and verified CI debug signer",
+          "env": {
+            "NUVIO_TOUCH_CORE_PROPERTIES": "${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}",
+            "NUVIO_TOUCH_DEBUG_KEYSTORE_B64": "${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}"
+          },
+          "run": "python3 .review/pr431-exact/prepare_env.py --output \"$RUNNER_TEMP/pr431-private\""
+        },
+        {
+          "uses": "actions/cache/restore@v4",
+          "id": "native-cache",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "pr431-native-v1-${{ runner.os }}-${{ hashFiles('source-pr431/tools/android/deps.sh','source-pr431/tools/android/ffmpeg-android.sh','source-pr431/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "logs8-native-v2-${{ runner.os }}-\nandroid-touch-native-v1-${{ runner.os }}-"
+          }
+        },
+        {
+          "uses": "actions/cache/restore@v4",
+          "id": "gradle-cache",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "pr431-gradle-v1-${{ runner.os }}-${{ hashFiles('source-pr431/android/**/*.gradle.kts','source-pr431/android/gradle/wrapper/gradle-wrapper.properties') }}",
+            "restore-keys": "logs8-gradle-v2-${{ runner.os }}-\nandroid-touch-gradle-${{ runner.os }}-"
+          }
+        },
+        {
+          "name": "Fresh standard app ARM32/ARM64 build plus DEX/JNI/16KB/source-restoration checks",
+          "run": "python3 .review/pr431-exact/android.py --source source-pr431 --proof build/review/pr431-exact/source.json --output build/review/pr431-exact/android"
+        },
+        {
+          "uses": "actions/cache/save@v4",
+          "if": "success() && steps.native-cache.outputs.cache-hit != 'true'",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "${{ steps.native-cache.outputs.cache-primary-key }}"
+          }
+        },
+        {
+          "uses": "actions/cache/save@v4",
+          "if": "success() && steps.gradle-cache.outputs.cache-hit != 'true'",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "${{ steps.gradle-cache.outputs.cache-primary-key }}"
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr431-exact-android-${{ github.sha }}",
+            "path": "build/review/pr431-exact/**/*.json\nbuild/review/pr431-exact/**/*.log\nbuild/review/pr431-exact/**/*.d\nbuild/review/pr431-exact/**/*.apk",
+            "if-no-files-found": "error",
+            "retention-days": 14,
+            "compression-level": 1
+          }
+        },
+        {
+          "name": "Remove private runner-only inputs",
+          "if": "always()",
+          "run": "python3 - <<'CLEAN'\nimport os,shutil\nfrom pathlib import Path\np=Path(os.environ[\"RUNNER_TEMP\"])/\"pr431-private\"\nif p.exists():shutil.rmtree(p)\nCLEAN"
+        }
+      ]
+    },
+    "publish-existing-pr431": {
+      "name": "Publish only the green exact-source existing PR431 update",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "needs": [
+        "native",
+        "original3",
+        "android"
+      ],
+      "permissions": {
+        "contents": "write",
+        "actions": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify root-reviewed immutable source plan",
+          "run": "python3 - <<'CHECK'\nimport hashlib,json,os\nfrom pathlib import Path\np=Path('.review/pr431-exact/plan.json')\nassert hashlib.sha256(p.read_bytes()).hexdigest()==os.environ['PR431_PLAN_SHA']\nassert json.loads(p.read_text())['frozen'] is True\nCHECK"
+        },
+        {
+          "name": "Materialize original standalone Git commit and verify unchanged tests",
+          "run": "python3 .review/pr431-exact/materialize.py --output source-pr431 --proof build/review/pr431-exact/source.json --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "pattern": "pr431-exact-*-${{ github.sha }}",
+            "path": "gate-evidence",
+            "merge-multiple": false
+          }
+        },
+        {
+          "name": "Verify every fresh exact-source receipt and strict branch lease before publishing",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/pr431-exact/publish.py --source source-pr431 --proof build/review/pr431-exact/source.json --evidence gate-evidence --output build/review/pr431-exact/publication-receipt.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr431-exact-publication-${{ github.sha }}",
+            "path": "build/review/pr431-exact/**/*.json\nbuild/review/pr431-exact/**/*.log\nbuild/review/pr431-exact/**/*.d\nbuild/review/pr431-exact/**/*.apk",
+            "if-no-files-found": "error",
+            "retention-days": 14,
+            "compression-level": 1
+          }
+        }
+      ]
+    }
+  }
+}

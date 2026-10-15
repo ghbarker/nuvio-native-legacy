@@ -1,0 +1,338 @@
+{
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "commit": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+  "tree": "44a8f49f17b1143f647709da52bc6d0a576fc321",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "16c1750bfa599ccb0eccd3451fd8c63b59e43312085b7ff55a293b2936a81e31"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+      "sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "sha256": "b96d291e75b03929dd1854ac223fe16e9d7a3ee238d2f8b8f50d39741d35d920"
+    },
+    {
+      "path": "docs/android/INTERFACE-MODES.md",
+      "sha256": "58ffadb94f231efc00a622f10cbb743039536fc8809e56638570eb4c6b32ec6b"
+    },
+    {
+      "path": "src/agendaui.c",
+      "sha256": "b4a28f67c71e80247e1b7f37717ac3667c021cb67a3761dcf7283872505cdf96"
+    },
+    {
+      "path": "src/ajustes.c",
+      "sha256": "7c7304f21aaa510b948b5ecee039f3bb43a83dcc210f22bd5cbf82f3fdf17252"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "95b74721b8799ee58514ca19a97d66e0b55a85281bb7814bae796c1b745fd261"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha256": "beb5b857d5daf6e32e927074212f0aca6b81ae35ec7374614c55672d772e53d4"
+    },
+    {
+      "path": "src/ajustes_ux_fileiras.inc",
+      "sha256": "2249ff6c66ed4b22bdb8ea2b2cfdc84cde2f3ff63883cad976e45ae7962bcb1e"
+    },
+    {
+      "path": "src/ajustes_ux_guia.inc",
+      "sha256": "d1b024b17dbcd9ae3d1d7765546bd8b9ae14824e13bd9ca9bca2bdbbd294d5eb"
+    },
+    {
+      "path": "src/ajustes_ux_ilha.inc",
+      "sha256": "8b8cd10a50f33d8861e3e6745d98beaaa3db57000e3013f825709c8cdcc13e87"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "87cc7d20eef02aafb9f1012acab3f7d8c848f66dd2b47b21bd74faec5c1fe959"
+    },
+    {
+      "path": "src/ajustes_ux_v2.inc",
+      "sha256": "8feb24a45c7d8eb02b20de1fb86953b0c4ecd622b6751dcaa0799a87c4a10361"
+    },
+    {
+      "path": "src/amigoperfil.c",
+      "sha256": "8cf33b5d5524387e48ce0f7910f09302c1b4cf4daa0781dbb23ce48ddfc993de"
+    },
+    {
+      "path": "src/amigosfil.c",
+      "sha256": "2f5d30501be8b890a55dc13b3b75774b9b55806d4a2a12b7b09ed891fb008ffe"
+    },
+    {
+      "path": "src/amigostitulo_ui.c",
+      "sha256": "e4d0cb514490cca6adfdbdffd3b392f4e2e2a6728ba9ff870db4f7ba492e222d"
+    },
+    {
+      "path": "src/android.c",
+      "sha256": "b7e16007ec379f398249515776d53126ed2952a35ff4c2ffffd1841073cc54e8"
+    },
+    {
+      "path": "src/android.h",
+      "sha256": "ff141279cba67dd8dbd1d0288e8661681d1ddc2df699c7a5d376759ad0dbfad2"
+    },
+    {
+      "path": "src/aovivoui.c",
+      "sha256": "a64e1195dc08522f3d361dc77a594209f2950a83aa54d5a33abe9906fb673ebb"
+    },
+    {
+      "path": "src/app.c",
+      "sha256": "39a7bdef93107dc062dc2c3c3ee4b5740f7b703be8f4aad2a4305f0acb7d996f"
+    },
+    {
+      "path": "src/atualizacao.c",
+      "sha256": "5a26a528ae908af939478f5354a7da62c8fe36598d0e34c27e0e6e91a8b2c6a9"
+    },
+    {
+      "path": "src/avisos.c",
+      "sha256": "7d445dd14bb4d5fe3e50e834937157667005cd38b6a151905eee26568f09c14b"
+    },
+    {
+      "path": "src/biblioteca.c",
+      "sha256": "c6536413f368dc08482bb13a6b66620235eb47a9d20c0a9452166ad55a597004"
+    },
+    {
+      "path": "src/busca.c",
+      "sha256": "6dd139420fc7c0013679b2a9ba046c2636bdc99b589866e527f9f3df60b19377"
+    },
+    {
+      "path": "src/central.c",
+      "sha256": "33c067f1fc944132c9457b5d519dc36bd1a794f7c615975784e3b9ff163e49cb"
+    },
+    {
+      "path": "src/ctxmenu.c",
+      "sha256": "233fe930663d9c1be813f0a370d6a765081ecee40d428cbc743bbacc25af330e"
+    },
+    {
+      "path": "src/detail.c",
+      "sha256": "8d40ade41ff1f0bc5cebc5c603fda6c03430ed5ef7eb6bbf643954570688ecaa"
+    },
+    {
+      "path": "src/diagnostico.c",
+      "sha256": "64d3ccc1cdd5564a47766e7010a30314385e56f9c4d748f1741f723430db94b0"
+    },
+    {
+      "path": "src/episodios.c",
+      "sha256": "86d5cdd98036bd51adbc313fd8ab335b35e1cc9b2e1f26ca31c8d3c522bdf542"
+    },
+    {
+      "path": "src/explorar.c",
+      "sha256": "bcceb49cb69f8c5db93c669fb2cbe125235208d632a9e676f184da274918bc0e"
+    },
+    {
+      "path": "src/faixas.c",
+      "sha256": "50b3cc4831c37d87cd6673800dae0067f650b1034f5a32292da7b9c9abfc5120"
+    },
+    {
+      "path": "src/guia.c",
+      "sha256": "8dcdec47c6b120e54522c6190720dd9f3f9f551f145f210fd6fe4b47a68aaab8"
+    },
+    {
+      "path": "src/home.c",
+      "sha256": "96198cdb61c13c23351a2a0b97d4b7ab69d0c46719dc5a888152505887845047"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "197aee7ad9b649502986368cabbee6b96736114bfe2b94d674f951c18cfd266e"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "c5a63c8c08404d9af822d672e4d37c7c878bfe2c396cb156963444f4829389a1"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "dff4d2778a5ed10e0b6baf47b09ff91c53347cef6d504490dc176f345483de45"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "732a95b156c5e9181d9080fbbcbdcacd0b41abdeeab1adcab85650a1d7cdd12c"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "a28047a0357a0be8aa530a8a1aa95aa10757fd2daf06df56dc723acff632986a"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "2771ecd5e4c21fbd1f2a30fd132dd8dcc244cb879591edd651146eefa7a95030"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "f671d3bb2f6f571a2897985bb28ec2408963d49a952b0333cf75772bb0713c0f"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "4148cd967fb9a27a31e1d46caa712da636bce2f08afa122fc0b8e5b21bb1f648"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "254b31352ed8aeea11a6737f0df9eb3d4d54d799852a345cc0d9ef88e480451d"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "86091d9878628bd1725b365a638d40df5124eadcb5d61bda72d0e699140bf851"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "411d600301126a7352743c9d8e81b3ac7963bde9298c24a218f4d5202b215d09"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "5e9c248ef34fad258f6fb7474fb1c632a9d7428d76cdfc310c2da3979ab052f7"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "865bc984c4f6914bee0ee39215cacb53181cdf09e16383adeb7059733a5b583b"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "7edc02790008b1b47e3aae2f9d84d5cb12301e0d32e23a1a735cc0168ea41ffb"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "4067158cf0d37f5f547f1450be3c7813f845057ec02910e3e06c5475fe2a291e"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "cd30e50c00e0de6d996b511e01cec967e1ec971d68423e8f978966f5dcc8af7e"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "98c12e8bf9ab0ddf442a85a09e2b34d7412093a45cdcd593b318cf4c6e0702aa"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "8ede4cd1b44c4751632f0c062d19f9e28d1463ad4765b36f9ae476146412b0bc"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "9c00395453bef3c32968eb4f9dc31e613b32bfd1dd4033ee4119669ba7f19818"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "a88abfad7c4fd257a6365aaa1084a59f3b525ab19da354c0d3c62efa656b3767"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "b29c1efa303e2d5b3ec8ce9940f9d7c04692876552d39b595162e89d19fdb99b"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "e60024746729c6a92f5f47b361405d430b0550614d74ee02cc30e3bd56f68067"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "225824ff5f679693321bddd3a042e3dcb39a4ef55c5387b616f2c4afcb6b4303"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "72eca1d444f256d5de360ce113bbbd40fe700da2e97b99a43f1c31ac58651d7b"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "acbd33b965e6a5644bb8656d676b2da154d17f3245e168cf1e5e6a200e696107"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "008a2a35b0b8dad4087b165940e1e99e3433d2582c9cbcd7fb4836252a604c06"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "9cd1126d3f7ea5d235cb8ce1fb8e631a96cfb6faf4e141e1a2a58befa80d55cd"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "52aa6a61d4e610ac79898e392e9512a27685570ecb93229d71686b986bfe79d3"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "6c909c50bae2c514f94c507b0a4b7e5559260c43314fcb3374d0e3f955c37a79"
+    },
+    {
+      "path": "src/layout.c",
+      "sha256": "07d26ad56ac0cbfea49ee30d9d8482b3368d1445bc65bb5a145ed08b917b80fb"
+    },
+    {
+      "path": "src/layout.h",
+      "sha256": "ccc6faa888a2af844535c93a854354a737f26927810fd7179437b701b12555cc"
+    },
+    {
+      "path": "src/legendasui.c",
+      "sha256": "df25d69def880074e56a574e3d3b54f09d77deb85e63fb6e5e26558cc6aa4e07"
+    },
+    {
+      "path": "src/livetvdiag.c",
+      "sha256": "b78dfd16710e2b98095c2d45223fa47616e8fe4ccc83f864145a5c68fb5cff0e"
+    },
+    {
+      "path": "src/menu.c",
+      "sha256": "7085cb29e0128ae1fa376574631e0aee7127ac1d08bc7ef4c3ab093db82a570f"
+    },
+    {
+      "path": "src/perfil.c",
+      "sha256": "501d9686198b354f4bc27701bfb3d55420879d04b77c546b8bb9c7266aabd855"
+    },
+    {
+      "path": "src/perfilsel.c",
+      "sha256": "dbe8d5e91be73e67d17211e9ab5de133576f7ccd89ec66ba4827dd12d0c38690"
+    },
+    {
+      "path": "src/pessoas.c",
+      "sha256": "8df9f956ce39bd208d15455ea1502f9b54c96e6ddcbb9e11acee2b1264d336f8"
+    },
+    {
+      "path": "src/ponteiro.c",
+      "sha256": "5e379adc860dd8ad4831ccf133a846a4ac7c266539078015d4ed89baea40c3b4"
+    },
+    {
+      "path": "src/posplay.c",
+      "sha256": "592c52c39cc5ac52068a6d7864f2d24eae3df34cd6c5f69de50667e2d899d4cd"
+    },
+    {
+      "path": "src/recenviar.c",
+      "sha256": "fe184aca7850ae034d060c06f5ddb521b53996c8768178dca50ddc30546a9d9e"
+    },
+    {
+      "path": "src/registro.c",
+      "sha256": "e8583449002c2b6428f4ebe4eff1c3839eed7c3dbf1acc8af2908a13819d0fc0"
+    },
+    {
+      "path": "src/registro_ilha.inc",
+      "sha256": "28019062f8f2ebeb423695e6f70e9573f47f1f438f871872968b66f89b7a89b6"
+    },
+    {
+      "path": "src/rolagemtoque.h",
+      "sha256": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e"
+    },
+    {
+      "path": "src/salvospainel.c",
+      "sha256": "2f4b4d0cc92b1b8391f4c679ac172117507f1098797a8316b659d92fa4aac618"
+    },
+    {
+      "path": "src/spotlight.c",
+      "sha256": "05bc0debb10b91c26a6599f8bdb57d88188960c64f894de2c3d52629594bf7f3"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "0c0ea8cfa07e2bd16691ae1595b9bc435d6d2bd3faf261b4c6bab5959735e669"
+    },
+    {
+      "path": "src/trocaarte.c",
+      "sha256": "0d4e272c220375e362ed5f665de4f80d836bc1f41d44104cfbcc341d9fd45349"
+    },
+    {
+      "path": "src/vertudo.c",
+      "sha256": "5a7ec1a124a9184fba010e8f40a631f990d981e62699a7b5de347f38d7a6e4e2"
+    },
+    {
+      "path": "tools/android/ffmpeg-android.sh",
+      "sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc"
+    }
+  ],
+  "tests_tree": "1bc31b2e8d93a5938f1970f716fc2961c9b390eb",
+  "tests_tree_unchanged": true,
+  "no_private_or_unrelated_feature_delta": true
+}

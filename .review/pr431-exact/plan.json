@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "frozen": true,
+  "launch_requires_root_review": true,
+  "scope": "Exact rebased standalone PR431 validation and success-only update of the existing branch; no new PR or APK release.",
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "d156e650eb01783713cb7812394f620b68be5895",
+    "branch": "master"
+  },
+  "source": {
+    "commit": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+    "tree": "44a8f49f17b1143f647709da52bc6d0a576fc321",
+    "manifest": "source-manifest.json",
+    "manifest_sha256": "0c0c45780d7a31138c3044c88daafc8d5aeb8fcae213e9351b1dfa75eec2890f"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "bytes": 696711,
+    "sha256": "870a7a2127845c2f8be4d3a325844319b2aba869002d67df275bedb3bbee0439"
+  },
+  "publication": {
+    "repository": "ghbarker/nuvio-native-legacy",
+    "branch": "feat/android-tv-mobile",
+    "kind": "reviewed-rebase",
+    "expected_old": "85aa72edd5f033b8ef21d97744df229983db79d4",
+    "exact_new": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+    "review_branch": "review/pr431-rebase-d156e65-20261015",
+    "required_base": "d156e650eb01783713cb7812394f620b68be5895",
+    "expected_product_commits": [
+      "3312ddc8163a0f6172f55f181718c29cdb4440bd",
+      "0a3845da7a85e86c48c272eaabf1ef78d20113b7",
+      "b6d1ac72ee7f650542a9e870de850ff5f394f638",
+      "4401da6706ec78950a8f82eb85ef30fd73a0f63d",
+      "7e99e534ef4114ee7cb54d805a9e4743b09b9be0",
+      "e130c8383e6b8d3b9c8668f24089315d5d420145"
+    ],
+    "require_upstream_unchanged": true
+  },
+  "ci_signing_certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+  "reuse_test_passes": false,
+  "required_groups": [
+    "native",
+    "android",
+    "runtime",
+    "original-fontepref",
+    "original-fontepref_file",
+    "original-player_retido"
+  ]
+}

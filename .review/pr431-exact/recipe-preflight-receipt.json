@@ -1,0 +1,24 @@
+{
+  "outcome": "local-recipe-preflight-passed",
+  "source_commit": "e130c8383e6b8d3b9c8668f24089315d5d420145",
+  "tree": "44a8f49f17b1143f647709da52bc6d0a576fc321",
+  "bundle_actual_materialization_verified": true,
+  "unchanged_original3_producer_preflights": 3,
+  "publisher_validation_scope": "Synthetic evidence and intercepted remote Git only; no actual SDK/build results are claimed by these validator unit tests.",
+  "publisher_checks": [
+    "complete synthetic evidence passes check-only; no remote requests",
+    "reject wrong source_commit",
+    "reject wrong tree",
+    "reject wrong review_commit",
+    "reject wrong manifest_sha256",
+    "reject missing runtime",
+    "reject missing player_retido",
+    "reject branch-moved without an unleased update",
+    "reject upstream-moved without an unleased update",
+    "reject lease-race without an unleased update",
+    "reviewed rebase accepts latest-base ancestry and exact old-head lease"
+  ],
+  "actual_remote_requests": 0,
+  "actual_external_writes": 0,
+  "full_sdk_builds_and_original_sanitizer_executions_pending": true
+}
