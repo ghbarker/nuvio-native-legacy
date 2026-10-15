@@ -1,0 +1,7 @@
+This stage runs all 47 contracts fresh: 32 isolated JVM helper contracts and 15 real-Media3 contracts in an API35 x86_64 emulator. It reuses no historical execution. The inherited fd28 fixture tree and both accepted Media3 assertion files stay byte-identical. The five obsolete local-log instrumentation tests and their old helper are excluded; the fresh 32-contract group tests the current helper separately.
+
+Every phase requires the root-approved plan hash, exact current test source proof and pinned inherited review trees through require_plan.py. The job fragment expects the parent workflow to supply NUVIO_REVIEW_PLAN_SHA256. It contains no publication or report-service action. Current Kotlin source is copied only to an isolated probe; original product/test source remains clean.
+
+Java21 executable, release and modules hashes plus sanitized version output are recorded. The fresh probe also records actual Gradle/plugin/compiler/runtime dependencies, tool binaries, generated media, APK hashes and emulator identity. Only original fixture boundary doubles are used. Fresh isolated emulator results do not establish full-app/native-player or physical-device startup timing. The separate complete Android and macOS builds remain mandatory.
+
+preflight.py validates only Python/Groovy recipe structure, accepted fixture hashes, current component inputs and job wiring. It runs no Java/Kotlin/Gradle, media generator, emulator, source suite or network request.

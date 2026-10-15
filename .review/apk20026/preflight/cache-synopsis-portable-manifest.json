@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "inputs": {
+    "cache499/fixture-compatibility.json": "0f05035d7249cd77b19e9198fda3e4d20e4847fff02449e9a1b269651f4e9c87",
+    "cache499/fixtures/caption.c": "c18ade791710dcdd17a09d3426435ad5aff09f0859959b3bfabd89e15a559384",
+    "cache499/fixtures/metadata.c": "60b56741b1fbb30a6ec195645ba65cd5528ff1ffb595ef05c6fbb7fb0ec940f9",
+    "cache499/fixtures/native.c": "0cc641805b80a96dfda3bcb567b784bd96838e88a060affbcff975751bdb66d1",
+    "cache499/fixtures/refresh.c": "0081ae5ca76963276d630c711a26c874ab49d4868531004ee072b1af86bf97f1",
+    "cache499/portable.py": "754c9c1e6943be8fc15be0a4b1e024c930c6f7a1a6c708e388cfb2a3dac3dced",
+    "cache499/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "cache499/sdk/SDL2/SDL.h": "0e9368c70c543886dfa2232bbb70a376def4bc6d99d76189e7e8694c26f126bd",
+    "synopsis477/close_refinement.c": "d9701f48c6c78fe52f09ea98c8a1d0ff4224885c964ffc97191fff2ba0a9ac00",
+    "synopsis477/percentage-adapter.json": "1b8d5c0862c9d490c321cc272fca04dadd8f485274f20e5eebcc682949e35b1e",
+    "synopsis477/percentage-origin.json": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6",
+    "synopsis477/portable.py": "cbf0c59d622da07e47214c4e4402d485f78a221ff5ebf8a5557f420c5053e6f7",
+    "synopsis477/preview_refinement.c": "7c4145100a72d403f14c9941811ac281b2ed9996e6d862fd7fb71383846b3a52",
+    "synopsis477/reader_probe.c": "8d170469b12251bccb50702507e4615d0059aad04fe6badffe74e8e429b70f4e",
+    "synopsis477/route_probe.c": "08a8613834b5f0214d0d2e13928617ef5b0517793aa65800fee31341204bfcaa",
+    "synopsis477/run.py": "d9cba456cba277817f6a14ee5038002d573ce3644b8a4cf4a2c3f2c1719dcdd8",
+    "synopsis477/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "synopsis477/sdk/SDL2/SDL.h": "67ba36101aeafd1b9cf7215dd8d9598201d60a41815a963ec2d77a63b0dd5248",
+    "synopsis477/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "synopsis477/settings/player-prefs-companion.c": "cb8621dfd717dacb9f52cc1c49e997418fb0ffd7644244e6d62c8408be676b5f",
+    "synopsis477/settings/run.py": "6c46cb55e8e44f38ec534e5c9186b4ccfc064a4e444b0a900cd13066615af304",
+    "synopsis477/settings/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "synopsis477/settings/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "synopsis477/settings/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "synopsis477/settings/settings.c": "c113affc99e8a5e5128de290db802c7c8673b86e89b3da87ea16d983d2af15e9"
+  },
+  "commands": [
+    "python3 cache499/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private]",
+    "python3 synopsis477/portable.py --source SOURCE --output OUTPUT --cc CC --platform tv|mobile [--sanitize] [--private] [--mode reader|close|preview|route|settings|all]"
+  ],
+  "compiler_boundary": "Linux host full actual source contract runs passed. Darwin flag selection included; actual Mac compile/run must happen before long app links. No host result is represented as a macOS pass.",
+  "dependency": "Python fontTools for shipped Inter hmtx; reader fonts bound to source. Typed SDL declarations and draw capture only, not actual SDL/OpenGL frames.",
+  "fixture_compatibility": "Root approved older native icon display expectation update only; negative writer/native provenance test135cases separately passes. Settings removes stale enum-adjacency requirement in integrated union, keeps exact persisted key/default/choice count and every Confirm/Cancel/reload assertion. Adds correctly typed empty offline provider/account boundaries newly reached by queued493 storage.",
+  "historical_source_origin": {
+    "product": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+    "test": "efff065b63bb1234718ca20999265612bacb50b4"
+  },
+  "source_product": null,
+  "source_test": null,
+  "prior_results_reused": false,
+  "percentage_adapter": "synopsis477/percentage-adapter.json",
+  "percentage_fixture_origin_sha256": "a0c46603265483c687b08e947bb1fa3fa88a0ab21db494edf64474ae5764d8d6"
+}

@@ -1,0 +1,53 @@
+{
+  "approved": true,
+  "scope": "Source only; no CI or publication yet. Multi-source opened Showcase collection requests only.",
+  "product": {
+    "source": "/dev/shm/collection-parallel-20261015/source",
+    "product_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+    "product_tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+    "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+    "source_sha256": {
+      "src/descoberta.c": "8acd6a0f86340bbf68d2de6bb26898a6514c269f77639a819e0befa18cf09c9d",
+      "src/descoberta.h": "934ff57bca3108c42c41005b6466715910d21db884366ce884036a571c2e902b",
+      "src/vertudo.c": "64fe95ec252f62a10fe7d477d5e4fd76ac686668b87e389bf90465121aa9b25e"
+    },
+    "original_tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+    "scope": "Only multi-source opened collection reader/scheduling. CW/Home/image workers unchanged. Source freeze only; CI/publication not yet approved."
+  },
+  "test": {
+    "test_source": "/dev/shm/collection-parallel-20261015/test",
+    "test_commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+    "test_tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+    "parent": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+    "overlay_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/posplay.c"
+    ],
+    "previous_private": "da4306458d29a5e4c5f1fb89a24f956c79fe4568",
+    "normalized_private_files_identical": true,
+    "original_tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+    "identity": {
+      "package": "space.nuvio.nativelegacy.touch",
+      "version_code": 20026,
+      "version_name": "2.0.26-test-logs16"
+    },
+    "scope": "Source freeze only; same accepted 11-file private overlay, version identity only changed. No CI or release yet."
+  },
+  "backend_proof": {
+    "path": "/dev/shm/collection-parallel-20261015/backend-validation/final-review.json",
+    "sha256": "66f2069c90513d4e2f704f63f6ebe2c7bcf1fcf582e18704301ab7517b41b59b",
+    "normal_cases": 39,
+    "asan_ubsan_cases": 39
+  },
+  "ui_peer_review": "startup_concurrency_audit independently approved exact 64fe95 source; root full diff reviewed with shrink/disabled fixes included. Final UI75/36/15/6 suites pending; no source changes intended.",
+  "pr527_remains_draft": true
+}

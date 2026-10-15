@@ -1,0 +1,64 @@
+{
+  "source_pin": null,
+  "files_sha256": {
+    "README.md": "1ce4a5188f15e8cb2d68299476e9545051f2da020ed59e1e13c91f8196c44aec",
+    "fixture-provenance.json": "4cc4f0d934440d43ca84eae4cbb4f17227925a8d87f4c9b837732a5814aa72bc",
+    "sdk-extra.h": "7fd0658da497e3a0ccc73ec9aedac6aff3fe95b1be81fd8f827a140af7299a7c",
+    "run.py": "bd49d678646176fe8ae2ead30a8e98d737892c545d5d2e863eca1b95bfd5ea8e",
+    "clock.c": "b762fd031fc0e399dd91d79a0a418ebcc35c3550991227d1213c137cdb057ba0",
+    "fixtures/grid_font_bounds.c": "b7c0f783be970199887cfe568c477dd3b898c57de40c5d76c5a9f396bbb5acfa",
+    "fixtures/ass_outline.c": "8505c92bdfe6a35b10120e72dd9d80e11368a427c4c6eac76701108927e20d33",
+    "fixtures/palette_bounds.c": "46a8fa23bb159f9e801e136b7da1d6e1bda66a3c23decfb235d3018647da8f39",
+    "fixtures/secondary_outline.c": "74284d02826923ee71c454eb9746fc4d366f716f9a58e99655236b5bcf440c13",
+    "fixtures/player_outline.c": "314b54f6831e4685962efeb372c9e0500de1a2ab903666069095a88e66f1802a",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "libass-reference/provenance.json": "78dbb15cc424da976ad0bfa2a89d09e3ce86b13f71ace11e38d26365760f54fc",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "libass-reference/ass/ass.h": "c322bb1f03dfe3a2bdbcd61002ff92684cd6f6ef593bc4a9dbca13f79f9c6ba2",
+    "libass-reference/ass/ass_types.h": "b2f06eaaba5d80b3a23fb08726f1152f12a0f583346ad0086a80ebbdb4c48cf8",
+    "plrui_grid_boundary.c": "fa5161a33058ed72b80f69d13a6f57344094052f1a498160330865991beb5cce"
+  },
+  "typed_sdk_origins": {
+    "sdk/vistonao.h": {
+      "original": "/workspace/review/runtime-syntax-sdk/vistonao.h",
+      "sha256": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9"
+    },
+    "sdk/GLES2/gl2.h": {
+      "original": "/workspace/review/runtime-syntax-sdk/GLES2/gl2.h",
+      "sha256": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+    },
+    "sdk/SDL2/SDL.h": {
+      "original": "/workspace/review/runtime-syntax-sdk/SDL2/SDL.h",
+      "sha256": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+    }
+  },
+  "assertion_policy": "Copied accepted assertion C is unchanged; only producer/portable link and typed SDK/clock adapters are new. No product source changes or CI launch.",
+  "output_policy": "Fresh output directory outside staged recipe; logs and receipts safe metadata only.",
+  "closure_adaptation": {
+    "scope": "Grid-font links actual plrui.c with four TU-local aliases preserving existing fixture definitions, and typed finite text/GPU boundaries. Assertion fixtures unchanged.",
+    "runner_sha256": "bd49d678646176fe8ae2ead30a8e98d737892c545d5d2e863eca1b95bfd5ea8e",
+    "companion_sha256": "fa5161a33058ed72b80f69d13a6f57344094052f1a498160330865991beb5cce",
+    "root_review_sha256": "92b9bbec427897a0216fed2804d1066cba984ca7367caa56d075b73694d2c8de"
+  },
+  "inputs": {
+    "README.md": "1ce4a5188f15e8cb2d68299476e9545051f2da020ed59e1e13c91f8196c44aec",
+    "clock.c": "b762fd031fc0e399dd91d79a0a418ebcc35c3550991227d1213c137cdb057ba0",
+    "fixture-provenance.json": "b9ee3be80d489ef993f87101d04f1b886997f27bce9335a769a5a9ad3ed486c9",
+    "fixtures/ass_outline.c": "8505c92bdfe6a35b10120e72dd9d80e11368a427c4c6eac76701108927e20d33",
+    "fixtures/grid_font_bounds.c": "b7c0f783be970199887cfe568c477dd3b898c57de40c5d76c5a9f396bbb5acfa",
+    "fixtures/palette_bounds.c": "46a8fa23bb159f9e801e136b7da1d6e1bda66a3c23decfb235d3018647da8f39",
+    "fixtures/player_outline.c": "314b54f6831e4685962efeb372c9e0500de1a2ab903666069095a88e66f1802a",
+    "fixtures/secondary_outline.c": "02342296a0bdf7ed1d535da0d6791083bf0d7ed536c6a61adb6b7dfdcfb762ca",
+    "libass-reference/ass/ass.h": "c322bb1f03dfe3a2bdbcd61002ff92684cd6f6ef593bc4a9dbca13f79f9c6ba2",
+    "libass-reference/ass/ass_types.h": "b2f06eaaba5d80b3a23fb08726f1152f12a0f583346ad0086a80ebbdb4c48cf8",
+    "libass-reference/provenance.json": "78dbb15cc424da976ad0bfa2a89d09e3ce86b13f71ace11e38d26365760f54fc",
+    "plrui_grid_boundary.c": "fa5161a33058ed72b80f69d13a6f57344094052f1a498160330865991beb5cce",
+    "run.py": "bd49d678646176fe8ae2ead30a8e98d737892c545d5d2e863eca1b95bfd5ea8e",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "sdk-extra.h": "7fd0658da497e3a0ccc73ec9aedac6aff3fe95b1be81fd8f827a140af7299a7c",
+    "secondary-api-adapter.diff": "342cc9014ef32d43dc51dacc440fa1247412ed3bb8d94e6e41b5a48001a80044"
+  }
+}

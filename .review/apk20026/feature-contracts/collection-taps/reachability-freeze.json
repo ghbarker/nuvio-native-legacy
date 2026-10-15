@@ -1,0 +1,19 @@
+{
+  "outcome": "frozen-producer",
+  "entrypoint": "run.py",
+  "cli": "--source SOURCE --output OUTPUT --cc CC [--sanitize] [--private]",
+  "cases": 36,
+  "distinct_titles_per_case": 60,
+  "expected_title_activations": 2160,
+  "files": {
+    "fixture-origin.json": "00d57add130d7671534c1164d079727f55a50bcea1396ebbef7c37e44d9de0cd",
+    "fixtures/geometry.c": "3c838f47957af087c21a078a0f487c398c81247c69f11f56d32fac750ce0dc5d",
+    "fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "run.py": "f6a22e85a8451a348377be86e4c479d61c3da3611e05ee692c566ce8a9585f4f",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  },
+  "scope": "Path-relative Linux feature-job producer using GNU-compatible section GC and typed SDK; complete actual render/pointer/title-selection path. Raw assertions identical to approved green normal36/ASan36 fixture; no copied callbacks or successful behavior stubs.",
+  "logs14_compatibility": "Only copied-base lookup and identity-status transport stubs appended; all existing assertion lines unchanged.",
+  "logs15_compatibility": "Only copied-base lookup and identity-status transport stubs appended; all existing assertion lines unchanged."
+}

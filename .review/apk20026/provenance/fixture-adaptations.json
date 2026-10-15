@@ -1,0 +1,199 @@
+{
+  "scope": "Owner-reviewed typed boundary adaptations for actual request-owned collection scheduling; all actual behavioral assertions retained except the explicitly superseded serial expectation.",
+  "source_commits": {
+    "product": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+    "test": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7"
+  },
+  "changes": [
+    {
+      "path": "build-stage/aggregate.py",
+      "change": "changed",
+      "before_sha256": "61088fa13fc009ca253fc6542e83e35af9be0b8794d0be168d9b515bcef846d9",
+      "sha256": "da6c14c5ec466caf1f6e8b9d810374c881a604f2810ce2f2b80b45cb304a4082"
+    },
+    {
+      "path": "build-stage/android/cleanup_private.py",
+      "change": "changed",
+      "before_sha256": "e979b767da217d94d3a863b99f6e8f81e5ff47c1b47c4894aace68c0d687c3de",
+      "sha256": "011c2cf24a6cc9225bd2e42e5da084b7e3b140e317b657576d9865d78eb0d7a2"
+    },
+    {
+      "path": "build-stage/android/common.py",
+      "change": "changed",
+      "before_sha256": "2b438378cc114df2260bb9e0b05f1c8309b4142e732769a1984af529af1b96cd",
+      "sha256": "540ed474e1eb6dddb34c3ad75da0da3ad96bfe360046136bf998ac94ec1e8ab6"
+    },
+    {
+      "path": "build-stage/android/make_job.py",
+      "change": "changed",
+      "before_sha256": "eda10d6e50c51443c2261e0fccf617c667a66057f7d6c66c573f4db6d2edc02a",
+      "sha256": "2c3c6555b4e2004b01289e65d2e36f6a0976dbf6317effc8148a0eb8a5f93ffb"
+    },
+    {
+      "path": "build-stage/android/record_cache.py",
+      "change": "changed",
+      "before_sha256": "f2ac2e129e7625b4758df4c0753f982fc4a790b5910258c7dff74afe48667f8e",
+      "sha256": "105ccbaefdee78a46f52a10279c782ca82e6c2c9da8387a55f62ae8aa07c18f5"
+    },
+    {
+      "path": "build-stage/android/static-preflight.py",
+      "change": "changed",
+      "before_sha256": "c36aedb5a99a6293d18313ed3c7f8ff31d8fb9a52006af5402a8975dbe912c81",
+      "sha256": "060a8a1c3c967d991a91aaf38250d9693c5a317fef89a541eb27f84d6be9dda3"
+    },
+    {
+      "path": "build-stage/assemble.py",
+      "change": "changed",
+      "before_sha256": "c96d7d312934338a13e56682d75180edd4f162c3eaf04317e00352509d018e50",
+      "sha256": "05df40ec0f7c6d81f9df7e2916c59b2ac6d7f2946d26dac6bf3113e5f4a3cdd0"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-identity/ui/collection-taps.c",
+      "change": "changed",
+      "before_sha256": "0e9b3662a8080a9bf3f91d0ce6b4f3f58da03694a9e88c85c893ed8778853edc",
+      "sha256": "8e6a4f79575712fb66a95bf19bd3c1d0479000a86d7f307c9e73e6a8308ea122"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-parallel/reader/reader.c",
+      "change": "added",
+      "sha256": "c2406e0fba029918ef911ea03465b6793ffd8d861d041bd78c75e20824f7bf7b"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-parallel/reader/run.py",
+      "change": "added",
+      "sha256": "8fdf0069cc558d283381387bbd838f63428374c3d706de400ef69aad471d2889"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-parallel/run.py",
+      "change": "added",
+      "sha256": "d8b0237089e0dba28ad0713254faa1e6eaa46e47d2ea1d9ab229d9d842c26223"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-state/fixtures/collection-views.c",
+      "change": "changed",
+      "before_sha256": "ea31bc283949427e040b6737d73b0f01a55e80c58b16121447df4ddc4d2689e3",
+      "sha256": "ac5827cbbb2cba8337480fa3e3728fa07e0b310fc27002ab7e01c1418e37e204"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-state/fixtures/original-collection.c",
+      "change": "changed",
+      "before_sha256": "5fedc29b4cd169023cd26d5e2eaadfa6142da56259e43fb0ca4ba10e33f4823e",
+      "sha256": "5aac3b3cf32b57bc1a5ee985716779c30fcf48a4eb207cc26d128ead33decce1"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-state/run.py",
+      "change": "changed",
+      "before_sha256": "28c969d531289a5ad46aaaac4729b0aaa7f569ee9e35d68be11c3bb14d86b6b6",
+      "sha256": "60ac23fc5b9e2cb3875bf52d81cbff9bad654028d5110a523f95e47e5c2a45d6"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-taps/async/collection-taps.c",
+      "change": "changed",
+      "before_sha256": "ecc4baa70998e02c53d833baa284901dd40c312ebde994b09611bcf5a1d228d2",
+      "sha256": "222ef96e19a1ba7c29dbbd9bd81934d7c35b683e7b14e72b75880dacdd8b2fd7"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-taps/async/run_parallel.py",
+      "change": "added",
+      "sha256": "bc3357b0f8bd827414c923a8282c572a92aa590536d70939bc4d57228f8f5386"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-taps/fixture/collection-taps.c",
+      "change": "changed",
+      "before_sha256": "804d9fc8cce6f991d7e68607039e5c5c09d13579097670436f120ab4b22ea5e4",
+      "sha256": "9ed079a893b6b8c969e57cd876d6772382780c7f87659d083e4bb779436e56b9"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-taps/parallel-backend.inc",
+      "change": "added",
+      "sha256": "9e2aee0dbbc9954492f82c9f7667318060c6336c0e654a23c4dd74be8af7c394"
+    },
+    {
+      "path": "build-stage/feature-contracts/collection-taps/parallel-cases.inc",
+      "change": "added",
+      "sha256": "e37a4effe357abda94ddbc6d4a54eb2ec30aff588e0643c401a2372fa82dff29"
+    },
+    {
+      "path": "build-stage/feature-contracts/run.py",
+      "change": "changed",
+      "before_sha256": "b191d422131ed5c207913be08ee88e28c08b4fc7f601ac4ef6e3398f6b5386f4",
+      "sha256": "f1b3f270f7ebe900dd8bb1eb6c4f060621d18b6ccf2f2a9ef4042d012d03c964"
+    },
+    {
+      "path": "build-stage/jvm/dependencies.init.gradle",
+      "change": "changed",
+      "before_sha256": "b9418968f42854cf9001174b8573165ddd078a62b993a82c285fb02250b89756",
+      "sha256": "4e76f90f3e817d33d1e6331237340e4509136d1c43f590efbb242d812e9fa86b"
+    },
+    {
+      "path": "build-stage/jvm/preflight.py",
+      "change": "changed",
+      "before_sha256": "bc8bfc79afe5337155216a0f6fa3f2ad4df3d33d211dc6ea28033ded642086a6",
+      "sha256": "ca49650661c657ceadc4619502be3b9b5c8819d5eba3a0270ce0d4f164bb0432"
+    },
+    {
+      "path": "build-stage/jvm/run.py",
+      "change": "changed",
+      "before_sha256": "ea22f1284c6d5b3ba9dc8e31c0b3e540f5d27c285efcc3016a78bac4a39e79fb",
+      "sha256": "da67307791a093976232a1ce261ccfba31510d73d127771698941081fe47d514"
+    },
+    {
+      "path": "build-stage/package_payload.py",
+      "change": "changed",
+      "before_sha256": "65b26e51b92b3d9bf84f398883ce00e57f357a5d0b280b8001dfc1c5afe7097e",
+      "sha256": "88f66c7dc889e3492585e06484324d3be9bffcaf67de343b9fb7616e531161b0"
+    },
+    {
+      "path": "build-stage/product-delta.patch",
+      "change": "changed",
+      "before_sha256": "a456dc13835892bb5855eef8ffd9578bcfd954be5d8438a5d5c83752095c5b79",
+      "sha256": "1abc092b544b773f411a95262e1389d91ac36f401cc55c415cc7c762413c22ba"
+    },
+    {
+      "path": "build-stage/require_plan.py",
+      "change": "changed",
+      "before_sha256": "47924fc282555aa589a84a40116637cc26d3e1985f7eb007344fbb9d79443e04",
+      "sha256": "3d4ed1b5c366bee1e7b8ef19dffab5d77dc6f9a0be152c17e212925e47617dbc"
+    },
+    {
+      "path": "build-stage/test-delta.patch",
+      "change": "changed",
+      "before_sha256": "963fe0fc7870b37ae9f6855870f76002747a9fe310a2874bc3aaea21fda00eac",
+      "sha256": "0d9271fe8c4747573d0ca19450151ebecb286318590a4e1bf9f0111a1496dea3"
+    }
+  ],
+  "old_gesture_cases": 75,
+  "old_reachability_cases": 36,
+  "old_reachability_activations": 2160,
+  "old_async_cases": 15,
+  "identity_renderer_cases": 16,
+  "new_reader_cases": 39,
+  "new_ui_cases": 6,
+  "intentional_serial_expectation_change": "late-addon-inflight now requires recovered later row to complete independently while earlier row stays blocked; source identity, missing-message, viewport and tap assertions retained.",
+  "state_counter": {
+    "previous": 8287,
+    "current": 8035,
+    "removed_transport_fake_checks": 252,
+    "formula": "2 director classes * 9 Showcase choices * (2 sources + 12 capped rows) = 252",
+    "actual_view_assertions_removed": 0,
+    "new_typed_api_validation": "Plain assert, outside the historical shared UI check counter to avoid worker races."
+  },
+  "identity_fixture_include_relocation": "../parallel-{backend,cases}.inc becomes ../../collection-taps/parallel-{backend,cases}.inc; exact shared fixture bytes reused.",
+  "reader_portable_boundary": {
+    "origin": "/dev/shm/collection-parallel-20261015/backend-validation/fixture",
+    "reader_assertions_unchanged": true,
+    "original_runner_sha256": "2a349c5db8da7e8944e80686cc5a010fd837bbe79cb554df1b028be52f3dd6cc",
+    "staged_runner_sha256": "8fdf0069cc558d283381387bbd838f63428374c3d706de400ef69aad471d2889",
+    "diff_sha256": "06ee2c89cb7e1d7302f66c628ef436256166c404d0dbb6f373e1139b15ba3c11",
+    "authorized_changes": [
+      "explicit portable --sdk path",
+      "explicit --private native compile option and raw receipt private flag"
+    ],
+    "cases_unchanged": 39,
+    "no_product_edits": true
+  },
+  "owner_ui_freeze_sha256": "b8d74a803fc29eb220b3a106b86ca3f29bf3465683abd3ddc5899d5b2cf8c088",
+  "executable_diff_sha256": "6d9ecdfef0c45f60a1da33c53991ae0c46641f555f0ccc193cb1fbe6a45c6c04",
+  "no_product_source_edits": true,
+  "no_prior_test_execution_reuse": true
+}

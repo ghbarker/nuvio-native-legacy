@@ -1,0 +1,18 @@
+BASELINE_REPRODUCED_CW_BLOCKS_CATALOG
+[desc] continuar assistindo: 2 do Trakt, 0 do Simkl (0 fora de 1-90%), 0 da conta, 0 repetido(s); 2 na fileira
+[perf] publicarMontagem: 2 itens, 1 fileiras, 0.0 ms
+[perf] publicarMontagem: 3 itens, 2 fileiras, 0.0 ms
+[desc]   addon: 2 catalogo(s) declarado(s) (cota 512)
+[desc] 2 catalogos declarados pelos addons
+[fileiras] poda adiada: 1 addon(s) sem manifesto lido nesta volta
+[desc] 2 alvos de busca
+[desc] fileira 2: Cat A - Filme (3)
+[perf] publicarMontagem: 6 itens, 3 fileiras, 0.0 ms
+[desc] fileira 3: Cat B - Filme (3)
+[perf] publicarMontagem: 9 itens, 4 fileiras, 0.0 ms
+[desc] catalogos: 2 pedido(s) em 1 rodada(s), 2 responderam, 0 sem resposta, 0 vazio(s), 0 repetido(s); 4 de 18 fileira(s) no limite
+[desc] o limite de 18 fileiras nao foi preenchido: acabaram os catalogos disponiveis (2 declarados, 2 na ordem)
+[perf] publicarMontagem: 9 itens, 4 fileiras, 0.0 ms
+[desc] catalogo montado com 9 titulos
+[perf] snapshot da home: 4 fileiras em 0.0 ms
+LATCH PASS mode=fresh fixed=0 elapsed=12

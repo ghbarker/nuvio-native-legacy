@@ -1,0 +1,39 @@
+{
+  "files_sha256": {
+    "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "parity-player-companion.c": "20536e76d1838216851e3e3a5ef33ae00f8609a94d67b411eda0923eb873024f",
+    "style-entry.c": "ac93012ae4dccaaebd369e04f4b618fc4448cb01f8e7ef80c51998153f819a8d",
+    "settings-entry.c": "8efc93daf4c93db2b5bb7ecc4fc0252f58f4e537b9c47ff1c09c44cc38cdec5d",
+    "run.py": "6db0504000932fbecd7996a686e6724f37259cc31d15328f17f8448bf9a55a20",
+    "player-companion.c": "4110ea7b2bf34a9d0b8a76829ceacbf229bbddc8773209ef4572d826ee7e7df6",
+    "island-companion.c": "f90f061c3ea1bf3004d01b0f3c5af5d936be775eb4eb88fe58338f368134f85d",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+  },
+  "origin": {
+    "prior_files_sha256": {
+      "style-entry.c": "ac93012ae4dccaaebd369e04f4b618fc4448cb01f8e7ef80c51998153f819a8d",
+      "settings-entry.c": "c46340195e62bc91782f441e8885eaa11e416421024d97c9d5d6f7f94f52980b",
+      "run.py": "45f503e15b0993971df792559cb16cbf5dc75fb719e5780e7faeea3ace5d1c56",
+      "player-companion.c": "4110ea7b2bf34a9d0b8a76829ceacbf229bbddc8773209ef4572d826ee7e7df6",
+      "island-companion.c": "f90f061c3ea1bf3004d01b0f3c5af5d936be775eb4eb88fe58338f368134f85d",
+      "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+      "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+    },
+    "new_files_sha256": {
+      "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+      "parity-player-companion.c": "20536e76d1838216851e3e3a5ef33ae00f8609a94d67b411eda0923eb873024f",
+      "style-entry.c": "ac93012ae4dccaaebd369e04f4b618fc4448cb01f8e7ef80c51998153f819a8d",
+      "settings-entry.c": "8efc93daf4c93db2b5bb7ecc4fc0252f58f4e537b9c47ff1c09c44cc38cdec5d",
+      "run.py": "6db0504000932fbecd7996a686e6724f37259cc31d15328f17f8448bf9a55a20",
+      "player-companion.c": "4110ea7b2bf34a9d0b8a76829ceacbf229bbddc8773209ef4572d826ee7e7df6",
+      "island-companion.c": "f90f061c3ea1bf3004d01b0f3c5af5d936be775eb4eb88fe58338f368134f85d",
+      "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+      "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+    },
+    "change": "Replaces obsolete primary drawer-launch expectation with actual ordinary10+10 rows, real Settings/player/engine persistence; unchanged in-player drawer style assertions retained."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "origin": "/dev/shm/collection-parallel-20261015/backend-validation/fixture",
+  "reader_assertions_unchanged": true,
+  "original_runner_sha256": "2a349c5db8da7e8944e80686cc5a010fd837bbe79cb554df1b028be52f3dd6cc",
+  "staged_runner_sha256": "8fdf0069cc558d283381387bbd838f63428374c3d706de400ef69aad471d2889",
+  "diff_sha256": "06ee2c89cb7e1d7302f66c628ef436256166c404d0dbb6f373e1139b15ba3c11",
+  "authorized_changes": [
+    "explicit portable --sdk path",
+    "explicit --private native compile option and raw receipt private flag"
+  ],
+  "cases_unchanged": 39,
+  "no_product_edits": true
+}

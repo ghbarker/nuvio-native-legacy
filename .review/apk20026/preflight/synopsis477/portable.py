@@ -1,0 +1,9 @@
+"""Portable producer for actual #477 integrated reader and Settings contracts."""
+from pathlib import Path
+import argparse,hashlib,json,os,subprocess,sys
+p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--output',required=True);p.add_argument('--cc',default='cc');p.add_argument('--platform',choices=['tv','mobile'],default='mobile');p.add_argument('--sanitize',action='store_true');p.add_argument('--private',action='store_true');p.add_argument('--mode',choices=['reader','close','preview','route','settings','all'],default='all');a=p.parse_args();R=Path(__file__).resolve().parent;out=Path(a.output).resolve();out.mkdir(parents=True,exist_ok=True)
+rows=[]
+for mode in (['reader','close','preview','route','settings']if a.mode=='all'else[a.mode]):
+ cmd=([sys.executable,str(R/'settings/run.py'),'settings',a.source]+(['--san']if a.sanitize else[]))if mode=='settings'else([sys.executable,str(R/'run.py')]+([]if mode=='reader'else['--'+mode])+(['--tv']if a.platform=='tv'else[])+(['--san']if a.sanitize else[]))
+ e={**os.environ,'SOURCE':a.source,'PROOF_OUTPUT':str(out),'PRIVATE_TEST':'1'if a.private else'0','REVIEW_CC':a.cc};r=subprocess.run(cmd,capture_output=True,text=True,env=e,timeout=180);(out/(mode+'.log')).write_text(r.stdout+r.stderr);rows.append({'mode':mode,'returncode':r.returncode})
+receipt={'passed':all(x['returncode']==0 for x in rows),'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=a.source,text=True).strip(),'source_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=a.source,text=True).strip(),'platform':a.platform,'private':a.private,'sanitizers':'address,undefined'if a.sanitize else None,'groups':rows};(out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');assert receipt['passed']

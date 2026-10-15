@@ -1,0 +1,50 @@
+{
+  "source362": "4bd41a9676b01b4592c206b70402c51db60e0abf",
+  "original_fixture_sha256": "2f845953630cb6c36020df3bf0e8956bff650cb344ca445a63538f91f7f6eb72",
+  "origin_fixture_sha256": {
+    "profile-sync.c": "6c36373b0dcc0c6c364ce1fe9d4a25ffe42de7fdc92cc39af47ee28dd5d54a9a",
+    "collection-views.c": "50df4342c1e5b0a79da2e9aa76b0b90705715592d5273b84588cab05f2d28e20",
+    "original-collection.c": "895eb0936257397ea5e36eb39f215f016a4b00c01822375ba37e3f7e3567c8ba",
+    "original-colecao-adapted.inc": "8c08332e70251984b6acbcd3783d6ba32902f10067f28321d0c5b80f1d6f2dbd",
+    "original-adapter.diff": "917171d942cf16b2577a39085282c5c328c5bdf298df4ea260150d8b72e83526",
+    "sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+  },
+  "portable_only_adapters": [
+    "Profile fixture uses the actual defaults producer already defined in composed Settings, not a copied helper. PUBLISHED493_DEFAULTS selects its already-tested independent-default assertions.",
+    "Replace GNU linker --wrap observer with a TU-local macro rename of the real dados_gravar producer; the public wrapper counts writes and always invokes real storage.",
+    "Relative typed SDL/GLES declarations and SDK-compatible ticks macro; no success stubs for feature producers."
+  ],
+  "assertions_unchanged_from_reviewed_fixtures": true,
+  "combined366_plumbing": [
+    "Existing accepted hide-watched is Off in controlled view configuration; raw and visible fixture snapshots coincide and revision stays stable.",
+    "Compile the exact actual desc_filme_visto function body from the current source; model only the absent offline global catalog lookup.",
+    "Original direct Showcase seeds initialize brutoN and call the existing vitProjetar stage before unchanged assertions, matching accepted366 producer ownership."
+  ],
+  "original_assertion_sites_preserved": 47,
+  "added_assertion_sites": 1,
+  "current_fixture_sha256": {
+    "fixtures/original-adapter.diff": "2fb5f72cb885bcfaf038ef829189820386bb0c2901679ce1dcb4679329b150ac",
+    "fixtures/original-colecao-adapted.inc": "2b69df29d3c4d59ac165575c5ea4000bead31c47fea03bba33c548eb79dc4302",
+    "fixtures/profile-sync.c": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
+    "fixtures/collection-views.c": "ac5827cbbb2cba8337480fa3e3728fa07e0b310fc27002ab7e01c1418e37e204",
+    "fixtures/original-collection.c": "5aac3b3cf32b57bc1a5ee985716779c30fcf48a4eb207cc26d128ead33decce1",
+    "fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+  },
+  "current_sdk_sha256": {
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+  },
+  "logs14_compatibility": "Only copied-base lookup and identity-status transport stubs appended; existing assertion lines unchanged.",
+  "logs15_compatibility": "Only copied-base lookup and identity-status transport stubs appended; existing assertion lines unchanged.",
+  "parallel_api_adapter": {
+    "scope": "New typed metadata/list APIs required by actual request-owned collection loader; all preexisting appearance, profile, persistence and original-adapter assertions unchanged.",
+    "original_origin_sha256": "0a52a783ce23f2028d7a20817fa25a03c03d3ffb4b7da4e34c680427683a117c",
+    "assertion_count": {
+      "actual_view_behavior_checks": 8035,
+      "previous_total_with_transport_boundary_calls": 8287,
+      "old_transport_boundary_checks_removed": 252,
+      "explanation": "2 director classes \u00d79 Vitrine selections \u00d7(2 source rows+12 capped source rows)=252 old desc_vertudo_filtro valid-argument CHECK calls. New typed stateless API asserts equivalent request validity directly without racing the shared UI check counter. Every view/persistence/geometry assertion remains unchanged.",
+      "approved_by_root": true
+    }
+  }
+}

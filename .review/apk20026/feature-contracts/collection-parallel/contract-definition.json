@@ -1,0 +1,78 @@
+{
+  "bound": true,
+  "fixture_manifest": "feature-contracts/collection-parallel/fixture-manifest.json",
+  "required_layers": [
+    "product",
+    "test"
+  ],
+  "required_sanitizers": [
+    "normal",
+    "address,undefined"
+  ],
+  "invocations": 4,
+  "groups": [
+    "reader",
+    "ui"
+  ],
+  "reader_cases": [
+    "addon",
+    "genre",
+    "received-supplement",
+    "late-supplement",
+    "reserve-hidden-off",
+    "watched-pages",
+    "watched-bounded",
+    "raw-skip",
+    "duplicate-pages",
+    "top100",
+    "top250",
+    "tmdb-discover",
+    "tmdb-list",
+    "tmdb-collection",
+    "tmdb-person",
+    "tmdb-director",
+    "tmdb-company",
+    "tmdb-network",
+    "trakt",
+    "trakt-stale",
+    "trakt-compact-first",
+    "trakt-compact-last",
+    "trakt-compact-both",
+    "empty-spaces",
+    "trakt-empty-spaces",
+    "null-array",
+    "object-array",
+    "string-array",
+    "number-array",
+    "truncated-array",
+    "trakt-truncated-array",
+    "empty",
+    "failure",
+    "invalid",
+    "disabled",
+    "stale-before",
+    "stale-during",
+    "overlap",
+    "overlap-mixed"
+  ],
+  "ui_markers": {
+    "parallel-order-scroll-tap": "PASS parallel rows preserve source order artwork scroll and title taps",
+    "parallel-close-reopen": "PASS parallel close reopen rejects old results without exceeding global cap",
+    "parallel-profile-aba": "PASS parallel real profile ABA epoch rejects old results",
+    "parallel-source-replaced": "PASS replaced collection source rejects old owned request result",
+    "parallel-addon-disabled": "PASS disabled addon stops requests and reenable recovers exactly once",
+    "parallel-shrink-focused-row": "PASS shrinking collection clamps focus and rejects removed row target"
+  },
+  "required_source_inputs": [
+    "src/descoberta.c",
+    "src/descoberta.h",
+    "src/vertudo.c",
+    "src/perfis.c",
+    "src/js.c",
+    "src/redeurl.c",
+    "src/metaprov.c",
+    "src/ponteiro.c",
+    "src/ctxlista.c"
+  ],
+  "scope": "Fresh actual request-owned discovery reader39 and collection scheduler/render/pointer6 cases on both source layers/modes; independent row completion, bounded3 workers, scroll/title identity and profile/source cancellation."
+}

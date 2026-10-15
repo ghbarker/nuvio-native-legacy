@@ -1,0 +1,339 @@
+{
+  "scope": "Actual local frozen-source closure before CI; none is claimed as a fresh CI result",
+  "sources": {
+    "product": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+    "test": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7"
+  },
+  "all_passed": true,
+  "groups": [
+    {
+      "label": "collection-parallel-product-normal",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-parallel-product-normal/receipt.json",
+      "receipt_sha256": "9e051c4f2185091338544ea71f5e0470f4cdc0d17561717513296081124d9649",
+      "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "source_tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "private": false,
+      "sanitizers": []
+    },
+    {
+      "label": "collection-parallel-product-asan",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-parallel-product-asan/receipt.json",
+      "receipt_sha256": "0115e0421308ff520077c9fb1fa08350e6205ade69aa64ca83dc154050cedb04",
+      "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "source_tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "private": false,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    },
+    {
+      "label": "collection-parallel-test-normal",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-parallel-test-normal/receipt.json",
+      "receipt_sha256": "39b4a63d843af25a0eed2e43c24afd906cb3b88e3b3173e1821bcf41777e09b7",
+      "source_commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "source_tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "private": true,
+      "sanitizers": []
+    },
+    {
+      "label": "collection-parallel-test-asan",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-parallel-test-asan/receipt.json",
+      "receipt_sha256": "e8b6ba2c7c38a31a2f006529d843a0839031bffa342d6e57865dfc6dd91f5c13",
+      "source_commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "source_tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "private": true,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    },
+    {
+      "label": "collection-identity-product-normal",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-identity-product-normal/receipt.json",
+      "receipt_sha256": "b1a5102acab40899fffc468f496f4e41b67ef3a6033ed667fd2b13a102e4f257",
+      "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "source_tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "private": false,
+      "sanitizers": []
+    },
+    {
+      "label": "collection-identity-product-asan",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-identity-product-asan/receipt.json",
+      "receipt_sha256": "d0e1eafaa804f2a5b3171f09fb681877031fe3f512c461a7117fbd0ecfce2f97",
+      "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "source_tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "private": false,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    },
+    {
+      "label": "collection-identity-test-normal",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-identity-test-normal/receipt.json",
+      "receipt_sha256": "a912a54b6ee8d56f5b8a883504705c5d4fa7fa7bf20af5ee0c0aa93c702a04c7",
+      "source_commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "source_tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "private": true,
+      "sanitizers": []
+    },
+    {
+      "label": "collection-identity-test-asan",
+      "passed": true,
+      "receipt_path": "/dev/shm/integration-apk20026-20261015/frozen-preflight-v2/collection-identity-test-asan/receipt.json",
+      "receipt_sha256": "b79cf88526826c9ebf7b104665281515d3be04d459b2a7cdd4bbb5fb478d74c4",
+      "source_commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "source_tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "private": true,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    }
+  ],
+  "actual_new_aggregate_preflight": {
+    "passed": true,
+    "scope": "Focused actual local collection_parallel aggregate validator; not a CI pass",
+    "source_commits": {
+      "product": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "test": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7"
+    },
+    "groups": 4,
+    "reader_cases_per_group": 39,
+    "ui_cases_per_group": 6,
+    "raw_files_checked": 320,
+    "aggregate_sha256": "da6c14c5ec466caf1f6e8b9d810374c881a604f2810ce2f2b80b45cb304a4082",
+    "fixture_manifest_sha256": "16509a7175492eca54f6bfc59aa57fb9111e5d8106fe74f678af85a8ff6451ac"
+  },
+  "owner_ui_validation": {
+    "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+    "source_clean": true,
+    "files_sha256": {
+      "parallel-backend.inc": "9e2aee0dbbc9954492f82c9f7667318060c6336c0e654a23c4dd74be8af7c394",
+      "parallel-cases.inc": "e37a4effe357abda94ddbc6d4a54eb2ec30aff588e0643c401a2372fa82dff29",
+      "fixture/collection-taps.c": "9ed079a893b6b8c969e57cd876d6772382780c7f87659d083e4bb779436e56b9",
+      "fixture/run.py": "d9712196b426e6af84f3fac0daba3376b1f26b89e76633c30ff887b0885008ae",
+      "fixture/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "fixture/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "fixture/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+      "async/collection-taps.c": "222ef96e19a1ba7c29dbbd9bd81934d7c35b683e7b14e72b75880dacdd8b2fd7",
+      "async/run.py": "797924797f8b2f7e497991d1d5d617162b41e4b76125211219a4bfa799faeb31",
+      "async/run_parallel.py": "bc3357b0f8bd827414c923a8282c572a92aa590536d70939bc4d57228f8f5386",
+      "async/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "async/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "async/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+      "reachability/fixture-origin.json": "00d57add130d7671534c1164d079727f55a50bcea1396ebbef7c37e44d9de0cd",
+      "reachability/fixtures/geometry.c": "3c838f47957af087c21a078a0f487c398c81247c69f11f56d32fac750ce0dc5d",
+      "reachability/fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+      "reachability/run.py": "f6a22e85a8451a348377be86e4c479d61c3da3611e05ee692c566ce8a9585f4f",
+      "reachability/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "reachability/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "identity-ui/collection-taps.c": "6aba2fc6884b409eb5e6f93e11e2847238be7abc75165c19047d79bb79496a7f",
+      "identity-ui/run.py": "d855a709e410044f9eee5f2777ec3417fe4f462053f6b646c8cf3fdadddc6664",
+      "identity-ui/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+      "identity-ui/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+      "identity-ui/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+    },
+    "actual_raw_receipts": {
+      "gesture-normal": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-gesture-normal/receipt.json",
+        "sha256": "9b860c5be7574a13551d157fa7bf8c1656c221f15aaf7a802f568fd63d0ff528",
+        "cases": 75
+      },
+      "gesture-asan": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-gesture-asan/receipt.json",
+        "sha256": "1de6a068858eae9accd5419fc1fd6231f9d46fba61e148c3c89b586793128c21",
+        "cases": 75
+      },
+      "reachability-normal": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-reachability-normal/receipt.json",
+        "sha256": "aea914ccfda9d0953075305ce84abe681aea39d3ff9ec0d4fd1747999890d5a2",
+        "cases": 36
+      },
+      "reachability-asan": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-reachability-asan/receipt.json",
+        "sha256": "4965597650a25cc524c5d2551473aacc19e17b5684cc8cd8e09e014f5e72e600",
+        "cases": 36
+      },
+      "async-normal": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-async-normal/receipt.json",
+        "sha256": "761f5f7804ec3134717af9dd3bfcecad8453eac94cccd4d98f1ec47631313bcf",
+        "cases": 15
+      },
+      "async-asan": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-async-asan/receipt.json",
+        "sha256": "ca26249c6512e61993e195b20168f26b27de484e0e10fe2f1c60f5818109c5c3",
+        "cases": 15
+      },
+      "parallel-normal": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-parallel-normal/receipt.json",
+        "sha256": "b9c1538f9c4b18d535ece961019c1ffc45252125a41b97faaf3cb80a348ca46c",
+        "cases": 6
+      },
+      "parallel-asan": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-parallel-asan/receipt.json",
+        "sha256": "e5b34e2cd7d032a97c6d2f4d0a7153970c08bdaa7a039c77c28710f09b4931b3",
+        "cases": 6
+      },
+      "identity-normal": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-identity-normal/receipt.json",
+        "sha256": "93aafc2c432f01bfb3c6775e14ed0c1fe9107247ebf32ae287287d1492377427",
+        "cases": 16
+      },
+      "identity-asan": {
+        "path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-identity-asan/receipt.json",
+        "sha256": "d3836ecb80febbae1fcd25263d28c1b2bfe41992d9772e09e815d4b7b7e415a7",
+        "cases": 16
+      }
+    },
+    "baseline": {
+      "source_commit": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "expected_outcome": "Same actual UI later-row dispatch contract fails: source0 alone starts while held; source1 and2 never start.",
+      "log": "/dev/shm/collection-parallel-20261015/validation/ui/baseline-parallel-normal-final/run-v7-o0-z0-r0-parallel-order-scroll-tap.log",
+      "log_sha256": "0d9e02685da5b61434d853b35b31e5152cdca24cacdfa5e2010fc4fe8f2b718b"
+    },
+    "fixture_changes": {
+      "gesture75": "Original assertions unchanged; typed stateless metadata/list dependencies; deterministic wait for actual worker completion before interaction.",
+      "reachability36": "Byte-identical original fixture and runner. All2160 title activations retained.",
+      "async15": "Same15named cases; serial late-addon-inflight expectation intentionally replaced with independent recovered-row completion while earlier row pending. Preserved identity/no-missing-message/viewport/tap invariants. Wait for actual publications and settle startup animation before gesture assertions.",
+      "identity16": "All16originalcase names including original pending/failed/absent renderer assertions. Same typed dispatch adapters and intentional scheduling change as async15.",
+      "parallel6": "Actual scheduler and real profile/pointer/layout. Typed transport condition-variable latches; no scheduler implementation mirrored. Tests cap3 across abandoned views, later source order/art URLs/scroll/tap, profile ABA, source replacement, disabled terminal+reenable exactlyonce and shrinking focused row."
+    },
+    "source_file_sha256": {
+      "src/vertudo.c": "64fe95ec252f62a10fe7d477d5e4fd76ac686668b87e389bf90465121aa9b25e",
+      "src/descoberta.c": "8acd6a0f86340bbf68d2de6bb26898a6514c269f77639a819e0befa18cf09c9d",
+      "src/descoberta.h": "934ff57bca3108c42c41005b6466715910d21db884366ce884036a571c2e902b",
+      "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+    }
+  },
+  "owner_backend39_validation": {
+    "all_passed": true,
+    "normal_cases": 39,
+    "asan_ubsan_cases": 39,
+    "source_sha256": {
+      "src/descoberta.c": "8acd6a0f86340bbf68d2de6bb26898a6514c269f77639a819e0befa18cf09c9d",
+      "src/descoberta.h": "934ff57bca3108c42c41005b6466715910d21db884366ce884036a571c2e902b",
+      "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf",
+      "src/js.c": "600e01a70fc71d2152dabcbac3e21b13d91ac8b8a8b40c8b7a743207615c4d13",
+      "src/redeurl.c": "511cafc57442bb8fddd87f1a43c573b4a18caedfa23167bed8a2a79639c2b34c",
+      "src/metaprov.c": "e8ef4a1f3ee28897e70fd47a3d0d5ebe4063e054fad8b27626661432be0a0e16"
+    },
+    "fixture_sha256": {
+      "reader.c": "c2406e0fba029918ef911ea03465b6793ffd8d861d041bd78c75e20824f7bf7b",
+      "run.py": "2a349c5db8da7e8944e80686cc5a010fd837bbe79cb554df1b028be52f3dd6cc"
+    },
+    "receipts": {
+      "helper-fixed-normal/receipt.json": "b8c6bc8fa489ed0b6dd0121f2ec06e945e4d22afd2c193a38bba6b5142a90ce8",
+      "helper-fixed-asan/receipt.json": "85b47935941ddf6720f6204428824ce2502f31c2aa0d0774f94f69e7bc6dfe35"
+    },
+    "scope": "Actual request-owned discovery reader; no product edits, commits, network access or external writes by fixture agent. Existing singleton state checked unchanged across every case; 3 mixed-provider HTTP requests overlap behind a deterministic barrier, actual A->B->A session invalidation is exercised before/after HTTP and after Trakt enrichment."
+  },
+  "owner_collection_state_validation": {
+    "normal": {
+      "receipt_path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-state-normal-final/receipt.json",
+      "sha256": "ff93191d53f703b99bb5071b3770a1a056899b6c69a2bf6830244f425ee6a031",
+      "receipt": {
+        "outcome": "passed",
+        "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+        "tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+        "private": false,
+        "sanitized": false,
+        "records": [
+          {
+            "group": "profile",
+            "receipt": "profile/receipt.json",
+            "receipt_sha256": "a739a0f006028931cc58c8e0e17d6d8f7b6348abfb4e36db12768f518128f4ce"
+          },
+          {
+            "group": "views",
+            "receipt": "views/receipt.json",
+            "receipt_sha256": "eb9af1277478f18a0e91343e0b6fdedf124b2580531f33a8845f48d128cf9934"
+          },
+          {
+            "group": "adapted-original",
+            "receipt": "adapted-original/receipt.json",
+            "receipt_sha256": "2f13dc3562c7f34001182f1ca081a6155bbd5d37cb0759311cd67301cd4a880a"
+          }
+        ],
+        "actual_producer_origin": {
+          "source": "src/descoberta.c",
+          "source_sha256": "8acd6a0f86340bbf68d2de6bb26898a6514c269f77639a819e0befa18cf09c9d",
+          "actual_function_sha256": "743d97d8ba3ab6ced89ec6bc86930f30b80a5db57ede3c6520c58fc85945b53a",
+          "generated_sha256": "ed04fc06321fd8f80073839d73175c10594283f75ce4df39c2513e3765fcf66b"
+        },
+        "fixture_origin_sha256": "2a006d8cff1995ed5f229cb75b38d2a745da5b5bb7b05d446b7f85ca0d197fc3",
+        "tooling_sha256": {
+          "fixture-origin.json": "2a006d8cff1995ed5f229cb75b38d2a745da5b5bb7b05d446b7f85ca0d197fc3",
+          "player-prefs-companion.c": "cb8621dfd717dacb9f52cc1c49e997418fb0ffd7644244e6d62c8408be676b5f",
+          "run.py": "60ac23fc5b9e2cb3875bf52d81cbff9bad654028d5110a523f95e47e5c2a45d6",
+          "fixtures/collection-views.c": "ac5827cbbb2cba8337480fa3e3728fa07e0b310fc27002ab7e01c1418e37e204",
+          "fixtures/original-adapter.diff": "2fb5f72cb885bcfaf038ef829189820386bb0c2901679ce1dcb4679329b150ac",
+          "fixtures/original-colecao-adapted.inc": "2b69df29d3c4d59ac165575c5ea4000bead31c47fea03bba33c548eb79dc4302",
+          "fixtures/original-collection.c": "5aac3b3cf32b57bc1a5ee985716779c30fcf48a4eb207cc26d128ead33decce1",
+          "fixtures/profile-sync.c": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
+          "fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+          "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+          "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+        },
+        "scope": "Actual complete collection/profile handlers and real local storage/home/Settings producers; typed offline account/catalog/text/GPU/SDL boundaries. Includes deliberately adapted original behavior, not an unchanged/full-source original-script claim. No app/SDK/device/network build or execution claim."
+      }
+    },
+    "asan": {
+      "receipt_path": "/dev/shm/collection-parallel-20261015/validation/ui/frozen-state-asan-final/receipt.json",
+      "sha256": "c904ea639c6b7366bc33ed31515d10cbcbc1827e41353fa93289d289277189ea",
+      "receipt": {
+        "outcome": "passed",
+        "source_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+        "tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+        "private": false,
+        "sanitized": true,
+        "records": [
+          {
+            "group": "profile",
+            "receipt": "profile/receipt.json",
+            "receipt_sha256": "00fd4812b0682ceb355299168e02a039b19c5246368afdc280ebea924a423a30"
+          },
+          {
+            "group": "views",
+            "receipt": "views/receipt.json",
+            "receipt_sha256": "d5ddcc96d9ff1c3df3bb51dc8060cabc1fd0cc7031756e678f136e8f551d84da"
+          },
+          {
+            "group": "adapted-original",
+            "receipt": "adapted-original/receipt.json",
+            "receipt_sha256": "d9b163b7f0ff070cc1540ba349af3357751bc972b4ef63497da9d13b80c69f64"
+          }
+        ],
+        "actual_producer_origin": {
+          "source": "src/descoberta.c",
+          "source_sha256": "8acd6a0f86340bbf68d2de6bb26898a6514c269f77639a819e0befa18cf09c9d",
+          "actual_function_sha256": "743d97d8ba3ab6ced89ec6bc86930f30b80a5db57ede3c6520c58fc85945b53a",
+          "generated_sha256": "ed04fc06321fd8f80073839d73175c10594283f75ce4df39c2513e3765fcf66b"
+        },
+        "fixture_origin_sha256": "2a006d8cff1995ed5f229cb75b38d2a745da5b5bb7b05d446b7f85ca0d197fc3",
+        "tooling_sha256": {
+          "fixture-origin.json": "2a006d8cff1995ed5f229cb75b38d2a745da5b5bb7b05d446b7f85ca0d197fc3",
+          "player-prefs-companion.c": "cb8621dfd717dacb9f52cc1c49e997418fb0ffd7644244e6d62c8408be676b5f",
+          "run.py": "60ac23fc5b9e2cb3875bf52d81cbff9bad654028d5110a523f95e47e5c2a45d6",
+          "fixtures/collection-views.c": "ac5827cbbb2cba8337480fa3e3728fa07e0b310fc27002ab7e01c1418e37e204",
+          "fixtures/original-adapter.diff": "2fb5f72cb885bcfaf038ef829189820386bb0c2901679ce1dcb4679329b150ac",
+          "fixtures/original-colecao-adapted.inc": "2b69df29d3c4d59ac165575c5ea4000bead31c47fea03bba33c548eb79dc4302",
+          "fixtures/original-collection.c": "5aac3b3cf32b57bc1a5ee985716779c30fcf48a4eb207cc26d128ead33decce1",
+          "fixtures/profile-sync.c": "045eba9a0999bc897ec98106ff62f2e035fe8316cbe3b5b9d50ed08fc3a68481",
+          "fixtures/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+          "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+          "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9"
+        },
+        "scope": "Actual complete collection/profile handlers and real local storage/home/Settings producers; typed offline account/catalog/text/GPU/SDL boundaries. Includes deliberately adapted original behavior, not an unchanged/full-source original-script claim. No app/SDK/device/network build or execution claim."
+      }
+    }
+  }
+}

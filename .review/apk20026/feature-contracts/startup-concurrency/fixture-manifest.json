@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "source_neutral": true,
+  "inputs": {
+    "baseline/discovery/compile.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline/discovery/fresh.txt": "125952392a953d3574df7f72207c0b145d1970c26a1b1a036963e1a98d6cb72f",
+    "baseline/discovery/receipt.json": "bc66287100871a10f86ba9a142bfe2b1917c2348fd02fc98cfc8e1ca3e763ba3",
+    "baseline/sync/concurrent.txt": "ea47312788efedb1302bed597f414e6ade606fc6316c3f8431c74af75262b154",
+    "baseline/sync/receipt.json": "355b93f1887993d67231cfa436ec88e6b686b59aab27ba2ce85e0d73d6e984cf",
+    "baseline-evidence.json": "9008ded6a75545f3fae6eb4508ca9f32a0e65e3a2da68047339309c324634b9f",
+    "discovery/catalog-republish-actual.inc": "d0da735f8950b4fd51f459791002a1d2ac7c6ad2d562c3b49b9a6f5d1828c8fb",
+    "discovery/home-boundaries.inc": "869d07abfc6295969b537a8977ec3e807cc5ce81f78d1e0ac165d4d7d46f6b59",
+    "discovery/homejanelas-dependencies.c": "7a8055d6a2180f6659a4451a2a8b4df16acc642e7d79aca08c38e072ebed4af6",
+    "discovery/latch.c": "07a0d8161dbec9573e052a08001d9a6cff26ee8d39049c5b2fc76304df0b8191",
+    "discovery/run.py": "9a0c3d678247a6c7f7f550a07b867fb274ccf0506a4f040a8cc1869ca9e7baf1",
+    "discovery/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "discovery/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "discovery_contract.py": "71d93a58dd45c6cf2335caccef96994360e5626ab7476d0e33827d3e9eb25846",
+    "fixture-origin.json": "6c3215d4d5df926af651dac2934261a90026672387af3603f3b02616484d72ce",
+    "run.py": "013a6fafb14ea89e2c8a6f03c52e7eddf8f650b1febac6b18265b2fea63715df",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "904cc79914cfda7157463f2762cf9d70e79b45a81c74b48235ddb044f7a21ea8",
+    "sync/inject.h": "085b87448862157f36c5e77093499e7ff74f3c460fcd1232d027829bc1dffb4a",
+    "sync/latch.c": "2d61286c6aaa426374bb78886e509d17376659cca4646032e1dd47aaf08ae9e1",
+    "sync/run.sh": "0d9dc5e931827b2ad50d5ec9b7196269cafdc289e33162b4e93527ad556d5ea2",
+    "sync_contract.py": "1a4ea7584792866eb156af23688f99ff3ff82534da068777876fac70081ae764"
+  },
+  "scope": "Frozen source-bound producers with typed offline boundaries; no product/test source edits."
+}

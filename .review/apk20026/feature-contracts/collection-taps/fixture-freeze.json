@@ -1,0 +1,13 @@
+{
+  "portable_root": "/workspace/review/issue362-collection-taps-20261015/peer/portable",
+  "files": {
+    "collection-taps.c": "9ed079a893b6b8c969e57cd876d6772382780c7f87659d083e4bb779436e56b9",
+    "run.py": "d9712196b426e6af84f3fac0daba3376b1f26b89e76633c30ff887b0885008ae",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c"
+  },
+  "note": "Assertions frozen after typed TMDB tv correction; final source binding remains pending geometry review.",
+  "logs14_compatibility": "Only copied-base lookup and identity-status transport stubs appended; all existing assertion lines unchanged.",
+  "logs15_compatibility": "Only copied-base lookup and identity-status transport stubs appended; all existing assertion lines unchanged."
+}

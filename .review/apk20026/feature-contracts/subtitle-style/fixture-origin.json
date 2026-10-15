@@ -1,0 +1,21 @@
+{
+  "feature": 475,
+  "source_feature_commit": "a7b0294db4b471c38eb4d737e0317a8395666b97",
+  "assertions_copied_without_modification": {
+    "style-controls.c": "b94ff980e913816f37780b5f258a6f501a5ff1ad20084c512fe2f3c36c927f38"
+  },
+  "original_fixture_path": "/workspace/review/issue475-subtitle-outline-20261015/fixtures/style-controls.c",
+  "original_runner_path": "/workspace/review/issue475-subtitle-outline-20261015/fixtures/run-style-controls.py",
+  "original_bound_receipts": [
+    "/workspace/review/issue475-subtitle-outline-20261015/proofs/style-freeze-tv-normal/result.json",
+    "/workspace/review/issue475-subtitle-outline-20261015/proofs/style-freeze-tv-asan/result.json",
+    "/workspace/review/issue475-subtitle-outline-20261015/proofs/style-freeze-touch-normal/result.json",
+    "/workspace/review/issue475-subtitle-outline-20261015/proofs/style-freeze-touch-asan/result.json"
+  ],
+  "scope": "Actual complete faixas.c public keyboard and emitted palette/font/slider callbacks; typed renderer/pointer/style model companions.274 assertions per run. Disk prefs and actual GL/libass rendering belong to sibling subtitle-outline suite; actual finger/body geometry belongs to peer existing fixtures.",
+  "platform_adapter": "New runner only: configurable cc/output/source, Darwin dead_strip/Linux gc-sections, shared existing unresolved-symbol parser, private macro toggle; behavioral C remains byte-identical.",
+  "combined_source_pins": null,
+  "no_source_edits_build_ci_or_publication": true,
+  "existing_shared_platform_adapter_sha256": "42ac9be96da85f56d87c9fd895b2507f9fa5aff730e2263493aa12acc4bf8998",
+  "interface": "run.py --source SOURCE --output OUTPUT --cc CC [--sanitize] [--private] [--platform tv|mobile|all]; defaultall runs TV and Mobile,274unchangedassertions each."
+}

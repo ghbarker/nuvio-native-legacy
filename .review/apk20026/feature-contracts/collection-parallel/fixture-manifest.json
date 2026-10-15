@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "source_neutral": true,
+  "inputs": {
+    "contract-definition.json": "ef3b005828441fd9102ebc04f97021027fa833d1bfd3ae1bc6b613ba5ba440b2",
+    "reader/reader.c": "c2406e0fba029918ef911ea03465b6793ffd8d861d041bd78c75e20824f7bf7b",
+    "reader/run.py": "8fdf0069cc558d283381387bbd838f63428374c3d706de400ef69aad471d2889",
+    "reader-origin.json": "bf0f0ebbd2ed121ec2197af80366a71df91a766cd83699375858baff9403e152",
+    "reader-portable-boundary.diff": "06ee2c89cb7e1d7302f66c628ef436256166c404d0dbb6f373e1139b15ba3c11",
+    "run.py": "d8b0237089e0dba28ad0713254faa1e6eaa46e47d2ea1d9ab229d9d842c26223"
+  },
+  "scope": "Frozen source-bound producers with typed offline boundaries; no product/test source edits.",
+  "external_inputs": {
+    "collection-taps/async/collection-taps.c": "222ef96e19a1ba7c29dbbd9bd81934d7c35b683e7b14e72b75880dacdd8b2fd7",
+    "collection-taps/async/run.py": "797924797f8b2f7e497991d1d5d617162b41e4b76125211219a4bfa799faeb31",
+    "collection-taps/async/run_parallel.py": "bc3357b0f8bd827414c923a8282c572a92aa590536d70939bc4d57228f8f5386",
+    "collection-taps/async/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "collection-taps/async/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "collection-taps/async/sdk-ticks-compat.h": "3d072413566e9db06cf8e57fe57c5638a473f702af76491d4847fab9eb32206c",
+    "startup-concurrency/discovery/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "startup-concurrency/discovery/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "collection-taps/parallel-backend.inc": "9e2aee0dbbc9954492f82c9f7667318060c6336c0e654a23c4dd74be8af7c394",
+    "collection-taps/parallel-cases.inc": "e37a4effe357abda94ddbc6d4a54eb2ec30aff588e0643c401a2372fa82dff29"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "outcome": "accepted",
+  "reviewed_at_utc": "2026-10-15T20:51:21.443628+00:00",
+  "scope": "Independent bounded CI recipe/payload review; no source edits, tests, builds or publication launched by reviewer.",
+  "review_only_plan_sha256": "0bc259d185552ff663a23445b19b44eb935ea3136b906275d3435979a9df16fb",
+  "review_only_payload_sha256": "64ac8bdfaf1ae1426d6e4ba0b8184724f885e72f50a9598426f47a44af1f4ebd",
+  "payload_paths": 241,
+  "payload_bytes": 3064415,
+  "source_bindings": {
+    "product": {
+      "commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a"
+    },
+    "test": {
+      "commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "parent": "0edc358e5dded17ec3e130947bd8139ab0520d47"
+    }
+  },
+  "original_tests_tree_unchanged": true,
+  "private_overlay_identity_only_vs_logs15": true,
+  "retained_feature_groups": 44,
+  "new_collection_parallel_groups": 4,
+  "total_feature_groups": 48,
+  "new_cases_per_group": {
+    "actual_reader": 39,
+    "actual_scheduler_render_pointer": 6
+  },
+  "retained_outcomes": {
+    "gesture": 75,
+    "reachability": 36,
+    "async": 15,
+    "identity_renderer": 16,
+    "profile_assertions": 133,
+    "collection_views_assertions": 8035
+  },
+  "collection_view_count_reconciliation": {
+    "old_count": 8287,
+    "old_transport_check_invocations_not_taken": 252,
+    "new_count": 8035,
+    "all_original_behavior_check_lines_unchanged": true,
+    "new_transport_uses_plain_assert_to_avoid_shared_counter_race": true
+  },
+  "documented_fixture_adaptations_sha256": "2b5f2a369e7e074d6cbc97bfab4e915898b6f01044842ea2ad8d0ca5ab3b49b1",
+  "reviewed_recipe_sha256": {
+    "aggregate.py": "da6c14c5ec466caf1f6e8b9d810374c881a604f2810ce2f2b80b45cb304a4082",
+    "feature-contracts/run.py": "f1b3f270f7ebe900dd8bb1eb6c4f060621d18b6ccf2f2a9ef4042d012d03c964",
+    "feature-contracts/manifest.json": "9ef4fef0e7169e1e9d9da7b779653edd634c660d44c1b1d349d36d9ba999e0ab",
+    "feature-contracts/collection-parallel/run.py": "d8b0237089e0dba28ad0713254faa1e6eaa46e47d2ea1d9ab229d9d842c26223",
+    "feature-contracts/collection-parallel/fixture-manifest.json": "16509a7175492eca54f6bfc59aa57fb9111e5d8106fe74f678af85a8ff6451ac",
+    "feature-contracts/collection-state/run.py": "60ac23fc5b9e2cb3875bf52d81cbff9bad654028d5110a523f95e47e5c2a45d6",
+    "feature-contracts/collection-state/fixtures/collection-views.c": "ac5827cbbb2cba8337480fa3e3728fa07e0b310fc27002ab7e01c1418e37e204"
+  },
+  "checks": {
+    "all_241_payload_entries_verified": true,
+    "all_15_recipe_pins_verified": true,
+    "all_full_source_macos_original_modes_required_fresh": true,
+    "android_both_layers_both_abis_signer_package_required_fresh": true,
+    "jvm_47_current_source_required_fresh": true,
+    "strict_48_group_raw_receipt_binary_log_source_graph": true,
+    "b9af_baseline_local_provenance_only": true,
+    "old_run_reference_explicitly_ineligible": true,
+    "publisher_old_run_job_artifact_apk_pins_cleared_and_gate_closed": true,
+    "publisher_changes_only_identity_and_new_48_group_counts": true
+  },
+  "blocking_findings": [],
+  "not_claimed": [
+    "Fresh GitHub Actions passes",
+    "Final release approval",
+    "Physical device validation"
+  ]
+}

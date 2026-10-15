@@ -1,0 +1,43 @@
+{
+  "approved": true,
+  "reviewed_plan_sha256": "0bc259d185552ff663a23445b19b44eb935ea3136b906275d3435979a9df16fb",
+  "reviewed_payload_sha256": "64ac8bdfaf1ae1426d6e4ba0b8184724f885e72f50a9598426f47a44af1f4ebd",
+  "reviewed_sources": {
+    "product": {
+      "commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "tree": "fb288917462316d2ea8cf7a933f13945485a0701",
+      "parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "755ec0579a0ca4312ed6bb259ec40ebd8bbc15978f59897f2e631655d2668a21",
+      "delta_patch_sha256": "1abc092b544b773f411a95262e1389d91ac36f401cc55c415cc7c762413c22ba"
+    },
+    "test": {
+      "commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+      "tree": "d0489aa8951da33a261e5b34656e93ba3d665fc4",
+      "parent": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "f46e45885fa434bc9b7dda05cf4fa164a072541da15410123bab5e8ad1ae6bdf",
+      "delta_patch_sha256": "0d9271fe8c4747573d0ca19450151ebecb286318590a4e1bf9f0111a1496dea3"
+    }
+  },
+  "reviewed_recipe_pins": {
+    "aggregate.py": "da6c14c5ec466caf1f6e8b9d810374c881a604f2810ce2f2b80b45cb304a4082",
+    "native/run.py": "690e0d3d58ba2702589fcc5aab211b3a50212f2413d43c65c6eb1c7d9bc33293",
+    "original3/run.py": "d67dc1c9104cb0da5786432fbfebf9d7027866bac56b679f6a1ce7dda42b6c51",
+    "android/recipe-manifest.json": "98e858c594f93be0b6c0918f650adf3b007a12c6b6d8eb86a523d40fc9894f7f",
+    "jvm/manifest.json": "7901bbce70c573a321b787959dbde3329eb2d8be699fd34f272914b607c08141",
+    "feature-contracts/manifest.json": "9ef4fef0e7169e1e9d9da7b779653edd634c660d44c1b1d349d36d9ba999e0ab",
+    "require_plan.py": "3d4ed1b5c366bee1e7b8ef19dffab5d77dc6f9a0be152c17e212925e47617dbc",
+    "materialize.py": "1c08e9ea7809da64c3e4ea2fe7f8d08a33b0efd2c3f01414af8052bc42a40d47",
+    "sdk_sanity.py": "c99943100e768f110a5072353043665f0dfbf3c6e49a97b197dda0d166d5a6a1",
+    "feature-contracts/run.py": "f1b3f270f7ebe900dd8bb1eb6c4f060621d18b6ccf2f2a9ef4042d012d03c964",
+    "preflight/tooling-manifest.json": "4e4f739c07f2c0a120948f43896f8cea7c511ac5aa00d45daa5d92777031105d",
+    "preflight/cache-synopsis-portable-manifest.json": "6195de0618179abe058f7043170c06cd6b21704df9d190b1f2c19a5058753474",
+    "feature-contracts/collection-identity/fixture-manifest.json": "40e358f9a17c0a6ec91105e0ff22b2273a103fe63c08a2239598098430ab2281",
+    "feature-contracts/startup-concurrency/fixture-manifest.json": "db3adcf749cb48fa7202e92d63d95d424b3388333ea474530d902d91622f2fb9",
+    "feature-contracts/collection-parallel/fixture-manifest.json": "16509a7175492eca54f6bfc59aa57fb9111e5d8106fe74f678af85a8ff6451ac"
+  },
+  "peer_review_sha256": "0440aa1e1c29c3249f960b7b092ef34c3fa6d47892285eb045ab220ab62da46c",
+  "source_review": "/dev/shm/collection-parallel-20261015/root-source-review.json",
+  "scope": "Approve only metadata finalization and 3 plan execution flags, then exact reviewed Logs16 validation workflow. No source/recipe/executable changes. Publication requires actual green CI and exact APK verification."
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "Approved three-file fix on direct accepted Logs15 parent; no merge/rebase",
+  "product_commit": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+  "test_commit": "aef9146623d6c10bd64bec82a5312b0f7dc79ce7",
+  "accepted_product_parent": "a570741e9482695c78158c52bbbb0e38b53b898a",
+  "private_overlay_conflict_count": 0,
+  "private_overlay_paths": 11,
+  "private_overlay_identity_only": true,
+  "product_paths": [
+    "src/descoberta.c",
+    "src/descoberta.h",
+    "src/vertudo.c"
+  ]
+}

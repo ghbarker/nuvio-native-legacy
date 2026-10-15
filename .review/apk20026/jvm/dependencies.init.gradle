@@ -1,0 +1,24 @@
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+gradle.projectsEvaluated {
+    def probe = gradle.rootProject.project(':probe')
+    probe.tasks.register('apk20026DependencyEvidence') {
+        doLast {
+            def records = []
+            def collect = { owner, configuration ->
+                if (!configuration.canBeResolved) return
+                configuration.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                    records << [owner:owner, configuration:configuration.name,
+                        component:artifact.moduleVersion.id.toString(), file:artifact.file.name,
+                        sha256:MessageDigest.getInstance('SHA-256').digest(artifact.file.bytes).encodeHex().toString()]
+                }
+            }
+            ['debugRuntimeClasspath','debugAndroidTestRuntimeClasspath'].each { name -> collect(':probe',probe.configurations.getByName(name)) }
+            probe.configurations.findAll { it.canBeResolved && it.name.toLowerCase().contains('kotlincompiler') }.each { collect(':probe',it) }
+            [gradle.rootProject,probe].each { project -> project.buildscript.configurations.findAll { it.name == 'classpath' }.each { collect(project.path,it) } }
+            def output = new File(probe.findProperty('reviewDependencyOutput').toString())
+            output.parentFile.mkdirs()
+            output.text = JsonOutput.prettyPrint(JsonOutput.toJson([scope:'Actual resolved runtime/test/plugin/compiler artifacts',artifacts:records.sort { a,b -> a.component <=> b.component }]))+'\n'
+        }
+    }
+}
