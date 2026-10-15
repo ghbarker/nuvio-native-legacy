@@ -463,6 +463,7 @@ int fontefiltro_permite(const FonteFiltroConfig *cfg, const FonteFiltroDados *d)
   if (!cfg || !d) return 1;
   for (int c = 0; c < FONTEFILTRO_N; c++) {
     uint64_t v = d->valores[c] & (fontefiltro_desconhecido(c)-1);
+    if (c == FONTEFILTRO_LINGUAS) v |= d->valores[c] & FONTEFILTRO_LINGUA_OUTRA;
     if (!v) v = fontefiltro_desconhecido(c);
     if (c == FONTEFILTRO_LINGUAS) {
       if ((v & cfg->excluir[c]) == v) return 0;

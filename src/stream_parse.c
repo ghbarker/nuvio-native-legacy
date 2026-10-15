@@ -168,6 +168,8 @@ static uint64_t bytesTextoFiltro(const char *texto) {
   return 0;
 }
 
+static void filtroAudioDeclarado(const char *csv, FonteFiltroDados *dados);
+
 static void metadadosFiltro(const char *obj, const char *fim, const char *nome,
                              const char *descricao, const char *titulo, Stream *s) {
   const char *cr = objetoRaiz(obj, fim, "clientResolve");
@@ -223,6 +225,7 @@ static void metadadosFiltro(const char *obj, const char *fim, const char *nome,
     .filename = nomeCompleto, .texto = texto, .tamanhoBytes = bytes
   };
   fontefiltro_classificar(&e, &s->filtro);
+  filtroAudioDeclarado(s->audioIdiomas, &s->filtro);
   s->filtroLido = 1;
 }
 
@@ -500,6 +503,27 @@ static int faixaIdiomaTextoConhecido(const char *p, const char *fim) {
     if (k == ini || k - ini > 8) return 0;
   }
   return 1;
+}
+// A taxonomia salva nao lista todos os idiomas do app. Audio declarado e
+// conhecido fora dela nao pode virar "Desconhecido", nem desaparecer de
+// uma fonte multilingue quando se excluem somente as outras faixas.
+static void filtroAudioDeclarado(const char *csv, FonteFiltroDados *dados) {
+  for (const char *p = csv; *p;) {
+    const char *fim = strchr(p, ',');
+    if (!fim) fim = p + strlen(p);
+    const char *ini = p;
+    while (ini < fim && isspace((unsigned char)*ini)) ini++;
+    const char *ate = fim;
+    while (ate > ini && isspace((unsigned char)ate[-1])) ate--;
+    char idioma[128];
+    size_t n = (size_t)(ate - ini);
+    if (n && n < sizeof idioma && faixaIdiomaTextoConhecido(ini, ate)) {
+      memcpy(idioma, ini, n); idioma[n] = 0;
+      if (!fontefiltro_valores(FONTEFILTRO_LINGUAS, idioma))
+        dados->valores[FONTEFILTRO_LINGUAS] |= FONTEFILTRO_LINGUA_OUTRA;
+    }
+    p = *fim ? fim + 1 : fim;
+  }
 }
 static const char *faixasRotuloSubsTexto(const char *p, const char *fim, int *tipo) {
   // Torrentio/AIOStreams: so a parte DEPOIS de "Subs /" e legenda. Os

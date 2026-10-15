@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define FONTEFILTRO_MAX_GB 1000
+/* Somente dados de audio declarado: nao e escolha nem bit de configuracao. */
+#define FONTEFILTRO_LINGUA_OUTRA (UINT64_C(1) << 63)
 
 enum {
   FONTEFILTRO_RESOLUCAO, FONTEFILTRO_QUALIDADE, FONTEFILTRO_VISUAL,
