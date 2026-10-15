@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "source_frozen": true,
+  "root_reviewed": false,
+  "ci_execution_permitted": false,
+  "accepted_foundation": {
+    "product": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+    "test": "412d6bdc2a9eb6b3483626f765833e27fb82299d",
+    "test_tree": "c3277e06125065ea4c5144d67bc88cba7b3dd1b3"
+  },
+  "issue528": {
+    "commit": "ff90e2d2bae61f5c3961acb6292b9402f77cd392",
+    "base": "f85edaa220780f6bfb9114791467072b6ff0cfa4",
+    "product_patch_sha256": "ece598a10536646070e1dc0a01ca21a56ee12392b845d6e9c86df87eebeb443e",
+    "paths": [
+      "src/descoberta.c",
+      "src/descoberta.h"
+    ],
+    "added_deleted_lines_byte_identical": true,
+    "existing_automated_validation": "/dev/shm/issue528-ci-20261015/all-required-checks-verified.json",
+    "prior_validation_is_not_new_apk_evidence": true
+  },
+  "sources": {
+    "product": {
+      "commit": "6b178ea0ca0cc7016f4d3b580a17e3447002c171",
+      "tree": "884ad2be79606985b1dad49d4385ee03819235bc",
+      "parent": "4b216b49cf0f5030c47168c458a49fec27836a1a",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "4110b2ace5b6ded663371cef51b33b58a49d99b919adb37b7f5dd32e0a7ee395"
+    },
+    "test": {
+      "commit": "8fc06fddccc8e4b585805532f5c70549096fe284",
+      "tree": "6e32ea73aefc5da611867e6be8f3e5c1bff388bd",
+      "parent": "6b178ea0ca0cc7016f4d3b580a17e3447002c171",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "6d0d265c1861c8c1b26bbe020ba988b91f73e4cb588fb8728248e8bc9c021659"
+    }
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "38f02ebf635629dadc8d910a5de49ccb707fd2ba131ca1d05e871c8eca7a9ede",
+    "bytes": 1358187
+  },
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/detail.c",
+      "src/posplay.c",
+      "src/tex_cache.c",
+      "src/tex_cache.h"
+    ],
+    "all_bytes_unchanged_except_version": true,
+    "version_delta": {
+      "old_code": 20028,
+      "code": 20029,
+      "old_name": "2.0.28-test-logs18",
+      "name": "2.0.29-test-logs19"
+    }
+  },
+  "test_delta_vs_logs18": [
+    "android/app/build.gradle.kts",
+    "src/descoberta.c",
+    "src/descoberta.h"
+  ],
+  "package_signer_unchanged": true,
+  "tests_unchanged": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "3c28c0d73664fe82fabced499bd7171810e0c91b"
+  },
+  "no_build_or_remote_write": true
+}
