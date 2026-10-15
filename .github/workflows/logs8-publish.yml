@@ -1,5 +1,5 @@
 {
-  "name": "Publish the verified Logs8 test update",
+  "name": "Finalize the verified Logs8 draft release",
   "on": {
     "push": {
       "branches": [
@@ -31,45 +31,22 @@
         {
           "uses": "actions/checkout@v4",
           "with": {
-            "fetch-depth": 0,
             "persist-credentials": false
           }
         },
         {
-          "uses": "actions/setup-java@v4",
-          "with": {
-            "distribution": "temurin",
-            "java-version": "17"
-          }
-        },
-        {
-          "name": "Check the root-reviewed immutable release lock",
-          "run": "python3 .review/logs8-publish/publish.py --check-lock"
-        },
-        {
-          "uses": "android-actions/setup-android@v3",
-          "with": {
-            "packages": "platform-tools",
-            "log-accepted-android-sdk-licenses": false
-          }
-        },
-        {
-          "name": "Install only APK inspection tools",
-          "run": "sdkmanager \"build-tools;35.0.0\""
-        },
-        {
-          "name": "Verify exact source, complete gates and compatible APK before publishing",
+          "name": "Verify uploaded bytes and publish only the exact reviewed draft",
           "env": {
             "GH_TOKEN": "${{ github.token }}"
           },
-          "run": "python3 .review/logs8-publish/publish.py --publish"
+          "run": "python3 .review/logs8-publish/finalize.py"
         },
         {
           "uses": "actions/upload-artifact@v4",
           "if": "always()",
           "with": {
             "name": "logs8-publication-${{ github.sha }}",
-            "path": "publication/*.json\npublication/*.sha256\npublication/release-notes.md",
+            "path": "publication/*.json",
             "if-no-files-found": "warn"
           }
         }
