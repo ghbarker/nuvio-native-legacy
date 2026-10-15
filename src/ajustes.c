@@ -6657,12 +6657,13 @@ static void filMontarLista(void) {
     filLista[filListaN++] = AJ_FIL_DESTAQUE;
     for (i = 0; i < n; i++) {
       int e = fil_estado(i);
-      if (e == FIL_FORA) continue;
+      if (e == FIL_FORA || fil_linha_addon_removido(i)) continue;
       if (e == FIL_NA_FILA && filSep < 0) filSep = filListaN;
       filLista[filListaN++] = i;
     }
   } else {
-    for (i = 0; i < n; i++) if (fil_estado(i) == FIL_FORA) filLista[filListaN++] = i;
+    for (i = 0; i < n; i++)
+      if (fil_estado(i) == FIL_FORA && !fil_linha_addon_removido(i)) filLista[filListaN++] = i;
     qsort(filLista, (size_t)filListaN, sizeof *filLista, filCmpFora);
   }
   { int max = filListaN + (filAba == 1 ? 1 : 0);

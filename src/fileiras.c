@@ -45,6 +45,7 @@ typedef struct {
   int  ocultaConta;    // current account visibility; not a personal preference
   int  emColecao;      // visible collection owns this source; runtime projection
   int  semAddon;       // runtime only: no ENABLED add-on declares this catalog any more (#319)
+  int  addonRemovido;  // runtime only: a complete account list no longer contains its add-on
   int  visPessoal;     // explicit TV add/remove, persisted as an optional line
   // #360 EDGE-TRIGGER: 1 quando a fileira foi ADICIONADA nesta TV com a conta
   // ja dizendo "desligada" — escolha local consciente contra o estado conhecido,
@@ -884,22 +885,35 @@ int fil_podar_catalogos(const char *const *ids, const char *const *bases, int n,
 // shorter than the limit with nothing visible in the gap. `ativos[k]` = the
 // add-on is enabled. Only ENABLED add-ons keep rows alive. Returns how many rows changed state.
 // Runtime only, never written to the file: re-enabling the add-on brings the
-// row back exactly as the person left it.
+// row back exactly as the person left it. Removed add-ons are also omitted
+// from the Settings chooser (#365/#504); installed but disabled ones remain
+// selectable there. Disabled add-ons may not have a manifest id yet: their
+// base cannot identify an id-prefixed saved row, so an unknown id defers
+// removal from the chooser without changing the existing Home slot rules.
 int fil_marcar_sem_addon(const char *const *ids, const char *const *bases,
                          const int *ativos, int n, int perfilDaLista) {
-  int i, mudou = 0;
+  int i, mudou = 0, idsCompletos = 1;
   pthread_mutex_lock(&trava);
   garantir();
   if (perfilDaLista <= 0 || perfilDaLista != perfil) {
     pthread_mutex_unlock(&trava);
     return 0;
   }
+  for (i = 0; i < n; i++) if (!ids[i] || !ids[i][0]) idsCompletos = 0;
   for (i = 0; i < nLinhas; i++) {
-    int vivo = 0, k;
+    int presente = 0, vivo = 0, k;
     if (fil_origem_de(linhas[i].chave) != FIL_ORIGEM_CATALOGO) continue;
     for (k = 0; k < n && !vivo; k++)
-      if (ativos[k] && doAddon(linhas[i].chave, ids[k], bases[k])) vivo = 1;
-    if (linhas[i].semAddon != !vivo) { linhas[i].semAddon = !vivo; mudou++; }
+      if (doAddon(linhas[i].chave, ids[k], bases[k])) {
+        presente = 1;
+        if (ativos[k]) vivo = 1;
+      }
+    int removido = !presente && idsCompletos;
+    if (linhas[i].semAddon != !vivo || linhas[i].addonRemovido != removido) {
+      linhas[i].semAddon = !vivo;
+      linhas[i].addonRemovido = removido;
+      mudou++;
+    }
   }
   if (mudou) revisao++;
   pthread_mutex_unlock(&trava);
@@ -1162,6 +1176,8 @@ static void registrar(const FilPassada *passada, const char *chave,
   }
   linhas[i].vista = 1;
   linhas[i].semAddon = 0;   // an add-on declared it again
+  // Um retrato antigo da Home tambem registra aqui. So a lista completa da
+  // conta confirma que um addon removido foi instalado novamente.
   linhas[i].semDecl = 0;
   // O PRIMEIRO A REGISTRAR MANDA NO NOME, e nao o ultimo. Sao dois
   // registradores: a descoberta com o nome do catalogo (ja com customTitles) e
@@ -1388,6 +1404,13 @@ const char *fil_titulo(int i) {
 }
 int fil_linha_oculta(int i) { return (i >= 0 && i < nLinhas && (linhas[i].oculta || linhas[i].ocultaConta || linhas[i].emColecao || linhas[i].semAddon)) ? 1 : 0; }
 int fil_linha_sem_addon(int i) { return (i >= 0 && i < nLinhas && linhas[i].semAddon) ? 1 : 0; }
+int fil_linha_addon_removido(int i) {
+  int r;
+  pthread_mutex_lock(&trava);
+  r = i >= 0 && i < nLinhas && linhas[i].addonRemovido;
+  pthread_mutex_unlock(&trava);
+  return r;
+}
 int fil_linha_tipo(int i)   { return (i >= 0 && i < nLinhas) ? linhas[i].tipo : FIL_TIPO_AUTO; }
 int fil_linha_tam(int i)    { return (i >= 0 && i < nLinhas) ? linhas[i].tam : FIL_TAM_PADRAO; }
 
