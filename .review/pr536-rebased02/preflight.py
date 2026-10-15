@@ -1,0 +1,31 @@
+"""Reject drift in the isolated two-producer PR536 recipe before SDK work."""
+from pathlib import Path
+import ast,hashlib,json,os
+from common import HERE,approved,sha
+p=approved();w=json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/workflows/pr536-rebased02-review.yml').read_text());m=json.loads((HERE/'source-candidates.json').read_text())
+assert list(m)==['536'] and m['536']['base']==p['base'] and m['536']['head']==p['candidate_head'] and m['536']['tree']==p['candidate_tree']
+assert w['on']['push']['branches']==[p['review_branch']] and set(w['jobs'])=={'native','android'}
+assert w['env']['REBASE_PR']=='536' and w['env']['REBASE_PLAN_SHA256']==sha(HERE/'plan.json')
+n=json.loads(json.dumps(w));n['env']['REBASE_PLAN_SHA256']='<PLAN_SHA256>'
+for name,j in w['jobs'].items():
+ assert j['if'] is True and 'strategy'not in j and j['env']['REBASE_PR']=='536';n['jobs'][name]['if']='<ROOT_GATE>'
+ assert len([s for s in j['steps']if s.get('uses','').startswith('actions/upload-artifact@')])==2
+ assert any('-proof-'in s.get('with',{}).get('name','') and '!results/**/*.apk'in s['with']['path']for s in j['steps'])
+assert hashlib.sha256(json.dumps(n,sort_keys=True,separators=(',',':')).encode()).hexdigest()==p['workflow_normalized_sha256']
+counts=[]
+for j in w['jobs'].values():
+ for s in j['steps']:
+  if s.get('uses','').startswith('actions/cache@'):
+   keys=[s['with']['key']]+[x for x in s['with'].get('restore-keys','').splitlines()if x.strip()]
+   assert len(keys)<=10 and len(keys)==len(set(keys));counts.append(len(keys))
+assert counts==[10,10]
+steps=w['jobs']['android']['steps']
+workspace_before=[s for s in steps if '--phase before'in s.get('run','')]
+workspace_after=[s for s in steps if '--phase after'in s.get('run','')]
+assert len(workspace_before)==len(workspace_after)==1
+assert workspace_before[0]['id']=='workspace_before'
+assert workspace_after[0]['if']=="${{ always() && steps.workspace_before.conclusion == 'success' }}"
+for relative in p['recipe_inputs']:
+ if (HERE/relative).suffix=='.py':ast.parse((HERE/relative).read_text(),filename=relative)
+assert p['fresh_runtime']=={'groups':2,'cases_each':6,'modes':['normal','address+undefined'],'host':'Linux'}
+print(json.dumps({'closed_recipe':True,'source':p['candidate_head'],'base':p['base'],'sdk_producers':2,'cache_keys':counts,'runtime_host':'Linux Android lane; retained exact menu fixtures','previous_passes_reused':False}))

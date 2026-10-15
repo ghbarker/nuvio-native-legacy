@@ -1,0 +1,25 @@
+{
+  "accepted_run": 38791598052,
+  "accepted_source": "2faf69154a371fa9b5147c1ccd58017fb387077f",
+  "candidate": "c2e07fe41c7aa839cfad706c5f876ff3d3695e1b",
+  "base": "d02e228d9e1961e081723001c1fb00974e08db56",
+  "assertion_fixtures_unchanged": {
+    "offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "parity-player-companion.c": "20536e76d1838216851e3e3a5ef33ae00f8609a94d67b411eda0923eb873024f",
+    "sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "settings-entry.c": "61fae42631de05a1b0a81a862bc01378b0e2bde8402f5c0f0a944d0f1d172b64"
+  },
+  "menu_only_forced_by_entry": true,
+  "preserved_typed_offline_boundaries": true,
+  "schema_origin_sha256": "6e99eb03e923ea401836d1b2c1cdc2cec3974ad93a0cbb3340f92a85e1f56e4a",
+  "schema_scope": "Completed local Python/cpp rebase-preservation check, bound to this candidate; runtime menu normal/ASan executes freshly in this recipe.",
+  "retained_renderer_proof_scope": "Original secondary/render/outline fixture results remain historical evidence only. Rebase preserves all original nonblank feature added/deleted lines while keeping current upstream changes; current fresh menu normal/ASan and both full platform builds are required. No fresh full renderer replay claimed.",
+  "runner_dependency_adaptation": {
+    "accepted_runner_sha256": "580437f325a8fedbc16152aa384534dbee8788daa6c48d44b82df7d4261042ce",
+    "adapted_runner_sha256": "6db0504000932fbecd7996a686e6724f37259cc31d15328f17f8448bf9a55a20",
+    "only_delta": "Add actual src/fontefiltro.c to menu translation units: merged source-filter config loader always validates this real policy. All C assertions/companions/compiler flags unchanged.",
+    "policy_not_stubbed": true
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "d02e228d9e1961e081723001c1fb00974e08db56",
+  "candidate_head": "c2e07fe41c7aa839cfad706c5f876ff3d3695e1b",
+  "candidate_tree": "d134169d0dc734d1066be85c5900db39b78b0286",
+  "review_branch": "review/pr536-rebased02-20261015",
+  "source_manifest_sha256": "a97a62e7cb89dd66fc814c3e03d9a5905d5ab6b0aa4a8889d96889439ec62447",
+  "required_jobs": [
+    "native",
+    "android"
+  ],
+  "recipe_inputs": {
+    "android.py": "9c20ea36ba7cadccaa843c55d6409bb7d7bdc0f342dca7f4a05f37bba66ea7cf",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "common.py": "6a49806d9a0f1837ceab15a7e16a6b068eb654696fc4247f912984543b2f3dfd",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixture-compatibility.json": "9de71c9a3f8edc46db029278782797d8e8862e7c8ea6ef09f144e9a982056ebf",
+    "fixtures/pr536/entry.py": "6013a58978ddc0c9eebf3f5ea4051650cf743075702782c8ac745e98524f1ec4",
+    "fixtures/pr536/offline-account.c": "5fd037bdde53e71da34910e77986355d6947c25b13fbf5be1c7a31674755b216",
+    "fixtures/pr536/parity-player-companion.c": "20536e76d1838216851e3e3a5ef33ae00f8609a94d67b411eda0923eb873024f",
+    "fixtures/pr536/provenance.json": "04989f244647a0a8187114bcdc084c79f7b6e9d26f5b1bc9e7ffd8958f1beecb",
+    "fixtures/pr536/run.py": "6db0504000932fbecd7996a686e6724f37259cc31d15328f17f8448bf9a55a20",
+    "fixtures/pr536/schema-preservation.origin.json": "6e99eb03e923ea401836d1b2c1cdc2cec3974ad93a0cbb3340f92a85e1f56e4a",
+    "fixtures/pr536/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/pr536/sdk/SDL2/SDL.h": "cae307144041565e3bd4fe612be30ad653007e95aceffb181a2cd60e3758f4a9",
+    "fixtures/pr536/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "fixtures/pr536/settings-entry.c": "61fae42631de05a1b0a81a862bc01378b0e2bde8402f5c0f0a944d0f1d172b64",
+    "focused.py": "bbadf1c786fbcf8971a7d5aff897c297dddd426fc634d5537438d7facc44681e",
+    "materialize.py": "ccaf78cb93248869c02a44024f88d6be1ff2c20fff19d3e0be93836cca0f35c2",
+    "native.py": "650345eb571eba13cd7adde395bd96e830cf3ac2a9ff51d2cf52df6a464e19e7",
+    "preflight.py": "8d5dc1006ac95bfa95bedb587d994e4e752c33f0d480cc58b3f1f6c3ce78d873",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "fresh_runtime": {
+    "groups": 2,
+    "cases_each": 6,
+    "modes": [
+      "normal",
+      "address+undefined"
+    ],
+    "host": "Linux"
+  },
+  "required_upstream_translation_units": [
+    "src/fontenota.c",
+    "src/sinopse.c",
+    "src/fontefiltro.c"
+  ],
+  "scope": "Exactly two fresh producers: macOS full actual TV/touch app links on isolated536; Ubuntu unchanged actual Settings-menu6cases normal+ASan then standard dualARM Android. No unrelated JVM/original3 suites, private overlay, old pass reuse or publication.",
+  "workflow_normalized_sha256": "b0fa205584e84fc81e45b8c095fe9b56693abb5b063a95eee32254f82a2d526b"
+}

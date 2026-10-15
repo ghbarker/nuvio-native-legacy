@@ -1,0 +1,1267 @@
+{
+  "passed": true,
+  "old_head": "75ae817afee0a0ff112f60c9a40635ea6cb1a88a",
+  "base": "d02e228d9e1961e081723001c1fb00974e08db56",
+  "candidate": "c2e07fe41c7aa839cfad706c5f876ff3d3695e1b",
+  "tree": "d134169d0dc734d1066be85c5900db39b78b0286",
+  "modes": [
+    {
+      "mode": "native-tv",
+      "upstream_count": 299,
+      "candidate_count": 317,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    },
+    {
+      "mode": "native-touch",
+      "upstream_count": 299,
+      "candidate_count": 317,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    },
+    {
+      "mode": "android-tv",
+      "upstream_count": 300,
+      "candidate_count": 318,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    },
+    {
+      "mode": "android-touch",
+      "upstream_count": 300,
+      "candidate_count": 318,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    },
+    {
+      "mode": "tpk-tv",
+      "upstream_count": 299,
+      "candidate_count": 317,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    },
+    {
+      "mode": "tpk-touch",
+      "upstream_count": 299,
+      "candidate_count": 317,
+      "subtitle_settings": [
+        "AJ_LEG1_TAMANHO",
+        "AJ_LEG1_FONTE",
+        "AJ_LEG1_COR",
+        "AJ_LEG1_OPACIDADE",
+        "AJ_LEG1_FUNDO",
+        "AJ_LEG1_POSICAO",
+        "AJ_LEG1_BORDA",
+        "AJ_LEG1_ATRASO",
+        "AJ_LEG1_NEGRITO",
+        "AJ_LEG1_COR_BORDA",
+        "AJ_LEG1_RESTAURAR",
+        "AJ_LEG2_FONTE",
+        "AJ_LEG2_OPACIDADE",
+        "AJ_LEG2_POSICAO",
+        "AJ_LEG2_ATRASO",
+        "AJ_LEG2_NEGRITO",
+        "AJ_LEG2_COR_BORDA",
+        "AJ_LEG2_RESTAURAR"
+      ],
+      "intentional_old_rows": [
+        "AJ_LEG2_TAMANHO",
+        "AJ_LEG2_COR",
+        "AJ_LEG2_FUNDO",
+        "AJ_LEG2_BORDA"
+      ],
+      "intentional_migration": [
+        "AJ_LEG2_TAMANHO"
+      ]
+    }
+  ],
+  "all_original_feature_fields_preserved_by_id": true,
+  "all_upstream_setting_ids_and_defaults_preserved": true,
+  "download_action_preserved": true,
+  "main_secondary_common_controls": [
+    "ATRASO",
+    "BORDA",
+    "COR",
+    "COR_BORDA",
+    "FONTE",
+    "FUNDO",
+    "NEGRITO",
+    "OPACIDADE",
+    "POSICAO",
+    "RESTAURAR",
+    "TAMANHO"
+  ],
+  "all_feature_line_contracts": "/dev/shm/pr536-latest-ci-20261015/line-contracts.json",
+  "translation_tables_preserve_upstream_and_all_own_feature_pairs": [
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h"
+  ],
+  "changed_paths": [
+    "src/ajustes.c",
+    "src/ajustes.h",
+    "src/ajustes_ux_dados.inc",
+    "src/ajustes_ux_desenho.inc",
+    "src/ajustes_ux_padrao.inc",
+    "src/ajustes_ux_secoes.inc",
+    "src/ajustes_ux_tela.inc",
+    "src/ajustes_ux_visual.inc",
+    "src/app.c",
+    "src/assrender.c",
+    "src/faixas.c",
+    "src/idioma_bg.h",
+    "src/idioma_bs.h",
+    "src/idioma_cs.h",
+    "src/idioma_da.h",
+    "src/idioma_de.h",
+    "src/idioma_el.h",
+    "src/idioma_es.h",
+    "src/idioma_fr.h",
+    "src/idioma_hu.h",
+    "src/idioma_id.h",
+    "src/idioma_it.h",
+    "src/idioma_ja.h",
+    "src/idioma_lt.h",
+    "src/idioma_nl.h",
+    "src/idioma_no.h",
+    "src/idioma_pl.h",
+    "src/idioma_ptpt.h",
+    "src/idioma_ro.h",
+    "src/idioma_ru.h",
+    "src/idioma_sk.h",
+    "src/idioma_sl.h",
+    "src/idioma_sr.h",
+    "src/idioma_sv.h",
+    "src/idioma_tab.h",
+    "src/idioma_tr.h",
+    "src/idioma_uk.h",
+    "src/idioma_vi.h",
+    "src/idioma_zhcn.h",
+    "src/idioma_zhtw.h",
+    "src/legenda2.c",
+    "src/legenda2.h",
+    "src/legendasui.c",
+    "src/plainass.h",
+    "src/player.c",
+    "src/player.h",
+    "src/video.h"
+  ],
+  "protected_trees_unchanged": [
+    "tests",
+    "tools",
+    ".github",
+    "android"
+  ],
+  "cpp_only_no_c_objects_or_sdk_builds": true,
+  "commands": [
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "7f18524917ca5506c5df553b7c22c16dc98906d761ae089e029250168a882b5e",
+      "output_sha256": "b36bdac92f831896f333a74a333cff4950a0f90bf26ecd588bc423e0afa93946"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "9eb0768b565d22249838cb3ca348a8d14b284584af14339fedb7ff8bb0ff6af3",
+      "output_sha256": "37fbec07d0f64dfe94f190f505197660319ab4be6cf3b486480eb734b4c8fe4c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "f8fa857e8a0df540a3f098cc7bff31d2e796d5ac8733b74539126dd591c9f334",
+      "output_sha256": "f55cdc709f6c52a696215bc4d362f8cb3c87ab5e00d645e63894081ac5c65eeb"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "3b2f746afa2c206e9f47cc1c7f80ad0dbffdb72ff8910efe1b37ef8bf53e11d3",
+      "output_sha256": "5b218dce8c792b583eac770f37ebb1666d5abd84d6b434e15bf8cbb5b1edd206"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "ea0b8e53da136bc625d369895cd343f51f8b8347e62bffc7d1003836314e6165",
+      "output_sha256": "308ae099d58b286125ca789cdd7bfb776ed573dab459b36bdf0d0c025b57114c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "abb3b591fb2b45aef1f55c692fa2a4cbf86b2a87188832fe0deff63cee773f12",
+      "output_sha256": "37b19e43724ddc42a53feee94335f076a6a66a08a8f87dcf80709530827f17ed"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "3274e2a7cf7dc52c07e6562ef12037cffaa426d5de5eca6e25ae1c18a46d2e0d",
+      "output_sha256": "8e5295308c955f7ef0a0f829833e7329da6414f764bb12c832cec22bc175fd9d"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-"
+      ],
+      "input_sha256": "35ab44ca82989fcfdef300032ff28f673899c2fe7a8388412a564ada2ac7552e",
+      "output_sha256": "ab2d140a80c77397e00745115aceba6f520e5fd104de6d7f5608abbe5059506c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "7f18524917ca5506c5df553b7c22c16dc98906d761ae089e029250168a882b5e",
+      "output_sha256": "b36bdac92f831896f333a74a333cff4950a0f90bf26ecd588bc423e0afa93946"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "9eb0768b565d22249838cb3ca348a8d14b284584af14339fedb7ff8bb0ff6af3",
+      "output_sha256": "37fbec07d0f64dfe94f190f505197660319ab4be6cf3b486480eb734b4c8fe4c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "f8fa857e8a0df540a3f098cc7bff31d2e796d5ac8733b74539126dd591c9f334",
+      "output_sha256": "f55cdc709f6c52a696215bc4d362f8cb3c87ab5e00d645e63894081ac5c65eeb"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "3b2f746afa2c206e9f47cc1c7f80ad0dbffdb72ff8910efe1b37ef8bf53e11d3",
+      "output_sha256": "5b218dce8c792b583eac770f37ebb1666d5abd84d6b434e15bf8cbb5b1edd206"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "ea0b8e53da136bc625d369895cd343f51f8b8347e62bffc7d1003836314e6165",
+      "output_sha256": "308ae099d58b286125ca789cdd7bfb776ed573dab459b36bdf0d0c025b57114c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "abb3b591fb2b45aef1f55c692fa2a4cbf86b2a87188832fe0deff63cee773f12",
+      "output_sha256": "37b19e43724ddc42a53feee94335f076a6a66a08a8f87dcf80709530827f17ed"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "3274e2a7cf7dc52c07e6562ef12037cffaa426d5de5eca6e25ae1c18a46d2e0d",
+      "output_sha256": "8e5295308c955f7ef0a0f829833e7329da6414f764bb12c832cec22bc175fd9d"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "35ab44ca82989fcfdef300032ff28f673899c2fe7a8388412a564ada2ac7552e",
+      "output_sha256": "ab2d140a80c77397e00745115aceba6f520e5fd104de6d7f5608abbe5059506c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "7f18524917ca5506c5df553b7c22c16dc98906d761ae089e029250168a882b5e",
+      "output_sha256": "95843301b5529386e1a090571c38e2e4006fa0b2b881c02ff3b19dba211aa1e3"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "9eb0768b565d22249838cb3ca348a8d14b284584af14339fedb7ff8bb0ff6af3",
+      "output_sha256": "4c0b3bbe671221c4eb4ad5c2d3d6a64443a202fac9467b7cea2ab64e840f3f81"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "f8fa857e8a0df540a3f098cc7bff31d2e796d5ac8733b74539126dd591c9f334",
+      "output_sha256": "1f36a620940dad882f6ec334c9d7cd7e815cf83ebb1c48757b281955466a9e3e"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "3b2f746afa2c206e9f47cc1c7f80ad0dbffdb72ff8910efe1b37ef8bf53e11d3",
+      "output_sha256": "f49cce55886676ca0b1c3c68671348ffd211031a2107ec0ece900d849b98c50d"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "b5f35c9c6690f304aa7a8e6c2e00b56b15ff9469471c5c93c6ecb8a9ad1e0708"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "991f8ae4db5df55bbc731e6280b6ca33c8e9c65719096d12e20c51b584167417"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e5f30254f44ca3adbe13898b5974d3ce1cd57263adcb445e154a994cde42468"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "8545a487a70766b2f066cc63270b959b1e7ef53391f0ed68e3186d4af19548b8"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "ea0b8e53da136bc625d369895cd343f51f8b8347e62bffc7d1003836314e6165",
+      "output_sha256": "fd73177041db4be29f90afb54703d2c940f35f2ffb58fb9f2cbb347334ff5561"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "abb3b591fb2b45aef1f55c692fa2a4cbf86b2a87188832fe0deff63cee773f12",
+      "output_sha256": "e0069e549abc2765f7973c8a309c7ac2af8e550059a727d59ce443509d2e7b05"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "3274e2a7cf7dc52c07e6562ef12037cffaa426d5de5eca6e25ae1c18a46d2e0d",
+      "output_sha256": "a919de448baab978c38762d70815959a047b54d42d4aab71e9f76cc0ee9f928a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-"
+      ],
+      "input_sha256": "35ab44ca82989fcfdef300032ff28f673899c2fe7a8388412a564ada2ac7552e",
+      "output_sha256": "05d5daa1815cb1e15509792d7838f7f25b645c298461eb0d83131f4114729a5d"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "7f18524917ca5506c5df553b7c22c16dc98906d761ae089e029250168a882b5e",
+      "output_sha256": "95843301b5529386e1a090571c38e2e4006fa0b2b881c02ff3b19dba211aa1e3"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "9eb0768b565d22249838cb3ca348a8d14b284584af14339fedb7ff8bb0ff6af3",
+      "output_sha256": "4c0b3bbe671221c4eb4ad5c2d3d6a64443a202fac9467b7cea2ab64e840f3f81"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "f8fa857e8a0df540a3f098cc7bff31d2e796d5ac8733b74539126dd591c9f334",
+      "output_sha256": "1f36a620940dad882f6ec334c9d7cd7e815cf83ebb1c48757b281955466a9e3e"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "3b2f746afa2c206e9f47cc1c7f80ad0dbffdb72ff8910efe1b37ef8bf53e11d3",
+      "output_sha256": "f49cce55886676ca0b1c3c68671348ffd211031a2107ec0ece900d849b98c50d"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "b5f35c9c6690f304aa7a8e6c2e00b56b15ff9469471c5c93c6ecb8a9ad1e0708"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "991f8ae4db5df55bbc731e6280b6ca33c8e9c65719096d12e20c51b584167417"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e5f30254f44ca3adbe13898b5974d3ce1cd57263adcb445e154a994cde42468"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "8545a487a70766b2f066cc63270b959b1e7ef53391f0ed68e3186d4af19548b8"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "ea0b8e53da136bc625d369895cd343f51f8b8347e62bffc7d1003836314e6165",
+      "output_sha256": "fd73177041db4be29f90afb54703d2c940f35f2ffb58fb9f2cbb347334ff5561"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "abb3b591fb2b45aef1f55c692fa2a4cbf86b2a87188832fe0deff63cee773f12",
+      "output_sha256": "e0069e549abc2765f7973c8a309c7ac2af8e550059a727d59ce443509d2e7b05"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "3274e2a7cf7dc52c07e6562ef12037cffaa426d5de5eca6e25ae1c18a46d2e0d",
+      "output_sha256": "a919de448baab978c38762d70815959a047b54d42d4aab71e9f76cc0ee9f928a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_ANDROID=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "35ab44ca82989fcfdef300032ff28f673899c2fe7a8388412a564ada2ac7552e",
+      "output_sha256": "05d5daa1815cb1e15509792d7838f7f25b645c298461eb0d83131f4114729a5d"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "7f18524917ca5506c5df553b7c22c16dc98906d761ae089e029250168a882b5e",
+      "output_sha256": "b36bdac92f831896f333a74a333cff4950a0f90bf26ecd588bc423e0afa93946"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "9eb0768b565d22249838cb3ca348a8d14b284584af14339fedb7ff8bb0ff6af3",
+      "output_sha256": "37fbec07d0f64dfe94f190f505197660319ab4be6cf3b486480eb734b4c8fe4c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "f8fa857e8a0df540a3f098cc7bff31d2e796d5ac8733b74539126dd591c9f334",
+      "output_sha256": "3ea21d41717243626c85076c2c36e66ff13c95ef159367a5d1e11ee1c8ce9b15"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "3b2f746afa2c206e9f47cc1c7f80ad0dbffdb72ff8910efe1b37ef8bf53e11d3",
+      "output_sha256": "6bd7a5e67f9e56804bf0b235e93c3750e5a2a6307858b5748a3abe0aadf57aca"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "ea0b8e53da136bc625d369895cd343f51f8b8347e62bffc7d1003836314e6165",
+      "output_sha256": "308ae099d58b286125ca789cdd7bfb776ed573dab459b36bdf0d0c025b57114c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "abb3b591fb2b45aef1f55c692fa2a4cbf86b2a87188832fe0deff63cee773f12",
+      "output_sha256": "37b19e43724ddc42a53feee94335f076a6a66a08a8f87dcf80709530827f17ed"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "3274e2a7cf7dc52c07e6562ef12037cffaa426d5de5eca6e25ae1c18a46d2e0d",
+      "output_sha256": "e95dcdff6752d973f5fabf617314eff2c452afc4ef18c102568cd9f8c326f411"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-"
+      ],
+      "input_sha256": "35ab44ca82989fcfdef300032ff28f673899c2fe7a8388412a564ada2ac7552e",
+      "output_sha256": "9562880039201833c7b213c8bbc56f44008f09c4984e894b2279c763f2416b06"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "7f18524917ca5506c5df553b7c22c16dc98906d761ae089e029250168a882b5e",
+      "output_sha256": "b36bdac92f831896f333a74a333cff4950a0f90bf26ecd588bc423e0afa93946"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "9eb0768b565d22249838cb3ca348a8d14b284584af14339fedb7ff8bb0ff6af3",
+      "output_sha256": "37fbec07d0f64dfe94f190f505197660319ab4be6cf3b486480eb734b4c8fe4c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "f8fa857e8a0df540a3f098cc7bff31d2e796d5ac8733b74539126dd591c9f334",
+      "output_sha256": "3ea21d41717243626c85076c2c36e66ff13c95ef159367a5d1e11ee1c8ce9b15"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "3b2f746afa2c206e9f47cc1c7f80ad0dbffdb72ff8910efe1b37ef8bf53e11d3",
+      "output_sha256": "6bd7a5e67f9e56804bf0b235e93c3750e5a2a6307858b5748a3abe0aadf57aca"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "03fa47cdd4206a01cc7fef80f408f8fb5027ebe9f5da74a3c602496b82239551",
+      "output_sha256": "d9cb678e07738209356390375863ae82b0e0b14a61d880c13771ef4a21e2f0f7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "dd09909417a32db15dc1258962077383d8ca40642c952cca20a7642b7c1a806a",
+      "output_sha256": "075440d27e859184642a68d507d628b5ab6a7a5e7e453c26be498d7bf9d51cb7"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "483d92eb2f2c63765a8adeebf23911f47ca82d4acc5499b61af12c039f0bb989",
+      "output_sha256": "6e29c6bf8806a5dcd804b61ec0ab153c4cd6affa09c48e7c2318cc352408e45a"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "56261462a08fca3d0d5ebc64317a8f829db801d877dce02163569e4345ed83f4",
+      "output_sha256": "2d940e9185ef0fa9a1736a42e6cdd4ef76e060819ec139fe70c45eb1c2e2ff74"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "ea0b8e53da136bc625d369895cd343f51f8b8347e62bffc7d1003836314e6165",
+      "output_sha256": "308ae099d58b286125ca789cdd7bfb776ed573dab459b36bdf0d0c025b57114c"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "abb3b591fb2b45aef1f55c692fa2a4cbf86b2a87188832fe0deff63cee773f12",
+      "output_sha256": "37b19e43724ddc42a53feee94335f076a6a66a08a8f87dcf80709530827f17ed"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "3274e2a7cf7dc52c07e6562ef12037cffaa426d5de5eca6e25ae1c18a46d2e0d",
+      "output_sha256": "e95dcdff6752d973f5fabf617314eff2c452afc4ef18c102568cd9f8c326f411"
+    },
+    {
+      "command": [
+        "cpp",
+        "-P",
+        "-undef",
+        "-x",
+        "c",
+        "-DNV_TPK=1",
+        "-DNV_TOUCH_UI=1",
+        "-"
+      ],
+      "input_sha256": "35ab44ca82989fcfdef300032ff28f673899c2fe7a8388412a564ada2ac7552e",
+      "output_sha256": "9562880039201833c7b213c8bbc56f44008f09c4984e894b2279c763f2416b06"
+    }
+  ]
+}
