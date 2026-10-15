@@ -1,0 +1,60 @@
+{
+  "all_candidate_checks_passed": true,
+  "normal_cases": 20,
+  "asan_ubsan_cases": 20,
+  "supersedes": "17-case ready-for-review.json prior to unknown identity policy",
+  "unchanged_baseline": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "baseline_ghost_reproduced": true,
+  "previous_candidate_unknown_disabled_id_regression_reproduced": true,
+  "source_sha256": {
+    "src/fileiras.c": "79f49b951ff84e58c991da8ef85b13d48ad8d3059d96d89455c91b92da97ec66",
+    "src/fileiras.h": "5e4f20a36e460b55c332ba94efe7deef080e76c2b4af7945897ab68847d463dd",
+    "src/ajustes.c": "a0f3d169b4969fcb96e8af706a260fb445fdffe8693c8f7bc77efb7bd6acc74a",
+    "src/descoberta.c": "8bbecbab5823146ae87351c9b67c428bf8a5fb33ca7804a8d3af88b6c6d78dc6"
+  },
+  "fixture_sha256": {
+    "rows.c": "9a78f3c24467c38cb51ee9abb8e7fb8b1421ea4c298df7c0146721d741914139",
+    "run.py": "a49012378a25ebbc7f9815fd5e73baac20e4aae19f9deb18d7c23e443d7a24a0"
+  },
+  "extracted_sha256": {
+    "settings-projection.inc": "ded9008614c347d7513983882e13e690ebed8342632568183db15634b3a70629",
+    "discovery-guards.inc": "6dcc06dedb478735798aade1edfc8dd14530e44dd0231fff144fb58c34d5d2e2"
+  },
+  "receipts": {
+    "policy-final-normal/receipt.json": "dfb2c787e738bf8627f0a674e30743800a25ae70460d746b900f6fac49f82a90",
+    "policy-final-asan/receipt.json": "c03df45660a91806efafafa82e5e4d086f763caaef45c21faad362032e9ac225",
+    "policy-baseline-normal/receipt.json": "cdaf4cba29c10216cf4833475b3f67017b86d443e8abdff8f7ab667b8bd43f13",
+    "unknown-policy-before-normal/receipt.json": "f50d3e750b035ce6cf7cde2773962524f10cb585dabb56f473cb91407ca6fb25"
+  },
+  "commands": {
+    "normal": "python3 /dev/shm/removed-addon-rows-20261015/validation/fixture/run.py --source /dev/shm/removed-addon-rows-20261015/source --out /dev/shm/removed-addon-rows-20261015/validation/policy-final-normal",
+    "asan_ubsan": "python3 /dev/shm/removed-addon-rows-20261015/validation/fixture/run.py --source /dev/shm/removed-addon-rows-20261015/source --out /dev/shm/removed-addon-rows-20261015/validation/policy-final-asan --sanitize",
+    "baseline": "python3 /dev/shm/removed-addon-rows-20261015/validation/fixture/run.py --source /dev/shm/removed-addon-rows-20261015/baseline --out /dev/shm/removed-addon-rows-20261015/validation/policy-baseline-normal --baseline",
+    "previous_candidate_negative": "python3 /dev/shm/removed-addon-rows-20261015/validation/fixture/run.py --source /dev/shm/removed-addon-rows-20261015/pre-unknown-policy --out /dev/shm/removed-addon-rows-20261015/validation/unknown-policy-before-normal --reproduce-unknown-policy"
+  },
+  "policy": "For retained catalog rows, confirmed removal requires complete installed addon IDs. Installed disabled addons remain selectable in Not on Home; unknown disabled IDs leave retained rows selectable and clear previous removal flags. Existing Home eligibility remains unchanged. No new probes or persisted fields. Once all identities are known, truly unmatched retained rows disappear from both Settings tabs.",
+  "limitation": "Existing pruning of untouched rows is separate from the new runtime Settings flag. This suite establishes preservation of personal choices and retained rows, not a new guarantee that untouched disk rows cannot be pruned by the old cleanup function.",
+  "cases": [
+    "removed",
+    "reinstall",
+    "unknown-disabled",
+    "unknown-reinstalled",
+    "identity-complete-after-unknown",
+    "cached-home",
+    "failed-after-removal",
+    "pending",
+    "failed-manifest",
+    "changed-list",
+    "other-profile",
+    "package-list",
+    "disabled",
+    "empty-list",
+    "raw-base",
+    "prefix-boundary",
+    "same-profile-reopen",
+    "profile-switch",
+    "full-home",
+    "full-outside"
+  ],
+  "boundaries": "Actual fileiras.c unchanged; exact filCmpFora/filMontarLista and existing discovery reconciliation block extracted byte-for-byte from supplied source. External boundaries only isolate storage paths/writes, addon snapshot getters and unrelated discovery catalogue flush. No production predicate replacement."
+}

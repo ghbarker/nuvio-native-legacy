@@ -1,0 +1,17 @@
+{
+  "approved": true,
+  "source_commit": "2d221317bbf532de4576c8d3f5f81baf672dd45d",
+  "base": "5d2f8c8c99113e416e1fb06f8b60da1d13635e85",
+  "files": {
+    "src/ajustes.c": "a0f3d169b4969fcb96e8af706a260fb445fdffe8693c8f7bc77efb7bd6acc74a",
+    "src/fileiras.c": "79f49b951ff84e58c991da8ef85b13d48ad8d3059d96d89455c91b92da97ec66",
+    "src/fileiras.h": "5e4f20a36e460b55c332ba94efe7deef080e76c2b4af7945897ab68847d463dd",
+    "tests/fileiras.c": "ee7bab03121be4db7ea9b79c31dabf98c369d59d33fc005cde3f46285b0d0356"
+  },
+  "product_patch_sha256": "8c93c62f44fe0bc15f5c2cee32c355444090906771973f78234a61980f1266a8",
+  "focused_proof_sha256": "d04dd752778628c0694b7739c55152ee92affe08f6cd86ee1d37bc3124c12059",
+  "scope": "Removed-addon Settings rows only; preserve personal choices and existing Home rules. Unknown identities conservatively defer hiding.",
+  "no_pr_until_phone_test": true,
+  "test_apk_recipe_allowed": true,
+  "build_execution_allowed": false
+}

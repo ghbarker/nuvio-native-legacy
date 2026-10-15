@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "checks": [
+    "All staged Python helpers parse without execution",
+    "Both bundle layers independently materialize cleanly with original tests unchanged; proofs remain review-only",
+    "Proven Android producer/verifier/signing/JNI/DEX/16KB helpers retained after identity normalization; product Android tree unchanged",
+    "android/prepare_env.py rejects closed plan before side effects",
+    "android/run.py rejects closed plan before side effects",
+    "run_focused.py rejects closed plan before side effects",
+    "aggregate.py rejects closed plan before side effects",
+    "Accepted 20-case runner and C fixture copied byte-identically, with manifest outside fixture runtime directory",
+    "Workflow has only scoped C/macOS/one private APK/aggregate jobs, with exact plan SHA and review-only branch trigger"
+  ],
+  "sources": {
+    "product": {
+      "commit": "6a6b9cef697b3457b050addf479be6e7d1915036",
+      "tree": "cf931079f59d8f7bcc277f3209b28b97a5ed4d47",
+      "parent": "0edc358e5dded17ec3e130947bd8139ab0520d47",
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "5e2ff36353f7e9780bd752b96350bf2a9348dcd34be7ea9d18ca3078c66bbfb8"
+    },
+    "test": {
+      "commit": "813b65211ef6b0da05b0c7ad1462900c2f4d5596",
+      "tree": "11ba36380eed6e91f14f3f795a4d2496ec4ad16b",
+      "parent": "6a6b9cef697b3457b050addf479be6e7d1915036",
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "69fa2121a3436ce7b13cfae119276c0c747d4e28426e3276cad3e4aea163baad"
+    }
+  },
+  "plan_sha256": "5057d288461e120b4ac192c53aa94099a96e9ae9ad38cd567a0fc74424a5802b",
+  "product_tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "private_tests_tree": "351fb3b66b75595e3bf74db7de2937d4d6ae6534",
+  "no_c_or_android_build_launched": true,
+  "no_remote_write_or_publication": true,
+  "execution_flags": {
+    "frozen": false,
+    "root_reviewed": false,
+    "ci_execution_permitted": false
+  }
+}

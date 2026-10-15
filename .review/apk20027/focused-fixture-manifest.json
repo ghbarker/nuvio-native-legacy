@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "cases": 20,
+  "source_neutral": true,
+  "files": {
+    "rows.c": "9a78f3c24467c38cb51ee9abb8e7fb8b1421ea4c298df7c0146721d741914139",
+    "run.py": "a49012378a25ebbc7f9815fd5e73baac20e4aae19f9deb18d7c23e443d7a24a0"
+  },
+  "scope": "Exact accepted 20-case actual fileiras store + byte-extracted Settings/discovery guards; no changed fixture assertions."
+}
