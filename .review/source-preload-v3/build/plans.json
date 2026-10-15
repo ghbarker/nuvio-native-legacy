@@ -68,14 +68,14 @@
       "run_image_download": true,
       "run_seek_regression": true,
       "run_original_seek_guards": true,
-      "patch_sha256": "9392662b5a0e417c6297ad444613986cd5b8398b29933419cc1757de2a15a40d"
+      "patch_sha256": "c3fb4b23931e77fcee82ed0bbaff8af50b07008b2328e728148092b909cb6980"
     }
   ],
   "test_release": {
-    "tag": "tv-mobile-test-local-logs-v4",
-    "apk": "Nuvio-TV-Mobile-Test-Logs4.apk",
-    "version_code": 20014,
-    "version_name": "2.0.14-test-logs4",
+    "tag": "tv-mobile-test-local-logs-v5",
+    "apk": "Nuvio-TV-Mobile-Test-Logs5.apk",
+    "version_code": 20015,
+    "version_name": "2.0.15-test-logs5",
     "package": "space.nuvio.nativelegacy.touch",
     "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6"
   },

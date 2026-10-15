@@ -23,7 +23,10 @@
     "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
     "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
     "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
-    "localLogResultWritesRedactedFileThroughContentResolver"
+    "localLogResultWritesRedactedFileThroughContentResolver",
+    "localLogMenuOffersViewShareAndSaveAndCanBeCancelled",
+    "localLogViewerIsScrollableSelectableAndReadOnly",
+    "localLogShareUsesReadOnlyContentUriForFullRedactedFile"
   ],
   "helper_files": [
     {
@@ -43,8 +46,8 @@
     },
     {
       "path": "probe/build.gradle.kts",
-      "sha256": "4718aa9584a775a71075cad760283edc95c86564b71327dc546d834729e2e4b0",
-      "bytes": 1069
+      "sha256": "227f51b398f255306c3b18826fbb09fdb8551bc97b451963a6a6becdc7b487c1",
+      "bytes": 1121
     },
     {
       "path": "probe/src/androidTest/java/space/nuvio/preloadtest/PreloadContractTest.kt",
@@ -53,8 +56,8 @@
     },
     {
       "path": "probe/src/main/AndroidManifest.xml",
-      "sha256": "4d9953d9dab2d5b9492b220003b0fb22cd78679407c8c227d79486f4eca58715",
-      "bytes": 465
+      "sha256": "25901e2b2b9ddb0445bb2305e37b2bbbd41a386c096cfb8ae9198a81a93a3bc4",
+      "bytes": 827
     },
     {
       "path": "probe/src/main/cpp/CMakeLists.txt",
@@ -108,8 +111,13 @@
     },
     {
       "path": "probe/src/androidTest/java/space/nuvio/preloadtest/LocalLogsContractTest.kt",
-      "sha256": "2ef3e07d81edb675826fab094434a140c288b1251a10c795c9f9151100f9fb42",
-      "bytes": 4677
+      "sha256": "ff54a1c87eb4382762fa4972672bf332d00b0f7656ae3808c13effb8026f1240",
+      "bytes": 9587
+    },
+    {
+      "path": "probe/src/main/res/xml/caminhos_atualizacao.xml",
+      "sha256": "5abf7da7179a0c538ed26cf9d42132fb88ca99e0412660044e41e9b4120dd51a",
+      "bytes": 116
     }
   ],
   "staged_player_helpers": [
@@ -155,7 +163,7 @@
     },
     {
       "path": "space/nuvio/nativelegacy/TestLocalLogs.kt",
-      "sha256": "d660a42febe98cd76daf80eb73612acb64e92ce2298761e43c062d62d78f840e"
+      "sha256": "1d6662f6db1b5e6310dd7a9345d32a66c2a68201a45aad1cf7abae7494ad8376"
     }
   ],
   "media_assets": {
@@ -204,7 +212,10 @@
       "localLogRedactionRemovesProviderCredentialsAndKeepsNextState",
       "localLogTailAndSnapshotPreserveCurrentAndPreviousSessions",
       "localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable",
-      "localLogResultWritesRedactedFileThroughContentResolver"
+      "localLogResultWritesRedactedFileThroughContentResolver",
+      "localLogMenuOffersViewShareAndSaveAndCanBeCancelled",
+      "localLogViewerIsScrollableSelectableAndReadOnly",
+      "localLogShareUsesReadOnlyContentUriForFullRedactedFile"
     ]
   }
 }

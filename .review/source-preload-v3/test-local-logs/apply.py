@@ -33,13 +33,17 @@ edit(activity,'    override fun onActivityResult(requestCode: Int, resultCode: I
     '    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {\n        if (BuildConfig.NV_TEST_LOCAL_LOGS && testLocalLogs.handleResult(requestCode, resultCode, data)) return')
 edit(activity,'if (!instalando && !esperandoTela && !isChangingConfigurations) aplicarIconePendente()',
     'if (!instalando && !esperandoTela && !isChangingConfigurations &&\n            !(BuildConfig.NV_TEST_LOCAL_LOGS && testLocalLogs.isChoosing)) aplicarIconePendente()')
+edit(activity,'    override fun onDestroy() {',
+    '    override fun onDestroy() {\n        if (BuildConfig.NV_TEST_LOCAL_LOGS) testLocalLogs.close()')
 watchdog='android/app/src/main/java/space/nuvio/nativelegacy/ArranqueVigia.kt'
 edit(watchdog,'.setPositiveButton(t("Enviar registro", "Send log"), null)',
-    '.setPositiveButton(if (BuildConfig.NV_TEST_LOCAL_LOGS) "Save log" else t("Enviar registro", "Send log"), null)')
+    '.setPositiveButton(if (BuildConfig.NV_TEST_LOCAL_LOGS) "Test logs" else t("Enviar registro", "Send log"), null)')
 edit(watchdog,'    private fun enviar(motivo: String, linha: String) {',
     '    private fun enviar(motivo: String, linha: String) {\n        if (BuildConfig.NV_TEST_LOCAL_LOGS) { act.salvarRegistroLocal(); return }')
 dest=root/'android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt'
 dest.write_bytes((here/'TestLocalLogs.kt').read_bytes());changed.append(str(dest.relative_to(root)))
+edit('android/app/src/main/res/xml/caminhos_atualizacao.xml', '</paths>',
+    '    <!-- Isolated test APK: only redacted user-selected diagnostic snapshots. -->\n    <cache-path name="test_logs" path="test-local-logs/" />\n</paths>')
 
 edit('src/android.h','void android_iniciar(void);','void android_iniciar(void);\n#ifdef NV_TEST_LOCAL_LOGS\nvoid android_salvar_registro_local(void);\n#endif')
 edit('src/android.c','void android_interface_modo(int mobile) {', '''#ifdef NV_TEST_LOCAL_LOGS
@@ -86,13 +90,13 @@ edit('src/registro_envio.inc','void registro_envio_abrir(void) {',
 edit('src/ajustes.c','int  ajustes_envio_auto(void)         { return lig(AJ_ENVIO_AUTO); }',
     'int  ajustes_envio_auto(void)         {\n#ifdef NV_TEST_LOCAL_LOGS\n  return 0;\n#else\n  return lig(AJ_ENVIO_AUTO);\n#endif\n}')
 edit('src/ajustes.c','static const char *rotuloOpcao(int op) {',
-    'static const char *rotuloOpcao(int op) {\n#ifdef NV_TEST_LOCAL_LOGS\n  if (op == AJ_ENVIAR_LOG) return "Save log to phone";\n  if (op == AJ_ENVIO_AUTO) return "Automatic log upload (disabled for testing)";\n#endif')
+    'static const char *rotuloOpcao(int op) {\n#ifdef NV_TEST_LOCAL_LOGS\n  if (op == AJ_ENVIAR_LOG) return "Test logs";\n  if (op == AJ_ENVIO_AUTO) return "Automatic log upload (disabled for testing)";\n#endif')
 edit('src/ajustes.c','static int inativa(int op) {',
     'static int inativa(int op) {\n#ifdef NV_TEST_LOCAL_LOGS\n  if (op == AJ_ENVIO_AUTO) return 1;\n#endif')
 edit('src/ajustes.c','  if (op == AJ_ENVIAR_LOG) {\n    static char b[48];',
-    '  if (op == AJ_ENVIAR_LOG) {\n#ifdef NV_TEST_LOCAL_LOGS\n    return "Choose a file";\n#endif\n    static char b[48];')
+    '  if (op == AJ_ENVIAR_LOG) {\n#ifdef NV_TEST_LOCAL_LOGS\n    return "View / share / save";\n#endif\n    static char b[48];')
 edit('src/ajustes.c','static const char *ajudaOpcao(int op) {',
-    'static const char *ajudaOpcao(int op) {\n#ifdef NV_TEST_LOCAL_LOGS\n  if (op == AJ_ENVIAR_LOG) return "Save the current and previous session logs to a file on this phone, then attach it in our chat.";\n  if (op == AJ_ENVIO_AUTO) return "This test build keeps logs on your phone. It does not upload them to the app maintainer.";\n#endif')
+    'static const char *ajudaOpcao(int op) {\n#ifdef NV_TEST_LOCAL_LOGS\n  if (op == AJ_ENVIAR_LOG) return "View the current and previous session logs, share a redacted file through an app you choose, or save it on your phone.";\n  if (op == AJ_ENVIO_AUTO) return "This test build keeps logs on your phone. It does not upload them to the app maintainer.";\n#endif')
 edit('src/ajustes_ux_ilha.inc','      y += aj2Meta(i18n("Destino"), env.disponivel ? i18n("servidor de registros do app") : i18n("indisponível nesta versão"), x, y, w, 1);',
     '#ifdef NV_TEST_LOCAL_LOGS\n      y += aj2Meta(i18n("Destino"), "File on this phone", x, y, w, 1);\n#else\n      y += aj2Meta(i18n("Destino"), env.disponivel ? i18n("servidor de registros do app") : i18n("indisponível nesta versão"), x, y, w, 1);\n#endif')
 

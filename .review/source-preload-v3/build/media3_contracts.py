@@ -1,4 +1,4 @@
-"""Frozen V2 runtime contract set; retain every successful V1 contract."""
+"""Keep all 19 Logs4 contracts and require the three test-only log actions."""
 import hashlib
 import json
 from pathlib import Path
@@ -13,6 +13,8 @@ ORIGINAL_TESTS = {
     'nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition',
     'nextEpisodePercentageResumeAndCancellationPreserveCurrentSession',
 }
+LOGS4_TESTS = {'pausedNetworkLoadIsAdoptedWithoutResetOrResolverReplay', 'highBitrateTitleByteReadyMeasuresFirstFrameBeforeAdditionalNetwork', 'nextSeparateAudioHlsMeasuresColdPreferredRenditionAfterWarmDefault', 'resumeMatchReusesPlayerAndMismatchStartsAtCorrectPosition', 'localLogDocumentRequestAndCancelKeepOtherActivityResultsAvailable', 'localLogTailAndSnapshotPreserveCurrentAndPreviousSessions', 'cancelQueuedRequestsAndStaleTokensStaySilent', 'earlyAudioNextHlsLoadsPreferredMediaBeforePlayAndRetainsItsAudioTrack', 'percentageResumeAndCacheAreTransferredAndHeadersMustMatch', 'earlyAudioTitleKeepsMatchingEnglishAndPrimesPortugueseWhileManualOverrideWorks', 'nextEpisodePercentageResumeAndCancellationPreserveCurrentSession', 'localLogRedactionRemovesProviderCredentialsAndKeepsNextState', 'opaqueMultiAudioMkvTitleAutomaticChoiceRetainsPlayerButMeasuresSinkReset', 'audioPreferenceMismatchDiscardsStalePreparedPlayerAndKeepsColdDefaults', 'adoptedPlayerStillSupportsOrdinarySeekAndConfigMismatchFallsBack', 'nextMultiAudioMkvRetainsBufferedPeriodAndMeasuresFirstFrameAndAudioChoice', 'nextEpisodeSamplesLoadWhileCurrentPlayerKeepsPlayingAndTransferOnTransition', 'localLogResultWritesRedactedFileThroughContentResolver', 'hlsPreparationKeepsManifestAndBufferedSegmentsOnAdoption'}
+LOG_ACTION_TESTS = {'localLogViewerIsScrollableSelectableAndReadOnly', 'localLogShareUsesReadOnlyContentUriForFullRedactedFile', 'localLogMenuOffersViewShareAndSaveAndCanBeCancelled'}
 PRELOAD_CLASS = 'space.nuvio.preloadtest.PreloadContractTest'
 STARTUP_CLASS = 'space.nuvio.preloadtest.StartupContractTest'
 STARTUP_FILE = 'probe/src/androidTest/java/space/nuvio/preloadtest/StartupContractTest.kt'
@@ -24,6 +26,7 @@ def load_contracts(path):
     required = set(listed)
     assert len(listed) == len(required), 'Duplicate runtime method names'
     assert ORIGINAL_TESTS <= required, 'An original V1 runtime contract was removed'
+    assert required == LOGS4_TESTS | LOG_ACTION_TESTS and len(required) == 22, 'All old 19 and new three log-action contracts are mandatory'
     startup = set(manifest.get('startup_test_methods', []))
     assert startup and startup <= required and not startup & ORIGINAL_TESTS, 'Expanded startup contracts are required'
     helpers = {entry['path']: entry for entry in manifest['helper_files']}

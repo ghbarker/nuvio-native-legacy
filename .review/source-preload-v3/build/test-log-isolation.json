@@ -6,7 +6,7 @@
   "isolated_delivery_copy": true,
   "standalone_source_root": "/workspace/review/next-countdown-window-fix/source-standalone",
   "combined_product_root": "/workspace/review/next-countdown-window-fix/source-clean-combined",
-  "combined_delivery_root": "/workspace/review/next-countdown-window-fix/build-stage/product-snapshots/combined-delivery",
+  "combined_delivery_root": "/workspace/review/test-log-actions-20261015/build-stage/product-snapshots/combined-delivery",
   "standalone_files": {
     "src/seekrquota.c": {
       "sha256": "87a1025f88024c850f59828e803456fb15f262113ba372814f60f41b45e447b0",
@@ -7245,7 +7245,7 @@
         "mode": "100644"
       },
       "after": {
-        "sha256": "4f0cd793373a29574e187ab02e91839add1e929baeada78a29d1515cde9742dd",
+        "sha256": "d4f445dd348b079baca5f6052aac48a83371b7528814a4aa48c547d42425eed2",
         "mode": "100644"
       }
     },
@@ -7256,7 +7256,7 @@
         "mode": "100644"
       },
       "after": {
-        "sha256": "f6c0d5a19f43f87d3eec215867797cdbdbe9131b27293a57ce0101ac481659ce",
+        "sha256": "e6a873214a86201d9acb70f22afa1232b0e0299673de03bdfbcaf6b24212ed9c",
         "mode": "100644"
       }
     },
@@ -7264,7 +7264,18 @@
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
       "before": null,
       "after": {
-        "sha256": "d660a42febe98cd76daf80eb73612acb64e92ce2298761e43c062d62d78f840e",
+        "sha256": "1d6662f6db1b5e6310dd7a9345d32a66c2a68201a45aad1cf7abae7494ad8376",
+        "mode": "100644"
+      }
+    },
+    {
+      "path": "android/app/src/main/res/xml/caminhos_atualizacao.xml",
+      "before": {
+        "sha256": "d8179ccd6a8764f9c4c5e798f3e07bb5d5ca4f5947b150a172c6167fdd495a65",
+        "mode": "100644"
+      },
+      "after": {
+        "sha256": "42470fa1290e9110ed057e2fadaec0e1216d22de1d8eb693a3b19d227e50d6ef",
         "mode": "100644"
       }
     },
@@ -7275,7 +7286,7 @@
         "mode": "100644"
       },
       "after": {
-        "sha256": "f044f0f5fdc25381ce01469daf7150e93fdc43ff696530afb627787d3c281cd3",
+        "sha256": "0648aba4c877f8cf51db2a0f4272056e5807e9223259885a01cf59907e365a9e",
         "mode": "100644"
       }
     },
@@ -7370,12 +7381,12 @@
   ],
   "overlays": [
     {
-      "helper_path": "/workspace/review/next-countdown-window-fix/build-stage/test-next-trace/apply.py",
+      "helper_path": "/workspace/review/test-log-actions-20261015/build-stage/test-next-trace/apply.py",
       "sha256": "645222d2f3d9a47701f48f960dd84584958da5d4a95683bbf7e2883d7f31bfc0"
     },
     {
-      "helper_path": "/workspace/review/next-countdown-window-fix/build-stage/test-local-logs/apply.py",
-      "sha256": "dae3182b473e5abc0886000e3d64f26e5c141df209c11a3de34b962c0c658971"
+      "helper_path": "/workspace/review/test-log-actions-20261015/build-stage/test-local-logs/apply.py",
+      "sha256": "f1ea933583d189810d0c5e8021720e382414acf20946b01e22eb0206553f3109"
     }
   ],
   "github_writes": false

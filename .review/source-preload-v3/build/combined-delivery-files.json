@@ -1,6 +1,6 @@
 {
   "base": "17b7769dac4273557e1b07f5fb8734df91dd718f",
-  "source_root": "/workspace/review/next-countdown-window-fix/build-stage/product-snapshots/combined-delivery",
+  "source_root": "/workspace/review/test-log-actions-20261015/build-stage/product-snapshots/combined-delivery",
   "files": [
     {
       "path": "README.md",
@@ -26,9 +26,9 @@
     {
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/ArranqueVigia.kt",
       "mode": "100644",
-      "sha": "802112335583a2aa8f937518fae8da93a695dcc0",
-      "sha256": "4f0cd793373a29574e187ab02e91839add1e929baeada78a29d1515cde9742dd",
-      "bytes": 10638
+      "sha": "72cac05e653f1ee4eac9dde47bfe33446bc7caaf",
+      "sha256": "d4f445dd348b079baca5f6052aac48a83371b7528814a4aa48c547d42425eed2",
+      "bytes": 10639
     },
     {
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
@@ -40,9 +40,9 @@
     {
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
       "mode": "100644",
-      "sha": "1e2a4727098e791a7345f746346f939c45f81c6e",
-      "sha256": "f6c0d5a19f43f87d3eec215867797cdbdbe9131b27293a57ce0101ac481659ce",
-      "bytes": 55239
+      "sha": "191c6b8d617d06b0133a2701047b32392b939c0d",
+      "sha256": "e6a873214a86201d9acb70f22afa1232b0e0299673de03bdfbcaf6b24212ed9c",
+      "bytes": 55305
     },
     {
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
@@ -54,9 +54,16 @@
     {
       "path": "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
       "mode": "100644",
-      "sha": "f93321cfb89b0f94455c3b9599215446eaf1bffc",
-      "sha256": "d660a42febe98cd76daf80eb73612acb64e92ce2298761e43c062d62d78f840e",
-      "bytes": 5250
+      "sha": "cff84d34bb2ec287e973f849d9dd291d18f55f5a",
+      "sha256": "1d6662f6db1b5e6310dd7a9345d32a66c2a68201a45aad1cf7abae7494ad8376",
+      "bytes": 9978
+    },
+    {
+      "path": "android/app/src/main/res/xml/caminhos_atualizacao.xml",
+      "mode": "100644",
+      "sha": "fe35a845cf531275689dd883fd2dc2bdc0274cbb",
+      "sha256": "42470fa1290e9110ed057e2fadaec0e1216d22de1d8eb693a3b19d227e50d6ef",
+      "bytes": 397
     },
     {
       "path": "docs/android/INTERFACE-MODES.md",
@@ -110,9 +117,9 @@
     {
       "path": "src/ajustes.c",
       "mode": "100644",
-      "sha": "c833483a696307f94b03c025b29552a7b17c0ce0",
-      "sha256": "f044f0f5fdc25381ce01469daf7150e93fdc43ff696530afb627787d3c281cd3",
-      "bytes": 479135
+      "sha": "669b33b17cda4f0f2d4c35a1fe1f14c950d96bb2",
+      "sha256": "0648aba4c877f8cf51db2a0f4272056e5807e9223259885a01cf59907e365a9e",
+      "bytes": 479156
     },
     {
       "path": "src/ajustes.h",

@@ -24,7 +24,36 @@ package = 'space.nuvio.nativelegacy.touch' if args.test else 'space.nuvio.native
 assert re.search(r"^package: name='" + re.escape(package) + "'", badging, re.M)
 if args.test:
     assert re.search(r"^application-label:'Nuvio TV/Mobile Test'", badging, re.M)
-    assert "versionCode='20014'" in badging and "versionName='2.0.14-test-logs4'" in badging
+    assert "versionCode='20015'" in badging and "versionName='2.0.15-test-logs5'" in badging
+log_provider = None
+if args.test:
+    # Verify the compiled authority after the existing compatible-app identity
+    # transform, rather than trusting only the source manifest replacement.
+    manifest_xml = subprocess.check_output([args.aapt, 'dump', 'xmltree', str(apk), 'AndroidManifest.xml'], text=True)
+    lines = manifest_xml.splitlines()
+    providers = []
+    for index, line in enumerate(lines):
+        match = re.match(r'^(\s*)E: provider\b', line)
+        if not match:
+            continue
+        indent = len(match.group(1))
+        end = next((i for i in range(index + 1, len(lines))
+                    if re.match(r'^\s*E:', lines[i]) and len(lines[i]) - len(lines[i].lstrip()) <= indent), len(lines))
+        providers.append('\n'.join(lines[index:end]))
+    authority = package + '.atualizacao'
+    matches = [block for block in providers if re.search(r'android:authorities[^\n]*="' + re.escape(authority) + r'"', block)]
+    assert len(matches) == 1, ('Compiled FileProvider authority mismatch', authority)
+    block = matches[0]
+    assert 'androidx.core.content.FileProvider' in block
+    assert re.search(r'android:exported[^\n]*\(type\s+0x12\)0x0\b', block)
+    assert re.search(r'android:grantUriPermissions[^\n]*\(type\s+0x12\)0x(?:ffffffff|1)\b', block)
+    assert 'android.support.FILE_PROVIDER_PATHS' in block
+    paths_xml = subprocess.check_output([args.aapt, 'dump', 'xmltree', str(apk), 'res/xml/caminhos_atualizacao.xml'], text=True)
+    assert len(re.findall(r'E: cache-path\b', paths_xml)) == 1
+    assert 'name="test_logs"' in paths_xml and 'path="test-local-logs/"' in paths_xml
+    assert not re.search(r'E: (?:root-path|external-path|external-cache-path)\b', paths_xml)
+    log_provider = {'authority': authority, 'nonexported': True,
+                    'read_grants_supported': True, 'bounded_test_cache_path': True}
 signing = subprocess.check_output([args.apksigner, 'verify', '--verbose', '--print-certs', str(apk)], text=True)
 assert 'Signer #1 certificate SHA-256 digest: ' + CERT in signing
 with zipfile.ZipFile(apk) as archive:
@@ -44,8 +73,9 @@ proof = {**source, 'apk_sha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
          'abis': ['arm64-v8a', 'armeabi-v7a'], 'certificate_sha256': CERT,
          'native_page_packaging': 'passed', 'test_package': args.test}
 if args.test:
-    proof.update(label='Nuvio TV/Mobile Test', version_code=20014, version_name='2.0.14-test-logs4')
+    proof.update(label='Nuvio TV/Mobile Test', version_code=20015, version_name='2.0.15-test-logs5')
     proof['test_local_logs_enabled'] = source['case'] == 'combined-delivery'
+    proof['log_file_provider'] = log_provider
 output = Path('build/review/update-identity.json' if args.test else 'build/review/standard-identity.json')
 output.write_text(json.dumps(proof, indent=2) + '\n')
 print('Verified', package, 'both ARM cores, persistent certificate, 16 KB packaging:', proof['apk_sha256'])
