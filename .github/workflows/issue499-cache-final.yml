@@ -1,0 +1,105 @@
+{
+  "name": "Cache #499: verify immutable producer origins and publish clean source",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue499-cache-final-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "issue499-origins-${{ github.sha }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "CACHE_PLAN_SHA256": "576567ebb4340a2d060d09045cc9e88e8d691db3a5df9b8d70c801d2f5a262d6",
+    "CACHE_ORIGIN_LOCK_SHA256": "efba1af445faadbb43a761fb2bd446362d3802b86013327549fdfab7e62e8110"
+  },
+  "jobs": {
+    "all_gates": {
+      "name": "Strict artifact validation with four retained and one fresh native origin",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact successful origin jobs and original artifact assertions",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/issue499-final/aggregate_origins.py --output final"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue499-origin-gates-${{ github.sha }}",
+            "path": "final/all-gates-verified.json\nfinal/*-validation/*.json\nfinal/*-validation/*.py",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    },
+    "source_ref": {
+      "name": "Publish new issue499 source after strict origin gates",
+      "needs": [
+        "all_gates"
+      ],
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "permissions": {
+        "contents": "write",
+        "actions": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/download-artifact@v4",
+          "with": {
+            "name": "issue499-origin-gates-${{ github.sha }}",
+            "path": "incoming"
+          }
+        },
+        {
+          "name": "Recreate exact clean product source",
+          "run": "python3 .review/issue499-final/materialize.py --target source-app --proof results/source-verified.json"
+        },
+        {
+          "name": "Require strict exact-origin gates before non-force source publication",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}",
+            "GH_REPO": "${{ github.repository }}"
+          },
+          "run": "python3 .review/issue499-final/publish_source.py --source source-app --proof results/source-verified.json --gate incoming/all-gates-verified.json --output results/source-ref-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue499-source-ref-${{ github.sha }}",
+            "path": "results/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

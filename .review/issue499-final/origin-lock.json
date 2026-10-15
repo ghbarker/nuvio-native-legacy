@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "source_commit": "99f1ae66f139ba9cc384bef4f4cc00c17e2d77f7",
+  "source_tree": "a9b052c1d07e73e25b391cea6fbc74b95c4e5d5d",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_manifest_sha256": "0b01e13caa70b8818e36325463a6630bb72669eb50834df1f0531adb36de3a89",
+  "final_branch": "review/issue499-cache-final-20261015",
+  "excluded_failed_native": {
+    "run_id": 38782016530,
+    "review_commit": "65db3ec819474a23757436f0dda887ae04554c06",
+    "job_id": 116584377737,
+    "conclusion": "failure"
+  },
+  "additional_excluded_failed_native": [],
+  "strict_aggregate_sha256": "228af3f72351bf2443232b6041188009beed54ef3ce7a298449d44a16e2b618b",
+  "origins": [
+    {
+      "directory": "issue499-origin",
+      "run_id": 38782016530,
+      "run_attempt": 1,
+      "review_commit": "65db3ec819474a23757436f0dda887ae04554c06",
+      "review_tree": "b5078de30dc2d19c9515d5292dcee601969f2224",
+      "branch": "review/issue499-cache-20261015",
+      "workflow_path": ".github/workflows/issue499-cache-review.yml",
+      "plan_sha256": "6a4e5274fbf8424b37aba6f9ba27ba71c60ab088bd08b4b9fa0303de3023c520",
+      "required_conclusion": "failure",
+      "producer_scopes": [
+        "fontepref",
+        "fontepref_file",
+        "player_retido",
+        "android"
+      ],
+      "producers": [
+        {
+          "scope": "fontepref",
+          "job_id": 116584377809,
+          "job_name": "Original full-source fontepref normal + ASan/UBSan",
+          "artifact": {
+            "id": 11995474645,
+            "name": "issue499-fontepref-65db3ec819474a23757436f0dda887ae04554c06",
+            "bytes": 27345,
+            "sha256": "71a6b201bf22a26ef4d746ae83ab9671f29be02b2f037b263b275018b79337db"
+          }
+        },
+        {
+          "scope": "fontepref_file",
+          "job_id": 116584377890,
+          "job_name": "Original full-source fontepref_file normal + ASan/UBSan",
+          "artifact": {
+            "id": 11997501624,
+            "name": "issue499-fontepref_file-65db3ec819474a23757436f0dda887ae04554c06",
+            "bytes": 25441,
+            "sha256": "8cf13f2f90ca78c5afe77b09ba64ba903c1ec8bb5a9bc3dbb862be0963d5299a"
+          }
+        },
+        {
+          "scope": "player_retido",
+          "job_id": 116584377636,
+          "job_name": "Original full-source player_retido normal + ASan/UBSan",
+          "artifact": {
+            "id": 11997636994,
+            "name": "issue499-player_retido-65db3ec819474a23757436f0dda887ae04554c06",
+            "bytes": 20578,
+            "sha256": "46e672957897736e26ebe801e607d57ad90a6ec428391e7f200d737314916855"
+          }
+        },
+        {
+          "scope": "android",
+          "job_id": 116584377605,
+          "job_name": "Standard Android ARM32/ARM64 APK, actual JNI/DEX and 16KB pages",
+          "artifact": {
+            "id": 11996068696,
+            "name": "issue499-android-65db3ec819474a23757436f0dda887ae04554c06",
+            "bytes": 54117974,
+            "sha256": "fbcfa157a4679b63ccfd63898d17a9a4b36778142bc204b4361109eb84ceae33"
+          }
+        }
+      ]
+    },
+    {
+      "directory": "issue499-native",
+      "run_id": 38788484010,
+      "run_attempt": 1,
+      "review_commit": "0aa010d757ce4d086bdda2fef536c506f068e2f6",
+      "review_tree": "7354b3189e89dfb69ca7a303e3cce85c443758a9",
+      "branch": "review/issue499-cache-native-v2-20261015",
+      "workflow_path": ".github/workflows/issue499-cache-native-v2.yml",
+      "plan_sha256": "1eeb9a5f374618a3c6763e103f78b98d2cd5ea89a10a095eb29c59046f785585",
+      "required_conclusion": "success",
+      "producer_scopes": [
+        "native"
+      ],
+      "producers": [
+        {
+          "scope": "native",
+          "job_id": 116606569373,
+          "job_name": "Fresh macOS TV/Mobile apps and cache truth normal + sanitizers",
+          "artifact": {
+            "id": 11999920448,
+            "name": "issue499-native-0aa010d757ce4d086bdda2fef536c506f068e2f6",
+            "bytes": 12764415,
+            "sha256": "1a63a35c02c8c35744e1e4f136bdf85c837ef4d1d650c03d58ec078f0a806233"
+          }
+        }
+      ]
+    }
+  ],
+  "scope": "Four unchanged successful original producers retained under their real immutable origin; one fresh complete native producer after fixture-only Darwin LeakSanitizer correction. Failed native origin excluded."
+}

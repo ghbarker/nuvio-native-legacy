@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "feature": "approved-issue499-final-origin-validation",
+  "base": "d156e650eb01783713cb7812394f620b68be5895",
+  "source_commit": "99f1ae66f139ba9cc384bef4f4cc00c17e2d77f7",
+  "source_tree": "a9b052c1d07e73e25b391cea6fbc74b95c4e5d5d",
+  "source_manifest_sha256": "0b01e13caa70b8818e36325463a6630bb72669eb50834df1f0531adb36de3a89",
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "required_jobs": [
+    "native",
+    "fontepref",
+    "fontepref_file",
+    "player_retido",
+    "android"
+  ],
+  "source_ref": "refs/heads/feat/source-cache-readiness-499-20261015",
+  "source_ref_after_success": true,
+  "producer_execution": "Four exact successful producers in original run; fresh complete native producer in v2; original failures excluded",
+  "recipe_inputs": {
+    "aggregate_origins.py": "fc7f007f357acc5706879da4860e33bf684bc6df0287162e0d655ec320d34f8e",
+    "commit-chain/0.patch": "a5ba55df7f890e5bc6776965075cfec5f3ac7b7c50cbe0ec1ec8f8e201783883",
+    "commit-chain/0.txt": "604294d8cedb900a283dd4f6938b4132ef09c1b34306887e0aa0f633f5584578",
+    "commit-chain/1.patch": "56df3ba8356d0401bf74f136b51fddb3173d06e069cdb32c4567f8a50bb50cfe",
+    "commit-chain/1.txt": "334d436355caeb320e9850d253a34dc254f5436f16b8faaefd7ca1def6990a00",
+    "commit-chain/2.patch": "35213d523412d773955e17339c7fd6732f946e8b10402f42cf55ab3799d1d730",
+    "commit-chain/2.txt": "0868cd620898e753a8f37443b66a1d908ebcda3c1ba97ed2987559c972e5c1a9",
+    "common.py": "0a69ae8a00f0f5208a8ee9b165d290de9a51f0cfa23332239c1feaff33ef59d0",
+    "materialize.py": "c163cbb4588d025c119dc5c158c8672a673637e72db11701eada9b46d24726b5",
+    "origin-lock.json": "efba1af445faadbb43a761fb2bd446362d3802b86013327549fdfab7e62e8110",
+    "publish_source.py": "582f6bcbc1fea9958b69da2824774b3398a5a2187afe2a78ce040f391536b87e",
+    "source-manifest.json": "0b01e13caa70b8818e36325463a6630bb72669eb50834df1f0531adb36de3a89"
+  }
+}

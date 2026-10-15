@@ -1,0 +1,6 @@
+tree 9e63ab6324f108e15d932b4f63e350c8986d0213
+parent d156e650eb01783713cb7812394f620b68be5895
+author ghbarker <ghbarker@users.noreply.github.com> 1792031950 +0000
+committer Grant Barker <granthbarker@gmail.com> 1792086760 +0000
+
+sources: show cached-ready debrid indicator in the source list
