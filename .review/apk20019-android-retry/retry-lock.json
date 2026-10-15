@@ -1,0 +1,101 @@
+{
+  "format": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "plan_sha256": "a5198e61b5f3d9c998de95000e4c2b9b43a9bbfeceac90a6d66d72a6d947595e",
+  "sources": {
+    "product": {
+      "commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+      "tree": "03980d7707a30d112cf9b22f090cf4fab9a6e4dd"
+    },
+    "test": {
+      "commit": "efff065b63bb1234718ca20999265612bacb50b4",
+      "tree": "db298030e77e126831f34139866067acbbb3aff3"
+    }
+  },
+  "retained_run_id": 38687834181,
+  "retained_review_commit": "a91e4a3d91481222222f69cec1a38164015c6e91",
+  "retained": [
+    {
+      "scope": "native",
+      "job_id": 116266667248,
+      "job_name": "Complete macOS TV/Mobile + actual changed native contracts",
+      "artifact": {
+        "id": 11950884763,
+        "name": "apk20019-native-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "77b3dca21d284e72ef02d086cb460f1f92186bd4eed1f64195155f6a7fac9f5b",
+        "bytes": 102208891
+      }
+    },
+    {
+      "scope": "original-fontepref",
+      "job_id": 116266667273,
+      "job_name": "Original complete fontepref normal + ASan/UBSan",
+      "artifact": {
+        "id": 11950044364,
+        "name": "apk20019-original-fontepref-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "6c7f25732e03d0394e7ed71fe0a5e77b4003dff1e2a214919d41d9f2de11d01d",
+        "bytes": 28430
+      }
+    },
+    {
+      "scope": "original-fontepref_file",
+      "job_id": 116266667105,
+      "job_name": "Original complete fontepref_file normal + ASan/UBSan",
+      "artifact": {
+        "id": 11950559788,
+        "name": "apk20019-original-fontepref_file-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "b569d714de5d2485f924bfa9b81d03cd6a40a3ada3d01d1a71c24f76b1d33515",
+        "bytes": 26577
+      }
+    },
+    {
+      "scope": "original-player_retido",
+      "job_id": 116266666810,
+      "job_name": "Original complete player_retido normal + ASan/UBSan",
+      "artifact": {
+        "id": 11950824521,
+        "name": "apk20019-original-player_retido-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "c5510ec93d8a50b1775123c205812dcd44156b4785344aa7c39fb045254a5831",
+        "bytes": 21736
+      }
+    },
+    {
+      "scope": "jvm",
+      "job_id": 116266667219,
+      "job_name": "Fresh32 JVM helpers +15 real Media3 contracts",
+      "artifact": {
+        "id": 11951230196,
+        "name": "apk20019-jvm47-a91e4a3d91481222222f69cec1a38164015c6e91",
+        "sha256": "2bf2ef11de69b1d11353a536625022b8825e5b37f94979d2bf27478ef5c2579f",
+        "bytes": 2183920
+      }
+    }
+  ],
+  "excluded_failed_android": {
+    "job_id": 116266667061,
+    "artifact_id": 11950529600,
+    "run_id": 38687834181,
+    "outcome": "failure",
+    "reuse_as_pass": false
+  },
+  "original_aggregate_sha256": "4eca0688e270399a6bbdbd06a8968d43dae80e1993d9ccc0a5e89053f258689e",
+  "original_script_sha256": {
+    "aggregate.py": "4eca0688e270399a6bbdbd06a8968d43dae80e1993d9ccc0a5e89053f258689e",
+    "android/run.py": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f",
+    "android/verify_apk.py": "265358d322fefbe6645ac985b0a5268c4a6b8aa5a4752adcda0379f04e70b113",
+    "android/recipe-manifest.json": "00e7ec90d7cc94af7790d3ab5a13ab41f3f1fe709ff70269f47f1aa11c29efa8",
+    "require_plan.py": "195e98b900f1838648b3558de26442b44c1f6d098328e1204f20b2e397b677dd"
+  },
+  "retry_script_sha256": {
+    "apk20019/android/verify_apk_retry.py": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b",
+    "apk20019/android/run_retry.py": "e797c525d39b57efae557b8da6d10545606c1e1785dff920807111a722ba4bdd",
+    "apk20019-android-retry/aggregate_retry.py": "ebb1dfe1c51bce2c0e4b52de87671b1c65e97e8c01da5e22656a0058de1a4d93",
+    "apk20019-android-retry/check_recipe.py": "5ea83fb48be705ba0cdf4428c0a7a3cea5354f653e97cf3835d210767b6469de"
+  },
+  "fresh_android_job_name": "APK20019 clean product and compatible test APK (ARM32/ARM64)",
+  "correction": "Public source has no private CMake option, so cache entry must be absent. Private remains exactly BOOL=ON with actual compiled opt-in and DEX.",
+  "no_product_source_or_plan_changes": true,
+  "no_publication_or_reference_actions": true
+}

@@ -1,0 +1,28 @@
+--- verify_apk.py
++++ verify_apk_retry.py
+@@ -98,8 +98,12 @@
+   assert changed<=set(main),'Changed native units are absent from actual ARM compile commands: '+str(sorted(changed-set(main)))
+   assert reports=={True},'Original Send logs endpoint must be configured'
+   cache=cache_for_commands(s,f,abi,json.loads(f.read_text()))
+-  expected='ON' if test else 'OFF'
+-  assert re.search(r'^NV_TEST_LOCAL_LOGS:[^=\n]+='+expected+r'\s*$',cache.read_text(),re.M)
++  entries=[line for line in cache.read_text().splitlines() if re.match(r'^\s*NV_TEST_LOCAL_LOGS(?=[:=]|$)',line)]
++  if test:
++   assert entries==['NV_TEST_LOCAL_LOGS:BOOL=ON'],'Private build requires exactly one explicit BOOL=ON cache entry'
++  else:
++   assert 'NV_TEST_LOCAL_LOGS' not in cmake,'Product CMake must not declare private diagnostics'
++   assert not entries,'Product cache must not contain the private diagnostics option'
+   records.append({'compile_commands_sha256':file_sha(f),'main_sources':len(main),'report_endpoint_configured':True,'private_native_opt_in':test})
+  assert records,'Missing actual full native compile proof: '+abi;arms.append({'abi':abi,'builds':records})
+ # Recheck every permitted CI mutation and all other manifest files after compilation.
+--- run.py
++++ run_retry.py
+@@ -31,7 +31,7 @@
+ version=json.loads((s/'deploy/app/appinfo.json').read_text())['version'];built=s/'build/android'/('Nuvio-'+version+'-android-debug.apk');assert built.is_file()
+ name=('Nuvio-'+plan['identity']['version_name']+'-tv-mobile-test.apk') if a.layer=='test' else built.name
+ apk=out/name;shutil.copy2(built,apk)
+-run([sys.executable,str(here/'verify_apk.py'),*common,'--transforms',str(transform),'--apk',str(apk),'--aapt',str(tools/'aapt'),'--apksigner',str(tools/'apksigner'),'--output',str(out/'android-verified.json')])
++run([sys.executable,str(here/'verify_apk_retry.py'),*common,'--transforms',str(transform),'--apk',str(apk),'--aapt',str(tools/'aapt'),'--apksigner',str(tools/'apksigner'),'--output',str(out/'android-verified.json')])
+ run([sys.executable,str(here/'prepare_source.py'),*common,'--output',str(transform),'--restore'])
+ _,_,_,git=binding(s,a.source_proof,a.layer);assert not git('status','--porcelain')
+ record={'verified':True,'layer':a.layer,'source_commit':proof['source_commit'],'tree':proof['tree'],'review_commit':proof['review_commit'],'plan_sha256':file_sha(here.parent/'plan.json'),'source_proof_sha256':file_sha(a.source_proof),'source_restored_clean':True,'apk_sha256':file_sha(apk),'apk_name':name,'verification_sha256':file_sha(out/'android-verified.json'),'ci_only_transforms_sha256':file_sha(transform),'fresh_build_of_both_arms':True,'prior_apk_proofs_reused':False,'no_dispatch_release_upload_or_backend_actions':True}

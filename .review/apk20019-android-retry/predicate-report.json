@@ -1,0 +1,93 @@
+{
+  "outcome": "passed",
+  "scope": "Twelve focused actual metadata-predicate cases only; no Android/product build or test execution. All frozen originals unchanged.",
+  "product_source_commit": "84e07919b57efd36acbbd71ec9ce53f20ea67c17",
+  "test_source_commit": "efff065b63bb1234718ca20999265612bacb50b4",
+  "plan_sha256": "a5198e61b5f3d9c998de95000e4c2b9b43a9bbfeceac90a6d66d72a6d947595e",
+  "files": {
+    "verify_apk_retry.py": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b",
+    "run_retry.py": "e797c525d39b57efae557b8da6d10545606c1e1785dff920807111a722ba4bdd",
+    "predicate-cases.py": "46e26b300e009d9d6c5d31218ac1d3fa77e45e4c0715275f6169338823ec89bc",
+    "narrow.diff": "3110781923d594ccca283dea5f9b33b920de8bab746f1f906e87a553bf6631b1",
+    "source-pins.json": "a9e461b201124bc0657680f3d9bd14aeb00094ef0a05b00b286bf45207a0e331"
+  },
+  "original_files": {
+    "verify_apk.py": "265358d322fefbe6645ac985b0a5268c4a6b8aa5a4752adcda0379f04e70b113",
+    "run.py": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f"
+  },
+  "only_changes": "Cache predicate and verifier invocation filename",
+  "cases": [
+    {
+      "case": "product absent",
+      "expected_acceptance": true,
+      "actual_acceptance": true,
+      "passed": true
+    },
+    {
+      "case": "product ON",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "product OFF",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "product unknown",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "product duplicate",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "product malformed bare key",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "test exactly one BOOL ON",
+      "expected_acceptance": true,
+      "actual_acceptance": true,
+      "passed": true
+    },
+    {
+      "case": "test OFF",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "test absent",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "test non-BOOL ON",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "test duplicate",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    },
+    {
+      "case": "test unknown",
+      "expected_acceptance": false,
+      "actual_acceptance": false,
+      "passed": true
+    }
+  ]
+}

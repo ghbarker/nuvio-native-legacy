@@ -1,0 +1,12 @@
+{
+  "verify_apk_retry.py": {
+    "original_path": "/workspace/review/integration-apk20019-20261015/build-stage/android/verify_apk.py",
+    "original_sha256": "265358d322fefbe6645ac985b0a5268c4a6b8aa5a4752adcda0379f04e70b113",
+    "retry_sha256": "395636936929fa95616e4c00264a74fb8cd034d3c96f4eecef1394663c8d800b"
+  },
+  "run_retry.py": {
+    "original_path": "/workspace/review/integration-apk20019-20261015/build-stage/android/run.py",
+    "original_sha256": "d67c5d54a039f20aadd253a75d76fcb6ac4da645120d48b3f31a39a7d10b674f",
+    "retry_sha256": "e797c525d39b57efae557b8da6d10545606c1e1785dff920807111a722ba4bdd"
+  }
+}
