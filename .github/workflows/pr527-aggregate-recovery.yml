@@ -1,0 +1,57 @@
+{
+  "name": "PR527 final exact-source aggregate with seven retained successful producers",
+  "on": {
+    "push": {
+      "branches": [
+        "review/pr527-aggregate-recovery-20261015"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "pr527-aggregate-recovery-${{ github.sha }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "COLLECTION_PLAN_SHA256": "4a07afd5cd17ead9540ceb0400ea842bc75a98cb9aefca99ced4a16e518cfd43",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "jobs": {
+    "all_gates": {
+      "name": "Verify all seven successful actual producer origins and raw assertions",
+      "if": "always()",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Require all seven actual successful source-bound producer origins and raw proofs",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/pr527-recovery/aggregate.py --input \"$GITHUB_WORKSPACE/incoming\" --output final/all-gates-verified.json"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "pr527-final-all-gates-${{ github.sha }}",
+            "path": "final/",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
