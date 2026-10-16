@@ -169,7 +169,6 @@ uint64_t perfis_sessao_geracao(void) { return 1; }
 int perfis_sessao_atual(uint64_t s) { return s == 1; }
 int perfis_sessao_travar(uint64_t s) { return s == 1; }
 void perfis_sessao_destravar(void) {}
-int ajustes_ocultar_filmes_vistos(void) { return 0; }
 int trakt_enfeitar_lote_sessao(CatItem *s, int n, uint64_t sessao) {
   (void)sessao; (void)s; (void)n; return 0;
 }
