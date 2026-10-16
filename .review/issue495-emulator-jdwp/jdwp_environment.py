@@ -164,6 +164,7 @@ def launch_with_guest_environment(package, component, output, label):
         os.set_blocking(jdb.stdout.fileno(), False)
         selector.register(jdb.stdout, selectors.EVENT_READ)
         initial = read_until(r'(?:^|\n)(?:[^\n]*\[[0-9]+\]\s*|>\s*)\Z')
+        explicitly_suspended = False
         if initial.rstrip().endswith('>'):
             # Stop the normally waiting Java VM before arming the deferred
             # lifecycle breakpoint, so an asynchronous onStart hit cannot be
@@ -172,6 +173,7 @@ def launch_with_guest_environment(package, component, output, label):
             require_no_error(suspended)
             if 'All threads suspended' not in suspended:
                 raise RuntimeError('JDB did not acknowledge pre-breakpoint suspension')
+            explicitly_suspended = True
         reply = command('stop in ' + BREAKPOINT)
         require_no_error(reply)
         if 'Deferring breakpoint' not in reply and 'Set breakpoint' not in reply:
@@ -179,8 +181,9 @@ def launch_with_guest_environment(package, component, output, label):
         # Some JDWP clients suspend the VM on attach; others attach while
         # Debug.waitForDebugger is running. The breakpoint must hit in either case.
         before_continue = len(transcript)
-        receipt['commands'].append('cont')
-        jdb.stdin.write(b'cont\n')
+        startup_command = 'resume' if explicitly_suspended else 'cont'
+        receipt['commands'].append(startup_command)
+        jdb.stdin.write((startup_command + '\n').encode())
         jdb.stdin.flush()
         hit = read_until(r'Breakpoint hit:[^\n]*org\.libsdl\.app\.SDLActivity\.onStart',
                          before_continue, timeout=45)
