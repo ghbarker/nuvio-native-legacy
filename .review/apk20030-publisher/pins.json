@@ -1,0 +1,46 @@
+{
+  "format": 2,
+  "frozen_pins_ready": true,
+  "root_publication_approved": true,
+  "source_commit": "be1183f7dde83d8c8b5b9c0881537d0e4b814f0f",
+  "source_tree": "6e781c637dfce1857e6ce631d7f1cd6c69c7dcac",
+  "review_commit": "9b66c62c6f7dee87c7f3b609e49d4a3ea7fc175b",
+  "review_tree": "ab15bdcc53429f9c16ca6926c8c7559fb56f7833",
+  "plan_sha256": "b33ce2c368e93d6e5b1d7041737e028173f4dae7826d58e6b582e2485f6e6b13",
+  "run_id": 38847793221,
+  "run_attempt": 1,
+  "job": {
+    "id": 116802137417,
+    "name": "APK20030 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_artifact": {
+    "id": 12024640848,
+    "name": "apk20030-android-apk-9b66c62c6f7dee87c7f3b609e49d4a3ea7fc175b",
+    "bytes": 54448641,
+    "sha256": "d4c99df9d4385021f5f04a3c4db46a578ab65a15697229dd84625a300b439645"
+  },
+  "proof_artifact": {
+    "id": 12024098693,
+    "name": "apk20030-android-proof-9b66c62c6f7dee87c7f3b609e49d4a3ea7fc175b",
+    "bytes": 23658,
+    "sha256": "a6aed6b8a42a9be3df83cba673fa37a0551c891cac8d3f8bd4742a8368688905"
+  },
+  "apk_bytes": 59110672,
+  "apk_sha256": "8a826174b2035a65a0c280500af79b2345ac73ef464c5a251dc357b625df7c8c",
+  "validation_sha256": "b5d6755fe0818a4874b418b0f50601be7da9d3c7e671384afa5af845ab006ef1",
+  "build_receipt_sha256": "ba0e3a77e8a6c570d24899b2a9c124c31e2d55ab951d66ebd78b8b583298cfb6",
+  "apk_verification_sha256": "33cf33a9888c1738932d46fce0d16417ae75450c848baa91553806cb9ecd0d24",
+  "source_proof_sha256": "2f050694f932545ffc2f8e8ca23e938f136e2abe3a5c7287fd179c415e433cf6",
+  "product_commit": "1bd7d359150a0eeeba9a9b4878d42fe36f22a56e",
+  "product_tree": "22e6cf717ee24a12b6748fcd2546710ba14422be",
+  "composition_sha256": "eb5bba420f7573bb852503ab109c225d3b61d55d8e49f9a87ed521c1856c4cfd",
+  "public_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec",
+    "495": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6"
+  }
+}

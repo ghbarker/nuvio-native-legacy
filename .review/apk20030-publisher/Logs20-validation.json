@@ -1,0 +1,38 @@
+{
+  "source_commit": "be1183f7dde83d8c8b5b9c0881537d0e4b814f0f",
+  "source_tree": "6e781c637dfce1857e6ce631d7f1cd6c69c7dcac",
+  "review_commit": "9b66c62c6f7dee87c7f3b609e49d4a3ea7fc175b",
+  "run_id": 38847793221,
+  "run_attempt": 1,
+  "plan_sha256": "b33ce2c368e93d6e5b1d7041737e028173f4dae7826d58e6b582e2485f6e6b13",
+  "job": {
+    "id": 116802137417,
+    "name": "APK20030 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "8a826174b2035a65a0c280500af79b2345ac73ef464c5a251dc357b625df7c8c",
+  "apk_bytes": 59110672,
+  "build_receipt_sha256": "ba0e3a77e8a6c570d24899b2a9c124c31e2d55ab951d66ebd78b8b583298cfb6",
+  "apk_verification_sha256": "33cf33a9888c1738932d46fce0d16417ae75450c848baa91553806cb9ecd0d24",
+  "source_proof_sha256": "2f050694f932545ffc2f8e8ca23e938f136e2abe3a5c7287fd179c415e433cf6",
+  "composition_sha256": "eb5bba420f7573bb852503ab109c225d3b61d55d8e49f9a87ed521c1856c4cfd",
+  "public_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec",
+    "495": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6"
+  },
+  "all_passed": true,
+  "previous_results_count_as_fresh": false,
+  "all_seven_public_heads_in_product": true,
+  "private_overlay_unchanged_except_version": true,
+  "product_tests_preserved_in_private": true,
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 316,
+  "workspace_before_sha256": "7ee02fe856765653ba8daf8366849c105c26567eca75cf2e9825894d3fd4391a",
+  "workspace_after_sha256": "7750fda6ef6289a58b2f67d573c0dacaba2bb5a8942f69b7d2ffc5f9f07c650a",
+  "independent_proof_verification_sha256": "b1e2f1ffa7226b86d4baaeed34cbe197cf3de4f52dba1a4aa26c9f9646d61181",
+  "scope": "One fresh combined-source ARM32/ARM64 Android build and real APK verification. Public regression test sources are retained; individual PR runtime checks remain separately attributed. No physical-device result or old APK is relabelled as this build. No APK was downloaded locally; the isolated publication job verifies artifact and release bytes."
+}
