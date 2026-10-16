@@ -4001,6 +4001,7 @@ static void atualizarFolha(float dt, Uint32 agora) {
 }
 
 void app_atualizar(float dt, Uint32 agora) {
+  ajustes_fontes_atualizar();
   relogioFocoValidar();
   // Explicit card/Agenda intents are created and consumed within this pass.
   // A canceled/open-player action must not be inherited by a later opening.

@@ -48,6 +48,8 @@ int android_instalar_apk(const char *caminho);
 int  android_st_teclado(const char *inicial, int max);
 int  android_st_ditar(const char *idioma);
 void android_st_fechar(void);
+int android_importar_fonte(int slot);
+int android_fonte_evento(char *dst, size_t n);
 int  android_st_evento(char *dst, size_t n);
 // ONDE ASSISTIR (ondever.c). Lista: "pacote\tnome" por linha, malloc (free
 // pelo chamador), NULL se falhou. Abrir/loja: 1 = abriu.

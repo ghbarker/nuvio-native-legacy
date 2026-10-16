@@ -2,6 +2,7 @@
 #include <unistd.h>   // access (fontes de /system/fonts)
 #endif
 #include "text.h"
+#include "legfontes.h"
 #include "dobra.h"
 #include "idioma.h"
 #include "ajustes.h"
@@ -702,8 +703,47 @@ static void fdEsquecer(void) { memset(fdMem, 0, sizeof fdMem); memset(lgMem, 0, 
 //      ultimo a CJK embarcada (DroidSansFallback-Subset.ttf).
 static TTF_Font *fonteDeLento(TxtFamilia familia, TxtEstilo estilo, const char *s,
                               TTF_Font *principal);
+// At most one size per subtitle slot and scale is open at a time. FreeType
+// reads the private file lazily; the registry does not keep the font bytes.
+static struct { TTF_Font *face; int corpo; } importadas[TXT_NCAM][2];
+static unsigned importadasRevisao;
+static int familiaImportada(TxtFamilia f) {
+  return f == TXT_FAMILIA_IMPORTADA1 || f == TXT_FAMILIA_IMPORTADA2;
+}
+static void importadasFechar(int k) {
+  for (int slot = 0; slot < 2; slot++) {
+    if (importadas[k][slot].face) TTF_CloseFont(importadas[k][slot].face);
+    memset(&importadas[k][slot], 0, sizeof importadas[k][slot]);
+  }
+}
+static void importadasAtualizar(void) {
+  unsigned rev = legfontes_revisao();
+  if (rev == importadasRevisao) return;
+  for (int k = 0; k < TXT_NCAM; k++) importadasFechar(k);
+  importadasRevisao = rev;
+  arabeBoldFechar();
+  limparCacheTexto(); fdEsquecer();
+}
+static TTF_Font *importadaDe(TxtFamilia familia, TxtEstilo estilo) {
+  int slot = familia == TXT_FAMILIA_IMPORTADA2;
+  int corpo = (int)(ESTILOS[estilo].corpo * ESC_T + 0.5f);
+  importadasAtualizar();
+  const char *caminho = legfontes_caminho(slot);
+  if (!caminho) return NULL;
+  if (corpo != importadas[camada][slot].corpo) {
+    if (importadas[camada][slot].face) TTF_CloseFont(importadas[camada][slot].face);
+    importadas[camada][slot].face = TTF_OpenFont(caminho, corpo);
+    importadas[camada][slot].corpo = corpo;
+    arabeBoldFechar(); fdEsquecer();
+  }
+  return importadas[camada][slot].face;
+}
 static TTF_Font *fonteDe(TxtFamilia familia, TxtEstilo estilo, const char *s) {
   TTF_Font *principal = NULL, *r;
+  if (familiaImportada(familia)) {
+    principal = importadaDe(familia, estilo);
+    if (principal) return fonteDeLento(familia, estilo, s, principal);
+  }
   if (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N)
     familia = TXT_FAMILIA_INTER;
   if (!fontes[familia][estilo] && !familiaTentada[familia])
@@ -1156,6 +1196,7 @@ static void fecharCamadaAmpliada(int k) {
   char pre[16];
   size_t np;
   if (k <= 0 || k >= TXT_NCAM) return;
+  importadasFechar(k);
   for (int f = 0; f < TXT_FAMILIA_N; f++)
     for (int i = 0; i < TXT_NFONTES; i++) {
       if (fontesCam[k][f][i]) TTF_CloseFont(fontesCam[k][f][i]);
@@ -1356,6 +1397,8 @@ int txt_iniciar(const char *dirRecursos, float escala) {
 }
 
 void txt_encerrar(void) {
+  for (int k = 0; k < TXT_NCAM; k++) importadasFechar(k);
+  importadasRevisao = 0;
   arabeBoldFechar();
   limparCacheTexto();
   // ORDEM: a fonte primeiro, o RWops depois, o buffer por ultimo. A face do
@@ -1571,7 +1614,8 @@ int txt_visual_da_linha(TxtFamilia familia, TxtEstilo estilo, const char *s,
   if (out && tam) out[0] = 0;
   if (nCorridas) *nCorridas = 0;
   camadaAtualizar();
-  if (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N) familia = TXT_FAMILIA_INTER;
+  importadasAtualizar();
+  if (!familiaImportada(familia) && (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N)) familia = TXT_FAMILIA_INTER;
   if (!s || estilo < 0 || estilo >= TXT_NFONTES || !(fl = fonteDe(familia, estilo, s))) return -1;
   altDe(familia, estilo, fl, &a1, &a2);
   s = semDecorativoSemGlifo(fl, a1, a2, s, limpo, sizeof limpo);
@@ -1609,7 +1653,8 @@ static TxtLinha linhaFamilia(TxtEstilo estilo, const char *s, int r, int g,
   TxtLinha vazia = {0, 0, 0, 0, 0};
   char limpo[1024];
   camadaAtualizar();
-  if (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N)
+  importadasAtualizar();
+  if (!familiaImportada(familia) && (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N))
     familia = TXT_FAMILIA_INTER;
   if (!s || !*s || estilo < 0 || estilo >= TXT_NFONTES ||
       !fonteDe(familia, estilo, s)) return vazia;
@@ -1772,7 +1817,8 @@ static int larguraLinha(TxtEstilo estilo, const char *s, TxtFamilia familia,
   unsigned char var;
   int w;
   camadaAtualizar();
-  if (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N)
+  importadasAtualizar();
+  if (!familiaImportada(familia) && (familia < TXT_FAMILIA_INTER || familia >= TXT_FAMILIA_N))
     familia = TXT_FAMILIA_INTER;
   if (!s || !*s || estilo < 0 || estilo >= TXT_NFONTES) return 0;
   { const unsigned char *p = (const unsigned char *)s;
@@ -1837,11 +1883,14 @@ static int larguraLinhaMedir(TxtEstilo estilo, const char *s, TxtFamilia familia
   return (int)(w / ESC_T + 0.5f);
 }
 
-int txt_largura(TxtEstilo estilo, const char *s) {
+int txt_largura_familia(TxtEstilo estilo, const char *s, TxtFamilia familia) {
   // Consultas de layout antes de txt_iniciar nao devem marcar fontes como
   // ausentes para sempre nem guardar uma largura zero no cache.
   if (!TTF_WasInit()) return 0;
-  return larguraLinha(estilo, i18n(s), fonteInterface, 0);
+  return larguraLinha(estilo, s, familia, 0);
+}
+int txt_largura(TxtEstilo estilo, const char *s) {
+  return txt_largura_familia(estilo, i18n(s), fonteInterface);
 }
 
 TxtLinha txt_linha(TxtEstilo estilo, const char *s, int r, int g, int b, int a) {
