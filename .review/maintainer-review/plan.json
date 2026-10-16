@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "current_master": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "selected_candidates": [
+    "543"
+  ],
+  "job_candidates": {
+    "native": [
+      "543"
+    ]
+  },
+  "review_branch": "review/maintainer-543-native-recovery3-20261016",
+  "required_jobs": [
+    "native"
+  ],
+  "source_manifest_sha256": "a40d0652a97570e48d76423ab0c325349b90a6024b1b6b0c489519fb63d270a3",
+  "recipe_inputs": {
+    "android.py": "378bfe323a8b1257d136dd011ad4d3096c07e8c9c8f0a7ade064d4d58b740708",
+    "android_public_tests.py": "ccaae57d9898f9e98fd4f14004384b5c81c0110a2bfbed90285d85f75506152a",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "9082450536ceb92932e255f82597b735728b63c28ed70dd67718e19e2b7d79f3",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "materialize.py": "110abe5859dbf4d3e4d055038bce252c9a36efd8b1afeea1e4efa60a08dae8c4",
+    "native.py": "4ac98ba54fc5839775c27ed63a6cb85e9bdf9c456ea9bbd43f01d57a18a0e962",
+    "preflight.py": "e9a6cc1c2c593cda49a53e6785c1b3bffd05a1e2de159450f516d3149dce0de3",
+    "public_tests.py": "8f4901aa2c3eff47ee16bffb58cac07293da107f337ea81ccdf6586c61ff7ced",
+    "retained-android.json": "3f0ece239856bbe20d4cfbec8445aa6b44b41f7a7617ed0b0ad931c3020d766f",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "sdk_producers": 1,
+  "retained_android_source_equivalence_sha256": "3f0ece239856bbe20d4cfbec8445aa6b44b41f7a7617ed0b0ad931c3020d766f",
+  "scope": "Fresh actual committed543 removed-addon,existing-row anddiscovery-mount tests normal+ASan and full current-source TV/touch app links. Native-only recovery of typed fixture neighbours and portable monotonic quiet-window timing; existing product deadlines and assertions are unchanged. Original Android remains running/passed only in its actual original source/run; final acceptance requires actual successful original Android proof plus complete non-test Git-entry equality bridge. No Android rebuild, private fixture or relabelled pass.",
+  "workflow_normalized_sha256": "70164adff3eba5af903a61519b1e58f1db75e687941495e096331b682ce0d148"
+}
