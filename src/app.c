@@ -441,6 +441,12 @@ static void marcarFonteMorta(int indice) {
 }
 // A fonte que vai para o player e outra candidata: a prova recomeca.
 static void definirFonteVOD(const char *url) { provaZerar(); player_definir_fonte(url); }
+// O pipeline e compartilhado e conserva o erro da fonte anterior ate a nova
+// abrir. Na pre-busca da legenda ainda nao ha video desta candidata: esse erro
+// antigo nao pode gastar outra tentativa. A recusa local de abrir continua valendo.
+static int fonteAtualFalhou(void) {
+  return player_fonte_falhou() || (player_tem_video() && video_falhou());
+}
 #define CANAL_FONTE_PRAZO_MS 25000
 // PRAZO CURTO para fonte que JA PROVOU estar ruim. A conferencia de playlist
 // (stream_canal_primeira_viva) classifica cada candidata antes de tocar; quando
@@ -1193,7 +1199,7 @@ static int tocarFonteGuardada(void) {
   return 1;
 }
 static void vigiarFonteGuardada(void) {
-  FontevoltaSinais g;
+  FontevoltaSinais g = {0};
   const char *motivo = NULL;
   Uint32 desde;
   if (!voltaAtiva) return;
@@ -1201,7 +1207,7 @@ static void vigiarFonteGuardada(void) {
     voltaAtiva = 0; return;
   }
   { int d;
-    g.falhou = video_falhou() || player_fonte_falhou();
+    g.falhou = fonteAtualFalhou();
     g.pronto = video_pronto();
     g.duracao = video_duracao();
     g.carregando = player_carregando();
@@ -2337,7 +2343,7 @@ static void vigiarAntecipada(void) {
     return;
   }
   i = stream_antecipada(&est);
-  switch (fa_acao(antAberta, i, est, video_falhou() || player_fonte_falhou())) {
+  switch (fa_acao(antAberta, i, est, fonteAtualFalhou())) {
     case FA_ACAO_ABRIR: abrirAntecipada(i); break;
     case FA_ACAO_DESFAZER_VEREDITO: desfazerAntecipada("a conferencia reprovou"); break;
     case FA_ACAO_DESFAZER_PLAYER:
@@ -2451,7 +2457,7 @@ static void vigiarAberturaManual(void) {
   }
   desde = SDL_GetTicks() - fonteManualDesde;
   memset(&g, 0, sizeof g);
-  g.falhou = video_falhou() || player_fonte_falhou();
+  g.falhou = fonteAtualFalhou();
   g.pronto = video_pronto() && video_pos() > 0.25;
   g.carregando = player_carregando();
 #ifdef NV_ANDROID
@@ -2645,7 +2651,7 @@ static void tentarProximaFonteVOD(void) {
   // (video_reconexao.h). So vira troca de fonte quando ela desistir (falhou).
   if (video_reconectando()) return;
   desde = SDL_GetTicks() - fonteVODDesde;
-  if (video_falhou() || player_fonte_falhou()) { motivo = 1; sondarAposRecusa(); }
+  if (fonteAtualFalhou()) { motivo = 1; sondarAposRecusa(); }
   // Reloading a source that already played (Dolby Vision path handing back
   // to the TV player, track switch) is not a source that never opened: on
   // the C9 the 30 s deadline, counted from the first open, swapped a playing
