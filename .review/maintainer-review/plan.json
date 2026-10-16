@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "538"
+  ],
+  "job_candidates": {
+    "native": [
+      "538"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/c2e-native-recovery3-20261016",
+  "workflow_path": ".github/workflows/c2e-native-recovery3.yml",
+  "source_manifest_sha256": "11862fe4e61ccae67b7f00157cc596c42eecf98ec73467fa29490f4f1bded17a",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "c1295b54337751b1efba302d98dbeb8fd27295da80d20788bdec1fd83c0eb9fb",
+    "public_tests.py": "40661f6a3015b8e7f7d1dcd03ff72dc303f14e6c8d40733ad9b47d4f2f28613a"
+  },
+  "workflow_normalized_sha256": "f5caa32b3002e72fc3c13f3c71d3b1f5ad7dbe6d67b78bd2651eeec0a28d17f3",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "816b985cc2de87706affbe183f93d9e7c7a3ae1939c1e0d5b0ae1162766ae6a9",
+    "policy": "Exclude only this isolated review branch; every source candidate keeps the original upstream workflow."
+  },
+  "original_run_reference": {
+    "run_id": 38941625500,
+    "attempt": 1,
+    "review_commit": "619f4f62de245f473b134b9fc84829d9371df8bc",
+    "plan_sha256": "1eed15d9c95bcb76112765809ca28b4e2affe16b44885838fa60f7cbd6ff8307",
+    "failed_native_jobs": {
+      "538": 117110421413,
+      "543": 117110421652,
+      "547": 117110421409
+    },
+    "scope": "Failures retained honestly; unselected producer successes require their own actual independent proofs. No original producer rerun and no receipt relabelling."
+  },
+  "scope": "Targeted fresh native replacement lanes only. Exact committed public tests normal/ASan plus full current335-unit TV/touch applications with production-default Rust MKV. No Android producer, APK download, private overlay or automatic publication."
+}
