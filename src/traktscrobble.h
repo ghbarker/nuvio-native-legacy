@@ -12,6 +12,8 @@ enum { SCR_NADA = 0, SCR_START, SCR_PAUSE, SCR_STOP };
 enum { SCR_EV_TOCANDO = 1, SCR_EV_PAUSOU, SCR_EV_SAIU };
 
 typedef struct { char id[64]; int ativo; } ScrobbleEstado;
+// Copia da identidade escolhida para uma abertura; nao consulta metadata tarde.
+typedef struct { char id[64]; int tvdbEp; } TraktScrobbleAlvo;
 
 // Devolve a chamada a fazer (SCR_*) e avanca o estado.
 //   TOCANDO: start, salvo se ja ha um start em pe para o MESMO id (sem spam).
@@ -32,5 +34,6 @@ int scrobble_concluiu(double posSeg, double durSeg, int fimDeLegacy);
 // JSON do corpo. `id` e "tt123" (filme) ou "tt123:T:E" (episodio: id do SHOW
 // mais temporada/numero, que o Trakt resolve sozinho).
 void scrobble_corpo(char *dst, size_t n, const char *id, double pct);
+void scrobble_corpo_alvo(char *dst, size_t n, const TraktScrobbleAlvo *alvo, double pct);
 const char *scrobble_nome(int acao);
 #endif

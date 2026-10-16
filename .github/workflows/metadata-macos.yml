@@ -1,0 +1,82 @@
+{
+  "name": "Metadata: macOS normal/sanitizers and TV/Mobile",
+  "on": {
+    "push": {
+      "branches": [
+        "review/metadata-macos-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "metadata-macos-8d7cc6f384edc80f8c64436c7001611b731e89af-1",
+    "cancel-in-progress": true
+  },
+  "env": {
+    "METADATA_PLAN_SHA256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "jobs": {
+    "native": {
+      "if": true,
+      "name": "macOS ${{ matrix.lane }}",
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "strategy": {
+        "fail-fast": false,
+        "max-parallel": 6,
+        "matrix": {
+          "lane": [
+            "focused-normal",
+            "focused-asan",
+            "player_identity524-normal",
+            "player_identity524-asan",
+            "player_identity524_guards-normal",
+            "player_identity524_guards-asan",
+            "player_retido-normal",
+            "player_retido-asan",
+            "player_visto_trailer-normal",
+            "player_visto_trailer-asan",
+            "full-tv",
+            "full-touch"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/setup-python@v5",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Install real native SDK dependencies",
+          "run": "brew install sdl2 sdl2_image sdl2_ttf sdl3"
+        },
+        {
+          "name": "Validate exact source and run this independent lane",
+          "run": "python3 .review/metadata-macos/run.py --lane \"${{ matrix.lane }}\" --output \"$RUNNER_TEMP/metadata-results/${{ matrix.lane }}\""
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "metadata-macos-${{ matrix.lane }}-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/metadata-results/\n!${{ runner.temp }}/metadata-results/**/objects/*.o\n!${{ runner.temp }}/metadata-results/**/app-*",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

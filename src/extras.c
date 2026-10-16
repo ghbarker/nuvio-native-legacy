@@ -15,6 +15,14 @@
 #include "agenda.h"
 #include "comentordem.h"
 #include "idiomacod.h"
+#include "episodioid.h"
+// Consumers may be omitted by isolated module fixtures; missing ownership
+// evidence defers import rather than treating an unfinished list as final.
+extern unsigned desc_episodios_escolha_pronta(const char *, const char *, uint64_t) NV_PERFIL_OPCIONAL;
+extern int cat_copiar_episodios_fonte(const char *, const char *, uint64_t, CatEp **, int *) NV_PERFIL_OPCIONAL;
+extern unsigned cat_versao_episodios(void) NV_PERFIL_OPCIONAL;
+extern int trakt_historico_aplicar_se_atual(uint64_t, unsigned long long, unsigned long long,
+                                           int (*)(void *), void *) NV_PERFIL_OPCIONAL;
 extern void cat_historico_definir_id(const char *imdb, const char *tipo, int visto);
 #include <pthread.h>
 #include <stdint.h>
@@ -151,7 +159,7 @@ static struct { char titulo[120], ano[8], imdb[16], poster[NV_ARTE_URL_MAX]; } r
 #define EX_VIS_T 20
 #define EX_VIS_E 40
 static unsigned char vistos[EX_VIS_T][EX_VIS_E];
-static int progressoPronto, proximoT, proximoE;
+static int progressoPronto, progressoAgregadoPronto, proximoT, proximoE;
 // QUANTOS EPISODIOS JA EXIBIDOS E QUANTOS VISTOS, os dois numeros do TOPO da
 // resposta de /progress/watched. Nao sao derivaveis da matriz `vistos`: ela e
 // [EX_VIS_T][EX_VIS_E] e uma serie maior que isso cai fora dela em silencio — e
@@ -231,7 +239,9 @@ static int  nEstudio;
 static long tmdbEmCurso;
 
 static char idPedido[24], idEmCurso[24];
+static char origemPedido[96], origemEmCurso[96];
 static NvPerfilSessao sessaoPedido;
+static unsigned long long credencialPedido;
 static pthread_key_t sessaoDoFio;
 static pthread_once_t sessaoDoFioUma = PTHREAD_ONCE_INIT;
 static void criarSessaoDoFio(void) { pthread_key_create(&sessaoDoFio, free); }
@@ -276,6 +286,255 @@ static int pedidoAindaAtual(const char *id) {
   atual = !strcmp(id, idPedido) && sessaoDoFioAtual();
   pthread_mutex_unlock(&trava);
   return atual;
+}
+
+// Progress has Trakt numbering; a final source may use a different pair for
+// the same TVDB episode. Hold that response until its source is known, without
+// withholding aggregate counts or changing local/manual watched marks.
+typedef struct {
+  char id[24], origem[96];
+  NvPerfilSessao sessao;
+  int geracao;
+  unsigned long long credencial, historico;
+} ExProgressoPedido;
+static char *progressoPendente;
+static ExProgressoPedido progressoDono, idsDono;
+static EpisodioId *idsTrakt;
+static int nIdsTrakt, idsTraktProntos;
+static CatEp *progressoFonte;
+static int nProgressoFonte, progressoFonteTemIds;
+static unsigned progressoTicket, progressoVersao;
+
+static int progressoPedidoAtual(const ExProgressoPedido *p) {
+  return p->geracao == gerPedida && !strcmp(p->id, idPedido) &&
+         !strcmp(p->origem, origemPedido) && p->sessao == sessaoPedido &&
+         p->credencial == credencialPedido &&
+         nv_perfil_sessao_atual(p->sessao);
+}
+static void progressoLimpar(void) {
+  free(progressoPendente); progressoPendente = NULL;
+  free(progressoFonte); progressoFonte = NULL;
+  nProgressoFonte = progressoFonteTemIds = 0; progressoTicket = progressoVersao = 0;
+  memset(&progressoDono, 0, sizeof progressoDono);
+}
+static void idsTraktLimpar(void) {
+  free(idsTrakt); idsTrakt = NULL;
+  nIdsTrakt = idsTraktProntos = 0;
+  memset(&idsDono, 0, sizeof idsDono);
+}
+
+typedef struct { ExProgressoPedido pedido; EpisodioId *lista; int n; } ExIdsPublicacao;
+static int progressoPublicarIds(void *dados) {
+  ExIdsPublicacao *p = dados;
+  pthread_mutex_lock(&trava);
+  if (progressoPedidoAtual(&p->pedido)) {
+    idsTraktLimpar(); idsTrakt = p->lista; p->lista = NULL;
+    nIdsTrakt = p->n; idsTraktProntos = 1; idsDono = p->pedido;
+  }
+  pthread_mutex_unlock(&trava);
+  return 1;
+}
+
+// A bounded identity-only cache; the full response remains owned by the
+// existing ratings reader. Do not inherit its 30-episode display limit.
+static void progressoGuardarIds(const ExProgressoPedido *pedido, const char *json) {
+  EpisodioId *lista = NULL;
+  int n = 0, cap = 0, valido = 1;
+  const char *p = json;
+  while (p && *p && (unsigned char)*p <= ' ') p++;
+  if (!p || *p != '[') return;
+  p++;
+  while (*p && (unsigned char)*p <= ' ') p++;
+  while (*p && *p != ']') {
+    const char *f = js_fim(p), *q;
+    int t = episodioid_numero(episodioid_valor(p, f, "number"), f);
+    for (q = js_array(p, f, "episodes"); q; q = js_prox(js_fim(q))) {
+      const char *qf = js_fim(q);
+      int e = episodioid_numero(episodioid_valor(q, qf, "number"), qf);
+      int tvdb = episodioid_tvdb(q, qf);
+      if (!t || !e || !tvdb) continue;
+      if (n >= VE_MAX) { valido = 0; break; }
+      if (n == cap) {
+        int nova = cap ? cap * 2 : 64;
+        EpisodioId *v;
+        if (nova > VE_MAX) nova = VE_MAX;
+        v = realloc(lista, (size_t)nova * sizeof *lista);
+        if (!v) { valido = 0; break; }
+        lista = v; cap = nova;
+      }
+      lista[n++] = (EpisodioId){ t, e, tvdb };
+    }
+    if (!valido) break;
+    p = js_prox(f);
+    if (!p) break;
+  }
+  if (valido) {
+    ExIdsPublicacao pub = { *pedido, lista, n };
+    if (trakt_historico_aplicar_se_atual)
+      trakt_historico_aplicar_se_atual(pedido->sessao, pedido->historico, pedido->credencial,
+                                     progressoPublicarIds, &pub);
+    lista = pub.lista;
+  }
+  free(lista);
+}
+
+static int progressoTvdb(int t, int e, int declarado) {
+  int id = declarado;
+  for (int i = 0; i < nIdsTrakt; i++)
+    if (idsTrakt[i].temporada == t && idsTrakt[i].episodio == e) {
+      if (id && id != idsTrakt[i].tvdbEp) return 0;
+      id = idsTrakt[i].tvdbEp;
+    }
+  for (int i = 0; id && i < nIdsTrakt; i++)
+    if (idsTrakt[i].tvdbEp == id &&
+        (idsTrakt[i].temporada != t || idsTrakt[i].episodio != e)) return 0;
+  return id;
+}
+static int progressoPar(const CatEp *eps, int n, int temIds,
+                        int t, int e, int tvdb, int *st, int *se) {
+  EpisodioId alvo;
+  if (!temIds) { *st = t; *se = e; return t >= 0 && e > 0; }
+  tvdb = progressoTvdb(t, e, tvdb);
+  if (!tvdb || !episodioid_procurar(eps, n, tvdb, &alvo)) return 0;
+  *st = alvo.temporada; *se = alvo.episodio;
+  return 1;
+}
+
+typedef struct { ExProgressoPedido pedido; char *json; } ExProgressoPublicacao;
+static int progressoPublicar(void *dados) {
+  ExProgressoPublicacao *p = dados;
+  pthread_mutex_lock(&trava);
+  if (progressoPedidoAtual(&p->pedido)) {
+    const char *fim = strstr(p->json, "\"seasons\"");
+    if (fim) {
+      progressoLimpar(); progressoPendente = p->json; p->json = NULL;
+      progressoDono = p->pedido;
+      epsExibidos = (int)js_num(progressoPendente, fim, "aired", 0);
+      epsVistos = (int)js_num(progressoPendente, fim, "completed", 0);
+      epsBase = vistoep_contar(p->pedido.id);
+      progressoAgregadoPronto = 1;
+    }
+  }
+  pthread_mutex_unlock(&trava);
+  return 1;
+}
+static void progressoGuardar(const ExProgressoPedido *pedido, char *json) {
+  ExProgressoPublicacao pub = { *pedido, json };
+  if (!json) return;
+  if (trakt_historico_aplicar_se_atual)
+    trakt_historico_aplicar_se_atual(pedido->sessao, pedido->historico, pedido->credencial,
+                                   progressoPublicar, &pub);
+  free(pub.json);
+}
+
+// Caller holds the synchronous profile/Trakt credential lease; no network or
+// Trakt API may run while its leaf extras lock is held.
+static int progressoAplicar(void *dados) {
+  const ExProgressoPedido *pedido = dados;
+  NvPerfilSessao sessao = pedido->sessao;
+  CatEp *copia = NULL;
+  const CatEp *eps;
+  int n = 0, temIds = 0, pt = 0, pe = 0, adiados = 0;
+  unsigned antes, depois, versao;
+  unsigned char novo[EX_VIS_T][EX_VIS_E];
+  VistoFonte fonte;
+  const char *p, *prox;
+  if (!desc_episodios_escolha_pronta || !cat_copiar_episodios_fonte || !cat_versao_episodios) return 0;
+  pthread_mutex_lock(&trava);
+  if (!progressoPendente || !progressoPedidoAtual(pedido) ||
+      progressoDono.credencial != pedido->credencial || progressoDono.historico != pedido->historico) goto fim;
+  antes = desc_episodios_escolha_pronta(progressoDono.id, progressoDono.origem, sessao);
+  if (!antes) goto fim;
+  versao = cat_versao_episodios();
+  if (antes != progressoTicket || versao != progressoVersao) {
+    if (!cat_copiar_episodios_fonte(progressoDono.id, progressoDono.origem, sessao, &copia, &n)) goto fim;
+  }
+  depois = desc_episodios_escolha_pronta(progressoDono.id, progressoDono.origem, sessao);
+  if (antes != depois || versao != cat_versao_episodios() || !progressoPedidoAtual(pedido)) goto fim;
+  if (antes != progressoTicket || versao != progressoVersao) {
+    free(progressoFonte); progressoFonte = copia; copia = NULL;
+    nProgressoFonte = n; progressoTicket = antes; progressoVersao = versao;
+    progressoFonteTemIds = 0;
+    for (int i = 0; i < n; i++) if (progressoFonte[i].tvdbEp > 0) { progressoFonteTemIds = 1; break; }
+  }
+  eps = progressoFonte; n = nProgressoFonte; temIds = progressoFonteTemIds;
+  if (temIds && (!idsTraktProntos || strcmp(idsDono.id, progressoDono.id) ||
+      idsDono.sessao != sessao || idsDono.credencial != progressoDono.credencial)) goto fim;
+  memset(novo, 0, sizeof novo); memset(&fonte, 0, sizeof fonte);
+  for (p = js_array(progressoPendente, NULL, "seasons"); p; p = js_prox(js_fim(p))) {
+    const char *f = js_fim(p), *q;
+    int t = (int)js_num(p, f, "number", -1);
+    if (t < 0) continue;
+    for (q = js_array(p, f, "episodes"); q; q = js_prox(js_fim(q))) {
+      const char *qf = js_fim(q), *c = strstr(q, "\"completed\"");
+      int e = (int)js_num(q, qf, "number", -1), st, se, visto = 0;
+      long long quandoMs = 0;
+      if (c && c < qf) {
+        const char *v = c + 12;
+        while (*v == ' ' || *v == ':') v++;
+        visto = *v == 't';
+      }
+      if (!progressoPar(eps, n, temIds, t, e, episodioid_tvdb(q, qf), &st, &se)) {
+        adiados++; continue;
+      }
+      if (visto) {
+        char quando[40];
+        if (js_texto(q, qf, "last_watched_at", quando, sizeof quando) && quando[0])
+          quandoMs = js_ms_iso(quando);
+      }
+      int barrados = fonte.bloqueados;
+      vistoep_fonte_se_sessao(progressoDono.id, st, se, visto, quandoMs, &fonte, sessao);
+      { char cru[16] = "ausente";
+        js_bruto(q, qf, "completed", cru, sizeof cru);
+        printf("[vistoep] %s T%dE%d: trakt completed=%s lido=%d last_ms=%lld mapa=%d\n",
+               progressoDono.id, st, se, cru, visto, quandoMs,
+               vistoep_estado(progressoDono.id, st, se)); }
+      if (fonte.bloqueados != barrados) visto = 0;
+      if (visto && st >= 0 && st < EX_VIS_T && se > 0 && se < EX_VIS_E) novo[st][se] = 1;
+    }
+  }
+  prox = strstr(progressoPendente, "\"next_episode\"");
+  if (prox && (prox = strchr(prox, ':'))) {
+    do { prox++; } while (*prox && (unsigned char)*prox <= ' ');
+    if (*prox == '{') {
+      const char *fimProx = js_fim(prox);
+      int t = (int)js_num(prox, fimProx, "season", 0);
+      int e = (int)js_num(prox, fimProx, "number", 0);
+      progressoPar(eps, n, temIds, t, e, episodioid_tvdb(prox, fimProx), &pt, &pe);
+    }
+  }
+  if (fonte.bloqueados > 0) {
+    int mt = 0, me = 0;
+    if (vistoep_primeiro_nao_visto(progressoDono.id, &mt, &me)) { pt = mt; pe = me; }
+  }
+  memcpy(vistos, novo, sizeof vistos);
+  proximoT = pt; proximoE = pe; progressoPronto = 1;
+  epsVistos -= fonte.bloqueados;
+  if (epsVistos < 0) epsVistos = 0;
+  epsBase = vistoep_contar(progressoDono.id); epsRev = vistoep_revisao();
+  if (epsExibidos > 0)
+    cat_historico_definir_se_geracao(progressoDono.id, "series", epsVistos >= epsExibidos,
+                                   progressoDono.historico);
+  vistoep_fonte_log(progressoDono.id, "trakt", &fonte);
+  printf("[vistoep] %s: fonte final, %d episodios no mapa (%d vistos), %d sem identidade segura\n",
+         progressoDono.id, vistoep_total(progressoDono.id), epsBase, adiados);
+  fflush(stdout);
+  progressoLimpar();
+fim:
+  free(copia);
+  pthread_mutex_unlock(&trava);
+  return 1;
+}
+void extras_atualizar_episodios(void) {
+  ExProgressoPedido pedido;
+  int tem;
+  if (!trakt_historico_aplicar_se_atual) return;
+  pthread_mutex_lock(&trava);
+  tem = progressoPendente != NULL;
+  pedido = progressoDono;
+  pthread_mutex_unlock(&trava);
+  if (tem) trakt_historico_aplicar_se_atual(pedido.sessao, pedido.historico, pedido.credencial,
+                                           progressoAplicar, &pedido);
 }
 
 // O Trakt devolve a nota como fracao de 0 a 10 com casas ("7.83521"); o resto
@@ -482,7 +741,8 @@ static void *buscar(void *arg) {
   const char *cab[4];
   char aut[200], chave[140], url[200], id[24];
   const char *tipo;
-  char *corpo;
+  char *corpo, *temporadasCorpo = NULL;
+  ExProgressoPedido pedido = {0};
   int serie;
   long tmdbId;
   int parte = (int)(intptr_t)arg;
@@ -496,6 +756,10 @@ static void *buscar(void *arg) {
   serie = serieEmCurso;
   tmdbId = tmdbEmCurso;
   tipo = serie ? "shows" : "movies";
+  snprintf(pedido.id, sizeof pedido.id, "%s", id);
+  snprintf(pedido.origem, sizeof pedido.origem, "%s", origemEmCurso);
+  pedido.sessao = perfilSessao; pedido.geracao = gerPedida;
+  pedido.credencial = credencialGeracao; pedido.historico = historicoGeracao;
   pthread_mutex_unlock(&trava);
   definirSessaoDoFio(perfilSessao);
   if (!id[0] || !nv_perfil_sessao_atual(perfilSessao)) return NULL;
@@ -518,154 +782,33 @@ static void *buscar(void *arg) {
   char chavePub[140];
   int temChave = trakt_cabecalhos_publicos(cabPub, chavePub, sizeof chavePub);
 
-  // O QUE JA FOI VISTO VEM PRIMEIRO.
-  //
-  // Estava por ULTIMO, depois de ratings, comentarios e de um
-  // `seasons?extended=episodes,full` que traz a serie inteira — quatro viagens
-  // antes de a marca de assistido aparecer no card do episodio. E ela e o dado
-  // mais visivel da tela e o que decide o rotulo do botao primario
-  // ("Retomar"/"Próximo"), entao era exatamente o ultimo a chegar e o primeiro
-  // que o dono nota faltando.
-  // --- episodios ja assistidos (so serie) ---
+  // Aggregate counts arrive immediately. Per-episode marks and Next wait for
+  // the final selected source and, when it has episode IDs, the Trakt ID join.
   if (parte != 1 && serie && temTrakt) {
     snprintf(url, sizeof url,
              "https://api.trakt.tv/shows/%s/progress/watched", id);
     printf("[vistoep] %s: consulta trakt progress/watched\n", id);
     corpo = rede_baixar_com(url, 20, cab);
     if (corpo) {
-      unsigned char novo[EX_VIS_T][EX_VIS_E];
-      VistoFonte fonte;
-      const char *p = js_array(corpo, NULL, "seasons");
-      // OS DOIS CONTADORES SAEM DO CABECALHO, antes do array — e tem de ser
-      // antes MESMO: "completed" reaparece como BOOLEANO em cada episodio, e
-      // procurar no corpo inteiro acharia o do primeiro episodio em vez do
-      // total. js_num sobre a fatia que termina onde o array comeca resolve.
-      int exib = 0, vist = 0;
-      { const char *cab = strstr(corpo, "\"seasons\"");
-        const char *fimCab = cab ? cab : corpo + strlen(corpo);
-        exib = (int)js_num(corpo, fimCab, "aired", 0.0);
-        vist = (int)js_num(corpo, fimCab, "completed", 0.0); }
-      memset(novo, 0, sizeof novo);
-      memset(&fonte, 0, sizeof fonte);
-      while (p) {
-        const char *f = js_fim(p);
-        int t = (int)js_num(p, f, "number", -1.0);
-        // O TETO DA MATRIZ NAO PODE PODAR O MAPA. Este `if` era
-        // `t >= 0 && t < EX_VIS_T` e envolvia o laco inteiro: uma serie com
-        // 21 temporadas perdia a 21 em silencio. A matriz [20][40] continua
-        // limitada — ela e um vetor fixo —, mas vistoep guarda por chave e nao
-        // tem por que herdar o limite dela.
-        if (t >= 0) {
-          const char *q = js_array(p, f, "episodes");
-          while (q) {
-            const char *qf = js_fim(q);
-            int en = (int)js_num(q, qf, "number", -1.0);
-            // "completed" e booleano; js_num nao le true/false, entao a leitura
-            // e pelo texto — foi assim que a primeira versao marcou tudo como
-            // nao visto sem erro nenhum.
-            const char *c = strstr(q, "\"completed\"");
-            int visto = 0;
-            if (c && c < qf) { const char *v = c + 12;
-                               while (*v == ' ' || *v == ':') v++;
-                               visto = (*v == 't'); }
-            // O MAPA SEM TETO recebe o episodio inteiro, visto ou nao. A matriz
-            // abaixo so guarda o "sim" e nao distingue "nao viu" de "nao sei";
-            // vistoep distingue, e e nisso que as acoes de marcar em lote se
-            // apoiam. A matriz continua porque extras_ep_visto tem chamador no
-            // desenho, e trocar as duas coisas no mesmo passo seria demais.
-            //
-            // PELA PORTA DAS FONTES (vistoep_fonte), e nao por vistoep_definir:
-            // o Trakt repete `completed:true` enquanto o historico dele tiver o
-            // episodio, e era esta linha que re-marcava o que a pessoa tinha
-            // acabado de desmarcar (Silo, tt14688458). last_watched_at vai junto
-            // porque um visto MAIS NOVO que a desmarcacao ganha dela.
-            if (en > 0) {
-              int barrados = fonte.bloqueados;
-              long long quandoMs = 0;
-              if (visto) {
-                char quando[40];
-                if (js_texto(q, qf, "last_watched_at", quando, sizeof quando) && quando[0])
-                  quandoMs = js_ms_iso(quando);
-              }
-              vistoep_fonte_se_sessao(id, t, en, visto, quandoMs, &fonte, perfilSessao);
-              { char cru[16] = "ausente";
-                js_bruto(q, qf, "completed", cru, sizeof cru);
-                printf("[vistoep] %s T%dE%d: trakt completed=%s lido=%d last_ms=%lld mapa=%d\n",
-                       id, t, en, cru, visto, quandoMs, vistoep_estado(id, t, en)); }
-              // Barrado nao entra na matriz nem na conta de vistos do topo.
-              if (fonte.bloqueados != barrados) visto = 0;
-            }
-            if (visto && t < EX_VIS_T && en > 0 && en < EX_VIS_E) novo[t][en] = 1;
-            q = js_prox(qf);
-          }
-        }
-        p = js_prox(f);
-      }
-      // UMA LINHA, e ela existe porque silencio nao se diagnostica. Este e o
-      // unico ponto que enche o mapa de episodios vistos; sem o log, "a marca
-      // nao aparece na lista" nao distingue resposta vazia de parser errado de
-      // teto estourado. Foi exatamente essa duvida que custou tres deploys no
-      // dia em que o mapa nasceu.
-      printf("[vistoep] %s: %d episodios no mapa (%d vistos)\n",
-             id, vistoep_total(id), vistoep_contar(id));
-      // E A LINHA POR FONTE: quantos o TRAKT marcou nesta leitura, quantos ele
-      // tentou marcar e a desmarcacao da pessoa barrou (e quais). A conta Nuvio
-      // nao escreve no mapa com o Trakt ativo (sync.c), mas o que ela TEM para
-      // este titulo sai na linha seguinte — e o que responde, lendo o log da
-      // TV, "quem ainda acha que o episodio foi visto?".
-      vistoep_fonte_log(id, "trakt", &fonte);
-      { int discordam = 0, daConta = contalib_vistos_do_titulo(id, &discordam);
-        printf("[vistoep] %s: conta Nuvio tem %d episodios (%d deles desmarcados aqui); "
-               "nao aplicada ao mapa com Trakt ativo\n", id, daConta, discordam); }
-      // O TOPO DO TRAKT conta o que a pessoa desmarcou: sem descontar, a serie
-      // voltava a "100% assistida" e ao selo de vista com episodios desmarcados.
-      vist -= fonte.bloqueados;
-      if (vist < 0) vist = 0;
-      // A SERIE INTEIRA (#212): o selo do cartaz e o olho do detalhe leem o
-      // historico de titulo (cat_visto), e /sync/history nunca diz "serie
-      // vista" — so episodios. Os contadores do topo dizem: tudo o que ja foi
-      // ao ar foi visto. Com 0 exibidos nao se afirma nada.
-      if (exib > 0) trakt_historico_aplicar(id, "series", vist >= exib, historicoGeracao, credencialGeracao);
-      fflush(stdout);
-      int pt = 0, pe = 0;
-      const char *prox = strstr(corpo, "\"next_episode\"");
-      if (prox && (prox = strchr(prox, ':'))) {
-        prox++;
-        while (*prox == ' ' || *prox == '\n' || *prox == '\r' || *prox == '\t') prox++;
-        if (*prox == '{') {
-          const char *fim = js_fim(prox);
-          pt = (int)js_num(prox, fim, "season", 0);
-          pe = (int)js_num(prox, fim, "number", 0);
-        }
-      }
-      // O "PROXIMO" DO TRAKT e o seguinte ao ultimo que ELE tem como visto. Com
-      // episodio barrado ele aponta para depois do que a pessoa desmarcou; o
-      // primeiro nao visto do mapa e a resposta certa (a mesma regra de
-      // extras_proximo_episodio quando o mapa muda depois da leitura).
-      if (fonte.bloqueados > 0) {
-        int mt = 0, me = 0;
-        if (vistoep_primeiro_nao_visto(id, &mt, &me)) { pt = mt; pe = me; }
-      }
-      int valido = strstr(corpo, "\"seasons\"") != NULL;
-      free(corpo);
-      pthread_mutex_lock(&trava);
-      if (!strcmp(id, idPedido) && sessaoDoFioAtual() && valido) {
-        memcpy(vistos, novo, sizeof vistos);
-        proximoT = pt; proximoE = pe; progressoPronto = 1;
-        epsExibidos = exib; epsVistos = vist;
-        epsBase = vistoep_contar(id);
-        epsRev = vistoep_revisao();
-      }
-      pthread_mutex_unlock(&trava);
+      progressoGuardar(&pedido, corpo);
+      extras_atualizar_episodios();
     } else {
       printf("[vistoep] %s: consulta trakt sem corpo; mapa preservado\n", id);
       fflush(stdout);
     }
   }
-
-  // O usuario ja abriu outro titulo. Nao gastar varias viagens opcionais com
-  // uma tela que nao existe mais; entrega o fio ao pedido pendente.
   if (!pedidoAindaAtual(id)) return NULL;
+
+  // This is the SAME seasons request used below for ratings. Fetch it before
+  // optional comments/ratings so an uncached identity join does not wait for
+  // several unrelated requests; its body is reused, never downloaded twice.
+  if (parte != 1 && serie && (temTrakt || temChave)) {
+    snprintf(url, sizeof url,
+             "https://api.trakt.tv/shows/%s/seasons?extended=episodes,full", id);
+    temporadasCorpo = rede_baixar_com(url, 20, temTrakt ? cab : cabPub);
+    if (temporadasCorpo) progressoGuardarIds(&pedido, temporadasCorpo);
+    extras_atualizar_episodios();
+  }
 
   // --- nota ---
   if (parte != 1 && temTrakt) {
@@ -805,9 +948,7 @@ static void *buscar(void *arg) {
   // "ha token". Com token o cabecalho continua sendo o completo — nao ha
   // motivo para pedir anonimamente quem esta logado.
   if (parte != 1 && serie && (temTrakt || temChave)) {
-    snprintf(url, sizeof url,
-             "https://api.trakt.tv/shows/%s/seasons?extended=episodes,full", id);
-    corpo = rede_baixar_com(url, 20, temTrakt ? cab : cabPub);
+    corpo = temporadasCorpo; temporadasCorpo = NULL;
     if (corpo) {
       int nt = 0;
       const char *p = strchr(corpo, '[');
@@ -1466,7 +1607,8 @@ static void zerarPublicado(void) {
   agStatus[0] = agDataProx[0] = agDataUlt[0] = agNomeEp[0] = 0;
   agTemp = agEp = 0;
   memset(vistos, 0, sizeof vistos);
-  progressoPronto = proximoT = proximoE = 0;
+  progressoLimpar();
+  progressoPronto = progressoAgregadoPronto = proximoT = proximoE = 0;
   epsExibidos = epsVistos = epsBase = 0;
   memset(notas, 0, sizeof notas);
 }
@@ -1487,9 +1629,12 @@ static void esquecerPedido(void) {
   pthread_mutex_unlock(&trava);
 }
 
-void extras_pedir(const char *imdb, int serie, long tmdbId) {
+void extras_pedir_fonte(const char *imdb, int serie, long tmdbId, const char *origem) {
   char id[24];
   const char *dp;
+  unsigned long long credencial = trakt_credencial_geracao();
+  if (!origem) origem = "";
+  if (strlen(origem) >= sizeof origemPedido) { esquecerPedido(); return; }
   if (!imdb || imdb[0] != 't' || !strncmp(imdb, "tmdb:", 5)) { esquecerPedido(); return; }
   // Sem nenhuma fonte online nao ha o que buscar: o Trakt alimenta vistos,
   // nota, comentarios e related de sobra; a chave TMDB alimenta ficha,
@@ -1511,18 +1656,22 @@ void extras_pedir(const char *imdb, int serie, long tmdbId) {
   // Mesmo id com OUTRO tipo e outro pedido: um titulo de tipo incerto
   // ("anime") abre como filme e o /meta o resolve como serie — ai os extras
   // tem de ser refeitos por /tv e /shows (detail.c repede).
-  if (!strcmp(idPedido, imdb) && seriePedido == serie &&
+  if (!strcmp(idPedido, imdb) && !strcmp(origemPedido, origem) && seriePedido == serie &&
+      credencialPedido == credencial &&
       nv_perfil_sessao_atual(sessaoPedido)) {
     printf("[vistoep] %s: extras reutilizados; fio=%d pronto=%d; sem nova consulta\n",
            imdb, fioVivo, progressoPronto);
     fflush(stdout);
     pthread_mutex_unlock(&trava); return; }
   snprintf(idPedido, sizeof idPedido, "%s", imdb);
+  snprintf(origemPedido, sizeof origemPedido, "%s", origem);
   sessaoPedido = nv_perfil_sessao_ler();
+  credencialPedido = credencial;
   seriePedido = serie;
   tmdbPedido = tmdbId;
   zerarPublicado();
   snprintf(idEmCurso, sizeof idEmCurso, "%s", imdb);
+  snprintf(origemEmCurso, sizeof origemEmCurso, "%s", origem);
   serieEmCurso = serie;
   tmdbEmCurso = tmdbId;
   if (!fiosProntos) {
@@ -1542,6 +1691,10 @@ void extras_pedir(const char *imdb, int serie, long tmdbId) {
     if (pthread_create(&fio, NULL, buscar, (void *)(intptr_t)2) == 0) pthread_detach(fio);
     else { pthread_mutex_lock(&trava); fioVivo = 0; pthread_mutex_unlock(&trava); }
   }
+}
+
+void extras_pedir(const char *imdb, int serie, long tmdbId) {
+  extras_pedir_fonte(imdb, serie, tmdbId, "");
 }
 
 int extras_nota_trakt(void)  { return notaTrakt; }
@@ -2026,7 +2179,7 @@ int extras_progresso_serie(int *vistosEp, int *exibidos) {
   int pronto, v, e, base;
   char idAtual[sizeof idPedido];
   pthread_mutex_lock(&trava);
-  pronto = progressoPronto; v = epsVistos; e = epsExibidos;
+  pronto = progressoAgregadoPronto; v = epsVistos; e = epsExibidos;
   base = epsBase; snprintf(idAtual, sizeof idAtual, "%s", idPedido);
   pthread_mutex_unlock(&trava);
   if (!pronto || e <= 0) return 0;
@@ -2294,7 +2447,7 @@ void extras_resumo_definir(const char *imdb, const ExResumo *r) {
 void extras_teste_progresso(const char *id, int nVistos, int exibidos, int pt, int pe) {
   pthread_mutex_lock(&trava);
   snprintf(idPedido, sizeof idPedido, "%s", id);
-  proximoT = pt; proximoE = pe; progressoPronto = 1;
+  proximoT = pt; proximoE = pe; progressoPronto = progressoAgregadoPronto = 1;
   epsExibidos = exibidos; epsVistos = nVistos;
   epsBase = vistoep_contar(id); epsRev = vistoep_revisao();
   memset(vistos, 0, sizeof vistos);
@@ -2311,6 +2464,8 @@ void extras_abrir_sessao(void) {
   gerFeita[0] = gerFeita[1] = gerPedida;
   fioVivo = 0;
   zerarPublicado();
+  idsTraktLimpar();
+  origemPedido[0] = origemEmCurso[0] = 0;
   epShow[0] = 0;
   nComentEp = epTempAtual = epNumAtual = epPedTemp = epPedNum = 0;
   pthread_mutex_unlock(&trava);
