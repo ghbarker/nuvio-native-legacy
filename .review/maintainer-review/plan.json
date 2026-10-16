@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "562"
+  ],
+  "job_candidates": {
+    "native": [
+      "562"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue562-player-actions-recovery1-20261016",
+  "workflow_path": ".github/workflows/issue562-player-actions-recovery1.yml",
+  "source_manifest_sha256": "569a9ebbf581522577e61ee8ba50ef4072def18a557223e65cd7e4f0d49c6695",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "6d599a21ac7cf03a6debb3d758ad3707bf6754663d0d6e4998d1e13891648039",
+    "public_tests.py": "40661f6a3015b8e7f7d1dcd03ff72dc303f14e6c8d40733ad9b47d4f2f28613a"
+  },
+  "workflow_normalized_sha256": "a8633fbc106edbb5e1b4d0e7e3ec68ed4c65c1d04d3163c11378df38ad4b34b5",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "d66cee1cee7906e2b0d11515c998fdd846c2978be61896f4d5fa69c08dacf7a1",
+    "policy": "Exclude only this isolated review branch; actual source candidates keep the original upstream workflow."
+  },
+  "candidate_scope": "Public issue562 only: separate product and meaningful regression commits, no private APK feature overlays.",
+  "scope": "Recovery1 for issue562: strict-link sheet fixture after real fontefiltro closure, unchanged public action assertions, streamfit_sheet/player_visto_trailer normal+ASan, four source-fixture closure scripts normal only, all335 TV/touch units and production-default Rust MKV. No Android/APK/release/publication or other PR reruns.",
+  "hosted_shell_dependencies": {
+    "homebrew_formulae": [
+      "sdl2",
+      "sdl2_image",
+      "sdl2_ttf",
+      "sdl3",
+      "ripgrep"
+    ],
+    "required_commands": [
+      "bash",
+      "cc",
+      "dirname",
+      "mktemp",
+      "rm",
+      "python3",
+      "seq",
+      "sleep",
+      "sed",
+      "mkdir",
+      "sdl2-config",
+      "uname",
+      "cat",
+      "grep",
+      "tail",
+      "rg",
+      "brew",
+      "git",
+      "otool",
+      "rustc",
+      "cargo"
+    ],
+    "verification_step": "Real compiler and SDK sanity before full links",
+    "verification_log": "results/sdk/shell-tools.log",
+    "source_or_test_changes": false,
+    "reason": "Verify every required shell tool before the selected action and fixture-closure suites."
+  }
+}

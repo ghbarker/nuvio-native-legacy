@@ -1,0 +1,106 @@
+{
+  "name": "Issue562 player actions: fixture recovery1",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue562-player-actions-recovery1-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "issue562-player-actions-recovery1-${{ github.sha }}-${{ github.run_attempt }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "REBASE_PLAN_SHA256": "002d1c969ef89ef0f67776bc1c87641eb5988ed824a66c3e77f3e93686ec0110",
+    "PYTHONPATH": "${{ github.workspace }}/.review/maintainer-review",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "jobs": {
+    "native": {
+      "name": "Issue562 recovery1 macOS action tests and current app links (562)",
+      "runs-on": "macos-14",
+      "timeout-minutes": 90,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify isolated source, recipe and cache limits",
+          "run": "python3 .review/maintainer-review/preflight.py"
+        },
+        {
+          "name": "Materialize exact reviewed candidate on pinned upstream",
+          "run": "python3 .review/maintainer-review/materialize.py --candidate \"${{ matrix.pr }}\" --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-python@v5",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Confirm Python runtime",
+          "run": "python3 --version"
+        },
+        {
+          "name": "Prepare production native Rust MKV toolchain",
+          "run": "echo \"RUSTUP_HOME=$HOME/.rustup\" >> \"$GITHUB_ENV\"\necho \"CARGO_HOME=$HOME/.cargo\" >> \"$GITHUB_ENV\"\necho \"RUSTUP_TOOLCHAIN=stable\" >> \"$GITHUB_ENV\"\necho \"NV_RUST_TARGET_DIR=build/macos-rust-target\" >> \"$GITHUB_ENV\"\nexport RUSTUP_HOME=\"$HOME/.rustup\" CARGO_HOME=\"$HOME/.cargo\" RUSTUP_TOOLCHAIN=stable\nexport PATH=\"$CARGO_HOME/bin:$PATH\"\nrustup toolchain install stable --profile minimal\nmkdir -p results/native\nrustc -vV > results/native/rust-toolchain.log\ncargo --version >> results/native/rust-toolchain.log\n"
+        },
+        {
+          "name": "Real compiler and SDK sanity before full links",
+          "run": "task_native_cc=\"$(command -v cc)\"\ntest \"$task_native_cc\" = /usr/bin/cc\necho \"NUVIO_REVIEW_REAL_CC=$task_native_cc\" >> \"$GITHUB_ENV\"\nbrew install sdl2 sdl2_image sdl2_ttf sdl3 ripgrep\nmkdir -p results/sdk\n{\n  for task_shell_tool in bash cc dirname mktemp rm python3 seq sleep sed mkdir sdl2-config uname cat grep tail rg brew git otool rustc cargo; do\n    printf '%s=' \"$task_shell_tool\"\n    command -v \"$task_shell_tool\"\n  done\n  rg --version\n} > results/sdk/shell-tools.log\nmkdir -p results/sdk\ncat > results/sdk/probe.c <<'C'\n#include <stdio.h>\n#include <AvailabilityMacros.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){puts(\"Real SDK ready\");return 0;}\nC\ntask_brew_prefix=\"$(brew --prefix)\"\n\"$task_native_cc\" -O1 -I\"$task_brew_prefix/include\" -I\"$task_brew_prefix/include/SDL2\" results/sdk/probe.c -L\"$task_brew_prefix/lib\" -Wl,-rpath,\"$task_brew_prefix/lib\" -lSDL2 -lSDL2_image -lSDL2_ttf -framework OpenGL -o results/sdk/probe\nresults/sdk/probe\n"
+        },
+        {
+          "name": "Exact committed public tests normal/ASan and required full TV/Mobile links",
+          "run": "python3 .review/maintainer-review/native.py --source source-app --proof results/source-verified.json --output results/native"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/maintainer-review/materialize.py --candidate \"${{ matrix.pr }}\" --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue562-recovery1-${{ matrix.pr }}-native-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue562-recovery1-${{ matrix.pr }}-native-proof-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o\n!results/**/*.apk\n!results/native/app-tv\n!results/native/app-touch\n!results/native/sdk",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ],
+      "env": {
+        "REBASE_PR": "${{ matrix.pr }}"
+      },
+      "if": true,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "pr": [
+            "562"
+          ]
+        }
+      }
+    }
+  }
+}
