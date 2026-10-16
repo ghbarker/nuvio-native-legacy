@@ -1,0 +1,50 @@
+{
+  "name": "CLOSED Logs29 exact verified external-player APK publication",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20039-publish-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "write",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "logs29-approved-publication",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "publish": {
+      "if": true,
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify immutable CI proofs and publish only approved bytes",
+          "env": {
+            "GITHUB_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/apk20039-publisher/publish.py"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs29-publication-${{ github.sha }}",
+            "path": "build/logs29-publication/publication-receipt.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

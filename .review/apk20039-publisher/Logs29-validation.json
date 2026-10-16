@@ -1,0 +1,105 @@
+{
+  "format": 3,
+  "all_passed": true,
+  "source_commit": "09d7e68845c1e1d7d5466a7bca8d1b2a4f20c134",
+  "source_tree": "f6e0e1f3cdf2b7b821c70b555b9b855670d74e36",
+  "review_commit": "380bac8ec6c1b6dfdb4c57f362bb55cfbf26e4a4",
+  "run_id": 38978981546,
+  "run_attempt": 1,
+  "plan_sha256": "2f9220bfa575e0ed022cd7c1c5f9fcb6a592b0ac313647d98086f27e0b7f4341",
+  "job": {
+    "id": 117235117924,
+    "name": "APK20039 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "8014590edaff1bb0717269386677eeeda44d2555502b9019dfc7c7feb4f96c52",
+  "apk_bytes": 59208896,
+  "build_receipt_sha256": "3253deebf325a2327f190628541ad0c3c2eac32421d8a2ee4defaf24d8543bc8",
+  "apk_verification_sha256": "45540cbc6fd8ce290dbbf5b391de5fb7f8ad02f8a04062ccd12834ae83c58451",
+  "source_proof_sha256": "a179ca3aba167fd5cf8b060dcf30cf99fcc28167c3644490e198cbdf5f324497",
+  "composition_sha256": "d0a73cf433f9658593c11b633d2cf1715d4541ca5fb8eae48196afe52593b587",
+  "previous_results_count_as_fresh": false,
+  "single_exact_private_source": true,
+  "private_overlay_preserved": true,
+  "scope": "Exact private external-player-only Logs29 Android ARM32/ARM64 build and package checks, six real Gradle JUnit tests and four host C state/integration groups independently verified against actual run/job/source. No font import, external-player installation, physical-device, emulator, fresh public Mac, upstream PR or universal behavior claim.",
+  "source_purpose": "PRIVATE external-player-only Logs29 test APK retaining all published Logs28 features; no font import",
+  "public_product_fix_claimed": false,
+  "macos_validation_included": false,
+  "emulator_results_included": false,
+  "android_build_and_apk_checks_passed": true,
+  "native_diagnostic_marker_required_for_publication": true,
+  "diagnostics": {
+    "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+    "detail_c_sha256": "0cc11640816c55e261f62dffc11e6399d8e5827acdbfaf4abbf27c57035da322",
+    "build_gate": "NV_TEST_LOCAL_LOGS",
+    "minimum_sample_ms": 250,
+    "max_changed_records_per_opening": 32,
+    "scope": "Bounded season/episode update+draw state, geometry and hashed title/source identity; no raw URLs, account identifiers or auth."
+  },
+  "android_independent_verification_sha256": "910e8bbb7954ba25965ce3c1ca5a32b4c76f925a32647215e87577a7cfb812f5",
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 317,
+  "actual_player_jni_descriptors": 19,
+  "actual_dex_files": 4,
+  "source_restored_clean": true,
+  "private_diagnostic_source_compile_bound": true,
+  "cache_restoration": {
+    "native": {
+      "primary_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+      "matched_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+      "exact_hit": true,
+      "restored": true
+    },
+    "gradle": {
+      "primary_key": "rebases10e3-gradle-v1-Linux-b8ce88805516eb24fed1b955e1efa0cece6dbec0467a65243bf6ae18aaa63915",
+      "matched_key": "rebases10e3-gradle-v1-Linux-40c694dae85a95eea82cadb6288654407cfb6cfb76e309d74692dbb3fb857da5",
+      "exact_hit": false,
+      "restored": true
+    }
+  },
+  "private_test_apk": true,
+  "includes_search_window_fix": true,
+  "public_product_fix_claimed_meaning": "Private test source contains the reviewed external-player feature; this validation asserts Android build/package/unit checks only, with no public Mac or actual third-party player/device execution claim.",
+  "includes_player_control_relocation": true,
+  "includes_special_seasons": true,
+  "logs25_foundation_user_test_claimed": false,
+  "includes_poster_grid_update": true,
+  "logs26_foundation_user_test_claimed": false,
+  "publication_requires_root_reviewed_source_checks": true,
+  "publication_requires_fresh_public_macos_checks": false,
+  "publication_requires_fresh_macos_recovery": false,
+  "publication_prerequisites": {
+    "android_independent_consumer_passed": true,
+    "android_root_verified": false,
+    "root_approved_test_apk_only": false
+  },
+  "includes_search_see_all": true,
+  "logs27_foundation_user_test_claimed": false,
+  "private_opener_controls": {
+    "receipt_sha256": "595a2a4f3c768b741dddced3f8fbdfbdbc1b23e22b7ebed7894b847c30cdca8e",
+    "checks_each_normal_asan": 14,
+    "scope": "Actual source opener/event/Showcase functions with typed boundaries; no SDL window, real worker, mobile-preprocessor branch, network, SDK or device claim."
+  },
+  "pending_public_pr_validation": {
+    "external_player_public_macos": "Not claimed by this Android wrapper",
+    "external_player_device_intent_handoff": "Pending user phone testing",
+    "font_import": "Excluded from Logs29"
+  },
+  "unit_tests_sha256": "4d052799b512f16fd9ab915da3d733422e17fb0fdd5aa4e0840bdfc5059f0c35",
+  "actual_external_activity_jni_methods": 6,
+  "actual_android_junit_tests": 6,
+  "actual_host_c_groups": 4,
+  "includes_external_player": true,
+  "includes_font_import": false,
+  "android_unit_tests_passed": true,
+  "host_c_state_integration_passed": true,
+  "logs28_foundation_user_test_claimed": false,
+  "android_junit_required_methods": [
+    "absentOrUnsupportedHeaderPlayersNeverCreateGenericBase",
+    "malformedHeadersRefuseRatherThanSilentlyDropCredentials",
+    "ordinaryStreamsUseOneImplicitSystemChooserTarget",
+    "requiredHeadersUseOnlyExplicitVerifiedMxComponents",
+    "resumeUsesIntMillisecondsWithoutOutputOnlyVlcExtras",
+    "urlsAndCapacityAreValidatedWithoutRewritingSignedQuery"
+  ],
+  "host_c_assertion_markers": 28
+}
