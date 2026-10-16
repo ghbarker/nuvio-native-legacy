@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "556"
+  ],
+  "job_candidates": {
+    "native": [
+      "556"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue556-special-seasons-recovery7-20261016",
+  "workflow_path": ".github/workflows/issue556-special-seasons-recovery7.yml",
+  "source_manifest_sha256": "3c05023713c3aad7bacbc869bdd07b04189789b256f37b2aa5b4ad5d66898895",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "e859ba520ead9558cc1cad92f41d2372d58d7264209bed9851a6f4521b6a96eb",
+    "public_tests.py": "ecfb90a83d99c0dd31db3cb2fb182a725731e5f5c6549961960040ca1bbace8e"
+  },
+  "workflow_normalized_sha256": "51721817bcedec5dc76bfb663a356b1f10629b1cab65e3e3bb1498afd3fdaf31",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "0599f8d2293082f1c5c9cde4df0508d952fd1d891ba23b0e243ada82457f7e2b",
+    "policy": "Exclude only this isolated review branch; actual source candidates keep the original upstream workflow."
+  },
+  "candidate_scope": "Issue556 final actual product d5a69e7ef33bfe5b08657680cc790d625a1be844 and separate tested head b0c06efeb708eb7efd0ed518084595d82daa9add on current upstream c2e50a9325719ffae85005c0542338f6b44878c3. Root independently verified exact source blobs and approved this fresh32-group normal/ASan lane plus670 native compiles and two production Rust links. No earlier-group reuse.",
+  "scope": "Fresh issue556 validation only: frozen season-zero parser/catalogue/control/source/Trakt/Simkl/Seekr/Plex/subtitle/prefetch normal/ASan suites plus all335 current TV/touch units with production-default Rust MKV. No other PR reruns, Android/APK downloads, private overlays or publication.",
+  "hosted_shell_dependencies": {
+    "homebrew_formulae": [
+      "sdl2",
+      "sdl2_image",
+      "sdl2_ttf",
+      "sdl3",
+      "ripgrep"
+    ],
+    "required_commands": [
+      "bash",
+      "cc",
+      "dirname",
+      "mktemp",
+      "rm",
+      "python3",
+      "seq",
+      "sleep",
+      "sed",
+      "mkdir",
+      "sdl2-config",
+      "uname",
+      "cat",
+      "grep",
+      "tail",
+      "rg",
+      "brew",
+      "git",
+      "otool",
+      "rustc",
+      "cargo"
+    ],
+    "verification_step": "Real compiler and SDK sanity before full links",
+    "verification_log": "results/sdk/shell-tools.log",
+    "source_or_test_changes": false,
+    "reason": "Actual recovery1 failed when tests/addons_legendas.sh invoked missing rg; install and verify tools before any public suite."
+  },
+  "superseded_failed_origins": [
+    {
+      "run_id": 38965142504,
+      "reason": "typed offline fixture boundary link failure; source test repair already frozen in unchanged eda8 candidate"
+    },
+    {
+      "run_id": 38966097209,
+      "job_id": 117192834390,
+      "review_commit": "8045dbb14f9877635c406e4757107d0cd2d847ba",
+      "reason": "Hosted shell dependency rg missing in tests/addons_legendas.sh; no source modification required."
+    },
+    {
+      "run_id": 38966809813,
+      "job_id": 117195193439,
+      "source_commit": "eda8a683511312fd84ba56fe40c1621baaa55791",
+      "reason": "Public EOF transport fixture omitted matching release and attempted the independent Previous action inside the existing400ms debounce; assertions unchanged in finalfixture."
+    },
+    {
+      "run_id": 38968078915,
+      "job_id": 117199418008,
+      "classification": "isolated fixture link failure under owner audit",
+      "reason": "Simkl public standalone fixture missing typed profile/session service boundaries; final tests-only repair not yet frozen."
+    },
+    {
+      "run_id": 38970737473,
+      "classification": "test-only timing portability failure; no positive verdict",
+      "reason": "Simklshutdown fixture attempted usleep4000000; Mac rejects values outside supported range, so intended slow transport did not remain pending. Owner correcting portable4s wait and auditing selected fixture timing."
+    },
+    {
+      "run_id": 38971748591,
+      "job_id": 117211514001,
+      "classification": "actual test child wait failure; signal and cause not established",
+      "reason": "Parent wait/normal-exit assertion failed. New tests-only fixture logs child phases/raw status and retries waitpid on EINTR; alarm10, drain3000 and all assertions remain unchanged. No failed pass retained."
+    },
+    {
+      "run_id": 38972679737,
+      "job_id": 117214576371,
+      "source_commit": "60a726647dab114826ca08e9d7001dca774bffc6",
+      "classification": "Actual collect-all failure: all32 groups attempted;26passed and6failed; no native full build reached.",
+      "reason": "Simkl normal/ASan childsignal14 during drain; Plex normal/ASan fopen failure from truncated long macOS TMPDIR path; posplay normal/ASan assertion404 under owner source/fixture review. No earlier group passes are retained as fresh recovery7 results."
+    },
+    {
+      "run_id": 38972679737,
+      "job_id": 117214576371,
+      "source_commit": "60a726647dab114826ca08e9d7001dca774bffc6",
+      "classification": "Actual32-group diagnostic run:26reportedpassed,6failed; remains overallfailed.",
+      "failure_scope": "Simkl shutdown SIGALRM during drain normal/ASan; Plex truncated fixture filename normal/ASan; Posplay upstream cold-seed profile-session capture normal/ASan.",
+      "fresh_all_groups_required": true
+    }
+  ],
+  "public_suite_order": {
+    "front_loaded": [
+      "tests/simkl_scrobble.sh",
+      "tests/plex.sh",
+      "tests/trakt_cw_dup.sh",
+      "tests/proxprefetch.sh"
+    ],
+    "all_selected_suites_mandatory": true,
+    "order_only_no_script_rewrite": true,
+    "isolation": "Simkl uses unique SIMKL_TEST_DIR and fresh processes; Plex uses unique temp data and ephemeral loopback server with cleanup; TraktCW uses fresh process-local fixtures and no persisted shared data; proxprefetch uses unique output directory and process-local doubles."
+  },
+  "public_test_failure_collection": {
+    "enabled": true,
+    "execution": "sequential all mandatory groups",
+    "initial_identity_failfast": true,
+    "final_identity_mandatory": true,
+    "failed_group_status_never_passed": true,
+    "any_failure_exits_nonzero": true,
+    "full_apps_only_after_all_tests_pass": true,
+    "success_schema_and_group_checks_unchanged": true,
+    "proposal_sha256": "ecfb90a83d99c0dd31db3cb2fb182a725731e5f5c6549961960040ca1bbace8e",
+    "synthetic_controls_sha256": "b54df4e186275d9db0c1c7496932d57218811473d0cc70a76e4fa39cd1b1a1a2",
+    "synthetic_controls_scope": "Synthetic Python orchestration controls only. No C compiler, SDK, app, source-function or macOS execution claim.",
+    "synthetic_controls": 10
+  },
+  "recovery_policy": {
+    "all_32_groups_fresh": true,
+    "no_26_group_reuse": true,
+    "full_native_only_after_all_tests_pass": true,
+    "actual_source_and_test_commits_pending": false,
+    "source_change_claim": "The minimal seed-session product correction and separate fixture repairs are bound to actual remote identities and exact frozen source hashes."
+  },
+  "final_source_repairs": {
+    "product": "One synchronous seed profile-session capture identical to PR561; fixes actual Posplay cold-seed publication guard, no Posplay fixture relaxation.",
+    "tests": "Plex profile filename capacity derives from base path; Simkl pending-response drain100 retains alarm/deadlock/idle/journal/retry assertions.",
+    "no_prior_group_reuse": true,
+    "fresh_public_groups": 32,
+    "fresh_native_compiles": 670,
+    "fresh_rust_links": 2
+  }
+}
