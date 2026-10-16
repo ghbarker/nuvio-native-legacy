@@ -1,0 +1,62 @@
+{
+  "format": 3,
+  "all_passed": true,
+  "source_commit": "8fbf027d5fe069d67519021e4a02ffad5299bc66",
+  "source_tree": "5bbb32031d1d2721f77663d8916433cf79b0f22a",
+  "review_commit": "af6c0fd6978afe04ca25bae9c45f87d7eafbfbe4",
+  "run_id": 38955852439,
+  "run_attempt": 1,
+  "plan_sha256": "b7d991c84db89443ec0767907e6d7e2b49240a4e0211907309d8ef4055ad3d88",
+  "job": {
+    "id": 117158399941,
+    "name": "APK20034 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "13f5f6f7930da4f5c500bf69a3470a5c104bdb0bb497891f11b22ccd912718ef",
+  "apk_bytes": 59145244,
+  "build_receipt_sha256": "d738c57ea8aea0ba7f59820aa44c79311189f60553311864e5b1eda5a64c6133",
+  "apk_verification_sha256": "484dfc781901c85c10ba2257523807b2b3a8cb4a9f396dca7f51523ae54ac6d5",
+  "source_proof_sha256": "8dc352359dac3065663d8fc5e907b36726fdd29b1372310c216066bab28c40eb",
+  "composition_sha256": "0de378511b5c07d5d8dfff82160acdfe29a05c22fd3371995b8bfa7fdfb5c2d3",
+  "previous_results_count_as_fresh": false,
+  "single_exact_private_source": true,
+  "private_overlay_preserved": true,
+  "scope": "Fresh successful Android ARM32/ARM64 build and source-bound APK verification for the exact private Logs24 search-window/native-title port, retaining existing season/episode diagnostics. Prior results are reference only. No fresh macOS, emulator or physical-device result is claimed; both native diagnostic markers must be verified by the publication job before release.",
+  "source_purpose": "PRIVATE Bigg Boss search-window fix test APK with existing diagnostics; no public PR fix claim",
+  "public_product_fix_claimed": false,
+  "macos_validation_included": false,
+  "emulator_results_included": false,
+  "android_build_and_apk_checks_passed": true,
+  "native_diagnostic_marker_required_for_publication": true,
+  "diagnostics": {
+    "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+    "detail_c_sha256": "42485f08127d4a046b8d467f084517adef75d931ef8922956cd8ea9caec00d16",
+    "build_gate": "NV_TEST_LOCAL_LOGS",
+    "minimum_sample_ms": 250,
+    "max_changed_records_per_opening": 32,
+    "scope": "Bounded season/episode update+draw state, geometry and hashed title/source identity; no raw URLs, account identifiers or auth."
+  },
+  "android_independent_verification_sha256": "7a232b7534396b33f8d48f417826ac78fca8e5c0da95fe6206da7abfbc646942",
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 316,
+  "actual_player_jni_descriptors": 19,
+  "actual_dex_files": 4,
+  "source_restored_clean": true,
+  "private_diagnostic_source_compile_bound": true,
+  "cache_restoration": {
+    "native": {
+      "primary_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+      "matched_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+      "exact_hit": true,
+      "restored": true
+    },
+    "gradle": {
+      "primary_key": "rebases10e3-gradle-v1-Linux-438a8d367a4a8a362042b0771f44f3d3c76cd9276d936460e01754186665622e",
+      "matched_key": "rebases10e3-gradle-v1-Linux-d16b4473e07df726d35928890ef7ef33a6c6ab150631a8c147d64031bff7bbc0",
+      "exact_hit": false,
+      "restored": true
+    }
+  },
+  "private_test_apk": true,
+  "includes_search_window_fix": true,
+  "public_product_fix_claimed_meaning": "False means this private APK publication makes no public PR or upstream fix claim; the private test APK must contain the search-window fix."
+}
