@@ -63,6 +63,14 @@ int main(int argc, char **argv) {
   printf("progress expected=%s exists=%d type=%s; stats id=%s\n",
          key, saved, saved ? r.tipo : "(missing)", statsId);
   if (!saved || strcmp(r.tipo, movie ? "movie" : "series")) failed = 1;
+  if (!movie) {
+    ProgRegistro other;
+    int bare = prog_por_chave("tt9054364", &other);
+    printf("series bare-movie progress exists=%d type=%s episode=%d:%d\n",
+           bare, bare ? other.tipo : "(missing)", bare ? other.temporada : 0,
+           bare ? other.episodio : 0);
+    if (bare) failed = 1;
+  }
   if (strcmp(statsId, movie ? "tt1629757" : "tt9054364:1:2")) failed = 1;
   char body[400];
   scrobble_corpo(body, sizeof body, statsId, 40);
