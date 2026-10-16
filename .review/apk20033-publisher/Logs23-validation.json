@@ -1,0 +1,58 @@
+{
+  "format": 3,
+  "all_passed": true,
+  "source_commit": "3531ceb775f8f18718d8ff5ddeb11ef97ec6aea1",
+  "source_tree": "897a0cd479f1014afe1a992cac4bf43fbf6f7cff",
+  "review_commit": "8b35ad27979cde3c129c87f6ab048a15b9f4ae29",
+  "run_id": 38938024869,
+  "run_attempt": 1,
+  "plan_sha256": "be561d8938a460e8df0463c45925913df990ccdc74885c73f653a26d84bfeac4",
+  "job": {
+    "id": 117098314664,
+    "name": "APK20033 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "711a693127e7d7304c1b9d0e2cfe599511d61a6368045b022fd20a13c06d5830",
+  "apk_bytes": 59145408,
+  "build_receipt_sha256": "a691e29883ca07b3ef5da1efa99b514615dc5f8bd1218ac39344fd8fdff7cc1c",
+  "apk_verification_sha256": "0cbb40fac49acf0bd3898b650a056f09f5c0a151252f948cbd32935c49322e77",
+  "source_proof_sha256": "20ab30c4c26f3c7470ae516e1f22e785f0275f1f8898fc5f151a220f107116a5",
+  "composition_sha256": "6c9c91e4d8a40d523a48b52df7568eb54f85e78248dace20c8d131a5ee96a7e4",
+  "previous_results_count_as_fresh": false,
+  "single_exact_private_source": true,
+  "private_overlay_preserved": true,
+  "scope": "Private diagnostic APK. Fresh Android ARM32/ARM64 builds and APK package, certificate, DEX, JNI and16KB checks passed against the exact source. The hosted publisher verifies the APK bytes and diagnostic marker in both ARM libraries before release.",
+  "source_purpose": "PRIVATE season update/draw diagnostic; no public product fix claimed",
+  "private_diagnostics_only": true,
+  "public_product_fix_claimed": false,
+  "macos_validation_included": false,
+  "emulator_results_included": false,
+  "android_build_and_apk_checks_passed": true,
+  "native_diagnostic_marker_required_for_publication": true,
+  "diagnostics": {
+    "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+    "detail_c_sha256": "42485f08127d4a046b8d467f084517adef75d931ef8922956cd8ea9caec00d16",
+    "build_gate": "NV_TEST_LOCAL_LOGS",
+    "minimum_sample_ms": 250,
+    "max_changed_records_per_opening": 32,
+    "scope": "Bounded season/episode update+draw state, geometry and hashed title/source identity; no raw URLs, account identifiers or auth."
+  },
+  "android_independent_verification_sha256": "de51546e0001e141a415632d5c37cd1b2b3f61964225f9e21182de7c40e38c97",
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 316,
+  "actual_player_jni_descriptors": 19,
+  "actual_dex_files": 4,
+  "source_restored_clean": true,
+  "private_diagnostic_source_compile_bound": true,
+  "cache_restoration": {
+    "native": {
+      "restored": true,
+      "exact_hit": true,
+      "matched_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75"
+    },
+    "gradle": {
+      "restored": true,
+      "exact_hit": false,
+      "matched_key": "rebases10e3-gradle-v1-Linux-c58178bf236fc7589d33fc1a17d8d36687613082b122c9b6b19abd5c106b0cdd"
+    }
+  }
+}

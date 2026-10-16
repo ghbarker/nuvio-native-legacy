@@ -1,0 +1,125 @@
+{
+  "format": 3,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "sources": {
+    "test": {
+      "commit": "3531ceb775f8f18718d8ff5ddeb11ef97ec6aea1",
+      "tree": "897a0cd479f1014afe1a992cac4bf43fbf6f7cff",
+      "parents": [
+        "f07278cddd24fbf10a59ce00b7366d7e18a3898c"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "30d071dd6753a073ab38d4392d1c186cf52bb873ed40e28aa717708a60e0644d"
+    }
+  },
+  "final_source_tree": "897a0cd479f1014afe1a992cac4bf43fbf6f7cff",
+  "remote_source_only_commit": "3531ceb775f8f18718d8ff5ddeb11ef97ec6aea1",
+  "remote_source_parent": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+  "local_source_trace": "07923f29350818e386bbeb53c814a05c29285fdc",
+  "accepted_logs22_foundation": {
+    "apk_source": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+    "apk_source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+    "final_public_tests": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+    "final_public_test_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+    "android_run": 38868123532,
+    "publisher_run": 38870361390,
+    "released_validation_sha256": "b9bef51c4bd35ae7ae7ca0eeb74ed0421785a607fe3d403a4b31548810a69f68",
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "inputs": {
+    "foundation_final_tests": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+    "logs22_actual_source": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+    "private_diagnostic_commit": "07923f29350818e386bbeb53c814a05c29285fdc",
+    "private_diagnostic_patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99"
+  },
+  "private_overlay": {
+    "preserved": true,
+    "never_pr": true,
+    "paths": {
+      "android/app/build.gradle.kts": {
+        "original_added_statements_preserved": true,
+        "blob": "3ec0bfffb8b27e267b172a514ce64f37edd6ef0d"
+      },
+      "android/app/src/main/AndroidManifest.xml": {
+        "original_added_statements_preserved": true,
+        "blob": "e83d97dba09fdd1dc25a019de10e32253746e9eb"
+      },
+      "android/app/src/main/cpp/CMakeLists.txt": {
+        "original_added_statements_preserved": true,
+        "blob": "7441c77524cc241b63e5e3dce080d8f801195100"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "6f955b8e1412ab518f222d804834bb535b65ad0d"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "f955fb02a3bc23e58127e4f189dced9cd767126f"
+      },
+      "src/ajustes.c": {
+        "original_added_statements_preserved": true,
+        "blob": "aa9753153590c555a9c2f6dfa2c5fb313c03c51d"
+      },
+      "src/ajustes_ux_desenho.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "238af818b69ebed6a17f2d70bb25130bebe1f8a4"
+      },
+      "src/ajustes_ux_ilha.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "d1bc9f37a04f05fbb2ecca1a570defb2cecfdb9d"
+      },
+      "src/ajustes_ux_interacao.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "af37acc43cd99aa8e229b5b83629ecdcf6f24874"
+      },
+      "src/app.c": {
+        "original_added_statements_preserved": true,
+        "blob": "b062e886afa4574f0c5abdcc07289e236707e533"
+      },
+      "src/detail.c": {
+        "original_added_statements_preserved": true,
+        "blob": "702100a41d2b058b760c31d21d95e7b59be20402"
+      },
+      "src/posplay.c": {
+        "original_added_statements_preserved": true,
+        "blob": "fb3a31731e23272e14c900f46509b93694f0bf52"
+      },
+      "src/tex_cache.c": {
+        "original_added_statements_preserved": true,
+        "blob": "c001085da527793eddc96e92dff0d48ce3a2d597"
+      },
+      "src/tex_cache.h": {
+        "original_added_statements_preserved": true,
+        "blob": "aed49ae6e6d0cdaf87a3c3f5add9f2624f57406a"
+      }
+    },
+    "new_diagnostics": {
+      "path": "src/detail.c",
+      "base_sha256": "db1a2217fff110f51823dbe2e48b126a41685fd75abb5ba4e71435d2c62b05f7",
+      "result_sha256": "42485f08127d4a046b8d467f084517adef75d931ef8922956cd8ea9caec00d16",
+      "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+      "input_ready_sha256": "04bda7070d1c54efcf85c3a013ff1f08fb524339984d7c42e5b52c244811d760",
+      "build_gate": "NV_TEST_LOCAL_LOGS",
+      "separate_sample_clock": true,
+      "normal_build_text_equivalence_sha256": "87157981b4c21ee891048c2db93657093aecdacf044e52cd77dafbddac92c846",
+      "normal_build_text_equivalence_only": true,
+      "compile_tested": false,
+      "runtime_tested": false,
+      "max_changed_records_per_opening": 32,
+      "minimum_sample_ms": 250
+    },
+    "identity_change": {
+      "from_version_code": 20032,
+      "to_version_code": 20033,
+      "version_name": "2.0.33-test-logs23",
+      "same_package_and_certificate": true
+    }
+  },
+  "tests_tree": "7126e4923dbb0e0ecf4a20b73da690f3cc363af9",
+  "remaining_conflicts": [],
+  "source_frozen": true,
+  "source_visibility": "published exact private source-only commit on test/logs23-source-20261016; no public PR",
+  "source_purpose": "PRIVATE season update/draw diagnostic; no public product fix claimed",
+  "remote_source_branch": "test/logs23-source-20261016"
+}

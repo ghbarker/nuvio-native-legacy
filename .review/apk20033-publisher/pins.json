@@ -1,0 +1,35 @@
+{
+  "format": 3,
+  "frozen_pins_ready": true,
+  "root_publication_approved": true,
+  "source_commit": "3531ceb775f8f18718d8ff5ddeb11ef97ec6aea1",
+  "source_tree": "897a0cd479f1014afe1a992cac4bf43fbf6f7cff",
+  "review_commit": "8b35ad27979cde3c129c87f6ab048a15b9f4ae29",
+  "review_tree": "5ca009b45e85246b034cf16ba62ab44473696b4f",
+  "plan_sha256": "be561d8938a460e8df0463c45925913df990ccdc74885c73f653a26d84bfeac4",
+  "run_id": 38938024869,
+  "run_attempt": 1,
+  "job": {
+    "id": 117098314664,
+    "name": "APK20033 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_artifact": {
+    "id": 12060919962,
+    "name": "apk20033-android-apk-8b35ad27979cde3c129c87f6ab048a15b9f4ae29",
+    "bytes": 54484474,
+    "sha256": "791ac59b3cd193f7239aa68cf1c347b1785f6ac17106df5744520af5bd10c53e"
+  },
+  "proof_artifact": {
+    "id": 12061977505,
+    "name": "apk20033-android-proof-8b35ad27979cde3c129c87f6ab048a15b9f4ae29",
+    "bytes": 22932,
+    "sha256": "9d486aa5902bc9bb9fc84fcdea8b7ca92fbe071e54274041f14006df3294fbc0"
+  },
+  "apk_bytes": 59145408,
+  "apk_sha256": "711a693127e7d7304c1b9d0e2cfe599511d61a6368045b022fd20a13c06d5830",
+  "validation_sha256": "3d5cf60b853bdf76e515d7aa1f65087f3e78b3ba23ee229ae48da54704ecfd87",
+  "build_receipt_sha256": "a691e29883ca07b3ef5da1efa99b514615dc5f8bd1218ac39344fd8fdff7cc1c",
+  "apk_verification_sha256": "0cbb40fac49acf0bd3898b650a056f09f5c0a151252f948cbd32935c49322e77",
+  "source_proof_sha256": "20ab30c4c26f3c7470ae516e1f22e785f0275f1f8898fc5f151a220f107116a5",
+  "composition_sha256": "6c9c91e4d8a40d523a48b52df7568eb54f85e78248dace20c8d131a5ee96a7e4"
+}
