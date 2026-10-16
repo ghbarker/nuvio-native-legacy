@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "501"
+  ],
+  "job_candidates": {
+    "native": [
+      "501"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue501-subtitle-fonts-recovery1-20261016",
+  "workflow_path": ".github/workflows/issue501-subtitle-fonts-recovery1.yml",
+  "source_manifest_sha256": "627e50370ce5a145bda8da5ae5c0457a7b3f700a6c5ed48209d1c0fabdfa1158",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "5b313d72a78a51c9720a9b4a0956e222c24c1768d007a5fe2e7812852f821b84",
+    "preflight.py": "3570da5d6bd90ccf23c1f73bdb1cabd0a82fb291fa2f5c7c1d13a5342bee1066",
+    "public_tests.py": "d851a9712b9975f07d33212f7d190a51e935be6ac9b9f3889b7fa67916e585f9"
+  },
+  "workflow_normalized_sha256": "e9e85b26523e30d6546d17eeece60b6220c80da39c3042acfeaa011de7fc1397",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "ed85ce075edc200c9b89dc4d90575f692b6fe23997cc9c83dabe072da8a1165c",
+    "policy": "Pending final base. Exclude only the isolated review branch in review tree; never modify candidate workflows."
+  },
+  "candidate_scope": "Frozen font import/selection product and separate ten-path tests child; actual remote identity root-verified.",
+  "scope": "Actual committed SDL_ttf/libass/FriBidi registry, selected-face/pixel/transaction/fallback tests and retained relevant regressions in their declared modes; fresh source-derived TV/Mobile direct libass/FriBidi and production Rust full links. Android JVM test bytes are bound but not executed or claimed by this Mac lane.",
+  "hosted_shell_dependencies": {
+    "homebrew_formulae": [
+      "sdl2",
+      "sdl2_image",
+      "sdl2_ttf",
+      "sdl3",
+      "ripgrep",
+      "libass",
+      "fribidi",
+      "pkgconf"
+    ],
+    "required_commands": [
+      "bash",
+      "cc",
+      "dirname",
+      "mktemp",
+      "rm",
+      "python3",
+      "seq",
+      "sleep",
+      "sed",
+      "mkdir",
+      "sdl2-config",
+      "uname",
+      "cat",
+      "grep",
+      "tail",
+      "rg",
+      "brew",
+      "git",
+      "otool",
+      "rustc",
+      "cargo",
+      "pkg-config"
+    ],
+    "verification_step": "Real compiler and SDK sanity before full links",
+    "verification_log": "results/sdk/shell-tools.log",
+    "source_or_test_changes": false,
+    "reason": "Require actual SDL_ttf, libass and direct FriBidi API/link dependencies before any selected script; missing libraries or skipped controls cannot satisfy hosted font validation.",
+    "font_capability_logs": [
+      "results/sdk/font-dependencies.log",
+      "results/native/font-library-versions.log",
+      "results/native/libass-cflags.log",
+      "results/native/libass-libs.log",
+      "results/native/sdk-run.log"
+    ]
+  },
+  "public_test_failure_collection": {
+    "enabled": true,
+    "execution": "sequential all mandatory groups",
+    "initial_identity_failfast": true,
+    "final_identity_mandatory": true,
+    "any_failure_exits_nonzero": true,
+    "full_apps_only_after_all_tests_pass": true,
+    "success_schema_and_group_checks_unchanged": true,
+    "proposal_sha256": "d851a9712b9975f07d33212f7d190a51e935be6ac9b9f3889b7fa67916e585f9",
+    "synthetic_controls_sha256": "9737c9b43cfeb3091b620ec11870f832b5bcc1080491339275a12bfc6353b44d",
+    "synthetic_controls": 10,
+    "synthetic_controls_scope": "Synthetic Python orchestration controls only. No C compiler, SDK, app, source-function or macOS execution claim.",
+    "live_progress": {
+      "recorded_run_before_group": true,
+      "recorded_pass_only_after_verified_group": true,
+      "validated_try_body_unchanged": true
+    },
+    "base_collect_all_controls_root_and_peer_independently_reexecuted": true,
+    "progress_controls_executed_by_owner": true,
+    "progress_controls_raw_logs_independently_peer_reviewed": true,
+    "progress_delta_root_reviewed": true
+  },
+  "font_suite_contracts_ready": true,
+  "native_font_backend_peer_reviewed": true,
+  "font_validation_contract": {
+    "production_define": "-DNV_ASS_LIBASS",
+    "pkg_config_modules": [
+      "sdl2",
+      "SDL2_ttf",
+      "libass",
+      "fribidi"
+    ],
+    "production_rust": true,
+    "full_ui_variants": [
+      "tv",
+      "touch"
+    ],
+    "required_new_modes": [
+      "normal",
+      "asan"
+    ],
+    "silent_skips_accepted": false,
+    "font_inputs_bound_by_blob_and_sha256": true,
+    "selected_face_pixel_fallback_contract": "Strict real SDL_ttf TTF/CFF registry, real libass same-name pixel oracle/restore/replay/OOM/bounds, and full-source actual player preference transactions; exact committed runtime markers mandatory.",
+    "fresh_native_unit_count": 336,
+    "public_group_count": 12,
+    "compiler_commands": 12,
+    "test_links": 12,
+    "direct_fribidi_required": true,
+    "direct_fribidi_sdk_probe": "fribidi_get_bidi_type(0x41) == FRIBIDI_TYPE_LTR",
+    "full_link_dylibs": [
+      "libass.",
+      "libSDL2_ttf",
+      "libfribidi."
+    ],
+    "direct_dependency_static_audit_sha256": "0c3b9da0e16e34820765bd3077b425d2426d27ddb0bf509018a43924914f221d"
+  },
+  "recovery_policy": {
+    "prior_failed_run": 38981198730,
+    "prior_failed_job": 117242204199,
+    "prior_review": "9397bb47826301807583c891660f329c26ef85c5",
+    "prior_scope": "12 groups attempted; 10 recorded PASS, two ass_fonte_local links missing direct FriBidi. Full apps correctly not reached.",
+    "all_public_groups_and_full_apps_fresh": true,
+    "reuse_of_failed_run_groups": false,
+    "pending": [
+      "final CLOSED peer",
+      "root review and opening/hosted actual validation"
+    ]
+  }
+}
