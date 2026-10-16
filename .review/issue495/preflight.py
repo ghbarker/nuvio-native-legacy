@@ -1,0 +1,34 @@
+"""Fail closed before exact issue495 public-source SDK producers."""
+from pathlib import Path
+import ast,hashlib,json,os,subprocess
+from common import HERE,approved,sha
+p=approved();sources=json.loads((HERE/'source-candidates.json').read_text());w=json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/workflows/issue495-review.yml').read_text())
+assert list(sources)==p['selected_candidates']==['495']
+assert p['internal_issue_candidate']==495 and p['public_pr_number'] is None
+assert p['required_jobs']==['native','android'] and set(w['jobs'])=={'native','android'}
+assert w['on']['push']['branches']==[p['review_branch']] and w['env']['REBASE_PLAN_SHA256']==sha(HERE/'plan.json')
+n=json.loads(json.dumps(w));n['env']['REBASE_PLAN_SHA256']='<PLAN_SHA256>';counts=[]
+for lane,job in w['jobs'].items():
+ assert job['if'] is True and 'strategy' not in job and job['env']['REBASE_PR']=='495'
+ assert job['name'].startswith('Issue495 ');n['jobs'][lane]['if']='<ROOT_GATE>'
+ uploads=[s for s in job['steps']if s.get('uses','').startswith('actions/upload-artifact@')]
+ assert len(uploads)==2 and any('-proof-'in s['with']['name']and '!results/**/*.apk'in s['with']['path']for s in uploads)
+ for step in job['steps']:
+  if step.get('uses','').startswith(('actions/cache@','actions/cache/restore@')):
+   keys=[step['with']['key']]+[q.strip()for q in step['with'].get('restore-keys','').splitlines()if q.strip()]
+   assert len(keys)<=10 and len(keys)==len(set(keys));counts.append(len(keys))
+assert counts==[10,10]
+assert hashlib.sha256(json.dumps(n,sort_keys=True,separators=(',',':')).encode()).hexdigest()==p['workflow_normalized_sha256']
+steps=w['jobs']['android']['steps'];before=next(s for s in steps if s.get('name')=='Capture strictly clean Android workspace before build');after=next(s for s in steps if s.get('name')=='Preserve and verify post-build Android workspace')
+assert before['id']=='workspace_before' and after['if']=="${{ always() && steps.workspace_before.conclusion == 'success' }}"
+m=sources['495'];assert m['head']==m['public_test_commit'] and m['parents']==[m['product_head']] and m['base']==p['current_master'] and m['fresh_sdk_required']
+paths=subprocess.check_output(['git','diff','--name-only',m['product_head'],m['head']],text=True).splitlines();assert paths==m['public_test_commit_paths'] and paths and all(q.startswith('tests/')for q in paths)
+assert m['public_suites'] and m['android_public_suites']==[]
+for q in m['public_suites']:
+ assert q['script'].startswith('tests/') and q['script'].endswith('.sh')and q['modes']==['normal','asan']and q['inputs']
+ for variant in q.get('variants',[{}]):
+  rules={**q,**variant};assert rules.get('required_markers')or rules.get('marker_counts')
+ for path in [q['script'],*q['inputs']]:assert path.startswith(('src/','tests/'))
+for relative in p['recipe_inputs']:
+ if relative.endswith('.py'):ast.parse((HERE/relative).read_text(),filename=relative)
+print(json.dumps({'source_bound':True,'internal_issue_candidate':495,'public_pr_number':None,'sdk_producers':2,'cache_keys':counts,'public_tests_are_separate_commit':True,'prior_sdk_passes_reused':False,'private_overlay_reused':False}))

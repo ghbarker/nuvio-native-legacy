@@ -1,0 +1,416 @@
+{
+  "495": {
+    "pr": 495,
+    "internal_issue_candidate": 495,
+    "public_pr_number": null,
+    "head": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "tree": "01001a351d6a5aa620b675ef5eb3c0758b68935e",
+    "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+    "base_tree": "390a78e226f56b25756a749eab0c2c16cbe77c62",
+    "parents": [
+      "a7d8b1f58b7a042e8e98dc9a6d1ca061f7b53175"
+    ],
+    "exact_diff_paths": [
+      "src/addonsui.c",
+      "src/addonsui.h",
+      "src/agendaui.c",
+      "src/agendaui.h",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_interacao.inc",
+      "src/amigoperfil.c",
+      "src/amigoperfil.h",
+      "src/app.c",
+      "src/biblioteca.c",
+      "src/biblioteca.h",
+      "src/busca.c",
+      "src/busca.h",
+      "src/detail.c",
+      "src/detail.h",
+      "src/explorar.c",
+      "src/explorar.h",
+      "src/home.c",
+      "src/home.h",
+      "src/ilha.c",
+      "src/ilha.h",
+      "src/main.c",
+      "src/perfil.c",
+      "src/perfil.h",
+      "src/pluginsui.c",
+      "src/pluginsui.h",
+      "src/vertudo.c",
+      "src/vertudo.h",
+      "tests/home_relogio.c",
+      "tests/home_relogio.sh",
+      "tests/relogio_foco.c",
+      "tests/relogio_foco.sh"
+    ],
+    "paths": [
+      {
+        "path": "src/addonsui.c",
+        "blob": "4628798e02ab0b625e3c98e25d9d755f464e7bd4",
+        "sha256": "317c38c89412cf2185d773618a98837d02c08df3c9cc8375c6a3f616696fb2b4"
+      },
+      {
+        "path": "src/addonsui.h",
+        "blob": "77c9ef37848296fc5023911d0a6332c6346b9d00",
+        "sha256": "af9136eff0de2f6652cb2b68bb557aeed8c0d9728bb4b42270ce517e27cfb179"
+      },
+      {
+        "path": "src/agendaui.c",
+        "blob": "03e7df261d69ca5a26871890d649e2cb327838d2",
+        "sha256": "5641b490c12cda705c21ae3d1f2d0b5f5c8a2f0122a37a5cbf08e98a601006a5"
+      },
+      {
+        "path": "src/agendaui.h",
+        "blob": "5ddd66fcc966073ffd5260de922f4567cc6141ab",
+        "sha256": "f482e873de995035fa8f561d10beb708c603bdfd116a7443943ee566a12c5ff9"
+      },
+      {
+        "path": "src/ajustes.c",
+        "blob": "3de65d616ec5ae6a4aa9d4845b91ac38e279327e",
+        "sha256": "77500f34b7b1039105c688aeb5ec3925d53702addda3ce90926269400a9f35b9"
+      },
+      {
+        "path": "src/ajustes.h",
+        "blob": "1bb21ebd195025ce78b153e499327b2ce2d9aa9c",
+        "sha256": "b16febcff7893bdadfb896e9b23c140ac84ace69fffbb904e623587876e64ee1"
+      },
+      {
+        "path": "src/ajustes_ux_interacao.inc",
+        "blob": "e6d04b8898a4f370dc2537e3fb724cd116b012fe",
+        "sha256": "1a1a374daa9ee4806c56bd410d050dd7d95a725d0d72ccb6ad625d49f43ae0be"
+      },
+      {
+        "path": "src/amigoperfil.c",
+        "blob": "f6e37a768df643a38db081a060a3a5b6177fbfd3",
+        "sha256": "e51f61d367714e09599c34557b3882a98e06a4825780b1d42eb2d4fd55c1b087"
+      },
+      {
+        "path": "src/amigoperfil.h",
+        "blob": "b5e61a7b76257e3e2e3401a39ad12abcf83b955c",
+        "sha256": "52f1662970892275958aeda66237fc29295ede3551117bee3e6617fcb9449c36"
+      },
+      {
+        "path": "src/app.c",
+        "blob": "ad0aabe8ec0428692dc3d2238f2fe7088d9a50ea",
+        "sha256": "bab8773f92d34cb4430c0ba6fd42fe8ba2fb3065fffd02bcd1b87a50d313192f"
+      },
+      {
+        "path": "src/biblioteca.c",
+        "blob": "d36aa202b116d18410b7915d8d0ab67c31e2c687",
+        "sha256": "3605400247dab158c718faa2445b0c9012914e0d50316e1b889f96be5b8704d6"
+      },
+      {
+        "path": "src/biblioteca.h",
+        "blob": "d9482ee3ff0dacea73293b8a9cba05f4c1723578",
+        "sha256": "31c434c09c6797cedd53459c9f3b1a2a6ddc3749fc667d7babca2d2de1b4f9a6"
+      },
+      {
+        "path": "src/busca.c",
+        "blob": "9398fe9c9cedb05a5c9e2e799a698af407f39314",
+        "sha256": "291fdf52eacfddef82ca0363d43ace49390f0359f81efb6cba5d74d46fe48ca0"
+      },
+      {
+        "path": "src/busca.h",
+        "blob": "6ccf2c8352140e64eab8eeda35300ff51d31cb15",
+        "sha256": "0279302c62fe0ae493574315c8761f57b72c7e09ad722156f842a98558b9ed81"
+      },
+      {
+        "path": "src/detail.c",
+        "blob": "602290be02e3d43d743e47075fa51cb09a53be6a",
+        "sha256": "e99673a4891ffa442a880583179d2d1b654ed4f9a9412b13526cbddb756a7edd"
+      },
+      {
+        "path": "src/detail.h",
+        "blob": "bbca6fc0ae31e0ef3f3c72fd38b381c3ac7e88a1",
+        "sha256": "28d84c90331e1bc0884c15e90c8b366b9dd49ef7afb1c59e5475aecc67be3729"
+      },
+      {
+        "path": "src/explorar.c",
+        "blob": "68d0b71456b2b0046b0f110f5bbd311774c6015f",
+        "sha256": "b86a8f1dbe247c4d3c847918e0a2a736ddc6430af61b43ad5447c30d46be56be"
+      },
+      {
+        "path": "src/explorar.h",
+        "blob": "81be31db3cbd255df17b950c0d49467271fd33bc",
+        "sha256": "cf4a3dcca903e85acd850c6e35077862d9701b16ee73684c8b4ac1f201186755"
+      },
+      {
+        "path": "src/home.c",
+        "blob": "0765e329ea628843cfa6328fdc00119382b459dc",
+        "sha256": "fcc50e90870caba0e6bfcd81de1c7a392e18c22ba87409784c046474f0a4a6f3"
+      },
+      {
+        "path": "src/home.h",
+        "blob": "77b081bc2e59cce8d45431c79659a429ad0113d6",
+        "sha256": "a9d9b04b7d45500d6a4c3215c1428d97bd282b5a55a8e89751f35c410fe509cb"
+      },
+      {
+        "path": "src/ilha.c",
+        "blob": "ad64b71b05aefa35e549a460c92c1b48db124bfc",
+        "sha256": "e019ddec386409d432de61eba9b2fd545c3fa956395ffe8f249ceebed043c857"
+      },
+      {
+        "path": "src/ilha.h",
+        "blob": "e6669e6460bc8bf88d448ffdf7b1893a8f9bff93",
+        "sha256": "e17dbba1ef20565c74a9f7e41e384553ec32d42d40f25e1bedc7d18f42c62681"
+      },
+      {
+        "path": "src/main.c",
+        "blob": "d2cf99bb363cb4381784fdabc38d7345b365510f",
+        "sha256": "ccdf973b56e4e842980099c9099838aa05c9254baff5999334a16e226848dfd2"
+      },
+      {
+        "path": "src/perfil.c",
+        "blob": "c906f62364c86f6881ca017d3db12868705fc3d8",
+        "sha256": "99d4c3d65aba29d0b0981181212ef19f87ab964b3d6b40640d66a83f0e614717"
+      },
+      {
+        "path": "src/perfil.h",
+        "blob": "9eb0db4d13f240168916386b25feffabeaa63066",
+        "sha256": "c00cbbff5a660737504136f1ed2de6eef9ec1c84c4f93bea03cca1e5b53ecaf6"
+      },
+      {
+        "path": "src/pluginsui.c",
+        "blob": "7ca58f17caa27ca4e4d664ad525dfecda6e7786e",
+        "sha256": "754a8ee0cd36e22c5dd8699bacf6edbd13c41ec45228bd17aa11936ace1e3b63"
+      },
+      {
+        "path": "src/pluginsui.h",
+        "blob": "b7f42fc7f49865116fa838521386a0ad6cc20be2",
+        "sha256": "c7841ea71fad3786bda58ec22e39b4514d3fc84fed309c000710fb475f89bd1c"
+      },
+      {
+        "path": "src/vertudo.c",
+        "blob": "207d93db065c346094d5761551bc765fedeabdaa",
+        "sha256": "6eebefb6ca5f5ad448bb4d76a73fdb9037cc04d07abc75d895b5461fd4ff1b9e"
+      },
+      {
+        "path": "src/vertudo.h",
+        "blob": "2391f235bd3ab773a2c509e7898f65f1e543bcb1",
+        "sha256": "a9326be70339af90aab78c2d8f978aff6df77a998582f56088675297fc16c4ee"
+      },
+      {
+        "path": "tests/home_relogio.c",
+        "blob": "18bd0b217846e9f2bfc63db9edbf948291fe06e5",
+        "sha256": "73a788fe7dc4a971d1861f048a012be8f55ef78393625f70ae77376c642062c5"
+      },
+      {
+        "path": "tests/home_relogio.sh",
+        "blob": "dc918a8847078a8c75dc219aceb994a92b8bb8a5",
+        "sha256": "50ee41e9afdbbbb875b8e00f613c534089d76645111ce23c8e9ced450a44461f"
+      },
+      {
+        "path": "tests/relogio_foco.c",
+        "blob": "939a699c062dafe01f0d9479a1fda0a83b290724",
+        "sha256": "b6d44c3ae8a726f8bd56c55470a7eb18ed0c3457df9f5ec17f2f3c333790ae60"
+      },
+      {
+        "path": "tests/relogio_foco.sh",
+        "blob": "d25ddc1d5120ac1b5cca08042f72163b57355247",
+        "sha256": "522d666f00cab5d22c53eb71b3a04ee5a9e037288af9469d9dacffe519833e57"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "src/app.h",
+        "blob": "eb6df827c0e5e4ecc48f40b45be74905eb389a1d",
+        "sha256": "6908f6f3570d86d6331a89e88954c48efb18823eb8064c7f515f8265a0a49887"
+      },
+      {
+        "path": "src/catalogo.h",
+        "blob": "0dd9817dc23e5a74262e9da1d247a6557f1dc342",
+        "sha256": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8"
+      },
+      {
+        "path": "src/colecoes.h",
+        "blob": "50553abe74c337c182bd5d341f0e2772fe2eb02c",
+        "sha256": "bb9439ab769a2827c1d9ad1f3f37d6cd65b132b30204ccfeca97b952f03fb7e9"
+      },
+      {
+        "path": "src/focus.c",
+        "blob": "934a868d53f5182025e69f0eb72e53c86f73dd18",
+        "sha256": "c6abeda932eaafff4dc9f1fb3f3fdf847dc5174252c1cf37cf811cebed9d53ed"
+      },
+      {
+        "path": "src/focus.h",
+        "blob": "39fb6d24c88fd95e409c221b9538196ea624d84f",
+        "sha256": "55f22ce30ef6758dfc3ddb3107c7b52c66362b86b9429438cd3d3444e7a711a0"
+      },
+      {
+        "path": "src/trailercinema.h",
+        "blob": "87cc315a060bbedd7281ddeffa7e75430d4e84d0",
+        "sha256": "4353ec3765cf8d60be30dd2949131f588384810647d413702410299a2ad20087"
+      }
+    ],
+    "product_head": "a7d8b1f58b7a042e8e98dc9a6d1ca061f7b53175",
+    "public_test_commit": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "public_test_commit_paths": [
+      "tests/home_relogio.c",
+      "tests/home_relogio.sh",
+      "tests/relogio_foco.c",
+      "tests/relogio_foco.sh"
+    ],
+    "fresh_sdk_required": true,
+    "public_suites": [
+      {
+        "name": "clock-router",
+        "script": "tests/relogio_foco.sh",
+        "script_sha256": "522d666f00cab5d22c53eb71b3a04ee5a9e037288af9469d9dacffe519833e57",
+        "inputs": {
+          "src/addonsui.c": "317c38c89412cf2185d773618a98837d02c08df3c9cc8375c6a3f616696fb2b4",
+          "src/addonsui.h": "af9136eff0de2f6652cb2b68bb557aeed8c0d9728bb4b42270ce517e27cfb179",
+          "src/agendaui.c": "5641b490c12cda705c21ae3d1f2d0b5f5c8a2f0122a37a5cbf08e98a601006a5",
+          "src/agendaui.h": "f482e873de995035fa8f561d10beb708c603bdfd116a7443943ee566a12c5ff9",
+          "src/ajustes.c": "77500f34b7b1039105c688aeb5ec3925d53702addda3ce90926269400a9f35b9",
+          "src/ajustes.h": "b16febcff7893bdadfb896e9b23c140ac84ace69fffbb904e623587876e64ee1",
+          "src/ajustes_ux_interacao.inc": "1a1a374daa9ee4806c56bd410d050dd7d95a725d0d72ccb6ad625d49f43ae0be",
+          "src/amigoperfil.c": "e51f61d367714e09599c34557b3882a98e06a4825780b1d42eb2d4fd55c1b087",
+          "src/amigoperfil.h": "52f1662970892275958aeda66237fc29295ede3551117bee3e6617fcb9449c36",
+          "src/app.c": "bab8773f92d34cb4430c0ba6fd42fe8ba2fb3065fffd02bcd1b87a50d313192f",
+          "src/biblioteca.c": "3605400247dab158c718faa2445b0c9012914e0d50316e1b889f96be5b8704d6",
+          "src/biblioteca.h": "31c434c09c6797cedd53459c9f3b1a2a6ddc3749fc667d7babca2d2de1b4f9a6",
+          "src/busca.c": "291fdf52eacfddef82ca0363d43ace49390f0359f81efb6cba5d74d46fe48ca0",
+          "src/busca.h": "0279302c62fe0ae493574315c8761f57b72c7e09ad722156f842a98558b9ed81",
+          "src/detail.c": "e99673a4891ffa442a880583179d2d1b654ed4f9a9412b13526cbddb756a7edd",
+          "src/detail.h": "28d84c90331e1bc0884c15e90c8b366b9dd49ef7afb1c59e5475aecc67be3729",
+          "src/explorar.c": "b86a8f1dbe247c4d3c847918e0a2a736ddc6430af61b43ad5447c30d46be56be",
+          "src/explorar.h": "cf4a3dcca903e85acd850c6e35077862d9701b16ee73684c8b4ac1f201186755",
+          "src/home.c": "fcc50e90870caba0e6bfcd81de1c7a392e18c22ba87409784c046474f0a4a6f3",
+          "src/home.h": "a9d9b04b7d45500d6a4c3215c1428d97bd282b5a55a8e89751f35c410fe509cb",
+          "src/ilha.c": "e019ddec386409d432de61eba9b2fd545c3fa956395ffe8f249ceebed043c857",
+          "src/ilha.h": "e17dbba1ef20565c74a9f7e41e384553ec32d42d40f25e1bedc7d18f42c62681",
+          "src/main.c": "ccdf973b56e4e842980099c9099838aa05c9254baff5999334a16e226848dfd2",
+          "src/perfil.c": "99d4c3d65aba29d0b0981181212ef19f87ab964b3d6b40640d66a83f0e614717",
+          "src/perfil.h": "c00cbbff5a660737504136f1ed2de6eef9ec1c84c4f93bea03cca1e5b53ecaf6",
+          "src/pluginsui.c": "754a8ee0cd36e22c5dd8699bacf6edbd13c41ec45228bd17aa11936ace1e3b63",
+          "src/pluginsui.h": "c7841ea71fad3786bda58ec22e39b4514d3fc84fed309c000710fb475f89bd1c",
+          "src/vertudo.c": "6eebefb6ca5f5ad448bb4d76a73fdb9037cc04d07abc75d895b5461fd4ff1b9e",
+          "src/vertudo.h": "a9326be70339af90aab78c2d8f978aff6df77a998582f56088675297fc16c4ee",
+          "src/app.h": "6908f6f3570d86d6331a89e88954c48efb18823eb8064c7f515f8265a0a49887",
+          "src/catalogo.h": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+          "tests/relogio_foco.c": "b6d44c3ae8a726f8bd56c55470a7eb18ed0c3457df9f5ec17f2f3c333790ae60"
+        },
+        "modes": [
+          "normal",
+          "asan"
+        ],
+        "expected_compile_count": 1,
+        "expected_link_count": 1,
+        "variants": [
+          {
+            "name": "tv",
+            "env": {
+              "TOUCH": "0"
+            },
+            "compile_flag_counts": {
+              "-DNV_TOUCH_UI": 0
+            },
+            "required_markers": [
+              "relogio_foco: 65 checks passed"
+            ],
+            "line_count": {
+              "prefix": "ok: ",
+              "count": 65
+            }
+          },
+          {
+            "name": "touch",
+            "env": {
+              "TOUCH": "1"
+            },
+            "compile_flag_counts": {
+              "-DNV_TOUCH_UI": 1
+            },
+            "required_markers": [
+              "relogio_foco: 66 checks passed"
+            ],
+            "line_count": {
+              "prefix": "ok: ",
+              "count": 66
+            }
+          }
+        ]
+      },
+      {
+        "name": "home-addons-clock-events",
+        "script": "tests/home_relogio.sh",
+        "script_sha256": "50ee41e9afdbbbb875b8e00f613c534089d76645111ce23c8e9ced450a44461f",
+        "inputs": {
+          "src/addonsui.c": "317c38c89412cf2185d773618a98837d02c08df3c9cc8375c6a3f616696fb2b4",
+          "src/addonsui.h": "af9136eff0de2f6652cb2b68bb557aeed8c0d9728bb4b42270ce517e27cfb179",
+          "src/agendaui.c": "5641b490c12cda705c21ae3d1f2d0b5f5c8a2f0122a37a5cbf08e98a601006a5",
+          "src/agendaui.h": "f482e873de995035fa8f561d10beb708c603bdfd116a7443943ee566a12c5ff9",
+          "src/ajustes.c": "77500f34b7b1039105c688aeb5ec3925d53702addda3ce90926269400a9f35b9",
+          "src/ajustes.h": "b16febcff7893bdadfb896e9b23c140ac84ace69fffbb904e623587876e64ee1",
+          "src/ajustes_ux_interacao.inc": "1a1a374daa9ee4806c56bd410d050dd7d95a725d0d72ccb6ad625d49f43ae0be",
+          "src/amigoperfil.c": "e51f61d367714e09599c34557b3882a98e06a4825780b1d42eb2d4fd55c1b087",
+          "src/amigoperfil.h": "52f1662970892275958aeda66237fc29295ede3551117bee3e6617fcb9449c36",
+          "src/app.c": "bab8773f92d34cb4430c0ba6fd42fe8ba2fb3065fffd02bcd1b87a50d313192f",
+          "src/biblioteca.c": "3605400247dab158c718faa2445b0c9012914e0d50316e1b889f96be5b8704d6",
+          "src/biblioteca.h": "31c434c09c6797cedd53459c9f3b1a2a6ddc3749fc667d7babca2d2de1b4f9a6",
+          "src/busca.c": "291fdf52eacfddef82ca0363d43ace49390f0359f81efb6cba5d74d46fe48ca0",
+          "src/busca.h": "0279302c62fe0ae493574315c8761f57b72c7e09ad722156f842a98558b9ed81",
+          "src/detail.c": "e99673a4891ffa442a880583179d2d1b654ed4f9a9412b13526cbddb756a7edd",
+          "src/detail.h": "28d84c90331e1bc0884c15e90c8b366b9dd49ef7afb1c59e5475aecc67be3729",
+          "src/explorar.c": "b86a8f1dbe247c4d3c847918e0a2a736ddc6430af61b43ad5447c30d46be56be",
+          "src/explorar.h": "cf4a3dcca903e85acd850c6e35077862d9701b16ee73684c8b4ac1f201186755",
+          "src/home.c": "fcc50e90870caba0e6bfcd81de1c7a392e18c22ba87409784c046474f0a4a6f3",
+          "src/home.h": "a9d9b04b7d45500d6a4c3215c1428d97bd282b5a55a8e89751f35c410fe509cb",
+          "src/ilha.c": "e019ddec386409d432de61eba9b2fd545c3fa956395ffe8f249ceebed043c857",
+          "src/ilha.h": "e17dbba1ef20565c74a9f7e41e384553ec32d42d40f25e1bedc7d18f42c62681",
+          "src/main.c": "ccdf973b56e4e842980099c9099838aa05c9254baff5999334a16e226848dfd2",
+          "src/perfil.c": "99d4c3d65aba29d0b0981181212ef19f87ab964b3d6b40640d66a83f0e614717",
+          "src/perfil.h": "c00cbbff5a660737504136f1ed2de6eef9ec1c84c4f93bea03cca1e5b53ecaf6",
+          "src/pluginsui.c": "754a8ee0cd36e22c5dd8699bacf6edbd13c41ec45228bd17aa11936ace1e3b63",
+          "src/pluginsui.h": "c7841ea71fad3786bda58ec22e39b4514d3fc84fed309c000710fb475f89bd1c",
+          "src/vertudo.c": "6eebefb6ca5f5ad448bb4d76a73fdb9037cc04d07abc75d895b5461fd4ff1b9e",
+          "src/vertudo.h": "a9326be70339af90aab78c2d8f978aff6df77a998582f56088675297fc16c4ee",
+          "src/app.h": "6908f6f3570d86d6331a89e88954c48efb18823eb8064c7f515f8265a0a49887",
+          "src/catalogo.h": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+          "tests/home_relogio.c": "73a788fe7dc4a971d1861f048a012be8f55ef78393625f70ae77376c642062c5",
+          "src/focus.c": "c6abeda932eaafff4dc9f1fb3f3fdf847dc5174252c1cf37cf811cebed9d53ed",
+          "src/focus.h": "55f22ce30ef6758dfc3ddb3107c7b52c66362b86b9429438cd3d3444e7a711a0",
+          "src/colecoes.h": "bb9439ab769a2827c1d9ad1f3f37d6cd65b132b30204ccfeca97b952f03fb7e9",
+          "src/trailercinema.h": "4353ec3765cf8d60be30dd2949131f588384810647d413702410299a2ad20087"
+        },
+        "modes": [
+          "normal",
+          "asan"
+        ],
+        "expected_compile_count": 1,
+        "expected_link_count": 1,
+        "required_markers": [
+          "home_relogio: 17 checks passed"
+        ],
+        "line_count": {
+          "prefix": "ok: ",
+          "count": 17
+        },
+        "variants": [
+          {
+            "name": "tv",
+            "env": {
+              "TOUCH": "0"
+            },
+            "compile_flag_counts": {
+              "-DNV_TOUCH_UI": 0
+            }
+          },
+          {
+            "name": "touch",
+            "env": {
+              "TOUCH": "1"
+            },
+            "compile_flag_counts": {
+              "-DNV_TOUCH_UI": 1
+            }
+          }
+        ]
+      }
+    ],
+    "android_public_suites": [],
+    "scope": "Internal issue495 candidate, not PR495: clock focus on clock-visible browsing pages. Meaningful public regression tests are a separate commit. Private test application overlays and playback diagnostics are absent; only actual committed suite results and SDK source proofs count."
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "name": "Issue495: D-pad clock focus public tests and platform builds",
+  "on": {
+    "push": {
+      "branches": [
+        "review/issue495-clock-focus-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "issue495-${{ github.sha }}-${{ github.run_attempt }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "REBASE_PLAN_SHA256": "4dc5117ef64943b35fd23f2657af2e09d89e6172d263cc0f794a18cfbdda02f4",
+    "PYTHONPATH": "${{ github.workspace }}/.review/issue495",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  },
+  "jobs": {
+    "native": {
+      "name": "Issue495 macOS clock focus and TV/Mobile",
+      "runs-on": "macos-14",
+      "timeout-minutes": 90,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify isolated source, recipe and cache limits",
+          "run": "python3 .review/issue495/preflight.py"
+        },
+        {
+          "name": "Materialize exact reviewed candidate on pinned upstream",
+          "run": "python3 .review/issue495/materialize.py --candidate \"495\" --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-python@v5",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Confirm Python runtime",
+          "run": "python3 --version"
+        },
+        {
+          "name": "Real compiler and SDK sanity before full links",
+          "run": "task_native_cc=\"$(command -v cc)\"\ntest \"$task_native_cc\" = /usr/bin/cc\necho \"NUVIO_REVIEW_REAL_CC=$task_native_cc\" >> \"$GITHUB_ENV\"\nbrew install sdl2 sdl2_image sdl2_ttf sdl3\nmkdir -p results/sdk\ncat > results/sdk/probe.c <<'C'\n#include <stdio.h>\n#include <AvailabilityMacros.h>\n#include <SDL2/SDL.h>\n#include <OpenGL/gl3.h>\nint main(void){puts(\"Real SDK ready\");return 0;}\nC\ntask_brew_prefix=\"$(brew --prefix)\"\n\"$task_native_cc\" -O1 -I\"$task_brew_prefix/include\" -I\"$task_brew_prefix/include/SDL2\" results/sdk/probe.c -L\"$task_brew_prefix/lib\" -Wl,-rpath,\"$task_brew_prefix/lib\" -lSDL2 -lSDL2_image -lSDL2_ttf -framework OpenGL -o results/sdk/probe\nresults/sdk/probe\n"
+        },
+        {
+          "name": "Exact committed public tests normal/ASan and required full TV/Mobile links",
+          "run": "python3 .review/issue495/native.py --source source-app --proof results/source-verified.json --output results/native"
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue495/materialize.py --candidate \"495\" --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue495-native-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue495-native-proof-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o\n!results/**/*.apk\n!results/native/app-tv\n!results/native/app-touch\n!results/native/sdk",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ],
+      "env": {
+        "REBASE_PR": "495"
+      },
+      "if": true
+    },
+    "android": {
+      "name": "Issue495 Android ARM32/ARM64",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 90,
+      "env": {
+        "NUVIO_ANDROID_JOBS": "2",
+        "NUVIO_BUILD_JOBS": "2",
+        "NUVIO_P2P_MOTOR": "none",
+        "REBASE_PR": "495"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify isolated source, recipe and cache limits",
+          "run": "python3 .review/issue495/preflight.py"
+        },
+        {
+          "name": "Materialize exact reviewed candidate on pinned upstream",
+          "run": "python3 .review/issue495/materialize.py --candidate \"495\" --target source-app --proof results/source-verified.json"
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install normal Android toolchain",
+          "run": "sudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "name": "Empty compile-only config, no service credentials",
+          "run": ": > \"$RUNNER_TEMP/rebases.properties\"\nchmod 600 \"$RUNNER_TEMP/rebases.properties\"\necho \"NUVIO_PROPERTIES=$RUNNER_TEMP/rebases.properties\" >> \"$GITHUB_ENV\""
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "rebases10e3-native-v1-${{ runner.os }}-${{ hashFiles('source-app/tools/android/deps.sh', 'source-app/tools/android/ffmpeg-android.sh', 'source-app/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "rebases10e3-native-v1-${{ runner.os }}-\nissue497-native-v1-${{ runner.os }}-\npr527-native-v1-${{ runner.os }}-\napk20028-native-v1-${{ runner.os }}-\napk20027-native-v1-${{ runner.os }}-\napk20026-native-v1-${{ runner.os }}-\napk20025-native-v1-${{ runner.os }}-\nissue362-native-v1-${{ runner.os }}-\nissue477-native-v1-${{ runner.os }}-\n"
+          }
+        },
+        {
+          "uses": "actions/cache@v4",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "rebases10e3-gradle-v1-${{ runner.os }}-${{ hashFiles('source-app/android/**/*.gradle.kts', 'source-app/android/gradle/wrapper/gradle-wrapper.properties') }}",
+            "restore-keys": "rebases10e3-gradle-v1-${{ runner.os }}-\nissue497-gradle-v1-${{ runner.os }}-\npr527-gradle-v1-${{ runner.os }}-\napk20028-gradle-v1-${{ runner.os }}-\napk20027-gradle-v1-${{ runner.os }}-\napk20026-gradle-v1-${{ runner.os }}-\napk20025-gradle-v1-${{ runner.os }}-\nissue362-gradle-v1-${{ runner.os }}-\nissue477-gradle-v1-${{ runner.os }}-\n"
+          }
+        },
+        {
+          "name": "Capture strictly clean Android workspace before build",
+          "run": "python3 .review/issue495/android_workspace.py --source source-app --output results/android-workspace --phase before",
+          "id": "workspace_before"
+        },
+        {
+          "name": "Build cached native dependencies for both ARM ABIs",
+          "working-directory": "source-app",
+          "run": "bash tools/android/deps.sh arm64-v8a armeabi-v7a"
+        },
+        {
+          "name": "Build exact standard debug APK with production tooling",
+          "working-directory": "source-app",
+          "run": "bash tools/android.sh"
+        },
+        {
+          "name": "Preserve actual standard APK before strict validation",
+          "run": "mkdir -p results/android\ncp source-app/build/android/*-android-debug.apk results/android/standard-validation.apk"
+        },
+        {
+          "name": "Preserve and verify post-build Android workspace",
+          "if": "${{ always() && steps.workspace_before.conclusion == 'success' }}",
+          "run": "python3 .review/issue495/android_workspace.py --source source-app --output results/android-workspace --phase after"
+        },
+        {
+          "name": "Verify actual APK, changed native units, both ABIs and JNI",
+          "run": "python3 .review/issue495/android.py --source source-app --proof results/source-verified.json --output results/android/android-verified.json --aapt \"$ANDROID_HOME/build-tools/35.0.0/aapt\" --apksigner \"$ANDROID_HOME/build-tools/35.0.0/apksigner\""
+        },
+        {
+          "name": "Reverify exact source after validation",
+          "run": "python3 .review/issue495/materialize.py --candidate \"495\" --target source-app --proof results/source-verified.json --reverify"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue495-android-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "issue495-android-proof-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "results/\n!results/**/*.o\n!results/**/*.apk",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ],
+      "if": true
+    }
+  }
+}
