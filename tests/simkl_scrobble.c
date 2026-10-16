@@ -222,6 +222,22 @@ static void episodio(void) {
   OK("episodio: show+season/number, stop a 100% e pause ao sair no meio");
 }
 
+static void especial(void) {
+  simkl_esquecer(); tokenAtual = TOKEN; stScr = 200;
+  assert(mandar(SCR_EV_TOCANDO, "tt12409194:0:1", 60, 2400, 60, 0) == SCR_START);
+  assert(strstr(ultimoCorpo, "\"show\"") && strstr(ultimoCorpo, "\"season\":0"));
+  assert(!strstr(ultimoCorpo, "\"movie\""));
+  stScr = 500;
+  assert(mandar(SCR_EV_SAIU, "tt12409194:0:1", 2400, 2400, 2000, 1) == SCR_STOP);
+  assert(nHist == 1 && !strcmp(ultimaRota, "/sync/history"));
+  assert(strstr(ultimoCorpo, "\"shows\"") && strstr(ultimoCorpo, "\"number\":0"));
+  assert(!strstr(ultimoCorpo, "\"movies\""));
+  stScr = 200; simkl_esquecer();
+  assert(mandar(SCR_EV_TOCANDO, "tt12409194:0:0", 60, 2400, 60, 0) == SCR_NADA);
+  assert(mandar(SCR_EV_TOCANDO, "tt12409194:-1:1", 60, 2400, 60, 0) == SCR_NADA);
+  OK("#556: S00 e episodio no scrobble e no historico, nunca filme");
+}
+
 static void guardas(void) {
   posts = 0;
   assert(mandar(SCR_EV_TOCANDO, "tt2000001", 10, 90, 10, 0) == SCR_NADA);      // < 120 s
@@ -523,6 +539,7 @@ int main(int argc, char **argv) {
     semVinculo();
     filme();
     episodio();
+    especial();
     guardas();
     indevido();
     falhaNaoAutorizada();
