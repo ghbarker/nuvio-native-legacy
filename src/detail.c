@@ -367,6 +367,7 @@ static Uint32 trailerPrazo = 0;
 // pagina fechava para a barra abrir sobre a tela de baixo. Voltar/DIREITA na
 // barra devolvem o foco aqui; um destino escolhido fecha a pagina (app.c).
 static int    pediuSocial = 0; // CIMA no alto da pagina: abrir Salvos/Avisos (ver app.c)
+static int    pediuRelogio;
 static int    pediuMenu = 0;   // ESQUERDA na borda: abrir a barra por cima (ver app.c)
 // A barra esta aberta por cima (detail_sob_menu): o trailer segue tocando,
 // MUDO, e o som volta quando ela fecha. `somAntesMenu` lembra se tinha som.
@@ -1410,6 +1411,7 @@ static void auditoriaEpisodios(void) {
 }
 
 static void abrirInterno(const HomeItem *it) {
+  pediuRelogio = 0;
   sinopse_fechar();
   pediuMenu = 0;
   audIdx = -1;
@@ -1569,6 +1571,7 @@ static void abrirInterno(const HomeItem *it) {
 }
 
 void detail_fechar(void) {
+  pediuRelogio = 0;
   sinopse_fechar();
   if (!aberto || saindo) return;
   pessoaAberta = 0;
@@ -1579,6 +1582,7 @@ void detail_fechar(void) {
 // SECO: o proximo detail_atualizar ja a encerra (o mesmo fim da mola de
 // saida, com o logo restaurado), sem a pagina recolher por cima da home.
 void detail_fechar_seco(void) {
+  pediuRelogio = 0;
   sinopse_fechar();
   if (!aberto) return;
   pessoaAberta = 0;
@@ -1588,6 +1592,7 @@ void detail_fechar_seco(void) {
 }
 
 void detail_mostrar_pessoa(long tmdb, const char *nome, const char *foto) {
+  pediuRelogio = 0;
   if (!aberto || tmdb <= 0) return;
   pessoa_pedir(tmdb, nome ? nome : "", foto ? foto : "");
   pessoaAberta = 1;
@@ -1599,6 +1604,7 @@ void detail_mostrar_pessoa(long tmdb, const char *nome, const char *foto) {
 }
 
 void detail_abrir(const HomeItem *it) {
+  pediuRelogio = 0;
   int replacing = aberto && !saindo;
   if (!replacing) { nVolta = 0; voltando = 0; }
   maisAcoes = 0;
@@ -1716,6 +1722,13 @@ static int carDesenhaFundo(void) {
 int detail_aberto(void) { return aberto; }
 int detail_relogio_oculto(void) { return aberto && carro && !carCheia && nivel == 0; }
 int detail_pediu_social(void) { int p = pediuSocial; pediuSocial = 0; return p; }
+int detail_pediu_relogio(void) { int p = pediuRelogio; pediuRelogio = 0; return p; }
+int detail_relogio_navegavel(void) {
+  return aberto && !saindo && !sinopse_aberta() && !corpoSobArte() &&
+         !trailer_cheia() && !trocaarte_aberto() && !reacao_aberta() &&
+         !amtui_aberta() && !detmais_aberto() && !episodios_menu_aberto() &&
+         !trailerCinema.oculta;
+}
 
 // 0..1 de quanto o detalhe ja tomou a tela. A home le isto para DESCER as
 // fileiras enquanto ele entra: e o movimento que o dono descreve como "so os
@@ -2513,6 +2526,7 @@ static void executarMais(int dm) {
 }
 
 void detail_evento(const SDL_Event *e) {
+  pediuRelogio = 0;
   if (sinopse_aberta()) { sinopse_evento(e); return; }
 #ifdef NV_TOUCH_UI
   toqueDetalheSincronizarModo();
@@ -2618,6 +2632,7 @@ void detail_evento(const SDL_Event *e) {
         case SDLK_RIGHT: if (pessoaFoco + 1 < n) pessoaFoco++; return;
         case SDLK_UP:
           if (pessoaFoco >= pessoaColunas()) pessoaFoco -= pessoaColunas();
+          else pediuRelogio = 1;
           if (pessoaFoco / pessoaColunas() < pessoaLinha) pessoaLinha--;
           return;
         case SDLK_DOWN:
@@ -2923,7 +2938,7 @@ void detail_evento(const SDL_Event *e) {
       if (amigosDoTitulo(&at)) { focoAmigos = 1; return; }
     }
     if (k == SDLK_UP && reacao_detalhe_abrir(cat_item(idx))) return;
-    if (k == SDLK_UP && !e->key.repeat) { pediuSocial = 1; return; }
+    if (k == SDLK_UP && !e->key.repeat) { pediuSocial = pediuRelogio = 1; return; }
     // CARROSSEL: a primeira seta para baixo so estica o cartao (ver carCheia).
     if (k == SDLK_DOWN && carro && !carCheia) { carCheia = 1; return; }
     if (k == SDLK_DOWN) {
@@ -6154,7 +6169,7 @@ static void eventoListaColecao(const SDL_Event *e) {
   // por cima, como a borda de qualquer fileira da pagina (dono, 03/10).
   if (k == SDLK_LEFT) { pediuMenu = 1; return; }
   if (k == SDLK_DOWN && colListaFoco + 1 < n) colListaFoco++;
-  else if (k == SDLK_UP && colListaFoco > 0) colListaFoco--;
+  else if (k == SDLK_UP) { if (colListaFoco > 0) colListaFoco--; else pediuRelogio = 1; }
   else if (k == SDLK_RETURN || k == SDLK_KP_ENTER) abrirParteColecao();
 }
 
