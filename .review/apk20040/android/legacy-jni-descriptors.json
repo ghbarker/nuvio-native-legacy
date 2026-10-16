@@ -1,0 +1,81 @@
+{
+  "source_commit": "65d3da65c6abbbef584efbf2b7f0bb1f63c9e7f1",
+  "methods": [
+    {
+      "name": "abrir",
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;)V"
+    },
+    {
+      "name": "parar",
+      "descriptor": "()V"
+    },
+    {
+      "name": "pausar",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "buscar",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "volume",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "janela",
+      "descriptor": "(IIIII)V"
+    },
+    {
+      "name": "escolher",
+      "descriptor": "(II)V"
+    },
+    {
+      "name": "abrirPosicao",
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;II)V"
+    },
+    {
+      "name": "abrirRetomada",
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;III)V"
+    },
+    {
+      "name": "cache",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "buffer",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "ganho",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "velocidade",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "preparar",
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;IIIII)V"
+    },
+    {
+      "name": "prepararProximo",
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;IIIII)V"
+    },
+    {
+      "name": "prepararEstado",
+      "descriptor": "(I)I"
+    },
+    {
+      "name": "cancelarPreparo",
+      "descriptor": "(I)V"
+    },
+    {
+      "name": "abrirPreparada",
+      "descriptor": "(Ljava/lang/String;Ljava/lang/String;IIII)V"
+    },
+    {
+      "name": "pararMantendoPreparo",
+      "descriptor": "(I)V"
+    }
+  ]
+}

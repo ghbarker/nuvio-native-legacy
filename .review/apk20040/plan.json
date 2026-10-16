@@ -1,0 +1,151 @@
+{
+  "format": 3,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "ci_execution_permitted": true,
+  "publication_permitted": false,
+  "review_only": false,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "49a2544325ea83284a1d5024c5c2875a6a657e6c"
+  },
+  "sources": {
+    "test": {
+      "commit": "06ba8068be86299592cb94e77355266ebb57c09f",
+      "tree": "0b54962bd0c45cdf131c100e8bc26e4b68eb2951",
+      "parents": [
+        "4d97f89aba208c3596f05d289954f7dad9d7a167"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "88ba1b0fd06dc73d273cd039822fbda0732dc7a4d24296686ea7b9cf13ffb1f7"
+    }
+  },
+  "local_trace": {
+    "commit": "1d369af4fbdc5f3c13a9a6a60507cef5bb015c2a",
+    "tree": "0b54962bd0c45cdf131c100e8bc26e4b68eb2951",
+    "parents": [
+      "4995efe9ef4f98d2085bcabf7ae1bfaadf9c6a4b"
+    ]
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "namespace": "space.nuvio.nativelegacy",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20040,
+    "version_name": "2.0.40-test-logs30",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+    "file_provider_authority": "space.nuvio.nativelegacy.touch.atualizacao"
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "319d6c1a174ede165e3d6483194c9d2dd8cda9371435ae6208fd7d9d31bef29c"
+  },
+  "scope": {
+    "android_test_apk_only": true,
+    "private_overlay_never_public": true,
+    "fresh_actual_android_both_arm": true,
+    "private_log_opt_in": true,
+    "single_exact_source_checkout": true,
+    "root_review_required": true,
+    "private_diagnostics_only": false,
+    "public_product_fix_claimed": false,
+    "includes_search_window_fix": true,
+    "includes_player_control_relocation": true,
+    "includes_special_seasons": true,
+    "includes_poster_grid_update": true,
+    "includes_search_see_all": true,
+    "new_feature_implemented_or_verified": true,
+    "fresh_actual_android_both_arm_is_requirement_only": true,
+    "bounded_private_opener_controls_only": true,
+    "fresh_mac_or_device_proof_claimed": false,
+    "includes_external_player": true,
+    "includes_font_import": false,
+    "android_junit_required": true,
+    "new_junit_tests_required": 6,
+    "includes_installer_query_fix": true,
+    "actual_merged_manifest_query_validation_required": true,
+    "manifest_source_parser_cases_required": 14
+  },
+  "required_jobs": [
+    "android"
+  ],
+  "pending": [],
+  "workflow_normalized_sha256": "3ac9fe8c91a03978ec497b615bb32892d8d0c50eb06470c4156334e4a5a52384",
+  "recipe_pins": {
+    "android/android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "android/cleanup_private.py": "bcabcf02d125b46f3784efb9b92ea511ccc819d15e6e2e255b05fd56c8c0f094",
+    "android/common.py": "b9ceb89037f0012a39afb84a636e544ff1054a45bf330345ba64a64f4569f3da",
+    "android/dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "android/legacy-jni-descriptors.json": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1",
+    "android/prepare_env.py": "e0f2fdffb9f2da487576e42e6cff40f0086ae2c0cdcdcf3c8f3394b78ae42dd9",
+    "android/prepare_source.py": "203694307e97f3c0614cffe300cbbda5e2ddc7559b9a3561e4bb83a09f6edcb1",
+    "android/record_cache.py": "853d6d06f7b877abb92b71f134ec5bce9fd8d0577d27fb50d4b5683281f1cfba",
+    "android/run.py": "1b3c954636352e0db1577cf6365331f91dd28798a72154062f1926d73d699364",
+    "android/safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe",
+    "android/verify_apk.py": "c62e7ad3819659936b23ad85ba1c5446092bf3aacc52fe69bb8fb1a12a9da2d8",
+    "ci-cache-preflight.py": "3a67e825918e647707fdbe7493da6bf4f1d8c9cfdf6c6ffa4f09a2cfcf84ea43",
+    "composition-manifest.json": "319d6c1a174ede165e3d6483194c9d2dd8cda9371435ae6208fd7d9d31bef29c",
+    "materialize.py": "f51cccf66e1d23e23fc85efac5dbcc368bc19707567470add9faec070d65181d",
+    "preflight.py": "09d94c794891f2e3fa6cb4703f37780141b61dc4536c9ea262a5ef32586148cc",
+    "require_plan.py": "a8b9249e82facc7a0d5300e74144ab0062870da15c2af10aed3d57c4b2d252c8",
+    "test-source-manifest.json": "88ba1b0fd06dc73d273cd039822fbda0732dc7a4d24296686ea7b9cf13ffb1f7"
+  },
+  "accepted_foundation": {
+    "apk_source": "09d7e68845c1e1d7d5466a7bca8d1b2a4f20c134",
+    "apk_source_tree": "f6e0e1f3cdf2b7b821c70b555b9b855670d74e36",
+    "android_review": "380bac8ec6c1b6dfdb4c57f362bb55cfbf26e4a4",
+    "android_run": 38978981546,
+    "publisher_run": 38979831552,
+    "published": true,
+    "user_tested": false,
+    "user_install_report": "Samsung S26 Ultra reported app-file install problem; source violates Android16 query cardinality. No successful Logs29 device execution claimed.",
+    "known_installer_manifest_defect": true,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "cache_scope": {
+    "review_branch": "review/apk20032-20261016",
+    "reason": "Completed Logs29 cache reference; native dependency inputs must remain exact while corrected APK is freshly built. No branch update authorized here.",
+    "review_branch_expected_old_head": "380bac8ec6c1b6dfdb4c57f362bb55cfbf26e4a4",
+    "native_restore_only_accepted_logs23_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+    "native_inputs_sha256": {
+      "tools/android/deps.sh": {
+        "sha256": "e96d5494018749f532845569d81220adc7e45bc23eea7bbd342376093535ee00",
+        "blob": "3bf09bc8908048dd2124705bf452b9816d9ff69e",
+        "identical_to_logs23": true,
+        "identical_to_logs24": true,
+        "identical_to_logs25": true,
+        "identical_to_logs26": true,
+        "identical_to_logs27": true,
+        "identical_to_logs28": true,
+        "identical_to_logs29": true,
+        "identical_to_logs30": true
+      },
+      "tools/android/ffmpeg-android.sh": {
+        "sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc",
+        "blob": "deff8b391e68d328fd6461930c6ebc779284baef",
+        "identical_to_logs23": true,
+        "identical_to_logs24": true,
+        "identical_to_logs25": true,
+        "identical_to_logs26": true,
+        "identical_to_logs27": true,
+        "identical_to_logs28": true,
+        "identical_to_logs29": true,
+        "identical_to_logs30": true
+      },
+      "android/app/src/main/cpp/CMakeLists.txt": {
+        "sha256": "effd3a1d5bc0d72194c9a6d77eed216713ad608ab4088f2e340f6bc43e372290",
+        "blob": "7441c77524cc241b63e5e3dce080d8f801195100",
+        "identical_to_logs23": true,
+        "identical_to_logs24": true,
+        "identical_to_logs25": true,
+        "identical_to_logs26": true,
+        "identical_to_logs27": true,
+        "identical_to_logs28": true,
+        "identical_to_logs29": true,
+        "identical_to_logs30": true
+      }
+    }
+  }
+}
