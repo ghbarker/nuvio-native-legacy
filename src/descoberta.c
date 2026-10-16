@@ -873,7 +873,7 @@ static int lerBusca(const char *tipo, const char *termo, CatItem *saida,
 // Antes so o Cinemeta era consultado, e era isso que o dono via como "nao ta
 // procurando em todos os catalogos" — porque de fato nao estava.
 #define BUSCA_ALVOS  16
-#define BUSCA_POR_ALVO 12          // uma fileira por alvo, 12 cabem na tela
+#define BUSCA_POR_ALVO DESC_BUSCA_POR_ALVO
 #define BUSCA_FIOS    3            // quantos alvos em voo ao mesmo tempo
 
 // O PEDIDO A UM ADDON COUBE NO BUFFER? `w` e o retorno do snprintf que o
@@ -1005,10 +1005,7 @@ static int consultarAlvo(const AlvoBusca *a, const char *termo,
     origemDaBase(a->base, orig, sizeof orig);   // o resultado abre pelo addon que o achou
     while (p && n < max) {
       const char *f = js_fim(p);
-      if (deMeta(p, f, a->tipo, &saida[n]) &&
-          // O Nuvio devolve "tmdb:<id>" para quem nao tem IMDb; o resultado fica
-          // no formato tt... (o Cinemeta de reserva nao entende tmdb:).
-          (!a->nuvio || !strncmp(saida[n].imdb, "tt", 2))) {
+      if (deMeta(p, f, a->tipo, &saida[n])) {
         snprintf(saida[n].origem, sizeof saida[n].origem, "%s", orig);
         n++;
       }
@@ -1019,18 +1016,27 @@ static int consultarAlvo(const AlvoBusca *a, const char *termo,
 }
 
 static void *fioBusca(void *arg) {
+  // O lote cabe na memoria limitada da busca, sem consumir quase toda a
+  // pilha de 512 KiB de um fio no macOS. Reutilizado ate a fila esvaziar.
+  CatItem *achados = malloc(sizeof(CatItem) * BUSCA_POR_ALVO);
   (void)arg;
+  if (!achados) {
+    pthread_mutex_lock(&buscaTrava);
+    fiosVivos--;
+    pthread_mutex_unlock(&buscaTrava);
+    return NULL;
+  }
   for (;;) {
     AlvoBusca a;
     char termo[96];
     int meu, g;
-    CatItem achados[BUSCA_POR_ALVO];
     int n;
 
     pthread_mutex_lock(&buscaTrava);
     if (proximoAlvo >= nAlvos || !buscaPedido[0]) {
       fiosVivos--;
       pthread_mutex_unlock(&buscaTrava);
+      free(achados);
       return NULL;
     }
     meu = proximoAlvo++;
@@ -1397,8 +1403,9 @@ static int deMeta(const char *ini, const char *fim, const char *tipo, CatItem *d
   if (d->backdropTmdb[0] && strstr(d->backdropTmdb, "image.tmdb.org/t/p/"))
     snprintf(d->backdropTmdb, sizeof d->backdropTmdb, "%s", d->backdrop);
 
-  if (!js_texto(ini, fim, "imdb_id", d->imdb, sizeof d->imdb))
-    js_texto(ini, fim, "id", d->imdb, sizeof d->imdb);
+  // Keep the catalog's source identity; provider mappings are separate.
+  if (!js_texto_raiz_em(ini, fim, "id", d->imdb, sizeof d->imdb) || !d->imdb[0])
+    js_texto_raiz_em(ini, fim, "imdb_id", d->imdb, sizeof d->imdb);
   snprintf(d->tipo, sizeof d->tipo, "%s", tipo);
   // O TIPO DO PROPRIO ITEM VENCE O DO CATALOGO. Catalogo de anime do
   // AIOMetadata declara `type: "anime"` (simkl.trending.anime, mal.*), e o app
@@ -7287,7 +7294,7 @@ static int metaArquivosCompativeis(const char *arquivos, const char *catalogo) {
 
 // Em par com CAT_EP_MAX (catalogo.c): um titulo que caiba no store nao pode
 // truncar no parse, e um que nao caiba trunca aqui em vez de zerar os outros.
-#define VIDEOS_MAX 1200
+#define VIDEOS_MAX 2400
 
 // videos[] de um /meta -> lista de CatEp ORDENADA por (temporada, episodio).
 // So entram videos com temporada > 0. Devolve quantos.
@@ -8104,7 +8111,7 @@ static void *buscarEps(void *u) {
   // item, e o Cinemeta so como complemento. Devolve 0 quando nao ha nada
   // util — ai o caminho de sempre: Cinemeta para "tt", nada para o resto.
   if (catalogoPrimeiro(orig)) viaCatalogo = metaCatalogoResolver(orig, &mf, alvoItem);
-  if (!viaCatalogo && strncmp(orig->imdb, "tt", 2)) {
+  if (!viaCatalogo && strncmp(orig->imdb, "tt", 2) && strncmp(orig->imdb, "tmdb:", 5)) {
     metaFontesLiberar(&mf);
     fioEpVivo = 0;
     return NULL;

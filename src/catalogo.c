@@ -191,7 +191,7 @@ static char dirGravacao[512];
 // resposta ao estouro era ZERAR a faixa de episodios de TODOS os titulos —
 // abrir uma serie grande apagava os episodios das outras telas visitadas.
 // Sao ~200 B por CatEp: dobrar custa ~120 KB, metade do problema resolvido.
-#define CAT_EP_MAX 1200
+#define CAT_EP_MAX 2400
 static CatEp eps[CAT_EP_MAX];
 // Faixas de episodio por titulo, do mesmo tamanho do vetor de itens — que
 // agora cresce, entao estes tambem.
