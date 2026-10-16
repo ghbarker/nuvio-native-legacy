@@ -5,10 +5,15 @@
 // um terceiro tambem escreve (o fio principal marca episodios). Rode com
 // SANITIZE=1 (ASAN) ou SANITIZE=thread (TSAN) para a prova ter dentes.
 #include "vistoep.h"
+#include "perfis.h"
 #include <assert.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
+
+// The offline map fixture owns no application profile service or transitions.
+int perfis_sessao_travar(uint64_t geracao) { assert(geracao == 0); return 1; }
+void perfis_sessao_destravar(void) {}
 
 static atomic_int fim;
 

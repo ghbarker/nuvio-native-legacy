@@ -56,6 +56,14 @@ void scrobble_corpo(char *dst, size_t n, const char *id, double pct) {
              base, pct);
 }
 
+void scrobble_corpo_alvo(char *dst, size_t n, const TraktScrobbleAlvo *alvo, double pct) {
+  if (!alvo) { if (n) dst[0] = 0; return; }
+  if (alvo->tvdbEp <= 0) { scrobble_corpo(dst, n, alvo->id, pct); return; }
+  if (pct < 0.0) pct = 0.0;
+  if (pct > 100.0) pct = 100.0;
+  snprintf(dst, n, "{\"episode\":{\"ids\":{\"tvdb\":%d}},\"progress\":%.2f}", alvo->tvdbEp, pct);
+}
+
 const char *scrobble_nome(int acao) {
   return acao == SCR_START ? "start" : acao == SCR_PAUSE ? "pause"
        : acao == SCR_STOP ? "stop" : "";

@@ -96,6 +96,7 @@ typedef struct {
   // filme mostra so o tempo que falta. Temporada/episodio ficam em 0 no filme,
   // e e isso que separa os dois casos no desenho.
   int  temporada, episodio;
+  int  tvdbEp; // episodio exato do progresso remoto; 0 sem prova, nunca o ID da serie
   int  restanteMin;
   char nomeEpisodio[120]; // titulo do episodio em andamento, nunca nome do arquivo
   // Temporadas que a serie tem, na ordem. Sai do campo `videos` do Cinemeta,
@@ -193,6 +194,7 @@ typedef struct {
   // Episodios do pacote antigo deixam vazio e conservam a leitura de `data`.
   // CatEp nao tem dump binario; o cache de metadata guarda o JSON original.
   char dataIso[32];
+  int tvdbEp; // identidade do episodio publicada pelo metadata; numeracao/vid continuam da fonte
 } CatEp;
 
 // Le <dir>/catalogo.txt. Devolve quantos itens carregou (0 = nenhum, e quem
@@ -298,6 +300,12 @@ int cat_indice_por_imdb(const char *imdb);
 // Para fios que precisam reaproveitar metadados sem guardar cat_item().
 // Prefere a copia com poster; 0 quando o titulo ainda nao esta no catalogo.
 int cat_copiar_por_id(const char *id, const char *tipo, CatItem *saida);
+// Como a busca por IMDb, mas exige um tipo certo (movie/series/show).
+// Nao reutiliza uma copia de filme para um pedido de serie do mesmo id.
+int cat_indice_por_imdb_tipo(const char *imdb, const char *tipo);
+// Tipo explicito e sem conflito entre as copias do mesmo titulo. Copia sob
+// a trava; desconhecido ou filme/serie contraditorios devolvem 0.
+int cat_tipo_confirmado_por_id(const char *id, char *tipo, unsigned tam);
 // Como cat_indice_por_imdb, mas fica em `preferido` enquanto ele for o mesmo
 // titulo e prefere uma copia COM episodios (#151; ver catalogo.c).
 int cat_indice_titulo(const char *imdb, int preferido);
@@ -564,5 +572,13 @@ const CatEp  *cat_episodio(int indiceItem, int i);   // indice circular; NULL se
 // dele "<id>:<E>" (a convencao do Kitsu/MAL). t<=0 ou e<=0 = sem episodio: devolve o id
 // do titulo. 1 se escreveu algo.
 int           cat_id_stream(int indiceItem, int t, int e, char *dst, unsigned tam);
+// Copias sob as travas do publicador: o indice ainda deve ser o titulo pedido.
+// IDs repetidos em pares diferentes nao sao usados como prova.
+int           cat_episodio_tvdb(int indiceItem, const char *id, int t, int e);
+int           cat_episodio_por_tvdb(int indiceItem, const char *id, int tvdb, int *t, int *e);
+// Retrato proprio da fonte final, sem indices que a home pode reordenar.
+// 1: *saida pertence a quem chamou (free), *qtd pode ser zero. 0: indisponivel.
+int cat_copiar_episodios_fonte(const char *id, const char *origem, uint64_t sessao,
+                               CatEp **saida, int *qtd);
 
 #endif
