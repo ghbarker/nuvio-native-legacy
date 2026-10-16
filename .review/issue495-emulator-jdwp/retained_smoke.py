@@ -278,7 +278,7 @@ try:
         text = shell(tool + ' -S OUTPUT').decode()
         (out / (tool + '-before.txt')).write_text(text)
         owner = [line for line in text.splitlines() if '--uid-owner ' + uid in line]
-        assert owner and owner[-1].endswith('-j REJECT')
+        assert owner and re.search(r'(?:^|\s)-j\s+REJECT(?:\s|$)', owner[-1])
         if tool == 'iptables':
             assert len(owner) == 2 and '-d 10.0.2.2/32 ' in owner[0] and '--dport 8765 ' in owner[0] and owner[0].endswith('-j ACCEPT')
         else:
