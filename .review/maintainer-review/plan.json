@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "501"
+  ],
+  "job_candidates": {
+    "native": [
+      "501"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue501-external-player-20261016",
+  "workflow_path": ".github/workflows/issue501-external-player.yml",
+  "source_manifest_sha256": "f7adb1148034d596b34363fb9f0facc168cd8f0d605f49471b657a065f574586",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "d595b3749b9805af7d8f2df949424e79fc328ea5187baf107d0ddc04d0cfc51f",
+    "public_tests.py": "d851a9712b9975f07d33212f7d190a51e935be6ac9b9f3889b7fa67916e585f9"
+  },
+  "workflow_normalized_sha256": "bd3b3ad210592fa0453e71bdc74b31848e78e7c235e6218cec2315c8a29aa15a",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "b43c4ebccd24407efeec0e35a6a5b04ba4221803b2ef2835fcab15e11da7fa5d",
+    "policy": "Exclude only the isolated validation review branch; candidate workflows remain unchanged."
+  },
+  "candidate_scope": "Frozen local external-player product and separate five-path tests commit; actual remote identity verified by root.",
+  "scope": "External-player native state/ownership and complete handoff helper contracts, exact committed scripts normal/ASan, fresh full TV/touch production Rust compile and link. No fonts/libass derivative, Android build, JUnit execution, APK or device result claim.",
+  "hosted_shell_dependencies": {
+    "homebrew_formulae": [
+      "sdl2",
+      "sdl2_image",
+      "sdl2_ttf",
+      "sdl3",
+      "ripgrep"
+    ],
+    "required_commands": [
+      "bash",
+      "cc",
+      "dirname",
+      "mktemp",
+      "rm",
+      "python3",
+      "seq",
+      "sleep",
+      "sed",
+      "mkdir",
+      "sdl2-config",
+      "uname",
+      "cat",
+      "grep",
+      "tail",
+      "rg",
+      "brew",
+      "git",
+      "otool",
+      "rustc",
+      "cargo"
+    ],
+    "verification_step": "Real compiler and SDK sanity before full links",
+    "verification_log": "results/sdk/shell-tools.log",
+    "source_or_test_changes": false,
+    "reason": "Actual recovery1 failed when tests/addons_legendas.sh invoked missing rg; install and verify tools before any public suite."
+  },
+  "public_test_failure_collection": {
+    "enabled": true,
+    "execution": "sequential all mandatory groups",
+    "initial_identity_failfast": true,
+    "final_identity_mandatory": true,
+    "any_failure_exits_nonzero": true,
+    "full_apps_only_after_all_tests_pass": true,
+    "success_schema_and_group_checks_unchanged": true,
+    "proposal_sha256": "d851a9712b9975f07d33212f7d190a51e935be6ac9b9f3889b7fa67916e585f9",
+    "synthetic_controls_sha256": "9737c9b43cfeb3091b620ec11870f832b5bcc1080491339275a12bfc6353b44d",
+    "synthetic_controls": 10,
+    "synthetic_controls_scope": "Synthetic Python orchestration controls only. No C compiler, SDK, app, source-function or macOS execution claim.",
+    "live_progress": {
+      "recorded_run_before_group": true,
+      "recorded_pass_only_after_verified_group": true,
+      "validated_try_body_unchanged": true
+    },
+    "base_collect_all_controls_root_and_peer_independently_reexecuted": true,
+    "progress_controls_executed_by_owner": true,
+    "progress_controls_raw_logs_independently_peer_reviewed": true,
+    "progress_delta_root_reviewed": true
+  }
+}
