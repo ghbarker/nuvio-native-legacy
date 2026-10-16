@@ -1316,11 +1316,7 @@ static const char *arteDe(int i) {
       snprintf(arteFixa, sizeof arteFixa, "%s", u);
       // Marcado AQUI, junto com o congelamento: arteDetalheEhPoster so marcava
       // se fosse chamada antes desta, e depois dela devolvia o 0 de fabrica.
-      // Poster no lugar do fundo (semente de recomendacao que repetiu o
-      // cartaz em `backdrop`) conta como cartaz: e o que faz a troca acima
-      // disparar quando o fundo real chega (#502/#503).
-      arteFixaPoster = c && c->poster[0] &&
-                       (!c->backdrop[0] || !strcmp(c->backdrop, c->poster));
+      arteFixaPoster = c && c->poster[0] && !strcmp(u, c->poster);
     }
     return u; }
 }
@@ -1354,10 +1350,27 @@ static int arteDetalheEhPoster(int i) {
   // que o enriquecimento pode ter posto no catalogo depois.
   if (i == idx && trocaarte_previa_fundo()) return 0;   // previa: sempre fundo
   if (i == idx && arteFixa[0]) return arteFixaPoster;
-  { int r = c && c->poster[0] &&
-            (!c->backdrop[0] || !strcmp(c->backdrop, c->poster));
+  { const char *u = arteDeViva(i);
+    int r = c && c->poster[0] && u && !strcmp(u, c->poster);
     if (i == idx) arteFixaPoster = r;
     return r; }
+}
+
+int detail_arte_titulo(const CatItem *titulo, char *saida, size_t tam, int *poster) {
+  const CatItem *c;
+  const char *u;
+  if (saida && tam) saida[0] = 0;
+  if (poster) *poster = 0;
+  if (!titulo || !saida || !tam || !aberto || saindo || !idxTemCopia ||
+      !idxImdb[0] || strcmp(titulo->imdb, idxImdb) ||
+      strcmp(titulo->tipo, idxCopia.tipo)) return 0;
+  c = cat_item(idx);
+  if (!c || strcmp(c->imdb, idxImdb) || strcmp(c->tipo, titulo->tipo)) return 0;
+  u = arteDe(idx);
+  if (!u || !*u || strlen(u) >= tam) return 0;
+  snprintf(saida, tam, "%s", u);
+  if (poster) *poster = arteDetalheEhPoster(idx);
+  return 1;
 }
 
 static void desenhaArteDetalhe(GfxRect alvo, GLuint tex, const char *arte,
