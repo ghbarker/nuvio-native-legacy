@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "current_master": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "selected_candidates": [
+    "431",
+    "538",
+    "540",
+    "541"
+  ],
+  "review_branch": "review/maintainer-patterns-batch1-20261016",
+  "required_jobs": [
+    "native",
+    "android"
+  ],
+  "source_manifest_sha256": "80f753d5f90486346035769736e0a5fa777d89e0d3f12cfa696099962a19e0c0",
+  "recipe_inputs": {
+    "android.py": "378bfe323a8b1257d136dd011ad4d3096c07e8c9c8f0a7ade064d4d58b740708",
+    "android_public_tests.py": "ccaae57d9898f9e98fd4f14004384b5c81c0110a2bfbed90285d85f75506152a",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "9082450536ceb92932e255f82597b735728b63c28ed70dd67718e19e2b7d79f3",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "materialize.py": "110abe5859dbf4d3e4d055038bce252c9a36efd8b1afeea1e4efa60a08dae8c4",
+    "native.py": "4ac98ba54fc5839775c27ed63a6cb85e9bdf9c456ea9bbd43f01d57a18a0e962",
+    "preflight.py": "74b9667d181d61d2436e95fdcdcebafa6464567ee9163dad55c0f80479452582",
+    "public_tests.py": "8d9e984722dba3aa57f3f7d96453907b9568a9e30ef77f33973d92b43b15e905",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "sdk_producers": 8,
+  "prior_sdk_passes_reused": false,
+  "public_test_policy": "Product implementation and meaningful public regression tests are separate commits in each same PR. CI and compiler recording remain isolated to this validation branch.",
+  "scope": "Eight fresh independent producer lanes: exact committed public tests normal/ASan on macOS and actual full TV/touch links for each candidate, plus standard dualARM Android APK with source/NDK/JNI/DEX/16KB/workspace checks; PR431 additionally runs its actual committed JVM device-policy test after Gradle. Unchanged search/modal scripts run normal because they do not expose SANITIZE. No private fixture substitution or prior-pass reuse. No APK or full app binary downloads.",
+  "workflow_normalized_sha256": "8e066f6188cea473d897d419242c531ca8c7528adccf40d3e2f621d682a5be25"
+}
