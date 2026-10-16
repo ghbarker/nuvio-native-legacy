@@ -468,11 +468,17 @@ static int ajEditandoLinha(int op) {
 }
 #ifdef NV_TOUCH_UI
 static void ajToqueInlineValor(int v, int op) {
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(9, op, ajPontInline && ajEditandoLinha(op) && v >= 0 && v < nValores(op), 0);
+#endif
   if (!ajPontInline || !ajEditandoLinha(op) || v < 0 || v >= nValores(op)) return;
   uxPendente = v; uxRodape = 0;
 }
 static void ajToqueConfirmar(int a, int b) {
   (void)a; (void)b;
+#ifdef NV_TEST_LOCAL_LOGS
+  ajTesteEvento(10, uxOp, uxEditor == 1 && !uxRestaurar && !uxAvisoRisco, 0);
+#endif
   if (uxEditor == 1 && !uxRestaurar && !uxAvisoRisco) { uxRodape = 0; uxAplicar(); }
 }
 static void ajToqueCancelar(int a, int b) { (void)a; (void)b; if (uxEditor) uxCancelar(); }
@@ -485,6 +491,19 @@ static void ajToqueBotoes(float direita, float yc, float a) {
   for (int i = 0; i < 2; i++) {
     TxtLinha t = i == 0 ? ajTxtT(TXT_V2_SEG, rot[i]) : ajTxt(TXT_V2_SEG, rot[i]);
     GfxRect r = { direita - t.w - 40.0f, yc - 24.0f, t.w + 40.0f, 48.0f };
+#ifdef NV_TEST_LOCAL_LOGS
+    // One settled geometry record per editor/viewport, never an animation pulse.
+    static int ultimoOp[2] = {-1,-1}, ultimoEditor[2], ultimoMobile[2];
+    static float ultimoW[2], ultimoH[2];
+    if (a >= 0.95f && (ultimoOp[i] != uxOp || ultimoEditor[i] != uxEditor ||
+        ultimoMobile[i] != layout_modo_mobile() || ultimoW[i] != NV_LAYOUT_REAL_W || ultimoH[i] != NV_LAYOUT_REAL_H)) {
+      printf("[test-settings] action=14 op=%d button=%d mobile=%d editor=%d inline=%d x=%.0f y=%.0f w=%.0f h=%.0f vw=%.0f vh=%.0f\n",
+        uxOp, i, layout_modo_mobile(), uxEditor, ajPontInline,
+        (double)r.x, (double)r.y, (double)r.w, (double)r.h, (double)NV_LAYOUT_REAL_W, (double)NV_LAYOUT_REAL_H);
+      ultimoOp[i] = uxOp; ultimoEditor[i] = uxEditor; ultimoMobile[i] = layout_modo_mobile();
+      ultimoW[i] = NV_LAYOUT_REAL_W; ultimoH[i] = NV_LAYOUT_REAL_H;
+    }
+#endif
     if (i == 0) ajPilulaAcento(r, 24.0f, a);
     else ajNeutro(r, 24.0f, 0.10f, AJ_CHIP_SOL, a);
     txt_desenhar_alpha(t, r.x + 20.0f, yc - t.h * 0.5f, a);

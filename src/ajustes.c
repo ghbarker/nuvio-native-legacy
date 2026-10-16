@@ -76,6 +76,9 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
+#ifdef NV_TEST_LOCAL_LOGS
+#include <errno.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
@@ -2223,6 +2226,19 @@ void ajustes_voltar_de_lista(int plugins) { uxVoltarOp = plugins ? AJ_PLUGINS : 
 static int uxDifs[AJ_N], uxNDifs, uxDifFoco;
 static int uxEditor, uxOp, uxPendente, uxOriginal, uxRodape;
 static int uxRestaurar, uxConfirmar, uxAvisoRisco;
+#ifdef NV_TEST_LOCAL_LOGS
+// Structural local diagnostics only: never settings values, names, paths or credentials.
+static void ajTesteEvento(int acao, int op, int ok, int erro) {
+  int salvo = errno, emLinha = 0;
+#ifdef NV_TOUCH_UI
+  emLinha = ajPontInline;
+#endif
+  printf("[test-settings] action=%d op=%d ok=%d errno=%d mobile=%d editor=%d inline=%d restore=%d risk=%d vw=%.0f vh=%.0f ms=%u\n",
+    acao, op, ok, erro, layout_modo_mobile(), uxEditor, emLinha,
+    !!uxRestaurar, !!uxAvisoRisco, (double)NV_LAYOUT_REAL_W, (double)NV_LAYOUT_REAL_H, SDL_GetTicks());
+  errno = salvo;
+}
+#endif
 int  ajustes_teste_editor(int *pendente, int *rodape, int *restaurar, int *confirmar) {
   if (pendente) *pendente = uxPendente;
   if (rodape) *rodape = uxRodape;
@@ -2230,6 +2246,18 @@ int  ajustes_teste_editor(int *pendente, int *rodape, int *restaurar, int *confi
   if (confirmar) *confirmar = uxConfirmar;
   return uxEditor;
 }
+// With the test guard disabled every macro expands to its original expression.
+#ifdef NV_TEST_LOCAL_LOGS
+static int ajTesteIO(int resultado, int acao) {
+  if (resultado) ajTesteEvento(acao, uxOp, 0, errno);
+  return resultado;
+}
+#define AJ_TEST_WRITE(ok, stage, err) (ajTesteEvento((stage), uxOp, (ok), (err)), (ok))
+#define AJ_TEST_IO(expression, stage) ajTesteIO((expression), (stage))
+#else
+#define AJ_TEST_WRITE(ok, stage, err) ok
+#define AJ_TEST_IO(expression, stage) expression
+#endif
 static char uxAviso[160];
 static Uint32 uxAvisoAte;
 static const char *textoValor(int op);
@@ -4032,11 +4060,11 @@ static int gravar(void) {
   char caminho[600], tmp[600];
   FILE *f;
   int i;
-  if (!dirAjustes[0]) return 0;
+  if (!dirAjustes[0]) return AJ_TEST_WRITE(0, 15, 0);
   snprintf(caminho, sizeof caminho, "%s/ajustes.txt", dirAjustes);
   snprintf(tmp, sizeof tmp, "%s/ajustes.tmp", dirAjustes);
   f = fopen(tmp, "w");
-  if (!f) return 0;
+  if (!f) return AJ_TEST_WRITE(0, 16, errno);
   for (i = 0; i < AJ_N; i++) {
     // "-" marca linha local (versao, espaco, conta): nao tem valor para
     // guardar. Acao tambem nao. E chave ausente NUNCA vai para o arquivo — foi
@@ -4053,9 +4081,9 @@ static int gravar(void) {
     fprintf(f, "%s %d\n", CHAVE[i], valor[i]);
   }
   if (memoriaEscolhida) fprintf(f, "texturasEscolhaLocal 1\n");
-  { int erro = ferror(f);
-    if (fclose(f)) erro = 1;
-    if (erro || rename(tmp, caminho)) { remove(tmp); return 0; } }
+  { int erro = AJ_TEST_IO(ferror(f), 17);
+    if (AJ_TEST_IO(fclose(f), 18)) erro = 1;
+    if (erro || AJ_TEST_IO(rename(tmp, caminho), 19)) { remove(tmp); return AJ_TEST_WRITE(0, 20, errno); } }
   // SAMSUNG (#85, 21/09/2026): o arquivo fica no IDBFS, e o IDBFS so vai ao
   // IndexedDB quando alguem marca o sistema de arquivos como sujo. Este
   // gravador escreve por fora de dados_gravar e nunca marcava: qualquer
@@ -4069,7 +4097,7 @@ static int gravar(void) {
   // Provedor de poster ou idioma da interface mudaram? So reconfigura se a
   // configuracao final for outra (reconfigurar zera a memoria de falhas).
   pstAplicar();
-  return 1;
+  return AJ_TEST_WRITE(1, 13, 0);
 }
 
 

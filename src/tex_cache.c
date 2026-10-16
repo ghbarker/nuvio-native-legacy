@@ -3894,6 +3894,31 @@ int tex_largura_fonte(const char *caminho) {
   return w;
 }
 
+#ifdef NV_TEST_LOCAL_LOGS
+int tex_teste_arte(const char *caminho, TexTesteArte *saida) {
+  int encontrado = 0;
+  if (!saida) return 0;
+  memset(saida, 0, sizeof *saida);
+  saida->qualidade = qualidadeImg;
+  saida->heroi = tetoDoHeroi();
+  if (!caminho || !*caminho || !mtx) return 0;
+  SDL_LockMutex(mtx);
+  int i = acharIndice(caminho, hashCaminho(caminho));
+  if (i >= 0) {
+    const Item *it = &itens[i];
+    saida->estado = it->estado; saida->textura = it->tex != 0;
+    saida->pedido = it->limite; saida->usado = it->tetoUsado;
+    saida->variante = it->limiteTamanho; saida->fonteW = it->fonteW;
+    saida->gpuW = it->w; saida->gpuH = it->h;
+    saida->decW = it->sup ? it->sup->w : it->w;
+    saida->decH = it->sup ? it->sup->h : it->h;
+    encontrado = 1;
+  }
+  SDL_UnlockMutex(mtx);
+  return encontrado;
+}
+#endif
+
 float tex_aspecto(const char *caminho) {
   if (!caminho || !*caminho) return 0.0f;
   float a = 0.0f;

@@ -150,6 +150,17 @@ int  tex_logo_tom_unico(const char *caminho);
 // sessão. Não imprime nem armazena a URL original.
 unsigned long tex_hash_public(const char *caminho);
 
+#ifdef NV_TEST_LOCAL_LOGS
+// Somente no APK de teste: fotografia do cache, sem pedir arte nem promover.
+// estado: 0 ausente, 1 pendente, 2 decodificado, 3 pronto, 4 falhou.
+// fonteW permanece 0 quando a origem nao e conhecida (variante menor).
+typedef struct {
+  int estado, textura, qualidade, heroi, pedido, usado, variante, fonteW;
+  int decW, decH, gpuW, gpuH;
+} TexTesteArte;
+int tex_teste_arte(const char *caminho, TexTesteArte *saida);
+#endif
+
 // A COR DE FUNDO da arte — a media da borda, quando a borda e opaca (logo com
 // fundo proprio, como o quadrado cinza do Disney+). Devolve 1 com a cor; 2
 // quando a borda e transparente (logo recortado: nao ha fundo, quem desenha

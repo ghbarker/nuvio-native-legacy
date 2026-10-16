@@ -2145,6 +2145,11 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
       ? proximoIntento.sessaoPerfil : sessaoEntrada;
   ProximoPreparoResultado preparada = {0};
   int pronta = proximopreparo_consumir(alvo, &preparada);
+#ifdef NV_TEST_LOCAL_LOGS
+  printf("[test-next] event=handoff t=%d e=%d target_valid=%d prepared=%d pending=%d selected=%d actor_ok=%d owner_ok=%d ms=%u\n",
+    t, e, !!alvo[0], pronta, proximopreparo_em_curso(alvo), pronta ? preparada.indiceFonte : -1,
+    nv_perfil_sessao_atual(sessaoPerfil), !pronta || preparada.sessaoPerfil == sessaoPerfil, SDL_GetTicks());
+#endif
   if (!nv_perfil_sessao_atual(sessaoPerfil) || (pronta && preparada.sessaoPerfil != sessaoPerfil)) {
     proximopreparo_liberar_resultado(&preparada);
     memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
@@ -2154,6 +2159,10 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
   if (!pronta && proximopreparo_em_curso(alvo)) {
     if (!proximoIntento.tem || strcmp(proximoIntento.alvo, alvo))
       player_toast(i18n("Abrindo fonte"), 1500);
+#ifdef NV_TEST_LOCAL_LOGS
+    if (!proximoIntento.tem)
+      printf("[test-next] event=wait_preparation t=%d e=%d ms=%u\n", t, e, SDL_GetTicks());
+#endif
     proximoIntento.tem = 1; proximoIntento.titulo = titulo;
     proximoIntento.t = t; proximoIntento.e = e; proximoIntento.apontar = apontar;
     proximoIntento.geracao = proximopreparo_geracao();
@@ -2191,6 +2200,9 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
   }
   player_abrir(titulo, NULL);
   player_definir_episodio(t, e);
+#ifdef NV_TEST_LOCAL_LOGS
+  printf("[test-next] event=episode_opened t=%d e=%d prepared=%d ms=%u\n", t, e, pronta, SDL_GetTicks());
+#endif
   // Abrir/fechar nao seguram a trava de identidade. Conferir outra vez antes
   // de publicar a lista e seu orcamento como uma unica transferencia curta.
   if (!nv_perfil_sessao_travar(sessaoPerfil)) {
@@ -2260,6 +2272,12 @@ static void proximoPreparoPasso(void) {
   if (!atual[0] || strcmp(atual, proximoIntento.atual) || player_indice() != proximoIntento.titulo ||
       proximoIntento.geracao != proximopreparo_geracao() ||
       !nv_perfil_sessao_atual(proximoIntento.sessaoPerfil)) {
+#ifdef NV_TEST_LOCAL_LOGS
+    printf("[test-next] event=cancel_pending player=%d exiting=%d episode_changed=%d title_changed=%d generation_changed=%d actor_changed=%d ms=%u\n",
+      player_aberto(), player_quer_sair(), !atual[0] || strcmp(atual, proximoIntento.atual) != 0,
+      player_indice() != proximoIntento.titulo, proximoIntento.geracao != proximopreparo_geracao(),
+      !nv_perfil_sessao_atual(proximoIntento.sessaoPerfil), SDL_GetTicks());
+#endif
     memset(&proximoIntento, 0, sizeof proximoIntento); proximopreparo_cancelar();
     player_episodio_pedido_liberar();
   } else if (!proximopreparo_em_curso(proximoIntento.alvo))
@@ -5731,6 +5749,13 @@ void app_atualizar(float dt, Uint32 agora) {
   // o titulo relacionado sai do player e abre o detalhe, que e onde o dono
   // escolhe se quer mesmo assistir.
   { int t = 0, e = 0;
+#ifdef NV_TEST_LOCAL_LOGS
+    static int testGuarda = -1;
+    if (testGuarda != aguardandoFonte) {
+      printf("[test-next] event=source_guard state=%d player=%d ms=%u\n", aguardandoFonte, player_aberto(), SDL_GetTicks());
+      testGuarda = aguardandoFonte;
+    }
+#endif
     if (aguardandoFonte != 2 && posplay_pediu_episodio(&t, &e) && player_aberto())
       abrirProximoEpisodio(t,e,1);
   }

@@ -5,6 +5,7 @@ plugins {
 
 // Tudo que vem de fora do projeto entra por propriedade (-P) que o
 // tools/android.sh passa; os padroes servem para abrir no Android Studio.
+val testLocalLogs = (findProperty("nuvio.testLocalLogs") as String?) == "true"
 val raiz = rootProject.projectDir.parentFile                         // raiz do repo
 val cache = file(System.getProperty("user.home") + "/.cache/nuvio-android")
 val sdlSrc = (findProperty("nuvio.sdlSrc") as String?) ?: "$cache/src"
@@ -24,12 +25,15 @@ android {
     compileSdk = 35
     ndkVersion = "27.2.12479018"
 
+    buildFeatures { buildConfig = true }
+
     defaultConfig {
-        applicationId = "space.nuvio.nativelegacy"
+        buildConfigField("boolean", "NV_TEST_LOCAL_LOGS", testLocalLogs.toString())
+        applicationId = "space.nuvio.nativelegacy.touch"
         minSdk = 24
         targetSdk = 35
-        versionCode = vx * 10000 + vy * 100 + vz
-        versionName = versao
+        versionCode = 20030
+        versionName = "2.0.30-test-logs20"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         externalNativeBuild {
             cmake {
@@ -41,6 +45,7 @@ android {
                     "-DNUVIO_P2P_MOTOR=${(findProperty("nuvio.p2pMotor") as String?) ?: ""}",
                 )
                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+                arguments += "-DNV_TEST_LOCAL_LOGS=${if (testLocalLogs) "ON" else "OFF"}"
             }
         }
     }
@@ -56,6 +61,12 @@ android {
     // assembleRelease nem e chamado (tools/android.sh).
     val ks = System.getenv("NUVIO_KEYSTORE")
     signingConfigs {
+        getByName("debug") {
+            storeFile = file(System.getenv("NUVIO_TEST_DEBUG_KEYSTORE") ?: error("Persistent test signing key missing"))
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (ks != null) create("release") {
             storeFile = file(ks)
             storePassword = System.getenv("NUVIO_KEYSTORE_PASS")
