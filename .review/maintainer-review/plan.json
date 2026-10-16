@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "555"
+  ],
+  "job_candidates": {
+    "native": [
+      "555"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue555-search-window-recovery2-20261016",
+  "workflow_path": ".github/workflows/issue555-search-window-recovery2.yml",
+  "source_manifest_sha256": "a13c0a01fe249c0cfd6f213d2798bf93f064eb7ed80a40720bde4890cac78be1",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "b9fd1a533dddc310450a9e13497d5a9f145dc6c876c9b83cdf3ae6f2160cb51b",
+    "public_tests.py": "40661f6a3015b8e7f7d1dcd03ff72dc303f14e6c8d40733ad9b47d4f2f28613a"
+  },
+  "workflow_normalized_sha256": "4e1622b8551e73cd61171464fa0e25e648bcab5b796d434df5a46f77629767bd",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "00c0f66da04e699aca7f8b2a01a0f08665e86abc1b5681cb8d58d162109a3af8",
+    "policy": "Exclude only this isolated review branch; every source candidate keeps the original upstream workflow."
+  },
+  "candidate_scope": "Issue555 validation only; this internal numeric candidate is not an existing PR or authorization to create one.",
+  "scope": "Fresh issue555 native validation only: exact committed Search/window/Spotlight normal/ASan suites plus full335-unit TV/touch links with production-default Rust MKV. No other PR reruns, Android, APK download, private overlay or publication."
+}
