@@ -1,0 +1,24 @@
+{
+  "old_source_commit": "d2d9c91ffda5ad2a3808ba27c433bc8d0dd7d0aa",
+  "new_source_commit": "99e3e257ac979acbea8c5386c555a696fc967da7",
+  "new_source_tree": "7a09edd8a66db02ad081e12144d57345e233e678",
+  "changed_paths": [
+    "tests/fileiras.c",
+    "tests/fileiras_removidas.c",
+    "tests/montagem_cedo.c"
+  ],
+  "complete_non_test_tree_mode_blob_path_identical": true,
+  "non_test_entry_count": 2681,
+  "non_test_entries_sha256": "6c9875e3b594524420917663a2fa5b775b29f90c43a76a3d596ab3812f949d9b",
+  "old_android_origin": {
+    "workflow_run_id": 38840462323,
+    "workflow_run_attempt": 1,
+    "job_id": 116779120934,
+    "review_commit": "a8824782e3d52a10836bbc77e8b3a6cbbaf130d2",
+    "source_commit": "d2d9c91ffda5ad2a3808ba27c433bc8d0dd7d0aa",
+    "plan_sha256": "269243009151f80a9afefa3060d6bcfa9ad0cc2213b737c278aadef4c63e62bb"
+  },
+  "requires_actual_android_success_and_independent_raw_proof_before_final_acceptance": true,
+  "old_android_executed_again": false,
+  "scope": "Only typed profile/account/optional-cleanup fixture neighbours changed in three committed public C tests; all product/build inputs are identical. Every non-test Git path/mode/blob is identical. This is a source equivalence bridge, not an Android pass or a current-run Android claim."
+}

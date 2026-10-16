@@ -1,0 +1,241 @@
+{
+  "543": {
+    "pr": 543,
+    "head": "99e3e257ac979acbea8c5386c555a696fc967da7",
+    "tree": "7a09edd8a66db02ad081e12144d57345e233e678",
+    "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+    "base_tree": "390a78e226f56b25756a749eab0c2c16cbe77c62",
+    "parents": [
+      "11e6e8535e6d3eabc5e998759cda1c757945aac0"
+    ],
+    "exact_diff_paths": [
+      "src/addons.c",
+      "src/addons.h",
+      "src/colecoes.c",
+      "src/colecoes.h",
+      "src/colfileiras.c",
+      "src/descoberta.c",
+      "src/fileiras.c",
+      "src/fileiras.h",
+      "tests/fileiras.c",
+      "tests/fileiras_removidas.c",
+      "tests/fileiras_removidas.sh",
+      "tests/montagem_cedo.c"
+    ],
+    "paths": [
+      {
+        "path": "src/addons.c",
+        "blob": "aefd1b33f810b77f4dc26dc4fb22393520cead99",
+        "sha256": "de8682b4e41f7ddfbb4c7d0f6062a89a6b1ce04f9eaac41da0af9e8adb92aab4"
+      },
+      {
+        "path": "src/addons.h",
+        "blob": "8713148d474329e5d664b470c2751e2c11554abc",
+        "sha256": "73ee098c324e654201d4094431465a237d1cfa19abd46433df28031b1f3d9d1c"
+      },
+      {
+        "path": "src/colecoes.c",
+        "blob": "f332da3831a2bcd3f8412b57d3c9fd81b2274187",
+        "sha256": "b285d6b1b38da760ea8aa1577635b39fe0a334c76a1676acf05de944d97dd5e9"
+      },
+      {
+        "path": "src/colecoes.h",
+        "blob": "b63b4d38997db9246ab53af7b5ed0e21160fdf76",
+        "sha256": "e03ab0fad967afd46d413a4d0b8bf9a1946676d81a45e4e13eeae12832049871"
+      },
+      {
+        "path": "src/colfileiras.c",
+        "blob": "7e6ade6ef10342bac0e7c0042edcf6b3fc373ad5",
+        "sha256": "26dfee71b53aef97ad17703cafe803458ce9f27c286bf094448fb9f4a1ab8865"
+      },
+      {
+        "path": "src/descoberta.c",
+        "blob": "5ab039f9ce90dcadba2a578a10446ad619bdf7d0",
+        "sha256": "66e63a0d720c173ac24b15da70a9c254eb685c44b69794fd6b4fa68b65d0470a"
+      },
+      {
+        "path": "src/fileiras.c",
+        "blob": "bd4afa2b277ea24c344f9a448b56fe56b78b66ff",
+        "sha256": "0d8240654259b2431f96681a4314579d1c8bfabd80fa325b1c69b0d850902f03"
+      },
+      {
+        "path": "src/fileiras.h",
+        "blob": "67382fff55253dd30fbd7dc46a841e9381b42a0f",
+        "sha256": "c96506a8c912e3d0364613c12069468473903e66c0d336380bc64216d85cde51"
+      },
+      {
+        "path": "tests/fileiras.c",
+        "blob": "9ca19d0ecd45073df261de604a9c664eac619c58",
+        "sha256": "1db502f6e02b2598670147add5675003ee945a2025f35771c8b1f1a069a1769c"
+      },
+      {
+        "path": "tests/fileiras_removidas.c",
+        "blob": "96d7d305b698a6f5afe0f0e4a538a9b092e50bdc",
+        "sha256": "e861e4486ce44f4ea8c1590353e5f130f4149f247ec38e4d63b11ed55af48cff"
+      },
+      {
+        "path": "tests/fileiras_removidas.sh",
+        "blob": "5d15ba9c5900df478dd16efe24531f01b0b1123f",
+        "sha256": "d7f5a186079f328276911c3d5b91ad3f35f0c7d206450e3048e428d2dc7fad2b"
+      },
+      {
+        "path": "tests/montagem_cedo.c",
+        "blob": "3a65f154eeb23161f7102aecd91597d85c4df041",
+        "sha256": "19111a42f09c656f8d3e17abc642ff8bb2f2ec0b010bd62f81878176ebad081f"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "tests/fileiras.sh",
+        "blob": "a3f829c9b120ad3314334efc75d92fa1a4a3696c",
+        "sha256": "991e5c6e14b2ca4bad21cb156a900d5cfbbacf1b78d355c62d334b8eebfde602"
+      },
+      {
+        "path": "tests/montagem_cedo.sh",
+        "blob": "d6021a1200a5dfc4f8e332f81041329e477ea9c5",
+        "sha256": "8b844ff72730a93663b40d1af5df5be14fb1bccdab6e56ccea4475496d6a9fae"
+      }
+    ],
+    "product_head": "11e6e8535e6d3eabc5e998759cda1c757945aac0",
+    "public_test_commit": "99e3e257ac979acbea8c5386c555a696fc967da7",
+    "public_test_commit_paths": [
+      "tests/fileiras.c",
+      "tests/fileiras_removidas.c",
+      "tests/fileiras_removidas.sh",
+      "tests/montagem_cedo.c"
+    ],
+    "fresh_sdk_required": true,
+    "public_suites": [
+      {
+        "name": "removed-addon-collections",
+        "script": "tests/fileiras_removidas.sh",
+        "script_sha256": "d7f5a186079f328276911c3d5b91ad3f35f0c7d206450e3048e428d2dc7fad2b",
+        "inputs": {
+          "tests/fileiras_removidas.c": "e861e4486ce44f4ea8c1590353e5f130f4149f247ec38e4d63b11ed55af48cff",
+          "src/addons.c": "de8682b4e41f7ddfbb4c7d0f6062a89a6b1ce04f9eaac41da0af9e8adb92aab4",
+          "src/addons.h": "73ee098c324e654201d4094431465a237d1cfa19abd46433df28031b1f3d9d1c",
+          "src/colecoes.c": "b285d6b1b38da760ea8aa1577635b39fe0a334c76a1676acf05de944d97dd5e9",
+          "src/colecoes.h": "e03ab0fad967afd46d413a4d0b8bf9a1946676d81a45e4e13eeae12832049871",
+          "src/colfileiras.c": "26dfee71b53aef97ad17703cafe803458ce9f27c286bf094448fb9f4a1ab8865",
+          "src/descoberta.c": "66e63a0d720c173ac24b15da70a9c254eb685c44b69794fd6b4fa68b65d0470a",
+          "src/fileiras.c": "0d8240654259b2431f96681a4314579d1c8bfabd80fa325b1c69b0d850902f03",
+          "src/fileiras.h": "c96506a8c912e3d0364613c12069468473903e66c0d336380bc64216d85cde51"
+        },
+        "required_markers": [
+          "ok  lista incompleta, geracao antiga e outro perfil nao apagam catalogos",
+          "ok  addon desligado ou sem identidade conserva suas escolhas e acesso",
+          "ok  remocao apaga linhas, preferencias e destaque do arquivo e das duas abas",
+          "ok  Home em cache nao recria catalogos removidos nem consome suas vagas",
+          "ok  reinicio nao restaura fantasmas; reinstalacao cria preferencias novas",
+          "ok  registro cheio apaga dez entradas, conserva 758 e aceita dez novas",
+          "ok  colecoes removem fontes e pastas vazias; cache e reinicio nao as recriam",
+          "ok  lista completa de 128 addons conserva ultimo dono, escolhas e colecao",
+          "ok  troca de lista invalida autoridade antiga sem bloquear manifesto pendente",
+          "fileiras_removidas: tudo ok"
+        ],
+        "ok_marker_count": 9,
+        "modes": [
+          "normal",
+          "asan"
+        ]
+      },
+      {
+        "name": "existing-row-store",
+        "script": "tests/fileiras.sh",
+        "script_sha256": "991e5c6e14b2ca4bad21cb156a900d5cfbbacf1b78d355c62d334b8eebfde602",
+        "inputs": {
+          "tests/fileiras.c": "1db502f6e02b2598670147add5675003ee945a2025f35771c8b1f1a069a1769c",
+          "src/addons.c": "de8682b4e41f7ddfbb4c7d0f6062a89a6b1ce04f9eaac41da0af9e8adb92aab4",
+          "src/addons.h": "73ee098c324e654201d4094431465a237d1cfa19abd46433df28031b1f3d9d1c",
+          "src/colecoes.c": "b285d6b1b38da760ea8aa1577635b39fe0a334c76a1676acf05de944d97dd5e9",
+          "src/colecoes.h": "e03ab0fad967afd46d413a4d0b8bf9a1946676d81a45e4e13eeae12832049871",
+          "src/colfileiras.c": "26dfee71b53aef97ad17703cafe803458ce9f27c286bf094448fb9f4a1ab8865",
+          "src/descoberta.c": "66e63a0d720c173ac24b15da70a9c254eb685c44b69794fd6b4fa68b65d0470a",
+          "src/fileiras.c": "0d8240654259b2431f96681a4314579d1c8bfabd80fa325b1c69b0d850902f03",
+          "src/fileiras.h": "c96506a8c912e3d0364613c12069468473903e66c0d336380bc64216d85cde51"
+        },
+        "required_markers": [
+          "ok  sem ordem local a home fica como a descoberta entregou",
+          "ok  Ajustes mostra a mesma ordem da home",
+          "ok  o primeiro movimento move uma fileira so",
+          "ok  espelhar nao desfaz a escolha da pessoa",
+          "ok  fileira nova entra no fim",
+          "ok  a origem sai da chave, e nao de um campo novo no arquivo",
+          "ok  catalogo e colecao escolhem a forma do card; fileira do app nao",
+          "ok  estilo da fileira: menu e Ajustes gravam o mesmo tipo",
+          "ok  addon e tipo: quem souber primeiro; contagem: quem souber por ultimo",
+          "ok  contagem nova nao reescreve o arquivo nem bumpa a revisao",
+          "ok  home pela metade nao empurra a colecao para o fim (#30)",
+          "ok  mover bloco troca o addon inteiro com o vizinho",
+          "ok  agrupar por addon junta os catalogos sem embaralhar o addon",
+          "ok  tabela cheia: chave viva toma a vaga de linha morta sem escolha",
+          "ok  tabela cheia so de escolhidas: fileira do app e topo da home nunca saem",
+          "ok  tabela cheia: colecao nao e despejada na janela da troca de perfil",
+          "ok  mover pula linha oculta",
+          "ok  mover entre ligadas que a home ainda nao montou",
+          "ok  fila: e a ordem; remover promove; limite menor manda para fora",
+          "ok  normalizar: catalogo novo que nao coube vai para a fila (#358)",
+          "ok  #358: addon novo cabe na Home; excedente na fila; Fora explicito fica",
+          "ok  #358: linha antiga alem do limite segue Fora; marca e fila persistem",
+          "ok  poda: catalogo de addon removido sai, app e colecao ficam",
+          "ok  poda: pacote e outro perfil preservam; remocao confirmada apaga escolhas",
+          "ok  addon novo: so o nunca visto e sem escolha",
+          "ok  tabela cheia despeja dispensavel e mantem o que esta na home",
+          "ok  tabela cheia nao despeja o que a pessoa configurou",
+          "ok  catalogo fora da cota e listado, escolhivel e nunca despeja",
+          "ok  fonte do destaque grava, le e tolera arquivo antigo",
+          "ok  fileirasui.txt antigo semeia so o perfil 1",
+          "ok  #197: rajada no limite so esconde pelo valor final",
+          "ok  #197: fora da cota entra fora da home, sem tomar vaga",
+          "ok  #197 limpeza: arquivo do relator volta a home dele, uma vez so",
+          "ok  #197 limpeza: marca no arquivo; fora do padrao nao mexe",
+          "ok  estado por chave: fila e fora nao entram na home",
+          "ok  #319: addon removido/desligado nao ocupa vaga da home e a poda nao fica adiada",
+          "ok  #327: adicionar um catalogo de pasta de colecao o traz para a Home",
+          "ok  adicionar vence o desligado da conta, e o sync nao desfaz",
+          "ok  #360: add com conta ligada nao trava o sync; a conta desligando depois vence",
+          "ok  #360: add contra o desligado sobrevive ao restart (addvence no arquivo)",
+          "ok  #204: catalogo que nenhum addon declara sai antes de recusar o novo; escolha explicita fica",
+          "fileiras: tudo ok"
+        ],
+        "ok_marker_count": 41,
+        "modes": [
+          "normal",
+          "asan"
+        ]
+      },
+      {
+        "name": "existing-discovery-mount",
+        "script": "tests/montagem_cedo.sh",
+        "script_sha256": "8b844ff72730a93663b40d1af5df5be14fb1bccdab6e56ccea4475496d6a9fae",
+        "inputs": {
+          "tests/montagem_cedo.c": "19111a42f09c656f8d3e17abc642ff8bb2f2ec0b010bd62f81878176ebad081f",
+          "src/addons.c": "de8682b4e41f7ddfbb4c7d0f6062a89a6b1ce04f9eaac41da0af9e8adb92aab4",
+          "src/addons.h": "73ee098c324e654201d4094431465a237d1cfa19abd46433df28031b1f3d9d1c",
+          "src/colecoes.c": "b285d6b1b38da760ea8aa1577635b39fe0a334c76a1676acf05de944d97dd5e9",
+          "src/colecoes.h": "e03ab0fad967afd46d413a4d0b8bf9a1946676d81a45e4e13eeae12832049871",
+          "src/colfileiras.c": "26dfee71b53aef97ad17703cafe803458ce9f27c286bf094448fb9f4a1ab8865",
+          "src/descoberta.c": "66e63a0d720c173ac24b15da70a9c254eb685c44b69794fd6b4fa68b65d0470a",
+          "src/fileiras.c": "0d8240654259b2431f96681a4314579d1c8bfabd80fa325b1c69b0d850902f03",
+          "src/fileiras.h": "c96506a8c912e3d0364613c12069468473903e66c0d336380bc64216d85cde51"
+        },
+        "required_markers": [
+          "ok  watchlist na tela enquanto os catalogos estao na rede; uma copia no fim",
+          "ok  volta silenciosa: marca e acrescenta a lista antes do fim, publicacao final sem duplicata",
+          "ok  lista nova antes da leitura: a propria volta atende, sem descarte, manifestos em paralelo",
+          "ok  volta condenada para no ponto seguro seguinte; nenhum catalogo a toa",
+          "ok  lista ja lida: a volta e condenada e recomeca com a nova",
+          "ok  catalogo lento largado: a home segue, o fio termina sozinho",
+          "montagem_cedo: tudo ok"
+        ],
+        "ok_marker_count": 6,
+        "modes": [
+          "normal",
+          "asan"
+        ]
+      }
+    ],
+    "android_public_suites": [],
+    "scope": "Reviewed addon-removal deletion semantics on current upstream followed by a separate committed public test commit. No private overlay or CI in PR; exact realregistry/collections and verbatim production helpers are exercised by the committed public scripts."
+  }
+}
