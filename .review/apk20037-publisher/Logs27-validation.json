@@ -1,0 +1,79 @@
+{
+  "format": 3,
+  "all_passed": true,
+  "source_commit": "440464ab4342edfc66950975111a973a03012943",
+  "source_tree": "09da3ad77b8dd4b0c2d5170d29a1e15064b9968c",
+  "review_commit": "173bfc4d024f399eab6bc679534370e18a997830",
+  "run_id": 38967808047,
+  "run_attempt": 1,
+  "plan_sha256": "12dc1562d3a439c818d8a22e72fe9040b159587bc8ce3cfb0936990bf8c7d179",
+  "job": {
+    "id": 117198527907,
+    "name": "APK20037 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "1b0bfd9420c77c871fcca84dc2e77d4b662781a15947c7c47c7120ec85bcd340",
+  "apk_bytes": 59155436,
+  "build_receipt_sha256": "618c273539d70e64b92e0be797d09329d4fc46f0f3035631a44c901955fe7c3d",
+  "apk_verification_sha256": "e43bd6f75f252f597faf6c02fd7d2d9cd622b5b8eaff54be0c35cda11829ef5a",
+  "source_proof_sha256": "843a528ed581fb77fd4b8ad9860690b4022a14b85baf4fe4430e6e25b1689486",
+  "composition_sha256": "21b967457cb0161b447fbc43a8852bc5574e60899d08d39abd0b1522b9a8711b",
+  "previous_results_count_as_fresh": false,
+  "single_exact_private_source": true,
+  "private_overlay_preserved": true,
+  "scope": "Exact private Logs27 Android ARM32/ARM64 build and package checks. Root independently verified Android proof and the separate public-source #549 macOS check before approving this test APK. Public #556/#562 PR validation continues separately; it is not counted as passed or required for this Android-only test release.",
+  "source_purpose": "PRIVATE poster-grid test APK with all earlier private features retained; no public PR claim",
+  "public_product_fix_claimed": false,
+  "macos_validation_included": false,
+  "emulator_results_included": false,
+  "android_build_and_apk_checks_passed": true,
+  "native_diagnostic_marker_required_for_publication": true,
+  "diagnostics": {
+    "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+    "detail_c_sha256": "0cc11640816c55e261f62dffc11e6399d8e5827acdbfaf4abbf27c57035da322",
+    "build_gate": "NV_TEST_LOCAL_LOGS",
+    "minimum_sample_ms": 250,
+    "max_changed_records_per_opening": 32,
+    "scope": "Bounded season/episode update+draw state, geometry and hashed title/source identity; no raw URLs, account identifiers or auth."
+  },
+  "android_independent_verification_sha256": "48fa9c562383565f68bd7c9c1186b40169884226b693c54d25c7f58ee88e04ad",
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 316,
+  "actual_player_jni_descriptors": 19,
+  "actual_dex_files": 4,
+  "source_restored_clean": true,
+  "private_diagnostic_source_compile_bound": true,
+  "cache_restoration": {
+    "native": {
+      "primary_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+      "matched_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+      "exact_hit": true,
+      "restored": true
+    },
+    "gradle": {
+      "primary_key": "rebases10e3-gradle-v1-Linux-edf95a72e4ff6f0fa74f585bd493ff387109dd4a701af0a954c0e1e4160bd524",
+      "matched_key": "rebases10e3-gradle-v1-Linux-35ed632dfb0ee0e90185973ed208fcd74375a9a61d18d0c4a3fe2776e76dde80",
+      "exact_hit": false,
+      "restored": true
+    }
+  },
+  "private_test_apk": true,
+  "includes_search_window_fix": true,
+  "public_product_fix_claimed_meaning": "This private test APK contains the poster-grid update and inherited fixes; publication makes no public PR/upstream fix or fresh public-source Mac result claim.",
+  "includes_player_control_relocation": true,
+  "includes_special_seasons": true,
+  "logs25_foundation_user_test_claimed": false,
+  "includes_poster_grid_update": true,
+  "logs26_foundation_user_test_claimed": false,
+  "publication_requires_root_reviewed_source_checks": true,
+  "publication_requires_fresh_public_macos_checks": true,
+  "publication_requires_fresh_macos_recovery": false,
+  "publication_prerequisites": {
+    "android_root_verified": true,
+    "public_549_mac_root_verified": true,
+    "root_approved_test_apk_only": true
+  },
+  "pending_public_pr_validation": {
+    "556": "Standalone Simkl fixture link repair and full rerun pending; no complete Mac pass claimed",
+    "562": "Corrected fixture full macOS run in progress"
+  }
+}
