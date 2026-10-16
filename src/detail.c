@@ -3453,6 +3453,104 @@ static void toqueColecaoFocar(int i, int b) { (void)b; colListaFoco = i; }
 static void toquePessoaFocar(int i, int b) { (void)b; pessoaFoco = i; }
 #endif
 
+#ifdef NV_TEST_LOCAL_LOGS
+// PRIVATE TEST OVERLAY: observe the actual update/draw path, never account
+// data or URLs. At most 16 changed-state records per phase/opening; no GL
+// queries between 250ms samples. status: 0=not reached, 1=body-art gate,
+// 2=empty, 3=viewport culled, 4=draw loop reached. scissor is raw GL pixels.
+typedef struct {
+  int status, n, drawn, scissor;
+  float y, alpha;
+  GLint clip[4];
+} DetailTesteFileira;
+static DetailTesteFileira detalheTesteRows[2];
+static unsigned detalheTesteSelecao;
+static unsigned detalheTesteN[2];
+static Uint32 detalheTesteEm[2], detalheTesteAmostraEm[2];
+static int detalheTesteAmostraValida[2];
+static int detalheTesteValido[2], detalheTesteAntes[2][44], detalheTesteCapturar;
+static int detalheTesteAlpha(float a) { return a <= .01f ? 0 : a < .99f ? 1 : 2; }
+static void detalheTesteSincronizar(void) {
+  if (detalheTesteSelecao == arteTesteSelecao) return;
+  detalheTesteSelecao = arteTesteSelecao;
+  memset(detalheTesteN, 0, sizeof detalheTesteN);
+  memset(detalheTesteValido, 0, sizeof detalheTesteValido);
+  memset(detalheTesteAmostraValida, 0, sizeof detalheTesteAmostraValida);
+}
+static void detalheTesteComecar(void) {
+  Uint32 agora = SDL_GetTicks();
+  detalheTesteSincronizar();
+  memset(detalheTesteRows, 0, sizeof detalheTesteRows);
+  for (int i = 0; i < 2; i++) detalheTesteRows[i].scissor = -1;
+  detalheTesteCapturar = detalheTesteN[1] < 16 &&
+    (!detalheTesteAmostraValida[1] ||
+      (Uint32)(agora - detalheTesteAmostraEm[1]) >= 250u);
+  if (detalheTesteCapturar) {
+    detalheTesteAmostraEm[1] = agora; detalheTesteAmostraValida[1] = 1;
+  }
+}
+static void detalheTesteFileira(int r, int status, int n, float y, float alpha) {
+  if (r != SEC_TEMPORADAS && r != SEC_EPISODIOS) return;
+  DetailTesteFileira *d = &detalheTesteRows[r == SEC_EPISODIOS];
+  d->status = status; d->n = n; d->y = y; d->alpha = alpha;
+  if (detalheTesteCapturar && status >= 3 && d->scissor < 0) {
+    d->scissor = glIsEnabled(GL_SCISSOR_TEST) != GL_FALSE;
+    glGetIntegerv(GL_SCISSOR_BOX, d->clip);
+  }
+}
+static void detalheTesteEmitir(int fase, int portao) {
+  Uint32 agora = SDL_GetTicks();
+  detalheTesteSincronizar();
+  if (detalheTesteN[fase] >= 16 || (fase && !detalheTesteCapturar)) return;
+  if (!fase) {
+    if (detalheTesteAmostraValida[0] &&
+        (Uint32)(agora - detalheTesteAmostraEm[0]) < 250u) return;
+    detalheTesteAmostraEm[0] = agora; detalheTesteAmostraValida[0] = 1;
+  }
+  const CatItem *ci = cat_item(idx);
+  int tipo = !ci ? -1 : !strcmp(ci->tipo, "series") ? 1 : !strcmp(ci->tipo, "movie") ? 0 : 2;
+  int total = cat_n_episodios(idx), visiveis = epVisiveis();
+  int guardas = corpoSobArte() | (corpoOculto(ehSerie()) << 1) |
+    (trailer_cheia() << 2) | (trocaarte_aberto() << 3) | (ctx_aberto() << 4) |
+    (pessoaAberta << 5) | (colListaAberta << 6) | (episodios_menu_aberto() << 7) |
+    (amtui_aberta() << 8) | (sobMenu << 9) | (player_aberto() << 10);
+  int chave[44] = { idx, tipo, ci ? ci->nTemporadas : -1, total, visiveis,
+    (int)NV_TELA_W, (int)NV_TELA_H, (int)(scrollY / 64.0f),
+    detalheTesteAlpha(t), detalheTesteAlpha(corpoAlpha(fase2())),
+    detalheTesteAlpha(pg), guardas, portao, nivel, foco.fileira,
+    foco.nColunas[SEC_TEMPORADAS], foco.nColunas[SEC_EPISODIOS], temporada,
+    saindo, detalheRetrato() };
+  if (fase) for (int i = 0, k = 20; i < 2; i++) {
+    DetailTesteFileira *d = &detalheTesteRows[i];
+    chave[k++] = d->status; chave[k++] = d->n; chave[k++] = d->drawn;
+    chave[k++] = (int)(d->y / 64.0f); chave[k++] = detalheTesteAlpha(d->alpha);
+    chave[k++] = d->scissor;
+    for (int j = 0; j < 4; j++) chave[k++] = d->clip[j];
+  }
+  if (detalheTesteValido[fase] && !memcmp(chave, detalheTesteAntes[fase], sizeof chave)) return;
+  memcpy(detalheTesteAntes[fase], chave, sizeof chave);
+  detalheTesteValido[fase] = 1; detalheTesteEm[fase] = agora; detalheTesteN[fase]++;
+  printf("[detail-ui-test] phase=%s selection=%u t=%u title=%lx source=%lx idx=%d type=%d seasons=%d first_seasons=%d,%d,%d eps=%d visible=%d canvas=%dx%d scroll=%.1f entrance=%.3f body=%.3f pg=%.3f guards=%x gate=%d level=%d focus=%d columns=%d,%d season_index=%d portrait=%d leaving=%d",
+    fase ? "draw" : "update", detalheTesteSelecao, agora,
+    tex_hash_public(ci ? ci->imdb : ""), tex_hash_public(ci ? ci->origem : ""),
+    idx, tipo, ci ? ci->nTemporadas : -1,
+    ci && ci->nTemporadas > 0 ? ci->temporadas[0] : -1,
+    ci && ci->nTemporadas > 1 ? ci->temporadas[1] : -1,
+    ci && ci->nTemporadas > 2 ? ci->temporadas[2] : -1,
+    total, visiveis, (int)NV_TELA_W, (int)NV_TELA_H, scrollY, t,
+    corpoAlpha(fase2()), pg, guardas, portao, nivel, foco.fileira,
+    foco.nColunas[SEC_TEMPORADAS], foco.nColunas[SEC_EPISODIOS], temporada,
+    detalheRetrato(), saindo);
+  if (fase) for (int i = 0; i < 2; i++) {
+    DetailTesteFileira *d = &detalheTesteRows[i];
+    printf(" row%d=%d/%d/%d y=%.1f a=%.3f scissor=%d clip=%d,%d,%d,%d",
+      i, d->status, d->n, d->drawn, d->y, d->alpha, d->scissor,
+      d->clip[0], d->clip[1], d->clip[2], d->clip[3]);
+  }
+  putchar('\n'); fflush(stdout);
+}
+#endif
+
 static float blocoAnt[3] = { -1.0f, -1.0f, -1.0f };   // Notas / Numeros / Progresso no quadro anterior
 
 void detail_atualizar(float dt, Uint32 agora) {
@@ -3983,6 +4081,9 @@ void detail_atualizar(float dt, Uint32 agora) {
   else
 #endif
   scrollY = anim_mola2(&velY, scrollY, alvoY, dt, NV_MOLA2_SCROLL);
+#ifdef NV_TEST_LOCAL_LOGS
+  detalheTesteEmitir(0, 0);
+#endif
 }
 
 // ---------------------------------------------------------------------------
@@ -6932,8 +7033,16 @@ static void menuDeVisto(Uint32 agora) {
 }
 
 static void desenhaSecao(int r, float a, Uint32 agora) {
-  if (corpoSobArte()) return;
+  if (corpoSobArte()) {
+#ifdef NV_TEST_LOCAL_LOGS
+    detalheTesteFileira(r, 1, 0, 0, a);
+#endif
+    return;
+  }
   int n = secaoN(r);
+#ifdef NV_TEST_LOCAL_LOGS
+  detalheTesteFileira(r, 2, n, 0, a);
+#endif
   // Aba de informacao que nao seja "Criador e elenco": o web TROCA o conteudo
   // da secao (avaliacoes por episodio, fileira de similares, trailer). Nenhum
   // desses dados existe no catalogo nativo, e o web mostra exatamente esta
@@ -7031,7 +7140,13 @@ static void desenhaSecao(int r, float a, Uint32 agora) {
       txt_desenhar_alpha(lc, NV_DETP_X, y - lc.h - NV_DETF_CAB_GAP, a);
     } }
   { float alt = alturaSecao(r);
+#ifdef NV_TEST_LOCAL_LOGS
+    detalheTesteFileira(r, 3, n, y, a);
+#endif
     if (y > NV_TELA_H || y + alt < -40.0f) return; }
+#ifdef NV_TEST_LOCAL_LOGS
+  detalheTesteFileira(r, 4, n, y, a);
+#endif
 
   // O resumo da temporada ESCOLHIDA, acima das pilulas. Depois do culling (ele
   // desenha acima de `y`, dentro da mesma faixa) e antes do laco de colunas,
@@ -7054,6 +7169,10 @@ static void desenhaSecao(int r, float a, Uint32 agora) {
     if (ponteiro_ativo() && a > 0.3f && c < secaoColunas(r) && alturaAlvo(r) > 0.0f)
       ponteiro_alvo(x, y,
                     w, alturaAlvo(r), ponteiroDetalhe, NULL, r, c);
+#ifdef NV_TEST_LOCAL_LOGS
+    if (r == SEC_TEMPORADAS || r == SEC_EPISODIOS)
+      detalheTesteRows[r == SEC_EPISODIOS].drawn++;
+#endif
     switch (r) {
       case SEC_TEMPORADAS: {
         GfxRect b = { x, y, w, NV_DETP_TEMP_H };
@@ -7522,6 +7641,9 @@ void detail_desenhar(Uint32 agora) {
     if (cv) corviva_definir(cv, CORVIVA_DETALHE);
     if (lg) corviva_definir_logo(lg, CORVIVA_DETALHE); }
   float s = suave(t), a2 = fase2();
+#ifdef NV_TEST_LOCAL_LOGS
+  detalheTesteComecar();
+#endif
 
   // TRAILER EM TELA CHEIA: a tela inteira e furo, nada da pagina por cima.
   // No .tpk, ate o recorte do zoom assentar (trailer_mostra_video, #178),
@@ -7534,6 +7656,9 @@ void detail_desenhar(Uint32 agora) {
     else gfx_cor(tela, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
     { const CatItem *ct = cat_item(idx);
       trailer_osd_desenhar(ct ? ct->titulo : "", 1.0f); }
+#ifdef NV_TEST_LOCAL_LOGS
+    detalheTesteEmitir(1, 1);
+#endif
     return;
   }
 #ifdef NV_TOUCH_UI
@@ -7593,7 +7718,12 @@ void detail_desenhar(Uint32 agora) {
     if (ta > 0.005f) trocaarte_desenhar(logoDe(idx)); }
 
 
-  if (corpoSobArte()) return;
+  if (corpoSobArte()) {
+#ifdef NV_TEST_LOCAL_LOGS
+    detalheTesteEmitir(1, 2);
+#endif
+    return;
+  }
   if (corpoOculto(ehSerie())) {
     if (pessoaAberta) { ponteiro_camada(); desenhaPessoa(s); }
     if (colListaAberta) { ponteiro_camada(); desenhaListaColecao(s); }
@@ -7602,6 +7732,9 @@ void detail_desenhar(Uint32 agora) {
     maisDesenhar();
     if (amtui_aberta()) { ponteiro_camada(); amtui_desenhar(agora); }
   if (sinopse_aberta()) sinopse_desenhar();
+#ifdef NV_TEST_LOCAL_LOGS
+    detalheTesteEmitir(1, 3);
+#endif
     return;
   }
   desenhaEsqueletoEpisodios(a2 > pg ? a2 : pg);
@@ -7623,6 +7756,9 @@ void detail_desenhar(Uint32 agora) {
   maisDesenhar();
   if (amtui_aberta()) { ponteiro_camada(); amtui_desenhar(agora); }
   if (sinopse_aberta()) sinopse_desenhar();
+#ifdef NV_TEST_LOCAL_LOGS
+  detalheTesteEmitir(1, 0);
+#endif
 }
 
 static void ultimoEpisodio(int *t, int *e) {
