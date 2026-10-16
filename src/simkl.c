@@ -129,14 +129,14 @@ int simkl_ler_playback(const char *json, CatItem *dst, long long *ids, int max) 
       // AniDB episode numbers (season, number) and TVDB numbers (tvdb_season,
       // tvdb_number)". O resto do app fala TVDB; o AniDB poria o card no
       // episodio errado — pior que nao mostrar.
-      t = (int)js_num(ei, ef, "tvdb_season", 0.0);
+      t = (int)js_num(ei, ef, "tvdb_season", -1.0);
       e = (int)js_num(ei, ef, "tvdb_number", 0.0);
-      if (!anime && (t <= 0 || e <= 0)) {
-        t = (int)js_num(ei, ef, "season", 0.0);
+      if (!anime && (t < 0 || e <= 0)) {
+        t = (int)js_num(ei, ef, "season", -1.0);
         e = (int)js_num(ei, ef, "episode", 0.0);
         if (e <= 0) e = (int)js_num(ei, ef, "number", 0.0);
       }
-      if (t <= 0 || e <= 0) continue;
+      if (t < 0 || e <= 0) continue;
       d->temporada = t;
       d->episodio = e;
       js_texto_raiz_em(ei, ef, "title", d->nomeEpisodio, sizeof d->nomeEpisodio);
@@ -178,7 +178,7 @@ int simkl_ler_assistindo(const char *json, CatItem *dst, int max) {
     memset(d, 0, sizeof *d);
     // "S01E05". Em dia com o que foi ao ar vem null, e ai nao ha o que seguir.
     if (!js_texto_raiz_em(p, f, "next_to_watch", prox, sizeof prox)) continue;
-    if (sscanf(prox, "S%dE%d", &t, &e) != 2 || t <= 0 || e <= 0) continue;
+    if (sscanf(prox, "S%dE%d", &t, &e) != 2 || t < 0 || e <= 0) continue;
     if (!objetoRaiz(p, f, "show", &oi, &of)) continue;
     if (!lerObra(oi, of, d, imdb, sizeof imdb)) continue;
     d->temporada = t;

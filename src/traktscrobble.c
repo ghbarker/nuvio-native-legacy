@@ -46,7 +46,7 @@ void scrobble_corpo(char *dst, size_t n, const char *id, double pct) {
   snprintf(base, sizeof base, "%s", id);
   dp = strchr(base, ':');
   if (dp) { sscanf(dp + 1, "%d:%d", &t, &e); *dp = 0; }
-  if (t > 0 && e > 0)
+  if (t >= 0 && e > 0)
     snprintf(dst, n,
              "{\"show\":{\"ids\":{\"imdb\":\"%s\"}},"
              "\"episode\":{\"season\":%d,\"number\":%d},\"progress\":%.2f}",

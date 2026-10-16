@@ -1105,7 +1105,7 @@ static void episodios_menu_desenharCorpo_(void) {
 int episodios_menu_fontes(int *temporada, int *episodio) {
   if (temporada) *temporada = vmT;
   if (episodio) *episodio = vmE;
-  return vmT > 0 && vmE > 0;
+  return vmT >= 0 && vmE > 0;
 }
 int  episodios_menu_pediu_fontes(void) { int v = vmFontesPed; vmFontesPed = 0; return v; }
 

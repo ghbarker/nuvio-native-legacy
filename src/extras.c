@@ -347,12 +347,12 @@ static void progressoGuardarIds(const ExProgressoPedido *pedido, const char *jso
   while (*p && (unsigned char)*p <= ' ') p++;
   while (*p && *p != ']') {
     const char *f = js_fim(p), *q;
-    int t = episodioid_numero(episodioid_valor(p, f, "number"), f);
+    int t = episodioid_temporada(episodioid_valor(p, f, "number"), f);
     for (q = js_array(p, f, "episodes"); q; q = js_prox(js_fim(q))) {
       const char *qf = js_fim(q);
       int e = episodioid_numero(episodioid_valor(q, qf, "number"), qf);
       int tvdb = episodioid_tvdb(q, qf);
-      if (!t || !e || !tvdb) continue;
+      if (t < 0 || !e || !tvdb) continue;
       if (n >= VE_MAX) { valido = 0; break; }
       if (n == cap) {
         int nova = cap ? cap * 2 : 64;
@@ -1799,7 +1799,7 @@ static void *buscarEpComent(void *arg) {
 
 void extras_pedir_comentarios_ep(const char *imdbSerie, int temporada, int episodio) {
   pthread_t f;
-  if (!imdbSerie || !imdbSerie[0] || temporada <= 0 || episodio <= 0) return;
+  if (!imdbSerie || !imdbSerie[0] || temporada < 0 || episodio <= 0) return;
   pthread_mutex_lock(&trava);
   // Mesmo episodio ja carregado (ou em voo): nao repete a viagem.
   // Sem o `nComentEp > 0` que havia aqui: um episodio SEM comentario
@@ -2193,7 +2193,7 @@ int extras_progresso_serie(int *vistosEp, int *exibidos) {
 
 int extras_proximo_episodio(int *t, int *e) {
   pthread_mutex_lock(&trava);
-  int ok = progressoPronto && proximoT > 0 && proximoE > 0;
+  int ok = progressoPronto && proximoT >= 0 && proximoE > 0;
   unsigned rev = epsRev;
   char id[sizeof idPedido];
   snprintf(id, sizeof id, "%s", idPedido);

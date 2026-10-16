@@ -45,6 +45,20 @@ static inline int episodioid_numero(const char *p, const char *fim) {
   return p == fim || *p == ',' || *p == '}' || *p == ']' ? n : 0;
 }
 
+// Season zero is explicit metadata, not an absent/invalid provider ID.
+// Keep episodioid_numero strictly positive for episode and TVDB identities.
+static inline int episodioid_temporada(const char *p, const char *fim) {
+  int n;
+  if (!p || !fim || p >= fim) return -1;
+  if (*p != '0') {
+    n = episodioid_numero(p, fim);
+    return n > 0 ? n : -1;
+  }
+  p++;
+  while (p < fim && (unsigned char)*p <= ' ') p++;
+  return p == fim || *p == ',' || *p == '}' || *p == ']' ? 0 : -1;
+}
+
 // Stremio/Cinemeta: tvdb_id. Trakt: ids.tvdb, dentro do episodio.
 static inline int episodioid_tvdb(const char *ep, const char *fim) {
   const char *p, *ids;
@@ -69,7 +83,7 @@ static inline int episodioid_procurar(const CatEp *eps, int n, int tvdb, Episodi
   EpisodioId achado = {0};
   if (!eps || tvdb <= 0 || !saida) return 0;
   for (int i = 0; i < n; i++) if (eps[i].tvdbEp == tvdb) {
-    if (eps[i].temporada <= 0 || eps[i].episodio <= 0) return 0;
+    if (eps[i].temporada < 0 || eps[i].episodio <= 0) return 0;
     if (achado.tvdbEp && (achado.temporada != eps[i].temporada || achado.episodio != eps[i].episodio)) return 0;
     achado = (EpisodioId){ eps[i].temporada, eps[i].episodio, tvdb };
   }
@@ -98,10 +112,10 @@ static inline int episodioid_meta(const char *corpo, const char *titulo, int tvd
     const char *f = js_fim(v);
     EpisodioId e;
     if (episodioid_tvdb(v, f) != tvdb) continue;
-    e.temporada = episodioid_numero(episodioid_valor(v, f, "season"), f);
+    e.temporada = episodioid_temporada(episodioid_valor(v, f, "season"), f);
     e.episodio = episodioid_numero(episodioid_valor(v, f, "episode"), f);
     e.tvdbEp = tvdb;
-    if (!e.temporada || !e.episodio) return 0;
+    if (e.temporada < 0 || !e.episodio) return 0;
     if (achado.tvdbEp && (achado.temporada != e.temporada || achado.episodio != e.episodio)) return 0;
     achado = e;
   }
@@ -110,7 +124,7 @@ static inline int episodioid_meta(const char *corpo, const char *titulo, int tvd
     const char *f = js_fim(v);
     int outro = episodioid_tvdb(v, f);
     if (outro > 0 && outro != tvdb &&
-        episodioid_numero(episodioid_valor(v, f, "season"), f) == achado.temporada &&
+        episodioid_temporada(episodioid_valor(v, f, "season"), f) == achado.temporada &&
         episodioid_numero(episodioid_valor(v, f, "episode"), f) == achado.episodio) return 0;
   }
   *saida = achado;
