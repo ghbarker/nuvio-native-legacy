@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "0bea8f6b0f0b60e58389348d80fb56a6cd237f7e",
+  "candidate_head": "f24000a2bf4343fa3b25c5729acf92c8f46b13fa",
+  "candidate_tree": "b533b36dd6a661a405b50ca5a78d65db4fec20ac",
+  "review_branch": "review/issue504-removed-addon-rows-20261016",
+  "source_manifest_sha256": "30da757a9cfb2f5bece473350791c70a99f23c6a5a7b449bf002849458975a8b",
+  "source_manifest_origin_sha256": "45e8664e5f8b8365130d722ba6fc597327136b2559904d932511b1e3371aec49",
+  "source_review_sha256": "82a6eb7c05b9e7fb4532af2593feddd600e3f5d9bc2a42cae03b945cd4ddf0e3",
+  "root_source_review_sha256": "03cda13a2cdcd973b3509fa0e66c8e5e48b81f6509ad50d6c3a6a5d59663671c",
+  "fixture_manifest_sha256": "87d896908dfd9a8bab044bb7a7a1aae9aa1cf8ccae48e2dbba676574e43242c6",
+  "required_jobs": [
+    "native",
+    "android"
+  ],
+  "recipe_inputs": {
+    "android.py": "9c20ea36ba7cadccaa843c55d6409bb7d7bdc0f342dca7f4a05f37bba66ea7cf",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "common.py": "e13a73c0426d5d9cd9d87fecdf013fba5a757076d8e0c9e5e2986537f949b1a7",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixture-manifest.json": "87d896908dfd9a8bab044bb7a7a1aae9aa1cf8ccae48e2dbba676574e43242c6",
+    "fixtures/pr504/entry.py": "e865ed941716009ed2442cb390c94872df7122a019bb174d85b42fc181b8418c",
+    "fixtures/pr504/full-tmdb.inc": "fed72b4b45eba5c3680c07c5361ba70c635c393d53ad01a955b02ade454869ce",
+    "fixtures/pr504/observed-addons.inc": "45e28bef06641bc68380c58c928816bed776cc71fb9fd26ea8f7df26173bb7e5",
+    "fixtures/pr504/provenance.json": "9fa7842bd1822c233f6969d6f8282030ee225b860baa77ed939c2ce965e975d9",
+    "fixtures/pr504/rows.c": "89341cfe72261716a6dd1d32d8d36f698128188bfd38274a885b89fe4b22668f",
+    "fixtures/pr504/run.py": "250d63bc0a7a17d6e2aa753ed20cb3fbdffc8978b3aa322abcc160583d9b1a2b",
+    "materialize.py": "ccaf78cb93248869c02a44024f88d6be1ff2c20fff19d3e0be93836cca0f35c2",
+    "native.py": "244ebcdff75d52e41a946aacfe63dd7f44d4ccba6e52a2fc219019465f1b65ae",
+    "preflight.py": "cf97a685a9975fe7be9ece1556e99dd6fae7e8761c03bd250812a544996ca247",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "focused_host": "Darwin native lane",
+  "fresh_focused_groups": [
+    "removed-addon-rows-normal",
+    "removed-addon-rows-asan"
+  ],
+  "fresh_focused_counts": {
+    "normal": 21,
+    "asan": 21
+  },
+  "fresh_focused_command_records_each": 25,
+  "required_upstream_translation_units": [
+    "src/fontenota.c",
+    "src/sinopse.c",
+    "src/fontefiltro.c"
+  ],
+  "public_source_scope": [
+    "src/ajustes.c",
+    "src/fileiras.c",
+    "src/fileiras.h"
+  ],
+  "historical_source_equivalence": "97a08d01721845c5fff037c25061f93f6e7ccac4",
+  "previous_platform_passes_reused": false,
+  "scope": "Exactly two fresh producers on current public source: existing21 real fileiras and verbatim Settings/discovery regression cases normal+ASan on macOS, actual full macOS TV/touch SDK links, and one standard dualARM Android APK. Public source is exactly3sourcefiles; no tests/CI/private overlay in PR, SDK/device simulations, unrelated feature or historical-pass substitution. All tests and CI remain isolated validation branch.",
+  "workflow_normalized_sha256": "0fa9e4f6de7553fdbdd2b2a6b4fe1821d1c8b4f53d616344a21f314304b1a117"
+}

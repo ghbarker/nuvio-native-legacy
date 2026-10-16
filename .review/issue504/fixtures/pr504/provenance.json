@@ -1,0 +1,40 @@
+{
+  "candidate": "f24000a2bf4343fa3b25c5729acf92c8f46b13fa",
+  "tree": "b533b36dd6a661a405b50ca5a78d65db4fec20ac",
+  "base": "0bea8f6b0f0b60e58389348d80fb56a6cd237f7e",
+  "historical_source": "97a08d01721845c5fff037c25061f93f6e7ccac4",
+  "historical_receipt_sha256": "4195319de5ff8c682aaceb4f683c9d1d8ac387391f3158065e13d3b8c8116175",
+  "historical_runner_sha256": "f8f66b2b2fe87e3adff1a66b2e168f45b3d57af9b51dbc191e570f6932902e42",
+  "assertion_fixtures_unchanged": {
+    "rows.c": "89341cfe72261716a6dd1d32d8d36f698128188bfd38274a885b89fe4b22668f",
+    "full-tmdb.inc": "fed72b4b45eba5c3680c07c5361ba70c635c393d53ad01a955b02ade454869ce",
+    "observed-addons.inc": "45e28bef06641bc68380c58c928816bed776cc71fb9fd26ea8f7df26173bb7e5"
+  },
+  "extracted_sha256": {
+    "settings-projection.inc": "ded9008614c347d7513983882e13e690ebed8342632568183db15634b3a70629",
+    "discovery-guards.inc": "6dcc06dedb478735798aade1edfc8dd14530e44dd0231fff144fb58c34d5d2e2"
+  },
+  "retained_cases": 21,
+  "full_registry": 768,
+  "tmdb_rows": 10,
+  "other_rows": 758,
+  "full_case_phases": [
+    "installed-eight",
+    "removed-seven",
+    "reinstalled-eight",
+    "installed-disabled",
+    "disabled-unknown-id",
+    "identified-enabled",
+    "changed-generation-deferred",
+    "stable-generation-replay"
+  ],
+  "runtime_preflight": "Fresh same-frozen-source Linux preflight21normal+21ASan/UBSan passed sequentially; compiler subprocess only384MiB virtual-address cap via historical wrapper. Not a macOS/SDK/physicalscreen pass. Exact C fixtures unchanged.",
+  "adaptation": [
+    "All21 existing C case/assertion bodies and two .inc fixture inputs byte-identical.",
+    "Complete actual fileiras.c/h compiled; exact Settings functions and discovery guard extracted from exact current source blobs. Extracted bytes match accepted historical fixture.",
+    "Only wrapper/source binding/rawreceipts changed. Two C translation units compiled separately for complete MMD dependency records; same -FIL_TESTE and section isolation.",
+    "Retain existing Darwin dead_strip and leak-detection0; Linux gc-sections and leak-detection1; strict ASan/UBSan flags, Linux-only noPIE.",
+    "Sparse local read can materialize only unchanged actual dados.h blob outside source; full CI compiles its real current source header.",
+    "No whole Settings renderer, SDK, network, GL/device or physicalscreen claims."
+  ]
+}

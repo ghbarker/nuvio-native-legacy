@@ -1,0 +1,46 @@
+{
+  "frozen": true,
+  "source_commit": "f24000a2bf4343fa3b25c5729acf92c8f46b13fa",
+  "source_tree": "b533b36dd6a661a405b50ca5a78d65db4fec20ac",
+  "fixture_inputs": {
+    "entry.py": {
+      "bytes": 5164,
+      "sha256": "e865ed941716009ed2442cb390c94872df7122a019bb174d85b42fc181b8418c"
+    },
+    "full-tmdb.inc": {
+      "bytes": 4525,
+      "sha256": "fed72b4b45eba5c3680c07c5361ba70c635c393d53ad01a955b02ade454869ce"
+    },
+    "observed-addons.inc": {
+      "bytes": 629,
+      "sha256": "45e28bef06641bc68380c58c928816bed776cc71fb9fd26ea8f7df26173bb7e5"
+    },
+    "provenance.json": {
+      "bytes": 2386,
+      "sha256": "9fa7842bd1822c233f6969d6f8282030ee225b860baa77ed939c2ce965e975d9"
+    },
+    "rows.c": {
+      "bytes": 9988,
+      "sha256": "89341cfe72261716a6dd1d32d8d36f698128188bfd38274a885b89fe4b22668f"
+    },
+    "run.py": {
+      "bytes": 7099,
+      "sha256": "250d63bc0a7a17d6e2aa753ed20cb3fbdffc8978b3aa322abcc160583d9b1a2b"
+    }
+  },
+  "preflight": {
+    "normal": {
+      "receipt": "/dev/shm/issue504-ci-20261016/preflight-normal/receipt.json",
+      "sha256": "6b6e244fa17683979d492bfb9840ad274d475d442413a51cf1889d6163aef7df",
+      "cases": 21,
+      "passed": true
+    },
+    "asan": {
+      "receipt": "/dev/shm/issue504-ci-20261016/preflight-asan/receipt.json",
+      "sha256": "96f27936b15693a5a0f8855fe3cc5d4d5540812023b618f3a307c7a8efa58bb2",
+      "cases": 21,
+      "passed": true
+    }
+  },
+  "root_CI_execution_permitted": false
+}

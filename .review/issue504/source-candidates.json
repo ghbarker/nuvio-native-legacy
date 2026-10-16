@@ -1,0 +1,55 @@
+{
+  "504": {
+    "pr": 504,
+    "head": "f24000a2bf4343fa3b25c5729acf92c8f46b13fa",
+    "tree": "b533b36dd6a661a405b50ca5a78d65db4fec20ac",
+    "base": "0bea8f6b0f0b60e58389348d80fb56a6cd237f7e",
+    "base_tree": "671b0dcb071cd1ce71482bf12782df3730e92793",
+    "parents": [
+      "0bea8f6b0f0b60e58389348d80fb56a6cd237f7e"
+    ],
+    "exact_diff_paths": [
+      "src/ajustes.c",
+      "src/fileiras.c",
+      "src/fileiras.h"
+    ],
+    "paths": [
+      {
+        "path": "src/ajustes.c",
+        "blob": "ab53bbac66781a875f8820ceb770934fa7dceb36",
+        "sha256": "d30638b376b1f2e79cfabc0b1f985be7b740c12d563dedb79712efb06d9c13fe",
+        "byte_identical_to_previously_verified_source": "97a08d01721845c5fff037c25061f93f6e7ccac4"
+      },
+      {
+        "path": "src/fileiras.c",
+        "blob": "c4dd1019726b4b9efc6359dd1875e35b9695398b",
+        "sha256": "79f49b951ff84e58c991da8ef85b13d48ad8d3059d96d89455c91b92da97ec66",
+        "byte_identical_to_previously_verified_source": "97a08d01721845c5fff037c25061f93f6e7ccac4"
+      },
+      {
+        "path": "src/fileiras.h",
+        "blob": "ad17bbc6be19ad26d9648b87e4c798bfa65b8dc3",
+        "sha256": "5e4f20a36e460b55c332ba94efe7deef080e76c2b4af7945897ab68847d463dd",
+        "byte_identical_to_previously_verified_source": "97a08d01721845c5fff037c25061f93f6e7ccac4"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "src/descoberta.c",
+        "blob": "1f46f98d11a6b0ab8bb295414a98e173d1fab674",
+        "sha256": "8bbecbab5823146ae87351c9b67c428bf8a5fb33ca7804a8d3af88b6c6d78dc6"
+      },
+      {
+        "path": "src/descoberta.h",
+        "blob": "aa2c1a465bb5f9c3ca6a31cefe2cf42e00b119a1",
+        "sha256": "e7a9665eb4801bfd4070c4b0b30e3205b0968b908b98fcbe11a8c73e77a7acdb"
+      },
+      {
+        "path": "src/dados.h",
+        "blob": "d6f16536fa560f8b403b7a12c1741a2525e089bf",
+        "sha256": "7708a0f524065bc00ddfe97e65a320f63a5b5b184ac00ab5a0b6094edd3ea75b"
+      }
+    ],
+    "scope": "Only issue504/365 removed-addon row handling and existing preference refresh. Three src-only product files, no repository tests/CI/private overlay; historical97a byte equivalence is provenance, not a new platform pass."
+  }
+}
