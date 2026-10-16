@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "../src/catalogo.h"
+#include "../src/perfis.h"
 #include "../src/progresso.h"
 
 // O cache grava o idioma no cabecalho (texto ja montado nao pode ser lido de
@@ -41,6 +42,12 @@ const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nom
 static char  dirDados[512];
 static char  usuarioAtual[64];
 static int   perfilAtual = 1;
+
+// Standalone fixture: one immutable account visit, not the application profile service.
+uint64_t perfis_sessao_geracao(void) { return 0; }
+int perfis_sessao_atual(uint64_t geracao) { return geracao == 0; }
+int perfis_sessao_travar(uint64_t geracao) { assert(geracao == 0); return 1; }
+void perfis_sessao_destravar(void) {}
 
 const char *dados_dir(void)     { return dirDados; }
 const char *sessao_usuario(void){ return usuarioAtual; }

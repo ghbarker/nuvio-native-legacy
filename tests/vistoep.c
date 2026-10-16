@@ -6,10 +6,15 @@
 // de episodios afirmar "nao assistido" sobre uma serie que ela nunca consultou
 // — a mesma familia de defeito que o heroi mostrando a arte do titulo anterior.
 #include "vistoep.h"
+#include "perfis.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
+
+// The offline map fixture owns no application profile service or transitions.
+int perfis_sessao_travar(uint64_t geracao) { assert(geracao == 0); return 1; }
+void perfis_sessao_destravar(void) {}
 
 // /shows/<id>/progress/watched, com o `completed` explicito por episodio.
 static const char *PROG =

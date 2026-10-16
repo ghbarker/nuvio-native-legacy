@@ -37,6 +37,7 @@ static TituloTempo detalheTempo;
 #include "ajustes.h"
 #include "home.h"
 #include "extras.h"
+#include "trakt.h"
 #include "trailer.h"
 #include "trailerimdb.h"
 #include "trailerapple.h"
