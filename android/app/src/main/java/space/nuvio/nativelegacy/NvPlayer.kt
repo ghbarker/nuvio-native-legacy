@@ -57,7 +57,9 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import java.io.InterruptedIOException
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 // Player do Nuvio no Android TV: Media3 ExoPlayer numa SurfaceView ATRAS da
 // SDLSurface (o C abre um furo transparente por onde ela aparece, ver
@@ -117,6 +119,9 @@ object NvPlayer {
     // Invalida um abrir/seek ainda na fila antes de o fio principal executa-lo.
     // A sessao acima segue protegendo os callbacks do ExoPlayer liberado.
     private val pedidos = AtomicInteger()
+    // Admission closes before queued opens/preloads are invalidated. Only the
+    // matching external handoff may reopen it; a stale return cannot do so.
+    private val externoToken = AtomicLong()
     private var pedidoAtivo = 0
     private var inicioAtualMs = 0
     // 2.0.3: retomada so com percentual (centesimos de ponto, 0 = nada). Fica
@@ -301,7 +306,7 @@ object NvPlayer {
             p.playWhenReady && (st == Player.STATE_READY || st == Player.STATE_BUFFERING), pronto)
     }
 
-    private fun atual(minha: Int) = minha == sessao && pedidoAtivo == pedidos.get()
+    private fun atual(minha: Int) = externoToken.get() == 0L && minha == sessao && pedidoAtivo == pedidos.get()
     private fun confirmarRetomada(geracao: Int, aceita: Boolean) {
         if (geracao != 0) try { nativeRetomada(geracao, if (aceita) 1 else 0) }
         catch (e: UnsatisfiedLinkError) { Log.w(TAG, "retomada sem lib: $e") }
@@ -617,6 +622,7 @@ object NvPlayer {
         lateinit var fabricaMidia: DefaultMediaSourceFactory
         var fontePrecarregada: PreloadMediaSource? = null
         var fioPreparo: HandlerThread? = null
+        val fonteLiberacaoAgendada = AtomicBoolean()
         var seletorPreparo: DefaultTrackSelector? = null
         var capacidadesPreparo: androidx.media3.exoplayer.RendererCapabilitiesList? = null
         var bandaPreparo: DefaultBandwidthMeter? = null
@@ -656,7 +662,7 @@ object NvPlayer {
         var decoderDv = false
     }
 
-    private fun preparoAtual(s: Preparo) = preparo === s && s.pedido == pedidosPreparo.get()
+    private fun preparoAtual(s: Preparo) = externoToken.get() == 0L && preparo === s && s.pedido == pedidosPreparo.get()
     private fun publicarPreparo(s: Preparo, estado: Int) {
         synchronized(travaPreparo) {
             if (preparoAtual(s) && consultaPreparo.token == s.token)
@@ -676,13 +682,27 @@ object NvPlayer {
     }
 
     private fun liberarFontePreparo(r: RecursosPlayer) {
-        r.fontePrecarregada?.releasePreloadMediaSource()
-        val fio = r.fioPreparo ?: return
-        Handler(fio.looper).post {
-            r.seletorPreparo?.release()
-            r.capacidadesPreparo?.release()
-            (r.carga.allocator as? DefaultAllocator)?.reset()
-            fio.quitSafely()
+        if (!r.fonteLiberacaoAgendada.compareAndSet(false, true)) return
+        val fio = r.fioPreparo
+        if (fio == null) { r.fontePrecarregada?.releasePreloadMediaSource(); return }
+        // The external barrier must also wait for this queued preload cleanup,
+        // not just ExoPlayer.release(). A rejected/failed release stays counted
+        // and makes the bounded barrier refuse the external launch.
+        liberacoesEmCurso.incrementAndGet()
+        try {
+            r.fontePrecarregada?.releasePreloadMediaSource()
+            val aceitou = Handler(fio.looper).post {
+                try {
+                    r.seletorPreparo?.release()
+                    r.capacidadesPreparo?.release()
+                    (r.carga.allocator as? DefaultAllocator)?.reset()
+                    fio.quitSafely()
+                    liberacoesEmCurso.decrementAndGet()
+                } catch (e: Exception) { Log.w(TAG, "release preload resources: $e") }
+            }
+            if (!aceitou) Log.w(TAG, "release preload resources: looper unavailable")
+        } catch (e: Exception) {
+            Log.w(TAG, "release preload resources: $e")
         }
     }
 
@@ -708,14 +728,14 @@ object NvPlayer {
 
     private fun enfileirarPreparo(url: String, cabecalhos: String, inicioMs: Int, fracao: Int,
                                  token: Int, buffer: Int, cacheMb: Int, proximo: Boolean, idiomaAudio: String) {
-        if (token <= 0 || url.isEmpty()) return
+        if (externoToken.get() != 0L || token <= 0 || url.isEmpty()) return
         val pedido = synchronized(travaPreparo) {
             val n = pedidosPreparo.incrementAndGet()
             consultaPreparo = ConsultaPreparo(token, 1)
             n
         }
         principal.post {
-            if (pedido != pedidosPreparo.get()) return@post
+            if (externoToken.get() != 0L || pedido != pedidosPreparo.get()) return@post
             soltarPreparo()
             val s = Preparo(token, pedido, url, cabecalhos, inicioMs.coerceAtLeast(0),
                 if (inicioMs > 0) 0 else fracao.coerceIn(0, 9999), buffer.coerceIn(0, 3), cacheMb.coerceIn(0, 1024), proximo, idiomaAudio)
@@ -920,6 +940,7 @@ object NvPlayer {
 
     @JvmOverloads @JvmStatic fun abrirPreparada(url: String, cabecalhos: String, inicioMs: Int, fracao: Int,
                                  geracao: Int, token: Int, idiomaAudio: String = "") {
+        if (externoToken.get() != 0L) return
         val pedido = pedidos.incrementAndGet()
         val preparoPedido = synchronized(travaPreparo) {
             val n = pedidosPreparo.incrementAndGet()
@@ -927,7 +948,7 @@ object NvPlayer {
             n
         }
         principal.post {
-            if (pedido != pedidos.get()) return@post
+            if (externoToken.get() != 0L || pedido != pedidos.get()) return@post
             val s = preparo
             val inicio = inicioMs.coerceAtLeast(0)
             val f = if (inicio > 0) 0 else fracao.coerceIn(0, 9999)
@@ -1055,6 +1076,7 @@ object NvPlayer {
 
     @JvmStatic fun abrir(url: String, cabecalhos: String) { abrirPosicao(url, cabecalhos, 0, 0) }
     @JvmStatic fun abrirPosicao(url: String, cabecalhos: String, inicioMs: Int, geracao: Int) {
+        if (externoToken.get() != 0L) return
         cancelarPreparo(0)
         val pedido = pedidos.incrementAndGet()
         principal.post {
@@ -1062,6 +1084,7 @@ object NvPlayer {
         }
     }
     @JvmStatic fun abrirRetomada(url: String, cabecalhos: String, inicioMs: Int, fracao: Int, geracao: Int) {
+        if (externoToken.get() != 0L) return
         cancelarPreparo(0)
         val pedido = pedidos.incrementAndGet()
         principal.post {
@@ -1073,6 +1096,38 @@ object NvPlayer {
         cancelarPreparo(0)
         val pedido = pedidos.incrementAndGet()
         principal.post { if (pedido == pedidos.get()) liberar() }
+    }
+
+    // UI remains responsive while Media3 tears down its playback loopers. A
+    // timeout refuses launch; it never starts a second player beside old work.
+    fun externoLiberar(token: Long, pronto: (Boolean) -> Unit): Boolean {
+        if (token <= 0 || !externoToken.compareAndSet(0L, token)) return false
+        cancelarPreparo(0)
+        pedidos.incrementAndGet()
+        val aceitou = principal.post {
+            if (externoToken.get() != token) return@post
+            val inicio = SystemClock.elapsedRealtime()
+            try {
+                soltarPreparo()
+                liberar()
+                esquecerQuadro()
+            } catch (_: Exception) { pronto(false); return@post }
+            val esperar = object : Runnable {
+                override fun run() {
+                    if (externoToken.get() != token) return
+                    if (player == null && preparo == null && liberacoesEmCurso.get() == 0) pronto(true)
+                    else if (SystemClock.elapsedRealtime() - inicio >= 5000L) pronto(false)
+                    else if (!principal.postDelayed(this, 25L)) pronto(false)
+                }
+            }
+            esperar.run()
+        }
+        if (!aceitou) { externoToken.compareAndSet(token, 0L); return false }
+        return true
+    }
+
+    fun externoTerminar(token: Long) {
+        if (token > 0 && externoToken.compareAndSet(token, 0L)) pedidos.incrementAndGet()
     }
     private var pausaPedida = false
     @JvmStatic fun pausar(p: Int) {
@@ -1261,7 +1316,7 @@ object NvPlayer {
     private fun abrirMain(url: String, cabecalhos: String, reabrindo: Boolean,
                           inicioMs: Int, geracao: Int, pedido: Int, fracao: Int = 0, esperaInicio: Long = -1L,
                           preparada: Preparo? = null) {
-        if (pedido != pedidos.get()) {
+        if (externoToken.get() != 0L || pedido != pedidos.get()) {
             preparada?.recursos?.let { soltarRecursosPreparo(it) }
             return
         }
@@ -1493,13 +1548,15 @@ object NvPlayer {
         liberacoesEmCurso.incrementAndGet()
         val corpo = Runnable {
             val ini = SystemClock.elapsedRealtime()
+            var liberou = true
             try { p.stop() } catch (e: Exception) { Log.w(TAG, "stop: $e") }
-            try { p.release() } catch (e: Exception) { Log.w(TAG, "release: $e") }
-            try { depois() } catch (e: Exception) { Log.w(TAG, "release preload source: $e") }
+            try { p.release() } catch (e: Exception) { liberou = false; Log.w(TAG, "release: $e") }
+            try { depois() } catch (e: Exception) { liberou = false; Log.w(TAG, "release preload source: $e") }
             val ms = SystemClock.elapsedRealtime() - ini
             if (ms > 5000) Log.w(TAG, "[player] release anterior levou $ms ms (>5 s: HAL de audio preso?)")
             else Log.i(TAG, "[player] release anterior levou $ms ms")
-            liberacoesEmCurso.decrementAndGet()
+            // An unconfirmed release cannot satisfy an external handoff.
+            if (liberou) liberacoesEmCurso.decrementAndGet()
             principal.post {
                 if (sv != null && sv !== superficie) (sv.parent as? FrameLayout)?.removeView(sv)
             }

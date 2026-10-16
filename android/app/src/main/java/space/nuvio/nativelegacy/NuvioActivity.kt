@@ -137,6 +137,19 @@ class NuvioActivity : SDLActivity() {
     }
 
     private val registroDownload by lazy { RegistroDownload(this) }
+    private val playerExterno by lazy { PlayerExterno(this) }
+
+    // Called by SDL; the controller snapshots bytes and schedules Android UI.
+    fun playerExternoPedir(token: Long, modo: Int, url: ByteArray, cab: ByteArray, titulo: ByteArray,
+                          posicaoMs: Long, rotulos: Array<String>): Boolean =
+        playerExterno.pedir(token, modo, url, cab, titulo, posicaoMs, rotulos)
+    fun playerExternoAbrir(token: Long): Boolean = playerExterno.abrir(token)
+    fun playerExternoCancelar(token: Long) { playerExterno.cancelar(token) }
+    fun playerExternoEvento(): LongArray? = playerExterno.evento()
+    fun playerExternoOcupado(): Boolean = playerExterno.emAndamento
+    fun playerExternoAviso(mensagem: String) {
+        runOnUiThread { android.widget.Toast.makeText(this, mensagem, android.widget.Toast.LENGTH_LONG).show() }
+    }
 
     // Chamado pelo fio SDL, sem ler arquivos nem abrir a tela naquele fio.
     fun baixarRegistro(arquivo: String, sucesso: String, falha: String) {
@@ -541,7 +554,7 @@ class NuvioActivity : SDLActivity() {
         // Instalador ou tela de voz por cima NAO e sair do app: trocar o icone
         // ali fecharia a tarefa embaixo deles (ver aplicarIconePendente).
         if (!instalando && !esperandoTela && !isChangingConfigurations &&
-            !registroDownload.escolhendoArquivo) aplicarIconePendente()
+            !registroDownload.escolhendoArquivo && !playerExterno.emAndamento) aplicarIconePendente()
         super.onStop()
         Log.i("nuvio", "[android] parada: ${SystemClock.elapsedRealtime() - ini} ms no fio da interface")
     }
@@ -551,11 +564,13 @@ class NuvioActivity : SDLActivity() {
         aplicarOrientacaoTouch()
         telaCheiaTouch()
         vigia?.frente(true)
+        playerExterno.retomou()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) telaCheiaTouch()
+        playerExterno.foco(hasFocus)
     }
 
     // [android] pausa / parada: quanto o fio da interface ficou em cada passo
@@ -564,6 +579,7 @@ class NuvioActivity : SDLActivity() {
     override fun onPause() {
         val ini = SystemClock.elapsedRealtime()
         vigia?.frente(false)
+        playerExterno.pausou()
         NvPlayer.pausarPeloSistema()
         val msPlayer = SystemClock.elapsedRealtime() - ini
         super.onPause()
@@ -571,6 +587,7 @@ class NuvioActivity : SDLActivity() {
     }
 
     override fun onDestroy() {
+        playerExterno.fechar()
         registroDownload.fechar()
         vigia?.parar()
         fecharRede()
@@ -1052,6 +1069,7 @@ class NuvioActivity : SDLActivity() {
 
     @Deprecated("startActivityForResult e o que o SDLActivity (Activity) oferece")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (playerExterno.resultado(requestCode)) return
         if (registroDownload.resultado(requestCode, resultCode, data)) return
         if (requestCode == PEDIDO_DITADO) esperandoTela = false
         if (requestCode == PEDIDO_DITADO) {
