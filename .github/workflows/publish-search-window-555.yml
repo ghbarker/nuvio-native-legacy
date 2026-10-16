@@ -1,0 +1,28 @@
+name: Publish validated search-window branch
+on:
+  push:
+    branches: [review/publish-search-window-555-20261016]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    if: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PUBLISH_ALLOWED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .review/search-window-555
+      - name: Verify actual native proof and publish one new public ref
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .review/search-window-555/publish.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: search-window-555-publication-${{ github.sha }}
+          path: search-window-555-published.json
+          if-no-files-found: error
