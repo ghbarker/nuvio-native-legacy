@@ -1199,7 +1199,7 @@ static int tocarFonteGuardada(void) {
   return 1;
 }
 static void vigiarFonteGuardada(void) {
-  FontevoltaSinais g;
+  FontevoltaSinais g = {0};
   const char *motivo = NULL;
   Uint32 desde;
   if (!voltaAtiva) return;
