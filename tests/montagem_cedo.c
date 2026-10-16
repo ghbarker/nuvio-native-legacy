@@ -101,6 +101,15 @@ const char *addons_nome(int i)         { (void)i; return "Addon"; }
 unsigned addons_versao(void)           { return versaoAddons; }
 const char *addons_base_por_id(const char *id) { return id && !strcmp(id, AID) ? baseAtual() : ""; }
 void  addons_manifesto_lido(int i, const char *c) { (void)i; (void)c; }
+int addons_identidade_recebida(const char *base, unsigned versao, NvPerfilSessao sessao,
+                              const char *corpo) {
+  (void)corpo;
+  return nv_perfil_sessao_atual(sessao) && versao == versaoAddons && !strcmp(base, baseAtual());
+}
+int addons_manifesto_recebido(const char *base, unsigned versao, NvPerfilSessao sessao,
+                             const char *corpo) {
+  return addons_identidade_recebida(base, versao, sessao, corpo);
+}
 
 // ------------------------------------------------------------------ o relogio
 static unsigned long long agoraMs(void) {
