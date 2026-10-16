@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "launch_enabled": true,
+  "source_commit": "bf6a3554506ae78656788460e36fcc7a705c65da",
+  "source_tree": "d1274f4fcb9313c9ac9a767f278d876417029bed",
+  "source_parent": "a213330484b3dd802c7db53c265a8a2bc783a1cc",
+  "product_commit": "a99b2013fb245a5299dd6d74b6cc6983151c4fb6",
+  "review_paths": [
+    ".github/workflows/failover-deep-review.yml",
+    ".review/failover-deep/plan.json",
+    ".review/failover-deep/run.py"
+  ],
+  "inputs": {
+    "src/app.c": "b4202c10413e4132ddb8106360bcf9236da6373d3c4d69d60801e8c274120655",
+    "src/player.c": "23aa8b6a883e5516fe169e0a6f6598a70d6f1c65d5d2446f609129f94e44a0ce",
+    "src/video_android.c": "845c2233f12ca92016507b154faf13545b4ac326d86e61b48a883c9de0cd40e1",
+    "src/fontefalha.c": "a9a2ab8221dd56f81e3c915e0df63b16500aef8ff22c78385b2334deef372574",
+    "src/fontefalha.h": "b4acb5b30bfdb8347c6cdea9a64352d5c23fbf1d886c6c498d5e1589cacd44bf",
+    "src/fontefiltro.c": "286ba29e8fada6eff8c0c4133e068ca607b382b7999f73c0d0f6879bc44e6787",
+    "src/fontefiltro.h": "a991716dbb0d57a846b3e8a6ac6e60a7bbd5c54860fa8d2d524c004545e55f0a",
+    "src/inicio.c": "89de698cd8ffd211c7b801908886621f7ad86e9fed84e2024a1ba49c16f17f38",
+    "src/inicio.h": "f708958e05b2bc39963df0272785cdf36f59102c0ba3a987563a7efc86d6e674",
+    "src/linguas.c": "5b96ac2084209d3b07d4abbdeb2ef3b0702f92edd7c1d32088d49736f1017600",
+    "src/linguas.h": "6b2686af1d1251c622d57dba3f82271d3c1958dd03af53ec16206d85194668c5",
+    "src/video_reconexao.h": "be9452b0264738414552d6902ca96d1de4b3c82078bb515a57cc93893d4adc6d",
+    "tests/fontefalha_prebusca.c": "1447d3403ebda991eb33bef17e23be2bac729c36b250ca7cfde1db215a97336a",
+    "tests/fontefalha_prebusca.py": "9ef762d3e9b1a2f4ea7ccbfdfca1f3ad30f3689d7a4c3cd823531d76537c473b",
+    "tests/fontefalha_prebusca.sh": "e121ae5923ba3ab1eb6336b7f1ebe00e31037093cca9215da1277e86900d56fa"
+  },
+  "commands": [
+    [
+      "bash",
+      "tests/fontefalha_prebusca.sh"
+    ],
+    [
+      "bash",
+      "tests/fontefalha_prebusca.sh"
+    ]
+  ],
+  "expected_markers": [
+    "PASS: prepared MKV adoption, release, timeout, close and cancellation",
+    "PASS: exact 15/30/60s startup deadlines, played/frame exemption and code zero",
+    "PASS: resolution/size/release-group exclusions precede the provider attempt budget",
+    "PASS: deferred prefetch owns no stale backend error; three TorBox links then Premiumize"
+  ],
+  "scope": "Tests only. Prepared subtitle handoff/player/watchdog and classifier/planner are real source; video/mkv services remain typed boundaries. Does not claim Android E2E or callback race coverage."
+}

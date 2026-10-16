@@ -1,0 +1,35 @@
+name: Failover opening lifecycle regression review
+on:
+  push:
+    branches:
+      - review/failover-deep-regressions-20261016
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: failover-deep-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  failover-deep-linux:
+    if: ${{ true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          lfs: false
+          submodules: false
+          persist-credentials: false
+      - name: Execute actual source regression in normal and sanitizer modes
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 .review/failover-deep/run.py --source "$GITHUB_WORKSPACE" --output "$RUNNER_TEMP/failover-deep-proof"
+      - name: Retain small raw test and source-binding proof
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: failover-deep-proof-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/failover-deep-proof
+          if-no-files-found: error
+          retention-days: 7
