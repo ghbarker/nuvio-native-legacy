@@ -4,6 +4,7 @@
 #define NV_ANDROID_H
 #ifdef NV_ANDROID
 #include <stddef.h>
+#include <stdint.h>
 // Escreve a linha "[tv] ..." no log (mesmo formato do host .tpk, LogaTv),
 // espelha stdout/stderr no logcat (tag "nuvio") sem tirar nada do arquivo, e
 // pede ao SDL que o Voltar chegue ao app em vez de fechar a Activity.
@@ -15,6 +16,16 @@ void android_interface_modo(int mobile);
 void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha);
 // Android device classification captured before SDL starts; never a screen heuristic.
 int android_interface_mobile_auto(void);
+// External-player requests/results have their own queue, separate from IME.
+// Success here means queued on Android's UI thread, not that media played.
+int android_player_externo_pedir(uint64_t token, int modo, const char *url,
+                                const char *cab, const char *titulo, int64_t posicaoMs,
+                                const char *const rotulos[7]);
+int android_player_externo_abrir(uint64_t token);
+int android_player_externo_ocupado(void);
+void android_player_externo_cancelar(uint64_t token);
+int android_player_externo_evento(uint64_t *token, int *evento);
+void android_player_externo_aviso(const char *mensagem);
 #ifdef NV_TOUCH_UI
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.

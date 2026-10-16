@@ -287,3 +287,6 @@
   0, 0, 0, 0, 0, 0, 0, /* secondary appearance inherits primary, manual delay0 */
   0, /* collection default view (#362): Automatic, existing layout */
   0, /* Mural tile titles (#521): Ligado, local */
+#ifdef NV_ANDROID
+  0, /* external playback is opt-in on this Android device */
+#endif

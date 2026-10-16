@@ -1208,6 +1208,9 @@ static int tocarFonteGuardada(void) {
   return 1;
 }
 static void vigiarFonteGuardada(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   FontevoltaSinais g = {0};
   const char *motivo = NULL;
   Uint32 desde;
@@ -1824,6 +1827,9 @@ static void pedirTorrentEscolhido(int indice) {
 // atomicos e pega a trava curta do motor: a vigia (disco/RAM/statvfs) e o
 // destroy rodam em fios proprios.
 static void vigiarMotorP2p(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   int m;
   // #334: o limite de Ajustes vale na proxima subida do motor (um atomico).
   p2pmotor_definir_limite_mb(ajustes_p2p_limite_mb());
@@ -2320,6 +2326,9 @@ static void abrirProximoEpisodio(int t, int e, int apontar) {
   }
 }
 static void proximoPreparoPasso(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) { memset(&proximoIntento, 0, sizeof proximoIntento); return; }
+#endif
   // O gesto novo tem prioridade sobre uma contagem ja entregue. O worker
   // fica para o roteador consumir se for o mesmo Next, ou cancelar no Anterior.
   if (player_transporte_pedido_pendente()) {
@@ -2408,6 +2417,9 @@ static void desfazerAntecipada(const char *porque) {
   player_definir_tentativa(antPreTent, antPreTent ? VOD_FONTE_MAX_TENTATIVAS : 0);
 }
 static void vigiarAntecipada(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   int est = FA_NADA, i;
   if (fonteFalha) return;
   if (aguardandoFonte != 2 || fonteEscolhida != -2 || player_id_canal()[0] ||
@@ -2460,6 +2472,9 @@ static int pedirProximaFonteVOD(int depoisDe) {
 // A duracao real desta sessao rejeita clipes de aviso e o trailer do detalhe.
 // Clipe de aviso (duracao conhecida e curta) tambem anda, mas nao e o titulo.
 static void registrarFonteVODTocando(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   double d = video_duracao();
   if (player_quer_sair() || video_falhou() || !fonteProvouTocar() || provaLimpa ||
       (d > 1.0 && d < 120.0)) return;
@@ -2516,6 +2531,9 @@ static void sondarAposRecusa(void) {
 // Vence -> o erro de fonte do player, com "A fonte nao respondeu" e as saidas
 // de sempre. O automatico ja tem o proprio prazo (tentarProximaFonteVOD).
 static void vigiarAberturaManual(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   FontevoltaSinais g;
   Uint32 desde;
   registrarFonteVODTocando();
@@ -2702,6 +2720,9 @@ static void guardarPosicaoFonteFalha(void) {
   }
 }
 static void recarregarFonteVOD(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   uint64_t sessaoPerfil = nv_perfil_sessao_ler();
   if (!player_aberto() || player_quer_sair() || player_id_canal()[0] ||
       aguardandoFonte != 0 || !nv_perfil_sessao_atual(sessaoPerfil)) return;
@@ -2716,6 +2737,9 @@ static void recarregarFonteVOD(void) {
   else fonteManualDesde = agora;
 }
 static void tentarProximaFonteVOD(void) {
+#ifdef NV_ANDROID
+  if (player_externo_ativo()) return;
+#endif
   Uint32 desde;
   int atual, motivo = 0;
   if (!fonteVODAutomatica || player_id_canal()[0] || !player_aberto() ||
@@ -5291,6 +5315,9 @@ void app_atualizar(float dt, Uint32 agora) {
     canalFonteDesde = SDL_GetTicks();
   }
   if (canalFonteIdx >= 0 && (player_aberto() || player_mini_ativo()) &&
+#ifdef NV_ANDROID
+      !player_externo_ativo() &&
+#endif
       !player_quer_sair() && player_id_canal()[0]) {
     // TRAVOU DEPOIS DE ABRIR conta como morta, e sem isto nao contava.
     //

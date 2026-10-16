@@ -39,6 +39,141 @@ int android_interface_mobile_auto(void) {
   return modo && !strcmp(modo, "1");
 }
 
+// URL/header/title bytes are ordinary UTF-8, not JNI's modified UTF-8. In
+// particular a supplementary character in a title must not alter a signed URL.
+static jbyteArray externoBytes(JNIEnv *env, const char *texto) {
+  size_t n = texto ? strlen(texto) : 0;
+  if (n > 4095) return NULL;
+  jbyteArray bytes = (*env)->NewByteArray(env, (jsize)n);
+  if (bytes && n) (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)n, (const jbyte *)texto);
+  return bytes;
+}
+
+int android_player_externo_pedir(uint64_t token, int modo, const char *url,
+                                const char *cab, const char *titulo, int64_t posicaoMs,
+                                const char *const rotulos[7]) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  jobject act; jclass cls = NULL, strings = NULL;
+  jbyteArray ju = NULL, jc = NULL, jt = NULL;
+  jobjectArray jr = NULL;
+  int ok = 0;
+  if (!env || !token || token > INT64_MAX) return 0;
+  act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return 0;
+  cls = (*env)->GetObjectClass(env, act);
+  jmethodID m = cls ? (*env)->GetMethodID(env, cls, "playerExternoPedir",
+                        "(JI[B[B[BJ[Ljava/lang/String;)Z") : NULL;
+  if (!m || (*env)->ExceptionCheck(env)) goto fim;
+  ju = externoBytes(env, url);
+  if (!ju || (*env)->ExceptionCheck(env)) goto fim;
+  jc = externoBytes(env, cab);
+  if (!jc || (*env)->ExceptionCheck(env)) goto fim;
+  jt = externoBytes(env, titulo);
+  if (!jt || (*env)->ExceptionCheck(env)) goto fim;
+  strings = (*env)->FindClass(env, "java/lang/String");
+  if (!ju || !jc || !jt || !strings || (*env)->ExceptionCheck(env)) goto fim;
+  jr = (*env)->NewObjectArray(env, 7, strings, NULL);
+  if (!jr) goto fim;
+  for (int i = 0; i < 7 && !(*env)->ExceptionCheck(env); i++) {
+    jstring s = (*env)->NewStringUTF(env, rotulos && rotulos[i] ? rotulos[i] : "");
+    if (!s) goto fim;
+    (*env)->SetObjectArrayElement(env, jr, i, s);
+    (*env)->DeleteLocalRef(env, s);
+  }
+  if (!(*env)->ExceptionCheck(env))
+    ok = (*env)->CallBooleanMethod(env, act, m, (jlong)token, (jint)modo,
+                                  ju, jc, jt, (jlong)posicaoMs, jr) == JNI_TRUE;
+fim:
+  if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); ok = 0; }
+  if (ju) (*env)->DeleteLocalRef(env, ju);
+  if (jc) (*env)->DeleteLocalRef(env, jc);
+  if (jt) (*env)->DeleteLocalRef(env, jt);
+  if (jr) (*env)->DeleteLocalRef(env, jr);
+  if (strings) (*env)->DeleteLocalRef(env, strings);
+  if (cls) (*env)->DeleteLocalRef(env, cls);
+  (*env)->DeleteLocalRef(env, act);
+  return ok;
+}
+
+int android_player_externo_ocupado(void) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  jobject act; jclass cls = NULL;
+  int ocupado = 1; // Without a confirmed host state, refuse another pipeline.
+  if (!env) return ocupado;
+  act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return ocupado;
+  cls = (*env)->GetObjectClass(env, act);
+  jmethodID m = cls ? (*env)->GetMethodID(env, cls, "playerExternoOcupado", "()Z") : NULL;
+  if (m && !(*env)->ExceptionCheck(env)) {
+    jboolean v = (*env)->CallBooleanMethod(env, act, m);
+    if (!(*env)->ExceptionCheck(env)) ocupado = v == JNI_TRUE;
+  }
+  if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+  if (cls) (*env)->DeleteLocalRef(env, cls);
+  (*env)->DeleteLocalRef(env, act);
+  return ocupado;
+}
+
+static int externoToken(const char *nome, uint64_t token, int resultado) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  jobject act; jclass cls; int ok = 0;
+  if (!env || !token || token > INT64_MAX) return 0;
+  act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return 0;
+  cls = (*env)->GetObjectClass(env, act);
+  jmethodID m = cls ? (*env)->GetMethodID(env, cls, nome, resultado ? "(J)Z" : "(J)V") : NULL;
+  if (m) {
+    if (resultado) ok = (*env)->CallBooleanMethod(env, act, m, (jlong)token) == JNI_TRUE;
+    else (*env)->CallVoidMethod(env, act, m, (jlong)token);
+  }
+  if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); ok = 0; }
+  if (cls) (*env)->DeleteLocalRef(env, cls);
+  (*env)->DeleteLocalRef(env, act);
+  return ok;
+}
+int android_player_externo_abrir(uint64_t token) { return externoToken("playerExternoAbrir", token, 1); }
+void android_player_externo_cancelar(uint64_t token) { (void)externoToken("playerExternoCancelar", token, 0); }
+
+int android_player_externo_evento(uint64_t *token, int *evento) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  jobject act; jclass cls; jlongArray r = NULL; jlong valores[2] = {0}; int ok = 0;
+  if (!env) return 0;
+  act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return 0;
+  cls = (*env)->GetObjectClass(env, act);
+  jmethodID m = cls ? (*env)->GetMethodID(env, cls, "playerExternoEvento", "()[J") : NULL;
+  if (m) r = (jlongArray)(*env)->CallObjectMethod(env, act, m);
+  if (r && !(*env)->ExceptionCheck(env) && (*env)->GetArrayLength(env, r) == 2) {
+    (*env)->GetLongArrayRegion(env, r, 0, 2, valores);
+    if (valores[0] > 0 && valores[1] >= 1 && valores[1] <= 6) {
+      if (token) *token = (uint64_t)valores[0];
+      if (evento) *evento = (int)valores[1];
+      ok = 1;
+    }
+  }
+  if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); ok = 0; }
+  if (r) (*env)->DeleteLocalRef(env, r);
+  if (cls) (*env)->DeleteLocalRef(env, cls);
+  (*env)->DeleteLocalRef(env, act);
+  return ok;
+}
+
+void android_player_externo_aviso(const char *mensagem) {
+  JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+  jobject act; jclass cls; jstring s = NULL;
+  if (!env) return;
+  act = (jobject)SDL_AndroidGetActivity();
+  if (!act) return;
+  cls = (*env)->GetObjectClass(env, act);
+  jmethodID m = cls ? (*env)->GetMethodID(env, cls, "playerExternoAviso", "(Ljava/lang/String;)V") : NULL;
+  if (m) s = (*env)->NewStringUTF(env, mensagem ? mensagem : "");
+  if (s && !(*env)->ExceptionCheck(env)) (*env)->CallVoidMethod(env, act, m, s);
+  if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+  if (s) (*env)->DeleteLocalRef(env, s);
+  if (cls) (*env)->DeleteLocalRef(env, cls);
+  (*env)->DeleteLocalRef(env, act);
+}
+
 void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha) {
   JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
   jobject act;

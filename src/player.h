@@ -186,6 +186,8 @@ void player_evento(const SDL_Event *e);
 void player_atualizar(float dt, Uint32 agora);
 void player_desenhar(Uint32 agora);
 int  player_quer_sair(void);  // 1 assim que o Back foi apertado
+// Handoff owned by Android. Results never imply playback or watched progress.
+int player_externo_ativo(void);
 void player_encerrar(void);
 // VOD na ilha: pausa antecipada durante a saida, conserva somente com ack,
 // depois retoma o mesmo IMDb/episodio sem reabrir fonte ou buscar posicao.
