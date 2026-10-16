@@ -1,0 +1,32 @@
+name: title identity524 player causality baseline
+on:
+  push:
+    branches: [review/identity524-player-baseline-recovery-20261016]
+permissions:
+  contents: read
+jobs:
+  identity524-player-baseline:
+    if: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Install only ordinary Linux native build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev
+      - name: Reproduce only the actual full-player functional baseline in normal and ASan modes
+        run: |
+          ulimit -c 0
+          python3 .review/identity524-player/run.py --source "$GITHUB_WORKSPACE" --out "$RUNNER_TEMP/identity524-player-proof"
+      - name: Retain bounded source compiler runtime and baseline proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity524-player-baseline-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/identity524-player-proof
+          if-no-files-found: error
+          retention-days: 14
