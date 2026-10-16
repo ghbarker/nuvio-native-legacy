@@ -5,6 +5,7 @@
 #include "ajustes.h"
 #include "jsw.h"
 #include <limits.h>
+#include "legfontes.h"
 #include "player.h"
 #include "legenda.h"
 #include "legenda2.h"
@@ -2429,12 +2430,28 @@ static int ajLegendaPrincipal(int op) { return op >= AJ_LEG1_TAMANHO && op <= AJ
 static int ajLegendaSecundaria(int op) {
   return (op >= AJ_LEG2_POS && op <= AJ_LEG2_BORDA) || (op >= AJ_LEG2_FONTE && op <= AJ_LEG2_RESTAURAR);
 }
+static int ajFonte(int op) { return op == AJ_LEG1_FONTE || op == AJ_LEG2_FONTE; }
+static int ajFonteBase(int op) { return TXT_FAMILIA_N + (op == AJ_LEG2_FONTE); }
+static int ajFonteAtual(int op) {
+  int i = legfontes_selecionada(op == AJ_LEG2_FONTE);
+  return i >= 0 ? ajFonteBase(op) + i : op == AJ_LEG1_FONTE ? player_leg_estilo()->familia : valor[op];
+}
+static const char *ajFonteNome(int op, int v) {
+  int base = ajFonteBase(op), n = legfontes_n();
+  if (v >= 0 && v < base) return i18n(OPCOES[op].valores[v]);
+  if (v >= base && v < base + n) return legfontes_nome(v - base);
+#ifdef NV_ANDROID
+  if (v == base + n) return i18n("Importar fonte TTF/OTF");
+  v--;
+#endif
+  return v == base + n ? i18n("Excluir fonte importada") : "";
+}
 static int ajLegendaValor(int op) {
   player_leg_estilo_carregar();
   const VideoLegendaEstilo *e = player_leg_estilo();
   switch (op) {
     case AJ_LEG1_TAMANHO: return e->tamanho;
-    case AJ_LEG1_FONTE: return e->familia;
+    case AJ_LEG1_FONTE: return ajFonteAtual(op);
     case AJ_LEG1_COR: return e->cor;
     case AJ_LEG1_OPACIDADE: return e->opacidade;
     case AJ_LEG1_FUNDO: return e->fundo;
@@ -3226,6 +3243,7 @@ int ajustes_leg2_definir_atraso(int ms) {
   if (!gravar()) { valor[AJ_LEG2_ATRASO] = antes; return 0; }
   return 1;
 }
+int ajustes_leg2_fonte_principal(void) { return valor[AJ_LEG2_FONTE] == 0; }
 void ajustes_leg2_estilo(const VideoLegendaEstilo *principal, VideoLegendaEstilo *out) {
   if (!principal || !out) return;
   *out = *principal;
@@ -9157,6 +9175,32 @@ static void notaLigarPar(int op) {
   if (mdb) valor[AJ_MDB_LIGADO] = 0;
 }
 static int ajOrigemDireto = AJLOG_AJUSTES;   // quem chamou: a tela, ou a Central via ajustes_rapido_passo
+static int ajFonteConfirmar(void *u) { (void)u; return gravar(); }
+static int ajFonteAplicar(int op, int novo) {
+  int slot = op == AJ_LEG2_FONTE, base = ajFonteBase(op), n = legfontes_n();
+  int anterior = legfontes_selecionada(slot);
+  if (novo >= base && novo < base + n) {
+    int ok = legfontes_escolher(slot, novo - base);
+    if (ok && !slot) player_leg_estilo_tocou(PLR_LEG_FONTE);
+    return ok;
+  }
+#ifdef NV_ANDROID
+  if (novo == base + n) return legfontes_pedir_importacao(slot);
+  int excluir = base + n + 1;
+#else
+  int excluir = base + n;
+#endif
+  if (novo == excluir && anterior >= 0) return legfontes_remover(anterior);
+  if (novo < 0 || novo >= base) return 0;
+  if (!slot) {
+    if (!player_leg_fonte_definir(novo)) return 0;
+    ajLegendaEspelhar();
+  } else {
+    int antes = valor[op]; valor[op] = novo;
+    if (!legfontes_escolher_transacao(slot, -1, ajFonteConfirmar, NULL)) { valor[op] = antes; return 0; }
+  }
+  return 1;
+}
 static int definirValorDireto(int op, int novo) {
   int antes, memoriaAntes = memoriaEscolhida, bibliotecaAntes = bibliotecaFonteEscolhida;
   if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op) ||
@@ -9168,6 +9212,7 @@ static int definirValorDireto(int op, int novo) {
     if(!gravar()) { valor[op]=antes;return 0; }
     guia_reordenar();return 1;
   }
+  if (ajFonte(op)) return ajFonteAplicar(op, novo);
   if (ajLegendaPrincipal(op)) return ajLegendaDefinir(op, novo);
   if (ajFalhaBackend(op)) return ajFalhaDefinir(op, novo);
   if(op==AJ_IPTV_ATIVA && iptvForm.tipo && iptvForm.nova) { iptvForm.ativa=novo==0;valor[op]=novo;return 1; }
@@ -9428,12 +9473,12 @@ static void eventoTela(const SDL_Event *e) {
     if (focoOp == AJ_LEG1_RESTAURAR || focoOp == AJ_LEG2_RESTAURAR) {
       int ok;
       if (focoOp == AJ_LEG1_RESTAURAR) {
-        ok = player_leg_estilo_definir(player_leg_estilo_padrao(), PLR_LEG_NADA);
+        ok = player_leg_estilo_restaurar();
         if (ok) { ajLegendaEspelhar(); sync_proteger_ajustes_locais(); }
       } else {
         int salvo[AJ_N]; memcpy(salvo, valor, sizeof salvo);
         for (int op = 0; op < AJ_N; op++) if (ajLegendaSecundaria(op)) valor[op] = valorPadrao[op];
-        ok = gravar();
+        ok = legfontes_escolher_transacao(1, -1, ajFonteConfirmar, NULL);
         if (!ok) memcpy(valor, salvo, sizeof salvo);
         else sync_proteger_ajustes_locais();
       }
@@ -9611,6 +9656,10 @@ static void eventoTela(const SDL_Event *e) {
 }
 
 static void aj2Atualizar(float dt);
+void ajustes_fontes_atualizar(void) {
+  const char *fonteStatus = legfontes_atualizar();
+  if (fonteStatus) uxNotificar(fonteStatus);
+}
 void ajustes_atualizar(float dt, Uint32 agora) {
   if(iptvForm.tipo && !nv_perfil_sessao_atual(iptvForm.sessao)) { ajIptvLimparForm();uxCancelar();stCampo=0;teclado_esquecer(); }
   ajLegendaEspelhar(); ajIptvEspelhar();
@@ -9806,6 +9855,13 @@ static int nValores(int op) {
   if(op==AJ_GUIA_CATEGORIAS)return uxNCategorias>0?uxNCategorias:1;
   if(ajIptvGerenciador(op)) { int n=ajIptvQuantos(ajIptvTipo(op));return (n?n:1)+1; }
   if(op==AJ_IPTV_CONTA){int n=iptv_contas(NULL,0);return n>0?n:1;}
+  if (ajFonte(op)) {
+    int n = ajFonteBase(op) + legfontes_n();
+#ifdef NV_ANDROID
+    n++;
+#endif
+    return n + (legfontes_selecionada(op == AJ_LEG2_FONTE) >= 0);
+  }
   if (op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2) return nLingua > 0 ? nLingua : 1;
   if (op == AJ_TRAILER_AUDIO) return nTrAud > 0 ? nTrAud : 1;
   if (op == AJ_SELOS_PACOTE) return 1 + selospacote_n();
@@ -9832,6 +9888,7 @@ static const char *textoValor(int op) {
   if (op == AJ_AMPLIAR_UI && valor[op] != 2 && !ampliarUiVale()) return "Pela TV";
   if(ajIptvGerenciador(op))return i18n("Abrir");
   if(op==AJ_IPTV_CONTA)return ajIptvNome(iptv_conta_indice());
+  if (ajFonte(op)) return ajFonteNome(op, ajFonteAtual(op));
   static char buf[48];
   if (op == AJ_XTREAM_CONEXOES) return i18n(V_CONEXOES[xtream_conexoes_modo()]);
   if (ajFalhaBackend(op)) {
