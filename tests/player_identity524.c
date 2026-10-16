@@ -9,6 +9,8 @@
 #include "traktscrobble.h"
 
 static char statsId[64];
+static char parentalId[64];
+static int parentalRequests, refreshRequests;
 void nv_identity_desc_garantir(int ix) { (void)ix; }
 void nv_identity_intro_pedir(const char *id, long tmdb, int t, int e, double a, double p) {
   (void)id; (void)tmdb; (void)t; (void)e; (void)a; (void)p;
@@ -17,6 +19,14 @@ void nv_identity_trakt_marcar(const char *id, double p, double d, double a, int 
   (void)p; (void)d; (void)a; (void)fim;
   snprintf(statsId, sizeof statsId, "%s", id);
 }
+// Neither parental HTTP nor the detached Home refresh participates in the
+// identity being tested. Capture their real requests without starting workers
+// that could outlive the fixture's normal SDL_Quit teardown.
+void nv_identity_parental_pedir(const char *id) {
+  parentalRequests++;
+  snprintf(parentalId, sizeof parentalId, "%s", id ? id : "");
+}
+void nv_identity_refazer_continuar(void) { refreshRequests++; }
 
 int main(int argc, char **argv) {
   CatItem c = {0};
@@ -58,6 +68,9 @@ int main(int argc, char **argv) {
     player_atualizar(.1f, SDL_GetTicks());
   }
   player_encerrar();
+  printf("boundaries parental=%d id=%s refresh=%d\n", parentalRequests, parentalId, refreshRequests);
+  if (parentalRequests != 1 || refreshRequests != 1 ||
+      strcmp(parentalId, movie ? "tt1629757" : "tt9054364")) failed = 1;
   const char *key = movie ? "tt1629757" : "tt9054364_s1e2";
   int saved = prog_por_chave(key, &r);
   printf("progress expected=%s exists=%d type=%s; stats id=%s\n",
