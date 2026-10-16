@@ -33,6 +33,7 @@ Uint32 SDL_GetTicks(void) { return 0; }
 #include <stdio.h>
 #include <unistd.h>
 #include "jellyfin_stub.inc"
+#include "addons_manifest_notifications_stub.inc"
 // Manifest loading is outside this metadata harness.
 void addons_lista_travar(void) {}
 void addons_lista_destravar(void) {}
@@ -165,11 +166,13 @@ int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
 int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
-uint64_t perfis_sessao_geracao(void) { return 1; }
-int perfis_sessao_atual(uint64_t s) { return s == 1; }
-int perfis_sessao_travar(uint64_t s) { return s == 1; }
+// An isolated profile visit starts at generation 1. The title-identity
+// suite advances it to exercise stale synchronous lookup ownership.
+static uint64_t fakePerfilSessao = 1;
+uint64_t perfis_sessao_geracao(void) { return fakePerfilSessao; }
+int perfis_sessao_atual(uint64_t s) { return s == fakePerfilSessao; }
+int perfis_sessao_travar(uint64_t s) { return perfis_sessao_atual(s); }
 void perfis_sessao_destravar(void) {}
-int ajustes_ocultar_filmes_vistos(void) { return 0; }
 int trakt_enfeitar_lote_sessao(CatItem *s, int n, uint64_t sessao) {
   (void)sessao; (void)s; (void)n; return 0;
 }
