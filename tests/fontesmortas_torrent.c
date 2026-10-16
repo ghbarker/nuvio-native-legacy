@@ -9,6 +9,32 @@ static char *disco;
 static Uint32 ticks = 1000;
 static int pronto, abriu, erros, falhou, esperando;
 static CatItem titulo;
+// One current profile and no configured provider account in this manual fixture.
+uint64_t perfis_sessao_geracao(void) { return 1; }
+int perfis_sessao_atual(uint64_t geracao) { return geracao == 1; }
+int perfis_sessao_travar(uint64_t geracao) { return geracao == 1; }
+void perfis_sessao_destravar(void) {}
+void debrid_contexto_capturar(DebridContexto *c) { memset(c, 0, sizeof *c); }
+void debrid_contexto_entrar(const DebridContexto *c) { (void)c; }
+void debrid_contexto_sair(void) {}
+int debrid_servico_disponivel(int servico) { (void)servico; return 0; }
+int debrid_servico_por_nome(const char *nome) { return !strcmp(nome, "TorBox") ? 0 : -1; }
+const Stream *stream_item(int i) { return i == 0 ? &fonte : NULL; }
+void stream_falha_identidade(const Stream *s, char *dest, unsigned tam) {
+  (void)s; (void)dest; (void)tam; assert(!"manual fixture does not enable provider failover");
+}
+int stream_falha_aplicar(int i, unsigned g, int servico, const char *url) {
+  (void)i; (void)g; (void)servico; (void)url;
+  assert(!"manual fixture does not enable provider failover"); return 0;
+}
+const char *video_url_atual(void) { return ""; }
+int rede_url_final_tipo(const char *url, int seg, const char *const *cab,
+                        char *fim, unsigned tam, int *status,
+                        char *mime, unsigned mimeTam, long *corpo) {
+  (void)url; (void)seg; (void)cab; (void)fim; (void)tam; (void)status;
+  (void)mime; (void)mimeTam; (void)corpo;
+  assert(!"manual fixture has no connection-probe error"); return 0;
+}
 char *dados_ler(const char *nome) { (void)nome; return disco ? strdup(disco) : NULL; }
 int dados_gravar(const char *nome, const char *s) {
   (void)nome; free(disco); disco = strdup(s); return 1;
@@ -19,6 +45,7 @@ int player_quer_sair(void) { return 0; }
 const char *player_id_canal(void) { return ""; }
 int player_indice(void) { return -1; }
 int player_fonte_falhou(void) { return falhou; }
+int player_tem_video(void) { return abriu > 0 && !esperando; }
 int player_carregando(void) { return !pronto; }
 void player_definir_fonte(const char *u) { assert(!strcmp(u, "https://video.invalid/resolvido")); abriu++; }
 void player_erro_fonte(void) { erros++; }
@@ -69,7 +96,8 @@ const char *i18n(const char *s) { return s; }
 static void *concluido(void *u) { return u; }
 static void concluir(int resultado) {
   torrentJob.indice = 0; torrentJob.geracaoLista = 1;
-  torrentJob.sessao = torrentSessao; torrentJob.resultado = resultado;
+  torrentJob.sessao = torrentSessao; torrentJob.sessaoPerfil = perfis_sessao_geracao();
+  torrentJob.resultado = resultado;
   strcpy(torrentJob.url, "https://video.invalid/resolvido");
   strcpy(torrentJob.servico, "TorBox"); torrentJob.pct = 50;
   atomic_store(&torrentJob.estado, 2);
@@ -94,7 +122,7 @@ static void retomar(void) {
   assert(fontesmortas_idade(&renovada) < 0 && "sonda isolada bloqueou o token renovado");
   // Erro de abertura e prazo vencido continuam provando a falha do player.
   for (int erro = 0; erro <= 1; erro++) {
-    aguardandoFonte = 0; falhou = erro;
+    aguardandoFonte = 0; falhou = erro; abriu = 1; esperando = 0;
     fontevolta_guardar(titulo.imdb, "conta", 1, &fonte, 0, ticks);
     voltaAtiva = 1; voltaDesde = erro ? ticks : ticks - FONTEVOLTA_PRAZO_MS - 1;
     vigiarFonteGuardada();
