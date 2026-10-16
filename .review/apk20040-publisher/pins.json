@@ -1,0 +1,47 @@
+{
+  "format": 3,
+  "frozen_pins_ready": true,
+  "root_publication_approved": true,
+  "source_commit": "06ba8068be86299592cb94e77355266ebb57c09f",
+  "source_tree": "0b54962bd0c45cdf131c100e8bc26e4b68eb2951",
+  "review_commit": "48cae96f5ef811fa6d4a76ba620127bd8c705aa4",
+  "review_tree": "986861d4bb4cdab74dbade2e9ca2923ff9b430a1",
+  "plan_sha256": "95a946bba5c675727c1baaa623e1e7077c7b9df554ebdf9b2c8d3dd88a351a47",
+  "run_id": 38981035710,
+  "run_attempt": 1,
+  "job": {
+    "id": 117241704782,
+    "name": "APK20040 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_artifact": {
+    "id": 12080748048,
+    "name": "apk20040-android-apk-48cae96f5ef811fa6d4a76ba620127bd8c705aa4",
+    "bytes": 54544547,
+    "sha256": "a9eb1b4f2e999ef3eed49a552c4720769408d1c4b04aa2a5a64e22ff3101f1bf"
+  },
+  "proof_artifact": {
+    "id": 12081356034,
+    "name": "apk20040-android-proof-48cae96f5ef811fa6d4a76ba620127bd8c705aa4",
+    "bytes": 26735,
+    "sha256": "75c96fb786872ab31ffb1dea386c391a11fbb1d2ab79f46936dce8aa037908b3"
+  },
+  "apk_bytes": 59208900,
+  "apk_sha256": "c63146fee238460ac37004bdb895ca330e547462e20b5ce7422701a03d1c53ab",
+  "validation_sha256": "c895c22ffe324adb5befdc903dc9622a48a2840d26d282cc6d1306042a557294",
+  "build_receipt_sha256": "b9cf19f1528a0dac6eb14180169448fddaca29f2ba0463d731ce879116136a84",
+  "apk_verification_sha256": "7f73d82e4ad81019a4465fe343371b1a5f1aa06fdd116c28757db3d8a68f67d6",
+  "source_proof_sha256": "f41d3dbf442fec80ea4d04228c45ce3f8c115973d16b205d221ea6a7f678110c",
+  "composition_sha256": "319d6c1a174ede165e3d6483194c9d2dd8cda9371435ae6208fd7d9d31bef29c",
+  "source_units_per_abi": 317,
+  "player_control_relocation_public_product": "c54cee74b7193bdec7e05e2463b1b1a3b12b7685",
+  "special_seasons_public_product": "ea9354e45f00531b6f77e29be75606c5b070af2b",
+  "poster_grid_public_product": "5e64fb165f3d46aabbd96cba35b1fb8068c28fea",
+  "source_integration_receipt_sha256": "15893c714ec134c0d850a64add0b688afe17c16d52986376732235d58135e78c",
+  "search_see_all_public_product": "9bda0803597eb4f71daffd38b3c670025d894a7c",
+  "unit_tests_sha256": "d7359e1537f3526fe79d2807dcd67bb97c667921cb5b0b0a84a47ece649bf2e2",
+  "manifest_query_script_sha256": "dc6bfc54e5a521b0de4e4c351d4f917c2159d8bad40a4270c57705e1f3b9ec63",
+  "manifest_query_python_sha256": "dda15bf8df68de9dfac39baa28ce428bd37e99a16d137523e2ce156b106ea1ce",
+  "require_actual_merged_manifest_queries_verified": true,
+  "manifest_query_dump_sha256": "224ae1ef2de736752d1e93a76bf6db646defe993e0fd12cdb56872bf76dfe6c7",
+  "source_manifest_parser_cases": 14
+}

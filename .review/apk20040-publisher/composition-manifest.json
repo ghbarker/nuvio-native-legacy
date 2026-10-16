@@ -1,0 +1,633 @@
+{
+  "format": 3,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "sources": {
+    "test": {
+      "commit": "06ba8068be86299592cb94e77355266ebb57c09f",
+      "tree": "0b54962bd0c45cdf131c100e8bc26e4b68eb2951",
+      "parents": [
+        "4d97f89aba208c3596f05d289954f7dad9d7a167"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "88ba1b0fd06dc73d273cd039822fbda0732dc7a4d24296686ea7b9cf13ffb1f7"
+    }
+  },
+  "final_source_tree": "0b54962bd0c45cdf131c100e8bc26e4b68eb2951",
+  "remote_source_only_commit": "06ba8068be86299592cb94e77355266ebb57c09f",
+  "remote_source_parent": "4d97f89aba208c3596f05d289954f7dad9d7a167",
+  "local_source_trace": "1d369af4fbdc5f3c13a9a6a60507cef5bb015c2a",
+  "accepted_logs22_foundation": {
+    "apk_source": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+    "apk_source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+    "final_public_tests": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+    "final_public_test_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+    "android_run": 38868123532,
+    "publisher_run": 38870361390,
+    "released_validation_sha256": "b9bef51c4bd35ae7ae7ca0eeb74ed0421785a607fe3d403a4b31548810a69f68",
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "inputs": {
+    "foundation_final_tests": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+    "logs22_actual_source": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+    "private_diagnostic_commit": "07923f29350818e386bbeb53c814a05c29285fdc",
+    "private_diagnostic_patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+    "logs23_actual_source": "3531ceb775f8f18718d8ff5ddeb11ef97ec6aea1",
+    "logs24_composition_commit": "ef5141d44f73463afdfa4ceb1fb0764db1eea787",
+    "search_window_public_product": "811767dbaac62669270103b0f61340c7f0699faa",
+    "private_source_integration_sha256": "15893c714ec134c0d850a64add0b688afe17c16d52986376732235d58135e78c",
+    "player_control_relocation_public_product": "c54cee74b7193bdec7e05e2463b1b1a3b12b7685",
+    "logs24_source_integration_sha256": "be88fc7251a2b1612f6d09396280e85e008bd5cfdb0e7772b5212c3436259703",
+    "public_port_equivalence_sha256": "0a978627534307c3d2015ee6479f59e1dd4f61405b7d19ddfdd339b70f53e49a",
+    "public_action_control_sha256": "2600209371b3985334d26a1fff5ec47bc213f6f9599b43be3331ae5d95362401",
+    "logs25_source_integration_sha256": "f93b5b84289155a7ce70c4ea4e1dbdfdd85de5865200e67432af59e008843bb0",
+    "special_seasons_public_product": "ea9354e45f00531b6f77e29be75606c5b070af2b",
+    "private_special_seasons_control_sha256": "54d59bd5701d72dc2484e4edc45cb84eb697e27df48f5039a246781024995d17",
+    "logs26_source_integration_sha256": "36c2b24f1e64858e7b25840e65687ad3255c5bf527a46285f4a97bd1e5581ade",
+    "poster_grid_public_product": "5e64fb165f3d46aabbd96cba35b1fb8068c28fea",
+    "poster_grid_public_equivalence_sha256": "13fd04d0549d4f0778f0e497f96200e48cae66b0e4cf9d3a5aeace651ab3cd91",
+    "private_poster_grid_controls_sha256": "5ebb47bd86d2bc48f86dbc069426c592e76b444ceaa460ebb4807375fd80fdaf",
+    "logs27_source_integration_sha256": "a34fbaf6362599af4058b3383de228185d49f3a1fee7ab61baf4f258af55f6e1",
+    "search_see_all_public_product": "9bda0803597eb4f71daffd38b3c670025d894a7c",
+    "search_see_all_public_equivalence_sha256": "16657204c0439bdfa43e11e71c78f5d5fb21d809c91d3ee3613e97e5ccc653c0",
+    "private_search_see_all_opener_control_sha256": "595a2a4f3c768b741dddced3f8fbdfbdbc1b23e22b7ebed7894b847c30cdca8e",
+    "logs28_source_integration_sha256": "48b99ac9c84b13d24f6268cf3929f845f7689268f7816827f1f7990b4915eda8",
+    "external_player_public_product": "f8ebd53d68fcd60f9fc1fd9548b3d31d028a4861",
+    "logs29_source_integration_sha256": "5edbd9e606e7aebc2fb966b18131703cee249a1a5e64c9dee448574ee780d775",
+    "installer_manifest_public_product": "aa09b3b0b6c72ed8ead482ef328ac19e37003bcc",
+    "installer_manifest_public_tested": "6cb2a37b9d541ab73e69645aefcddf6299b91ccf"
+  },
+  "tests_tree": "054b3828b45fc4cc5363b87d04338e01a475e3ce",
+  "remaining_conflicts": [],
+  "source_frozen": true,
+  "source_visibility": "Root-minted PRIVATE manifest/version product and separate two-file test child; exact local tree verified; no fresh APK/install claim",
+  "source_purpose": "PRIVATE Logs30 installer query correction; all Logs29 external-player features retained, no fonts; fresh Android and actual merged-manifest validation required",
+  "remote_source_branch": null,
+  "accepted_logs23_foundation": {
+    "apk_source": "3531ceb775f8f18718d8ff5ddeb11ef97ec6aea1",
+    "apk_source_tree": "897a0cd479f1014afe1a992cac4bf43fbf6f7cff",
+    "android_run": 38938024869,
+    "publisher_run": 38939188216,
+    "released_validation_sha256": "3d5cf60b853bdf76e515d7aa1f65087f3e78b3ba23ee229ae48da54704ecfd87",
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "root_reviewed": false,
+  "accepted_logs24_foundation": {
+    "apk_source": "8fbf027d5fe069d67519021e4a02ffad5299bc66",
+    "apk_source_tree": "5bbb32031d1d2721f77663d8916433cf79b0f22a",
+    "android_review": "af6c0fd6978afe04ca25bae9c45f87d7eafbfbe4",
+    "android_run": 38955852439,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false,
+    "user_tested": true
+  },
+  "accepted_logs25_port": {
+    "parent": "8fbf027d5fe069d67519021e4a02ffad5299bc66",
+    "changed_paths": [
+      "android/app/build.gradle.kts",
+      "src/player.c",
+      "src/player.h",
+      "src/streams.c"
+    ],
+    "public_tests_unchanged": true,
+    "private_diagnostics_unchanged": true,
+    "native_dependency_inputs_unchanged": true,
+    "source_integration_receipt_sha256": "f93b5b84289155a7ce70c4ea4e1dbdfdd85de5865200e67432af59e008843bb0",
+    "private_port_runtime_claimed": false,
+    "public_function_equivalence_sha256": "0a978627534307c3d2015ee6479f59e1dd4f61405b7d19ddfdd339b70f53e49a"
+  },
+  "accepted_logs25_foundation": {
+    "apk_source": "b8b1134ef1c64323ef03497a8b78c2adc91506b5",
+    "apk_source_tree": "1a996c77f78728312cddc48417921c0fc269df41",
+    "android_review": "577cd37f82295702555f34cd5ed1b2eebdebb880",
+    "android_run": 38963474381,
+    "built_reference_only": true,
+    "published": false,
+    "user_tested": false,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "accepted_logs26_port": {
+    "parent": "b8b1134ef1c64323ef03497a8b78c2adc91506b5",
+    "changed_paths": [
+      "android/app/build.gradle.kts",
+      "src/addons.c",
+      "src/app.c",
+      "src/catalogo.c",
+      "src/debrid.c",
+      "src/descoberta.c",
+      "src/detail.c",
+      "src/episodioid.h",
+      "src/episodios.c",
+      "src/extras.c",
+      "src/intro.c",
+      "src/p2p.c",
+      "src/player.c",
+      "src/plex.c",
+      "src/posplay.c",
+      "src/proximo.c",
+      "src/proximopreparo.c",
+      "src/seekrvtt.c",
+      "src/simkl.c",
+      "src/trakt.c",
+      "src/traktscrobble.c"
+    ],
+    "public_tests_unchanged": true,
+    "private_diagnostics_unchanged": true,
+    "native_dependency_inputs_unchanged": true,
+    "source_integration_receipt_sha256": "36c2b24f1e64858e7b25840e65687ad3255c5bf527a46285f4a97bd1e5581ade",
+    "private_port_runtime_claimed": false,
+    "private_helper_control_sha256": "54d59bd5701d72dc2484e4edc45cb84eb697e27df48f5039a246781024995d17",
+    "private_compatibility": {
+      "absent_public_module_paths": [
+        "src/metaep.c"
+      ],
+      "absent_newer_public_apis": {
+        "src/traktscrobble.c": [
+          "scrobble_corpo_ep"
+        ],
+        "src/simkl.c": [
+          "newer public scrobble/history fallback APIs"
+        ],
+        "src/player.c": [
+          "wsIdentidade"
+        ],
+        "src/trakt.c": [
+          "idsScrobble"
+        ]
+      },
+      "equivalents": [
+        "Retain private direct-TVDB immutable target and source aliases; update older private scrobble_corpo series predicate for explicit0/E.",
+        "Keep private CatEp TVDB uniqueness and source/profile ownership; validate explicit numeric season0 separately from positive-only provider IDs.",
+        "EpSet insertion and retained epSetTem lookup both encode season+1, preserving regular/S0 dedup and ambiguity rejection.",
+        "Trakt paused reader defaults missing season to1; explicit0 requires positive episode. Preserve private tvdbEp extraction.",
+        "Existing Simkl CW readers use\u22121 for absent season and accept explicit0; no nonexistent newer scrobble implementation imported.",
+        "Queued Next and preload presence use nonnegative season plus positive episode, including hidden/cancelled/scene UI paths."
+      ],
+      "semantic_exceptions": [
+        "Private posplay uses equivalent explicit pair predicates in place, retaining tested actual getter bytes, rather than importing new public convenience helpers.",
+        "Private own episode parser/metadata TVDB joins need additional episodioid.h and EpSet compatibility gates absent from public metadata layout.",
+        "Private source-preparation, preloads, stable-TVDB tracking and typed player identity checks remain in place around the season-zero predicate edits."
+      ]
+    }
+  },
+  "accepted_logs26_foundation": {
+    "apk_source": "ce803cfd4a008b16ddfaf680bc72b7db432e8f2d",
+    "apk_source_tree": "39c57216a57b12179756c5ef51734966a150639d",
+    "android_review": "cfc1af660152118ad03ba4b97af65ca3f281c929",
+    "android_run": 38965246343,
+    "built_reference_only": true,
+    "user_tested": false,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "accepted_logs27_port": {
+    "parent": "ce803cfd4a008b16ddfaf680bc72b7db432e8f2d",
+    "changed_paths": [
+      "android/app/build.gradle.kts",
+      "src/vertudo.c"
+    ],
+    "public_tests_unchanged": true,
+    "private_diagnostics_unchanged": true,
+    "native_dependency_inputs_unchanged": true,
+    "source_integration_receipt_sha256": "a34fbaf6362599af4058b3383de228185d49f3a1fee7ab61baf4f258af55f6e1",
+    "private_port_runtime_claimed": false,
+    "public_equivalence_sha256": "13fd04d0549d4f0778f0e497f96200e48cae66b0e4cf9d3a5aeace651ab3cd91",
+    "private_context_adjustments": [
+      "Older private alternarExibicao retains direct cycling rather than importing the newer selector API; temporary child choices are unsaved and Vitrine returns to its parent.",
+      "Private existing clock requests and Up navigation are preserved; new profile/event guards are inserted around them.",
+      "Original private renderer/header/layout behavior remains around the synthetic tile; no upstream whole-file replacement."
+    ],
+    "private_controls_sha256": "5ebb47bd86d2bc48f86dbc069426c592e76b444ceaa460ebb4807375fd80fdaf"
+  },
+  "accepted_logs27_private_overlay": {
+    "preserved": true,
+    "never_pr": true,
+    "paths": {
+      "android/app/build.gradle.kts": {
+        "original_added_statements_preserved": true,
+        "blob": "8145c2e319f08e65abc788ff2eebc4a5f7b36f7b",
+        "special_seasons_source_updated": true
+      },
+      "android/app/src/main/AndroidManifest.xml": {
+        "original_added_statements_preserved": true,
+        "blob": "e83d97dba09fdd1dc25a019de10e32253746e9eb"
+      },
+      "android/app/src/main/cpp/CMakeLists.txt": {
+        "original_added_statements_preserved": true,
+        "blob": "7441c77524cc241b63e5e3dce080d8f801195100"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "6f955b8e1412ab518f222d804834bb535b65ad0d"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "f955fb02a3bc23e58127e4f189dced9cd767126f"
+      },
+      "src/ajustes.c": {
+        "original_added_statements_preserved": true,
+        "blob": "aa9753153590c555a9c2f6dfa2c5fb313c03c51d"
+      },
+      "src/ajustes_ux_desenho.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "238af818b69ebed6a17f2d70bb25130bebe1f8a4"
+      },
+      "src/ajustes_ux_ilha.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "d1bc9f37a04f05fbb2ecca1a570defb2cecfdb9d"
+      },
+      "src/ajustes_ux_interacao.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "af37acc43cd99aa8e229b5b83629ecdcf6f24874"
+      },
+      "src/app.c": {
+        "original_added_statements_preserved": true,
+        "blob": "023d328958e7a6ec62a6cc66340f754824810c7d",
+        "special_seasons_source_updated": true
+      },
+      "src/detail.c": {
+        "original_added_statements_preserved": true,
+        "blob": "9ae3544c2e6762f9d8620ab643df6bb311d1c8ff",
+        "special_seasons_source_updated": true
+      },
+      "src/posplay.c": {
+        "original_added_statements_preserved": false,
+        "blob": "e0532c7c6e94d153a8b33c773de8e28184b8ec83",
+        "special_seasons_source_updated": true,
+        "preservation_scope": "Diagnostic block retained; its pending-pair bit now accepts explicit season0 as required by the feature."
+      },
+      "src/tex_cache.c": {
+        "original_added_statements_preserved": true,
+        "blob": "c001085da527793eddc96e92dff0d48ce3a2d597"
+      },
+      "src/tex_cache.h": {
+        "original_added_statements_preserved": true,
+        "blob": "aed49ae6e6d0cdaf87a3c3f5add9f2624f57406a"
+      }
+    },
+    "new_diagnostics": {
+      "path": "src/detail.c",
+      "base_sha256": "db1a2217fff110f51823dbe2e48b126a41685fd75abb5ba4e71435d2c62b05f7",
+      "result_sha256": "0cc11640816c55e261f62dffc11e6399d8e5827acdbfaf4abbf27c57035da322",
+      "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+      "input_ready_sha256": "04bda7070d1c54efcf85c3a013ff1f08fb524339984d7c42e5b52c244811d760",
+      "build_gate": "NV_TEST_LOCAL_LOGS",
+      "separate_sample_clock": true,
+      "normal_build_text_equivalence_sha256": "87157981b4c21ee891048c2db93657093aecdacf044e52cd77dafbddac92c846",
+      "normal_build_text_equivalence_only": true,
+      "compile_tested": false,
+      "runtime_tested": false,
+      "max_changed_records_per_opening": 32,
+      "minimum_sample_ms": 250,
+      "original_result_sha256": "42485f08127d4a046b8d467f084517adef75d931ef8922956cd8ea9caec00d16",
+      "special_seasons_source_updated": true,
+      "diagnostic_blocks_unchanged": true
+    },
+    "identity_change": {
+      "from_version_code": 20036,
+      "to_version_code": 20037,
+      "version_name": "2.0.37-test-logs27",
+      "same_package_and_certificate": true
+    }
+  },
+  "private_overlay": {
+    "preserved": true,
+    "never_pr": true,
+    "paths": {
+      "android/app/build.gradle.kts": {
+        "original_added_statements_preserved": true,
+        "blob": "10b7aff167071b4bfb4a3496edb2ce572538ac1d",
+        "special_seasons_source_updated": true,
+        "logs28_source_updated": true,
+        "logs29_source_updated": true,
+        "logs30_source_updated": true
+      },
+      "android/app/src/main/AndroidManifest.xml": {
+        "original_added_statements_preserved": true,
+        "blob": "8b5c9ee2540461e11db8267337742b8d623a5a42",
+        "logs29_source_updated": true,
+        "logs30_source_updated": true
+      },
+      "android/app/src/main/cpp/CMakeLists.txt": {
+        "original_added_statements_preserved": true,
+        "blob": "7441c77524cc241b63e5e3dce080d8f801195100"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "6f955b8e1412ab518f222d804834bb535b65ad0d"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "f955fb02a3bc23e58127e4f189dced9cd767126f"
+      },
+      "src/ajustes.c": {
+        "original_added_statements_preserved": true,
+        "blob": "5445a9a81f04b7bc4c6ffdd50f27c85b74b628d8",
+        "logs29_source_updated": true
+      },
+      "src/ajustes_ux_desenho.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "238af818b69ebed6a17f2d70bb25130bebe1f8a4"
+      },
+      "src/ajustes_ux_ilha.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "d1bc9f37a04f05fbb2ecca1a570defb2cecfdb9d"
+      },
+      "src/ajustes_ux_interacao.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "af37acc43cd99aa8e229b5b83629ecdcf6f24874"
+      },
+      "src/app.c": {
+        "original_added_statements_preserved": true,
+        "blob": "31b56b54e74474331ba589e6c4dc0fe680e3a625",
+        "special_seasons_source_updated": true,
+        "logs29_source_updated": true
+      },
+      "src/detail.c": {
+        "original_added_statements_preserved": true,
+        "blob": "9ae3544c2e6762f9d8620ab643df6bb311d1c8ff",
+        "special_seasons_source_updated": true
+      },
+      "src/posplay.c": {
+        "original_added_statements_preserved": false,
+        "blob": "e0532c7c6e94d153a8b33c773de8e28184b8ec83",
+        "special_seasons_source_updated": true,
+        "preservation_scope": "Diagnostic block retained; its pending-pair bit now accepts explicit season0 as required by the feature."
+      },
+      "src/tex_cache.c": {
+        "original_added_statements_preserved": true,
+        "blob": "c001085da527793eddc96e92dff0d48ce3a2d597"
+      },
+      "src/tex_cache.h": {
+        "original_added_statements_preserved": true,
+        "blob": "aed49ae6e6d0cdaf87a3c3f5add9f2624f57406a"
+      }
+    },
+    "new_diagnostics": {
+      "path": "src/detail.c",
+      "base_sha256": "db1a2217fff110f51823dbe2e48b126a41685fd75abb5ba4e71435d2c62b05f7",
+      "result_sha256": "0cc11640816c55e261f62dffc11e6399d8e5827acdbfaf4abbf27c57035da322",
+      "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+      "input_ready_sha256": "04bda7070d1c54efcf85c3a013ff1f08fb524339984d7c42e5b52c244811d760",
+      "build_gate": "NV_TEST_LOCAL_LOGS",
+      "separate_sample_clock": true,
+      "normal_build_text_equivalence_sha256": "87157981b4c21ee891048c2db93657093aecdacf044e52cd77dafbddac92c846",
+      "normal_build_text_equivalence_only": true,
+      "compile_tested": false,
+      "runtime_tested": false,
+      "max_changed_records_per_opening": 32,
+      "minimum_sample_ms": 250,
+      "original_result_sha256": "42485f08127d4a046b8d467f084517adef75d931ef8922956cd8ea9caec00d16",
+      "special_seasons_source_updated": true,
+      "diagnostic_blocks_unchanged": true
+    },
+    "identity_change": {
+      "from_version_code": 20036,
+      "to_version_code": 20037,
+      "version_name": "2.0.37-test-logs27",
+      "same_package_and_certificate": true
+    }
+  },
+  "accepted_logs27_foundation": {
+    "apk_source": "440464ab4342edfc66950975111a973a03012943",
+    "apk_source_tree": "09da3ad77b8dd4b0c2d5170d29a1e15064b9968c",
+    "android_review": "173bfc4d024f399eab6bc679534370e18a997830",
+    "android_run": 38967808047,
+    "publisher_run": 38969769111,
+    "published": true,
+    "user_tested": null,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "accepted_logs28_port": {
+    "parent": "440464ab4342edfc66950975111a973a03012943",
+    "changed_paths": [
+      "android/app/build.gradle.kts",
+      "src/busca.c",
+      "src/descoberta.c",
+      "src/descoberta.h",
+      "src/metaprov.c",
+      "src/metaprov.h",
+      "src/vertudo.c",
+      "src/vertudo.h"
+    ],
+    "public_tests_unchanged": true,
+    "private_diagnostics_unchanged": true,
+    "native_dependency_inputs_unchanged": true,
+    "source_integration_receipt_sha256": "48b99ac9c84b13d24f6268cf3929f845f7689268f7816827f1f7990b4915eda8",
+    "private_port_runtime_claimed": false,
+    "private_opener_control_sha256": "595a2a4f3c768b741dddced3f8fbdfbdbc1b23e22b7ebed7894b847c30cdca8e",
+    "private_opener_control_scope": "Complete actual private opener/event/Showcase functions, with typed discovery, saved-choice, renderer and account boundaries. Cross-view ownership/reset proof; no SDL window, real worker, mobile-preprocessor branch, network, SDK or device claim.",
+    "public_equivalence_sha256": "16657204c0439bdfa43e11e71c78f5d5fb21d809c91d3ee3613e97e5ccc653c0",
+    "private_context_adjustments": [
+      "Retain buInterfaceAtualizar and pediuRelogio clearing before final focus-lost latch cancellation",
+      "Successful Search opener resets vitTudo/vitTudoTecla/pedRelogio after admission",
+      "All ordinary openers clear buscaModo; close retains clock/#549 cleanup",
+      "Omit absent public exibAberta/vcTotal/abasReiniciar and retain private direct view UI"
+    ],
+    "final_peer_sha256": "bfc8916e678ead83390b4a33acd615da88b3d9689d976dcb0624f2fd68bb59a7"
+  },
+  "accepted_logs28_foundation": {
+    "apk_source": "bb6f4b3fab1e494a5f108c8638d26c72ee56d09f",
+    "apk_source_tree": "0e6d883fe3bcf24d0340c0e900a5f06194572469",
+    "android_review": "354afb8e85072c201eed3e21b2fe8386c0bfed32",
+    "android_run": 38974122262,
+    "publisher_run": 38975164324,
+    "published": true,
+    "user_tested": null,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "accepted_logs29_port": {
+    "parent": "bb6f4b3fab1e494a5f108c8638d26c72ee56d09f",
+    "product_commit": "787d30b5d3c5e49d6398d5d8181a2aa274dcf164",
+    "product_tree": "13417d1fc369e4b0c186ea5466d03d6bbef1e7e3",
+    "changed_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/PlayerExterno.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/PlayerExternoContrato.kt",
+      "android/app/src/test/java/space/nuvio/nativelegacy/PlayerExternoContratoTest.kt",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_tela.inc",
+      "src/android.c",
+      "src/android.h",
+      "src/app.c",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/player.c",
+      "src/player.h",
+      "src/playerexterno.c",
+      "src/playerexterno.h",
+      "tests/playerexterno.c",
+      "tests/playerexterno.sh",
+      "tests/playerexterno_integracao.c",
+      "tests/playerexterno_integracao.sh"
+    ],
+    "product_changed_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/PlayerExterno.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/PlayerExternoContrato.kt",
+      "src/ajustes.c",
+      "src/ajustes.h",
+      "src/ajustes_ux_padrao.inc",
+      "src/ajustes_ux_tela.inc",
+      "src/android.c",
+      "src/android.h",
+      "src/app.c",
+      "src/idioma_bg.h",
+      "src/idioma_bs.h",
+      "src/idioma_cs.h",
+      "src/idioma_da.h",
+      "src/idioma_de.h",
+      "src/idioma_el.h",
+      "src/idioma_es.h",
+      "src/idioma_fr.h",
+      "src/idioma_hu.h",
+      "src/idioma_id.h",
+      "src/idioma_it.h",
+      "src/idioma_ja.h",
+      "src/idioma_lt.h",
+      "src/idioma_nl.h",
+      "src/idioma_no.h",
+      "src/idioma_pl.h",
+      "src/idioma_ptpt.h",
+      "src/idioma_ro.h",
+      "src/idioma_ru.h",
+      "src/idioma_sk.h",
+      "src/idioma_sl.h",
+      "src/idioma_sr.h",
+      "src/idioma_sv.h",
+      "src/idioma_tab.h",
+      "src/idioma_tr.h",
+      "src/idioma_uk.h",
+      "src/idioma_vi.h",
+      "src/idioma_zhcn.h",
+      "src/idioma_zhtw.h",
+      "src/player.c",
+      "src/player.h",
+      "src/playerexterno.c",
+      "src/playerexterno.h"
+    ],
+    "test_changed_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/test/java/space/nuvio/nativelegacy/PlayerExternoContratoTest.kt",
+      "tests/playerexterno.c",
+      "tests/playerexterno.sh",
+      "tests/playerexterno_integracao.c",
+      "tests/playerexterno_integracao.sh"
+    ],
+    "public_tests_unchanged": false,
+    "all_previous_test_entries_preserved": true,
+    "previous_test_entries": 1570,
+    "private_diagnostics_unchanged": true,
+    "native_dependency_inputs_unchanged": true,
+    "source_integration_receipt_sha256": "5edbd9e606e7aebc2fb966b18131703cee249a1a5e64c9dee448574ee780d775",
+    "public_equivalence_sha256": "95befb049e61a83e65a244b42ebeb08ec98c5254f8df1bf7b3f1da28d7c39b84",
+    "private_controls": {
+      "public_freeze": {
+        "path": "/workspace/review/issue-501-external-20261016/final/source-freeze.json",
+        "sha256": "2cc613e33430b9bec153a1fd84b58cbfa27094e8660db905b950ab39d096f995"
+      },
+      "private_helpers": {
+        "path": "/workspace/review/issue-501-external-20261016/private-control/receipt.json",
+        "sha256": "9268f450977b476b0cdd969316ea99b05179476b7e8a8677c0d5c3290b97cc59"
+      },
+      "private_android_peer": {
+        "path": "/workspace/review/issue-501-external-20261016/private-android-audit/port-review.json",
+        "sha256": "73686d13223f56e409447147dfbbbfa924cf6dd522dbb5b6a10f7e5444112b44"
+      },
+      "private_native_peer": {
+        "path": "/workspace/review/issue501-logs29-native-peer-20261016/receipt.json",
+        "sha256": "c17d102967ae3dda1ca3646df6e361bde40f3c503b237a59b84e193fd1536e54"
+      },
+      "translations": {
+        "path": "/workspace/review/issue501-logs29-translations-20261016/receipt.json",
+        "sha256": "f278c12ba1f5bb5a0c179b476f9667e6f3db028022ac3ea5ffdcac9eda7869c8"
+      }
+    },
+    "private_port_runtime_claimed": false,
+    "external_player_only": true,
+    "fonts_included": false
+  },
+  "accepted_logs29_foundation": {
+    "apk_source": "09d7e68845c1e1d7d5466a7bca8d1b2a4f20c134",
+    "apk_source_tree": "f6e0e1f3cdf2b7b821c70b555b9b855670d74e36",
+    "android_review": "380bac8ec6c1b6dfdb4c57f362bb55cfbf26e4a4",
+    "android_run": 38978981546,
+    "publisher_run": 38979831552,
+    "published": true,
+    "user_tested": false,
+    "user_install_report": "Samsung S26 Ultra reported app-file install problem; source violates Android16 query cardinality. No successful Logs29 device execution claimed.",
+    "known_installer_manifest_defect": true,
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "logs30_port": {
+    "parent": "09d7e68845c1e1d7d5466a7bca8d1b2a4f20c134",
+    "product_commit": "4d97f89aba208c3596f05d289954f7dad9d7a167",
+    "product_tree": "b7aa09afa0db04707594ec2ab21900d043805c7e",
+    "changed_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "tests/android_manifest_queries.py",
+      "tests/android_manifest_queries.sh"
+    ],
+    "product_changed_paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml"
+    ],
+    "test_changed_paths": [
+      "tests/android_manifest_queries.py",
+      "tests/android_manifest_queries.sh"
+    ],
+    "source_integration_receipt_sha256": "15893c714ec134c0d850a64add0b688afe17c16d52986376732235d58135e78c",
+    "public_tests_unchanged": false,
+    "all_previous_test_entries_preserved": true,
+    "previous_test_entries": 1574,
+    "private_diagnostics_unchanged": true,
+    "native_dependency_inputs_unchanged": true,
+    "manifest_query_fix": true,
+    "fonts_included": false,
+    "source_pending": false,
+    "source_parser_regression_sha256": "e376ad42f12621d172baae27d2ce1e8fdfcfb6b1ce57acfad078b26e59acc573",
+    "source_peer_sha256": "b71dd87f6781904d58235668cf2965fba31567c5aaf3db31f683e34d4aec2091",
+    "private_port_runtime_claimed": false
+  }
+}
