@@ -173,6 +173,7 @@ unsigned long cat_assinatura_de(const CatItem *l, int q, const CatFileira *f, in
   (void)l; (void)q; (void)f; (void)n; return 1; }
 int   cat_gravar_cache(const char *d)      { (void)d; return 0; }
 int   cat_indice_por_imdb(const char *s)   { (void)s; return -1; }
+int   cat_indice_por_imdb_tipo(const char *s, const char *t) { (void)s; (void)t; return -1; }
 const CatItem *cat_item(int i)             { (void)i; return NULL; }
 int   cat_n_episodios(int i)               { (void)i; return 0; }
 double cat_relogio_ms(void)                { return 0.0; }   // descoberta.c times publicarMontagem; the value is only logged

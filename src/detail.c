@@ -66,6 +66,13 @@ static TituloTempo detalheTempo;
 #include "telefoneui.h"
 #include "detmais.h"
 #include "catalogo.h"
+#include "episodioid.h"
+#include "perfisessao.h"
+#include "proximo.h"
+extern unsigned desc_episodios_escolha_pronta(const char *, const char *, uint64_t) NV_PERFIL_OPCIONAL;
+extern int cat_copiar_episodios_fonte(const char *, const char *, uint64_t, CatEp **, int *) NV_PERFIL_OPCIONAL;
+extern unsigned cat_versao_episodios(void) NV_PERFIL_OPCIONAL;
+extern int prox_seguinte(const CatItem *, const CatEp *, int, int, long long, ProxSugestao *) NV_PERFIL_OPCIONAL;
 #include "artehero.h"
 #include "recomenda.h"
 #include "reacao.h"
@@ -221,6 +228,13 @@ static unsigned epGerVista; static int epGerConferido;
 // /meta o resolve como serie depois (descoberta.c, buscarEps): ai os extras
 // sao repedidos por /tv e /shows. Ver o laco de atualizacao.
 static int extrasSerie;
+static char extrasOrigem[96];
+static unsigned long long extrasCredencial;
+static unsigned retomarFonteToken;
+static unsigned retomarFonteVersao;
+static NvPerfilSessao retomarFonteSessao;
+static int retomarFonteTvdb, retomarFonteT, retomarFonteE;
+static int retomarFonteConcluido, retomarFonteProxT, retomarFonteProxE;
 static float t = 0.0f;               // 0 = card na home, 1 = tela cheia
 // Dois estados, nao tres: o hero (nivel 0) e a pagina rolada (nivel 1). O
 // nivel intermediario "cartao vira tela cheia" so fazia sentido enquanto havia
@@ -1524,6 +1538,7 @@ static void abrirInterno(const HomeItem *it) {
   trailerSemFonteLogado = 0;
   trailercinema_zerar(&trailerCinema);
   idx = it->indice;
+  retomarFonteToken = 0;
   titulo_tempo_inicio(&detalheTempo, "detalhe", cat_item(idx));
   // O TRAILER DO CARTAZ CONTINUA AQUI, COM SOM (pedido do rawldon, canario
   // tpk-janela; so o .tpk, NV_TRAILER_CONTINUA_DETALHE em trailerfonte.h).
@@ -1585,9 +1600,14 @@ static void abrirInterno(const HomeItem *it) {
   //
   // SEM `if (imdb[0])`: titulo sem id tambem passa por extras_pedir, que e
   // quem zera o que o titulo anterior publicou (issue #60, ver extras.c).
-  { const CatItem *ci = cat_item(idx);
+  { CatItem copia;
+    // Admit metadata before its progress request can complete from a cache.
+    desc_episodios_garantir(idx);
+    const CatItem *ci = cat_copiar_item(idx, &copia) ? &copia : NULL;
     extrasSerie = ehSerie();
-    extras_pedir(ci ? ci->imdb : "", extrasSerie, ci ? ci->tmdb : 0);
+    extrasCredencial = trakt_credencial_geracao();
+    snprintf(extrasOrigem, sizeof extrasOrigem, "%s", ci ? ci->origem : "");
+    extras_pedir_fonte(ci ? ci->imdb : "", extrasSerie, ci ? ci->tmdb : 0, extrasOrigem);
     // Pedir agora e o que deixa o trailer pronto quando a pagina assentar.
     // Apple nos dois alvos; IMDb na LG e, na Samsung, so pelo servico de
     // recomendacoes (a API exige Referer, que o navegador nao deixa por, e o
@@ -1843,9 +1863,54 @@ float detail_progresso(void) { return aberto && !carro ? suave(t) : 0.0f; }
 // dono relatou.
 //
 // `origem` (opcional) devolve 1 = foco, 2 = retomar, 3 = proximo, 0 = primeiro.
+// Refine the retained remote identity against the FINAL source, not an early
+// Cinemeta list. Cache one owned result per source token, never per index.
+static void episodioRetomarFonte(const CatItem *ci, int *t, int *e) {
+  NvPerfilSessao sessao = nv_perfil_sessao_ler();
+  CatEp *eps = NULL;
+  EpisodioId alvo;
+  int n = 0;
+  int concluido = ci && ci->progresso >= ajustes_cw_concluido();
+  unsigned token, depois, versao;
+  if (!ci || ci->tvdbEp <= 0) return;
+  // A known remote ID is evidence that its old pair belongs to another
+  // numbering. Only an explicit episode choice may bypass a pending join.
+  *t = *e = 0;
+  if (!desc_episodios_escolha_pronta || !cat_copiar_episodios_fonte || !cat_versao_episodios) return;
+  token = desc_episodios_escolha_pronta(ci->imdb, ci->origem, sessao);
+  if (!token) return;
+  versao = cat_versao_episodios();
+  if (token != retomarFonteToken || sessao != retomarFonteSessao || ci->tvdbEp != retomarFonteTvdb ||
+      concluido != retomarFonteConcluido || versao != retomarFonteVersao) {
+    if (!cat_copiar_episodios_fonte(ci->imdb, ci->origem, sessao, &eps, &n)) return;
+    depois = desc_episodios_escolha_pronta(ci->imdb, ci->origem, sessao);
+    if (token != depois || versao != cat_versao_episodios()) { free(eps); return; }
+    retomarFonteToken = token; retomarFonteSessao = sessao; retomarFonteTvdb = ci->tvdbEp;
+    retomarFonteConcluido = concluido; retomarFonteProxT = retomarFonteProxE = 0;
+    retomarFonteVersao = versao;
+    retomarFonteT = retomarFonteE = 0;
+    if (episodioid_procurar(eps, n, ci->tvdbEp, &alvo)) {
+      retomarFonteT = alvo.temporada; retomarFonteE = alvo.episodio;
+      if (concluido && prox_seguinte) {
+        CatItem atual = *ci;
+        ProxSugestao prox;
+        atual.temporada = alvo.temporada; atual.episodio = alvo.episodio;
+        if (prox_seguinte(&atual, eps, n, ajustes_cw_concluido(),
+                          (long long)time(NULL) * 1000LL, &prox)) {
+          retomarFonteProxT = prox.temporada; retomarFonteProxE = prox.episodio;
+        }
+      }
+    }
+    free(eps);
+  }
+  if (retomarFonteT > 0 && retomarFonteE > 0) { *t = retomarFonteT; *e = retomarFonteE; }
+}
+
 static int episodioAlvo(int *temp, int *epis, int *origem) {
   const CatItem *ci = cat_item(idx);
   const CatEp *ep = NULL;
+  int rt = ci ? ci->temporada : 0, re = ci ? ci->episodio : 0;
+  episodioRetomarFonte(ci, &rt, &re);
   if (origem) *origem = 0;
 
   if (foco.fileira == SEC_EPISODIOS) ep = cat_episodio(idx, epAbsoluto(foco.coluna));
@@ -1855,14 +1920,24 @@ static int episodioAlvo(int *temp, int *epis, int *origem) {
     // O episodio em foco E o que esta em andamento: e o "Retomar" (com o
     // "Assistir do começo" ao lado), como o mockup "detalhe-retomar".
     if (origem) *origem = (ci && ci->progresso > 0 && ci->progresso < ajustes_cw_concluido() &&
-                           ci->temporada == ep->temporada && ci->episodio == ep->episodio) ? 2 : 1;
+                           rt == ep->temporada && re == ep->episodio) ? 2 : 1;
+    return 1;
+  }
+  // A retained TVDB identity must not fall through to an unrelated Next or
+  // first episode while its final-source match is unavailable/ambiguous.
+  if (ci && ci->tvdbEp > 0 && (!rt || !re)) return 0;
+  if (ci && ci->tvdbEp > 0 && ci->progresso >= ajustes_cw_concluido()) {
+    if (retomarFonteProxT <= 0 || retomarFonteProxE <= 0) return 0;
+    if (temp) *temp = retomarFonteProxT;
+    if (epis) *epis = retomarFonteProxE;
+    if (origem) *origem = 3;
     return 1;
   }
   // Em andamento: o item do "Continuar assistindo" traz temporada e episodio.
-  if (ci && ci->progresso > 0 && ci->progresso < ajustes_cw_concluido() && ci->temporada > 0 && ci->episodio > 0 &&
-      !extras_ep_visto(ci->temporada, ci->episodio)) {
-    if (temp) *temp = ci->temporada;
-    if (epis) *epis = ci->episodio;
+  if (ci && ci->progresso > 0 && ci->progresso < ajustes_cw_concluido() && rt > 0 && re > 0 &&
+      !extras_ep_visto(rt, re)) {
+    if (temp) *temp = rt;
+    if (epis) *epis = re;
     if (origem) *origem = 2;
     return 1;
   }
@@ -1876,19 +1951,19 @@ static int episodioAlvo(int *temp, int *epis, int *origem) {
       return 1;
     }
   }
-  { int t, i, nt = extras_progresso_pronto() ? extras_n_temporadas() : 0;
-    for (t = 0; t < nt; t++) {
-      int tn = extras_temporada_numero(t), ne = extras_n_eps(t);
-      for (i = 0; i < ne; i++) {
-        int en = extras_ep_numero(t, i);
-        if (en > 0 && !extras_ep_visto(tn, en)) {
-          if (temp) *temp = tn;
-          if (epis) *epis = en;
-          if (origem) *origem = 3;
-          return 1;
-        }
+  if (extras_progresso_pronto()) {
+    int n = cat_n_episodios(idx);
+    for (int i = 0; i < n; i++) {
+      const CatEp *candidato = cat_episodio(idx, i);
+      if (candidato && candidato->temporada > 0 && candidato->episodio > 0 &&
+          !extras_ep_visto(candidato->temporada, candidato->episodio)) {
+        if (temp) *temp = candidato->temporada;
+        if (epis) *epis = candidato->episodio;
+        if (origem) *origem = 3;
+        return 1;
       }
-    } }
+    }
+  }
   // O PRIMEIRO DA TEMPORADA EM EXIBICAO, que e o que a nota acima promete —
   // com a lista emendada isto era o primeiro episodio da SERIE, qualquer que
   // fosse a aba aberta.
@@ -1956,6 +2031,13 @@ static void comentariosEscolher(void) {
 int detail_ep_foco(int *temp, int *epis) {
   if (!aberto) return 0;
   return episodioAlvo(temp, epis, NULL);
+}
+
+int detail_ep_aguardando(void) {
+  const CatItem *ci = cat_item(idx);
+  int t0, e0;
+  return aberto && !saindo && ci && !strcmp(ci->tipo, "series") && ci->tvdbEp > 0 &&
+         !episodioAlvo(&t0, &e0, NULL);
 }
 
 int detail_assentado(void) {
@@ -3522,9 +3604,12 @@ void detail_atualizar(float dt, Uint32 agora) {
   // Repedir e barato: a meta ja esta no cache de disco (metaCacheObter), entao
   // isto nao volta a rede. E desc_episodios sai sozinho se a faixa ja existir.
   { const CatItem *ci = cat_item(idx);
-    if (ci && ehSerie() != extrasSerie) {
+    if (ci && (ehSerie() != extrasSerie || strcmp(ci->origem, extrasOrigem) ||
+               extrasCredencial != trakt_credencial_geracao())) {
       extrasSerie = ehSerie();
-      extras_pedir(ci->imdb, extrasSerie, ci->tmdb);
+      extrasCredencial = trakt_credencial_geracao();
+      snprintf(extrasOrigem, sizeof extrasOrigem, "%s", ci->origem);
+      extras_pedir_fonte(ci->imdb, extrasSerie, ci->tmdb, extrasOrigem);
     } }
   // TAMBEM QUANDO SO A GERACAO DAS FAIXAS ANDOU (cat_geracao_episodios): a
   // volta do vetor de episodios apaga a lista sem subir a revisao. E na
@@ -3541,6 +3626,7 @@ void detail_atualizar(float dt, Uint32 agora) {
   // Solta o pedido de episodios que ficou guardado por ter chegado com outro
   // carregamento em voo.
   desc_episodios_pendente();
+  extras_atualizar_episodios();
   auditoriaEpisodios();
 
   // TROCA DE TEMPORADA PELO MOVIMENTO DO FOCO, nao pelo OK.

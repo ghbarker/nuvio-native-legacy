@@ -130,6 +130,7 @@ void debrid_contexto_entrar(const DebridContexto *c) { (void)c; }
 void debrid_contexto_sair(void) {}
 unsigned fonteregra_versao(void) { return 0; }
 int detail_aberto(void) { return 0; }
+int detail_ep_aguardando(void) { return 0; }
 int detail_indice(void) { return 0; }
 int detail_ep_foco(int *t, int *e) { if (t) *t = 0; if (e) *e = 0; return 0; }
 int stream_lista_do_alvo(const char *id) { (void)id; return 1; }

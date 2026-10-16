@@ -252,6 +252,9 @@ static int autoParcialPronto(void) {
 // instante ainda nao tem a lista de episodios nem o "proximo" que
 // continuar_desenhar calculou para desenhar o card.
 static int cwTocarT, cwTocarE;
+static int cwTocarExplicito;
+static char cwTocarId[64], cwTocarOrigem[96];
+static NvPerfilSessao cwTocarSessao;
 // Integration #513: the sheet owns its episode independently of Continue Watching.
 static int folhaTocarT, folhaTocarE;
 static void gravarFolhaTocar(int t, int e, int tem) {
@@ -936,6 +939,12 @@ static void abrirPorIndice(int i) {
 static void idDoAlvo(const CatItem *ci, char *dst, size_t n) {
   int t = 0, e = 0;
   if (!ci) { if (n) dst[0] = 0; return; }
+  { const CatItem *atual = detail_aberto() ? cat_item(detail_indice()) : NULL;
+    if (atual && !strcmp(ci->imdb, atual->imdb) && !strcmp(ci->tipo, atual->tipo) &&
+        !strcmp(ci->origem, atual->origem) && detail_ep_aguardando()) {
+      if (n) dst[0] = 0;
+      return;
+    } }
   if (!strcmp(ci->tipo, "series") && detail_ep_foco(&t, &e) && t > 0 && e > 0)
     // cat_id_stream: "tt:T:E" no IMDb; o id do video do addon nos demais
     // ("kitsu:41370:5"). Os dois callers passam o item do detalhe.
@@ -1276,10 +1285,56 @@ static void nomeParaFolha(void) {
   stream_folha_item(c ? (player_aberto() ? player_indice() : detail_indice()) : -1);
 }
 
+// Admission is here, where Agenda/retained-video explicit requests are known.
+// Consumed automatic requests never wait invisibly across title/profile changes.
+static int gravarCwExplicito(const char *id, int t, int e) {
+  const CatItem *ci = detail_aberto() ? cat_item(detail_indice()) : NULL;
+  cwTocarT = cwTocarE = cwTocarExplicito = 0;
+  if (!ci || !id || strcmp(ci->imdb, id) || t <= 0 || e <= 0) return 0;
+  cwTocarT = t; cwTocarE = e; cwTocarExplicito = 1;
+  snprintf(cwTocarId, sizeof cwTocarId, "%s", ci->imdb);
+  snprintf(cwTocarOrigem, sizeof cwTocarOrigem, "%s", ci->origem);
+  cwTocarSessao = nv_perfil_sessao_ler();
+  return 1;
+}
+static void avisarEpisodioPendente(void) {
+  const CatItem *ci = cat_item(detail_indice());
+  unsigned pronto = ci ? desc_episodios_escolha_pronta(ci->imdb, ci->origem,
+                                                     nv_perfil_sessao_ler()) : 0;
+  ilha_avisar("det-ep-identidade", ILHA_INFO, NULL,
+              i18n(pronto ? "Escolha a temporada e o episódio e aperte OK" : "Carregando…"), 6000u, 0);
+}
+static int admitirReproducaoDetalhe(void) {
+  const CatItem *ci = cat_item(detail_indice());
+  if (cwTocarExplicito && (!ci || !detail_aberto() || !nv_perfil_sessao_atual(cwTocarSessao) ||
+      strcmp(ci->imdb, cwTocarId) || strcmp(ci->origem, cwTocarOrigem)))
+    cwTocarT = cwTocarE = cwTocarExplicito = 0;
+  if (!cwTocarExplicito && ci && ci->tvdbEp > 0) cwTocarT = cwTocarE = 0;
+  if (cwTocarExplicito || !detail_ep_aguardando()) return 1;
+  cwTocarT = cwTocarE = cwTocarExplicito = 0;
+  avisarEpisodioPendente();
+  return 0;
+}
+static void episodioPedidoDetalhe(int *t, int *e) {
+  *t = *e = 0;
+  detail_ep_foco(t, e);
+  if (cwTocarT > 0 && cwTocarE > 0) { *t = cwTocarT; *e = cwTocarE; }
+}
 static void episodioDoDetalhe(void) {
   int t=0,e=0;
-  detail_ep_foco(&t,&e);
+  episodioPedidoDetalhe(&t, &e);
   player_definir_episodio(t,e);
+  cwTocarT = cwTocarE = cwTocarExplicito = 0;
+}
+static int fonteDoDetalheAtual(int t, int e) {
+  const CatItem *ci = detail_aberto() ? cat_item(detail_indice()) : NULL;
+  char alvo[64] = "";
+  if (!ci) return 0;
+  if (t > 0 && e > 0) {
+    if (!cat_id_stream(detail_indice(), t, e, alvo, sizeof alvo)) return 0;
+  }
+  else idDoAlvo(ci, alvo, sizeof alvo);
+  return alvo[0] && stream_lista_do_alvo(alvo);
 }
 
 // Canal de portal Stalker: a fonte NAO vem de addon, e o link e de uso unico.
@@ -1962,7 +2017,7 @@ static void preparoObservarBuffer(void) {
 }
 static int preparoVale(const char *alvo, int lembrada) {
   preparoObservarBuffer();
-  if (!preparo.tem || !preparoAtivo() || ajustes_fonte_manual() ||
+  if (!alvo || !alvo[0] || !preparo.tem || !preparoAtivo() || ajustes_fonte_manual() ||
       preparo.falhou || !preparoContextoAtual(&preparo.contexto)) return 0;
   // Uma escolha esgotada tambem e um resultado: Play mostra o erro sem
   // refazer os links que este mesmo snapshot acabou de recusar.
@@ -2102,7 +2157,7 @@ static void prepararAoAbrir(void) {
   ci = cat_item(detail_indice());
   if (!ci || !ci->imdb[0]) return;
   idDoAlvo(ci, alvo, sizeof alvo);
-  if (!stream_lista_do_alvo(alvo)) return;
+  if (!alvo[0] || !stream_lista_do_alvo(alvo)) return;
   g = stream_lista_geracao();
   idBaseDoTitulo(base, sizeof base);
   lembrada = base[0] ? fontepref_escolher(base) : -1;
@@ -2867,7 +2922,7 @@ static void perfilEncerrarSessao(void) {
   canalViaProxy = stalkerTentativas = stalkerRenovando = 0;
   memset(&liveStall, 0, sizeof liveStall);
   abrirTeste[0] = 0;
-  cwTocarT = cwTocarE = cwEspera = 0;
+  cwTocarT = cwTocarE = cwTocarExplicito = cwEspera = 0;
   cwEsperaDesde = 0;
   memset(&cwEsperaItem, 0, sizeof cwEsperaItem);
   prefFolhaN = -1;
@@ -3923,6 +3978,9 @@ static void atualizarFolha(float dt, Uint32 agora) {
 
 void app_atualizar(float dt, Uint32 agora) {
   relogioFocoValidar();
+  // Explicit card/Agenda intents are created and consumed within this pass.
+  // A canceled/open-player action must not be inherited by a later opening.
+  if (cwTocarExplicito) cwTocarT = cwTocarE = cwTocarExplicito = 0;
   if (player_aberto() || player_mini_ativo()) diagnostico_cancelar_vazao();
   // Login e escolha de perfil retornam cedo; a atividade da conta anterior
   // precisa sair antes deles, junto de qualquer modal/pedido ja enfileirado.
@@ -4431,10 +4489,11 @@ void app_atualizar(float dt, Uint32 agora) {
         // O mesmo caminho do OK no card de "Continuar assistindo" com "OK no
         // card" = Retomar: a pagina abre e a reproducao e pedida junto, no
         // episodio que o cartao mostrava (cwTocarT/E, issue #93).
-        cwTocarT = cwTocarE = 0; cwEspera = 0;
-        if (o == ILHA_PEDIU_TOCAR && ic.serie && ic.t > 0 && ic.e > 0) { cwTocarT = ic.t; cwTocarE = ic.e; }
+        cwTocarT = cwTocarE = cwTocarExplicito = 0; cwEspera = 0;
         abrirPorIndice(idx);
-        if (o == ILHA_PEDIU_TOCAR) detail_pedir_reproduzir();
+        const CatItem *abriu = detail_aberto() ? cat_item(detail_indice()) : NULL;
+        if (o == ILHA_PEDIU_TOCAR && abriu && !strcmp(abriu->imdb, ic.imdb) &&
+            (!ic.serie || gravarCwExplicito(ic.imdb, ic.t, ic.e))) detail_pedir_reproduzir();
       } else desc_pedir_titulo(ic.imdb);
     } else if (o == ILHA_PEDIU_DISPENSAR) {
       if (qual == ILHA_VIVO) player_descartar_retido();
@@ -4470,7 +4529,7 @@ void app_atualizar(float dt, Uint32 agora) {
         int k = cat_indice_por_imdb(tc);
         if (k >= 0) {
           abrirPorIndice(k);
-          if (detail_aberto()) { cwTocarT = tt; cwTocarE = te; detail_pedir_reproduzir(); }
+          if (gravarCwExplicito(tc, tt, te)) detail_pedir_reproduzir();
         } else desc_pedir_titulo(tc);
       }
     }
@@ -4712,9 +4771,9 @@ void app_atualizar(float dt, Uint32 agora) {
         // porque a lista de episodios ainda nao chegou da rede.
         const CatItem *cw = cat_item(it.indice);
         int tocar = 1;
-        cwTocarT = cwTocarE = 0;
+        cwTocarT = cwTocarE = cwTocarExplicito = 0;
         cwEspera = 0;
-        if (cw && !strcmp(cw->tipo, "series")) {
+        if (cw && !strcmp(cw->tipo, "series") && cw->tvdbEp <= 0) {
           cwTocarT = cw->temporada; cwTocarE = cw->episodio;
           // EPISODIO TERMINADO NUNCA TOCA DE NOVO DO COMECO. O card ja anuncia
           // o proximo quando a lista existe; sem lista (a copia do card nao
@@ -4816,7 +4875,7 @@ void app_atualizar(float dt, Uint32 agora) {
       const CatItem *ci = cat_item(i);
       char alvo[64];
       idDoAlvo(ci, alvo, sizeof alvo);
-      if (!player_aberto() && aguardandoFonte != 2 && ci && ci->imdb[0] &&
+      if (!player_aberto() && aguardandoFonte != 2 && ci && ci->imdb[0] && alvo[0] &&
           (strcmp(alvo, ultimoAlvo) || (detail_aberto() && ultimaVersao != addons_versao()))) {
         if (!strcmp(alvo, ultimoAlvo)) printf("[addons] lista mudou: refazendo a busca de fontes de %s\n", alvo);
         snprintf(ultimoAlvo, sizeof ultimoAlvo, "%s", alvo);
@@ -4846,7 +4905,7 @@ void app_atualizar(float dt, Uint32 agora) {
     // definitivo — player_do_inicio sobrevive as re-chamadas tardias de
     // player_definir_episodio.
     int doInicio = detail_pediu_do_inicio();
-    if ((detail_pediu_reproduzir() || doInicio) && aguardandoFonte != 2) {
+    if ((detail_pediu_reproduzir() || doInicio) && aguardandoFonte != 2 && admitirReproducaoDetalhe()) {
       marco("abrir: reproduzir pedido");
       // A tela abre JA, no estado "abrindo fonte", e a escolha acontece depois.
       // Escolher antes deixaria o botao sem resposta por segundos, e escolher
@@ -4857,8 +4916,11 @@ void app_atualizar(float dt, Uint32 agora) {
       char alvoPreparo[64], basePreparo[24];
       int idxPreparado = -1;
       idDoAlvo(ci, alvoPreparo, sizeof alvoPreparo);
-      if (ci && cwTocarT > 0 && cwTocarE > 0)
-        cat_id_stream(detail_indice(), cwTocarT, cwTocarE, alvoPreparo, sizeof alvoPreparo);
+      { int tPedido, ePedido;
+        episodioPedidoDetalhe(&tPedido, &ePedido);
+        if (ci && tPedido > 0 && ePedido > 0)
+          cat_id_stream(detail_indice(), tPedido, ePedido, alvoPreparo, sizeof alvoPreparo);
+      }
       idBaseDoTitulo(basePreparo, sizeof basePreparo);
       int lembradaPreparo = basePreparo[0] ? fontepref_escolher(basePreparo) : -1;
 #ifdef NV_ANDROID
@@ -4876,13 +4938,6 @@ void app_atualizar(float dt, Uint32 agora) {
       diagnostico_cancelar_vazao();
       player_abrir(detail_indice(), NULL);
       episodioDoDetalhe();
-      // CW direto (issue #93): o episodio que o card anunciava vale sobre o
-      // que episodioAlvo resolveu — ele e a unica copia fiel do "T/E do card"
-      // quando a lista de episodios ainda esta a caminho.
-      if (cwTocarT > 0 && cwTocarE > 0) {
-        player_definir_episodio(cwTocarT, cwTocarE);
-        cwTocarT = cwTocarE = 0;
-      }
       if (doInicio) player_do_inicio();
       // O episodio so fica definitivo DEPOIS de abrir o player. Refaça sempre
       // o pedido de legenda nesse ponto; a busca de prefetch pode ter comecado
@@ -4950,10 +5005,21 @@ void app_atualizar(float dt, Uint32 agora) {
       char base[24];
       int epT, epE;
       int temEp = detail_pediu_fontes_ep(&epT, &epE);
-      gravarFolhaTocar(epT, epE, temEp);
-      idBaseDoTitulo(base, sizeof base);
-      stream_preferir(base[0] ? fontepref_escolher_manual(base) : -1);
-      nomeParaFolha(); stream_folha_abrir();
+      if (!temEp && detail_ep_aguardando()) {
+        gravarFolhaTocar(0, 0, 0); avisarEpisodioPendente();
+      } else {
+        if (temEp) {
+          const CatItem *ci = cat_item(detail_indice()); char alvo[64];
+          if (ci && cat_id_stream(detail_indice(), epT, epE, alvo, sizeof alvo) &&
+              !stream_lista_do_alvo(alvo)) {
+            stream_definir_alvo(alvo); addons_buscar(alvo, ci->tipo);
+          }
+        }
+        gravarFolhaTocar(epT, epE, temEp);
+        idBaseDoTitulo(base, sizeof base);
+        stream_preferir(base[0] ? fontepref_escolher_manual(base) : -1);
+        nomeParaFolha(); stream_folha_abrir();
+      }
     }
   }
   // Escolher uma fonte na folha inicia a reproducao DELA. Trocar de fonte com o
@@ -5476,6 +5542,11 @@ void app_atualizar(float dt, Uint32 agora) {
   int fonte;
   if (aguardandoFonte != 2 && stream_folha_escolheu(&fonte)) {
     const Stream *s = stream_item(fonte);
+    int folhaT = 0, folhaE = 0;
+    if (!player_aberto()) {
+      detail_ep_foco(&folhaT, &folhaE); consumirFolhaTocar(&folhaT, &folhaE);
+      if (!fonteDoDetalheAtual(folhaT, folhaE)) { s = NULL; avisarEpisodioPendente(); }
+    }
     folhaParaTocar = 0;
     printf("fonte escolhida: %s\n", s ? s->rotulo : "?");
     // GUARDAR A ESCOLHA, e SO a manual. O que o automatico escolhe nao vira
@@ -5500,9 +5571,10 @@ void app_atualizar(float dt, Uint32 agora) {
       aguardandoFonte=0;
       limparFonteVOD();
       int titulo=player_aberto()?player_indice():detail_indice(), t=0,e=0;
-      if (player_aberto()) { player_episodio_atual(&t,&e); player_encerrar(); }
-      else detail_ep_foco(&t,&e);
-      consumirFolhaTocar(&t, &e);
+      if (player_aberto()) {
+        player_episodio_atual(&t,&e); consumirFolhaTocar(&t, &e); player_encerrar();
+      }
+      else { t = folhaT; e = folhaE; }
       diagnostico_cancelar_vazao();
       player_abrir(titulo,NULL);
       player_definir_episodio(t,e);

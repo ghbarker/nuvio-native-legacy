@@ -19,6 +19,11 @@ void extras_abrir_sessao(void);
 // `tmdbId` e o id do titulo no TMDB (0 quando nao se sabe). Serve so a COLECAO,
 // que o TMDB expoe apenas por id proprio — nao ha caminho por IMDb.
 void extras_pedir(const char *imdb, int serie, long tmdbId);
+// Same request, bound to the catalog source selected by the title page.
+void extras_pedir_fonte(const char *imdb, int serie, long tmdbId, const char *origem);
+// Apply an already received watched response once final episode metadata is ready.
+// No network or waiting; known local marks and aggregate progress remain visible.
+void extras_atualizar_episodios(void);
 
 // Nota do Trakt em 0..100 (0 = ainda nao chegou ou nao existe) e quantos
 // votaram. O web mostra a mesma nota que o mdbList devolve para "trakt".

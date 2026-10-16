@@ -17,6 +17,7 @@
 #include "nuvem.h"
 #include "cwordem.h"
 #include "js.h"
+#include "episodioid.h"
 #include "recomenda.h"
 #include "trakt.h"
 #include "simkl.h"
@@ -49,6 +50,7 @@ extern void addons_destravar_lista(void) NV_PERFIL_OPCIONAL;
 extern int fil_podar_catalogos_de(const char *const *, const char *const *, int, int, unsigned) NV_PERFIL_OPCIONAL;
 extern int trakt_enfeitar_lote_sessao(CatItem *, int, uint64_t) NV_PERFIL_OPCIONAL;
 extern int recomenda_social_mesclar_sessao(CatItem *, int, int, uint64_t) NV_PERFIL_OPCIONAL;
+extern int trakt_cw_concluiu_tvdb(const char *, int, long long) NV_PERFIL_OPCIONAL;
 
 // Detached jobs retain the session of their request, including A -> B -> A.
 static pthread_key_t descSessaoChave;
@@ -1244,6 +1246,60 @@ static int catalogosFora;
 static int catalogosNaoPedidos;
 static pthread_t fioEp;
 static int epItem = -1, epTemp, fioEpVivo;
+// A escolha final da fonte sobrevive a mudancas de indice e a pre-buscas do
+// carrossel. O token sai antes de qualquer publicacao intermediaria.
+#define EP_ESCOLHAS_MAX 64
+static struct {
+  char id[64], origem[96];
+  uint64_t sessao;
+  unsigned token;
+  int pronta;
+} epEscolhas[EP_ESCOLHAS_MAX];
+static unsigned epEscolhaToken;
+static int epEscolhaProxima;
+static pthread_mutex_t epEscolhaTrava = PTHREAD_MUTEX_INITIALIZER;
+
+static unsigned epEscolhaIniciar(const char *id, const char *origem, uint64_t sessao) {
+  char base[64]; int k;
+  idbase_copiar(id, base, sizeof base);
+  pthread_mutex_lock(&epEscolhaTrava);
+  for (k = 0; k < EP_ESCOLHAS_MAX; k++)
+    if (epEscolhas[k].sessao == sessao && !strcmp(epEscolhas[k].id, base) &&
+        !strcmp(epEscolhas[k].origem, origem ? origem : "")) break;
+  if (k == EP_ESCOLHAS_MAX) { k = epEscolhaProxima; epEscolhaProxima = (k + 1) % EP_ESCOLHAS_MAX; }
+  if (!++epEscolhaToken) ++epEscolhaToken;
+  snprintf(epEscolhas[k].id, sizeof epEscolhas[k].id, "%s", base);
+  snprintf(epEscolhas[k].origem, sizeof epEscolhas[k].origem, "%s", origem ? origem : "");
+  epEscolhas[k].sessao = sessao; epEscolhas[k].token = epEscolhaToken; epEscolhas[k].pronta = 0;
+  unsigned token = epEscolhaToken;
+  pthread_mutex_unlock(&epEscolhaTrava);
+  return token;
+}
+
+static void epEscolhaConcluir(const char *id, const char *origem, uint64_t sessao, unsigned token) {
+  char base[64];
+  if (!token || !nv_perfil_sessao_atual(sessao)) return;
+  idbase_copiar(id, base, sizeof base);
+  pthread_mutex_lock(&epEscolhaTrava);
+  for (int k = 0; k < EP_ESCOLHAS_MAX; k++)
+    if (epEscolhas[k].token == token && epEscolhas[k].sessao == sessao &&
+        !strcmp(epEscolhas[k].id, base) && !strcmp(epEscolhas[k].origem, origem ? origem : "")) {
+      epEscolhas[k].pronta = 1; break;
+    }
+  pthread_mutex_unlock(&epEscolhaTrava);
+}
+
+unsigned desc_episodios_escolha_pronta(const char *id, const char *origem, uint64_t sessao) {
+  char base[64]; unsigned token = 0;
+  if (!id || !*id || !nv_perfil_sessao_atual(sessao)) return 0;
+  idbase_copiar(id, base, sizeof base);
+  pthread_mutex_lock(&epEscolhaTrava);
+  for (int k = 0; k < EP_ESCOLHAS_MAX; k++)
+    if (epEscolhas[k].pronta && epEscolhas[k].sessao == sessao && !strcmp(epEscolhas[k].id, base) &&
+        !strcmp(epEscolhas[k].origem, origem ? origem : "")) { token = epEscolhas[k].token; break; }
+  pthread_mutex_unlock(&epEscolhaTrava);
+  return token;
+}
 
 int desc_buscando(void) {
   int v;
@@ -3039,7 +3095,8 @@ static int candidatoVence(const CatItem *novo, const CatItem *velho) {
     int t = velho->temporada, e = velho->episodio;
     prog_content_id(id, sizeof id, velho->imdb, &t, &e);
     prog_chave(chave, sizeof chave, id, t, e);
-    if (!trakt_cw_concluiu(velho->imdb, antes) &&
+    if (!(trakt_cw_concluiu_tvdb ? trakt_cw_concluiu_tvdb(velho->imdb, velho->tvdbEp, antes) :
+                                   trakt_cw_concluiu(velho->imdb, antes)) &&
         !(prog_por_chave(chave, &r) && r.durSeg > 1.0 &&
           r.tocou != 0 && 100.0 * r.posSeg / r.durSeg >= ajustes_cw_concluido() &&
           r.lastWatchedMs > antes && r.lastWatchedMs <= ms)) return 0;
@@ -7124,6 +7181,11 @@ static unsigned epSetCasa(const EpSet *s, unsigned long long k) {
   return i;
 }
 
+static int epSetTem(const EpSet *s, int t, int e) {
+  unsigned long long k = ((unsigned long long)(unsigned)t << 32) | (unsigned)e;
+  return s->v && s->v[epSetCasa(s, k)] != 0;
+}
+
 // 1 = par novo (entrou); 0 = repetido. A chave e procurada ANTES de crescer:
 // faltar memoria para a tabela maior nao pode transformar em "novo" um par que
 // ja esta nela. Sem crescer, os pares novos seguem entrando ate sobrar uma casa
@@ -7232,21 +7294,39 @@ static int metaArquivosCompativeis(const char *arquivos, const char *catalogo) {
 static int parsearEpisodios(const char *corpo, CatEp *eps, int max) {
   int n = 0;
   const char *p = js_array(corpo, NULL, "videos");
-  EpSet set = { 0 };
-  while (p && n < max) {
+  EpSet set = { 0 }, ambiguos = { 0 };
+  while (p) {
     const char *f = js_fim(p);
     int t = videoTemporada(p, f);
     int ne = t > 0 ? (int)js_num(p, f, "episode", 0) : 0;
+    int tvdb = episodioid_tvdb(p, f);
+    int novo = t > 0 && (ne <= 0 || epSetNovo(&set, t, ne));
+    if (tvdb > 0 && epSetTem(&ambiguos, 1, tvdb)) tvdb = 0;
+    // Arquivos repetidos podem discordar sobre o ID. O primeiro vid continua
+    // sendo o da fonte, mas nenhuma das identidades conflitantes e provada.
+    if (t > 0 && !novo)
+      for (int i = 0; i < n; i++) if (eps[i].temporada == t && eps[i].episodio == ne &&
+          eps[i].tvdbEp != tvdb) {
+        if (eps[i].tvdbEp > 0) epSetNovo(&ambiguos, 1, eps[i].tvdbEp);
+        if (tvdb > 0) epSetNovo(&ambiguos, 1, tvdb);
+        eps[i].tvdbEp = 0; tvdb = 0;
+      }
+    if (tvdb > 0) for (int i = 0; i < n; i++)
+      if (eps[i].tvdbEp == tvdb && (eps[i].temporada != t || eps[i].episodio != ne)) {
+        epSetNovo(&ambiguos, 1, tvdb);
+        eps[i].tvdbEp = 0; tvdb = 0; break;
+      }
     // Repeticao sai JA AQUI, antes do corte de `max`: descartada so depois de
     // ordenar, as 1200 vagas iam para copias dos primeiros episodios e o resto
     // da serie nem era lido. Fica o primeiro da resposta; sem numero de
     // episodio nao e repeticao.
-    if (t > 0 && (ne <= 0 || epSetNovo(&set, t, ne))) {
+    if (novo && n < max) {
       CatEp *e = &eps[n];
       char d[24] = "";
       memset(e, 0, sizeof *e);
       e->temporada = t;
       e->episodio = ne;
+      e->tvdbEp = tvdb;
       js_texto(p, f, "name", e->nome, sizeof e->nome);
       // O id do video (cat_id_stream): e ele que se manda aos addons de fonte
       // quando o titulo nao e do IMDb. Addon que usa "title" no lugar de "name"
@@ -7271,6 +7351,7 @@ static int parsearEpisodios(const char *corpo, CatEp *eps, int max) {
     p = js_prox(f);
   }
   free(set.v);
+  free(ambiguos.v);
   for (int i = 1; i < n; i++) {
     CatEp k = eps[i];
     int j;
@@ -7975,9 +8056,10 @@ static void *buscarEps(void *u) {
   char *corpo = NULL;
   char serie[64];
   char meuId[64];
+  char minhaOrigem[96];
   MetaFontes mf;
   int viaCatalogo = 0, solto = 0;
-  (void)u;
+  unsigned escolhaToken = (unsigned)(uintptr_t)u;
   memset(&mf, 0, sizeof mf);
   if (!descSessaoVincular(epSessao)) { fioEpVivo = 0; return NULL; }
   if (!cat_copiar_item(alvoItem, &base) || !base.imdb[0]) { fioEpVivo = 0; return NULL; }
@@ -7985,6 +8067,7 @@ static void *buscarEps(void *u) {
   if (preCede(orig->imdb)) { fioEpVivo = 0; return NULL; }
   snprintf(epAlvoId, sizeof epAlvoId, "%s", orig->imdb);
   snprintf(meuId, sizeof meuId, "%s", orig->imdb);
+  snprintf(minhaOrigem, sizeof minhaOrigem, "%s", orig->origem);
   // Copia sob a trava antes de sair para a rede; nenhum ponteiro de quadro.
   // CANAL NAO PASSA AQUI. O Cinemeta so conhece filme/serie por id do IMDb
   // ("tt..."); id de canal e "cs:channel:<hash>". "ehFilme = tipo != series"
@@ -8210,6 +8293,7 @@ static void *buscarEps(void *u) {
     // recomendacao dos detalhes) deixava o pedido da ficha dele guardado em
     // pendItem ate a cauda inteira acabar — pagina aberta e vazia. A cauda
     // escreve pelo id guardado em meuId (epAlvoDe), nao pelo global.
+    if (!ehFilme) epEscolhaConcluir(meuId, minhaOrigem, descSessao(), escolhaToken);
     solto = 1;
     fioEpVivo = 0;
     { char idBase[24];
@@ -9034,9 +9118,11 @@ void desc_episodios(int indiceItem, int temporada) {
   if (cat_n_episodios(indiceItem) > 0) return;
   epItem = indiceItem; epTemp = temporada;
   epSessao = nv_perfil_sessao_ler();
+  const CatItem *ci = cat_item(indiceItem);
+  unsigned escolhaToken = ci ? epEscolhaIniciar(ci->imdb, ci->origem, epSessao) : 0;
   epRodaPre = epPreQuer; epPreQuer = 0; epCancelar = 0;
   fioEpVivo = 1;
-  if (pthread_create(&fioEp, NULL, buscarEps, NULL) != 0) fioEpVivo = 0;
+  if (pthread_create(&fioEp, NULL, buscarEps, (void *)(uintptr_t)escolhaToken) != 0) fioEpVivo = 0;
   else pthread_detach(fioEp);
 }
 
@@ -9088,9 +9174,9 @@ void desc_episodios_pendente(void) {
 // ficavam apagados e nao abriam, o que deixava a filmografia decorativa.
 //
 // O meta vem do Cinemeta, a mesma fonte do resto do catalogo, e o item entra no
-// FIM do vetor (cat_acrescentar). O tipo nao e conhecido de antemao — o TMDB
-// diz "movie"/"tv" no credito, mas o relacionado do Trakt nao —, entao tenta-se
-// filme e, se nao houver, serie. Duas chamadas no pior caso, uma no comum.
+// FIM do vetor (cat_acrescentar). O tipo do TMDB e o sufixo de episodio sao
+// preservados: movie e tv podem compartilhar o numero no TMDB, mas sao obras
+// diferentes. So sem tipo conhecido tenta filme e depois serie.
 static char sobId[24];
 static long sobTmdb;          // quando > 0, o id do IMDb ainda precisa ser resolvido
 static char sobTipo[8];
@@ -9102,6 +9188,24 @@ static pthread_t sobFio;
 // a pagina abre NA HORA, com o layout normal, e o buscarEps preenche o resto.
 static CatItem sobSemente;
 static int  sobTemSemente;
+
+// Um sufixo completo de episodio prova que o pedido e de serie, mesmo depois
+// de cortar o id para buscar a ficha. Sem converter numeros: nao ha overflow.
+static int sobIdTemEpisodio(const char *id) {
+  const char *p = strchr(id, ':'), *inicio;
+  int positivo = 0;
+  if (!p) return 0;
+  inicio = ++p;
+  while (*p >= '0' && *p <= '9') p++;
+  if (p == inicio || *p != ':') return 0;
+  inicio = ++p;
+  while (*p >= '0' && *p <= '9') { if (*p != '0') positivo = 1; p++; }
+  return p > inicio && !*p && positivo;
+}
+
+static int sobIndiceDoTipo(const char *id) {
+  return sobTipo[0] ? cat_indice_por_imdb_tipo(id, sobTipo) : cat_indice_por_imdb(id);
+}
 
 static void *buscarTitulo(void *arg) {
   char url[200], id[24], *corpo;
@@ -9121,7 +9225,7 @@ static void *buscarTitulo(void *arg) {
     id[0] = 0;
     if (chave && chave[0]) {
       snprintf(url, sizeof url, "%s/%s/%ld/external_ids?api_key=%s", TMDB,
-               strcmp(sobTipo, "tv") ? "movie" : "tv", sobTmdb, chave);
+               !strcmp(sobTipo, "series") ? "tv" : "movie", sobTmdb, chave);
       corpo = rede_baixar(url, 15);
       if (corpo) { js_texto(corpo, NULL, "imdb_id", id, sizeof id); free(corpo); }
     }
@@ -9130,7 +9234,7 @@ static void *buscarTitulo(void *arg) {
       sobIndice = -1; sobFioVivo = 0; return NULL;
     }
     // Ja temos? Entao e so abrir.
-    { int j = cat_indice_por_imdb(id);
+    { int j = sobIndiceDoTipo(id);
       if (j >= 0) { sobIndice = j; sobFioVivo = 0; return NULL; } }
     // Com a semente, o /meta NAO e esperado aqui: o titulo entra no catalogo
     // so com o que o clique sabia, a pagina abre, e o buscarEps (disparado na
@@ -9147,13 +9251,15 @@ static void *buscarTitulo(void *arg) {
     }
   }
 
-  for (passo = 0; passo < 2 && achou < 0; passo++) {
-    const char *tipo = passo ? "series" : "movie";
+  for (passo = 0; passo < (sobTipo[0] ? 1 : 2) && achou < 0; passo++) {
+    const char *tipo = sobTipo[0] ? sobTipo : passo ? "series" : "movie";
     corpo = metaprov_meta(tipo, id, 20, NULL);   // Nuvio, depois Cinemeta
     if (!corpo) continue;
     { const char *m = strstr(corpo, "\"meta\"");
       CatItem it;
-      if (m && deMeta(m, NULL, tipo, &it)) {
+      if (m && deMeta(m, NULL, tipo, &it) &&
+          (!sobTipo[0] || (!strcmp(it.tipo, sobTipo) &&
+                          (!it.imdb[0] || !strcmp(it.imdb, id))))) {
         // O id do proprio pedido manda: o Cinemeta as vezes devolve o campo
         // vazio, e sem ele o titulo entraria no catalogo sem chave e nao
         // poderia ser reaberto nem casar com progresso.
@@ -9172,7 +9278,8 @@ static void pedirTmdb(long tmdbId, const char *tipo, int semente) {
   if (tmdbId <= 0 || sobFioVivo) return;
   sobTemSemente = semente;
   sobTmdb = tmdbId;
-  snprintf(sobTipo, sizeof sobTipo, "%s", tipo ? tipo : "movie");
+  snprintf(sobTipo, sizeof sobTipo, "%s", tipo &&
+           (!strcmp(tipo, "tv") || !strcmp(tipo, "series") || !strcmp(tipo, "show")) ? "series" : "movie");
   sobId[0] = 0;
   sobIndice = -1;
   sobFioVivo = 1;
@@ -9192,7 +9299,8 @@ void desc_pedir_titulo(const char *imdb) {
             if (k >= sizeof id) k = sizeof id - 1;
             memcpy(id, imdb, k); id[k] = 0; }
   else snprintf(id, sizeof id, "%s", imdb);
-  if (cat_indice_por_imdb(id) >= 0) return;   // ja temos
+  snprintf(sobTipo, sizeof sobTipo, "%s", sobIdTemEpisodio(imdb) ? "series" : "");
+  if (sobIndiceDoTipo(id) >= 0) return;   // ja temos no tipo pedido
   sobTemSemente = 0;
   snprintf(sobId, sizeof sobId, "%s", id);
   sobTmdb = 0;
@@ -9242,7 +9350,7 @@ void desc_pedir_titulo_semente(const char *imdb, long tmdb, const char *tipo,
   { size_t k = dp ? (size_t)(dp - imdb) : strlen(imdb);
     if (k >= sizeof id) k = sizeof id - 1;
     memcpy(id, imdb, k); id[k] = 0; }
-  { int j = cat_indice_por_imdb(id);
+  { int j = cat_indice_por_imdb_tipo(id, s.tipo);
     if (j >= 0) { sobIndice = j; return; } }
   snprintf(s.imdb, sizeof s.imdb, "%s", id);
   sobIndice = descCatAcrescentar(&s);
