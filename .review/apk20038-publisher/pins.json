@@ -1,0 +1,41 @@
+{
+  "format": 3,
+  "frozen_pins_ready": true,
+  "root_publication_approved": true,
+  "source_commit": "bb6f4b3fab1e494a5f108c8638d26c72ee56d09f",
+  "source_tree": "0e6d883fe3bcf24d0340c0e900a5f06194572469",
+  "review_commit": "354afb8e85072c201eed3e21b2fe8386c0bfed32",
+  "review_tree": "ff1ed5409ac199877391a501a0e8c8161a893de1",
+  "plan_sha256": "21e51a0335e6d265fc8e2ce857af4d8739cd3255b0fd950f7e8d6d28a70f8e0d",
+  "run_id": 38974122262,
+  "run_attempt": 1,
+  "job": {
+    "id": 117219330016,
+    "name": "APK20038 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_artifact": {
+    "id": 12078686642,
+    "name": "apk20038-android-apk-354afb8e85072c201eed3e21b2fe8386c0bfed32",
+    "bytes": 54502988,
+    "sha256": "8b817dc051220eeab60fbc9d6d9886ad1b16cb1277a6411507fa2475382affa9"
+  },
+  "proof_artifact": {
+    "id": 12078701590,
+    "name": "apk20038-android-proof-354afb8e85072c201eed3e21b2fe8386c0bfed32",
+    "bytes": 22935,
+    "sha256": "8bfdacd7a82605cf151f4efc5dea4544e64d6ebbf2360224aa5f9e9e296c8478"
+  },
+  "apk_bytes": 59165116,
+  "apk_sha256": "325c2ca3234575720230da48711dea344b31e532b45a042fb911c90e3121d01f",
+  "validation_sha256": "d5edac1609d994f52722a876b152073f47b1b3cfbd002e0fb3888f9c5909954b",
+  "build_receipt_sha256": "043242023e11a668f5b4c134c55eb0b154164f1815cb31a4f97cb0a9b44a315a",
+  "apk_verification_sha256": "ab719f65ad49419b6b24592335c431c2f3bf2f66e320cb0f2a06f0c990ce7ad6",
+  "source_proof_sha256": "736cd1393964f3ce4a299e354271b446b11433336549dcae31b5d0aacbee2724",
+  "composition_sha256": "639518f333b5faa63c173b29a9433f433d75664ba8d8aaf0b1b035169920c4f7",
+  "source_units_per_abi": 316,
+  "player_control_relocation_public_product": "c54cee74b7193bdec7e05e2463b1b1a3b12b7685",
+  "special_seasons_public_product": "ea9354e45f00531b6f77e29be75606c5b070af2b",
+  "poster_grid_public_product": "5e64fb165f3d46aabbd96cba35b1fb8068c28fea",
+  "source_integration_receipt_sha256": "48b99ac9c84b13d24f6268cf3929f845f7689268f7816827f1f7990b4915eda8",
+  "search_see_all_public_product": "9bda0803597eb4f71daffd38b3c670025d894a7c"
+}
