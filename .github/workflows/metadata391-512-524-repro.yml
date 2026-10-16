@@ -1,0 +1,32 @@
+name: Metadata baseline reproduction 391 512 524
+on:
+  push:
+    branches: [review/metadata391-512-524-repro-20261016]
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    if: ${{ true }}
+    name: Reproduce 524 and 512 with reported-title 391 controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      METADATA_REPRO_PLAN_SHA256: '0abda6cb2ed2b395103976a7e0be786d03c2690064b564b16db8ba8447572fec'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Install host compiler and SDL headers
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends clang libsdl2-dev pkg-config
+      - name: Exact public baseline scripts with source-bound raw compiler evidence
+        run: python3 .review/metadata-repro/run.py --output "$RUNNER_TEMP/metadata-reproduction"
+      - name: Preserve raw reproduction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-reproduction-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/metadata-reproduction
+          if-no-files-found: error
+          retention-days: 14

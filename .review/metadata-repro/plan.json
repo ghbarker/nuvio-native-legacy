@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "purpose": "Baseline reproduction only: #524 identity lookup and #512 stable episode mapping; actual reported-title controls for #391. No fix or closure claim.",
+  "root_approved": true,
+  "execution_enabled": true,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "parent": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+  "parent_parent": "a48d9c5b193652e779bd5d434b5c6044734f6f7f",
+  "parent_tree": "75425eb0aad412254650395a8990c1669427ea8c",
+  "workflow": ".github/workflows/metadata391-512-524-repro.yml",
+  "review_paths": [
+    ".github/workflows/metadata391-512-524-repro.yml",
+    ".review/metadata-repro/cc_record.py",
+    ".review/metadata-repro/plan.json",
+    ".review/metadata-repro/run.py",
+    "tests/fixtures/episode_identity_512/README.md",
+    "tests/fixtures/episode_identity_512/catalog_duplicate_episode_id.json",
+    "tests/fixtures/episode_identity_512/cinemeta_kaiju_reduced.json",
+    "tests/fixtures/episode_identity_512/provenance.json",
+    "tests/title_identity524.c",
+    "tests/title_identity524.sh",
+    "tests/trakt_episode_identity_512.c",
+    "tests/trakt_episode_identity_512.sh"
+  ],
+  "fixture_origins": {
+    "tests/addons_manifest_notifications_stub.inc": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7",
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "bytes": 959
+    },
+    "tests/detalheanime.c": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "cfee589b06ba26c3e14e4a85b717bd141a30c0f3",
+      "sha256": "4aeeac5c44e7d967a90b28eff240e171ca2ec47ff3721d3196e2455093450062",
+      "bytes": 67964
+    },
+    "tests/episode_report391.c": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "3c29a45639d0b584c3ebd7d25adaa08e11c1249c",
+      "sha256": "90f1901425d3a368b1073e6daf83b644e524bafcf6fbdc273e5f9da9e0b62fed",
+      "bytes": 5034
+    },
+    "tests/episode_report391.sh": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "e40d430cac8311cc96011d24c5437c23710bd0ce",
+      "sha256": "d5e9658fead5e54f07bfb147b4fb5719bffe9f6e1b5610d9247ad98bcd75315e",
+      "bytes": 937
+    },
+    "tests/episodiosdup.c": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "4e81b478813c730a4bb28de6245c8c849065409c",
+      "sha256": "58c4a074a66bcbd5988caa2b7db56571e9f5abd83a4a0a74433f8fa34ef32989",
+      "bytes": 38596
+    },
+    "tests/fixtures/issue391/README.md": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "5c4e99d81f7fb9f5333095b63949042aabda3c08",
+      "sha256": "fc9191fd9e5e78b6ea80250a19a3926e1a392e145dbfab71975ef4c3314058df",
+      "bytes": 1013
+    },
+    "tests/fixtures/issue391/cinemeta_tt0092455.json": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "905b969c4394ce64e0dd634fe3541fd71df49c42",
+      "sha256": "d91f004a8106494d4f0e0f24c3ff981df52dfe198d557e7015135815cb13fd62",
+      "bytes": 48630
+    },
+    "tests/fixtures/issue391/nuvio_tt0092455.json": {
+      "source_commit": "991a21d8935656cbd14dc037c470bd0639d6d08a",
+      "blob": "7c370fd1d4c5923c701395f27487eef61e0704df",
+      "sha256": "cba075694ce1f832defa8c86152ff7aed71d0b064024151a8030f180f6e94a97",
+      "bytes": 96670
+    },
+    "tests/title_identity524.c": {
+      "source_commit": "0975d5ca3761b3e5b830d3cfa61bcad1970a4720",
+      "blob": "50635da1602021dccbc44ba2e13d6e85622e7f6d",
+      "sha256": "e7dac0926c3af599610edb2ed749687914525c1c7f2d2f58c352572aa7e0dc6a",
+      "bytes": 5459
+    },
+    "tests/title_identity524.sh": {
+      "source_commit": "0975d5ca3761b3e5b830d3cfa61bcad1970a4720",
+      "blob": "949c20937f907cc4d048bbb897dd1fc0e335fe04",
+      "sha256": "a5fc952b51845280efdb73444ad512305f630fc95e71b250ef170e37e72be2c9",
+      "bytes": 1047
+    },
+    "tests/fixtures/episode_identity_512/README.md": {
+      "source_commit": "08081a5bab989f4a2eddaa6885262ca0af584774",
+      "blob": "67e4bcaa9968ea41af5ebcc2f39e932b6908ca29",
+      "sha256": "e3485c173e60da61d2d91dc56ce1b7621e6023f2dd140af0bd5871d377129a34",
+      "bytes": 2220
+    },
+    "tests/fixtures/episode_identity_512/catalog_duplicate_episode_id.json": {
+      "source_commit": "08081a5bab989f4a2eddaa6885262ca0af584774",
+      "blob": "1be1a5270375b1e05334231d415c4ebf63624364",
+      "sha256": "8c77e5c4cd0ba16429e7aeee27f2b34115a9cac7f465dfc897abe91e4fcb9fd0",
+      "bytes": 2908
+    },
+    "tests/fixtures/episode_identity_512/cinemeta_kaiju_reduced.json": {
+      "source_commit": "08081a5bab989f4a2eddaa6885262ca0af584774",
+      "blob": "b78e19fa1702b800eca4fb0f9b112f17693453ce",
+      "sha256": "f46ca51d68dece91bfbccfa619bacf5b6a24fcbb5ddeea0fded5b589658b50fc",
+      "bytes": 2908
+    },
+    "tests/fixtures/episode_identity_512/provenance.json": {
+      "source_commit": "08081a5bab989f4a2eddaa6885262ca0af584774",
+      "blob": "bccbc95f5fbc18a21b0949b7662da392bbe10ef7",
+      "sha256": "06f3e351624eeb81f266a243a056c7929df4ca129c6a02e4f3d977479ae679a4",
+      "bytes": 897
+    },
+    "tests/trakt_episode_identity_512.c": {
+      "source_commit": "08081a5bab989f4a2eddaa6885262ca0af584774",
+      "blob": "3fc99b7f603bb546011d09b22ca5ff0578cfa8c9",
+      "sha256": "076cb9e1fe77fbb8f48bcc097767a1d885d4e3d27ea3c8c86d02066d0a0ef448",
+      "bytes": 4980
+    },
+    "tests/trakt_episode_identity_512.sh": {
+      "source_commit": "08081a5bab989f4a2eddaa6885262ca0af584774",
+      "blob": "7e1285a7e20591854a2f8530cfd6e47b44829a6f",
+      "sha256": "8c53dc38426b0a45f982c1a07672a6766a0961ae528e3daef73660febf2dd9f0",
+      "bytes": 705
+    }
+  },
+  "recipe_sha256": {
+    "cc_record.py": "a2f061fba0826c31bcc1df2f50855b43eb6a8204ee3e59bbb99a3df3f6521a44",
+    "run.py": "98a539d2ed5ee9b7d540798a7da880fe4801b3d1eb3dce999a9a014578f21a0e"
+  },
+  "group_count": 12,
+  "diagnostics": "Collect all 12 groups within a total 15-minute budget, maximum 240 seconds per group. Any compile, sanitizer, signature or proof error fails the final job; compiler failures never count as expected functional RED.",
+  "required_controls": {
+    "391_reported_title_cases_per_mode": 4,
+    "524_controls_per_mode": 3,
+    "512_controls_per_mode": 4
+  },
+  "expected_red": {
+    "524_normal": [
+      "tmdb-tv",
+      "episode-id"
+    ],
+    "512_normal_and_asan": [
+      "mapped"
+    ]
+  },
+  "391_policy_merge_probe": "excluded; not a reproduced bug",
+  "sanitizer_policy": "ASan and UBSan halt on error. Leak detection disabled for inherited process-lifetime service fixture allocations; this is not a leak audit."
+}
