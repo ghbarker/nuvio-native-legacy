@@ -1,0 +1,43 @@
+name: Exact rebased source transport
+on:
+  push:
+    branches: [review/c2e-source-transport-20261016]
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: c2e-source-transport-20261016
+  cancel-in-progress: false
+jobs:
+  exact-source-objects:
+    if: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          sparse-checkout: |
+            .review/c2e-source-transport
+            .github/workflows/c2e-source-transport.yml
+          sparse-checkout-cone-mode: false
+      - name: Cancel only seven verified temporary seed TPK builds
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SOURCE_TRANSPORT_PLAN_SHA256: 8ab10a79f4869abecb1892908d03f6736d8c7c74cdf3ca1563b327fc95387e8c
+        run: python3 .review/c2e-source-transport/cancel_seed_builds.py
+      - name: Verify exact commit objects and create seven temporary source refs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SOURCE_TRANSPORT_PLAN_SHA256: 8ab10a79f4869abecb1892908d03f6736d8c7c74cdf3ca1563b327fc95387e8c
+        run: python3 .review/c2e-source-transport/run.py
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: c2e-source-transport-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: |
+            source-transport-proof.json
+            seed-build-cancellation.json
+          if-no-files-found: error
+          retention-days: 14

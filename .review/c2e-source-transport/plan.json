@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "workflow_branch": "review/c2e-source-transport-20261016",
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "base_tree": "57c4115450351693acee524ea5c9f685ca4aaa9d",
+  "root_reviewed": true,
+  "execution_authorized": true,
+  "public_pr_updates_authorized": false,
+  "temporary_refs": {
+    "431": "refs/heads/review/c2e-pr431-source-20261016",
+    "538": "refs/heads/review/c2e-pr538-source-20261016",
+    "540": "refs/heads/review/c2e-pr540-source-20261016",
+    "541": "refs/heads/review/c2e-pr541-source-20261016",
+    "543": "refs/heads/review/c2e-pr543-source-20261016",
+    "546": "refs/heads/review/c2e-pr546-source-20261016",
+    "547": "refs/heads/review/c2e-pr547-source-20261016"
+  },
+  "heads": {
+    "431": "8979ef16c046a4b976d08dbbede82d81f9888a28",
+    "538": "a4cdfd164d28fd374ef328308b38115ec9af096c",
+    "540": "a064470826522dcf2b99767635be556b7555d097",
+    "541": "ad190469365670c94d4cc3ab40a7aa2dd44c2b66",
+    "543": "e2fbaa5667325e15f08b0e53592624ad5996c472",
+    "546": "6e2912703c8bc00ca9b6459fb1fa7c29f3007cfb",
+    "547": "a3c570947a6018bbd1dc58cb8c3fd2a8b7641bdb"
+  },
+  "trees": {
+    "431": "55fe8d25d23f632f5e480654b6bb15b382525bb3",
+    "538": "dd9886b1403bce98a1c2cb3a91cf086ed674ba27",
+    "540": "f8dbfcf6b45a53f1703a8dca2aa997088bc281aa",
+    "541": "8f6d9305598c6410dc02fa9619632c5e09490bdd",
+    "543": "ec73f3e6b2a35fe315001e76e29b3c9868ffbd54",
+    "546": "383487e105de435210842cf91131d1bea20ef85e",
+    "547": "daf2bc93ea28bb630fe960ddfeeab9406d8c404c"
+  },
+  "commit_count": 20,
+  "payload_sha256": "2970c135564d099a519178d1529d9b35da21af6a08f9ac49593bd4dedff6cbc2",
+  "runner_sha256": "214c296e678810012a73f378fa1880fb9a56e3add2d5905d72174ec1dfc1d415",
+  "workflow_normalized_sha256": "045a4889a78ff9941af813ccb4bd846a66cd9bf0efb24a53f33f78c484d7863c",
+  "scope": "Reconstruct exact20 commit objects from reviewed full-index binary patches and raw commits, then atomically create only seven hard-allowlisted temporary source refs. No tests/builds/PR refs/release/SDK/APK operations.",
+  "review_only_deletions": {
+    ".github/workflows/build-tpk.yml": "7422520df351f905c448b5a6182a92b330b59766"
+  },
+  "allowed_temporary_before_states": [
+    "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "candidate_head"
+  ],
+  "root_seed_refs_authorized": {
+    "refs/heads/review/c2e-pr431-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "refs/heads/review/c2e-pr538-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "refs/heads/review/c2e-pr540-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "refs/heads/review/c2e-pr541-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "refs/heads/review/c2e-pr543-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "refs/heads/review/c2e-pr546-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3",
+    "refs/heads/review/c2e-pr547-source-20261016": "c2e50a9325719ffae85005c0542338f6b44878c3"
+  },
+  "supersedes_failed_run": 38940409077,
+  "cleanup_sha256": "644504b27304c2d3d9807073165d817ca4079492dc00e6027ad10420babdc119",
+  "seed_build_cancellations": {
+    "38940687822": "review/c2e-pr547-source-20261016",
+    "38940684909": "review/c2e-pr546-source-20261016",
+    "38940682836": "review/c2e-pr541-source-20261016",
+    "38940684226": "review/c2e-pr543-source-20261016",
+    "38940681149": "review/c2e-pr540-source-20261016",
+    "38940679309": "review/c2e-pr538-source-20261016",
+    "38940677408": "review/c2e-pr431-source-20261016"
+  },
+  "actions_write_scope": "Cancel only seven hardcoded exact build-tpk seed runs after verifying repository/base/branch/path/push event."
+}
