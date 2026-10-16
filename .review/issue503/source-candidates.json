@@ -1,0 +1,162 @@
+{
+  "503": {
+    "pr": 503,
+    "internal_issue_candidate": 503,
+    "public_pr_number": null,
+    "head": "bbb74484e0f50b82357423fb349e0382117034ec",
+    "tree": "9a1bfaf45cb3c2d4364029f457c57931a8c01581",
+    "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+    "base_tree": "390a78e226f56b25756a749eab0c2c16cbe77c62",
+    "parents": [
+      "946ad1819469b213e5f8b0f0931badb7a520044e"
+    ],
+    "exact_diff_paths": [
+      "src/artehero.c",
+      "src/artehero.h",
+      "src/descoberta.c",
+      "src/detail.c",
+      "tests/arte_recomendacao.c",
+      "tests/arte_recomendacao.sh",
+      "tests/artehero.c",
+      "tests/artehero.sh"
+    ],
+    "paths": [
+      {
+        "path": "src/artehero.c",
+        "blob": "c59885d85ea2b84af4507c9fab3e8163116f1da3",
+        "sha256": "9a7a07b01abda18c81243140601b1286cd55ee5f16be8995f05a3d870ef30bc0"
+      },
+      {
+        "path": "src/artehero.h",
+        "blob": "5602ce322cb6263361eb6a750c85f339b07c8a31",
+        "sha256": "faf719cb766d154dca568bcb946961f8eeb1c79bd8472af991003ade84334412"
+      },
+      {
+        "path": "src/descoberta.c",
+        "blob": "5b36963db21990208edcb727303a702f6cc0485b",
+        "sha256": "d3f5e8be20501dc704be82d6ecb2a43c8611d0febc216f04b4056b0831b86d61"
+      },
+      {
+        "path": "src/detail.c",
+        "blob": "3411396e889573797925ba29e17f026286040e0f",
+        "sha256": "fe728e3ef9968cdbc78a3f40b5b39c785d12d94796d0ff70fd462845937916ea"
+      },
+      {
+        "path": "tests/arte_recomendacao.c",
+        "blob": "bb85b05a20993b1f0404158781e674965fa86633",
+        "sha256": "01a26d13eed2e13fb54c6c0e15fd7117d79c7c43864adf34e0e0fbb075f87ce9"
+      },
+      {
+        "path": "tests/arte_recomendacao.sh",
+        "blob": "72429662f10af10eca70025319b7a04a3b87a9cc",
+        "sha256": "c29992eb1b5990623e18255a2d4bb4dc9ff6aa86f99d49c30a55ea91c893d752"
+      },
+      {
+        "path": "tests/artehero.c",
+        "blob": "35f9447b37a14d4e7352e5a04e299dfb1aa9bcd4",
+        "sha256": "434e82c218da51ccf50a0a4226ee3cd2f1462d7ab683f335f1ed2d2c4d548f8b"
+      },
+      {
+        "path": "tests/artehero.sh",
+        "blob": "ebb41298fcc4cdd7f202273dd48adab03e73835d",
+        "sha256": "d70b1c4d25b8b53acb5cfc255a1167c18b74ec993cc05ad90714c716d9bcb6e7"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "src/catalogo.h",
+        "blob": "0dd9817dc23e5a74262e9da1d247a6557f1dc342",
+        "sha256": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8"
+      },
+      {
+        "path": "src/idiomacod.h",
+        "blob": "97348aca35d30875af6eedfd7a4c319aba697fc4",
+        "sha256": "bd384f3112ea3db429f83bb7e5d14d29d722627d5f98c2aa51b3ffe340f02b5a"
+      },
+      {
+        "path": "src/js.c",
+        "blob": "a354ee69661c451914001441fb4a70cbad937cfb",
+        "sha256": "600e01a70fc71d2152dabcbac3e21b13d91ac8b8a8b40c8b7a743207615c4d13"
+      },
+      {
+        "path": "src/js.h",
+        "blob": "7adf6cf271f5101a19573414c964fff18f94bae7",
+        "sha256": "d368cf856eac2042f6722e65eb23d02842f03ceb10e58c42d801162b68f9b52f"
+      },
+      {
+        "path": "src/metaprov.c",
+        "blob": "b50daaac9f68a141a9620abcba6d821073e048ce",
+        "sha256": "e8ef4a1f3ee28897e70fd47a3d0d5ebe4063e054fad8b27626661432be0a0e16"
+      }
+    ],
+    "product_head": "946ad1819469b213e5f8b0f0931badb7a520044e",
+    "public_test_commit": "bbb74484e0f50b82357423fb349e0382117034ec",
+    "public_test_commit_paths": [
+      "tests/arte_recomendacao.c",
+      "tests/arte_recomendacao.sh",
+      "tests/artehero.c",
+      "tests/artehero.sh"
+    ],
+    "fresh_sdk_required": true,
+    "public_suites": [
+      {
+        "name": "artehero-native-browser",
+        "script": "tests/artehero.sh",
+        "script_sha256": "d70b1c4d25b8b53acb5cfc255a1167c18b74ec993cc05ad90714c716d9bcb6e7",
+        "inputs": {
+          "tests/artehero.c": "434e82c218da51ccf50a0a4226ee3cd2f1462d7ab683f335f1ed2d2c4d548f8b",
+          "src/artehero.c": "9a7a07b01abda18c81243140601b1286cd55ee5f16be8995f05a3d870ef30bc0",
+          "src/artehero.h": "faf719cb766d154dca568bcb946961f8eeb1c79bd8472af991003ade84334412",
+          "src/descoberta.c": "d3f5e8be20501dc704be82d6ecb2a43c8611d0febc216f04b4056b0831b86d61",
+          "src/detail.c": "fe728e3ef9968cdbc78a3f40b5b39c785d12d94796d0ff70fd462845937916ea"
+        },
+        "required_markers": [
+          "artehero: tudo ok",
+          "artehero (tizen): tudo ok"
+        ],
+        "marker_counts": {
+          "ok  Metahub: alta nativa usa a mesma foto grande; card, navegador e reservas preservados": 2
+        },
+        "ok_marker_count": 30,
+        "modes": [
+          "normal",
+          "asan"
+        ],
+        "expected_compile_count": 2,
+        "expected_link_count": 2,
+        "compile_flag_counts": {
+          "-D__EMSCRIPTEN__": 1
+        }
+      },
+      {
+        "name": "recommendation-artwork",
+        "script": "tests/arte_recomendacao.sh",
+        "script_sha256": "c29992eb1b5990623e18255a2d4bb4dc9ff6aa86f99d49c30a55ea91c893d752",
+        "inputs": {
+          "tests/arte_recomendacao.c": "01a26d13eed2e13fb54c6c0e15fd7117d79c7c43864adf34e0e0fbb075f87ce9",
+          "src/metaprov.c": "e8ef4a1f3ee28897e70fd47a3d0d5ebe4063e054fad8b27626661432be0a0e16",
+          "src/descoberta.c": "d3f5e8be20501dc704be82d6ecb2a43c8611d0febc216f04b4056b0831b86d61",
+          "src/detail.c": "fe728e3ef9968cdbc78a3f40b5b39c785d12d94796d0ff70fd462845937916ea",
+          "src/artehero.c": "9a7a07b01abda18c81243140601b1286cd55ee5f16be8995f05a3d870ef30bc0",
+          "src/artehero.h": "faf719cb766d154dca568bcb946961f8eeb1c79bd8472af991003ade84334412",
+          "src/js.c": "600e01a70fc71d2152dabcbac3e21b13d91ac8b8a8b40c8b7a743207615c4d13",
+          "src/js.h": "d368cf856eac2042f6722e65eb23d02842f03ceb10e58c42d801162b68f9b52f",
+          "src/catalogo.h": "d26d1b36b125cd6a1cdc4c7a8ee245d28a30442df080b3413604db7d46a1bfc8",
+          "src/idiomacod.h": "bd384f3112ea3db429f83bb7e5d14d29d722627d5f98c2aa51b3ffe340f02b5a"
+        },
+        "required_markers": [
+          "arte_recomendacao: 27 checks passed"
+        ],
+        "ok_marker_count": 27,
+        "modes": [
+          "normal",
+          "asan"
+        ],
+        "expected_compile_count": 1,
+        "expected_link_count": 1
+      }
+    ],
+    "android_public_suites": [],
+    "scope": "Internal issue503 source candidate, not PR503. Reviewed four-file image-quality/recommendation implementation on current master followed by separate meaningful public artehero test commit. Native and host-compiled __EMSCRIPTEN__ selection branches are exercised; no browser runtime, private fixture or publication claim."
+  }
+}
