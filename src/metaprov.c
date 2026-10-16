@@ -110,8 +110,8 @@ void metaprov_url_meta(char *dst, size_t n, int prov, const char *tipo,
   snprintf(dst, n, "%s/meta/%s/%s.json", base, tipo ? tipo : "", eid);
 }
 
-void metaprov_url_busca(char *dst, size_t n, int prov, const char *tipo,
-                        const char *termo, const char *lang) {
+void metaprov_url_busca_pagina(char *dst, size_t n, int prov, const char *tipo,
+                               const char *termo, const char *lang, int skip) {
   char base[160], esc[300];
   const char *cat;
   escapar(termo, esc, sizeof esc, 0);
@@ -122,7 +122,14 @@ void metaprov_url_busca(char *dst, size_t n, int prov, const char *tipo,
     snprintf(base, sizeof base, "%s", METAPROV_CINEMETA_URL);
     cat = "top";
   }
-  snprintf(dst, n, "%s/catalog/%s/%s/search=%s.json", base, tipo ? tipo : "", cat, esc);
+  if (skip > 0)
+    snprintf(dst, n, "%s/catalog/%s/%s/search=%s&skip=%d.json", base, tipo ? tipo : "", cat, esc, skip);
+  else
+    snprintf(dst, n, "%s/catalog/%s/%s/search=%s.json", base, tipo ? tipo : "", cat, esc);
+}
+void metaprov_url_busca(char *dst, size_t n, int prov, const char *tipo,
+                        const char *termo, const char *lang) {
+  metaprov_url_busca_pagina(dst, n, prov, tipo, termo, lang, 0);
 }
 
 void metaprov_duracao(char *s, size_t n) {
@@ -215,24 +222,36 @@ char *metaprov_meta(const char *tipo, const char *id, int seg_cine, int *prov) {
 
 char *metaprov_busca_com(const char *tipo, const char *termo, int seg_nuvio,
                          int seg_cine, MetaprovGet get, void *ctx, int *prov) {
+  int escolhido = -1;
+  char *c = metaprov_busca_pagina_com(tipo, termo, metaprov_idioma(), 0,
+                                      seg_nuvio, seg_cine, get, ctx, &escolhido);
+  if (prov) *prov = escolhido;
+  return c;
+}
+
+char *metaprov_busca_pagina_com(const char *tipo, const char *termo,
+                                const char *lang, int skip, int seg_nuvio,
+                                int seg_cine, MetaprovGet get, void *ctx,
+                                int *prov) {
   char url[600], *c;
-  int st = 0;
+  int st = 0, escolhido = prov ? *prov : -1;
   if (!get) get = metaprov_get_rede;
-  if (prov) *prov = -1;
-  if (!tipo || !termo) return NULL;
-  if (!nuvioPausado()) {
-    metaprov_url_busca(url, sizeof url, METAPROV_NUVIO, tipo, termo, metaprov_idioma());
+  if (!tipo || !termo || skip < 0 || escolhido < -1 || escolhido > METAPROV_CINEMETA ||
+      (skip && escolhido < 0)) return NULL;
+  if (escolhido != METAPROV_CINEMETA && (escolhido == METAPROV_NUVIO || !nuvioPausado())) {
+    metaprov_url_busca_pagina(url, sizeof url, METAPROV_NUVIO, tipo, termo, lang, skip);
     c = get(url, seg_nuvio > 0 ? seg_nuvio : METAPROV_NUVIO_S, &st, ctx);
     if (c && metaprov_busca_valida(c)) {
       if (prov) *prov = METAPROV_NUVIO;
       return c;
     }
     free(c);
+    if (escolhido == METAPROV_NUVIO) return NULL;
     if (falhaDeRede(st)) nuvioPausar();
     printf("[meta] busca %s: Nuvio falhou (http %d); Cinemeta\n", tipo, st);
   }
   if (seg_cine < 0) return NULL;   // #231: Cinemeta fora da busca
-  metaprov_url_busca(url, sizeof url, METAPROV_CINEMETA, tipo, termo, NULL);
+  metaprov_url_busca_pagina(url, sizeof url, METAPROV_CINEMETA, tipo, termo, NULL, skip);
   c = get(url, seg_cine, &st, ctx);
   if (c && !metaprov_busca_valida(c)) { free(c); c = NULL; }
   if (c && prov) *prov = METAPROV_CINEMETA;

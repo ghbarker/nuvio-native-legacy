@@ -188,6 +188,9 @@ int  desc_busca_item(int i, CatItem *dst);
 // registrados, pulando os que ainda nao responderam ou vieram vazios. Assim o
 // primeiro catalogo a responder ja aparece, em vez de a tela esperar o mais
 // lento de dez.
+// Janela por catalogo de busca, compartilhada com Busca e Spotlight. Uma
+// fileira pode rolar: resultados depois dos primeiros 12 tambem abrem titulos.
+#define DESC_BUSCA_POR_ALVO 24
 int  desc_busca_n_alvos(void);
 const char *desc_busca_alvo_titulo(int alvo);   // "Filmes", "Séries"
 int desc_busca_alvo_nuvio(int alvo);             // 1 = catalogo do Nuvio (#311)
@@ -199,6 +202,8 @@ const char *desc_busca_alvo_addon(int alvo);    // "Cinemeta", "Xperience"
 const char *desc_nome_catalogo(const char *base, const char *tipo, const char *id);
 int  desc_busca_alvo_n(int alvo, const char *termo);
 int  desc_busca_alvo_item(int alvo, int i, CatItem *dst);
+// Ver tudo: a resposta foi truncada ou o manifesto permite outras paginas.
+int  desc_busca_alvo_mais(int alvo, const char *termo);
 // Sobe a cada termo novo. Quem guarda posicao de foco entre quadros deve
 // reajustar quando este numero mudar.
 int  desc_busca_geracao(void);
@@ -218,6 +223,8 @@ void desc_espera_addons_definir(int (*f)(void));
 void desc_esperar_conta(void);
 void desc_alvo_busca(const char *base, const char *tipo, const char *id,
                      const char *titulo, const char *addon);
+void desc_alvo_busca_paginavel(const char *base, const char *tipo, const char *id,
+                              const char *titulo, const char *addon, int skip);
 
 // 1 enquanto busca; a home pode usar isto para um indicador.
 int  desc_buscando(void);
@@ -247,6 +254,8 @@ int  desc_buscando(void);
 // pagina seguinte pede skip = pagina * VT_PASSO. Repetir a mesma pagina nao
 // refaz o pedido.
 void desc_vertudo_abrir(const char *base, const char *tipo, const char *catId);
+// Copia a fonte e a consulta sob a trava da busca. Recusa uma fileira antiga.
+int desc_vertudo_busca(int alvo, int geracao, const char *termo);
 void desc_vertudo_filtro(const char *base, const char *tipo, const char *catId, const char *genre);
 // Fonte nao-addon de pasta de colecao (issue #44): provider "tmdb" ou
 // "trakt" vindo do site. Os itens sao pedidos direto a esses servicos —

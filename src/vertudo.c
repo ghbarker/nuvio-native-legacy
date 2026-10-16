@@ -197,6 +197,7 @@ static const unsigned char LAY_CICLO[] = {
 };
 static int layEscolha;            // gravada (VT_LAY_AUTO = nunca escolheu)
 static int semVitrineAuto;        // aberta por vertudo_abrir (ver layAuto)
+static int buscaModo;            // IDs da resposta de busca, sem conversao de fonte TMDB
 static int lay = VT_LAY_GRADE;    // a que esta na tela
 static float pillAnim;            // foco no botao "Exibição"
 // O seletor nasce recolhido (so a exibicao aberta); OK abre o trilho inteiro e
@@ -608,6 +609,7 @@ static int cursorInicial(void);
 void vertudo_colecao(const ColFolder *folder) {
   int i;
   if(!folder||!folder->nSources)return;
+  buscaModo = 0;
   vitCancelar();
   memset(tabAnim, 0, sizeof tabAnim);
   tabRol = 0.0f;   // a faixa renasce no logo, sem herdar a rolagem da pasta anterior
@@ -629,6 +631,7 @@ void vertudo_colecao(const ColFolder *folder) {
 
 void vertudo_abrir(const char *base, const char *tipo, const char *catId,
                    const char *tit) {
+  buscaModo = 0;
   vitCancelar();
   aberta = 1; foco = 0; scrollY = 0.0f; velY = 0.0f; pedAbrir = -1;
 #ifdef NV_TOUCH_UI
@@ -654,6 +657,23 @@ void vertudo_abrir(const char *base, const char *tipo, const char *catId,
   // sempre: a escolha de exibicao e coisa de colecao.
   resolverLayout();
   desc_vertudo_abrir(base, tipo, catId);
+}
+
+int vertudo_busca(int alvo, int geracao, const char *termo, const char *tit) {
+  if (!desc_vertudo_busca(alvo, geracao, termo)) return 0;
+  vitCancelar();
+  aberta = 1; foco = 0; scrollY = velY = 0.0f; pedAbrir = -1;
+  buscaModo = 1; collection = NULL; semFonte = ranked = 0; catalogId[0] = 0;
+  source = tabCursor = tabFocus = 0; orderN = -1; celLay = -1;
+  pillAnim = 0; exibAberta = 0; vcTotal = 0; semVitrineAuto = 1;
+  tabRol = 0.0f; memset(tabAnim, 0, sizeof tabAnim);
+  limparFocoCatalogo(); abasReiniciar();
+  snprintf(titulo, sizeof titulo, "%s", tit ? tit : "");
+#ifdef NV_TOUCH_UI
+  toqueLivre = 0; toquerol_limpar(&toqueAbas);
+#endif
+  layEscolha = VT_LAY_GRADE; resolverLayout(); armarOnda();
+  return 1;
 }
 
 int vertudo_aberta(void) { return aberta; }
@@ -723,13 +743,23 @@ static GfxRect celulaRect(int i, const CatItem *it, const char **arte) {
 
 // 1 se o menu abriu. Titulo fora do catalogo e sem como entrar nele (id TMDB
 // que nenhum item conhece) devolve 0 — o KEYUP vira toque, como sempre foi.
+static int indiceResultadoBusca(const CatItem *it) {
+  if (!it->imdb[0]) return -1;
+  for (int i = 0; i < cat_n(); i++) {
+    const CatItem *c = cat_item(i);
+    if (c && !strcmp(c->imdb, it->imdb) && !strcmp(c->tipo, it->tipo) &&
+        !strcmp(c->origem, it->origem)) return i;
+  }
+  return cat_acrescentar(it);
+}
 static int menuNoFocado(void) {
   CatItem it;
   GfxRect r;
   const char *arte = "";
   int idx;
   if (!viewItem(foco, &it)) return 0;
-  if (!strncmp(it.imdb, "tmdb:", 5)) idx = ctxlista_indice(it.imdb, it.tmdb);
+  if (buscaModo) idx = indiceResultadoBusca(&it);
+  else if (!strncmp(it.imdb, "tmdb:", 5)) idx = ctxlista_indice(it.imdb, it.tmdb);
   else {
     idx = it.imdb[0] ? cat_indice_por_imdb(it.imdb) : -1;
     if (idx < 0 && it.imdb[0]) idx = cat_acrescentar(&it);
@@ -1686,6 +1716,11 @@ static void vitCarregar(Uint32 agora) {
 // tela de titulo possa abri-lo por indice, que e como todo o app trabalha.
 static void abrirItem(const CatItem *src) {
   CatItem it = *src;
+  if (buscaModo) {
+    int idx = indiceResultadoBusca(&it);
+    if (idx >= 0) pedAbrir = idx;
+    return;
+  }
   // Item de fonte TMDB (issue #44): o id e "tmdb:<n>", nao imdb. Quem resolve e
   // o caminho sob-demanda ja usado pela filmografia de elenco: external_ids ->
   // imdb -> meta do Cinemeta -> cat_acrescentar, e o desc_titulo_pronto do loop
