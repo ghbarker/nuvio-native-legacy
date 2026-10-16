@@ -1,0 +1,266 @@
+{
+  "source": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+  "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+  "ordinary_seeds": {
+    "debrid.txt": "torbox=fixture_torbox_fake\npremiumize=fixture_premiumize_fake\n",
+    "fontefalha.txt": "versao 1\nprovedores 1\naddons 0\nordem 1 2 0 3\nlimites 3 3 3 3\n",
+    "ajustes.txt": "interfaceModoLocal 0\nidioma 1\nidiomaAutoLocal 0\nrelogioTelaLocal 0\ntrailerAuto 1\ntrailerHero 1\nheroSectionEnabled 0\nhomeLayoutLocal 0\nenvioAuto 1\nmenuExplorarLocal 1\nmenuGuiaLocal 1\nmenuAgendaLocal 1\nmenuPerfilLocal 1\nescolherFonteManual 1\nfontePrepararLocal 1\nfontePrecarregarLocal 1\nfontePrioridadeLocal 0\nlegendaIdioma 3\naudioIdioma 3\nlegendaMostrarLocal 0\nlegendaForcadaLocal 1\n"
+  },
+  "scenes": {
+    "first_good": {
+      "title_id": "tt99995101",
+      "candidates": [
+        {
+          "scene": "first_good",
+          "candidate": 1,
+          "resolution": 2160,
+          "info_hash": "ae224d4360d9b5511174b4f126f60a459f9b5b6e",
+          "torrent_id": 101,
+          "filename": "Native.Fixture.2160p.WEB-DL.H264.AAC.English.1.mkv"
+        },
+        {
+          "scene": "first_good",
+          "candidate": 2,
+          "resolution": 1080,
+          "info_hash": "1121185e7e8a70eaad671258789d2093e7063f92",
+          "torrent_id": 102,
+          "filename": "Native.Fixture.1080p.WEB-DL.H264.AAC.English.2.mkv"
+        },
+        {
+          "scene": "first_good",
+          "candidate": 3,
+          "resolution": 720,
+          "info_hash": "edc1b650ef6e42f78d1018eb7fcbc5ec7a72bb9a",
+          "torrent_id": 103,
+          "filename": "Native.Fixture.720p.WEB-DL.H264.AAC.English.3.mkv"
+        }
+      ],
+      "addons_txt": "Native fixture A\thttp://10.0.2.2:8765/addon/first_good/a/manifest.json\t1\t1\t0\nNative fixture B\thttp://10.0.2.2:8765/addon/first_good/b/manifest.json\t1\t1\t0\n",
+      "catalogue_txt": "00.jpg|poster/00.jpg||Native failover first good|Movie  \u00b7  Test|2026  \u00b7  3 min|0|Local native-provider failover fixture.\n",
+      "ids_txt": "tt99995101\tmovie\n",
+      "expected_routes": [
+        {
+          "provider": "torbox",
+          "candidate": 1,
+          "info_hash": "ae224d4360d9b5511174b4f126f60a459f9b5b6e",
+          "addon": "a",
+          "media_path": "/media/first_good/torbox/1.mkv"
+        }
+      ],
+      "expected_foreground_errors": 0,
+      "expected_final_provider": "torbox",
+      "expected_pipeline_opens": 1
+    },
+    "second_delayed": {
+      "title_id": "tt99995102",
+      "candidates": [
+        {
+          "scene": "second_delayed",
+          "candidate": 1,
+          "resolution": 2160,
+          "info_hash": "3b74d5d622f950988e1aca83728f41ca577a8d08",
+          "torrent_id": 201,
+          "filename": "Native.Fixture.2160p.WEB-DL.H264.AAC.English.1.mkv"
+        },
+        {
+          "scene": "second_delayed",
+          "candidate": 2,
+          "resolution": 1080,
+          "info_hash": "c471bf4c6685d4dd5c3f12bf89ad4b9311130254",
+          "torrent_id": 202,
+          "filename": "Native.Fixture.1080p.WEB-DL.H264.AAC.English.2.mkv"
+        },
+        {
+          "scene": "second_delayed",
+          "candidate": 3,
+          "resolution": 720,
+          "info_hash": "c6acf5066a9cd833fd55457309cb6e9f44c19a08",
+          "torrent_id": 203,
+          "filename": "Native.Fixture.720p.WEB-DL.H264.AAC.English.3.mkv"
+        }
+      ],
+      "addons_txt": "Native fixture A\thttp://10.0.2.2:8765/addon/second_delayed/a/manifest.json\t1\t1\t0\nNative fixture B\thttp://10.0.2.2:8765/addon/second_delayed/b/manifest.json\t1\t1\t0\n",
+      "catalogue_txt": "00.jpg|poster/00.jpg||Native failover second delayed|Movie  \u00b7  Test|2026  \u00b7  3 min|0|Local native-provider failover fixture.\n",
+      "ids_txt": "tt99995102\tmovie\n",
+      "expected_routes": [
+        {
+          "provider": "torbox",
+          "candidate": 1,
+          "info_hash": "3b74d5d622f950988e1aca83728f41ca577a8d08",
+          "addon": "a",
+          "media_path": "/media/second_delayed/torbox/1.mkv"
+        },
+        {
+          "provider": "torbox",
+          "candidate": 2,
+          "info_hash": "c471bf4c6685d4dd5c3f12bf89ad4b9311130254",
+          "addon": "a",
+          "media_path": "/media/second_delayed/torbox/2.mkv"
+        }
+      ],
+      "expected_foreground_errors": 1,
+      "expected_final_provider": "torbox",
+      "expected_pipeline_opens": 2
+    },
+    "third_good": {
+      "title_id": "tt99995103",
+      "candidates": [
+        {
+          "scene": "third_good",
+          "candidate": 1,
+          "resolution": 2160,
+          "info_hash": "1e5911abaec30ba67aa53ba47783c80f1c9ded1f",
+          "torrent_id": 301,
+          "filename": "Native.Fixture.2160p.WEB-DL.H264.AAC.English.1.mkv"
+        },
+        {
+          "scene": "third_good",
+          "candidate": 2,
+          "resolution": 1080,
+          "info_hash": "af9a258db63b7ef468f9c90e865f397a2f325c5e",
+          "torrent_id": 302,
+          "filename": "Native.Fixture.1080p.WEB-DL.H264.AAC.English.2.mkv"
+        },
+        {
+          "scene": "third_good",
+          "candidate": 3,
+          "resolution": 720,
+          "info_hash": "52712e5724edb9fed6a0068b8adb74e30818d590",
+          "torrent_id": 303,
+          "filename": "Native.Fixture.720p.WEB-DL.H264.AAC.English.3.mkv"
+        }
+      ],
+      "addons_txt": "Native fixture A\thttp://10.0.2.2:8765/addon/third_good/a/manifest.json\t1\t1\t0\nNative fixture B\thttp://10.0.2.2:8765/addon/third_good/b/manifest.json\t1\t1\t0\n",
+      "catalogue_txt": "00.jpg|poster/00.jpg||Native failover third good|Movie  \u00b7  Test|2026  \u00b7  3 min|0|Local native-provider failover fixture.\n",
+      "ids_txt": "tt99995103\tmovie\n",
+      "expected_routes": [
+        {
+          "provider": "torbox",
+          "candidate": 1,
+          "info_hash": "1e5911abaec30ba67aa53ba47783c80f1c9ded1f",
+          "addon": "a",
+          "media_path": "/media/third_good/torbox/1.mkv"
+        },
+        {
+          "provider": "torbox",
+          "candidate": 2,
+          "info_hash": "af9a258db63b7ef468f9c90e865f397a2f325c5e",
+          "addon": "a",
+          "media_path": "/media/third_good/torbox/2.mkv"
+        },
+        {
+          "provider": "torbox",
+          "candidate": 3,
+          "info_hash": "52712e5724edb9fed6a0068b8adb74e30818d590",
+          "addon": "b",
+          "media_path": "/media/third_good/torbox/3.mkv"
+        }
+      ],
+      "expected_foreground_errors": 2,
+      "expected_final_provider": "torbox",
+      "expected_pipeline_opens": 3
+    },
+    "all_fail": {
+      "title_id": "tt99995104",
+      "candidates": [
+        {
+          "scene": "all_fail",
+          "candidate": 1,
+          "resolution": 2160,
+          "info_hash": "0ff925b8b4f0a3b51c7b4a735db4daccb40c4979",
+          "torrent_id": 401,
+          "filename": "Native.Fixture.2160p.WEB-DL.H264.AAC.English.1.mkv"
+        },
+        {
+          "scene": "all_fail",
+          "candidate": 2,
+          "resolution": 1080,
+          "info_hash": "e250ac6fc641386d8a4e7055422c90a986e0f188",
+          "torrent_id": 402,
+          "filename": "Native.Fixture.1080p.WEB-DL.H264.AAC.English.2.mkv"
+        },
+        {
+          "scene": "all_fail",
+          "candidate": 3,
+          "resolution": 720,
+          "info_hash": "c5aefc6e10fa581823709f8f596703b155e477da",
+          "torrent_id": 403,
+          "filename": "Native.Fixture.720p.WEB-DL.H264.AAC.English.3.mkv"
+        }
+      ],
+      "addons_txt": "Native fixture A\thttp://10.0.2.2:8765/addon/all_fail/a/manifest.json\t1\t1\t0\nNative fixture B\thttp://10.0.2.2:8765/addon/all_fail/b/manifest.json\t1\t1\t0\n",
+      "catalogue_txt": "00.jpg|poster/00.jpg||Native failover all fail|Movie  \u00b7  Test|2026  \u00b7  3 min|0|Local native-provider failover fixture.\n",
+      "ids_txt": "tt99995104\tmovie\n",
+      "expected_routes": [
+        {
+          "provider": "torbox",
+          "candidate": 1,
+          "info_hash": "0ff925b8b4f0a3b51c7b4a735db4daccb40c4979",
+          "addon": "a",
+          "media_path": "/media/all_fail/torbox/1.mkv"
+        },
+        {
+          "provider": "torbox",
+          "candidate": 2,
+          "info_hash": "e250ac6fc641386d8a4e7055422c90a986e0f188",
+          "addon": "a",
+          "media_path": "/media/all_fail/torbox/2.mkv"
+        },
+        {
+          "provider": "torbox",
+          "candidate": 3,
+          "info_hash": "c5aefc6e10fa581823709f8f596703b155e477da",
+          "addon": "b",
+          "media_path": "/media/all_fail/torbox/3.mkv"
+        },
+        {
+          "provider": "premiumize",
+          "candidate": 1,
+          "info_hash": "0ff925b8b4f0a3b51c7b4a735db4daccb40c4979",
+          "addon": "a",
+          "media_path": "/media/all_fail/premiumize/1.mkv"
+        }
+      ],
+      "expected_foreground_errors": 3,
+      "expected_final_provider": "premiumize",
+      "expected_pipeline_opens": 4
+    }
+  },
+  "header_prefetch_delay_ms": 2500,
+  "header_prefetch_exact_range": "bytes=0-65535",
+  "provider_budget_total_across_addons": 3,
+  "provider_ids": {
+    "realdebrid": 0,
+    "torbox": 1,
+    "premiumize": 2,
+    "alldebrid": 3
+  },
+  "transport": {
+    "http_port": 8765,
+    "https_port": 18443,
+    "api_hosts": [
+      "api.torbox.app",
+      "www.premiumize.me"
+    ]
+  },
+  "event_schema": {
+    "sequence": "globally increasing integer under one mutex",
+    "wall_time_ns": "Unix wallclock for logcat correlation",
+    "monotonic_ns": "same-host monotonic nanoseconds",
+    "current_scene": "scene name on candidate/addon events",
+    "native_link_generated": "provider,candidate,info_hash,media_kind,request_host,tls,tls_sni; resolve event, never a playback attempt",
+    "media_request": "method,range,start/end,header_delay_ms,prefetch_header_64k; HTTP/probe event, never a playback attempt",
+    "prefetch_header_delay_finished": "end of the exact native64KiB header response hold"
+  },
+  "freshness_notes": {
+    "provider_scope": "Absent/0 provider-scope-<synthetic-user>-p1.txt uses shared debrid.txt/fontefalha.txt.",
+    "memory_caches": "Cold process per case plus disjoint scene infoHashes/mediaURLs prevents cross-case source-cache reuse.",
+    "persisted_source_preferences": [
+      "fontepref-p1.txt",
+      "fontepref-auto-p1.txt"
+    ],
+    "persisted_dead_links": "fontesmortas-<fnv64-account>-p1.txt; separate scene URLs avoid overlap",
+    "mkv_sidecars": "URL-derived header/subtitle/font cache identity; scene/provider/candidate URL is unique",
+    "preparation": "Manual source chooser OFF; title preparation/video preload OFF via normal V_LIGA index1. Actual subtitle64KiB MKV prefetch remains required evidence."
+  }
+}

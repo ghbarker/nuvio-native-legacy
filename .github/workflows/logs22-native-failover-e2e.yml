@@ -1,0 +1,115 @@
+name: Logs22 native provider failover on real Android
+on:
+  push:
+    branches: [review/logs22-native-failover-e2e-20261016]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: logs22-native-failover-e2e
+  cancel-in-progress: false
+jobs:
+  native-provider-failover:
+    if: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Bind the isolated recipe to the built APK source
+        run: |
+          mkdir -p build/logs22-failover/proof
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          source='f07278cddd24fbf10a59ce00b7366d7e18a3898c'
+          assert subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip()==source
+          paths=subprocess.check_output(['git','diff-tree','--no-commit-id','--name-only','-r','HEAD'],text=True).splitlines()
+          assert paths and all(p.startswith('.review/logs22-failover/') or p=='.github/workflows/logs22-native-failover-e2e.yml' for p in paths)
+          files={p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}
+          pathlib.Path('build/logs22-failover/proof/recipe-source.json').write_text(json.dumps({'actual_review':os.environ['GITHUB_SHA'],'built_apk_source_parent':source,'input_validation_scope':'Android build/APK checks only; no macOS or release readiness','recipe_files':files,'app_source_changed':False},indent=2)+'\n')
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Download the exact successful Android APK artifact on this runner
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ghbarker/nuvio-native-legacy
+          run-id: 38868123532
+          name: apk20032-android-apk-9115376fff9fd44828bf9d3a2363f2552c30e842
+          path: build/logs22-failover/input
+      - name: Prepare exact built Logs22 APK and Android-only input validation
+        run: |
+          mkdir -p build/logs22-failover/proof
+          cp build/logs22-failover/input/Nuvio-2.0.32-test-logs22-tv-mobile-test.apk build/logs22-failover/Logs22.apk
+          echo '793a0235482a0457a07ebd8191784ef9291ae5f544385036b43df366d036f360  build/logs22-failover/Logs22.apk' | sha256sum --check
+          cp .review/logs22-failover/Logs22-android-build-validation.json build/logs22-failover/Logs22-validation.json
+          echo '20f3c08ce626b8871a807334ec7cafb80de4eebe50e3119a81d726cdf71f41c5  build/logs22-failover/Logs22-validation.json' | sha256sum --check
+          cp build/logs22-failover/Logs22-validation.json build/logs22-failover/proof/android-build-validation.json
+          sdkmanager 'build-tools;35.0.0'
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg mkvtoolnix
+          command -v jdb
+          command -v ffmpeg
+          command -v ffprobe
+          command -v mkvmerge
+          command -v mkvextract
+          bash .review/logs22-failover/generate_media.sh build/logs22-failover/media build/logs22-failover/proof/media
+          bash .review/logs22-failover/prepare_certificates.sh "$RUNNER_TEMP/logs22-fixture-private"
+      - name: Start closed-world fixture DNS before the AVD boots
+        run: |
+          sudo python3 .review/logs22-failover/dns_fixture.py --log "$GITHUB_WORKSPACE/build/logs22-failover/proof/fixture-dns.jsonl" > build/logs22-failover/proof/fixture-dns-server.log 2>&1 &
+          echo $! > build/logs22-failover/dns.pid
+          python3 - <<'PY'
+          import socket,time
+          deadline=time.monotonic()+10
+          while time.monotonic()<deadline:
+              try:
+                  s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.settimeout(1)
+                  s.sendto(bytes.fromhex('495001000001000000000000')+b'\x03api\x06torbox\x03app\x00\x00\x01\x00\x01',('127.0.0.1',53))
+                  data,_=s.recvfrom(4096);s.close()
+                  assert data.endswith(bytes([10,0,2,2]))
+                  break
+              except (OSError,AssertionError):time.sleep(.25)
+          else:raise SystemExit('Closed fixture DNS did not become ready')
+          PY
+      - name: Enable real KVM acceleration
+        run: |
+          test -c /dev/kvm
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Exercise the actual native provider policy and foreground decoder
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          cores: 2
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot -skin 1280x720 -writable-system -dns-server 127.0.0.1
+          script: python3 .review/logs22-failover/failover_smoke.py --apk build/logs22-failover/Logs22.apk --validation build/logs22-failover/Logs22-validation.json --output build/logs22-failover/proof --media-dir build/logs22-failover/media --cert-dir "$RUNNER_TEMP/logs22-fixture-private"
+      - name: Stop only the private fixture DNS process
+        if: always()
+        run: |
+          if [ -f build/logs22-failover/dns.pid ]; then
+            task_dns_pid=$(cat build/logs22-failover/dns.pid)
+            if [[ "$task_dns_pid" =~ ^[0-9]+$ ]]; then sudo kill "$task_dns_pid" || true; fi
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs22-native-failover-proof-${{ github.sha }}
+          path: build/logs22-failover/proof
+          if-no-files-found: error
+          retention-days: 14

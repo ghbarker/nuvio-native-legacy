@@ -1,0 +1,10 @@
+{
+  "reference_only": true,
+  "version": "1.8.0",
+  "url": "https://raw.githubusercontent.com/androidx/media/1.8.0/libraries/extractor/src/main/java/androidx/media3/extractor/mkv/MatroskaExtractor.java",
+  "whole_java_source_sha256": "5d5a62814d28fdea985497d1131f292d97cbda129275a6b84c53d0835b703e44",
+  "case_excerpt": "case ID_CONTENT_COMPRESSION_ALGORITHM:\n        // This extractor only supports header stripping.\n        if (value != 3) {\n          throw ParserException.createForMalformedContainer(\n              \"ContentCompAlgo \" + value + \" not supported\", /* cause= */ null);\n        }\n        break;\n",
+  "expected_unsupported_algorithm": 0,
+  "expected_log_fragment": "ContentCompAlgo 0 not supported",
+  "runtime_validation_required": "Unchanged released Logs21 APK must actually emit this exact MatroskaExtractor rejection during E2E; source reference is not a runtime pass."
+}
