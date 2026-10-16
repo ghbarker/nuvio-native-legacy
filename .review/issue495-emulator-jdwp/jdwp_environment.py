@@ -58,6 +58,42 @@ def launch_with_guest_environment(package, component, output, label):
                                got.stderr.decode(errors='replace')[-800:])
         return got.stdout
 
+    def jdwp_pid_visible(pid, timeout=3):
+        # `adb jdwp` streams changing PID lists and need not exit. Consume the
+        # requested PID with a deadline, then stop only this listing client.
+        listing = subprocess.Popen(['adb', 'jdwp'], stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, bufsize=0)
+        watch = selectors.DefaultSelector()
+        seen = bytearray()
+        os.set_blocking(listing.stdout.fileno(), False)
+        watch.register(listing.stdout, selectors.EVENT_READ)
+        try:
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                for key, _ in watch.select(timeout=0.1):
+                    chunk = os.read(key.fd, 65536)
+                    if not chunk:
+                        return False
+                    seen.extend(chunk)
+                    if len(seen) > 65536:
+                        raise RuntimeError('Unexpectedly large JDWP PID listing')
+                    if re.search(rb'(?:^|\n)' + re.escape(pid.encode('ascii')) + rb'\r?\n', seen):
+                        receipt['jdwp_pid_stream_verified'] = int(pid)
+                        return True
+                if listing.poll() is not None:
+                    return False
+            return False
+        finally:
+            watch.close()
+            if listing.poll() is None:
+                listing.terminate()
+            try:
+                listing.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                listing.kill()
+                listing.communicate(timeout=3)
+            receipt['jdwp_listing_client_stopped'] = listing.poll() is not None
+
     def read_until(pattern, start=0, timeout=30):
         deadline = time.monotonic() + timeout
         compiled = re.compile(pattern, re.MULTILINE)
@@ -112,7 +148,7 @@ def launch_with_guest_environment(package, component, output, label):
             value = got.stdout.decode().strip()
             if re.fullmatch(r'[0-9]+', value):
                 pid = value
-                if pid in adb('jdwp').decode().split():
+                if jdwp_pid_visible(pid):
                     break
             time.sleep(0.25)
         else:
