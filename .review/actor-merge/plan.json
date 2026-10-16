@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "root_approved": true,
+  "execution_enabled": true,
+  "purpose": "Diagnose the same actor-preservation assertion on unchanged Logs21 and current combined source; expected functional RED is evidence, not a fixed-product pass",
+  "base": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+  "current_remote_source": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+  "current_local_provenance": "c2666a0591e174e6aa321d1dea80212878dcf233",
+  "current_source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+  "branch": "review/actor-merge-baseline-20261016",
+  "workflow": ".github/workflows/actor-merge-baseline.yml",
+  "review_paths": [
+    ".github/workflows/actor-merge-baseline.yml",
+    ".review/actor-merge/run.py",
+    ".review/actor-merge/cc_record.py",
+    ".review/actor-merge/plan.json"
+  ],
+  "baseline_test_overlays": {
+    "tests/detalheanime.c": {
+      "git_mode": "100644",
+      "git_blob": "899d2af6dedf8132a63500a7748537112bae997a",
+      "sha256": "f5e85835fbe77b353e2c7b8f1addd93f4c509212e5235ef1f29a0580adbe4350",
+      "bytes": 69327
+    },
+    "tests/addons_manifest_notifications_stub.inc": {
+      "git_mode": "100644",
+      "git_blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7",
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "bytes": 959
+    }
+  },
+  "script": "tests/detalheanime.sh",
+  "script_sha256": "40365e16ba612024fe33632c798e8762adef145ea640482085d37669dd315d76",
+  "cast_helpers_byte_identical_sha256": "516e4f5cb911c9e69411830f7ef4b58c2df366079e81ab52d7ccad26339f14ac",
+  "variants": [
+    "baseline",
+    "current"
+  ],
+  "mode": "normal",
+  "expected_runtime_returncode": -6,
+  "expected_assertion": "cat_item(0)->nElenco == 1 && !strcmp(cat_item(0)->elenco[0].nome, \"Ator do Xperience\")",
+  "required_prior_control": "ok  mescla: a base manda; o Cinemeta so preenche elenco e episodios que faltavam",
+  "required_actual_result": "Mushoku Tensei: 4 atores",
+  "prior_current_mac_failure": {
+    "run_id": 38868065644,
+    "job_id": 116865745919,
+    "review": "ee5a7e1a8edd90629e190546906a60bb08a6159e"
+  },
+  "accepted_result": "Both actual public fixtures compile successfully and abort only at the exact same cast-preservation assertion after case24 passed; all setup/link/other runtime failures stay failures",
+  "no_product_or_assertion_change": true,
+  "cast_helpers_byte_identical_bytes": 7058,
+  "recipe_sha256": {
+    "run.py": "acebd176fa0679654a24b3b84fc0fa37d84e747c15fb7e61190519a77b614b06",
+    "cc_record.py": "563c0e24ccc1261cac679ced3886f51ef642c094488b818c12bb54fc609174c5"
+  }
+}

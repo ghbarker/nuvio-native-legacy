@@ -1,0 +1,72 @@
+{
+  "name": "actor merge baseline comparison",
+  "on": {
+    "push": {
+      "branches": [
+        "review/actor-merge-baseline-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "ACTOR_PLAN_SHA256": "b006e74493b13781bd68a970ea9fec42e59d1018395b7b1a9f4849bba75c2112"
+  },
+  "jobs": {
+    "compare": {
+      "if": true,
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "strategy": {
+        "fail-fast": false,
+        "max-parallel": 2,
+        "matrix": {
+          "variant": [
+            "baseline",
+            "current"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "path": "driver",
+            "fetch-depth": 2,
+            "persist-credentials": false
+          }
+        },
+        {
+          "uses": "actions/checkout@v4",
+          "if": "matrix.variant == 'current'",
+          "with": {
+            "ref": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+            "path": "current-source",
+            "fetch-depth": 1,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Install only ordinary native fixture dependencies",
+          "run": "sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends clang pkg-config libsdl2-dev"
+        },
+        {
+          "name": "Require the exact same actor assertion after real compilation and prior control",
+          "run": "python3 driver/.review/actor-merge/run.py --variant \"${{ matrix.variant }}\" --output \"$RUNNER_TEMP/actor-merge-${{ matrix.variant }}\""
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "actor-merge-${{ matrix.variant }}-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/actor-merge-${{ matrix.variant }}",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}
