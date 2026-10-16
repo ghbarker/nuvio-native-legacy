@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "549"
+  ],
+  "job_candidates": {
+    "native": [
+      "549"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue549-showcase-seeall-20261016",
+  "workflow_path": ".github/workflows/issue549-showcase-seeall.yml",
+  "source_manifest_sha256": "d4a20e2a652ccdf105a9752405d999810ce29103f7206269703a2277dd856b14",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "5d7dd0753cb8aed0459469bfd46e36ce914e234bac635a7b0c42112b2784ec26",
+    "public_tests.py": "40661f6a3015b8e7f7d1dcd03ff72dc303f14e6c8d40733ad9b47d4f2f28613a"
+  },
+  "workflow_normalized_sha256": "17047ebe79d69ee587fbaf1c599b55b38d6e570be12dd5c3560f7a874c7609ca",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "3b4a6ad21044be0cd739b0512f9f2b97772794a7f31adb1b997ee9e7519b9909",
+    "policy": "Exclude only this isolated review branch; actual source candidates keep the original upstream workflow."
+  },
+  "candidate_scope": "Issue549 public source and separate meaningful tests only; no private overlay or PR publication by this validation recipe.",
+  "scope": "Fresh Issue549 Showcase See all verification: exact colecao_exibicao normal/ASan plus existing touch syntax/state guards and full335 TV/touch production-Rust links. No other PR or APK rebuild.",
+  "hosted_shell_dependencies": {
+    "homebrew_formulae": [
+      "sdl2",
+      "sdl2_image",
+      "sdl2_ttf",
+      "sdl3",
+      "ripgrep"
+    ],
+    "required_commands": [
+      "bash",
+      "cc",
+      "dirname",
+      "mktemp",
+      "rm",
+      "python3",
+      "seq",
+      "sleep",
+      "sed",
+      "mkdir",
+      "sdl2-config",
+      "uname",
+      "cat",
+      "grep",
+      "tail",
+      "rg",
+      "brew",
+      "git",
+      "otool",
+      "rustc",
+      "cargo"
+    ],
+    "verification_step": "Real compiler and SDK sanity before full links",
+    "verification_log": "results/sdk/shell-tools.log",
+    "source_or_test_changes": false,
+    "reason": "Use accepted explicit command verification, including ripgrep, before any selected public script."
+  }
+}
