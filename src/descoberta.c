@@ -17,6 +17,7 @@
 #include "nuvem.h"
 #include "cwordem.h"
 #include "js.h"
+#include "episodioid.h"
 #include "recomenda.h"
 #include "trakt.h"
 #include "simkl.h"
@@ -43,6 +44,7 @@
 // Optional imports belong to consumers: public declarations keep producers strong.
 extern int trakt_enfeitar_lote_sessao(CatItem *, int, uint64_t) NV_PERFIL_OPCIONAL;
 extern int recomenda_social_mesclar_sessao(CatItem *, int, int, uint64_t) NV_PERFIL_OPCIONAL;
+extern int trakt_cw_concluiu_tvdb(const char *, int, long long) NV_PERFIL_OPCIONAL;
 
 // Detached jobs retain the session of their request, including A -> B -> A.
 static pthread_key_t descSessaoChave;
@@ -1236,6 +1238,60 @@ static int catalogosFora;
 static int catalogosNaoPedidos;
 static pthread_t fioEp;
 static int epItem = -1, epTemp, fioEpVivo;
+// A escolha final da fonte sobrevive a mudancas de indice e a pre-buscas do
+// carrossel. O token sai antes de qualquer publicacao intermediaria.
+#define EP_ESCOLHAS_MAX 64
+static struct {
+  char id[64], origem[96];
+  uint64_t sessao;
+  unsigned token;
+  int pronta;
+} epEscolhas[EP_ESCOLHAS_MAX];
+static unsigned epEscolhaToken;
+static int epEscolhaProxima;
+static pthread_mutex_t epEscolhaTrava = PTHREAD_MUTEX_INITIALIZER;
+
+static unsigned epEscolhaIniciar(const char *id, const char *origem, uint64_t sessao) {
+  char base[64]; int k;
+  idbase_copiar(id, base, sizeof base);
+  pthread_mutex_lock(&epEscolhaTrava);
+  for (k = 0; k < EP_ESCOLHAS_MAX; k++)
+    if (epEscolhas[k].sessao == sessao && !strcmp(epEscolhas[k].id, base) &&
+        !strcmp(epEscolhas[k].origem, origem ? origem : "")) break;
+  if (k == EP_ESCOLHAS_MAX) { k = epEscolhaProxima; epEscolhaProxima = (k + 1) % EP_ESCOLHAS_MAX; }
+  if (!++epEscolhaToken) ++epEscolhaToken;
+  snprintf(epEscolhas[k].id, sizeof epEscolhas[k].id, "%s", base);
+  snprintf(epEscolhas[k].origem, sizeof epEscolhas[k].origem, "%s", origem ? origem : "");
+  epEscolhas[k].sessao = sessao; epEscolhas[k].token = epEscolhaToken; epEscolhas[k].pronta = 0;
+  unsigned token = epEscolhaToken;
+  pthread_mutex_unlock(&epEscolhaTrava);
+  return token;
+}
+
+static void epEscolhaConcluir(const char *id, const char *origem, uint64_t sessao, unsigned token) {
+  char base[64];
+  if (!token || !nv_perfil_sessao_atual(sessao)) return;
+  idbase_copiar(id, base, sizeof base);
+  pthread_mutex_lock(&epEscolhaTrava);
+  for (int k = 0; k < EP_ESCOLHAS_MAX; k++)
+    if (epEscolhas[k].token == token && epEscolhas[k].sessao == sessao &&
+        !strcmp(epEscolhas[k].id, base) && !strcmp(epEscolhas[k].origem, origem ? origem : "")) {
+      epEscolhas[k].pronta = 1; break;
+    }
+  pthread_mutex_unlock(&epEscolhaTrava);
+}
+
+unsigned desc_episodios_escolha_pronta(const char *id, const char *origem, uint64_t sessao) {
+  char base[64]; unsigned token = 0;
+  if (!id || !*id || !nv_perfil_sessao_atual(sessao)) return 0;
+  idbase_copiar(id, base, sizeof base);
+  pthread_mutex_lock(&epEscolhaTrava);
+  for (int k = 0; k < EP_ESCOLHAS_MAX; k++)
+    if (epEscolhas[k].pronta && epEscolhas[k].sessao == sessao && !strcmp(epEscolhas[k].id, base) &&
+        !strcmp(epEscolhas[k].origem, origem ? origem : "")) { token = epEscolhas[k].token; break; }
+  pthread_mutex_unlock(&epEscolhaTrava);
+  return token;
+}
 
 int desc_buscando(void) {
   int v;
@@ -3031,7 +3087,8 @@ static int candidatoVence(const CatItem *novo, const CatItem *velho) {
     int t = velho->temporada, e = velho->episodio;
     prog_content_id(id, sizeof id, velho->imdb, &t, &e);
     prog_chave(chave, sizeof chave, id, t, e);
-    if (!trakt_cw_concluiu(velho->imdb, antes) &&
+    if (!(trakt_cw_concluiu_tvdb ? trakt_cw_concluiu_tvdb(velho->imdb, velho->tvdbEp, antes) :
+                                   trakt_cw_concluiu(velho->imdb, antes)) &&
         !(prog_por_chave(chave, &r) && r.durSeg > 1.0 &&
           r.tocou != 0 && 100.0 * r.posSeg / r.durSeg >= ajustes_cw_concluido() &&
           r.lastWatchedMs > antes && r.lastWatchedMs <= ms)) return 0;
@@ -6908,6 +6965,11 @@ static unsigned epSetCasa(const EpSet *s, unsigned long long k) {
   return i;
 }
 
+static int epSetTem(const EpSet *s, int t, int e) {
+  unsigned long long k = ((unsigned long long)(unsigned)t << 32) | (unsigned)e;
+  return s->v && s->v[epSetCasa(s, k)] != 0;
+}
+
 // 1 = par novo (entrou); 0 = repetido. A chave e procurada ANTES de crescer:
 // faltar memoria para a tabela maior nao pode transformar em "novo" um par que
 // ja esta nela. Sem crescer, os pares novos seguem entrando ate sobrar uma casa
@@ -7016,21 +7078,39 @@ static int metaArquivosCompativeis(const char *arquivos, const char *catalogo) {
 static int parsearEpisodios(const char *corpo, CatEp *eps, int max) {
   int n = 0;
   const char *p = js_array(corpo, NULL, "videos");
-  EpSet set = { 0 };
-  while (p && n < max) {
+  EpSet set = { 0 }, ambiguos = { 0 };
+  while (p) {
     const char *f = js_fim(p);
     int t = videoTemporada(p, f);
     int ne = t > 0 ? (int)js_num(p, f, "episode", 0) : 0;
+    int tvdb = episodioid_tvdb(p, f);
+    int novo = t > 0 && (ne <= 0 || epSetNovo(&set, t, ne));
+    if (tvdb > 0 && epSetTem(&ambiguos, 1, tvdb)) tvdb = 0;
+    // Arquivos repetidos podem discordar sobre o ID. O primeiro vid continua
+    // sendo o da fonte, mas nenhuma das identidades conflitantes e provada.
+    if (t > 0 && !novo)
+      for (int i = 0; i < n; i++) if (eps[i].temporada == t && eps[i].episodio == ne &&
+          eps[i].tvdbEp != tvdb) {
+        if (eps[i].tvdbEp > 0) epSetNovo(&ambiguos, 1, eps[i].tvdbEp);
+        if (tvdb > 0) epSetNovo(&ambiguos, 1, tvdb);
+        eps[i].tvdbEp = 0; tvdb = 0;
+      }
+    if (tvdb > 0) for (int i = 0; i < n; i++)
+      if (eps[i].tvdbEp == tvdb && (eps[i].temporada != t || eps[i].episodio != ne)) {
+        epSetNovo(&ambiguos, 1, tvdb);
+        eps[i].tvdbEp = 0; tvdb = 0; break;
+      }
     // Repeticao sai JA AQUI, antes do corte de `max`: descartada so depois de
     // ordenar, as 1200 vagas iam para copias dos primeiros episodios e o resto
     // da serie nem era lido. Fica o primeiro da resposta; sem numero de
     // episodio nao e repeticao.
-    if (t > 0 && (ne <= 0 || epSetNovo(&set, t, ne))) {
+    if (novo && n < max) {
       CatEp *e = &eps[n];
       char d[24] = "";
       memset(e, 0, sizeof *e);
       e->temporada = t;
       e->episodio = ne;
+      e->tvdbEp = tvdb;
       js_texto(p, f, "name", e->nome, sizeof e->nome);
       // O id do video (cat_id_stream): e ele que se manda aos addons de fonte
       // quando o titulo nao e do IMDb. Addon que usa "title" no lugar de "name"
@@ -7055,6 +7135,7 @@ static int parsearEpisodios(const char *corpo, CatEp *eps, int max) {
     p = js_prox(f);
   }
   free(set.v);
+  free(ambiguos.v);
   for (int i = 1; i < n; i++) {
     CatEp k = eps[i];
     int j;
@@ -7780,9 +7861,10 @@ static void *buscarEps(void *u) {
   char *corpo = NULL;
   char serie[64];
   char meuId[64];
+  char minhaOrigem[96];
   MetaFontes mf;
   int viaCatalogo = 0, solto = 0;
-  (void)u;
+  unsigned escolhaToken = (unsigned)(uintptr_t)u;
   memset(&mf, 0, sizeof mf);
   if (!descSessaoVincular(epSessao)) { fioEpVivo = 0; return NULL; }
   if (!cat_copiar_item(alvoItem, &base) || !base.imdb[0]) { fioEpVivo = 0; return NULL; }
@@ -7790,6 +7872,7 @@ static void *buscarEps(void *u) {
   if (preCede(orig->imdb)) { fioEpVivo = 0; return NULL; }
   snprintf(epAlvoId, sizeof epAlvoId, "%s", orig->imdb);
   snprintf(meuId, sizeof meuId, "%s", orig->imdb);
+  snprintf(minhaOrigem, sizeof minhaOrigem, "%s", orig->origem);
   // Copia sob a trava antes de sair para a rede; nenhum ponteiro de quadro.
   // CANAL NAO PASSA AQUI. O Cinemeta so conhece filme/serie por id do IMDb
   // ("tt..."); id de canal e "cs:channel:<hash>". "ehFilme = tipo != series"
@@ -8040,6 +8123,7 @@ static void *buscarEps(void *u) {
     // recomendacao dos detalhes) deixava o pedido da ficha dele guardado em
     // pendItem ate a cauda inteira acabar — pagina aberta e vazia. A cauda
     // escreve pelo id guardado em meuId (epAlvoDe), nao pelo global.
+    if (!ehFilme) epEscolhaConcluir(meuId, minhaOrigem, descSessao(), escolhaToken);
     solto = 1;
     fioEpVivo = 0;
     { char idBase[24];
@@ -8864,9 +8948,11 @@ void desc_episodios(int indiceItem, int temporada) {
   if (cat_n_episodios(indiceItem) > 0) return;
   epItem = indiceItem; epTemp = temporada;
   epSessao = nv_perfil_sessao_ler();
+  const CatItem *ci = cat_item(indiceItem);
+  unsigned escolhaToken = ci ? epEscolhaIniciar(ci->imdb, ci->origem, epSessao) : 0;
   epRodaPre = epPreQuer; epPreQuer = 0; epCancelar = 0;
   fioEpVivo = 1;
-  if (pthread_create(&fioEp, NULL, buscarEps, NULL) != 0) fioEpVivo = 0;
+  if (pthread_create(&fioEp, NULL, buscarEps, (void *)(uintptr_t)escolhaToken) != 0) fioEpVivo = 0;
   else pthread_detach(fioEp);
 }
 

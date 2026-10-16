@@ -1,5 +1,6 @@
 #include "jfid.h"
 #include "catalogo.h"
+#include "episodioid.h"
 #include "idbase.h"
 #include "tendencia.h"
 #include "artereserva.h"
@@ -789,7 +790,9 @@ int ajustes_idioma(void);
 // VERSAO 7: novo campo CatItem.posCreditos (cena pós-créditos, TMDB
 // 179430/179431). O sizeof recusaria o arquivo sozinho; a versao sobe mesmo
 // assim para o motivo da recusa ser o campo novo.
-#define CACHE_VERSAO 7
+// VERSAO 8: CatItem guarda o TVDB do episodio remoto, separado da numeracao
+// da fonte. Subir mesmo se o campo ocupar padding: layout nao e so sizeof.
+#define CACHE_VERSAO 8
 // Mesmo cabecalho, itens CODIFICADOS (zeros em corrida). Um CatItem tem ~16 KB
 // e quase tudo e zero (buffers de URL dimensionados para o pior caso): 1600
 // titulos eram 25,6 MB gravados na MEMFS dentro da trava do sistema de arquivos
@@ -1404,8 +1407,10 @@ static int normalizarIndice(int indice) {
 static void apontarEpisodio(int indice, int temporada, int episodio) {
   int e;
   if (!(temporada > 0 && episodio > 0)) return;
-  if (itens[indice].temporada != temporada || itens[indice].episodio != episodio)
+  if (itens[indice].temporada != temporada || itens[indice].episodio != episodio) {
     itens[indice].nomeEpisodio[0] = 0;
+    itens[indice].tvdbEp = 0;
+  }
   itens[indice].temporada = temporada;
   itens[indice].episodio  = episodio;
   mudou();
@@ -1484,7 +1489,10 @@ void cat_aplicar_progresso(int indice, double posSeg, double durSeg, int tempora
 // nada aqui — so limpava o nome quando o episodio muda, e isso continua.
 static void apontarEm(CatItem *v, int i, int temporada, int episodio) {
   if (!(temporada > 0 && episodio > 0)) return;
-  if (v[i].temporada != temporada || v[i].episodio != episodio) v[i].nomeEpisodio[0] = 0;
+  if (v[i].temporada != temporada || v[i].episodio != episodio) {
+    v[i].nomeEpisodio[0] = 0;
+    v[i].tvdbEp = 0;
+  }
   v[i].temporada = temporada;
   v[i].episodio  = episodio;
 }
@@ -1525,6 +1533,7 @@ static void espalharEm(CatItem *v, int m) {
     v[j].restanteMin = v[melhor].restanteMin;
     v[j].retomadoMs  = v[melhor].retomadoMs;
     apontarEm(v, j, v[melhor].temporada, v[melhor].episodio);
+    v[j].tvdbEp = v[melhor].tvdbEp;
   }
   free(fontes);
 }
@@ -1826,6 +1835,90 @@ int cat_id_stream(int indiceItem, int t, int e, char *dst, unsigned tam) {
   }
   snprintf(dst, tam, "%s:%d:%d", base, t, e);
   return 1;
+}
+
+static int episodioFaixaValida(int indice, const char *id) {
+  return id && indice >= 0 && indice < n && itens &&
+    idbase_len(itens[indice].imdb) == idbase_len(id) &&
+    !strncmp(itens[indice].imdb, id, idbase_len(id)) && !strcmp(itens[indice].tipo, "series") &&
+    epIni && epQtd && indice < nFaixas &&
+    epIni[indice] >= 0 && epQtd[indice] > 0 && epIni[indice] <= CAT_EP_MAX - epQtd[indice];
+}
+
+int cat_episodio_tvdb(int indice, const char *id, int t, int e) {
+  int tvdb = 0;
+  pthread_mutex_lock(&pubTrava);
+  pthread_mutex_lock(&epTrava);
+  if (episodioFaixaValida(indice, id)) {
+    const CatEp *v = eps + epIni[indice];
+    int q = epQtd[indice];
+    for (int i = 0; i < q; i++) if (v[i].temporada == t && v[i].episodio == e) {
+      if (v[i].tvdbEp <= 0 || (tvdb && tvdb != v[i].tvdbEp)) { tvdb = 0; break; }
+      tvdb = v[i].tvdbEp;
+    }
+    if (tvdb) {
+      EpisodioId r;
+      if (!episodioid_procurar(v, q, tvdb, &r) || r.temporada != t || r.episodio != e) tvdb = 0;
+    }
+  }
+  pthread_mutex_unlock(&epTrava);
+  pthread_mutex_unlock(&pubTrava);
+  return tvdb;
+}
+
+int cat_episodio_por_tvdb(int indice, const char *id, int tvdb, int *t, int *e) {
+  EpisodioId r;
+  int ok = 0;
+  pthread_mutex_lock(&pubTrava);
+  pthread_mutex_lock(&epTrava);
+  if (episodioFaixaValida(indice, id))
+    ok = episodioid_procurar(eps + epIni[indice], epQtd[indice], tvdb, &r);
+  pthread_mutex_unlock(&epTrava);
+  pthread_mutex_unlock(&pubTrava);
+  if (ok) { if (t) *t = r.temporada; if (e) *e = r.episodio; }
+  return ok;
+}
+
+static int episodioMesmaFonte(const CatEp *a, const CatEp *b, int qtd) {
+  for (int i = 0; i < qtd; i++)
+    if (a[i].temporada != b[i].temporada || a[i].episodio != b[i].episodio ||
+        a[i].tvdbEp != b[i].tvdbEp || strcmp(a[i].vid, b[i].vid)) return 0;
+  return 1;
+}
+
+int cat_copiar_episodios_fonte(const char *id, const char *origem, uint64_t sessao,
+                               CatEp **saida, int *qtd) {
+  int achou = 0, escolhido = -1, total = 0, ok = 0;
+  CatEp *copia = NULL;
+  if (!saida || !qtd) return 0;
+  *saida = NULL; *qtd = 0;
+  if (!id || !*id || !nv_perfil_sessao_travar(sessao)) return 0;
+  catTravar();
+  pthread_mutex_lock(&epTrava);
+  for (int i = 0; itens && i < n; i++) {
+    int q;
+    if (idbase_len(itens[i].imdb) != idbase_len(id) ||
+        strncmp(itens[i].imdb, id, idbase_len(id)) || strcmp(itens[i].tipo, "series") ||
+        strcmp(itens[i].origem, origem ? origem : "")) continue;
+    achou = 1;
+    if (!episodioFaixaValida(i, itens[i].imdb)) continue;
+    q = epQtd[i];
+    if (escolhido >= 0 && (q != total ||
+        !episodioMesmaFonte(eps + epIni[escolhido], eps + epIni[i], q))) goto fim;
+    escolhido = i; total = q;
+  }
+  if (!achou) goto fim;
+  if (total > 0) {
+    copia = malloc(sizeof *copia * (size_t)total);
+    if (!copia) goto fim;
+    memcpy(copia, eps + epIni[escolhido], sizeof *copia * (size_t)total);
+  }
+  *saida = copia; *qtd = total; ok = 1;
+fim:
+  pthread_mutex_unlock(&epTrava);
+  pthread_mutex_unlock(&pubTrava);
+  nv_perfil_sessao_destravar();
+  return ok;
 }
 
 int cat_copiar_por_id(const char *id, const char *tipo, CatItem *saida) {

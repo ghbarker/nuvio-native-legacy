@@ -100,6 +100,16 @@ static int tkAssistiu;
 void trakt_marcar(const char *imdb, double posSeg, double durSeg, double assistidoSeg, int assistiu) {
   (void)imdb; (void)assistidoSeg; tkPos = posSeg; tkDur = durSeg; tkAssistiu = assistiu; nTrakt++;
 }
+// The actual player now calls the typed endpoint. Keep the original stop
+// counters and all their assertions, while observing the immutable identity.
+static TraktScrobbleAlvo alvo512;
+static int chamadas512;
+int trakt_scrobble_alvo(int evento, const TraktScrobbleAlvo *alvo,
+                        double p, double d, double tocado, int fim) {
+  assert(alvo); alvo512 = *alvo; chamadas512++;
+  if (evento == SCR_EV_SAIU) trakt_marcar(alvo->id, p, d, tocado, fim);
+  return SCR_NADA;
+}
 int visto_titulo(const char *imdb, const char *tipo, const int *temporadas,
                  int nt, int visto, int destinos) {
   (void)imdb; (void)tipo; (void)temporadas; (void)nt; (void)visto; (void)destinos;
@@ -158,6 +168,28 @@ static void sessao(const char *imdb, int progresso, double d) {
 // `seg` segundos de relogio tocando a `vel` vezes a velocidade normal.
 static void tocar(int seg, double vel) {
   for (int i = 0; i < seg; i++) { agoraMono += 1; pos += vel; quadro(); }
+}
+
+static void tocar512(int segundos) {
+  for (int i = 0; i < segundos; i++) {
+    agoraMono += 1; pos += 1;
+    player_atualizar(1.0f, SDL_GetTicks());
+  }
+}
+static void serie512(int temporada, int episodio, int tvdb) {
+  CatItem c = {0}; CatEp ep = {0};
+  strcpy(c.imdb, "tt21975436"); strcpy(c.tipo, "series");
+  strcpy(c.titulo, "Kaiju fixture"); strcpy(c.meta, "1 h");
+  c.temporada = temporada; c.episodio = episodio;
+  ep.temporada = temporada; ep.episodio = episodio; ep.tvdbEp = tvdb;
+  strcpy(ep.duracao, "1 h");
+  cat_definir(&c, 1); cat_definir_episodios(0, &ep, 1);
+  dur = 3600; creditos = 0; manter = pularAbertura = 0;
+  nTrakt = nVisto = chamadas512 = 0;
+  memset(&alvo512, 0, sizeof alvo512);
+  player_abrir(0, fonte); player_definir_episodio(temporada, episodio);
+  quadro(); quadro(); tocar512(20);
+  assert(chamadas512 > 0);
 }
 
 int main(void) {
@@ -498,6 +530,30 @@ int main(void) {
     assert(prog_por_chave("tt90000031", &r) && fabs(r.posSeg - 232) < 1.0); }
   player_encerrar();
 
+  // #512: a later metadata publication must not retarget an active session.
+  serie512(2, 2, 11209906);
+  assert(!strcmp(alvo512.id, "tt21975436:2:2") && alvo512.tvdbEp == 11209906);
+  { CatEp ep = {0}; ep.temporada = 2; ep.episodio = 2; ep.tvdbEp = 999999;
+    strcpy(ep.duracao, "1 h"); cat_definir_episodios(0, &ep, 1); }
+  player_encerrar();
+  assert(nTrakt == 1 && !strcmp(alvo512.id, "tt21975436:2:2") && alvo512.tvdbEp == 11209906);
+  puts("ok  player stop retains the first proven episode identity after metadata replacement");
+
+  // Opening the next episode resets the old target; changing the episode in
+  // the same player session also captures its own target rather than reusing it.
+  serie512(2, 3, 11209907);
+  assert(!strcmp(alvo512.id, "tt21975436:2:3") && alvo512.tvdbEp == 11209907);
+  { CatEp ep = {0}; ep.temporada = 2; ep.episodio = 4; ep.tvdbEp = 11209908;
+    strcpy(ep.duracao, "1 h"); cat_definir_episodios(0, &ep, 1); }
+  player_definir_episodio(2, 4); player_encerrar();
+  assert(nTrakt == 1 && !strcmp(alvo512.id, "tt21975436:2:4") && alvo512.tvdbEp == 11209908);
+  puts("ok  next opening and explicit episode change reset the captured target");
+
+  sessao("tt1629757", 0, 3600); chamadas512 = 0;
+  tocar512(20); player_encerrar();
+  assert(chamadas512 > 0 && !strcmp(alvo512.id, "tt1629757") && alvo512.tvdbEp == 0);
+  puts("ok  a following movie keeps its movie identity without a stale episode target");
+  puts("player_identidade512: 3 scenarios passed");
   puts("PASS: trailer, pausa, buffer e seek sem reproducao nao marcam; >= 90% pela posicao conclui (oficial)");
   return 0;
 }

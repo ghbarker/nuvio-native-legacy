@@ -290,6 +290,9 @@ void desc_episodios_pendente(void);
 void desc_episodios_garantir(int indiceItem);
 int desc_episodios_precarregar(int indiceItem);   // -1 ocupado, 0 nada a pedir, 1 pediu
 int desc_episodios_carregando(int indiceItem);
+// Token da escolha FINAL da lista, por identidade estavel, nunca pelo indice.
+// Leia antes/depois de copiar a lista: so o mesmo token nao-zero e valido.
+unsigned desc_episodios_escolha_pronta(const char *id, const char *origem, uint64_t sessao);
 // Preenche `nota` (x10) e a `sinopse` no idioma pedido (#150) dos eps da
 // temporada dada a partir do JSON de /tv/<id>/season/<n> do TMDB. Pura;
 // devolve quantos episodios mudaram.

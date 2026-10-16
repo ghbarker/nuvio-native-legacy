@@ -1,0 +1,31 @@
+name: core512 focused validation
+on:
+  push:
+    branches: [review/core512-validation-20261016]
+permissions:
+  contents: read
+jobs:
+  core512:
+    if: ${{ true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      CORE512_PLAN_SHA256: 2e433e7be9d5f03c4f975ed4c3f7f8392833b6dc9014c0e29cd86720e838e42a
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Install ordinary focused native test dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends clang pkg-config libsdl2-dev
+      - name: Collect all sixteen actual public normal and sanitizer groups
+        run: python3 .review/core512/run.py --output "$RUNNER_TEMP/core512-proof"
+      - name: Preserve bounded source compiler and actual runtime proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core512-proof-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/core512-proof
+          if-no-files-found: error
+          retention-days: 14

@@ -69,6 +69,10 @@ static void avisarCascaAberto(int v) { (void)v; }
 #endif
 #include "trakt.h"
 #include "traktscrobble.h"
+#include "perfisessao.h"
+// Isolated player fixtures omit tracker/catalog producers; complete apps link them.
+extern int cat_episodio_tvdb(int, const char *, int, int) NV_PERFIL_OPCIONAL;
+extern int trakt_scrobble_alvo(int, const TraktScrobbleAlvo *, double, double, double, int) NV_PERFIL_OPCIONAL;
 #include "sync.h"
 #include "parental.h"
 #include "plrguia.h"
@@ -639,6 +643,8 @@ static int introIdx=-1, introT=-1, introE=-1;
 // Com que id o TheIntroDB foi perguntado (0 = imdb). Muda quando o TMDB do
 // episodio chega depois da abertura (2.0.3): pede de novo por tmdb_id.
 static long introTmdb;
+static TraktScrobbleAlvo scrobbleAlvo;
+static int scrobbleAlvoPronto;
 
 // O EPISODIO TOCANDO NO TMDB, quando o fio de episodios o confirmou
 // (CatEp.tmdbSerie/tmdbT/tmdbE). Filme: o id do item. 0 = nao se sabe.
@@ -837,14 +843,16 @@ void player_do_inicio(void) {
 }
 void player_definir_episodio(int t, int e) {
   const CatItem *c = item();
-  if (t != epT || e != epE) retomarFonteSeg = -1.0;
+  if (t != epT || e != epE) { retomarFonteSeg = -1.0; scrobbleAlvoPronto = 0; }
   epT = t; epE = e; linhaEp[0] = 0;
   audioTitulo();
   retomarPct = 0;
   // !canalSessao: canal nao tem retomada, e se o indice ja foi remapeado o
   // "progresso" lido ali seria de outro titulo qualquer.
   if (c && !canalSessao && !semRetomada && c->progresso > 0 && c->progresso < ajustes_cw_concluido() &&
-      (strcmp(c->tipo,"series") || (t==c->temporada && e==c->episodio))) retomarPct=c->progresso;
+      (strcmp(c->tipo,"series") || (t==c->temporada && e==c->episodio) ||
+       (c->tvdbEp > 0 && cat_episodio_tvdb &&
+        cat_episodio_tvdb(idxAtual(), c->imdb, t, e) == c->tvdbEp))) retomarPct=c->progresso;
 #ifdef NV_ANDROID
   retomarSeg = 0.0;
   if (c && retomarPct > 0) {
@@ -1490,6 +1498,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
 #endif
   creditosauto_zerar(&creditosAuto);
   player_descartar_retido();
+  scrobbleAlvoPronto = 0;
   // O trailer usa o mesmo plano de video (LG) — solta antes de o player
   // carregar a fonte, senao o load novo pisa no mediaId do trailer.
   trailer_fechar();
@@ -1996,6 +2005,32 @@ static void idTrakt(const CatItem *ci, char *dst, size_t n) {
   else snprintf(dst, n, "%s", base);
 }
 
+static const TraktScrobbleAlvo *alvoTrakt(const CatItem *ci) {
+  if (!scrobbleAlvoPronto) {
+    if (!ci || (strcmp(ci->tipo, "movie") && strcmp(ci->tipo, "series")) ||
+        (!strcmp(ci->tipo, "series") && (epT <= 0 || epE <= 0))) return NULL;
+    memset(&scrobbleAlvo, 0, sizeof scrobbleAlvo);
+    idTrakt(ci, scrobbleAlvo.id, sizeof scrobbleAlvo.id);
+    if (epT > 0 && epE > 0 && !strcmp(ci->tipo, "series")) {
+      if (cat_episodio_tvdb)
+        scrobbleAlvo.tvdbEp = cat_episodio_tvdb(idxAtual(), ci->imdb, epT, epE);
+    }
+    scrobbleAlvoPronto = 1;
+  }
+  return &scrobbleAlvo;
+}
+
+static int scrobbleTrakt(int evento, const CatItem *ci, double pos, double dur, double assistido, int fim) {
+  const TraktScrobbleAlvo *a = alvoTrakt(ci);
+  if (!a) return SCR_NADA;
+  if (trakt_scrobble_alvo) return trakt_scrobble_alvo(evento, a, pos, dur, assistido, fim);
+  if (evento == SCR_EV_SAIU) {
+    trakt_marcar(a->id, pos, dur, assistido, fim);
+    return SCR_NADA;
+  }
+  return trakt_scrobble(evento, a->id, pos, dur, assistido, fim);
+}
+
 // O ALVO DO STREAM desta sessao, no formato que app.c usa para pedir fontes
 // (alvoPlayer): "tt1" no filme, o id do episodio na serie.
 static void alvoStream(char *dst, unsigned tam) {
@@ -2190,10 +2225,8 @@ static void fecharSessao(int manter) {
     // Personal-server items stay private: no Trakt, friends feed or social
     // activity (jfid.h). The server got its own stop check-in above.
     if (ci && ci->imdb[0] && !jfid_e(ci->imdb)) {
-      char id[64];
-      idTrakt(ci, id, sizeof id);
       // Trakt also completes by percentage, so an invalid duration cannot be sent.
-      if (!duracaoContradita) trakt_marcar(id, pos, duracaoSeg, assistidoSeg, assistiu);
+      if (!duracaoContradita) scrobbleTrakt(SCR_EV_SAIU, ci, pos, duracaoSeg, assistidoSeg, assistiu);
       // "ASSISTIU" para os amigos, so quando CONCLUIU e so se ela ligou a
       // atividade (ou os "vistos recentemente" do perfil). Largar aos 8% nao
       // assistiu nada — e nao chega a lugar nenhum.
@@ -4017,11 +4050,8 @@ void player_atualizar(float dt, Uint32 agora) {
     const CatItem *cs = item();
     if (cs && jfid_e(cs->imdb)) cs = NULL;   // never scrobble personal-server items
     if (ok && cs && cs->imdb[0]) {
-      char id[64];
-      if (epT > 0 && epE > 0) snprintf(id, sizeof id, "%.*s:%d:%d", (int)strcspn(cs->imdb,":"), cs->imdb, epT, epE);
-      else snprintf(id, sizeof id, "%s", cs->imdb);
       tocouS += dt;
-      if (tocouS >= PLR_SCR_TOCOU_S) trakt_scrobble(SCR_EV_TOCANDO, id, posSeg, duracaoSeg, assistidoSeg, 0);
+      if (tocouS >= PLR_SCR_TOCOU_S) scrobbleTrakt(SCR_EV_TOCANDO, cs, posSeg, duracaoSeg, assistidoSeg, 0);
       parcialRelogio += dt;
       if (parcialRelogio >= PLR_PARCIAL_INTERVALO_S) {
         parcialRelogio = 0.0f;
@@ -4031,10 +4061,7 @@ void player_atualizar(float dt, Uint32 agora) {
       // Pausou (ou o video parou de andar): so fala se ha um start em pe.
       if (tocouS > 0.0f && cs && cs->imdb[0] && fontePrincipal() && video_pronto() && !ehCanal() &&
           duracaoSeg >= 120.0f && !scrubbing) {
-        char id[64];
-        if (epT > 0 && epE > 0) snprintf(id, sizeof id, "%.*s:%d:%d", (int)strcspn(cs->imdb,":"), cs->imdb, epT, epE);
-        else snprintf(id, sizeof id, "%s", cs->imdb);
-        trakt_scrobble(SCR_EV_PAUSOU, id, posSeg, duracaoSeg, assistidoSeg, 0);
+        scrobbleTrakt(SCR_EV_PAUSOU, cs, posSeg, duracaoSeg, assistidoSeg, 0);
         parcialPausa = 1;
       }
       tocouS = 0.0f;

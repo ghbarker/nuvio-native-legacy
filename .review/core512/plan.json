@@ -1,0 +1,434 @@
+{
+  "schema": 1,
+  "root_approved": true,
+  "execution_enabled": true,
+  "purpose": "Core issue512 regression discovery only; extras and full app/SDK are excluded",
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "local_candidate_provenance": "8fd3e6bdf6a082a61d5998cc2acde435a5f3ee5a",
+  "local_candidate_tree_provenance": "2df9ed8421f6d7dd9ffd84db1e1a43b4343f851e",
+  "composite_review_binding": "Remote HEAD has direct base49a parent; exact36 source blobs/modes and only4 recipe paths added; remote SHA learned from GITHUB_SHA",
+  "branch": "review/core512-validation-20261016",
+  "workflow": ".github/workflows/core512-validation.yml",
+  "review_paths": [
+    ".github/workflows/core512-validation.yml",
+    ".review/core512/run.py",
+    ".review/core512/cc_record.py",
+    ".review/core512/plan.json"
+  ],
+  "source_files": {
+    "src/catalogo.c": {
+      "sha256": "c89bd9b776cbb6485fa5ef8286080838f7dd835f13a426482b91076203a31209",
+      "bytes": 115945,
+      "git_blob": "ab57492a11f63f6226cff0daf71cafdb4b67ec9a",
+      "git_mode": "100644"
+    },
+    "src/catalogo.h": {
+      "sha256": "d1319f0cae723267679d774510f3c0fd81bda37d9676e7723b10d450ed6ebaa7",
+      "bytes": 33310,
+      "git_blob": "5f45484cd05b78d38c246409d819c53a591b3824",
+      "git_mode": "100644"
+    },
+    "src/descoberta.c": {
+      "sha256": "6cff26b6fe3e5ad15cdbe65a5a76bae6c36f4b9e9867b04a230914e0294f2a06",
+      "bytes": 432574,
+      "git_blob": "ecf666a575c50bd894ef2fac0689e6f9d98d8a41",
+      "git_mode": "100644"
+    },
+    "src/descoberta.h": {
+      "sha256": "246b05bc3c9af128268d7e05b60d7b072d1d4384b3bb87802d78f932e7a3c44d",
+      "bytes": 20954,
+      "git_blob": "f6b913bf35ec2e51edeca7fc626b7b82f9d921b6",
+      "git_mode": "100644"
+    },
+    "src/episodioid.h": {
+      "sha256": "bd448b717e57b201ae300aa9acb09db39849e29707f6157c1db2f325aa021c81",
+      "bytes": 4638,
+      "git_blob": "94e60f7ed67005c83d70cb71c82d9e75e8dcb029",
+      "git_mode": "100644"
+    },
+    "src/episodios.c": {
+      "sha256": "8c002f195b2463a800b4784ce88fbbae588ad6be7e46f79042813e1f63cd11aa",
+      "bytes": 53017,
+      "git_blob": "1c1638add8a5dd8753187fb0dec7eec8f883dc37",
+      "git_mode": "100644"
+    },
+    "src/player.c": {
+      "sha256": "c015f2beb3eacd48861b22edc3a8c9f2032b458b57cfd078219fc581d4706c1c",
+      "bytes": 308841,
+      "git_blob": "f908fd01832d60b9b73f7bd54eb0416b83742e81",
+      "git_mode": "100644"
+    },
+    "src/trakt.c": {
+      "sha256": "000776f5a303db193ebdc3548e67649eb560555f73ad94378cb3d244ba108e00",
+      "bytes": 111114,
+      "git_blob": "27ad810fb45caaf375feecc3124a6edb483e2167",
+      "git_mode": "100644"
+    },
+    "src/trakt.h": {
+      "sha256": "0b3ce47b276b37e036b04e6e6bd8009bb26137d21f628ed94aec48ef0f2a78da",
+      "bytes": 10539,
+      "git_blob": "00fee1b04879566868bc89b5dfd0ccb0df90fd72",
+      "git_mode": "100644"
+    },
+    "src/traktscrobble.c": {
+      "sha256": "028381aefe555f6115e22e56af733cf5e0631b0fea86d6bed31bfbb3a403f04a",
+      "bytes": 2409,
+      "git_blob": "e428cd49a02332084f4ecbab776aaf51b63b5bff",
+      "git_mode": "100644"
+    },
+    "src/traktscrobble.h": {
+      "sha256": "fa69ca9921fc4e86577d38e19b951a35f2b46dfebbd44ff2e43500a1ab96074f",
+      "bytes": 2083,
+      "git_blob": "8d50cd3fa06365dba3d843060f34da4a81bbc65f",
+      "git_mode": "100644"
+    },
+    "src/traktult.h": {
+      "sha256": "7e0702b5c7c985820baf15d0887c4b572a568cf73d25932615ad8cc01635cb58",
+      "bytes": 3724,
+      "git_blob": "685cd980829d9132d88261fdc21942af99df1f64",
+      "git_mode": "100644"
+    },
+    "src/visto.c": {
+      "sha256": "03b1a258e720a623d0d698a4068126a394d2f6fcd4a96eab7ff48e91c53fe199",
+      "bytes": 8891,
+      "git_blob": "06b699946c4d679b670dc0f585f905d83a17d7b0",
+      "git_mode": "100644"
+    },
+    "src/visto.h": {
+      "sha256": "eab66bc14614a4b1076eae2bcb87ada88a08cfd4a8d67431df311189651fff33",
+      "bytes": 3179,
+      "git_blob": "25b6548c1f82db3463c02a234918ae30382b6296",
+      "git_mode": "100644"
+    },
+    "tests/addons_manifest_notifications_stub.inc": {
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "bytes": 959,
+      "git_blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7",
+      "git_mode": "100644"
+    },
+    "tests/catalog_episode_identity512.c": {
+      "sha256": "000926a1bf6f42d57b03f418ee80ac6ffed8a5603502f9f72d7d2853c0aa97b7",
+      "bytes": 10966,
+      "git_blob": "d6de976f53df83d7c19a732b7032281c11684184",
+      "git_mode": "100644"
+    },
+    "tests/catalog_episode_identity512.sh": {
+      "sha256": "2926da5fd54431a1d9de1273b3aa3250f53dab70f1e42e90861f40722b086921",
+      "bytes": 1141,
+      "git_blob": "6748dc0288b74062552316d2150a3de17fe17dd0",
+      "git_mode": "100644"
+    },
+    "tests/catcache.c": {
+      "sha256": "92650824227b1a7ac064dd202845f69430fe79194c8d47c0111712649d6d1660",
+      "bytes": 13914,
+      "git_blob": "c5e4186b4ed3ad43fda84533dcc181895e990452",
+      "git_mode": "100644"
+    },
+    "tests/detalheanime.c": {
+      "sha256": "4aeeac5c44e7d967a90b28eff240e171ca2ec47ff3721d3196e2455093450062",
+      "bytes": 67964,
+      "git_blob": "cfee589b06ba26c3e14e4a85b717bd141a30c0f3",
+      "git_mode": "100644"
+    },
+    "tests/episodio_escolha512.c": {
+      "sha256": "85d0cce0b05078da0980d5610cc98cbeff53e9b99cd6cd4d4250babcbb409c0d",
+      "bytes": 4657,
+      "git_blob": "440e7cf69f61146c837a81a7672b057f8f46516b",
+      "git_mode": "100644"
+    },
+    "tests/episodio_escolha512.sh": {
+      "sha256": "04354f292fdca542f7fc9f0a5c8c38251bc60377078cd5c2337012af6df5cd83",
+      "bytes": 618,
+      "git_blob": "65586c4659b80c81fbd3a0210b989dbf86b331f9",
+      "git_mode": "100644"
+    },
+    "tests/episodioid512.c": {
+      "sha256": "3df81c51b186306d30f9be2b4911924ff2f4bd9d990c42aa2aaf5835a9d10bb1",
+      "bytes": 5220,
+      "git_blob": "da2ea11656b10a0e6f7825fa9694ceca7a87d10e",
+      "git_mode": "100644"
+    },
+    "tests/episodioid512.sh": {
+      "sha256": "155a5027b00fa49605f4c89faeeb8d1cfd26886c2f02f291807a6952035aca6d",
+      "bytes": 374,
+      "git_blob": "04ace770849245daaa6b3186c7c3954e22848c25",
+      "git_mode": "100644"
+    },
+    "tests/episodiosdup.c": {
+      "sha256": "58c4a074a66bcbd5988caa2b7db56571e9f5abd83a4a0a74433f8fa34ef32989",
+      "bytes": 38596,
+      "git_blob": "4e81b478813c730a4bb28de6245c8c849065409c",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/episode_identity_512/README.md": {
+      "sha256": "e3485c173e60da61d2d91dc56ce1b7621e6023f2dd140af0bd5871d377129a34",
+      "bytes": 2220,
+      "git_blob": "67e4bcaa9968ea41af5ebcc2f39e932b6908ca29",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/episode_identity_512/catalog_duplicate_episode_id.json": {
+      "sha256": "8c77e5c4cd0ba16429e7aeee27f2b34115a9cac7f465dfc897abe91e4fcb9fd0",
+      "bytes": 2908,
+      "git_blob": "1be1a5270375b1e05334231d415c4ebf63624364",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/episode_identity_512/cinemeta_kaiju_reduced.json": {
+      "sha256": "f46ca51d68dece91bfbccfa619bacf5b6a24fcbb5ddeea0fded5b589658b50fc",
+      "bytes": 2908,
+      "git_blob": "b78e19fa1702b800eca4fb0f9b112f17693453ce",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/episode_identity_512/provenance.json": {
+      "sha256": "06f3e351624eeb81f266a243a056c7929df4ca129c6a02e4f3d977479ae679a4",
+      "bytes": 897,
+      "git_blob": "bccbc95f5fbc18a21b0949b7662da392bbe10ef7",
+      "git_mode": "100644"
+    },
+    "tests/player_visto_trailer.c": {
+      "sha256": "c98062fef80e525f5a6f4e5a7f230ce9d8cbacf659d0a525a33e191a90e63da8",
+      "bytes": 27009,
+      "git_blob": "446a58eada1f56ad86c4205c388b1b43651e83d9",
+      "git_mode": "100644"
+    },
+    "tests/player_visto_trailer.sh": {
+      "sha256": "90ec77e29f271a55fdcb9c9b5979cba847338d2490077516f66181b239c2e9e2",
+      "bytes": 2205,
+      "git_blob": "95230f78e0bedb8137c8d4ed6e9eb3a063322ac5",
+      "git_mode": "100755"
+    },
+    "tests/trakt_alvos512.c": {
+      "sha256": "c8b12453b90b3266de28e0e538f31f6cd949ffb80a6a3d322d3f6db4ca1c624b",
+      "bytes": 4179,
+      "git_blob": "d888ca85c30702d812250d64d1743a8f2cbaf7c8",
+      "git_mode": "100644"
+    },
+    "tests/trakt_alvos512.sh": {
+      "sha256": "f96dd0a7fe90909a13968dc82505dd4ecbb9e84d5275ae9d54aba286a4b5189c",
+      "bytes": 633,
+      "git_blob": "185178414692f3d86cd3c7d9db6bbc76bc1436e8",
+      "git_mode": "100644"
+    },
+    "tests/trakt_episode_identity_512.c": {
+      "sha256": "076cb9e1fe77fbb8f48bcc097767a1d885d4e3d27ea3c8c86d02066d0a0ef448",
+      "bytes": 4980,
+      "git_blob": "3fc99b7f603bb546011d09b22ca5ff0578cfa8c9",
+      "git_mode": "100644"
+    },
+    "tests/trakt_episode_identity_512.sh": {
+      "sha256": "8c53dc38426b0a45f982c1a07672a6766a0961ae528e3daef73660febf2dd9f0",
+      "bytes": 705,
+      "git_blob": "7e1285a7e20591854a2f8530cfd6e47b44829a6f",
+      "git_mode": "100644"
+    },
+    "tests/visto_identidade512.c": {
+      "sha256": "cbff38cd60df4e7af067ba1fe37f931e8c6eb6de083feae4807c5bc4f4e66e79",
+      "bytes": 8472,
+      "git_blob": "9d2d006044ae854474d1e9de1db41d38fa73d854",
+      "git_mode": "100644"
+    },
+    "tests/visto_identidade512.sh": {
+      "sha256": "05669a85c7a47163a83cc4a16a28d2e1a174c8b3b29024b8abf4f4560c002acf",
+      "bytes": 818,
+      "git_blob": "1deae41ad0052214237771806f3be844e780510f",
+      "git_mode": "100644"
+    }
+  },
+  "cached_manifest_source": "748772129b3f4a251e2cc80e516ef59adfa8a596",
+  "cached_manifest_refreshed_paths": [
+    "src/episodioid.h",
+    "src/visto.c",
+    "tests/episodio_escolha512.c",
+    "tests/episodioid512.c",
+    "tests/visto_identidade512.c"
+  ],
+  "suites": [
+    {
+      "name": "episodioid512",
+      "script": "tests/episodioid512.sh",
+      "arguments": [
+        []
+      ],
+      "marker": "episodioid512: PASS",
+      "required_dependencies": [
+        "src/episodioid.h",
+        "src/traktscrobble.c",
+        "src/js.c",
+        "tests/episodioid512.c"
+      ]
+    },
+    {
+      "name": "trakt_episode_identity_512",
+      "script": "tests/trakt_episode_identity_512.sh",
+      "arguments": [
+        [
+          "normal"
+        ],
+        [
+          "missing"
+        ],
+        [
+          "duplicate"
+        ],
+        [
+          "offline"
+        ],
+        [
+          "mapped"
+        ]
+      ],
+      "marker": "trakt_episode_identity_512: PASS",
+      "required_dependencies": [
+        "src/trakt.c",
+        "src/proximo.c",
+        "tests/trakt_episode_identity_512.c",
+        "tests/stub_fichameta.c"
+      ]
+    },
+    {
+      "name": "catalog_episode_identity512",
+      "script": "tests/catalog_episode_identity512.sh",
+      "arguments": [
+        [
+          "lookups"
+        ],
+        [
+          "snapshot-identity"
+        ],
+        [
+          "ambiguity"
+        ],
+        [
+          "owned-snapshot"
+        ],
+        [
+          "stale-session"
+        ],
+        [
+          "concurrent-snapshot"
+        ]
+      ],
+      "marker": "catalog_episode_identity512: PASS ",
+      "required_dependencies": [
+        "src/catalogo.c",
+        "src/perfis.c",
+        "tests/catalog_episode_identity512.c"
+      ]
+    },
+    {
+      "name": "visto_identidade512",
+      "script": "tests/visto_identidade512.sh",
+      "arguments": [
+        []
+      ],
+      "marker": "visto_identidade512: 10 scenarios passed",
+      "required_dependencies": [
+        "src/visto.c",
+        "tests/visto_identidade512.c"
+      ]
+    },
+    {
+      "name": "trakt_alvos512",
+      "script": "tests/trakt_alvos512.sh",
+      "arguments": [
+        []
+      ],
+      "marker": "trakt_alvos512: PASS",
+      "required_dependencies": [
+        "src/trakt.c",
+        "src/jsw.c",
+        "src/traktscrobble.c",
+        "tests/trakt_alvos512.c"
+      ]
+    },
+    {
+      "name": "episodio_escolha512",
+      "script": "tests/episodio_escolha512.sh",
+      "arguments": [
+        []
+      ],
+      "marker": "episodio_escolha512: PASS",
+      "required_dependencies": [
+        "src/descoberta.c",
+        "src/perfis.c",
+        "tests/episodio_escolha512.c"
+      ]
+    },
+    {
+      "name": "episodiosdup",
+      "script": "tests/episodiosdup.sh",
+      "arguments": [
+        []
+      ],
+      "marker": "episodiosdup: ok",
+      "required_dependencies": [
+        "src/descoberta.c",
+        "src/catalogo.c",
+        "tests/episodiosdup.c"
+      ]
+    },
+    {
+      "name": "catcache",
+      "script": "tests/catcache.sh",
+      "arguments": [
+        []
+      ],
+      "marker": "catcache: tudo ok",
+      "required_dependencies": [
+        "src/catalogo.c",
+        "tests/catcache.c"
+      ]
+    }
+  ],
+  "modes": [
+    "normal",
+    "asan"
+  ],
+  "group_count": 16,
+  "expected_binary_executions": 34,
+  "collect_all_group_failures": true,
+  "runtime_address_space": "unlimited",
+  "exclusions": [
+    "extras watched import",
+    "full-source application links",
+    "Android or other SDK builds",
+    "full-source player suite"
+  ],
+  "recipe_sha256": {
+    "run.py": "39e376b0376af516ab05d2f1986cba73594c59d4a1492182a0cdef2bb7517dc9",
+    "cc_record.py": "349dc4e6e532aa4135c194694174a039397860a2a2c51d84e272ee3455b865db"
+  },
+  "latest_review_provenance": {
+    "previous_candidate": "252ef4446aa43b787bfd610e6b17b6e17de1d425",
+    "previous_closed_plan_sha256": "2bf8af5f24dc6020999b0c9673c249c7cd6407173c99779286166ca59eebcce6",
+    "delta_paths": [
+      "tests/episodio_escolha512.c"
+    ],
+    "review": "Three fixture-only lines provide actual-header-compatible deterministic ajustes_idioma/idioma_mes_data boundaries; all product files, public scripts and behavior assertions unchanged",
+    "all_non_test_entries_identical_to": "252ef4446aa43b787bfd610e6b17b6e17de1d425",
+    "all_eight_public_script_blobs_unchanged": true,
+    "tests_run_during_this_refresh": false,
+    "prior_hosted_run": 38865942940,
+    "prior_hosted_result": "FAIL:14 passing groups/32 actual executions retained;2 episode-readiness groups failed link before execution",
+    "prior_independent_verification_sha256": "c4a070321d752e781524bd54c445242cee71896119eaebbb5caa6250b52db4e5",
+    "rerun_policy": "All16 groups fresh; historical14 passes are not relabeled as current source passes"
+  },
+  "source_refresh_history": [
+    {
+      "previous_candidate": "588df691a6ba7b8b0c2f499bbbcae8a8c14ba0fa",
+      "previous_closed_plan_sha256": "97e29c71636721962eb256843c929498d1b6245c9062f1eb92e3b08e2d0cc2b4",
+      "delta_paths": [
+        "src/episodioid.h",
+        "tests/episodioid512.c"
+      ],
+      "hosted_manifest": "/dev/shm/episode-identities-512-20261016/hosted-core512-kit-inverse/manifest.json",
+      "hosted_manifest_sha256": "9d0e84090edc97c856c9f0c43407a89c97c1380f5644230137aff4cc0eaedfc1",
+      "review": "Two-way identity ambiguity rejection: one source season/episode cannot prove two different positive TVDB episode identities; unrelated pair and identical duplicate controls preserved",
+      "all_eight_public_script_blobs_unchanged": true,
+      "tests_run_during_this_refresh": false,
+      "historical_red_green_proofs": {
+        "inverse-ambiguity-red.json": "5f7cf3035ca1881aaba7fef6d0da0dffed0243daa229fe1936631856b42acc8e",
+        "inverse-ambiguity-green.json": "1791b37388f38fc11c2b682e03d80882ba0cce17932b74a0fc9cbf1185f01580"
+      }
+    }
+  ]
+}

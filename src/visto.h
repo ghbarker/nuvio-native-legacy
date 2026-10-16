@@ -37,6 +37,11 @@ int visto_destinos(void);
 // argumento invalido. `destinos` e uma mascara de VISTO_*.
 int visto_episodios(const char *imdb, const char *tipo, const VistoPar *pares,
                     int n, int visto, int destinos);
+// The selected catalog copy can supply stable episode IDs to Trakt. They are
+// copied before enqueue; Simkl, the account journal and local pairs keep their
+// existing numbering. Missing or ambiguous identity retains numeric behavior.
+int visto_episodios_item(int indice, const char *imdb, const char *tipo,
+                        const VistoPar *pares, int n, int visto, int destinos);
 // Async actions freeze their original tracker authentication at enqueue;
 // late workers never use the destination profile's accounts.
 // O mesmo, SINCRONO — para o teste e para quem ja esta num fio.
