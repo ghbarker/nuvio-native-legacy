@@ -1,0 +1,114 @@
+{
+  "format": 2,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "sources": {
+    "product": {
+      "commit": "936cd99457c680086f5688ad74c89b224e9915a0",
+      "tree": "097ffc2d8b1f8a396721c46937ac76490d1fb14f",
+      "parents": [
+        "1bd7d359150a0eeeba9a9b4878d42fe36f22a56e",
+        "29da4923852fbe81bc64fc5f50ccafaddbf4e310"
+      ],
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "1bc3cc7163e30fde6304a897004dcac3a046904144a5eebe03347d19bb96fd47"
+    },
+    "test": {
+      "commit": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+      "tree": "3b206335e07d87ef68db20863cb9005e719840d3",
+      "parents": [
+        "936cd99457c680086f5688ad74c89b224e9915a0"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "7834803c0121ea20df341259517831bcdd2e7f371a5fdc4b85c57b33d6221570"
+    }
+  },
+  "six_pr_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec"
+  },
+  "issue495": {
+    "head": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "tree": "01001a351d6a5aa620b675ef5eb3c0758b68935e",
+    "frozen": true
+  },
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/detail.c",
+      "src/posplay.c",
+      "src/tex_cache.c",
+      "src/tex_cache.h"
+    ],
+    "patch_sha256": "288630409c34a4cc7f12bcfecb3d3716afbb959be4b5984f32b63355c182de95",
+    "logs19_added_deleted_lines_preserved_except_version": true,
+    "normalized_changed_lines_sha256": "4e60b42c6d157403c7e82d0b3c0f2cb90b65c530635d33b06d2fd8755edfdbdf",
+    "patch_format": "canonical-full-index",
+    "canonical_diff_arguments": [
+      "--full-index",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--no-color",
+      "--no-renames",
+      "--diff-algorithm=myers",
+      "--no-indent-heuristic",
+      "--src-prefix=a/",
+      "--dst-prefix=b/"
+    ]
+  },
+  "product_tests_tree": "75fce872c01b1ebec0b39b8fa8f5501c510a7e3f",
+  "private_tests_tree": "75fce872c01b1ebec0b39b8fa8f5501c510a7e3f",
+  "root_reviewed": true,
+  "source_frozen": true,
+  "merge_conflict_resolutions": {
+    "src/agendaui.c": {
+      "blob": "b1fc1fcff8f5497b54f0f908a5f39e68bc855d68",
+      "sha256": "ec1bd7d86ceb46f96fa95b0122b68340abe68626f88f4f0febac552e298f0228",
+      "resolution": "Retain both independently added adjacent statements/declarations"
+    },
+    "src/busca.c": {
+      "blob": "1fbac30d985d39cb2984d9f23c1a9ba3b26216fe",
+      "sha256": "4d46f36d37cc82d777520b5dca3eb1687ead4f69684302257062bd5b88c1f21d",
+      "resolution": "Retain both independently added adjacent statements/declarations"
+    },
+    "src/ajustes.h": {
+      "blob": "aa08645c5748bfd356bd45a73a3de859cc0a8746",
+      "sha256": "fc17d05c26e2802ebf93ad6a1f8eec6d7aefadf590ef29f797401f8438d536e4",
+      "resolution": "Retain both independently added adjacent statements/declarations"
+    }
+  },
+  "six_pr_integration": {
+    "commit": "df9ce8eaf5116dd5b8f53c32d63cba750a8c59bb",
+    "tree": "4c86529b04f538e97fd53319ceb6cc452d1dfa18"
+  },
+  "new_merge_conflicts": {},
+  "previous_logs20": {
+    "product": "1bd7d359150a0eeeba9a9b4878d42fe36f22a56e",
+    "private": "be1183f7dde83d8c8b5b9c0881537d0e4b814f0f",
+    "product_ancestry_preserved": true
+  },
+  "failover": {
+    "head": "29da4923852fbe81bc64fc5f50ccafaddbf4e310",
+    "tree": "8d17c9a1e0770acda0c9ddf8753700ae25812597",
+    "product": "a99b2013fb245a5299dd6d74b6cc6983151c4fb6",
+    "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+    "frozen": true,
+    "non_test_delta_from_logs20": [
+      "src/app.c"
+    ],
+    "product_added_deleted_statements_match_reviewed_fix": true,
+    "public_tests_preserved": true
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "format": 2,
+  "frozen": true,
+  "root_reviewed": true,
+  "source_frozen": true,
+  "ci_execution_permitted": true,
+  "publication_permitted": false,
+  "review_only": true,
+  "upstream": {
+    "url": "https://github.com/iqui27/nuvio-native-legacy.git",
+    "commit": "49a2544325ea83284a1d5024c5c2875a6a657e6c"
+  },
+  "sources": {
+    "product": {
+      "commit": "936cd99457c680086f5688ad74c89b224e9915a0",
+      "tree": "097ffc2d8b1f8a396721c46937ac76490d1fb14f",
+      "parents": [
+        "1bd7d359150a0eeeba9a9b4878d42fe36f22a56e",
+        "29da4923852fbe81bc64fc5f50ccafaddbf4e310"
+      ],
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "1bc3cc7163e30fde6304a897004dcac3a046904144a5eebe03347d19bb96fd47"
+    },
+    "test": {
+      "commit": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+      "tree": "3b206335e07d87ef68db20863cb9005e719840d3",
+      "parents": [
+        "936cd99457c680086f5688ad74c89b224e9915a0"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "7834803c0121ea20df341259517831bcdd2e7f371a5fdc4b85c57b33d6221570"
+    }
+  },
+  "identity": {
+    "package": "space.nuvio.nativelegacy.touch",
+    "namespace": "space.nuvio.nativelegacy",
+    "label": "Nuvio TV/Mobile Test",
+    "version_code": 20031,
+    "version_name": "2.0.31-test-logs21",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+    "file_provider_authority": "space.nuvio.nativelegacy.touch.atualizacao"
+  },
+  "bundle": {
+    "path": "source.bundle.base64",
+    "sha256": "1d60e6b8d66a6c2ae5d082fd93497844fd1177b7d70a0eac268e2466a6abb947",
+    "bytes": 827243
+  },
+  "composition_manifest": {
+    "path": "composition-manifest.json",
+    "sha256": "f8c05d3572176bc0d630c79f7519173f1e53d3653dbcb297992b252bdfb9e150"
+  },
+  "scope": {
+    "android_test_apk_only": true,
+    "private_overlay_never_public": true,
+    "fresh_actual_android_both_arm": true,
+    "no_repeat_standard_apk_or_six_pr_macos": true,
+    "private_log_opt_in": true,
+    "root_review_required": true
+  },
+  "required_jobs": [
+    "android"
+  ],
+  "recipe_pins": {
+    "android/android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "android/cleanup_private.py": "69f8f623a271063d278ac626698ca22a51e84ed8f6b90a9513d2b0dccce964cc",
+    "android/common.py": "5b4449183dd7d290d0b75a293d141f319b467430f53f1d95852aedc247199c79",
+    "android/dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "android/legacy-jni-descriptors.json": "ed730d47cc4bd3c20240babb0755f2836740af450242d26f6480d91723834ee1",
+    "android/prepare_env.py": "e0f2fdffb9f2da487576e42e6cff40f0086ae2c0cdcdcf3c8f3394b78ae42dd9",
+    "android/prepare_source.py": "203694307e97f3c0614cffe300cbbda5e2ddc7559b9a3561e4bb83a09f6edcb1",
+    "android/record_cache.py": "6c864ca4d91c73856c67299e89a2ec594ba6ed7aa11c6f4a8c380df2d08c414a",
+    "android/run.py": "929b40ed467fe2fe246a24d6d2c7c729dec9eb4011a12560c6ae976462259794",
+    "android/safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe",
+    "android/verify_apk.py": "173c5a4b2e695a74d6fea4e831e28102c71be6e28ed8e940b3bf905a36cb26ea",
+    "ci-cache-preflight.py": "3a67e825918e647707fdbe7493da6bf4f1d8c9cfdf6c6ffa4f09a2cfcf84ea43",
+    "composition-manifest.json": "f8c05d3572176bc0d630c79f7519173f1e53d3653dbcb297992b252bdfb9e150",
+    "materialize.py": "499104b447351c6f4998c34e43c3fb4b6e39bcd4004b6ea89f702e75d3ba09bf",
+    "preflight.py": "231c986eecf7655ce75cc70a672c624707878b6203fe9343fe476500a6445fc5",
+    "product-source-manifest.json": "1bc3cc7163e30fde6304a897004dcac3a046904144a5eebe03347d19bb96fd47",
+    "require_plan.py": "7f62a167343c561bffb267a2c037331e70cb8c52910321d3351996f8d9d80ba6",
+    "test-source-manifest.json": "7834803c0121ea20df341259517831bcdd2e7f371a5fdc4b85c57b33d6221570"
+  },
+  "pending": [],
+  "workflow_normalized_sha256": "4ef36dd7d2d3acbe703a5bf8a5cb490b43bb0a5a155bd6206b119e3b9cbdc410",
+  "review_parent": {
+    "commit": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+    "tree": "3b206335e07d87ef68db20863cb9005e719840d3"
+  }
+}
