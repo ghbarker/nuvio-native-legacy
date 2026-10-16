@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "current_master": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "candidate_head": "29da4923852fbe81bc64fc5f50ccafaddbf4e310",
+  "candidate_tree": "8d17c9a1e0770acda0c9ddf8753700ae25812597",
+  "internal_issue_candidate": 0,
+  "candidate_label": "failover-attempt-ownership",
+  "public_pr_number": null,
+  "selected_candidates": [
+    "0"
+  ],
+  "review_branch": "review/failover-attempt-recovery-20261016",
+  "required_jobs": [
+    "native",
+    "android"
+  ],
+  "source_manifest_sha256": "905b1d80a9633021e5f40a6141e9cef7a3d08761220e16d0e1a4b54956c22d07",
+  "recipe_inputs": {
+    "android.py": "378bfe323a8b1257d136dd011ad4d3096c07e8c9c8f0a7ade064d4d58b740708",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "9082450536ceb92932e255f82597b735728b63c28ed70dd67718e19e2b7d79f3",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "materialize.py": "110abe5859dbf4d3e4d055038bce252c9a36efd8b1afeea1e4efa60a08dae8c4",
+    "native.py": "4ac98ba54fc5839775c27ed63a6cb85e9bdf9c456ea9bbd43f01d57a18a0e962",
+    "preflight.py": "9c34996785f4a97ca06cdcb1e6f140165c895827127fe740904c2ab1ddff5416",
+    "public_tests.py": "d4f8802a2e5c8a0947a9d43040886cb2fc2d2d53aa193f45620b0e76c7fc8545",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "sdk_producers": 2,
+  "prior_sdk_passes_reused": false,
+  "private_build_reuse_claimed": false,
+  "public_test_policy": "Product and meaningful public regressions are separate commits. CI exists only on a separate isolated review ref. No feature PR before user testing.",
+  "scope": "Two fresh exact-source producers: three actual committed failover/dead-source scripts normal/ASan, full macOS TV/touch links, and parallel standard bothARM Android with NDK/JNI/DEX/16KB/workspace proof. No495source, private overlay, APK download, emulator, physical-screen pass or publication.",
+  "workflow_normalized_sha256": "03cdf0a4998011b22978603cdfb0122e588d2ee32385784442e60e716c02d054"
+}
