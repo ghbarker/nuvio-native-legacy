@@ -42,6 +42,7 @@
 #include "ajustes.h"
 #include "catalogo.h"
 #include "descoberta.h"
+#include "vertudo.h"
 #include "buscasrec.h"
 #include "buscanorm.h"
 #include "botoes.h"
@@ -126,6 +127,7 @@ static float buTopoEsq(void) {
 // Biblioteca caber inteira, e a busca nao precisa de mais fileiras por isso.
 #define BU_MAX_FILEIRAS 32
 #define BU_MAX_POR_FIL  DESC_BUSCA_POR_ALVO
+#define BU_MAX_COLUNAS (BU_MAX_POR_FIL + 1)   // Ver tudo nao ocupa um CatItem
 // Rotulo em caixa alta (15/700) 18 acima do conteudo; melhor resultado 226 de
 // altura (capa 330x186 + padding 20); cartaz 180x270, nome 17 a 10 abaixo.
 #define BU_KICK_H       34.0f
@@ -156,14 +158,17 @@ static int   nConsulta = 0;
 static char consultaFiltrada[BU_MAX_CONSULTA];
 // Resultados agrupados por CATALOGO, como no web: uma fileira por catalogo que
 // teve pelo menos um titulo casando. Guardamos indices do catalogo global.
-static struct {
+typedef struct {
   const char *titulo;      // nome do catalogo ("Top 100 Today - Filme")
   const char *origem;      // "from <addon>"; vazio quando nao se sabe
   int itens[BU_MAX_POR_FIL];
   int n;
   int melhor;              // 1 = a entrada do MELHOR RESULTADO (1 item, tile grande)
   int pessoas;             // 1 = fileira de PESSOAS: itens[] indexa pess[], nao o catalogo
-} fil[BU_MAX_FILEIRAS];
+  int verTudo, alvo, geracao;
+} BuscaFileira;
+static BuscaFileira fil[BU_MAX_FILEIRAS];
+static int filColunas(int r) { return fil[r].n + (fil[r].verTudo != 0); }
 // PESSOAS: atores e diretores que casam com a consulta. O elenco dos titulos ja
 // carregados entra primeiro; o TMDB (spotpessoa.h, a mesma busca do Spotlight)
 // completa quando a resposta chega. Abrir uma pessoa devolve o MESMO pedido que
@@ -187,13 +192,20 @@ static float sugDesloc = 0.0f;
 static int   pedidoPessoa = 0;
 static SpotPedido pedidoP;
 static int nFil = 0;
+static SDL_Keycode verTudoTecla;
+static int verTudoAlvo, verTudoGeracao;
+static int resultadoVerTudo(void) {
+  int r = focoRes.fileira;
+  return painel == 1 && r >= 0 && r < nFil && fil[r].verTudo &&
+         focoRes.coluna == fil[r].n;
+}
 static int sair = 0;
 static int pediuRelogio;
 static int pedido = -1;             // indice de catalogo escolhido, -1 = nenhum
 static float animTecla[BU_KB_MAX_FIL + 1][BU_KB_COLS];
-static float animRes[BU_MAX_FILEIRAS][BU_MAX_POR_FIL];
+static float animRes[BU_MAX_FILEIRAS][BU_MAX_COLUNAS];
 // Arte chegando e luz do foco, as mesmas da home (revela.h).
-static RevelaArte  revRes[BU_MAX_FILEIRAS][BU_MAX_POR_FIL];
+static RevelaArte  revRes[BU_MAX_FILEIRAS][BU_MAX_COLUNAS];
 static RevelaVarre revVarre = { -1, 0, 0 };
 // ONDA das fileiras de resultado (revela.h). Uma fileira entra UMA vez, na
 // primeira vez que aparece para a consulta: a identidade e titulo + origem,
@@ -396,6 +408,7 @@ static void montarSugestoes(void) {
     fil[nFil].titulo = nFil == 0 ? i18n("Populares") : cf->titulo;
     fil[nFil].origem = NULL;
     fil[nFil].n = achou;
+    fil[nFil].verTudo = 0; fil[nFil].alvo = -1;
     fil[nFil].melhor = 0; fil[nFil].pessoas = 0;
     nFil++;
   }
@@ -418,7 +431,7 @@ static Uint32 redePendDesde;
 static char   redePendTermo[BU_MAX_CONSULTA];
 static char   redeDisparado[BU_MAX_CONSULTA];   // ultimo termo entregue a desc_buscar
 // Fileiras de add-on do termo ANTERIOR, mantidas ate a 1a resposta do novo.
-static struct { const char *titulo, *origem; int itens[BU_MAX_POR_FIL]; int n; } velho[BU_MAX_FILEIRAS];
+static BuscaFileira velho[BU_MAX_FILEIRAS];
 static int    nVelho;
 static Uint32 ultimoRefiltro;
 
@@ -434,6 +447,11 @@ static void redeDisparar(void) {
 static void refiltrar(void) {
   char alvo[BU_MAX_CONSULTA * 2];
   int anterior = -1, mesmaConsulta = !strcmp(consultaFiltrada, consulta);
+  int anteriorAlvo = -1, anteriorGeracao = -1;
+  if (mesmaConsulta && resultadoVerTudo()) {
+    anteriorAlvo = fil[focoRes.fileira].alvo;
+    anteriorGeracao = fil[focoRes.fileira].geracao;
+  }
   if (mesmaConsulta && painel == 1 && focoRes.fileira < nFil && !fil[focoRes.fileira].pessoas &&
       focoRes.coluna < fil[focoRes.fileira].n)
     anterior = fil[focoRes.fileira].itens[focoRes.coluna];
@@ -496,6 +514,7 @@ static void refiltrar(void) {
   // alvo com titulo novo. Fase A monta as fileiras e junta os novos de TODOS os
   // alvos (marcador -(k+2) em itens[]); fase B acrescenta de uma vez e resolve.
   { int alvoIdx, passo, nAlvos = desc_busca_n_alvos();
+    int geracaoBusca = desc_busca_geracao();
     // So os alvos remotos acrescentam itens neste lote. As fileiras locais
     // usam indices existentes: nao reservar 32 fileiras de CatItem para elas.
     int capNovos = (nAlvos < BU_MAX_FILEIRAS ? nAlvos : BU_MAX_FILEIRAS) * BU_MAX_POR_FIL;
@@ -537,6 +556,8 @@ static void refiltrar(void) {
         fil[nFil].titulo = desc_busca_alvo_titulo(alvoIdx);
         fil[nFil].origem = mostraFonte ? desc_busca_alvo_addon(alvoIdx) : NULL;
         fil[nFil].n = achou;
+        fil[nFil].verTudo = desc_busca_alvo_mais(alvoIdx, consulta);
+        fil[nFil].alvo = alvoIdx; fil[nFil].geracao = geracaoBusca;
         nFil++;
       }
     }
@@ -563,15 +584,11 @@ static void refiltrar(void) {
     if (chegou) {
       nVelho = 0;
       for (k = fil0; k < nFil && nVelho < BU_MAX_FILEIRAS; k++, nVelho++) {
-        velho[nVelho].titulo = fil[k].titulo; velho[nVelho].origem = fil[k].origem;
-        velho[nVelho].n = fil[k].n;
-        memcpy(velho[nVelho].itens, fil[k].itens, sizeof velho[nVelho].itens);
+        velho[nVelho] = fil[k];
       }
     } else if (nFil == fil0) {
       for (k = 0; k < nVelho && nFil < BU_MAX_FILEIRAS; k++, nFil++) {
-        fil[nFil].titulo = velho[k].titulo; fil[nFil].origem = velho[k].origem;
-        fil[nFil].n = velho[k].n;
-        memcpy(fil[nFil].itens, velho[k].itens, sizeof velho[k].itens);
+        fil[nFil] = velho[k];
       }
     }
   }
@@ -599,6 +616,7 @@ static void refiltrar(void) {
     // porque leria como se fosse a origem.
     fil[nFil].origem = NULL;
     fil[nFil].n = achou;
+    fil[nFil].verTudo = 0; fil[nFil].alvo = -1;
     nFil++;
   }
 
@@ -612,8 +630,9 @@ static void refiltrar(void) {
     nFil++;
     fil[0].titulo = NULL; fil[0].origem = NULL;
     fil[0].itens[0] = melhorIdx; fil[0].n = 1; fil[0].melhor = 1;
+    fil[0].verTudo = 0; fil[0].alvo = -1;
     memmove(&fil[1].itens[0], &fil[1].itens[1], (size_t)(fil[1].n - 1) * sizeof(int));
-    if (--fil[1].n == 0) { memmove(&fil[1], &fil[2], (size_t)(nFil - 2) * sizeof fil[0]); nFil--; }
+    if (--fil[1].n == 0 && !fil[1].verTudo) { memmove(&fil[1], &fil[2], (size_t)(nFil - 2) * sizeof fil[0]); nFil--; }
   }
 
   // PESSOAS (mockup): a fileira entra logo depois da primeira de titulos.
@@ -664,7 +683,7 @@ montado:
     } }
 
   int cols[BU_MAX_FILEIRAS];
-  for (int i = 0; i < nFil; i++) cols[i] = fil[i].n;
+  for (int i = 0; i < nFil; i++) cols[i] = filColunas(i);
   focus_iniciar(&focoRes, nFil > 0 ? nFil : 1, nFil > 0 ? cols : (int[]){ 1 });
   if (anterior >= 0) {
     int encontrado = 0;
@@ -676,6 +695,12 @@ montado:
           encontrado = 1; break;
         }
   }
+  if (anteriorAlvo >= 0)
+    for (int r = 0; r < nFil; r++)
+      if (fil[r].verTudo && fil[r].alvo == anteriorAlvo && fil[r].geracao == anteriorGeracao) {
+        focoRes.fileira = r; focoRes.coluna = fil[r].n;
+        focoRes.colunaLembrada[r] = fil[r].n; break;
+      }
   if (nFil == 0 && painel == 1) painel = 0;
   memset(animRes, 0, sizeof animRes); memset(revRes, 0, sizeof revRes);
   if (!mesmaConsulta) {
@@ -834,7 +859,7 @@ static void ponteiroTecla(int f, int c) {
   painel = 0; campoFoco = 0; focoKb.fileira = f; focoKb.coluna = c; focoKb.colunaLembrada[f] = c;
 }
 static void ponteiroResultado(int r, int c) {
-  if (r < 0 || r >= nFil || c < 0 || c >= fil[r].n) return;
+  if (r < 0 || r >= nFil || c < 0 || c >= filColunas(r)) return;
 #ifdef NV_TOUCH_UI
   toqueBuscaLimpar();
 #endif
@@ -919,6 +944,7 @@ int busca_iniciar(void) {
   kbMontar();
   focus_iniciar(&focoKb, kbFil + 1, KB_COLUNAS);
   painel = 0; sair = 0; pediuRelogio = 0; pedido = -1; pedidoPessoa = 0;
+  verTudoTecla = 0;
   sugestao = 0; nPess = 0; sugDesloc = 0.0f;
   nConsulta = 0; consulta[0] = 0;
   consultaFiltrada[0] = 0;
@@ -966,6 +992,13 @@ int busca_item_focado(HomeItem *out) {
 // O OK num resultado (toque curto). Titulo: o pedido do indice; pessoa: a
 // filmografia dela, que app.c abre.
 static void abrirResultado(void) {
+  if (resultadoVerTudo()) {
+    int r = focoRes.fileira;
+    char titulo[192];
+    snprintf(titulo, sizeof titulo, "%s · %s", consulta, fil[r].titulo ? fil[r].titulo : "");
+    if (vertudo_busca(fil[r].alvo, fil[r].geracao, consulta, titulo)) registrarConsulta();
+    return;
+  }
   if (focoRes.fileira < nFil && focoRes.coluna < fil[focoRes.fileira].n) {
     registrarConsulta();
     if (fil[focoRes.fileira].pessoas) {
@@ -1004,6 +1037,10 @@ static int menuNoResultado(void) {
 void busca_evento(const SDL_Event *e) {
   buInterfaceAtualizar();
   pediuRelogio = 0;
+  if (e->type == SDL_WINDOWEVENT && e->window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+    verTudoTecla = 0; ctxhold_cancelar(&holdRes);
+  }
+
   if (e->type == SDL_QUIT) { sair = 1; return; }
 #ifdef NV_TOUCH_UI
   if (buTelefone() && e->type == SDL_KEYDOWN) toqueBuscaRetomarFoco();
@@ -1020,6 +1057,27 @@ void busca_evento(const SDL_Event *e) {
     return;
   }
   SDL_Keycode k = e->key.keysym.sym;
+
+  // Ver tudo decide na soltura; o OK que abre a grade nao abre seu item0.
+  if (verTudoTecla) {
+    if (e->type == SDL_KEYUP && k == verTudoTecla) {
+      verTudoTecla = 0;
+      if (resultadoVerTudo() && fil[focoRes.fileira].alvo == verTudoAlvo &&
+          fil[focoRes.fileira].geracao == verTudoGeracao) abrirResultado();
+      return;
+    }
+    if (e->type == SDL_KEYDOWN && (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE)) return;
+    if (e->type == SDL_KEYDOWN) verTudoTecla = 0;
+  }
+  if (e->type == SDL_KEYDOWN && resultadoVerTudo() &&
+      (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_SPACE)) {
+    if (!e->key.repeat) {
+      ctxhold_cancelar(&holdRes);
+      verTudoTecla = k; verTudoAlvo = fil[focoRes.fileira].alvo;
+      verTudoGeracao = fil[focoRes.fileira].geracao;
+    }
+    return;
+  }
 
   // OK NUM RESULTADO DECIDE NA SOLTURA, como a pilula: toque abre o titulo,
   // segurar abre o menu do cartaz.
@@ -1268,7 +1326,7 @@ static float toqueBuscaMaxY(void) {
   return fmaxf(0.0f, fim - BU_RES_AREA_H);
 }
 static float toqueBuscaMaxX(int r) {
-  int n = fil[r].n;
+  int n = filColunas(r);
   float fim;
   if (n < 1 || fil[r].melhor) return 0.0f;
   fim = fil[r].pessoas ? pessX[n - 1] + pessW[n - 1]
@@ -1290,6 +1348,7 @@ static int toqueBuscaRolar(const PonteiroRolagem *e) {
       toqueLivreX[toqueFileira] = 1; velX[toqueFileira] = 0.0f;
     }
     toqueLivreY = 1; velY = 0.0f; scrollAlvo = scrollY;
+    verTudoTecla = 0;
     ctxhold_cancelar(&holdRes);
     return 1;
   }
@@ -1315,11 +1374,11 @@ static void toqueBuscaRetomarFoco(void) {
     while (r + 1 < nFil && filTopo(r) + filAlt(r) < ponto) r++;
     painel = 1; focoRes.fileira = r; focoRes.coluna = focoRes.colunaLembrada[r];
   }
-  for (int r = 0; r < nFil; r++) if (toqueLivreX[r] && fil[r].n > 0) {
+  for (int r = 0; r < nFil; r++) if (toqueLivreX[r] && filColunas(r) > 0) {
     float ponto = scrollX[r] + (BU_DIR - BU_RES_X) * 0.35f;
     int c = (int)(ponto / buPasso());
     if (fil[r].pessoas) { c = 0; while (c + 1 < fil[r].n && pessX[c] + pessW[c] < ponto) c++; }
-    if (c >= fil[r].n) c = fil[r].n - 1;
+    if (c >= filColunas(r)) c = filColunas(r) - 1;
     if (c < 0) c = 0;
     focoRes.colunaLembrada[r] = c;
     if (focoRes.fileira == r) focoRes.coluna = c;
@@ -1395,7 +1454,7 @@ void busca_atualizar(float dt, Uint32 agora) {
                                   alvo > animTecla[f][c] ? NV_MOLA_FOCO : NV_MOLA_DESFOCO);
     }
   for (int r = 0; r < BU_MAX_FILEIRAS; r++)
-    for (int c = 0; c < BU_MAX_POR_FIL; c++) {
+    for (int c = 0; c < BU_MAX_COLUNAS; c++) {
       float alvo = (painel == 1 && focus_indice(&focoRes, r, c)) ? 1.0f : 0.0f;
       animRes[r][c] = anim_mola(animRes[r][c], alvo, dt,
                                 alvo > animRes[r][c] ? NV_MOLA_FOCO : NV_MOLA_DESFOCO);
@@ -1734,6 +1793,24 @@ static void desenhaRecentes(Uint32 agora, float dy) {
     sugDesloc = (y - dy) + BU_REC_H + 22.0f + d.h + BU_SECAO_GAP - BU_RES_Y; }
 }
 
+static void desenhaVerTudo(int r, float y) {
+  if (!fil[r].verTudo) return;
+  int c = fil[r].n;
+  float w = buCartazW(), h = w * 1.5f, x = BU_RES_X + c * buPasso() - scrollX[r];
+  if (x > BU_DIR + 30.0f || x + w < BU_RES_X - 30.0f) return;
+  float f = animRes[r][c], raio = 14.0f / h;
+  GfxRect p = { x, y, w, h };
+  buAlvoResultado((GfxRect){x, y - 6.0f, w, h + 40.0f}, ponteiroResultado, r, c);
+  // Mesmo cartao sem arte da Home; nunca publica um indice ficticio de titulo.
+  gfx_cor(p, raio, 1, 1, 1, 0.06f + 0.10f * f);
+  gfx_rect(p, 0, GFX_ANEL, 0, 2.0f / h, 0, raio, 1, 1, 1, 0.12f + 0.70f * f);
+  TxtLinha seta = txt_linha(TXT_TITULO2, "→", BU_TX);
+  TxtLinha rotulo = txt_linha_corta(TXT_ROW_TITULO, i18n("Ver tudo"), BU_TX, w - 20.0f);
+  float topo = y + (h - seta.h - 14.0f - rotulo.h) * 0.5f;
+  txt_desenhar(seta, x + (w - seta.w) * 0.5f, topo);
+  txt_desenhar(rotulo, x + (w - rotulo.w) * 0.5f, topo + seta.h + 14.0f);
+}
+
 static void desenhaResultados(Uint32 agora) {
   float varreFoco = revela_varre(&revVarre, painel == 1
                                  ? focoRes.fileira * 64 + focoRes.coluna : -1, agora);
@@ -1941,6 +2018,7 @@ static void desenhaResultados(Uint32 agora) {
         }
     }
     gfx_opacidade_grupo = grupo;
+    desenhaVerTudo(r, cy);
   }
   gfx_opacidade_grupo = grupo;
   gfx_sem_recorte();

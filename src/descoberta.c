@@ -898,7 +898,16 @@ typedef struct {
   char titulo[96];
   char addon[64];
   int  nuvio;           // 1 = catalogo do Nuvio, com o Cinemeta de reserva
+  int  paginavel;       // manifesto declara o extra skip
 } AlvoBusca;
+
+typedef struct {
+  AlvoBusca alvo;
+  char termo[96], idioma[24];
+  int indice, geracao;
+  NvPerfilSessao sessao;
+  unsigned addonsVersao;
+} BuscaTudo;
 
 static AlvoBusca alvos[BUSCA_ALVOS];
 static int       nAlvos;
@@ -910,6 +919,7 @@ static struct {
   CatItem itens[BUSCA_POR_ALVO];
   int     n;
   int     geracao;
+  int     mais;
 } resAlvo[BUSCA_ALVOS];
 
 static NvPerfilSessao buscaSessao;
@@ -934,6 +944,7 @@ void desc_alvos_busca_zerar(void) {
       snprintf(a->titulo,sizeof a->titulo,"%s", rot[t]);
       snprintf(a->addon, sizeof a->addon, "%s", "Nuvio");
       a->nuvio = 1;
+      a->paginavel = 1;  // os catalogos oficiais declaram search e skip
     } }
   memset(resAlvo, 0, sizeof resAlvo);
   // ESQUECE O TERMO JA PEDIDO. Sem isto, depois que a lista de addons muda (um
@@ -953,6 +964,10 @@ void desc_alvos_busca_zerar(void) {
 
 void desc_alvo_busca(const char *base, const char *tipo, const char *id,
                      const char *titulo, const char *addon) {
+  desc_alvo_busca_paginavel(base, tipo, id, titulo, addon, 0);
+}
+void desc_alvo_busca_paginavel(const char *base, const char *tipo, const char *id,
+                              const char *titulo, const char *addon, int skip) {
   pthread_mutex_lock(&buscaTrava);
   if (nAlvos < BUSCA_ALVOS) {
     AlvoBusca *a = &alvos[nAlvos++];
@@ -962,6 +977,7 @@ void desc_alvo_busca(const char *base, const char *tipo, const char *id,
     snprintf(a->titulo, sizeof a->titulo, "%s", titulo ? titulo : "");
     snprintf(a->addon,  sizeof a->addon,  "%s", addon ? addon : "");
     a->nuvio = 0;
+    a->paginavel = skip != 0;
   } else {
     // Teto cheio: o alvo NAO sera consultado. Antes era em silencio, e quem
     // tem addons demais via a busca "nao achar" o titulo local sem nenhuma
@@ -974,11 +990,12 @@ void desc_alvo_busca(const char *base, const char *tipo, const char *id,
 
 // Consulta UM alvo. Devolve quantos itens leu.
 static int consultarAlvo(const AlvoBusca *a, const char *termo,
-                         CatItem *saida, int max) {
+                               CatItem *saida, int max, int *mais) {
   char url[NV_ADDON_PEDIDO_MAX], esc[300];
   char *corpo;
   const char *p;
   int n = 0;
+  if (mais) *mais = 0;
   // 6 s por alvo, como o web (SEARCH_CATALOG_TIMEOUT 6500). Addon lento nao
   // trava a tela: a fileira dele so aparece quando chegar, e as outras ja
   // estao la. O alvo do Nuvio tem 5 s e, se falhar, o Cinemeta mais 6.
@@ -1010,7 +1027,9 @@ static int consultarAlvo(const AlvoBusca *a, const char *termo,
         n++;
       }
       p = js_prox(f);
-    } }
+    }
+    if (mais) *mais = n > 0 && (a->paginavel || p != NULL);
+  }
   free(corpo);
   return n;
 }
@@ -1030,7 +1049,7 @@ static void *fioBusca(void *arg) {
     AlvoBusca a;
     char termo[96];
     int meu, g;
-    int n;
+    int n, mais;
 
     pthread_mutex_lock(&buscaTrava);
     if (proximoAlvo >= nAlvos || !buscaPedido[0]) {
@@ -1047,7 +1066,7 @@ static void *fioBusca(void *arg) {
     pthread_mutex_unlock(&buscaTrava);
 
     if (!termo[0] || !descSessaoVincular(sessao)) continue;
-    n = consultarAlvo(&a, termo, achados, BUSCA_POR_ALVO);
+    n = consultarAlvo(&a, termo, achados, BUSCA_POR_ALVO, &mais);
 
     pthread_mutex_lock(&buscaTrava);
     // Geracao velha = o dono digitou outra coisa enquanto isto voltava. O
@@ -1056,6 +1075,7 @@ static void *fioBusca(void *arg) {
       memcpy(resAlvo[meu].itens, achados, sizeof(CatItem) * (size_t)n);
       resAlvo[meu].n = n;
       resAlvo[meu].geracao = g;
+      resAlvo[meu].mais = mais;
       respGeracao = g;
       snprintf(buscaTermo, sizeof buscaTermo, "%s", termo);
     }
@@ -1125,6 +1145,16 @@ int desc_busca_alvo_n(int alvo, const char *termo) {
     n = resAlvo[alvo].n;
   pthread_mutex_unlock(&buscaTrava);
   return n;
+}
+
+int desc_busca_alvo_mais(int alvo, const char *termo) {
+  int mais = 0;
+  pthread_mutex_lock(&buscaTrava);
+  if (alvo >= 0 && alvo < nAlvos && termo && !strcmp(termo, buscaTermo) &&
+      resAlvo[alvo].geracao == geracao && resAlvo[alvo].n > 0)
+    mais = resAlvo[alvo].mais;
+  pthread_mutex_unlock(&buscaTrava);
+  return mais;
 }
 
 const char *desc_busca_alvo_titulo(int alvo) {
@@ -2627,9 +2657,9 @@ static int lerManifesto(int iAddon, const char *base, Decl *saida, int max,
           // manifesto que escreve catalogs antes de name (ver addons.c).
           js_texto_raiz(corpo, "name", nomeAddon, sizeof nomeAddon);
           formatarTitulo(nome, tipo, rotulo, sizeof rotulo);
-          desc_alvo_busca(base, tipo, id, rotulo,
+          desc_alvo_busca_paginavel(base, tipo, id, rotulo,
                           nomeAddon[0] ? nomeAddon
-                                       : (addonId[0] ? addonId : "addon"));
+                                       : (addonId[0] ? addonId : "addon"), aceitaSkip(p, f));
         } }
       d->exigeParam = exige;
       d->paginavel = aceitaSkip(p, f);
@@ -8457,7 +8487,42 @@ static NvPerfilSessao vtSessao;
 // "mesma fonte" ser seguro (a struct tem preenchimento).
 static ColSource vtFonte;
 static int      vtProvedor;
+static BuscaTudo vtBusca;
+static int vtBuscaAtiva, vtBuscaProvedor = -1;
 static pthread_mutex_t vtTrava = PTHREAD_MUTEX_INITIALIZER;
+
+static int buscaTudoAtual(const BuscaTudo *b) {
+  int atual;
+  pthread_mutex_lock(&buscaTrava);
+  atual = b->geracao == geracao && b->sessao == buscaSessao &&
+          !strcmp(b->termo, buscaPedido) && b->indice >= 0 && b->indice < nAlvos &&
+          !strcmp(b->alvo.base, alvos[b->indice].base) &&
+          !strcmp(b->alvo.tipo, alvos[b->indice].tipo) &&
+          !strcmp(b->alvo.id, alvos[b->indice].id) &&
+          nv_perfil_sessao_atual(b->sessao);
+  pthread_mutex_unlock(&buscaTrava);
+  if (!atual || addons_versao() != b->addonsVersao) return 0;
+  if (b->alvo.nuvio) return ajustes_busca_nuvio() != 2;
+  return !addons_base_desligada(b->alvo.base) &&
+         (ajustes_busca_cinemeta() ||
+          (!baseEhCinemeta(b->alvo.base) && !desc_busca_base_oculta(b->alvo.base) &&
+           strcasecmp(b->alvo.addon, "cinemeta")));
+}
+
+static char *buscaTudoCorpo(const BuscaTudo *b, int skip, int *provedor) {
+  if (!buscaTudoAtual(b)) return NULL;
+  if (b->alvo.nuvio)
+    return metaprov_busca_pagina_com(b->alvo.tipo, b->termo, b->idioma, skip,
+              METAPROV_NUVIO_S, ajustes_busca_cinemeta() ? 6 : -1,
+              metaprov_get_rede, NULL, provedor);
+  char url[NV_ADDON_PEDIDO_MAX], esc[300];
+  urlEscapar(b->termo, esc, sizeof esc);
+  int w = skip ? nv_addon_url(url, sizeof url, b->alvo.base,
+                 "/catalog/%s/%s/search=%s&skip=%d.json", b->alvo.tipo, b->alvo.id, esc, skip)
+               : nv_addon_url(url, sizeof url, b->alvo.base,
+                 "/catalog/%s/%s/search=%s.json", b->alvo.tipo, b->alvo.id, esc);
+  return descPedidoCoube(b->alvo.base, w, sizeof url) ? rede_baixar(url, 6) : NULL;
+}
 
 // #366: o filtro e uma PROJECAO da lista recebida, nunca uma remocao dela.
 // Desligar o ajuste ou desmarcar um filme devolve o mesmo titulo, na ordem do
@@ -8470,7 +8535,7 @@ static unsigned vtProjGeracao, vtProjItens, vtProjRevisao;
 // Chamado sob vtTrava. O historico e o progresso usam as mesmas fontes do selo
 // do cartaz; tipos incertos, series e canais nunca entram no filtro de FILMES.
 static int vtProjetar(void) {
-  int ocultar = ajustes_ocultar_filmes_vistos();
+  int ocultar = !vtBuscaAtiva && ajustes_ocultar_filmes_vistos();
   unsigned itens = cat_revisao_itens();
   if (vtProjN == vtN && vtProjGeracao == vtGeracao &&
       vtProjOcultar == ocultar && (!ocultar || vtProjItens == itens)) return vtNVisiveis;
@@ -8864,20 +8929,63 @@ static void *fioVerTudo(void *u) {
   int paginas = 0;
   for (;;) {
   char url[NV_ADDON_PEDIDO_MAX], base[NV_ADDON_URL_MAX], type[8], id[96], genre[96], encoded[290], *corpo;
-  int raw=0, ocultos=0, skip, cap, prov, antes;unsigned generation;
+  int raw=0, ocultos=0, skip, cap, prov, antes, busca, buscaProv;unsigned generation;
   ColSource fonte;
+  BuscaTudo consulta;
   pthread_mutex_lock(&vtTrava);
   skip=vtPagina;generation=vtGeracao;prov=vtProvedor;
   if (geracaoPaginas != generation) { geracaoPaginas = generation; paginas = 0; }
   paginas++;
   antes = vtProjetar();
   NvPerfilSessao sessao = vtSessao;
+  busca=vtBuscaAtiva;consulta=vtBusca;buscaProv=vtBuscaProvedor;
   memset(&fonte,0,sizeof fonte);fonte=vtFonte;
   snprintf(base,sizeof base,"%s",vtBase);snprintf(type,sizeof type,"%s",vtTipo);
   snprintf(id,sizeof id,"%s",vtCat);snprintf(genre,sizeof genre,"%s",vtGenre);
   pthread_mutex_unlock(&vtTrava);
   if (!descSessaoVincular(sessao)) {
-    pthread_mutex_lock(&vtTrava); vtFioVivo = 0; pthread_mutex_unlock(&vtTrava); return NULL;
+    pthread_mutex_lock(&vtTrava);
+    if (generation != vtGeracao) { pthread_mutex_unlock(&vtTrava); continue; }
+    vtFioVivo = 0; pthread_mutex_unlock(&vtTrava); return NULL;
+  }
+
+  if (busca) {
+    corpo = buscaTudoCorpo(&consulta, skip, &buscaProv);
+    int valido = corpo && metaprov_busca_valida(corpo), added = 0;
+    const char *p = valido ? js_array(corpo, NULL, "metas") : NULL;
+    for (; p; p = js_prox(js_fim(p))) {
+      const char *f = js_fim(p);
+      CatItem it;
+      raw++;
+      if (!deMeta(p, f, consulta.alvo.tipo, &it)) continue;
+      origemDaBase(consulta.alvo.base, it.origem, sizeof it.origem);
+      pthread_mutex_lock(&vtTrava);
+      if (generation != vtGeracao || !buscaTudoAtual(&consulta)) {
+        pthread_mutex_unlock(&vtTrava); break;
+      }
+      int duplicado = 0;
+      for (int i = 0; i < vtN; i++)
+        if (!strcmp(vtItens[i].imdb, it.imdb) && !strcmp(vtItens[i].tipo, it.tipo))
+          { duplicado = 1; break; }
+      if (!duplicado && vtN < VT_MAX) { vtItens[vtN++] = it; added++; }
+      int cheio = vtN == VT_MAX;
+      pthread_mutex_unlock(&vtTrava);
+      if (cheio) break;
+    }
+    free(corpo);
+    pthread_mutex_lock(&vtTrava);
+    if (generation != vtGeracao) { pthread_mutex_unlock(&vtTrava); continue; }
+    int atual = buscaTudoAtual(&consulta);
+    vtErro = !valido || !atual;
+    if (valido && atual) {
+      vtBuscaProvedor = buscaProv;
+      vtPagina += raw;
+      vtFim = !consulta.alvo.paginavel || !raw || !added || vtN >= VT_MAX;
+    }
+    if (!atual) { vtN = 0; vtFim = 1; }
+    vtFioVivo = 0;
+    pthread_mutex_unlock(&vtTrava);
+    return NULL;
   }
 
   // FONTE NAO-ADDON (issue #44): pasta de colecao do site cujo conteudo vem
@@ -9023,8 +9131,12 @@ static void vtDisparar(void) {
   pthread_attr_t at;
   pthread_mutex_lock(&vtTrava);
   if (vtFioVivo || vtFim || (!vtBase[0] && !vtProvedor)) {pthread_mutex_unlock(&vtTrava);return;}
+  if (vtBuscaAtiva && !buscaTudoAtual(&vtBusca)) {
+    vtN = 0; vtFim = vtErro = 1;
+    pthread_mutex_unlock(&vtTrava); return;
+  }
   vtFioVivo = 1;
-  vtSessao = nv_perfil_sessao_ler();
+  vtSessao = vtBuscaAtiva ? vtBusca.sessao : nv_perfil_sessao_ler();
   vtErro=0;
   // fioVerTudo empilha buffers grandes; no macOS o stack padrao do pthread
   // estoura (collections.sh: Bus error em ___chkstk_darwin).
@@ -9039,6 +9151,39 @@ static void vtDisparar(void) {
 void desc_vertudo_abrir(const char *base, const char *tipo, const char *catId) {
   desc_vertudo_filtro(base,tipo,catId,"");
 }
+int desc_vertudo_busca(int alvo, int ger, const char *termo) {
+  BuscaTudo b = {0};
+  pthread_mutex_lock(&buscaTrava);
+  int valido = termo && termo[0] && ger == geracao && alvo >= 0 && alvo < nAlvos &&
+               !strcmp(termo, buscaTermo) && !strcmp(termo, buscaPedido) &&
+               resAlvo[alvo].geracao == ger && resAlvo[alvo].n > 0 &&
+               nv_perfil_sessao_atual(buscaSessao);
+  if (valido) {
+    b.alvo = alvos[alvo]; b.indice = alvo; b.geracao = ger; b.sessao = buscaSessao;
+    snprintf(b.termo, sizeof b.termo, "%s", termo);
+    snprintf(b.idioma, sizeof b.idioma, "%s", metaprov_idioma());
+  }
+  pthread_mutex_unlock(&buscaTrava);
+  if (!valido) return 0;
+  b.addonsVersao = addons_versao();
+  if (!buscaTudoAtual(&b)) return 0;
+  pthread_mutex_lock(&vtTrava);
+  int mesma = vtBuscaAtiva && b.geracao == vtBusca.geracao && b.sessao == vtBusca.sessao &&
+              b.addonsVersao == vtBusca.addonsVersao && b.indice == vtBusca.indice &&
+              !strcmp(b.termo, vtBusca.termo) && !strcmp(b.idioma, vtBusca.idioma) &&
+              !strcmp(b.alvo.base, vtBusca.alvo.base) && !strcmp(b.alvo.tipo, vtBusca.alvo.tipo) &&
+              !strcmp(b.alvo.id, vtBusca.alvo.id);
+  if (mesma && vtN > 0) { pthread_mutex_unlock(&vtTrava); return 1; }
+  vtBusca = b; vtBuscaAtiva = 1; vtBuscaProvedor = -1; vtSessao = b.sessao;
+  snprintf(vtBase, sizeof vtBase, "%s", b.alvo.base);
+  snprintf(vtTipo, sizeof vtTipo, "%s", b.alvo.tipo);
+  snprintf(vtCat, sizeof vtCat, "%s", b.alvo.id);
+  vtGenre[0] = 0; vtProvedor = 0;
+  vtN = 0; vtPagina = 0; vtFim = vtErro = 0; vtGeracao++;
+  pthread_mutex_unlock(&vtTrava);
+  vtDisparar();
+  return 1;
+}
 void desc_vertudo_filtro(const char *base, const char *tipo, const char *catId,const char *genre) {
   desc_vertudo_filtro_desde(base, tipo, catId, genre, 0);
 }
@@ -9047,7 +9192,7 @@ void desc_vertudo_filtro_desde(const char *base, const char *tipo, const char *c
   pthread_mutex_lock(&vtTrava);
   // Mesmo catalogo que ja esta aberto: mantem o que ja foi lido em vez de
   // recomecar do zero (o dono pode ter voltado e entrado de novo).
-  if (!vtProvedor && !strcmp(vtBase, base) && !strcmp(vtTipo, tipo) && !strcmp(vtCat, catId)
+  if (!vtBuscaAtiva && !vtProvedor && !strcmp(vtBase, base) && !strcmp(vtTipo, tipo) && !strcmp(vtCat, catId)
       && !strcmp(vtGenre,genre?genre:"") && vtN > 0) {
     // Reabrir e um pedido explicito: se o lote limitado anterior so tinha
     // vistos, deixa procurar mais paginas sem um ciclo automatico sem fim.
@@ -9061,6 +9206,7 @@ void desc_vertudo_filtro_desde(const char *base, const char *tipo, const char *c
   snprintf(vtCat,  sizeof vtCat,  "%s", catId);
   snprintf(vtGenre,sizeof vtGenre,"%s",genre?genre:"");
   vtProvedor=0;
+  vtBuscaAtiva = 0;
   vtN = 0; vtPagina = pagina; vtFim = 0;vtErro=0;vtGeracao++;
   pthread_mutex_unlock(&vtTrava);
   vtDisparar();
@@ -9077,13 +9223,14 @@ void desc_vertudo_fonte_desde(const ColSource *s, int pagina) {
   if (!s || !s->prov[0]) return;
   memset(&copia, 0, sizeof copia); copia = *s;
   pthread_mutex_lock(&vtTrava);
-  if (vtProvedor && !memcmp(&vtFonte, &copia, sizeof copia) && vtN > 0) {
+  if (!vtBuscaAtiva && vtProvedor && !memcmp(&vtFonte, &copia, sizeof copia) && vtN > 0) {
     int preencher = ajustes_ocultar_filmes_vistos() && !vtProjetar() && !vtFim && !vtErro;
     pthread_mutex_unlock(&vtTrava);
     if (preencher) vtDisparar();
     return;
   }
   vtFonte = copia;
+  vtBuscaAtiva = 0;
   vtProvedor = !strcmp(s->prov, "trakt") ? 2 : 1;
   vtBase[0] = 0;
   vtN = 0; vtPagina = pagina; vtFim = 0; vtErro = 0; vtGeracao++;
@@ -9424,6 +9571,7 @@ void desc_abrir_sessao(void) {
   vtGeracao++; vtN = 0; vtPagina = 0; vtFim = 1; vtErro = 0;
   vtBase[0] = vtTipo[0] = vtCat[0] = vtGenre[0] = 0;
   vtProvedor = 0;
+  vtBuscaAtiva = 0;
   pthread_mutex_unlock(&vtTrava);
   sobIndice = -1;
   cwo_conta_definir(NULL, 0);

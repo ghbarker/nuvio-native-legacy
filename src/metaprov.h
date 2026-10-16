@@ -38,6 +38,8 @@ void metaprov_url_meta(char *dst, size_t n, int prov, const char *tipo,
 // URL de busca. `termo` e escapado aqui (nunca vai cru para o caminho).
 void metaprov_url_busca(char *dst, size_t n, int prov, const char *tipo,
                         const char *termo, const char *lang);
+void metaprov_url_busca_pagina(char *dst, size_t n, int prov, const char *tipo,
+                               const char *termo, const char *lang, int skip);
 
 // Chave de cache em memoria: provedor + idioma + tipo + id. Trocar o idioma
 // muda a chave e refaz o pedido; o TIPO continua na chave (filme e serie de
@@ -63,6 +65,12 @@ char *metaprov_meta_cinemeta_com(const char *tipo, const char *id, int seg,
 // invalido); resposta valida e vazia nao cai para o Cinemeta.
 char *metaprov_busca_com(const char *tipo, const char *termo, int seg_nuvio,
                          int seg_cine, MetaprovGet get, void *ctx, int *prov);
+// *prov = -1 na primeira pagina; depois fica no provedor que respondeu.
+// Uma falha numa pagina seguinte nunca mistura o offset com outra fonte.
+char *metaprov_busca_pagina_com(const char *tipo, const char *termo,
+                                const char *lang, int skip, int seg_nuvio,
+                                int seg_cine, MetaprovGet get, void *ctx,
+                                int *prov);
 
 // Duracao no formato da casa. O catalogo do Nuvio manda "148m" (filme) e
 // "25min" (episodio); o Cinemeta, "148 min". Numero puro seguido de m/min, com

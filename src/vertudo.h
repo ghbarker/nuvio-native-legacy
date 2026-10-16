@@ -25,6 +25,8 @@ void vertudo_colecao(const ColFolder *folder);
 // Abre com o catalogo de uma fileira da home.
 void vertudo_abrir(const char *base, const char *tipo, const char *catId,
                    const char *titulo);
+// A mesma grade, com a consulta e a fonte da fileira de Busca preservadas.
+int vertudo_busca(int alvo, int geracao, const char *termo, const char *titulo);
 int  vertudo_aberta(void);
 // Some sem animar (o player saiu para a home: ilha_minimizar).
 void vertudo_fechar_seco(void);
