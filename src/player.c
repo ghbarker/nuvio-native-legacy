@@ -70,6 +70,10 @@ static void avisarCascaAberto(int v) { (void)v; }
 #endif
 #include "trakt.h"
 #include "traktscrobble.h"
+#include "perfisessao.h"
+// Isolated player fixtures omit tracker/catalog producers; complete apps link them.
+extern int cat_episodio_tvdb(int, const char *, int, int) NV_PERFIL_OPCIONAL;
+extern int trakt_scrobble_alvo(int, const TraktScrobbleAlvo *, double, double, double, int) NV_PERFIL_OPCIONAL;
 #include "sync.h"
 #include "parental.h"
 #include "plrguia.h"
@@ -368,10 +372,12 @@ static unsigned trailerSessao;
 // Ultima posicao gravada DURANTE a sessao (gravarProgressoParcial); -1 = nenhuma.
 static double parcialPos = -1.0;
 static int parcialPausa;
+static void identidadeFonteAberta(void);
 static void zerarAssistido(void) {
   assistidoSeg = 0; assistidoAmostra = 0; trailerSessao = trailer_geracao();
   parcialPos = -1.0; parcialPausa = 0;
   snprintf(fonteSessao, sizeof fonteSessao, "%s", comVideo ? video_url_atual() : "");
+  identidadeFonteAberta();
 }
 static int fontePrincipal(void) {
   return comVideo && fonteSessao[0] && !trailer_aberto() &&
@@ -470,6 +476,10 @@ static const char *cinemaArteObter(const CatItem *c) {
   }
   return NULL;
 }
+static NvPerfilSessao itemSessao;
+static unsigned itemTipoRevisao;
+static int itemTipoConsultado, epPedidoT, epPedidoE, fonteSemEpisodio;
+static char itemTipoConfirmado[8];
 static const CatItem *item(void) {
   if (canalSessao) return &itemCanal;
   if (temFixo) return &itemFixo;
@@ -602,6 +612,52 @@ static double retomarFonteSeg = -1.0;
 static double basePos, baseDur;
 static int basePct, baseTocou, baseT = -1, baseE = -1;
 static int epT, epE, pedFontes, erroFonte, pedProxT, pedProxE;
+
+static int itemTipoCerto(void) {
+  return temFixo && (!strcmp(itemFixo.tipo, "movie") || !strcmp(itemFixo.tipo, "series"));
+}
+
+static void identidadeFonteAberta(void) {
+  char base[64];
+  idbase_copiar(temFixo ? itemFixo.imdb : "", base, sizeof base);
+  // Uma fonte ja aberta para o titulo sem episodio nao vira outro video
+  // quando o /meta descobre que e serie. So uma nova fonte limpa esta prova.
+  fonteSemEpisodio = comVideo && temFixo && !itemTipoCerto() &&
+                     base[0] && stream_lista_do_alvo(base);
+}
+
+static int atualizarTipoItem(void) {
+  unsigned revisao;
+  int mudou = 0;
+  if (!temFixo || canalSessao || !itemFixo.imdb[0] || itemTipoCerto() ||
+      !nv_perfil_sessao_travar(itemSessao)) return 0;
+  revisao = cat_revisao_itens();
+  if (!itemTipoConsultado || revisao != itemTipoRevisao) {
+    itemTipoConsultado = 1; itemTipoRevisao = revisao;
+    itemTipoConfirmado[0] = 0;
+    cat_tipo_confirmado_por_id(itemFixo.imdb, itemTipoConfirmado, sizeof itemTipoConfirmado);
+  }
+  if (itemTipoConfirmado[0] &&
+      (strcmp(itemTipoConfirmado, "series") ||
+       (epPedidoT > 0 && epPedidoE > 0 && !fonteSemEpisodio))) {
+    // O retrato continua sendo o da abertura. Nunca copiar nome, arte,
+    // progresso ou URL de uma republicacao da home para a sessao tocando.
+    snprintf(itemFixo.tipo, sizeof itemFixo.tipo, "%s", itemTipoConfirmado);
+    mudou = 1;
+  }
+  nv_perfil_sessao_destravar();
+  return mudou;
+}
+
+static void atualizarIdentidade(void) {
+  if (atualizarTipoItem()) player_definir_episodio(epPedidoT, epPedidoE);
+}
+
+static int identidadeValida(void) {
+  return temFixo && nv_perfil_sessao_atual(itemSessao) &&
+         (!strcmp(itemFixo.tipo, "movie") ||
+          (!strcmp(itemFixo.tipo, "series") && epPedidoT > 0 && epPedidoE > 0 && epT > 0 && epE > 0));
+}
 // A faixa de audio escolhida a mao vale para ESTE titulo (o filme, ou a serie
 // inteira: os outros episodios tambem) (audioescolha.h): troca de fonte,
 // reabertura e proximo episodio mantem, outro titulo esquece.
@@ -674,6 +730,8 @@ static int introIdx=-1, introT=-1, introE=-1;
 // Com que id o TheIntroDB foi perguntado (0 = imdb). Muda quando o TMDB do
 // episodio chega depois da abertura (2.0.3): pede de novo por tmdb_id.
 static long introTmdb;
+static TraktScrobbleAlvo scrobbleAlvo;
+static int scrobbleAlvoPronto;
 
 // O EPISODIO TOCANDO NO TMDB, quando o fio de episodios o confirmou
 // (CatEp.tmdbSerie/tmdbT/tmdbE). Filme: o id do item. 0 = nao se sabe.
@@ -871,15 +929,19 @@ void player_do_inicio(void) {
 #endif
 }
 void player_definir_episodio(int t, int e) {
+  if (t > 0 && e > 0) { epPedidoT = t; epPedidoE = e; }
+  atualizarTipoItem();
   const CatItem *c = item();
-  if (t != epT || e != epE) retomarFonteSeg = -1.0;
+  if (t != epT || e != epE) { retomarFonteSeg = -1.0; scrobbleAlvoPronto = 0; }
   epT = t; epE = e; linhaEp[0] = 0;
   audioTitulo();
   retomarPct = 0;
   // !canalSessao: canal nao tem retomada, e se o indice ja foi remapeado o
   // "progresso" lido ali seria de outro titulo qualquer.
   if (c && !canalSessao && !semRetomada && c->progresso > 0 && c->progresso < ajustes_cw_concluido() &&
-      (strcmp(c->tipo,"series") || (t==c->temporada && e==c->episodio))) retomarPct=c->progresso;
+      (strcmp(c->tipo,"series") || (t==c->temporada && e==c->episodio) ||
+       (c->tvdbEp > 0 && cat_episodio_tvdb &&
+        cat_episodio_tvdb(idxAtual(), c->imdb, t, e) == c->tvdbEp))) retomarPct=c->progresso;
 #ifdef NV_ANDROID
   retomarSeg = 0.0;
   if (c && retomarPct > 0) {
@@ -921,6 +983,9 @@ void player_definir_episodio(int t, int e) {
   }
   if (epT < 1) epT = c->temporada > 0 ? c->temporada : 1;
   if (epE < 1) epE = c->episodio > 0 ? c->episodio : 1;
+  // O default antigo de uma serie JA conhecida continua valido. Tipo
+  // incerto so chega aqui depois de um pedido positivo de T/E confirmado.
+  epPedidoT = epT; epPedidoE = epE;
   // AS FONTES SAO DESTE EPISODIO, E SO DELE — issue #101.
   //
   // A lista de streams.c e uma so, global, e nada a invalidava ao trocar de
@@ -1525,6 +1590,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
 #endif
   creditosauto_zerar(&creditosAuto);
   player_descartar_retido();
+  scrobbleAlvoPronto = 0;
   // O trailer usa o mesmo plano de video (LG) — solta antes de o player
   // carregar a fonte, senao o load novo pisa no mediaId do trailer.
   trailer_fechar();
@@ -1560,6 +1626,9 @@ void player_abrir(int indiceCatalogo, const char *url) {
     // do titulo pedido. Ver item().
     if (ci) { itemFixo = *ci; temFixo = 1; } else temFixo = 0;
     cinemaArteIniciar(temFixo ? &itemFixo : NULL);
+    itemSessao = nv_perfil_sessao_ler();
+    itemTipoConsultado = 0; itemTipoConfirmado[0] = 0;
+    epPedidoT = epPedidoE = fonteSemEpisodio = 0;
     audioTitulo();
     artehero_logo_sessao_iniciar(temFixo ? &itemFixo : NULL);
     canalSessao = ci && (!strcmp(ci->tipo, "channel") || !strcmp(ci->tipo, "tv"));
@@ -2032,6 +2101,32 @@ static void idTrakt(const CatItem *ci, char *dst, size_t n) {
   else snprintf(dst, n, "%s", base);
 }
 
+static const TraktScrobbleAlvo *alvoTrakt(const CatItem *ci) {
+  if (!scrobbleAlvoPronto) {
+    if (!ci || (strcmp(ci->tipo, "movie") && strcmp(ci->tipo, "series")) ||
+        (!strcmp(ci->tipo, "series") && (epT <= 0 || epE <= 0))) return NULL;
+    memset(&scrobbleAlvo, 0, sizeof scrobbleAlvo);
+    idTrakt(ci, scrobbleAlvo.id, sizeof scrobbleAlvo.id);
+    if (epT > 0 && epE > 0 && !strcmp(ci->tipo, "series")) {
+      if (cat_episodio_tvdb)
+        scrobbleAlvo.tvdbEp = cat_episodio_tvdb(idxAtual(), ci->imdb, epT, epE);
+    }
+    scrobbleAlvoPronto = 1;
+  }
+  return &scrobbleAlvo;
+}
+
+static int scrobbleTrakt(int evento, const CatItem *ci, double pos, double dur, double assistido, int fim) {
+  const TraktScrobbleAlvo *a = alvoTrakt(ci);
+  if (!a) return SCR_NADA;
+  if (trakt_scrobble_alvo) return trakt_scrobble_alvo(evento, a, pos, dur, assistido, fim);
+  if (evento == SCR_EV_SAIU) {
+    trakt_marcar(a->id, pos, dur, assistido, fim);
+    return SCR_NADA;
+  }
+  return trakt_scrobble(evento, a->id, pos, dur, assistido, fim);
+}
+
 // O ALVO DO STREAM desta sessao, no formato que app.c usa para pedir fontes
 // (alvoPlayer): "tt1" no filme, o id do episodio na serie.
 static void alvoStream(char *dst, unsigned tam) {
@@ -2093,6 +2188,7 @@ static void lembrarFonte(void) {
 }
 
 static void fecharSessao(int manter) {
+  atualizarIdentidade();
   int jaRetido = retido;
   // A tela do DV nao sobrevive a sessao (Voltar ja a tirou; aqui e o resto:
   // troca de titulo, encerramento pelo app).
@@ -2101,7 +2197,7 @@ static void fecharSessao(int manter) {
   // titulo comecam em 1x.
   video_velocidade(VEL_NORMAL);
   legsync_encerrar();   // F05: cancela leitura/analise da sessao; join so no fim do app
-  if (!jaRetido) lembrarFonte();
+  if (!jaRetido && identidadeValida()) lembrarFonte();
   // PERSONAL-SERVER END OF SESSION (Jellyfin/Emby/Plex): stop check-in (and
   // transcode release) for the URL this session played; addon URLs never match.
   // Before video_parar so the last position is still the pipeline's.
@@ -2145,7 +2241,7 @@ static void fecharSessao(int manter) {
   // parou. Nao se grava nada, em destino nenhum. (O aviso "Esta fonte parece
   // ser outra obra" ja disparava para este caso — a partir daqui ele tambem
   // segura a gravacao.)
-  double catDur = duracaoCatalogo();
+  double catDur = identidadeValida() ? duracaoCatalogo() : 0.0;
   int duracaoErrada = !jaRetido && comVideo && video_pronto() && duracaoSeg >= 120.0f &&
                       !ehCanal() && player_duracao_suspeita((double)duracaoSeg, catDur);
   if (duracaoErrada) {
@@ -2188,7 +2284,7 @@ static void fecharSessao(int manter) {
   if (duracaoContradita) chegou = 0;
   // Sem ela a posicao REAL continua gravada (barra, Continuar assistindo,
   // conta): so o arredondamento para 100% e o visto ficam de fora.
-  if (!duracaoErrada && !jaRetido && prova && video_pronto() && duracaoSeg >= 120.0f &&
+  if (identidadeValida() && !duracaoErrada && !jaRetido && prova && video_pronto() && duracaoSeg >= 120.0f &&
       !ehCanal()) {
     // CANAL nao grava progresso: uma transmissao ao vivo nao tem "onde parou" —
     // guardar posSeg contra a duracao reserva colocaria "Globo 68%" em
@@ -2209,10 +2305,16 @@ static void fecharSessao(int manter) {
     float pos = assistiu ? duracaoSeg : posSeg;
     // Pelo indice CORRENTE do titulo, nao pelo guardado: depois de uma
     // republicacao o guardado grava o progresso no titulo errado.
-    int ia = idxAtual();
     const CatItem *ci = item();
-    home_registrar_retorno(ia, pos, duracaoSeg);
-    ilhacart_player_saiu(ia, pos, duracaoSeg, epT, epE);
+    int ia = ci ? cat_indice_por_imdb_tipo(ci->imdb, ci->tipo) : -1;
+    if (ia >= 0) {
+      home_registrar_retorno(ia, pos, duracaoSeg);
+      ilhacart_player_saiu(ia, pos, duracaoSeg, epT, epE);
+    } else {
+      printf("[player] progresso local ignorado: sem copia do tipo %s para %s\n",
+             ci ? ci->tipo : "", ci ? ci->imdb : "");
+      fflush(stdout);
+    }
     if (assistiu) {
       printf("[visto] marcado por player pos=%.3f dur=%.3f assistido=%.3fs id=%s T%dE%d\n",
              (double)pos, (double)duracaoSeg, assistidoSeg, ci ? ci->imdb : "", epT, epE);
@@ -2220,16 +2322,14 @@ static void fecharSessao(int manter) {
     }
     // A posicao gravada e sempre a REAL (ponto de retomada), com o como ela
     // foi alcancada: cat_visto e a proxima base leem `tocou`.
-    cat_salvar_progresso_ep(ia, pos, duracaoSeg, epT, epE, chegou);
+    if (ia >= 0) cat_salvar_progresso_ep(ia, pos, duracaoSeg, epT, epE, chegou);
     // E tambem para o Trakt, que e de onde o "continue assistindo" vem: gravar
     // so aqui deixaria este app discordando dos outros aparelhos do dono.
     // Personal-server items stay private: no Trakt, friends feed or social
     // activity (jfid.h). The server got its own stop check-in above.
     if (ci && ci->imdb[0] && !jfid_e(ci->imdb)) {
-      char id[64];
-      idTrakt(ci, id, sizeof id);
       // Trakt also completes by percentage, so an invalid duration cannot be sent.
-      if (!duracaoContradita) trakt_marcar(id, pos, duracaoSeg, assistidoSeg, assistiu);
+      if (!duracaoContradita) scrobbleTrakt(SCR_EV_SAIU, ci, pos, duracaoSeg, assistidoSeg, assistiu);
       // "ASSISTIU" para os amigos, so quando CONCLUIU e so se ela ligou a
       // atividade (ou os "vistos recentemente" do perfil). Largar aos 8% nao
       // assistiu nada — e nao chega a lugar nenhum.
@@ -2387,23 +2487,29 @@ void player_preparar_retencao(void) {
 #define PLR_PARCIAL_SEEK_S 0.7f
 #define PLR_PARCIAL_LIMIAR_S 5.0
 static void gravarProgressoParcial(int conta, const char *porque) {
+  atualizarIdentidade();
   const CatItem *ci = item();
   double base;
-  int chegou;
-  if (!ci || !ci->imdb[0] || jfid_e(ci->imdb) || !comVideo || !fontePrincipal() || !duracaoReal ||
+  int chegou, ia;
+  if (!identidadeValida() || !ci || !ci->imdb[0] || jfid_e(ci->imdb) || !comVideo || !fontePrincipal() || !duracaoReal ||
       !video_pronto() || esperandoFonte || erroFonte || video_falhou() || ehCanal() || scrubbing ||
       !isfinite(posSeg) || !isfinite(duracaoSeg) || duracaoSeg < 120.0f || posSeg < 1.0f ||
       assistidoSeg < PLR_PROVA_MIN_S ||
       player_duracao_suspeita((double)duracaoSeg, duracaoCatalogo()))
     return;
   if (parcialPos >= 0.0 && fabs(posSeg - parcialPos) < PLR_PARCIAL_LIMIAR_S) return;
+  ia = cat_indice_por_imdb_tipo(ci->imdb, ci->tipo);
+  if (ia < 0) {
+    printf("[player] progresso parcial ignorado: sem copia do tipo %s para %s\n", ci->tipo, ci->imdb);
+    fflush(stdout); return;
+  }
   base = baseDur > 0.0 ? basePos : duracaoSeg * basePct / 100.0;
   if (!baseTocou || (baseDur > 0.0 && fabs(baseDur - duracaoSeg) > fmax(5.0, duracaoSeg * 0.02))) base = 0.0;
   (void)player_regra_visto(base, assistidoSeg, posSeg, 0, &chegou);
   // Contradictory credits also invalidate the catalogue's watched proof.
   double cred = credEfetivo();
   if (cred > 1.0 && cred - duracaoSeg > intro_creditos_janela(duracaoSeg)) chegou = 0;
-  cat_salvar_progresso_ep(idxAtual(), posSeg, duracaoSeg, epT, epE, chegou);
+  cat_salvar_progresso_ep(ia, posSeg, duracaoSeg, epT, epE, chegou);
   if (conta) sync_sujar_progresso();
   parcialPos = posSeg;
   printf("[visto] ponto gravado (%s) pos=%.1f dur=%.1f (%.0f%%)\n", porque, (double)posSeg,
@@ -3716,6 +3822,7 @@ void player_atualizar(float dt, Uint32 agora) {
   playerTelaAtualizar();
 #endif
   if (retido) { player_validar_retido(agora); return; }
+  if (aberto || mini) atualizarIdentidade();
   // DV EM MKV NASCE NO PONTO SALVO: enquanto a retomada nao foi pedida ao
   // player da TV, a troca para o caminho do DV espera (video.c, iniciarDts le o
   // seek pendente). Sem ponto salvo nao ha o que esperar.
@@ -3766,6 +3873,9 @@ void player_atualizar(float dt, Uint32 agora) {
   if (prebuscaUrl[0]) {
     int fase = mkvass_prebusca_fase();
     Uint32 esperou = agora - prebuscaDesde;
+    // A fonte pode ter sido aberta neste quadro, depois do timestamp `agora`.
+    // O delta negativo nao venceu o teto; a subtracao ainda aceita a volta do Uint32.
+    if ((Sint32)esperou < 0) esperou = 0;
     if (fase != 1 || esperou >= (Uint32)MKVASS_PREBUSCA_MS) {
       char u[sizeof prebuscaUrl];
       long ped = 0, bytes = 0; int col = 0, tot = 0;
@@ -3972,7 +4082,7 @@ void player_atualizar(float dt, Uint32 agora) {
       if (ci) servidores_reproducao_tick(video_url_atual(), posSeg, duracaoSeg,
                                          video_pronto() && tocando && !scrubbing);
       // A server-native item is not a social/Trakt title: never fed onward.
-      if (ci && jfid_e(ci->imdb)) ci = NULL;
+      if (ci && (jfid_e(ci->imdb) || !identidadeValida())) ci = NULL;
       // "ASSISTINDO AGORA" para os amigos, SO se a pessoa ligou o nivel 2 em
       // Ajustes (recomenda.c decide; com tudo desligado isto nao faz nada).
       // Filme/episodio de verdade, nunca o clipe curto de erro do provedor.
@@ -4052,13 +4162,10 @@ void player_atualizar(float dt, Uint32 agora) {
     static float tocouS, parcialRelogio, parcialSeek;
     static int scrubAnterior;
     const CatItem *cs = item();
-    if (cs && jfid_e(cs->imdb)) cs = NULL;   // never scrobble personal-server items
+    if (cs && (jfid_e(cs->imdb) || !identidadeValida())) cs = NULL;
     if (ok && cs && cs->imdb[0]) {
-      char id[64];
-      if (epT > 0 && epE > 0) snprintf(id, sizeof id, "%.*s:%d:%d", (int)strcspn(cs->imdb,":"), cs->imdb, epT, epE);
-      else snprintf(id, sizeof id, "%s", cs->imdb);
       tocouS += dt;
-      if (tocouS >= PLR_SCR_TOCOU_S) trakt_scrobble(SCR_EV_TOCANDO, id, posSeg, duracaoSeg, assistidoSeg, 0);
+      if (tocouS >= PLR_SCR_TOCOU_S) scrobbleTrakt(SCR_EV_TOCANDO, cs, posSeg, duracaoSeg, assistidoSeg, 0);
       parcialRelogio += dt;
       if (parcialRelogio >= PLR_PARCIAL_INTERVALO_S) {
         parcialRelogio = 0.0f;
@@ -4068,10 +4175,7 @@ void player_atualizar(float dt, Uint32 agora) {
       // Pausou (ou o video parou de andar): so fala se ha um start em pe.
       if (tocouS > 0.0f && cs && cs->imdb[0] && fontePrincipal() && video_pronto() && !ehCanal() &&
           duracaoSeg >= 120.0f && !scrubbing) {
-        char id[64];
-        if (epT > 0 && epE > 0) snprintf(id, sizeof id, "%.*s:%d:%d", (int)strcspn(cs->imdb,":"), cs->imdb, epT, epE);
-        else snprintf(id, sizeof id, "%s", cs->imdb);
-        trakt_scrobble(SCR_EV_PAUSOU, id, posSeg, duracaoSeg, assistidoSeg, 0);
+        scrobbleTrakt(SCR_EV_PAUSOU, cs, posSeg, duracaoSeg, assistidoSeg, 0);
         parcialPausa = 1;
       }
       tocouS = 0.0f;

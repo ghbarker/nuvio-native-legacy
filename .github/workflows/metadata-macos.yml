@@ -1,0 +1,72 @@
+{
+  "name": "Metadata: focused normal and sanitizer fixture validation",
+  "on": {
+    "push": {
+      "branches": [
+        "review/metadata-macos-focused-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "metadata-macos-${{ github.sha }}-${{ github.run_attempt }}",
+    "cancel-in-progress": false
+  },
+  "env": {
+    "METADATA_PLAN_SHA256": "f0a4c62116c0d3df599ff10df48e5aaaa304fef5f2c282a017873c99b5a3b43e",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "jobs": {
+    "native": {
+      "if": true,
+      "name": "macOS ${{ matrix.lane }}",
+      "runs-on": "macos-14",
+      "timeout-minutes": 30,
+      "strategy": {
+        "fail-fast": false,
+        "max-parallel": 2,
+        "matrix": {
+          "lane": [
+            "focused-normal",
+            "focused-asan"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/setup-python@v5",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Install real native SDK dependencies",
+          "run": "brew install sdl2 sdl2_image sdl2_ttf sdl3"
+        },
+        {
+          "name": "Validate exact source and run this independent lane",
+          "run": "python3 .review/metadata-macos/run.py --lane \"${{ matrix.lane }}\" --output \"$RUNNER_TEMP/metadata-results/${{ matrix.lane }}\""
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "metadata-macos-${{ matrix.lane }}-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/metadata-results/\n!${{ runner.temp }}/metadata-results/**/objects/*.o\n!${{ runner.temp }}/metadata-results/**/app-*",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

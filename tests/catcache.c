@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "../src/catalogo.h"
+#include "../src/perfis.h"
 #include "../src/progresso.h"
 
 // O cache grava o idioma no cabecalho (texto ja montado nao pode ser lido de
@@ -41,6 +42,12 @@ const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nom
 static char  dirDados[512];
 static char  usuarioAtual[64];
 static int   perfilAtual = 1;
+
+// Standalone fixture: one immutable account visit, not the application profile service.
+uint64_t perfis_sessao_geracao(void) { return 0; }
+int perfis_sessao_atual(uint64_t geracao) { return geracao == 0; }
+int perfis_sessao_travar(uint64_t geracao) { assert(geracao == 0); return 1; }
+void perfis_sessao_destravar(void) {}
 
 const char *dados_dir(void)     { return dirDados; }
 const char *sessao_usuario(void){ return usuarioAtual; }
@@ -139,6 +146,34 @@ int main(void) {
             cat_n() == 0 && cat_n_fileiras() == 0);
     estadoItens[0].poster[0] = 0;
     cat_definir_tudo(estadoItens, 4, &vazio, 1);   // restaura o que os proximos casos usam
+  }
+
+  // #512: o ID remoto viaja com o episodio, inclusive se o campo novo
+  // couber no padding e sizeof(CatItem) continuar igual ao da versao anterior.
+  { CatItem itens[4], original;
+    CatFileira fil = *cat_fileira(0);
+    char caminho[700]; unsigned antiga = 7; FILE *f;
+    for (int i = 0; i < 4; i++) itens[i] = *cat_item(i);
+    original = itens[0];
+    snprintf(itens[0].imdb, sizeof itens[0].imdb, "tt21975436:2:2");
+    snprintf(itens[0].tipo, sizeof itens[0].tipo, "series");
+    itens[0].temporada = 2; itens[0].episodio = 2; itens[0].tvdbEp = 11209906;
+    itens[0].progresso = 40;
+    cat_definir_tudo(itens, 4, &fil, 1);
+    confere("identidade TVDB gravada em v8", cat_gravar_cache(dirPacote));
+    cat_definir_tudo(NULL, 0, NULL, 0);
+    confere("identidade TVDB releu do disco", cat_ler_cache(dirPacote) == 1);
+    confere("par da fonte e progresso preservados",
+            cat_item(0)->temporada == 2 && cat_item(0)->episodio == 2 &&
+            cat_item(0)->tvdbEp == 11209906 && cat_item(0)->progresso == 40);
+    snprintf(caminho, sizeof caminho, "%s/catalogo-rede.bin", dirDados);
+    f = fopen(caminho, "r+b"); assert(f);
+    assert(!fseek(f, (long)sizeof(unsigned), SEEK_SET));
+    assert(fwrite(&antiga, sizeof antiga, 1, f) == 1); fclose(f);
+    confere("v7 com mesmo sizeof e recusado", cat_ler_cache(dirPacote) == 0);
+    confere("cache v7 foi apagado", !cacheEmDisco(dirDados, dirPacote));
+    itens[0] = original;
+    cat_definir_tudo(itens, 4, &fil, 1);
   }
 
   // (a2) SEM PASTA GRAVAVEL, VOLTA A SER COMO ERA.

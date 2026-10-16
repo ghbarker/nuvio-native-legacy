@@ -1,0 +1,1164 @@
+{
+  "schema": 1,
+  "root_approved": true,
+  "execution_enabled": true,
+  "source_frozen": true,
+  "base": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+  "local_candidate_provenance": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+  "local_candidate_tree_provenance": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+  "source_files": {
+    "android/app/build.gradle.kts": {
+      "git_mode": "100644",
+      "git_blob": "697834480f54c10c687a40c03bdad49d99d9657a",
+      "sha256": "11d0ccc071173a4cca2e1a47a2771536965ddcf421755a33af6203f86bb9fea3",
+      "bytes": 6246
+    },
+    "src/app.c": {
+      "git_mode": "100644",
+      "git_blob": "b062e886afa4574f0c5abdcc07289e236707e533",
+      "sha256": "a62d0c65cd4d9a3c502fdb3188639a42f2bd7aad48a70d7e1a0257da89e2ed05",
+      "bytes": 315754
+    },
+    "src/catalogo.c": {
+      "git_mode": "100644",
+      "git_blob": "7c98c4dbb164ea13d4c309572f8bb2f9e1c8f7c0",
+      "sha256": "61b0139314cdeaa06b73e55c3d596b11c2da6bb53c05fcf93d2e9ccf38a134c2",
+      "bytes": 116949
+    },
+    "src/catalogo.h": {
+      "git_mode": "100644",
+      "git_blob": "60e1246d4d5f3adaf0ab8175530161693efbd7af",
+      "sha256": "452b86c189c3d3cf485ba93263c7eb9df3d2ec704b649e0f86954fb7917c8266",
+      "bytes": 33737
+    },
+    "src/descoberta.c": {
+      "git_mode": "100644",
+      "git_blob": "ca3f056b7de1418f6b6dc523124fa7dbad0c033b",
+      "sha256": "4d082349dfa6b1615a53ffa5a7892ade1ca0c2917d74b0355294919c9b001175",
+      "bytes": 441680
+    },
+    "src/descoberta.h": {
+      "git_mode": "100644",
+      "git_blob": "943d452f3a70867c103578b9483836c9fc07d184",
+      "sha256": "945cffd936a43b8b9539f440f8cc9056161a93da5594a7f4f15d7c4ce74fcc06",
+      "bytes": 21252
+    },
+    "src/detail.c": {
+      "git_mode": "100644",
+      "git_blob": "d8dc997de720062b6093773e66c6af8a77b75f35",
+      "sha256": "db1a2217fff110f51823dbe2e48b126a41685fd75abb5ba4e71435d2c62b05f7",
+      "bytes": 381185
+    },
+    "src/detail.h": {
+      "git_mode": "100644",
+      "git_blob": "a2a89c162b288285ff261660ff78c779ecf6ed30",
+      "sha256": "c53dc623919860ae7c1ea8b59785fb8505cb1a262207ae67e44c96df48392200",
+      "bytes": 24583
+    },
+    "src/episodioid.h": {
+      "git_mode": "100644",
+      "git_blob": "94e60f7ed67005c83d70cb71c82d9e75e8dcb029",
+      "sha256": "bd448b717e57b201ae300aa9acb09db39849e29707f6157c1db2f325aa021c81",
+      "bytes": 4638
+    },
+    "src/episodios.c": {
+      "git_mode": "100644",
+      "git_blob": "ca4abbd1198563f71554684b57c29a3daf48c170",
+      "sha256": "afa1bbf1ab86c9ce5ac5ff0fd1aa70a547d2c5048ac77d3ae94039d11f4d7ca4",
+      "bytes": 53050
+    },
+    "src/extras.c": {
+      "git_mode": "100644",
+      "git_blob": "98c444d1420dbb4554a2b58d5d92ddca4cf5009e",
+      "sha256": "6d44521926bc587a58c6c18b427ea77b5fe38bdf0a7e6d546a6d246af671db39",
+      "bytes": 107535
+    },
+    "src/extras.h": {
+      "git_mode": "100644",
+      "git_blob": "98302a5bcab25b3ce0580576ebd0442293291975",
+      "sha256": "7c95da3cb6d46892c5664adc5ce6d8df9fc90a332f80ac9501d09e3f2e0a798a",
+      "bytes": 14807
+    },
+    "src/player.c": {
+      "git_mode": "100644",
+      "git_blob": "ebeeab2589563cb00696354ba86fdff6fbd40aae",
+      "sha256": "835ee398194a0fbfdb5cbd0bc1b8171f09919d336b3fb7e51607c7d9a894dc8b",
+      "bytes": 314474
+    },
+    "src/trakt.c": {
+      "git_mode": "100644",
+      "git_blob": "a35242437f193ef5cd8a3963ee47336dce33fbff",
+      "sha256": "c7d30d256731da2c078b3d257cadef9edd933613b5a2cfee3fb667d2e40026f3",
+      "bytes": 111534
+    },
+    "src/trakt.h": {
+      "git_mode": "100644",
+      "git_blob": "9d98121de95e7122bd5eba466da8e03fd2702d73",
+      "sha256": "fc7e901ca92ef41a0bc75a0c3dce11a0304572bd4a7cac67488c433aa9fad071",
+      "bytes": 10989
+    },
+    "src/traktscrobble.c": {
+      "git_mode": "100644",
+      "git_blob": "e428cd49a02332084f4ecbab776aaf51b63b5bff",
+      "sha256": "028381aefe555f6115e22e56af733cf5e0631b0fea86d6bed31bfbb3a403f04a",
+      "bytes": 2409
+    },
+    "src/traktscrobble.h": {
+      "git_mode": "100644",
+      "git_blob": "8d50cd3fa06365dba3d843060f34da4a81bbc65f",
+      "sha256": "fa69ca9921fc4e86577d38e19b951a35f2b46dfebbd44ff2e43500a1ab96074f",
+      "bytes": 2083
+    },
+    "src/traktult.h": {
+      "git_mode": "100644",
+      "git_blob": "685cd980829d9132d88261fdc21942af99df1f64",
+      "sha256": "7e0702b5c7c985820baf15d0887c4b572a568cf73d25932615ad8cc01635cb58",
+      "bytes": 3724
+    },
+    "src/visto.c": {
+      "git_mode": "100644",
+      "git_blob": "06b699946c4d679b670dc0f585f905d83a17d7b0",
+      "sha256": "03b1a258e720a623d0d698a4068126a394d2f6fcd4a96eab7ff48e91c53fe199",
+      "bytes": 8891
+    },
+    "src/visto.h": {
+      "git_mode": "100644",
+      "git_blob": "25b6548c1f82db3463c02a234918ae30382b6296",
+      "sha256": "eab66bc14614a4b1076eae2bcb87ada88a08cfd4a8d67431df311189651fff33",
+      "bytes": 3179
+    },
+    "tests/addons_manifest_notifications_stub.inc": {
+      "git_mode": "100644",
+      "git_blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7",
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "bytes": 959
+    },
+    "tests/catalog_episode_identity512.c": {
+      "git_mode": "100644",
+      "git_blob": "d6de976f53df83d7c19a732b7032281c11684184",
+      "sha256": "000926a1bf6f42d57b03f418ee80ac6ffed8a5603502f9f72d7d2853c0aa97b7",
+      "bytes": 10966
+    },
+    "tests/catalog_episode_identity512.sh": {
+      "git_mode": "100644",
+      "git_blob": "6748dc0288b74062552316d2150a3de17fe17dd0",
+      "sha256": "2926da5fd54431a1d9de1273b3aa3250f53dab70f1e42e90861f40722b086921",
+      "bytes": 1141
+    },
+    "tests/catcache.c": {
+      "git_mode": "100644",
+      "git_blob": "9df168f371ba5599e1b65f594f70cc86780a2802",
+      "sha256": "4a111b5fdaf65bdce6cdef90c3d1476ac06c35190d12502837ce0ecf5c001b6e",
+      "bytes": 14266
+    },
+    "tests/colfileiras.c": {
+      "git_mode": "100644",
+      "git_blob": "a7e50f985440bda3fbfc6ed701e74605332a4f62",
+      "sha256": "30b94787ab289d26d414dd6b6475ca04a45fdfd09abbe693893c9992c7ef43c9",
+      "bytes": 22088
+    },
+    "tests/detalheanime.c": {
+      "git_mode": "100644",
+      "git_blob": "8febb5c8beb17a163e1d98224b116b0391bbed2b",
+      "sha256": "d13890f6ee6aaedb4e986f48970db54b0d4a2a4da4a41af7b0c422228207eae9",
+      "bytes": 69485
+    },
+    "tests/episodio_escolha512.c": {
+      "git_mode": "100644",
+      "git_blob": "440e7cf69f61146c837a81a7672b057f8f46516b",
+      "sha256": "85d0cce0b05078da0980d5610cc98cbeff53e9b99cd6cd4d4250babcbb409c0d",
+      "bytes": 4657
+    },
+    "tests/episodio_escolha512.sh": {
+      "git_mode": "100644",
+      "git_blob": "65586c4659b80c81fbd3a0210b989dbf86b331f9",
+      "sha256": "04354f292fdca542f7fc9f0a5c8c38251bc60377078cd5c2337012af6df5cd83",
+      "bytes": 618
+    },
+    "tests/episodioid512.c": {
+      "git_mode": "100644",
+      "git_blob": "da2ea11656b10a0e6f7825fa9694ceca7a87d10e",
+      "sha256": "3df81c51b186306d30f9be2b4911924ff2f4bd9d990c42aa2aaf5835a9d10bb1",
+      "bytes": 5220
+    },
+    "tests/episodioid512.sh": {
+      "git_mode": "100644",
+      "git_blob": "04ace770849245daaa6b3186c7c3954e22848c25",
+      "sha256": "155a5027b00fa49605f4c89faeeb8d1cfd26886c2f02f291807a6952035aca6d",
+      "bytes": 374
+    },
+    "tests/episodiosdup.c": {
+      "git_mode": "100644",
+      "git_blob": "4f1c41dffa53d4da6682f56b28f96ba82688698f",
+      "sha256": "ed7f0622c759d4fffe8011c638e8e4dac00fa5e8fcdb03efcf91a5df5e4ac446",
+      "bytes": 39959
+    },
+    "tests/extras_episode_identity_512.c": {
+      "git_mode": "100644",
+      "git_blob": "d64321c4f932d804bf8dac9426e748763a45ff56",
+      "sha256": "d6c51c087f07b0d4e49363918cb90870f01eae9d4e26352c0d50a07a9f1f7be7",
+      "bytes": 22592
+    },
+    "tests/extras_episode_identity_512.sh": {
+      "git_mode": "100755",
+      "git_blob": "32e1910636b9de0b54f0f6b5329f142af0b8abb1",
+      "sha256": "f1e0232e76cfdbbb42dd16e67832eb121b0c675466da70955d30506acdfb5191",
+      "bytes": 3058
+    },
+    "tests/fixtures/episode_identity_512/README.md": {
+      "git_mode": "100644",
+      "git_blob": "67e4bcaa9968ea41af5ebcc2f39e932b6908ca29",
+      "sha256": "e3485c173e60da61d2d91dc56ce1b7621e6023f2dd140af0bd5871d377129a34",
+      "bytes": 2220
+    },
+    "tests/fixtures/episode_identity_512/catalog_duplicate_episode_id.json": {
+      "git_mode": "100644",
+      "git_blob": "1be1a5270375b1e05334231d415c4ebf63624364",
+      "sha256": "8c77e5c4cd0ba16429e7aeee27f2b34115a9cac7f465dfc897abe91e4fcb9fd0",
+      "bytes": 2908
+    },
+    "tests/fixtures/episode_identity_512/cinemeta_kaiju_reduced.json": {
+      "git_mode": "100644",
+      "git_blob": "b78e19fa1702b800eca4fb0f9b112f17693453ce",
+      "sha256": "f46ca51d68dece91bfbccfa619bacf5b6a24fcbb5ddeea0fded5b589658b50fc",
+      "bytes": 2908
+    },
+    "tests/fixtures/episode_identity_512/provenance.json": {
+      "git_mode": "100644",
+      "git_blob": "bccbc95f5fbc18a21b0949b7662da392bbe10ef7",
+      "sha256": "06f3e351624eeb81f266a243a056c7929df4ca129c6a02e4f3d977479ae679a4",
+      "bytes": 897
+    },
+    "tests/fontefalha_playback.c": {
+      "git_mode": "100644",
+      "git_blob": "0ee1dd0b22afe6d7c1740cd3a2e2dfe780fe1522",
+      "sha256": "6d407d9967df5fefcac4d5512f873b7bd701a1f412c637e5a171dce6ebf1e20f",
+      "bytes": 19230
+    },
+    "tests/homejanelas.c": {
+      "git_mode": "100644",
+      "git_blob": "75415d729d8b9d36776f57d32c5b1ee1d81da235",
+      "sha256": "41f94bba1ccca958c4d870fe8abd9b6d5ca6a41faa43d8c893063f80c748623f",
+      "bytes": 26354
+    },
+    "tests/player_identity524.c": {
+      "git_mode": "100644",
+      "git_blob": "e90c443e09f55216f30f30980bbea8b70471c385",
+      "sha256": "56d612a35409e5c565368ac8ca3e4719d7d6436631f8b6be4d498b47e59d8a27",
+      "bytes": 7194
+    },
+    "tests/player_identity524.sh": {
+      "git_mode": "100644",
+      "git_blob": "bf0cc5db6b009c95383dd18ebf5e5052652c01ef",
+      "sha256": "80bf3a6bf8788269b45e20cb68ed47afe6e0ca7f38f9d0fd4ff3e49a39af66d0",
+      "bytes": 2144
+    },
+    "tests/player_identity524_guards.c": {
+      "git_mode": "100644",
+      "git_blob": "5ee8e5ceebe3ace1a48a415792e2dce7463478ca",
+      "sha256": "1a24c66c488c75ff6973df1a1f4bf7c88d2ad97304b260be285c4635c47f4bfc",
+      "bytes": 7723
+    },
+    "tests/player_identity524_guards.sh": {
+      "git_mode": "100644",
+      "git_blob": "12fd3b93706fd9c671c3cc7a16b9625da40d2006",
+      "sha256": "a08152292adaf42593f5efc237986bdc1eb7e138b6d39c3c3fa334c52680e976",
+      "bytes": 2313
+    },
+    "tests/player_prebusca_prazo.c": {
+      "git_mode": "100644",
+      "git_blob": "bcb39f54e2e8b6d0011d26f0f9b1be74510a61c1",
+      "sha256": "a1db8f5f16e57a7e54a1c8b7b8e6a621dc47128fbcacb2e44c9ebd04fdbbdc07",
+      "bytes": 4384
+    },
+    "tests/player_prebusca_prazo.sh": {
+      "git_mode": "100644",
+      "git_blob": "1369c5d4fe4db02d98ef5f0495d98485c9e88ee8",
+      "sha256": "8dbdaf6aee809be421dc08392e1f17f8fdcf274d22205fe754b8e9b31d318cff",
+      "bytes": 2352
+    },
+    "tests/player_visto_trailer.c": {
+      "git_mode": "100644",
+      "git_blob": "446a58eada1f56ad86c4205c388b1b43651e83d9",
+      "sha256": "c98062fef80e525f5a6f4e5a7f230ce9d8cbacf659d0a525a33e191a90e63da8",
+      "bytes": 27009
+    },
+    "tests/player_visto_trailer.sh": {
+      "git_mode": "100755",
+      "git_blob": "95230f78e0bedb8137c8d4ed6e9eb3a063322ac5",
+      "sha256": "90ec77e29f271a55fdcb9c9b5979cba847338d2490077516f66181b239c2e9e2",
+      "bytes": 2205
+    },
+    "tests/stalker_scheduler.c": {
+      "git_mode": "100644",
+      "git_blob": "fc30d7a21b345189115de0d874aa431427838866",
+      "sha256": "f8b871b7c4c1ac5beed82cc98b570088576227b0f422f3b0d10daacf5ceacacc",
+      "bytes": 13009
+    },
+    "tests/title_identity524.c": {
+      "git_mode": "100644",
+      "git_blob": "9285d3e2aa6d84e2cdca76d8bf08c57e8102a0bd",
+      "sha256": "27a836903560d330f9a9a29b6b6f35dd44c8a4f4cb46070c9a96471e3e2404df",
+      "bytes": 10105
+    },
+    "tests/title_identity524.sh": {
+      "git_mode": "100644",
+      "git_blob": "fc3cde9d141bedca07f52d549393d39540174170",
+      "sha256": "923f5adef3cb26e499f139061c4b5c4607df90753ee22a4d0742732138232171",
+      "bytes": 1371
+    },
+    "tests/trakt_alvos512.c": {
+      "git_mode": "100644",
+      "git_blob": "4e72765c1f2926d09c0f05f20615c28499b0aa75",
+      "sha256": "1d6d226d58607d2e29c5fd54206c4213250663c5cd5af5803c13fa933ede8cc9",
+      "bytes": 4524
+    },
+    "tests/trakt_alvos512.sh": {
+      "git_mode": "100644",
+      "git_blob": "185178414692f3d86cd3c7d9db6bbc76bc1436e8",
+      "sha256": "f96dd0a7fe90909a13968dc82505dd4ecbb9e84d5275ae9d54aba286a4b5189c",
+      "bytes": 633
+    },
+    "tests/trakt_episode_identity_512.c": {
+      "git_mode": "100644",
+      "git_blob": "d8f23d3e2447e98cda8cc804ae44c6fdf8ceef22",
+      "sha256": "a4e0b1cd6c6c940b9b366414a8dbfef6bd1c580e3a9ec49d62e369c80b68269c",
+      "bytes": 5325
+    },
+    "tests/trakt_episode_identity_512.sh": {
+      "git_mode": "100644",
+      "git_blob": "7e1285a7e20591854a2f8530cfd6e47b44829a6f",
+      "sha256": "8c53dc38426b0a45f982c1a07672a6766a0961ae528e3daef73660febf2dd9f0",
+      "bytes": 705
+    },
+    "tests/trakt_historico_lease512.c": {
+      "git_mode": "100644",
+      "git_blob": "0d5e5a3d1179d13b3af5bcbf501868eec8762af6",
+      "sha256": "acb4f6637d76b68e018be15c4c4cdae4af24f7a79af6d5d6af7831c48907893e",
+      "bytes": 5803
+    },
+    "tests/trakt_historico_lease512.sh": {
+      "git_mode": "100644",
+      "git_blob": "6f08d043c6b4c9d64be2a856aa5c6c00a0d51404",
+      "sha256": "6cc1051e9bbe5a403c08d7044670c93c9ff96b68e810ce54d440629331437d30",
+      "bytes": 1250
+    },
+    "tests/visto_identidade512.c": {
+      "git_mode": "100644",
+      "git_blob": "9d2d006044ae854474d1e9de1db41d38fa73d854",
+      "sha256": "cbff38cd60df4e7af067ba1fe37f931e8c6eb6de083feae4807c5bc4f4e66e79",
+      "bytes": 8472
+    },
+    "tests/visto_identidade512.sh": {
+      "git_mode": "100644",
+      "git_blob": "1deae41ad0052214237771806f3be844e780510f",
+      "sha256": "05669a85c7a47163a83cc4a16a28d2e1a174c8b3b29024b8abf4f4560c002acf",
+      "bytes": 818
+    },
+    "tests/vistoep.c": {
+      "git_mode": "100644",
+      "git_blob": "ff67a118fc390a31f4269e47adf8a326a4073888",
+      "sha256": "0f36169bcc110db6b9456c9dce42249043f2c0b31f12d3de650a911d85fb6162",
+      "bytes": 12267
+    },
+    "tests/vistoep_corrida.c": {
+      "git_mode": "100644",
+      "git_blob": "28e6be956b4e7fdec32f58bda8e4ade277d537ae",
+      "sha256": "cd70d8f0f51870d492d0537204483c37d07414d5fcfc5d9be8c09c2bf6b7a3d3",
+      "bytes": 1859
+    }
+  },
+  "branch": "review/metadata-macos-focused-20261016",
+  "review_paths": [
+    ".github/workflows/metadata-macos.yml",
+    ".review/metadata-macos/run.py",
+    ".review/metadata-macos/cc.py",
+    ".review/metadata-macos/plan.json"
+  ],
+  "recipe_sha256": {
+    "run.py": "d3d8193c2a4df48484de06d23463e73f5351d8d95abdbdbdaebad1dc3bb8fd35",
+    "cc.py": "320f67959e94ecda2640fe186385edde707a797b3e903c9418a0f99457c5a2bd"
+  },
+  "modes": [
+    "normal",
+    "asan"
+  ],
+  "matrix_max_parallel": 2,
+  "purpose": "Fresh complete focused normal/ASan assertions after baseline-proven existing cast-union fixture correction. Other actual successful platform lanes retained only with explicit complete non-test and test-input identity.",
+  "suites": {
+    "episodioid512": {
+      "name": "episodioid512",
+      "script": "tests/episodioid512.sh",
+      "markers": {
+        "episodioid512: PASS": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "trakt_episode_identity_512": {
+      "name": "trakt_episode_identity_512",
+      "script": "tests/trakt_episode_identity_512.sh",
+      "markers": {
+        "trakt_episode_identity_512: PASS": 5
+      },
+      "arguments": [
+        [
+          "normal"
+        ],
+        [
+          "missing"
+        ],
+        [
+          "duplicate"
+        ],
+        [
+          "offline"
+        ],
+        [
+          "mapped"
+        ]
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "catalog_episode_identity512": {
+      "name": "catalog_episode_identity512",
+      "script": "tests/catalog_episode_identity512.sh",
+      "markers": {
+        "catalog_episode_identity512: PASS ": 6
+      },
+      "arguments": [
+        [
+          "lookups"
+        ],
+        [
+          "snapshot-identity"
+        ],
+        [
+          "ambiguity"
+        ],
+        [
+          "owned-snapshot"
+        ],
+        [
+          "stale-session"
+        ],
+        [
+          "concurrent-snapshot"
+        ]
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "visto_identidade512": {
+      "name": "visto_identidade512",
+      "script": "tests/visto_identidade512.sh",
+      "markers": {
+        "visto_identidade512: 10 scenarios passed": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "trakt_alvos512": {
+      "name": "trakt_alvos512",
+      "script": "tests/trakt_alvos512.sh",
+      "markers": {
+        "trakt_alvos512: PASS": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "episodio_escolha512": {
+      "name": "episodio_escolha512",
+      "script": "tests/episodio_escolha512.sh",
+      "markers": {
+        "episodio_escolha512: PASS": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "catcache": {
+      "name": "catcache",
+      "script": "tests/catcache.sh",
+      "markers": {
+        "catcache: tudo ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "episodiosdup": {
+      "name": "episodiosdup",
+      "script": "tests/episodiosdup.sh",
+      "markers": {
+        "episodiosdup: ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "title_identity524": {
+      "name": "title_identity524",
+      "script": "tests/title_identity524.sh",
+      "markers": {
+        "PASS ": 20
+      },
+      "arguments": [
+        [
+          "tmdb-tv"
+        ],
+        [
+          "episode-id"
+        ],
+        [
+          "movie-control"
+        ],
+        [
+          "known-series-control"
+        ],
+        [
+          "uncertain-detail-control"
+        ],
+        [
+          "tmdb-series-alias"
+        ],
+        [
+          "tmdb-show-alias"
+        ],
+        [
+          "cached-opposite-movie"
+        ],
+        [
+          "cached-opposite-series"
+        ],
+        [
+          "cached-uncertain"
+        ],
+        [
+          "cached-channel"
+        ],
+        [
+          "cached-show-control"
+        ],
+        [
+          "opposite-response-type"
+        ],
+        [
+          "different-response-id"
+        ],
+        [
+          "missing-series-no-movie"
+        ],
+        [
+          "context-reset"
+        ],
+        [
+          "malformed-episode-control"
+        ],
+        [
+          "seed-opposite-movie"
+        ],
+        [
+          "seed-opposite-series"
+        ],
+        [
+          "seed-matching-show-control"
+        ]
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "player_prebusca_prazo": {
+      "name": "player_prebusca_prazo",
+      "script": "tests/player_prebusca_prazo.sh",
+      "markers": {
+        "player_prebusca_prazo: 17 checks, 0 failed": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "extras_episode_identity_512": {
+      "name": "extras_episode_identity_512",
+      "script": "tests/extras_episode_identity_512.sh",
+      "markers": {
+        "OK extras identidade: 16 grupos": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "trakt_historico_lease512": {
+      "name": "trakt_historico_lease512",
+      "script": "tests/trakt_historico_lease512.sh",
+      "markers": {
+        "trakt_historico_lease512: 6 scenarios passed": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "detalheanime": {
+      "name": "detalheanime",
+      "script": "tests/detalheanime.sh",
+      "markers": {
+        "detalheanime: tudo ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "progresso": {
+      "name": "progresso",
+      "script": "tests/progresso.sh",
+      "markers": {
+        "progresso: tudo ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "vistoep": {
+      "name": "vistoep",
+      "script": "tests/vistoep.sh",
+      "markers": {
+        "vistoep: tudo ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "vistoep_corrida": {
+      "name": "vistoep_corrida",
+      "script": "tests/vistoep_corrida.sh",
+      "markers": {
+        "vistoep_corrida: ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 1,
+      "timeout_seconds": 720
+    },
+    "player_identity524": {
+      "name": "player_identity524",
+      "script": "tests/player_identity524.sh",
+      "markers": {
+        "PASS ": 8
+      },
+      "arguments": [
+        [
+          "known-series-control"
+        ],
+        [
+          "known-series-default"
+        ],
+        [
+          "movie-control"
+        ],
+        [
+          "late-movie-control"
+        ],
+        [
+          "late-series"
+        ],
+        [
+          "late-close-control"
+        ],
+        [
+          "next-opening-control"
+        ],
+        [
+          "retained-series-control"
+        ]
+      ],
+      "compile_count": 3,
+      "timeout_seconds": 720
+    },
+    "player_identity524_guards": {
+      "name": "player_identity524_guards",
+      "script": "tests/player_identity524_guards.sh",
+      "markers": {
+        "PASS ": 11
+      },
+      "arguments": [
+        [
+          "still-unknown"
+        ],
+        [
+          "other-title"
+        ],
+        [
+          "profile-change"
+        ],
+        [
+          "profile-aba"
+        ],
+        [
+          "conflicting-copies"
+        ],
+        [
+          "known-movie-conflict"
+        ],
+        [
+          "pending-before-meta"
+        ],
+        [
+          "reordered-series"
+        ],
+        [
+          "series-without-request"
+        ],
+        [
+          "bare-source-series"
+        ],
+        [
+          "fresh-episode-source"
+        ]
+      ],
+      "compile_count": 3,
+      "timeout_seconds": 720
+    },
+    "player_retido": {
+      "name": "player_retido",
+      "script": "tests/player_retido.sh",
+      "markers": {
+        "player_retido: tudo ok": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 3,
+      "timeout_seconds": 720
+    },
+    "player_visto_trailer": {
+      "name": "player_visto_trailer",
+      "script": "tests/player_visto_trailer.sh",
+      "markers": {
+        "PASS: trailer, pausa, buffer e seek sem reproducao nao marcam; >= 90% pela posicao conclui (oficial)": 1,
+        "player_identidade512: 3 scenarios passed": 1
+      },
+      "arguments": [
+        []
+      ],
+      "compile_count": 7,
+      "timeout_seconds": 720
+    }
+  },
+  "lanes": [
+    {
+      "id": "focused-normal",
+      "kind": "tests",
+      "mode": "normal",
+      "suites": [
+        "episodioid512",
+        "trakt_episode_identity_512",
+        "catalog_episode_identity512",
+        "visto_identidade512",
+        "trakt_alvos512",
+        "episodio_escolha512",
+        "catcache",
+        "episodiosdup",
+        "title_identity524",
+        "player_prebusca_prazo",
+        "extras_episode_identity_512",
+        "trakt_historico_lease512",
+        "detalheanime",
+        "progresso",
+        "vistoep",
+        "vistoep_corrida"
+      ]
+    },
+    {
+      "id": "focused-asan",
+      "kind": "tests",
+      "mode": "asan",
+      "suites": [
+        "episodioid512",
+        "trakt_episode_identity_512",
+        "catalog_episode_identity512",
+        "visto_identidade512",
+        "trakt_alvos512",
+        "episodio_escolha512",
+        "catcache",
+        "episodiosdup",
+        "title_identity524",
+        "player_prebusca_prazo",
+        "extras_episode_identity_512",
+        "trakt_historico_lease512",
+        "detalheanime",
+        "progresso",
+        "vistoep",
+        "vistoep_corrida"
+      ]
+    }
+  ],
+  "translation_units": [
+    "src/abertura.c",
+    "src/abrecine.c",
+    "src/addons.c",
+    "src/addonstats.c",
+    "src/addonsui.c",
+    "src/agenda.c",
+    "src/agendaui.c",
+    "src/agendaviso.c",
+    "src/ajlog.c",
+    "src/ajustes.c",
+    "src/amigoperfil.c",
+    "src/amigosfil.c",
+    "src/amigostitulo.c",
+    "src/amigostitulo_ui.c",
+    "src/android.c",
+    "src/aovivo.c",
+    "src/aovivoui.c",
+    "src/apoio.c",
+    "src/app.c",
+    "src/aquecer.c",
+    "src/arranque.c",
+    "src/arteescolha.c",
+    "src/artefontes.c",
+    "src/artehero.c",
+    "src/artereserva.c",
+    "src/artetamanho.c",
+    "src/assrender.c",
+    "src/atividade.c",
+    "src/atualizacao.c",
+    "src/audioescolha.c",
+    "src/audioinfo.c",
+    "src/audsync.c",
+    "src/audvad.c",
+    "src/autosync.c",
+    "src/avisodisp.c",
+    "src/avisos.c",
+    "src/badges.c",
+    "src/biblioteca.c",
+    "src/bidi.c",
+    "src/botoes.c",
+    "src/busca.c",
+    "src/buscanorm.c",
+    "src/buscasrec.c",
+    "src/cachearte.c",
+    "src/cacheboost.c",
+    "src/cachedisco.c",
+    "src/capmkv.c",
+    "src/catalogo.c",
+    "src/catordem.c",
+    "src/catordemcache.c",
+    "src/celbotao.c",
+    "src/celular.c",
+    "src/central.c",
+    "src/centrallista.c",
+    "src/chsegura.c",
+    "src/colecoes.c",
+    "src/colfileiras.c",
+    "src/contacache.c",
+    "src/contalib.c",
+    "src/contapend.c",
+    "src/continuar.c",
+    "src/corviva.c",
+    "src/cotacat.c",
+    "src/credaprende.c",
+    "src/credfio.c",
+    "src/credfonte.c",
+    "src/ctxinfo.c",
+    "src/ctxlista.c",
+    "src/ctxmenu.c",
+    "src/cwordem.c",
+    "src/cwretido.c",
+    "src/dados.c",
+    "src/debrid.c",
+    "src/descanso.c",
+    "src/descoberta.c",
+    "src/desempenho.c",
+    "src/detail.c",
+    "src/detmais.c",
+    "src/diagnostico.c",
+    "src/diretor.c",
+    "src/discord.c",
+    "src/discordws.c",
+    "src/dobra.c",
+    "src/dts/dts_engine.c",
+    "src/dts/dts_hls_tpk.c",
+    "src/dts/dts_overlay.c",
+    "src/dts/dts_pipeline.c",
+    "src/dts/dts_playback.c",
+    "src/dts/dts_remux.c",
+    "src/dts/dts_subtitles.c",
+    "src/dts/rt_shim.c",
+    "src/dvtela.c",
+    "src/dvtelaui.c",
+    "src/enquete.c",
+    "src/entrada_texto.c",
+    "src/epg.c",
+    "src/episodios.c",
+    "src/esmaecer.c",
+    "src/estatvivo.c",
+    "src/estatvivoui.c",
+    "src/explorar.c",
+    "src/extras.c",
+    "src/faixas.c",
+    "src/faixasmkv.c",
+    "src/fichameta.c",
+    "src/fileiras.c",
+    "src/focus.c",
+    "src/fonteantecipa.c",
+    "src/fonteauto.c",
+    "src/fontecache.c",
+    "src/fontefalha.c",
+    "src/fontefiltro.c",
+    "src/fontenota.c",
+    "src/fonteparalela.c",
+    "src/fontepref.c",
+    "src/fonteregra.c",
+    "src/fontesmortas.c",
+    "src/fontesonda.c",
+    "src/fontevolta.c",
+    "src/fundo.c",
+    "src/gfx.c",
+    "src/gif.c",
+    "src/gifcolecao.c",
+    "src/gpunivel.c",
+    "src/gputempo.c",
+    "src/guia.c",
+    "src/guiaaddons.c",
+    "src/guialembrete.c",
+    "src/home.c",
+    "src/homeestado.c",
+    "src/htmlq.c",
+    "src/iconeapp.c",
+    "src/idioma.c",
+    "src/ilha.c",
+    "src/ilhaacao.c",
+    "src/ilhacart.c",
+    "src/ilhasalvar.c",
+    "src/ilhasinais.c",
+    "src/imdbnota.c",
+    "src/inicio.c",
+    "src/intro.c",
+    "src/jellyfin.c",
+    "src/jpegrapido.c",
+    "src/js.c",
+    "src/jsw.c",
+    "src/layout.c",
+    "src/legauto.c",
+    "src/legenda.c",
+    "src/legenda2.c",
+    "src/legendasui.c",
+    "src/legextras.c",
+    "src/legmemoria.c",
+    "src/legref.c",
+    "src/legsync.c",
+    "src/legsyncui.c",
+    "src/leitura.c",
+    "src/lembrete.c",
+    "src/limpa.c",
+    "src/linguas.c",
+    "src/listas.c",
+    "src/livetvdiag.c",
+    "src/login.c",
+    "src/logoapp.c",
+    "src/logotitulo.c",
+    "src/lsregistro.c",
+    "src/main.c",
+    "src/mapa.c",
+    "src/marco.c",
+    "src/memlog.c",
+    "src/menu.c",
+    "src/metaprov.c",
+    "src/mkv.c",
+    "src/mkvass.c",
+    "src/naovideo.c",
+    "src/notasfontes.c",
+    "src/notasui.c",
+    "src/noticia.c",
+    "src/noticias.c",
+    "src/novidades.c",
+    "src/novidades11.c",
+    "src/novidades12.c",
+    "src/novidades13.c",
+    "src/novidades131.c",
+    "src/novidades1312.c",
+    "src/novidades132.c",
+    "src/novidades133.c",
+    "src/novidades134.c",
+    "src/novidades139.c",
+    "src/novidades142.c",
+    "src/novidades148.c",
+    "src/novidades151.c",
+    "src/novidades160.c",
+    "src/novidades170.c",
+    "src/novidades172.c",
+    "src/novidades174.c",
+    "src/novidades180.c",
+    "src/novidades20.c",
+    "src/novidades201.c",
+    "src/novidades202.c",
+    "src/novidades_cartao.c",
+    "src/novidadesfila.c",
+    "src/nuvem.c",
+    "src/ondever.c",
+    "src/p2p.c",
+    "src/p2pmotor.c",
+    "src/p2pmotor_motor.c",
+    "src/parental.c",
+    "src/pausao.c",
+    "src/perfil.c",
+    "src/perfilcont.c",
+    "src/perfilsel.c",
+    "src/perfiltv.c",
+    "src/perfis.c",
+    "src/pessoa.c",
+    "src/pessoas.c",
+    "src/pipintro.c",
+    "src/plainass.c",
+    "src/player.c",
+    "src/plex.c",
+    "src/plexaddons.c",
+    "src/plrguia.c",
+    "src/plrilha.c",
+    "src/plrui.c",
+    "src/pluginjs.c",
+    "src/plugins.c",
+    "src/pluginsui.c",
+    "src/plugrede.c",
+    "src/ponteiro.c",
+    "src/posplay.c",
+    "src/posterprov.c",
+    "src/progresso.c",
+    "src/proximo.c",
+    "src/proximopreparo.c",
+    "src/proxyts.c",
+    "src/psestilos.c",
+    "src/psfundo.c",
+    "src/psparede.c",
+    "src/qjs.c",
+    "src/qr.c",
+    "src/queda.c",
+    "src/reacao.c",
+    "src/recenviar.c",
+    "src/recintro.c",
+    "src/recomenda.c",
+    "src/recresp.c",
+    "src/rede.c",
+    "src/redemarca.c",
+    "src/redesaude.c",
+    "src/redeurl.c",
+    "src/regcodigo.c",
+    "src/regexjs.c",
+    "src/registro.c",
+    "src/relogio.c",
+    "src/saidaandroid.c",
+    "src/salvos.c",
+    "src/salvosintro.c",
+    "src/salvosorg.c",
+    "src/salvospainel.c",
+    "src/seekr.c",
+    "src/seekrquota.c",
+    "src/seekrvtt.c",
+    "src/segurar.c",
+    "src/seguro.c",
+    "src/selospacote.c",
+    "src/serieaud.c",
+    "src/seriefrases.c",
+    "src/servidores.c",
+    "src/sessao.c",
+    "src/simkl.c",
+    "src/simklauth.c",
+    "src/sinopse.c",
+    "src/sistexto.c",
+    "src/social.c",
+    "src/socialvis.c",
+    "src/spotlight.c",
+    "src/spotpessoa.c",
+    "src/stalker.c",
+    "src/stream_parse.c",
+    "src/streamfit.c",
+    "src/streamfitdiag.c",
+    "src/streamfitdur.c",
+    "src/streamfitpassiva.c",
+    "src/streams.c",
+    "src/svdesenho.c",
+    "src/sync.c",
+    "src/syncprog.c",
+    "src/teclado.c",
+    "src/telemetria.c",
+    "src/temporadas_grafico.c",
+    "src/tendencia.c",
+    "src/tex_cache.c",
+    "src/text.c",
+    "src/tirarremoto.c",
+    "src/tpk.c",
+    "src/tpkdesp.c",
+    "src/tpkteclas.c",
+    "src/trailer.c",
+    "src/trailerapple.c",
+    "src/trailerfonte.c",
+    "src/trailerimdb.c",
+    "src/trakt.c",
+    "src/traktauth.c",
+    "src/traktscrobble.c",
+    "src/trocaarte.c",
+    "src/vazao.c",
+    "src/velocidade.c",
+    "src/vertudo.c",
+    "src/video.c",
+    "src/video_android.c",
+    "src/video_modo.c",
+    "src/video_tizen.c",
+    "src/video_tpk.c",
+    "src/visto.c",
+    "src/vistoep.c",
+    "src/vistonao.c",
+    "src/webosver.c",
+    "src/webp.c",
+    "src/xtepg.c",
+    "src/xtream.c"
+  ],
+  "expected_public_groups": 32,
+  "expected_actual_binary_executions": 88,
+  "logical_lane_count": 12,
+  "logical_public_mode_groups": 40,
+  "logical_actual_binary_executions": 130,
+  "retained_android_source_identity": {
+    "from_candidate": "c2666a0591e174e6aa321d1dea80212878dcf233",
+    "from_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+    "to_candidate": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+    "to_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+    "non_test_entries": 2684,
+    "non_test_tree_listing_sha256": "5aeb92c416bb6f9a8efa1359484be296755b0706f16f16a760fd1ea1abb7c504",
+    "identical": true,
+    "changed_test_paths": [
+      "tests/detalheanime.c",
+      "tests/player_identity524_guards.c",
+      "tests/player_identity524_guards.sh"
+    ]
+  }
+}

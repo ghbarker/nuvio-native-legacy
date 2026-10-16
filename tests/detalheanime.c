@@ -32,6 +32,13 @@ Uint32 SDL_GetTicks(void) { return 0; }
 #include <stdio.h>
 #include <unistd.h>
 #include "jellyfin_stub.inc"
+#include "addons_manifest_notifications_stub.inc"
+
+// Standalone fixture: one immutable account visit, not the application profile service.
+uint64_t perfis_sessao_geracao(void) { return 0; }
+int perfis_sessao_atual(uint64_t geracao) { return geracao == 0; }
+int perfis_sessao_travar(uint64_t geracao) { assert(geracao == 0); return 1; }
+void perfis_sessao_destravar(void) {}
 
 // --- DUBLES: nenhum participa da regra, so fazem descoberta.c linkar ---------
 // (o conjunto e o de tests/colfileiras.c, menos os cat_* — que catalogo.c ja
@@ -154,11 +161,28 @@ int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
 int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
+// The metadata fixture has no authoritative account addon-list service.
+int addons_copiar_identidades(AddonIdentidade *saida, int max, unsigned versao, int perfil) {
+  (void)saida; (void)max; (void)versao; (void)perfil; return -1;
+}
+int addons_travar_lista(unsigned versao, int perfil) { (void)versao; (void)perfil; return 0; }
+void addons_destravar_lista(void) { assert(!"unexpected addon-list unlock"); }
+int fil_podar_catalogos_de(const char *const *ids, const char *const *bases, int n,
+                           int perfilDaLista, unsigned versao) {
+  (void)ids; (void)bases; (void)n; (void)perfilDaLista; (void)versao;
+  assert(!"unexpected account cleanup in metadata fixture"); return 0;
+}
 int   trakt_enfeitar_lote(CatItem *s, int n) { (void)s; (void)n; return 0; }
 int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m; return 0; }
 int   trakt_lista_cresc(const char *q, CatItem **s, int m) { (void)q; (void)s; (void)m; return 0; }
 // O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
 int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
+int trakt_enfeitar_lote_sessao(CatItem *saida, int n, uint64_t sessao) {
+  assert(perfis_sessao_atual(sessao)); return trakt_enfeitar_lote(saida, n);
+}
+int recomenda_social_mesclar_sessao(CatItem *itens, int nTrakt, int max, uint64_t sessao) {
+  assert(perfis_sessao_atual(sessao)); return recomenda_social_mesclar(itens, nTrakt, max);
+}
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 // Um addon de metadados, ligado so no caso 7 (o resto do teste roda sem addon).
@@ -938,8 +962,8 @@ int main(void) {
       assert(cat_id_stream(0, 1, 2, id, sizeof id) && !strcmp(id, "tt13293588:1:2")); }
     puts("ok  mescla: a base manda; o Cinemeta so preenche elenco e episodios que faltavam");
 
-    // 25) Base COMPLETA com lista propria: a lista dela fica (2 episodios contra
-    //     3 do Cinemeta) e o Cinemeta so completa o campo vazio de cada um.
+    // 25) A lista propria fica (2 episodios contra 3 do Cinemeta). O elenco
+    //     preserva a base primeiro e une os nomes novos do complemento.
     limparCacheMeta(); nRotas = 0;
     rota("xp.test/SEGREDO/meta/series/tt13293588.json",
          "{\"meta\":{\"id\":\"tt13293588\",\"type\":\"series\",\"name\":\"Mushoku do Xperience\","
@@ -950,8 +974,11 @@ int main(void) {
     abrir();
     assert(cat_n_episodios(0) == 2);
     assert(!strcmp(cat_episodio(0, 0)->nome, "Nome do Xperience"));
-    assert(cat_item(0)->nElenco == 1 && !strcmp(cat_item(0)->elenco[0].nome, "Ator do Xperience"));
-    puts("ok  mescla: lista e elenco da base ficam; Cinemeta so preenche campos vazios");
+    { const CatItem *ci = cat_item(0);
+      const char *nomes[] = { "Ator do Xperience", "Yumi Uchiyama", "Tomokazu Sugita", "Ai Kayano" };
+      assert(ci->nElenco == 4);
+      for (int i = 0; i < 4; i++) assert(!strcmp(ci->elenco[i].nome, nomes[i])); }
+    puts("ok  mescla: lista da base fica; elenco preserva a base e une o complemento sem duplicar");
 
     // 26) Item do Cinemeta (origem "cinemeta"): nada muda, a lista e a do Cinemeta.
     limparCacheMeta(); nRotas = 0;

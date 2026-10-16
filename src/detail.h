@@ -51,6 +51,9 @@ int  detail_indice(void);
 int  detail_arte_titulo(const CatItem *titulo, char *saida, size_t tam, int *poster);
 // Temporada e episodio em foco (1 = ha episodio; 0 = titulo sem episodios).
 int  detail_ep_foco(int *temporada, int *episodio);
+// Known remote episode identity has no safe final-source match yet. Explicit
+// episode focus remains playable; ID-less legacy records retain their fallback.
+int  detail_ep_aguardando(void);
 int  detail_pediu_reproduzir(void);   // consome o pedido
 void detail_pedir_reproduzir(void);   // arma o pedido (OK no card de retomada)
 
