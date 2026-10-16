@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "current_master": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "candidate_head": "a213330484b3dd802c7db53c265a8a2bc783a1cc",
+  "candidate_tree": "aec037cc7131b2ced8c50b655c9253bd7feee49c",
+  "internal_issue_candidate": 0,
+  "candidate_label": "failover-attempt-ownership",
+  "public_pr_number": null,
+  "selected_candidates": [
+    "0"
+  ],
+  "review_branch": "review/failover-attempt-macos-20261016",
+  "required_jobs": [
+    "native"
+  ],
+  "source_manifest_sha256": "8a1927cb4d96425d12b8a5e027e3f931a5f542d4122a19b58ecdd683c51d0777",
+  "recipe_inputs": {
+    "android.py": "378bfe323a8b1257d136dd011ad4d3096c07e8c9c8f0a7ade064d4d58b740708",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "9082450536ceb92932e255f82597b735728b63c28ed70dd67718e19e2b7d79f3",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "materialize.py": "110abe5859dbf4d3e4d055038bce252c9a36efd8b1afeea1e4efa60a08dae8c4",
+    "native.py": "4ac98ba54fc5839775c27ed63a6cb85e9bdf9c456ea9bbd43f01d57a18a0e962",
+    "preflight.py": "067f201606b3aa9a70dd0aa1857de8109c39da5c181b763361da534e30220fbf",
+    "public_tests.py": "d4f8802a2e5c8a0947a9d43040886cb2fc2d2d53aa193f45620b0e76c7fc8545",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "sdk_producers": 1,
+  "prior_sdk_passes_reused": true,
+  "private_build_reuse_claimed": false,
+  "public_test_policy": "Product and meaningful public regressions are separate commits. CI exists only on a separate isolated review ref. No feature PR before user testing.",
+  "scope": "One fresh exact-source macOS producer: all three actual public scripts normal/ASan and full319-unit TV/touch links. Android source29da job116811123195/run38850727719 is retained only after independent successful proof verification and identical complete non-test input bridge to tests-only a213. No Android rebuild, APK download, source overlay, emulator or publication.",
+  "workflow_normalized_sha256": "7a6364c9ed285c0c4c791e0b479c71afba4e798e038680289863782c3a84f964",
+  "retained_android_input_identity": {
+    "source": "a213330484b3dd802c7db53c265a8a2bc783a1cc",
+    "retained_android_source": "29da4923852fbe81bc64fc5f50ccafaddbf4e310",
+    "whole_non_test_identity": true,
+    "non_test_paths": 2681,
+    "non_test_tree_listing_sha256": "0571d9f8fd617a274c13011423a57e4b903a5189c66d81fff70366a46b5535a0",
+    "exact_test_only_delta": [
+      "tests/fontesmortas.c"
+    ],
+    "retained_android_review": "f9bd4931ac49cf402eb69c997e3a648717e7a661",
+    "retained_android_plan_sha256": "dca3d62956c2af7bbc1d5904e1a8f83bae48ba6a48dd412501e4acdc4976ad95",
+    "retained_android_workflow_run_id": 38850727719,
+    "retained_android_job_id": 116811123195,
+    "retained_android_must_be_verified_success_before_ready": true,
+    "scope": "Every non-test Git path, mode, object type and blob is identical, including all C/headers/assets/build/tools/Android files. Actual Android compilation/proof remains labelled29da; only this exact non-test identity can transfer platform validation to tests-only a213. No full-tree or device-test relabelling."
+  }
+}
