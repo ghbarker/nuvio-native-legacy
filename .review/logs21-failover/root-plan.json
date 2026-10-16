@@ -1,0 +1,109 @@
+{
+  "root_reviewed": true,
+  "closed_manifest_sha256": "b600233c95220ab9d11ab368465373184678b2a1b2faae8c8f3f465230eebef7",
+  "published_apk_source": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+  "published_apk_source_tree": "3b206335e07d87ef68db20863cb9005e719840d3",
+  "apk": {
+    "version_code": 20031,
+    "version_name": "2.0.31-test-logs21",
+    "bytes": 59110404,
+    "sha256": "d5f84067a06c2c23cfce91358b838ee6f8cbc89feea03444ac372860b43a0771",
+    "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+    "release_tag": "tv-mobile-test-logs-v21"
+  },
+  "recipe_files": {
+    ".review/logs21-failover/android_transport.py": {
+      "bytes": 11770,
+      "sha256": "3c015ccabaa4bb7cd96c330fac353fb2b0297abe2383357489fe84eb27e0d99d"
+    },
+    ".review/logs21-failover/dns_fixture.py": {
+      "bytes": 2466,
+      "sha256": "a02a772e00d1ac6c1bf433d4494a455e0ad978757f7b772c9b76267adca6df8e"
+    },
+    ".github/workflows/logs21-native-failover-e2e.yml": {
+      "bytes": 5732,
+      "sha256": "99a5126fa610f1130731afc24ac77f90a9bd7c567c224e82eded144d38a198fc"
+    },
+    ".review/logs21-failover/failover_smoke.py": {
+      "bytes": 33066,
+      "sha256": "4f0f96eb353f997a28773a41f8382a713a1a36e25c641ffed8d4a7ca805a0412"
+    },
+    ".review/logs21-failover/fixture-config.json": {
+      "bytes": 10690,
+      "sha256": "eda4e2dc886cf5f32f10a1f21131f4649a6152cd181e605cc5531f7f84654a1a"
+    },
+    ".review/logs21-failover/generate_media.py": {
+      "bytes": 8112,
+      "sha256": "b639efbbf3b6584213ce0d646220eab03bf09c741e1b99be11a44039ebdc2020"
+    },
+    ".review/logs21-failover/generate_media.sh": {
+      "bytes": 183,
+      "sha256": "2caee5692b5e0cfb6479b26f035dafdb510088b25b31865082516581be24226f"
+    },
+    ".review/logs21-failover/inspect_mkv.py": {
+      "bytes": 8426,
+      "sha256": "2dc8442b4376ad87f1978d0715fac8a47091785e5d9b7d3eb27571eca7492278"
+    },
+    ".review/logs21-failover/jdwp_environment.py": {
+      "bytes": 13314,
+      "sha256": "3ece3b4b37286b5faeb111e1ad955cec66ace7e43bdbb9144d4fa8b8ef7558ad"
+    },
+    ".review/logs21-failover/media3-reference.json": {
+      "bytes": 903,
+      "sha256": "846e5f5c21e746bf960faf381fa3d6d82f14b188d52e698d4bc8cf60567cf309"
+    },
+    ".review/logs21-failover/native_provider_fixture.py": {
+      "bytes": 19343,
+      "sha256": "4241abf51dafe9c6ce1d17e5579edf29a823704bbf08398b1d804cf5bb2f6d27"
+    },
+    ".review/logs21-failover/prepare_certificates.sh": {
+      "bytes": 1278,
+      "sha256": "fd263cf1bdda21ac1ca694f268073c814285f33dbeba5a358fcccbf44236c7e9"
+    },
+    ".review/logs21-failover/startup_diagnostics.py": {
+      "bytes": 7406,
+      "sha256": "0c7cab4147c31ee9d65efd4fc9844e20d66bd0ea2b4ecb73122c844c92f921a2"
+    },
+    ".review/logs21-failover/transport_preflight.py": {
+      "bytes": 2405,
+      "sha256": "5bc2b4d85a5185b706c666836e1bb5da0dcdd15ceb7c91854ab82328637a4a0e"
+    }
+  },
+  "previous_review": "bf483ad151a501620be53c97638a157fa0e23121",
+  "previous_run": 38862529559,
+  "previous_job": 116847865949,
+  "recovery_scope": "One timestamp-regex prefix accepts actual logcat epoch horizontal indentation; every existing route/order/error/pipeline/prefetch/aggregation assertion unchanged. Workflow merely reclosed.",
+  "previous_actual_verdict": "first_good genuine PASS; correct second title/TB1 foreground3001/TB2native resolution observed. Actual stop at playback_ready405 because epoch parser rejected padded logcat timestamp, not a core ordering or prefetch assertion verdict. Four-case results remain unestablished.",
+  "independent_known_product_defect": "Subtitle prefetch stale-frame unsigned elapsed underflow independently proven by native0ms/teto-vencido logs and exact-source baseline regression; productfix604be6c16de710add40a5a45dee0dd96d2a7b69a remains outside unchanged Logs21 APK.",
+  "parser_preflight": {
+    "file": "parser-preflight-proof.json",
+    "sha256": "63da73a050ab029ceec53f6cbc89fbf457e95bd328470cb2b6b3915b1948fc5e",
+    "script": "parser_preflight.py",
+    "script_sha256": "de18afd0d88a9c101f7b0a8cd6d830c0aa923ea13efabacf9f975236a9e3731e",
+    "offline_checks": 47,
+    "actual_log_files": 6,
+    "source_bound_helpers": [
+      "foreground_error_times",
+      "current_counts",
+      "links",
+      "route",
+      "fixture_events",
+      "clock_calibration"
+    ],
+    "strict_real_error_before_native_generation_samples": 2,
+    "old_parser_failure_reproduced": true,
+    "no_device_or_network_commands": true
+  },
+  "reset_finite_names": {
+    "progresso.txt": "src/progresso.c ARQ",
+    "cwoculto.txt": "src/progresso.c ARQ_OCULTO",
+    "sessao-viva.txt": "src/avisos.c AV_MARCA_ARQ",
+    "seguro.txt": "src/seguro.h SEG_ARQ",
+    "despedida.txt": "src/dados.c dados_despedida_ler"
+  },
+  "reviewers": [
+    "root",
+    "issue528_test_apk",
+    "logs18_build_recipe"
+  ]
+}
