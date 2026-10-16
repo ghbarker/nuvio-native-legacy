@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "512"
+  ],
+  "job_candidates": {
+    "native": [
+      "512"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/metadata512-native-recovery-20261016",
+  "workflow_path": ".github/workflows/metadata512-native-recovery.yml",
+  "source_manifest_sha256": "0b63de2a722d11f3e7ce7fb535e8dc9346a8f8eed2bfc6cc93138a25eba233e4",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "8a2e359ba3ffab5c3136be638cee97e6a67c73c8aa9cdc052b2d30ee7354f6dd",
+    "public_tests.py": "40661f6a3015b8e7f7d1dcd03ff72dc303f14e6c8d40733ad9b47d4f2f28613a"
+  },
+  "workflow_normalized_sha256": "aa70e7632c6db49be3789690c5ff92fb10ea989066224475d4a20c7e92f2e97c",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "69d8ba7da211da8287d2814f7ddcf3d7b8224a17aa4e5f28d88cd0b1ffaea272",
+    "policy": "Exclude only this isolated review branch; every source candidate keeps the original upstream workflow."
+  },
+  "candidate_scope": "Internal metadata512/524 validation candidates; source and meaningful public tests remain separate commits. No existing PR number or creation authorization is implied.",
+  "scope": "Fresh selected metadata native lanes only: exact committed lookup/detail/player/ownership normal/ASan suites plus full335-unit TV/touch production-Rust links per candidate. No555/device gate, Android, APK/private overlay or other PR reruns. Any behavioral negative control is separately pinned and is never counted as a positive pass."
+}
