@@ -15,7 +15,7 @@ static int fake_join(pthread_t, void **);
 static Uint32 agora;
 static unsigned lista = 41;
 static Stream fontes[2];
-static int aberto, mini, sair, carregando, pronto, falhou, playerFalhou;
+static int aberto, mini, sair, carregando, pronto, falhou, playerFalhou, videoDaSessao;
 static int reconectando, tocou, dv, bufferMs, proximaSemPerda;
 static double posicao, bufferFim;
 static int paradas, retomadas, aberturas, aplicacoes, legadas, mortas, irmas;
@@ -45,13 +45,14 @@ int player_quer_sair(void) { return sair; }
 const char *player_id_canal(void) { return ""; }
 int player_carregando(void) { return carregando; }
 int player_fonte_falhou(void) { return playerFalhou; }
+int player_tem_video(void) { return videoDaSessao; }
 void player_voltar_a_esperar(void) {
-  paradas++; eventoParada = ++evento; posicao = 0.0; pronto = 0; carregando = 1;
+  paradas++; eventoParada = ++evento; posicao = 0.0; pronto = 0; carregando = 1; videoDaSessao = 0;
 }
 void player_definir_retomada_fonte(double p) {
   retomadas++; retomada = p; eventoRetomada = ++evento;
 }
-void player_definir_fonte(const char *url) { (void)url; aberturas++; }
+void player_definir_fonte(const char *url) { (void)url; aberturas++; videoDaSessao = 1; }
 void player_definir_tentativa(int n, int t) { tentativaN = n; tentativaT = t; }
 void player_toast(const char *txt, unsigned ms) { (void)txt; (void)ms; }
 void player_erro_fonte(void) {}
@@ -198,7 +199,7 @@ static void resetar(void) {
   assert(!worker && !fioFonteVivo);
   limparFonteVOD(); memset(&fonteJob, 0, sizeof fonteJob); limparFontePendente();
   fonteEscolhida = -2; fontePedidoGeracao = novaGeracaoFonte(); aguardandoFonte = 0;
-  aberto = pronto = 1; mini = sair = carregando = falhou = playerFalhou = 0;
+  aberto = pronto = videoDaSessao = 1; mini = sair = carregando = falhou = playerFalhou = 0;
   reconectando = tocou = dv = bufferMs = proximaSemPerda = 0;
   posicao = bufferFim = 0.0; agora = 1001;
   paradas = retomadas = aberturas = aplicacoes = legadas = mortas = irmas = 0;

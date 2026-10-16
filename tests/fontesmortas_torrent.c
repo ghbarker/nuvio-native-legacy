@@ -19,6 +19,7 @@ int player_quer_sair(void) { return 0; }
 const char *player_id_canal(void) { return ""; }
 int player_indice(void) { return -1; }
 int player_fonte_falhou(void) { return falhou; }
+int player_tem_video(void) { return abriu > 0 && !esperando; }
 int player_carregando(void) { return !pronto; }
 void player_definir_fonte(const char *u) { assert(!strcmp(u, "https://video.invalid/resolvido")); abriu++; }
 void player_erro_fonte(void) { erros++; }
