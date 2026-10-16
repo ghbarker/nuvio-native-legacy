@@ -39,6 +39,31 @@ int ajustes_ocultar_filmes_vistos(void) { return 0; }    // #366: descoberta.c l
 #include "jellyfin_stub.inc"
 
 Uint32 SDL_GetTicks(void) { return 0; }
+// O parser nao publica manifestos; callbacks inesperados precisam falhar.
+static pthread_mutex_t addonsFixtureTrava = PTHREAD_MUTEX_INITIALIZER;
+void addons_lista_travar(void) { assert(pthread_mutex_lock(&addonsFixtureTrava) == 0); }
+void addons_lista_destravar(void) { assert(pthread_mutex_unlock(&addonsFixtureTrava) == 0); }
+int addons_identidade_recebida(const char *b, unsigned v, uint64_t s, const char *c) {
+  (void)b; (void)v; (void)s; (void)c; abort();
+}
+int addons_manifesto_recebido(const char *b, unsigned v, uint64_t s, const char *c) {
+  (void)b; (void)v; (void)s; (void)c; abort();
+}
+void ws_destino(const char *b, const char *u, int p, char out[20]) {
+  (void)b; (void)u; (void)p; out[0] = 0;
+}
+void addons_manifesto_lido_base(int i, const char *b, const char *d, unsigned v, const char *c) {
+  (void)i; (void)b; (void)d; (void)v; (void)c; abort();
+}
+int ajustes_ocultar_nao_lancados(void) { return 0; }
+int ajustes_itens_fileira(void) { return 80; }
+int addons_sondado(int i) { (void)i; abort(); }
+int addons_fornece(int i, int r) { (void)i; (void)r; abort(); }
+int trakt_cw_concluiu(const char *id, long long ms) { (void)id; (void)ms; return 0; }
+int trakt_e_a_seguir(const char *id) { (void)id; return 0; }
+int prog_oculto_soltar(const char *id, long long ms) { (void)id; (void)ms; return 0; }
+int prog_oculto_vence(const char *id, long long ms) { (void)id; (void)ms; return 0; }
+
 
 // --- DUBLES: nenhum participa da regra, so fazem descoberta.c linkar ---------
 // (o conjunto e o de tests/colfileiras.c, menos os cat_* — que catalogo.c ja
@@ -56,6 +81,20 @@ const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nom
 const char *dados_dir(void)             { return ""; }
 const char *sessao_usuario(void)        { return ""; }
 int         perfis_ativo(void)          { return 1; }
+// O teste usa uma unica visita ao perfil; o catalogo ainda deve respeitar a
+// trava real da publicacao, mesmo sem iniciar os fios de descoberta.
+static pthread_mutex_t sessaoFixtureTrava = PTHREAD_MUTEX_INITIALIZER;
+uint64_t perfis_sessao_geracao(void) { return 1; }
+int perfis_sessao_atual(uint64_t sessao) { return sessao == 1; }
+int perfis_sessao_travar(uint64_t sessao) {
+  assert(pthread_mutex_lock(&sessaoFixtureTrava) == 0);
+  if (perfis_sessao_atual(sessao)) return 1;
+  assert(pthread_mutex_unlock(&sessaoFixtureTrava) == 0);
+  return 0;
+}
+void perfis_sessao_destravar(void) {
+  assert(pthread_mutex_unlock(&sessaoFixtureTrava) == 0);
+}
 unsigned homeestado_geracao(void) { return 1; }
 int homeestado_contexto_valido(void) { return 0; }
 int homeestado_tem_fileira(const char *chave) { (void)chave; return 0; }
@@ -161,6 +200,9 @@ int   trakt_lista(const char *q, CatItem *s, int m) { (void)q; (void)s; (void)m;
 int   trakt_lista_cresc(const char *q, CatItem **s, int m) { (void)q; (void)s; (void)m; return 0; }
 // O servico social proprio (recomenda.c) fica fora deste teste: a uniao e so o que o Trakt trouxe.
 int   recomenda_social_mesclar(CatItem *i, int nTrakt, int max) { (void)i; (void)max; return nTrakt; }
+int recomenda_social_mesclar_sessao(CatItem *i, int n, int max, uint64_t sessao) {
+  (void)i; (void)n; (void)max; (void)sessao; abort();
+}
 int   trakt_social(CatItem *s, int m)      { (void)s; (void)m; return 0; }
 const char *nuvem_trakt_cliente(void)      { return ""; }
 int   addons_n(void)                       { return 0; }
@@ -432,5 +474,52 @@ int main(void) {
     assert(desc_tmdb_notas_temporada("{\"episodes\":[{\"episode_number\":1,\"runtime\":null}]}",&timed,1,1)==0);
     assert(!strcmp(timed.duracao,"47 min"));
   }
+  // #556: o Cinemeta ja fornece estes especiais; nao inventar outra numeracao.
+  {
+    FILE *f = fopen("tests/fixtures/battle_through_the_heavens_specials.json", "rb");
+    char *corpo; long tam; CatEp eps556[32]; TempsPub tp556;
+    CatItem c556 = {0}; char alvo[96];
+    assert(f); fseek(f, 0, SEEK_END); tam = ftell(f); rewind(f);
+    corpo = malloc((size_t)tam + 1); assert(corpo);
+    assert(fread(corpo, 1, (size_t)tam, f) == (size_t)tam); corpo[tam] = 0; fclose(f);
+    assert(desc_meta_tem_temporadas(corpo));
+    assert(desc_meta_n_episodios(corpo) == 23);
+    assert(parsearEpisodios(corpo, eps556, 32) == 23);
+    temporadasDosEps(eps556, 23, &tp556);
+    assert(tp556.n == 3 && tp556.t[0] == 1 && tp556.t[1] == 5 && tp556.t[2] == 0);
+    for (int i = 0; i < 21; i++) {
+      assert(eps556[i].temporada == 0 && eps556[i].episodio == i + 1);
+      snprintf(alvo, sizeof alvo, "tt12409194:0:%d", i + 1);
+      assert(!strcmp(eps556[i].vid, alvo));
+    }
+    strcpy(c556.imdb, "tt12409194"); strcpy(c556.tipo, "series");
+    cat_definir_tudo(&c556, 1, NULL, 0); cat_definir_episodios(0, eps556, 23);
+    assert(cat_id_stream(0, 0, 21, alvo, sizeof alvo) && !strcmp(alvo, "tt12409194:0:21"));
+    strcpy(eps556[0].vid, "addon:special:one"); cat_definir_episodios(0, eps556, 23);
+    assert(cat_id_stream(0, 0, 1, alvo, sizeof alvo) && !strcmp(alvo, "addon:special:one"));
+    cat_apontar_episodio(0, 0, 21);
+    assert(cat_item(0)->temporada == 0 && cat_item(0)->episodio == 21);
+    // ID do addon continua sendo o ID do video, inclusive em T0.
+    strcpy(c556.imdb, "kitsu:41370"); strcpy(eps556[0].vid, "kitsu:special:one");
+    cat_definir_tudo(&c556, 1, NULL, 0); cat_definir_episodios(0, eps556, 1);
+    assert(cat_id_stream(0, 0, 1, alvo, sizeof alvo) && !strcmp(alvo, "kitsu:special:one"));
+    cat_definir_tudo(&c556, 1, NULL, 0); // sem lista de videos deste addon
+    assert(!cat_id_stream(0, 0, 1, alvo, sizeof alvo) && !alvo[0]);
+    free(corpo);
+  }
+  {
+    const char *s = "{\"videos\":[{\"season\":0,\"episode\":1,\"id\":\"a\"},"
+                    "{\"season\":0,\"episode\":1,\"id\":\"duplicado\"},"
+                    "{\"season\":0,\"episode\":2,\"id\":\"b\"}]}";
+    CatEp eps556[3]; EpSet tempos556 = {0};
+    assert(desc_meta_tem_temporadas(s) && desc_meta_n_episodios(s) == 2);
+    assert(parsearEpisodios(s, eps556, 3) == 2 && !strcmp(eps556[0].vid, "a"));
+    assert(epSetNovo(&tempos556, 0, 0) && !epSetNovo(&tempos556, 0, 0));
+    assert(epSetNovo(&tempos556, 5, 0) && tempos556.n == 2); free(tempos556.v);
+    assert(metaArquivosCompativeis(s, s));
+    assert(!desc_meta_tem_temporadas("{\"videos\":[{\"season\":0}]}"));
+    assert(desc_meta_n_episodios("{\"videos\":[{\"season\":0}]}") == 0);
+  }
+  puts("ok  #556: especiais preservam temporada, IDs e abas nao sequenciais");
   return 0;
 }
