@@ -1234,6 +1234,84 @@ static const char *sinopseDe(int i) {
 static char arteFixa[NV_TEX_URL_MAX], logoFixo[512], logoCatalogoFixo[512];
 static int  arteFixaPoster;
 
+#ifdef NV_TEST_LOCAL_LOGS
+// Trace privado: nunca escreve URL, query, id ou nome do titulo. Os hosts e
+// tamanhos sao classes conhecidas; dominios personalizados ficam como "other".
+static unsigned arteTesteSelecao, arteTesteN;
+static Uint32 arteTesteEm;
+typedef struct {
+  unsigned long titulo, arte;
+  int qualidade, fonte, diferente, fundo, poster, video;
+  TexTesteArte cache;
+} DetailTesteArte;
+static DetailTesteArte arteTesteAntes;
+static void arteTesteAbrir(void) {
+  arteTesteSelecao++; arteTesteN = 0; arteTesteEm = 0;
+}
+static const char *arteTesteHost(const char *u, const char **caminho) {
+  static const char *hosts[] = { "images.metahub.space", "image.tmdb.org",
+                                "media.themoviedb.org" };
+  *caminho = "";
+  if (!u || !*u) return "none";
+  const char *a;
+  if (!strncasecmp(u, "https://", 8)) a = u + 8;
+  else if (!strncasecmp(u, "http://", 7)) a = u + 7;
+  else return "local";
+  const char *fim = a + strcspn(a, "/?#");
+  for (const char *p = a; p < fim; p++) if (*p == '@') a = p + 1;
+  const char *porta = memchr(a, ':', (size_t)(fim - a));
+  size_t n = (size_t)((porta ? porta : fim) - a);
+  if (*fim == '/') *caminho = fim;
+  for (unsigned i = 0; i < sizeof hosts / sizeof *hosts; i++)
+    if (strlen(hosts[i]) == n && !strncasecmp(a, hosts[i], n)) return hosts[i];
+  return "other";
+}
+static const char *arteTesteTamanho(const char *host, const char *p) {
+  if (!strcmp(host, "images.metahub.space")) {
+    if (!strncmp(p, "/background/small/", 18)) return "metahub-small";
+    if (!strncmp(p, "/background/medium/", 19)) return "metahub-medium";
+    if (!strncmp(p, "/background/large/", 18)) return "metahub-large";
+    if (!strncmp(p, "/background/original/", 21)) return "metahub-original";
+  } else if (!strcmp(host, "image.tmdb.org") || !strcmp(host, "media.themoviedb.org")) {
+    static const char *prefixos[] = { "/t/p/w300/", "/t/p/w500/", "/t/p/w780/",
+                                     "/t/p/w1280/", "/t/p/w1920/", "/t/p/original/" };
+    static const char *classes[] = { "tmdb-w300", "tmdb-w500", "tmdb-w780",
+                                    "tmdb-w1280", "tmdb-w1920", "tmdb-original" };
+    for (unsigned i = 0; i < sizeof prefixos / sizeof *prefixos; i++)
+      if (!strncmp(p, prefixos[i], strlen(prefixos[i]))) return classes[i];
+  }
+  return "unknown";
+}
+static void arteTesteRegistrar(const char *u, int poster, int video) {
+  if (arteTesteN >= 16) return;
+  Uint32 agora = SDL_GetTicks();
+  if (arteTesteN && (Uint32)(agora - arteTesteEm) < 250) return;
+  arteTesteEm = agora;
+  DetailTesteArte atual;
+  memset(&atual, 0, sizeof atual);
+  const CatItem *c = cat_item(idx);
+  atual.titulo = tex_hash_public(c ? c->imdb : "");
+  atual.arte = tex_hash_public(u);
+  atual.qualidade = ajustes_qualidade_imagem(); atual.fonte = ajustes_hero_fonte();
+  atual.diferente = ajustes_hero_arte_diferente(); atual.fundo = fundo_modo();
+  atual.poster = poster;
+  atual.video = video != 0;
+  tex_teste_arte(u, &atual.cache);
+  if (arteTesteN && !memcmp(&atual, &arteTesteAntes, sizeof atual)) return;
+  const char *caminho, *host = arteTesteHost(u, &caminho);
+  printf("[art-test] detail selection=%u title=%lx art=%lx host=%s size=%s "
+         "quality=%d cache_quality=%d source=%d alternate=%d bg=%d poster=%d video_background=%d "
+         "state=%d texture=%d hero_request=%d max_request=%d used=%d variant=%d source_w=%d "
+         "decoded=%dx%d gpu=%dx%d\n",
+         arteTesteSelecao, atual.titulo, atual.arte, host, arteTesteTamanho(host, caminho),
+         atual.qualidade, atual.cache.qualidade, atual.fonte, atual.diferente,
+         atual.fundo, atual.poster, atual.video, atual.cache.estado, atual.cache.textura,
+         atual.cache.heroi, atual.cache.pedido, atual.cache.usado, atual.cache.variante, atual.cache.fonteW,
+         atual.cache.decW, atual.cache.decH, atual.cache.gpuW, atual.cache.gpuH);
+  memcpy(&arteTesteAntes, &atual, sizeof atual); arteTesteN++;
+}
+#endif
+
 static const char *logoDe(int i) {
   const CatItem *c = cat_item(i);
   if (i == idx && logoFixo[0]) return logoFixo;
@@ -1486,6 +1564,9 @@ static void abrirInterno(const HomeItem *it) {
   // Guarda identidade e copia ANTES de qualquer republicacao. Ver revalidarIdx.
   arteFixa[0] = logoFixo[0] = logoCatalogoFixo[0] = 0;
   arteFixaPoster = 0;   // arte nova por abertura
+#ifdef NV_TEST_LOCAL_LOGS
+  arteTesteAbrir();
+#endif
   { const CatItem *ci0 = cat_item(idx);
     idxImdb[0] = 0; idxTemCopia = 0;
     if (ci0) {
@@ -7151,6 +7232,9 @@ static void carFundo(void) {
   GLuint texAtual = arteAtual ? tex_obter_hero(arteAtual) : 0;
   int k, modo = fundo_modo();
   int comTrailer = trailerFade > 0.005f && trailer_aberto() && !trailer_cheia();
+#ifdef NV_TEST_LOCAL_LOGS
+  arteTesteRegistrar(arteAtual, arteDetalheEhPoster(idx), comTrailer);
+#endif
   int especial = !comTrailer && (modo == FUNDO_FROST ||
       (modo == FUNDO_BORRADA && texAtual && !arteDetalheEhPoster(idx)));
   // A FOLHA FECHA EM UM TERCO DA ABERTURA (e abre so no ultimo terco da
@@ -7288,6 +7372,9 @@ static void detalheFundo(float s) {
   int comTrailer = trailerFade > 0.005f && trailer_aberto() && !trailer_cheia();
   // Backdrop em tela cheia: pede o teto de 1920.
   GLuint tex = arte ? tex_obter_hero(arte) : 0;
+#ifdef NV_TEST_LOCAL_LOGS
+  arteTesteRegistrar(arte, artePoster, comTrailer);
+#endif
   if (pg > 0.01f && !detail_cobre_tela()) {
     GfxRect tela = { 0, 0, NV_TELA_W, NV_TELA_H };
     gfx_cor(tela, 0.0f, NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, pg);
