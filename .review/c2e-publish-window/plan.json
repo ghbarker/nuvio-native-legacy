@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "root_reviewed": true,
+  "execution_authorized": true,
+  "all_eight_proofs_verified": true,
+  "repository": "ghbarker/nuvio-native-legacy",
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "base_tree": "57c4115450351693acee524ea5c9f685ca4aaa9d",
+  "workflow_id": 386951661,
+  "workflow_path": ".github/workflows/build-tpk.yml",
+  "base_workflow_blob": "7422520df351f905c448b5a6182a92b330b59766",
+  "initial_workflow_state": "active",
+  "review_branch": "review/c2e-publish-window-20261016",
+  "ci_jobs": [
+    {
+      "logical_lane": "431-native",
+      "id": 117110420976,
+      "name": "PR431 macOS public tests and current app links",
+      "run_id": 38941625500,
+      "review_sha": "619f4f62de245f473b134b9fc84829d9371df8bc",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/maintainer-review.yml",
+      "source_head": "8979ef16c046a4b976d08dbbede82d81f9888a28",
+      "proof_verified": true,
+      "proof_receipt_sha256": "64ee4a965304b3336d5e1506029f52c9415bf222d10854107175c71eb1e78177"
+    },
+    {
+      "logical_lane": "431-android",
+      "id": 117110421629,
+      "name": "PR431 Android ARM32/ARM64",
+      "run_id": 38941625500,
+      "review_sha": "619f4f62de245f473b134b9fc84829d9371df8bc",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/maintainer-review.yml",
+      "source_head": "8979ef16c046a4b976d08dbbede82d81f9888a28",
+      "proof_verified": true,
+      "proof_receipt_sha256": "00306dc5bdec767831ae01073474f428a110cb559b3ff658d3a5bd460c76828d"
+    },
+    {
+      "logical_lane": "540-native",
+      "id": 117110421552,
+      "name": "PR540 macOS public tests and current app links",
+      "run_id": 38941625500,
+      "review_sha": "619f4f62de245f473b134b9fc84829d9371df8bc",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/maintainer-review.yml",
+      "source_head": "a064470826522dcf2b99767635be556b7555d097",
+      "proof_verified": true,
+      "proof_receipt_sha256": "9ee72cd913a4a53d839a86508644d7021c72bd80f41c44039729f5b1f7d612f6"
+    },
+    {
+      "logical_lane": "541-native",
+      "id": 117110421391,
+      "name": "PR541 macOS public tests and current app links",
+      "run_id": 38941625500,
+      "review_sha": "619f4f62de245f473b134b9fc84829d9371df8bc",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/maintainer-review.yml",
+      "source_head": "ad190469365670c94d4cc3ab40a7aa2dd44c2b66",
+      "proof_verified": true,
+      "proof_receipt_sha256": "96434c5c7c55465f36b202793fa56f82f8465a991e3aca7c063f2e2b247d4ec2"
+    },
+    {
+      "logical_lane": "546-native",
+      "id": 117110421456,
+      "name": "PR546 macOS public tests and current app links",
+      "run_id": 38941625500,
+      "review_sha": "619f4f62de245f473b134b9fc84829d9371df8bc",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/maintainer-review.yml",
+      "source_head": "6e2912703c8bc00ca9b6459fb1fa7c29f3007cfb",
+      "proof_verified": true,
+      "proof_receipt_sha256": "84cf17c6d768b73b2f482d8c9d3454057b5a99884181c47d70b201132b0c4ef7"
+    },
+    {
+      "logical_lane": "538-native",
+      "id": 117124969339,
+      "name": "PR538 macOS public tests and current app links",
+      "run_id": 38945945983,
+      "review_sha": "f6b0ad6a412a6362d49d843ccbd3395457415ce1",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/c2e-native-recovery3.yml",
+      "source_head": "8c99638f71e1d9c47dde41c1b8c2a7e5cc62f342",
+      "proof_verified": true,
+      "proof_receipt_sha256": "6704cf5ed3fe062a7b93018e077c8d91b9a96143ed1dc174c9a9bd881b86c3d2"
+    },
+    {
+      "logical_lane": "543-native",
+      "id": 117118515978,
+      "name": "PR543 macOS public tests and current app links",
+      "run_id": 38944034395,
+      "review_sha": "6ada5eecd077d90cdf32ee40946eb60c7be80c98",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/c2e-native-recovery2.yml",
+      "source_head": "bd6e611198955425172d9a59825204b63e02a53e",
+      "proof_verified": true,
+      "proof_receipt_sha256": "d41951f00cd9af238c5ccbd8493c1866f0e9a17f23b7832ca92ecee6a544ce5f"
+    },
+    {
+      "logical_lane": "547-native",
+      "id": 117114819348,
+      "name": "PR547 macOS public tests and current app links",
+      "run_id": 38942928463,
+      "review_sha": "a3b5292934f68994c5d5ca5de4e6724083d66dd7",
+      "run_attempt": 1,
+      "workflow_path": ".github/workflows/c2e-native-recovery.yml",
+      "source_head": "7c7e670c3f18bc571d1e9b592e3e5526586a99d0",
+      "proof_verified": true,
+      "proof_receipt_sha256": "c218cd8a27e524fb0a0970adbbeaab44a10a406cae4fa15f7f72c0ae93e55cf0"
+    }
+  ],
+  "branches": [
+    {
+      "pr": 431,
+      "branch": "feat/android-tv-mobile",
+      "old_head": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+      "candidate": "8979ef16c046a4b976d08dbbede82d81f9888a28"
+    },
+    {
+      "pr": 538,
+      "branch": "feat/prioritize-continue-watching-497-20261015",
+      "old_head": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+      "candidate": "8c99638f71e1d9c47dde41c1b8c2a7e5cc62f342"
+    },
+    {
+      "pr": 540,
+      "branch": "fix/cast-metadata-fallback-528-20261015",
+      "old_head": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+      "candidate": "a064470826522dcf2b99767635be556b7555d097"
+    },
+    {
+      "pr": 541,
+      "branch": "feat/loading-backdrop-options-508",
+      "old_head": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+      "candidate": "ad190469365670c94d4cc3ab40a7aa2dd44c2b66"
+    },
+    {
+      "pr": 543,
+      "branch": "fix/removed-addon-catalogs-504",
+      "old_head": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+      "candidate": "bd6e611198955425172d9a59825204b63e02a53e"
+    },
+    {
+      "pr": 546,
+      "branch": "fix/recommendation-backdrop-quality-503",
+      "old_head": "bbb74484e0f50b82357423fb349e0382117034ec",
+      "candidate": "6e2912703c8bc00ca9b6459fb1fa7c29f3007cfb"
+    },
+    {
+      "pr": 547,
+      "branch": "feat/clock-focus-495-20261016",
+      "old_head": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+      "candidate": "7c7e670c3f18bc571d1e9b592e3e5526586a99d0"
+    }
+  ],
+  "helper_sha256": "26edf2cf117f78e75dbe0be7b094f5ac2459881d76a372f0f53851c00453f596",
+  "workflow_normalized_sha256": "60e585ea2631b1147d694b201d2dc935ee2dd5bb0d58d698d1a8e9d6798c75e2",
+  "poll_timeout_seconds": 600,
+  "root_owns_ref_updates": true,
+  "mutation_scope": "Only PUT disable/enable for registered fork workflow386951661; all seven branch refs are read-only.",
+  "restoration": "Python finally plus independent always() step restore only this run's persisted disable-attempt marker and original active state.",
+  "runner_loss_risk": "Complete runner loss can prevent both cleanup paths. Root must independently verify active state afterward and may restore this one workflow if needed.",
+  "validation_policy": "Exactly eight logical source-bound successful jobs: five retained original producers, one first-recovery producer, one second-recovery producer, and one final third-recovery producer. Earlier overall run failures are retained honestly; replaced failed jobs are ineligible. Each producer requires exact run/review/attempt/source and independently verified proof."
+}

@@ -1,0 +1,60 @@
+{
+  "name": "Temporary fork TPK pause for seven verified PR ref updates",
+  "on": {
+    "push": {
+      "branches": [
+        "review/c2e-publish-window-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read",
+    "actions": "write"
+  },
+  "concurrency": {
+    "group": "fork-build-tpk-publication-window",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "window": {
+      "if": "${{ true }}",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "env": {
+        "GH_TOKEN": "${{ github.token }}",
+        "WINDOW_PLAN_SHA256": "adbaad3d33a0d6a99e0133ee2b54ee7dfeeab70c21f9c548f6bbb81169396508"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 2
+          }
+        },
+        {
+          "name": "Pause exact fork workflow, observe seven reviewer-owned ref updates, restore",
+          "timeout-minutes": 15,
+          "run": "python3 .review/c2e-publish-window/window.py window"
+        },
+        {
+          "name": "Always restore only this run's exact workflow disable attempt",
+          "if": "${{ always() }}",
+          "timeout-minutes": 4,
+          "run": "python3 .review/c2e-publish-window/window.py restore"
+        },
+        {
+          "name": "Preserve window and restoration receipts",
+          "if": "${{ always() }}",
+          "uses": "actions/upload-artifact@v4",
+          "with": {
+            "name": "c2e-publish-window-${{ github.sha }}-attempt${{ github.run_attempt }}",
+            "path": "publication-window/*.json",
+            "if-no-files-found": "warn",
+            "retention-days": 7
+          }
+        }
+      ]
+    }
+  }
+}
