@@ -1,0 +1,322 @@
+{
+  "schema": 1,
+  "purpose": "Require the exact #524 typed lookup, frozen player identity and ownership guards all green in two independent hosted jobs.",
+  "root_approved": true,
+  "execution_enabled": true,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "local_candidate_provenance": "ee67c15515adcee4c2a93fe958d619ec777c2615",
+  "local_candidate_tree_provenance": "dd49a94dadaa2de8cf345c9cb5c88aff347d51bd",
+  "remote_review_commit": "UNKNOWN until root composite publication",
+  "source_binding": "Exact changed file blobs/modes on direct base49a; local candidate SHA is provenance, not required remote ancestry.",
+  "branch": "review/title-identity524-final-20261016",
+  "workflow": ".github/workflows/title-identity524-final.yml",
+  "review_paths": [
+    ".github/workflows/title-identity524-final.yml",
+    ".review/identity524-final/cc_record.py",
+    ".review/identity524-final/plan.json",
+    ".review/identity524-final/run.py"
+  ],
+  "source_files": {
+    "src/catalogo.c": {
+      "sha256": "5794e4cd4f7d5f4a0d4c7961129888bd3bfdbdf4b0c33e956a66c313cc7baa26",
+      "bytes": 113611,
+      "git_blob": "fedced9720452e406ea4b147d608b97a5e1e0486",
+      "git_mode": "100644"
+    },
+    "src/catalogo.h": {
+      "sha256": "46894d9e75105cc6ce3d4b2eb30ca2c8b9081ea94389f1930ea69dd2fe5c1d1b",
+      "bytes": 32938,
+      "git_blob": "d95c3a64333fb8b84510f5e6c6c4fee7165228cb",
+      "git_mode": "100644"
+    },
+    "src/descoberta.c": {
+      "sha256": "cdef9b4da527b076616051614d873009c29a82e7a6185435cd4224d00766e61a",
+      "bytes": 429480,
+      "git_blob": "7dcd4bbf73726345743bbab77eb6045b6465b9ef",
+      "git_mode": "100644"
+    },
+    "src/player.c": {
+      "sha256": "6874a17fda5f3bcd192140072d7a920d875300473edfc2e929415ecd4fdbeea8",
+      "bytes": 310815,
+      "git_blob": "0229abc2ed03e90f5cbe49191f41020e57442d95",
+      "git_mode": "100644"
+    },
+    "tests/addons_manifest_notifications_stub.inc": {
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "bytes": 959,
+      "git_blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7",
+      "git_mode": "100644"
+    },
+    "tests/colfileiras.c": {
+      "sha256": "30b94787ab289d26d414dd6b6475ca04a45fdfd09abbe693893c9992c7ef43c9",
+      "bytes": 22088,
+      "git_blob": "a7e50f985440bda3fbfc6ed701e74605332a4f62",
+      "git_mode": "100644"
+    },
+    "tests/detalheanime.c": {
+      "sha256": "4aeeac5c44e7d967a90b28eff240e171ca2ec47ff3721d3196e2455093450062",
+      "bytes": 67964,
+      "git_blob": "cfee589b06ba26c3e14e4a85b717bd141a30c0f3",
+      "git_mode": "100644"
+    },
+    "tests/homejanelas.c": {
+      "sha256": "41f94bba1ccca958c4d870fe8abd9b6d5ca6a41faa43d8c893063f80c748623f",
+      "bytes": 26354,
+      "git_blob": "75415d729d8b9d36776f57d32c5b1ee1d81da235",
+      "git_mode": "100644"
+    },
+    "tests/player_identity524.c": {
+      "sha256": "0dd122adefe39dbf095313b9799e8fb2b95366ab79b0be9fab300a6b2b153160",
+      "bytes": 6768,
+      "git_blob": "9e2e79f6e3d13b5169d9a128825b970ed44837a1",
+      "git_mode": "100644"
+    },
+    "tests/player_identity524.sh": {
+      "sha256": "4eb173755f8ac7f75e7318b16890c930d84bcae2f432fd979541dda3df3b4b3a",
+      "bytes": 2086,
+      "git_blob": "d8ea9f8b6440362ecfaf4db0b7acea292b2e7f3a",
+      "git_mode": "100644"
+    },
+    "tests/player_identity524_guards.c": {
+      "sha256": "586e73fdc1c931a35324d4a96e657589e6acd8cfaa943922ff50459c416c2d75",
+      "bytes": 6325,
+      "git_blob": "327d4588e25dda2166c33a673d2872bc918c6766",
+      "git_mode": "100644"
+    },
+    "tests/player_identity524_guards.sh": {
+      "sha256": "a8af95f79038cd053607a156282669560280e171abaab1b010241b614583c30e",
+      "bytes": 2207,
+      "git_blob": "e86f8d9c607d408372a5b8232041fd01c173038e",
+      "git_mode": "100644"
+    },
+    "tests/title_identity524.c": {
+      "sha256": "27a836903560d330f9a9a29b6b6f35dd44c8a4f4cb46070c9a96471e3e2404df",
+      "bytes": 10105,
+      "git_blob": "9285d3e2aa6d84e2cdca76d8bf08c57e8102a0bd",
+      "git_mode": "100644"
+    },
+    "tests/title_identity524.sh": {
+      "sha256": "923f5adef3cb26e499f139061c4b5c4607df90753ee22a4d0742732138232171",
+      "bytes": 1371,
+      "git_blob": "fc3cde9d141bedca07f52d549393d39540174170",
+      "git_mode": "100644"
+    }
+  },
+  "recipe_sha256": {
+    "run.py": "ba013beffeb47bf71c67a517789e0616b4b5d8b48649897ba079a5921f90b816",
+    "cc_record.py": "70a23f8ed5051e3c208648c0f1394f07d3fbb3e050518b1bb5650016e0a23162"
+  },
+  "modes": [
+    "normal",
+    "asan"
+  ],
+  "suites": [
+    {
+      "name": "title_identity524",
+      "group": "short",
+      "script": "tests/title_identity524.sh",
+      "fixture": "tests/title_identity524.c",
+      "compile_phases": 1,
+      "arguments": [
+        [
+          "tmdb-tv"
+        ],
+        [
+          "episode-id"
+        ],
+        [
+          "movie-control"
+        ],
+        [
+          "known-series-control"
+        ],
+        [
+          "uncertain-detail-control"
+        ],
+        [
+          "tmdb-series-alias"
+        ],
+        [
+          "tmdb-show-alias"
+        ],
+        [
+          "cached-opposite-movie"
+        ],
+        [
+          "cached-opposite-series"
+        ],
+        [
+          "cached-uncertain"
+        ],
+        [
+          "cached-channel"
+        ],
+        [
+          "cached-show-control"
+        ],
+        [
+          "opposite-response-type"
+        ],
+        [
+          "different-response-id"
+        ],
+        [
+          "missing-series-no-movie"
+        ],
+        [
+          "context-reset"
+        ],
+        [
+          "malformed-episode-control"
+        ],
+        [
+          "seed-opposite-movie"
+        ],
+        [
+          "seed-opposite-series"
+        ],
+        [
+          "seed-matching-show-control"
+        ]
+      ],
+      "required_dependencies": [
+        "src/descoberta.c",
+        "src/catalogo.c",
+        "tests/detalheanime.c",
+        "tests/addons_manifest_notifications_stub.inc",
+        "tests/title_identity524.c"
+      ],
+      "timeout": 180
+    },
+    {
+      "name": "detalheanime",
+      "group": "short",
+      "script": "tests/detalheanime.sh",
+      "fixture": "tests/detalheanime.c",
+      "compile_phases": 1,
+      "arguments": [
+        []
+      ],
+      "required_dependencies": [
+        "src/descoberta.c",
+        "src/catalogo.c",
+        "tests/detalheanime.c",
+        "tests/addons_manifest_notifications_stub.inc"
+      ],
+      "timeout": 180
+    },
+    {
+      "name": "player_identity524",
+      "group": "player",
+      "script": "tests/player_identity524.sh",
+      "fixture": "tests/player_identity524.c",
+      "compile_phases": 3,
+      "arguments": [
+        [
+          "known-series-control"
+        ],
+        [
+          "known-series-default"
+        ],
+        [
+          "movie-control"
+        ],
+        [
+          "late-movie-control"
+        ],
+        [
+          "late-series"
+        ],
+        [
+          "late-close-control"
+        ],
+        [
+          "next-opening-control"
+        ],
+        [
+          "retained-series-control"
+        ]
+      ],
+      "required_dependencies": [
+        "src/player.c",
+        "src/catalogo.c",
+        "src/perfis.c",
+        "src/progresso.c",
+        "src/traktscrobble.c",
+        "tests/player_retido.c",
+        "tests/player_identity524.c"
+      ],
+      "timeout": 360
+    },
+    {
+      "name": "player_identity524_guards",
+      "group": "player",
+      "script": "tests/player_identity524_guards.sh",
+      "fixture": "tests/player_identity524_guards.c",
+      "compile_phases": 3,
+      "arguments": [
+        [
+          "still-unknown"
+        ],
+        [
+          "other-title"
+        ],
+        [
+          "profile-change"
+        ],
+        [
+          "profile-aba"
+        ],
+        [
+          "conflicting-copies"
+        ],
+        [
+          "known-movie-conflict"
+        ],
+        [
+          "pending-before-meta"
+        ],
+        [
+          "reordered-series"
+        ],
+        [
+          "series-without-request"
+        ],
+        [
+          "bare-source-series"
+        ],
+        [
+          "fresh-episode-source"
+        ]
+      ],
+      "required_dependencies": [
+        "src/player.c",
+        "src/catalogo.c",
+        "src/perfis.c",
+        "src/progresso.c",
+        "src/traktscrobble.c",
+        "tests/player_retido.c",
+        "tests/player_identity524_guards.c"
+      ],
+      "timeout": 360
+    }
+  ],
+  "expected_by_group": {
+    "short": {
+      "groups": 4,
+      "executions": 42
+    },
+    "player": {
+      "groups": 4,
+      "executions": 38
+    }
+  },
+  "group_count": 8,
+  "expected_binary_executions": 80,
+  "full_source_note": "Player job compiles actual video.c and player.c as two real ELF objects, then links every other src/*.c and src/dts/*.c plus the exact fixture. All actual compiled dependency graphs and object hashes are bound.",
+  "scope_limits": [
+    "No Android SDK or device playback validation in this kit.",
+    "No #512 source or typed Trakt endpoint changes mixed into this source.",
+    "No issue-closure claim from CI alone."
+  ]
+}

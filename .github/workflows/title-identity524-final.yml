@@ -1,0 +1,58 @@
+name: title identity524 final positive validation
+on:
+  push:
+    branches: [review/title-identity524-final-20261016]
+permissions:
+  contents: read
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  IDENTITY524_FINAL_PLAN_SHA256: '5ce7d231839056ce93fb33ae22aa591e0684ae2033f0ba5d2c43b080b51d8015'
+jobs:
+  lookup:
+    if: ${{ true }}
+    name: Typed lookup20 and inherited metadata normal plus ASan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Install ordinary compiler and Linux SDL headers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang pkg-config libsdl2-dev
+      - name: Collect all four actual lookup and metadata groups
+        run: python3 .review/identity524-final/run.py --group short --output "$RUNNER_TEMP/identity524-short"
+      - name: Preserve all lookup compiler and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity524-final-short-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/identity524-short
+          if-no-files-found: error
+          retention-days: 14
+  player:
+    if: ${{ true }}
+    name: Playback8 and ownership11 normal plus ASan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Install ordinary full-source Linux native dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev zlib1g-dev
+      - name: Collect all four actual three-phase full-player groups
+        run: python3 .review/identity524-final/run.py --group player --output "$RUNNER_TEMP/identity524-player"
+      - name: Preserve all player compiler objects and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity524-final-player-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/identity524-player
+          if-no-files-found: error
+          retention-days: 14
