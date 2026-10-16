@@ -50,8 +50,22 @@ with tempfile.TemporaryDirectory(prefix='nuvio-failover-prefetch-') as directory
     (tmp / 'watchdog.inc').write_text(
         helper +
         function(app, 'aberturaVencida') + function(app, 'tentarProximaFonteVOD'))
+    declaration = player.index('static struct {\n  unsigned token;')
+    declaration_end = player.index('} preTitulo;', declaration) + len('} preTitulo;')
+    (tmp / 'prepared.inc').write_text(player[declaration:declaration_end] + '\n' +
+        function(player, 'player_precarregar_cancelar') +
+        function(player, 'preTituloLegendaUsar'))
     (tmp / 'player.inc').write_text(''.join(function(player, name) for name in
-        ('player_fonte_falhou', 'player_tem_video', 'player_voltar_a_esperar', 'player_definir_fonte')))
+        ('player_fonte_falhou', 'player_tem_video', 'player_erro_fonte',
+         'player_erro_fonte_motivo', 'erroSemVideo', 'temMkv', 'prebuscaCabe',
+         'tocarFonte', 'player_voltar_a_esperar', 'player_definir_fonte')))
+    # Keep the production closed-player guard and complete subtitle-release
+    # block. The rest of player_atualizar is drawing/input, outside this test.
+    update = player.index('  if (!aberto) {\n    prebuscaUrl[0] = 0;')
+    update_end = player.index('  entrada = anim_mola(', update)
+    (tmp / 'prefetch-update.inc').write_text(
+        'static void atualizarPrebusca(Uint32 agora) {\n' +
+        player[update:update_end] + '}\n')
     (tmp / 'backend.inc').write_text(function(backend, 'video_parar') + function(backend, 'video_falhou'))
     test = Path(__file__).with_suffix('.c')
     flags = ['-std=gnu11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-DNV_ANDROID',
@@ -63,5 +77,6 @@ with tempfile.TemporaryDirectory(prefix='nuvio-failover-prefetch-') as directory
     output = tmp / 'test'
     subprocess.run([os.environ.get('CC', 'cc'), *flags, str(test),
         str(root / 'src/fontefalha.c'), str(root / 'src/fontefiltro.c'),
-        str(root / 'src/inicio.c'), '-pthread', *link, '-lm', '-o', str(output)], check=True)
+        str(root / 'src/inicio.c'), str(root / 'src/linguas.c'),
+        '-pthread', *link, '-lm', '-o', str(output)], check=True)
     subprocess.run([str(output)], check=True)
