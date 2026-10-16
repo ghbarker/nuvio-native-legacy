@@ -29,7 +29,7 @@ int main(void) {
     nRotas = 0; metaprov_zerar_pausa();
     rota("catalog.nuvio.tv", body);
     CatItem results[4];
-    assert(consultarAlvo(&alvos[1], queries[q], results, 4) == 2);
+    assert(consultarAlvo(&alvos[1], queries[q], results, 4, NULL) == 2);
     assert(!strcmp(results[0].imdb, "tt21874046"));
     assert(!strcmp(results[1].imdb, "tmdb:335918"));
     assert(!strcmp(results[1].titulo, "Meu Nome é Farah"));
@@ -68,6 +68,7 @@ int main(void) {
   sobTmdb = 335918;
   snprintf(sobTipo, sizeof sobTipo, "tv");
   sobTemSemente = 0; sobIndice = -1; sobFioVivo = 1;
+  sobSessao = nv_perfil_sessao_ler();
   buscarTitulo(NULL);
   assert(sobIndice == 1 && !sobFioVivo);
   assert(!strcmp(cat_item(1)->imdb, "tmdb:335918"));

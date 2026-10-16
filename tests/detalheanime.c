@@ -43,6 +43,18 @@ void addons_manifesto_lido_base(int i, const char *b, const char *d,
                                unsigned v, const char *c) {
   (void)i; (void)b; (void)d; (void)v; (void)c;
 }
+int addons_identidade_recebida(const char *base, unsigned versao, uint64_t sessao,
+                               const char *corpo) {
+  (void)base; (void)versao; (void)sessao; (void)corpo;
+  fputs("unexpected addon identity publication in metadata fixture\n", stderr);
+  abort();
+}
+int addons_manifesto_recebido(const char *base, unsigned versao, uint64_t sessao,
+                              const char *corpo) {
+  (void)base; (void)versao; (void)sessao; (void)corpo;
+  fputs("unexpected addon manifest publication in metadata fixture\n", stderr);
+  abort();
+}
 
 // --- DUBLES: nenhum participa da regra, so fazem descoberta.c linkar ---------
 // (o conjunto e o de tests/colfileiras.c, menos os cat_* — que catalogo.c ja
@@ -159,17 +171,24 @@ int   simkl_ativo(void)                    { return 0; }
 
 // "A seguir" da conta (#199): so para linkar; sem vistos, nada semeia.
 int   trakt_ativo(void)                    { return 1; }
+// These metadata/Search fixtures never import Continue Watching. Retained
+// whole-module calls fail loudly if a new path unexpectedly reaches history.
+int trakt_cw_concluiu(const char *id, long long ms) { (void)id; (void)ms; abort(); }
+int trakt_e_a_seguir(const char *id) { (void)id; abort(); }
+int prog_oculto_vence(const char *id, long long ms) { (void)id; (void)ms; abort(); }
+int prog_oculto_soltar(const char *id, long long ms) { (void)id; (void)ms; abort(); }
 int   ajustes_cw_do_episodio_mais_alto(void) { return 1; }
 int   contalib_sementes_a_seguir(ContaSemente *s, int m, int a) { (void)s; (void)m; (void)a; return 0; }
 int   simkl_continuar(CatItem *s, int m)   { (void)s; (void)m; return 0; }
 int   simkl_e_a_seguir(const char *id)     { (void)id; return 0; }
 int   simkl_plantowatch(CatItem *s, int m) { (void)s; (void)m; return 0; }
 int   ajustes_salvos_no_simkl(void)        { return 0; }
+#ifndef NV_TEST_CUSTOM_PROFILE_SESSION
 uint64_t perfis_sessao_geracao(void) { return 1; }
 int perfis_sessao_atual(uint64_t s) { return s == 1; }
 int perfis_sessao_travar(uint64_t s) { return s == 1; }
 void perfis_sessao_destravar(void) {}
-int ajustes_ocultar_filmes_vistos(void) { return 0; }
+#endif
 int trakt_enfeitar_lote_sessao(CatItem *s, int n, uint64_t sessao) {
   (void)sessao; (void)s; (void)n; return 0;
 }
