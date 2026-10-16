@@ -1,0 +1,27 @@
+name: Publish validated metadata branches
+on:
+  push:
+    branches: [review/publish-metadata-branches-20261016]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PUBLISH_ALLOWED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .review/metadata-branches
+      - name: Verify selected native proofs and publish new refs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .review/metadata-branches/publish.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: metadata-branch-publication-${{ github.sha }}
+          path: metadata-branches-published.json
+          if-no-files-found: error
