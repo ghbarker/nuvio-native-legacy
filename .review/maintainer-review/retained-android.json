@@ -1,0 +1,22 @@
+{
+  "old_source_commit": "5d69d5b738ebf8e9d6370db12509580f7d86cf55",
+  "new_source_commit": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+  "new_source_tree": "6ea0500195ccac5ae872cc500d393a694b9c375b",
+  "changed_paths": [
+    "tests/cw_prioridade.c"
+  ],
+  "complete_non_test_tree_mode_blob_path_identical": true,
+  "non_test_entry_count": 2681,
+  "non_test_entries_sha256": "e70de51bee12b4272cfc1d2f6da742fabc185e660fb036d8f575b0fcdb9f2377",
+  "old_android_origin": {
+    "workflow_run_id": 38838832698,
+    "workflow_run_attempt": 1,
+    "job_id": 116773954938,
+    "review_commit": "5f9ff33431b946dcd3d187ff87f9c3e4d1184add",
+    "source_commit": "5d69d5b738ebf8e9d6370db12509580f7d86cf55",
+    "plan_sha256": "779d9c327006d6a340dcc82fcae93c08237f03cfb0f167d055b99dcf83a581a0"
+  },
+  "requires_actual_android_success_and_independent_raw_proof_before_final_acceptance": true,
+  "old_android_executed_again": false,
+  "scope": "Only nine typed offline-neighbour lines changed in committed CW test. Every non-test Git path/mode/blob is identical. This is a source equivalence bridge, not an Android pass or a current-run Android claim."
+}

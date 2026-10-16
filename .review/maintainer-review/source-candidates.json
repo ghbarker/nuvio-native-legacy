@@ -1,0 +1,166 @@
+{
+  "538": {
+    "pr": 538,
+    "head": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "tree": "6ea0500195ccac5ae872cc500d393a694b9c375b",
+    "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+    "base_tree": "390a78e226f56b25756a749eab0c2c16cbe77c62",
+    "parents": [
+      "cfc15aeab8bb9aab72c682afe6be9e5f873ecdb5"
+    ],
+    "exact_diff_paths": [
+      "src/descoberta.c",
+      "src/main.c",
+      "src/sync.c",
+      "src/sync.h",
+      "tests/cw_prioridade.c",
+      "tests/cw_prioridade.sh",
+      "tests/montagem_cedo.c",
+      "tests/sync_prioridade.c",
+      "tests/sync_prioridade.sh",
+      "tests/sync_prioridade_inject.h"
+    ],
+    "paths": [
+      {
+        "path": "src/descoberta.c",
+        "blob": "f1e119dfe7fb516baf0e2efadc6e6b9335c83226",
+        "sha256": "d25a00a26578e084f412b1da348a06cb3d3ca6a87fa970347a14c282330e6d0c"
+      },
+      {
+        "path": "src/main.c",
+        "blob": "191f21cad6094ee8bc8bdaec1bdaa4d290a939aa",
+        "sha256": "205aaceab67337204506837a5f295a1c88e57e67beebd7ce1b57a52563806800"
+      },
+      {
+        "path": "src/sync.c",
+        "blob": "bb9d90878ebda5aba4759b860ce6420609f022b6",
+        "sha256": "44559dfb377598f1ecfede23d4892909ef25577fb7b54efbec12daa5b9838c6a"
+      },
+      {
+        "path": "src/sync.h",
+        "blob": "7d6056e5b7f4a6f8997f7448179d916371987058",
+        "sha256": "94287d82b41833c5854e3a65f8920b1cb9aa63ba4ec2f6d1bcb30736bed1861d"
+      },
+      {
+        "path": "tests/cw_prioridade.c",
+        "blob": "d2bb6cab8a1d948351c05f8667ccb0b91c31e885",
+        "sha256": "eac5aa595b7cbbe0b78f35d48df8f352bda9ac099520fcc28906fa307055374b"
+      },
+      {
+        "path": "tests/cw_prioridade.sh",
+        "blob": "af5b14b9fbcd3ed51b1db6bcf939165c8d5aef4d",
+        "sha256": "6355840fd9155f4f5c0f6b0fc5c6b1e07969a47e599d3040299fd825476d5fee"
+      },
+      {
+        "path": "tests/montagem_cedo.c",
+        "blob": "a73c9ec216c032eac943e3e48fe9a3466455c272",
+        "sha256": "ec2ddc25fb7df962c25191ca0ee0ad54a62db1174066bcebd7f19ceb3b68c88f"
+      },
+      {
+        "path": "tests/sync_prioridade.c",
+        "blob": "3ac7f5953b9c20b8028f4bdb560f913cfe0d040d",
+        "sha256": "7c60cab2dcee5d68d753a3028df91b77c7cae8135b77776faca9cb2c8fd42aa5"
+      },
+      {
+        "path": "tests/sync_prioridade.sh",
+        "blob": "70f16f41b89e669735908625ae2f617389c2a79a",
+        "sha256": "e9a84dfee5b441c35056e774c0d37915cb1cb352ba800f3993062e1f5fe1343b"
+      },
+      {
+        "path": "tests/sync_prioridade_inject.h",
+        "blob": "ce6ee609057739d88f59285a08f5cb4725ef3ac9",
+        "sha256": "11948649d83a706b7d7fc87c725683502b6eaa2e1173e30f625c669c52fabdd6"
+      }
+    ],
+    "reviewed_test_paths": [
+      {
+        "path": "src/catalogo.c",
+        "blob": "165853ef8ff3595f405d98ca75cda893a5598932",
+        "sha256": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c"
+      },
+      {
+        "path": "src/homeestado.c",
+        "blob": "e9a131c2c92a8fdb67e8c51669f66ea3efe6b6bb",
+        "sha256": "e2d83a2c2141bda2d46a2d7633f5d50a7b62ff66a7f4298817584e9e52ab6701"
+      },
+      {
+        "path": "src/perfis.c",
+        "blob": "5a5bcce59c6cc67717e17863b092f9f4b85ef9c1",
+        "sha256": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf"
+      },
+      {
+        "path": "tests/stub_contapend.c",
+        "blob": "b153de7773a40419dac64def2a34c86aea089cc0",
+        "sha256": "47c8b8e8e64e00114982da24a412a73b2ec909bcb89f2e4f5ee4335885ea91d9"
+      }
+    ],
+    "product_head": "cfc15aeab8bb9aab72c682afe6be9e5f873ecdb5",
+    "public_test_commit": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "public_test_commit_paths": [
+      "tests/cw_prioridade.c",
+      "tests/cw_prioridade.sh",
+      "tests/montagem_cedo.c",
+      "tests/sync_prioridade.c",
+      "tests/sync_prioridade.sh",
+      "tests/sync_prioridade_inject.h"
+    ],
+    "fresh_sdk_required": true,
+    "public_suites": [
+      {
+        "name": "sync-priority",
+        "script": "tests/sync_prioridade.sh",
+        "script_sha256": "e9a84dfee5b441c35056e774c0d37915cb1cb352ba800f3993062e1f5fe1343b",
+        "inputs": {
+          "tests/sync_prioridade.c": "7c60cab2dcee5d68d753a3028df91b77c7cae8135b77776faca9cb2c8fd42aa5",
+          "tests/sync_prioridade_inject.h": "11948649d83a706b7d7fc87c725683502b6eaa2e1173e30f625c669c52fabdd6",
+          "tests/stub_contapend.c": "47c8b8e8e64e00114982da24a412a73b2ec909bcb89f2e4f5ee4335885ea91d9",
+          "src/sync.c": "44559dfb377598f1ecfede23d4892909ef25577fb7b54efbec12daa5b9838c6a",
+          "src/sync.h": "94287d82b41833c5854e3a65f8920b1cb9aa63ba4ec2f6d1bcb30736bed1861d"
+        },
+        "required_markers": [
+          "sync_prioridade: seven scenarios passed",
+          "PASS: A -> B -> A rejects stale progress and structural readiness",
+          "PASS: progress-thread creation failure preserves serial correctness",
+          "PASS: warm refresh keeps ready Home while its new progress remains blocked",
+          "PASS: account backoff creates no worker and recovers on the next allowed cycle"
+        ],
+        "modes": [
+          "normal",
+          "asan"
+        ],
+        "marker_counts": {
+          "PASS: account order and collections applied while progress remains blocked": 5,
+          "PASS: progress applied once, joined before pushes, structure consumed once": 5,
+          "PASS: empty/failed progress does not suppress Home or trigger a false refresh": 2
+        }
+      },
+      {
+        "name": "cw-priority",
+        "script": "tests/cw_prioridade.sh",
+        "script_sha256": "6355840fd9155f4f5c0f6b0fc5c6b1e07969a47e599d3040299fd825476d5fee",
+        "inputs": {
+          "tests/cw_prioridade.c": "eac5aa595b7cbbe0b78f35d48df8f352bda9ac099520fcc28906fa307055374b",
+          "src/descoberta.c": "d25a00a26578e084f412b1da348a06cb3d3ca6a87fa970347a14c282330e6d0c",
+          "src/catalogo.c": "a67f837f22f240bf6eb84adbed0fd2568ef0dfcf8c239534de4fbf6e3cf2516c",
+          "src/perfis.c": "6ab1f57e219e1dda87906d5b01082e9970e1f4efeab30a66fc0e9ef2659c0acf",
+          "src/homeestado.c": "e2d83a2c2141bda2d46a2d7633f5d50a7b62ff66a7f4298817584e9e52ab6701"
+        },
+        "required_markers": [
+          "cw_prioridade: four scenarios passed",
+          "PASS superseded profile cannot publish late Continue Watching or social rows"
+        ],
+        "modes": [
+          "normal",
+          "asan"
+        ],
+        "marker_counts": {
+          "cw_prioridade: ok": 4,
+          "PASS catalog rows publish while Continue Watching and social requests are blocked": 4,
+          "PASS cached/updated/empty Continue Watching survives catalog publication and remount": 3
+        }
+      }
+    ],
+    "android_public_suites": [],
+    "scope": "Reviewed product feature commits rebased on current upstream, followed by one separate meaningful public test commit in the same PR; no private fixture, logging overlay or CI in source PR."
+  }
+}
