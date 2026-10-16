@@ -11,6 +11,8 @@ name: Build TPK
 
 on:
   push:
+    branches-ignore:
+      - review/issue555-search-window-final-20261016
   workflow_dispatch:
     inputs:
       pacotes:
