@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "remote_source_pins_ready": true,
+  "base": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "current_master": "c2e50a9325719ffae85005c0542338f6b44878c3",
+  "selected_candidates": [
+    "556"
+  ],
+  "job_candidates": {
+    "native": [
+      "556"
+    ],
+    "android": []
+  },
+  "sdk_producers": 1,
+  "required_jobs": [
+    "native"
+  ],
+  "review_branch": "review/issue556-special-seasons-recovery4-20261016",
+  "workflow_path": ".github/workflows/issue556-special-seasons-recovery4.yml",
+  "source_manifest_sha256": "b4aaec51b0b8899263a57eb968c35f49f2acf0406f266999fa25f6710df5eb1b",
+  "recipe_inputs": {
+    "cc_rpath.py": "2ea59ec30fc19de0a2c9c321266cafb0e0f85ef5e691a4be3aecdab4afd7cc39",
+    "common.py": "1548a4ff1d6f2fc9b5ca7b8e0ffc85bb52b89cbe820da3aebc2d0e8c9202758e",
+    "materialize.py": "2c7b91f4b79dfe952fde8410f8eec6fbcae49c0f14c93f81c63f24c6e155fa7b",
+    "native.py": "7ce478bf6c803a983cc6e0da03b8e328b6e1336dab8ca61ce3fd66afe9a95e19",
+    "preflight.py": "e859ba520ead9558cc1cad92f41d2372d58d7264209bed9851a6f4521b6a96eb",
+    "public_tests.py": "40661f6a3015b8e7f7d1dcd03ff72dc303f14e6c8d40733ad9b47d4f2f28613a"
+  },
+  "workflow_normalized_sha256": "af9bd240c3e5440af85d6daeeb690405599c93fad7c645baae296d2a80e6b1e4",
+  "inherited_workflow_override": {
+    "path": ".github/workflows/build-tpk.yml",
+    "upstream_blob": "7422520df351f905c448b5a6182a92b330b59766",
+    "upstream_sha256": "064d04d3c98af848526edf1ae3ff6fcd74557c9449ea2d0d447d083cb1c2aeaa",
+    "review_sha256": "1a1d2968aab6371bb5fe7a789607e59a3fd403b9c6dd28c0739dcd8f0d1dba0b",
+    "policy": "Exclude only this isolated review branch; actual source candidates keep the original upstream workflow."
+  },
+  "candidate_scope": "Issue556 internal validation draft only; source and meaningful public tests must be frozen as separate commits before root approval. No existing PR is implied.",
+  "scope": "Fresh issue556 validation only: frozen season-zero parser/catalogue/control/source/Trakt/Simkl/Seekr/Plex/subtitle/prefetch normal/ASan suites plus all335 current TV/touch units with production-default Rust MKV. No other PR reruns, Android/APK downloads, private overlays or publication.",
+  "hosted_shell_dependencies": {
+    "homebrew_formulae": [
+      "sdl2",
+      "sdl2_image",
+      "sdl2_ttf",
+      "sdl3",
+      "ripgrep"
+    ],
+    "required_commands": [
+      "bash",
+      "cc",
+      "dirname",
+      "mktemp",
+      "rm",
+      "python3",
+      "seq",
+      "sleep",
+      "sed",
+      "mkdir",
+      "sdl2-config",
+      "uname",
+      "cat",
+      "grep",
+      "tail",
+      "rg",
+      "brew",
+      "git",
+      "otool",
+      "rustc",
+      "cargo"
+    ],
+    "verification_step": "Real compiler and SDK sanity before full links",
+    "verification_log": "results/sdk/shell-tools.log",
+    "source_or_test_changes": false,
+    "reason": "Actual recovery1 failed when tests/addons_legendas.sh invoked missing rg; install and verify tools before any public suite."
+  },
+  "superseded_failed_origins": [
+    {
+      "run_id": 38965142504,
+      "reason": "typed offline fixture boundary link failure; source test repair already frozen in unchanged eda8 candidate"
+    },
+    {
+      "run_id": 38966097209,
+      "job_id": 117192834390,
+      "review_commit": "8045dbb14f9877635c406e4757107d0cd2d847ba",
+      "reason": "Hosted shell dependency rg missing in tests/addons_legendas.sh; no source modification required."
+    },
+    {
+      "run_id": 38966809813,
+      "job_id": 117195193439,
+      "source_commit": "eda8a683511312fd84ba56fe40c1621baaa55791",
+      "reason": "Public EOF transport fixture omitted matching release and attempted the independent Previous action inside the existing400ms debounce; assertions unchanged in finalfixture."
+    },
+    {
+      "run_id": 38968078915,
+      "job_id": 117199418008,
+      "classification": "isolated fixture link failure under owner audit",
+      "reason": "Simkl public standalone fixture missing typed profile/session service boundaries; final tests-only repair not yet frozen."
+    }
+  ],
+  "public_suite_order": {
+    "front_loaded": [
+      "tests/simkl_scrobble.sh",
+      "tests/plex.sh",
+      "tests/trakt_cw_dup.sh",
+      "tests/proxprefetch.sh"
+    ],
+    "all_selected_suites_mandatory": true,
+    "order_only_no_script_rewrite": true,
+    "isolation": "Simkl uses unique SIMKL_TEST_DIR and fresh processes; Plex uses unique temp data and ephemeral loopback server with cleanup; TraktCW uses fresh process-local fixtures and no persisted shared data; proxprefetch uses unique output directory and process-local doubles."
+  }
+}
