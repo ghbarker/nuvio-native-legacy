@@ -583,6 +583,9 @@ int   ajustes_cw_minimo(void);    // 1..20 %: piso do Continuar assistindo (#326
 int   ajustes_desfocar_nao_assistidos(void); // blurUnwatchedEpisodes
 int   ajustes_botao_trailer(void);           // detailPageTrailerButtonEnabled
 int   ajustes_meta_externo(void);            // preferExternalMetaAddonDetail
+// Android device preference: 0 internal (default), 1 external, 2 ask per play.
+// Other platforms always return 0 and omit the option from Settings.
+int   ajustes_player_modo(void);
 // "Usar sempre o Cinemeta": 1 = a ficha e os episodios vem so do Cinemeta (como
 // antes); 0 (padrao) = catalogo primeiro, ver descoberta.c (metaCatalogo).
 int   ajustes_busca_nuvio(void);      // 0 = Primeiro (padrao), 1 = Por ultimo, 2 = Desligado (#311)

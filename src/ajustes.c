@@ -630,6 +630,9 @@ typedef enum {
   AJ_LEG2_FONTE, AJ_LEG2_OPACIDADE, AJ_LEG2_POSICAO, AJ_LEG2_ATRASO,
   AJ_LEG2_NEGRITO, AJ_LEG2_COR_BORDA, AJ_LEG2_RESTAURAR,
   AJ_COLECAO_EXIBICAO, // #362: padrao das colecoes, por perfil neste aparelho
+#ifdef NV_ANDROID
+  AJ_PLAYER_MODO, // device-local; append to preserve existing setting IDs
+#endif
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -728,6 +731,9 @@ _Static_assert(sizeof V_COLECAO_EXIBICAO / sizeof *V_COLECAO_EXIBICAO == VT_LAY_
 static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%", "80%", "85%", "90%", "115%", "Automático" };
 static const char *V_TAMANHO_AJUSTES[] = { "80%", "90%", "100%" };
 static const char *V_INTERFACE_MODO[] = { "TV", "Mobile" };
+#ifdef NV_ANDROID
+static const char *V_PLAYER_MODO[] = { "Interno", "Externo", "Perguntar sempre" };
+#endif
 static const char *V_MENU_POS[] = { "Na lateral", "No topo" };   // #461
 static const char *V_ABAS_ESTILO[] = { "Chips", "Menu suspenso", "Barra central", "Páginas", "Menu no topo" };   // #205
 // F07: the order is cacheboost_cache_mb's (0, 256, 512, 1024 MB).
@@ -1622,6 +1628,9 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Cor da borda", V_LEG2_COR_BORDA, VIDEO_LEG_NCORES + 1),
   ACAO("Restaurar padrão"),
   ESC("Exibição padrão das coleções", V_COLECAO_EXIBICAO, VT_LAY_N),
+#ifdef NV_ANDROID
+  ESC("Player", V_PLAYER_MODO, 3),
+#endif
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1908,6 +1917,9 @@ static const char *CHAVE[] = {
   "legenda2FonteLocal", "legenda2OpacidadeLocal", "legenda2PosicaoLocal", "legenda2AtrasoLocal",
   "legenda2NegritoLocal", "legenda2CorBordaLocal", "-legenda2Restaurar",
   "colecaoExibicaoPadraoLocal",
+#ifdef NV_ANDROID
+  "playerModoLocal",
+#endif
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -3173,6 +3185,14 @@ int ajustes_cw_concluido(void) {
 int ajustes_desfocar_nao_assistidos(void) { return lig(AJ_DET_BLUR_NAO_VISTOS); }
 int ajustes_botao_trailer(void)       { return lig(AJ_DET_TRAILER); }
 int ajustes_meta_externo(void)        { return lig(AJ_DET_META_EXT); }
+int ajustes_player_modo(void) {
+#ifdef NV_ANDROID
+  int v = valor[AJ_PLAYER_MODO];
+  return v >= 0 && v <= 2 ? v : 0;
+#else
+  return 0;
+#endif
+}
 int ajustes_meta_so_cinemeta(void)    { return lig(AJ_DET_SO_CINEMETA); }
 
 int   ajustes_expandir_poster(void)   { return lig(AJ_EXPANDIR); }
@@ -6471,6 +6491,9 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_XTREAM_CONTA: return "O que o servidor Xtream disse da assinatura na última carga do Guia: se está ativa, quando vence e quantas telas estão em uso.";
     case AJ_EPG_PAIS: return "De que país vem a programação dos canais no Guia. Automático escolhe pelo idioma e pelos nomes dos canais (RO:, |RO|…). A grade do próprio provedor Xtream entra sempre que existir.";
     case AJ_FONTE_MANUAL: return "Ao mandar reproduzir, abre a lista de fontes em vez de escolher sozinho. Canal ao vivo não pergunta.";
+#ifdef NV_ANDROID
+    case AJ_PLAYER_MODO: return "Interno usa o player do Nuvio. Externo abre a escolha de aplicativos do Android. Perguntar sempre deixa escolher a cada reprodução. O aplicativo externo controla as faixas e a retomada; seu progresso não é registrado pelo Nuvio.";
+#endif
     case AJ_FONTE_AUTO: return "Melhor fonte: prefere 4K, Dolby Vision e MP4 e confere uma fonte por vez. Primeira da lista: toca a primeira que o addon mandou e não confere nenhuma outra — para quem já filtra e ordena no AIOStreams.";
     case AJ_FONTE_PRIORIDADE: return "Equilíbrio: HDR e Dolby Vision ganham de SDR na mesma resolução ou numa abaixo, e uma fonte que a sua conexão claramente não sustenta desce. Qualidade máxima: a maior resolução permitida, depois Dolby Vision, HDR10+, HDR10 e SDR, sem rebaixar por velocidade. Começar rápido: prefere fontes em cache e arquivos menores, que abrem mais depressa. Sempre rebaixa uma fonte que a conexão medida não sustenta.";
     case AJ_LOGO_APP: return "O símbolo que o Nuvio mostra na abertura e nas telas de entrada. Novo é o play em degradê; Clássico é a TV retrô de sempre. Vale só nesta TV.";
@@ -9150,6 +9173,9 @@ typedef enum {
 static AjPreview familiaPreviaOpcao(int op) {
   if (ajLegendaPrincipal(op) || op == AJ_LEG1_RESTAURAR || ajLegendaSecundaria(op)) return AJPV_REPRO;
   switch (op) {
+#ifdef NV_ANDROID
+    case AJ_PLAYER_MODO:
+#endif
     case AJ_LEG_CONTORNO_COR:
     case AJ_LEG2_POS: case AJ_LEG2_TAMANHO: case AJ_LEG2_COR: case AJ_LEG2_FUNDO: case AJ_LEG2_BORDA:
     case AJ_QUALIDADE: case AJ_DV: case AJ_ATMOS: case AJ_LEG_LINGUA: case AJ_LEG_LINGUA2: case AJ_CACHE_SEEK: case AJ_BUFFER: case AJ_ESTAT_TAMANHO: case AJ_ESTAT_LADO:

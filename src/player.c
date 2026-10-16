@@ -98,6 +98,17 @@ static void avisarCascaAberto(int v) { (void)v; }
 #include "recomenda.h"
 #include "home.h"
 #include "descoberta.h"
+#ifdef NV_ANDROID
+#include "android.h"
+#include "playerexterno.h"
+#include "perfisessao.h"
+#include "proximopreparo.h"
+static PlayerExterno externo;
+static void externoCancelar(void);
+static int externoPedir(const char *url);
+static int externoPasso(void);
+#endif
+static void tocarFonte(const char *url);
 #include "guia.h"
 #include "epg.h"
 #include "xtream.h"
@@ -1521,6 +1532,11 @@ static void armarTituloGuardado(void) {
 }
 
 void player_abrir(int indiceCatalogo, const char *url) {
+#ifdef NV_ANDROID
+  externoCancelar();
+  int ocupadoExterno = android_player_externo_ocupado();
+  playerexterno_iniciar(&externo, ajustes_player_modo(), nv_perfil_sessao_ler());
+#endif
 #ifdef NV_TOUCH_UI
   avToqueCanal[0] = 0;
 #endif
@@ -1627,7 +1643,11 @@ void player_abrir(int indiceCatalogo, const char *url) {
   loadEm = SDL_GetTicks();
   { char px[96];
     if (url && *url) { memlog_evento("load"); memQuadroPendente = 1; }
-    comVideo = (url && *url && video_tocar(proxyts_resolver(url, px, sizeof px))); }
+    comVideo = (url && *url
+#ifdef NV_ANDROID
+                && externo.decisao == PEX_INTERNO && !ocupadoExterno
+#endif
+                && video_tocar(proxyts_resolver(url, px, sizeof px))); }
   zerarAssistido();
   mkvass_video_aberto(comVideo);
   legsync_auto_habilitar(ajustes_legenda_sync_auto());
@@ -1658,11 +1678,26 @@ void player_abrir(int indiceCatalogo, const char *url) {
   abrindoSessao = 1;
   player_definir_episodio(c ? c->temporada : 0, c ? c->episodio : 0);
   abrindoSessao = 0;
+#ifdef NV_ANDROID
+  if (ocupadoExterno) {
+    android_player_externo_aviso(i18n("Não foi possível abrir a fonte"));
+    esperandoFonte = 0; saindo = pediuSair = 1;
+  } else
+  if (url && *url && externo.decisao != PEX_INTERNO) tocarFonte(url);
+  else
+#endif
   if (url && *url && !comVideo) erroSemVideo();
 }
 
 int player_aberto(void)    { return aberto; }
 int player_quer_sair(void) { return pediuSair; }
+int player_externo_ativo(void) {
+#ifdef NV_ANDROID
+  return playerexterno_ativo(&externo);
+#else
+  return 0;
+#endif
+}
 
 // --- PRE-BUSCA LATERAL DA LEGENDA ------------------------------------------
 // O pipeline abre imediatamente; mkvass colhe pelo playhead em fio proprio.
@@ -1722,6 +1757,7 @@ static int preTituloCriar(int indiceCatalogo, int t, int e, const Stream *s, uns
   const CatItem *c = cat_item(indiceCatalogo);
   const char *pref;
   int serie;
+  if (ajustes_player_modo() == PEX_EXTERNO || playerexterno_ativo(&externo)) return 0;
   if (!ajustes_fonte_precarregar() || !token || !c || !s || !s->url[0] || mini || retido) return 0;
   if (proximo ? (!aberto || !comVideo) : (aberto || video_ativo())) return 0;
   // Na ficha sem video, Original pertence ao titulo que sera aberto. O Next
@@ -1807,7 +1843,99 @@ static int preTituloLegendaUsar(const char *url) {
 }
 #endif
 
+#ifdef NV_ANDROID
+static void externoCancelar(void) {
+  if (externo.token) android_player_externo_cancelar(externo.token);
+  playerexterno_cancelar(&externo);
+}
+
+static void externoLiberarRecursos(void) {
+  // Cancel both the current warmup and the independent next-episode job.
+  // The Android barrier waits for queued decoder releases before launching.
+  proximopreparo_cancelar();
+  player_precarregar_cancelar(0);
+  legenda_pre_descartar(i18n("troca de fonte"));
+  mkvass_parar();
+  video_parar();
+  comVideo = 0;
+  mkvass_video_aberto(0);
+  esperandoFonte = 0;
+}
+
+static int externoPedir(const char *url) {
+  int pedido;
+  const CatItem *c;
+  const char *rotulos[7];
+  double ponto;
+  if (playerexterno_ativo(&externo)) return 1;
+  if (externo.decisao == PEX_INTERNO) {
+    if (!android_player_externo_ocupado()) return 0;
+    android_player_externo_aviso(i18n("Não foi possível abrir a fonte"));
+    saindo = pediuSair = 1; return 1;
+  }
+  if (!nv_perfil_sessao_atual(externo.sessao)) {
+    externoCancelar(); saindo = pediuSair = 1; return 1;
+  }
+  c = item();
+  ponto = retomarFonteSeg >= 0.0 ? retomarFonteSeg : retomarSeg;
+  if (semRetomada || ehCanal()) ponto = 0.0;
+  pedido = playerexterno_pedir(&externo, url, video_cabecalhos(), c ? c->titulo : "", ponto);
+  if (!pedido) return 0;
+  if (pedido < 0) {
+    android_player_externo_aviso(i18n("Esta fonte não pode ser aberta em outro aplicativo."));
+    externoCancelar(); saindo = pediuSair = 1; return 1;
+  }
+  rotulos[0] = i18n("Player"); rotulos[1] = i18n("Interno");
+  rotulos[2] = i18n("Externo"); rotulos[3] = i18n("Cancelar");
+  rotulos[4] = i18n("Nenhum aplicativo de vídeo compatível instalado.");
+  rotulos[5] = i18n("Não é possível enviar os dados de acesso desta fonte aos aplicativos instalados. Use o player interno.");
+  rotulos[6] = i18n("Não foi possível abrir o aplicativo.");
+  if (pedido == 2) externoLiberarRecursos();
+  if (!android_player_externo_pedir(externo.token, pedido == 1 ? PEX_PERGUNTAR : PEX_EXTERNO,
+       externo.fonte.url, externo.fonte.cabecalhos, externo.fonte.titulo,
+       externo.fonte.posicaoMs, rotulos)) {
+    android_player_externo_aviso(rotulos[6]);
+    externoCancelar(); saindo = pediuSair = 1;
+  }
+  return 1;
+}
+
+static int externoPasso(void) {
+  uint64_t token;
+  int evento, acao, i;
+  if (!playerexterno_ativo(&externo)) return 0;
+  if (!nv_perfil_sessao_atual(externo.sessao)) {
+    externoCancelar(); saindo = pediuSair = 1; return 1;
+  }
+  for (i = 0; i < 16 && android_player_externo_evento(&token, &evento); ++i) {
+    acao = playerexterno_evento(&externo, token, nv_perfil_sessao_ler(), evento);
+    if (acao == PEX_CONTINUAR_INTERNO) {
+      PlayerExternoFonte fonte = externo.fonte;
+      // The Android owner has already released its barrier for this explicit choice.
+      playerexterno_cancelar(&externo);
+      video_definir_cabecalhos(fonte.cabecalhos);
+      player_definir_fonte(fonte.url);
+      return 1;
+    }
+    if (acao == PEX_LANCAR_EXTERNO) {
+      externoLiberarRecursos();
+      if (!android_player_externo_abrir(externo.token)) {
+        android_player_externo_aviso(i18n("Não foi possível abrir o aplicativo."));
+        externoCancelar(); saindo = pediuSair = 1;
+      }
+    } else if (acao == PEX_SAIR || acao == PEX_FALHOU) {
+      externoCancelar(); saindo = pediuSair = 1;
+      return 1;
+    }
+  }
+  return 1;
+}
+#endif
+
 static void tocarFonte(const char *url) {
+#ifdef NV_ANDROID
+  if (externoPedir(url)) return;
+#endif
   marco("abrir: url ao pipeline");
   loadEm = SDL_GetTicks();   // #202: do pipeline ao primeiro quadro ("[player] load->1o quadro")
   video_definir_reconexao(!ehCanal());
@@ -1930,6 +2058,10 @@ void player_definir_retomada_fonte(double segundos) {
 }
 void player_definir_fonte(const char *url) {
   if ((!aberto && !mini) || !url || !*url) return;
+#ifdef NV_ANDROID
+  // Decide before adopting warmed video or starting subtitle/Dolby Vision work.
+  if (externoPedir(url)) return;
+#endif
   // A primeira fonte ainda pode aproveitar a legenda antecipada na espera.
   if (comVideo) legenda_pre_descartar(i18n("troca de fonte"));
   durFonteAvisada = pedProximaFonte = 0;
@@ -2152,6 +2284,9 @@ static void lembrarFonte(void) {
 }
 
 static void fecharSessao(int manter) {
+#ifdef NV_ANDROID
+  externoCancelar();
+#endif
   imgsub_gl_limpar();
   int jaRetido = retido;
   if (!jaRetido && !quadroCapturado && ajustes_retomada_morna() && comVideo && !ehCanal()) {
@@ -3526,6 +3661,16 @@ static int ativarBotao(int i, int repetiu) {
 }
 
 void player_evento(const SDL_Event *e) {
+#ifdef NV_ANDROID
+  if (playerexterno_ativo(&externo)) {
+    if (e->type == SDL_KEYDOWN && (e->key.keysym.sym == SDLK_ESCAPE ||
+        e->key.keysym.sym == SDLK_AC_BACK || e->key.keysym.sym == SDLK_BACKSPACE ||
+        e->key.keysym.scancode == NV_SCANCODE_BACK)) {
+      externoCancelar(); saindo = pediuSair = 1;
+    }
+    return;
+  }
+#endif
   if (e->type == SDL_KEYUP && (e->key.keysym.sym == SDLK_RETURN ||
       e->key.keysym.sym == SDLK_KP_ENTER || e->key.keysym.sym == SDLK_SPACE))
     confirmacaoTransporteRetida = 0;
@@ -3792,6 +3937,10 @@ static void introTmdbTardio(Uint32 agora) {
 }
 
 void player_atualizar(float dt, Uint32 agora) {
+#ifdef NV_ANDROID
+  // Chooser and activity callbacks are not evidence of internal playback.
+  if (externoPasso()) { entrada = anim_mola(entrada, 1.0f, dt, NV_MOLA_TELA); return; }
+#endif
 #ifdef NV_TOUCH_UI
   playerTelaAtualizar();
 #endif
