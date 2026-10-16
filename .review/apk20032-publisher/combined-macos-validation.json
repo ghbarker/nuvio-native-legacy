@@ -1,0 +1,199 @@
+{
+  "verified": true,
+  "all_passed": true,
+  "source_base": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+  "lane_count": 12,
+  "lanes": {
+    "player_visto_trailer-asan": {
+      "receipt_sha256": "c8f69e84d475cbb4d7e4a63e3320f8670a41e6d6d00a36075b3528576d0f0d69",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746304,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12033225053,
+      "artifact_zip_sha256": "79903d1d2049a109658462e831637db8f189fab0daba01b9a8796b9b1c3f83ea"
+    },
+    "player_retido-asan": {
+      "receipt_sha256": "b0cb324dbd4f44d18dd729e31b984d001c6841286e6e98670be336c64929bfec",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746190,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12032815609,
+      "artifact_zip_sha256": "d5e02b1b3299378f1dbba1a28fe20a7971981bbf631ccecbcc7056441fc5d306"
+    },
+    "full-tv": {
+      "receipt_sha256": "f3c61dccda6bd185404b0969f8003b09f238558e768a9c41c292782d57ec0457",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746142,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12032243182,
+      "artifact_zip_sha256": "fb11943d885647c602b5c685228e996eb6e3b23293d80d4ecc71086479cdff1e"
+    },
+    "full-touch": {
+      "receipt_sha256": "2d0e0b99a701fafef6802d08d5d6bec7127544170b8a4aae7e826c123e0b25e1",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746202,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12032940064,
+      "artifact_zip_sha256": "d27ff5ba35dc89db8d363d9b4f16f47ebe6bdbc406433468135b338bef7ce475"
+    },
+    "player_visto_trailer-normal": {
+      "receipt_sha256": "8b58028dbc31acd614db5a13e412ef0315c176f5c10a320649988c667c9bab7b",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746228,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12033090065,
+      "artifact_zip_sha256": "158fd580a491bfffd4738d4f8371a2f7b82e9170c28251aaf783c3ccd04015ff"
+    },
+    "player_identity524-normal": {
+      "receipt_sha256": "ad434da34b5491edb38993d718b8893f1678af4ba8e0aa09b0762b1e4dca4b89",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746131,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12031889353,
+      "artifact_zip_sha256": "46bdbd349df30b1197ef320b8b99836b2c9e78476f854cafba0abd20189ebcae"
+    },
+    "player_identity524-asan": {
+      "receipt_sha256": "3f3b373037625311f6e81f48bfb41eea83913046d1880df8e967c91202c62a1a",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746183,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12032138106,
+      "artifact_zip_sha256": "4bb4139dae9d23bd315567a84b24b5c893e7b431066b98455c4177bcb4b1dc30"
+    },
+    "player_retido-normal": {
+      "receipt_sha256": "3670a79fce85a1fa5c8a6ba3408d34847b819435642de914a899ec2bf56b5e82",
+      "review_commit": "ee5a7e1a8edd90629e190546906a60bb08a6159e",
+      "run_id": "38868065644",
+      "attempt": "1",
+      "job_id": 116865746296,
+      "plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+      "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "passed": true,
+      "artifact_id": 12032262775,
+      "artifact_zip_sha256": "802c67551810d95c368755d1b241167931b59b587b9ced7df2841cc19570f5f5"
+    },
+    "player_identity524_guards-asan": {
+      "receipt_sha256": "c05657628feb782b965d4d4eeb002725612dd9d669c0ebf621f9bc43788968e6",
+      "review_commit": "dde02bc43f342a1c20082c1e08d924c8c823f71c",
+      "run_id": "38868911924",
+      "attempt": "1",
+      "job_id": 116868101575,
+      "plan_sha256": "f19da8ce6a908aef1dd3c431a1fb05056c27f0d3664674b03e5ba55e9e3a4df7",
+      "source_tree": "16ced1dca42f120dfffaf1de89570c6bf48d2361",
+      "passed": true,
+      "artifact_id": 12032656450,
+      "artifact_zip_sha256": "042b5c377414399fd3617ab010a8f2734d9f6a009ec069378680ce096e1a9b3c"
+    },
+    "player_identity524_guards-normal": {
+      "receipt_sha256": "12c91b4d11629331fc6972b21fd1419a804fbe9a54a5cf9af2b46b516148651d",
+      "review_commit": "dde02bc43f342a1c20082c1e08d924c8c823f71c",
+      "run_id": "38868911924",
+      "attempt": "1",
+      "job_id": 116868101430,
+      "plan_sha256": "f19da8ce6a908aef1dd3c431a1fb05056c27f0d3664674b03e5ba55e9e3a4df7",
+      "source_tree": "16ced1dca42f120dfffaf1de89570c6bf48d2361",
+      "passed": true,
+      "artifact_id": 12032438464,
+      "artifact_zip_sha256": "ea81e570907282b4b1635f8d2b7884e454f72906b46435d61f66ca502d468c00"
+    },
+    "focused-normal": {
+      "receipt_sha256": "13a1ed994fe926e9cfa5931498e833dc8a501c2baf61086a65496f475b12122b",
+      "review_commit": "13dfd6dacc540b33a99099292b50131d81081a56",
+      "run_id": "38869622439",
+      "attempt": "1",
+      "job_id": 116870387249,
+      "plan_sha256": "f0a4c62116c0d3df599ff10df48e5aaaa304fef5f2c282a017873c99b5a3b43e",
+      "source_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+      "passed": true,
+      "artifact_id": 12032696161,
+      "artifact_zip_sha256": "256d9ef109a6d7e86ab7ba45cf8fcd1865f138f9b38f21437e39507ca920b253"
+    },
+    "focused-asan": {
+      "receipt_sha256": "21d2fa1884fd1c73d7c34b32ee28199e43d6e4480bf2624ff2969790c60788db",
+      "review_commit": "13dfd6dacc540b33a99099292b50131d81081a56",
+      "run_id": "38869622439",
+      "attempt": "1",
+      "job_id": 116870386962,
+      "plan_sha256": "f0a4c62116c0d3df599ff10df48e5aaaa304fef5f2c282a017873c99b5a3b43e",
+      "source_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+      "passed": true,
+      "artifact_id": 12033115588,
+      "artifact_zip_sha256": "2a598aec73ad138d5fa7022f9e138a0ca32cff31a342d8de3fe139222f40522a"
+    }
+  },
+  "public_mode_groups": 40,
+  "actual_binary_executions": 130,
+  "full_tv_touch_objects": 638,
+  "full_tv_touch_links": 2,
+  "project_dependencies_checked": 764,
+  "scope": "Actual macOS public-script assertions normal/ASan and full TV/touch compile+link only. No Android/device/API-account test claim.",
+  "validation_scope": "composed",
+  "apk_source_commit": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+  "apk_source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+  "final_test_candidate": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+  "final_test_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+  "source_bridges": [
+    {
+      "from_candidate": "c2666a0591e174e6aa321d1dea80212878dcf233",
+      "from_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "to_candidate": "8dc780314920bb25135fbe56e6c7bc340312fb36",
+      "to_tree": "bc0246989e6921be29f971524aafdbd3eb1cf868",
+      "non_test_entries": 2684,
+      "non_test_tree_listing_sha256": "5aeb92c416bb6f9a8efa1359484be296755b0706f16f16a760fd1ea1abb7c504",
+      "identical": true
+    },
+    {
+      "from_candidate": "c2666a0591e174e6aa321d1dea80212878dcf233",
+      "from_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "to_candidate": "c2666a0591e174e6aa321d1dea80212878dcf233",
+      "to_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "non_test_entries": 2684,
+      "non_test_tree_listing_sha256": "5aeb92c416bb6f9a8efa1359484be296755b0706f16f16a760fd1ea1abb7c504",
+      "identical": true
+    },
+    {
+      "from_candidate": "c2666a0591e174e6aa321d1dea80212878dcf233",
+      "from_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "to_candidate": "c0da96cd6385488a632f0d93c91eba2e9913879b",
+      "to_tree": "16ced1dca42f120dfffaf1de89570c6bf48d2361",
+      "non_test_entries": 2684,
+      "non_test_tree_listing_sha256": "5aeb92c416bb6f9a8efa1359484be296755b0706f16f16a760fd1ea1abb7c504",
+      "identical": true
+    }
+  ],
+  "root_origins_manifest_sha256": "17031b02de7f1556614c098bb8cef78228e2585272e487d8c4b20c7a42e413d4",
+  "logical_plan_sha256": "ca3ef3ce6472937bf81fed2f6bde472522f1a51dbaad4b08da041403bdabbaca",
+  "origin_job_snapshots_sha256": {
+    "38868065644": "489bbe4f4aeafab99e019a5d53cf0391c03315bcafb54d6c04d383ebaf03dcad",
+    "38868911924": "a75922a8aee3ab881be02abbf31ae715a82a08cb3d17530b3d9bab3a00260d9d",
+    "38869622439": "760c92d171d17adf621710b2c67f606d2f246a41a63f0b7d4e5dc2e06f9193a6"
+  }
+}

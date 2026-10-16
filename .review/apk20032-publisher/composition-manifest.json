@@ -1,0 +1,136 @@
+{
+  "format": 3,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "sources": {
+    "test": {
+      "commit": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+      "tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+      "parents": [
+        "d2dd9e7ff8c25b538ae9541ad3d6e27d36a7d442"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "2e4433c3ad9a01b6a32e56077976d7d394db65e98eb6c8f247d253087db0a0b6"
+    }
+  },
+  "final_source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+  "remote_source_only_commit": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+  "remote_source_parent": "d2dd9e7ff8c25b538ae9541ad3d6e27d36a7d442",
+  "local_source_trace": "c2666a0591e174e6aa321d1dea80212878dcf233",
+  "inputs": {
+    "logs21": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+    "core512": "252ef4446aa43b787bfd610e6b17b6e17de1d425",
+    "typed524": "ee67c15515adcee4c2a93fe958d619ec777c2615",
+    "subtitle_timer_product": "604be6c16de710add40a5a45dee0dd96d2a7b69a",
+    "subtitle_timer_tests": "7ecb0157d4458efb51d0ab9fa798fe1b5ce1ffb8",
+    "readiness_test_repair": "8fd3e6bdf6a082a61d5998cc2acde435a5f3ee5a",
+    "credential_lease_product": "be7a7d2e94d1701e2b993bb616bc8367efefb415",
+    "credential_lease_tests": "9a2ccea23f0049917a3fc9fa2ac19958bae008f4",
+    "extras_product": "b2abbf6d7cff1d6c303e4e591e0dda3b9369b547",
+    "extras_tests": "6b1507fedb0cb6f6b8b2158707c7dff3858a6cf3",
+    "detail_declaration_fix": "0374d535bf1bf99ac6ee3fa6d40a5ff0911f734b",
+    "combined_fixture_boundaries": "bbc12706b8279f8054c9b0f0b80e028e84bb0f84",
+    "typed_fixture_adaptation": "dc564a5c536214da2d8e7a47919f6f79477eadf4"
+  },
+  "prior_logs21_composition_sha256": "f8c05d3572176bc0d630c79f7519173f1e53d3653dbcb297992b252bdfb9e150",
+  "prior_public_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec"
+  },
+  "prior_clock495": {
+    "head": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "tree": "01001a351d6a5aa620b675ef5eb3c0758b68935e",
+    "frozen": true
+  },
+  "prior_failover": {
+    "head": "29da4923852fbe81bc64fc5f50ccafaddbf4e310",
+    "tree": "8d17c9a1e0770acda0c9ddf8753700ae25812597",
+    "product": "a99b2013fb245a5299dd6d74b6cc6983151c4fb6",
+    "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+    "frozen": true,
+    "non_test_delta_from_logs20": [
+      "src/app.c"
+    ],
+    "product_added_deleted_statements_match_reviewed_fix": true,
+    "public_tests_preserved": true
+  },
+  "private_overlay": {
+    "preserved": true,
+    "version_only_identity_change": true,
+    "paths": {
+      "android/app/build.gradle.kts": {
+        "original_added_statements_preserved": true,
+        "blob": "697834480f54c10c687a40c03bdad49d99d9657a"
+      },
+      "android/app/src/main/AndroidManifest.xml": {
+        "original_added_statements_preserved": true,
+        "blob": "e83d97dba09fdd1dc25a019de10e32253746e9eb"
+      },
+      "android/app/src/main/cpp/CMakeLists.txt": {
+        "original_added_statements_preserved": true,
+        "blob": "7441c77524cc241b63e5e3dce080d8f801195100"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "6f955b8e1412ab518f222d804834bb535b65ad0d"
+      },
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt": {
+        "original_added_statements_preserved": true,
+        "blob": "f955fb02a3bc23e58127e4f189dced9cd767126f"
+      },
+      "src/ajustes.c": {
+        "original_added_statements_preserved": true,
+        "blob": "aa9753153590c555a9c2f6dfa2c5fb313c03c51d"
+      },
+      "src/ajustes_ux_desenho.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "238af818b69ebed6a17f2d70bb25130bebe1f8a4"
+      },
+      "src/ajustes_ux_ilha.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "d1bc9f37a04f05fbb2ecca1a570defb2cecfdb9d"
+      },
+      "src/ajustes_ux_interacao.inc": {
+        "original_added_statements_preserved": true,
+        "blob": "af37acc43cd99aa8e229b5b83629ecdcf6f24874"
+      },
+      "src/app.c": {
+        "original_added_statements_preserved": true,
+        "blob": "b062e886afa4574f0c5abdcc07289e236707e533"
+      },
+      "src/detail.c": {
+        "original_added_statements_preserved": true,
+        "blob": "d8dc997de720062b6093773e66c6af8a77b75f35"
+      },
+      "src/posplay.c": {
+        "original_added_statements_preserved": true,
+        "blob": "fb3a31731e23272e14c900f46509b93694f0bf52"
+      },
+      "src/tex_cache.c": {
+        "original_added_statements_preserved": true,
+        "blob": "c001085da527793eddc96e92dff0d48ce3a2d597"
+      },
+      "src/tex_cache.h": {
+        "original_added_statements_preserved": true,
+        "blob": "aed49ae6e6d0cdaf87a3c3f5add9f2624f57406a"
+      }
+    },
+    "never_pr": true
+  },
+  "conflict_resolutions": {
+    "src/player.c": [
+      "Retain512 optional producers and one perfisessao include",
+      "Retain Cinema artwork functions plus524 identity fields",
+      "Retain Cinema initialization plus524 session reset"
+    ],
+    "src/app.c": [
+      "Retain existing clock focus validation plus new CW explicit-intent reset"
+    ]
+  },
+  "tests_tree": "0435a3d2f7ab2f2f7f1fecb388acecc8cd3d8bbd",
+  "remaining_conflicts": [],
+  "no_local_compiler_sdk_or_apk": true
+}
