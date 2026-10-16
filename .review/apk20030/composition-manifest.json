@@ -1,0 +1,97 @@
+{
+  "format": 2,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "sources": {
+    "product": {
+      "commit": "1bd7d359150a0eeeba9a9b4878d42fe36f22a56e",
+      "tree": "22e6cf717ee24a12b6748fcd2546710ba14422be",
+      "parents": [
+        "df9ce8eaf5116dd5b8f53c32d63cba750a8c59bb",
+        "d570cb3c1101c60fd16dd23bb6073d3efc559fd6"
+      ],
+      "manifest": "product-source-manifest.json",
+      "manifest_sha256": "43a6a4d72ea3981b769cd660ac63c3e71a8bcf73df99e8d17cc3bec6af900f21"
+    },
+    "test": {
+      "commit": "be1183f7dde83d8c8b5b9c0881537d0e4b814f0f",
+      "tree": "6e781c637dfce1857e6ce631d7f1cd6c69c7dcac",
+      "parents": [
+        "1bd7d359150a0eeeba9a9b4878d42fe36f22a56e"
+      ],
+      "manifest": "test-source-manifest.json",
+      "manifest_sha256": "1fa751c1238371b464c1980676342c7e98c44c086a0295a202bd2f6dc4c9ff17"
+    }
+  },
+  "six_pr_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec"
+  },
+  "issue495": {
+    "head": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "tree": "01001a351d6a5aa620b675ef5eb3c0758b68935e",
+    "frozen": true
+  },
+  "private_overlay": {
+    "paths": [
+      "android/app/build.gradle.kts",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/CMakeLists.txt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "src/ajustes.c",
+      "src/ajustes_ux_desenho.inc",
+      "src/ajustes_ux_ilha.inc",
+      "src/ajustes_ux_interacao.inc",
+      "src/app.c",
+      "src/detail.c",
+      "src/posplay.c",
+      "src/tex_cache.c",
+      "src/tex_cache.h"
+    ],
+    "patch_sha256": "9e2e175b6a6a73f24b990c2dd97dd9eb1a17adebdf762b1a898d26a3f9822de1",
+    "logs19_added_deleted_lines_preserved_except_version": true,
+    "normalized_changed_lines_sha256": "2e5563bb8d153e21798aae0237c274932d6f5822dd20e0907df6a1df2d5a2f0d",
+    "patch_format": "canonical-full-index",
+    "canonical_diff_arguments": [
+      "--full-index",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--no-color",
+      "--no-renames",
+      "--diff-algorithm=myers",
+      "--no-indent-heuristic",
+      "--src-prefix=a/",
+      "--dst-prefix=b/"
+    ],
+    "reviewed_repository_default_patch_sha256": "a6cb7554872d96e4cf466823b5543038dc3d32dda5d266418e9313aaad7cb4c9"
+  },
+  "product_tests_tree": "4e3e1f38d34e342cb30bfc649ffe715dc863c805",
+  "private_tests_tree": "4e3e1f38d34e342cb30bfc649ffe715dc863c805",
+  "root_reviewed": true,
+  "source_frozen": true,
+  "merge_conflict_resolutions": {
+    "src/agendaui.c": {
+      "blob": "b1fc1fcff8f5497b54f0f908a5f39e68bc855d68",
+      "sha256": "ec1bd7d86ceb46f96fa95b0122b68340abe68626f88f4f0febac552e298f0228",
+      "resolution": "Retain both independently added adjacent statements/declarations"
+    },
+    "src/busca.c": {
+      "blob": "1fbac30d985d39cb2984d9f23c1a9ba3b26216fe",
+      "sha256": "4d46f36d37cc82d777520b5dca3eb1687ead4f69684302257062bd5b88c1f21d",
+      "resolution": "Retain both independently added adjacent statements/declarations"
+    },
+    "src/ajustes.h": {
+      "blob": "aa08645c5748bfd356bd45a73a3de859cc0a8746",
+      "sha256": "fc17d05c26e2802ebf93ad6a1f8eec6d7aefadf590ef29f797401f8438d536e4",
+      "resolution": "Retain both independently added adjacent statements/declarations"
+    }
+  },
+  "six_pr_integration": {
+    "commit": "df9ce8eaf5116dd5b8f53c32d63cba750a8c59bb",
+    "tree": "4c86529b04f538e97fd53319ceb6cc452d1dfa18"
+  }
+}
