@@ -1,0 +1,41 @@
+{
+  "source_commit": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+  "source_tree": "3b206335e07d87ef68db20863cb9005e719840d3",
+  "review_commit": "fedf0220f8ea4b19482ab92d3e6d81d56c60f17a",
+  "run_id": 38850794520,
+  "run_attempt": 1,
+  "plan_sha256": "a9f81a9ee5b8434e2356e1c1a64a9527a45b8660d2c1d3e3f95bbcdd7c6905b8",
+  "job": {
+    "id": 116811325665,
+    "name": "APK20031 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "d5f84067a06c2c23cfce91358b838ee6f8cbc89feea03444ac372860b43a0771",
+  "apk_bytes": 59110404,
+  "build_receipt_sha256": "0ffd4b91d005359e78f8b9f234e73b4d356c9a525d015121e4e0c191e643b782",
+  "apk_verification_sha256": "8d1744b2588b4dfabfa737946e71360e1bb60a9d2d2f3439e0ba2a55e4026252",
+  "source_proof_sha256": "3defeafff3896b41f9620ae4e44510898fc13a7b798b91b7199571fb66480398",
+  "composition_sha256": "f8c05d3572176bc0d630c79f7519173f1e53d3653dbcb297992b252bdfb9e150",
+  "public_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec",
+    "495": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "failover": "29da4923852fbe81bc64fc5f50ccafaddbf4e310"
+  },
+  "all_passed": true,
+  "previous_results_count_as_fresh": false,
+  "all_eight_feature_heads_in_product": true,
+  "failover_fix_in_product": true,
+  "failover_head": "29da4923852fbe81bc64fc5f50ccafaddbf4e310",
+  "private_overlay_unchanged_except_version": true,
+  "product_tests_preserved_in_private": true,
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 316,
+  "workspace_before_sha256": "2f0e2183ef9c19f4dacd39013ca4cad0a3044252f3bfb2bfa5a10e88aad5e0ab",
+  "workspace_after_sha256": "35ed5f1d612900b65e15e46e0c2eafc04bc652ccce3a11a8c60ec69f46097cd7",
+  "independent_proof_verification_sha256": "64f1bf8ccf0756c78f905b491ac33f0af37ed06689e197418329b309085195a1",
+  "scope": "One fresh combined-source ARM32/ARM64 Android build and real APK verification. Public regression test sources are retained; individual PR runtime checks remain separately attributed. No physical-device result or old APK is relabelled as this build. No APK was downloaded locally; the isolated publication job verifies artifact and release bytes."
+}

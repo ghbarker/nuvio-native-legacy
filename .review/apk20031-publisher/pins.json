@@ -1,0 +1,49 @@
+{
+  "format": 2,
+  "frozen_pins_ready": true,
+  "root_publication_approved": true,
+  "source_commit": "9e55a0cb95010ee25ffb71b81671a596f6451e2e",
+  "source_tree": "3b206335e07d87ef68db20863cb9005e719840d3",
+  "review_commit": "fedf0220f8ea4b19482ab92d3e6d81d56c60f17a",
+  "review_tree": "8928bc096db7350f39a0a952e3dd20c61b61e750",
+  "plan_sha256": "a9f81a9ee5b8434e2356e1c1a64a9527a45b8660d2c1d3e3f95bbcdd7c6905b8",
+  "run_id": 38850794520,
+  "run_attempt": 1,
+  "job": {
+    "id": 116811325665,
+    "name": "APK20031 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_artifact": {
+    "id": 12025785668,
+    "name": "apk20031-android-apk-fedf0220f8ea4b19482ab92d3e6d81d56c60f17a",
+    "bytes": 54448936,
+    "sha256": "1744b693348453c5df55887559aca9c029aac547b7af6a862937dd116d8add84"
+  },
+  "proof_artifact": {
+    "id": 12024869390,
+    "name": "apk20031-android-proof-fedf0220f8ea4b19482ab92d3e6d81d56c60f17a",
+    "bytes": 23666,
+    "sha256": "735b2a1a7d526e43456eb16386227033a99abb92f3e7ed5d860d5460309d0abb"
+  },
+  "apk_bytes": 59110404,
+  "apk_sha256": "d5f84067a06c2c23cfce91358b838ee6f8cbc89feea03444ac372860b43a0771",
+  "validation_sha256": "ac9dfdabe67d4977f602b06877be0e9e7aa20765c8ba92a30eab18df2d70a4e8",
+  "build_receipt_sha256": "0ffd4b91d005359e78f8b9f234e73b4d356c9a525d015121e4e0c191e643b782",
+  "apk_verification_sha256": "8d1744b2588b4dfabfa737946e71360e1bb60a9d2d2f3439e0ba2a55e4026252",
+  "source_proof_sha256": "3defeafff3896b41f9620ae4e44510898fc13a7b798b91b7199571fb66480398",
+  "product_commit": "936cd99457c680086f5688ad74c89b224e9915a0",
+  "product_tree": "097ffc2d8b1f8a396721c46937ac76490d1fb14f",
+  "composition_sha256": "f8c05d3572176bc0d630c79f7519173f1e53d3653dbcb297992b252bdfb9e150",
+  "public_heads": {
+    "431": "00b9c92bfeb5f49d962e4c66b680bc5b4dd7e456",
+    "538": "5f0ad732e2c7c9badbe22fb78b764bd0ea5cd571",
+    "540": "5ae92423e7a605b43514aacd1bca9082439f0f27",
+    "541": "38d5168dd7b483aacbdf3b2ee5cef23d77426a93",
+    "543": "85562a66bfd1882552d3f6fc2263764d1bdf442a",
+    "546": "bbb74484e0f50b82357423fb349e0382117034ec",
+    "495": "d570cb3c1101c60fd16dd23bb6073d3efc559fd6",
+    "failover": "29da4923852fbe81bc64fc5f50ccafaddbf4e310"
+  },
+  "failover_head": "29da4923852fbe81bc64fc5f50ccafaddbf4e310",
+  "failover_product": "a99b2013fb245a5299dd6d74b6cc6983151c4fb6"
+}
