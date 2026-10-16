@@ -11,6 +11,8 @@ name: Build TPK
 
 on:
   push:
+    branches-ignore:
+      - review/issue562-player-actions-recovery2-20261016
   workflow_dispatch:
     inputs:
       pacotes:
