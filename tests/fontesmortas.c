@@ -11,6 +11,16 @@
 #include <string.h>
 #include <time.h>
 
+// Explicit profile boundary: Darwin must not depend on optional weak imports.
+static pthread_mutex_t sessaoTrava = PTHREAD_MUTEX_INITIALIZER;
+uint64_t perfis_sessao_geracao(void) { return 1; }
+int perfis_sessao_atual(uint64_t geracao) { return geracao == 1; }
+int perfis_sessao_travar(uint64_t geracao) {
+  if (geracao != 1) return 0;
+  pthread_mutex_lock(&sessaoTrava); return 1;
+}
+void perfis_sessao_destravar(void) { pthread_mutex_unlock(&sessaoTrava); }
+
 static time_t agora = 1000000;
 static char *disco;
 time_t time(time_t *t) { if (t) *t = agora; return agora; }
