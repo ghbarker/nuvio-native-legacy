@@ -16,9 +16,11 @@
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="http" />
-            <data android:scheme="https" />
-            <data android:mimeType="video/*" />
+            <data android:scheme="http" android:mimeType="video/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:mimeType="video/*" />
         </intent>
         <!-- Required-header handoffs use only these documented components. -->
         <package android:name="com.mxtech.videoplayer.ad" />
