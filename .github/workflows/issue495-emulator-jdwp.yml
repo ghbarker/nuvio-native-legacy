@@ -1,0 +1,76 @@
+name: CLOSED Logs20 guest-environment diagnostic and remote Resume
+on:
+  push:
+    branches: [review/issue495-logs20-emulator-jdwp-20261016]
+permissions:
+  contents: read
+concurrency:
+  group: issue495-logs20-emulator-jdwp
+  cancel-in-progress: false
+env:
+  # Working route rendered the actual APK; job stays closed pending root review.
+  EMULATOR_ROUTE: api30-arm32
+jobs:
+  retained-video:
+    if: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require an explicitly reviewed recovery route
+        id: route
+        run: |
+          case "$EMULATOR_ROUTE" in
+            api30-arm32) echo 'api=30' >> "$GITHUB_OUTPUT"; echo 'abi=armeabi-v7a' >> "$GITHUB_OUTPUT" ;;
+            api35-arm64) echo 'api=35' >> "$GITHUB_OUTPUT"; echo 'abi=arm64-v8a' >> "$GITHUB_OUTPUT" ;;
+            *) echo 'Root has not selected a verified emulator route'; exit 1 ;;
+          esac
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Prepare exact already-published APK and genuinely generated local media
+        run: |
+          mkdir -p build/issue495-retained/proof
+          curl --fail --location --retry 2 --output build/issue495-retained/Logs20.apk 'https://github.com/ghbarker/nuvio-native-legacy/releases/download/tv-mobile-test-logs-v20/Nuvio-TV-Mobile-Test-Logs20.apk'
+          echo '8a826174b2035a65a0c280500af79b2345ac73ef464c5a251dc357b625df7c8c  build/issue495-retained/Logs20.apk' | sha256sum --check
+          sdkmanager 'build-tools;35.0.0'
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          command -v jdb
+          command -v ffmpeg
+          command -v ffprobe
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=640x360:rate=24 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 180 -c:v libx264 -preset ultrafast -profile:v baseline -level 3.0 -crf 28 -pix_fmt yuv420p -c:a aac -b:a 64k -movflags +faststart build/issue495-retained/video.mp4
+          ffmpeg -hide_banner -loglevel error -i build/issue495-retained/video.mp4 -frames:v 1 -update 1 build/issue495-retained/poster.jpg
+          ffmpeg -version > build/issue495-retained/proof/ffmpeg-version.txt
+      - name: Enable real KVM acceleration
+        run: |
+          test -c /dev/kvm
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Play and resume the unchanged ARM APK using actual remote input
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ steps.route.outputs.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          cores: 2
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot -skin 1280x720
+          script: python3 .review/issue495-emulator-jdwp/retained_smoke.py --apk build/issue495-retained/Logs20.apk --output build/issue495-retained/proof --media build/issue495-retained/video.mp4 --poster build/issue495-retained/poster.jpg --api-level ${{ steps.route.outputs.api }} --install-abi ${{ steps.route.outputs.abi }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue495-logs20-env-jdwp-${{ env.EMULATOR_ROUTE }}-${{ github.sha }}
+          path: build/issue495-retained/proof
+          if-no-files-found: warn
+          retention-days: 14
