@@ -1356,6 +1356,19 @@ int cat_indice_por_imdb(const char *imdb) {
   return -1;
 }
 
+int cat_indice_por_imdb_tipo(const char *imdb, const char *tipo) {
+  int i, achou = -1;
+  if (!imdb || !imdb[0] || !tipo_certo(tipo)) return -1;
+  catTravar();
+  for (i = 0; itens && i < n; i++) {
+    if (tipo_certo(itens[i].tipo) &&
+        !strcmp(tipo_base(itens[i].tipo), tipo_base(tipo)) &&
+        mesmoTitulo(itens[i].imdb, imdb)) { achou = i; break; }
+  }
+  pthread_mutex_unlock(&pubTrava);
+  return achou;
+}
+
 // O MESMO TITULO EM DUAS FILEIRAS (#151). A serie que a pessoa esta vendo
 // costuma estar em "Continuar assistindo" E na fileira de onde o detalhe foi
 // aberto — e os episodios so sao publicados na copia do detalhe. O player
