@@ -1,0 +1,107 @@
+name: Logs22 cold series detail rendered frames
+on:
+  push:
+    branches: [review/logs22-series-detail-frames-20261016]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: logs22-series-detail-frames
+  cancel-in-progress: false
+jobs:
+  series-rendered-frames:
+    if: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Bind recipe to exact unchanged APK source
+        run: |
+          mkdir -p build/series-detail/proof
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          source='f07278cddd24fbf10a59ce00b7366d7e18a3898c'
+          assert subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip()==source
+          paths=subprocess.check_output(['git','diff-tree','--no-commit-id','--name-only','-r','HEAD'],text=True).splitlines()
+          assert paths and all(p.startswith('.review/series-detail/') or p=='.github/workflows/logs22-series-detail-frames.yml' for p in paths)
+          files={p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}
+          pathlib.Path('build/series-detail/proof/recipe-source.json').write_text(json.dumps({'actual_review':os.environ['GITHUB_SHA'],'unchanged_apk_source':source,'recipe_files':files,'app_source_changed':False},indent=2)+'\n')
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Fetch exact successful Logs22 APK on hosted runner
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ghbarker/nuvio-native-legacy
+          run-id: 38868123532
+          name: apk20032-android-apk-9115376fff9fd44828bf9d3a2363f2552c30e842
+          path: build/series-detail/input
+      - name: Check exact APK and prepare isolated fixture certificates
+        run: |
+          cp build/series-detail/input/Nuvio-2.0.32-test-logs22-tv-mobile-test.apk build/series-detail/Logs22.apk
+          echo '793a0235482a0457a07ebd8191784ef9291ae5f544385036b43df366d036f360  build/series-detail/Logs22.apk' | sha256sum --check
+          sdkmanager 'build-tools;35.0.0'
+          command -v jdb
+          bash .review/series-detail/prepare_certificates.sh "$RUNNER_TEMP/series-fixture-private"
+      - name: Start closed metadata DNS before emulator boot
+        run: |
+          sudo python3 .review/series-detail/dns_fixture.py --log "$GITHUB_WORKSPACE/build/series-detail/fixture-dns-live.jsonl" > build/series-detail/fixture-dns-server.log 2>&1 &
+          echo $! > build/series-detail/dns.pid
+          python3 - <<'PY'
+          import socket,time
+          packet=bytes.fromhex('495001000001000000000000')+b'\x07catalog\x05nuvio\x02tv\x00\x00\x01\x00\x01'
+          for attempt in range(30):
+              try:
+                  with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as s:
+                      s.settimeout(.3);s.sendto(packet,('127.0.0.1',53));reply,_=s.recvfrom(4096)
+                  assert reply.endswith(bytes([10,0,2,2]));break
+              except (OSError,AssertionError):time.sleep(.1)
+          else:raise SystemExit('Fixture DNS did not become ready')
+          PY
+      - name: Enable KVM acceleration
+        run: |
+          test -c /dev/kvm
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Capture real portrait Mobile cold, delivered, delayed and reopened frames
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          cores: 2
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot -skin 720x1560 -writable-system -dns-server 127.0.0.1
+          script: python3 .review/series-detail/series_frames.py --apk build/series-detail/Logs22.apk --validation .review/series-detail/Logs22-android-build-validation.json --output build/series-detail/proof --cert-dir "$RUNNER_TEMP/series-fixture-private" --dns-log build/series-detail/fixture-dns-live.jsonl
+      - name: Independently inspect frame and metadata evidence without assigning visual pass
+        if: always()
+        run: python3 .review/series-detail/consume.py --root build/series-detail/proof --output build/series-detail/consumption.json --review "$GITHUB_SHA"
+      - name: Stop only fixture DNS
+        if: always()
+        run: |
+          if [ -f build/series-detail/dns.pid ]; then
+            task_series_dns_pid=$(cat build/series-detail/dns.pid)
+            if [[ "$task_series_dns_pid" =~ ^[0-9]+$ ]]; then sudo kill "$task_series_dns_pid" || true; fi
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs22-series-frames-${{ github.sha }}
+          path: |
+            build/series-detail/proof
+            build/series-detail/consumption.json
+          if-no-files-found: error
+          retention-days: 14

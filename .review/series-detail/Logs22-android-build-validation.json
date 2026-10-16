@@ -1,0 +1,33 @@
+{
+  "source_commit": "f07278cddd24fbf10a59ce00b7366d7e18a3898c",
+  "source_tree": "5c67d26669d95b9d50744ea425dc13960424769f",
+  "apk_sha256": "793a0235482a0457a07ebd8191784ef9291ae5f544385036b43df366d036f360",
+  "apk_bytes": 59141052,
+  "package": "space.nuvio.nativelegacy.touch",
+  "version_code": 20032,
+  "version_name": "2.0.32-test-logs22",
+  "certificate_sha256": "862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6",
+  "all_passed": true,
+  "scope": "Only the successful Android ARM32/ARM64 build and actual APK package/certificate/DEX/JNI/page checks. This is input provenance for an independent emulator run; it is not macOS validation or release readiness.",
+  "android_build_and_apk_checks_passed": true,
+  "macos_validation_included": false,
+  "release_readiness_claimed": false,
+  "published_release_claimed": false,
+  "emulator_results_included": false,
+  "producer": {
+    "repository": "ghbarker/nuvio-native-legacy",
+    "run_id": 38868123532,
+    "job_id": 116865798185,
+    "review_sha": "9115376fff9fd44828bf9d3a2363f2552c30e842",
+    "conclusion": "success",
+    "android_verified_sha256": "6ed8350c568814fed6db58c3583b7e3b41437d45e93d62112dbd1ec32927e4bd",
+    "build_receipt_sha256": "c1b1b5d4fbb55a3ebdc30615e4addf1efe641f3d65134ef22635b24a61b7451e"
+  },
+  "apk_artifact": {
+    "id": 12031948963,
+    "name": "apk20032-android-apk-9115376fff9fd44828bf9d3a2363f2552c30e842",
+    "zip_bytes": 54481007,
+    "zip_digest": "sha256:a0c0423e88938325125376bc106c3ba7008393883edaa05ee95e8402d9880371",
+    "member": "Nuvio-2.0.32-test-logs22-tv-mobile-test.apk"
+  }
+}
