@@ -345,6 +345,7 @@ void  ajustes_ui_grafico_memoria(float x, float y, float w, float h);
 // O mesmo grafico com o historico de exemplo (previa das Novidades da 1.8.0).
 void  ajustes_ui_grafico_exemplo(float x, float y, float w, float h);
 int   ajustes_relogio_cabe(void);
+int   ajustes_edicao_ativa(void);
 // A FAIXA QUE A RAIL FIXA RESERVA na borda esquerda, em px de tela: com ela
 // presa, a borda da pilula de icones do menu (Moderna 136, Padrao 88, vezes o
 // Tamanho da interface) + 64 de vao - os 104 do recuo do conteudo; 0 recolhida
@@ -459,8 +460,10 @@ int   ajustes_esconder_logo_trailer(void);   // 1 = hide the corner title logo w
 // primary at the bottom, 0 = top band. tamanho: percent (50..300), 0 = automatic (90% of the
 // primary). cor/fundo/borda: the same indices as the primary style (VideoLegendaEstilo), -1 = same as primary.
 int   ajustes_legendas_todas(void); // #425: abrir todas as faixas
-// #205: 1 = tela de abertura Detalhada (o cartao com fonte e passos); 0 = Cinema.
+// #205: 1 = tela de abertura Detalhada (o cartao com fonte e passos); 0/2 = arte.
 int   ajustes_abertura_detalhada(void);
+// #508: 2 = arte nitida; o valor 0 de fabrica continua desfocado.
+int   ajustes_abertura_fundo_nitido(void);
 int   ajustes_leg2_junto(void);
 int   ajustes_leg2_tamanho(void);
 int   ajustes_leg2_cor(void);

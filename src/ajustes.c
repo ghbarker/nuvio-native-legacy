@@ -553,7 +553,7 @@ typedef enum {
   // #329-ideia (PR #351): pular os creditos sozinho, so com inicio e fim reais do marcador. Desligado.
   AJ_PULAR_CREDITOS,
   AJ_PROXIMO_CONTAGEM, // #256: segundos locais; append-only
-  AJ_INTERFACE_MODO, // local, append-only; 0 = TV, 1 = Mobile
+  AJ_INTERFACE_MODO, // local, append-only; TV=0, Mobile=1, Auto=2
   // Backend views: all failover preferences live in fontefalha, locally.
   AJ_FALHA_PROVEDORES, AJ_FALHA_PROVEDOR_ORDEM,
   AJ_FALHA_RD_LIMITE, AJ_FALHA_TB_LIMITE, AJ_FALHA_PM_LIMITE, AJ_FALHA_AD_LIMITE,
@@ -603,7 +603,7 @@ static const char *V_ICONE_APP[ICONEAPP_N] = {
   "Play tricolor", "Arco", "TV viva", "Clube retrô", "Arcade N",
 };
 static const char *V_FONTE_ORDEM_ADDON[] = { "Por qualidade", "Do addon" };
-static const char *V_TELA_ABERTURA[] = { "Cinema", "Detalhada" };
+static const char *V_TELA_ABERTURA[] = { "Arte desfocada", "Detalhada", "Arte nítida" };
 static const char *V_QUALIDADE[] = { "Automática", "4K", "1080p", "720p" };
 static const char *V_LIGA[]      = { "Ligado", "Desligado" };
 // TRAILER DO CARTAZ EM FOCO EM TRES MODOS (dono, 07/10/2026). O indice e o
@@ -679,7 +679,7 @@ _Static_assert(sizeof V_COLECAO_EXIBICAO / sizeof *V_COLECAO_EXIBICAO == VT_LAY_
 static const char *V_HERO_SINOPSE[] = { "Normal", "Grande" };
 static const char *V_TAMANHO_UI[] = { "100%", "120%", "130%", "150%" };
 static const char *V_TAMANHO_AJUSTES[] = { "80%", "90%", "100%" };
-static const char *V_INTERFACE_MODO[] = { "TV", "Mobile" };
+static const char *V_INTERFACE_MODO[] = { "TV", "Mobile", "Automático" };
 // F07: the order is cacheboost_cache_mb's (0, 256, 512, 1024 MB).
 // #338: indice = preset do NvPlayer.kt (0 = o de sempre).
 static const char *V_BUFFER[] = { "Automático", "Pequeno", "Médio", "Grande" };
@@ -1475,7 +1475,7 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Mostrar no player", V_LEG_MOSTRAR, 2),
   ACAO("Aviso legal"),
   ESC("Brilho da interface em HDR", V_HDR_UI, 2),   // local: hdrUiLocal (#205)
-  ESC("Tela de abertura do vídeo", V_TELA_ABERTURA, 2),   // local: telaAberturaLocal (#205)
+  ESC("Tela de abertura do vídeo", V_TELA_ABERTURA, 3),   // local: telaAberturaLocal (#205/#508); 0/1 preservados
   NUM("Mínimo para entrar no Continuar", 1, 20, 1, "%"),   // local: cwMinimoLocal
   ESC("Tamanho do buffer", V_BUFFER, 4),                 // local: bufferPlayerLocal (Android)
   ESC("Pular a abertura automaticamente", V_LIGA, 2),   // local: pularAberturaLocal
@@ -1483,7 +1483,7 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Tocar o próximo episódio automaticamente", V_LIGA, 2),   // local: proximoAutoLocal
   ESC("Pular os créditos automaticamente", V_LIGA, 2),   // local: pularCreditosLocal
   NUM("Contagem do próximo episódio", 1, 60, 1, "s"),
-  ESC("Modo da interface", V_INTERFACE_MODO, 2),
+  ESC("Modo da interface", V_INTERFACE_MODO, 3),
   ESC("Trocar provedor se falhar", V_LIGA, 2),
   ACAO("Ordem e limites dos provedores"),
   NUM("Links no Real-Debrid", 1, FONTEFALHA_MAX_LINKS, 1, ""),
@@ -2182,6 +2182,7 @@ static int ajToqueRolar(const PonteiroRolagem *e) {
 }
 // Guarda a escala durante o desenho: no fio de eventos a escala ja voltou a 1.
 static float ajToqueRegistrar(int id, GfxRect r, float *offset, float maximo, float alvo, int chave) {
+  if (!ajTelaCheia()) return alvo;
   float s = gfx_escala();
   if (ajToqueChave[id] != chave) {
     ajToqueLivre[id] = 0; ajToqueChave[id] = chave;
@@ -2269,7 +2270,11 @@ static int cinemetaInstalado(void) {
 int ajustes_animacoes_reduzidas(void) { return valor[AJ_ANIM] == 1; }
 int ajustes_interface_mobile(void) {
 #ifdef NV_TOUCH_UI
-  return valor[AJ_INTERFACE_MODO] == 1;
+  int automaticoMobile = 0;
+#ifdef NV_ANDROID
+  automaticoMobile = android_interface_mobile_auto();
+#endif
+  return layout_modo_resolver(valor[AJ_INTERFACE_MODO], automaticoMobile);
 #else
   return 0;
 #endif
@@ -2528,6 +2533,7 @@ int ajustes_abertura(void) { int v = valor[AJ_ABERTURA]; return v < 0 || v > 2 ?
 // R4: estilo proprio da segunda legenda. -1 / 0 = segue a principal.
 int ajustes_legendas_todas(void) { return valor[AJ_LEG_MOSTRAR] == 1; }
 int ajustes_abertura_detalhada(void) { return valor[AJ_TELA_ABERTURA] == 1; }
+int ajustes_abertura_fundo_nitido(void) { return valor[AJ_TELA_ABERTURA] == 2; }
 int ajustes_leg2_junto(void) { return valor[AJ_LEG2_POSICAO] == 0 && valor[AJ_LEG2_POS] == 1; }
 int ajustes_leg2_tamanho(void) {
   int v = valor[AJ_LEG2_TAMANHO];
@@ -3750,7 +3756,30 @@ void ajustes_dir(const char *dir) {
     int dtsSaidaAntiga = -1, dtsModoAntigo = -1, viuDtsTpk = 0;
     int leg2TamanhoAntigo = -1, viuLeg2Escala = 0;
   while (fgets(linha, sizeof linha, f)) {
-    char chave[64]; int v, i;
+    char chave[64]; int v, i, inicio = 0;
+    if (sscanf(linha, "%63s%n", chave, &inicio) != 1) continue;
+    if (!strcmp(chave, "interfaceModoLocal")) {
+      // The host reads the same logical record: at most 94 UTF-8 bytes,
+      // excluding LF/CRLF. Drain an oversized record before the next key.
+      size_t bytes = strlen(linha);
+      int ultimo = bytes ? (unsigned char)linha[bytes - 1] : 0;
+      if (ultimo == '\n') {
+        bytes--;
+        ultimo = bytes ? (unsigned char)linha[bytes - 1] : 0;
+      } else if (bytes == sizeof linha - 1) {
+        int c;
+        while ((c = fgetc(f)) != EOF && c != '\n') { bytes++; ultimo = c; }
+      }
+      if (ultimo == '\r') bytes--;
+      if (bytes > 94) continue;
+      // Keep the last valid local choice, including old TV=0/Mobile=1.
+      // strtol rejects oversized values without sscanf's int overflow.
+      char *fim;
+      long modo = strtol(linha + inicio, &fim, 10);
+      if (fim != linha + inicio && modo >= 0 && modo <= 2)
+        valor[AJ_INTERFACE_MODO] = (int)modo;
+      continue;
+    }
     if (sscanf(linha, "%63s %d", chave, &v) != 2) continue;
     // O idioma nao passa pelo laco: o numero do disco e um IDIOMA_*, e o
     // indice da lista da tela e outro (ver "IDIOMA AUTOMATICO").
@@ -6251,7 +6280,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_FONTE_UI: return "Altera a tipografia dos menus. A fonte das legendas é escolhida separadamente no player.";
     case AJ_HERO_SINOPSE: return "Aumenta apenas as sinopses. Na página do título, abra Mais opções › Ler sinopse para ler o texto completo.";
     case AJ_TAMANHO_UI: return "Aumenta os controles do player, os painéis e os avisos. Os Ajustes têm um tamanho próprio.";
-    case AJ_INTERFACE_MODO: return "TV para controle remoto. Mobile para toque, em retrato ou paisagem. A troca é imediata e fica salva só neste aparelho.";
+    case AJ_INTERFACE_MODO: return "Automático usa TV em aparelhos Android TV e Mobile nos demais aparelhos. TV mantém a interface do controle remoto; Mobile usa toque em retrato ou paisagem. A escolha fica salva só neste aparelho.";
     case AJ_TAMANHO_AJUSTES: return i18n("Muda só o tamanho dos Ajustes nesta TV. O padrão é 80%.");
     case AJ_LAYOUT_AJUSTES: return "Painel mostra uma prévia ao lado das opções. Lista põe as categorias e as opções uma embaixo da outra, com a explicação logo abaixo da linha em foco.";
     case AJ_TEMA: return "Cor do botão em foco e das marcas de estado. Os claros levam texto escuro, os profundos texto branco — sempre a 4,5:1 ou mais.";
@@ -6338,7 +6367,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_SOCIAL: return "Ligado (padrão): amigos, atividade deles e recomendações. Desligado: tudo isso some, com a fileira de amigos da Home, e o app para de falar com o serviço social. Salvos e Avisos continuam. Vale só para este perfil.";
     case AJ_DV_MKV: return "Arquivos MKV em Dolby Vision perfil 5 ou 8 tocam com o Dolby Vision ligado, em vez de HDR10. O áudio Dolby Digital e Dolby Digital Plus vai direto para a TV. Se a conexão não acompanhar, o vídeo continua em HDR10. Só em TVs LG com webOS 4 ou mais novo.";
     case AJ_CW_RETIDO_TAMBEM: return "Quando o título está na ilha ou em Retomar agora, mostra também na fileira Continuar assistindo.";
-    case AJ_TELA_ABERTURA: return "Cinema (padrão): a arte e o logo do título ficam na tela até o vídeo entrar. Detalhada: a fonte, o add-on e cada passo da abertura. Na Cinema, Para cima ou Para baixo mostra os detalhes. Vale só nesta TV.";
+    case AJ_TELA_ABERTURA: return "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.";
     case AJ_PLR_CLASSIF: return "Ligado (padrão): no começo do filme, a ilha mostra a classificação indicativa e os avisos do guia parental (violência, nudez, palavrões). Desligado: o player não mostra nada disso.";
     case AJ_RELOGIO_12H: return "Como a hora aparece no relógio, na tela de descanso, no fim do filme e no guia de TV: 18:30 ou 6:30 PM.";
     case AJ_RELOGIO_POS: return "Em que canto de cima fica a pílula do relógio e dos avisos. Automática fica à direita, em qualquer layout. Esquerda no layout Dinâmica fica ao lado da pílula do menu.";
@@ -8083,7 +8112,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
   if (alvo < 0.0f) alvo = 0.0f;
   // (O "cabecalho inteiro ou nenhum" saiu: o cabecalho agora e fixo na folha.)
 #ifdef NV_TOUCH_UI
-  if (ajToqueLivre[AJT_LISTA]) velY = 0.0f;
+  if (ajTelaCheia() && ajToqueLivre[AJT_LISTA]) velY = 0.0f;
   else
 #endif
     scrollY = anim_mola2_reduzida(&velY, scrollY, alvo, dt, NV_MOLA2_SCROLL,
@@ -8751,6 +8780,7 @@ static void ajDesenharTudo(Uint32 agora) {
 }
 
 float ajustes_ilha_x(void) { return aj2X0() * ajustes_tamanho_ajustes(); }
+int ajustes_edicao_ativa(void) { return uxEditor != 0; }
 int ajustes_relogio_cabe(void) {
   TraEstado ta = traktauth_estado();
   SmkEstado sa = simklauth_estado();
