@@ -3,6 +3,7 @@
 #include "trakt.h"
 #include "traktscrobble.h"
 #include "metaep.h"
+#include "js.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,6 +66,18 @@ int cat_historico_definir_se_geracao(const char *a, const char *b, int c, unsign
   (void)a; (void)b; (void)c; (void)g; return 1;
 }
 
+static void episodio_correto(const char *body) {
+  char ep[300], ids[220], show[300];
+  assert(js_bruto(body, NULL, "episode", ep, sizeof ep));
+  assert(js_bruto(ep, NULL, "ids", ids, sizeof ids));
+  assert(js_num(ids, NULL, "tvdb", 0) == 10600123);
+  assert(js_num(ids, NULL, "trakt", 0) == 9923456);
+  assert(!js_tem(ids, NULL, "tmdb") && !js_tem(ids, NULL, "imdb"));
+  assert(!js_tem(ep, NULL, "season") && !js_tem(ep, NULL, "number"));
+  assert(!js_bruto(body, NULL, "show", show, sizeof show));
+  assert(js_num(body, NULL, "progress", -1) == 41.0);
+}
+
 int main(void) {
   static CatItem v[4];
   char corpo[500];
@@ -83,16 +96,10 @@ int main(void) {
   assert(!strcmp(ep.tmdb, "5234501"));
   assert(!strcmp(ep.trakt, "9923456"));
   metaep_scrobble_corpo(corpo, sizeof corpo, "tt29422052", 2, 1, &ep, 41.0);
-  assert(strstr(corpo, "\"tvdb\":10600123"));
-  assert(strstr(corpo, "\"tmdb\":5234501"));
-  assert(strstr(corpo, "\"trakt\":9923456"));
-  assert(strstr(corpo, "\"season\":2"));
-  assert(strstr(corpo, "\"number\":1"));
+  episodio_correto(corpo);
 
   scrobble_corpo_ep(corpo, sizeof corpo, "tt29422052:2:1", 41.0, &ids);
-  assert(strstr(corpo, "\"tvdb\":10600123"));
-  assert(strstr(corpo, "\"season\":2"));
-  assert(strstr(corpo, "\"number\":1"));
+  episodio_correto(corpo);
 
   trakt_definir("token", "client");
   n = trakt_continuar(v, 4);
