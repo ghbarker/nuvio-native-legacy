@@ -60,6 +60,15 @@ void video_forcar_sdr(void) {}
 // No persisted failed sources in this sheet fixture (24185059).
 long fontesmortas_idade(const Stream *s) { (void)s; return -1; }
 int player_aberto(void) { return 0; }
+// The sheet owns only a token: playback itself stays outside this fixture.
+static unsigned sourceContext;
+static int sourceReloads;
+unsigned player_recarregar_contexto(void) { return sourceContext; }
+int player_recarregar_fonte(unsigned contexto) {
+  assert(contexto && contexto == sourceContext);
+  sourceReloads++;
+  return 1;
+}
 void plrui_decimal(char *s) { (void)s; }
 static char lastLookup[64]; static int lookups; static double lookupValue;
 static double catalogRuntime(const char *alvo) {
@@ -82,6 +91,53 @@ static Stream source(int id,long mb,uint64_t exact,int h) {
 static uint64_t sizeAt(int kbps) { return (uint64_t)kbps*1000*7200/8; }
 static void expect(const int *expected,int count) {
   assert(nOrdem==count);for(int i=0;i<count;i++) assert(ordem[i]==expected[i]);
+}
+static void sourceKey(Uint32 type, SDL_Keycode key, int repeat) {
+  SDL_Event event = {0};
+  event.type = type; event.key.keysym.sym = key; event.key.repeat = repeat;
+  stream_folha_evento(&event);
+}
+static void sourceAction(int button) {
+  stream_folha_abrir();
+  grupo = -1;
+  for (foco = 0; foco < nBotoes(); foco++) if (botaoDe(foco) == button) return;
+  assert(!"source action is missing");
+}
+static void playbackActions(void) {
+  int selected = -1;
+  // No current pipeline: the existing refresh remains available and separate.
+  sourceContext = 0; sourceReloads = 0;
+  sourceAction(BT_RECARREGAR);
+  sourceKey(SDL_KEYDOWN, SDLK_RETURN, 0);
+  sourceKey(SDL_KEYUP, SDLK_RETURN, 0);
+  assert(stream_folha_recarregar() && !stream_folha_recarregar());
+  assert(!sourceReloads && stream_folha_aberta());
+
+  sourceContext = 17; sourceAction(BT_RECARREGAR_FONTE);
+  sourceKey(SDL_KEYDOWN, SDLK_RETURN, 0);
+  sourceKey(SDL_KEYDOWN, SDLK_RETURN, 0); // firmware repeats without repeat=1
+  sourceKey(SDL_KEYDOWN, SDLK_RETURN, 1);
+  assert(!sourceReloads && stream_folha_aberta());
+  sourceKey(SDL_KEYUP, SDLK_KP_ENTER, 0); // only the matching release commits
+  assert(!sourceReloads);
+  sourceKey(SDL_KEYUP, SDLK_RETURN, 0);
+  assert(sourceReloads == 1 && !stream_folha_aberta());
+  assert(!stream_folha_escolheu(&selected) && selected == -1 && !stream_folha_recarregar());
+
+  sourceAction(BT_RECARREGAR_FONTE);
+  sourceKey(SDL_KEYDOWN, SDLK_RETURN, 0);
+  sourceContext = 18; // the player changed source while the sheet was open
+  sourceKey(SDL_KEYUP, SDLK_RETURN, 0);
+  assert(sourceReloads == 1 && stream_folha_aberta());
+  assert(!stream_folha_escolheu(&selected) && selected == -1 && !stream_folha_recarregar());
+
+  sourceAction(BT_RECARREGAR_FONTE);
+  sourceKey(SDL_KEYDOWN, SDLK_RETURN, 0);
+  sourceKey(SDL_KEYDOWN, SDLK_ESCAPE, 0);
+  sourceKey(SDL_KEYUP, SDLK_RETURN, 0);
+  assert(sourceReloads == 1 && !stream_folha_aberta());
+  sourceContext = 0;
+  puts("source playback actions: PASS (refresh, release, repeat, stale token, Back)");
 }
 int main(void) {
   Stream sources[5]={source(0,50000,sizeAt(50000),2160),source(1,10000,sizeAt(10000),2160),
@@ -190,6 +246,7 @@ int main(void) {
   long points[3]={1,99,99};int queue[3];unsigned char excluded[3]={0};
   assert(fonteauto_fila(FONTEAUTO_PRIMEIRA,3,-1,points,NULL,excluded,3,queue)==3);
   assert(queue[0]==0 && queue[1]==1 && queue[2]==2 && fonteauto_tentativas(FONTEAUTO_PRIMEIRA,9)==1);
+  playbackActions();
   stream_definir_lista(NULL,0);free(ordem);free(linhaY);free(linhaH);free(grupoTmp);free(grupoFitTmp);free(fitResultados);free(fitClasses);
   puts("streamfit sheet: PASS (stable groups, raw identities, freeze, incremental/focus, OndeVer, first-source)");return 0;
 }
