@@ -1,0 +1,147 @@
+{
+  "src/idioma_bg.h": {
+    "Arte desfocada": "Замъглено изображение",
+    "Arte nítida": "Ясно изображение",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Замъглено изображение (по подразбиране): фонът на заглавието е замъглен, докато видеото се отваря. Ясно изображение: същият фон без замъгляване. Подробно: източникът, добавката и всяка стъпка от отварянето. И в двата режима на изображението натиснете Нагоре или Надолу, за да видите подробностите. Важи само за това устройство."
+  },
+  "src/idioma_bs.h": {
+    "Arte desfocada": "Zamućena slika",
+    "Arte nítida": "Jasna slika",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Zamućena slika (podrazumijevano): pozadina naslova je zamućena dok se video otvara. Jasna slika: ista pozadina bez zamućenja. Detaljno: izvor, dodatak i svaki korak otvaranja. U oba načina prikaza slike pritisnite Gore ili Dolje za prikaz detalja. Primjenjuje se samo na ovaj uređaj."
+  },
+  "src/idioma_cs.h": {
+    "Arte desfocada": "Rozmazaná grafika",
+    "Arte nítida": "Ostrá grafika",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Rozmazaná grafika (výchozí): pozadí titulu je během otevírání videa rozmazané. Ostrá grafika: stejné pozadí bez rozmazání. Podrobná: zdroj, doplněk a jednotlivé kroky otevírání. V obou režimech s grafikou zobrazíte podrobnosti stisknutím tlačítka Nahoru nebo Dolů. Platí pouze pro toto zařízení."
+  },
+  "src/idioma_da.h": {
+    "Arte desfocada": "Sløret billede",
+    "Arte nítida": "Skarpt billede",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Sløret billede (standard): Titlens baggrund sløres, mens videoen åbnes. Skarpt billede: Samme baggrund uden sløring. Detaljeret: Kilden, tilføjelsesprogrammet og hvert trin i åbningen. I begge billedtilstande vises detaljerne ved at trykke på Op eller Ned. Gælder kun for denne enhed."
+  },
+  "src/idioma_de.h": {
+    "Arte desfocada": "Unscharfes Hintergrundbild",
+    "Arte nítida": "Scharfes Hintergrundbild",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Unscharfes Hintergrundbild (Standard): Der Titelhintergrund wird unscharf dargestellt, während das Video geöffnet wird. Scharfes Hintergrundbild: derselbe Hintergrund ohne Unschärfe. Detailliert: die Quelle, das Add-on und jeder Schritt beim Öffnen. In beiden Bildmodi werden die Details mit der Taste Nach oben oder Nach unten angezeigt. Gilt nur für dieses Gerät."
+  },
+  "src/idioma_el.h": {
+    "Arte desfocada": "Θολή εικόνα",
+    "Arte nítida": "Καθαρή εικόνα",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Θολή εικόνα (προεπιλογή): το φόντο του τίτλου εμφανίζεται θολό όσο ανοίγει το βίντεο. Καθαρή εικόνα: το ίδιο φόντο χωρίς θόλωση. Αναλυτική: η πηγή, το πρόσθετο και κάθε στάδιο ανοίγματος. Και στις δύο λειτουργίες εικόνας, πατήστε Πάνω ή Κάτω για να δείτε τις λεπτομέρειες. Ισχύει μόνο για αυτή τη συσκευή."
+  },
+  "src/idioma_es.h": {
+    "Arte desfocada": "Imagen desenfocada",
+    "Arte nítida": "Imagen nítida",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Imagen desenfocada (por defecto): el fondo del título se desenfoca mientras se abre el vídeo. Imagen nítida: el mismo fondo, sin desenfoque. Detallada: la fuente, el complemento y cada paso de la apertura. En cualquiera de los modos de imagen, Arriba o Abajo muestra los detalles. Solo se aplica a este dispositivo."
+  },
+  "src/idioma_fr.h": {
+    "Arte desfocada": "Image floutée",
+    "Arte nítida": "Image nette",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Image floutée (par défaut) : l’image d’arrière-plan du titre est floutée pendant l’ouverture de la vidéo. Image nette : la même image d’arrière-plan, sans flou. Détaillé : la source, l’extension et chaque étape de l’ouverture. Dans les deux modes d’image, Haut ou Bas affiche les détails. S’applique uniquement à cet appareil."
+  },
+  "src/idioma_hu.h": {
+    "Arte desfocada": "Elmosott kép",
+    "Arte nítida": "Éles kép",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Elmosott kép (alapértelmezett): a tartalom háttérképe elmosva jelenik meg, amíg a videó megnyílik. Éles kép: ugyanaz a háttér elmosás nélkül. Részletes: a forrás, a kiegészítő és a megnyitás egyes lépései. Mindkét képmódban a Fel vagy Le gomb megnyomásával jeleníthetők meg a részletek. Csak erre az eszközre vonatkozik."
+  },
+  "src/idioma_id.h": {
+    "Arte desfocada": "Gambar buram",
+    "Arte nítida": "Gambar jernih",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Gambar buram (bawaan): latar belakang judul diburamkan saat video dibuka. Gambar jernih: latar belakang yang sama tanpa efek buram. Terperinci: sumber, add-on, dan setiap langkah pembukaan video. Dalam kedua mode gambar, tekan Atas atau Bawah untuk menampilkan detail. Hanya berlaku pada perangkat ini."
+  },
+  "src/idioma_it.h": {
+    "Arte desfocada": "Immagine sfocata",
+    "Arte nítida": "Immagine nitida",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Immagine sfocata (predefinita): lo sfondo del titolo appare sfocato mentre si apre il video. Immagine nitida: lo stesso sfondo, senza sfocatura. Dettagliata: la sorgente, l’add-on e ogni fase dell’apertura. In entrambe le modalità immagine, Su o Giù mostra i dettagli. Si applica solo a questo dispositivo."
+  },
+  "src/idioma_ja.h": {
+    "Arte desfocada": "ぼかした背景画像",
+    "Arte nítida": "鮮明な背景画像",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "ぼかした背景画像（デフォルト）: 動画を開いている間、作品の背景画像をぼかして表示します。鮮明な背景画像: 同じ背景画像をぼかさずに表示します。詳細: 再生ソース、アドオン、再生開始までの各手順を表示します。どちらの背景画像モードでも、上または下を押すと詳細が表示されます。このデバイスにのみ適用されます。"
+  },
+  "src/idioma_lt.h": {
+    "Arte desfocada": "Sulietas vaizdas",
+    "Arte nítida": "Ryškus vaizdas",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Sulietas vaizdas (numatytasis): pavadinimo fonas suliejamas, kol atidaromas vaizdo įrašas. Ryškus vaizdas: tas pats fonas be suliejimo. Išsamus: šaltinis, priedas ir kiekvienas atidarymo veiksmas. Abiem vaizdo rodymo režimais paspaudus Aukštyn arba Žemyn rodoma išsami informacija. Taikoma tik šiam įrenginiui."
+  },
+  "src/idioma_nl.h": {
+    "Arte desfocada": "Vervaagde afbeelding",
+    "Arte nítida": "Scherpe afbeelding",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Vervaagde afbeelding (standaard): de achtergrond van de titel wordt vervaagd terwijl de video wordt geopend. Scherpe afbeelding: dezelfde achtergrond zonder vervaging. Gedetailleerd: de bron, de add-on en elke stap tijdens het openen. In beide afbeeldingsmodi kun je de details tonen met Omhoog of Omlaag. Geldt alleen voor dit apparaat."
+  },
+  "src/idioma_no.h": {
+    "Arte desfocada": "Uskarpt bilde",
+    "Arte nítida": "Skarpt bilde",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Uskarpt bilde (standard): Tittelens bakgrunn er uskarp mens videoen åpnes. Skarpt bilde: Den samme bakgrunnen uten uskarphet. Detaljert: Kilden, tillegget og hvert trinn i åpningen. I begge bildemodusene vises detaljene ved å trykke på Opp eller Ned. Gjelder bare for denne enheten."
+  },
+  "src/idioma_pl.h": {
+    "Arte desfocada": "Rozmyta grafika",
+    "Arte nítida": "Wyraźna grafika",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Rozmyta grafika (domyślnie): tło wybranego tytułu jest rozmyte podczas otwierania wideo. Wyraźna grafika: to samo tło bez rozmycia. Szczegółowy: źródło, dodatek i każdy etap otwierania. W obu trybach wyświetlania grafiki naciśnięcie przycisku W górę lub W dół wyświetla szczegóły. Dotyczy tylko tego urządzenia."
+  },
+  "src/idioma_ptpt.h": {
+    "Arte desfocada": "Imagem desfocada",
+    "Arte nítida": "Imagem nítida",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Imagem desfocada (predefinição): o fundo do título fica desfocado enquanto o vídeo abre. Imagem nítida: o mesmo fundo, sem desfocagem. Detalhado: a fonte, o add-on e cada passo da abertura. Em qualquer um dos modos de imagem, Cima ou Baixo mostra os detalhes. Aplica-se apenas a este dispositivo."
+  },
+  "src/idioma_ro.h": {
+    "Arte desfocada": "Imagine estompată",
+    "Arte nítida": "Imagine clară",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Imagine estompată (implicită): fundalul titlului este estompat în timp ce se deschide videoclipul. Imagine clară: același fundal, fără estompare. Detaliat: sursa, suplimentul și fiecare pas al deschiderii. În ambele moduri de afișare a imaginii, apăsați Sus sau Jos pentru a vedea detaliile. Se aplică doar acestui dispozitiv."
+  },
+  "src/idioma_ru.h": {
+    "Arte desfocada": "Размытое изображение",
+    "Arte nítida": "Чёткое изображение",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Размытое изображение (по умолчанию): фоновое изображение размывается, пока открывается видео. Чёткое изображение: тот же фон без размытия. Подробно: источник, дополнение и каждый этап открытия. В обоих режимах показа изображения нажмите Вверх или Вниз, чтобы увидеть подробности. Действует только на этом устройстве."
+  },
+  "src/idioma_sk.h": {
+    "Arte desfocada": "Rozmazaná grafika",
+    "Arte nítida": "Ostrá grafika",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Rozmazaná grafika (predvolená): pozadie titulu je počas otvárania videa rozmazané. Ostrá grafika: rovnaké pozadie bez rozmazania. Podrobná: zdroj, doplnok a jednotlivé kroky otvárania. V oboch režimoch s grafikou zobrazíte podrobnosti stlačením tlačidla Nahor alebo Nadol. Platí iba pre toto zariadenie."
+  },
+  "src/idioma_sl.h": {
+    "Arte desfocada": "Zamegljena slika",
+    "Arte nítida": "Ostra slika",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Zamegljena slika (privzeto): ozadje naslova je med odpiranjem videoposnetka zamegljeno. Ostra slika: isto ozadje brez zameglitve. Podrobno: vir, dodatek in vsak korak odpiranja. V obeh načinih prikaza slike pritisnite Gor ali Dol za prikaz podrobnosti. Velja samo za to napravo."
+  },
+  "src/idioma_sr.h": {
+    "Arte desfocada": "Zamućena slika",
+    "Arte nítida": "Jasna slika",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Zamućena slika (podrazumevano): pozadina naslova je zamućena dok se video otvara. Jasna slika: ista pozadina bez zamućenja. Detaljno: izvor, dodatak i svaki korak otvaranja. U oba režima prikaza slike pritisnite Gore ili Dole da biste videli detalje. Važi samo za ovaj uređaj."
+  },
+  "src/idioma_sv.h": {
+    "Arte desfocada": "Suddig bild",
+    "Arte nítida": "Skarp bild",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Suddig bild (standard): titelns bakgrund är suddig medan videon öppnas. Skarp bild: samma bakgrund utan oskärpa. Detaljerad: källan, tillägget och varje steg när videon öppnas. I båda bildlägena visas detaljerna när du trycker på Upp eller Ned. Gäller endast den här enheten."
+  },
+  "src/idioma_tab.h": {
+    "Arte desfocada": "Blurred artwork",
+    "Arte nítida": "Clear artwork",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Blurred artwork (default): the title background is blurred while the video opens. Clear artwork: the same background without blur. Detailed: the source, the add-on and each opening step. In either artwork mode, Up or Down shows the details. Applies to this device only."
+  },
+  "src/idioma_tr.h": {
+    "Arte desfocada": "Bulanık görsel",
+    "Arte nítida": "Net görsel",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Bulanık görsel (varsayılan): video açılırken yapımın arka planı bulanık gösterilir. Net görsel: aynı arka plan bulanıklaştırılmadan gösterilir. Ayrıntılı: kaynak, eklenti ve açılışın her adımı. Her iki görsel modunda da Yukarı veya Aşağı ayrıntıları gösterir. Yalnızca bu cihaz için geçerlidir."
+  },
+  "src/idioma_uk.h": {
+    "Arte desfocada": "Розмите зображення",
+    "Arte nítida": "Чітке зображення",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Розмите зображення (за замовчуванням): фонове зображення розмивається, поки відкривається відео. Чітке зображення: те саме тло без розмиття. Детально: джерело, додаток і кожен крок відкриття. В обох режимах показу зображення натисніть Вгору або Вниз, щоб переглянути подробиці. Застосовується лише до цього пристрою."
+  },
+  "src/idioma_vi.h": {
+    "Arte desfocada": "Ảnh nền mờ",
+    "Arte nítida": "Ảnh nền rõ nét",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "Ảnh nền mờ (mặc định): ảnh nền của tựa phim được làm mờ trong khi mở video. Ảnh nền rõ nét: cùng ảnh nền đó nhưng không làm mờ. Chi tiết: nguồn, tiện ích bổ sung và từng bước mở video. Trong cả hai chế độ ảnh nền, nhấn Lên hoặc Xuống để xem chi tiết. Chỉ áp dụng trên thiết bị này."
+  },
+  "src/idioma_zhcn.h": {
+    "Arte desfocada": "模糊背景图",
+    "Arte nítida": "清晰背景图",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "模糊背景图（默认）：打开视频时，对影片背景图进行模糊处理。清晰背景图：显示同一背景图，不进行模糊处理。详细：显示播放源、插件和打开视频的每个步骤。在任一背景图模式下，按上或下可显示详细信息。仅适用于此设备。"
+  },
+  "src/idioma_zhtw.h": {
+    "Arte desfocada": "模糊背景圖",
+    "Arte nítida": "清晰背景圖",
+    "Arte desfocada (padrão): o fundo do título fica desfocado enquanto o vídeo abre. Arte nítida: o mesmo fundo, sem desfoque. Detalhada: a fonte, o add-on e cada passo da abertura. Nos modos de arte, Para cima ou Para baixo mostra os detalhes. Vale só neste aparelho.": "模糊背景圖（預設）：開啟影片時，會將作品的背景圖模糊化。清晰背景圖：顯示相同的背景圖，不進行模糊處理。詳細：顯示播放來源、附加元件和開啟影片的每個步驟。在任一背景圖模式下，按上或下即可顯示詳細資訊。僅套用至此裝置。"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "scope": "External offline focused validation only. No product or repository test bytes changed. Historical passes are provenance; this adapted current-source fixture has not yet executed locally. Fresh execution is required in approved CI.",
+  "candidate": "9293ea272f00eece16466b7447b7ed10aa1aa163",
+  "tree": "50b32e42915c228fc67335091ed87290c3da455b",
+  "base": "0bea8f6b0f0b60e58389348d80fb56a6cd237f7e",
+  "historical_source": "d0a512c8ed0f2d8214f395a1bbd4995a3a0fe42a",
+  "historical_tree": "0ba281d221ca30954d484921e4978a709442ba10",
+  "historical_fixture_root": "/workspace/review/issue508-20261015/review",
+  "original_cinema_sha256": "5f3879f9616123a26e8c6d78335dae0b83140447c0ed323de3eac12b8ffa42bb",
+  "original_detail_boundary_sha256": "4705c89fb3f0d6c2e2248d7b74a3cbaeeee7b55791d0b308eec6cf85ccee7bd2",
+  "original_settings_sha256": "ff61495bfa5397a30a3450be1b37423a1d7af136bcae1c161cdefeb737eb81fb",
+  "original_cinema_assertions_retained": 17,
+  "appended_cinema_and_ownership_assertions": 21,
+  "fresh_cinema_expected_checks": 38,
+  "fresh_settings_expected_checks": 19,
+  "expected_groups": 8,
+  "translation_map_sha256": "316738fa6d40d2fdda56b8268d141b6177b496b24d674ef13dc9acfdb5ea0c4d",
+  "static_translations_validated": {
+    "tables": 29,
+    "new_strings": 87,
+    "detailed_translation_preserved": true,
+    "three_distinct_labels_each": true
+  },
+  "unchanged_policy_units": {
+    "src/artehero.c": {
+      "sha256": "1a9f4038b6c8b00603050e6d30caa89959b1609304c4802d7508d937dea516e4",
+      "same_as_original508": true,
+      "unchanged_in_current_patch": true
+    },
+    "src/abrecine.c": {
+      "sha256": "366883f21e6001df6a70fab9938a24c57951cc6c223d235e8a5ee6d4fbb5fe2e",
+      "same_as_original508": true,
+      "unchanged_in_current_patch": true
+    }
+  },
+  "adaptation": [
+    "Complete actual production player/detail/artehero/abrecine, and separately complete actual Settings. No extracted replacement implementation.",
+    "Original17 Cinema verify statements remain byte-for-byte. Existing Settings expressions retained; two display strings updated to user-approved labels and one three-way distinction assertion added. Existing0/1 saved mapping remains;2 is clear.",
+    "Append19 actual getter ownership/bounds/frozen-state/preview cases and2 joined loading-render portrait/promotion cases.",
+    "Relocate historical tiny SDL/GL CPU boundary headers; add only official SDL_TICKS_PASSED macro and actual SDL_GetBasePath/SDL_free prototypes.",
+    "Source-bound GNU/Linux runner records compiler/dependency/command/binary/raw receipts and uses halt-on-error ASan/UBSan with fixture-only noPIE.",
+    "TV and touch compilation both use fixed1920x1080 idle mobile boundary; no mobile geometry or realGL/device/network claim. No unrelated503quality/Metahub promotion policy imported.",
+    "Raw artifact maps exclude reproducible .o intermediates, matching the approved proof-artifact exclusion; depfiles, compile logs, executable and receipts remain fully bound."
+  ]
+}

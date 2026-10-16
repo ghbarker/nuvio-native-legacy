@@ -1,0 +1,48 @@
+{
+  "frozen": true,
+  "source_commit": "9293ea272f00eece16466b7447b7ed10aa1aa163",
+  "source_tree": "50b32e42915c228fc67335091ed87290c3da455b",
+  "runtime_execution_completed": false,
+  "inputs": {
+    "cinema-contract.c": {
+      "bytes": 8839,
+      "sha256": "5da9d47602057c5efe2e8e1164cceb77163e3221ab4eb201c6703bf4e9b7a7d3"
+    },
+    "detail-boundary.c": {
+      "bytes": 5595,
+      "sha256": "87843a96caff584667f6dcb4c0ab92ef91933a057ec30fce5116df8752b03cbd"
+    },
+    "entry.py": {
+      "bytes": 5689,
+      "sha256": "8895b5c2e2c00702608cf4782c96a3277fb7eb88d077467098419d4a8ebd40f4"
+    },
+    "provenance.json": {
+      "bytes": 3013,
+      "sha256": "158cddeb626f2a781331ad74c0a77b857affb12a892b8d063d57e0b049092547"
+    },
+    "run.py": {
+      "bytes": 6033,
+      "sha256": "f3827379959d4da4b31732c2c4151408340a1ca38e6def3064399639a9d0498b"
+    },
+    "sdk/GLES2/gl2.h": {
+      "bytes": 881,
+      "sha256": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806"
+    },
+    "sdk/SDL2/SDL.h": {
+      "bytes": 3995,
+      "sha256": "a97919964ab59dc539f056c600c17889482f80dc78ec9a0a554e921ad84be977"
+    },
+    "sdk/vistonao.h": {
+      "bytes": 4385,
+      "sha256": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9"
+    },
+    "settings-contract.c": {
+      "bytes": 1729,
+      "sha256": "d8205ad7ae7c389e39ab3093a8f9656a49876c787b9823444bf3de2086ff0178"
+    },
+    "translation-map.json": {
+      "bytes": 21774,
+      "sha256": "316738fa6d40d2fdda56b8268d141b6177b496b24d674ef13dc9acfdb5ea0c4d"
+    }
+  }
+}

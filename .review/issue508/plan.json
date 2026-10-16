@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "frozen": true,
+  "root_reviewed": true,
+  "ci_execution_permitted": true,
+  "base": "0bea8f6b0f0b60e58389348d80fb56a6cd237f7e",
+  "candidate_head": "9293ea272f00eece16466b7447b7ed10aa1aa163",
+  "candidate_tree": "50b32e42915c228fc67335091ed87290c3da455b",
+  "review_branch": "review/issue508-loading-20261016",
+  "source_manifest_sha256": "86591eb056ef15b5c1af30d8d7a5614632095449aad5ee12be9276ae570bf631",
+  "source_manifest_origin_sha256": "ccebfcea9dd5daa542819fe4c17fe3a1a4ce3f6b53195c06b2e3f494dbf772aa",
+  "source_review_sha256": "e6c148c62e8c901914e7a51162617b88172f48eba5be8bd55380c6f4e9abbaf4",
+  "root_source_review_sha256": "0835c89bf09e5584e4051fc894d0e763fdf3a16f6277cd95a0b37f45edf23b6c",
+  "fixture_manifest_sha256": "27831c9fe368673e2147b963186b4669b9d0e3600e8545ba1ba0cc25ad97c8f0",
+  "required_jobs": [
+    "native",
+    "android"
+  ],
+  "recipe_inputs": {
+    "android.py": "9c20ea36ba7cadccaa843c55d6409bb7d7bdc0f342dca7f4a05f37bba66ea7cf",
+    "android_workspace.py": "b02c073810128d495dd7b90c51380a0e1152048356cd7c5635276c3471ed63d3",
+    "common.py": "e13a73c0426d5d9cd9d87fecdf013fba5a757076d8e0c9e5e2986537f949b1a7",
+    "dex_methods.py": "cd2eed6976373f0ba32ad5754bf603f78898559b04403a1d7ea251da4958a285",
+    "fixture-manifest.json": "27831c9fe368673e2147b963186b4669b9d0e3600e8545ba1ba0cc25ad97c8f0",
+    "fixtures/pr508/cinema-contract.c": "5da9d47602057c5efe2e8e1164cceb77163e3221ab4eb201c6703bf4e9b7a7d3",
+    "fixtures/pr508/detail-boundary.c": "87843a96caff584667f6dcb4c0ab92ef91933a057ec30fce5116df8752b03cbd",
+    "fixtures/pr508/entry.py": "8895b5c2e2c00702608cf4782c96a3277fb7eb88d077467098419d4a8ebd40f4",
+    "fixtures/pr508/provenance.json": "158cddeb626f2a781331ad74c0a77b857affb12a892b8d063d57e0b049092547",
+    "fixtures/pr508/run.py": "f3827379959d4da4b31732c2c4151408340a1ca38e6def3064399639a9d0498b",
+    "fixtures/pr508/sdk/GLES2/gl2.h": "2a4528e56e2123c5c8a3eb5e8a357b37b2d978bad8c92a8b5f8d95efd24a0806",
+    "fixtures/pr508/sdk/SDL2/SDL.h": "a97919964ab59dc539f056c600c17889482f80dc78ec9a0a554e921ad84be977",
+    "fixtures/pr508/sdk/vistonao.h": "a7c018313be306f925be0edfc9220734f3ee5c3f09421e1af5e6c72e93a70de9",
+    "fixtures/pr508/settings-contract.c": "d8205ad7ae7c389e39ab3093a8f9656a49876c787b9823444bf3de2086ff0178",
+    "fixtures/pr508/translation-map.json": "316738fa6d40d2fdda56b8268d141b6177b496b24d674ef13dc9acfdb5ea0c4d",
+    "focused.py": "2a651e7be7f6240ee78821288dbee394b722cd28109087637d3829e13e3ee7e7",
+    "materialize.py": "ccaf78cb93248869c02a44024f88d6be1ff2c20fff19d3e0be93836cca0f35c2",
+    "native.py": "e2d013324f1393fc6101f9bd6525ce52e85772c7b26b3ac8c8ab8c0465778f33",
+    "preflight.py": "dcf5804ef3b2e949801c7042042e9e320202a76b0cc1895a21803ce52b8ed2a8",
+    "safe_android_metadata.py": "65998e562f35b8f3e14c0359c096124bbaf1dc39a8dadc6a89c652120250a8fe"
+  },
+  "loading_saved_values": {
+    "0": "Blurred artwork",
+    "1": "Detailed",
+    "2": "Clear artwork"
+  },
+  "setting_key": "telaAberturaLocal",
+  "setting_default": 0,
+  "fresh_focused_groups": [
+    "cinema-tv-normal",
+    "settings-tv-normal",
+    "cinema-touch-normal",
+    "settings-touch-normal",
+    "cinema-tv-asan",
+    "settings-tv-asan",
+    "cinema-touch-asan",
+    "settings-touch-asan"
+  ],
+  "fresh_focused_counts": {
+    "group_count": 8,
+    "cinema_checks_per_group": 38,
+    "settings_checks_per_group": 19,
+    "original_cinema_checks_retained": 17,
+    "added_cinema_checks": 21,
+    "translation_tables": 29,
+    "new_translated_strings": 87
+  },
+  "focused_runtime_mobile_geometry": false,
+  "required_upstream_translation_units": [
+    "src/fontenota.c",
+    "src/sinopse.c",
+    "src/fontefiltro.c"
+  ],
+  "scope": "Exactly two fresh producers: full macOS TV/touch current-source SDK links, Ubuntu joined real player/detail/artehero/abrecine and Settings under TV/touch compilation normal+ASan, then one standard dualARM Android APK. Focused CPU fixture uses fixed1920x1080 with mobile runtime false; no mobile geometry or GL/device claim. Public source has only issue508 changes; no private test logs/overlay, unrelated feature, old-pass reuse or publication.",
+  "workflow_normalized_sha256": "31f7eb5df7c4f0daea951935cff3ad0aa90edabc81edc3e19bf8c181595803fc"
+}
