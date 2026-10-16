@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "purpose": "Positive validation of typed #524 title lookup; no full-player or issue-closure claim.",
+  "root_approved": true,
+  "execution_enabled": true,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "product_commit": "17a4c8d0600ea31817b88eaff9f658dab3f1e7aa",
+  "source_commit": "31344ca3c4bfe1c0c829406a2e1eaac0e1d649bf",
+  "source_tree": "914313d2e89ae24b93aed9a8c3cd4438b0a96f20",
+  "branch": "review/title-identity524-positive-20261016",
+  "workflow": ".github/workflows/title-identity524-positive.yml",
+  "review_paths": [
+    ".github/workflows/title-identity524-positive.yml",
+    ".review/identity524-positive/cc_record.py",
+    ".review/identity524-positive/plan.json",
+    ".review/identity524-positive/run.py"
+  ],
+  "product_paths": [
+    "src/catalogo.c",
+    "src/catalogo.h",
+    "src/descoberta.c"
+  ],
+  "test_paths": [
+    "tests/addons_manifest_notifications_stub.inc",
+    "tests/detalheanime.c",
+    "tests/title_identity524.c",
+    "tests/title_identity524.sh"
+  ],
+  "recipe_sha256": {
+    "cc_record.py": "684e9616fe8a23e2b2804ad4c2873da24fb74523d17baf67873738e94be67edc",
+    "run.py": "96634d07b7563f6d2caa986d5bf51c94b21a157aa5e1303c593701706ed63888"
+  },
+  "source_origins": {
+    "src/catalogo.c": {
+      "blob": "f00e1351f7fbf3ace09ca1ae9a90a00688c69fd5",
+      "sha256": "30e67d724eb43e80fea517c887ca0cf734c06c63d950b81c3555f638a5a36d7e",
+      "bytes": 113025
+    },
+    "src/catalogo.h": {
+      "blob": "5a58dee4a95fd8fd6cc6d4d9e0238ad73b6d3b56",
+      "sha256": "ed83a1a33deb15e637b9effc928e4047cc646328c668995281e650f192205fdc",
+      "bytes": 32721
+    },
+    "src/descoberta.c": {
+      "blob": "90ce3c4b110de08694e218eba6a70a370c16d75f",
+      "sha256": "5403c3ed36de32328ba952511ebfb87b2a1e8116d2fe2826cb7ac0cb74882397",
+      "bytes": 429467
+    },
+    "tests/addons_manifest_notifications_stub.inc": {
+      "blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7",
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "bytes": 959
+    },
+    "tests/detalheanime.c": {
+      "blob": "cfee589b06ba26c3e14e4a85b717bd141a30c0f3",
+      "sha256": "4aeeac5c44e7d967a90b28eff240e171ca2ec47ff3721d3196e2455093450062",
+      "bytes": 67964
+    },
+    "tests/detalheanime.sh": {
+      "blob": "205c75aa98d69a891b61ccec3ea22d818367eac7",
+      "sha256": "40365e16ba612024fe33632c798e8762adef145ea640482085d37669dd315d76",
+      "bytes": 766
+    },
+    "tests/title_identity524.c": {
+      "blob": "f5b4f75077974c68acecddb39fecaeeb67adb2e0",
+      "sha256": "e712f4dae4cd0423cc934d8c67a7613f7031fee43163f8f13d3828ca75f788f3",
+      "bytes": 9146
+    },
+    "tests/title_identity524.sh": {
+      "blob": "60318489d18a409a90c27d36a0112add93d38320",
+      "sha256": "d691826e28255e68da168d887915d56dca771725aaf0384baef0422369d47b7b",
+      "bytes": 1299
+    }
+  },
+  "group_count": 4,
+  "scenarios": [
+    "tmdb-tv",
+    "episode-id",
+    "movie-control",
+    "known-series-control",
+    "uncertain-detail-control",
+    "tmdb-series-alias",
+    "tmdb-show-alias",
+    "cached-opposite-movie",
+    "cached-opposite-series",
+    "cached-uncertain",
+    "cached-channel",
+    "cached-show-control",
+    "opposite-response-type",
+    "different-response-id",
+    "missing-series-no-movie",
+    "context-reset",
+    "malformed-episode-control"
+  ]
+}

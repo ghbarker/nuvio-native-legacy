@@ -1,0 +1,32 @@
+name: Typed title identity 524 positive validation
+on:
+  push:
+    branches: [review/title-identity524-positive-20261016]
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: ${{ true }}
+    name: All 17 typed lookup scenarios and inherited metadata controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      IDENTITY524_POSITIVE_PLAN_SHA256: '0659ef0bde49d954ad1cddfbb790b25c6eaa3b908fbbf4ca906969b4cfa47b88'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Install host compiler and Linux SDL headers
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends clang libsdl2-dev pkg-config
+      - name: Actual public scripts with source-bound compiler and execution receipts
+        run: python3 .review/identity524-positive/run.py --output "$RUNNER_TEMP/title-identity524-positive"
+      - name: Preserve all normal and sanitizer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity524-positive-${{ github.sha }}-attempt${{ github.run_attempt }}
+          path: ${{ runner.temp }}/title-identity524-positive
+          if-no-files-found: error
+          retention-days: 14
