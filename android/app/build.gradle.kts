@@ -137,5 +137,6 @@ dependencies {
         implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
     }
     implementation("androidx.core:core-ktx:1.13.1")
+    testImplementation("junit:junit:4.13.2")
 }
 
