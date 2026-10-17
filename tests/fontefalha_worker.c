@@ -471,9 +471,17 @@ static void canalIgnoraFiltros(const char *dir) {
   stream_folha_canal(0);
   assert(stream_resolver_escolhida(0, generation, url, sizeof url, service, sizeof service, &pct) == 0);
   stream_folha_canal(1);
+  stream_filtro_tipo("custom-live-resource");
+  stream_definir_lista(&live, 1); generation = stream_lista_geracao();
   assert(stream_resolver_escolhida(0, generation, url, sizeof url, service, sizeof service, &pct) == 1);
   assert(!strcmp(url, live.url) && !nManual && !nPedidos && !nHttp);
+  FonteFiltroDados retained;
+  stream_filtro_dados(stream_item(0), &retained);
+  assert(retained.naoVod);
   stream_folha_canal(0);
+  stream_filtro_tipo("movie");
+  assert(fontefiltro_permite(&blocked, &retained));
+  stream_definir_lista(&live, 1); generation = stream_lista_geracao();
   assert(stream_resolver_escolhida(0, generation, url, sizeof url, service, sizeof service, &pct) == 0);
   assert(fontefalha_filtro_definir(&previous));
 }

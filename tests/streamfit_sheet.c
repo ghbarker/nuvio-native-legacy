@@ -160,6 +160,8 @@ static void liveTvActions(void) {
   assert(n > 0);
   sourceMp4 = lista[0].mp4; sourceOutsideCache = lista[0].foraCache;
   stream_folha_canal(1);
+  stream_filtro_tipo("arbitrary-live-resource");
+  stream_definir_lista(lista, n);
   assert(stream_filtro_permite(&lista[0]) && !stream_filtro_bloqueou());
   soMp4 = soCache = soDub = 1;
   assert(nBotoes() == 2);
@@ -171,8 +173,25 @@ static void liveTvActions(void) {
   assert(passaChips(0));
   assert(stream_automatico_canal() >= 0);
   stream_folha_canal(0);
+  stream_filtro_tipo("movie");
+  stream_definir_lista(lista, n);
   assert(!stream_filtro_permite(&lista[0]) && stream_filtro_bloqueou());
   assert(!passaChips(0));
+  // A movie-labelled live addon bypasses every exclusion and quick chip;
+  // another addon in the same list remains filtered.
+  char key[FONTEFALHA_CHAVE];
+  fontefalha_addon_chave("https://live.invalid/manifest.json", key, sizeof key);
+  snprintf(lista[0].addonChave, sizeof lista[0].addonChave, "%s", key);
+  assert(fontefalha_addon_definir_ao_vivo(key, 1));
+  stream_filtro_atualizar();
+  assert(stream_filtro_permite(&lista[0]) && passaChips(0));
+  if (n > 1) assert(!stream_filtro_permite(&lista[1]) && !passaChips(1));
+  stream_definir_lista(lista, n);
+  assert(stream_filtro_permite(&lista[0]) && !stream_filtro_bloqueou());
+  assert(fontefalha_addon_definir_ao_vivo(key, 0));
+  stream_filtro_atualizar();
+  assert(!stream_filtro_permite(&lista[0]) && !passaChips(0));
+  lista[0].addonChave[0] = 0;
   assert(fontefalha_filtro_definir(&original));
   snprintf(path, sizeof path, "%s/fontefalha.txt", dir); assert(!unlink(path));
   assert(!rmdir(dir)); fontefalha_dir("");
