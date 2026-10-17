@@ -517,3 +517,16 @@ int fontefiltro_permite(const FonteFiltroConfig *cfg, const FonteFiltroDados *d)
   }
   return 1;
 }
+
+int fontefiltro_renovacao_permite(const FonteFiltroConfig *cfg,
+                                  const FonteFiltroDados *selecionado,
+                                  const FonteFiltroDados *atual) {
+  FonteFiltroDados dados;
+  if (!selecionado) return 0;
+  dados = atual ? *atual : *selecionado;
+  // Cache is a property learned while resolving. Renewal preserves the state
+  // that made this exact winner eligible instead of treating confirmation by
+  // another debrid as a new candidate-selection decision.
+  dados.cache = selecionado->cache;
+  return fontefiltro_permite(cfg, &dados);
+}

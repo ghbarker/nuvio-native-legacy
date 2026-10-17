@@ -2327,6 +2327,8 @@ struct StreamPreparo {
   int n, nc, teto, falhaAtiva;
   FonteFalhaSessao *politica;
   FonteFiltroConfig filtro;
+  FonteFiltroDados filtroVencedor;
+  int indiceVencedor;
   DebridContexto debrid;
   uint64_t configuracao;
   uint64_t sessaoPerfil;
@@ -2422,6 +2424,7 @@ StreamPreparo *stream_preparo_criar_alvo(const Stream *fontes, int total, int pr
   int pref = -1;
   unsigned disponiveis = 0;
   if (!p) return NULL;
+  p->indiceVencedor = -1;
   p->sessaoPerfil = nv_perfil_sessao_ler();
   if (!nv_perfil_sessao_atual(p->sessaoPerfil)) goto erro;
   p->fontes = malloc((size_t)total * sizeof *p->fontes);
@@ -2534,6 +2537,8 @@ int stream_preparo_resolver(StreamPreparo *p, int (*cancelado)(void *), void *ct
     fonte->debridServico = r.servico + 1; fonte->urlP2P = 0;
     if (s->infoHash[0]) cacheConfirmar(fonte);
     p->fontes[r.indice] = *fonte;
+    p->indiceVencedor = r.indice;
+    p->filtroVencedor = p->candidatas[r.candidata].filtro;
     if (indice) *indice = r.indice;
     if (politica && p->falhaAtiva) { *politica = p->politica; p->politica = NULL; }
     resultado = 1; break;
@@ -2548,7 +2553,10 @@ int stream_preparo_renovar(StreamPreparo *p, int indice, int (*cancelado)(void *
   if (!p || !p->fontes || !fonte || indice < 0 || indice >= p->n ||
       !nv_perfil_sessao_atual(p->sessaoPerfil) || (cancelado && cancelado(ctx))) return 0;
   const Stream *s = &p->fontes[indice];
-  if (!filtroPermiteStream(&p->filtro, s)) return 0;
+  FonteFiltroDados filtroAtual;
+  stream_filtro_dados(s, &filtroAtual);
+  if (indice != p->indiceVencedor ||
+      !fontefiltro_renovacao_permite(&p->filtro, &p->filtroVencedor, &filtroAtual)) return 0;
   char url[4096] = "", fim[4096], mime[96] = "";
   int ok = 0, fora = 0;
   long corpo = -1;
