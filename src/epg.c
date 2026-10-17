@@ -552,9 +552,9 @@ static char (*filtroIds)[64];
 static int nFiltroIds;
 static int cmpId(const void *a, const void *b) { return strcmp((const char *)a, (const char *)b); }
 
-static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro);
-static int wProcessar(EpgGrade *g, char *xml) { return wProcessarF(g, xml, NULL, 0); }
-static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro) {
+static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro, int *perdas);
+static int wProcessar(EpgGrade *g, char *xml) { return wProcessarF(g, xml, NULL, 0, NULL); }
+static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro, int *perdas) {
   char *p = xml, *fecha;
   int n = 0, descartados = 0;
   time_t agora = time(NULL);
@@ -635,7 +635,8 @@ static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro) 
     }
     p = fecha + 12;
   }
-  if (descartados) {
+  if (perdas) *perdas += descartados;
+  if (descartados && !perdas) {
     // Bateu no teto (EPG_EVS_MAX/EPG_ARENA_MAX) ou faltou memoria. Uma linha,
     // nao uma por programa: o sintoma no guia e "grade acaba antes do fim".
     printf("[epg] %d programas descartados: teto de memoria da grade\n", descartados);
@@ -865,15 +866,15 @@ int epg_pais_existe(const char *pais) {
 // A URL LEVA USUARIO E SENHA: nunca sai em log, e no disco fica so um hash
 // dela (para saber se o cache e desta fonte), nunca ela.
 //
-// TAMANHO: um provedor grande entrega dezenas de MB. Acima do teto a grade e
-// ignorada com uma linha de log — melhor sem grade do provedor que o app
-// fechando por memoria (no Tizen o heap inteiro e 256 MiB).
+// TAMANHO: limita os bytes comprimidos em memoria. O teto de fluxo limita
+// o trabalho de descompressao, nao uma alocacao: o XML passa por uma janela
+// de 256 KiB, inclusive no Tizen cujo heap inteiro e 256 MiB.
 #ifdef __EMSCRIPTEN__
 #define EPG_EXTRA_TETO_REDE (12L << 20)
-#define EPG_EXTRA_TETO_XML  (48L << 20)
+#define EPG_EXTRA_TETO_FLUXO (256L << 20)
 #else
 #define EPG_EXTRA_TETO_REDE (32L << 20)
-#define EPG_EXTRA_TETO_XML  (128L << 20)
+#define EPG_EXTRA_TETO_FLUXO (512L << 20)
 #endif
 static char extraUrl[1100], m3uUrl[1100];
 static int soProvedores;
@@ -885,31 +886,24 @@ static void hashUrl(const char *u, char *dst, size_t tam) {
   snprintf(dst, tam, "%016llx", h);
 }
 
-// Bytes da rede (gzip ou XML puro, o xmltv.php manda os dois conforme o
-// painel) -> XML terminado em NUL, ou NULL.
-static char *abrirExtra(const char *b, long n, long *nOut) {
-  char *xml;
-  if (n > 2 && (unsigned char)b[0] == 0x1f && (unsigned char)b[1] == 0x8b) {
-    xml = desgzip(b, n, nOut, EPG_EXTRA_TETO_XML);
-    if (xml) { char *c = realloc(xml, (size_t)*nOut + 1);
-               if (!c) { free(xml); return NULL; }
-               xml = c; xml[*nOut] = 0; }
-  } else {
-    xml = malloc((size_t)n + 1);
-    if (xml) { memcpy(xml, b, (size_t)n); xml[n] = 0; *nOut = n; }
+// O provedor pode entregar 26 MB de gzip que viram 162 MB de XML. A janela
+// abaixo guarda no maximo um registro; nunca aloca o XML descomprimido inteiro.
+// A primeira passagem valida gzip/raiz/fim antes de tocar na grade; a segunda
+// aplica os mesmos filtros e limites de canais/programas do parser existente.
+#include "epg_xmltv.inc"
+
+static char *extraGuardada(const char *bin, const char *chave, const char *id, long *n) {
+  char *dono = dados_ler(chave), *b = NULL;
+  if (dono && !strcmp(dono, id)) {
+    b = lerBin(bin, n);
+    if (b && !xmltvExtra(b, *n, NULL, NULL, 0, NULL, NULL)) { free(b); b = NULL; }
   }
-  if (!xml) return NULL;
-  { long k = 0;                                 // BOM e espaco antes do '<'
-    while (k < *nOut && k < 64 && xml[k] != '<') k++;
-    if (k >= *nOut || xml[k] != '<') { free(xml); return NULL; }
-    if (k) { memmove(xml, xml + k, (size_t)(*nOut - k) + 1); *nOut -= k; } }
-  const char *tv=strstr(xml,"<tv");
-  if(!tv || (tv[3]!='>' && tv[3]!='/' && !isspace((unsigned char)tv[3]))) {free(xml);return NULL;}
-  return xml;
+  free(dono);
+  return b;
 }
 
 static char *obterExtraNome(const char *url, long *nOut, int m3u) {
-  char id[24], *b, *xml, *velho;
+  char id[24], *b, *velho;
   char nBin[48], nTs[48], nId[48];
   long n = 0;
   RedeControle ctl;
@@ -925,18 +919,20 @@ static char *obterExtraNome(const char *url, long *nOut, int m3u) {
     velho = dados_ler("epg-extra.id");
     if (velho && !strcmp(velho, id) && arquivoIdade("epg-extra.ts") < EPG_CACHE_SEG) {
       b = lerBin("epg-extra.bin", &n);
-      xml = b ? abrirExtra(b, n, nOut) : NULL;
-      if (xml && gravarBin(nBin, nTs, b, n)) dados_gravar_leve(nId, id);
+      if (b && xmltvExtra(b, n, NULL, NULL, 0, NULL, NULL)) {
+        if (gravarBin(nBin, nTs, b, n)) dados_gravar_leve(nId, id);
+        *nOut = n; free(velho); return b;
+      }
       free(b);
-      if (xml) { free(velho); return xml; }
     }
     free(velho); velho = NULL;
   }
   if (velho && !strcmp(velho, id) && arquivoIdade(nTs) < EPG_CACHE_SEG) {
     b = lerBin(nBin, &n);
-    xml = b ? abrirExtra(b, n, nOut) : NULL;
+    if (b && xmltvExtra(b, n, NULL, NULL, 0, NULL, NULL)) {
+      *nOut = n; free(velho); return b;
+    }
     free(b);
-    if (xml) { free(velho); return xml; }
   }
   free(velho);
   memset(&ctl, 0, sizeof ctl);
@@ -944,7 +940,7 @@ static char *obterExtraNome(const char *url, long *nOut, int m3u) {
   ctl.max_bytes = EPG_EXTRA_TETO_REDE;
   ctl.cancelado = &carga.cancelada;
   if (!cargaAtual()) return NULL;
-  b = rede_baixar_bin_medido_controle(url, 30, NULL, &ctl, &n, &med);
+  b = rede_baixar_bin_medido_controle(url, 60, NULL, &ctl, &n, &med);
   if (!b || med.limitado || med.status >= 400) {
     // O teto vai no log (#158): "maior que o teto" sem o numero nao dizia se
     // faltava pouco ou muito. No registro 6311 foi esta linha, e dali para a
@@ -957,19 +953,20 @@ static char *obterExtraNome(const char *url, long *nOut, int m3u) {
     if (med.status && med.status != 200) printf("[epg] grade do provedor: HTTP %d\n", med.status);
     fflush(stdout);
     free(b);
-    velho=dados_ler(nId);
-    if (velho && !strcmp(velho,id)) {
-      b=lerBin(nBin,&n);xml=b?abrirExtra(b,n,nOut):NULL;free(b);free(velho);return xml;
-    }
-    free(velho);return NULL;
+    return extraGuardada(nBin, nId, id, nOut);
   }
-  xml = abrirExtra(b, n, nOut);
-  // O nome pertence ao dono capturado ao iniciar: nunca ao perfil que
-  // acabou de abrir enquanto este download ainda esperava a rede.
-  if (xml && gravarBin(nBin, nTs, b, n)) dados_gravar_leve(nId, id);
-  if (!xml) { printf("[epg] grade do provedor: %ld B que nao sao XMLTV\n", n); fflush(stdout); }
-  free(b);
-  return xml;
+  const char *erro = NULL;
+  if (!xmltvExtra(b, n, NULL, NULL, 0, NULL, &erro)) {
+    printf("[epg] grade do provedor: %ld B, %s\n", n, erro ? erro : "XMLTV invalido");
+    fflush(stdout);
+    free(b);
+    // HTML, gzip truncado e outros corpos invalidos tambem preservam o cache.
+    return extraGuardada(nBin, nId, id, nOut);
+  }
+  // O cache conserva os bytes da rede, ainda comprimidos, com o dono capturado.
+  if (gravarBin(nBin, nTs, b, n)) dados_gravar_leve(nId, id);
+  *nOut = n;
+  return b;
 }
 
 static char *obterExtra(const char *url,long *nOut) { return obterExtraNome(url,nOut,0); }
@@ -1039,18 +1036,26 @@ static void *fioEpg(void *u) {
   if (!cargaAtual() || !wAbrir(&W)) goto fim;
   if (cargaAtual() && carga.extra[0]) {
     long n = 0;
-    char *xml = obterExtra(carga.extra, &n);
-    if (xml) {
-      int achou = cargaAtual() ? wProcessarF(&W, xml, carga.filtro, carga.nFiltro) : 0;
+    char *corpo = obterExtra(carga.extra, &n);
+    if (corpo) {
+      int achou = 0;
+      int valido = cargaAtual() && xmltvExtra(corpo, n, &W, carga.filtro, carga.nFiltro, &achou, NULL);
       printf("[epg] grade do provedor: %d programas (%ld KB)\n", achou, n / 1024);
       fflush(stdout);
-      free(xml);
-      ok = 1;
+      free(corpo);
+      if (valido) ok = 1;
     }
   }
   if (cargaAtual() && carga.m3u[0] && strcmp(carga.m3u,carga.extra)) {
-    long n=0;char *xml=obterExtraNome(carga.m3u,&n,1);
-    if(xml){if(cargaAtual())wProcessarF(&W,xml,carga.filtro,carga.nFiltro);free(xml);ok=1;}
+    long n=0;char *corpo=obterExtraNome(carga.m3u,&n,1);
+    if (corpo) {
+      int achou = 0;
+      if (cargaAtual() && xmltvExtra(corpo, n, &W, carga.filtro, carga.nFiltro, &achou, NULL)) {
+        printf("[epg] grade M3U: %d programas (%ld KB da rede)\n", achou, n / 1024);
+        fflush(stdout); ok = 1;
+      }
+      free(corpo);
+    }
   }
   for (i = 0; !carga.soProvedores && cargaAtual() && i < carga.nArq; i++) {
     long n = 0;
