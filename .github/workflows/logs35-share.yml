@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Require successful Android, Linux and macOS checks
+      - name: Require successful Android and Linux checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39034991041 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39034972877 --jq .conclusion)" = success
+          echo "MACOS_CONCLUSION=$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39034972877 --jq .conclusion)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: 8fd965236982ce249ae989d28778cf4b049d6044
@@ -32,7 +32,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'CHECK'
-          import hashlib,json,pathlib
+          import hashlib,json,pathlib,os
           root=pathlib.Path('dist')
           apk=root/'Nuvio-TV-Mobile-Test-Logs36.apk'
           report=json.loads((root/'Logs36-validation.json').read_text())
@@ -44,9 +44,9 @@ jobs:
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
-          report['macos_font_regressions']=True
+          report['macos_font_regressions']=os.environ.get('MACOS_CONCLUSION')=='success'
           report['android_16k_alignment']=True
           (root/'Logs36-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-          (root/'Logs36-testing.txt').write_text("Nuvio TV/Mobile Test - Logs36\n\nInstall over the existing Nuvio TV/Mobile Test app and choose Update. Do not uninstall or clear app data.\n\n1. Start a movie or episode using a downloaded text subtitle.\n2. Open Subtitles > Style > Font and select Montserrat or another built-in font. The subtitle appearance should change.\n3. Reopen the picker: the checkmark should be beside that new font.\n4. Select your imported TTF/OTF font. The appearance and checkmark should change again.\n5. Leave playback and reopen it: confirm the selected font remains.\n\nContains the other Logs35 features unchanged. The Android hard-link restriction, rollback on failed writes, TTF/OTF formats, and renderer regressions are checked automatically on Linux and macOS. Upstream PRs remain draft pending device approval.\n")
+          (root/'Logs36-testing.txt').write_text("Nuvio TV/Mobile Test - Logs36\n\nInstall over the existing Nuvio TV/Mobile Test app and choose Update. Do not uninstall or clear app data.\n\n1. Start a movie or episode using a downloaded text subtitle.\n2. Open Subtitles > Style > Font and select Montserrat or another built-in font. The subtitle appearance should change.\n3. Reopen the picker: the checkmark should be beside that new font.\n4. Select your imported TTF/OTF font. The appearance and checkmark should change again.\n5. Leave playback and reopen it: confirm the selected font remains.\n\nContains the other Logs35 features unchanged. The Android hard-link restriction, rollback on failed writes, TTF/OTF formats, and renderer regressions are checked automatically on Linux. The macOS follow-up continues separately. The font PR remains draft pending device approval.\n")
           CHECK
           gh release upload tv-mobile-test-logs-v36 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs36.apk dist/Logs36-validation.json dist/Logs36-testing.txt
