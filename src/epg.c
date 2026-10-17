@@ -1573,9 +1573,9 @@ void epg_contas_configurar(const EpgContaFonte *fontes, int n) {
           c = epgContas[k];
         }
         if (c) {
+          c->tipo = fontes[i].tipo; c->id = fontes[i].id;
           epgEscopo = c;
           epg_abrir_sessao_local(epgPublico.perfilGrade_);
-          c->tipo = fontes[i].tipo; c->id = fontes[i].id;
           break;
         }
       }
