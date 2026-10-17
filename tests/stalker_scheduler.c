@@ -6,6 +6,7 @@
 // reproduzir uma resposta velha sem depender de rede ou de temporizacao.
 #define SDL_MAIN_HANDLED
 #include "../src/app.c"
+#include "stub_m3u.h"
 
 #include <assert.h>
 #include <errno.h>
