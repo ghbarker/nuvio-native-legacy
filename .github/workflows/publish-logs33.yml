@@ -1,0 +1,48 @@
+name: Publish Logs33 test APK
+
+on:
+  push:
+    branches: [release/logs33-publish-20261017]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download the validated Logs33 artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ghbarker/nuvio-native-legacy
+          run-id: 38992727436
+          name: Nuvio-TV-Mobile-Test-Logs33-71ab09a2a6c35a48d4fe47bf59da0249e7aa0201
+          path: dist
+      - name: Verify validation manifest and APK digest
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path('dist')
+          apk=root/'Nuvio-TV-Mobile-Test-Logs33.apk'
+          report=json.loads((root/'Logs33-validation.json').read_text())
+          assert report['all_passed'] is True
+          assert report['source_commit']=='3e787a78fab50307fb443ba91d6a43ce1ba80903'
+          assert report['source_tree']=='6fed0a21107abb8a67d45dda52a024d333d1319e'
+          assert report['package']=='space.nuvio.nativelegacy.touch'
+          assert report['version_code']==20043
+          assert report['version_name']=='2.0.43-test-logs33'
+          assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          assert apk.stat().st_size==report['apk_bytes']
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
+          PY
+      - name: Publish update APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view tv-mobile-test-logs-v33 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create tv-mobile-test-logs-v33 --repo "$GITHUB_REPOSITORY" --target 3e787a78fab50307fb443ba91d6a43ce1ba80903 --title 'Nuvio TV/Mobile Test — Logs33' --notes 'Private test build: persistent Cache status filter in Settings → Sources and add-ons → Source filters. Install over the existing Nuvio TV/Mobile Test app to retain accounts and settings.'
+          fi
+          gh release upload tv-mobile-test-logs-v33 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs33.apk dist/Logs33-validation.json
