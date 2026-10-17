@@ -98,6 +98,20 @@
         "op": "shot",
         "name": "03-home"
       }
+    ],
+    "x86-4": [
+      {
+        "op": "key",
+        "code": 21
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "04-navigation"
+      }
     ]
   }
 }
