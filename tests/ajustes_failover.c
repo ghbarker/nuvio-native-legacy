@@ -84,16 +84,19 @@ static void limiteRemoto(int op, int servico) {
   const int original = fontefalha_provedor_limite(servico);
   FonteFalhaConfig antes = configuracao();
   char *disco = arquivo();
-  abrir(op); assert(uxEditor == 1 && uxOp == op && uxPendente == original);
+  // Provider limits are child editors of the order sheet, not rows in TELA.
+  // Open the same editor that faAcao dispatches; the sheet-to-editor route is
+  // exercised below in provedores() and limitePorToque().
+  uxAbrirEditor(op); assert(uxEditor == 1 && uxOp == op && uxPendente == original);
   key(SDLK_RIGHT); assert(uxPendente == original + 1);
   igual(&antes); igualArquivo(disco);
   key(SDLK_ESCAPE); assert(!uxEditor); igual(&antes); igualArquivo(disco);
-  abrir(op);
+  uxAbrirEditor(op);
   for (int i = 0; i < 20; i++) key(SDLK_LEFT);
   assert(uxPendente == 1); igual(&antes); igualArquivo(disco); free(disco);
   key(SDLK_RETURN); assert(!uxEditor && fontefalha_provedor_limite(servico) == 1);
   recarregar(); assert(fontefalha_provedor_limite(servico) == 1);
-  abrir(op);
+  uxAbrirEditor(op);
   for (int i = 0; i < 20; i++) key(SDLK_RIGHT);
   assert(uxPendente == 10 && fontefalha_provedor_limite(servico) == 1);
   key(SDLK_RETURN); assert(!uxEditor && fontefalha_provedor_limite(servico) == 10);
@@ -127,6 +130,34 @@ static void provedores(void) {
   key(SDLK_ESCAPE); assert(!frAberta); igual(&salvo);
   recarregar(); igual(&salvo);
   puts("PASS: native limits count 1-10 total links and stay with stable service IDs");
+}
+
+static void filtroCacheRemoto(void) {
+  FonteFiltroConfig cfg = {0};
+  cfg.maxGB = 12;
+  assert(fontefalha_filtro_definir(&cfg));
+  abrir(AJ_FILTROS_FONTES);
+  assert(frAberta == 6 && ffCategoria == -1 && ffFoco == 0);
+  key(SDLK_RETURN);
+  assert(ffCategoria == FF_CACHE && ffValorFoco == FONTEFILTRO_CACHE_TODAS);
+
+  key(SDLK_DOWN); key(SDLK_RETURN);
+  fontefalha_filtro(&cfg);
+  assert(cfg.cache == FONTEFILTRO_CACHE_SIM && cfg.maxGB == 12);
+  fontefalha_config_ler(); fontefalha_filtro(&cfg);
+  assert(frAberta == 6 && ffCategoria == FF_CACHE && cfg.cache == FONTEFILTRO_CACHE_SIM);
+
+  key(SDLK_DOWN); key(SDLK_RETURN);
+  fontefalha_filtro(&cfg);
+  assert(cfg.cache == FONTEFILTRO_CACHE_NAO && cfg.maxGB == 12);
+  key(SDLK_UP); key(SDLK_UP); key(SDLK_RETURN);
+  fontefalha_filtro(&cfg);
+  assert(cfg.cache == FONTEFILTRO_CACHE_TODAS && cfg.maxGB == 12);
+
+  key(SDLK_LEFT); assert(frAberta == 6 && ffCategoria == -1);
+  key(SDLK_ESCAPE); assert(!frAberta);
+  memset(&cfg, 0, sizeof cfg); assert(fontefalha_filtro_definir(&cfg));
+  puts("PASS: cache status is a persistent All/Cached/Uncached source-filter choice");
 }
 
 static AddonRemoto addonsTeste[3];
@@ -286,7 +317,7 @@ int main(void) {
   layout_modo_definir(0); layout_tela_definir(1920, 1080);
   ponteiro_teste_relogio(agora); ponteiro_teste_janela(1920, 1080);
   gfx_opacidade_grupo = 0;
-  independentes(); provedores(); instalarAddons(); addonsPorInstancia(); limitePorToque();
+  independentes(); provedores(); filtroCacheRemoto(); instalarAddons(); addonsPorInstancia(); limitePorToque();
   SDL_Quit();
   return 0;
 }
