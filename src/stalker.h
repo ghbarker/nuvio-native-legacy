@@ -50,6 +50,7 @@ int  stalker_configurado(void);
 // Qualquer um dos tres derruba a sessao em memoria: token e tabela de canais
 // pertencem ao cadastro que os produziu.
 int stalker_definir_portal(const char *portal);
+int stalker_conta_definir(const char *portal,const char *mac);
 void stalker_definir_mac(const char *mac);
 // Opcionais: a maioria dos portais nao confere, e os que conferem pedem
 // exatamente estes dois campos.

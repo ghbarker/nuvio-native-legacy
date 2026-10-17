@@ -93,26 +93,29 @@ int m3u_url_valida(const char *s) {
   if(strlen(s)>=sizeof lista||strpbrk(s,"\r\n\t "))return 0;
   return !strncmp(s,"http://",7)||!strncmp(s,"https://",8);
 }
-static int definir(const char *url,int grade) {
-  if(!m3u_url_valida(url))return 0;
+static int definir(const char *url,const char *grade) {
+  if((url && !m3u_url_valida(url)) || (grade && !m3u_url_valida(grade)))return 0;
   pthread_mutex_lock(&trava);carregar();
   char body[2300],nome[64];nomeConfig(nome,sizeof nome,perfil);
-  snprintf(body,sizeof body,"lista\t%s\nepg\t%s\n",grade?lista:url,grade?url:epg);
+  snprintf(body,sizeof body,"lista\t%s\nepg\t%s\n",url?url:lista,grade?grade:epg);
   int atual=nv_perfil_sessao_travar(sessaoLida);
   int ok=atual && dados_gravar(nome,body);
   if(ok){
     limparEpg(perfil);
-    if (!grade && lista[0] && strcmp(lista,url)) {
+    if (url && lista[0] && strcmp(lista,url)) {
       char cache[96];nomeCache(cache,sizeof cache,perfil,lista);
       dados_apagar(cache);
     }
-    snprintf(grade?epg:lista,sizeof lista,"%s",url);invalidar();
+    if(url)snprintf(lista,sizeof lista,"%s",url);
+    if(grade)snprintf(epg,sizeof epg,"%s",grade);
+    invalidar();
   }
   if(atual)nv_perfil_sessao_destravar();
   pthread_mutex_unlock(&trava);return ok;
 }
-int m3u_definir_lista(const char *s){return definir(s,0);}
-int m3u_definir_epg(const char *s){return definir(s,1);}
+int m3u_definir_lista(const char *s){return s?definir(s,NULL):0;}
+int m3u_definir_epg(const char *s){return s?definir(NULL,s):0;}
+int m3u_conta_definir(const char *s,const char *e){return s && *s && e?definir(s,e):0;}
 void m3u_esquecer(void) {
   pthread_mutex_lock(&trava);carregar();
   if (nv_perfil_sessao_travar(sessaoLida)) {

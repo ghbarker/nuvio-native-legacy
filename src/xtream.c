@@ -146,6 +146,20 @@ int xtream_definir_servidor(const char *s) {
   pthread_mutex_unlock(&trava);
   return ok;
 }
+int xtream_conta_definir(const char *s,const char *u,const char *p) {
+  if(!s || strlen(s)>=sizeof servidor || strpbrk(s,"\r\n\t") || !u || !*u || !p || !*p || strlen(u)>=sizeof usuario || strlen(p)>=sizeof senha ||
+     strpbrk(u,"\r\n\t") || strpbrk(p,"\r\n\t"))return 0;
+  char normal[sizeof servidor];normalizarServidor(s,normal,sizeof normal);if(!normal[0])return 0;
+  pthread_mutex_lock(&trava);carregarTravado();
+  char antigoS[sizeof servidor],antigoU[sizeof usuario],antigoP[sizeof senha];
+  memcpy(antigoS,servidor,sizeof antigoS);memcpy(antigoU,usuario,sizeof antigoU);memcpy(antigoP,senha,sizeof antigoP);
+  snprintf(servidor,sizeof servidor,"%s",normal);snprintf(usuario,sizeof usuario,"%s",u);snprintf(senha,sizeof senha,"%s",p);
+  int atual=nv_perfil_sessao_travar(sessaoLida),ok=atual && gravar();
+  if(atual)nv_perfil_sessao_destravar();
+  if(!ok) { memcpy(servidor,antigoS,sizeof antigoS);memcpy(usuario,antigoU,sizeof antigoU);memcpy(senha,antigoP,sizeof antigoP); }
+  else { memset(&conta,0,sizeof conta);formatoOk=-1; }
+  memset(antigoP,0,sizeof antigoP);pthread_mutex_unlock(&trava);return ok;
+}
 void xtream_definir_usuario(const char *u) {
   pthread_mutex_lock(&trava);
   carregarTravado();

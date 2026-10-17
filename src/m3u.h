@@ -13,6 +13,7 @@ const char *m3u_lista(void);
 const char *m3u_epg(void);
 int m3u_definir_lista(const char *url);
 int m3u_definir_epg(const char *url);
+int m3u_conta_definir(const char *lista,const char *epg);
 int m3u_url_valida(const char *url);
 void m3u_esquecer(void);
 void m3u_esquecer_todos(void);

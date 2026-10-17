@@ -115,7 +115,76 @@ static void uxAbrirEditor(int op) {
   uxCancelar();
   uxOp = op; uxOriginal = uxValorAtual(op); uxPendente = uxOriginal;
   if(op==AJ_IPTV_CONTA || ajIptvGerenciador(op))iptvListaSessao=nv_perfil_sessao_ler();
+  if(ajIptvGerenciador(op))iptvTipoPagina=ajIptvTipo(op);
   uxEditor = inativa(op) ? 2 : 1;
+}
+// The generic choice page supplies the provider list, account actions and
+// delete confirmation. A new account uses the normal Settings field controls.
+static int ajIptvSelecionarAlvo(void) {
+  if(!nv_perfil_sessao_atual(iptvAlvoSessao))return 0;
+  IptvConta cs[IPTV_MAX_CONTAS];int n=iptv_contas(cs,IPTV_MAX_CONTAS);
+  for(int i=0;i<n;i++)if(cs[i].id==iptvAlvo.id && cs[i].tipo==iptvAlvo.tipo) {
+    if(iptv_conta_indice()!=i && !iptv_conta_selecionar(i))return 0;
+    ajIptvEspelhar();return 1;
+  }
+  return 0;
+}
+static void ajIptvListaAbrir(int tipo) {
+  ajIptvLimparForm();
+  int op=AJ_IPTV_LISTA_XTREAM+tipo-IPTV_XTREAM;
+  focarOpcao(op);scrollY=velY=0;
+  uxAbrirEditor(op);
+}
+static void ajIptvNovaAbrir(int op) {
+  int tipo=ajIptvTipo(op);
+  if(iptv_contas(NULL,0)>=IPTV_MAX_CONTAS) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
+  uxCancelar();ajIptvLimparForm();
+  iptvForm.tipo=tipo;iptvForm.nova=iptvForm.ativa=1;
+  iptvForm.sessao=nv_perfil_sessao_ler();
+  iptvTipoPagina=tipo;valor[AJ_IPTV_ATIVA]=0;
+  focarOpcao(ajIptvPrimeiroCampo(tipo));scrollY=velY=0;
+}
+static void ajIptvVoltar(void) {
+  int op=uxEditor?uxOp:-1;
+  uxCancelar();
+  if(op==AJ_IPTV_EXCLUIR) { uxAbrirEditor(AJ_IPTV_ACOES);return; }
+  if(op==AJ_IPTV_ACOES) { ajIptvListaAbrir(iptvTipoPagina);return; }
+  if(ajIptvGerenciador(op)) { iptvTipoPagina=0;return; }
+  // A field's own editor closes first; Back from the form leaves the form.
+  if(op>=0 || !iptvForm.tipo)return;
+  int tipo=iptvForm.tipo,nova=iptvForm.nova;
+  ajIptvLimparForm();teclado_esquecer();
+  if(nova)ajIptvListaAbrir(tipo);
+  else if(ajIptvSelecionarAlvo())uxAbrirEditor(AJ_IPTV_ACOES);
+  else ajIptvListaAbrir(tipo);
+}
+static void ajIptvEsquecer(const IptvConta *c) {
+  if(c->tipo==IPTV_XTREAM)xtream_fonte_esquecer(c->id);
+  else if(c->tipo==IPTV_M3U)m3u_fonte_esquecer(c->id);
+  else stalker_fonte_esquecer(c->id);
+}
+static void ajIptvSalvar(void) {
+  if(!iptvForm.tipo || !iptvForm.nova || !nv_perfil_sessao_atual(iptvForm.sessao))return;
+  int tipo=iptvForm.tipo,anterior=iptv_conta_indice(),ok;
+  if((tipo==IPTV_XTREAM && (!iptvForm.servidor[0] || !iptvForm.usuario[0] || !iptvForm.senha[0])) ||
+     (tipo==IPTV_STALKER && (!iptvForm.servidor[0] || strlen(iptvForm.mac)!=17)) ||
+     (tipo==IPTV_M3U && (!iptvForm.url[0] || !m3u_url_valida(iptvForm.url) ||
+                        (iptvForm.epg[0] && !m3u_url_valida(iptvForm.epg))))) {
+    uxNotificar("Não foi possível agora. Tente novamente.");return;
+  }
+  if(!iptv_conta_adicionar(tipo)) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
+  ajIptvEspelhar();
+  ok=tipo==IPTV_XTREAM?xtream_conta_definir(iptvForm.servidor,iptvForm.usuario,iptvForm.senha):
+     tipo==IPTV_M3U?m3u_conta_definir(iptvForm.url,iptvForm.epg):stalker_conta_definir(iptvForm.servidor,iptvForm.mac);
+  if(ok && iptvForm.nome[0])ok=iptv_conta_renomear(iptvForm.nome);
+  if(ok && !iptvForm.ativa)ok=iptv_conta_ativar(0);
+  if(!ok) {
+    IptvConta c;
+    if(iptv_conta_remover(&c)) { ajIptvEsquecer(&c);iptv_conta_selecionar(anterior); }
+    ajIptvEspelhar();uxNotificar("Não foi possível salvar. O valor anterior foi mantido.");return;
+  }
+  ajIptvEspelhar();guia_recarregar(1);registro_aviso_legal();
+  ajIptvListaAbrir(tipo);uxNotificar("Ajuste salvo nesta TV.");
 }
 static int uxRiscoFinal(int op, int novo) {
   if (op == AJ_FIL_LIMITE && fil_limite_pede_aviso(uxValorAtual(op), novo))
@@ -126,9 +195,24 @@ static int uxRiscoFinal(int op, int novo) {
 static void uxAplicar(void) {
   if(ajIptvGerenciador(uxOp)) {
     if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
-    int tipo=ajIptvTipo(uxOp),i=ajIptvDoTipo(tipo,uxPendente);
-    if(i<0 || !iptv_conta_selecionar(i)) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
-    uxCancelar();ajIptvEspelhar();focarOpcao(ajIptvPrimeiroCampo(tipo));return;
+    int tipo=ajIptvTipo(uxOp),n=ajIptvQuantos(tipo),i=ajIptvDoTipo(tipo,uxPendente);
+    if(uxPendente==(n?n:1)) { ajIptvNovaAbrir(AJ_IPTV_ADD_XTREAM+tipo-IPTV_XTREAM);return; }
+    if(i<0)return; // None is informational.
+    if(!iptv_conta_selecionar(i)) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
+    iptv_conta_selecionada(&iptvAlvo);iptvAlvoSessao=iptvListaSessao;
+    ajIptvEspelhar();uxAbrirEditor(AJ_IPTV_ACOES);return;
+  }
+  if(uxOp==AJ_IPTV_ACOES || uxOp==AJ_IPTV_EXCLUIR) {
+    if(!ajIptvSelecionarAlvo()) { uxCancelar();return; }
+    if(uxOp==AJ_IPTV_ACOES) {
+      if(uxPendente==1) { uxAbrirEditor(AJ_IPTV_EXCLUIR);return; }
+      uxCancelar();ajIptvLimparForm();iptvForm.tipo=iptvAlvo.tipo;iptvForm.sessao=iptvAlvoSessao;
+      focarOpcao(AJ_IPTV_NOME);scrollY=velY=0;return;
+    }
+    if(!uxPendente) { uxAbrirEditor(AJ_IPTV_ACOES);return; }
+    IptvConta c;
+    if(!iptv_conta_remover(&c)) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
+    ajIptvEsquecer(&c);ajIptvEspelhar();guia_recarregar(1);ajIptvListaAbrir(c.tipo);return;
   }
   if(uxOp==AJ_IPTV_CONTA && !nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
   int antes = uxValorAtual(uxOp), bit;
@@ -192,7 +276,7 @@ static int uxEvento(SDL_Keycode k) {
   if (uxEditor) {
     if (uxVoltar(k)) {
       if (uxRestaurar || uxAvisoRisco) { uxRestaurar = uxAvisoRisco = uxConfirmar = 0; }
-      else uxCancelar();
+      else ajIptvVoltar();
       return 1;
     }
     if (uxRestaurar || uxAvisoRisco) {
@@ -262,6 +346,7 @@ static int uxEvento(SDL_Keycode k) {
     }
     return 1;
   }
+  if(iptvForm.tipo && uxVoltar(k)) { ajIptvVoltar();return 1; }
   if (uxVoltar(k) && uxVeioBusca && uxRetornarOp < 0) {
     uxPediuBusca = 2; uxVeioBusca = 0; return 1;
   }

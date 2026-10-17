@@ -449,7 +449,7 @@ static const char *ajRotSeg(int op, int i) {
 static float aj2SegLargura(int op, int n);
 static int ajSegmentada(int op) {
   int n;
-  if (op < 0 || ajTipo(op) != AJL_ESC || op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2 || op == AJ_FUNDO ||
+  if (op < 0 || ajIptvMenu(op) || ajTipo(op) != AJL_ESC || op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2 || op == AJ_FUNDO ||
       op == AJ_INTERFACE_MODO /* o seletor com alvos proprios permite sair de TV usando so o toque */ ||
       op == AJ_LOGO_APP /* abre o seletor com miniaturas de 64 px, como o icone do app */) return 0;
   n = nValores(op);
@@ -480,7 +480,7 @@ static void ajToqueConfirmar(int a, int b) {
   (void)a; (void)b;
   if (uxEditor == 1 && !uxRestaurar && !uxAvisoRisco) { uxRodape = 0; uxAplicar(); }
 }
-static void ajToqueCancelar(int a, int b) { (void)a; (void)b; if (uxEditor) uxCancelar(); }
+static void ajToqueCancelar(int a, int b) { (void)a; (void)b; if (uxEditor) ajIptvVoltar(); }
 static void ajToqueEscolhaAlvo(GfxRect r, int v, int op, float topo, float base) {
   if (ajTelaCheia() && ajPontInline && ajEditandoLinha(op))
     ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, NULL, ajToqueInlineValor, v, op);

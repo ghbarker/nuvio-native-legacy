@@ -206,6 +206,21 @@ int stalker_definir_portal(const char *p) {
   if(ok) { pthread_mutex_lock(&travaTabela); nTabela = 0; pthread_mutex_unlock(&travaTabela); }
   return ok;
 }
+int stalker_conta_definir(const char *p,const char *m) {
+  if(!p || strlen(p)>=sizeof portal || strpbrk(p,"\r\n\t") || !m || strlen(m)!=17)return 0;
+  for(int i=0;i<17;i++)if(i%3==2?m[i]!=':':!((m[i]>='0' && m[i]<='9') || (m[i]>='a' && m[i]<='f') || (m[i]>='A' && m[i]<='F')))return 0;
+  char normal[sizeof portal];normalizarPortal(p,normal,sizeof normal);if(!strcmp(normal,"http://"))return 0;
+  pthread_mutex_lock(&travaSessao);carregarTravado();
+  char antigoP[sizeof portal],antigoM[sizeof mac];memcpy(antigoP,portal,sizeof antigoP);memcpy(antigoM,mac,sizeof antigoM);
+  snprintf(portal,sizeof portal,"%s",normal);snprintf(mac,sizeof mac,"%s",m);
+  int atual=nv_perfil_sessao_travar(sessaoLida),ok=atual && gravar();
+  if(atual)nv_perfil_sessao_destravar();
+  if(!ok) { memcpy(portal,antigoP,sizeof antigoP);memcpy(mac,antigoM,sizeof antigoM); }
+  else limparSessao();
+  memset(antigoM,0,sizeof antigoM);pthread_mutex_unlock(&travaSessao);
+  if(ok) { pthread_mutex_lock(&travaTabela);nTabela=0;pthread_mutex_unlock(&travaTabela); }
+  return ok;
+}
 
 void stalker_definir_mac(const char *m) {
   pthread_mutex_lock(&travaSessao);

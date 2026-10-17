@@ -318,3 +318,4 @@
 
   0, 0, 0, 0, 0, 0, 0, /* native Live TV account registry views/actions */
   0, 0, 0, /* saved accounts by provider type */
+  0, 0, 0, 0, /* account actions, confirmation, Save and Cancel */

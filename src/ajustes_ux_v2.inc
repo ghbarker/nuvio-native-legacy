@@ -1218,6 +1218,10 @@ static void aj2DesenharPagina(float t) {
     nome = aj2ChipRotulo(1); ic = "aj_rotate-ccw-clock"; kick = "Ajustes";
     snprintf(vb, sizeof vb, "%d", uxNDifs); q[0] = 0;
   }
+  if(iptvForm.tipo && sec==AJS_TVAOVIVO) {
+    nome=iptvForm.nova?ajIptvAdicionarNome(iptvForm.tipo):iptvAlvo.nome;
+    vb[0]=q[0]=0;
+  }
   x = h.x + 28.0f;
   float meio = h.y + (ajRetrato() ? 57.0f : h.h * 0.5f);
   { GfxRect tr = { x, meio - tile * 0.5f, tile, tile };
