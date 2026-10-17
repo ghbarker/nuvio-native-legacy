@@ -211,6 +211,34 @@
       {
         "op": "hierarchy"
       }
+    ],
+    "x86-10": [
+      {
+        "op": "tap",
+        "x": 300,
+        "y": 310
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "tap",
+        "x": 400,
+        "y": 630
+      },
+      {
+        "op": "wait",
+        "seconds": 3
+      },
+      {
+        "op": "shot",
+        "name": "10-font-imported"
+      },
+      {
+        "op": "assert_font",
+        "imported": true
+      }
     ]
   }
 }
