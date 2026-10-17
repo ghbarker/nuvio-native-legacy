@@ -18,11 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 65338bf67e07c45705584c5ce5523dfb3c0a4507
+          ref: d49927ac62d6b7d0468cf90310c2f9efc2cdb71e
           fetch-depth: 5
           persist-credentials: false
-      - name: Verify application source matches the retained Android build
-        run: git diff --exit-code fdcd9e770d98836fc9d791d603659968b89f5506 HEAD -- . ':!tests'
+      - name: Verify exact integrated application source
+        run: test "$(git rev-parse HEAD)" = d49927ac62d6b7d0468cf90310c2f9efc2cdb71e
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
       - name: Live TV loading, M3U, provider EPG and playback regressions
         run: |
