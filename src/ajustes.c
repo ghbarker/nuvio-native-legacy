@@ -6413,7 +6413,7 @@ static const char *textoLeitura(int op) {
     return sairArmado != op ? ""
          : sync_servidor_fora() ? i18n("Servidor da conta fora do ar: OK de novo sai mesmo assim")
          : i18n("OK de novo para sair");
-  if (op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_M3U_LIMPAR)
+  if (op == AJ_IPTV_REMOVER || op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_M3U_LIMPAR)
     return sairArmado == op ? i18n("OK de novo para remover") : "";
   if (op == AJ_MDB_CHAVE) {
     // A chave chega pela CONTA (sync.c -> extras_definir_chave) ou pelo
@@ -8758,16 +8758,6 @@ static void eventoTela(const SDL_Event *e) {
       teclado_abrir_com("Nome da conta","",95,CUR_ALFA_URL,ajIptvNome(iptv_conta_indice()));
       teclado_aceitar_utf8(1);return;
     }
-    if(focoOp==AJ_IPTV_REMOVER) {
-      IptvConta c;
-      if(iptv_conta_remover(&c)) {
-        if(c.tipo==IPTV_XTREAM)xtream_fonte_esquecer(c.id);
-        else if(c.tipo==IPTV_M3U)m3u_fonte_esquecer(c.id);
-        else stalker_fonte_esquecer(c.id);
-        ajIptvEspelhar();guia_recarregar(1);focarOpcao(AJ_IPTV_ADD_XTREAM);
-      } else uxNotificar("Não foi possível agora. Tente novamente.");
-      return;
-    }
     if (focoOp == AJ_FIL_ORDEM) {
       filAberta = 1; filFoco = 0; filCampo = 0; filPegou = 0; filTopo = 0;
       filAba = 0; filNaBarra = 0; filAviso[0] = 0;
@@ -8843,6 +8833,16 @@ static void eventoTela(const SDL_Event *e) {
     // O primeiro OK so arma (ver pedeConfirmacao); o segundo age.
     if (pedeConfirmacao(focoOp) && sairArmado != focoOp) { sairArmado = focoOp; return; }
     sairArmado = 0;
+    if(focoOp==AJ_IPTV_REMOVER) {
+      IptvConta c;
+      if(iptv_conta_remover(&c)) {
+        if(c.tipo==IPTV_XTREAM)xtream_fonte_esquecer(c.id);
+        else if(c.tipo==IPTV_M3U)m3u_fonte_esquecer(c.id);
+        else stalker_fonte_esquecer(c.id);
+        ajIptvEspelhar();guia_recarregar(1);focarOpcao(AJ_IPTV_ADD_XTREAM);
+      } else uxNotificar("Não foi possível agora. Tente novamente.");
+      return;
+    }
     if (focoOp == AJ_GUIA_RECARREGAR) {
       m3u_recarregar(); guia_recarregar(0); uxNotificar("Atualizando a lista de canais…"); return;
     }
