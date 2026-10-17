@@ -576,6 +576,7 @@ static const char *textoAudioAtual(void) {
   return txt;
 }
 const char *player_id_canal(void) { return canalSessao ? itemCanal.imdb : ""; }
+const char *player_tipo_canal(void) { return canalSessao ? itemCanal.tipo : ""; }
 
 // Programa do canal no ar: a XMLTV (epgIdx) ou, num canal Xtream que nao
 // casou nela, a grade curta do painel (#158). xtepg_passo aqui porque o guia,

@@ -1092,7 +1092,9 @@ static void buscarParaPlayerModo(int renovar) {
   if (idC[0]) {
     // SEM LEGENDA DE ADDON NO CANAL: o id do canal ia ao OpenSubtitles como
     // "movie" (Recarregar da folha). As do canal sao as do fluxo (faixas.c).
-    if (renovar) addons_buscar_renovar(alvo,"tv"); else addons_buscar(alvo,"tv");
+    const char *tipo = player_tipo_canal();
+    if (!tipo[0]) tipo = "tv";
+    if (renovar) addons_buscar_renovar(alvo,tipo); else addons_buscar(alvo,tipo);
     return;
   }
   {

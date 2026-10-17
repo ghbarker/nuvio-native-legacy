@@ -11,12 +11,14 @@
 #include <string.h>
 #include <strings.h>
 
-// Stremio channel types, including aliases used by list add-ons. Identify the
-// request before choosing a source, not only after opening the player UI.
+// Channel aliases and the live-event types used by Sports Streams/Nebula.
+// This classifies playback; sports collections can remain on Home.
+// Identify the request before choosing a source, not after opening the UI.
 static inline int nv_tipo_canal(const char *tipo) {
   return tipo && (!strcasecmp(tipo, "channel") || !strcasecmp(tipo, "tv") ||
                   !strcasecmp(tipo, "channels") || !strcasecmp(tipo, "live") ||
-                  !strcasecmp(tipo, "iptv"));
+                  !strcasecmp(tipo, "iptv") || !strcasecmp(tipo, "sport") ||
+                  !strcasecmp(tipo, "sports"));
 }
 
 // --- resolucao -----------------------------------------------------------------
