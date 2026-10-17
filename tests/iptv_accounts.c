@@ -107,6 +107,24 @@ int main(int argc,char **argv){
   assert(!stalker_definir_portal("lost.invalid"));assert(strstr(stalker_portal_curto(),"kept.invalid"));
   falhar=0;
   puts("PASS: failed first-field writes are reported and preserve existing Xtream/Stalker addresses");
+  assert(xtream_conta_definir("https://kept.invalid","saved-user","saved-password"));
+  assert(stalker_conta_definir("kept.invalid","00:1a:79:00:00:02"));
+  m3u_fonte_selecionar(0);assert(m3u_conta_definir("https://kept.invalid/list","https://kept.invalid/epg"));
+  falhar=1;
+  assert(!xtream_conta_definir("https://lost.invalid","lost-user","lost-password"));
+  assert(strstr(xtream_servidor_curto(),"kept.invalid") && !strcmp(xtream_usuario(),"saved-user"));
+  assert(!stalker_conta_definir("lost.invalid","00:1a:79:00:00:03"));assert(strstr(stalker_portal_curto(),"kept.invalid"));
+  assert(!m3u_conta_definir("https://lost.invalid/list","https://lost.invalid/epg"));
+  assert(!strcmp(m3u_lista(),"https://kept.invalid/list") && !strcmp(m3u_epg(),"https://kept.invalid/epg"));
+  falhar=0;
+  assert(!xtream_conta_definir("", "saved-user", "saved-password"));
+  assert(!xtream_conta_definir("kept.invalid", "bad\nuser", "saved-password"));
+  assert(!stalker_conta_definir("kept.invalid","invalid"));
+  assert(!m3u_conta_definir("ftp://invalid/list",""));
+  sessao++; // Reload from disk: failed writes must not change persisted values either.
+  assert(!strcmp(xtream_usuario(),"saved-user"));
+  assert(!strcmp(m3u_epg(),"https://kept.invalid/epg"));
+  puts("PASS: complete-account Save commits all fields together; failed or invalid saves preserve previous credentials in memory and on disk");
   perfil=3;sessao++;
   assert(dados_gravar("xtream-p3.txt","# credential\nservidor\t\nusuario\t\nsenha\t\n"));
   assert(dados_gravar("m3u-p3.txt","lista\t\nepg\t\n"));
