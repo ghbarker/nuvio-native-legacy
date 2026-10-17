@@ -1,0 +1,144 @@
+name: Logs33 source filter test APK
+
+on:
+  push:
+    branches: [review/cache-filter-settings-logs33-20261017]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: logs33-source-filter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      NUVIO_ANDROID_JOBS: '2'
+      NUVIO_BUILD_JOBS: '2'
+      NUVIO_P2P_MOTOR: none
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify exact integrated source parent
+        run: |
+          test "$(git rev-parse HEAD^)" = 3e787a78fab50307fb443ba91d6a43ce1ba80903
+          test "$(git rev-parse HEAD^^{tree})" = 6fed0a21107abb8a67d45dda52a024d333d1319e
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install build and host-test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgl1-mesa-dev
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Prepare private configuration and persistent signing
+        env:
+          CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+          DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, subprocess
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs33'
+          root.mkdir(mode=0o700)
+          props=root/'product.properties'
+          body=os.environ.get('CORE_PROPERTIES','')
+          assert body, 'NUVIO_TOUCH_CORE_PROPERTIES is required'
+          props.write_text(body); props.chmod(0o600)
+          key=root/'debug.keystore'
+          encoded=''.join(os.environ.get('DEBUG_KEYSTORE_B64','').split())
+          assert encoded, 'NUVIO_TOUCH_DEBUG_KEYSTORE_B64 is required'
+          key.write_bytes(base64.b64decode(encoded,validate=True)); key.chmod(0o600)
+          cert=subprocess.check_output(['keytool','-exportcert','-alias','androiddebugkey','-keystore',str(key),'-storepass','android'],stderr=subprocess.PIPE)
+          assert hashlib.sha256(cert).hexdigest()=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write(f'NUVIO_PROPERTIES={props.resolve()}\nNUVIO_TEST_DEBUG_KEYSTORE={key.resolve()}\n')
+          PY
+      - uses: actions/cache/restore@v4
+        id: native-cache
+        with:
+          path: ~/.cache/nuvio-android
+          key: rebases10e3-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'tools/android/ffmpeg-android.sh', 'android/app/src/main/cpp/CMakeLists.txt') }}
+          restore-keys: |
+            rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75
+      - uses: actions/cache/restore@v4
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: logs33-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            rebases10e3-gradle-v1-${{ runner.os }}-
+      - name: Run source filter regressions
+        run: |
+          bash tests/source_cache_filter.sh
+          bash tests/fontefalha.sh
+      - name: Run source filters under ASan and UBSan
+        env:
+          NV_TEST_SANITIZE: '1'
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          bash tests/source_cache_filter.sh
+          bash tests/fontefalha.sh
+      - name: Build native Android dependencies
+        run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
+      - name: Build update-compatible Logs33 APK
+        env:
+          GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
+          NUVIO_REQUIRE_CORE: '1'
+        run: bash tools/android.sh
+      - name: Verify package, version, signer and both ABIs
+        run: |
+          set -euo pipefail
+          mapfile -t apks < <(find build/android -maxdepth 1 -type f -name 'Nuvio-*-android-debug.apk' -print)
+          test "${#apks[@]}" -eq 1
+          apk="${apks[0]}"
+          badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20043' versionName='2.0.43-test-logs33'" <<< "$badging"
+          grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
+          cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
+          unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
+          unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs33.apk
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs33.apk')
+          out={'all_passed':True,'source_commit':'3e787a78fab50307fb443ba91d6a43ce1ba80903','source_tree':'6fed0a21107abb8a67d45dda52a024d333d1319e','package':'space.nuvio.nativelegacy.touch','version_code':20043,'version_name':'2.0.43-test-logs33','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'cache_filter_test_normal':True,'cache_filter_test_asan_ubsan':True,'failover_filter_test_normal':True,'failover_filter_test_asan_ubsan':True,'both_arm_abis':True}
+          pathlib.Path('Logs33-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          PY
+      - uses: actions/cache/save@v4
+        if: always() && steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/nuvio-android
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - uses: actions/cache/save@v4
+        if: always() && steps.gradle-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-TV-Mobile-Test-Logs33-${{ github.sha }}
+          path: |
+            Nuvio-TV-Mobile-Test-Logs33.apk
+            Logs33-validation.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove private inputs
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs33"
