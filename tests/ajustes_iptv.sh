@@ -22,7 +22,7 @@ else
   flags+=("${sdk_flags[@]}")
   libs=("${sdk_libs[@]}" -lz -lGLESv2 -pthread -lm -ldl)
 fi
-if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-O1 -fsanitize=address,undefined -fno-omit-frame-pointer); fi
+if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
 cc "${sources[@]}" tests/ajustes_iptv.c "${flags[@]}" -o "$task_dir/teste" \
   "${libs[@]}" -Wno-deprecated-declarations
 "$task_dir/teste"
