@@ -234,6 +234,38 @@
         "op": "shot",
         "name": "06-imported-font-after-restart"
       }
+    ],
+    "x86-7": [
+      {
+        "op": "key",
+        "code": 21
+      },
+      {
+        "op": "tap",
+        "x": 220,
+        "y": 1350
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "07-settings-after-restart"
+      },
+      {
+        "op": "tap",
+        "x": 400,
+        "y": 1725
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "07-appearance-after-restart"
+      }
     ]
   }
 }
