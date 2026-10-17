@@ -113,6 +113,8 @@ int servidores_fontes_pedir(const char *alvo) { (void)alvo; return 0; }
 int servidores_fontes_colher(const char *alvo, Stream **l, int *n) {
   (void)alvo; if (l) *l = NULL; if (n) *n = 0; return JF_FONTES_FALHOU; }
 uint64_t badges_detectar(const char *m) { (void)m; return 0; }
+static int liveRequest;
+void stream_folha_canal(int sim) { liveRequest = sim; }
 void stream_definir_lista(const Stream *l, int n) { (void)l; (void)n; }
 void stream_preparar_dica_p2p(const Stream *l, int n) { (void)l; (void)n; }
 void stream_definir_lista_idade(const Stream *l, int n, Uint32 idade) {
@@ -186,6 +188,14 @@ static void conferirTexto(const char *o_que, const char *obtido, const char *esp
 static int sempreCancelado(void *u) { (void)u; return 1; }
 
 int main(void) {
+  const char *liveTypes[] = {"tv", "channel", "channels", "live", "iptv", "LiVe"};
+  for (unsigned i = 0; i < sizeof liveTypes / sizeof *liveTypes; i++) {
+    addons_buscar("fixture:live", liveTypes[i]);
+    conferir("live context before player/sheet opens", liveRequest, 1);
+    addons_buscar("tt123", "movie");
+    conferir("VOD request restores filtering", liveRequest, 0);
+  }
+  nDebridNovaBusca = 0;
   char dir[NVT_MAX]; nvt_set(dir, sizeof dir, "/nuvio-addonslista-XXXXXX");
   char caminho[600];
   FILE *f;

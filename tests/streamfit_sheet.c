@@ -1,6 +1,7 @@
 // The actual production source sheet with only platform boundaries stubbed.
 // No SDL initialization, drawing, network request, resolver or TV benchmark.
 #include "streams.h"
+#include <unistd.h>
 static uint64_t fakeNow = UINT64_C(1700000000000);
 static uint64_t fixtureNow(void) { return fakeNow; }
 #define streamfit_agora_ms fixtureNow
@@ -147,10 +148,19 @@ static void playbackActions(void) {
 }
 static void liveTvActions(void) {
   int oldMp4 = soMp4, oldCache = soCache, oldDub = soDub;
+  char dir[] = "/tmp/nuvio-live-filters-XXXXXX", path[160];
+  assert(mkdtemp(dir)); fontefalha_dir(dir);
+  FonteFiltroConfig original, blocked = {0}; fontefalha_filtro(&original);
+  for (int c = 0; c < FONTEFILTRO_N; c++)
+    blocked.excluir[c] = (UINT64_C(1) << fontefiltro_opcoes_n(c)) - 1;
+  blocked.maxGB = 1;
+  assert(fontefalha_filtro_definir(&blocked));
+  assert(!stream_filtro_permite(&lista[0]) && stream_filtro_bloqueou());
   int sourceMp4, sourceOutsideCache;
   assert(n > 0);
   sourceMp4 = lista[0].mp4; sourceOutsideCache = lista[0].foraCache;
   stream_folha_canal(1);
+  assert(stream_filtro_permite(&lista[0]) && !stream_filtro_bloqueou());
   soMp4 = soCache = soDub = 1;
   assert(nBotoes() == 2);
   assert(botaoDe(0) == BT_RECARREGAR && botaoDe(1) == BT_FECHAR);
@@ -159,7 +169,13 @@ static void liveTvActions(void) {
   lista[0].mp4 = 0;
   lista[0].foraCache = 1;
   assert(passaChips(0));
+  assert(stream_automatico_canal() >= 0);
   stream_folha_canal(0);
+  assert(!stream_filtro_permite(&lista[0]) && stream_filtro_bloqueou());
+  assert(!passaChips(0));
+  assert(fontefalha_filtro_definir(&original));
+  snprintf(path, sizeof path, "%s/fontefalha.txt", dir); assert(!unlink(path));
+  assert(!rmdir(dir)); fontefalha_dir("");
   lista[0].mp4 = sourceMp4; lista[0].foraCache = sourceOutsideCache;
   soMp4 = oldMp4; soCache = oldCache; soDub = oldDub;
   puts("live TV source actions: PASS (no movie filters, channel source remains visible)");

@@ -8,6 +8,10 @@ static int base(const char *a, const char *b) {
   return !strcmp(x, y);
 }
 int main(void) {
+  OK(nv_tipo_canal("tv") && nv_tipo_canal("channel") && nv_tipo_canal("channels") &&
+     nv_tipo_canal("live") && nv_tipo_canal("IPTV"), "todos os tipos de canal");
+  OK(!nv_tipo_canal(NULL) && !nv_tipo_canal("") && !nv_tipo_canal("movie") &&
+     !nv_tipo_canal("series") && !nv_tipo_canal("anime"), "VOD nao vira canal");
   char b[160];
   OK(nv_res_do_texto("RO| CINEMAX FHD") == 1080, "FHD = 1080");
   OK(nv_res_do_texto("RO| CINEMAX HD") == 720, "HD = 720");
