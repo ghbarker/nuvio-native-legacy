@@ -10,7 +10,7 @@ done
 task_dir="$(mktemp -d "${TMPDIR:-/tmp}/nuvio-ajustes-iptv.XXXXXX")"
 trap 'rm -rf "$task_dir"' EXIT
 export NUVIO_DADOS="$task_dir"
-flags=(-std=gnu11 -O0 -g -DNV_TOUCH_UI -Isrc)
+flags=(-std=gnu11 -O0 -g -DNV_TOUCH_UI -DAJUSTES_TESTE -Isrc)
 if [[ "$(uname -s)" == Darwin ]]; then
   flags+=(-I/opt/homebrew/include -I/opt/homebrew/include/SDL2 -L/opt/homebrew/lib)
   libs=(-lSDL2 -lSDL2_image -lSDL2_ttf -lz -framework OpenGL)
@@ -26,3 +26,6 @@ if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit
 cc "${sources[@]}" tests/ajustes_iptv.c "${flags[@]}" -o "$task_dir/teste" \
   "${libs[@]}" -Wno-deprecated-declarations
 "$task_dir/teste"
+mkdir "$task_dir/legacy"
+NUVIO_DADOS="$task_dir/legacy" "$task_dir/teste" legacy
+NUVIO_DADOS="$task_dir/legacy" "$task_dir/teste" reload
