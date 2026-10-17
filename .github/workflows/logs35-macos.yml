@@ -22,8 +22,8 @@ jobs:
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD^)" = 08c181b40fbb56abf8dd176f014896f24e4d64ac
-          test "$(git rev-parse HEAD^^{tree})" = 6e4e015929d6a28d35c9f22682bd9743c86a98dc
+          test "$(git rev-parse HEAD^)" = 8105cda3318db0e23beceec8098f377e9d8c82c5
+          test "$(git rev-parse HEAD^^{tree})" = 49d1e10f49d55c581f7d9d6e62b54af43cd86634
       - name: Install native test libraries
         run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Run macOS rendering and player regressions
