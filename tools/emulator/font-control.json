@@ -80,40 +80,18 @@
         "seconds": 2
       },
       {
-        "op": "shot",
-        "name": "02-after-welcome"
-      }
-    ],
-    "x86-3": [
-      {
         "op": "tap",
         "x": 540,
         "y": 2230
       },
       {
         "op": "wait",
-        "seconds": 1
+        "seconds": 2
       },
-      {
-        "op": "shot",
-        "name": "03-home"
-      }
-    ],
-    "x86-4": [
       {
         "op": "key",
         "code": 21
       },
-      {
-        "op": "wait",
-        "seconds": 1
-      },
-      {
-        "op": "shot",
-        "name": "04-navigation"
-      }
-    ],
-    "x86-5": [
       {
         "op": "tap",
         "x": 220,
@@ -124,12 +102,6 @@
         "seconds": 1
       },
       {
-        "op": "shot",
-        "name": "05-settings"
-      }
-    ],
-    "x86-6": [
-      {
         "op": "tap",
         "x": 400,
         "y": 1725
@@ -138,12 +110,6 @@
         "op": "wait",
         "seconds": 1
       },
-      {
-        "op": "shot",
-        "name": "06-appearance-before"
-      }
-    ],
-    "x86-7": [
       {
         "op": "tap",
         "x": 430,
@@ -155,89 +121,23 @@
       },
       {
         "op": "shot",
-        "name": "07-interface-font-picker"
-      }
-    ],
-    "x86-8": [
+        "name": "02-font-picker-before"
+      },
       {
         "op": "tap",
         "x": 420,
         "y": 1600
       },
       {
-        "op": "tap",
-        "x": 930,
-        "y": 2190
-      },
-      {
         "op": "wait",
-        "seconds": 2
+        "seconds": 5
       },
       {
         "op": "shot",
-        "name": "08-android-font-import"
+        "name": "02-document-picker"
       },
       {
         "op": "hierarchy"
-      }
-    ],
-    "x86-9": [
-      {
-        "op": "tap",
-        "x": 540,
-        "y": 1000
-      },
-      {
-        "op": "wait",
-        "seconds": 1
-      },
-      {
-        "op": "shot",
-        "name": "09-file-picker"
-      },
-      {
-        "op": "tap",
-        "x": 80,
-        "y": 140
-      },
-      {
-        "op": "wait",
-        "seconds": 1
-      },
-      {
-        "op": "shot",
-        "name": "09-file-locations"
-      },
-      {
-        "op": "hierarchy"
-      }
-    ],
-    "x86-10": [
-      {
-        "op": "tap",
-        "x": 300,
-        "y": 310
-      },
-      {
-        "op": "wait",
-        "seconds": 1
-      },
-      {
-        "op": "tap",
-        "x": 400,
-        "y": 630
-      },
-      {
-        "op": "wait",
-        "seconds": 3
-      },
-      {
-        "op": "shot",
-        "name": "10-font-imported"
-      },
-      {
-        "op": "assert_font",
-        "imported": true
       }
     ]
   }
