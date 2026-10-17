@@ -1,8 +1,5 @@
-name: Logs39 final Linux validation
+name: Logs42 final multiple-account Linux checks
 on:
-  push:
-    branches: [review/logs34-integration-20261017]
-    paths: [.github/workflows/livetv-linux.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,28 +13,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 051215c018488726d70ba575ab3146ff8c099038
-          fetch-depth: 5
-      - name: Verify application source matches the retained Android build
-        run: git diff --exit-code fdcd9e770d98836fc9d791d603659968b89f5506 HEAD -- . ':!tests'
+          ref: 1f40d1ba185b3ca691080d428842e112decc2fbe
+          fetch-depth: 3
+      - name: Verify the retained APK has identical application code
+        run: git diff --exit-code 7ee26ad2c46f368399b1f385ea99031cce1a4a38 HEAD -- . ':!tests'
       - name: Install test dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
-      - name: Run focused integration regressions
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
+      - name: Native account and guide regressions
         run: |
           set -euo pipefail
-          for suite in fontefalha addons_sync_ui streamfit_sheet fontefalha_worker addonslista addons_proveniencia fontefalha_playback livetv_regras source_cache_filter canal_tpk_eof m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte xtream xtepg xtepg_bounded
-          do
-            echo "RUN $suite"
-            bash "tests/$suite.sh"
-          done
-      - name: Run focused sanitizer regressions
+          for suite in iptv_accounts epg_accounts epg_streaming m3u xtream stalker_portal guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte livetv_regras xtepg xtepg_bounded; do bash "tests/$suite.sh"; done
+          bash tests/ajustes_secoes.sh
+          bash tests/ajustes_iptv.sh
+      - name: Native account and guide ASan and UBSan regressions
         env:
           ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          SANITIZE: '1'
         run: |
           set -euo pipefail
-          for suite in fontefalha addons_sync_ui streamfit_sheet fontefalha_worker addonslista addons_proveniencia source_cache_filter m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg_bounded
-          do
-            echo "RUN sanitizer $suite"
-            SANITIZE=1 NV_TEST_SANITIZE=1 bash "tests/$suite.sh"
-          done
+          for suite in iptv_accounts epg_accounts epg_streaming m3u guia_loading guia_epg_estado guiaepg xtepg_bounded; do bash "tests/$suite.sh"; done
+          bash tests/ajustes_iptv.sh
+

@@ -15,8 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 7ee26ad2c46f368399b1f385ea99031cce1a4a38
+          ref: 1f40d1ba185b3ca691080d428842e112decc2fbe
+          fetch-depth: 3
           persist-credentials: false
+      - name: Verify the retained APK has identical application code
+        run: git diff --exit-code 7ee26ad2c46f368399b1f385ea99031cce1a4a38 HEAD -- . ':!tests'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Native accounts, Settings and guide regressions
         run: |
