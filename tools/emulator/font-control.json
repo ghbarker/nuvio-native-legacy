@@ -15,6 +15,26 @@
       {
         "op": "hierarchy"
       }
+    ],
+    "3": [
+      {
+        "op": "swipe",
+        "x1": 540,
+        "y1": 1990,
+        "x2": 540,
+        "y2": 550
+      },
+      {
+        "op": "wait",
+        "seconds": 2
+      },
+      {
+        "op": "shot",
+        "name": "03-app-drawer"
+      },
+      {
+        "op": "hierarchy"
+      }
     ]
   }
 }
