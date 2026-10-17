@@ -1,10 +1,10 @@
-name: Logs37 APK and Linux validation
+name: Logs38 APK and Linux validation
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: logs37-apk-${{ github.ref }}
+  group: logs38-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,13 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
+          ref: cf70db147e5db80f4b3731f05fe5e0827cf3d0f0
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Run focused integration regressions
         run: |
           set -euo pipefail
-          for suite in streamfit_sheet fontefalha_worker addonslista addons_proveniencia fontefalha_playback livetv_regras source_cache_filter canal_tpk_eof
+          for suite in fontefalha addons_sync_ui streamfit_sheet fontefalha_worker addonslista addons_proveniencia fontefalha_playback livetv_regras source_cache_filter canal_tpk_eof
           do
             echo "RUN $suite"
             bash "tests/$suite.sh"
@@ -34,7 +34,7 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
         run: |
           set -euo pipefail
-          for suite in streamfit_sheet fontefalha_worker addonslista addons_proveniencia source_cache_filter
+          for suite in fontefalha addons_sync_ui streamfit_sheet fontefalha_worker addonslista addons_proveniencia source_cache_filter
           do
             echo "RUN sanitizer $suite"
             SANITIZE=1 NV_TEST_SANITIZE=1 bash "tests/$suite.sh"
@@ -53,12 +53,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
+          ref: cf70db147e5db80f4b3731f05fe5e0827cf3d0f0
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
-          test "$(git rev-parse HEAD^{tree})" = d0cc7622bcd8e20b8341cddcd48c565e3b1c0f92
+          test "$(git rev-parse HEAD)" = cf70db147e5db80f4b3731f05fe5e0827cf3d0f0
+          test "$(git rev-parse HEAD^{tree})" = 1b33a8f4305f7e2285aa747f69a4c01d213613b2
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -79,7 +79,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs37'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs38'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
@@ -120,7 +120,7 @@ jobs:
           find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs37 APK
+      - name: Build update-compatible Logs38 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -147,18 +147,18 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20047' versionName='2.0.47-test-logs37'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20048' versionName='2.0.48-test-logs38'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs37.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs38.apk
           python3 - <<'PY'
           import hashlib,json,pathlib
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs37.apk')
-          out={'all_passed':True,'source_commit':'8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6','source_tree':'d0cc7622bcd8e20b8341cddcd48c565e3b1c0f92','package':'space.nuvio.nativelegacy.touch','version_code':20047,'version_name':'2.0.47-test-logs37','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'live_tv_regressions':True,'sanitizer_regressions':True,'android_font_unit_test':True,'both_arm_abis':True}
-          pathlib.Path('Logs37-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs38.apk')
+          out={'all_passed':True,'source_commit':'cf70db147e5db80f4b3731f05fe5e0827cf3d0f0','source_tree':'1b33a8f4305f7e2285aa747f69a4c01d213613b2','package':'space.nuvio.nativelegacy.touch','version_code':20048,'version_name':'2.0.48-test-logs38','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'live_tv_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          pathlib.Path('Logs38-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -174,13 +174,13 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs37-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs38-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs37.apk
-            Logs37-validation.json
+            Nuvio-TV-Mobile-Test-Logs38.apk
+            Logs38-validation.json
           if-no-files-found: error
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs37"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs38"
 

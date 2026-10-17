@@ -18,9 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
+          ref: cf70db147e5db80f4b3731f05fe5e0827cf3d0f0
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
+      - name: Live TV override UI and settings persistence
+        run: bash tests/addons_sync_ui.sh && bash tests/fontefalha.sh
       - name: Source sheet and VOD filter restoration
         run: bash tests/streamfit_sheet.sh
       - name: Add-on request classification and instance identity
@@ -30,6 +32,8 @@ jobs:
       - name: Filter and playback sanitizers
         env:
           SANITIZE: '1'
-        run: bash tests/streamfit_sheet.sh && bash tests/fontefalha_worker.sh
+        run: bash tests/addons_sync_ui.sh && bash tests/fontefalha.sh && bash tests/streamfit_sheet.sh && bash tests/fontefalha_worker.sh && bash tests/source_cache_filter.sh
       - name: Real channel-playlist selection and fallback
         run: bash tests/canalfila.sh
+      - name: Persistent cache-filter full-source integration
+        run: bash tests/source_cache_filter.sh
