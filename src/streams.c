@@ -151,6 +151,11 @@ static unsigned listaGeracao;
 static void cancelarConferenciasSemTrava(void);
 static int atual = -1, recarregar;
 static _Atomic int canalFolha;
+static _Atomic int pedidoVod = 1;
+static int filtrosVod(void) { return pedidoVod && !canalFolha; }
+void stream_filtro_tipo(const char *tipo) {
+  pedidoVod = nv_tipo_vod(tipo && tipo[0] ? tipo : "movie");
+}
 static unsigned recarregarFonteContexto;
 static NvPerfilSessao recarregarFontePerfil;
 static SDL_Keycode recarregarFonteConfirmacao;
@@ -388,7 +393,9 @@ void stream_filtro_dados(const Stream *s, FonteFiltroDados *dados) {
     if (!entrada.tamanhoBytes && s->tamanhoMB > 0)
       entrada.tamanhoBytes = (uint64_t)s->tamanhoMB > UINT64_MAX / UINT64_C(1048576)
                           ? UINT64_MAX : (uint64_t)s->tamanhoMB * UINT64_C(1048576);
+    int naoVod = s->filtro.naoVod;
     fontefiltro_classificar(&entrada, dados);
+    dados->naoVod = naoVod;
   }
   // Pode mudar depois do parse quando o resolvedor nativo confirma ou nega.
   // Nunca conservar no cache de metadados uma disponibilidade antiga.
@@ -397,9 +404,16 @@ void stream_filtro_dados(const Stream *s, FonteFiltroDados *dados) {
 static void filtroCompletar(Stream *s) {
   if (!s->filtroLido) { stream_filtro_dados(s, &s->filtro); s->filtroLido = 1; }
 }
+static void filtroEscopo(Stream *s) {
+  s->filtro.naoVod = !filtrosVod() || fontefalha_addon_ao_vivo(s->addonChave);
+}
+void stream_filtro_atualizar(void) {
+  pthread_mutex_lock(&verTrava);
+  for (int i = 0; i < n; i++) filtroEscopo(&lista[i]);
+  pthread_mutex_unlock(&verTrava);
+}
 int stream_filtro_permite(const Stream *s) {
   if (!s) return 0;
-  if (canalFolha) return 1;
   if (!fontefalha_filtro_ativo()) return 1;
   FonteFiltroConfig cfg; FonteFiltroDados dados;
   fontefalha_filtro(&cfg); stream_filtro_dados(s, &dados);
@@ -411,7 +425,6 @@ static int filtroPermiteStream(const FonteFiltroConfig *cfg, const Stream *s) {
   return fontefiltro_permite(cfg, &dados);
 }
 int stream_filtro_bloqueou(void) {
-  if (canalFolha) return 0;
   if (!fontefalha_filtro_ativo()) return 0;
   FonteFiltroConfig cfg; fontefalha_filtro(&cfg);
   pthread_mutex_lock(&verTrava);
@@ -427,8 +440,8 @@ int stream_filtro_bloqueou(void) {
 // automatico os escolhe, contra 6/14/9% das fontes com resolucao).
 static int foraDoAutoComFiltro(int i, const FonteFiltroConfig *filtro) {
   return automaticaExcluida(i) || (i >= 0 && i < n &&
-      ((!canalFolha && (filtro ? !filtroPermiteStream(filtro, &lista[i]) : !stream_filtro_permite(&lista[i]))) ||
-       lista[i].foraCache || ehInformativa(&lista[i]) || excedeDecoder(&lista[i]) || fontesmortas_idade(&lista[i]) >= 0));
+      ((filtro ? !filtroPermiteStream(filtro, &lista[i]) : !stream_filtro_permite(&lista[i])) ||
+       (!lista[i].filtro.naoVod && lista[i].foraCache) || ehInformativa(&lista[i]) || excedeDecoder(&lista[i]) || fontesmortas_idade(&lista[i]) >= 0));
 }
 static int foraDoAuto(int i) { return foraDoAutoComFiltro(i, NULL); }
 int stream_automatico_disponivel(int indice) { return indice >= 0 && indice < n && !foraDoAuto(indice); }
@@ -633,7 +646,7 @@ void stream_definir_lista_idade(const Stream *l, int qtd, Uint32 idade) {
     // #505: tambem o notWebReady, que pede P2P — a folha vazia tem de dizer
     // "ligue o P2P", nunca fingir que o addon nao mandou nada.
     if (!fonteOferecida(&l[i])) { descartadosSemDebrid++; descartadosP2P += pedeP2P(&l[i]); }
-  for (i = 0; i < k && nova; i++) { nova[i].selosPacoteVer = 0; filtroCompletar(&nova[i]); }   // os selos saem do fio de fundo (selosAgendar)
+  for (i = 0; i < k && nova; i++) { nova[i].selosPacoteVer = 0; filtroCompletar(&nova[i]); filtroEscopo(&nova[i]); }   // os selos saem do fio de fundo (selosAgendar)
   pthread_mutex_lock(&verTrava);
   free(lista); lista = nova; n = nova ? k : 0; atual = -1;
   textoAddonLimpar();
@@ -702,7 +715,7 @@ void stream_lista_acrescentar(const Stream *l, int qtd, int ordemAddon) {
   for (i = 0; i < qtd; i++)
     if (!fonteOferecida(&l[i])) { descartadosSemDebrid++; descartadosP2P += pedeP2P(&l[i]); }   // #505: idem
   if (!k) { free(nova); return; }
-  for (i = 0; i < k; i++) { nova[i].selosPacoteVer = 0; filtroCompletar(&nova[i]); }
+  for (i = 0; i < k; i++) { nova[i].selosPacoteVer = 0; filtroCompletar(&nova[i]); filtroEscopo(&nova[i]); }
   // O CARTAO EM FOCO E O QUE FICA PARADO. Guardado pelo indice da lista (que
   // nao muda), e nao pela linha (que muda quando entra coisa acima).
   if (aberta && grupo == 1 && n > 0) {
@@ -856,7 +869,7 @@ static int foraDaFaixaTamanho(const Stream *s) {
   return 0;
 }
 static int cabeNoTeto(const Stream *s) {
-  if (canalFolha) return 1;
+  if (s->filtro.naoVod) return 1;
   return cabeNaAltura(s) && !foraDaFaixaTamanho(s);
 }
 
@@ -1393,7 +1406,7 @@ static int grupoDaFonte(const FonteRegraCfg *c, const Stream *s) {
 }
 // Chamar com a lista estavel (verTrava, ou o fio da tela que e quem a troca).
 static int grupoDe(int i) {
-  if (canalFolha) return i >= 0 && i < n ? 0 : -1;
+  if (i >= 0 && i < n && lista[i].filtro.naoVod) return 0;
   FonteRegraCfg c = regraCfg();
   unsigned v = fonteregra_versao();
   int g;
@@ -1609,7 +1622,7 @@ static int verificarUma(int i, Conferencia *c) {
     pthread_mutex_unlock(&verTrava);
     return 0;
   }
-  if ((!canalFolha && !filtroPermiteStream(&c->filtro, &lista[i])) || lista[i].foraCache || excedeDecoder(&lista[i]) || fontesmortas_idade(&lista[i]) >= 0) {
+  if (!filtroPermiteStream(&c->filtro, &lista[i]) || (!lista[i].filtro.naoVod && lista[i].foraCache) || excedeDecoder(&lista[i]) || fontesmortas_idade(&lista[i]) >= 0) {
     pthread_mutex_unlock(&verTrava); return 0;
   }
   snprintf(url, sizeof url, "%s", lista[i].url);
@@ -1815,7 +1828,7 @@ int stream_resolver_escolhida(int i, unsigned geracao, char *url, unsigned nu,
     pthread_mutex_unlock(&verTrava);
     return -1;
   }
-  if (!canalFolha && !stream_filtro_permite(&lista[i])) {
+  if (!stream_filtro_permite(&lista[i])) {
     pthread_mutex_unlock(&verTrava);
     return 0;
   }
@@ -2241,6 +2254,7 @@ StreamPreparo *stream_preparo_criar_alvo(const Stream *fontes, int total, int pr
     if (i == preferidaNext) preferidaNormal = p->n;
     p->fontes[p->n] = fontes[i]; p->fontes[p->n].selosPacoteVer = 0;
     filtroCompletar(&p->fontes[p->n++]);
+    p->fontes[p->n - 1].filtro.naoVod = fontefalha_addon_ao_vivo(p->fontes[p->n - 1].addonChave);
   }
   // Mesma normalizacao do setter da lista em foreground. O indice da
   // vencedora e da politica ja nasce no vetor que sera instalado no Next.
@@ -3089,13 +3103,20 @@ static int grupo, filtro, soMp4, soCache, soDub;
 // idioma da interface (que em Automatico acompanha conta/aparelho).
 enum { BT_RECARREGAR, BT_SEM_HDR, BT_SO_MP4, BT_CACHE, BT_DUB, BT_FECHAR,
        BT_RECARREGAR_FONTE, BT_N };
+// Mixed source lists keep VOD chips; live rows always pass through them.
+static int filtrosVisiveis(void) {
+  if (!filtrosVod()) return 0;
+  if (!n) return 1;
+  for (int i = 0; i < n; i++) if (!lista[i].filtro.naoVod) return 1;
+  return 0;
+}
 static int botaoDe(int i) {
   if (!video_pode_forcar_sdr()) i++;
   if (i == 0) return BT_SEM_HDR;
   // Live TV sources do not carry the same stable container, debrid-cache and
   // audio metadata as movie/episode sources. Keep only actions that work for
   // channels instead of offering filters that can hide valid streams.
-  if (canalFolha) return i == 1 ? BT_RECARREGAR : BT_FECHAR;
+  if (!filtrosVisiveis()) return i == 1 ? BT_RECARREGAR : BT_FECHAR;
   if (i == 1) return BT_SO_MP4;
   if (i == 2) return BT_CACHE;
   if (i == 3) return BT_DUB;
@@ -3104,7 +3125,7 @@ static int botaoDe(int i) {
   return BT_FECHAR;
 }
 static int nBotoes(void) {
-  if (canalFolha) return video_pode_forcar_sdr() ? 3 : 2;
+  if (!filtrosVisiveis()) return video_pode_forcar_sdr() ? 3 : 2;
   return (video_pode_forcar_sdr() ? 6 : 5) + (recarregarFonteContexto != 0);
 }
 static const char *idiomaFiltroAudio(void) {
@@ -3136,7 +3157,7 @@ static int temAudioPreferido(const Stream *s);
 // Os chips (MP4, cache, dublado) valem para a lista E para a contagem de cada
 // aba; o addon so para a lista.
 static int passaChips(int i) {
-  if (canalFolha) return 1;
+  if (lista[i].filtro.naoVod) return 1;
   if (!stream_filtro_permite(&lista[i])) return 0;
   if (soMp4 && !lista[i].mp4) return 0;
   if (soCache && !cacheConfirmado(&lista[i])) return 0;

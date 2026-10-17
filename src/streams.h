@@ -138,6 +138,10 @@ int stream_extrair(const char *json, const char *provedor, Stream **saida);
 // Idiomas declarados para exibicao, sem rotulo. 0 = nenhum informado.
 int stream_faixas_texto(const Stream *fonte, int legendas, char *saida, unsigned tam);
 void stream_filtro_dados(const Stream *fonte, FonteFiltroDados *saida);
+// Capture the requested resource type before publishing its sources. Filters
+// apply only to movie/series; this scope survives resolution and failover.
+void stream_filtro_tipo(const char *tipo);
+void stream_filtro_atualizar(void);
 int stream_filtro_permite(const Stream *fonte);
 int stream_filtro_bloqueou(void);
 void stream_definir_atual(int indice);

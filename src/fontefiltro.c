@@ -490,7 +490,7 @@ void fontefiltro_classificar(const FonteFiltroEntrada *e, FonteFiltroDados *d) {
 }
 
 int fontefiltro_permite(const FonteFiltroConfig *cfg, const FonteFiltroDados *d) {
-  if (!cfg || !d) return 1;
+  if (!cfg || !d || d->naoVod) return 1;
   // Status ausente nao e uma negativa. Assim, fontes sem uma declaracao do
   // addon ou uma resposta nativa confirmada aparecem somente em Todas.
   if (cfg->cache != FONTEFILTRO_CACHE_TODAS && d->cache != cfg->cache) return 0;

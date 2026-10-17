@@ -11,6 +11,12 @@
 #include <string.h>
 #include <strings.h>
 
+// Source preferences describe files for movies and episodes. Custom resources
+// are not assumed to be VOD: live add-ons can use arbitrary resource names.
+static inline int nv_tipo_vod(const char *tipo) {
+  return tipo && (!strcasecmp(tipo, "movie") || !strcasecmp(tipo, "series"));
+}
+
 // Channel aliases and the live-event types used by Sports Streams/Nebula.
 // This classifies playback; sports collections can remain on Home.
 // Identify the request before choosing a source, not after opening the UI.

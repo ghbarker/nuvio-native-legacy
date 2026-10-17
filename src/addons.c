@@ -3372,6 +3372,7 @@ static void buscarPedido(const char *imdb, const char *tipo, int forcar) {
   int serie, renovar;
   char id[sizeof alvoId];
   if (!imdb || !*imdb) return;
+  stream_filtro_tipo(tipo);
   stream_folha_canal(nv_tipo_canal(tipo));
   if (jfid_e(imdb)) {
     // PERSONAL SERVER ITEM. No addon, no source cache, no "where to watch":

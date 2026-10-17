@@ -30,6 +30,7 @@ typedef struct {
   uint64_t tamanhoBytes;          /* Zero = desconhecido. */
   unsigned cache;                 /* Zero = status nao declarado/confirmado. */
   char grupo[80];
+  int naoVod;                     /* Request scope; travels with this source. */
 } FonteFiltroDados;
 
 typedef struct {

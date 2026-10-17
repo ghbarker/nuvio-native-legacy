@@ -2131,7 +2131,7 @@ static void prepararAoAbrir(void) {
       player_retido() || aguardandoFonte || !detail_aberto() || preparoRodando) return;
   if (addons_estado() == ADD_BUSCANDO || stream_n() < 1 || stream_n_candidatas() < 1) return;
   ci = cat_item(detail_indice());
-  if (!ci || !ci->imdb[0] || nv_tipo_canal(ci->tipo)) return;
+  if (!ci || !ci->imdb[0] || !nv_tipo_vod(ci->tipo)) return;
   idDoAlvo(ci, alvo, sizeof alvo);
   if (!stream_lista_do_alvo(alvo)) return;
   g = stream_lista_geracao();

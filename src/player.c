@@ -1733,6 +1733,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
     audioTitulo();
     artehero_logo_sessao_iniciar(temFixo ? &itemFixo : NULL);
     canalSessao = ci && nv_tipo_canal(ci->tipo);
+    stream_folha_canal(canalSessao);
     if (canalSessao) itemCanal = *ci;
     // So o CH+/- feito dentro do PiP (player_manter_mini) mantem a miniatura
     // na troca — o stream velho segue no ar ate a fonte nova chegar pelo
