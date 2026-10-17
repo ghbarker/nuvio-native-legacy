@@ -65,7 +65,8 @@ int main(int argc,char **argv) {
   epg_abrir_sessao(1);epg_so_provedores(1);
   EpgContaFonte fs[]={ {1,1,"https://epg.invalid/slow/one"}, {1,2,"https://epg.invalid/two"},
                       {2,3,"https://epg.invalid/one"} };
-  epg_contas_configurar(fs,3);epg_iniciar();
+  epg_paises_definir("RO");
+  epg_contas_configurar(fs,3);assert(!strcmp(epg_paises_ativos(),"RO"));epg_iniciar();
   esperar(1,2);esperar(2,3);
   assert(atomic_load(&lentas) && epg_canal_estado("xtream:@00000001:7")==EPG_BAIXANDO);
   programa("xtream:@00000002:7","Account two");
