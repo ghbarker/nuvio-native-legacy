@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: bb68e2a571cdd5d9d16cd587d5c033b3905aac2c
+          ref: 91eeeab458dc3d9b3af48ce743a421516936024e
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Native accounts, Settings and guide regressions
