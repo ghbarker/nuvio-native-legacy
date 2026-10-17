@@ -87,14 +87,14 @@ static void carregar(void) {
     line=next;
   }free(body);
 }
-static int urlValida(const char *s) {
+int m3u_url_valida(const char *s) {
   if(!s)return 0;
   if(!*s)return 1;
   if(strlen(s)>=sizeof lista||strpbrk(s,"\r\n\t "))return 0;
   return !strncmp(s,"http://",7)||!strncmp(s,"https://",8);
 }
 static int definir(const char *url,int grade) {
-  if(!urlValida(url))return 0;
+  if(!m3u_url_valida(url))return 0;
   pthread_mutex_lock(&trava);carregar();
   char body[2300],nome[64];nomeConfig(nome,sizeof nome,perfil);
   snprintf(body,sizeof body,"lista\t%s\nepg\t%s\n",grade?lista:url,grade?url:epg);

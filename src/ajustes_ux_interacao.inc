@@ -114,6 +114,7 @@ static void uxAbrirEditor(int op) {
   if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op) || soLeitura(op)) return;
   uxCancelar();
   uxOp = op; uxOriginal = uxValorAtual(op); uxPendente = uxOriginal;
+  if(ajIptvGerenciador(op))iptvListaSessao=nv_perfil_sessao_ler();
   uxEditor = inativa(op) ? 2 : 1;
 }
 static int uxRiscoFinal(int op, int novo) {
@@ -123,6 +124,17 @@ static int uxRiscoFinal(int op, int novo) {
   return 0;
 }
 static void uxAplicar(void) {
+  if(ajIptvGerenciador(uxOp)) {
+    if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
+    if(uxPendente<0 || uxPendente>=nValores(uxOp))return;
+    int op=uxOp,tipo=ajIptvTipo(op),i=ajIptvDoTipo(tipo,uxPendente);
+    if(i>=0) {
+      if(!iptv_conta_selecionar(i)) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
+      uxCancelar();ajIptvEspelhar();focarOpcao(ajIptvPrimeiroCampo(tipo));
+    } else if(iptv_contas(NULL,0)<IPTV_MAX_CONTAS) { uxCancelar();ajIptvNovaAbrir(op); }
+    else uxNotificar("Não foi possível agora. Tente novamente.");
+    return;
+  }
   int antes = uxValorAtual(uxOp), bit;
   // Conta/sync pode ter mudado o valor enquanto o seletor estava aberto.
   if (antes != uxOriginal) {

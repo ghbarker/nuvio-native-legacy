@@ -21,6 +21,7 @@
 #include "xtream.h"
 #include "m3u.h"
 #include "iptvfontes.h"
+#include "perfisessao.h"
 #include "guia.h"
 #include "xtepg.h"
 #include "teclado.h"
@@ -1214,6 +1215,8 @@ typedef struct {
 // Qual campo do portal esta sendo digitado: 0 = nenhum, AJ_STALKER_PORTAL ou
 // AJ_STALKER_MAC. A modal e uma so; o destino do que sair dela e isto.
 static int stCampo;
+static NvPerfilSessao iptvNovaSessao;
+static NvPerfilSessao iptvListaSessao;
 
 // Alfabetos da modal. Sao diferentes porque os campos sao diferentes: endereco
 // precisa de ponto, dois pontos e hifen; MAC so de hexadecimal e dois pontos, e
@@ -1687,9 +1690,9 @@ static const Opcao OPCOES[AJ_N] = {
   ACAO("URL da programação XMLTV"),
   ACAO("Remover lista M3U"),
   ESC("Conta de TV ao vivo", NULL, 1),
-  ACAO("Adicionar conta Xtream"),
-  ACAO("Adicionar lista M3U"),
-  ACAO("Adicionar portal Stalker"),
+  ESC("Xtream", NULL, 1),
+  ESC("M3U", NULL, 1),
+  ESC("Stalker", NULL, 1),
   ACAO("Nome da conta"),
   ESC("Conta ativada", V_LIGA, 2),
   ACAO("Remover conta de TV ao vivo"),
@@ -2151,6 +2154,38 @@ static const char *ajIptvNome(int indice) {
   static IptvConta cs[IPTV_MAX_CONTAS];
   int n=iptv_contas(cs,IPTV_MAX_CONTAS);
   return indice>=0 && indice<n ? cs[indice].nome : i18n("Nenhuma");
+}
+static int ajIptvGerenciador(int op) {
+  return op>=AJ_IPTV_ADD_XTREAM && op<=AJ_IPTV_ADD_STALKER;
+}
+static int ajIptvTipo(int op) { return op-AJ_IPTV_ADD_XTREAM+IPTV_XTREAM; }
+static int ajIptvDoTipo(int tipo,int pos) {
+  IptvConta cs[IPTV_MAX_CONTAS];int n=iptv_contas(cs,IPTV_MAX_CONTAS);
+  for(int i=0;i<n;i++)if(cs[i].tipo==tipo && pos--==0)return i;
+  return -1;
+}
+static int ajIptvQuantos(int tipo) {
+  IptvConta cs[IPTV_MAX_CONTAS];int n=iptv_contas(cs,IPTV_MAX_CONTAS),quantos=0;
+  for(int i=0;i<n;i++)quantos+=cs[i].tipo==tipo;
+  return quantos;
+}
+static int ajIptvAtualTipo(int tipo) {
+  int atual=iptv_conta_indice(),n=ajIptvQuantos(tipo);
+  for(int i=0;i<n;i++)if(ajIptvDoTipo(tipo,i)==atual)return i;
+  return 0;
+}
+static int ajIptvPrimeiroCampo(int tipo) {
+  return tipo==IPTV_XTREAM?AJ_XTREAM_SERVIDOR:tipo==IPTV_M3U?AJ_M3U_URL:AJ_STALKER_PORTAL;
+}
+static const char *ajIptvAdicionarNome(int tipo) {
+  return tipo==IPTV_XTREAM?"Adicionar conta Xtream":tipo==IPTV_M3U?"Adicionar lista M3U":"Adicionar portal Stalker";
+}
+static void ajIptvNovaAbrir(int op) {
+  int tipo=ajIptvTipo(op);stCampo=op;iptvNovaSessao=nv_perfil_sessao_ler();
+  teclado_contexto(i18n(ajIptvAdicionarNome(tipo)));
+  teclado_abrir_com(tipo==IPTV_XTREAM?"Servidor Xtream":tipo==IPTV_M3U?"URL da lista M3U":"Portal Stalker (MAC)",
+    tipo==IPTV_M3U?"Endereço HTTP ou HTTPS":"Endereço e porta, sem http://",
+    tipo==IPTV_M3U?1099:64,tipo==IPTV_M3U?CUR_ALFA_URL:ST_ALFA_PORTAL,NULL);
 }
 static char faAddonEditar[FONTEFALHA_CHAVE];
 static char faAddonTitulo[FR_NOME_MAX + 48];
@@ -2757,7 +2792,7 @@ static int ajOpcaoDisponivel(int op) {
   if(tipo)return iptv_conta_selecionada(&c) && c.tipo==tipo;
   if(op==AJ_XTREAM_LIMPAR || op==AJ_M3U_LIMPAR || op==AJ_STALKER_LIMPAR)return 0;
   if(op==AJ_IPTV_CONTA || op==AJ_IPTV_NOME || op==AJ_IPTV_ATIVA || op==AJ_IPTV_REMOVER)return iptv_contas(NULL,0)>0;
-  if(op>=AJ_IPTV_ADD_XTREAM && op<=AJ_IPTV_ADD_STALKER)return iptv_contas(NULL,0)<IPTV_MAX_CONTAS;
+  if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op))>0 || iptv_contas(NULL,0)<IPTV_MAX_CONTAS;
   if (op == AJ_FALHA_ADDON_LIMITE) return faAddonEditar[0] != 0;
 #ifndef NV_ANDROID
   if (op == AJ_FONTE_PRECARREGAR) return 0;
@@ -8745,14 +8780,6 @@ static void eventoTela(const SDL_Event *e) {
       if (b[0]) snprintf(kc, sizeof kc, "%s · %s", i18n(uxCaminho(focoOp)), i18n(b));
       else snprintf(kc, sizeof kc, "%s", i18n(uxCaminho(focoOp)));
       teclado_contexto(kc); }
-    if(focoOp>=AJ_IPTV_ADD_XTREAM && focoOp<=AJ_IPTV_ADD_STALKER) {
-      int tipo=focoOp-AJ_IPTV_ADD_XTREAM+IPTV_XTREAM;
-      if(iptv_conta_adicionar(tipo)) {
-        ajIptvEspelhar();
-        focarOpcao(tipo==IPTV_XTREAM?AJ_XTREAM_SERVIDOR:tipo==IPTV_M3U?AJ_M3U_URL:AJ_STALKER_PORTAL);
-      } else uxNotificar("Não foi possível agora. Tente novamente.");
-      return;
-    }
     if(focoOp==AJ_IPTV_NOME) {
       stCampo=AJ_IPTV_NOME;
       teclado_abrir_com("Nome da conta","",95,CUR_ALFA_URL,ajIptvNome(iptv_conta_indice()));
@@ -8995,7 +9022,35 @@ void ajustes_atualizar(float dt, Uint32 agora) {
   if (!pessoas_aberto()) hcTecladoLer();
   { int r = pessoas_aberto() ? TECLADO_NADA : teclado_resultado();
     if (r == TECLADO_PRONTO && stCampo) {
-      if(stCampo==AJ_IPTV_NOME) {
+      if(ajIptvGerenciador(stCampo)) {
+        int tipo=ajIptvTipo(stCampo),anterior=iptv_conta_indice(),ok=0;
+        const char *url=teclado_texto();
+        if(!nv_perfil_sessao_atual(iptvNovaSessao)) {
+          uxNotificar("Não foi possível agora. Tente novamente.");
+        } else if(!url[0] || (tipo==IPTV_M3U && !m3u_url_valida(url))) {
+          uxNotificar("endereço inválido");
+        } else if(iptv_conta_adicionar(tipo)) {
+          ajIptvEspelhar();
+          if(tipo==IPTV_M3U)ok=m3u_definir_lista(url);
+          else if(tipo==IPTV_XTREAM)ok=xtream_definir_servidor(url) && strcmp(xtream_servidor_curto(),"-");
+          else ok=stalker_definir_portal(url) && strcmp(stalker_portal_curto(),"-");
+          if(ok) {
+            focarOpcao(tipo==IPTV_XTREAM?AJ_XTREAM_USUARIO:tipo==IPTV_M3U?AJ_M3U_EPG:AJ_STALKER_MAC);
+            guia_recarregar(1);registro_aviso_legal();
+          } else {
+            IptvConta removida;
+            if(iptv_conta_remover(&removida)) {
+              if(tipo==IPTV_XTREAM)xtream_fonte_esquecer(removida.id);
+              else if(tipo==IPTV_M3U)m3u_fonte_esquecer(removida.id);
+              else stalker_fonte_esquecer(removida.id);
+              iptv_conta_selecionar(anterior);
+            }
+            ajIptvEspelhar();
+          }
+          uxNotificar(ok?"Ajuste salvo nesta TV.":"Não foi possível agora. Tente novamente.");
+        } else uxNotificar("Não foi possível agora. Tente novamente.");
+      }
+      else if(stCampo==AJ_IPTV_NOME) {
         int ok=iptv_conta_renomear(teclado_texto());ajIptvEspelhar();
         uxNotificar(ok?"Ajuste salvo nesta TV.":"Não foi possível agora. Tente novamente.");
       }
@@ -9158,6 +9213,7 @@ static int nValores(int op) {
 #endif
     return n + (legfontes_selecionada(ajFonteSlot(op)) >= 0);
   }
+  if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op))+(iptv_contas(NULL,0)<IPTV_MAX_CONTAS);
   if(op==AJ_IPTV_CONTA){int n=iptv_contas(NULL,0);return n>0?n:1;}
   if (op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2) return nLingua > 0 ? nLingua : 1;
   if (op == AJ_TRAILER_AUDIO) return nTrAud > 0 ? nTrAud : 1;
@@ -9179,6 +9235,7 @@ static int nValores(int op) {
 // por vez dentro de desenhaLinha.
 static const char *textoValor(int op) {
   if (ajFonte(op)) return ajFonteNome(op, ajFonteAtual(op));
+  if(ajIptvGerenciador(op))return i18n("Abrir");
   if(op==AJ_IPTV_CONTA)return ajIptvNome(iptv_conta_indice());
   static char buf[48];
   if (ajFalhaBackend(op)) {

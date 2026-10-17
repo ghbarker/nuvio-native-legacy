@@ -124,24 +124,27 @@ void xtream_carregar(void) {
   pthread_mutex_unlock(&trava);
 }
 
-static void gravar(void) {
+static int gravar(void) {
   char txt[640];
   snprintf(txt, sizeof txt,
            "# CREDENCIAL. Usuario e senha do Xtream vao dentro de toda URL de\n"
            "# canal: valem como a assinatura. Nao versionar, nao empacotar, nao\n"
            "# colar em issue nem em log.\n"
            "servidor\t%s\nusuario\t%s\nsenha\t%s\n", servidor, usuario, senha);
-  dados_gravar(arquivo(), txt);
+  return dados_gravar(arquivo(), txt);
 }
 
 // Tres setters e nao um: a tela edita um campo por vez, e um setter unico a
 // obrigaria a ler a senha em claro so para regrava-la ao trocar o servidor.
-void xtream_definir_servidor(const char *s) {
+int xtream_definir_servidor(const char *s) {
   pthread_mutex_lock(&trava);
   carregarTravado();
+  char anterior[sizeof servidor];memcpy(anterior,servidor,sizeof anterior);
   normalizarServidor(s, servidor, sizeof servidor);
-  gravar();
+  int ok=gravar();
+  if(!ok)memcpy(servidor,anterior,sizeof anterior);
   pthread_mutex_unlock(&trava);
+  return ok;
 }
 void xtream_definir_usuario(const char *u) {
   pthread_mutex_lock(&trava);

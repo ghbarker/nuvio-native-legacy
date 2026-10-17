@@ -33,7 +33,7 @@
 // ---------------------------------------------------------------- cadastro
 void xtream_carregar(void);
 int  xtream_configurado(void);          // servidor, usuario e senha presentes
-void xtream_definir_servidor(const char *servidor);
+int xtream_definir_servidor(const char *servidor);
 void xtream_definir_usuario(const char *usuario);
 void xtream_definir_senha(const char *senha);
 void xtream_esquecer(void);

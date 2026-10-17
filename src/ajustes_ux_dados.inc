@@ -18,6 +18,7 @@ static int uxValorPadrao(int op) {
 static int uxValorAtual(int op) {
   if (op < 0 || op >= AJ_N) return 0;
   if (ajFonte(op)) return ajFonteAtual(op);
+  if(ajIptvGerenciador(op))return ajIptvAtualTipo(ajIptvTipo(op));
   if (ajLegendaPrincipal(op)) return ajLegendaValor(op);
   if (ajFalhaBackend(op)) return ajFalhaValor(op);
   if (op == AJ_SEEKR_LIGADO && !seekrChave[0]) return 1;
@@ -90,6 +91,10 @@ static void uxValorTexto(int op, int v, char *buf, size_t tam) {
   buf[0] = 0;
   if (op < 0 || op >= AJ_N) return;
   if(op==AJ_IPTV_CONTA){snprintf(buf,tam,"%s",ajIptvNome(v));return;}
+  if(ajIptvGerenciador(op)) {
+    int tipo=ajIptvTipo(op),i=ajIptvDoTipo(tipo,v);
+    snprintf(buf,tam,"%s",i>=0?ajIptvNome(i):i18n(ajIptvAdicionarNome(tipo)));return;
+  }
   o = &OPCOES[op];
   if (ajFonte(op)) texto = ajFonteNome(op, v);
   else if (o->tipo == OP_ACAO) texto = i18n("Abrir");

@@ -891,6 +891,10 @@ static void ajPontEdValor(int i, int b) {
   if (uxOp == AJ_TEX_MB && texAcima(i)) return;
   uxRodape = 0; uxPendente = i;
 }
+static void ajIptvToqueEscolher(int i,int b) {
+  if(!ajPontEdVale() || !ajIptvGerenciador(uxOp) || i<0 || i>=nValores(uxOp))return;
+  ajPontEdValor(i,b);uxAplicar();
+}
 static void ajPontEdNumero(int a, int b) { (void)a; (void)b; if (ajPontEdVale()) uxRodape = 0; }
 static void ajPontEdPasso(int d, int b) {
   (void)b;
@@ -1098,12 +1102,13 @@ static void aj2EditorEscolha(GfxRect m) {
     if (uxOp == AJ_TEX_MB && texAcima(i)) snprintf(t, sizeof t, "%s", i18n(o->valores[i]));
     if (ajPontEditor) {
       PonteiroFn ac = uxOp == AJ_TEX_MB && texAcima(i) ? NULL : ajPontEdValor;
+      PonteiroFn ativar = ajIptvGerenciador(uxOp) ? ajIptvToqueEscolher : NULL;
 #ifdef NV_TOUCH_UI
       if (ajTelaCheia())
-        ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y0, aj2EditorBase(m), ac, NULL, i, 0);
+        ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y0, aj2EditorBase(m), ac, ativar, i, 0);
       else
 #endif
-        ponteiro_alvo(r.x, r.y, r.w, r.h, ac, NULL, i, 0);
+        ponteiro_alvo(r.x, r.y, r.w, r.h, ac, ativar, i, 0);
     }
     if (foco) ajFocoLinha(r, 28, 1, 1);
     fv = marcaDoValor(uxOp, o->valores && i < o->n ? o->valores[i] : NULL);
@@ -1131,7 +1136,10 @@ static void aj2EditorEscolha(GfxRect m) {
         txt_desenhar_alpha(m, mx - m.w, r.y + (96 - m.h) * 0.5f, 0.5f);
       }
     }
-    if (i == uxOriginal) {
+    if (ajIptvGerenciador(uxOp) && ajIptvDoTipo(ajIptvTipo(uxOp),i)<0) {
+      ajIcone("aj_plus",r.x+r.w-56,r.y+35,26,0.8f);
+    } else if (i == uxOriginal && (!ajIptvGerenciador(uxOp) ||
+               ajIptvDoTipo(ajIptvTipo(uxOp),i)==iptv_conta_indice())) {
       TxtLinha s = ajTxt(TXT_V2_28, "Salvo");
       float sx = r.x + r.w - 30 - s.w;
       txt_desenhar_alpha(s, sx, r.y + (96 - s.h) * 0.5f, 0.55f);

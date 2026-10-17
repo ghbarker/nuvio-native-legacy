@@ -177,7 +177,7 @@ void stalker_carregar(void) {
   pthread_mutex_unlock(&travaSessao);
 }
 
-static void gravar(void) {
+static int gravar(void) {
   char txt[720];
   // O COMENTARIO VAI NO ARQUIVO, como em listas.c: quem o encontrar primeiro
   // sera alguem depurando a TV de outra pessoa — e precisa saber na hora que
@@ -188,21 +188,23 @@ static void gravar(void) {
            "# em issue nem em log.\n"
            "portal\t%s\nmac\t%s\ndevice\t%s\nserial\t%s\n",
            portal, mac, deviceId, serial);
-  dados_gravar(arquivo(), txt);
+  return dados_gravar(arquivo(), txt);
 }
 
 // DOIS CAMPOS, DOIS SETTERS, e nao um `definir` com tudo. A tela de Ajustes
 // edita um de cada vez, e um setter unico a obrigaria a ler o MAC atual para
 // reescreve-lo ao trocar so o endereco — ou seja, a devolver a credencial em
 // claro para a camada de desenho so para poder grava-la de volta.
-void stalker_definir_portal(const char *p) {
+int stalker_definir_portal(const char *p) {
   pthread_mutex_lock(&travaSessao);
   carregarTravado();
+  char anterior[sizeof portal];memcpy(anterior,portal,sizeof anterior);
   normalizarPortal(p, portal, sizeof portal);
-  limparSessao();
-  gravar();
+  int ok=gravar();
+  if(ok)limparSessao();else memcpy(portal,anterior,sizeof anterior);
   pthread_mutex_unlock(&travaSessao);
-  pthread_mutex_lock(&travaTabela); nTabela = 0; pthread_mutex_unlock(&travaTabela);
+  if(ok) { pthread_mutex_lock(&travaTabela); nTabela = 0; pthread_mutex_unlock(&travaTabela); }
+  return ok;
 }
 
 void stalker_definir_mac(const char *m) {
