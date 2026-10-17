@@ -713,7 +713,7 @@ int xtream_epg_curto(const char *id, XtreamProg *out, int cap, int *status) {
   for (d = id + 7; *d; d++) if (*d < '0' || *d > '9') return -1;
   if (!id[7]) return -1;
   snprintf(acao, sizeof acao, "get_short_epg&stream_id=%s&limit=%d", id + 7, cap);
-  corpo = chamarSt(acao, XT_PRAZO_S, &st, sessao);
+  corpo = chamarSt(acao, 6, &st, sessao);
   if (status) *status = st;
   if (!corpo || st == 0 || st >= 400) { free(corpo); return -1; }
   n = xtream_epg_parse(corpo, out, cap);

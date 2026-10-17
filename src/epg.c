@@ -45,6 +45,7 @@
 #include <pthread.h>
 #include <zlib.h>
 #include <strings.h>
+#include <ctype.h>
 
 // 2400 e nao 1400 (#158): as cinco de sempre ja davam 797 canais, e RO1+RO2
 // somam mais 518.
@@ -171,8 +172,8 @@ static int      perfilGrade = 1, reiniciarPend;
 static struct {
   NvPerfilSessao sessao;
   volatile int cancelada;
-  int perfil, nArq, nFiltro;
-  char arq[EPG_MAX_FONTES][8], extra[1100];
+  int perfil, nArq, nFiltro, soProvedores;
+  char arq[EPG_MAX_FONTES][8], extra[1100], m3u[1100];
   char (*filtro)[64];
 } carga;
 
@@ -874,7 +875,8 @@ int epg_pais_existe(const char *pais) {
 #define EPG_EXTRA_TETO_REDE (32L << 20)
 #define EPG_EXTRA_TETO_XML  (128L << 20)
 #endif
-static char extraUrl[1100];
+static char extraUrl[1100], m3uUrl[1100];
+static int soProvedores;
 static volatile int extraMudou;
 
 static void hashUrl(const char *u, char *dst, size_t tam) {
@@ -901,21 +903,23 @@ static char *abrirExtra(const char *b, long n, long *nOut) {
     while (k < *nOut && k < 64 && xml[k] != '<') k++;
     if (k >= *nOut || xml[k] != '<') { free(xml); return NULL; }
     if (k) { memmove(xml, xml + k, (size_t)(*nOut - k) + 1); *nOut -= k; } }
+  const char *tv=strstr(xml,"<tv");
+  if(!tv || (tv[3]!='>' && tv[3]!='/' && !isspace((unsigned char)tv[3]))) {free(xml);return NULL;}
   return xml;
 }
 
-static char *obterExtra(const char *url, long *nOut) {
+static char *obterExtraNome(const char *url, long *nOut, int m3u) {
   char id[24], *b, *xml, *velho;
   char nBin[48], nTs[48], nId[48];
   long n = 0;
   RedeControle ctl;
   RedeMedida med;
-  snprintf(nBin, sizeof nBin, "epg-extra-p%d.bin", carga.perfil);
-  snprintf(nTs, sizeof nTs, "epg-extra-p%d.ts", carga.perfil);
-  snprintf(nId, sizeof nId, "epg-extra-p%d.id", carga.perfil);
+  snprintf(nBin, sizeof nBin, m3u ? "epg-extra-m3u-p%d.bin" : "epg-extra-p%d.bin", carga.perfil);
+  snprintf(nTs, sizeof nTs, m3u ? "epg-extra-m3u-p%d.ts" : "epg-extra-p%d.ts", carga.perfil);
+  snprintf(nId, sizeof nId, m3u ? "epg-extra-m3u-p%d.id" : "epg-extra-p%d.id", carga.perfil);
   hashUrl(url, id, sizeof id);
   velho = dados_ler(nId);
-  if (!velho && carga.perfil == 1) {
+  if (!velho && !m3u && carga.perfil == 1) {
     // Migra o cache antigo somente quando pertence EXATAMENTE a URL deste
     // cadastro. A URL nunca e gravada: o identificador e seu hash.
     velho = dados_ler("epg-extra.id");
@@ -940,8 +944,8 @@ static char *obterExtra(const char *url, long *nOut) {
   ctl.max_bytes = EPG_EXTRA_TETO_REDE;
   ctl.cancelado = &carga.cancelada;
   if (!cargaAtual()) return NULL;
-  b = rede_baixar_bin_medido_controle(url, 120, NULL, &ctl, &n, &med);
-  if (!b || med.limitado) {
+  b = rede_baixar_bin_medido_controle(url, 30, NULL, &ctl, &n, &med);
+  if (!b || med.limitado || med.status >= 400) {
     // O teto vai no log (#158): "maior que o teto" sem o numero nao dizia se
     // faltava pouco ou muito. No registro 6311 foi esta linha, e dali para a
     // frente a grade do provedor nunca entrou — a grade curta por canal
@@ -953,7 +957,11 @@ static char *obterExtra(const char *url, long *nOut) {
     if (med.status && med.status != 200) printf("[epg] grade do provedor: HTTP %d\n", med.status);
     fflush(stdout);
     free(b);
-    return NULL;
+    velho=dados_ler(nId);
+    if (velho && !strcmp(velho,id)) {
+      b=lerBin(nBin,&n);xml=b?abrirExtra(b,n,nOut):NULL;free(b);free(velho);return xml;
+    }
+    free(velho);return NULL;
   }
   xml = abrirExtra(b, n, nOut);
   // O nome pertence ao dono capturado ao iniciar: nunca ao perfil que
@@ -963,6 +971,8 @@ static char *obterExtra(const char *url, long *nOut) {
   free(b);
   return xml;
 }
+
+static char *obterExtra(const char *url,long *nOut) { return obterExtraNome(url,nOut,0); }
 
 void epg_fonte_extra_ids(const char *const *ids, int n) {
   char (*novo)[64] = NULL;
@@ -986,15 +996,63 @@ void epg_fonte_extra(const char *url) {
   if (strcmp(url, extraUrl)) {
     snprintf(extraUrl, sizeof extraUrl, "%s", url);
     extraMudou = 1;
+    if (fioVivo) { carga.cancelada=1;reiniciarPend=1; }
   }
   pthread_mutex_unlock(&trava);
+}
+void epg_fonte_m3u(const char *url) {
+  if(!url)url="";
+  pthread_mutex_lock(&trava);
+  if(strcmp(url,m3uUrl)) {
+    snprintf(m3uUrl,sizeof m3uUrl,"%s",url);extraMudou=1;
+    if(fioVivo){carga.cancelada=1;reiniciarPend=1;}
+  }
+  pthread_mutex_unlock(&trava);
+}
+void epg_so_provedores(int so) {
+  pthread_mutex_lock(&trava);
+  if(soProvedores!=!!so) {
+    soProvedores=!!so;extraMudou=1;
+    if(fioVivo){carga.cancelada=1;reiniciarPend=1;}
+  }
+  pthread_mutex_unlock(&trava);
+}
+void epg_recarregar(void) {
+  // Expire timestamps, never the last working guide body.
+  char nome[64];int p=perfilGrade;
+  snprintf(nome,sizeof nome,"epg-extra-p%d.ts",p);dados_apagar(nome);
+  snprintf(nome,sizeof nome,"epg-extra-m3u-p%d.ts",p);dados_apagar(nome);
+  pthread_mutex_lock(&trava);
+  int n=nFontesArq<0?(int)(sizeof PADRAO_ARQ/sizeof PADRAO_ARQ[0]):nFontesArq;
+  for(int i=0;i<n;i++) {
+    nomesFonte(nFontesArq<0?PADRAO_ARQ[i]:fontesArq[i],NULL,0,NULL,NULL,nome,sizeof nome);dados_apagar(nome);
+  }
+  extraMudou=1;
+  if(fioVivo){carga.cancelada=1;reiniciarPend=1;}
+  pthread_mutex_unlock(&trava);
+  if(!fioVivo)epg_iniciar();
 }
 
 static void *fioEpg(void *u) {
   int i, ok = 0;
   (void)u;
   if (!cargaAtual() || !wAbrir(&W)) goto fim;
-  for (i = 0; cargaAtual() && i < carga.nArq; i++) {
+  if (cargaAtual() && carga.extra[0]) {
+    long n = 0;
+    char *xml = obterExtra(carga.extra, &n);
+    if (xml) {
+      int achou = cargaAtual() ? wProcessarF(&W, xml, carga.filtro, carga.nFiltro) : 0;
+      printf("[epg] grade do provedor: %d programas (%ld KB)\n", achou, n / 1024);
+      fflush(stdout);
+      free(xml);
+      ok = 1;
+    }
+  }
+  if (cargaAtual() && carga.m3u[0] && strcmp(carga.m3u,carga.extra)) {
+    long n=0;char *xml=obterExtraNome(carga.m3u,&n,1);
+    if(xml){if(cargaAtual())wProcessarF(&W,xml,carga.filtro,carga.nFiltro);free(xml);ok=1;}
+  }
+  for (i = 0; !carga.soProvedores && cargaAtual() && i < carga.nArq; i++) {
     long n = 0;
     char *xml = obterXml(carga.arq[i], &n);
     if (xml) {
@@ -1007,21 +1065,10 @@ static void *fioEpg(void *u) {
       ok = 1;
     }
   }
-  if (cargaAtual() && carga.extra[0]) {
-    long n = 0;
-    char *xml = obterExtra(carga.extra, &n);
-    if (xml) {
-      int achou = cargaAtual() ? wProcessarF(&W, xml, carga.filtro, carga.nFiltro) : 0;
-      printf("[epg] grade do provedor: %d programas (%ld KB)\n", achou, n / 1024);
-      fflush(stdout);
-      free(xml);
-      ok = 1;
-    }
-  }
   wFechar(&W);
 fim:
   free(carga.filtro); carga.filtro = NULL;
-  pendOk = ok;
+  pendOk = ok || (carga.soProvedores && !carga.extra[0] && !carga.m3u[0]);
   atomic_store_explicit(&pendPronto, 1, memory_order_release);
   return NULL;
 }
@@ -1037,6 +1084,7 @@ void epg_iniciar(void) {
   carga.perfil = perfilGrade; carga.nFiltro = 0;
   pthread_mutex_lock(&trava);
   snprintf(carga.extra, sizeof carga.extra, "%s", extraUrl);
+  snprintf(carga.m3u,sizeof carga.m3u,"%s",m3uUrl);carga.soProvedores=soProvedores;
   extraMudou = fontesMudaram = 0;
   if (nFontesArq < 0) {
     for (carga.nArq = 0; carga.nArq < (int)(sizeof PADRAO_ARQ / sizeof PADRAO_ARQ[0]); carga.nArq++)
@@ -1066,10 +1114,11 @@ void epg_passo(void) {
     pthread_mutex_lock(&trava);
     int atual = cargaAtual();
     if (atual) {
-      free(P.evs); free(P.arena);
-      P = W;
+      if (pendOk || !P.nEvs) {
+        free(P.evs);free(P.arena);P=W;
+      } else {free(W.evs);free(W.arena);}
       carregadaEm = time(NULL);
-      estado = pendOk ? EPG_PRONTO : EPG_FALHOU;
+      estado = pendOk || P.nEvs ? EPG_PRONTO : EPG_FALHOU;
     } else {
       free(W.evs); free(W.arena);
       estado = EPG_PARADO;
@@ -1111,7 +1160,7 @@ void epg_abrir_sessao(int perfil) {
   pthread_mutex_lock(&trava);
   free(P.evs); free(P.arena); memset(&P, 0, sizeof P);
   free(filtroIds); filtroIds = NULL; nFiltroIds = 0;
-  extraUrl[0] = paisesAtivos[0] = 0;
+  extraUrl[0] = m3uUrl[0] = paisesAtivos[0] = 0;soProvedores=0;
   nFontesArq = -1; extraMudou = fontesMudaram = 0;
   perfilGrade = perfil > 0 ? perfil : 1;
   carregadaEm = 0; estado = EPG_PARADO; reiniciarPend = 0;

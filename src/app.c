@@ -144,6 +144,7 @@
 #include "vazao.h"
 #include "stalker.h"
 #include "xtream.h"
+#include "m3u.h"
 #include "rede.h"
 #include "ts_sonda.h"
 #include <unistd.h>
@@ -625,7 +626,9 @@ static void *escolherFonteCanal(void *u) {
 static void *escolherFonteStalker(void *u) {
   FonteJob *job = u;
   char url[4096];
-  int ok = perfis_sessao_atual(job->sessaoPerfil) && stalker_resolver_sessao(job->id, url, sizeof url, job->sessaoPerfil);
+  int ok = perfis_sessao_atual(job->sessaoPerfil) && (m3u_e_id(job->id)
+    ? m3u_resolver_sessao(job->id, url, sizeof url, job->sessaoPerfil, job->renovando)
+    : stalker_resolver_sessao(job->id, url, sizeof url, job->sessaoPerfil));
   // O worker publica somente no seu job. O consumidor confere a geracao e o
   // id depois do acquire; nenhuma resposta velha toca o mailbox da sessao
   // corrente.
@@ -1319,8 +1322,9 @@ static int montarCanalStalker(const char *id, const char *url) {
   if (!id || !id[0] || !url || !url[0]) return -1;
   memset(&s, 0, sizeof s);
   snprintf(s.url, sizeof s.url, "%s", url);
-  snprintf(s.rotulo, sizeof s.rotulo, "%s", "Portal IPTV");
-  snprintf(s.provedor, sizeof s.provedor, "%s", "stalker");
+  snprintf(s.rotulo, sizeof s.rotulo, "%s", m3u_e_id(id) ? "M3U" : "Portal IPTV");
+  snprintf(s.provedor, sizeof s.provedor, "%s", m3u_e_id(id) ? "m3u" : "stalker");
+  if (m3u_e_id(id)) m3u_cabecalhos(id, s.cabecalhos, sizeof s.cabecalhos);
   s.fileIdx = -1;
   stream_definir_lista(&s, 1);
   return 0;
@@ -2816,7 +2820,7 @@ static void tocarCanal(const CatItem *it) {
   stalkerRenovando = 0;            // resposta de renovacao antiga sera descartada
   // Canal de portal nao esta em addon nenhum: perguntar seria esperar o prazo
   // de todos eles para receber lista vazia, com a pessoa olhando "carregando".
-  if (!stalker_e_id(it->imdb) && !xtream_e_id(it->imdb)) {
+  if (!stalker_e_id(it->imdb) && !xtream_e_id(it->imdb) && !m3u_e_id(it->imdb)) {
     // So o addon que publicou o canal responde por ele; ver alvoBase em
     // addons.c e o que o FrostView fora do ar custava.
     addons_definir_origem(guia_canal_origem());
@@ -5177,7 +5181,7 @@ void app_atualizar(float dt, Uint32 agora) {
       if (xtream_e_id(player_id_canal())) {
         fonteEscolhida = resolverCanalXtream();
         canalFontePrazo = CANAL_FONTE_PRAZO_MS;
-      } else if (stalker_e_id(player_id_canal())) {
+      } else if (stalker_e_id(player_id_canal()) || m3u_e_id(player_id_canal())) {
         // UMA fonte, e ela acabou de nascer: nao ha lista para conferir nem
         // ranking para aplicar. O create_link bloqueia centenas de ms, entao
         // captura o id e deixa a rede fora do fio de desenho. Sem `return` de
@@ -5542,7 +5546,7 @@ void app_atualizar(float dt, Uint32 agora) {
       // Com teto: `stalkerTentativas` impede que um portal fora do ar vire um
       // laco de create_link a cada 12 s para sempre. O teto zera quando o canal
       // troca (canalFonteIdx = -1 em tocarCanal).
-      if (stalker_e_id(player_id_canal())) {
+      if (stalker_e_id(player_id_canal()) || m3u_e_id(player_id_canal())) {
         if (stalkerRenovando) return;
         if (stalkerTentativas < CANAL_STALKER_TENTATIVAS) {
           unsigned geracao = novaGeracaoFonte();

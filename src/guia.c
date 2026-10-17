@@ -58,6 +58,7 @@
 #include "descoberta.h"  /* desc_repetir: addon novo so entra com ciclo novo */
 #include "stalker.h"
 #include "xtream.h"
+#include "m3u.h"
 #include "guiacorte.h"   /* tetos e o aviso "Mostrando N de M" */
 #include "xtepg.h"     /* grade curta por canal do Xtream (#158) */
 #include "dados.h"
@@ -211,7 +212,7 @@ static float gPreviewLargura(void) {
 // CATEGORIAS e o primeiro chip: a porta VISIVEL do painel de categorias,
 // que antes so abria segurando a seta (ninguem descobre gesto que nao se ve).
 enum { G_TOPO_BUSCAR = 0, G_TOPO_CATEGORIAS, G_TOPO_CARTOES, G_TOPO_LISTA, G_TOPO_ADDONS, G_TOPO_DIAG,
-       G_TOPO_PREVIEW, G_TOPO_N };
+       G_TOPO_ATUALIZAR, G_TOPO_PREVIEW, G_TOPO_N };
 
 #ifdef NV_TOUCH_UI
 static GfxRect gTopoRects[G_TOPO_N];
@@ -446,6 +447,20 @@ typedef struct {
 } GAddonCarga;
 static GAddonCarga *addonsCarga;
 static int nAddonsCarga;
+static int cargaFonte, fonteAtual = -1, sPublicados;
+static pthread_mutex_t publicacaoTrava = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t publicacaoSinal = PTHREAD_COND_INITIALIZER;
+// Native source selection is captured before starting the worker.
+static int fonteIncluida(int escolha, int fonte) { return escolha == 0 || escolha == fonte; }
+static void publicarParcial(void) {
+  if (!sNCanais || cargaFonte != 0 || sNCanais == sPublicados) return;
+  sPublicados=sNCanais;
+  pthread_mutex_lock(&publicacaoTrava);
+  atomic_store_explicit(&pendPronto, 2, memory_order_release);
+  while (atomic_load_explicit(&pendPronto, memory_order_acquire) != 0)
+    pthread_cond_wait(&publicacaoSinal, &publicacaoTrava);
+  pthread_mutex_unlock(&publicacaoTrava);
+}
 static NvPerfilSessao cargaSessao;
 static volatile int cargaCancelada;
 
@@ -851,6 +866,15 @@ static int sXtHttp, xtHttp;
 static int xtAviso(char *sub, size_t tam);
 // Ver a definicao, junto do EPG por canal (#158).
 static void epgPaisesEscolher(void);
+static void epgFontesEscolher(void) {
+  char xt[1100]="",m[1100]="";int escolha=ajustes_guia_fonte();
+  if (fonteIncluida(escolha,1)) xtream_url_xmltv(xt,sizeof xt);
+  if (fonteIncluida(escolha,2)) m3u_url_epg(m,sizeof m);
+  epg_fonte_extra(xt);epg_fonte_m3u(m);
+  int nativos=nCanais>0;
+  for(int i=0;i<nCanais;i++)if(canais[i].base[0]){nativos=0;break;}
+  epg_so_provedores((escolha>0 && escolha!=4) || (escolha==0 && nativos));
+}
 
 static void sondaManifestos(void) {
   int a;
@@ -955,6 +979,85 @@ static void *fioGuia(void *u) {
   (void)u;
   sNCanais = 0; sNCats = 0; sFalhas = 0; sXtFalha = XT_OK;
   memset(&sCorte, 0, sizeof sCorte);
+  sNSabe = 0;sPublicados=0;
+  int grupos=0, addon=0;
+  if(fonteIncluida(cargaFonte,1) && xtream_configurado())grupos++;
+  if(fonteIncluida(cargaFonte,2) && m3u_configurado())grupos++;
+  if(fonteIncluida(cargaFonte,3) && stalker_configurado())grupos++;
+  for(int i=0;i<nAddonsCarga;i++)if(addonsCarga[i].ativo && addonsCarga[i].nCatalogos!=0){addon=1;break;}
+  int cotaNativa=G_MAX_CANAL/(grupos+addon>0?grupos+addon:1);
+  // XTREAM, pela mesma porta e pelas mesmas razoes (ver xtream.h). O epg_id
+  // que o servidor manda casa com o XMLTV do proprio provedor, que o EPG baixa
+  // como sexta fonte (#158, ver epg_fonte_extra); sem ele, o nome.
+  if (cargaAtual() && fonteIncluida(cargaFonte,1) && xtream_configurado()) {
+    XtreamCanal *xt = malloc(sizeof *xt * G_MAX_CANAL);
+    int n = xt ? xtream_canais_sessao(xt, cotaNativa, cargaSessao) : 0, i;
+    if (xt) { sXtFalha = xtream_ultima_falha(); sXtHttp = xtream_ultimo_http(); }
+    for (i = 0; i < n; i++) {
+      GCanal c;
+      if (sCanalPorId(xt[i].id) >= 0) continue;
+      memset(&c, 0, sizeof c);
+      c.epg = -1;
+      snprintf(c.id,   sizeof c.id,   "%s", xt[i].id);
+      snprintf(c.nome, sizeof c.nome, "%s", xt[i].nome);
+      snprintf(c.logo, sizeof c.logo, "%s", xt[i].logo);
+      snprintf(c.epgId, sizeof c.epgId, "%s", xt[i].epgId);
+      c.cat = sNCanais < G_MAX_CANAL ? sCatDe(xt[i].categoria[0] ? xt[i].categoria : "Outros") : 0;
+      if (guiacorte_entra(&sCorte, sNCanais, c.cat >= 0)) { sCanais[sNCanais++] = c; ok = 1; }
+    }
+    // O que o servidor tem alem do pedido (xtream_canais devolve ate `max`).
+    guiacorte_perdeu_canais(&sCorte, xtream_ultimo_total() - n);
+    free(xt);
+  }
+  if (cargaAtual()) publicarParcial();
+  if (cargaAtual() && fonteIncluida(cargaFonte,2) && m3u_configurado()) {
+    M3uCanal *m = malloc(sizeof *m * G_MAX_CANAL);
+    int n = m ? m3u_canais_sessao(m,cotaNativa,cargaSessao) : 0;
+    if (!n) sFalhas++;
+    for (int i=0;i<n;i++) {
+      GCanal c={0};c.epg=-1;
+      if (sCanalPorId(m[i].id)>=0)continue;
+      snprintf(c.id,sizeof c.id,"%s",m[i].id);
+      snprintf(c.nome,sizeof c.nome,"%s",m[i].nome);
+      snprintf(c.logo,sizeof c.logo,"%s",m[i].logo);
+      snprintf(c.epgId,sizeof c.epgId,"%s",m[i].epgId);
+      snprintf(c.tipo,sizeof c.tipo,"tv");
+      c.cat=sNCanais<G_MAX_CANAL?sCatDe(m[i].categoria[0]?m[i].categoria:"Outros"):0;
+      if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+    }
+    if (m) guiacorte_perdeu_canais(&sCorte,m3u_ultimo_total()-n);
+    free(m);
+  }
+  if (cargaAtual()) publicarParcial();
+  // PORTAL STALKER, quando houver um configurado neste perfil. Entra DEPOIS
+  // dos addons de proposito: quem tem as duas coisas espera ver primeiro o que
+  // ja via, e a ordem das categorias no guia e a ordem de chegada.
+  //
+  // Nao mexe em sFalhas: portal ausente nao e falha, e portal que nao responde
+  // ja se anuncia pela ausencia das categorias dele. Somar aqui faria a
+  // mensagem "nenhum catalogo de canais" aparecer para quem tem addons bons e
+  // um portal errado.
+  if (cargaAtual() && fonteIncluida(cargaFonte,3) && stalker_configurado()) {
+    // MALLOC e nao `static`: sao ~670 KB que so servem durante a carga. Como
+    // vetor estatico eles ficariam residentes para sempre, inclusive em quem
+    // nunca configurou portal nenhum — e este app ja disputa memoria com o
+    // cache de texturas numa TV de 2016.
+    StalkerCanal *st = malloc(sizeof *st * G_MAX_CANAL);
+    int n = st ? stalker_canais_sessao(st, cotaNativa, cargaSessao) : 0, i;
+    for (i = 0; i < n && sNCanais < G_MAX_CANAL; i++) {
+      GCanal c;
+      if (sCanalPorId(st[i].id) >= 0) continue;
+      memset(&c, 0, sizeof c);
+      c.epg = -1;
+      snprintf(c.id,   sizeof c.id,   "%s", st[i].id);
+      snprintf(c.nome, sizeof c.nome, "%s", st[i].nome);
+      snprintf(c.logo, sizeof c.logo, "%s", st[i].logo);
+      c.cat = sCatDe(st[i].categoria[0] ? st[i].categoria : "Outros");
+      if (c.cat >= 0) { sCanais[sNCanais++] = c; ok = 1; }
+    }
+    free(st);
+  }
+  if (cargaAtual()) publicarParcial();
   // Fontes das fileiras (descobertas no fio de desenho) primeiro — zero rede
   // extra. A sonda de manifestos completa com o que a home nao montou.
   // ADDON DESLIGADO NAO ENTRA POR AQUI TAMBEM. As fileiras da home so sao
@@ -962,7 +1065,7 @@ static void *fioGuia(void *u) {
   // no painel elas ainda listam o catalogo dele — e sem esta guarda a recarga
   // "na hora" do painel trazia de volta exatamente o que a pessoa acabou de
   // tirar.
-  sondaManifestos();
+  if (fonteIncluida(cargaFonte,4)) sondaManifestos();
   // COTA POR CATALOGO. O Pluto TV devolve 1.523 canais numa pagina so;
   // instalado, ele enchia os 900 lugares sozinho e o Meu Futebol (68 canais,
   // o que a pessoa realmente assiste) nem era lido — "instalei um addon e o
@@ -985,57 +1088,6 @@ static void *fioGuia(void *u) {
       // pedir a proxima e receber a mesma de novo, para sempre.
       if (n < G_PAGINA || novos == 0) break;
     }
-  }
-  // PORTAL STALKER, quando houver um configurado neste perfil. Entra DEPOIS
-  // dos addons de proposito: quem tem as duas coisas espera ver primeiro o que
-  // ja via, e a ordem das categorias no guia e a ordem de chegada.
-  //
-  // Nao mexe em sFalhas: portal ausente nao e falha, e portal que nao responde
-  // ja se anuncia pela ausencia das categorias dele. Somar aqui faria a
-  // mensagem "nenhum catalogo de canais" aparecer para quem tem addons bons e
-  // um portal errado.
-  if (cargaAtual() && stalker_configurado()) {
-    // MALLOC e nao `static`: sao ~670 KB que so servem durante a carga. Como
-    // vetor estatico eles ficariam residentes para sempre, inclusive em quem
-    // nunca configurou portal nenhum — e este app ja disputa memoria com o
-    // cache de texturas numa TV de 2016.
-    StalkerCanal *st = malloc(sizeof *st * G_MAX_CANAL);
-    int n = st ? stalker_canais_sessao(st, G_MAX_CANAL, cargaSessao) : 0, i;
-    for (i = 0; i < n && sNCanais < G_MAX_CANAL; i++) {
-      GCanal c;
-      if (sCanalPorId(st[i].id) >= 0) continue;
-      memset(&c, 0, sizeof c);
-      c.epg = -1;
-      snprintf(c.id,   sizeof c.id,   "%s", st[i].id);
-      snprintf(c.nome, sizeof c.nome, "%s", st[i].nome);
-      snprintf(c.logo, sizeof c.logo, "%s", st[i].logo);
-      c.cat = sCatDe(st[i].categoria[0] ? st[i].categoria : "Outros");
-      if (c.cat >= 0) { sCanais[sNCanais++] = c; ok = 1; }
-    }
-    free(st);
-  }
-  // XTREAM, pela mesma porta e pelas mesmas razoes (ver xtream.h). O epg_id
-  // que o servidor manda casa com o XMLTV do proprio provedor, que o EPG baixa
-  // como sexta fonte (#158, ver epg_fonte_extra); sem ele, o nome.
-  if (cargaAtual() && xtream_configurado()) {
-    XtreamCanal *xt = malloc(sizeof *xt * G_MAX_CANAL);
-    int n = xt ? xtream_canais_sessao(xt, G_MAX_CANAL, cargaSessao) : 0, i;
-    if (xt) { sXtFalha = xtream_ultima_falha(); sXtHttp = xtream_ultimo_http(); }
-    for (i = 0; i < n; i++) {
-      GCanal c;
-      if (sCanalPorId(xt[i].id) >= 0) continue;
-      memset(&c, 0, sizeof c);
-      c.epg = -1;
-      snprintf(c.id,   sizeof c.id,   "%s", xt[i].id);
-      snprintf(c.nome, sizeof c.nome, "%s", xt[i].nome);
-      snprintf(c.logo, sizeof c.logo, "%s", xt[i].logo);
-      snprintf(c.epgId, sizeof c.epgId, "%s", xt[i].epgId);
-      c.cat = sNCanais < G_MAX_CANAL ? sCatDe(xt[i].categoria[0] ? xt[i].categoria : "Outros") : 0;
-      if (guiacorte_entra(&sCorte, sNCanais, c.cat >= 0)) { sCanais[sNCanais++] = c; ok = 1; }
-    }
-    // O que o servidor tem alem do pedido (xtream_canais devolve ate `max`).
-    guiacorte_perdeu_canais(&sCorte, xtream_ultimo_total() - n);
-    free(xt);
   }
   // FONTE ACHADA E NENHUMA PAGINA RESPONDEU tambem e "nao respondeu", e nao
   // "nao existe": e o caso do catalogo de canais que estoura o prazo com o
@@ -1135,8 +1187,10 @@ static unsigned long assinaturaPublicada;
 static const char *cacheNome(void) {
   static char nome[48];
   int p = perfis_ativo();
-  if (p <= 0) snprintf(nome, sizeof nome, "guia-cache.bin");
-  else        snprintf(nome, sizeof nome, "guia-cache-p%d.bin", p);
+  int fonte = ajustes_guia_fonte();
+  if (fonte) snprintf(nome,sizeof nome,"guia-cache-f%d-p%d.bin",fonte,p);
+  else if (p <= 0) snprintf(nome, sizeof nome, "guia-cache.bin");
+  else snprintf(nome, sizeof nome, "guia-cache-p%d.bin", p);
   return nome;
 }
 
@@ -1306,7 +1360,8 @@ static void iniciarCarga(void) {
   // Copia no desenho: nenhum pedido relera as URLs ou os manifestos do
   // perfil novo enquanto a resposta do anterior ainda estiver em voo.
   cargaSessao = nv_perfil_sessao_ler(); cargaCancelada = 0;
-  nAddonsCarga = addons_n();
+  cargaFonte = ajustes_guia_fonte();
+  nAddonsCarga = fonteIncluida(cargaFonte,4) ? addons_n() : 0;
   addonsCarga = nAddonsCarga > 0 ? calloc((size_t)nAddonsCarga, sizeof *addonsCarga) : NULL;
   if (nAddonsCarga > 0 && !addonsCarga) { nAddonsCarga = 0; estado = G_FALHOU; return; }
   for (int i = 0; i < nAddonsCarga; i++) {
@@ -1318,7 +1373,7 @@ static void iniciarCarga(void) {
   }
   sNFontes = 0;
   for (int i = 0; i < nFontes && sNFontes < G_MAX_FONTE; i++)
-    if (cargaBaseLigada(fontes[i].base)) sFontes[sNFontes++] = fontes[i];
+    if (fonteIncluida(cargaFonte,4) && cargaBaseLigada(fontes[i].base)) sFontes[sNFontes++] = fontes[i];
   fioVivo = 1;
   estado = G_BAIXANDO;
   if (pthread_create(&t, NULL, fioGuia, NULL) != 0) {
@@ -1347,9 +1402,7 @@ void guia_carregar(void) {
   // A grade do proprio provedor Xtream (#158), ANTES da primeira carga do EPG
   // para nao carregar duas vezes. Sem cadastro, "" (tira a de um cadastro que
   // saiu). Nao vai a rede: e so o cadastro.
-  { char u[1100];
-    if (!xtream_url_xmltv(u, sizeof u)) u[0] = 0;
-    epg_fonte_extra(u); }
+  epgFontesEscolher();
   // Os paises da grade tambem ANTES da primeira carga (#158): com a lista do
   // cache ja na tela, a dica do Xtream existe desde o primeiro quadro.
   epgPaisesEscolher();
@@ -2287,6 +2340,7 @@ void guia_evento(const SDL_Event *e) {
       else if (topoCol == G_TOPO_CATEGORIAS) catAbrir(2, 0);
       else if (topoCol == G_TOPO_ADDONS) painelAbrir();
       else if (topoCol == G_TOPO_DIAG) pedLivetvDiag = 1;
+      else if (topoCol == G_TOPO_ATUALIZAR) { m3u_recarregar(); guia_recarregar(0); }
       else if (topoCol == G_TOPO_PREVIEW) {
         previewLigado = !previewLigado;
         previewGravar();
@@ -2488,15 +2542,18 @@ static int gProximo(GCanal *c, time_t t, int k, EpgProg *p) {
   if (epg >= 0) return epg_proximo(epg, t, k, p);
   return xtCurta(c) && xtepg_proximo(c->id, t, k, p);
 }
-// 0 = grade disponivel, -1 = pedido pendente, -2 = sem grade.
+// 0 = available, -1 = pending, -2 = no schedule, -3 = failed.
 static int gEstadoGrade(GCanal *c) {
   int epg = epgDo(c);
   if (epg >= 0) return 0;
   if (xtCurta(c)) {
     if (xtepg_tem(c->id)) return 0;
-    if (xtepg_carregando(c->id)) return -1;
+    int estadoCurto = xtepg_estado(c->id);
+    if (estadoCurto == XTEPG_CARREGANDO) return -1;
+    if (estadoCurto == XTEPG_FALHOU) return -3;
+    if (estadoCurto == XTEPG_VAZIO) return -2;
   }
-  return epg;
+  return epg_estado() == EPG_FALHOU ? -3 : epg;
 }
 static int gFaixaDesde(GCanal *c, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
   int epg = epgDo(c);
@@ -2521,6 +2578,8 @@ static void epgPasso(void) {
     } }
   epg_passo();
   xtepg_passo();
+  GCanal *canalFoco = linhaItem(focoLin,focoCol);
+  if (canalFoco) xtepg_priorizar(canalFoco->id);
   if (pronto && !epgEraPronto) {
     epgRev++;
     for (int i = 0; i < nCanais; i++) canais[i].epg = -1;
@@ -2558,19 +2617,28 @@ int guia_atualizando_lista(void) {
 }
 
 static void drenarCarga(void) {
-  if (atomic_load_explicit(&pendPronto, memory_order_acquire)) {
+  pthread_mutex_lock(&publicacaoTrava);
+  int pend = atomic_load_explicit(&pendPronto, memory_order_acquire);
+  if (pend) {
     int atual = cargaAtual();
-    if (atual) publicar();
+    char focoAntes[80];snprintf(focoAntes,sizeof focoAntes,"%s",guia_id_focado());
+    if (atual) {
+      if(!focoPend[0] && focoAntes[0])snprintf(focoPend,sizeof focoPend,"%s",focoAntes);
+      publicar();
+      epgFontesEscolher();
+    }
     // Quem decide e o desenho: falha da carga continua G_FALHOU, e e ela que
     // faz guia_carregar tentar de novo.
-    estado = atual ? (sOk ? G_PRONTO : G_FALHOU) : G_PARADO;
+    estado = pend == 2 ? (atual ? G_BAIXANDO : G_PARADO) : atual ? (sOk ? G_PRONTO : G_FALHOU) : G_PARADO;
     atomic_store_explicit(&pendPronto, 0, memory_order_relaxed);
-    fioVivo = 0;
+    if (pend == 1) fioVivo = 0;
+    pthread_cond_broadcast(&publicacaoSinal);
     if (atual) {
       focoValido();
       if (painel) painelMontar();   // sabe[] mudou: quem nao fornece canal sai
     }
   }
+  pthread_mutex_unlock(&publicacaoTrava);
 }
 
 void guia_atualizar(float dt, Uint32 agora) {
@@ -2581,6 +2649,9 @@ void guia_atualizar(float dt, Uint32 agora) {
   entrada = anim_mola(entrada, guia_visivel() ? 1.0f : 0.0f, dt, NV_MOLA_TELA);
   int prontoPend = atomic_load_explicit(&pendPronto, memory_order_acquire);
   if (recargaDoPainel && !fioVivo && !recarregarPend && !prontoPend) recargaDoPainel = 0;
+  int escolha = ajustes_guia_fonte();
+  if (fonteAtual < 0) fonteAtual = escolha;
+  else if (fonteAtual != escolha) { fonteAtual = escolha; guia_recarregar(1); }
   drenarCarga();
   // O painel de addons pediu recarga com o fio ainda vivo: agora que ele
   // acabou, vai.
@@ -2962,7 +3033,8 @@ static void desenharCard(GCanal *c, float x, float y, float foco, float a,
     } else {
       // -2 = canal sem grade real (os "24h"): nao e "carregando", e "nao tem".
       snprintf(linha, sizeof linha, "%s",
-               epg == -2 ? i18n("Sem grade de programação")
+               epg == -3 ? i18n("Não foi possível carregar a programação")
+               : epg == -2 ? i18n("Sem grade de programação")
                : epg >= 0 ? i18n("Sem próximos programas")
                           : i18n("Carregando programação…"));
     }
@@ -3208,6 +3280,8 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
       }
     } else if (epg == -1) {
       snprintf(meta, sizeof meta, "%s", i18n("Carregando programação…"));
+    } else if (epg == -3) {
+      snprintf(meta,sizeof meta,"%s",i18n("Não foi possível carregar a programação"));
     } else if (epg == -2) {
       snprintf(meta, sizeof meta, "%s", i18n("Sem grade de programação"));
     }
@@ -3648,6 +3722,7 @@ static void gTopoRotulos(const char **rot) {
   // DIAGNOSTICO na barra (dono, 01/10: o controle do Android nao tem a tecla
   // VERDE). O verde continua como atalho onde existe.
   rot[G_TOPO_DIAG]    = i18n("Diagnóstico");
+  rot[G_TOPO_ATUALIZAR] = i18n("Atualizar");
   rot[G_TOPO_PREVIEW] = previewLigado ? i18n("Preview: sim") : i18n("Preview: não");
 }
 
@@ -4013,6 +4088,7 @@ static void desenharLinhaLista(GCanal *c, float y, int focada, float a,
     } else {
       int ct = focada ? 176 : 118;
       const char *m = epg == -1 ? i18n("Carregando programação…")
+                    : epg == -3 ? i18n("Não foi possível carregar a programação")
                     : epg == -2 ? i18n("Sem grade de programação")
                                 : i18n("Sem próximos programas");
       float tx = agoraX > b.x + 20.0f ? agoraX + 18.0f : b.x + 20.0f;
@@ -5127,7 +5203,7 @@ void guia_abrir_sessao(void) {
   cargaCancelada = 1;
   estado = G_PARADO; recarregarPend = 0; recargaDoPainel = 0;
   nCanais = nCats = nFontes = nSabe = nFav = nFavOrd = 0;
-  fontesOk = cacheLido = favLido = modoLido = previewLido = 0;
+  fontesOk = cacheLido = favLido = modoLido = previewLido = 0; fonteAtual = -1;
   modoLista = previewLigado = 0; assinaturaPublicada = 0;
   falhas = xtFalha = xtHttp = 0;
   memset(&corte, 0, sizeof corte);
@@ -5156,4 +5232,19 @@ void guia_abrir_sessao(void) {
 #endif
   epg_abrir_sessao(perfis_ativo()); xtepg_limpar();
   glem_abrir_sessao();
+}
+
+// A working channel list remains available during a refresh. Configuration/source
+// changes explicitly invalidate cached lists so removed accounts cannot reappear.
+void guia_recarregar(int limparLista) {
+  cargaCancelada=1;
+  xtepg_limpar();epgFontesEscolher();epg_recarregar();
+  if(limparLista) {
+    char nome[64];int p=perfis_ativo();
+    dados_apagar(p>0?(snprintf(nome,sizeof nome,"guia-cache-p%d.bin",p),nome):"guia-cache.bin");
+    for(int i=1;i<=4;i++){snprintf(nome,sizeof nome,"guia-cache-f%d-p%d.bin",i,p);dados_apagar(nome);}
+    nCanais=nCats=nFontes=nSabe=0;cacheLido=1;fontesOk=0;assinaturaPublicada=0;
+    focoLin=focoCol=0;rolY=velY=rolL=velL=0;memset(rolX,0,sizeof rolX);
+  }
+  estado=G_PARADO;recarregarPend=1;recargaDoPainel=1;
 }

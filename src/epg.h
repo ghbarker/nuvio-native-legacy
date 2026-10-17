@@ -42,6 +42,9 @@ int epg_estado(void);
 
 // Dispara o fio de carga se ainda nao rodou. Idempotente.
 void epg_iniciar(void);
+void epg_fonte_m3u(const char *url);
+void epg_so_provedores(int so);
+void epg_recarregar(void);
 // Invalida a grade privada e o worker anterior. Os arquivos publicos de
 // epgshare01 continuam no disco, prontos para reaproveitar sem rede.
 void epg_abrir_sessao(int perfil);

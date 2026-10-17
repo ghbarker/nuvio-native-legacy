@@ -19,6 +19,8 @@
 #include "enquete.h"
 #include "stalker.h"
 #include "xtream.h"
+#include "m3u.h"
+#include "guia.h"
 #include "xtepg.h"
 #include "teclado.h"
 #include "descoberta.h"
@@ -641,6 +643,7 @@ typedef enum {
   AJ_VIDRO_QUALIDADE,  // glass quality: 0 Automatica (frost + governor), 1 Desempenho (smoked, no blur), 2 Alta (frost); local, append-only
   AJ_FUNDO_DIN,        // #205: fundo da Dinamica, 0 = Cinza (padrao), 1 = Cor, 2 = Imersivo; local, append-only
   AJ_FUNDO_DIN_COR,    // #205: a cor do fundo "Cor" (indice de FUNDO_DIN_TEMA); local, append-only
+  AJ_GUIA_FONTE, AJ_GUIA_RECARREGAR, AJ_M3U_URL, AJ_M3U_EPG, AJ_M3U_LIMPAR,
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1233,6 +1236,7 @@ static const char *JF_ALFA_SENHA =
 
 static const char *V_MANTER_PRAZO[] = { "2 min", "5 min", "10 min", "30 min", "Sem limite" };
 static const char *V_AMIGOS_ESTILO[] = { "Feed de cartões", "Ao vivo em destaque", "Histórias com cartaz", "Faixa de presença", "Cartaz primeiro", "Rostos clássicos" };
+static const char *V_GUIA_FONTE[] = { "Todas as fontes", "Xtream", "M3U", "Stalker", "Addons" };
 static const Opcao OPCOES[AJ_N] = {
   ESC("Qualidade máxima",           V_QUALIDADE, 4),
   ESC("Dolby Vision",               V_LIGA, 2),
@@ -1674,6 +1678,11 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Qualidade do vidro", V_VIDRO_QUALIDADE, 3),   // local: vidroQualidadeLocal
   ESC("Fundo da Dinâmica", V_FUNDO_DIN, 3),                  // local: fundoDinamicaLocal
   ESC("Cor do fundo", V_FUNDO_DIN_COR, 17),                  // local: fundoDinamicaCorLocal
+  ESC("Fontes do Guia de TV", V_GUIA_FONTE, 5),
+  ACAO("Atualizar canais e programação"),
+  ACAO("URL da lista M3U"),
+  ACAO("URL da programação XMLTV"),
+  ACAO("Remover lista M3U"),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1969,6 +1978,7 @@ static const char *CHAVE[] = {
   "vidroQualidadeLocal",
   "fundoDinamicaLocal",
   "fundoDinamicaCorLocal",
+  "guiaFonteLocal", "-guiaRecarregar", "-m3uUrl", "-m3uEpg", "-m3uLimpar",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -2303,7 +2313,7 @@ int ajustes_foco_no_indice(void) { return focoIndice; }
 // e a opcao 0 do enum).
 static int sairArmado;
 static int pedeConfirmacao(int op) {
-  return op == AJ_SAIR || op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_JF_SAIR ||
+  return op == AJ_SAIR || op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_M3U_LIMPAR || op == AJ_JF_SAIR ||
          op == AJ_EM_SAIR || op == AJ_PX_SAIR;
 }
 
@@ -3402,6 +3412,7 @@ int ajustes_tmdb_ligado(void)         { return lig(AJ_TMDB_LIGADO); }
 // segue o idioma do app, que e o comportamento que desc_tmdb_idioma() sempre
 // teve.
 // "" = automatico; senao o codigo de 2 letras do pais (ver V_EPG_PAIS).
+int ajustes_guia_fonte(void) { return valor[AJ_GUIA_FONTE]; }
 const char *ajustes_epg_pais(void) {
   static char c[3];
   int v = valor[AJ_EPG_PAIS];
@@ -5449,7 +5460,7 @@ static int somenteDesteAparelho(int op) {
 // onde o historico vai e se o social existe. Entram na copia por perfil
 // (ajustes-p<N>.txt) e continuam FORA do blob (somenteDesteAparelho).
 static int perfilLocal(int i) {
-  return i == AJ_COLECAO_EXIBICAO || i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL ||
+  return i == AJ_GUIA_FONTE || i == AJ_COLECAO_EXIBICAO || i == AJ_CW_FONTE || i == AJ_CW_PROXIMO || i == AJ_SALVOS_DEST || i == AJ_HIST_CONTA || i == AJ_SOCIAL ||
          i == AJ_MENU_TOPO || i == AJ_ABAS_ESTILO || i == AJ_OCULTAR_FILMES_VISTOS;
 }
 
@@ -6170,6 +6181,8 @@ static const char *textoLeitura(int op) {
     return stalker_configurado() ? stalker_portal_curto() : i18n("Não configurado");
   if (op == AJ_STALKER_MAC)
     return stalker_configurado() ? stalker_mac_mascarado() : i18n("Não configurado");
+  if (op == AJ_M3U_URL) return m3u_configurado() ? i18n("Salvo") : i18n("Não configurado");
+  if (op == AJ_M3U_EPG) return m3u_epg()[0] ? i18n("Salvo") : i18n("Automática");
   if (op == AJ_XTREAM_SERVIDOR)
     return strcmp(xtream_servidor_curto(), "-") ? xtream_servidor_curto() : i18n("Não configurado");
   if (op == AJ_XTREAM_USUARIO)
@@ -6355,7 +6368,7 @@ static const char *textoLeitura(int op) {
     return sairArmado != op ? ""
          : sync_servidor_fora() ? i18n("Servidor da conta fora do ar: OK de novo sai mesmo assim")
          : i18n("OK de novo para sair");
-  if (op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR)
+  if (op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_M3U_LIMPAR)
     return sairArmado == op ? i18n("OK de novo para remover") : "";
   if (op == AJ_MDB_CHAVE) {
     // A chave chega pela CONTA (sync.c -> extras_definir_chave) ou pelo
@@ -6699,6 +6712,11 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_STALKER_PORTAL: return "Os canais do portal entram no Guia de TV, junto com os dos addons. Endereço sem http:// e sem barra no fim: meu-portal.exemplo.tv:8080";
     case AJ_STALKER_MAC: return "O MAC que o provedor cadastrou para você. É credencial: vale como senha, e só aparece nesta tela mascarado.";
     case AJ_STALKER_LIMPAR: return "Apaga o portal e o MAC deste perfil, e os canais dele somem do Guia. Sair da conta também apaga.";
+    case AJ_GUIA_FONTE: return "Fontes exibidas no Guia de TV.";
+    case AJ_GUIA_RECARREGAR: return "Mantém os canais disponíveis durante a atualização.";
+    case AJ_M3U_URL: return "Lista de canais M3U por URL, salva neste perfil.";
+    case AJ_M3U_EPG: return "Vazio usa a programação indicada pela lista M3U.";
+    case AJ_M3U_LIMPAR: return "Apaga a lista M3U deste perfil.";
     case AJ_XTREAM_SERVIDOR: return "Endereço e porta que o provedor mandou, sem http:// e sem barra no fim: meu-servidor.tv:8080. Os canais entram no Guia de TV com usuário e senha preenchidos.";
     case AJ_XTREAM_USUARIO: {
       // #88: a linha da lista corta em ~360 px; o valor completo mora aqui no
@@ -8742,6 +8760,17 @@ static void eventoTela(const SDL_Event *e) {
     // O primeiro OK so arma (ver pedeConfirmacao); o segundo age.
     if (pedeConfirmacao(focoOp) && sairArmado != focoOp) { sairArmado = focoOp; return; }
     sairArmado = 0;
+    if (focoOp == AJ_GUIA_RECARREGAR) {
+      m3u_recarregar(); guia_recarregar(0); uxNotificar("Atualizando a lista de canais…"); return;
+    }
+    if (focoOp == AJ_M3U_URL || focoOp == AJ_M3U_EPG) {
+      stCampo = focoOp;
+      teclado_abrir_com(focoOp == AJ_M3U_URL ? "URL da lista M3U" : "URL da programação XMLTV",
+        focoOp == AJ_M3U_URL ? "Endereço HTTP ou HTTPS" : "Vazio usa a programação indicada pela lista M3U.",
+        1099, CUR_ALFA_URL, focoOp == AJ_M3U_URL ? m3u_lista() : m3u_epg());
+      teclado_permitir_vazio(1); return;
+    }
+    if (focoOp == AJ_M3U_LIMPAR) { m3u_esquecer(); guia_recarregar(1); return; }
     if (focoOp == AJ_STALKER_LIMPAR) { stalker_esquecer(); return; }
     if (focoOp == AJ_XTREAM_SERVIDOR || focoOp == AJ_XTREAM_USUARIO || focoOp == AJ_XTREAM_SENHA) {
       int srv = focoOp == AJ_XTREAM_SERVIDOR, sen = focoOp == AJ_XTREAM_SENHA;
@@ -8883,6 +8912,11 @@ void ajustes_atualizar(float dt, Uint32 agora) {
   { int r = pessoas_aberto() ? TECLADO_NADA : teclado_resultado();
     if (r == TECLADO_PRONTO && stCampo) {
       if (stCampo == AJ_STALKER_MAC) stalker_definir_mac(teclado_texto());
+      else if (stCampo == AJ_M3U_URL || stCampo == AJ_M3U_EPG) {
+        int ok = stCampo == AJ_M3U_URL ? m3u_definir_lista(teclado_texto()) : m3u_definir_epg(teclado_texto());
+        if (ok) { guia_recarregar(1); if (teclado_texto()[0]) registro_aviso_legal(); }
+        uxNotificar(ok ? "Ajuste salvo nesta TV." : "endereço inválido");
+      }
       else if (stCampo == AJ_XTREAM_SERVIDOR) { xtream_definir_servidor(teclado_texto()); if (teclado_texto()[0]) registro_aviso_legal(); }
       else if (stCampo == AJ_XTREAM_USUARIO)  xtream_definir_usuario(teclado_texto());
       else if (stCampo == AJ_XTREAM_SENHA)    xtream_definir_senha(teclado_texto());
@@ -9604,7 +9638,7 @@ static AjPreview familiaPreviaOpcao(int op) {
     case AJ_XTREAM_SENHA: case AJ_XTREAM_LIMPAR: case AJ_FANART_CHAVE:
     case AJ_SEEKR_CHAVE: case AJ_SEEKR_TESTAR:
     case AJ_SELOS_PACOTE_ADD: case AJ_SELOS_PACOTE_REM:
-    case AJ_XTREAM_CONTA:
+    case AJ_XTREAM_CONTA: case AJ_GUIA_RECARREGAR: case AJ_M3U_URL: case AJ_M3U_EPG: case AJ_M3U_LIMPAR:
     case AJ_DIAGNOSTICO: case AJ_VELOCIDADE: case AJ_LIVETV_DIAG:
     case AJ_P2P_URL: case AJ_P2P_TESTAR:
     case AJ_JF_SERVIDOR: case AJ_JF_ENTRAR: case AJ_JF_SAIR:
