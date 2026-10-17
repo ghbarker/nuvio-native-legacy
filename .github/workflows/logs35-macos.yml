@@ -1,0 +1,56 @@
+name: Logs35 macOS canonical tracking validation
+
+on:
+  push:
+    branches: [review/logs35-macos-20261017]
+  workflow_dispatch:
+
+concurrency:
+  group: logs35-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-regressions:
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify exact integrated source
+        run: |
+          test "$(git rev-parse HEAD^)" = 08c181b40fbb56abf8dd176f014896f24e4d64ac
+          test "$(git rev-parse HEAD^^{tree})" = 6e4e015929d6a28d35c9f22682bd9743c86a98dc
+      - name: Install native test libraries
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
+      - name: Run macOS rendering and player regressions
+        run: |
+          set -e
+          for test in \
+            tests/ass_fonte_local.sh \
+            tests/ass_fontes.sh \
+            tests/legfontes.sh \
+            tests/text_largura.sh \
+            tests/p2p_dica486.sh \
+            tests/player_visto_trailer.sh \
+            tests/streamfit_sheet.sh \
+            tests/faixas_estilo_ctl.sh \
+            tests/source_cache_filter.sh \
+            tests/trakt_alvos512.sh \
+            tests/catalog_episode_identity512.sh \
+            tests/visto_identidade512.sh
+          do
+            echo "RUN $test"
+            bash "$test"
+          done
+          SANITIZE=1 bash tests/trakt_alvos512.sh
+          SANITIZE=1 bash tests/visto_identidade512.sh
+          for scenario in base concorrencia ordem identidade
+          do
+            echo "RUN tests/fontesmortas.sh $scenario"
+            bash tests/fontesmortas.sh "$scenario"
+          done
+
