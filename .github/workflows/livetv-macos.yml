@@ -6,23 +6,23 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  SDL_MAC_BACKGROUND_APP: '1'
+  DYLD_LIBRARY_PATH: /opt/homebrew/lib
+  ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+  UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
   live-tv:
     runs-on: macos-15
-    timeout-minutes: 20
-    env:
-      SDL_MAC_BACKGROUND_APP: '1'
-      DYLD_LIBRARY_PATH: /opt/homebrew/lib
-      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: d49927ac62d6b7d0468cf90310c2f9efc2cdb71e
+          ref: 497beefbf88361fa654f8e5e2864aedae81e3d75
           fetch-depth: 5
           persist-credentials: false
-      - name: Verify exact integrated application source
-        run: test "$(git rev-parse HEAD)" = d49927ac62d6b7d0468cf90310c2f9efc2cdb71e
+      - name: Verify application source matches the successful Android build
+        run: git diff --exit-code d49927ac62d6b7d0468cf90310c2f9efc2cdb71e HEAD -- . ':!tests'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
       - name: Live TV loading, M3U, provider EPG and playback regressions
         run: |
@@ -31,8 +31,6 @@ jobs:
           do
             bash "tests/$suite.sh"
           done
-      - name: Full-source Settings defaults and confirmation
-        run: bash tests/ajustes_padroes.sh && bash tests/ajustes_ux_interacao.sh
       - name: Live TV loading and import sanitizers
         env:
           SANITIZE: '1'
@@ -42,3 +40,22 @@ jobs:
           do
             bash "tests/$suite.sh"
           done
+  settings:
+    name: Full-source Settings (${{ matrix.suite }})
+    runs-on: macos-15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ajustes_padroes, ajustes_ux_interacao]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 497beefbf88361fa654f8e5e2864aedae81e3d75
+          fetch-depth: 5
+          persist-credentials: false
+      - name: Verify application source matches the successful Android build
+        run: git diff --exit-code d49927ac62d6b7d0468cf90310c2f9efc2cdb71e HEAD -- . ':!tests'
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
+      - name: Full-source Settings check
+        run: bash "tests/${{ matrix.suite }}.sh"
