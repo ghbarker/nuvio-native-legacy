@@ -68,6 +68,21 @@
       {
         "op": "done"
       }
+    ],
+    "x86-2": [
+      {
+        "op": "tap",
+        "x": 180,
+        "y": 2190
+      },
+      {
+        "op": "wait",
+        "seconds": 2
+      },
+      {
+        "op": "shot",
+        "name": "02-after-welcome"
+      }
     ]
   }
 }
