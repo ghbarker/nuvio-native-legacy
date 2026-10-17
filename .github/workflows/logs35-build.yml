@@ -1,8 +1,6 @@
 name: Logs35 APK and Linux validation
 
 on:
-  push:
-    branches: [review/logs34-integration-20261017]
   workflow_dispatch:
 
 concurrency:

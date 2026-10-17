@@ -1,0 +1,45 @@
+name: Share verified Logs35 test APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  share:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require successful build and Linux validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39033663655 --jq .conclusion)" = success
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39033663655
+          name: Nuvio-TV-Mobile-Test-Logs35-4c185627de5546a5f9991077c3eebaf0cdee2876
+          path: dist
+      - name: Verify and share test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('dist')
+          apk=root/'Nuvio-TV-Mobile-Test-Logs35.apk'
+          report=json.loads((root/'Logs35-validation.json').read_text())
+          assert report['all_passed'] is True
+          assert report['source_commit']=='63b8c02dcb8d8b174d13d0e7f1c851ec1c30d0db'
+          assert report['package']=='space.nuvio.nativelegacy.touch'
+          assert report['version_code']==20045
+          assert report['version_name']=='2.0.45-test-logs35'
+          assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          assert apk.stat().st_size==report['apk_bytes']
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
+          (root/"Logs35-testing.txt").write_text("Nuvio TV/Mobile Test - Logs35\n\nInstall over the existing Nuvio TV/Mobile Test app and choose Update. Do not uninstall or clear app data. Accounts and settings should remain.\n\n1. Live TV\nPlay an installed live channel and open Sources. MP4, Cached, and Audio filter chips should be absent. Reload and Close should work. On platforms supporting HDR recovery, that action remains. Then open a movie or episode Sources sheet: its normal filter chips should still be present.\n\n2. Kaiju No. 8 / episode identity\nUsing the same metadata addon setup that previously showed the wrong season numbering, open Kaiju No. 8. After metadata finishes, check that Season 2 is available and open S02E01. It should remain S02E01 when opening Sources and starting playback. Leave and reopen the title and check that the season layout remains consistent. If the result is wrong, download a log immediately after this sequence.\n\n3. Cached/uncached filtering\nOpen Settings > Sources and add-ons > Source filters > Cache status. Try All, Cached only, and Uncached only. Reopen Settings after each choice and confirm it was saved. Open a title's Sources and confirm the results match the selected state. Only confirmed status counts; unknown sources appear under All. Restore your preferred setting after testing.\n\n4. Custom subtitle fonts\nImport a TTF or OTF through Settings > Subtitles > Font. During playback, open Subtitles > Style > Font and confirm the imported name is listed and checked. Switch to a bundled font, then back to the imported font. Check the second subtitle's independent selection if you use it.\n\nThe 96 MiB font-cache rollover and watched-state retry/restart cases are covered by automated regressions; no forced device test is needed for those.\n")
+          pathlib.Path("release-notes.md").write_text('Update-compatible preview for **Nuvio TV/Mobile Test**. Install the APK over the existing test app and choose **Update** to retain accounts and settings.\n\nIncludes the latest fixes from #573 (custom subtitle fonts), #575 (cache filtering), #576 (episode identity and Kaiju No. 8), and #587 (Live TV source controls).\n\nAndroid build, font-import unit tests, package/version/signature checks, both ARM architectures, Linux regressions and sanitizers, and Android 16 KB alignment checks passed. The final macOS fixture recheck is still running. The upstream PRs remain drafts pending device approval.\n\nBuild and Linux checks: https://github.com/ghbarker/nuvio-native-legacy/actions/runs/39033663655\nmacOS recheck: https://github.com/ghbarker/nuvio-native-legacy/actions/runs/39033902579\n\nSee `Logs35-testing.txt` for the exact steps to check Live TV, Kaiju episode numbering, cached/uncached filters, and imported fonts.\n')
+          PY
+          gh release create tv-mobile-test-logs-v35 --repo "$GITHUB_REPOSITORY" --target 63b8c02dcb8d8b174d13d0e7f1c851ec1c30d0db --prerelease --title 'Nuvio TV/Mobile Test — Logs35' --notes-file release-notes.md dist/Nuvio-TV-Mobile-Test-Logs35.apk dist/Logs35-validation.json dist/Logs35-testing.txt
