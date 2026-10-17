@@ -103,6 +103,9 @@ int stream_primeira_boa_sessao(int n, uint64_t sessao) {
   (void)sessao; return stream_primeira_boa(n);
 }
 int stream_filtro_permite(const Stream *s) { (void)s; return 1; }
+void stream_filtro_dados(const Stream *s, FonteFiltroDados *dados) {
+  *dados = s ? s->filtro : (FonteFiltroDados){0};
+}
 int stream_verificar_proxima_vod(int i, int n, int *conferidas) {
   (void)i; (void)n; legadas++; *conferidas = 1; return 1;
 }
