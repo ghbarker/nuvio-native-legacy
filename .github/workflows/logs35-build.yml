@@ -17,13 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 91eeeab458dc3d9b3af48ce743a421516936024e
+          ref: 7ee26ad2c46f368399b1f385ea99031cce1a4a38
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Native account and guide regressions
         run: |
           set -euo pipefail
-          for suite in iptv_accounts epg_accounts epg_streaming m3u xtream stalker guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte livetv_regras xtepg xtepg_bounded; do bash "tests/$suite.sh"; done
+          for suite in iptv_accounts epg_accounts epg_streaming m3u xtream stalker_portal guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte livetv_regras xtepg xtepg_bounded; do bash "tests/$suite.sh"; done
           bash tests/ajustes_secoes.sh
           bash tests/ajustes_iptv.sh
       - name: Native account and guide ASan and UBSan regressions
@@ -49,12 +49,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 91eeeab458dc3d9b3af48ce743a421516936024e
+          ref: 7ee26ad2c46f368399b1f385ea99031cce1a4a38
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 91eeeab458dc3d9b3af48ce743a421516936024e
-          test "$(git rev-parse HEAD^{tree})" = 312458b36a09e641b71e7d256f1ebeda06a0bd2c
+          test "$(git rev-parse HEAD)" = 7ee26ad2c46f368399b1f385ea99031cce1a4a38
+          test "$(git rev-parse HEAD^{tree})" = 805a557dc1c4eeaba92320b0372e5763334faeb4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -153,7 +153,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,pathlib
           p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs42.apk')
-          out={'all_passed':False,'source_commit':'91eeeab458dc3d9b3af48ce743a421516936024e','source_tree':'312458b36a09e641b71e7d256f1ebeda06a0bd2c','package':'space.nuvio.nativelegacy.touch','version_code':20052,'version_name':'2.0.52-test-logs42','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          out={'all_passed':False,'source_commit':'7ee26ad2c46f368399b1f385ea99031cce1a4a38','source_tree':'805a557dc1c4eeaba92320b0372e5763334faeb4','package':'space.nuvio.nativelegacy.touch','version_code':20052,'version_name':'2.0.52-test-logs42','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
           pathlib.Path('Logs42-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
