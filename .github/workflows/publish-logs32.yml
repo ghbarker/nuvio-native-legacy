@@ -1,0 +1,70 @@
+name: Publish validated Logs32 APK
+
+on:
+  push:
+    branches: [review/cache-filter-logs32-20261017]
+    paths: [.github/workflows/publish-logs32.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nuvio-TV-Mobile-Test-Logs32-d6c90a4af6f9115d074166ea4ca845d873706420
+          path: artifact
+          github-token: ${{ github.token }}
+          repository: ghbarker/nuvio-native-legacy
+          run-id: '38990314066'
+      - name: Verify exact validated artifact
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root = pathlib.Path('artifact')
+          apk = root / 'Nuvio-TV-Mobile-Test-Logs32.apk'
+          report = json.loads((root / 'Logs32-validation.json').read_text())
+          expected = {
+              'all_passed': True,
+              'source_commit': '93ee4da91a1280bad0566ab548fa836d1c03bf4a',
+              'source_tree': 'dcaf0bbf8377d4d8fe6d9eeb348910e08cada54f',
+              'package': 'space.nuvio.nativelegacy.touch',
+              'version_code': 20042,
+              'version_name': '2.0.42-test-logs32',
+              'certificate_sha256': '862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
+              'cache_filter_test_normal': True,
+              'cache_filter_test_asan_ubsan': True,
+              'both_arm_abis': True,
+          }
+          for key, value in expected.items():
+              assert report.get(key) == value, (key, report.get(key), value)
+          assert apk.stat().st_size == report['apk_bytes']
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == report['apk_sha256']
+          PY
+          unzip -Z1 artifact/Nuvio-TV-Mobile-Test-Logs32.apk | grep -qx 'lib/arm64-v8a/libmain.so'
+          unzip -Z1 artifact/Nuvio-TV-Mobile-Test-Logs32.apk | grep -qx 'lib/armeabi-v7a/libmain.so'
+      - name: Publish direct test download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          Update-compatible test build for the existing **Nuvio TV/Mobile Test** app.
+
+          Adds a three-state cache filter on the Sources screen:
+          **All → Cached → Uncached → All**. Unknown cache status remains in All only.
+
+          Install over the existing test app; do not uninstall first.
+          EOF
+          gh release create tv-mobile-test-logs-v32 \
+            artifact/Nuvio-TV-Mobile-Test-Logs32.apk \
+            artifact/Logs32-validation.json \
+            --repo ghbarker/nuvio-native-legacy \
+            --title 'Nuvio TV/Mobile Test — Logs32 cache filter' \
+            --notes-file release-notes.md \
+            --prerelease \
+            --target 93ee4da91a1280bad0566ab548fa836d1c03bf4a
