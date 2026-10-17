@@ -1,0 +1,83 @@
+name: Source cache filter exact validation
+
+on:
+  push:
+    branches: [review/source-cache-filter-20261017]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-cache-filter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify tested source parent
+        run: test "$(git rev-parse HEAD^)" = c78d5e708f360b83048b43a682ff5a9701f9c934
+      - name: Install native libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgl1-mesa-dev zlib1g-dev
+      - name: Cache filter regression
+        run: bash tests/source_cache_filter.sh
+      - name: Cache filter ASan and UBSan
+        env:
+          NV_TEST_SANITIZE: '1'
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: bash tests/source_cache_filter.sh
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify tested source parent
+        run: test "$(git rev-parse HEAD^)" = c78d5e708f360b83048b43a682ff5a9701f9c934
+      - uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: source-cache-brew-${{ runner.os }}-${{ runner.arch }}-sdl2-image-ttf
+      - name: Install native libraries
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: brew install sdl2 sdl2_image sdl2_ttf pkgconf
+      - name: Cache filter regression
+        run: bash tests/source_cache_filter.sh
+      - name: Cache filter ASan and UBSan
+        env:
+          NV_TEST_SANITIZE: '1'
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: bash tests/source_cache_filter.sh
+      - name: Surrounding source-list regressions
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          scripts = [
+              'tests/fontecache.sh',
+              'tests/fontecache_vod.sh',
+              'tests/negcache.sh',
+              'tests/fontes_lista.sh',
+              'tests/fontes_cabecalho_shot.sh',
+          ]
+          for script in scripts:
+              print(f'::group::{script}', flush=True)
+              subprocess.run(['bash', script], check=True, timeout=240)
+              print('::endgroup::', flush=True)
+          PY
+      - name: Translation and patch checks
+        run: |
+          git diff --check c2e50a9325719ffae85005c0542338f6b44878c3..HEAD^
+          test "$(rg -l '"'"'"Em cache"'"'"' src/idioma_*.h | wc -l | tr -d ' ')" -eq 29
+          test "$(rg -l '"'"'"Fora do cache"'"'"' src/idioma_*.h | wc -l | tr -d ' ')" -eq 29
