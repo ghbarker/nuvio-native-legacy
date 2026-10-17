@@ -66,7 +66,7 @@ int main(void) {
     key(SDLK_UP); assert(uxPendente == 2);
     key(SDLK_DOWN); assert(uxPendente == 2);
     ajPontEdValor(6, 0); assert(uxPendente == 2);
-    // Clicking unavailable 400 MB must not confirm the focused 160 MB.
+    // Clicking a visible unavailable memory size must not confirm 160 MB.
     {
       const PonteiroAlvo *alvos;
       SDL_Event e = {0};
@@ -82,7 +82,10 @@ int main(void) {
       ponteiro_desenhar();
       gfx_opacidade_grupo = 1;
       total = ponteiro_teste_lista(&alvos);
-      for (alvo = 0; alvo < total && alvos[alvo].a != 5; alvo++) { }
+      for (alvo=0;alvo<total;alvo++) {
+        int v=alvos[alvo].a;
+        if(v>=0 && v<nValores(AJ_TEX_MB) && texAcima(v) && !alvos[alvo].focar && !alvos[alvo].ativar)break;
+      }
       assert(alvo < total);
       e.type = SDL_MOUSEBUTTONDOWN; e.button.button = SDL_BUTTON_LEFT;
       e.button.x = (int)(alvos[alvo].x + alvos[alvo].w / 2);
