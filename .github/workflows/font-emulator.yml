@@ -66,7 +66,8 @@ jobs:
           PYBOOT
           adb shell getprop ro.product.cpu.abilist | tee emulator-results/abis.txt
           adb shell getprop ro.dalvik.vm.native.bridge | tee emulator-results/native-bridge.txt
-          adb install -r Nuvio-TV-Mobile-Test-Logs41.apk
+          adb install --abi armeabi-v7a -r Nuvio-TV-Mobile-Test-Logs41.apk
+          adb shell dumpsys package space.nuvio.nativelegacy.touch | grep primaryCpuAbi | tee emulator-results/installed-abi.txt
       - name: Start the actual APK with isolated offline font fixtures
         run: python3 tools/emulator/font-driver.py --bootstrap
       - uses: actions/upload-artifact@v4
@@ -128,6 +129,111 @@ jobs:
         with:
           name: Logs41-emulator-phase-9
           path: emulator-results/phase-9
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 10
+        run: python3 tools/emulator/font-driver.py --phase 10
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-10
+          path: emulator-results/phase-10
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 11
+        run: python3 tools/emulator/font-driver.py --phase 11
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-11
+          path: emulator-results/phase-11
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 12
+        run: python3 tools/emulator/font-driver.py --phase 12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-12
+          path: emulator-results/phase-12
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 13
+        run: python3 tools/emulator/font-driver.py --phase 13
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-13
+          path: emulator-results/phase-13
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 14
+        run: python3 tools/emulator/font-driver.py --phase 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-14
+          path: emulator-results/phase-14
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 15
+        run: python3 tools/emulator/font-driver.py --phase 15
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-15
+          path: emulator-results/phase-15
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 16
+        run: python3 tools/emulator/font-driver.py --phase 16
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-16
+          path: emulator-results/phase-16
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 17
+        run: python3 tools/emulator/font-driver.py --phase 17
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-17
+          path: emulator-results/phase-17
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 18
+        run: python3 tools/emulator/font-driver.py --phase 18
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-18
+          path: emulator-results/phase-18
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 19
+        run: python3 tools/emulator/font-driver.py --phase 19
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-19
+          path: emulator-results/phase-19
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 20
+        run: python3 tools/emulator/font-driver.py --phase 20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-20
+          path: emulator-results/phase-20
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 21
+        run: python3 tools/emulator/font-driver.py --phase 21
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-21
+          path: emulator-results/phase-21
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 22
+        run: python3 tools/emulator/font-driver.py --phase 22
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-22
+          path: emulator-results/phase-22
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 23
+        run: python3 tools/emulator/font-driver.py --phase 23
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-23
+          path: emulator-results/phase-23
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 24
+        run: python3 tools/emulator/font-driver.py --phase 24
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-24
+          path: emulator-results/phase-24
           if-no-files-found: ignore
       - name: Collect emulator diagnostics
         if: always()

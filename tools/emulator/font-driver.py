@@ -23,6 +23,7 @@ def snapshot(phase):
   text=adb('shell','run-as',P,'cat',f'files/dados/{f}',check=False)
   (out/f).write_text(text)
  (out/'activity.txt').write_text(adb('shell','dumpsys','activity','activities'))
+ (out/'logcat.txt').write_text(adb('logcat','-d','-t','350',check=False))
  (out/'pid.txt').write_text(adb('shell','pidof',P,check=False))
  (out/'app-log-tail.txt').write_text(adb('shell','run-as',P,'tail','-160','files/dados/nuvio.log',check=False))
 
@@ -55,6 +56,7 @@ def bootstrap():
  adb('shell','am','start','-n',P+'/space.nuvio.nativelegacy.NuvioActivity')
  time.sleep(20)
  shot('01-startup',1);snapshot(1)
+ assert adb('shell','pidof',P,check=False),'APK exited during emulator startup; inspect diagnostics'
 
 def command(c,phase):
  op=c['op']
