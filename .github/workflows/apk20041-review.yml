@@ -1,0 +1,162 @@
+{
+  "name": "CLOSED Logs31 Android font import test APK",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20032-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "apk20041-${{ github.ref }}",
+    "cancel-in-progress": true
+  },
+  "env": {
+    "NUVIO_REVIEW_PLAN_SHA256": "1ec17e28f9099ad93dc6405202b0fb4ffecc772ea6ce5785a767ed2830c0789b"
+  },
+  "jobs": {
+    "android": {
+      "name": "APK20041 compatible test APK (ARM32/ARM64)",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 90,
+      "permissions": {
+        "contents": "read"
+      },
+      "env": {
+        "APK20041_REVIEW_ROOT": ".review/apk20041",
+        "NUVIO_REVIEW_PLAN_SHA256": "1ec17e28f9099ad93dc6405202b0fb4ffecc772ea6ce5785a767ed2830c0789b",
+        "NUVIO_ANDROID_JOBS": "2",
+        "NUVIO_BUILD_JOBS": "2"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact composition, frozen-plan guard and cache limit",
+          "run": "python3 .review/apk20041/preflight.py --approved"
+        },
+        {
+          "name": "Materialize and verify exact private Logs31 source checkout",
+          "run": "python3 .review/apk20041/materialize.py --layer test --output \"$GITHUB_WORKSPACE/source-test\" --proof \"$GITHUB_WORKSPACE/build/review/apk20041/test-source.json\" --base-repository \"$GITHUB_WORKSPACE\""
+        },
+        {
+          "uses": "actions/setup-java@v4",
+          "with": {
+            "distribution": "temurin",
+            "java-version": "17"
+          }
+        },
+        {
+          "name": "Prepare private configuration and persistent debug signing",
+          "env": {
+            "NUVIO_TOUCH_CORE_PROPERTIES": "${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}",
+            "NUVIO_TOUCH_DEBUG_KEYSTORE_B64": "${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}"
+          },
+          "run": "python3 .review/apk20041/android/prepare_env.py --output \"$RUNNER_TEMP/nuvio-apk20033-private\""
+        },
+        {
+          "uses": "android-actions/setup-android@v3",
+          "with": {
+            "packages": "platform-tools",
+            "log-accepted-android-sdk-licenses": false
+          }
+        },
+        {
+          "name": "Install real Android and native build SDKs",
+          "run": "command -v sdkmanager >/dev/null\nsudo apt-get update -qq\nsudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev\nsdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'"
+        },
+        {
+          "uses": "actions/cache/restore@v4",
+          "id": "native-cache",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "rebases10e3-native-v1-${{ runner.os }}-${{ hashFiles('source-test/tools/android/deps.sh', 'source-test/tools/android/ffmpeg-android.sh', 'source-test/android/app/src/main/cpp/CMakeLists.txt') }}",
+            "restore-keys": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75\n"
+          }
+        },
+        {
+          "uses": "actions/cache/restore@v4",
+          "id": "gradle-cache",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "rebases10e3-gradle-v1-${{ runner.os }}-${{ hashFiles('source-test/android/**/*.gradle.kts', 'source-test/android/gradle/wrapper/gradle-wrapper.properties') }}",
+            "restore-keys": "rebases10e3-gradle-v1-${{ runner.os }}-\napk20029-gradle-v1-${{ runner.os }}-\napk20028-gradle-v1-${{ runner.os }}-\napk20027-gradle-v1-${{ runner.os }}-\napk20026-gradle-v1-${{ runner.os }}-\napk20025-gradle-v1-${{ runner.os }}-\napk20024-gradle-v1-${{ runner.os }}-\napk20023-gradle-v1-${{ runner.os }}-\napk20021-gradle-v1-${{ runner.os }}-\n"
+          }
+        },
+        {
+          "name": "Record safe cache restoration outcomes",
+          "env": {
+            "APK20033_NATIVE_CACHE_PRIMARY": "${{ steps.native-cache.outputs.cache-primary-key }}",
+            "APK20033_NATIVE_CACHE_MATCHED": "${{ steps.native-cache.outputs.cache-matched-key }}",
+            "APK20033_NATIVE_CACHE_HIT": "${{ steps.native-cache.outputs.cache-hit }}",
+            "APK20033_GRADLE_CACHE_PRIMARY": "${{ steps.gradle-cache.outputs.cache-primary-key }}",
+            "APK20033_GRADLE_CACHE_MATCHED": "${{ steps.gradle-cache.outputs.cache-matched-key }}",
+            "APK20033_GRADLE_CACHE_HIT": "${{ steps.gradle-cache.outputs.cache-hit }}"
+          },
+          "run": "python3 .review/apk20041/android/record_cache.py --output build/review/apk20041/cache-restoration.json"
+        },
+        {
+          "name": "Build compatible Logs31 APK with source-bound workspace, both-ABI and APK checks",
+          "run": "python3 .review/apk20041/android/run.py --layer test --source source-test --source-proof build/review/apk20041/test-source.json --output build/review/apk20041/android-test --jobs 2"
+        },
+        {
+          "name": "Record only safe cache/output presence",
+          "id": "outputs",
+          "if": "always()",
+          "run": "if [[ -d \"$HOME/.cache/nuvio-android\" ]]; then echo 'native_cache=true' >> \"$GITHUB_OUTPUT\"; fi\nif [[ -d \"$HOME/.gradle/caches\" || -d \"$HOME/.gradle/wrapper\" ]]; then echo 'gradle_cache=true' >> \"$GITHUB_OUTPUT\"; fi"
+        },
+        {
+          "uses": "actions/cache/save@v4",
+          "if": "always() && steps.outputs.outputs.native_cache == 'true' && steps.native-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-primary-key != ''",
+          "with": {
+            "path": "~/.cache/nuvio-android",
+            "key": "${{ steps.native-cache.outputs.cache-primary-key }}"
+          }
+        },
+        {
+          "uses": "actions/cache/save@v4",
+          "if": "always() && steps.outputs.outputs.gradle_cache == 'true' && steps.gradle-cache.outputs.cache-hit != 'true' && steps.gradle-cache.outputs.cache-primary-key != ''",
+          "with": {
+            "path": "~/.gradle/caches\n~/.gradle/wrapper",
+            "key": "${{ steps.gradle-cache.outputs.cache-primary-key }}"
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "success()",
+          "with": {
+            "name": "apk20041-android-apk-${{ github.sha }}",
+            "path": "build/review/apk20041/android-test/*.apk",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "name": "Upload source-bound APK proof only",
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "apk20041-android-proof-${{ github.sha }}",
+            "path": "build/review/apk20041/*-source.json\nbuild/review/apk20041/cache-restoration.json\nbuild/review/apk20041/android-test/**/*.json",
+            "if-no-files-found": "error",
+            "retention-days": 14
+          }
+        },
+        {
+          "name": "Delete private runner configuration",
+          "if": "always()",
+          "run": "python3 .review/apk20041/android/cleanup_private.py --directory \"$RUNNER_TEMP/nuvio-apk20033-private\""
+        }
+      ],
+      "if": true
+    }
+  }
+}

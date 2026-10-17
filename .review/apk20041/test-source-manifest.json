@@ -1,0 +1,1633 @@
+{
+  "format": 3,
+  "base": "49a2544325ea83284a1d5024c5c2875a6a657e6c",
+  "commit": "20eb25067ebd7e7770247a5ce3d753a911b44993",
+  "tree": "07c3605056ec0a3ef634c804ef1118884644b82f",
+  "parents": [
+    "5675d46fc39b32d4b112ad2174cc3e920e73f185"
+  ],
+  "layer": "test",
+  "private_logs": true,
+  "tests_tree": "224c8f14fe233ad808e977e1de524171a0325a82",
+  "tests_tree_preserved": false,
+  "expected_android_units": [
+    "src/abertura.c",
+    "src/abrecine.c",
+    "src/addons.c",
+    "src/addonstats.c",
+    "src/addonsui.c",
+    "src/agenda.c",
+    "src/agendaui.c",
+    "src/agendaviso.c",
+    "src/ajlog.c",
+    "src/ajustes.c",
+    "src/amigoperfil.c",
+    "src/amigosfil.c",
+    "src/amigostitulo.c",
+    "src/amigostitulo_ui.c",
+    "src/android.c",
+    "src/aovivo.c",
+    "src/aovivoui.c",
+    "src/apoio.c",
+    "src/app.c",
+    "src/aquecer.c",
+    "src/arranque.c",
+    "src/arteescolha.c",
+    "src/artefontes.c",
+    "src/artehero.c",
+    "src/artereserva.c",
+    "src/artetamanho.c",
+    "src/assrender.c",
+    "src/atividade.c",
+    "src/atualizacao.c",
+    "src/audioescolha.c",
+    "src/audioinfo.c",
+    "src/audsync.c",
+    "src/audvad.c",
+    "src/autosync.c",
+    "src/avisodisp.c",
+    "src/avisos.c",
+    "src/badges.c",
+    "src/biblioteca.c",
+    "src/bidi.c",
+    "src/botoes.c",
+    "src/busca.c",
+    "src/buscanorm.c",
+    "src/buscasrec.c",
+    "src/cachearte.c",
+    "src/cacheboost.c",
+    "src/cachedisco.c",
+    "src/capmkv.c",
+    "src/catalogo.c",
+    "src/catordem.c",
+    "src/catordemcache.c",
+    "src/celbotao.c",
+    "src/celular.c",
+    "src/central.c",
+    "src/centrallista.c",
+    "src/chsegura.c",
+    "src/colecoes.c",
+    "src/colfileiras.c",
+    "src/contacache.c",
+    "src/contalib.c",
+    "src/contapend.c",
+    "src/continuar.c",
+    "src/corviva.c",
+    "src/cotacat.c",
+    "src/credaprende.c",
+    "src/credfio.c",
+    "src/credfonte.c",
+    "src/ctxinfo.c",
+    "src/ctxlista.c",
+    "src/ctxmenu.c",
+    "src/cwordem.c",
+    "src/cwretido.c",
+    "src/dados.c",
+    "src/debrid.c",
+    "src/descanso.c",
+    "src/descoberta.c",
+    "src/desempenho.c",
+    "src/detail.c",
+    "src/detmais.c",
+    "src/diagnostico.c",
+    "src/diretor.c",
+    "src/discord.c",
+    "src/discordws.c",
+    "src/dobra.c",
+    "src/dts/dts_engine.c",
+    "src/dts/dts_hls_tpk.c",
+    "src/dts/dts_overlay.c",
+    "src/dts/dts_pipeline.c",
+    "src/dts/dts_playback.c",
+    "src/dts/dts_remux.c",
+    "src/dts/dts_subtitles.c",
+    "src/dts/rt_shim.c",
+    "src/dvtela.c",
+    "src/dvtelaui.c",
+    "src/enquete.c",
+    "src/entrada_texto.c",
+    "src/epg.c",
+    "src/episodios.c",
+    "src/esmaecer.c",
+    "src/estatvivo.c",
+    "src/estatvivoui.c",
+    "src/explorar.c",
+    "src/extras.c",
+    "src/faixas.c",
+    "src/faixasmkv.c",
+    "src/fichameta.c",
+    "src/fileiras.c",
+    "src/focus.c",
+    "src/fonteantecipa.c",
+    "src/fonteauto.c",
+    "src/fontecache.c",
+    "src/fontefalha.c",
+    "src/fontefiltro.c",
+    "src/fontenota.c",
+    "src/fonteparalela.c",
+    "src/fontepref.c",
+    "src/fonteregra.c",
+    "src/fontesmortas.c",
+    "src/fontesonda.c",
+    "src/fontevolta.c",
+    "src/fundo.c",
+    "src/gfx.c",
+    "src/gif.c",
+    "src/gifcolecao.c",
+    "src/gpunivel.c",
+    "src/gputempo.c",
+    "src/guia.c",
+    "src/guiaaddons.c",
+    "src/guialembrete.c",
+    "src/home.c",
+    "src/homeestado.c",
+    "src/htmlq.c",
+    "src/iconeapp.c",
+    "src/idioma.c",
+    "src/ilha.c",
+    "src/ilhaacao.c",
+    "src/ilhacart.c",
+    "src/ilhasalvar.c",
+    "src/ilhasinais.c",
+    "src/imdbnota.c",
+    "src/inicio.c",
+    "src/intro.c",
+    "src/jellyfin.c",
+    "src/jpegrapido.c",
+    "src/js.c",
+    "src/jsw.c",
+    "src/layout.c",
+    "src/legauto.c",
+    "src/legenda.c",
+    "src/legenda2.c",
+    "src/legendasui.c",
+    "src/legextras.c",
+    "src/legfontes.c",
+    "src/legmemoria.c",
+    "src/legref.c",
+    "src/legsync.c",
+    "src/legsyncui.c",
+    "src/leitura.c",
+    "src/lembrete.c",
+    "src/limpa.c",
+    "src/linguas.c",
+    "src/listas.c",
+    "src/livetvdiag.c",
+    "src/login.c",
+    "src/logoapp.c",
+    "src/logotitulo.c",
+    "src/lsregistro.c",
+    "src/main.c",
+    "src/mapa.c",
+    "src/marco.c",
+    "src/memlog.c",
+    "src/menu.c",
+    "src/metaprov.c",
+    "src/mkv.c",
+    "src/mkvass.c",
+    "src/naovideo.c",
+    "src/notasfontes.c",
+    "src/notasui.c",
+    "src/noticia.c",
+    "src/noticias.c",
+    "src/novidades.c",
+    "src/novidades11.c",
+    "src/novidades12.c",
+    "src/novidades13.c",
+    "src/novidades131.c",
+    "src/novidades1312.c",
+    "src/novidades132.c",
+    "src/novidades133.c",
+    "src/novidades134.c",
+    "src/novidades139.c",
+    "src/novidades142.c",
+    "src/novidades148.c",
+    "src/novidades151.c",
+    "src/novidades160.c",
+    "src/novidades170.c",
+    "src/novidades172.c",
+    "src/novidades174.c",
+    "src/novidades180.c",
+    "src/novidades20.c",
+    "src/novidades201.c",
+    "src/novidades202.c",
+    "src/novidades_cartao.c",
+    "src/novidadesfila.c",
+    "src/nuvem.c",
+    "src/ondever.c",
+    "src/p2p.c",
+    "src/p2pmotor.c",
+    "src/p2pmotor_motor.c",
+    "src/parental.c",
+    "src/pausao.c",
+    "src/perfil.c",
+    "src/perfilcont.c",
+    "src/perfilsel.c",
+    "src/perfiltv.c",
+    "src/perfis.c",
+    "src/pessoa.c",
+    "src/pessoas.c",
+    "src/pipintro.c",
+    "src/plainass.c",
+    "src/player.c",
+    "src/playerexterno.c",
+    "src/plex.c",
+    "src/plexaddons.c",
+    "src/plrguia.c",
+    "src/plrilha.c",
+    "src/plrui.c",
+    "src/pluginjs.c",
+    "src/plugins.c",
+    "src/pluginsui.c",
+    "src/plugrede.c",
+    "src/ponteiro.c",
+    "src/posplay.c",
+    "src/posterprov.c",
+    "src/progresso.c",
+    "src/proximo.c",
+    "src/proximopreparo.c",
+    "src/proxyts.c",
+    "src/psestilos.c",
+    "src/psfundo.c",
+    "src/psparede.c",
+    "src/qjs.c",
+    "src/qr.c",
+    "src/queda.c",
+    "src/reacao.c",
+    "src/recenviar.c",
+    "src/recintro.c",
+    "src/recomenda.c",
+    "src/recresp.c",
+    "src/rede.c",
+    "src/redemarca.c",
+    "src/redesaude.c",
+    "src/redeurl.c",
+    "src/regcodigo.c",
+    "src/regexjs.c",
+    "src/registro.c",
+    "src/relogio.c",
+    "src/saidaandroid.c",
+    "src/salvos.c",
+    "src/salvosintro.c",
+    "src/salvosorg.c",
+    "src/salvospainel.c",
+    "src/seekr.c",
+    "src/seekrquota.c",
+    "src/seekrvtt.c",
+    "src/segurar.c",
+    "src/seguro.c",
+    "src/selospacote.c",
+    "src/serieaud.c",
+    "src/seriefrases.c",
+    "src/servidores.c",
+    "src/sessao.c",
+    "src/simkl.c",
+    "src/simklauth.c",
+    "src/sinopse.c",
+    "src/sistexto.c",
+    "src/social.c",
+    "src/socialvis.c",
+    "src/spotlight.c",
+    "src/spotpessoa.c",
+    "src/stalker.c",
+    "src/stream_parse.c",
+    "src/streamfit.c",
+    "src/streamfitdiag.c",
+    "src/streamfitdur.c",
+    "src/streamfitpassiva.c",
+    "src/streams.c",
+    "src/svdesenho.c",
+    "src/sync.c",
+    "src/syncprog.c",
+    "src/teclado.c",
+    "src/telemetria.c",
+    "src/temporadas_grafico.c",
+    "src/tendencia.c",
+    "src/tex_cache.c",
+    "src/text.c",
+    "src/tirarremoto.c",
+    "src/tpkdesp.c",
+    "src/tpkteclas.c",
+    "src/trailer.c",
+    "src/trailerapple.c",
+    "src/trailerfonte.c",
+    "src/trailerimdb.c",
+    "src/trakt.c",
+    "src/traktauth.c",
+    "src/traktscrobble.c",
+    "src/trocaarte.c",
+    "src/vazao.c",
+    "src/velocidade.c",
+    "src/vertudo.c",
+    "src/video.c",
+    "src/video_android.c",
+    "src/video_modo.c",
+    "src/visto.c",
+    "src/vistoep.c",
+    "src/vistonao.c",
+    "src/webosver.c",
+    "src/webp.c",
+    "src/xtepg.c",
+    "src/xtream.c"
+  ],
+  "source_purpose": "PRIVATE Logs31 font import, preserving Logs30 installer/external features; Android SDL_ttf backend unchanged, no Android libass rendering claim",
+  "local_source_trace": "07ac8a8bac94901f2a208c41936b1d461529b90b",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "c1019069de4441263c4fb1010f04b31535411b9fd240257090d2b896391052d8",
+      "blob": "19fc2714773ce303c616e9d25fe8cc5e25c64d8f"
+    },
+    {
+      "path": "android/app/build.gradle.kts",
+      "sha256": "4a504802ee451d6827933a9f5381f97ac5888119bee312ed769aea68c779427b",
+      "blob": "17ff4fd93837df388dae5c0eceb913757d8acff4"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "sha256": "4b0a233fb81ae7e3dc7c8ff8fdd0bc7f7046a4763d477af6b4df12cf24cb88f3",
+      "blob": "8b5c9ee2540461e11db8267337742b8d623a5a42"
+    },
+    {
+      "path": "android/app/src/main/cpp/CMakeLists.txt",
+      "sha256": "effd3a1d5bc0d72194c9a6d77eed216713ad608ab4088f2e340f6bc43e372290",
+      "blob": "7441c77524cc241b63e5e3dce080d8f801195100"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/FontImport.kt",
+      "sha256": "171a3f1e20611c6c8a19fac4f75e88eed74aa1166b808c232ce8d9d7f401d787",
+      "blob": "b3940f1aa5178ab4090b405deff2ba2c7d8c7f98"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/InterfaceMode.kt",
+      "sha256": "b6be9287531e098a00e2c0f024980d0866acadda549d832ff360d6fa387d20d0",
+      "blob": "f9d8eae96d36d5d4e9237a823db6c470969537a0"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NuvioActivity.kt",
+      "sha256": "ea136e0a8b666481fcdf30347691028eb5905c8c1ba1123e8d2e976b4ed0830a",
+      "blob": "2ecd6d42128c92be8352c06df2adff549737bcf0"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt",
+      "sha256": "f6316a88824678afeff8118b8460ca96d074c52de1b8db787a6519c42511ec0b",
+      "blob": "70fb892d29026a3b837781a99617dc5fd59e0f3f"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/PlayerExterno.kt",
+      "sha256": "ae6981b97fc8e75fdfe9d03969a13a56a3734ec6cf5d4781a3b404c43449dc3a",
+      "blob": "92a2cf7b4c12debbfb9fe0727d52f77cf35c41d3"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/PlayerExternoContrato.kt",
+      "sha256": "307571711bbe19285ca722177664b0f87faf9db2b0a110947e1fe96422af3cf6",
+      "blob": "5d96430ecda3a78607a61b7fc8cd6193f25ffd00"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/RegistroDownload.kt",
+      "sha256": "cea53d9002476b4b802a3786d2e323519be47f164f9c7d6abc1dbc9cb6b39e4e",
+      "blob": "6f955b8e1412ab518f222d804834bb535b65ad0d"
+    },
+    {
+      "path": "android/app/src/main/java/space/nuvio/nativelegacy/TestLocalLogs.kt",
+      "sha256": "8559131999b754ff45fcf183bc10bb5132152609eca65be4f37778638b02ce97",
+      "blob": "f955fb02a3bc23e58127e4f189dced9cd767126f"
+    },
+    {
+      "path": "android/app/src/test/java/space/nuvio/nativelegacy/FontImportTest.kt",
+      "sha256": "872b653a07cc4678ed515d18efaabeb8c99e9195b23faae46f24546ef1132f82",
+      "blob": "208ff924bcda5ab586a30299e8f16445752a620c"
+    },
+    {
+      "path": "android/app/src/test/java/space/nuvio/nativelegacy/PlayerExternoContratoTest.kt",
+      "sha256": "2d461a218e7b6545f34380cfdf2077dece6090b02da5353c5c39d532696785e6",
+      "blob": "3c1fd99883d9cda392d6117fbfed18a623fca523"
+    },
+    {
+      "path": "docs/android/INTERFACE-MODES.md",
+      "sha256": "58ffadb94f231efc00a622f10cbb743039536fc8809e56638570eb4c6b32ec6b",
+      "blob": "df8586de519ff2a80b19983683caa934a0278c3e"
+    },
+    {
+      "path": "src/addons.c",
+      "sha256": "eb31d835a9ba46115e735f3a6cc0930c7b44b81332b3d8ee990ec4f06a4d0277",
+      "blob": "7dfd48eddbafd3e903ae49d31d6d8cb18dc72463"
+    },
+    {
+      "path": "src/addons.h",
+      "sha256": "73ee098c324e654201d4094431465a237d1cfa19abd46433df28031b1f3d9d1c",
+      "blob": "8713148d474329e5d664b470c2751e2c11554abc"
+    },
+    {
+      "path": "src/addonsui.c",
+      "sha256": "317c38c89412cf2185d773618a98837d02c08df3c9cc8375c6a3f616696fb2b4",
+      "blob": "4628798e02ab0b625e3c98e25d9d755f464e7bd4"
+    },
+    {
+      "path": "src/addonsui.h",
+      "sha256": "af9136eff0de2f6652cb2b68bb557aeed8c0d9728bb4b42270ce517e27cfb179",
+      "blob": "77c9ef37848296fc5023911d0a6332c6346b9d00"
+    },
+    {
+      "path": "src/agendaui.c",
+      "sha256": "ec1bd7d86ceb46f96fa95b0122b68340abe68626f88f4f0febac552e298f0228",
+      "blob": "b1fc1fcff8f5497b54f0f908a5f39e68bc855d68"
+    },
+    {
+      "path": "src/agendaui.h",
+      "sha256": "f482e873de995035fa8f561d10beb708c603bdfd116a7443943ee566a12c5ff9",
+      "blob": "5ddd66fcc966073ffd5260de922f4567cc6141ab"
+    },
+    {
+      "path": "src/ajustes.c",
+      "sha256": "a6216d5da3663308bc46b9b5721d32e6bb520b988f78dad94d14e9b53b3325fd",
+      "blob": "dd9d43a019eb1d22d0e8737f082c43ff48d2bc7d"
+    },
+    {
+      "path": "src/ajustes.h",
+      "sha256": "3dffe8227caa4f51d1085631268cc61e9cda6d5640a6a4e309c928e2e66bc76e",
+      "blob": "c3282d27f51bc0e83c650347248dcc00b664e229"
+    },
+    {
+      "path": "src/ajustes_ux_dados.inc",
+      "sha256": "1062ce35370756958ddb1e9887a93e3b495d17f101c933a4a42592daf6257523",
+      "blob": "01856fea36a4bed5e34f06cbf004df2684b89a63"
+    },
+    {
+      "path": "src/ajustes_ux_desenho.inc",
+      "sha256": "6769a9625fe52bc3a08e221e98360ad31d23b182106a4d18fec649cfbd6901c3",
+      "blob": "238af818b69ebed6a17f2d70bb25130bebe1f8a4"
+    },
+    {
+      "path": "src/ajustes_ux_fileiras.inc",
+      "sha256": "2249ff6c66ed4b22bdb8ea2b2cfdc84cde2f3ff63883cad976e45ae7962bcb1e",
+      "blob": "a4ef4df504d056d8b3c26c33fc485be83bf11db3"
+    },
+    {
+      "path": "src/ajustes_ux_guia.inc",
+      "sha256": "d1b024b17dbcd9ae3d1d7765546bd8b9ae14824e13bd9ca9bca2bdbbd294d5eb",
+      "blob": "7cb3071195df5c7203ddcc3c305a082f4267a08e"
+    },
+    {
+      "path": "src/ajustes_ux_ilha.inc",
+      "sha256": "091a74beeee84cfcef06eec17c361e3a44c5b8dee33327af24fad0a54c86be34",
+      "blob": "2c5b527c2193e85e4e25228d2218a99c0b08a7a5"
+    },
+    {
+      "path": "src/ajustes_ux_interacao.inc",
+      "sha256": "e84a9dbb73de8f0f70d07983cd3c8335a4f8fb6074997433353b4985346085be",
+      "blob": "af37acc43cd99aa8e229b5b83629ecdcf6f24874"
+    },
+    {
+      "path": "src/ajustes_ux_padrao.inc",
+      "sha256": "67ff83d2f713b1aa0e6d7bcde2b8f99147b2702ca5c11435d5eebb39c155c506",
+      "blob": "4380d2073cc177173ca8d5a190343c3d98ff5527"
+    },
+    {
+      "path": "src/ajustes_ux_tela.inc",
+      "sha256": "45ea22e9ecb9982c715e77437b32447c511d5ba28452eb697ce7986f095b4ec8",
+      "blob": "5999b87764d8733979d258e5cf1e5069b34269b1"
+    },
+    {
+      "path": "src/ajustes_ux_v2.inc",
+      "sha256": "8feb24a45c7d8eb02b20de1fb86953b0c4ecd622b6751dcaa0799a87c4a10361",
+      "blob": "b302b6e23dff53f4f2a0adc9156118d324cc27c2"
+    },
+    {
+      "path": "src/amigoperfil.c",
+      "sha256": "f8ec9d95880f00037c3b3b6016ad2696fb9e6f3a253a3b0c117cd88f5d80e8ba",
+      "blob": "047737c1d7b0b23c2d7b9c55426404ee43119392"
+    },
+    {
+      "path": "src/amigoperfil.h",
+      "sha256": "52f1662970892275958aeda66237fc29295ede3551117bee3e6617fcb9449c36",
+      "blob": "b5e61a7b76257e3e2e3401a39ad12abcf83b955c"
+    },
+    {
+      "path": "src/amigosfil.c",
+      "sha256": "2f5d30501be8b890a55dc13b3b75774b9b55806d4a2a12b7b09ed891fb008ffe",
+      "blob": "afa157d1a633c2552ff32dfb01c22c2a26e76313"
+    },
+    {
+      "path": "src/amigostitulo_ui.c",
+      "sha256": "e4d0cb514490cca6adfdbdffd3b392f4e2e2a6728ba9ff870db4f7ba492e222d",
+      "blob": "e0515ac53f49874a16dc5a830f019fc1e9085ce5"
+    },
+    {
+      "path": "src/android.c",
+      "sha256": "650043b0abcc5fa3443b0528e26cd44e81375f38608b06057d511201e7556e58",
+      "blob": "24a39773816efac96d5ae19e291dc08f4b468dd4"
+    },
+    {
+      "path": "src/android.h",
+      "sha256": "a0757132af37f50fd6dcf12a6735b8ec27d541b7de5400bbdfc0ce461326fb87",
+      "blob": "8ec2d9144788592e68e3deb43026b006e084ff61"
+    },
+    {
+      "path": "src/aovivoui.c",
+      "sha256": "a64e1195dc08522f3d361dc77a594209f2950a83aa54d5a33abe9906fb673ebb",
+      "blob": "c732f496cafb7dd6a3864e9f9624a757595eea40"
+    },
+    {
+      "path": "src/app.c",
+      "sha256": "d069f669718fb68fdc7dfff4fa6fa764b1a701cf1debdaa19adba1fd95dc22a6",
+      "blob": "5cc9d67433b3e6bbe7c6f0f4420bc513b5001583"
+    },
+    {
+      "path": "src/artehero.c",
+      "sha256": "9a7a07b01abda18c81243140601b1286cd55ee5f16be8995f05a3d870ef30bc0",
+      "blob": "c59885d85ea2b84af4507c9fab3e8163116f1da3"
+    },
+    {
+      "path": "src/artehero.h",
+      "sha256": "faf719cb766d154dca568bcb946961f8eeb1c79bd8472af991003ade84334412",
+      "blob": "5602ce322cb6263361eb6a750c85f339b07c8a31"
+    },
+    {
+      "path": "src/assrender.c",
+      "sha256": "42cd1f8d20dfe13e3a8887d05d455096daeb5bb8ae8e3a0edbc40456c32bbc7e",
+      "blob": "54742e6f231b345920380ff5825143815e7da090"
+    },
+    {
+      "path": "src/assrender.h",
+      "sha256": "b9f54fe40cb0765bd6e2b95c50d74f4a724a41f8d645cc291ce5e87b1e0fb5db",
+      "blob": "b8a469591c55e8c9a1ea0da29d0ed99bd23cb7af"
+    },
+    {
+      "path": "src/atualizacao.c",
+      "sha256": "5a26a528ae908af939478f5354a7da62c8fe36598d0e34c27e0e6e91a8b2c6a9",
+      "blob": "0c182d6318f79e33ff285063741c51eb0dd7f56f"
+    },
+    {
+      "path": "src/avisos.c",
+      "sha256": "7d445dd14bb4d5fe3e50e834937157667005cd38b6a151905eee26568f09c14b",
+      "blob": "8d3a43cab9f62a462da15e55588c1b55df8401d7"
+    },
+    {
+      "path": "src/biblioteca.c",
+      "sha256": "3f1974ed7a60ef86122f0b1e8c52267a328e8fe06d4794ff15390774df9074e8",
+      "blob": "829f0e920421540d5283ac365ce893e20f7ea939"
+    },
+    {
+      "path": "src/biblioteca.h",
+      "sha256": "31c434c09c6797cedd53459c9f3b1a2a6ddc3749fc667d7babca2d2de1b4f9a6",
+      "blob": "d9482ee3ff0dacea73293b8a9cba05f4c1723578"
+    },
+    {
+      "path": "src/busca.c",
+      "sha256": "f0975eaf513a2e8d7cc972b73d00bd67b8f644ec54eaa79a4c830dd3daa5db64",
+      "blob": "a6d48a4749f663d1f5d0a7e7eed09948acd3d4d1"
+    },
+    {
+      "path": "src/busca.h",
+      "sha256": "0279302c62fe0ae493574315c8761f57b72c7e09ad722156f842a98558b9ed81",
+      "blob": "6ccf2c8352140e64eab8eeda35300ff51d31cb15"
+    },
+    {
+      "path": "src/catalogo.c",
+      "sha256": "41166632d751434294f7eabc81babb9830b670fd95e08c2cf060917445a8f7ec",
+      "blob": "b56975f1f9111f24f0631e95762937e45580eb76"
+    },
+    {
+      "path": "src/catalogo.h",
+      "sha256": "452b86c189c3d3cf485ba93263c7eb9df3d2ec704b649e0f86954fb7917c8266",
+      "blob": "60e1246d4d5f3adaf0ab8175530161693efbd7af"
+    },
+    {
+      "path": "src/central.c",
+      "sha256": "33c067f1fc944132c9457b5d519dc36bd1a794f7c615975784e3b9ff163e49cb",
+      "blob": "6d33a6c3a90be6b3aea15bb706e8da41c5ca7e93"
+    },
+    {
+      "path": "src/colecoes.c",
+      "sha256": "b285d6b1b38da760ea8aa1577635b39fe0a334c76a1676acf05de944d97dd5e9",
+      "blob": "f332da3831a2bcd3f8412b57d3c9fd81b2274187"
+    },
+    {
+      "path": "src/colecoes.h",
+      "sha256": "e03ab0fad967afd46d413a4d0b8bf9a1946676d81a45e4e13eeae12832049871",
+      "blob": "b63b4d38997db9246ab53af7b5ed0e21160fdf76"
+    },
+    {
+      "path": "src/colfileiras.c",
+      "sha256": "26dfee71b53aef97ad17703cafe803458ce9f27c286bf094448fb9f4a1ab8865",
+      "blob": "7e6ade6ef10342bac0e7c0042edcf6b3fc373ad5"
+    },
+    {
+      "path": "src/ctxmenu.c",
+      "sha256": "233fe930663d9c1be813f0a370d6a765081ecee40d428cbc743bbacc25af330e",
+      "blob": "988ceec0de4bdd7996f8bccb1d555e5ede553237"
+    },
+    {
+      "path": "src/debrid.c",
+      "sha256": "e888ad5b753d4feb39ade7a195f3ffdab728ef92c41410763a19f1f2ed815691",
+      "blob": "8fafec024710845fd353738ac385dd76fbc92528"
+    },
+    {
+      "path": "src/descoberta.c",
+      "sha256": "09446e7c9018b7023bab78a3bddf496a4b73ebbdcfaa0aa924cdd71f2df2f4a2",
+      "blob": "6f9adcaec7e4ae5e5c4932575dac798d7419cf8e"
+    },
+    {
+      "path": "src/descoberta.h",
+      "sha256": "bf7da79ed1d6954481442ed2a747c6a17845887605af525d9b65d877c95145ec",
+      "blob": "744c4db3754b5e9d2cdef7471c7c58c2ce25a8bf"
+    },
+    {
+      "path": "src/detail.c",
+      "sha256": "0cc11640816c55e261f62dffc11e6399d8e5827acdbfaf4abbf27c57035da322",
+      "blob": "9ae3544c2e6762f9d8620ab643df6bb311d1c8ff"
+    },
+    {
+      "path": "src/detail.h",
+      "sha256": "c53dc623919860ae7c1ea8b59785fb8505cb1a262207ae67e44c96df48392200",
+      "blob": "a2a89c162b288285ff261660ff78c779ecf6ed30"
+    },
+    {
+      "path": "src/diagnostico.c",
+      "sha256": "64d3ccc1cdd5564a47766e7010a30314385e56f9c4d748f1741f723430db94b0",
+      "blob": "d2a813064f92c778b82c441ce2bdb6b0f3576580"
+    },
+    {
+      "path": "src/episodioid.h",
+      "sha256": "42717eb8d08328b34b78eb3063b18a52d94541fc31fcbd5a60cf75a65e742b4e",
+      "blob": "01ba197be5230d974481c299753e7fa34a130f9f"
+    },
+    {
+      "path": "src/episodios.c",
+      "sha256": "2b3afff3c06ec6148a1f8244881b5b5bb53fbc32c6cbadd7c8df974feb807be2",
+      "blob": "3b4b457048fc699afb2c1892aa5b8d120c61d59e"
+    },
+    {
+      "path": "src/explorar.c",
+      "sha256": "5f26bf0924d2d9bc83e580032909c70021254a9e8267bba778972d539f5f4f8d",
+      "blob": "2bd242492ceeba3b22c0d51e06c45df649d75a8d"
+    },
+    {
+      "path": "src/explorar.h",
+      "sha256": "cf4a3dcca903e85acd850c6e35077862d9701b16ee73684c8b4ac1f201186755",
+      "blob": "81be31db3cbd255df17b950c0d49467271fd33bc"
+    },
+    {
+      "path": "src/extras.c",
+      "sha256": "bfda1459aabc2a64d4454c70ae0ce310b3acd60a28b86b0a524ced3fc652056e",
+      "blob": "a4419e0b2fda8ab5989b8c00b215c837fc5721a0"
+    },
+    {
+      "path": "src/extras.h",
+      "sha256": "7c95da3cb6d46892c5664adc5ce6d8df9fc90a332f80ac9501d09e3f2e0a798a",
+      "blob": "98302a5bcab25b3ce0580576ebd0442293291975"
+    },
+    {
+      "path": "src/faixas.c",
+      "sha256": "720751f926a8cfb25506aa34f1eaf36f2c39853d0651237208ca0fde94c48c24",
+      "blob": "e216f93ac14f6acd6f44b2b3e79418d9799587fe"
+    },
+    {
+      "path": "src/fileiras.c",
+      "sha256": "0d8240654259b2431f96681a4314579d1c8bfabd80fa325b1c69b0d850902f03",
+      "blob": "bd4afa2b277ea24c344f9a448b56fe56b78b66ff"
+    },
+    {
+      "path": "src/fileiras.h",
+      "sha256": "c96506a8c912e3d0364613c12069468473903e66c0d336380bc64216d85cde51",
+      "blob": "67382fff55253dd30fbd7dc46a841e9381b42a0f"
+    },
+    {
+      "path": "src/guia.c",
+      "sha256": "8dcdec47c6b120e54522c6190720dd9f3f9f551f145f210fd6fe4b47a68aaab8",
+      "blob": "1ab23477f2ee87ee6ec32fa32783fbcadf7432bc"
+    },
+    {
+      "path": "src/home.c",
+      "sha256": "4080e2e72cc72ebf16209173b0891e51e5bc1e054a9aeb005dc24307e4de6ad3",
+      "blob": "37ae4aae4be9bc753b6f98d60317c68d7d927f0b"
+    },
+    {
+      "path": "src/home.h",
+      "sha256": "a9d9b04b7d45500d6a4c3215c1428d97bd282b5a55a8e89751f35c410fe509cb",
+      "blob": "77b081bc2e59cce8d45431c79659a429ad0113d6"
+    },
+    {
+      "path": "src/idioma_bg.h",
+      "sha256": "01b924748454fbd9b8b19930ac88f8093f9e79e0983efc4632c8e9ca6b038557",
+      "blob": "0f818d37a46b2e0ca8a4ed4e4e3e7c60a30a420d"
+    },
+    {
+      "path": "src/idioma_bs.h",
+      "sha256": "73e45d1086b97ff5e91711db837fc4f7ac5ad229997b318b44c66c63b8e9d076",
+      "blob": "0a622bc0823cd276cae1b963de195f46709f8834"
+    },
+    {
+      "path": "src/idioma_cs.h",
+      "sha256": "a5f6f2f62ef759a2d78b5aa8cc42fd65682cafe2e149fb7506eca23142e99827",
+      "blob": "e9b54857ba63d29743cbb3c7e3b65b958dfd324d"
+    },
+    {
+      "path": "src/idioma_da.h",
+      "sha256": "5a6db75a0c4e16a43c7a3f563eaead67a2a1aef904bf31dca752d979f913d1bb",
+      "blob": "b4048f8686b0510fc5abddda9699c6a6b7879338"
+    },
+    {
+      "path": "src/idioma_de.h",
+      "sha256": "00598e705b762ae8fa2e1a669d93406b099b33483b7b953bac0f1e48538f6934",
+      "blob": "ae22ce83f7bb9c242135ec175e48fee03962322d"
+    },
+    {
+      "path": "src/idioma_el.h",
+      "sha256": "2bf4eeba7aea3a0e0338bb1488f6196864d97be04847fb893f3f241ee2fdf819",
+      "blob": "644f535b8550a6ea7a16319669f3e17ab78dec0b"
+    },
+    {
+      "path": "src/idioma_es.h",
+      "sha256": "c6ac7c0be3226c5068f52356fdaf2ac131ccc6342a57dc1b5838e9d0dc2c1c65",
+      "blob": "12b2f297b1a12857d8122b4616f052c777aaeb27"
+    },
+    {
+      "path": "src/idioma_fr.h",
+      "sha256": "c1a1cdee920d39509528917dfc0b8854e7ac018959eae032e9518e6d8f8c03a2",
+      "blob": "3ef341ec4c011e305967014318a6d342334d47f0"
+    },
+    {
+      "path": "src/idioma_hu.h",
+      "sha256": "b1394511cdebe9b2b578453532224e30c12096533d4b104aef46781edcc80bc9",
+      "blob": "64da040750c8bec3778c9f0c39a18221b7daf142"
+    },
+    {
+      "path": "src/idioma_id.h",
+      "sha256": "b86ea2237c7fdae28a471ed3610f5c3e6efd9fd1e30d1e4f38499d0382645cc3",
+      "blob": "7f12be35673d296ab7fd6f4792e936ae54429dee"
+    },
+    {
+      "path": "src/idioma_it.h",
+      "sha256": "2d6d4d77fdb3a144e76418fb23d659b607464462754eb3328121e23d4a0591a2",
+      "blob": "424b9f9812efd2098e4cda64b5e51aa203f1004a"
+    },
+    {
+      "path": "src/idioma_ja.h",
+      "sha256": "ea58086fdc0b5a63723922d0506e28aaa73829d43058b25efc770d4232c683ee",
+      "blob": "2a2eb15cfb0f7cbe0597ba8962293d4df0ba5f51"
+    },
+    {
+      "path": "src/idioma_lt.h",
+      "sha256": "28a5d669f7f14d26d825092618bbc889350a4d6a90885fe3f99b862271a553a1",
+      "blob": "b985e571136ee85b8dbd6c3d77cb7c1547a6d008"
+    },
+    {
+      "path": "src/idioma_nl.h",
+      "sha256": "6413456654568c453d67833eb2b48a4e307fd82601dfaa9680c4dda6863438e7",
+      "blob": "2fdd85370980c24d3ee69e9b81528e5cc8c56d41"
+    },
+    {
+      "path": "src/idioma_no.h",
+      "sha256": "020db4310108f0c930547957cb2022afc16270f93538aa7afaa133a20ca36bc8",
+      "blob": "1daf652ff0ce7735a6adf503623c275062b732cc"
+    },
+    {
+      "path": "src/idioma_pl.h",
+      "sha256": "5d02ea5980359e034a0c6901e9c2ef44a97e748dcbae58da436a6cd0385f3abe",
+      "blob": "43b30632560682a04f9bf201f629766642dc8804"
+    },
+    {
+      "path": "src/idioma_ptpt.h",
+      "sha256": "efe8a0ec9ff6a07255c363393bbe152b845cbdf4e25fd357372a7e4d41aaf2a4",
+      "blob": "dbfadaaf95016b831b326689c1ef5c4f8fcbad77"
+    },
+    {
+      "path": "src/idioma_ro.h",
+      "sha256": "074140aed630a1529344572c8a7cb0a687ca837be71cd12fb7bbbe9cc8c01289",
+      "blob": "d590577b2c7fe77c8feb559b9c51d964af86fe8b"
+    },
+    {
+      "path": "src/idioma_ru.h",
+      "sha256": "f292d78001278d0ff141ea75f4a6553a6ff2d668831fc8d7fa20ce99d17e6eea",
+      "blob": "ecacb9919e86d4a7e534e4d04d158f98aa188911"
+    },
+    {
+      "path": "src/idioma_sk.h",
+      "sha256": "9cc5a8bbb130c777027f1b5a6bed3cb303dc4d472d274f5f4e8273e3f2e147e8",
+      "blob": "137b710f68f4ca1abe4809e544c9a4f757655227"
+    },
+    {
+      "path": "src/idioma_sl.h",
+      "sha256": "28f5cd65e1c04e76ea3b1ad77c6e4e6c3200029a49ababaabab08d84707e6369",
+      "blob": "edcf7e6f07d8ff593b59781b58c65b5a31a19cd6"
+    },
+    {
+      "path": "src/idioma_sr.h",
+      "sha256": "9f1d5e6628a87d5be82f5cd32ed5c41e408c500b6e25b698b77664219aab676b",
+      "blob": "a7a5d1073b5fcce9043682ada3f93dd949c0f149"
+    },
+    {
+      "path": "src/idioma_sv.h",
+      "sha256": "50a869af6332e182eec08e2d96b24dbddcadca24ca40a16c64493c1dcbbf6b85",
+      "blob": "a8f180181c83498be3aaca42107d08d8b2ccd5bd"
+    },
+    {
+      "path": "src/idioma_tab.h",
+      "sha256": "1fe46191c751054e1f128ebd1c4e3b31c557421a0c961be6707327d8dc7941d2",
+      "blob": "0f043db630ed7838463e7b28625acfd74aebe6ea"
+    },
+    {
+      "path": "src/idioma_tr.h",
+      "sha256": "13fb4b1cd562e2884a4d0be34ad4c157cfde8250972890fdac38f03f42386ccd",
+      "blob": "74e0d1d39573cb1d8a4cd710a92a294e7dc5007c"
+    },
+    {
+      "path": "src/idioma_uk.h",
+      "sha256": "717fd5b5a24c76559005af42dffa450d073ce038cbc0047378f70307816bc83d",
+      "blob": "746594d98b4e471a7a3678a168765f419214df31"
+    },
+    {
+      "path": "src/idioma_vi.h",
+      "sha256": "3abfe20e9f5721971313a6f93a4206869871d110b500f1b9ef01704948a19e4b",
+      "blob": "4546fbfb32527b9a039946b40bc5466938291a8f"
+    },
+    {
+      "path": "src/idioma_zhcn.h",
+      "sha256": "6fd30922d1cc3e30ffe8ffa57ebc2f27fa92bba62ef5fd90adf3d17efd651fd2",
+      "blob": "9d0f69bc86b5fba3bf451604f1436d70b6a53dc7"
+    },
+    {
+      "path": "src/idioma_zhtw.h",
+      "sha256": "335e9b4d1b3e703a9f433d9bdf6187a329ce83a4c88a7beba4316476ab38108d",
+      "blob": "f91bb64ba0cd2425351e6b493c9ad89c3c05f389"
+    },
+    {
+      "path": "src/ilha.c",
+      "sha256": "e019ddec386409d432de61eba9b2fd545c3fa956395ffe8f249ceebed043c857",
+      "blob": "ad64b71b05aefa35e549a460c92c1b48db124bfc"
+    },
+    {
+      "path": "src/ilha.h",
+      "sha256": "e17dbba1ef20565c74a9f7e41e384553ec32d42d40f25e1bedc7d18f42c62681",
+      "blob": "e6669e6460bc8bf88d448ffdf7b1893a8f9bff93"
+    },
+    {
+      "path": "src/intro.c",
+      "sha256": "355c0381b51b83ba44935343ec10678304d9c083eb76b9003d0c86b042eeb98b",
+      "blob": "ced17cf1a34d95a46e54c92added6e564217dd09"
+    },
+    {
+      "path": "src/layout.c",
+      "sha256": "07d26ad56ac0cbfea49ee30d9d8482b3368d1445bc65bb5a145ed08b917b80fb",
+      "blob": "f46fe5fea1efa4750aef513491b6231cf9829a9b"
+    },
+    {
+      "path": "src/layout.h",
+      "sha256": "ccc6faa888a2af844535c93a854354a737f26927810fd7179437b701b12555cc",
+      "blob": "63ebefb6d452f6aeebb0dbbeed275ffbc4ee71f9"
+    },
+    {
+      "path": "src/legendasui.c",
+      "sha256": "ef48597e7ce88b7c2617f05f8f04a0622536558964eae0445ec976dcd3956f9d",
+      "blob": "d05bc9fccf1750301945f56a4f6b94fae06d322a"
+    },
+    {
+      "path": "src/legfontes.c",
+      "sha256": "dd4f49b552cb6d56e85de0df2446638e6363331d4facdfb96d19fbb927884a04",
+      "blob": "6c47ef7b3f47efefa32598c74192dc555c968e73"
+    },
+    {
+      "path": "src/legfontes.h",
+      "sha256": "664b618111be76c141c522aacb894b02ea6fd3fde86f264cb15abb4042bf501a",
+      "blob": "ae57376b5a504331c74e0e7a3bb57b0307e1661d"
+    },
+    {
+      "path": "src/livetvdiag.c",
+      "sha256": "b78dfd16710e2b98095c2d45223fa47616e8fe4ccc83f864145a5c68fb5cff0e",
+      "blob": "bb8f744d6f572e64d7b752cebc1bd37d8e6f48e3"
+    },
+    {
+      "path": "src/main.c",
+      "sha256": "2d9e837da9a457641ab428849437dbb79402d9d7bdffebd5b0ac23a847325e32",
+      "blob": "217941723e68ac8e1656f8c29752e7545514576e"
+    },
+    {
+      "path": "src/menu.c",
+      "sha256": "7085cb29e0128ae1fa376574631e0aee7127ac1d08bc7ef4c3ab093db82a570f",
+      "blob": "8fe75501d58c0a5a14ec835baab2080f21fccc9d"
+    },
+    {
+      "path": "src/metaprov.c",
+      "sha256": "3d6ff664a61df853261966cb8a40fb0543e2f259bf90b0eff6881aaf0f07eca5",
+      "blob": "ce084eee4ac2e7a3cbd4981b065ed086b1ac13e9"
+    },
+    {
+      "path": "src/metaprov.h",
+      "sha256": "d59e9b5508fa8468c9a08c02585d5e5d8f4f788064ba9326efe8f00821375311",
+      "blob": "6080e19aa7a0997cd6e41dc15d01044051dd3e2e"
+    },
+    {
+      "path": "src/p2p.c",
+      "sha256": "0e6ad07870a5b0fae48959ed08c59a63192c16c8f663c78d3ae972d615e334df",
+      "blob": "221d1261ace5ba4041a692ee232f976e302ab283"
+    },
+    {
+      "path": "src/perfil.c",
+      "sha256": "58086a9098460b21bd52c97967b6093228ab1c74722540bee5e1ab31ee330635",
+      "blob": "72a0741803ee45357bf0d139954443287fe03306"
+    },
+    {
+      "path": "src/perfil.h",
+      "sha256": "c00cbbff5a660737504136f1ed2de6eef9ec1c84c4f93bea03cca1e5b53ecaf6",
+      "blob": "9eb0db4d13f240168916386b25feffabeaa63066"
+    },
+    {
+      "path": "src/perfilsel.c",
+      "sha256": "dbe8d5e91be73e67d17211e9ab5de133576f7ccd89ec66ba4827dd12d0c38690",
+      "blob": "c395e232c38f96397609f4b124b293dea2c309aa"
+    },
+    {
+      "path": "src/pessoas.c",
+      "sha256": "8df9f956ce39bd208d15455ea1502f9b54c96e6ddcbb9e11acee2b1264d336f8",
+      "blob": "66b77a3905fe0436651356577340ce824b2ef9b2"
+    },
+    {
+      "path": "src/player.c",
+      "sha256": "a96006200c1ddb7bb025a4ddd0773f383172b77fe705966af2de961c9a7d6282",
+      "blob": "f2f7a77af11b08172cde56863bf7c80ec15312a6"
+    },
+    {
+      "path": "src/player.h",
+      "sha256": "fbb79c099155c4adb93c123cde668c408819305f2095ebc05783a4faab0d6a2d",
+      "blob": "f4ec5864e14fe6b6bd18b976aaeb6a93f640fb75"
+    },
+    {
+      "path": "src/playerexterno.c",
+      "sha256": "207f8b44fe7930100e4aa325bfa1327022fac4493a14fbd1e5e2fd0c807a1189",
+      "blob": "fcbfdf568cff5de0c79f40c98bc443e22edd6c3a"
+    },
+    {
+      "path": "src/playerexterno.h",
+      "sha256": "97bbafee80297bdfe0b8c053488d96e79682fbd8ae8759800adf5b2840e7fb72",
+      "blob": "c8be1f21beb68438cdc51f9ee1fc398df7fc1826"
+    },
+    {
+      "path": "src/plex.c",
+      "sha256": "33de242a8ccc386e82ab110bdd859e091ad8469013c6f0b6ad8def0c5fe04391",
+      "blob": "0b9dc370f5526aef09f5b89c41ca374327b72782"
+    },
+    {
+      "path": "src/pluginsui.c",
+      "sha256": "754a8ee0cd36e22c5dd8699bacf6edbd13c41ec45228bd17aa11936ace1e3b63",
+      "blob": "7ca58f17caa27ca4e4d664ad525dfecda6e7786e"
+    },
+    {
+      "path": "src/pluginsui.h",
+      "sha256": "c7841ea71fad3786bda58ec22e39b4514d3fc84fed309c000710fb475f89bd1c",
+      "blob": "b7f42fc7f49865116fa838521386a0ad6cc20be2"
+    },
+    {
+      "path": "src/ponteiro.c",
+      "sha256": "5e379adc860dd8ad4831ccf133a846a4ac7c266539078015d4ed89baea40c3b4",
+      "blob": "abb43fe1fc25f8f08e373f7ac3f5d4fdd7fac7ce"
+    },
+    {
+      "path": "src/posplay.c",
+      "sha256": "ebade03966928483526c0931a8dea37c9313ee55dca404371f4da01240b154b8",
+      "blob": "e0532c7c6e94d153a8b33c773de8e28184b8ec83"
+    },
+    {
+      "path": "src/proximo.c",
+      "sha256": "0f5a9f42d5ab4397711baf014549463499c5d90406d0eb26a36aa9d555f8daa4",
+      "blob": "32aa2c2bb24b9a10ded61d784a6a4b99f8725f42"
+    },
+    {
+      "path": "src/proximopreparo.c",
+      "sha256": "1a1e2e44d33ca9b803faeadf0b162410ace37a07b433664fcc8e8316debb5b8f",
+      "blob": "eeb7de57babe2156783923bb4832d5f47eee834e"
+    },
+    {
+      "path": "src/recenviar.c",
+      "sha256": "fe184aca7850ae034d060c06f5ddb521b53996c8768178dca50ddc30546a9d9e",
+      "blob": "f5426760d652d402c79fc65e797d2250ceeeed6b"
+    },
+    {
+      "path": "src/registro.c",
+      "sha256": "e8583449002c2b6428f4ebe4eff1c3839eed7c3dbf1acc8af2908a13819d0fc0",
+      "blob": "2ba16f016123acfa135b677f541b90803e2a2298"
+    },
+    {
+      "path": "src/registro_ilha.inc",
+      "sha256": "28019062f8f2ebeb423695e6f70e9573f47f1f438f871872968b66f89b7a89b6",
+      "blob": "02f17e290390794491ba73ed5a36af93a85d7511"
+    },
+    {
+      "path": "src/rolagemtoque.h",
+      "sha256": "bb628821f31a28bf4da2f1f6d8c7d16dac1f90d71d5678f85b3b90b4bbdaae6e",
+      "blob": "049653ca73bb3c130b065a78bbb691c994b709c9"
+    },
+    {
+      "path": "src/salvospainel.c",
+      "sha256": "2f4b4d0cc92b1b8391f4c679ac172117507f1098797a8316b659d92fa4aac618",
+      "blob": "be74374e30a317d4249c19d4c70f8dd8dd477702"
+    },
+    {
+      "path": "src/seekrvtt.c",
+      "sha256": "89a0c7245a2d7225ec5e64e1fabda0cf63efefc489004854613be0cdf5f6da1a",
+      "blob": "39394a5bf332da80ae6748f3150dc0306fd14eff"
+    },
+    {
+      "path": "src/simkl.c",
+      "sha256": "e961ed3cddd7f702fa2ae14b27b5a9305b3e3ea22009e6a4590e5e08dcc0c5cd",
+      "blob": "e7975fc331a65f8edf98c4ed8169bfe6b74de1d9"
+    },
+    {
+      "path": "src/spotlight.c",
+      "sha256": "45dc6f0364eca6ccf530b6c4a966ed32024cc973007570ca6772394d4706c78b",
+      "blob": "d4d70ff58e933a104f8f4cd3f51e2e7ed8236bda"
+    },
+    {
+      "path": "src/streams.c",
+      "sha256": "b5264199c0dc2bc807a403d718f6991eb414a62003bfb08dd45b5be27d79cb1b",
+      "blob": "7f4572237b6510a675b6fd9b3ae26c3308b7e4fe"
+    },
+    {
+      "path": "src/sync.c",
+      "sha256": "44559dfb377598f1ecfede23d4892909ef25577fb7b54efbec12daa5b9838c6a",
+      "blob": "bb9d90878ebda5aba4759b860ce6420609f022b6"
+    },
+    {
+      "path": "src/sync.h",
+      "sha256": "94287d82b41833c5854e3a65f8920b1cb9aa63ba4ec2f6d1bcb30736bed1861d",
+      "blob": "7d6056e5b7f4a6f8997f7448179d916371987058"
+    },
+    {
+      "path": "src/tex_cache.c",
+      "sha256": "1572376b0685eb054fcea85053012ab06cac5f35955b722077e1099466824c96",
+      "blob": "c001085da527793eddc96e92dff0d48ce3a2d597"
+    },
+    {
+      "path": "src/tex_cache.h",
+      "sha256": "de3e4f15920cdcd679870a677e0d4bac0138c82abf345e0b2a5b19ef103a0617",
+      "blob": "aed49ae6e6d0cdaf87a3c3f5add9f2624f57406a"
+    },
+    {
+      "path": "src/text.c",
+      "sha256": "ac8b1d96c095a52744fb30ec07b4db8c8a39aa20cd753ab19ed6236c2bf3eb19",
+      "blob": "a5761cc001921ac26f6d0b14e728eda5794b4ea1"
+    },
+    {
+      "path": "src/text.h",
+      "sha256": "a04714b00340f5e8c7a8910334a8035ee47edb4ba58d08958ff3f1c63378ee43",
+      "blob": "f7ad9293849049855a75ccdf964b615fa87c3125"
+    },
+    {
+      "path": "src/trakt.c",
+      "sha256": "f4597460bfa4d365c494b313c750287d77322ed5f49391a1baa234abdea74023",
+      "blob": "1cab5116baa7e871b9b72f9f40a49bca3dae27b3"
+    },
+    {
+      "path": "src/trakt.h",
+      "sha256": "fc7e901ca92ef41a0bc75a0c3dce11a0304572bd4a7cac67488c433aa9fad071",
+      "blob": "9d98121de95e7122bd5eba466da8e03fd2702d73"
+    },
+    {
+      "path": "src/traktscrobble.c",
+      "sha256": "c7ea6af1d6f45555875b461553165140c93027842ea98b6829e2acb22e55dea3",
+      "blob": "dcbed871ed5ecae35e0444174b5f793e87e9a9dc"
+    },
+    {
+      "path": "src/traktscrobble.h",
+      "sha256": "fa69ca9921fc4e86577d38e19b951a35f2b46dfebbd44ff2e43500a1ab96074f",
+      "blob": "8d50cd3fa06365dba3d843060f34da4a81bbc65f"
+    },
+    {
+      "path": "src/traktult.h",
+      "sha256": "7e0702b5c7c985820baf15d0887c4b572a568cf73d25932615ad8cc01635cb58",
+      "blob": "685cd980829d9132d88261fdc21942af99df1f64"
+    },
+    {
+      "path": "src/trocaarte.c",
+      "sha256": "0d4e272c220375e362ed5f665de4f80d836bc1f41d44104cfbcc341d9fd45349",
+      "blob": "ab571496d518627d3586265dc70f61647688d66f"
+    },
+    {
+      "path": "src/vertudo.c",
+      "sha256": "678b8dc317b3c6f6de7d9d1e6198a3312e7e68382d1af3ec89a8bd90ef1a9cb6",
+      "blob": "bb6fda4cb5f5203b6fc751d2bb2146c54f8c29fa"
+    },
+    {
+      "path": "src/vertudo.h",
+      "sha256": "514b003a01f5228e1fae108b9aa9dbf40d64ed4328090d6e7aa9ca9f4f522da6",
+      "blob": "5278a86f151673611a2c8aa7f045b754b393a06d"
+    },
+    {
+      "path": "src/visto.c",
+      "sha256": "03b1a258e720a623d0d698a4068126a394d2f6fcd4a96eab7ff48e91c53fe199",
+      "blob": "06b699946c4d679b670dc0f585f905d83a17d7b0"
+    },
+    {
+      "path": "src/visto.h",
+      "sha256": "eab66bc14614a4b1076eae2bcb87ada88a08cfd4a8d67431df311189651fff33",
+      "blob": "25b6548c1f82db3463c02a234918ae30382b6296"
+    },
+    {
+      "path": "tests/addons_manifest_notifications_stub.inc",
+      "sha256": "cad35b8406444f38446e2591c00b9649876d3a31eb49247ed28237d157eb3dd9",
+      "blob": "e4973dd28088cd1c53e2cbe1336ae001df5674b7"
+    },
+    {
+      "path": "tests/ajustes_ux_toque_modo.c",
+      "sha256": "0c581f131d0e7d55812bcf8cb313bc28285d541fedf5044769c56705c24dfcc7",
+      "blob": "bca30b68db388c3899fda048b05c842b48795c51"
+    },
+    {
+      "path": "tests/ajustes_ux_toque_modo.sh",
+      "sha256": "deba65a6ed20ba781a04dbdf92e0e16be2d0be3e853cb3e4efeb4dd02257c21b",
+      "blob": "ef76235c31a58b13006b9836469fd7c9a6958c92"
+    },
+    {
+      "path": "tests/android_interface_mode.py",
+      "sha256": "cc2a96aa45c2aabb2aab2a2ceca8eec5c43dbf91fee10f927e9847cd9ec55afa",
+      "blob": "26dfe813c4c4f92b4d68fa31966c85bcc598e68e"
+    },
+    {
+      "path": "tests/android_manifest_queries.py",
+      "sha256": "dda15bf8df68de9dfac39baa28ce428bd37e99a16d137523e2ce156b106ea1ce",
+      "blob": "c01f3b34bf5f190bef6b6359a5050ac3c43d5821"
+    },
+    {
+      "path": "tests/android_manifest_queries.sh",
+      "sha256": "dc6bfc54e5a521b0de4e4c351d4f917c2159d8bad40a4270c57705e1f3b9ec63",
+      "blob": "4f40b85532b3872449f8ff35085220e22542710b"
+    },
+    {
+      "path": "tests/arte_recomendacao.c",
+      "sha256": "01a26d13eed2e13fb54c6c0e15fd7117d79c7c43864adf34e0e0fbb075f87ce9",
+      "blob": "bb85b05a20993b1f0404158781e674965fa86633"
+    },
+    {
+      "path": "tests/arte_recomendacao.sh",
+      "sha256": "c29992eb1b5990623e18255a2d4bb4dc9ff6aa86f99d49c30a55ea91c893d752",
+      "blob": "72429662f10af10eca70025319b7a04a3b87a9cc"
+    },
+    {
+      "path": "tests/artehero.c",
+      "sha256": "434e82c218da51ccf50a0a4226ee3cd2f1462d7ab683f335f1ed2d2c4d548f8b",
+      "blob": "35f9447b37a14d4e7352e5a04e299dfb1aa9bcd4"
+    },
+    {
+      "path": "tests/artehero.sh",
+      "sha256": "d70b1c4d25b8b53acb5cfc255a1167c18b74ec993cc05ad90714c716d9bcb6e7",
+      "blob": "ebb41298fcc4cdd7f202273dd48adab03e73835d"
+    },
+    {
+      "path": "tests/ass_fonte_local.c",
+      "sha256": "9de2a8519ebae04cef8add86977b6c4f9a16502698efbaa838f47c9abbb7ba8b",
+      "blob": "23cb17ee07ef6dbea7a0746b2a67ee74e427bba6"
+    },
+    {
+      "path": "tests/ass_fonte_local.sh",
+      "sha256": "079cbf8721c9584e441214c6448aa1b7aacf7348ca1277361b5e7621cc45da07",
+      "blob": "9dba270faa20f3d60de12b0f6b2382ee20c6b3e7"
+    },
+    {
+      "path": "tests/ass_fontes.c",
+      "sha256": "9854bac9cc7206a36fa65d102de1bfe2806bdcce1ba7c21cc4b2c4c10fe5cac1",
+      "blob": "ca99a4b3a3c9a8a72b13c27d1efedf2e5d282289"
+    },
+    {
+      "path": "tests/ass_fontes.sh",
+      "sha256": "786d3f7a3ecdd6de88602bcfe02c1ab864b9cb1eb7023f31ba80ffac77d74d0a",
+      "blob": "e2e6129d975a53d55b8fce223c3f41cf964a3821"
+    },
+    {
+      "path": "tests/catalog_episode_identity512.c",
+      "sha256": "000926a1bf6f42d57b03f418ee80ac6ffed8a5603502f9f72d7d2853c0aa97b7",
+      "blob": "d6de976f53df83d7c19a732b7032281c11684184"
+    },
+    {
+      "path": "tests/catalog_episode_identity512.sh",
+      "sha256": "2926da5fd54431a1d9de1273b3aa3250f53dab70f1e42e90861f40722b086921",
+      "blob": "6748dc0288b74062552316d2150a3de17fe17dd0"
+    },
+    {
+      "path": "tests/catcache.c",
+      "sha256": "4a111b5fdaf65bdce6cdef90c3d1476ac06c35190d12502837ce0ecf5c001b6e",
+      "blob": "9df168f371ba5599e1b65f594f70cc86780a2802"
+    },
+    {
+      "path": "tests/cateps.c",
+      "sha256": "130d2cd88635b98ce645fa48512f79e1561862415bae18c721b0c8ca281fad97",
+      "blob": "7a2f276a47389d63f51d6cc2500f6a230f121651"
+    },
+    {
+      "path": "tests/colfileiras.c",
+      "sha256": "30b94787ab289d26d414dd6b6475ca04a45fdfd09abbe693893c9992c7ef43c9",
+      "blob": "a7e50f985440bda3fbfc6ed701e74605332a4f62"
+    },
+    {
+      "path": "tests/cw_prioridade.c",
+      "sha256": "eac5aa595b7cbbe0b78f35d48df8f352bda9ac099520fcc28906fa307055374b",
+      "blob": "d2bb6cab8a1d948351c05f8667ccb0b91c31e885"
+    },
+    {
+      "path": "tests/cw_prioridade.sh",
+      "sha256": "6355840fd9155f4f5c0f6b0fc5c6b1e07969a47e599d3040299fd825476d5fee",
+      "blob": "af5b14b9fbcd3ed51b1db6bcf939165c8d5aef4d"
+    },
+    {
+      "path": "tests/detalheanime.c",
+      "sha256": "d13890f6ee6aaedb4e986f48970db54b0d4a2a4da4a41af7b0c422228207eae9",
+      "blob": "8febb5c8beb17a163e1d98224b116b0391bbed2b"
+    },
+    {
+      "path": "tests/episodio_escolha512.c",
+      "sha256": "85d0cce0b05078da0980d5610cc98cbeff53e9b99cd6cd4d4250babcbb409c0d",
+      "blob": "440e7cf69f61146c837a81a7672b057f8f46516b"
+    },
+    {
+      "path": "tests/episodio_escolha512.sh",
+      "sha256": "04354f292fdca542f7fc9f0a5c8c38251bc60377078cd5c2337012af6df5cd83",
+      "blob": "65586c4659b80c81fbd3a0210b989dbf86b331f9"
+    },
+    {
+      "path": "tests/episodioid512.c",
+      "sha256": "3df81c51b186306d30f9be2b4911924ff2f4bd9d990c42aa2aaf5835a9d10bb1",
+      "blob": "da2ea11656b10a0e6f7825fa9694ceca7a87d10e"
+    },
+    {
+      "path": "tests/episodioid512.sh",
+      "sha256": "155a5027b00fa49605f4c89faeeb8d1cfd26886c2f02f291807a6952035aca6d",
+      "blob": "04ace770849245daaa6b3186c7c3954e22848c25"
+    },
+    {
+      "path": "tests/episodiosdup.c",
+      "sha256": "ed7f0622c759d4fffe8011c638e8e4dac00fa5e8fcdb03efcf91a5df5e4ac446",
+      "blob": "4f1c41dffa53d4da6682f56b28f96ba82688698f"
+    },
+    {
+      "path": "tests/extras_episode_identity_512.c",
+      "sha256": "d6c51c087f07b0d4e49363918cb90870f01eae9d4e26352c0d50a07a9f1f7be7",
+      "blob": "d64321c4f932d804bf8dac9426e748763a45ff56"
+    },
+    {
+      "path": "tests/extras_episode_identity_512.sh",
+      "sha256": "f1e0232e76cfdbbb42dd16e67832eb121b0c675466da70955d30506acdfb5191",
+      "blob": "32e1910636b9de0b54f0f6b5329f142af0b8abb1"
+    },
+    {
+      "path": "tests/fileiras.c",
+      "sha256": "1db502f6e02b2598670147add5675003ee945a2025f35771c8b1f1a069a1769c",
+      "blob": "9ca19d0ecd45073df261de604a9c664eac619c58"
+    },
+    {
+      "path": "tests/fileiras_removidas.c",
+      "sha256": "e861e4486ce44f4ea8c1590353e5f130f4149f247ec38e4d63b11ed55af48cff",
+      "blob": "96d7d305b698a6f5afe0f0e4a538a9b092e50bdc"
+    },
+    {
+      "path": "tests/fileiras_removidas.sh",
+      "sha256": "d7f5a186079f328276911c3d5b91ad3f35f0c7d206450e3048e428d2dc7fad2b",
+      "blob": "5d15ba9c5900df478dd16efe24531f01b0b1123f"
+    },
+    {
+      "path": "tests/fixtures/episode_identity_512/README.md",
+      "sha256": "e3485c173e60da61d2d91dc56ce1b7621e6023f2dd140af0bd5871d377129a34",
+      "blob": "67e4bcaa9968ea41af5ebcc2f39e932b6908ca29"
+    },
+    {
+      "path": "tests/fixtures/episode_identity_512/catalog_duplicate_episode_id.json",
+      "sha256": "8c77e5c4cd0ba16429e7aeee27f2b34115a9cac7f465dfc897abe91e4fcb9fd0",
+      "blob": "1be1a5270375b1e05334231d415c4ebf63624364"
+    },
+    {
+      "path": "tests/fixtures/episode_identity_512/cinemeta_kaiju_reduced.json",
+      "sha256": "f46ca51d68dece91bfbccfa619bacf5b6a24fcbb5ddeea0fded5b589658b50fc",
+      "blob": "b78e19fa1702b800eca4fb0f9b112f17693453ce"
+    },
+    {
+      "path": "tests/fixtures/episode_identity_512/provenance.json",
+      "sha256": "06f3e351624eeb81f266a243a056c7929df4ca129c6a02e4f3d977479ae679a4",
+      "blob": "bccbc95f5fbc18a21b0949b7662da392bbe10ef7"
+    },
+    {
+      "path": "tests/font_fixture.py",
+      "sha256": "d8e3c2593c0c84a3f26efe5b5ec65dbf54962ffa9e794b5fc6e6c6d5d99787c8",
+      "blob": "c82fb2fb95959ecd20119d12e32e67542e585910"
+    },
+    {
+      "path": "tests/fontefalha_playback.c",
+      "sha256": "6d407d9967df5fefcac4d5512f873b7bd701a1f412c637e5a171dce6ebf1e20f",
+      "blob": "0ee1dd0b22afe6d7c1740cd3a2e2dfe780fe1522"
+    },
+    {
+      "path": "tests/fontefalha_playback.sh",
+      "sha256": "33afeca7f3032f7f13a859f6bff1ec9f98832b0f83eacac4102a8481c21d8ff5",
+      "blob": "3cac1e2aa814bf2989785740e5e33e1476020177"
+    },
+    {
+      "path": "tests/fontefalha_prebusca.c",
+      "sha256": "4c89f6758059704618b0fa601e69427f7575f4e4412a97cde83212127149dc87",
+      "blob": "4edcfd6bde4b74e79c749e51419e2f74cb7aef48"
+    },
+    {
+      "path": "tests/fontefalha_prebusca.py",
+      "sha256": "1b95cdf4b6433edf41e4950b2d97458b35dcc7a1a8365619aba1231db4e894bf",
+      "blob": "34625af087caf1401a3b3c5eedca1e54383da630"
+    },
+    {
+      "path": "tests/fontefalha_prebusca.sh",
+      "sha256": "e121ae5923ba3ab1eb6336b7f1ebe00e31037093cca9215da1277e86900d56fa",
+      "blob": "f7f872810692aba7fbee4251e2fa7006b5025605"
+    },
+    {
+      "path": "tests/fontesmortas.sh",
+      "sha256": "12740432b56bc905fbbf13511ddc3c5b19e948e7031d869be28c88e9b0269b0f",
+      "blob": "cb288f2cd5fa8aa8210b647b06c1fc7a6d5a51a1"
+    },
+    {
+      "path": "tests/fontesmortas_torrent.c",
+      "sha256": "e13f8bfaf2a309fc084c0cc5fdf7360d81eb82bc691b6ef0849cfa22b60c0233",
+      "blob": "727aafed85436643b975b0c6557ecddd70d4ab04"
+    },
+    {
+      "path": "tests/home_relogio.c",
+      "sha256": "73a788fe7dc4a971d1861f048a012be8f55ef78393625f70ae77376c642062c5",
+      "blob": "18bd0b217846e9f2bfc63db9edbf948291fe06e5"
+    },
+    {
+      "path": "tests/home_relogio.sh",
+      "sha256": "50ee41e9afdbbbb875b8e00f613c534089d76645111ce23c8e9ced450a44461f",
+      "blob": "dc918a8847078a8c75dc219aceb994a92b8bb8a5"
+    },
+    {
+      "path": "tests/homejanelas.c",
+      "sha256": "41f94bba1ccca958c4d870fe8abd9b6d5ca6a41faa43d8c893063f80c748623f",
+      "blob": "75415d729d8b9d36776f57d32c5b1ee1d81da235"
+    },
+    {
+      "path": "tests/interface_modo.c",
+      "sha256": "ff9578f04d12bdd3c2db0262776ef78b2a5547c7d180d30caf4bd5e520372338",
+      "blob": "f02473d3225d0ca8890114712cc1588a5b021b35"
+    },
+    {
+      "path": "tests/interface_modo.sh",
+      "sha256": "88e350c35dfa1a869e236691c1a3af24edc3729b8f60e6ed548fca5b35bc3d12",
+      "blob": "254065f28bd163d228e6d5094533674367b70f96"
+    },
+    {
+      "path": "tests/legfontes.c",
+      "sha256": "a97d1d901ddc18df8959136480260ff10dbba1372ae279504cf7f8f0cc429c8e",
+      "blob": "0d50e74f3ab72fdae3265938764b839434879fe5"
+    },
+    {
+      "path": "tests/legfontes.sh",
+      "sha256": "c65e4c1cdb6d7a387050e43ea0eed3cacc95563f275574ca32b6363fd4ce8dc5",
+      "blob": "76a732f95ae0081acea858d6b33ce25518d2566e"
+    },
+    {
+      "path": "tests/montagem_cedo.c",
+      "sha256": "8a86b3c7f48d13d51c3748b9da859eb86b6eaa7844c0615f2f67925cf170a8cd",
+      "blob": "efe5bda780c1d0fa1ad234a9ea7bb0d77a7f8c49"
+    },
+    {
+      "path": "tests/player_identity524.c",
+      "sha256": "56d612a35409e5c565368ac8ca3e4719d7d6436631f8b6be4d498b47e59d8a27",
+      "blob": "e90c443e09f55216f30f30980bbea8b70471c385"
+    },
+    {
+      "path": "tests/player_identity524.sh",
+      "sha256": "80bf3a6bf8788269b45e20cb68ed47afe6e0ca7f38f9d0fd4ff3e49a39af66d0",
+      "blob": "bf0cc5db6b009c95383dd18ebf5e5052652c01ef"
+    },
+    {
+      "path": "tests/player_identity524_guards.c",
+      "sha256": "1a24c66c488c75ff6973df1a1f4bf7c88d2ad97304b260be285c4635c47f4bfc",
+      "blob": "5ee8e5ceebe3ace1a48a415792e2dce7463478ca"
+    },
+    {
+      "path": "tests/player_identity524_guards.sh",
+      "sha256": "a08152292adaf42593f5efc237986bdc1eb7e138b6d39c3c3fa334c52680e976",
+      "blob": "12fd3b93706fd9c671c3cc7a16b9625da40d2006"
+    },
+    {
+      "path": "tests/player_loading_artwork.c",
+      "sha256": "7b76120ef98e2b9f36e65e9bc007a88f7f578797f83be98d879869029b3b6331",
+      "blob": "5ea70c49d76ff63c8cfd9e066d45cc968e8b05c6"
+    },
+    {
+      "path": "tests/player_loading_artwork.sh",
+      "sha256": "2bfdf404525dba75f64789986bbc5f02fd5ef53cf2a4f8ae1b0715c0168398a8",
+      "blob": "f741b8f86ff2f504a9c8296d05fcb291cfb617dc"
+    },
+    {
+      "path": "tests/player_loading_detail.c",
+      "sha256": "fa62b0ee77762b0f62b7e03b2fc4d7c8bb3543a898162db05166ce6194771fbe",
+      "blob": "e0d725b1491c5c87bcce0b68d4937bab19ae302a"
+    },
+    {
+      "path": "tests/player_prebusca_prazo.c",
+      "sha256": "a1db8f5f16e57a7e54a1c8b7b8e6a621dc47128fbcacb2e44c9ebd04fdbbdc07",
+      "blob": "bcb39f54e2e8b6d0011d26f0f9b1be74510a61c1"
+    },
+    {
+      "path": "tests/player_prebusca_prazo.sh",
+      "sha256": "8dbdaf6aee809be421dc08392e1f17f8fdcf274d22205fe754b8e9b31d318cff",
+      "blob": "1369c5d4fe4db02d98ef5f0495d98485c9e88ee8"
+    },
+    {
+      "path": "tests/player_visto_trailer.c",
+      "sha256": "c98062fef80e525f5a6f4e5a7f230ce9d8cbacf659d0a525a33e191a90e63da8",
+      "blob": "446a58eada1f56ad86c4205c388b1b43651e83d9"
+    },
+    {
+      "path": "tests/player_visto_trailer.sh",
+      "sha256": "90ec77e29f271a55fdcb9c9b5979cba847338d2490077516f66181b239c2e9e2",
+      "blob": "95230f78e0bedb8137c8d4ed6e9eb3a063322ac5"
+    },
+    {
+      "path": "tests/playerexterno.c",
+      "sha256": "3ad1b071306ec9bcb779a6ab488eb2728412a1f2253afce093e76f638eb3610a",
+      "blob": "3b1588ede44953d6ba2c11d13e72aa3e55385a5a"
+    },
+    {
+      "path": "tests/playerexterno.sh",
+      "sha256": "ef42816a5db75a5c34cb29119468c6f13bb94ef4ead4c35510aee8f034bc7acb",
+      "blob": "e6c12c6943925dcf26653cd7c6845ebd69e71ac1"
+    },
+    {
+      "path": "tests/playerexterno_integracao.c",
+      "sha256": "25b3d34496963ffdccb2ef8f308ec3f84684d52e248a6d08f646edbcb6f8d237",
+      "blob": "5f3b6f73a583862cdb6389676280d98aaee8d147"
+    },
+    {
+      "path": "tests/playerexterno_integracao.sh",
+      "sha256": "ebcc032e62a4f89b90bc135405eadd9989e00ea02fd4bdfeeb88ed7e85058b53",
+      "blob": "f23bae3f8e40f90987b0d3ef2629e4488d925c85"
+    },
+    {
+      "path": "tests/relogio_foco.c",
+      "sha256": "b6d44c3ae8a726f8bd56c55470a7eb18ed0c3457df9f5ec17f2f3c333790ae60",
+      "blob": "939a699c062dafe01f0d9479a1fda0a83b290724"
+    },
+    {
+      "path": "tests/relogio_foco.sh",
+      "sha256": "522d666f00cab5d22c53eb71b3a04ee5a9e037288af9469d9dacffe519833e57",
+      "blob": "d25ddc1d5120ac1b5cca08042f72163b57355247"
+    },
+    {
+      "path": "tests/stalker_scheduler.c",
+      "sha256": "f8b871b7c4c1ac5beed82cc98b570088576227b0f422f3b0d10daacf5ceacacc",
+      "blob": "fc30d7a21b345189115de0d874aa431427838866"
+    },
+    {
+      "path": "tests/sync_prioridade.c",
+      "sha256": "7c60cab2dcee5d68d753a3028df91b77c7cae8135b77776faca9cb2c8fd42aa5",
+      "blob": "3ac7f5953b9c20b8028f4bdb560f913cfe0d040d"
+    },
+    {
+      "path": "tests/sync_prioridade.sh",
+      "sha256": "e9a84dfee5b441c35056e774c0d37915cb1cb352ba800f3993062e1f5fe1343b",
+      "blob": "70f16f41b89e669735908625ae2f617389c2a79a"
+    },
+    {
+      "path": "tests/sync_prioridade_inject.h",
+      "sha256": "11948649d83a706b7d7fc87c725683502b6eaa2e1173e30f625c669c52fabdd6",
+      "blob": "ce6ee609057739d88f59285a08f5cb4725ef3ac9"
+    },
+    {
+      "path": "tests/text_largura.c",
+      "sha256": "70fd304ff634828e1553f8d09a757b128f7b89731b8ad2230fdd8bb439739761",
+      "blob": "f8c62a1fadf5bddb6cb3542e9d064e6f4f26a65d"
+    },
+    {
+      "path": "tests/text_largura.sh",
+      "sha256": "c9888bc3a1a9ee973b9f8e79e949192d175cb7b11a9f86736473cf117d9f0c52",
+      "blob": "5a1fa76cb876c8145d735a2777765f68b062b42a"
+    },
+    {
+      "path": "tests/title_identity524.c",
+      "sha256": "27a836903560d330f9a9a29b6b6f35dd44c8a4f4cb46070c9a96471e3e2404df",
+      "blob": "9285d3e2aa6d84e2cdca76d8bf08c57e8102a0bd"
+    },
+    {
+      "path": "tests/title_identity524.sh",
+      "sha256": "923f5adef3cb26e499f139061c4b5c4607df90753ee22a4d0742732138232171",
+      "blob": "fc3cde9d141bedca07f52d549393d39540174170"
+    },
+    {
+      "path": "tests/trakt_alvos512.c",
+      "sha256": "1d6d226d58607d2e29c5fd54206c4213250663c5cd5af5803c13fa933ede8cc9",
+      "blob": "4e72765c1f2926d09c0f05f20615c28499b0aa75"
+    },
+    {
+      "path": "tests/trakt_alvos512.sh",
+      "sha256": "f96dd0a7fe90909a13968dc82505dd4ecbb9e84d5275ae9d54aba286a4b5189c",
+      "blob": "185178414692f3d86cd3c7d9db6bbc76bc1436e8"
+    },
+    {
+      "path": "tests/trakt_episode_identity_512.c",
+      "sha256": "a4e0b1cd6c6c940b9b366414a8dbfef6bd1c580e3a9ec49d62e369c80b68269c",
+      "blob": "d8f23d3e2447e98cda8cc804ae44c6fdf8ceef22"
+    },
+    {
+      "path": "tests/trakt_episode_identity_512.sh",
+      "sha256": "8c53dc38426b0a45f982c1a07672a6766a0961ae528e3daef73660febf2dd9f0",
+      "blob": "7e1285a7e20591854a2f8530cfd6e47b44829a6f"
+    },
+    {
+      "path": "tests/trakt_historico_lease512.c",
+      "sha256": "acb4f6637d76b68e018be15c4c4cdae4af24f7a79af6d5d6af7831c48907893e",
+      "blob": "0d5e5a3d1179d13b3af5bcbf501868eec8762af6"
+    },
+    {
+      "path": "tests/trakt_historico_lease512.sh",
+      "sha256": "6cc1051e9bbe5a403c08d7044670c93c9ff96b68e810ce54d440629331437d30",
+      "blob": "6f08d043c6b4c9d64be2a856aa5c6c00a0d51404"
+    },
+    {
+      "path": "tests/visto_identidade512.c",
+      "sha256": "cbff38cd60df4e7af067ba1fe37f931e8c6eb6de083feae4807c5bc4f4e66e79",
+      "blob": "9d2d006044ae854474d1e9de1db41d38fa73d854"
+    },
+    {
+      "path": "tests/visto_identidade512.sh",
+      "sha256": "05669a85c7a47163a83cc4a16a28d2e1a174c8b3b29024b8abf4f4560c002acf",
+      "blob": "1deae41ad0052214237771806f3be844e780510f"
+    },
+    {
+      "path": "tests/vistoep.c",
+      "sha256": "0f36169bcc110db6b9456c9dce42249043f2c0b31f12d3de650a911d85fb6162",
+      "blob": "ff67a118fc390a31f4269e47adf8a326a4073888"
+    },
+    {
+      "path": "tests/vistoep_corrida.c",
+      "sha256": "cd70d8f0f51870d492d0537204483c37d07414d5fcfc5d9be8c09c2bf6b7a3d3",
+      "blob": "28e6be956b4e7fdec32f58bda8e4ade277d537ae"
+    },
+    {
+      "path": "tools/android/ffmpeg-android.sh",
+      "sha256": "572d900a9f39e1a84454468132cd335b0a3160535531e1a88df86a8b21fddcfc",
+      "blob": "deff8b391e68d328fd6461930c6ebc779284baef"
+    }
+  ],
+  "existing_test_entries_preserved": false,
+  "existing_test_entries": 1576,
+  "existing_test_listing_sha256": "d4d38c87cf47d995600b5adf65973e647ea72b9dc7fbedf6a741547d185b6e6b",
+  "reviewed_test_changes": {
+    "parent": "06ba8068be86299592cb94e77355266ebb57c09f",
+    "product_commit": "5675d46fc39b32d4b112ad2174cc3e920e73f185",
+    "product_local_commit": "6a2e8c3e1704b2484a009bd9446ce8eb0aa90214",
+    "changed_paths": [
+      "android/app/src/test/java/space/nuvio/nativelegacy/FontImportTest.kt",
+      "tests/ass_fonte_local.c",
+      "tests/ass_fonte_local.sh",
+      "tests/ass_fontes.c",
+      "tests/ass_fontes.sh",
+      "tests/font_fixture.py",
+      "tests/legfontes.c",
+      "tests/legfontes.sh",
+      "tests/text_largura.c",
+      "tests/text_largura.sh"
+    ],
+    "new_test_files": [
+      "tests/ass_fonte_local.c",
+      "tests/ass_fonte_local.sh",
+      "tests/font_fixture.py",
+      "tests/legfontes.c",
+      "tests/legfontes.sh"
+    ],
+    "modified_existing_test_files": [
+      {
+        "path": "tests/ass_fontes.c",
+        "before_listing": "100644 blob 84da2c08124544ecde4e7bdacff8790f7a25d91c\ttests/ass_fontes.c",
+        "after_listing": "100644 blob ca99a4b3a3c9a8a72b13c27d1efedf2e5d282289\ttests/ass_fontes.c",
+        "before_sha256": "67e71efdf021ccc7409e683bfb0a17b89fe61d5dd3ac05ab8aa09e524a819034",
+        "after_sha256": "9854bac9cc7206a36fa65d102de1bfe2806bdcce1ba7c21cc4b2c4c10fe5cac1",
+        "old_c_lines_preserved_in_order": true
+      },
+      {
+        "path": "tests/ass_fontes.sh",
+        "before_listing": "100644 blob 12b4bac89e74321c33c0654337e25b6a65b4dd00\ttests/ass_fontes.sh",
+        "after_listing": "100644 blob e2e6129d975a53d55b8fce223c3f41cf964a3821\ttests/ass_fontes.sh",
+        "before_sha256": "0862a73be6dd4cb6bbf73d7f33660d57197d084c9877a1bd49303f17c107e7c5",
+        "after_sha256": "786d3f7a3ecdd6de88602bcfe02c1ab864b9cb1eb7023f31ba80ffac77d74d0a",
+        "old_c_lines_preserved_in_order": false
+      },
+      {
+        "path": "tests/text_largura.c",
+        "before_listing": "100644 blob 083c824fdc3f3e9e0f4339c7f526a5091794ba8b\ttests/text_largura.c",
+        "after_listing": "100644 blob f8c62a1fadf5bddb6cb3542e9d064e6f4f26a65d\ttests/text_largura.c",
+        "before_sha256": "7b65e6517452bf461945c422a2ec96e7c0e84891896adeece60f15ad2c178943",
+        "after_sha256": "70fd304ff634828e1553f8d09a757b128f7b89731b8ad2230fdd8bb439739761",
+        "old_c_lines_preserved_in_order": true
+      },
+      {
+        "path": "tests/text_largura.sh",
+        "before_listing": "100644 blob d77542e5ed67c92d645d5abc2f744e8cb25ebcde\ttests/text_largura.sh",
+        "after_listing": "100644 blob 5a1fa76cb876c8145d735a2777765f68b062b42a\ttests/text_largura.sh",
+        "before_sha256": "8db3a7e5706bf1c44f43f0ec43359410375a0ec0bd321230513fcfa8df7f9bda",
+        "after_sha256": "c9888bc3a1a9ee973b9f8e79e949192d175cb7b11a9f86736473cf117d9f0c52",
+        "old_c_lines_preserved_in_order": false
+      }
+    ],
+    "old_c_assertions_preserved": true,
+    "source_integration_sha256": "a99f16d2c35f84f768f457cf6a1ee2b934b396ed96871bafd607eb7b2f181602"
+  },
+  "existing_test_paths_retained": true,
+  "unchanged_existing_test_entries": 1572,
+  "existing_test_paths_preserved": true
+}
