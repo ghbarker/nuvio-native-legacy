@@ -1,10 +1,10 @@
-name: Logs44 multiple Live TV accounts APK and Linux validation
+name: Logs45 multiple Live TV accounts APK and Linux validation
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: logs44-apk-${{ github.ref }}
+  group: logs45-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,13 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ca2a79e14ac923f7dc56947b960fdbcc56c6f176
+          ref: 37e910be6287491dabeaf0bd868f783da5f8962c
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Native account and guide regressions
         run: |
           set -euo pipefail
-          for suite in iptv_accounts epg_accounts epg_streaming m3u xtream stalker_portal guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte livetv_regras xtepg xtepg_bounded; do bash "tests/$suite.sh"; done
+          for suite in intro negcache creditos_limitados creditosauto iptv_accounts epg_accounts epg_streaming m3u xtream stalker_portal guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte livetv_regras xtepg xtepg_bounded; do bash "tests/$suite.sh"; done
           bash tests/ajustes_secoes.sh
           bash tests/ajustes_iptv.sh
       - name: Native account and guide ASan and UBSan regressions
@@ -33,7 +33,7 @@ jobs:
           SANITIZE: '1'
         run: |
           set -euo pipefail
-          for suite in iptv_accounts epg_accounts epg_streaming m3u guia_loading guia_epg_estado guiaepg xtepg_bounded; do bash "tests/$suite.sh"; done
+          for suite in intro negcache creditos_limitados creditosauto iptv_accounts epg_accounts epg_streaming m3u guia_loading guia_epg_estado guiaepg xtepg_bounded; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
 
   apk-build:
@@ -49,12 +49,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: ca2a79e14ac923f7dc56947b960fdbcc56c6f176
+          ref: 37e910be6287491dabeaf0bd868f783da5f8962c
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = ca2a79e14ac923f7dc56947b960fdbcc56c6f176
-          test "$(git rev-parse HEAD^{tree})" = f6385c08b4b4264aa721d5b2b5f30e762cba0b80
+          test "$(git rev-parse HEAD)" = 37e910be6287491dabeaf0bd868f783da5f8962c
+          test "$(git rev-parse HEAD^{tree})" = a44c31e2bc7a57cb58660b9bbb0510d97d5a95a8
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -75,7 +75,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs44'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs45'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
@@ -116,7 +116,7 @@ jobs:
           find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs44 APK
+      - name: Build update-compatible Logs45 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -143,18 +143,18 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20054' versionName='2.0.54-test-logs44'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20055' versionName='2.0.55-test-logs45'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs44.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs45.apk
           python3 - <<'PY'
           import hashlib,json,pathlib
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs44.apk')
-          out={'all_passed':False,'source_commit':'ca2a79e14ac923f7dc56947b960fdbcc56c6f176','source_tree':'f6385c08b4b4264aa721d5b2b5f30e762cba0b80','package':'space.nuvio.nativelegacy.touch','version_code':20054,'version_name':'2.0.54-test-logs44','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
-          pathlib.Path('Logs44-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs45.apk')
+          out={'all_passed':False,'source_commit':'37e910be6287491dabeaf0bd868f783da5f8962c','source_tree':'a44c31e2bc7a57cb58660b9bbb0510d97d5a95a8','package':'space.nuvio.nativelegacy.touch','version_code':20055,'version_name':'2.0.55-test-logs45','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          pathlib.Path('Logs45-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -170,13 +170,13 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs44-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs45-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs44.apk
-            Logs44-validation.json
+            Nuvio-TV-Mobile-Test-Logs45.apk
+            Logs45-validation.json
           if-no-files-found: error
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs44"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs45"
 
