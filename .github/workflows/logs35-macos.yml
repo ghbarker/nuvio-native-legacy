@@ -1,8 +1,6 @@
 name: Logs36 macOS subtitle font validation
 
 on:
-  push:
-    branches: [review/logs36-font-android-20261017]
   workflow_dispatch:
 
 concurrency:
