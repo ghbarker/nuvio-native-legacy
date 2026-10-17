@@ -11,7 +11,7 @@ name: Build TPK
 
 on:
   push:
-    branches-ignore: [review/logs35-macos-20261017]
+    branches-ignore: ['review/logs**']
   workflow_dispatch:
     inputs:
       pacotes:
