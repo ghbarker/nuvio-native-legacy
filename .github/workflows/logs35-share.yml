@@ -77,7 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" --target 7ee26ad2c46f368399b1f385ea99031cce1a4a38 --title 'Nuvio TV/Mobile Test - Logs42: Multiple Live TV accounts' --notes-file dist/Logs42-testing.txt
+          if ! gh release view tv-mobile-test-logs-v42 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create tv-mobile-test-logs-v42 --repo "$GITHUB_REPOSITORY" --target 7ee26ad2c46f368399b1f385ea99031cce1a4a38 --title 'Nuvio TV/Mobile Test - Logs42: Multiple Live TV accounts' --notes-file dist/Logs42-testing.txt
           fi
-          gh release upload tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs42.apk dist/Logs42-validation.json dist/Logs42-testing.txt
+          gh release upload tv-mobile-test-logs-v42 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs42.apk dist/Logs42-validation.json dist/Logs42-testing.txt
