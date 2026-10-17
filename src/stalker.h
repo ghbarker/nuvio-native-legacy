@@ -98,4 +98,9 @@ int stalker_e_id(const char *id);
 int stalker_resolver(const char *id, char *url, unsigned n);
 int stalker_resolver_sessao(const char *id, char *url, unsigned n, uint64_t sessao);
 
+void stalker_fonte_selecionar(unsigned id);
+int stalker_fonte_configurado(unsigned id);
+int stalker_fonte_canais(unsigned id,StalkerCanal *out,int max,uint64_t sessao);
+void stalker_fonte_esquecer(unsigned id);
+void stalker_fontes_invalidar(void);
 #endif

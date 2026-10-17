@@ -1,4 +1,5 @@
 #include "xtream.h"
+#include "iptvid.h"
 int ajustes_livetv_formato(void);  // ajustes.h puxa SDL; o teste do xtream nao
 #include "rede.h"
 #include "js.h"
@@ -32,19 +33,41 @@ int ajustes_livetv_formato(void);  // ajustes.h puxa SDL; o teste do xtream nao
 // O mesmo desenho de stalker.c: uma trava para o cadastro, lido pelo fio do
 // guia e pelo de desenho (Ajustes mostra o servidor), recarregado quando o
 // perfil ativo muda.
-static char servidor[256];      // com esquema, sem barra no fim
-static char usuario[96];
-static char senha[96];
-static int  perfilLido = -1;
-static int  lido;
-static NvPerfilSessao sessaoLida;
-static XtreamConta conta;
-static int formatoOk = -1;
-static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
+typedef struct FonteContexto {
+  unsigned sid; struct FonteContexto *proximo;
+  char servidor_[256];
+  char usuario_[96];
+  char senha_[96];
+  int perfilLido_;
+  int lido_;
+  NvPerfilSessao sessaoLida_;
+  XtreamConta conta_;
+  int formatoOk_;
+  int ultimaFalha_, ultimoHttp_, ultimoTotal_;
+  int retryAfterUltimo_;
+  pthread_mutex_t trava_;
+} FonteContexto;
+#define IPTV_CTX_INICIALIZAR(c) do { (c)->perfilLido_ = -1; (c)->formatoOk_ = -1; pthread_mutex_init(&(c)->trava_, NULL); } while (0)
+#define IPTV_CTX_EMERGENCIA { .sid = UINT_MAX, .perfilLido_ = -1, .formatoOk_ = -1, .trava_ = PTHREAD_MUTEX_INITIALIZER }
+#include "iptvcontexto.inc"
+#define ultimoHttp (contexto()->ultimoHttp_)
+#define ultimoTotal (contexto()->ultimoTotal_)
+#define ultimaFalha (contexto()->ultimaFalha_)
+#define retryAfterUltimo (contexto()->retryAfterUltimo_)
+#define servidor (contexto()->servidor_ )
+#define usuario (contexto()->usuario_ )
+#define senha (contexto()->senha_ )
+#define perfilLido (contexto()->perfilLido_ )
+#define lido (contexto()->lido_ )
+#define sessaoLida (contexto()->sessaoLida_ )
+#define conta (contexto()->conta_ )
+#define formatoOk (contexto()->formatoOk_ )
+#define trava (contexto()->trava_ )
 
 static const char *arquivo(void) {
-  static char nome[40];
-  snprintf(nome, sizeof nome, XT_ARQ_FMT, perfis_ativo());
+  static _Thread_local char nome[64];
+  if (contexto()->sid) snprintf(nome, sizeof nome, "xtream-p%d-s%u.txt", perfis_ativo(), contexto()->sid);
+  else snprintf(nome, sizeof nome, XT_ARQ_FMT, perfis_ativo());
   return nome;
 }
 
@@ -223,7 +246,7 @@ static void urlenc(const char *s, char *dst, unsigned tam) {
 static pthread_mutex_t travaRede = PTHREAD_MUTEX_INITIALIZER;
 // Retry-After do ultimo pedido ao painel (s; 0 = nao veio). xtepg.c le depois
 // de um 429.
-static int retryAfterUltimo;
+
 static char *chamarSt(const char *acao, int prazo, int *status, NvPerfilSessao sessao) {
   char srv[256], u[300], s[300], url[1100];
   char *r;
@@ -275,7 +298,8 @@ static char *chamarSt(const char *acao, int prazo, int *status, NvPerfilSessao s
   if (status) *status = st;
   return r;
 }
-int xtream_ultimo_retry_after(void) { return retryAfterUltimo; }
+static _Thread_local int retryCanal;
+int xtream_ultimo_retry_after(void) { return retryCanal; }
 
 // O que veio no corpo, para o log e para a tela: JSON (comeca com { ou [),
 // pagina HTML (Cloudflare, painel de erro, portal cativo) ou nada.
@@ -351,7 +375,7 @@ static const char *nomeDaCategoria(const XtCat *cats, int n, const char *id) {
 
 // Escrito so pelo fio do guia (o unico que chama xtream_canais) e lido pelo
 // mesmo fio antes de publicar: nao precisa de trava.
-static int ultimaFalha = XT_OK, ultimoHttp, ultimoTotal;
+
 int xtream_ultimo_total(void) { return ultimoTotal; }
 int xtream_ultima_falha(void) { return ultimaFalha; }
 int xtream_ultimo_http(void) { return ultimoHttp; }
@@ -456,7 +480,7 @@ int xtream_canais(XtreamCanal *saida, int max) {
 
 // --- reproducao ---------------------------------------------------------
 int xtream_e_id(const char *id) {
-  return id && !strncmp(id, "xtream:", 7);
+  return iptvid_ler("xtream:", id, NULL, NULL, 0);
 }
 
 int xtream_url_xmltv(char *url, unsigned n) {
@@ -626,7 +650,7 @@ void xtream_formato_funcionou(const char *url) {
   else if (n > 5 && !strncmp(url + n - 5, ".m3u8", 5)) formatoOk = 0;
 }
 
-int xtream_url_formato(const char *id, const char *ext, char *url, unsigned n) {
+static int urlFormato(const char *id, const char *ext, char *url, unsigned n) {
   char u[300], s[300];
   if (!xtream_e_id(id) || !url || n < 2 || !ext || !ext[0]) return 0;
   pthread_mutex_lock(&trava);
@@ -701,8 +725,8 @@ int xtream_epg_parse(const char *json, XtreamProg *out, int cap) {
   return n;
 }
 
-int xtream_epg_curto(const char *id, XtreamProg *out, int cap, int *status) {
-  char acao[96];
+static int epgCurto(const char *id, XtreamProg *out, int cap, int *status) {
+  char acao[128];
   const char *d;
   char *corpo;
   int st = 0, n;
@@ -724,6 +748,58 @@ int xtream_epg_curto(const char *id, XtreamProg *out, int cap, int *status) {
 int xtream_url(const char *id, char *url, unsigned n) {
   const char *ext[2];
   // O primeiro formato da ordem (ver xtream_formatos). Era sempre .m3u8.
-  int k = xtream_formatos(ext);
+  int k = xtream_formatos_canal(id, ext);
   return xtream_url_formato(id, k > 0 ? ext[0] : "m3u8", url, n);
+}
+
+void xtream_fonte_selecionar(unsigned id) { atomic_store(&contaEditada, id); }
+int xtream_fonte_configurado(unsigned id) {
+  unsigned a = usarFonte(id); int r = xtream_configurado(); usarFonte(a); return r;
+}
+int xtream_fonte_canais(unsigned id, XtreamCanal *out, int max, uint64_t sessao) {
+  unsigned a = usarFonte(id); int n = xtream_canais_sessao(out, max, sessao);
+  for (int i = 0; i < n; i++) { char original[80]; snprintf(original, sizeof original, "%s", out[i].id);
+    if (!iptvid_montar("xtream:", id, original, out[i].id, sizeof out[i].id)) { n = i; break; } }
+  usarFonte(a); return n;
+}
+int xtream_fonte_xmltv(unsigned id, char *out, unsigned n) {
+  unsigned a = usarFonte(id); int r = xtream_url_xmltv(out, n); usarFonte(a); return r;
+}
+int xtream_fonte_total(unsigned id) {
+  unsigned a = usarFonte(id); int r = xtream_ultimo_total(); usarFonte(a); return r;
+}
+int xtream_url_formato(const char *id, const char *ext, char *url, unsigned n) {
+  unsigned f; char original[80]; if (!iptvid_ler("xtream:", id, &f, original, sizeof original)) return 0;
+  unsigned a = usarFonte(f); int r = urlFormato(original, ext, url, n); usarFonte(a); return r;
+}
+int xtream_epg_curto(const char *id, XtreamProg *out, int max, int *status) {
+  unsigned f; char original[80]; if (status) *status = 0;
+  if (!iptvid_ler("xtream:", id, &f, original, sizeof original)) return -1;
+  unsigned a = usarFonte(f); int r = epgCurto(original, out, max, status); retryCanal = retryAfterUltimo; usarFonte(a); return r;
+}
+int xtream_formatos_canal(const char *id, const char *ext[2]) {
+  unsigned f; if (!iptvid_ler("xtream:", id, &f, NULL, 0)) return 0;
+  unsigned a = usarFonte(f); int r = xtream_formatos(ext); usarFonte(a); return r;
+}
+int xtream_conta_canal(const char *id, XtreamConta *out) {
+  unsigned f; if (!iptvid_ler("xtream:", id, &f, NULL, 0)) return 0;
+  unsigned a = usarFonte(f); int r = xtream_conta(out); usarFonte(a); return r;
+}
+void xtream_formato_canal_funcionou(const char *id, const char *url) {
+  unsigned f; if (!iptvid_ler("xtream:", id, &f, NULL, 0)) return;
+  unsigned a = usarFonte(f); xtream_formato_funcionou(url); usarFonte(a);
+}
+void xtream_fonte_esquecer(unsigned id) {
+  unsigned a = usarFonte(id); xtream_esquecer(); usarFonte(a);
+}
+int xtream_fonte_estado(unsigned id, int *http) {
+  unsigned a = usarFonte(id); int r = xtream_ultima_falha(); if (http) *http = xtream_ultimo_http(); usarFonte(a); return r;
+}
+
+void xtream_fontes_invalidar(void) {
+  pthread_mutex_lock(&fontesTrava);
+  for(FonteContexto *c=fontesContextos;c;c=c->proximo){ pthread_mutex_lock(&c->trava_); c->lido_=0;
+    c->servidor_[0]=c->usuario_[0]=c->senha_[0]=0;memset(&c->conta_,0,sizeof c->conta_);c->formatoOk_=-1;
+    pthread_mutex_unlock(&c->trava_); }
+  pthread_mutex_unlock(&fontesTrava);
 }

@@ -100,7 +100,10 @@ static const Item TELA[] = {
       OPC(AJ_PX_ENTRAR), OPC(AJ_PX_SERVIDOR), OPC(AJ_PX_SAIR),
 
   SEC("TV ao vivo", "Provedor e solução de problemas ao assistir canais", "aj_tv-minimal-play"),
-    ROT("Provedor"),
+    ROT("Contas de TV ao vivo"),
+      OPC(AJ_IPTV_CONTA), OPC(AJ_IPTV_NOME), OPC(AJ_IPTV_ATIVA),
+      OPC(AJ_IPTV_ADD_XTREAM), OPC(AJ_IPTV_ADD_M3U), OPC(AJ_IPTV_ADD_STALKER),
+      OPC(AJ_IPTV_REMOVER),
       OPC(AJ_XTREAM_SERVIDOR), OPC(AJ_XTREAM_USUARIO), OPC(AJ_XTREAM_SENHA),
       OPC(AJ_XTREAM_CONTA), OPC(AJ_XTREAM_LIMPAR), OPC(AJ_STALKER_PORTAL),
       OPC(AJ_STALKER_MAC), OPC(AJ_STALKER_LIMPAR),

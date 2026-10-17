@@ -124,4 +124,15 @@ int xtream_epg_parse(const char *json, XtreamProg *out, int cap);
 // 0 sem cadastro, ou na Samsung com painel http (bloqueado, ver xtream.c).
 int xtream_url_xmltv(char *url, unsigned n);
 
+void xtream_fonte_selecionar(unsigned id);
+int xtream_fonte_configurado(unsigned id);
+int xtream_fonte_canais(unsigned id, XtreamCanal *out, int max, uint64_t sessao);
+int xtream_fonte_xmltv(unsigned id, char *out, unsigned n);
+int xtream_fonte_total(unsigned id);
+int xtream_fonte_estado(unsigned id, int *http);
+void xtream_fonte_esquecer(unsigned id);
+int xtream_formatos_canal(const char *id, const char *ext[2]);
+int xtream_conta_canal(const char *id, XtreamConta *out);
+void xtream_formato_canal_funcionou(const char *id, const char *url);
+void xtream_fontes_invalidar(void);
 #endif

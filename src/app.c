@@ -1349,7 +1349,7 @@ static int resolverCanalXtream(void) {
   static Stream s[3 * XT_VARIANTES_MAX];
   GuiaVariante v[XT_VARIANTES_MAX], ord[XT_VARIANTES_MAX];
   const char *ext[2];
-  int k = xtream_formatos(ext), i, j, n = 0, nv, no = 0;
+  int k = xtream_formatos_canal(player_id_canal(), ext), i, j, n = 0, nv, no = 0;
   int alvo = nv_res_opcao_altura(ajustes_livetv_resolucao());
   memset(s, 0, sizeof s);
   nv = guia_variantes(player_id_canal(), v, XT_VARIANTES_MAX);
@@ -1403,12 +1403,12 @@ static int resolverCanalXtream(void) {
 static void motivoCanalXtream(char *t, size_t nt, char *d, size_t nd) {
   XtreamConta c;
   const char *err = video_erro_texto();
-  int aviso = xtream_conta(&c) ? xtream_conta_aviso(&c, (long long)time(NULL)) : XA_NADA;
+  int aviso = xtream_conta_canal(player_id_canal(), &c) ? xtream_conta_aviso(&c, (long long)time(NULL)) : XA_NADA;
   // SO UM FORMATO TENTADO (#158, registro 13776): a conta declara
   // allowed_output_formats=["ts"], a lista do canal tem uma fonte so, e o
   // cartao dizia "nao abriu em HLS nem em TS" sem HLS nenhum ter sido pedido.
   const char *ext[2], *umFormato = NULL;
-  if (xtream_formatos(ext) == 1) umFormato = !strcmp(ext[0], "ts") ? "TS" : "HLS";
+  if (xtream_formatos_canal(player_id_canal(), ext) == 1) umFormato = !strcmp(ext[0], "ts") ? "TS" : "HLS";
   if (aviso == XA_EXPIRADA) {
     snprintf(t, nt, "%s", i18n("A assinatura Xtream venceu."));
     snprintf(d, nd, "%s", i18n("Renove com o seu provedor. Os canais voltam sozinhos depois disso."));
@@ -5505,7 +5505,7 @@ void app_atualizar(float dt, Uint32 agora) {
     { static char tocouUrl[64];
       if (xt && video_pronto() && strncmp(tocouUrl, player_id_canal(), sizeof tocouUrl - 1)) {
         snprintf(tocouUrl, sizeof tocouUrl, "%s", player_id_canal());
-        xtream_formato_funcionou(video_url_atual());
+        xtream_formato_canal_funcionou(player_id_canal(), video_url_atual());
       }
       if (!video_pronto()) tocouUrl[0] = 0; }
     if (morta) {

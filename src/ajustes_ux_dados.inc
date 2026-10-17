@@ -89,6 +89,7 @@ static void uxValorTexto(int op, int v, char *buf, size_t tam) {
   if (!buf || !tam) return;
   buf[0] = 0;
   if (op < 0 || op >= AJ_N) return;
+  if(op==AJ_IPTV_CONTA){snprintf(buf,tam,"%s",ajIptvNome(v));return;}
   o = &OPCOES[op];
   if (ajFonte(op)) texto = ajFonteNome(op, v);
   else if (o->tipo == OP_ACAO) texto = i18n("Abrir");

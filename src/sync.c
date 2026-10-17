@@ -13,6 +13,7 @@ void servidores_esquecer_todos(void);   // servidores.c: wipe every profile's to
 #include "debrid.h"
 #include "stalker.h"
 #include "xtream.h"
+#include "iptvfontes.h"
 #include "m3u.h"
 #include "colecoes.h"
 #include "colfileiras.h"
@@ -2189,9 +2190,9 @@ void sync_esquecer_usuario(void) {
   // O portal IPTV vai junto, e tem de ir: o MAC autentica a assinatura de
   // QUEM SAIU. Deixar o arquivo no aparelho entregaria o acesso pago dessa
   // pessoa para a proxima que logasse nesta TV.
-  stalker_esquecer();
-  m3u_esquecer_todos();
-  xtream_esquecer();   // mesma razao: usuario e senha sao a assinatura de quem saiu
+  iptv_contas_esquecer_todas();
+  stalker_fontes_invalidar(); m3u_fontes_invalidar(); xtream_fontes_invalidar();
+  /* Credentials and caches of every native account/profile were removed. */   // mesma razao: usuario e senha sao a assinatura de quem saiu
   servidores_esquecer_todos();   // personal-server tokens of every profile on this TV
   trakt_esquecer();
   // Os ajustes por perfil guardados nesta TV (e as pendencias deles) sao da

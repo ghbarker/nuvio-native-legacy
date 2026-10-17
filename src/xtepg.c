@@ -29,7 +29,7 @@
 enum { XE_VAZIO, XE_PEDIDO, XE_OK, XE_FALHOU };
 
 typedef struct {
-  char id[24];
+  char id[80];
   XtreamProg p[XE_PROG];
   int n, estado;
   time_t quando;
@@ -43,10 +43,10 @@ static unsigned relogio, proximoPedido;
 // Entre os fios: a fila de pedidos (pilha: o ultimo pedido e o primeiro
 // atendido — quem rola o guia quer os canais que estao na tela AGORA, nao os
 // que passaram por ela) e os resultados prontos.
-typedef struct { char id[24]; XtreamProg p[XE_PROG]; int n, st; unsigned pedido; NvPerfilSessao sessao; } XeResp;
+typedef struct { char id[80]; XtreamProg p[XE_PROG]; int n, st; unsigned pedido; NvPerfilSessao sessao; } XeResp;
 static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  sinal = PTHREAD_COND_INITIALIZER;
-static char   fila[XE_FILA][24];
+static char   fila[XE_FILA][80];
 static unsigned filaPedido[XE_FILA];
 static time_t filaDesde[XE_FILA];
 static unsigned char filaTentativas[XE_FILA];
@@ -79,7 +79,7 @@ static void *fio(void *u) {
   unsigned ultimaGeracao = 0;
   (void)u;
   for (;;) {
-    char id[24];
+    char id[80];
     unsigned g;
     XeResp r;
     pthread_mutex_lock(&trava);

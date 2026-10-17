@@ -22,4 +22,12 @@ int m3u_e_id(const char *id);
 int m3u_resolver_sessao(const char *id,char *url,unsigned n,uint64_t sessao,int renovar);
 int m3u_cabecalhos(const char *id,char *saida,unsigned n);
 void m3u_recarregar(void);
+void m3u_fonte_selecionar(unsigned id);
+int m3u_fonte_configurado(unsigned id);
+int m3u_fonte_canais(unsigned id,M3uCanal *out,int max,uint64_t sessao);
+int m3u_fonte_epg(unsigned id,char *out,unsigned n);
+int m3u_fonte_total(unsigned id);
+void m3u_fonte_recarregar(unsigned id);
+void m3u_fonte_esquecer(unsigned id);
+void m3u_fontes_invalidar(void);
 #endif

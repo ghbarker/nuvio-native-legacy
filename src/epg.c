@@ -1,13 +1,13 @@
 // EPG: grade XMLTV externa para os canais ao vivo. Ver epg.h para o porque.
 //
 // FLUXO:
-//   epg_iniciar()     -> fio baixa BR1+BR2 (.gz) do epgshare01, infla com zlib,
+//   epg_iniciar_local()     -> fio baixa BR1+BR2 (.gz) do epgshare01, infla com zlib,
 //                        grava o XML na pasta de dados e processa.
-//   epg_passo()       -> no fio de desenho: publica a grade pronta e pede
+//   epg_passo_local()       -> no fio de desenho: publica a grade pronta e pede
 //                        re-carga quando o cache passou de 12 h.
 //   epg_match(nome)   -> nome do addon -> indice do canal na grade, ou -1.
-//   epg_agora/proximo -> programa no ar e os seguintes.
-//   epg_janela/faixa  -> quanto a grade cobre e os programas de um intervalo
+//   epg_agora_local/proximo -> programa no ar e os seguintes.
+//   epg_janela_local/faixa  -> quanto a grade cobre e os programas de um intervalo
 //                        (grade de varios dias no guia).
 //
 // QUANTO A FONTE DA (MEDIDO em 2026-09-18 nos cinco XML em ~/.nuvio, baixados
@@ -36,6 +36,7 @@
 // programa — e isso e a verdade, nao um defeito do casamento.
 #include "epg.h"
 #include "perfisessao.h"
+#include "iptvid.h"
 #include <stdatomic.h>
 #include "rede.h"
 #include "dados.h"
@@ -67,9 +68,9 @@
 // com uma linha de log, nunca estouro). Antes eram 90000 evs e 8 MiB de
 // arena alocados FIXOS por grade — 11,3 MB, duas vezes durante a troca W/P,
 // para ~3 MB de dados.
-#define EPG_EVS_INI   32768
+#define EPG_EVS_INI   128
 #define EPG_EVS_MAX   400000
-#define EPG_ARENA_INI (1L << 20)
+#define EPG_ARENA_INI 4096L
 #define EPG_ARENA_MAX (16L << 20)
 
 // AS FONTES DO epgshare01, POR PAIS (#158). Ate a 1.5.3 eram cinco fixas —
@@ -109,7 +110,7 @@ static const char *PADRAO_ARQ[] = { "BR1", "BR2", "PT1", "MX1", "AR1" };
 static char fontesArq[EPG_MAX_FONTES][8];
 static int  nFontesArq = -1;           // -1 = nunca definido: o padrao
 static char paisesAtivos[64];
-static volatile int fontesMudaram;
+
 
 // URL e nomes de cache de um arquivo. Os nomes das cinco antigas sao os
 // mesmos de antes ("epg-br1.xml.gz"): quem atualiza nao baixa tudo de novo.
@@ -152,30 +153,67 @@ typedef struct {
 //   publicados = a grade que epg_match/agora leem. Trocada de uma vez, sob a
 //   trava, quando o fio termina.
 typedef struct {
-  EpgCanal canais[EPG_MAX_CANAL];
-  int      nCanais;
-  long     ordemPorId[EPG_MAX_CANAL];  // indices de canais, ordenados por id
+  EpgCanal *canais;
+  int      nCanais, capCanais;
+  long     *ordemPorId;  // indices de canais, ordenados por id
   EpgEv   *evs;    int nEvs, capEvs;
   char    *arena;  long arenaN, arenaCap;
 } EpgGrade;
 
-static EpgGrade W;                     // construcao (fio / teste)
-static EpgGrade P;                     // publicada (fio de desenho)
+// One context owns one account's configuration, worker and published grade.
+// Thread-local dispatch is captured by the worker; editing Settings cannot
+// change the source of a request already in flight. Empty contexts are small.
+#define EPG_MAX_CONTAS 32
+#define EPG_HANDLE_PASSO 4096
+#define EPG_MAX_FIOS 4
+typedef struct {
+  EpgGrade w_, p_;
+  pthread_mutex_t trava_;
+  int estado_, fioVivo_, pendOk_, perfilGrade_, reiniciarPend_;
+  time_t carregadaEm_;
+  atomic_int pendPronto_;
+  struct {
+    NvPerfilSessao sessao;
+    volatile int cancelada;
+    int perfil, nArq, nFiltro, apenasProvedores;
+    char arq[EPG_MAX_FONTES][8], extra[1100], m3u[1100];
+    char (*filtro)[64];
+  } carga_;
+  char extraUrl_[1100], m3uUrl_[1100];
+  int soProvedores_, extraMudou_, fontesMudaram_;
+  char (*filtroIds_)[64]; int nFiltroIds_;
+  int tipo, ativa, slot;
+  unsigned id;
+} EpgContexto;
+static EpgContexto epgPublico = { .trava_ = PTHREAD_MUTEX_INITIALIZER, .perfilGrade_ = 1 };
+static EpgContexto *epgContas[EPG_MAX_CONTAS];
+static _Thread_local EpgContexto *epgEscopo;
+static atomic_int epgFios;
+static unsigned epgRevisao;
+static EpgContexto *epgContexto(void) { return epgEscopo ? epgEscopo : &epgPublico; }
+#define W (epgContexto()->w_)
+#define P (epgContexto()->p_)
+#define trava (epgContexto()->trava_)
+#define estado (epgContexto()->estado_)
+#define carregadaEm (epgContexto()->carregadaEm_)
+#define fioVivo (epgContexto()->fioVivo_)
+#define pendPronto (epgContexto()->pendPronto_)
+#define pendOk (epgContexto()->pendOk_)
+#define perfilGrade (epgContexto()->perfilGrade_)
+#define reiniciarPend (epgContexto()->reiniciarPend_)
+#define carga (epgContexto()->carga_)
+#define extraUrl (epgContexto()->extraUrl_)
+#define m3uUrl (epgContexto()->m3uUrl_)
+#define soProvedores (epgContexto()->soProvedores_)
+#define extraMudou (epgContexto()->extraMudou_)
+#define filtroIds (epgContexto()->filtroIds_)
+#define nFiltroIds (epgContexto()->nFiltroIds_)
+#define fontesMudaram (epgContexto()->fontesMudaram_)
 
-static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
-static int      estado = EPG_PARADO;
-static time_t   carregadaEm;
-static int      fioVivo;
-static atomic_int pendPronto;
-static int      pendOk;
-static int      perfilGrade = 1, reiniciarPend;
-static struct {
-  NvPerfilSessao sessao;
-  volatile int cancelada;
-  int perfil, nArq, nFiltro, soProvedores;
-  char arq[EPG_MAX_FONTES][8], extra[1100], m3u[1100];
-  char (*filtro)[64];
-} carga;
+static void epg_iniciar_local(void);
+static void epg_passo_local(void);
+static void epg_abrir_sessao_local(int perfil);
+static int epg_janela_total_local(time_t *ini, time_t *fim);
 
 static int cargaAtual(void) {
   return !carga.cancelada && nv_perfil_sessao_atual(carga.sessao);
@@ -476,6 +514,23 @@ static void wChavePorId(EpgGrade *g, int i) {
   wAddChave(g, i, tmp);
 }
 
+static void gradeLiberar(EpgGrade *g) {
+  free(g->canais); free(g->ordemPorId); free(g->evs); free(g->arena);
+  memset(g, 0, sizeof *g);
+}
+static int wReservarCanal(EpgGrade *g) {
+  if (g->nCanais < g->capCanais) return 1;
+  if (g->capCanais >= EPG_MAX_CANAL) return 0;
+  int cap = g->capCanais ? g->capCanais * 2 : 32;
+  if (cap > EPG_MAX_CANAL) cap = EPG_MAX_CANAL;
+  EpgCanal *c = realloc(g->canais, sizeof *c * (size_t)cap);
+  if (!c) return 0;
+  g->canais = c;
+  long *o = realloc(g->ordemPorId, sizeof *o * (size_t)cap);
+  if (!o) return 0;
+  g->ordemPorId = o; g->capCanais = cap; return 1;
+}
+
 // Reserva os vetores iniciais de uma grade em construcao. 0 = sem memoria.
 static int wAbrir(EpgGrade *g) {
   memset(g, 0, sizeof *g);
@@ -548,8 +603,6 @@ static void wFechar(EpgGrade *g) {
 // PASSO 1 abaixo para no EPG_MAX_CANAL: os canais que a pessoa tem podiam
 // ficar de fora so por virem depois no arquivo. Com o filtro, so entram os
 // ids que o Xtream deu como epg_channel_id. NULL = sem filtro (epgshare01).
-static char (*filtroIds)[64];
-static int nFiltroIds;
 static int cmpId(const void *a, const void *b) { return strcmp((const char *)a, (const char *)b); }
 
 static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro, int *perdas);
@@ -569,7 +622,7 @@ static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro, 
         (!filtro || bsearch(id, filtro, (size_t)nFiltro, sizeof filtro[0], cmpId))) {
       i = wCanalPorId(g, id);
       if (i < 0) {
-        if (g->nCanais >= EPG_MAX_CANAL) break;
+        if (!wReservarCanal(g)) break;
         i = g->nCanais++;
         memset(&g->canais[i], 0, sizeof g->canais[i]);
         snprintf(g->canais[i].id, sizeof g->canais[i].id, "%s", id);
@@ -876,9 +929,6 @@ int epg_pais_existe(const char *pais) {
 #define EPG_EXTRA_TETO_REDE (32L << 20)
 #define EPG_EXTRA_TETO_FLUXO (512L << 20)
 #endif
-static char extraUrl[1100], m3uUrl[1100];
-static int soProvedores;
-static volatile int extraMudou;
 
 static void hashUrl(const char *u, char *dst, size_t tam) {
   unsigned long long h = 1469598103934665603ULL;
@@ -902,6 +952,15 @@ static char *extraGuardada(const char *bin, const char *chave, const char *id, l
   return b;
 }
 
+static int gravarExtraCache(const char *bin,const char *ts,const char *chave,const char *id,const char *b,long n) {
+  int presa=carga.sessao!=0;
+  if(presa && !nv_perfil_sessao_travar(carga.sessao))return 0;
+  int ok=cargaAtual() && gravarBin(bin,ts,b,n);
+  if(ok)dados_gravar_leve(chave,id);
+  if(presa)nv_perfil_sessao_destravar();
+  return ok;
+}
+
 static char *obterExtraNome(const char *url, long *nOut, int m3u) {
   char id[24], *b, *velho;
   char nBin[48], nTs[48], nId[48];
@@ -911,16 +970,32 @@ static char *obterExtraNome(const char *url, long *nOut, int m3u) {
   snprintf(nBin, sizeof nBin, m3u ? "epg-extra-m3u-p%d.bin" : "epg-extra-p%d.bin", carga.perfil);
   snprintf(nTs, sizeof nTs, m3u ? "epg-extra-m3u-p%d.ts" : "epg-extra-p%d.ts", carga.perfil);
   snprintf(nId, sizeof nId, m3u ? "epg-extra-m3u-p%d.id" : "epg-extra-p%d.id", carga.perfil);
+  if (epgContexto()->tipo) {
+    snprintf(nBin, sizeof nBin, "epg-conta-%d-%08x-p%d.bin", epgContexto()->tipo, epgContexto()->id, carga.perfil);
+    snprintf(nTs, sizeof nTs, "epg-conta-%d-%08x-p%d.ts", epgContexto()->tipo, epgContexto()->id, carga.perfil);
+    snprintf(nId, sizeof nId, "epg-conta-%d-%08x-p%d.id", epgContexto()->tipo, epgContexto()->id, carga.perfil);
+  }
   hashUrl(url, id, sizeof id);
   velho = dados_ler(nId);
-  if (!velho && !m3u && carga.perfil == 1) {
+  if(!velho && epgContexto()->tipo && !epgContexto()->id) {
+    char antigoBin[64],antigoTs[64],antigoId[64];
+    const char *prefixo=epgContexto()->tipo==2?"epg-extra-m3u":"epg-extra";
+    snprintf(antigoBin,sizeof antigoBin,"%s-p%d.bin",prefixo,carga.perfil);
+    snprintf(antigoTs,sizeof antigoTs,"%s-p%d.ts",prefixo,carga.perfil);
+    snprintf(antigoId,sizeof antigoId,"%s-p%d.id",prefixo,carga.perfil);
+    if(arquivoIdade(antigoTs)<EPG_CACHE_SEG) {
+      b=extraGuardada(antigoBin,antigoId,id,&n);
+      if(b){gravarExtraCache(nBin,nTs,nId,id,b,n);*nOut=n;return b;}
+    }
+  }
+  if (!velho && !m3u && !epgContexto()->tipo && carga.perfil == 1) {
     // Migra o cache antigo somente quando pertence EXATAMENTE a URL deste
     // cadastro. A URL nunca e gravada: o identificador e seu hash.
     velho = dados_ler("epg-extra.id");
     if (velho && !strcmp(velho, id) && arquivoIdade("epg-extra.ts") < EPG_CACHE_SEG) {
       b = lerBin("epg-extra.bin", &n);
       if (b && xmltvExtra(b, n, NULL, NULL, 0, NULL, NULL)) {
-        if (gravarBin(nBin, nTs, b, n)) dados_gravar_leve(nId, id);
+        gravarExtraCache(nBin,nTs,nId,id,b,n);
         *nOut = n; free(velho); return b;
       }
       free(b);
@@ -964,7 +1039,7 @@ static char *obterExtraNome(const char *url, long *nOut, int m3u) {
     return extraGuardada(nBin, nId, id, nOut);
   }
   // O cache conserva os bytes da rede, ainda comprimidos, com o dono capturado.
-  if (gravarBin(nBin, nTs, b, n)) dados_gravar_leve(nId, id);
+  gravarExtraCache(nBin,nTs,nId,id,b,n);
   *nOut = n;
   return b;
 }
@@ -974,12 +1049,16 @@ static char *obterExtra(const char *url,long *nOut) { return obterExtraNome(url,
 void epg_fonte_extra_ids(const char *const *ids, int n) {
   char (*novo)[64] = NULL;
   int i, k = 0;
-  if (ids && n > 0) novo = malloc(sizeof *novo * (size_t)n);
+  if (ids && n > 0) { novo = calloc((size_t)n,sizeof *novo); if (!novo) return; }
   if (novo)
     for (i = 0; i < n; i++)
       if (ids[i] && ids[i][0]) snprintf(novo[k++], sizeof novo[0], "%s", ids[i]);
   if (novo && k) qsort(novo, (size_t)k, sizeof novo[0], cmpId);
   pthread_mutex_lock(&trava);
+  if(k!=nFiltroIds || (k && memcmp(novo,filtroIds,sizeof *novo*(size_t)k))) {
+    extraMudou=1;
+    if(fioVivo){carga.cancelada=1;reiniciarPend=1;}
+  }
   free(filtroIds);
   filtroIds = k ? novo : NULL;
   nFiltroIds = k;
@@ -1014,25 +1093,30 @@ void epg_so_provedores(int so) {
   }
   pthread_mutex_unlock(&trava);
 }
-void epg_recarregar(void) {
+static void epg_recarregar_local(void) {
   // Expire timestamps, never the last working guide body.
   char nome[64];int p=perfilGrade;
+  if (epgContexto()->tipo) {
+    snprintf(nome,sizeof nome,"epg-conta-%d-%08x-p%d.ts",epgContexto()->tipo,epgContexto()->id,p);
+    dados_apagar(nome);
+  } else {
   snprintf(nome,sizeof nome,"epg-extra-p%d.ts",p);dados_apagar(nome);
   snprintf(nome,sizeof nome,"epg-extra-m3u-p%d.ts",p);dados_apagar(nome);
+  }
   pthread_mutex_lock(&trava);
-  int n=nFontesArq<0?(int)(sizeof PADRAO_ARQ/sizeof PADRAO_ARQ[0]):nFontesArq;
+  int n=epgContexto()->tipo ? 0 : nFontesArq<0?(int)(sizeof PADRAO_ARQ/sizeof PADRAO_ARQ[0]):nFontesArq;
   for(int i=0;i<n;i++) {
     nomesFonte(nFontesArq<0?PADRAO_ARQ[i]:fontesArq[i],NULL,0,NULL,NULL,nome,sizeof nome);dados_apagar(nome);
   }
   extraMudou=1;
   if(fioVivo){carga.cancelada=1;reiniciarPend=1;}
   pthread_mutex_unlock(&trava);
-  if(!fioVivo)epg_iniciar();
+  if(!fioVivo)epg_iniciar_local();
 }
 
 static void *fioEpg(void *u) {
   int i, ok = 0;
-  (void)u;
+  epgEscopo = u;
   if (!cargaAtual() || !wAbrir(&W)) goto fim;
   if (cargaAtual() && carga.extra[0]) {
     long n = 0;
@@ -1057,7 +1141,7 @@ static void *fioEpg(void *u) {
       free(corpo);
     }
   }
-  for (i = 0; !carga.soProvedores && cargaAtual() && i < carga.nArq; i++) {
+  for (i = 0; !carga.apenasProvedores && cargaAtual() && i < carga.nArq; i++) {
     long n = 0;
     char *xml = obterXml(carga.arq[i], &n);
     if (xml) {
@@ -1073,23 +1157,25 @@ static void *fioEpg(void *u) {
   wFechar(&W);
 fim:
   free(carga.filtro); carga.filtro = NULL;
-  pendOk = ok || (carga.soProvedores && !carga.extra[0] && !carga.m3u[0]);
+  pendOk = ok || (carga.apenasProvedores && !carga.extra[0] && !carga.m3u[0]);
   atomic_store_explicit(&pendPronto, 1, memory_order_release);
   return NULL;
 }
 
 // --- API ---------------------------------------------------------------------------
-void epg_iniciar(void) {
+static void epg_iniciar_local(void) {
   pthread_t t;
   if (fioVivo) {
     if (!cargaAtual()) reiniciarPend = 1;
     return;
   }
+  if (atomic_load(&epgFios) >= EPG_MAX_FIOS) return;
+  atomic_fetch_add(&epgFios, 1);
   carga.sessao = nv_perfil_sessao_ler(); carga.cancelada = 0;
   carga.perfil = perfilGrade; carga.nFiltro = 0;
   pthread_mutex_lock(&trava);
   snprintf(carga.extra, sizeof carga.extra, "%s", extraUrl);
-  snprintf(carga.m3u,sizeof carga.m3u,"%s",m3uUrl);carga.soProvedores=soProvedores;
+  snprintf(carga.m3u,sizeof carga.m3u,"%s",m3uUrl);carga.apenasProvedores=soProvedores;
   extraMudou = fontesMudaram = 0;
   if (nFontesArq < 0) {
     for (carga.nArq = 0; carga.nArq < (int)(sizeof PADRAO_ARQ / sizeof PADRAO_ARQ[0]); carga.nArq++)
@@ -1105,8 +1191,9 @@ void epg_iniciar(void) {
   pthread_mutex_unlock(&trava);
   fioVivo = 1;
   estado = EPG_BAIXANDO;
-  if (pthread_create(&t, NULL, fioEpg, NULL) != 0) {
+  if (pthread_create(&t, NULL, fioEpg, epgContexto()) != 0) {
     free(carga.filtro); carga.filtro = NULL;
+    atomic_fetch_sub(&epgFios, 1);
     fioVivo = 0; estado = EPG_FALHOU;
   }
   else pthread_detach(t);
@@ -1114,32 +1201,33 @@ void epg_iniciar(void) {
 
 int epg_estado(void) { return estado; }
 
-void epg_passo(void) {
+static void epg_passo_local(void) {
   if (atomic_load_explicit(&pendPronto, memory_order_acquire)) {
     pthread_mutex_lock(&trava);
     int atual = cargaAtual();
     if (atual) {
       if (pendOk || !P.nEvs) {
-        free(P.evs);free(P.arena);P=W;
-      } else {free(W.evs);free(W.arena);}
+        gradeLiberar(&P);P=W;
+      } else {gradeLiberar(&W);}
       carregadaEm = time(NULL);
       estado = pendOk || P.nEvs ? EPG_PRONTO : EPG_FALHOU;
     } else {
-      free(W.evs); free(W.arena);
+      gradeLiberar(&W);
       estado = EPG_PARADO;
     }
     memset(&W, 0, sizeof W);
     atomic_store_explicit(&pendPronto, 0, memory_order_relaxed);
-    fioVivo = 0;
+    fioVivo = 0; atomic_fetch_sub(&epgFios, 1);
+    epgRevisao++;
     pthread_mutex_unlock(&trava);
     if (!atual) {
-      if (reiniciarPend) { reiniciarPend = 0; epg_iniciar(); }
+      if (reiniciarPend) { reiniciarPend = 0; epg_iniciar_local(); }
       return;
     }
     // A cobertura sai no log para a proxima medicao nao depender de script:
     // "+3,4 d" e o horizonte que a fonte entregou nesta carga.
     { time_t ji = 0, jf = 0, ag = time(NULL);
-      epg_janela_total(&ji, &jf);
+      epg_janela_total_local(&ji, &jf);
       printf("[epg] grade publicada: %d canais, %d programas, %ld B de titulo; "
              "cobre de %+.1f d a %+.1f d\n",
              P.nCanais, P.nEvs, P.arenaN,
@@ -1152,21 +1240,21 @@ void epg_passo(void) {
   // envelheceu (o download decide sozinho se reusa o arquivo ou baixa de novo).
   if (estado == EPG_PRONTO && !fioVivo &&
       time(NULL) - carregadaEm > EPG_CACHE_SEG)
-    epg_iniciar();
+    epg_iniciar_local();
   // A grade do provedor chegou (ou saiu) depois da carga: refaz. As cinco
   // fontes fixas vem do cache do disco, so a nova vai a rede.
   else if ((extraMudou || fontesMudaram) && !fioVivo &&
            (estado == EPG_PRONTO || estado == EPG_FALHOU))
-    epg_iniciar();
+    epg_iniciar_local();
 }
 
-void epg_abrir_sessao(int perfil) {
+static void epg_abrir_sessao_local(int perfil) {
   carga.cancelada = 1;
   pthread_mutex_lock(&trava);
-  free(P.evs); free(P.arena); memset(&P, 0, sizeof P);
+  gradeLiberar(&P); memset(&P, 0, sizeof P);
   free(filtroIds); filtroIds = NULL; nFiltroIds = 0;
-  extraUrl[0] = m3uUrl[0] = paisesAtivos[0] = 0;soProvedores=0;
-  nFontesArq = -1; extraMudou = fontesMudaram = 0;
+  extraUrl[0] = m3uUrl[0] = 0;soProvedores=0;
+  if (!epgContexto()->tipo) { paisesAtivos[0] = 0; nFontesArq = -1; } extraMudou = fontesMudaram = 0;
   perfilGrade = perfil > 0 ? perfil : 1;
   carregadaEm = 0; estado = EPG_PARADO; reiniciarPend = 0;
   pthread_mutex_unlock(&trava);
@@ -1326,7 +1414,7 @@ static long pubPrimeiroVivo(int epg, time_t t) {
   return m;
 }
 
-int epg_agora(int epg, time_t agora, EpgProg *p) {
+static int epg_agora_local(int epg, time_t agora, EpgProg *p) {
   long m;
   int ok = 0;
   if (epg < 0 || epg >= P.nCanais) return 0;
@@ -1337,7 +1425,7 @@ int epg_agora(int epg, time_t agora, EpgProg *p) {
   return ok;
 }
 
-int epg_proximo(int epg, time_t agora, int k, EpgProg *p) {
+static int epg_proximo_local(int epg, time_t agora, int k, EpgProg *p) {
   long m, topo;
   int ok = 0;
   if (epg < 0 || epg >= P.nCanais || k < 0) return 0;
@@ -1354,7 +1442,7 @@ int epg_proximo(int epg, time_t agora, int k, EpgProg *p) {
   return ok;
 }
 
-int epg_janela(int epg, time_t *ini, time_t *fim) {
+static int epg_janela_local(int epg, time_t *ini, time_t *fim) {
   int ok = 0;
   if (epg < 0 || epg >= P.nCanais) return 0;
   pthread_mutex_lock(&trava);
@@ -1372,7 +1460,7 @@ int epg_janela(int epg, time_t *ini, time_t *fim) {
   return ok;
 }
 
-int epg_janela_total(time_t *ini, time_t *fim) {
+static int epg_janela_total_local(time_t *ini, time_t *fim) {
   int i, ok = 0;
   time_t a = 0, b = 0;
   pthread_mutex_lock(&trava);
@@ -1389,15 +1477,15 @@ int epg_janela_total(time_t *ini, time_t *fim) {
   return ok;
 }
 
-int epg_total(int epg) {
+static int epg_total_local(int epg) {
   if (epg < 0 || epg >= P.nCanais) return 0;
   return (int)P.canais[epg].evN;
 }
 
-// `pular`: quantos da sequencia (a mesma de epg_faixa, em ordem do indice) ja
+// `pular`: quantos da sequencia (a mesma de epg_faixa_local, em ordem do indice) ja
 // foram entregues — o cursor de quem pagina e POSICAO, nao horario: a XMLTV nao
 // rejeita sobreposicao e o fim dos programas nao e monotono (#344).
-int epg_faixa_desde(int epg, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
+static int epg_faixa_desde_local(int epg, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
   long m, topo;
   int n = 0, v = 0;
   if (epg < 0 || epg >= P.nCanais || ate <= de || (out && cap <= 0)) return 0;
@@ -1415,15 +1503,15 @@ int epg_faixa_desde(int epg, time_t de, time_t ate, int pular, EpgProg *out, int
   return n;
 }
 
-int epg_faixa(int epg, time_t de, time_t ate, EpgProg *out, int cap) {
-  return epg_faixa_desde(epg, de, ate, 0, out, cap);
+static int epg_faixa_local(int epg, time_t de, time_t ate, EpgProg *out, int cap) {
+  return epg_faixa_desde_local(epg, de, ate, 0, out, cap);
 }
 
 // --- teste ----------------------------------------------------------------------------
 void epg_teste_limpar(void) {
   pthread_mutex_lock(&trava);
-  free(P.evs); free(P.arena); memset(&P, 0, sizeof P);
-  free(W.evs); free(W.arena); memset(&W, 0, sizeof W);
+  gradeLiberar(&P); memset(&P, 0, sizeof P);
+  gradeLiberar(&W); memset(&W, 0, sizeof W);
   estado = EPG_PARADO; fioVivo = 0; pendPronto = 0;
   pthread_mutex_unlock(&trava);
 }
@@ -1435,9 +1523,167 @@ int epg_xml_processar(char *xml) {
   n = wProcessar(&W, xml);
   wFechar(&W);
   pthread_mutex_lock(&trava);
-  free(P.evs); free(P.arena);
+  gradeLiberar(&P);
   P = W; memset(&W, 0, sizeof W);
   estado = EPG_PRONTO;
   pthread_mutex_unlock(&trava);
   return n;
 }
+
+// Account dispatch stays on the drawing thread. Workers only receive their
+// stable context pointer, and cannot change slot identity while alive.
+static EpgContexto *contaContexto(int tipo, unsigned id) {
+  for (int i = 0; i < EPG_MAX_CONTAS; i++)
+    if (epgContas[i] && epgContas[i]->tipo == tipo && epgContas[i]->id == id)
+      return epgContas[i];
+  return NULL;
+}
+static EpgContexto *canalContexto(const char *canal) {
+  unsigned id;
+  if (iptvid_ler("xtream:", canal, &id, NULL, 0)) return contaContexto(1, id);
+  if (iptvid_ler("nvm3u:", canal, &id, NULL, 0)) return contaContexto(2, id);
+  // Stalker has no account XMLTV endpoint; retain the public country guide.
+  if (iptvid_ler("stalker:", canal, &id, NULL, 0)) return &epgPublico;
+  return &epgPublico;
+}
+static EpgContexto *handleContexto(int *handle) {
+  if (*handle < 0) return NULL;
+  int slot = *handle / EPG_HANDLE_PASSO;
+  *handle %= EPG_HANDLE_PASSO;
+  if (!slot) return &epgPublico;
+  if (slot > EPG_MAX_CONTAS || !epgContas[slot - 1] || !epgContas[slot - 1]->ativa) return NULL;
+  return epgContas[slot - 1];
+}
+void epg_contas_configurar(const EpgContaFonte *fontes, int n) {
+  int vistas[EPG_MAX_CONTAS] = {0};
+  EpgContexto *anterior = epgEscopo;
+  if (!fontes || n < 0) n = 0;
+  if (n > EPG_MAX_CONTAS) n = EPG_MAX_CONTAS;
+  for (int i = 0; i < n; i++) {
+    if (fontes[i].tipo < 1 || fontes[i].tipo > 3) continue;
+    EpgContexto *c = contaContexto(fontes[i].tipo, fontes[i].id);
+    if (!c) {
+      for (int k = 0; k < EPG_MAX_CONTAS; k++) {
+        if (!epgContas[k]) {
+          c = calloc(1, sizeof *c);
+          if (!c) break;
+          pthread_mutex_init(&c->trava_, NULL); c->slot = k + 1;
+          epgContas[k] = c;
+        } else if (!epgContas[k]->ativa && !epgContas[k]->fioVivo_ && !vistas[k]) {
+          c = epgContas[k];
+        }
+        if (c) {
+          epgEscopo = c;
+          epg_abrir_sessao_local(epgPublico.perfilGrade_);
+          c->tipo = fontes[i].tipo; c->id = fontes[i].id;
+          break;
+        }
+      }
+    }
+    if (!c) continue;
+    vistas[c->slot - 1] = 1; c->ativa = 1;
+    epgEscopo = c;
+    if(strcmp(c->extraUrl_,fontes[i].url)) {
+      epg_abrir_sessao_local(epgPublico.perfilGrade_);epgRevisao++;
+    }
+    epg_so_provedores(1);
+    epg_fonte_extra(fontes[i].url);
+  }
+  for (int i = 0; i < EPG_MAX_CONTAS; i++) {
+    EpgContexto *c = epgContas[i];
+    if (c && c->ativa && !vistas[i]) {
+      c->ativa = 0; epgEscopo = c;
+      epg_abrir_sessao_local(epgPublico.perfilGrade_);epgRevisao++;
+    }
+  }
+  epgEscopo = anterior;
+}
+void epg_conta_ids(int tipo, unsigned id, const char *const *ids, int n) {
+  EpgContexto *c = contaContexto(tipo, id), *anterior = epgEscopo;
+  if (!c || !c->ativa) return;
+  epgEscopo = c; epg_fonte_extra_ids(ids, n); epgEscopo = anterior;
+}
+int epg_canal_estado(const char *canal) {
+  EpgContexto *c = canalContexto(canal);
+  return c && (c == &epgPublico || c->ativa) ? c->estado_ : EPG_FALHOU;
+}
+int epg_match_canal(const char *canal, const char *epgId, const char *nome) {
+  EpgContexto *c = canalContexto(canal), *anterior = epgEscopo;
+  if (!c || (c != &epgPublico && !c->ativa)) return -1;
+  epgEscopo = c;
+  int r = epgId && *epgId ? epg_match_id(epgId) : -1;
+  if (r < 0) r = epg_match(nome);
+  epgEscopo = anterior;
+  return r < 0 ? r : r + c->slot * EPG_HANDLE_PASSO;
+}
+unsigned epg_revisao(void) { return epgRevisao; }
+void epg_iniciar(void) {
+  EpgContexto *anterior = epgEscopo;
+  epgEscopo = &epgPublico; epg_iniciar_local();
+  for (int i = 0; i < EPG_MAX_CONTAS; i++) if (epgContas[i] && epgContas[i]->ativa) {
+    epgEscopo = epgContas[i];
+    if (estado == EPG_PARADO) epg_iniciar_local();
+  }
+  epgEscopo = anterior;
+}
+void epg_passo(void) {
+  EpgContexto *anterior = epgEscopo;
+  epgEscopo = &epgPublico; epg_passo_local();
+  for (int i = 0; i < EPG_MAX_CONTAS; i++) if (epgContas[i]) {
+    epgEscopo = epgContas[i];
+    // Reap cancelled workers even if their account has been disabled/deleted.
+    if (!epgContas[i]->ativa) reiniciarPend = 0;
+    if (epgContas[i]->ativa || atomic_load(&pendPronto)) epg_passo_local();
+    if (epgContas[i]->ativa && estado == EPG_PARADO) epg_iniciar_local();
+  }
+  epgEscopo = anterior;
+}
+void epg_abrir_sessao(int perfil) {
+  EpgContexto *anterior = epgEscopo;
+  epgEscopo = &epgPublico; epg_abrir_sessao_local(perfil);
+  for (int i = 0; i < EPG_MAX_CONTAS; i++) if (epgContas[i]) {
+    epgEscopo = epgContas[i]; epgContas[i]->ativa = 0;
+    epg_abrir_sessao_local(perfil);
+  }
+  epgRevisao++; epgEscopo = anterior;
+}
+void epg_recarregar(void) {
+  EpgContexto *anterior = epgEscopo;
+  epgEscopo = &epgPublico; epg_recarregar_local();
+  for (int i = 0; i < EPG_MAX_CONTAS; i++) if (epgContas[i] && epgContas[i]->ativa) {
+    epgEscopo = epgContas[i]; epg_recarregar_local();
+  }
+  epgEscopo = anterior;
+}
+int epg_janela_total(time_t *ini, time_t *fim) {
+  EpgContexto *anterior = epgEscopo;
+  time_t a = 0, b = 0, x, y; int ok = 0;
+  for (int i = -1; i < EPG_MAX_CONTAS; i++) {
+    EpgContexto *c = i < 0 ? &epgPublico : epgContas[i];
+    if (!c || (i >= 0 && !c->ativa)) continue;
+    epgEscopo = c;
+    if (epg_janela_total_local(&x, &y)) {
+      if (!ok || x < a) a = x;
+      if (!ok || y > b) b = y;
+      ok = 1;
+    }
+  }
+  epgEscopo = anterior; if (ini) *ini = a; if (fim) *fim = b; return ok;
+}
+// Existing query APIs accept both legacy indices and account-scoped handles.
+#define EPG_CONSULTAR(expr) do { \
+  EpgContexto *c = handleContexto(&epg), *anterior = epgEscopo; \
+  if (!c) return 0; \
+  epgEscopo = c; int r = (expr); epgEscopo = anterior; return r; \
+} while (0)
+int epg_agora(int epg, time_t t, EpgProg *p) { EPG_CONSULTAR(epg_agora_local(epg, t, p)); }
+int epg_proximo(int epg, time_t t, int k, EpgProg *p) { EPG_CONSULTAR(epg_proximo_local(epg, t, k, p)); }
+int epg_janela(int epg, time_t *a, time_t *b) { EPG_CONSULTAR(epg_janela_local(epg, a, b)); }
+int epg_total(int epg) { EPG_CONSULTAR(epg_total_local(epg)); }
+int epg_faixa_desde(int epg, time_t a, time_t b, int skip, EpgProg *out, int n) {
+  EPG_CONSULTAR(epg_faixa_desde_local(epg, a, b, skip, out, n));
+}
+int epg_faixa(int epg, time_t a, time_t b, EpgProg *out, int n) {
+  EPG_CONSULTAR(epg_faixa_local(epg, a, b, out, n));
+}
+#undef EPG_CONSULTAR

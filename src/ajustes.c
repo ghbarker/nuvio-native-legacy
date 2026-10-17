@@ -20,6 +20,7 @@
 #include "stalker.h"
 #include "xtream.h"
 #include "m3u.h"
+#include "iptvfontes.h"
 #include "guia.h"
 #include "xtepg.h"
 #include "teclado.h"
@@ -644,6 +645,8 @@ typedef enum {
   AJ_FUNDO_DIN,        // #205: fundo da Dinamica, 0 = Cinza (padrao), 1 = Cor, 2 = Imersivo; local, append-only
   AJ_FUNDO_DIN_COR,    // #205: a cor do fundo "Cor" (indice de FUNDO_DIN_TEMA); local, append-only
   AJ_GUIA_FONTE, AJ_GUIA_RECARREGAR, AJ_M3U_URL, AJ_M3U_EPG, AJ_M3U_LIMPAR,
+  AJ_IPTV_CONTA, AJ_IPTV_ADD_XTREAM, AJ_IPTV_ADD_M3U, AJ_IPTV_ADD_STALKER,
+  AJ_IPTV_NOME, AJ_IPTV_ATIVA, AJ_IPTV_REMOVER,
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1683,6 +1686,13 @@ static const Opcao OPCOES[AJ_N] = {
   ACAO("URL da lista M3U"),
   ACAO("URL da programação XMLTV"),
   ACAO("Remover lista M3U"),
+  ESC("Conta de TV ao vivo", NULL, 1),
+  ACAO("Adicionar conta Xtream"),
+  ACAO("Adicionar lista M3U"),
+  ACAO("Adicionar portal Stalker"),
+  ACAO("Nome da conta"),
+  ESC("Conta ativada", V_LIGA, 2),
+  ACAO("Remover conta de TV ao vivo"),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1979,6 +1989,8 @@ static const char *CHAVE[] = {
   "fundoDinamicaLocal",
   "fundoDinamicaCorLocal",
   "guiaFonteLocal", "-guiaRecarregar", "-m3uUrl", "-m3uEpg", "-m3uLimpar",
+  "-iptvConta", "-iptvAddXtream", "-iptvAddM3u", "-iptvAddStalker",
+  "-iptvNome", "-iptvAtiva", "-iptvRemover",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -2123,6 +2135,23 @@ static int valor[] = {
 static const int valorPadrao[] = {
 #include "ajustes_ux_padrao.inc"
 };
+// Account metadata/credentials live in the native registry, never the sync blob.
+static void ajIptvEspelhar(void) {
+  IptvConta c;
+  int existe=iptv_conta_selecionada(&c);
+  valor[AJ_IPTV_CONTA]=iptv_conta_indice();
+  valor[AJ_IPTV_ATIVA]=existe && c.ativa ? 0 : 1;
+  if(existe) {
+    if(c.tipo==IPTV_XTREAM)xtream_fonte_selecionar(c.id);
+    else if(c.tipo==IPTV_M3U)m3u_fonte_selecionar(c.id);
+    else stalker_fonte_selecionar(c.id);
+  }
+}
+static const char *ajIptvNome(int indice) {
+  static IptvConta cs[IPTV_MAX_CONTAS];
+  int n=iptv_contas(cs,IPTV_MAX_CONTAS);
+  return indice>=0 && indice<n ? cs[indice].nome : i18n("Nenhuma");
+}
 static char faAddonEditar[FONTEFALHA_CHAVE];
 static char faAddonTitulo[FR_NOME_MAX + 48];
 static int faRetornarFolha;
@@ -2318,7 +2347,7 @@ int ajustes_foco_no_indice(void) { return focoIndice; }
 // e a opcao 0 do enum).
 static int sairArmado;
 static int pedeConfirmacao(int op) {
-  return op == AJ_SAIR || op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_M3U_LIMPAR || op == AJ_JF_SAIR ||
+  return op == AJ_SAIR || op == AJ_IPTV_REMOVER || op == AJ_STALKER_LIMPAR || op == AJ_XTREAM_LIMPAR || op == AJ_M3U_LIMPAR || op == AJ_JF_SAIR ||
          op == AJ_EM_SAIR || op == AJ_PX_SAIR;
 }
 
@@ -2719,6 +2748,16 @@ float ajustes_tamanho_ajustes(void) {
 // The phone always uses List. Keep the stored TV preference unchanged.
 static int ajLayoutSelecionavel(void) { return !telefoneui_ativo(); }
 static int ajOpcaoDisponivel(int op) {
+  // Only the selected account's fields are editable. Adding another account
+  // never overwrites the credentials of the first one.
+  int tipo=0; IptvConta c;
+  if(op==AJ_XTREAM_SERVIDOR || op==AJ_XTREAM_USUARIO || op==AJ_XTREAM_SENHA || op==AJ_XTREAM_CONTA)tipo=IPTV_XTREAM;
+  if(op==AJ_M3U_URL || op==AJ_M3U_EPG)tipo=IPTV_M3U;
+  if(op==AJ_STALKER_PORTAL || op==AJ_STALKER_MAC)tipo=IPTV_STALKER;
+  if(tipo)return iptv_conta_selecionada(&c) && c.tipo==tipo;
+  if(op==AJ_XTREAM_LIMPAR || op==AJ_M3U_LIMPAR || op==AJ_STALKER_LIMPAR)return 0;
+  if(op==AJ_IPTV_CONTA || op==AJ_IPTV_NOME || op==AJ_IPTV_ATIVA || op==AJ_IPTV_REMOVER)return iptv_contas(NULL,0)>0;
+  if(op>=AJ_IPTV_ADD_XTREAM && op<=AJ_IPTV_ADD_STALKER)return iptv_contas(NULL,0)<IPTV_MAX_CONTAS;
   if (op == AJ_FALHA_ADDON_LIMITE) return faAddonEditar[0] != 0;
 #ifndef NV_ANDROID
   if (op == AJ_FONTE_PRECARREGAR) return 0;
@@ -5868,7 +5907,7 @@ int ajustes_iniciar(void) {
 #endif
   ppReconciliar();
   ajMovReiniciar();
-  faRetornarFolha = 0; faAddonEditar[0] = 0; ajFalhaEspelhar(); ajLegendaEspelhar();
+  faRetornarFolha = 0; faAddonEditar[0] = 0; ajFalhaEspelhar(); ajLegendaEspelhar(); ajIptvEspelhar();
   uxVeioBusca = uxAbrirOp >= 0;
   montarTela();
   conferirTela();
@@ -6177,6 +6216,7 @@ static const char *faResumo(int provedores);
 static const char *ffResumo(void);
 static const char *frRegexTexto(void);
 static const char *textoLeitura(int op) {
+  if(op==AJ_IPTV_NOME)return ajIptvNome(iptv_conta_indice());
   static char buf[64];
   // MASCARADO, sempre. Esta tela e fotografada e colada em issue — foi assim
   // que chegou o relato do painel de Tracking. O portal sai sem esquema e o MAC
@@ -6717,6 +6757,10 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_STALKER_PORTAL: return "Os canais do portal entram no Guia de TV, junto com os dos addons. Endereço sem http:// e sem barra no fim: meu-portal.exemplo.tv:8080";
     case AJ_STALKER_MAC: return "O MAC que o provedor cadastrou para você. É credencial: vale como senha, e só aparece nesta tela mascarado.";
     case AJ_STALKER_LIMPAR: return "Apaga o portal e o MAC deste perfil, e os canais dele somem do Guia. Sair da conta também apaga.";
+    case AJ_IPTV_CONTA: case AJ_IPTV_ADD_XTREAM: case AJ_IPTV_ADD_M3U: case AJ_IPTV_ADD_STALKER: case AJ_IPTV_ATIVA:
+      return "O Guia de TV reúne todas as contas ativadas deste perfil.";
+    case AJ_IPTV_NOME: return "Nome da conta";
+    case AJ_IPTV_REMOVER: return "Apaga apenas a conta selecionada e seus canais.";
     case AJ_GUIA_FONTE: return "Fontes exibidas no Guia de TV.";
     case AJ_GUIA_RECARREGAR: return "Mantém os canais disponíveis durante a atualização.";
     case AJ_M3U_URL: return "Lista de canais M3U por URL, salva neste perfil.";
@@ -8521,6 +8565,12 @@ static int definirValorDireto(int op, int novo) {
   if (ajFonte(op)) return ajFonteAplicar(op, novo);
   if (ajLegendaPrincipal(op)) return ajLegendaDefinir(op, novo);
   if (ajFalhaBackend(op)) return ajFalhaDefinir(op, novo);
+  if(op==AJ_IPTV_CONTA || op==AJ_IPTV_ATIVA) {
+    int ok=op==AJ_IPTV_CONTA?iptv_conta_selecionar(novo):iptv_conta_ativar(novo==0);
+    ajIptvEspelhar();
+    if(ok && op==AJ_IPTV_ATIVA)guia_recarregar(1);
+    return ok;
+  }
   if (op == AJ_SEEKR_LIGADO && novo == 0 && !seekrChave[0]) {
     uxNotificar(seekrPedirChave());
     return 0;
@@ -8695,6 +8745,29 @@ static void eventoTela(const SDL_Event *e) {
       if (b[0]) snprintf(kc, sizeof kc, "%s · %s", i18n(uxCaminho(focoOp)), i18n(b));
       else snprintf(kc, sizeof kc, "%s", i18n(uxCaminho(focoOp)));
       teclado_contexto(kc); }
+    if(focoOp>=AJ_IPTV_ADD_XTREAM && focoOp<=AJ_IPTV_ADD_STALKER) {
+      int tipo=focoOp-AJ_IPTV_ADD_XTREAM+IPTV_XTREAM;
+      if(iptv_conta_adicionar(tipo)) {
+        ajIptvEspelhar();
+        focarOpcao(tipo==IPTV_XTREAM?AJ_XTREAM_SERVIDOR:tipo==IPTV_M3U?AJ_M3U_URL:AJ_STALKER_PORTAL);
+      } else uxNotificar("Não foi possível agora. Tente novamente.");
+      return;
+    }
+    if(focoOp==AJ_IPTV_NOME) {
+      stCampo=AJ_IPTV_NOME;
+      teclado_abrir_com("Nome da conta","",95,CUR_ALFA_URL,ajIptvNome(iptv_conta_indice()));
+      teclado_aceitar_utf8(1);return;
+    }
+    if(focoOp==AJ_IPTV_REMOVER) {
+      IptvConta c;
+      if(iptv_conta_remover(&c)) {
+        if(c.tipo==IPTV_XTREAM)xtream_fonte_esquecer(c.id);
+        else if(c.tipo==IPTV_M3U)m3u_fonte_esquecer(c.id);
+        else stalker_fonte_esquecer(c.id);
+        ajIptvEspelhar();guia_recarregar(1);focarOpcao(AJ_IPTV_ADD_XTREAM);
+      } else uxNotificar("Não foi possível agora. Tente novamente.");
+      return;
+    }
     if (focoOp == AJ_FIL_ORDEM) {
       filAberta = 1; filFoco = 0; filCampo = 0; filPegou = 0; filTopo = 0;
       filAba = 0; filNaBarra = 0; filAviso[0] = 0;
@@ -8899,7 +8972,7 @@ void ajustes_fontes_atualizar(void) {
   if (fonteStatus) uxNotificar(fonteStatus);
 }
 void ajustes_atualizar(float dt, Uint32 agora) {
-  ajLegendaEspelhar();
+  ajLegendaEspelhar(); ajIptvEspelhar();
   AJ_ESCALA_INI();
   guiaAtualizar(dt);
   if (uxAviso[0] && SDL_TICKS_PASSED(agora, uxAvisoAte)) uxAviso[0] = 0;
@@ -8922,7 +8995,11 @@ void ajustes_atualizar(float dt, Uint32 agora) {
   if (!pessoas_aberto()) hcTecladoLer();
   { int r = pessoas_aberto() ? TECLADO_NADA : teclado_resultado();
     if (r == TECLADO_PRONTO && stCampo) {
-      if (stCampo == AJ_STALKER_MAC) stalker_definir_mac(teclado_texto());
+      if(stCampo==AJ_IPTV_NOME) {
+        int ok=iptv_conta_renomear(teclado_texto());ajIptvEspelhar();
+        uxNotificar(ok?"Ajuste salvo nesta TV.":"Não foi possível agora. Tente novamente.");
+      }
+      else if (stCampo == AJ_STALKER_MAC) stalker_definir_mac(teclado_texto());
       else if (stCampo == AJ_M3U_URL || stCampo == AJ_M3U_EPG) {
         int ok = stCampo == AJ_M3U_URL ? m3u_definir_lista(teclado_texto()) : m3u_definir_epg(teclado_texto());
         if (ok) { guia_recarregar(1); if (teclado_texto()[0]) registro_aviso_legal(); }
@@ -9078,6 +9155,7 @@ static int nValores(int op) {
 #endif
     return n + (legfontes_selecionada(ajFonteSlot(op)) >= 0);
   }
+  if(op==AJ_IPTV_CONTA){int n=iptv_contas(NULL,0);return n>0?n:1;}
   if (op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2) return nLingua > 0 ? nLingua : 1;
   if (op == AJ_TRAILER_AUDIO) return nTrAud > 0 ? nTrAud : 1;
   if (op == AJ_SELOS_PACOTE) return 1 + selospacote_n();
@@ -9098,6 +9176,7 @@ static int nValores(int op) {
 // por vez dentro de desenhaLinha.
 static const char *textoValor(int op) {
   if (ajFonte(op)) return ajFonteNome(op, ajFonteAtual(op));
+  if(op==AJ_IPTV_CONTA)return ajIptvNome(iptv_conta_indice());
   static char buf[48];
   if (ajFalhaBackend(op)) {
     int v = ajFalhaValor(op);

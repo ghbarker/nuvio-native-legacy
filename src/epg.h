@@ -40,6 +40,15 @@ typedef struct {
 enum { EPG_PARADO, EPG_BAIXANDO, EPG_PRONTO, EPG_FALHOU };
 int epg_estado(void);
 
+// Native account schedules never match another account's IDs or names.
+// Configure on the drawing thread; the worker captures each URL and profile.
+typedef struct { int tipo; unsigned id; char url[1100]; } EpgContaFonte;
+void epg_contas_configurar(const EpgContaFonte *fontes, int n);
+void epg_conta_ids(int tipo, unsigned id, const char *const *ids, int n);
+int epg_canal_estado(const char *canal);
+int epg_match_canal(const char *canal, const char *epgId, const char *nome);
+unsigned epg_revisao(void);
+
 // Dispara o fio de carga se ainda nao rodou. Idempotente.
 void epg_iniciar(void);
 void epg_fonte_m3u(const char *url);

@@ -59,6 +59,8 @@
 #include "stalker.h"
 #include "xtream.h"
 #include "m3u.h"
+#include "iptvfontes.h"
+#include "iptvid.h"
 #include "guiacorte.h"   /* tetos e o aviso "Mostrando N de M" */
 #include "xtepg.h"     /* grade curta por canal do Xtream (#158) */
 #include "dados.h"
@@ -448,6 +450,24 @@ typedef struct {
 static GAddonCarga *addonsCarga;
 static int nAddonsCarga;
 static int cargaFonte, fonteAtual = -1, sPublicados;
+static IptvConta contasCarga[IPTV_MAX_CONTAS];
+static int nContasCarga;
+static int contaConfigurada(const IptvConta *c) {
+  return c->tipo == IPTV_XTREAM ? xtream_fonte_configurado(c->id) :
+         c->tipo == IPTV_M3U ? m3u_fonte_configurado(c->id) : stalker_fonte_configurado(c->id);
+}
+static int canalConta(const char *id, unsigned *sid) {
+  return iptvid_ler("xtream:",id,sid,NULL,0) ? IPTV_XTREAM :
+         iptvid_ler("nvm3u:",id,sid,NULL,0) ? IPTV_M3U :
+         iptvid_ler("stalker:",id,sid,NULL,0) ? IPTV_STALKER : 0;
+}
+static int contaCanalAtiva(const char *id) {
+  unsigned sid; int tipo=canalConta(id,&sid);
+  if (!tipo) return 1;
+  IptvConta cs[IPTV_MAX_CONTAS];int n=iptv_contas(cs,IPTV_MAX_CONTAS);
+  for(int i=0;i<n;i++)if(cs[i].tipo==tipo && cs[i].id==sid)return cs[i].ativa;
+  return 0;
+}
 static pthread_mutex_t publicacaoTrava = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t publicacaoSinal = PTHREAD_COND_INITIALIZER;
 // Native source selection is captured before starting the worker.
@@ -867,13 +887,20 @@ static int xtAviso(char *sub, size_t tam);
 // Ver a definicao, junto do EPG por canal (#158).
 static void epgPaisesEscolher(void);
 static void epgFontesEscolher(void) {
-  char xt[1100]="",m[1100]="";int escolha=ajustes_guia_fonte();
-  if (fonteIncluida(escolha,1)) xtream_url_xmltv(xt,sizeof xt);
-  if (fonteIncluida(escolha,2)) m3u_url_epg(m,sizeof m);
-  epg_fonte_extra(xt);epg_fonte_m3u(m);
-  int nativos=nCanais>0;
+  IptvConta cs[IPTV_MAX_CONTAS]; EpgContaFonte fs[IPTV_MAX_CONTAS];
+  int n=iptv_contas(cs,IPTV_MAX_CONTAS),nf=0,escolha=ajustes_guia_fonte(),temStalker=0;
+  for(int i=0;i<n;i++)if(cs[i].ativa && fonteIncluida(escolha,cs[i].tipo) && contaConfigurada(&cs[i])) {
+    if(cs[i].tipo==IPTV_STALKER){temStalker=1;continue;}
+    EpgContaFonte *f=&fs[nf++]; memset(f,0,sizeof *f);f->tipo=cs[i].tipo;f->id=cs[i].id;
+    if(f->tipo==IPTV_XTREAM)xtream_fonte_xmltv(f->id,f->url,sizeof f->url);
+    else if(f->tipo==IPTV_M3U)m3u_fonte_epg(f->id,f->url,sizeof f->url);
+  }
+  epg_contas_configurar(fs,nf);
+  // Public country schedules belong to addon channels, never native accounts.
+  epg_fonte_extra(""); epg_fonte_m3u("");
+  int nativos=nf>0 && !temStalker;
   for(int i=0;i<nCanais;i++)if(canais[i].base[0]){nativos=0;break;}
-  epg_so_provedores((escolha>0 && escolha!=4) || (escolha==0 && nativos));
+  epg_so_provedores((escolha>0 && escolha!=4 && escolha!=3) || (escolha==0 && nativos));
 }
 
 static void sondaManifestos(void) {
@@ -980,84 +1007,60 @@ static void *fioGuia(void *u) {
   sNCanais = 0; sNCats = 0; sFalhas = 0; sXtFalha = XT_OK;
   memset(&sCorte, 0, sizeof sCorte);
   sNSabe = 0;sPublicados=0;
-  int grupos=0, addon=0;
-  if(fonteIncluida(cargaFonte,1) && xtream_configurado())grupos++;
-  if(fonteIncluida(cargaFonte,2) && m3u_configurado())grupos++;
-  if(fonteIncluida(cargaFonte,3) && stalker_configurado())grupos++;
+  int addon=0;
   for(int i=0;i<nAddonsCarga;i++)if(addonsCarga[i].ativo && addonsCarga[i].nCatalogos!=0){addon=1;break;}
-  int cotaNativa=G_MAX_CANAL/(grupos+addon>0?grupos+addon:1);
-  // XTREAM, pela mesma porta e pelas mesmas razoes (ver xtream.h). O epg_id
-  // que o servidor manda casa com o XMLTV do proprio provedor, que o EPG baixa
-  // como sexta fonte (#158, ver epg_fonte_extra); sem ele, o nome.
-  if (cargaAtual() && fonteIncluida(cargaFonte,1) && xtream_configurado()) {
-    XtreamCanal *xt = malloc(sizeof *xt * G_MAX_CANAL);
-    int n = xt ? xtream_canais_sessao(xt, cotaNativa, cargaSessao) : 0, i;
-    if (xt) { sXtFalha = xtream_ultima_falha(); sXtHttp = xtream_ultimo_http(); }
-    for (i = 0; i < n; i++) {
-      GCanal c;
-      if (sCanalPorId(xt[i].id) >= 0) continue;
-      memset(&c, 0, sizeof c);
-      c.epg = -1;
-      snprintf(c.id,   sizeof c.id,   "%s", xt[i].id);
-      snprintf(c.nome, sizeof c.nome, "%s", xt[i].nome);
-      snprintf(c.logo, sizeof c.logo, "%s", xt[i].logo);
-      snprintf(c.epgId, sizeof c.epgId, "%s", xt[i].epgId);
-      c.cat = sNCanais < G_MAX_CANAL ? sCatDe(xt[i].categoria[0] ? xt[i].categoria : "Outros") : 0;
-      if (guiacorte_entra(&sCorte, sNCanais, c.cat >= 0)) { sCanais[sNCanais++] = c; ok = 1; }
+  int grupos=nContasCarga+addon;
+  int cotaNativa=G_MAX_CANAL/(grupos>0?grupos:1);
+  for(int a=0;cargaAtual() && a<nContasCarga;a++) {
+    const IptvConta *conta=&contasCarga[a];
+    if(conta->tipo==IPTV_XTREAM) {
+      XtreamCanal *xt=malloc(sizeof *xt*(size_t)cotaNativa);
+      int n=xt?xtream_fonte_canais(conta->id,xt,cotaNativa,cargaSessao):0;
+      int http=0,falha=xtream_fonte_estado(conta->id,&http);
+      if(falha!=XT_OK){sXtFalha=falha;sXtHttp=http;}
+      for(int i=0;i<n;i++) {
+        if(sCanalPorId(xt[i].id)>=0)continue;
+        GCanal c={0};c.epg=-1;
+        snprintf(c.id,sizeof c.id,"%s",xt[i].id);
+        snprintf(c.nome,sizeof c.nome,"%s",xt[i].nome);
+        snprintf(c.logo,sizeof c.logo,"%s",xt[i].logo);
+        snprintf(c.epgId,sizeof c.epgId,"%s",xt[i].epgId);
+        c.cat=sCatDe(xt[i].categoria[0]?xt[i].categoria:"Outros");
+        if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+      }
+      guiacorte_perdeu_canais(&sCorte,xtream_fonte_total(conta->id)-n);free(xt);
+    } else if(conta->tipo==IPTV_M3U) {
+      M3uCanal *m=malloc(sizeof *m*(size_t)cotaNativa);
+      int n=m?m3u_fonte_canais(conta->id,m,cotaNativa,cargaSessao):0;
+      if(!n)sFalhas++;
+      for(int i=0;i<n;i++) {
+        if(sCanalPorId(m[i].id)>=0)continue;
+        GCanal c={0};c.epg=-1;
+        snprintf(c.id,sizeof c.id,"%s",m[i].id);
+        snprintf(c.nome,sizeof c.nome,"%s",m[i].nome);
+        snprintf(c.logo,sizeof c.logo,"%s",m[i].logo);
+        snprintf(c.epgId,sizeof c.epgId,"%s",m[i].epgId);
+        snprintf(c.tipo,sizeof c.tipo,"tv");
+        c.cat=sCatDe(m[i].categoria[0]?m[i].categoria:"Outros");
+        if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+      }
+      guiacorte_perdeu_canais(&sCorte,m3u_fonte_total(conta->id)-n);free(m);
+    } else {
+      StalkerCanal *st=malloc(sizeof *st*(size_t)cotaNativa);
+      int n=st?stalker_fonte_canais(conta->id,st,cotaNativa,cargaSessao):0;
+      for(int i=0;i<n;i++) {
+        if(sCanalPorId(st[i].id)>=0)continue;
+        GCanal c={0};c.epg=-1;
+        snprintf(c.id,sizeof c.id,"%s",st[i].id);
+        snprintf(c.nome,sizeof c.nome,"%s",st[i].nome);
+        snprintf(c.logo,sizeof c.logo,"%s",st[i].logo);
+        c.cat=sCatDe(st[i].categoria[0]?st[i].categoria:"Outros");
+        if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+      }
+      free(st);
     }
-    // O que o servidor tem alem do pedido (xtream_canais devolve ate `max`).
-    guiacorte_perdeu_canais(&sCorte, xtream_ultimo_total() - n);
-    free(xt);
+    if(cargaAtual())publicarParcial();
   }
-  if (cargaAtual()) publicarParcial();
-  if (cargaAtual() && fonteIncluida(cargaFonte,2) && m3u_configurado()) {
-    M3uCanal *m = malloc(sizeof *m * G_MAX_CANAL);
-    int n = m ? m3u_canais_sessao(m,cotaNativa,cargaSessao) : 0;
-    if (!n) sFalhas++;
-    for (int i=0;i<n;i++) {
-      GCanal c={0};c.epg=-1;
-      if (sCanalPorId(m[i].id)>=0)continue;
-      snprintf(c.id,sizeof c.id,"%s",m[i].id);
-      snprintf(c.nome,sizeof c.nome,"%s",m[i].nome);
-      snprintf(c.logo,sizeof c.logo,"%s",m[i].logo);
-      snprintf(c.epgId,sizeof c.epgId,"%s",m[i].epgId);
-      snprintf(c.tipo,sizeof c.tipo,"tv");
-      c.cat=sNCanais<G_MAX_CANAL?sCatDe(m[i].categoria[0]?m[i].categoria:"Outros"):0;
-      if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
-    }
-    if (m) guiacorte_perdeu_canais(&sCorte,m3u_ultimo_total()-n);
-    free(m);
-  }
-  if (cargaAtual()) publicarParcial();
-  // PORTAL STALKER, quando houver um configurado neste perfil. Entra DEPOIS
-  // dos addons de proposito: quem tem as duas coisas espera ver primeiro o que
-  // ja via, e a ordem das categorias no guia e a ordem de chegada.
-  //
-  // Nao mexe em sFalhas: portal ausente nao e falha, e portal que nao responde
-  // ja se anuncia pela ausencia das categorias dele. Somar aqui faria a
-  // mensagem "nenhum catalogo de canais" aparecer para quem tem addons bons e
-  // um portal errado.
-  if (cargaAtual() && fonteIncluida(cargaFonte,3) && stalker_configurado()) {
-    // MALLOC e nao `static`: sao ~670 KB que so servem durante a carga. Como
-    // vetor estatico eles ficariam residentes para sempre, inclusive em quem
-    // nunca configurou portal nenhum — e este app ja disputa memoria com o
-    // cache de texturas numa TV de 2016.
-    StalkerCanal *st = malloc(sizeof *st * G_MAX_CANAL);
-    int n = st ? stalker_canais_sessao(st, cotaNativa, cargaSessao) : 0, i;
-    for (i = 0; i < n && sNCanais < G_MAX_CANAL; i++) {
-      GCanal c;
-      if (sCanalPorId(st[i].id) >= 0) continue;
-      memset(&c, 0, sizeof c);
-      c.epg = -1;
-      snprintf(c.id,   sizeof c.id,   "%s", st[i].id);
-      snprintf(c.nome, sizeof c.nome, "%s", st[i].nome);
-      snprintf(c.logo, sizeof c.logo, "%s", st[i].logo);
-      c.cat = sCatDe(st[i].categoria[0] ? st[i].categoria : "Outros");
-      if (c.cat >= 0) { sCanais[sNCanais++] = c; ok = 1; }
-    }
-    free(st);
-  }
-  if (cargaAtual()) publicarParcial();
   // Fontes das fileiras (descobertas no fio de desenho) primeiro — zero rede
   // extra. A sonda de manifestos completa com o que a home nao montou.
   // ADDON DESLIGADO NAO ENTRA POR AQUI TAMBEM. As fileiras da home so sao
@@ -1110,7 +1113,7 @@ static void empacotar(void) {
   // ele ligado e chegaria inteira; a recarga seguinte (recarregarPend) e que
   // corrige a lista de fontes, mas a tela nao precisa esperar por ela.
   for (i = 0, w = 0; i < nCanais; i++)
-    if (!canais[i].base[0] || (baseLigada(canais[i].base) && !baseOculta(canais[i].base)))
+    if (contaCanalAtiva(canais[i].id) && (!canais[i].base[0] || (baseLigada(canais[i].base) && !baseOculta(canais[i].base))))
       canais[w++] = canais[i];
   nCanais = w;
   // Categoria que ficou sem canal sai da lista — senao vira uma fileira so
@@ -1345,11 +1348,16 @@ static void publicar(void) {
   if (nCanais > 0) cacheGravar();
   // A lista nova pode trazer a dica de pais que faltava (#158).
   epgPaisesEscolher();
-  // Da grade do provedor so interessam os canais desta lista (#158).
-  { static const char *ids[G_MAX_CANAL];
-    int k = 0;
-    for (i = 0; i < nCanais; i++) if (canais[i].epgId[0]) ids[k++] = canais[i].epgId;
-    epg_fonte_extra_ids(ids, k); }
+  epgFontesEscolher();
+  IptvConta cs[IPTV_MAX_CONTAS];int nc=iptv_contas(cs,IPTV_MAX_CONTAS);
+  for(int a=0;a<nc;a++) {
+    const char *ids[G_MAX_CANAL];int k=0;
+    for(i=0;i<nCanais;i++) {
+      unsigned sid;int tipo=canalConta(canais[i].id,&sid);
+      if(tipo==cs[a].tipo && sid==cs[a].id && canais[i].epgId[0])ids[k++]=canais[i].epgId;
+    }
+    epg_conta_ids(cs[a].tipo,cs[a].id,ids,k);
+  }
 }
 
 static void iniciarCarga(void) {
@@ -1361,6 +1369,10 @@ static void iniciarCarga(void) {
   // perfil novo enquanto a resposta do anterior ainda estiver em voo.
   cargaSessao = nv_perfil_sessao_ler(); cargaCancelada = 0;
   cargaFonte = ajustes_guia_fonte();
+  IptvConta cs[IPTV_MAX_CONTAS];int nc=iptv_contas(cs,IPTV_MAX_CONTAS);nContasCarga=0;
+  for(int i=0;i<nc;i++)
+    if(cs[i].ativa && fonteIncluida(cargaFonte,cs[i].tipo) && contaConfigurada(&cs[i]))
+      contasCarga[nContasCarga++]=cs[i];
   nAddonsCarga = fonteIncluida(cargaFonte,4) ? addons_n() : 0;
   addonsCarga = nAddonsCarga > 0 ? calloc((size_t)nAddonsCarga, sizeof *addonsCarga) : NULL;
   if (nAddonsCarga > 0 && !addonsCarga) { nAddonsCarga = 0; estado = G_FALHOU; return; }
@@ -1592,6 +1604,7 @@ int guia_variantes(const char *id, GuiaVariante *out, int max) {
   char base[160], outra[160];
   int i, n = 0;
   if (!c || max < 1 || !xtream_e_id(c->id)) return 0;
+  unsigned sid; canalConta(c->id,&sid);
   nv_nome_base(c->nome, base, sizeof base);
   snprintf(out[n].id, sizeof out[n].id, "%s", c->id);
   snprintf(out[n].nome, sizeof out[n].nome, "%s", c->nome);
@@ -1600,6 +1613,8 @@ int guia_variantes(const char *id, GuiaVariante *out, int max) {
   if (!base[0]) return n;
   for (i = 0; i < nCanais && n < max; i++) {
     if (&canais[i] == c || !xtream_e_id(canais[i].id)) continue;
+    unsigned outroSid;
+    if(canalConta(canais[i].id,&outroSid)!=IPTV_XTREAM || outroSid!=sid)continue;
     nv_nome_base(canais[i].nome, outra, sizeof outra);
     if (strcmp(base, outra)) continue;
     snprintf(out[n].id, sizeof out[n].id, "%s", canais[i].id);
@@ -2340,7 +2355,11 @@ void guia_evento(const SDL_Event *e) {
       else if (topoCol == G_TOPO_CATEGORIAS) catAbrir(2, 0);
       else if (topoCol == G_TOPO_ADDONS) painelAbrir();
       else if (topoCol == G_TOPO_DIAG) pedLivetvDiag = 1;
-      else if (topoCol == G_TOPO_ATUALIZAR) { m3u_recarregar(); guia_recarregar(0); }
+      else if (topoCol == G_TOPO_ATUALIZAR) {
+        IptvConta cs[IPTV_MAX_CONTAS];int nc=iptv_contas(cs,IPTV_MAX_CONTAS);
+        for(int i=0;i<nc;i++)if(cs[i].ativa && cs[i].tipo==IPTV_M3U)m3u_fonte_recarregar(cs[i].id);
+        guia_recarregar(0);
+      }
       else if (topoCol == G_TOPO_PREVIEW) {
         previewLigado = !previewLigado;
         previewGravar();
@@ -2512,10 +2531,9 @@ static void epgPaisesEscolher(void) {
 // consultar de novo a cada quadro.
 static int epgDo(GCanal *c) {
   if (c->epg == -1) {
-    if (epg_estado() == EPG_FALHOU) return -2;
-    if (epg_estado() != EPG_PRONTO) return -1;
-    c->epg = c->epgId[0] ? epg_match_id(c->epgId) : -1;
-    if (c->epg < 0) c->epg = epg_match(c->nome);
+    if (epg_canal_estado(c->id) == EPG_FALHOU) return -2;
+    if (epg_canal_estado(c->id) != EPG_PRONTO) return -1;
+    c->epg = epg_match_canal(c->id,c->epgId,c->nome);
     if (c->epg < 0) c->epg = -2;
   }
   return c->epg;
@@ -2553,7 +2571,7 @@ static int gEstadoGrade(GCanal *c) {
     if (estadoCurto == XTEPG_FALHOU) return -3;
     if (estadoCurto == XTEPG_VAZIO) return -2;
   }
-  return epg_estado() == EPG_FALHOU ? -3 : epg;
+  return epg_canal_estado(c->id) == EPG_FALHOU ? -3 : epg;
 }
 static int gFaixaDesde(GCanal *c, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
   int epg = epgDo(c);
@@ -2566,9 +2584,9 @@ static int gFaixa(GCanal *c, time_t de, time_t ate, EpgProg *out, int cap) {
 
 // Quando a grade EPG e (re)publicada, os indices guardados morrem — a troca
 // inteira do vetor torna todo -1 de novo.
-static int epgRev, epgEraPronto;
+static int epgRev;
+static unsigned epgVista;
 static void epgPasso(void) {
-  int pronto = epg_estado() == EPG_PRONTO;
   // Trocou o pais em Ajustes com o guia aberto: refaz a escolha (o epg_passo
   // abaixo ve a troca e recarrega).
   { static char ultimo[4] = "?";
@@ -2580,11 +2598,11 @@ static void epgPasso(void) {
   xtepg_passo();
   GCanal *canalFoco = linhaItem(focoLin,focoCol);
   if (canalFoco) xtepg_priorizar(canalFoco->id);
-  if (pronto && !epgEraPronto) {
+  if (epgVista != epg_revisao()) {
     epgRev++;
     for (int i = 0; i < nCanais; i++) canais[i].epg = -1;
   }
-  epgEraPronto = pronto;
+  epgVista = epg_revisao();
 }
 
 // Posicao vertical (antes da rolagem) do canal `c` da linha `l` no modo
@@ -5229,7 +5247,7 @@ void guia_abrir_sessao(void) {
   dicaAlfa = dicaDir = dicaA = 0.0f; heroA = 1.0f;
   pedLivetvDiag = buscaEstado = buscaNC = buscaNP = buscaFoco = 0;
   buscaTexto[0] = 0; buscaRol = buscaAnim = 0.0f;
-  epgEraPronto = 0; epgRev++;
+  epgVista = epg_revisao(); epgRev++;
 #ifdef NV_TOUCH_UI
   toqueLimpar(); rolVazio = toqueTempoMin = toquePpm = 0.0f;
 #endif
