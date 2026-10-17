@@ -29,6 +29,8 @@ jobs:
           set -euo pipefail
           test -e /dev/kvm
           sudo chmod 666 /dev/kvm
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libpulse0 libegl1 libgl1 libnss3 libxcomposite1 libxcursor1 libxdamage1 libxfixes3 libxi6 libxrandr2 libxrender1 libxtst6 libxcb-cursor0 libxkbcommon-x11-0
           sdkmanager 'platform-tools' 'emulator' 'system-images;android-30;google_apis;x86_64'
           echo no | avdmanager create avd --force -n nuvio-fonts -k 'system-images;android-30;google_apis;x86_64' --device pixel_4
       - name: Download the exact verified APK
@@ -39,15 +41,19 @@ jobs:
       - name: Boot a persistent hardware-accelerated phone emulator
         run: |
           set -euo pipefail
-          nohup "$ANDROID_HOME/emulator/emulator" -avd nuvio-fonts -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 4096 > emulator-results/boot.log 2>&1 &
-          timeout 240 adb wait-for-device
+          "$ANDROID_HOME/emulator/emulator" -accel-check
+          "$ANDROID_HOME/emulator/emulator" -list-avds
+          nohup "$ANDROID_HOME/emulator/emulator" -avd nuvio-fonts -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -feature -Vulkan > emulator-results/boot.log 2>&1 &
+          if ! timeout 150 adb wait-for-device; then cat emulator-results/boot.log; exit 1; fi
           python3 - <<'PYBOOT'
           import subprocess,time
           for i in range(120):
               r=subprocess.run(['adb','shell','getprop','sys.boot_completed'],capture_output=True,text=True,timeout=10)
               if r.stdout.strip()=='1':break
               time.sleep(2)
-          else:raise RuntimeError('Emulator did not finish booting')
+          else:
+              print(open('emulator-results/boot.log').read(),flush=True)
+              raise RuntimeError('Emulator did not finish booting')
           PYBOOT
           adb shell getprop ro.product.cpu.abilist | tee emulator-results/abis.txt
           adb shell getprop ro.dalvik.vm.native.bridge | tee emulator-results/native-bridge.txt
@@ -117,8 +123,9 @@ jobs:
       - name: Collect emulator diagnostics
         if: always()
         run: |
-          adb logcat -d > emulator-results/logcat.txt || true
-          adb shell getprop > emulator-results/properties.txt || true
+          cat emulator-results/boot.log || true
+          timeout 15 adb logcat -d > emulator-results/logcat.txt || true
+          timeout 15 adb shell getprop > emulator-results/properties.txt || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -126,4 +133,4 @@ jobs:
           path: emulator-results
       - name: Stop the test emulator
         if: always()
-        run: adb emu kill || true
+        run: timeout 10 adb emu kill || true
