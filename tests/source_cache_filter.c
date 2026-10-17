@@ -37,6 +37,17 @@ int main(void) {
            (c->esperado == FONTEFILTRO_CACHE_NAO));
   }
 
+  // Live sources bypass persistent cache filters for all declared/unknown states.
+  dados.naoVod = 1;
+  for (unsigned cache = FONTEFILTRO_CACHE_TODAS; cache <= FONTEFILTRO_CACHE_NAO; cache++) {
+    cfg.cache = cache;
+    for (unsigned state = FONTEFILTRO_CACHE_TODAS; state <= FONTEFILTRO_CACHE_NAO; state++) {
+      dados.cache = state;
+      assert(fontefiltro_permite(&cfg, &dados));
+    }
+  }
+  dados.naoVod = 0;
+
   // A candidate selected by Uncached may become confirmed Cached after the
   // resolver hands out its first URL. Renewing that same winner must retain
   // its selection-time cache eligibility instead of exhausting the queue.
