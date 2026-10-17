@@ -180,6 +180,37 @@
       {
         "op": "hierarchy"
       }
+    ],
+    "x86-9": [
+      {
+        "op": "tap",
+        "x": 540,
+        "y": 1000
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "09-file-picker"
+      },
+      {
+        "op": "tap",
+        "x": 80,
+        "y": 140
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "09-file-locations"
+      },
+      {
+        "op": "hierarchy"
+      }
     ]
   }
 }
