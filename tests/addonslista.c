@@ -188,7 +188,7 @@ static void conferirTexto(const char *o_que, const char *obtido, const char *esp
 static int sempreCancelado(void *u) { (void)u; return 1; }
 
 int main(void) {
-  const char *liveTypes[] = {"tv", "channel", "channels", "live", "iptv", "LiVe"};
+  const char *liveTypes[] = {"tv", "channel", "channels", "live", "iptv", "LiVe", "sport", "sports"};
   for (unsigned i = 0; i < sizeof liveTypes / sizeof *liveTypes; i++) {
     addons_buscar("fixture:live", liveTypes[i]);
     conferir("live context before player/sheet opens", liveRequest, 1);

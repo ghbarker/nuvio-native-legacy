@@ -9,7 +9,8 @@ static int base(const char *a, const char *b) {
 }
 int main(void) {
   OK(nv_tipo_canal("tv") && nv_tipo_canal("channel") && nv_tipo_canal("channels") &&
-     nv_tipo_canal("live") && nv_tipo_canal("IPTV"), "todos os tipos de canal");
+     nv_tipo_canal("live") && nv_tipo_canal("IPTV") && nv_tipo_canal("sport") &&
+     nv_tipo_canal("sports"), "todos os tipos de canal e eventos ao vivo");
   OK(!nv_tipo_canal(NULL) && !nv_tipo_canal("") && !nv_tipo_canal("movie") &&
      !nv_tipo_canal("series") && !nv_tipo_canal("anime"), "VOD nao vira canal");
   char b[160];

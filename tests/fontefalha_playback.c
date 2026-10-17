@@ -43,6 +43,7 @@ int player_aberto(void) { return aberto; }
 int player_mini_ativo(void) { return mini; }
 int player_quer_sair(void) { return sair; }
 const char *player_id_canal(void) { return ""; }
+const char *player_tipo_canal(void) { return ""; }
 int player_carregando(void) { return carregando; }
 int player_fonte_falhou(void) { return playerFalhou; }
 void player_voltar_a_esperar(void) {
