@@ -25,6 +25,7 @@
 #include "dados.h"
 #include "linguas.h"
 #include "trakt.h"
+#include "traktscrobble.h"
 #include "visto.h"
 #include "vistoep.h"
 #include <SDL2/SDL.h>
@@ -51,6 +52,15 @@ void desc_episodios(int idx, int temporada) { (void)idx; (void)temporada; }
 void desc_episodios_garantir(int idx) { (void)idx; }
 void desc_episodios_pendente(void) {}
 int desc_episodios_carregando(int idx) { (void)idx; return carregando; }
+// This fixture supplies a complete one-episode list synchronously. Keep the
+// player's canonical-identity gate deterministic instead of consulting catalog
+// state that background post-play work may replace while the long test runs.
+int nv_test_cat_episodios_finais(int idx, const char *id) {
+  (void)idx; (void)id; return 1;
+}
+int nv_test_cat_episodio_tvdb(int idx, const char *id, int temporada, int episodio) {
+  (void)idx; (void)id; (void)temporada; (void)episodio; return 0;
+}
 #include "rede.h"
 
 // Keep background marker lookups offline too.
@@ -108,6 +118,13 @@ static double tkPos, tkDur;   // o que o Trakt recebeu por ultimo
 static int tkAssistiu;
 void trakt_marcar(const char *imdb, double posSeg, double durSeg, double assistidoSeg, int assistiu) {
   (void)imdb; (void)assistidoSeg; tkPos = posSeg; tkDur = durSeg; tkAssistiu = assistiu; nTrakt++;
+}
+int trakt_scrobble_alvo(int evento, const TraktScrobbleAlvo *alvo,
+                        double posSeg, double durSeg, double assistidoSeg, int assistiu) {
+  (void)alvo; (void)assistidoSeg;
+  if (evento != SCR_EV_SAIU) return SCR_NADA;
+  tkPos = posSeg; tkDur = durSeg; tkAssistiu = assistiu; nTrakt++;
+  return assistiu ? SCR_STOP : SCR_PAUSE;
 }
 int visto_titulo(const char *imdb, const char *tipo, const int *temporadas,
                  int nt, int visto, int destinos) {
