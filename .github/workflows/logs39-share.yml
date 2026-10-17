@@ -1,0 +1,72 @@
+name: Share verified Logs39 Live TV test APK
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  share:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require successful checks on the final integrated source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39042313335 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39042295521 --jq .conclusion)" = success
+      - uses: actions/checkout@v4
+        with:
+          ref: d49927ac62d6b7d0468cf90310c2f9efc2cdb71e
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39042313335
+          name: Nuvio-TV-Mobile-Test-Logs39-fc89a65ad89b45cb9208c411aeae7ca0e26918e8
+          path: dist
+      - name: Verify Android page alignment and the retained package identity
+        run: |
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs39.apk
+          python3 - <<'PY'
+          import hashlib,json,pathlib,zipfile
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs39.apk'
+          report=json.loads((root/'Logs39-validation.json').read_text())
+          assert report['source_commit']=='d49927ac62d6b7d0468cf90310c2f9efc2cdb71e'
+          assert report['source_tree']=='e9c445ac5c2bd24a033e47e1a4557b1a50aed2eb'
+          assert report['package']=='space.nuvio.nativelegacy.touch'
+          assert report['version_code']==20049 and report['version_name']=='2.0.49-test-logs39'
+          assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          assert apk.stat().st_size==report['apk_bytes']
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
+          with zipfile.ZipFile(apk) as z:
+              assert 'lib/arm64-v8a/libmain.so' in z.namelist()
+              assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
+          report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,live_tv_regressions=True,live_tv_revamp_regressions=True,macos_full_source_settings=True,android_16k_alignment=True)
+          report['android_linux_run']=39042313335;report['macos_run']=39042295521
+          (root/'Logs39-validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          (root/'Logs39-testing.txt').write_text('''Nuvio TV/Mobile Test - Logs39: Live TV preview
+
+          Install over Nuvio TV/Mobile Test by choosing Update. Do not uninstall or clear app data; accounts and settings should remain.
+
+          1. XTREAM: Open Settings > Live TV > TV guide sources. Select Xtream and Confirm. Open Live TV, check channel rows and scroll through several categories. Close and reopen the app, then reopen Live TV to check cached loading.
+          2. EPG: Focus several channels that normally have programme information. Their current/next programmes should populate. A channel with no schedule should stop showing Loading; a failed request should show Could not load the schedule.
+          3. REFRESH: While focused on a channel away from the first row, select Refresh in the guide header. Existing channels should remain visible while refreshing and focus should stay on that channel if it remains in the updated list.
+          4. M3U: Open Settings > Live TV > M3U playlist URL and paste your provider\'s full HTTP/HTTPS playlist URL. Choose M3U under TV guide sources, Confirm, then open Live TV and play a channel. Check names, groups and logos. An HLS video URL is not a channel playlist.
+          5. XMLTV: Leave XMLTV guide URL empty to use the guide specified in the M3U header. If your provider supplies a separate EPG URL, paste it into that setting, then refresh the guide.
+          6. SOURCE CHOICE: Choose All sources to combine configured providers/add-ons. Existing per-add-on guide visibility controls remain available. Other sources must not delay the first native channel list in All mode.
+          7. PROFILES: Switch to another profile and confirm it does not inherit this profile\'s M3U playlist or source choice. Switch back and verify the original settings remain.
+
+          This preview retains the approved Logs38 changes, including fonts and Live TV filter bypass. Very large providers can still exceed the existing channel/category limits; full coverage of those lists remains a separate investigation. No new revamp PR is published before approval of this APK.
+          ''')
+          PY
+      - name: Publish the verified test download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view tv-mobile-test-logs-v39 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create tv-mobile-test-logs-v39 --repo "$GITHUB_REPOSITORY" --target d49927ac62d6b7d0468cf90310c2f9efc2cdb71e --title 'Nuvio TV/Mobile Test - Logs39: Live TV preview' --notes-file dist/Logs39-testing.txt
+          fi
+          gh release upload tv-mobile-test-logs-v39 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs39.apk dist/Logs39-validation.json dist/Logs39-testing.txt
