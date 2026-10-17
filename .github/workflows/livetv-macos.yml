@@ -1,4 +1,4 @@
-name: Logs40 macOS large EPG validation
+name: Logs41 macOS interface font validation
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -7,9 +7,9 @@ on:
 permissions:
   contents: read
 jobs:
-  live-tv:
+  interface-fonts:
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       SDL_MAC_BACKGROUND_APP: '1'
       DYLD_LIBRARY_PATH: /opt/homebrew/lib
@@ -18,18 +18,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: b573e9ffcc8a74d97b7db968e0edc59692a9f532
+          ref: 740853ecea8092d8e6f2c367ca73a5d61f1f69f1
           persist-credentials: false
-      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
-      - name: Guide, playlist and EPG regressions
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
+      - name: Registry, Settings, UI renderer and subtitle regressions
         run: |
           set -euo pipefail
-          for suite in epg_streaming guiaepg guia_epg_estado guia_loading guia_stream_headers m3u xtepg_bounded; do
-            bash "tests/$suite.sh"
-          done
-      - name: ASan and UBSan on large-guide parsing and guide integration
+          bash tests/legfontes.sh
+          bash tests/ass_fonte_local.sh
+          bash tests/faixas_estilo_ctl.sh
+          bash tests/interface_font.sh
+      - name: Font ASan and UBSan regressions
+        env:
+          SANITIZE: '1'
         run: |
           set -euo pipefail
-          for suite in epg_streaming guiaepg guia_epg_estado guia_loading guia_stream_headers m3u xtepg_bounded; do
-            SANITIZE=1 NV_TEST_SANITIZE=1 bash "tests/$suite.sh"
-          done
+          bash tests/legfontes.sh
+          bash tests/ass_fonte_local.sh
+          bash tests/interface_font.sh
