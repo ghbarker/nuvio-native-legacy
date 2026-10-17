@@ -17,13 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 974f3e00af4e682fb3d62bed745d506854382382
+          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Run focused integration regressions
         run: |
           set -euo pipefail
-          for suite in streamfit_sheet fontefalha_worker addonslista addons_proveniencia livetv_regras source_cache_filter canal_tpk_eof
+          for suite in streamfit_sheet fontefalha_worker addonslista addons_proveniencia fontefalha_playback livetv_regras source_cache_filter canal_tpk_eof
           do
             echo "RUN $suite"
             bash "tests/$suite.sh"
@@ -53,12 +53,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 974f3e00af4e682fb3d62bed745d506854382382
+          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 974f3e00af4e682fb3d62bed745d506854382382
-          test "$(git rev-parse HEAD^{tree})" = 28c61c15997d25bf4010f3e45f30613fff660a70
+          test "$(git rev-parse HEAD)" = 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
+          test "$(git rev-parse HEAD^{tree})" = d0cc7622bcd8e20b8341cddcd48c565e3b1c0f92
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -157,7 +157,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,pathlib
           p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs37.apk')
-          out={'all_passed':True,'source_commit':'974f3e00af4e682fb3d62bed745d506854382382','source_tree':'28c61c15997d25bf4010f3e45f30613fff660a70','package':'space.nuvio.nativelegacy.touch','version_code':20047,'version_name':'2.0.47-test-logs37','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'live_tv_regressions':True,'sanitizer_regressions':True,'android_font_unit_test':True,'both_arm_abis':True}
+          out={'all_passed':True,'source_commit':'8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6','source_tree':'d0cc7622bcd8e20b8341cddcd48c565e3b1c0f92','package':'space.nuvio.nativelegacy.touch','version_code':20047,'version_name':'2.0.47-test-logs37','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'live_tv_regressions':True,'sanitizer_regressions':True,'android_font_unit_test':True,'both_arm_abis':True}
           pathlib.Path('Logs37-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4

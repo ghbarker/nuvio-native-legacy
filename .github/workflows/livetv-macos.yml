@@ -12,12 +12,13 @@ jobs:
     timeout-minutes: 15
     env:
       SDL_MAC_BACKGROUND_APP: '1'
+      DYLD_LIBRARY_PATH: /opt/homebrew/lib
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 974f3e00af4e682fb3d62bed745d506854382382
+          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
       - name: Source sheet and VOD filter restoration
