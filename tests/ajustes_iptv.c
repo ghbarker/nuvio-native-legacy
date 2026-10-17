@@ -35,18 +35,24 @@ static void salvarTeclado(const char *t) {
   e.key.keysym.sym=SDLK_RETURN;teclado_evento(&e);assert(!teclado_aberto());
   ajustes_atualizar(0.016f,SDL_GetTicks());
 }
-static void campo(int op,const char *t){tocar(op);salvarTeclado(t);}
+static void campo(int op,const char *t) {
+  if(teclado_aberto())assert(stCampo==op);else tocar(op);
+  salvarTeclado(t);
+}
 static IptvConta selecionada(void){IptvConta c;assert(iptv_conta_selecionada(&c));return c;}
 static int listaOp(int tipo){return AJ_IPTV_LISTA_XTREAM+tipo-IPTV_XTREAM;}
 static void raiz(void) {
-  for(int i=0;i<6 && (uxEditor || iptvForm.tipo);i++)key(SDLK_ESCAPE);
+  for(int i=0;i<6 && (uxEditor || iptvForm.tipo || teclado_aberto());i++) {
+    key(SDLK_ESCAPE);ajustes_atualizar(0.016f,SDL_GetTicks());
+  }
   assert(!uxEditor && !iptvForm.tipo);
 }
 static void lista(int tipo){raiz();tocar(listaOp(tipo));assert(uxEditor && uxOp==listaOp(tipo));}
 static void nova(int tipo) {
   int antes=iptv_contas(NULL,0),selecionadaAntes=iptv_conta_indice();lista(tipo);
   ajIptvToqueEscolher(nValores(uxOp)-1,0);
-  assert(!uxEditor && iptvForm.nova && iptvForm.tipo==tipo && !teclado_aberto());
+  assert(!uxEditor && iptvForm.nova && iptvForm.tipo==tipo && teclado_aberto());
+  assert(stCampo==ajIptvPrimeiroCampo(tipo) && !teclado_texto()[0]);
   assert(!iptvForm.nome[0] && !iptvForm.servidor[0] && !iptvForm.url[0] && !iptvForm.senha[0]);
   assert(iptv_contas(NULL,0)==antes && iptv_conta_indice()==selecionadaAntes);
 }
@@ -108,9 +114,10 @@ int main(int argc,char **argv) {
     ajIptvToqueEscolher(0,0);assert(uxEditor && !iptvForm.tipo);
     nova(tipo);campo(ajIptvPrimeiroCampo(tipo),"https://cancel.invalid/list");
     tocar(AJ_IPTV_CANCELAR);assert(!iptvForm.tipo && !iptv_contas(NULL,0));
-    nova(tipo);key(SDLK_ESCAPE);assert(!iptvForm.tipo && !iptv_contas(NULL,0));
+    nova(tipo);key(SDLK_ESCAPE);ajustes_atualizar(0.016f,SDL_GetTicks());
+    assert(!iptvForm.tipo && !iptv_contas(NULL,0) && uxEditor && uxOp==listaOp(tipo));
   }
-  puts("PASS: exactly three provider choices; empty lists show None and Add; partial setup and Back/Cancel create no account");
+  puts("PASS: provider > Add immediately opens blank address input; initial Cancel returns to provider, partial setup and Back create no account");
   nova(IPTV_XTREAM);campo(AJ_XTREAM_SERVIDOR,"https://one.invalid");
   tocar(AJ_IPTV_SALVAR);assert(!iptv_contas(NULL,0) && iptvForm.nova);
   campo(AJ_XTREAM_USUARIO,"one");campo(AJ_XTREAM_SENHA,"fixture");
@@ -138,13 +145,13 @@ int main(int argc,char **argv) {
   adicionar(IPTV_STALKER,"https://portal.invalid",NULL);assert(stalker_configurado());
   nova(IPTV_M3U);campo(AJ_M3U_URL,"ftp://invalid.example/list");tocar(AJ_IPTV_SALVAR);
   assert(iptv_contas(NULL,0)==4 && iptvForm.nova);
-  raiz();nova(IPTV_M3U);tocar(AJ_M3U_URL);perfis_invalidar_sessao();salvarTeclado("https://stale.invalid/list");
+  raiz();nova(IPTV_M3U);perfis_invalidar_sessao();salvarTeclado("https://stale.invalid/list");
   assert(iptv_contas(NULL,0)==4 && !iptvForm.tipo);
   lista(IPTV_M3U);perfis_invalidar_sessao();key(SDLK_RETURN);assert(!uxEditor);
   conta(IPTV_M3U,0);ajIptvToqueEscolher(1,0);perfis_invalidar_sessao();ajIptvToqueEscolher(1,0);
   assert(iptv_contas(NULL,0)==4 && !uxEditor);
   // An explicit close must erase credentials from the unsaved form.
-  nova(IPTV_XTREAM);campo(AJ_XTREAM_SENHA,"do-not-retain");ajustes_encerrar();
+  nova(IPTV_XTREAM);salvarTeclado("https://draft.invalid");campo(AJ_XTREAM_SENHA,"do-not-retain");ajustes_encerrar();
   assert(!iptvForm.senha[0] && !iptvForm.tipo);
   puts("PASS: invalid URLs and stale-profile keyboard/list/delete results cannot create or remove accounts; closing wipes draft secrets");
   SDL_Quit();return 0;
