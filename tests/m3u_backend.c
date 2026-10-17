@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <time.h>
 
 static char pasta[512];
@@ -40,8 +41,8 @@ char *rede_baixar_bin_medido_controle(const char *url,int prazo,const char *cons
 }
 static M3uCanal canais[8];
 static void *refresh(void *unused){(void)unused;assert(m3u_canais_sessao(canais,8,sessao)==2);return NULL;}
-int main(void){
-  char tmp[]="/tmp/nuvio-m3u-backend.XXXXXX";assert(mkdtemp(tmp));snprintf(pasta,sizeof pasta,"%s",tmp);
+int main(int argc,char **argv){
+  assert(argc==2 && strlen(argv[1])<sizeof pasta);snprintf(pasta,sizeof pasta,"%s",argv[1]);assert(!mkdir(pasta,0700));
   assert(!m3u_configurado());
   assert(!m3u_definir_lista("javascript:bad"));assert(!m3u_definir_lista("https://invalid/\nsecret"));
   assert(m3u_definir_lista("https://provider.invalid/list.m3u?token=private"));

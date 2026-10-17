@@ -8,4 +8,4 @@ if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit
 cc "${flags[@]}" tests/m3u_parse.c src/m3u_parse.c -o "$work/parser"
 "$work/parser"
 cc "${flags[@]}" tests/m3u_backend.c src/m3u.c src/m3u_parse.c -lpthread -o "$work/backend"
-"$work/backend"
+"$work/backend" "$work/data"
