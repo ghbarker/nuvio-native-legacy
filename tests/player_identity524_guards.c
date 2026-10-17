@@ -5,6 +5,7 @@
 #undef main
 #include "dados.h"
 #include "progresso.h"
+#include "traktscrobble.h"
 
 static CatItem observed;
 static int observations;
