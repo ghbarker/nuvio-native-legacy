@@ -44,6 +44,30 @@
         "op": "shot",
         "name": "02-fixture-path-check"
       }
+    ],
+    "3": [
+      {
+        "op": "shell",
+        "args": [
+          "run-as",
+          "space.nuvio.nativelegacy.touch",
+          "readlink",
+          "/proc/5597/cwd"
+        ]
+      },
+      {
+        "op": "shell",
+        "args": [
+          "run-as",
+          "space.nuvio.nativelegacy.touch",
+          "ls",
+          "-l",
+          "/proc/5597/fd"
+        ]
+      },
+      {
+        "op": "done"
+      }
     ]
   }
 }
