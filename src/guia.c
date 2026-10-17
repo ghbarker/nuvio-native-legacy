@@ -2426,8 +2426,11 @@ static int xtAviso(char *sub, size_t tam) {
   XtreamConta c;
   long long agora = (long long)time(NULL);
   int a;
-  if (!xtream_conta(&c)) return 0;
-  a = xtream_conta_aviso(&c, agora);
+  IptvConta cs[IPTV_MAX_CONTAS];int nc=iptv_contas(cs,IPTV_MAX_CONTAS);a=XA_NADA;
+  for(int i=0;i<nc;i++)if(cs[i].ativa && cs[i].tipo==IPTV_XTREAM) {
+    char id[80];iptvid_montar("xtream:",cs[i].id,"xtream:0",id,sizeof id);
+    if(xtream_conta_canal(id,&c) && (a=xtream_conta_aviso(&c,agora))!=XA_NADA)break;
+  }
   switch (a) {
     case XA_EXPIRADA:
       snprintf(sub, tam, i18n("%d canais · %d categorias · assinatura Xtream vencida"), nCanais, nCats);
@@ -4912,7 +4915,7 @@ void guia_desenhar(Uint32 agora) {
     // A CONTA XTREAM, quando ha o que dizer (#158): vencida, desativada,
     // telas cheias ou vencendo. E a causa de "nenhum canal toca" que se sabe
     // ANTES de tentar um canal. Lido do que o fio do guia guardou, sem rede.
-    else if (xtream_configurado() && xtAviso(sub, sizeof sub)) { }
+    else if (xtAviso(sub, sizeof sub)) { }
     // O CORTE SE DIZ: o guia guarda um teto de canais/categorias (guiacorte.h)
     // e antes cortava em silencio. Mesma frase da linha da fonte (feat/guia-tv).
     else if (guiacorte_cortou(&corte))
@@ -5259,7 +5262,13 @@ void guia_abrir_sessao(void) {
 // changes explicitly invalidate cached lists so removed accounts cannot reappear.
 void guia_recarregar(int limparLista) {
   cargaCancelada=1;
-  xtepg_limpar();epgFontesEscolher();epg_recarregar();
+  xtepg_limpar();epgFontesEscolher();
+  if(limparLista)epg_iniciar();
+  else {
+    IptvConta cs[IPTV_MAX_CONTAS];int nc=iptv_contas(cs,IPTV_MAX_CONTAS);
+    for(int i=0;i<nc;i++)if(cs[i].ativa && cs[i].tipo==IPTV_M3U)m3u_fonte_recarregar(cs[i].id);
+    epg_recarregar();
+  }
   if(limparLista) {
     char nome[64];int p=perfis_ativo();
     dados_apagar(p>0?(snprintf(nome,sizeof nome,"guia-cache-p%d.bin",p),nome):"guia-cache.bin");
