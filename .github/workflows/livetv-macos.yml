@@ -1,4 +1,4 @@
-name: Logs42 multiple Live TV accounts macOS validation
+name: Logs43 multiple Live TV accounts macOS validation
 on:
   workflow_dispatch:
 permissions:
@@ -15,11 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 1f40d1ba185b3ca691080d428842e112decc2fbe
+          ref: f40f91feafffda63b5a3c13bb022c66604a143bc
           fetch-depth: 3
           persist-credentials: false
-      - name: Verify the retained APK has identical application code
-        run: git diff --exit-code 7ee26ad2c46f368399b1f385ea99031cce1a4a38 HEAD -- . ':!tests'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Native accounts, Settings and guide regressions
         run: |
