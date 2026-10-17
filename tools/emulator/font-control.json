@@ -1,1 +1,49 @@
-{"phases":{}}
+{
+  "phases": {
+    "2": [
+      {
+        "op": "shell",
+        "args": [
+          "run-as",
+          "space.nuvio.nativelegacy.touch",
+          "ls",
+          "-la"
+        ]
+      },
+      {
+        "op": "shell",
+        "args": [
+          "run-as",
+          "space.nuvio.nativelegacy.touch",
+          "readlink",
+          "/proc/3235/cwd"
+        ]
+      },
+      {
+        "op": "shell",
+        "args": [
+          "run-as",
+          "space.nuvio.nativelegacy.touch",
+          "find",
+          ".",
+          "-maxdepth",
+          "3",
+          "-type",
+          "d"
+        ]
+      },
+      {
+        "op": "fixture",
+        "location": "files/art"
+      },
+      {
+        "op": "wait",
+        "seconds": 8
+      },
+      {
+        "op": "shot",
+        "name": "02-fixture-path-check"
+      }
+    ]
+  }
+}
