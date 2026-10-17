@@ -1,4 +1,4 @@
-name: Share verified Logs44 account-list test APK
+name: Share verified Logs45 provider-account test APK
 on:
   workflow_dispatch:
 permissions:
@@ -14,33 +14,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39065739015/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39065739015 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39065740929 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39074549882/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39074549882 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39074552019 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: ca2a79e14ac923f7dc56947b960fdbcc56c6f176
+          ref: 37e910be6287491dabeaf0bd868f783da5f8962c
           fetch-depth: 3
           persist-credentials: false
       - name: Verify tested application code matches the retained APK
-        run: test "$(git rev-parse HEAD)" = ca2a79e14ac923f7dc56947b960fdbcc56c6f176
+        run: test "$(git rev-parse HEAD)" = 37e910be6287491dabeaf0bd868f783da5f8962c
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39065739015
-          name: Nuvio-TV-Mobile-Test-Logs44-b99e631b3f0be10e1e1ed2a469ae62e3bbe042b6
+          run-id: 39074549882
+          name: Nuvio-TV-Mobile-Test-Logs45-9157a8ff5f27744e09f94b7878cd2f1c313d8546
           path: dist
       - name: Verify Android page alignment and the retained package identity
         run: |
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs44.apk
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs45.apk
           python3 - <<'PY'
           import hashlib,json,pathlib,zipfile
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs44.apk'
-          report=json.loads((root/'Logs44-validation.json').read_text())
-          assert report['source_commit']=='ca2a79e14ac923f7dc56947b960fdbcc56c6f176'
-          assert report['source_tree']=='f6385c08b4b4264aa721d5b2b5f30e762cba0b80'
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs45.apk'
+          report=json.loads((root/'Logs45-validation.json').read_text())
+          assert report['source_commit']=='37e910be6287491dabeaf0bd868f783da5f8962c'
+          assert report['source_tree']=='a44c31e2bc7a57cb58660b9bbb0510d97d5a95a8'
           assert report['package']=='space.nuvio.nativelegacy.touch'
-          assert report['version_code']==20054 and report['version_name']=='2.0.54-test-logs44'
+          assert report['version_code']==20055 and report['version_name']=='2.0.55-test-logs45'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
@@ -48,25 +48,27 @@ jobs:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist()
               assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
           report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,native_account_regressions=True,macos_native_account_regressions=True,android_16k_alignment=True)
-          report['android_run']=39065739015;report['linux_run']=39065739015;report['macos_run']=39065740929
+          report['android_run']=39074549882;report['linux_run']=39074549882;report['macos_run']=39074552019
           report['android_job']='apk-build'
-          report['test_commit']='ca2a79e14ac923f7dc56947b960fdbcc56c6f176'
+          report['test_commit']='37e910be6287491dabeaf0bd868f783da5f8962c'
           report['application_code_matches_test_commit']=True
-          report['macos_test_commit']='ca2a79e14ac923f7dc56947b960fdbcc56c6f176'
+          report['macos_test_commit']='37e910be6287491dabeaf0bd868f783da5f8962c'
           report['validation_scope']='Linux and macOS multiple-account registry, real Settings add/select/confirm/delete controls, profile and EPG ownership, native providers, guide loading and sanitizer regressions; Android ARM build and font import unit tests'
           report['new_translation_keys_verified']=True
-          report['baseline_release']='tv-mobile-test-logs-v43'
-          (root/'Logs44-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-          (root/'Logs44-testing.txt').write_text('''Nuvio TV/Mobile Test - Logs44: Multiple Live TV accounts
+          report['baseline_release']='tv-mobile-test-logs-v44'
+          (root/'Logs45-validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          (root/'Logs45-testing.txt').write_text('''Nuvio TV/Mobile Test - Logs45: Multiple Live TV accounts
 
           Install over Nuvio TV/Mobile Test by choosing Update. Keep the existing app installed and keep its data so accounts/settings remain.
 
-          1. Open Settings > Live TV. Old blank numbered accounts should be gone. Your saved accounts and partially entered credentials must remain.
-          2. Tap the separate Add M3U playlist option. A blank URL popup should open immediately, without selecting a slot first. Cancel it; the saved-account count must stay the same.
-          3. Tap Add M3U playlist again, enter a second playlist URL and choose Done. Exactly one new saved account should appear. Enter its XMLTV URL if needed.
-          4. Open M3U to view your saved playlists. This list should contain only saved accounts; Add has its own Settings option. Switch between the original and new playlists and confirm their details remain separate.
-          5. Check the separate Add Xtream account and Add Stalker portal options also open blank address popups. You can cancel these checks without entering new credentials.
-          6. Fully close and reopen the app. Saved accounts should remain, blank slots should stay gone, and enabled accounts should still load channels and programmes in the guide.
+          1. Open Settings > Live TV. The account section has Stalker, Xtream and M3U. Open each to see its saved accounts and Add account. If empty, the list shows None. Existing real accounts must remain; no empty numbered slots.
+          2. Open M3U > Add. A blank setup page should open. Enter a playlist URL, then Cancel or Back. No account should be added and your original playlist must remain unchanged.
+          3. Open M3U > Add again. Enter the playlist URL and, optionally, its XMLTV URL and a name. Press Save. Exactly one new account should appear in M3U.
+          4. Open each M3U account > Edit. Verify the original and new playlist/EPG URLs remain separate. Back returns to the account actions, then the provider list.
+          5. Choose Delete on the extra test account. Cancel the confirmation first: it must remain. Repeat and confirm Delete: only that account should disappear, with your original account preserved.
+          6. Check Xtream > Add and Stalker > Add open blank setup pages too. Cancel without saving; neither should create an account. Saving Xtream requires server, username and password; Stalker requires portal and MAC.
+          7. Fully close and reopen the app. Saved accounts should remain, and enabled accounts should still load their channels and EPG. Your fonts and earlier app settings should be retained.
+          8. The upstream TheIntroDB v4 migration is included. Play an episode or movie you know has skip markers and check that the usual Intro/Recap/Credits behavior remains available. No separate migration PR is needed because upstream already merged it.
 
           Install as an Update over Nuvio TV/Mobile Test. Package identity and signing key are unchanged. Includes the earlier approved fonts and app changes. No upstream Live TV PR will be published until this APK is approved; channel grouping follows account testing.
           '''.replace('\n          ','\n'))
@@ -76,7 +78,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view tv-mobile-test-logs-v44 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create tv-mobile-test-logs-v44 --repo "$GITHUB_REPOSITORY" --target ca2a79e14ac923f7dc56947b960fdbcc56c6f176 --title 'Nuvio TV/Mobile Test - Logs44: Separate Add options' --notes-file dist/Logs44-testing.txt
+          if ! gh release view tv-mobile-test-logs-v45 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create tv-mobile-test-logs-v45 --repo "$GITHUB_REPOSITORY" --target 37e910be6287491dabeaf0bd868f783da5f8962c --title 'Nuvio TV/Mobile Test - Logs45: Provider account pages' --notes-file dist/Logs45-testing.txt
           fi
-          gh release upload tv-mobile-test-logs-v44 --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs44.apk dist/Logs44-validation.json dist/Logs44-testing.txt
+          gh release upload tv-mobile-test-logs-v45 --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs45.apk dist/Logs45-validation.json dist/Logs45-testing.txt
