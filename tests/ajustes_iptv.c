@@ -3,9 +3,13 @@
 #include "gfx.h"
 static void recorteTeste(float x,float y,float w,float h){(void)x;(void)y;(void)w;(void)h;}
 static void semRecorteTeste(void){}
+static int recargasTeste;
+static void recarregarTeste(int limpar){(void)limpar;recargasTeste++;}
+#define guia_recarregar recarregarTeste
 #define gfx_recorte recorteTeste
 #define gfx_sem_recorte semRecorteTeste
 #include "../src/ajustes.c"
+#undef guia_recarregar
 #undef gfx_recorte
 #undef gfx_sem_recorte
 #include <assert.h>
@@ -15,6 +19,7 @@ static void key(SDL_Keycode k) {
 static void abrir(int op){focarOpcao(op);key(SDLK_RETURN);}
 static IptvConta selecionada(void){IptvConta c;assert(iptv_conta_selecionada(&c));return c;}
 int main(void) {
+  setvbuf(stdout,NULL,_IONBF,0);
   assert(getenv("NUVIO_DADOS"));assert(SDL_Init(SDL_INIT_TIMER)==0);
   dados_iniciar(getenv("NUVIO_DADOS"));ajustes_dir(getenv("NUVIO_DADOS"));ajustes_iniciar();
   layout_modo_definir(1);layout_tela_definir(1080,1920);gfx_opacidade_grupo=0;
@@ -40,7 +45,9 @@ int main(void) {
   abrir(AJ_IPTV_ADD_M3U);IptvConta tres=selecionada();assert(tres.tipo==IPTV_M3U);
   assert(ajOpcaoDisponivel(AJ_M3U_URL) && !ajOpcaoDisponivel(AJ_XTREAM_SERVIDOR));
   assert(m3u_definir_lista("https://three.invalid/list"));
+  int antesRecargas=recargasTeste;
   abrir(AJ_IPTV_ATIVA);assert(!selecionada().ativa && valor[AJ_IPTV_ATIVA]==1);
+  assert(recargasTeste==antesRecargas+1);
   abrir(AJ_IPTV_ATIVA);assert(selecionada().ativa);
   assert(iptv_conta_renomear("My playlist"));ajIptvEspelhar();assert(!strcmp(textoLeitura(AJ_IPTV_NOME),"My playlist"));
   assert(!ajOpcaoDisponivel(AJ_XTREAM_LIMPAR) && !ajOpcaoDisponivel(AJ_M3U_LIMPAR));
@@ -48,6 +55,7 @@ int main(void) {
   abrir(AJ_IPTV_REMOVER);assert(iptv_contas(NULL,0)==3);
   key(SDLK_RETURN);assert(iptv_contas(NULL,0)==2 && !m3u_fonte_configurado(tres.id));
   assert(xtream_fonte_configurado(um.id) && xtream_fonte_configurado(dois.id));
+  assert(recargasTeste==antesRecargas+3);
   puts("PASS: account type selects the correct fields; enable/name/removal affect only the selected account and deletion requires confirmation");
   SDL_Quit();return 0;
 }
