@@ -113,6 +113,9 @@ static int n = 0;
 static int cacheConfirmado(const Stream *s) {
   return s->emCache && !s->cacheNegado && (!s->foraCache || s->cacheNativo) && !s->urlP2P && !s->naoVideo;
 }
+static int foraCacheConfirmado(const Stream *s) {
+  return !cacheConfirmado(s) && (s->foraCache || s->cacheNegado);
+}
 static void cacheConfirmar(Stream *s) {
   s->emCache = 1;
   s->cacheNegado = 0;
@@ -2992,7 +2995,12 @@ static int automaticoDaFolhaModo(void) {
 
 
 
+// Filtro de cache da folha: 0 = todas, 1 = cache confirmado, 2 = fora do
+// cache confirmado. Ausencia de metadado fica apenas em Todas; nunca e
+// inventada como uma negativa.
+enum { FILTRO_CACHE_TODAS, FILTRO_CACHE_SIM, FILTRO_CACHE_NAO };
 static int grupo, filtro, soMp4, soCache, soDub;
+static void avancarFiltroCache(void) { soCache = (soCache + 1) % 3; }
 
 // BOTOES DO CABECALHO. "Sem HDR" so existe onde ha o que renegociar (webOS);
 // ver o bloco "TELA PRETA COM AUDIO TOCANDO" em video.h. Oferecer um botao que
@@ -3023,7 +3031,7 @@ static const char *idiomaFiltroAudio(void) {
 static const char *rotuloBotao(int b) {
   if (b == BT_SEM_HDR) return "Sem HDR";
   if (b == BT_SO_MP4)  return "Só MP4";
-  if (b == BT_CACHE)   return "Em cache";
+  if (b == BT_CACHE)   return soCache == FILTRO_CACHE_NAO ? "Fora do cache" : "Em cache";
   if (b == BT_DUB) {
     static char rotulo[96];
     const char *pref = idiomaFiltroAudio();
@@ -3047,7 +3055,8 @@ static int temAudioPreferido(const Stream *s);
 static int passaChips(int i) {
   if (!canalFolha && !stream_filtro_permite(&lista[i])) return 0;
   if (soMp4 && !lista[i].mp4) return 0;
-  if (soCache && !cacheConfirmado(&lista[i])) return 0;
+  if (soCache == FILTRO_CACHE_SIM && !cacheConfirmado(&lista[i])) return 0;
+  if (soCache == FILTRO_CACHE_NAO && !foraCacheConfirmado(&lista[i])) return 0;
   if (soDub && !temAudioPreferido(&lista[i])) return 0;
   return 1;
 }
@@ -4157,7 +4166,7 @@ void stream_folha_evento(const SDL_Event *e) {
         // player, e deixar a folha aberta em cima esconderia o resultado.
         case BT_SEM_HDR:    video_forcar_sdr(); aberta=0; break;
         case BT_SO_MP4:     soMp4 = !soMp4; rolagem=0;velRol=0; break;
-        case BT_CACHE:      soCache = !soCache; rolagem=0;velRol=0; break;
+        case BT_CACHE:      avancarFiltroCache(); rolagem=0;velRol=0; break;
         case BT_DUB:        soDub = !soDub; rolagem=0;velRol=0; break;
         default:            aberta=0; break;
       }
@@ -4654,8 +4663,8 @@ static void corpoFolha(float x, float w, float anim, Uint32 agora, int ilha) {
     else if(botaoDe(foco)==BT_RECARREGAR)
       ajuda="Pergunta as fontes de novo a todos os addons.";
     else if(botaoDe(foco)==BT_CACHE)
-      ajuda=soCache
-        ? "Mostrando só fontes que o debrid já tem: tocam na hora. OK tira o filtro."
+      ajuda=soCache == FILTRO_CACHE_SIM ? "Em cache"
+        : soCache == FILTRO_CACHE_NAO ? "Fora do cache"
         : "Filtra para fontes que o debrid já tem (tocam na hora, sem baixar antes). OK liga o filtro.";
     else if(botaoDe(foco)==BT_DUB)
       ajuda=ajudaFiltroAudio();
