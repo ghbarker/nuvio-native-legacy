@@ -35,6 +35,24 @@
       {
         "op": "hierarchy"
       }
+    ],
+    "4": [
+      {
+        "op": "tap",
+        "x": 138,
+        "y": 1025
+      },
+      {
+        "op": "wait",
+        "seconds": 8
+      },
+      {
+        "op": "shot",
+        "name": "04-launcher-open"
+      },
+      {
+        "op": "hierarchy"
+      }
     ]
   }
 }
