@@ -1,4 +1,4 @@
-name: Share verified Logs36 test APK
+name: Share verified Logs37 test APK
 on:
   workflow_dispatch:
 permissions:
@@ -13,20 +13,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39034991041 --jq .conclusion)" = success
-          echo "MACOS_CONCLUSION=$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39034972877 --jq .conclusion)" >> "$GITHUB_ENV"
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39036715397 --jq .conclusion)" = success
+          echo "MACOS_CONCLUSION=$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39036706437 --jq .conclusion)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
-          ref: 8fd965236982ce249ae989d28778cf4b049d6044
+          ref: 8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39034991041
-          name: Nuvio-TV-Mobile-Test-Logs36-997970b129bcf325b780f47f1b6540c46466ae2d
+          run-id: 39036715397
+          name: Nuvio-TV-Mobile-Test-Logs37-8b5d43c89e936ce1bbf15fe3f52d5ed026b1fb54
           path: dist
       - name: Verify 16 KiB Android alignment
-        run: python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs36.apk
+        run: python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs37.apk
       - name: Verify and attach test APK
         env:
           GH_TOKEN: ${{ github.token }}
@@ -34,19 +34,19 @@ jobs:
           python3 - <<'CHECK'
           import hashlib,json,pathlib,os
           root=pathlib.Path('dist')
-          apk=root/'Nuvio-TV-Mobile-Test-Logs36.apk'
-          report=json.loads((root/'Logs36-validation.json').read_text())
+          apk=root/'Nuvio-TV-Mobile-Test-Logs37.apk'
+          report=json.loads((root/'Logs37-validation.json').read_text())
           assert report['all_passed'] is True
-          assert report['source_commit']=='8fd965236982ce249ae989d28778cf4b049d6044'
+          assert report['source_commit']=='8d2837eca4a9d0495fd9dc2bd97f8fbc5252cff6'
           assert report['package']=='space.nuvio.nativelegacy.touch'
-          assert report['version_code']==20046
-          assert report['version_name']=='2.0.46-test-logs36'
+          assert report['version_code']==20047
+          assert report['version_name']=='2.0.47-test-logs37'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
-          report['macos_font_regressions']=os.environ.get('MACOS_CONCLUSION')=='success'
+          report['macos_live_tv_regressions']=os.environ.get('MACOS_CONCLUSION')=='success'
           report['android_16k_alignment']=True
-          (root/'Logs36-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-          (root/'Logs36-testing.txt').write_text("Nuvio TV/Mobile Test - Logs36\n\nInstall over the existing Nuvio TV/Mobile Test app and choose Update. Do not uninstall or clear app data.\n\n1. Start a movie or episode using a downloaded text subtitle.\n2. Open Subtitles > Style > Font and select Montserrat or another built-in font. The subtitle appearance should change.\n3. Reopen the picker: the checkmark should be beside that new font.\n4. Select your imported TTF/OTF font. The appearance and checkmark should change again.\n5. Leave playback and reopen it: confirm the selected font remains.\n\nContains the other Logs35 features unchanged. The Android hard-link restriction, rollback on failed writes, TTF/OTF formats, and renderer regressions are checked automatically on Linux. The macOS follow-up continues separately. The font PR remains draft pending device approval.\n")
+          (root/'Logs37-validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          (root/'Logs37-testing.txt').write_text('Nuvio TV/Mobile Test - Logs37\n\nInstall using Update over the existing test app; keep app data.\n\n1. Settings > Sources and add-ons > Source filters: choose Cached only and exclude a live event/channel resolution. Note the previous choices.\n2. Open Sports Streams from its Home/collection row. Open a live event and Play: movie filters must not remove or block it.\n3. Open Sources during playback. Movie filter chips should be absent. Reload should still work with the same Sports Streams type.\n4. Open a movie/episode and verify normal filters still apply, then restore your previous filter choices.\n\nIncludes the confirmed Logs36 font fix. Live TV PR587 remains draft pending device approval.\n')
           CHECK
-          gh release upload tv-mobile-test-logs-v36 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs36.apk dist/Logs36-validation.json dist/Logs36-testing.txt
+          gh release upload tv-mobile-test-logs-v36 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs37.apk dist/Logs37-validation.json dist/Logs37-testing.txt
