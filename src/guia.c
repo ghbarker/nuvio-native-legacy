@@ -1770,7 +1770,7 @@ void guia_focar_id(const char *id) {
   snprintf(focoPend, sizeof focoPend, "%s", id);
   for (l = 0; l < nLinhas(); l++)
     for (c = 0; c < linhaN(l); c++)
-      if (!strcmp(linhaItem(l, c)->id, id)) { focoLin = l; focoCol = c; return; }
+      if (!strcmp(linhaItem(l, c)->id, id)) { focoLin = l; focoCol = c; focoPend[0]=0; return; }
 }
 
 const char *guia_id_focado(void) {
@@ -2623,8 +2623,11 @@ static void drenarCarga(void) {
     int atual = cargaAtual();
     char focoAntes[80];snprintf(focoAntes,sizeof focoAntes,"%s",guia_id_focado());
     if (atual) {
-      if(!focoPend[0] && focoAntes[0])snprintf(focoPend,sizeof focoPend,"%s",focoAntes);
+      int pedidoExplicito=focoPend[0]!=0;
       publicar();
+      if(!pedidoExplicito && focoAntes[0]) {
+        guia_focar_id(focoAntes);focoPend[0]=0;
+      }
       epgFontesEscolher();
     }
     // Quem decide e o desenho: falha da carga continua G_FALHOU, e e ela que
