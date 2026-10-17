@@ -1,8 +1,6 @@
 name: Logs34 approved integration APK
 
 on:
-  push:
-    branches: [review/logs34-integration-20261017]
   workflow_dispatch:
 
 concurrency:
