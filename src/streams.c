@@ -150,7 +150,7 @@ static pthread_mutex_t verTrava = PTHREAD_MUTEX_INITIALIZER;
 static unsigned listaGeracao;
 static void cancelarConferenciasSemTrava(void);
 static int atual = -1, recarregar;
-static int canalFolha;
+static _Atomic int canalFolha;
 static unsigned recarregarFonteContexto;
 static NvPerfilSessao recarregarFontePerfil;
 static SDL_Keycode recarregarFonteConfirmacao;
@@ -399,6 +399,7 @@ static void filtroCompletar(Stream *s) {
 }
 int stream_filtro_permite(const Stream *s) {
   if (!s) return 0;
+  if (canalFolha) return 1;
   if (!fontefalha_filtro_ativo()) return 1;
   FonteFiltroConfig cfg; FonteFiltroDados dados;
   fontefalha_filtro(&cfg); stream_filtro_dados(s, &dados);
@@ -410,6 +411,7 @@ static int filtroPermiteStream(const FonteFiltroConfig *cfg, const Stream *s) {
   return fontefiltro_permite(cfg, &dados);
 }
 int stream_filtro_bloqueou(void) {
+  if (canalFolha) return 0;
   if (!fontefalha_filtro_ativo()) return 0;
   FonteFiltroConfig cfg; fontefalha_filtro(&cfg);
   pthread_mutex_lock(&verTrava);
@@ -854,6 +856,7 @@ static int foraDaFaixaTamanho(const Stream *s) {
   return 0;
 }
 static int cabeNoTeto(const Stream *s) {
+  if (canalFolha) return 1;
   return cabeNaAltura(s) && !foraDaFaixaTamanho(s);
 }
 
@@ -1390,6 +1393,7 @@ static int grupoDaFonte(const FonteRegraCfg *c, const Stream *s) {
 }
 // Chamar com a lista estavel (verTrava, ou o fio da tela que e quem a troca).
 static int grupoDe(int i) {
+  if (canalFolha) return i >= 0 && i < n ? 0 : -1;
   FonteRegraCfg c = regraCfg();
   unsigned v = fonteregra_versao();
   int g;
@@ -2894,7 +2898,6 @@ int stream_canal_prazo_longo(int idx) {
 // So sem altura e sem tamanho: um filme de verdade com "support" no nome tem
 // pelo menos um dos dois.
 
-static int canalFolha;
 static unsigned lgMp4LogGer; static int lgMp4LogIdx = -1;
 static int automaticoCom(int regras) {
   if (!stream_n()) return -1;
@@ -2909,7 +2912,7 @@ static int automaticoCom(int regras) {
   // enchendo por addon o indice e a ordem de CHEGADA, nao a dos addons.
   for (int k = 0; k < n; k++) {
     int i = ORD(k), g = regras ? grupoDe(i) : 0;
-    if ((regras ? foraDoAuto(i) : lista[i].foraCache || automaticaExcluida(i) || ehInformativa(&lista[i])) || g < 0) continue;
+    if ((regras ? foraDoAuto(i) : automaticaExcluida(i) || ehInformativa(&lista[i])) || g < 0) continue;
     long p = pontos(&lista[i]);
     if (lg) { idx[m] = i; pts[m] = p; grp[m] = (signed char)g; m++; }
     // O GRUPO das regras (#202) vem antes da pontuacao: permitida primeiro.
@@ -3215,7 +3218,6 @@ static int ehHdr(const Stream *s) {
 // canal. So para canal (stream_folha_canal): a altura vem do texto (rotulo,
 // descricao) e os selos de resolucao/codec entram no mesmo caminho do filme,
 // entao o grupo e os selos saem iguais. Idempotente. Filme nao passa aqui.
-static int canalFolha;
 void stream_folha_canal(int sim) { canalFolha = sim != 0; }
 void stream_canal_enriquecer(Stream *s) {
   static const char *const HEVC[] = { "hevc", "h265", "h.265", "x265", NULL };

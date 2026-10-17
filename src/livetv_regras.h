@@ -11,6 +11,14 @@
 #include <string.h>
 #include <strings.h>
 
+// Stremio channel types, including aliases used by list add-ons. Identify the
+// request before choosing a source, not only after opening the player UI.
+static inline int nv_tipo_canal(const char *tipo) {
+  return tipo && (!strcasecmp(tipo, "channel") || !strcasecmp(tipo, "tv") ||
+                  !strcasecmp(tipo, "channels") || !strcasecmp(tipo, "live") ||
+                  !strcasecmp(tipo, "iptv"));
+}
+
 // --- resolucao -----------------------------------------------------------------
 // Opcao de Ajustes "Resolucao principal": 0 Automatica, 1 4K, 2 1080p, 3 720p, 4 SD.
 static inline int nv_res_opcao_altura(int opcao) {

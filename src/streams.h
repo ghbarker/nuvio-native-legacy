@@ -151,7 +151,9 @@ void stream_folha_nome(const char *nome);
 // do titulo no lugar do nome (Ajustes > Texto das fontes > Logo do titulo).
 void stream_folha_item(int indice);
 // Folha de um CANAL ao vivo: a resolucao e o codec saem do nome (UHD/FHD/HD/SD,
-// H.265...) e entram no agrupamento e nos selos. Filme nao muda.
+// H.265...) e entram no agrupamento e nos selos. Define tambem o contexto da
+// busca ANTES da selecao: canais ignoram filtros e regras de filme/episodio.
+// Toda busca nova deve repor o valor, inclusive ao voltar para VOD.
 void stream_folha_canal(int sim);
 void stream_canal_enriquecer(Stream *s);
 int stream_folha_recarregar(void);

@@ -1292,7 +1292,7 @@ static void nomeParaFolha(void) {
   const CatItem *c = player_id_canal()[0] ? NULL
                    : cat_item(player_aberto() ? player_indice() : detail_indice());
   stream_folha_nome(c ? c->titulo : "");
-  stream_folha_canal(player_id_canal()[0] != 0);
+  stream_folha_canal(player_id_canal()[0] != 0 || (c && nv_tipo_canal(c->tipo)));
   stream_folha_item(c ? (player_aberto() ? player_indice() : detail_indice()) : -1);
 }
 
@@ -2129,7 +2129,7 @@ static void prepararAoAbrir(void) {
       player_retido() || aguardandoFonte || !detail_aberto() || preparoRodando) return;
   if (addons_estado() == ADD_BUSCANDO || stream_n() < 1 || stream_n_candidatas() < 1) return;
   ci = cat_item(detail_indice());
-  if (!ci || !ci->imdb[0]) return;
+  if (!ci || !ci->imdb[0] || nv_tipo_canal(ci->tipo)) return;
   idDoAlvo(ci, alvo, sizeof alvo);
   if (!stream_lista_do_alvo(alvo)) return;
   g = stream_lista_geracao();

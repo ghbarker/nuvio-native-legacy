@@ -110,6 +110,7 @@ extern int trakt_scrobble_alvo(int, const TraktScrobbleAlvo *, double, double,
 #include "home.h"
 #include "descoberta.h"
 #include "guia.h"
+#include "livetv_regras.h"
 #include "epg.h"
 #include "xtream.h"
 #include "xtepg.h"   /* grade curta do Xtream quando a XMLTV nao casa (#158) */
@@ -1730,7 +1731,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
     epPedidoT = epPedidoE = fonteSemEpisodio = 0;
     audioTitulo();
     artehero_logo_sessao_iniciar(temFixo ? &itemFixo : NULL);
-    canalSessao = ci && (!strcmp(ci->tipo, "channel") || !strcmp(ci->tipo, "tv"));
+    canalSessao = ci && nv_tipo_canal(ci->tipo);
     if (canalSessao) itemCanal = *ci;
     // So o CH+/- feito dentro do PiP (player_manter_mini) mantem a miniatura
     // na troca — o stream velho segue no ar ate a fonte nova chegar pelo
