@@ -65,7 +65,7 @@ jobs:
           2. Open M3U > Add. A blank setup page should open. Enter a playlist URL, then Cancel or Back. No account should be added and your original playlist must remain unchanged.
           3. Open M3U > Add again. Enter the playlist URL and, optionally, its XMLTV URL and a name. Press Save. Exactly one new account should appear in M3U.
           4. Open each M3U account > Edit. Verify the original and new playlist/EPG URLs remain separate. Back returns to the account actions, then the provider list.
-          5. Choose Delete on the extra test account. Cancel the confirmation first: it must remain. Repeat and confirm Delete: only that account should disappear, with your original account preserved.
+          5. Choose Remove on the extra test account. Cancel the confirmation first: it must remain. Repeat and confirm Remove: only that account should disappear, with your original account preserved.
           6. Check Xtream > Add and Stalker > Add open blank setup pages too. Cancel without saving; neither should create an account. Saving Xtream requires server, username and password; Stalker requires portal and MAC.
           7. Fully close and reopen the app. Saved accounts should remain, and enabled accounts should still load their channels and EPG. Your fonts and earlier app settings should be retained.
           8. The upstream TheIntroDB v4 migration is included. Play an episode or movie you know has skip markers and check that the usual Intro/Recap/Credits behavior remains available. No separate migration PR is needed because upstream already merged it.
