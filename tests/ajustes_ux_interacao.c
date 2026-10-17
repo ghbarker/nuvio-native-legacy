@@ -400,6 +400,14 @@ int main(void) {
   abrir(AJ_ITENS_FILEIRA); key(SDLK_DOWN); key(SDLK_RETURN);
   key(SDLK_LEFT); key(SDLK_RETURN); assert(!uxEditor && valor[AJ_ITENS_FILEIRA] == 1);
 
+  // Guide source selection uses the existing explicit Confirm/Cancel editor.
+  valor[AJ_GUIA_FONTE]=0;abrir(AJ_GUIA_FONTE);key(SDLK_DOWN);
+  assert(uxEditor && ajustes_guia_fonte()==0);key(SDLK_ESCAPE);assert(ajustes_guia_fonte()==0);
+  abrir(AJ_GUIA_FONTE);key(SDLK_DOWN);key(SDLK_RETURN);key(SDLK_LEFT);key(SDLK_RETURN);
+  assert(!uxEditor && ajustes_guia_fonte()==1);
+  assert(perfilLocal(AJ_GUIA_FONTE) && somenteDesteAparelho(AJ_GUIA_FONTE));
+  valor[AJ_GUIA_FONTE]=0;assert(gravar());
+
   // Toda opcao visivel tem uma escolha explicita no mapa visual.
   for (i=0;i<AJ_N_TELA;i++) if (TELA[i].tipo == IT_OPC)
     assert(strcmp(ajVisualIcone(TELA[i].op), "aj_settings-2"));
