@@ -1,4 +1,4 @@
-name: Logs43 multiple Live TV accounts macOS validation
+name: Logs44 multiple Live TV accounts macOS validation
 on:
   workflow_dispatch:
 permissions:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f40f91feafffda63b5a3c13bb022c66604a143bc
+          ref: ca2a79e14ac923f7dc56947b960fdbcc56c6f176
           fetch-depth: 3
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
