@@ -1,0 +1,126 @@
+name: Logs41 Android emulator font verification
+on:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/font-emulator.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Require KVM and install Android emulator image
+        run: |
+          set -euo pipefail
+          test -e /dev/kvm
+          sudo chmod 666 /dev/kvm
+          sdkmanager 'platform-tools' 'emulator' 'system-images;android-30;google_apis;x86_64'
+          echo no | avdmanager create avd --force -n nuvio-fonts -k 'system-images;android-30;google_apis;x86_64' --device pixel_4
+      - name: Download the exact verified APK
+        run: |
+          mkdir -p emulator-results
+          gh release download tv-mobile-test-logs-v41 --repo ghbarker/nuvio-native-legacy --pattern Nuvio-TV-Mobile-Test-Logs41.apk
+          echo '9cf10c3a9e42712e6c1e57fa6bc6b98caa9404fff9390b37e05a03247c26c4d2  Nuvio-TV-Mobile-Test-Logs41.apk' | sha256sum -c -
+      - name: Boot a persistent hardware-accelerated phone emulator
+        run: |
+          set -euo pipefail
+          nohup "$ANDROID_HOME/emulator/emulator" -avd nuvio-fonts -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 4096 > emulator-results/boot.log 2>&1 &
+          timeout 240 adb wait-for-device
+          python3 - <<'PYBOOT'
+          import subprocess,time
+          for i in range(120):
+              r=subprocess.run(['adb','shell','getprop','sys.boot_completed'],capture_output=True,text=True,timeout=10)
+              if r.stdout.strip()=='1':break
+              time.sleep(2)
+          else:raise RuntimeError('Emulator did not finish booting')
+          PYBOOT
+          adb shell getprop ro.product.cpu.abilist | tee emulator-results/abis.txt
+          adb shell getprop ro.dalvik.vm.native.bridge | tee emulator-results/native-bridge.txt
+          adb install -r Nuvio-TV-Mobile-Test-Logs41.apk
+      - name: Start the actual APK with isolated offline font fixtures
+        run: python3 tools/emulator/font-driver.py --bootstrap
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-1
+          path: emulator-results/phase-1
+      - name: Interactive emulator checks - phase 2
+        run: python3 tools/emulator/font-driver.py --phase 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-2
+          path: emulator-results/phase-2
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 3
+        run: python3 tools/emulator/font-driver.py --phase 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-3
+          path: emulator-results/phase-3
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 4
+        run: python3 tools/emulator/font-driver.py --phase 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-4
+          path: emulator-results/phase-4
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 5
+        run: python3 tools/emulator/font-driver.py --phase 5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-5
+          path: emulator-results/phase-5
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 6
+        run: python3 tools/emulator/font-driver.py --phase 6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-6
+          path: emulator-results/phase-6
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 7
+        run: python3 tools/emulator/font-driver.py --phase 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-7
+          path: emulator-results/phase-7
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 8
+        run: python3 tools/emulator/font-driver.py --phase 8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-8
+          path: emulator-results/phase-8
+          if-no-files-found: ignore
+      - name: Interactive emulator checks - phase 9
+        run: python3 tools/emulator/font-driver.py --phase 9
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Logs41-emulator-phase-9
+          path: emulator-results/phase-9
+          if-no-files-found: ignore
+      - name: Collect emulator diagnostics
+        if: always()
+        run: |
+          adb logcat -d > emulator-results/logcat.txt || true
+          adb shell getprop > emulator-results/properties.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Logs41-emulator-diagnostics
+          path: emulator-results
+      - name: Stop the test emulator
+        if: always()
+        run: adb emu kill || true
