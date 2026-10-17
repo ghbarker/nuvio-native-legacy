@@ -1,10 +1,10 @@
-name: Logs41 APK and Linux validation
+name: Fonts PR Android and Linux validation
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: logs41-apk-${{ github.ref }}
+  group: fonts-pr-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
+          ref: 7f359731e6841c6645929a817a1d16de1095efce
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Font registry, Settings, rendering and subtitle regressions
@@ -54,12 +54,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
+          ref: 7f359731e6841c6645929a817a1d16de1095efce
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 56efd14595a7c535fe867992a5e930d0e69f90a3
-          test "$(git rev-parse HEAD^{tree})" = 18ad7116a50e5d272fab0693205cebe8484ce7bd
+          test "$(git rev-parse HEAD)" = 7f359731e6841c6645929a817a1d16de1095efce
+          test "$(git rev-parse HEAD^{tree})" = 32cdee9501e35eb4b456bd2e479551b88afddbd9
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -121,7 +121,7 @@ jobs:
           find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs41 APK
+      - name: Build clean PR Android APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -141,26 +141,17 @@ jobs:
         run: |
           cd android
           ./gradlew --no-daemon testDebugUnitTest --tests space.nuvio.nativelegacy.FontImportTest
-      - name: Verify package, version, signer and both ABIs
+      - name: Verify debug identity, signature and both ABIs
         run: |
           set -euo pipefail
           mapfile -t apks < <(find build/android -maxdepth 1 -type f -name 'Nuvio-*-android-debug.apk' -print)
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
-          badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20051' versionName='2.0.51-test-logs41'" <<< "$badging"
-          grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
-          cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
-          test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | head -5
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$apk"
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs41.apk
-          python3 - <<'PY'
-          import hashlib,json,pathlib
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs41.apk')
-          out={'all_passed':False,'source_commit':'56efd14595a7c535fe867992a5e930d0e69f90a3','source_tree':'18ad7116a50e5d272fab0693205cebe8484ce7bd','package':'space.nuvio.nativelegacy.touch','version_code':20051,'version_name':'2.0.51-test-logs41','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'interface_font_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
-          pathlib.Path('Logs41-validation.json').write_text(json.dumps(out,indent=2)+'\n')
-          PY
+          python3 tools/android-apk-pages.py "$apk"
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
         with:
@@ -173,14 +164,6 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Nuvio-TV-Mobile-Test-Logs41-${{ github.sha }}
-          path: |
-            Nuvio-TV-Mobile-Test-Logs41.apk
-            Logs41-validation.json
-          if-no-files-found: error
-          retention-days: 14
       - name: Remove private inputs
         if: always()
         run: rm -rf "$RUNNER_TEMP/nuvio-logs41"

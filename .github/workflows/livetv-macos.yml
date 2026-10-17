@@ -1,4 +1,4 @@
-name: Logs41 macOS interface font validation
+name: Fonts PR macOS validation
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
+          ref: 7f359731e6841c6645929a817a1d16de1095efce
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Registry, Settings, UI renderer and subtitle regressions
