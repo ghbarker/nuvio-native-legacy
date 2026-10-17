@@ -1,4 +1,5 @@
 name: Logs41 Android emulator font verification
+# Probe translated runtime filesystem before interaction.
 on:
   push:
     branches: [review/logs34-integration-20261017]

@@ -22,6 +22,9 @@ def snapshot(phase):
  for f in ['ajustes.txt','fontes-legenda.txt','player.txt']:
   text=adb('shell','run-as',P,'cat',f'files/dados/{f}',check=False)
   (out/f).write_text(text)
+ (out/'runtime-files.txt').write_text(adb('shell','run-as',P,'find','.','-maxdepth','4','-type','f',check=False))
+ for loc in ['nuvio.log','files/nuvio.log','files/art/nuvio.log']:
+  (out/('native-'+loc.replace('/','-'))).write_text(adb('shell','run-as',P,'tail','-200',loc,check=False))
  (out/'activity.txt').write_text(adb('shell','dumpsys','activity','activities'))
  (out/'logcat.txt').write_text(adb('logcat','-d','-t','350',check=False))
  (out/'pid.txt').write_text(adb('shell','pidof',P,check=False))
@@ -38,7 +41,7 @@ def bootstrap():
  adb('shell','input','keyevent','82')
  adb('shell','run-as',P,'mkdir','-p','files/dados/fontes-importadas')
  enc=lambda obj:base64.urlsafe_b64encode(json.dumps(obj,separators=(',',':')).encode()).decode().rstrip('=')
- token=enc({'alg':'none','typ':'JWT'})+'.'+enc({'sub':'emulator-font-test','exp':4102444800})+'.offline-fixture'
+ token=enc({'alg':'none','typ':'JWT'})+'.'+enc({'sub':'emulator-font-test','exp':1999999999})+'.offline-fixture'
  private_write('sessao.txt',token+'\noffline-fixture\n0\n')
  private_write('perfis.txt','1\t0\t1\t0\t#4477aa\tEmulator font test\t\t\n')
  private_write('perfil.txt','1\n')
