@@ -145,6 +145,25 @@ static void playbackActions(void) {
   sourceContext = 0;
   puts("source playback actions: PASS (refresh, release, repeat, stale token, Back)");
 }
+static void liveTvActions(void) {
+  int oldMp4 = soMp4, oldCache = soCache, oldDub = soDub;
+  int sourceMp4, sourceOutsideCache;
+  assert(n > 0);
+  sourceMp4 = lista[0].mp4; sourceOutsideCache = lista[0].foraCache;
+  stream_folha_canal(1);
+  soMp4 = soCache = soDub = 1;
+  assert(nBotoes() == 2);
+  assert(botaoDe(0) == BT_RECARREGAR && botaoDe(1) == BT_FECHAR);
+  for (int i = 0; i < nBotoes(); i++)
+    assert(botaoDe(i) != BT_SO_MP4 && botaoDe(i) != BT_CACHE && botaoDe(i) != BT_DUB);
+  lista[0].mp4 = 0;
+  lista[0].foraCache = 1;
+  assert(passaChips(0));
+  stream_folha_canal(0);
+  lista[0].mp4 = sourceMp4; lista[0].foraCache = sourceOutsideCache;
+  soMp4 = oldMp4; soCache = oldCache; soDub = oldDub;
+  puts("live TV source actions: PASS (no movie filters, channel source remains visible)");
+}
 int main(void) {
   Stream sources[5]={source(0,50000,sizeAt(50000),2160),source(1,10000,sizeAt(10000),2160),
     source(2,10000,sizeAt(10000),2160),source(3,70000,0,2160),source(4,80000,sizeAt(50000),1080)};
@@ -252,6 +271,7 @@ int main(void) {
   long points[3]={1,99,99};int queue[3];unsigned char excluded[3]={0};
   assert(fonteauto_fila(FONTEAUTO_PRIMEIRA,3,-1,points,NULL,excluded,3,queue)==3);
   assert(queue[0]==0 && queue[1]==1 && queue[2]==2 && fonteauto_tentativas(FONTEAUTO_PRIMEIRA,9)==1);
+  liveTvActions();
   playbackActions();
   stream_definir_lista(NULL,0);free(ordem);free(linhaY);free(linhaH);free(grupoTmp);free(grupoFitTmp);free(fitResultados);free(fitClasses);
   puts("streamfit sheet: PASS (stable groups, raw identities, freeze, incremental/focus, OndeVer, first-source)");return 0;

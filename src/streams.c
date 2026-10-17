@@ -3089,6 +3089,10 @@ enum { BT_RECARREGAR, BT_SEM_HDR, BT_SO_MP4, BT_CACHE, BT_DUB, BT_FECHAR,
 static int botaoDe(int i) {
   if (!video_pode_forcar_sdr()) i++;
   if (i == 0) return BT_SEM_HDR;
+  // Live TV sources do not carry the same stable container, debrid-cache and
+  // audio metadata as movie/episode sources. Keep only actions that work for
+  // channels instead of offering filters that can hide valid streams.
+  if (canalFolha) return i == 1 ? BT_RECARREGAR : BT_FECHAR;
   if (i == 1) return BT_SO_MP4;
   if (i == 2) return BT_CACHE;
   if (i == 3) return BT_DUB;
@@ -3097,6 +3101,7 @@ static int botaoDe(int i) {
   return BT_FECHAR;
 }
 static int nBotoes(void) {
+  if (canalFolha) return video_pode_forcar_sdr() ? 3 : 2;
   return (video_pode_forcar_sdr() ? 6 : 5) + (recarregarFonteContexto != 0);
 }
 static const char *idiomaFiltroAudio(void) {
@@ -3128,7 +3133,8 @@ static int temAudioPreferido(const Stream *s);
 // Os chips (MP4, cache, dublado) valem para a lista E para a contagem de cada
 // aba; o addon so para a lista.
 static int passaChips(int i) {
-  if (!canalFolha && !stream_filtro_permite(&lista[i])) return 0;
+  if (canalFolha) return 1;
+  if (!stream_filtro_permite(&lista[i])) return 0;
   if (soMp4 && !lista[i].mp4) return 0;
   if (soCache && !cacheConfirmado(&lista[i])) return 0;
   if (soDub && !temAudioPreferido(&lista[i])) return 0;
