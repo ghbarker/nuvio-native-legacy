@@ -266,6 +266,60 @@
         "op": "shot",
         "name": "07-appearance-after-restart"
       }
+    ],
+    "x86-8": [
+      {
+        "op": "tap",
+        "x": 430,
+        "y": 1885
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "08-restored-imported-font-picker"
+      },
+      {
+        "op": "tap",
+        "x": 300,
+        "y": 475
+      },
+      {
+        "op": "key",
+        "code": 23
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "08-built-in-font-restored"
+      },
+      {
+        "op": "assert_font",
+        "imported": false
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "wait",
+        "seconds": 6
+      },
+      {
+        "op": "assert_font",
+        "imported": false
+      },
+      {
+        "op": "shot",
+        "name": "08-built-in-font-after-restart"
+      },
+      {
+        "op": "done"
+      }
     ]
   }
 }
