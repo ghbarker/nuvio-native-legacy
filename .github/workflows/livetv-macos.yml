@@ -1,4 +1,4 @@
-name: macOS Live TV filter validation
+name: macOS Live TV revamp validation
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: cf70db147e5db80f4b3731f05fe5e0827cf3d0f0
+          ref: fdcd9e770d98836fc9d791d603659968b89f5506
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
       - name: Live TV override UI and settings persistence
@@ -37,3 +37,21 @@ jobs:
         run: bash tests/canalfila.sh
       - name: Persistent cache-filter full-source integration
         run: bash tests/source_cache_filter.sh
+      - name: Live TV loading, M3U and provider EPG
+        run: |
+          set -euo pipefail
+          for suite in m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg xtepg_bounded
+          do
+            bash "tests/$suite.sh"
+          done
+      - name: Full-source Settings defaults and confirmation
+        run: bash tests/ajustes_padroes.sh && bash tests/ajustes_ux_interacao.sh
+      - name: Live TV loading and import sanitizers
+        env:
+          SANITIZE: '1'
+        run: |
+          set -euo pipefail
+          for suite in m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg_bounded
+          do
+            bash "tests/$suite.sh"
+          done
