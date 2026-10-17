@@ -1,0 +1,277 @@
+name: Logs35 review fixes test APK
+
+on:
+  push:
+    branches: [review/logs35-integration-20261017]
+  workflow_dispatch:
+
+concurrency:
+  group: logs35-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-regressions:
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify exact integrated source
+        run: |
+          test "$(git rev-parse HEAD^)" = 01d48bcc40f1a73732cada86d1b55e724917528a
+          test "$(git rev-parse HEAD^^{tree})" = ab36ff5d271c3cde89d04a7bf525012e0ebb0c9b
+      - name: Install native test libraries
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
+      - name: Run macOS rendering and player regressions
+        run: |
+          set -e
+          for test in \
+            tests/ass_fonte_local.sh \
+            tests/ass_fontes.sh \
+            tests/legfontes.sh \
+            tests/text_largura.sh \
+            tests/p2p_dica486.sh \
+            tests/player_visto_trailer.sh \
+            tests/streamfit_sheet.sh \
+            tests/faixas_estilo_ctl.sh \
+            tests/trakt_alvos512.sh \
+            tests/catalog_episode_identity512.sh \
+            tests/visto_identidade512.sh
+          do
+            echo "RUN $test"
+            bash "$test"
+          done
+          SANITIZE=1 bash tests/trakt_alvos512.sh
+          SANITIZE=1 bash tests/visto_identidade512.sh
+          for scenario in base concorrencia ordem identidade
+          do
+            echo "RUN tests/fontesmortas.sh $scenario"
+            bash tests/fontesmortas.sh "$scenario"
+          done
+
+  validate-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    permissions:
+      contents: read
+    env:
+      NUVIO_ANDROID_JOBS: '2'
+      NUVIO_BUILD_JOBS: '2'
+      NUVIO_P2P_MOTOR: none
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify exact integrated source
+        run: |
+          test "$(git rev-parse HEAD^)" = 01d48bcc40f1a73732cada86d1b55e724917528a
+          test "$(git rev-parse HEAD^^{tree})" = ab36ff5d271c3cde89d04a7bf525012e0ebb0c9b
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install build and test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build cmake nasm ffmpeg python3-pil zlib1g-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libgl1-mesa-dev
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Prepare private configuration and persistent signing
+        env:
+          CORE_PROPERTIES: ${{ secrets.NUVIO_TOUCH_CORE_PROPERTIES }}
+          DEBUG_KEYSTORE_B64: ${{ secrets.NUVIO_TOUCH_DEBUG_KEYSTORE_B64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, subprocess
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs35'
+          root.mkdir(mode=0o700)
+          props=root/'product.properties'
+          body=os.environ.get('CORE_PROPERTIES','')
+          assert body, 'NUVIO_TOUCH_CORE_PROPERTIES is required'
+          props.write_text(body); props.chmod(0o600)
+          key=root/'debug.keystore'
+          encoded=''.join(os.environ.get('DEBUG_KEYSTORE_B64','').split())
+          assert encoded, 'NUVIO_TOUCH_DEBUG_KEYSTORE_B64 is required'
+          key.write_bytes(base64.b64decode(encoded,validate=True)); key.chmod(0o600)
+          cert=subprocess.check_output(['keytool','-exportcert','-alias','androiddebugkey','-keystore',str(key),'-storepass','android'],stderr=subprocess.PIPE)
+          assert hashlib.sha256(cert).hexdigest()=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write(f'NUVIO_PROPERTIES={props.resolve()}\nNUVIO_TEST_DEBUG_KEYSTORE={key.resolve()}\n')
+          PY
+      - uses: actions/cache/restore@v4
+        id: native-cache
+        with:
+          path: ~/.cache/nuvio-android
+          key: logs34-native-v1-${{ runner.os }}-${{ hashFiles('tools/android/deps.sh', 'tools/android/ffmpeg-android.sh') }}
+          restore-keys: |
+            rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75
+            rebases10e3-native-v1-Linux-
+      - uses: actions/cache/restore@v4
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: logs34-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            logs33-gradle-${{ runner.os }}-
+            rebases10e3-gradle-v1-${{ runner.os }}-
+      - name: Validate source and translations
+        run: |
+          git diff --check HEAD^
+          python3 tools/varredura-i18n.py
+          find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+      - name: Run combined approved feature regressions
+        run: |
+          set -e
+          for test in \
+            tests/detalheanime.sh \
+            tests/farah.sh \
+            tests/player_identity524.sh \
+            tests/player_identity524_guards.sh \
+            tests/title_identity524.sh \
+            tests/ass_fonte_local.sh \
+            tests/legfontes.sh \
+            tests/faixas_estilo_ctl.sh \
+            tests/streamfit_sheet.sh \
+            tests/contapend.sh \
+            tests/source_cache_filter.sh \
+            tests/fontefalha.sh \
+            tests/catalog_episode_identity512.sh \
+            tests/episode_identity512.sh \
+            tests/episodiosdup.sh \
+            tests/trakt_alvos512.sh \
+            tests/trakt_contracts.sh \
+            tests/trakt_episode_identity_512.sh \
+            tests/visto_identidade512.sh
+          do
+            echo "RUN $test"
+            bash "$test"
+          done
+      - name: Run integration-sensitive sanitizer regressions
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          set -e
+          SANITIZE=1 bash tests/streamfit_sheet.sh
+          SANITIZE=1 bash tests/contapend.sh
+          SANITIZE=1 bash tests/player_identity524.sh
+          SANITIZE=1 bash tests/player_identity524_guards.sh
+          SANITIZE=1 bash tests/title_identity524.sh
+          NV_TEST_SANITIZE=1 bash tests/source_cache_filter.sh
+          NV_TEST_SANITIZE=1 bash tests/fontefalha.sh
+          SANITIZE=1 bash tests/catalog_episode_identity512.sh
+          SANITIZE=1 bash tests/episode_identity512.sh
+          SANITIZE=1 bash tests/trakt_alvos512.sh
+          SANITIZE=1 bash tests/trakt_episode_identity_512.sh
+          SANITIZE=1 bash tests/visto_identidade512.sh
+      - name: Build native Android dependencies
+        run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
+      - name: Build update-compatible Logs35 APK
+        env:
+          GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
+          NUVIO_REQUIRE_CORE: '1'
+        run: |
+          # Upstream's local default points at /Volumes/ExternalSSD. Use the
+          # hosted runner's toolchain and install the two targets the APK ships.
+          export RUSTUP_HOME="$HOME/.rustup"
+          export CARGO_HOME="$HOME/.cargo"
+          export PATH="$CARGO_HOME/bin:$PATH"
+          rustup target add aarch64-linux-android armv7-linux-androideabi
+          bash tools/android.sh
+      # tools/android.sh prepares the SDL Java sources and generated build
+      # inputs that compiling this Android unit-test source set also requires.
+      - name: Run Android font import unit tests
+        env:
+          GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
+        run: |
+          cd android
+          ./gradlew --no-daemon testDebugUnitTest --tests space.nuvio.nativelegacy.FontImportTest
+      - name: Verify package, version, signer and both ABIs
+        run: |
+          set -euo pipefail
+          mapfile -t apks < <(find build/android -maxdepth 1 -type f -name 'Nuvio-*-android-debug.apk' -print)
+          test "${#apks[@]}" -eq 1
+          apk="${apks[0]}"
+          badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20045' versionName='2.0.45-test-logs35'" <<< "$badging"
+          grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
+          cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
+          unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
+          unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs35.apk
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs35.apk')
+          out={'all_passed':True,'source_commit':'01d48bcc40f1a73732cada86d1b55e724917528a','source_tree':'ab36ff5d271c3cde89d04a7bf525012e0ebb0c9b','package':'space.nuvio.nativelegacy.touch','version_code':20045,'version_name':'2.0.45-test-logs35','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'combined_regressions':True,'sanitizer_regressions':True,'android_font_unit_test':True,'both_arm_abis':True}
+          pathlib.Path('Logs35-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          PY
+      - uses: actions/cache/save@v4
+        if: always() && steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/nuvio-android
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - uses: actions/cache/save@v4
+        if: always() && steps.gradle-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-TV-Mobile-Test-Logs35-${{ github.sha }}
+          path: |
+            Nuvio-TV-Mobile-Test-Logs35.apk
+            Logs35-validation.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove private inputs
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs35"
+
+  publish:
+    needs: [macos-regressions, validate-build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nuvio-TV-Mobile-Test-Logs35-${{ github.sha }}
+          path: dist
+      - name: Verify artifact and publish update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('dist')
+          apk=root/'Nuvio-TV-Mobile-Test-Logs35.apk'
+          report=json.loads((root/'Logs35-validation.json').read_text())
+          assert report['all_passed'] is True
+          assert report['source_commit']=='01d48bcc40f1a73732cada86d1b55e724917528a'
+          assert report['source_tree']=='ab36ff5d271c3cde89d04a7bf525012e0ebb0c9b'
+          assert report['package']=='space.nuvio.nativelegacy.touch'
+          assert report['version_code']==20045
+          assert report['version_name']=='2.0.45-test-logs35'
+          assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          assert apk.stat().st_size==report['apk_bytes']
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
+          PY
+          if ! gh release view tv-mobile-test-logs-v35 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create tv-mobile-test-logs-v35 --repo "$GITHUB_REPOSITORY" --target 01d48bcc40f1a73732cada86d1b55e724917528a --title 'Nuvio TV/Mobile Test — Logs35' --notes 'Update-compatible preview on current upstream with the latest review fixes for #573 (custom fonts), #575 (cache filtering), #576 (Kaiju episode identity), and #587 (Live TV source controls). These changes await device confirmation. Install over Nuvio TV/Mobile Test to retain accounts and settings.'
+          fi
+          gh release upload tv-mobile-test-logs-v35 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs35.apk dist/Logs35-validation.json
