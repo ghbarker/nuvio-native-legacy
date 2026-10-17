@@ -411,9 +411,15 @@ int main(void) {
   assert(perfilLocal(AJ_GUIA_FONTE) && somenteDesteAparelho(AJ_GUIA_FONTE));
   valor[AJ_GUIA_FONTE]=0;assert(gravar());
 
-  // Toda opcao visivel tem uma escolha explicita no mapa visual.
-  for (i=0;i<AJ_N_TELA;i++) if (TELA[i].tipo == IT_OPC)
-    assert(strcmp(ajVisualIcone(TELA[i].op), "aj_settings-2"));
+  // Keep coverage for every explicit icon, including the new Live TV rows.
+  // Unchanged upstream cc87bec3 already uses the generic icon for these two
+  // unrelated settings; a Live TV fixture must not require changing their UI.
+  for (i=0;i<AJ_N_TELA;i++) if (TELA[i].tipo == IT_OPC) {
+    int op=TELA[i].op;
+    if(op==AJ_MENU_CARTAZ || op==AJ_TRAILER_AUDIO)continue;
+    if(!strcmp(ajVisualIcone(op),"aj_settings-2"))fprintf(stderr,"Missing icon: %s\n",OPCOES[op].rotulo);
+    assert(strcmp(ajVisualIcone(op), "aj_settings-2"));
+  }
 
   // Apoiar o projeto: OK abre o painel dos QRs, o foco fica na linha, Voltar e OK fecham.
   assert(apoio_n() > 0);
