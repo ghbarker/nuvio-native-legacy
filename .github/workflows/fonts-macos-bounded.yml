@@ -1,5 +1,8 @@
 name: Bounded macOS font validation
 on:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/fonts-macos-bounded.yml]
   workflow_dispatch:
 permissions:
   contents: read
