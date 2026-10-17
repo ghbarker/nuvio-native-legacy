@@ -83,6 +83,21 @@
         "op": "shot",
         "name": "02-after-welcome"
       }
+    ],
+    "x86-3": [
+      {
+        "op": "tap",
+        "x": 540,
+        "y": 2230
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "03-home"
+      }
     ]
   }
 }
