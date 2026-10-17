@@ -142,6 +142,21 @@
         "op": "shot",
         "name": "06-appearance-before"
       }
+    ],
+    "x86-7": [
+      {
+        "op": "tap",
+        "x": 430,
+        "y": 1885
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "07-interface-font-picker"
+      }
     ]
   }
 }
