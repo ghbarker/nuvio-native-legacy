@@ -23,10 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
       - name: Verify exact integrated source parent
-        run: test "$(git rev-parse HEAD^)" = 93ee4da91a1280bad0566ab548fa836d1c03bf4a
+        run: |
+          test "$(git rev-parse HEAD^^)" = 93ee4da91a1280bad0566ab548fa836d1c03bf4a
+          test "$(git rev-parse HEAD^^^{tree})" = dcaf0bbf8377d4d8fe6d9eeb348910e08cada54f
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -96,8 +98,9 @@ jobs:
       - name: Verify package, version, signer and both ABIs
         run: |
           set -euo pipefail
-          apk=build/android/Nuvio-2.0.6-android-debug.apk
-          test -f "$apk"
+          mapfile -t apks < <(find build/android -maxdepth 1 -type f -name 'Nuvio-*-android-debug.apk' -print)
+          test "${#apks[@]}" -eq 1
+          apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
           grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20042' versionName='2.0.42-test-logs32'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
