@@ -1,4 +1,4 @@
-name: macOS Live TV revamp validation
+name: macOS Live TV revamp final validation
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -9,7 +9,7 @@ permissions:
 jobs:
   live-tv:
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       SDL_MAC_BACKGROUND_APP: '1'
       DYLD_LIBRARY_PATH: /opt/homebrew/lib
@@ -18,29 +18,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fdcd9e770d98836fc9d791d603659968b89f5506
+          ref: 051215c018488726d70ba575ab3146ff8c099038
+          fetch-depth: 5
           persist-credentials: false
+      - name: Verify application source matches the retained Android build
+        run: git diff --exit-code fdcd9e770d98836fc9d791d603659968b89f5506 HEAD -- . ':!tests'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
-      - name: Live TV override UI and settings persistence
-        run: bash tests/addons_sync_ui.sh && bash tests/fontefalha.sh
-      - name: Source sheet and VOD filter restoration
-        run: bash tests/streamfit_sheet.sh
-      - name: Add-on request classification and instance identity
-        run: bash tests/addonslista.sh && bash tests/addons_proveniencia.sh
-      - name: Playback resolution and channel types
-        run: bash tests/fontefalha_worker.sh && bash tests/livetv_regras.sh && bash tests/canal_tpk_eof.sh
-      - name: Filter and playback sanitizers
-        env:
-          SANITIZE: '1'
-        run: bash tests/addons_sync_ui.sh && bash tests/fontefalha.sh && bash tests/streamfit_sheet.sh && bash tests/fontefalha_worker.sh && bash tests/source_cache_filter.sh
-      - name: Real channel-playlist selection and fallback
-        run: bash tests/canalfila.sh
-      - name: Persistent cache-filter full-source integration
-        run: bash tests/source_cache_filter.sh
-      - name: Live TV loading, M3U and provider EPG
+      - name: Live TV loading, M3U, provider EPG and playback regressions
         run: |
           set -euo pipefail
-          for suite in m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg xtepg_bounded
+          for suite in m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg xtepg_bounded fontefalha_playback
           do
             bash "tests/$suite.sh"
           done
@@ -51,7 +38,7 @@ jobs:
           SANITIZE: '1'
         run: |
           set -euo pipefail
-          for suite in m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg_bounded
+          for suite in m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg_bounded fontefalha_playback
           do
             bash "tests/$suite.sh"
           done

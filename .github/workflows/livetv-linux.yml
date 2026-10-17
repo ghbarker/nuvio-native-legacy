@@ -1,0 +1,43 @@
+name: Logs39 final Linux validation
+on:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/livetv-linux.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: 051215c018488726d70ba575ab3146ff8c099038
+          fetch-depth: 5
+      - name: Verify application source matches the retained Android build
+        run: git diff --exit-code fdcd9e770d98836fc9d791d603659968b89f5506 HEAD -- . ':!tests'
+      - name: Install test dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
+      - name: Run focused integration regressions
+        run: |
+          set -euo pipefail
+          for suite in fontefalha addons_sync_ui streamfit_sheet fontefalha_worker addonslista addons_proveniencia fontefalha_playback livetv_regras source_cache_filter canal_tpk_eof m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte xtream xtepg xtepg_bounded
+          do
+            echo "RUN $suite"
+            bash "tests/$suite.sh"
+          done
+      - name: Run focused sanitizer regressions
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          set -euo pipefail
+          for suite in fontefalha addons_sync_ui streamfit_sheet fontefalha_worker addonslista addons_proveniencia source_cache_filter m3u guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers xtepg_bounded
+          do
+            echo "RUN sanitizer $suite"
+            SANITIZE=1 NV_TEST_SANITIZE=1 bash "tests/$suite.sh"
+          done
