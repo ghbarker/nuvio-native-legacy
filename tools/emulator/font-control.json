@@ -185,6 +185,55 @@
         "op": "shot",
         "name": "05-font-selection-result"
       }
+    ],
+    "x86-6": [
+      {
+        "op": "assert_font",
+        "imported": true
+      },
+      {
+        "op": "shot",
+        "name": "06-imported-interface"
+      },
+      {
+        "op": "key",
+        "code": 4
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "06-settings-with-imported-font"
+      },
+      {
+        "op": "rotate",
+        "rotation": 1
+      },
+      {
+        "op": "wait",
+        "seconds": 2
+      },
+      {
+        "op": "shot",
+        "name": "06-landscape-imported-font"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "wait",
+        "seconds": 6
+      },
+      {
+        "op": "assert_font",
+        "imported": true
+      },
+      {
+        "op": "shot",
+        "name": "06-imported-font-after-restart"
+      }
     ]
   }
 }
