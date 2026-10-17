@@ -69,7 +69,7 @@ static void conferir(char *body, long n) {
   assert(xmltvExtra(body, n, &W, filtro, 1, &count, NULL) && count == 1);
   wFechar(&W); assert(W.nCanais == 1 && W.nEvs == 1);
   assert(!strcmp(W.arena + W.evs[0].tit, "News & weather"));
-  free(W.evs); free(W.arena); memset(&W, 0, sizeof W);
+  gradeLiberar(&W);
 }
 int main(int argc, char **argv) {
   assert(argc == 2); pasta = argv[1]; assert(!mkdir(pasta, 0700)); carga.perfil = 1;

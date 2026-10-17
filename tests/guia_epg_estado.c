@@ -5,6 +5,8 @@
 #include <assert.h>
 
 static int xmlEstado = EPG_PRONTO, xmlMatch = -1;
+int epg_canal_estado(const char *id) { (void)id;return xmlEstado; }
+int epg_match_canal(const char *id,const char *epgId,const char *nome) { (void)id;(void)epgId;(void)nome;return xmlMatch; }
 int epg_estado(void) { return xmlEstado; }
 int epg_match(const char *nome) { (void)nome; return xmlMatch; }
 int epg_match_id(const char *id) { (void)id; return xmlMatch; }
