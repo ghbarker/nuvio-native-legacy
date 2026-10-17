@@ -36,7 +36,7 @@ jobs:
           assert report['source_commit']=='56efd14595a7c535fe867992a5e930d0e69f90a3'
           assert report['source_tree']=='18ad7116a50e5d272fab0693205cebe8484ce7bd'
           assert report['package']=='space.nuvio.nativelegacy.touch'
-          assert report['version_code']==20051 and report['version_name']=='2.0.51-test-logs40'
+          assert report['version_code']==20051 and report['version_name']=='2.0.51-test-logs41'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
