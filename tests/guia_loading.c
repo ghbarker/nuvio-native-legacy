@@ -1,3 +1,4 @@
+#include "stub_perfisessao.h"
 #include "../src/guia.c"
 #include <assert.h>
 

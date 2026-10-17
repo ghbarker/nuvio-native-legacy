@@ -1,3 +1,4 @@
+#include "stub_perfisessao.h"
 // Guia de TV: o EPG externo (epg.c) precisa casar o NOME que o addon da com o
 // canal da grade XMLTV, e responder "o que esta no ar" e "o que vem a seguir".
 //

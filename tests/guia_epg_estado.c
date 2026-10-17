@@ -1,3 +1,4 @@
+#include "stub_perfisessao.h"
 // #316: finished or empty schedules must stop showing the loading state.
 #include "../src/guia.c"
 #include "../src/xtepg.c"

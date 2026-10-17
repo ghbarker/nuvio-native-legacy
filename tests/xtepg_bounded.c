@@ -1,3 +1,4 @@
+#include "stub_perfisessao.h"
 #include <time.h>
 static time_t agora=1800000000;
 static time_t tempoTeste(time_t *p){if(p)*p=agora;return agora;}
