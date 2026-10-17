@@ -14,12 +14,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39058247267 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39058249561 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39058247267/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39058766975 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39058769827 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: 7ee26ad2c46f368399b1f385ea99031cce1a4a38
+          ref: 1f40d1ba185b3ca691080d428842e112decc2fbe
+          fetch-depth: 3
           persist-credentials: false
+      - name: Verify tested application code matches the retained APK
+        run: git diff --exit-code 7ee26ad2c46f368399b1f385ea99031cce1a4a38 HEAD -- . ':!tests'
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
@@ -39,13 +43,16 @@ jobs:
           assert report['version_code']==20052 and report['version_name']=='2.0.52-test-logs42'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
-          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']=='0486dbe60d654e5645e5ac3fc2a863c7e1d6f03843bde190c05026d117fa8376'
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist()
               assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
           report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,native_account_regressions=True,macos_native_account_regressions=True,android_16k_alignment=True)
-          report['android_linux_run']=39058247267;report['macos_run']=39058249561
-          report['macos_test_commit']='7ee26ad2c46f368399b1f385ea99031cce1a4a38'
+          report['android_run']=39058247267;report['linux_run']=39058766975;report['macos_run']=39058769827
+          report['android_job']='apk-build'
+          report['test_commit']='1f40d1ba185b3ca691080d428842e112decc2fbe'
+          report['application_code_matches_test_commit']=True
+          report['macos_test_commit']='1f40d1ba185b3ca691080d428842e112decc2fbe'
           report['validation_scope']='Linux and macOS multiple-account registry, real Settings add/select/confirm/delete controls, profile and EPG ownership, native providers, guide loading and sanitizer regressions; Android ARM build and font import unit tests'
           report['new_translation_keys_verified']=True
           report['baseline_release']='tv-mobile-test-logs-v41'
