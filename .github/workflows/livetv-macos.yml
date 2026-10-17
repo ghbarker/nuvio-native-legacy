@@ -1,4 +1,4 @@
-name: macOS Live TV final Settings follow-up
+name: Logs40 macOS large EPG validation
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -6,31 +6,30 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 jobs:
-  settings:
+  live-tv:
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       SDL_MAC_BACKGROUND_APP: '1'
       DYLD_LIBRARY_PATH: /opt/homebrew/lib
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
-      - name: Retain successful macOS defaults and Live TV sanitizer checks
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/jobs/117425492681 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/jobs/117425492847 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: 3c65caf578ec2538338cc14b3c9188accd758aeb
-          fetch-depth: 5
+          ref: b573e9ffcc8a74d97b7db968e0edc59692a9f532
           persist-credentials: false
-      - name: Verify application source matches the successful Android build
-        run: git diff --exit-code d49927ac62d6b7d0468cf90310c2f9efc2cdb71e HEAD -- . ':!tests'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
-      - name: Full-source Settings confirmation, cancellation and persistence
-        run: bash tests/ajustes_ux_interacao.sh
+      - name: Guide, playlist and EPG regressions
+        run: |
+          set -euo pipefail
+          for suite in epg_streaming guiaepg guia_epg_estado guia_loading guia_stream_headers m3u xtepg_bounded; do
+            bash "tests/$suite.sh"
+          done
+      - name: ASan and UBSan on large-guide parsing and guide integration
+        run: |
+          set -euo pipefail
+          for suite in epg_streaming guiaepg guia_epg_estado guia_loading guia_stream_headers m3u xtepg_bounded; do
+            SANITIZE=1 NV_TEST_SANITIZE=1 bash "tests/$suite.sh"
+          done
