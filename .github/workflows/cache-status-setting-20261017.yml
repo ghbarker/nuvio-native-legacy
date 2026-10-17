@@ -1,0 +1,82 @@
+name: Persistent source cache filter validation
+
+on:
+  push:
+    branches: [review/cache-status-setting-20261017]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cache-status-setting-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Verify exact tested source
+        run: test "$(git rev-parse HEAD^)" = 171b14ce9c19ed1ecd4cd73227aa0fddff6e0563
+      - name: Cache filter behavior and persistence
+        run: |
+          bash tests/source_cache_filter.sh
+          bash tests/fontefalha.sh
+      - name: Cache filter ASan and UBSan
+        env:
+          NV_TEST_SANITIZE: '1'
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          bash tests/source_cache_filter.sh
+          bash tests/fontefalha.sh
+      - name: Translation and patch checks
+        run: |
+          python3 tools/varredura-i18n.py
+          git diff --check 9c3ecdf85a19798a0997d40573c0cdf155dd1ac6..HEAD^
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Verify exact tested source
+        run: test "$(git rev-parse HEAD^)" = 171b14ce9c19ed1ecd4cd73227aa0fddff6e0563
+      - uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: cache-status-brew-${{ runner.os }}-${{ runner.arch }}-sdl2-image-ttf
+      - name: Install native libraries
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: brew install sdl2 sdl2_image sdl2_ttf pkgconf
+      - name: Full Settings and Sources-sheet integration
+        run: |
+          bash tests/source_cache_filter.sh
+          bash tests/ajustes_failover.sh
+          bash tests/fontefalha.sh
+      - name: Cache predicate ASan and UBSan
+        env:
+          NV_TEST_SANITIZE: '1'
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          bash tests/source_cache_filter.sh
+          bash tests/fontefalha.sh
+      - name: Surrounding source-list regressions
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          for script in ('tests/fontes_lista.sh', 'tests/fontecache.sh', 'tests/fontecache_vod.sh'):
+              print(f'::group::{script}', flush=True)
+              subprocess.run(['bash', script], check=True, timeout=300)
+              print('::endgroup::', flush=True)
+          PY
