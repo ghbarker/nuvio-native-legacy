@@ -19,6 +19,12 @@ void nv_identity_trakt_marcar(const char *id, double p, double d, double a, int 
   (void)p; (void)d; (void)a; (void)fim;
   snprintf(statsId, sizeof statsId, "%s", id);
 }
+int nv_identity_trakt_scrobble_alvo(int evento, const TraktScrobbleAlvo *alvo,
+                                    double p, double d, double a, int fim) {
+  (void)evento; (void)p; (void)d; (void)a; (void)fim;
+  snprintf(statsId, sizeof statsId, "%s", alvo ? alvo->id : "");
+  return SCR_NADA;
+}
 // Neither parental HTTP nor the detached Home refresh participates in the
 // identity being tested. Capture their real requests without starting workers
 // that could outlive the fixture's normal SDL_Quit teardown.
