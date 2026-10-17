@@ -143,6 +143,13 @@ static void ajIptvNovaAbrir(int op) {
   iptvForm.sessao=nv_perfil_sessao_ler();
   iptvTipoPagina=tipo;valor[AJ_IPTV_ATIVA]=0;
   focarOpcao(ajIptvPrimeiroCampo(tipo));scrollY=velY=0;
+  // Add already identifies the provider: start its blank address input now.
+  stCampo=ajIptvPrimeiroCampo(tipo);iptvForm.entradaInicial=1;
+  teclado_contexto(i18n(ajIptvAdicionarNome(tipo)));
+  teclado_abrir_com(tipo==IPTV_M3U?"URL da lista M3U":tipo==IPTV_XTREAM?"Servidor Xtream":"Portal Stalker (MAC)",
+    tipo==IPTV_M3U?"Endereço HTTP ou HTTPS":"Endereço e porta, sem http://",
+    tipo==IPTV_M3U?1099:64,tipo==IPTV_M3U?CUR_ALFA_URL:ST_ALFA_PORTAL,NULL);
+  teclado_permitir_vazio(tipo==IPTV_M3U);
 }
 static void ajIptvVoltar(void) {
   int op=uxEditor?uxOp:-1;

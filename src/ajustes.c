@@ -1219,7 +1219,7 @@ typedef struct {
 static int stCampo;
 // New credentials stay in memory until the explicit Save action.
 static struct {
-  int tipo, nova, ativa;
+  int tipo, nova, ativa, entradaInicial;
   NvPerfilSessao sessao;
   char nome[96], servidor[256], usuario[96], senha[96], mac[32];
   char url[1100], epg[1100];
@@ -9098,6 +9098,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
       size_t cap;char *rascunho=ajIptvRascunho(stCampo,&cap);
       if(rascunho) {
         if(nv_perfil_sessao_atual(iptvForm.sessao))snprintf(rascunho,cap,"%s",teclado_texto());
+        iptvForm.entradaInicial=0;
         teclado_esquecer();
       }
       else if(stCampo==AJ_IPTV_NOME) {
@@ -9155,8 +9156,10 @@ void ajustes_atualizar(float dt, Uint32 agora) {
         guia_recarregar(1);
       if (r == TECLADO_PRONTO) stCampo = 0;
     } else if (r == TECLADO_CANCELOU) {
+      int tipo=iptvForm.nova && iptvForm.entradaInicial ? iptvForm.tipo : 0;
       if (stCampo == AJ_JF_ENTRAR || stCampo == AJ_EM_ENTRAR) { teclado_esquecer(); memset(jfUsuario, 0, sizeof jfUsuario); }
       stCampo = 0;
+      if(tipo) { teclado_esquecer();ajIptvListaAbrir(tipo); }
     } }
   // Repouso da escolha de idioma de legenda: ver aplicarIdioma.
   if (legendaEspera > 0.0f) {
