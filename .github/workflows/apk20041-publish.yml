@@ -1,0 +1,50 @@
+{
+  "name": "CLOSED Logs31 exact verified subtitle-font APK publication",
+  "on": {
+    "push": {
+      "branches": [
+        "review/apk20041-publish-20261016"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "write",
+    "actions": "read"
+  },
+  "concurrency": {
+    "group": "logs31-approved-publication",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "publish": {
+      "if": true,
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Verify immutable CI proofs and publish only approved bytes",
+          "env": {
+            "GITHUB_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 .review/apk20041-publisher/publish.py"
+        },
+        {
+          "uses": "actions/upload-artifact@v4",
+          "if": "always()",
+          "with": {
+            "name": "logs31-publication-${{ github.sha }}",
+            "path": "build/logs31-publication/publication-receipt.json",
+            "if-no-files-found": "warn",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

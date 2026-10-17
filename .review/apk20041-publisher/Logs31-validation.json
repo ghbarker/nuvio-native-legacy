@@ -1,0 +1,149 @@
+{
+  "format": 3,
+  "all_passed": true,
+  "source_commit": "20eb25067ebd7e7770247a5ce3d753a911b44993",
+  "source_tree": "07c3605056ec0a3ef634c804ef1118884644b82f",
+  "review_commit": "4d1c8f03dd13f4b79f611cfa67b8175b6ed45b16",
+  "run_id": 38984590020,
+  "run_attempt": 1,
+  "plan_sha256": "1ec17e28f9099ad93dc6405202b0fb4ffecc772ea6ce5785a767ed2830c0789b",
+  "job": {
+    "id": 117252976360,
+    "name": "APK20041 compatible test APK (ARM32/ARM64)"
+  },
+  "apk_sha256": "328756d33660ad910c8ac369f3a03dd2912fe42f8109b167f2a88b770b4d9718",
+  "apk_bytes": 59231320,
+  "build_receipt_sha256": "c0501b10f7055267d78b34a5b409d73105a0e184be231bbad7769bebdb0e4af4",
+  "apk_verification_sha256": "4a9aa582c0ad4f48fae494286d7fa45002b4a2586bdf35237c1d05bb9c4de4d6",
+  "source_proof_sha256": "919b44af0336f0b4f56f243428d757fc79363eb681904b41ef8a6d7617a6618b",
+  "composition_sha256": "0eaa17931f34576d90aa1bb1ee2d94f505a126557eaf4959c0c478cfc3b8d7d3",
+  "previous_results_count_as_fresh": false,
+  "single_exact_private_source": true,
+  "private_overlay_preserved": true,
+  "scope": "Exact private Logs31 recovery1 font-import APK: fresh Android ARM32/ARM64 compilation/package, nine JVM tests, four C groups and actual manifest query checks passed and were independently replayed by root. Separately pinned public font macOS source passed twelve groups/eighteen scenarios and full TV/Mobile compile/link checks. Android retains SDL_ttf/FreeType without libass. No actual import-device, emulator, or package-manager installation result claimed.",
+  "source_purpose": "PRIVATE Logs31 font import, preserving Logs30 installer/external features; Android SDL_ttf backend unchanged, no Android libass rendering claim",
+  "public_product_fix_claimed": false,
+  "macos_validation_included": true,
+  "emulator_results_included": false,
+  "android_build_and_apk_checks_passed": true,
+  "native_diagnostic_marker_required_for_publication": true,
+  "diagnostics": {
+    "patch_sha256": "ac44e39f4e79319c326b09d304894a6cb01c99e06e0fe1c561f4be15673a4e99",
+    "detail_c_sha256": "0cc11640816c55e261f62dffc11e6399d8e5827acdbfaf4abbf27c57035da322",
+    "build_gate": "NV_TEST_LOCAL_LOGS",
+    "minimum_sample_ms": 250,
+    "max_changed_records_per_opening": 32,
+    "scope": "Bounded season/episode update+draw state, geometry and hashed title/source identity; no raw URLs, account identifiers or auth."
+  },
+  "android_independent_verification_sha256": "50f58f98bd82967feb3fa7f7333f1d836bfa95081e9755e7f64e25c69dfb96f1",
+  "stable_package_and_certificate_preserved": true,
+  "actual_source_units_per_abi": 318,
+  "actual_player_jni_descriptors": 19,
+  "actual_dex_files": 4,
+  "source_restored_clean": true,
+  "private_diagnostic_source_compile_bound": true,
+  "cache_restoration": {
+    "scope": "Public cache restore outputs only; restored native artifacts are still validated by unchanged production deps.sh recipe/NDK stamps on the selected source",
+    "caches": {
+      "native": {
+        "primary_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+        "matched_key": "rebases10e3-native-v1-Linux-a84ffeb3bc46020bad0de5e73efad6f0aa72d51f8a714696cd4426466c721a75",
+        "exact_hit": true,
+        "restored": true
+      },
+      "gradle": {
+        "primary_key": "rebases10e3-gradle-v1-Linux-066699c67cd7821cea90566d87b1b070e49646b4787f91771737333c2f06a41f",
+        "matched_key": "rebases10e3-gradle-v1-Linux-066699c67cd7821cea90566d87b1b070e49646b4787f91771737333c2f06a41f",
+        "exact_hit": true,
+        "restored": true
+      }
+    }
+  },
+  "private_test_apk": true,
+  "includes_search_window_fix": true,
+  "public_product_fix_claimed_meaning": "Private Android build and APK parser-rule verification only; no actual Android package-manager installation or third-party player/device execution claim.",
+  "includes_player_control_relocation": true,
+  "includes_special_seasons": true,
+  "logs25_foundation_user_test_claimed": false,
+  "includes_poster_grid_update": true,
+  "logs26_foundation_user_test_claimed": false,
+  "publication_requires_root_reviewed_source_checks": true,
+  "publication_requires_fresh_public_macos_checks": true,
+  "publication_requires_fresh_macos_recovery": true,
+  "publication_prerequisites": {
+    "android_independent_consumer_passed": true,
+    "android_root_verified": true,
+    "public_fonts_macos_independent_consumer_passed": true,
+    "public_fonts_macos_root_verified": true,
+    "root_approved_test_apk_only": true
+  },
+  "includes_search_see_all": true,
+  "logs27_foundation_user_test_claimed": false,
+  "private_opener_controls": {
+    "receipt_sha256": "595a2a4f3c768b741dddced3f8fbdfbdbc1b23e22b7ebed7894b847c30cdca8e",
+    "checks_each_normal_asan": 14,
+    "scope": "Actual source opener/event/Showcase functions with typed boundaries; no SDL window, real worker, mobile-preprocessor branch, network, SDK or device claim.",
+    "prior_results_reference_only": true,
+    "prior_results_count_as_fresh": false
+  },
+  "pending_public_pr_validation": {
+    "external_player_public_macos": "Not claimed by this Android wrapper",
+    "external_player_device_intent_handoff": "Pending user phone testing",
+    "font_import": "Pending user APK font-import test before public PR",
+    "public_fonts_macos": "Recovery1 real font suites and full TV/Mobile compile/link passed; exact public-source proof independently replayed by root."
+  },
+  "unit_tests_sha256": "e9956386410d123d9c4561934663b1e1154bf3dfb0f60e049f22625da4e3ddd1",
+  "actual_external_activity_jni_methods": 6,
+  "actual_android_junit_tests": 9,
+  "actual_host_c_groups": 4,
+  "includes_external_player": true,
+  "includes_font_import": true,
+  "android_unit_tests_passed": true,
+  "host_c_state_integration_passed": true,
+  "logs28_foundation_user_test_claimed": false,
+  "host_c_assertion_markers": 28,
+  "logs29_foundation_user_test_claimed": false,
+  "logs29_foundation_known_installer_defect": true,
+  "includes_installer_manifest_query_fix": true,
+  "actual_merged_apk_manifest_queries_verified": true,
+  "actual_manifest_query_intents": 6,
+  "manifest_query_dump_sha256": "224ae1ef2de736752d1e93a76bf6db646defe993e0fd12cdb56872bf76dfe6c7",
+  "source_manifest_parser_cases": 14,
+  "source_manifest_query_tests_passed": true,
+  "actual_package_manager_installation_claimed": false,
+  "android16_parser_rule_verification_only": true,
+  "publication_requires_actual_merged_manifest_queries_verified": true,
+  "actual_font_import_activity_jni_methods": 2,
+  "font_import_backend": {
+    "name": "existing SDL_ttf/FreeType",
+    "android_libass_enabled": false,
+    "android_libass_rendering_claimed": false
+  },
+  "android_junit_required_classes": {
+    "space.nuvio.nativelegacy.PlayerExternoContratoTest": [
+      "absentOrUnsupportedHeaderPlayersNeverCreateGenericBase",
+      "malformedHeadersRefuseRatherThanSilentlyDropCredentials",
+      "ordinaryStreamsUseOneImplicitSystemChooserTarget",
+      "requiredHeadersUseOnlyExplicitVerifiedMxComponents",
+      "resumeUsesIntMillisecondsWithoutOutputOnlyVlcExtras",
+      "urlsAndCapacityAreValidatedWithoutRewritingSignedQuery"
+    ],
+    "space.nuvio.nativelegacy.FontImportTest": [
+      "exactLimitAndOversize",
+      "readAndWriteFailuresPropagate",
+      "shortAndZeroLengthReads"
+    ]
+  },
+  "public_fonts_macos": {
+    "required": true,
+    "root_verified": true,
+    "run_id": 38982543683,
+    "job_id": 117246490625,
+    "source_commit": "8da1c3644cf0843a2d8de5e55c10cb9650203009",
+    "source_tree": "fdd18aaa4f91d5256fe44f86d00ff94a7d188143",
+    "receipt_sha256": "bc2a2bb015400ec96d280ccb9c0e9e0d3d7a1bccf757c1af357113a37083273a",
+    "root_verification_receipt_sha256": "bc2a2bb015400ec96d280ccb9c0e9e0d3d7a1bccf757c1af357113a37083273a",
+    "scope": "Root-verified public font source only; separate from private Android source."
+  },
+  "logs30_foundation_user_test_claimed": false
+}

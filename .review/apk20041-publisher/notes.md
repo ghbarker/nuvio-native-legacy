@@ -1,0 +1,3 @@
+TV/mobile test update adding local TTF/OTF subtitle-font import and independent main/second subtitle font selection, retaining previous test features.
+
+Install over the current TV/mobile test app and choose Update. The package and persistent signing certificate preserve the update path and accounts. Fresh Android ARM32/ARM64 checks, nine JVM tests, four C groups and the actual APK manifest query checks passed. The separately pinned public font source also passed macOS font regression and full TV/Mobile compile/link checks. Android keeps its existing SDL_ttf/FreeType backend; this does not enable Android libass. Actual font import and playback behavior remain for user testing.
