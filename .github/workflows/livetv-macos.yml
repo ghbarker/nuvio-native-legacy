@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 740853ecea8092d8e6f2c367ca73a5d61f1f69f1
+          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Registry, Settings, UI renderer and subtitle regressions

@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 740853ecea8092d8e6f2c367ca73a5d61f1f69f1
+          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Font registry, Settings, rendering and subtitle regressions
@@ -54,12 +54,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 740853ecea8092d8e6f2c367ca73a5d61f1f69f1
+          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 740853ecea8092d8e6f2c367ca73a5d61f1f69f1
-          test "$(git rev-parse HEAD^{tree})" = 2b1fe2082d6cbfb96fd22a831bfe223f834a0b59
+          test "$(git rev-parse HEAD)" = 56efd14595a7c535fe867992a5e930d0e69f90a3
+          test "$(git rev-parse HEAD^{tree})" = 18ad7116a50e5d272fab0693205cebe8484ce7bd
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -158,7 +158,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,pathlib
           p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs41.apk')
-          out={'all_passed':False,'source_commit':'740853ecea8092d8e6f2c367ca73a5d61f1f69f1','source_tree':'2b1fe2082d6cbfb96fd22a831bfe223f834a0b59','package':'space.nuvio.nativelegacy.touch','version_code':20051,'version_name':'2.0.51-test-logs41','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'interface_font_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          out={'all_passed':False,'source_commit':'56efd14595a7c535fe867992a5e930d0e69f90a3','source_tree':'18ad7116a50e5d272fab0693205cebe8484ce7bd','package':'space.nuvio.nativelegacy.touch','version_code':20051,'version_name':'2.0.51-test-logs41','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'interface_font_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
           pathlib.Path('Logs41-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
