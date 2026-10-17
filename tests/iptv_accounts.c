@@ -100,5 +100,12 @@ int main(int argc,char **argv){
   assert(!iptv_contas(NULL,0));assert(!xtream_fonte_configurado(0)&&!m3u_fonte_configurado(0)&&!stalker_fonte_configurado(0));
   char *keep=dados_ler("keep.txt");assert(keep&&!strcmp(keep,"keep"));free(keep);
   puts("PASS: legacy migration, metadata persistence, failed-write rollback, profile isolation, stable deletion IDs and logout cleanup");
+  xtream_fonte_selecionar(0);assert(xtream_definir_servidor("https://kept.invalid"));
+  stalker_fonte_selecionar(0);assert(stalker_definir_portal("kept.invalid"));
+  falhar=1;
+  assert(!xtream_definir_servidor("https://lost.invalid"));assert(strstr(xtream_servidor_curto(),"kept.invalid"));
+  assert(!stalker_definir_portal("lost.invalid"));assert(strstr(stalker_portal_curto(),"kept.invalid"));
+  falhar=0;
+  puts("PASS: failed first-field writes are reported and preserve existing Xtream/Stalker addresses");
   return 0;
 }
