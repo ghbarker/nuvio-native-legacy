@@ -1,8 +1,6 @@
 name: Share verified Logs35 test APK
 
 on:
-  push:
-    branches: [review/logs34-integration-20261017]
   workflow_dispatch:
 
 permissions:
