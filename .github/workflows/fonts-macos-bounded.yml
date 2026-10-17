@@ -1,0 +1,74 @@
+name: Bounded macOS font validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fonts:
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      SDL_MAC_BACKGROUND_APP: '1'
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ca87c9ab0eff3b9cadf9bfb6d2e1a131d7de9fbe
+          persist-credentials: false
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
+      - name: Prepare bounded runner and diagnostic markers
+        run: |
+          mkdir -p diagnostics
+          python3 - <<'SETUP'
+          from pathlib import Path
+          p=Path('tests/legfontes.c')
+          s=p.read_text().replace('assert(argc == 2); CHECK(TTF_Init() == 0);', 'fprintf(stderr, "[diag] main before TTF_Init\\n"); assert(argc == 2); CHECK(TTF_Init() == 0); fprintf(stderr, "[diag] TTF_Init complete\\n");')
+          p.write_text(s)
+          SETUP
+          cat > /tmp/bounded-fonts.py <<'RUNNER'
+          import os,pathlib,signal,subprocess,sys
+          suite=sys.argv[1];name=suite+('-asan' if os.getenv('SANITIZE')=='1' else '')
+          log=pathlib.Path('diagnostics')/(name+'.log')
+          with log.open('w') as f:
+              p=subprocess.Popen(['bash','tests/'+suite+'.sh'],stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
+              try:
+                  rc=p.wait(timeout=90)
+              except subprocess.TimeoutExpired:
+                  ps=subprocess.check_output(['ps','-ax','-o','pid=,ppid=,command='],text=True)
+                  pathlib.Path('diagnostics',name+'-processes.txt').write_text(ps)
+                  children={p.pid}
+                  rows=[line.strip().split(None,2) for line in ps.splitlines()]
+                  for _ in range(10):
+                      for row in rows:
+                          if len(row)==3 and int(row[1]) in children:children.add(int(row[0]))
+                  for pid in children:
+                      if pid!=p.pid:
+                          try:subprocess.run(['sample',str(pid),'2','-file',str(pathlib.Path('diagnostics',name+'-'+str(pid)+'.sample'))],timeout=8,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                          except subprocess.TimeoutExpired:pass
+                  try:rc=p.wait(timeout=180)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(p.pid,signal.SIGKILL);p.wait();rc=124
+          print(log.read_text(),flush=True)
+          sys.exit(rc)
+          RUNNER
+      - name: Font persistence
+        run: python3 /tmp/bounded-fonts.py legfontes
+      - name: Font persistence ASan and UBSan
+        env:
+          SANITIZE: '1'
+        run: python3 /tmp/bounded-fonts.py legfontes
+      - name: Real subtitle renderer
+        run: python3 /tmp/bounded-fonts.py ass_fonte_local
+      - name: Real subtitle renderer ASan and UBSan
+        env:
+          SANITIZE: '1'
+        run: python3 /tmp/bounded-fonts.py ass_fonte_local
+      - name: Player picker
+        run: python3 /tmp/bounded-fonts.py faixas_estilo_ctl
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-font-diagnostics
+          path: diagnostics
