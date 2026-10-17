@@ -9,7 +9,7 @@ for source in src/*.c src/dts/*.c; do
   [[ "$source" != src/main.c && "$source" != src/streams.c ]] && sources+=("$source")
 done
 cflags=(-O1 -g -Isrc -Wno-deprecated-declarations -Wno-macro-redefined)
-ldflags=(-lz)
+ldflags=(-lz -lm)
 if [[ "${NV_TEST_SANITIZE:-0}" == 1 ]]; then
   cflags+=(-fsanitize=address,undefined -fno-omit-frame-pointer)
   ldflags+=(-fsanitize=address,undefined)
