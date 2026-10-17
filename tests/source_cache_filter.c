@@ -1,6 +1,7 @@
 #include "../src/fontefiltro.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
   int emCache, cacheNegado, foraCache, cacheNativo, urlP2P, naoVideo;
@@ -36,6 +37,20 @@ int main(void) {
            (c->esperado == FONTEFILTRO_CACHE_NAO));
   }
 
-  puts("source cache filter: classifier and All/Cached/Uncached routing PASS");
+  // A candidate selected by Uncached may become confirmed Cached after the
+  // resolver hands out its first URL. Renewing that same winner must retain
+  // its selection-time cache eligibility instead of exhausting the queue.
+  { FonteFiltroDados selecionado = {0}, resolvido = {0};
+    cfg.cache = FONTEFILTRO_CACHE_NAO;
+    selecionado.cache = FONTEFILTRO_CACHE_NAO;
+    resolvido.cache = FONTEFILTRO_CACHE_SIM;
+    assert(!fontefiltro_permite(&cfg, &resolvido));
+    assert(fontefiltro_renovacao_permite(&cfg, &selecionado, &resolvido));
+    cfg.excluir[FONTEFILTRO_RESOLUCAO] = fontefiltro_desconhecido(FONTEFILTRO_RESOLUCAO);
+    assert(!fontefiltro_renovacao_permite(&cfg, &selecionado, &resolvido));
+    memset(&cfg, 0, sizeof cfg);
+  }
+
+  puts("source cache filter: classifier, routing and selected-winner renewal PASS");
   return 0;
 }

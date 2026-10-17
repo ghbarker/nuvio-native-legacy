@@ -59,5 +59,12 @@ void fontefiltro_classificar(const FonteFiltroEntrada *entrada, FonteFiltroDados
 /* Linguas: exclui apenas se TODAS as linguas declaradas forem excluidas.
    Demais tags: uma correspondencia basta. Desconhecido e opcao explicita. */
 int fontefiltro_permite(const FonteFiltroConfig *cfg, const FonteFiltroDados *dados);
+/* A renovacao pertence a uma fonte que ja venceu o filtro. O resolvedor pode
+   confirmar outro estado de cache depois da escolha; essa transicao nao deve
+   invalidar a propria vencedora, mas os demais metadados atuais continuam
+   sujeitos aos filtros. */
+int fontefiltro_renovacao_permite(const FonteFiltroConfig *cfg,
+                                  const FonteFiltroDados *selecionado,
+                                  const FonteFiltroDados *atual);
 
 #endif
