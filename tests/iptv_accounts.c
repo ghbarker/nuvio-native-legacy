@@ -107,5 +107,20 @@ int main(int argc,char **argv){
   assert(!stalker_definir_portal("lost.invalid"));assert(strstr(stalker_portal_curto(),"kept.invalid"));
   falhar=0;
   puts("PASS: failed first-field writes are reported and preserve existing Xtream/Stalker addresses");
+  perfil=3;sessao++;
+  assert(dados_gravar("xtream-p3.txt","# credential\nservidor\t\nusuario\t\nsenha\t\n"));
+  assert(dados_gravar("m3u-p3.txt","lista\t\nepg\t\n"));
+  assert(dados_gravar("stalker-p3.txt","# credential\nportal\t\nmac\t\ndevice\t\nserial\t\n"));
+  assert(!iptv_contas(NULL,0));
+  assert(dados_gravar("m3u-p3-s9.txt","lista\thttps://kept.invalid/list\nepg\thttps://kept.invalid/epg\n"));
+  assert(dados_gravar("stalker-p3-s10.txt","portal\thttp://partial.invalid\nmac\t\n"));
+  assert(dados_gravar("livetv-contas-p3.txt","next\t11\nselected\t3\naccount\t1\t1\t1\tXtream 1\naccount\t2\t2\t1\tM3U 1\naccount\t9\t2\t1\tSaved playlist\naccount\t10\t3\t1\tPartial portal\n"));
+  sessao++;assert(iptv_contas(c,32)==2 && c[0].id==9 && c[1].id==10);
+  assert(iptv_conta_selecionada(&selected) && selected.id==10);
+  char *saved=dados_ler("m3u-p3-s9.txt");assert(saved && strstr(saved,"https://kept.invalid/list"));free(saved);
+  saved=dados_ler("stalker-p3-s10.txt");assert(saved && strstr(saved,"http://partial.invalid"));free(saved);
+  sessao++;assert(iptv_contas(NULL,0)==2 && iptv_conta_selecionada(&selected) && selected.id==10);
+  assert(iptv_conta_adicionar(IPTV_M3U) && iptv_conta_selecionada(&selected) && selected.id==11);
+  puts("PASS: empty legacy files do not create slots; empty preview metadata is removed without touching saved or partial credentials, selection or monotonic IDs");
   return 0;
 }

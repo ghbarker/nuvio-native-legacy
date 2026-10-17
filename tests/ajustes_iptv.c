@@ -37,16 +37,14 @@ static void salvarTeclado(const char *url) {
 static void salvarUrl(int op,const char *url) { abrir(op);salvarTeclado(url); }
 static void adicionar(int op,const char *url) {
   int antes=iptv_contas(NULL,0),selecionadaAntes=iptv_conta_indice();
-  tocar(op);assert(uxEditor && !teclado_aberto());
-  assert(iptv_contas(NULL,0)==antes && iptv_conta_indice()==selecionadaAntes);
-  ajIptvToqueEscolher(nValores(op)-1,0);
+  tocar(op);
   assert(!uxEditor && teclado_aberto() && !teclado_texto()[0]);
   assert(iptv_contas(NULL,0)==antes && iptv_conta_indice()==selecionadaAntes);
   salvarTeclado(url);assert(iptv_contas(NULL,0)==antes+1);
 }
 static void cancelarAdicao(int op) {
   int antes=iptv_contas(NULL,0),selecionadaAntes=iptv_conta_indice();
-  tocar(op);ajIptvToqueEscolher(nValores(op)-1,0);
+  tocar(op);
   assert(teclado_aberto() && !teclado_texto()[0]);
   SDL_Event e;SDL_zero(e);e.type=SDL_KEYDOWN;e.key.keysym.sym=SDLK_ESCAPE;teclado_evento(&e);
   assert(!teclado_aberto());ajustes_atualizar(0.016f,SDL_GetTicks());
@@ -88,6 +86,7 @@ int main(int argc,char **argv) {
   assert(dados_gravar("aviso-legal.txt","1\n"));
   assert(gravar());assert(!iptv_contas(NULL,0));assert(!ajOpcaoDisponivel(AJ_IPTV_CONTA));
   assert(ajOpcaoDisponivel(AJ_IPTV_ADD_XTREAM));assert(!ajOpcaoDisponivel(AJ_XTREAM_SERVIDOR));
+  assert(!ajOpcaoDisponivel(AJ_IPTV_LISTA_XTREAM) && !ajOpcaoDisponivel(AJ_IPTV_LISTA_M3U) && !ajOpcaoDisponivel(AJ_IPTV_LISTA_STALKER));
   cancelarAdicao(AJ_IPTV_ADD_XTREAM);cancelarAdicao(AJ_IPTV_ADD_M3U);cancelarAdicao(AJ_IPTV_ADD_STALKER);
   adicionar(AJ_IPTV_ADD_XTREAM,"https://one.invalid");assert(iptv_contas(NULL,0)==1);
   IptvConta um=selecionada();assert(um.tipo==IPTV_XTREAM);
@@ -114,10 +113,10 @@ int main(int argc,char **argv) {
   assert(quatro.tipo==IPTV_M3U && quatro.id!=tres.id);
   assert(!m3u_epg()[0]);
   salvarUrl(AJ_M3U_EPG,"https://four.invalid/epg.xml");
-  tocar(AJ_IPTV_ADD_M3U);assert(nValores(AJ_IPTV_ADD_M3U)==3);
-  uxValorTexto(AJ_IPTV_ADD_M3U,0,texto,sizeof texto);assert(!strcmp(texto,tres.nome));
-  uxValorTexto(AJ_IPTV_ADD_M3U,1,texto,sizeof texto);assert(!strcmp(texto,quatro.nome));
-  ajPontEdValor(0,0);ajToqueConfirmar(0,0);
+  tocar(AJ_IPTV_LISTA_M3U);assert(nValores(AJ_IPTV_LISTA_M3U)==2);
+  uxValorTexto(AJ_IPTV_LISTA_M3U,0,texto,sizeof texto);assert(!strcmp(texto,tres.nome));
+  uxValorTexto(AJ_IPTV_LISTA_M3U,1,texto,sizeof texto);assert(!strcmp(texto,quatro.nome));
+  ajIptvToqueEscolher(0,0);
   assert(!uxEditor && !teclado_aberto() && selecionada().id==tres.id);
   assert(!strcmp(m3u_lista(),"https://three.invalid/list"));
   assert(!strcmp(m3u_epg(),"https://three.invalid/epg.xml"));
@@ -146,22 +145,21 @@ int main(int argc,char **argv) {
   assert(portal.tipo==IPTV_STALKER && strstr(stalker_portal_curto(),"portal.invalid"));
   assert(!stalker_configurado());salvarUrl(AJ_STALKER_MAC,"00:1a:79:00:00:01");assert(stalker_configurado());
   cancelarAdicao(AJ_IPTV_ADD_STALKER);assert(stalker_fonte_configurado(portal.id));
-  tocar(AJ_IPTV_ADD_XTREAM);assert(nValores(AJ_IPTV_ADD_XTREAM)==3);
+  tocar(AJ_IPTV_CONTA);assert(nValores(AJ_IPTV_CONTA)==3);
   ajPontEdValor(0,0);ajToqueConfirmar(0,0);assert(selecionada().id==um.id && !teclado_aberto());
   assert(!strcmp(xtream_usuario(),"one"));
-  int antes=iptv_contas(NULL,0);tocar(AJ_IPTV_ADD_M3U);ajPontEdValor(nValores(AJ_IPTV_ADD_M3U)-1,0);key(SDLK_RETURN);
+  int antes=iptv_contas(NULL,0);tocar(AJ_IPTV_ADD_M3U);
   salvarTeclado("ftp://invalid.example/list");assert(iptv_contas(NULL,0)==antes && selecionada().id==um.id);
-  tocar(AJ_IPTV_ADD_M3U);ajIptvToqueEscolher(nValores(AJ_IPTV_ADD_M3U)-1,0);
+  tocar(AJ_IPTV_ADD_M3U);
   perfis_invalidar_sessao();salvarTeclado("https://stale.invalid/list");
   assert(iptv_contas(NULL,0)==antes && selecionada().id==um.id);
-  tocar(AJ_IPTV_ADD_XTREAM);perfis_invalidar_sessao();key(SDLK_RETURN);
+  tocar(AJ_IPTV_CONTA);perfis_invalidar_sessao();key(SDLK_RETURN);
   assert(!uxEditor && !teclado_aberto() && selecionada().id==um.id);
   while(iptv_contas(NULL,0)<IPTV_MAX_CONTAS)assert(iptv_conta_adicionar(IPTV_M3U));
   ajIptvEspelhar();
-  assert(ajOpcaoDisponivel(AJ_IPTV_ADD_XTREAM) && ajOpcaoDisponivel(AJ_IPTV_ADD_M3U) && ajOpcaoDisponivel(AJ_IPTV_ADD_STALKER));
-  assert(nValores(AJ_IPTV_ADD_XTREAM)==2 && nValores(AJ_IPTV_ADD_STALKER)==1);
-  tocar(AJ_IPTV_ADD_XTREAM);ajIptvToqueEscolher(0,0);
+  assert(!ajOpcaoDisponivel(AJ_IPTV_ADD_XTREAM) && !ajOpcaoDisponivel(AJ_IPTV_ADD_M3U) && !ajOpcaoDisponivel(AJ_IPTV_ADD_STALKER));
+  tocar(AJ_IPTV_CONTA);ajIptvToqueEscolher(0,0);
   assert(selecionada().id==um.id && !teclado_aberto() && iptv_contas(NULL,0)==IPTV_MAX_CONTAS);
-  puts("PASS: provider-type lists contain saved accounts plus Add; Add opens a blank URL popup; Cancel and invalid M3U URLs do not create accounts; existing-account selection preserves credentials");
+  puts("PASS: separate Add actions immediately open blank address popups; saved-account list has no Add slots; Cancel, invalid URLs and stale profile results create nothing");
   SDL_Quit();return 0;
 }
