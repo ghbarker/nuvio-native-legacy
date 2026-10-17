@@ -1,12 +1,12 @@
-name: Logs35 macOS canonical tracking validation
+name: Logs36 macOS subtitle font validation
 
 on:
   push:
-    branches: [review/logs35-macos-20261017]
+    branches: [review/logs36-font-android-20261017]
   workflow_dispatch:
 
 concurrency:
-  group: logs35-macos-${{ github.ref }}
+  group: logs36-macos-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,37 +20,14 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
-      - name: Verify exact integrated source
-        run: |
-          test "$(git rev-parse HEAD^)" = 68fba9d898eb52b5958426085a267a6014edf6b4
-          test "$(git rev-parse HEAD^^{tree})" = 64a4c0a75acd46e40b2adaaccea3fea756a1a66d
       - name: Install native test libraries
         run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
-      - name: Run macOS rendering and player regressions
+      - name: Run macOS subtitle rendering and persistence regressions
         run: |
-          set -e
-          for test in \
-            tests/ass_fonte_local.sh \
-            tests/ass_fontes.sh \
-            tests/legfontes.sh \
-            tests/text_largura.sh \
-            tests/p2p_dica486.sh \
-            tests/player_visto_trailer.sh \
-            tests/streamfit_sheet.sh \
-            tests/faixas_estilo_ctl.sh \
-            tests/source_cache_filter.sh \
-            tests/trakt_alvos512.sh \
-            tests/catalog_episode_identity512.sh \
-            tests/visto_identidade512.sh
+          set -euo pipefail
+          for suite in ass_fonte_local ass_fontes legfontes text_largura faixas_estilo_ctl
           do
-            echo "RUN $test"
-            bash "$test"
+            bash "tests/$suite.sh"
           done
-          SANITIZE=1 bash tests/trakt_alvos512.sh
-          SANITIZE=1 bash tests/visto_identidade512.sh
-          for scenario in base concorrencia ordem identidade
-          do
-            echo "RUN tests/fontesmortas.sh $scenario"
-            bash tests/fontesmortas.sh "$scenario"
-          done
-
+          SANITIZE=1 bash tests/legfontes.sh
+          SANITIZE=1 bash tests/ass_fonte_local.sh
