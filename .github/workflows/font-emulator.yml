@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
-      ANDROID_AVD_HOME: ${{ runner.temp }}/nuvio-font-avds
+      ANDROID_AVD_HOME: /tmp/nuvio-font-avds
     steps:
       - uses: actions/checkout@v4
         with:
