@@ -171,6 +171,20 @@
       {
         "op": "hierarchy"
       }
+    ],
+    "x86-5": [
+      {
+        "op": "key",
+        "code": 23
+      },
+      {
+        "op": "wait",
+        "seconds": 3
+      },
+      {
+        "op": "shot",
+        "name": "05-font-selection-result"
+      }
     ]
   }
 }
