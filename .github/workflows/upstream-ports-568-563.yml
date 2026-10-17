@@ -1,0 +1,45 @@
+name: Upstream ports 568 and 563 validation
+
+on:
+  push:
+    branches:
+      - review/upstream-ports-568-563-20261017
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-ports-568-563-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify current upstream base and clean product diff
+        run: |
+          test "$(git rev-parse HEAD^)" = "1b5c9d39a30cd94c80d4df4e49a8cd96f34b7d06"
+          git diff --check HEAD^
+      - name: Install native test dependencies
+        run: brew install sdl2 sdl2_image sdl2_ttf sdl3
+      - name: Showcase See all tests
+        run: |
+          bash tests/colecao_exibicao.sh
+      - name: Search result-window tests
+        run: |
+          bash tests/busca555.sh
+          bash tests/busca_limite.sh
+          bash tests/busca_toque_modo.sh
+          bash tests/spotlight_regressao.sh
+          bash tests/detalheanime.sh
+          bash tests/farah.sh
+      - name: Search sanitizer tests
+        run: |
+          SANITIZE=1 bash tests/busca_limite.sh
+          SANITIZE=1 bash tests/busca_toque_modo.sh
+          SANITIZE=1 bash tests/spotlight_regressao.sh
