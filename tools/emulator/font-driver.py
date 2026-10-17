@@ -1,7 +1,7 @@
 """Isolated emulator-only UI driver; never included in a product PR."""
 import argparse,base64,hashlib,json,os,re,subprocess,time,urllib.request
 from pathlib import Path
-P='space.nuvio.nativelegacy.touch'; ROOT=Path('emulator-results');ROOT.mkdir(exist_ok=True)
+P='space.nuvio.nativelegacy.touch'; BASE=Path('emulator-data-base').read_text().strip() if Path('emulator-data-base').exists() else 'files/dados'; ROOT=Path('emulator-results');ROOT.mkdir(exist_ok=True)
 def adb(*args, binary=False, check=True):
  r=subprocess.run(['adb',*map(str,args)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=60)
  if check and r.returncode:raise RuntimeError('adb '+str(args[:4])+': '+r.stderr.decode(errors='replace'))
@@ -20,7 +20,7 @@ def shot(name,phase):
 def snapshot(phase):
  out=ROOT/f'phase-{phase}';out.mkdir(exist_ok=True)
  for f in ['ajustes.txt','fontes-legenda.txt','player.txt']:
-  text=adb('shell','run-as',P,'cat',f'files/dados/{f}',check=False)
+  text=adb('shell','run-as',P,'cat',f'{BASE}/{f}',check=False)
   (out/f).write_text(text)
  (out/'runtime-files.txt').write_text(adb('shell','run-as',P,'find','.','-maxdepth','4','-type','f',check=False))
  for loc in ['nuvio.log','files/nuvio.log','files/art/nuvio.log']:
@@ -62,6 +62,7 @@ def bootstrap():
  assert adb('shell','pidof',P,check=False),'APK exited during emulator startup; inspect diagnostics'
 
 def command(c,phase):
+ global BASE
  op=c['op']
  if op=='tap':adb('shell','input','tap',int(c['x']),int(c['y']))
  elif op=='key':adb('shell','input','keyevent',int(c['code']))
@@ -76,11 +77,23 @@ def command(c,phase):
  elif op=='restart':
   adb('shell','am','force-stop',P);adb('shell','am','start','-n',P+'/space.nuvio.nativelegacy.NuvioActivity')
  elif op=='assert_font':
-  lines=adb('shell','run-as',P,'cat','files/dados/fontes-legenda.txt').splitlines()
+  lines=adb('shell','run-as',P,'cat',f'{BASE}/fontes-legenda.txt').splitlines()
   assert lines[:2]==json.loads(Path('subtitle-selections-before.json').read_text()),'subtitle selections changed'
   selected = lines[2] if len(lines)>2 else ''
   assert bool(selected)==bool(c['imported']),'wrong interface font state'
   assert adb('shell','pidof',P),'app stopped'
+ elif op=='shell':
+  out=ROOT/f'phase-{phase}';out.mkdir(exist_ok=True)
+  with (out/'shell-output.txt').open('a') as f:f.write(adb('shell',*c['args'],check=False)+'\n')
+ elif op=='fixture':
+  target=c['location'];assert re.fullmatch(r'(files/|\.nuvio)[a-zA-Z0-9_./-]*',target) and '..' not in target
+  adb('shell','am','force-stop',P)
+  adb('shell','run-as',P,'mkdir','-p',target)
+  for name in ['sessao.txt','perfis.txt','perfil.txt','envio-151.txt','ajustes.txt','fontes-legenda.txt']:
+   adb('shell','run-as',P,'cp','files/dados/'+name,target+'/'+name)
+  adb('shell','run-as',P,'ln','-s','/data/user/0/'+P+'/files/dados/fontes-importadas',target+'/fontes-importadas',check=False)
+  BASE=target;Path('emulator-data-base').write_text(BASE)
+  adb('shell','am','start','-n',P+'/space.nuvio.nativelegacy.NuvioActivity')
  elif op=='done':Path('emulator-done').touch()
  else:raise ValueError('Unknown test operation '+op)
  time.sleep(.8)
