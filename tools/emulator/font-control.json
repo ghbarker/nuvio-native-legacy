@@ -112,6 +112,21 @@
         "op": "shot",
         "name": "04-navigation"
       }
+    ],
+    "x86-5": [
+      {
+        "op": "tap",
+        "x": 220,
+        "y": 1350
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "05-settings"
+      }
     ]
   }
 }
