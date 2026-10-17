@@ -14,17 +14,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39049217745 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39049205771 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39049619070 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39049618761 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: 740853ecea8092d8e6f2c367ca73a5d61f1f69f1
+          ref: 56efd14595a7c535fe867992a5e930d0e69f90a3
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39049217745
-          name: Nuvio-TV-Mobile-Test-Logs41-628916824be0725a623b535a3ade3c3adb84fede
+          run-id: 39049619070
+          name: Nuvio-TV-Mobile-Test-Logs41-ba15e4a94b1ec8b4733024c3f2a552dd93111cb0
           path: dist
       - name: Verify Android page alignment and the retained package identity
         run: |
@@ -33,8 +33,8 @@ jobs:
           import hashlib,json,pathlib,zipfile
           root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs41.apk'
           report=json.loads((root/'Logs41-validation.json').read_text())
-          assert report['source_commit']=='740853ecea8092d8e6f2c367ca73a5d61f1f69f1'
-          assert report['source_tree']=='2b1fe2082d6cbfb96fd22a831bfe223f834a0b59'
+          assert report['source_commit']=='56efd14595a7c535fe867992a5e930d0e69f90a3'
+          assert report['source_tree']=='18ad7116a50e5d272fab0693205cebe8484ce7bd'
           assert report['package']=='space.nuvio.nativelegacy.touch'
           assert report['version_code']==20051 and report['version_name']=='2.0.51-test-logs40'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
@@ -44,8 +44,8 @@ jobs:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist()
               assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
           report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,interface_font_regressions=True,macos_interface_font_regressions=True,android_16k_alignment=True)
-          report['android_linux_run']=39049217745;report['macos_run']=39049205771
-          report['macos_test_commit']='740853ecea8092d8e6f2c367ca73a5d61f1f69f1'
+          report['android_linux_run']=39049619070;report['macos_run']=39049618761
+          report['macos_test_commit']='56efd14595a7c535fe867992a5e930d0e69f90a3'
           report['validation_scope']='Linux and macOS font registry, real UI rendering, Settings persistence/rollback, subtitle rendering and sanitizer regressions; Android build and font import unit tests'
           report['new_translation_keys_verified']=True
           report['baseline_release']='tv-mobile-test-logs-v40'
@@ -69,6 +69,6 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" --target 740853ecea8092d8e6f2c367ca73a5d61f1f69f1 --title 'Nuvio TV/Mobile Test - Logs41: Imported interface fonts' --notes-file dist/Logs41-testing.txt
+            gh release create tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" --target 56efd14595a7c535fe867992a5e930d0e69f90a3 --title 'Nuvio TV/Mobile Test - Logs41: Imported interface fonts' --notes-file dist/Logs41-testing.txt
           fi
           gh release upload tv-mobile-test-logs-v41 --repo "$GITHUB_REPOSITORY" --clobber dist/Nuvio-TV-Mobile-Test-Logs41.apk dist/Logs41-validation.json dist/Logs41-testing.txt
