@@ -1,0 +1,34 @@
+name: macOS Live TV filter validation
+on:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/livetv-macos.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-tv:
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      SDL_MAC_BACKGROUND_APP: '1'
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 974f3e00af4e682fb3d62bed745d506854382382
+          persist-credentials: false
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
+      - name: Source sheet and VOD filter restoration
+        run: bash tests/streamfit_sheet.sh
+      - name: Add-on request classification and instance identity
+        run: bash tests/addonslista.sh && bash tests/addons_proveniencia.sh
+      - name: Playback resolution and channel types
+        run: bash tests/fontefalha_worker.sh && bash tests/livetv_regras.sh && bash tests/canal_tpk_eof.sh
+      - name: Filter and playback sanitizers
+        env:
+          SANITIZE: '1'
+        run: bash tests/streamfit_sheet.sh && bash tests/fontefalha_worker.sh
+      - name: Real channel-playlist selection and fallback
+        run: bash tests/canalfila.sh
