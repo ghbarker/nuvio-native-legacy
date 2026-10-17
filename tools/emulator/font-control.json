@@ -127,6 +127,21 @@
         "op": "shot",
         "name": "05-settings"
       }
+    ],
+    "x86-6": [
+      {
+        "op": "tap",
+        "x": 400,
+        "y": 1725
+      },
+      {
+        "op": "wait",
+        "seconds": 1
+      },
+      {
+        "op": "shot",
+        "name": "06-appearance-before"
+      }
     ]
   }
 }
