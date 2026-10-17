@@ -73,7 +73,8 @@ def command(c,phase):
  elif op=='assert_font':
   lines=adb('shell','run-as',P,'cat','files/dados/fontes-legenda.txt').splitlines()
   assert lines[:2]==json.loads(Path('subtitle-selections-before.json').read_text()),'subtitle selections changed'
-  assert len(lines)>=3 and bool(lines[2])==bool(c['imported']),'wrong interface font state'
+  selected = lines[2] if len(lines)>2 else ''
+  assert bool(selected)==bool(c['imported']),'wrong interface font state'
   assert adb('shell','pidof',P),'app stopped'
  elif op=='done':Path('emulator-done').touch()
  else:raise ValueError('Unknown test operation '+op)

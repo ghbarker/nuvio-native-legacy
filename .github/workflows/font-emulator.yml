@@ -12,6 +12,7 @@ jobs:
     timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
+      ANDROID_AVD_HOME: ${{ runner.temp }}/nuvio-font-avds
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,7 +33,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq libpulse0 libegl1 libgl1 libnss3 libxcomposite1 libxcursor1 libxdamage1 libxfixes3 libxi6 libxrandr2 libxrender1 libxtst6 libxcb-cursor0 libxkbcommon-x11-0
           sdkmanager 'platform-tools' 'emulator' 'system-images;android-30;google_apis;x86_64'
-          echo no | avdmanager create avd --force -n nuvio-fonts -k 'system-images;android-30;google_apis;x86_64' --device pixel_4
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd --force -n nuvio-fonts -k 'system-images;android-30;google_apis;x86_64' --device pixel_4 -p "$ANDROID_AVD_HOME/nuvio-fonts.avd"
+          python3 - <<'PYAVD'
+          import os,pathlib
+          root=pathlib.Path(os.environ['ANDROID_AVD_HOME'])
+          assert (root/'nuvio-fonts.avd/config.ini').exists()
+          (root/'nuvio-fonts.ini').write_text('avd.ini.encoding=UTF-8\npath='+str(root/'nuvio-fonts.avd')+'\ntarget=android-30\n')
+          PYAVD
       - name: Download the exact verified APK
         run: |
           mkdir -p emulator-results
@@ -42,7 +50,8 @@ jobs:
         run: |
           set -euo pipefail
           "$ANDROID_HOME/emulator/emulator" -accel-check
-          "$ANDROID_HOME/emulator/emulator" -list-avds
+          "$ANDROID_HOME/emulator/emulator" -list-avds | tee emulator-results/avds.txt
+          grep -qx nuvio-fonts emulator-results/avds.txt
           nohup "$ANDROID_HOME/emulator/emulator" -avd nuvio-fonts -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -feature -Vulkan > emulator-results/boot.log 2>&1 &
           if ! timeout 150 adb wait-for-device; then cat emulator-results/boot.log; exit 1; fi
           python3 - <<'PYBOOT'
