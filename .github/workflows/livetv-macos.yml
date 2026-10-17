@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 051215c018488726d70ba575ab3146ff8c099038
+          ref: 65338bf67e07c45705584c5ce5523dfb3c0a4507
           fetch-depth: 5
           persist-credentials: false
       - name: Verify application source matches the retained Android build
