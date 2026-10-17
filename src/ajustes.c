@@ -648,6 +648,7 @@ typedef enum {
   AJ_GUIA_FONTE, AJ_GUIA_RECARREGAR, AJ_M3U_URL, AJ_M3U_EPG, AJ_M3U_LIMPAR,
   AJ_IPTV_CONTA, AJ_IPTV_ADD_XTREAM, AJ_IPTV_ADD_M3U, AJ_IPTV_ADD_STALKER,
   AJ_IPTV_NOME, AJ_IPTV_ATIVA, AJ_IPTV_REMOVER,
+  AJ_IPTV_LISTA_XTREAM, AJ_IPTV_LISTA_M3U, AJ_IPTV_LISTA_STALKER,
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1690,12 +1691,15 @@ static const Opcao OPCOES[AJ_N] = {
   ACAO("URL da programação XMLTV"),
   ACAO("Remover lista M3U"),
   ESC("Conta de TV ao vivo", NULL, 1),
-  ESC("Xtream", NULL, 1),
-  ESC("M3U", NULL, 1),
-  ESC("Stalker", NULL, 1),
+  ACAO("Adicionar conta Xtream"),
+  ACAO("Adicionar lista M3U"),
+  ACAO("Adicionar portal Stalker"),
   ACAO("Nome da conta"),
   ESC("Conta ativada", V_LIGA, 2),
   ACAO("Remover conta de TV ao vivo"),
+  ESC("Xtream", NULL, 1),
+  ESC("M3U", NULL, 1),
+  ESC("Stalker", NULL, 1),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1994,6 +1998,7 @@ static const char *CHAVE[] = {
   "guiaFonteLocal", "-guiaRecarregar", "-m3uUrl", "-m3uEpg", "-m3uLimpar",
   "-iptvConta", "-iptvAddXtream", "-iptvAddM3u", "-iptvAddStalker",
   "-iptvNome", "-iptvAtiva", "-iptvRemover",
+  "-iptvListaXtream", "-iptvListaM3u", "-iptvListaStalker",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -2155,10 +2160,11 @@ static const char *ajIptvNome(int indice) {
   int n=iptv_contas(cs,IPTV_MAX_CONTAS);
   return indice>=0 && indice<n ? cs[indice].nome : i18n("Nenhuma");
 }
-static int ajIptvGerenciador(int op) {
+static int ajIptvAdicionar(int op) {
   return op>=AJ_IPTV_ADD_XTREAM && op<=AJ_IPTV_ADD_STALKER;
 }
-static int ajIptvTipo(int op) { return op-AJ_IPTV_ADD_XTREAM+IPTV_XTREAM; }
+static int ajIptvGerenciador(int op) { return op>=AJ_IPTV_LISTA_XTREAM && op<=AJ_IPTV_LISTA_STALKER; }
+static int ajIptvTipo(int op) { return op-(ajIptvGerenciador(op)?AJ_IPTV_LISTA_XTREAM:AJ_IPTV_ADD_XTREAM)+IPTV_XTREAM; }
 static int ajIptvDoTipo(int tipo,int pos) {
   IptvConta cs[IPTV_MAX_CONTAS];int n=iptv_contas(cs,IPTV_MAX_CONTAS);
   for(int i=0;i<n;i++)if(cs[i].tipo==tipo && pos--==0)return i;
@@ -2170,8 +2176,8 @@ static int ajIptvQuantos(int tipo) {
   return quantos;
 }
 static int ajIptvAtualTipo(int tipo) {
-  int atual=iptv_conta_indice(),n=ajIptvQuantos(tipo);
-  for(int i=0;i<n;i++)if(ajIptvDoTipo(tipo,i)==atual)return i;
+  IptvConta cs[IPTV_MAX_CONTAS];int n=iptv_contas(cs,IPTV_MAX_CONTAS),atual=iptv_conta_indice(),pos=0;
+  for(int i=0;i<n;i++)if(cs[i].tipo==tipo) { if(i==atual)return pos;pos++; }
   return 0;
 }
 static int ajIptvPrimeiroCampo(int tipo) {
@@ -2792,7 +2798,8 @@ static int ajOpcaoDisponivel(int op) {
   if(tipo)return iptv_conta_selecionada(&c) && c.tipo==tipo;
   if(op==AJ_XTREAM_LIMPAR || op==AJ_M3U_LIMPAR || op==AJ_STALKER_LIMPAR)return 0;
   if(op==AJ_IPTV_CONTA || op==AJ_IPTV_NOME || op==AJ_IPTV_ATIVA || op==AJ_IPTV_REMOVER)return iptv_contas(NULL,0)>0;
-  if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op))>0 || iptv_contas(NULL,0)<IPTV_MAX_CONTAS;
+  if(ajIptvAdicionar(op))return iptv_contas(NULL,0)<IPTV_MAX_CONTAS;
+  if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op))>0;
   if (op == AJ_FALHA_ADDON_LIMITE) return faAddonEditar[0] != 0;
 #ifndef NV_ANDROID
   if (op == AJ_FONTE_PRECARREGAR) return 0;
@@ -8780,6 +8787,7 @@ static void eventoTela(const SDL_Event *e) {
       if (b[0]) snprintf(kc, sizeof kc, "%s · %s", i18n(uxCaminho(focoOp)), i18n(b));
       else snprintf(kc, sizeof kc, "%s", i18n(uxCaminho(focoOp)));
       teclado_contexto(kc); }
+    if(ajIptvAdicionar(focoOp)) { ajIptvNovaAbrir(focoOp);return; }
     if(focoOp==AJ_IPTV_NOME) {
       stCampo=AJ_IPTV_NOME;
       teclado_abrir_com("Nome da conta","",95,CUR_ALFA_URL,ajIptvNome(iptv_conta_indice()));
@@ -9022,7 +9030,7 @@ void ajustes_atualizar(float dt, Uint32 agora) {
   if (!pessoas_aberto()) hcTecladoLer();
   { int r = pessoas_aberto() ? TECLADO_NADA : teclado_resultado();
     if (r == TECLADO_PRONTO && stCampo) {
-      if(ajIptvGerenciador(stCampo)) {
+      if(ajIptvAdicionar(stCampo)) {
         int tipo=ajIptvTipo(stCampo),anterior=iptv_conta_indice(),ok=0;
         const char *url=teclado_texto();
         if(!nv_perfil_sessao_atual(iptvNovaSessao)) {
@@ -9213,7 +9221,7 @@ static int nValores(int op) {
 #endif
     return n + (legfontes_selecionada(ajFonteSlot(op)) >= 0);
   }
-  if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op))+(iptv_contas(NULL,0)<IPTV_MAX_CONTAS);
+  if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op));
   if(op==AJ_IPTV_CONTA){int n=iptv_contas(NULL,0);return n>0?n:1;}
   if (op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2) return nLingua > 0 ? nLingua : 1;
   if (op == AJ_TRAILER_AUDIO) return nTrAud > 0 ? nTrAud : 1;

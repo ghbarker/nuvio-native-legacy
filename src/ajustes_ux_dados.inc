@@ -91,10 +91,7 @@ static void uxValorTexto(int op, int v, char *buf, size_t tam) {
   buf[0] = 0;
   if (op < 0 || op >= AJ_N) return;
   if(op==AJ_IPTV_CONTA){snprintf(buf,tam,"%s",ajIptvNome(v));return;}
-  if(ajIptvGerenciador(op)) {
-    int tipo=ajIptvTipo(op),i=ajIptvDoTipo(tipo,v);
-    snprintf(buf,tam,"%s",i>=0?ajIptvNome(i):i18n(ajIptvAdicionarNome(tipo)));return;
-  }
+  if(ajIptvGerenciador(op)) { snprintf(buf,tam,"%s",ajIptvNome(ajIptvDoTipo(ajIptvTipo(op),v)));return; }
   o = &OPCOES[op];
   if (ajFonte(op)) texto = ajFonteNome(op, v);
   else if (o->tipo == OP_ACAO) texto = i18n("Abrir");

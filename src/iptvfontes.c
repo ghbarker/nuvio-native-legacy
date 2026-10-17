@@ -8,6 +8,8 @@
 #include <pthread.h>
 #include <limits.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 static IptvConta contas[IPTV_MAX_CONTAS];
@@ -20,6 +22,37 @@ static const char *tipoNome(int tipo) {
 }
 static void nomeArquivo(char *out, unsigned n, int p) {
   snprintf(out, n, "livetv-contas-p%d.txt", p);
+}
+static int temCadastro(int tipo,unsigned id,int p) {
+  const char *base=tipo==IPTV_XTREAM?"xtream":tipo==IPTV_M3U?"m3u":"stalker";
+  char nome[64];
+  if(id)snprintf(nome,sizeof nome,"%s-p%d-s%u.txt",base,p,id);
+  else snprintf(nome,sizeof nome,"%s-p%d.txt",base,p);
+  char *b=dados_ler(nome);
+  if(!b) {
+    // An unreadable file is not proof that an account is empty.
+    char caminho[4096];struct stat st;
+    if(!dados_caminho(caminho,sizeof caminho,nome))return 1;
+    if(stat(caminho,&st)==0)return !S_ISREG(st.st_mode) || st.st_size>0;
+    return errno!=ENOENT;
+  }
+  int tem=0;
+  for(char *l=b;*l;) {
+    char *f=strchr(l,'\n');if(f)*f++=0;else f=l+strlen(l);
+    char *v=strchr(l,'\t');
+    if(v) {
+      *v++=0;
+      int campo=tipo==IPTV_XTREAM?(!strcmp(l,"servidor") || !strcmp(l,"usuario") || !strcmp(l,"senha")):
+        tipo==IPTV_M3U?(!strcmp(l,"lista") || !strcmp(l,"epg")):
+        (!strcmp(l,"portal") || !strcmp(l,"mac") || !strcmp(l,"device") || !strcmp(l,"serial"));
+      if(campo && v[0] && v[0]!='\r') { tem=1;break; }
+      if(!campo && l[0] && l[0]!='#') { tem=1;break; }
+    } else if(l[0] && l[0]!='#' && l[0]!='\r') {
+      tem=1;break;
+    }
+    l=f;
+  }
+  free(b);return tem;
 }
 static int gravar(void) {
   char nome[64], corpo[8192];
@@ -64,19 +97,25 @@ static void carregar(void) {
   } else {
     // Legacy files stay in place. Their account-zero IDs remain valid.
     for (int tipo = IPTV_XTREAM; tipo <= IPTV_STALKER; tipo++) {
-      const char *base = tipo == IPTV_XTREAM ? "xtream" : tipo == IPTV_M3U ? "m3u" : "stalker";
-      snprintf(nome, sizeof nome, "%s-p%d.txt", base, p);
-      char *antigo = dados_ler(nome);
-      if (antigo && *antigo) {
+      if (temCadastro(tipo,0,p)) {
         contas[nContas] = (IptvConta){.tipo = tipo, .ativa = 1};
         snprintf(contas[nContas++].nome, 96, "%s", tipoNome(tipo));
       }
-      free(antigo);
     }
     // Persist once so removing the legacy account cannot reimport it later.
     if (nContas) gravar();
   }
   if (selecionada < 0 || selecionada >= nContas) selecionada = 0;
+  // Early previews persisted empty slots before the address popup was saved.
+  // Drop only that metadata; keep credential files and partial setups intact.
+  int antes=nContas,atual=selecionada,novos=0;
+  selecionada=0;
+  for(int i=0;i<antes;i++)if(temCadastro(contas[i].tipo,contas[i].id,p)) {
+    if(i==atual)selecionada=novos;
+    contas[novos++]=contas[i];
+  }
+  nContas=novos;
+  if(nContas!=antes)gravar();
 }
 int iptv_contas(IptvConta *out, int max) {
   pthread_mutex_lock(&trava); carregar(); int n = nContas;
