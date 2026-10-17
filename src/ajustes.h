@@ -180,6 +180,7 @@ int ajustes_fonte_tocar_conferindo(void);
 int ajustes_fonte_aquecer(void);
 int ajustes_fonte_conferir_varias(void);
 int ajustes_fonte_preparar(void);
+int ajustes_fonte_info(void);
 int ajustes_fonte_precarregar(void);
 int ajustes_fonte_escopo(void);
 int ajustes_fonte_regex_modo(void);
