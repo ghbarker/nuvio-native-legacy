@@ -139,6 +139,21 @@
       {
         "op": "hierarchy"
       }
+    ],
+    "x86-3": [
+      {
+        "op": "tap",
+        "x": 400,
+        "y": 630
+      },
+      {
+        "op": "wait",
+        "seconds": 4
+      },
+      {
+        "op": "shot",
+        "name": "03-after-file-selection"
+      }
     ]
   }
 }
