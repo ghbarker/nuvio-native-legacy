@@ -722,6 +722,15 @@ void ajustes_perfil_esquecer(void);
 // manual, destino dos salvos): eles descrevem esta TV, nao o gosto da pessoa, e
 // a conta e uma so para a TV da sala e a do quarto. Ver somenteDesteAparelho.
 int ajustes_mesclar_blob(const char *base, char **saida);
+// Scalar local-settings backup foundation. Scope 0 is this device's settings;
+// scope 1 is profile-local settings. Input is the native key/value file, not
+// a Nuvio account blob. Export excludes account-synced values; merge rejects
+// forbidden keys and validates the complete backup before producing output.
+// Both functions are pure: no disk writes, runtime changes or network access.
+// Call after Settings has initialized dynamic choices. Caller frees *saida.
+enum { AJ_BACKUP_APARELHO = 0, AJ_BACKUP_PERFIL = 1 };
+int ajustes_backup_exportar(int perfil, const char *origem, char **saida);
+int ajustes_backup_mesclar(int perfil, const char *atual, const char *backup, char **saida);
 // #187: uma linha "[tmdb] idioma dos metadados: ..." com o que a TV pede ao
 // TMDB, de onde vem (ajuste desta TV) e o tmdb_language cru da conta.
 void ajustes_tmdb_idioma_relatar(const char *blob);

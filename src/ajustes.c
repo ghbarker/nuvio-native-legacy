@@ -5471,6 +5471,8 @@ static int dePerfil(int i) {
   return !somenteDesteAparelho(i);
 }
 
+#include "ajustes_backup.inc"
+
 static void nomePerfil(char *dst, size_t tam, int perfil) {
   snprintf(dst, tam, "ajustes-p%d.txt", perfil);
 }
