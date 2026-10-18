@@ -20,6 +20,16 @@ val versao = Regex("\"version\"\\s*:\\s*\"([^\"]+)\"")
     .find(File(raiz, "deploy/app/appinfo.json").readText())!!.groupValues[1]
 val (vx, vy, vz) = versao.split(".").map { it.toInt() }
 
+// Deployment-specific OAuth registrations; test registrations do not become
+// production defaults. Never print the TV credential or commit it to source.
+fun googleConfig(name: String): String {
+    val value = System.getenv(name).orEmpty()
+    require(value.length <= 4096 && value.all { it.code in 33..126 }) {
+        "$name contains an invalid OAuth configuration value"
+    }
+    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+}
+
 android {
     namespace = "space.nuvio.nativelegacy"
     compileSdk = 35
@@ -32,8 +42,11 @@ android {
         applicationId = "space.nuvio.nativelegacy.touch"
         minSdk = 24
         targetSdk = 35
-        versionCode = 20066
-        versionName = "2.0.66-test-logs56"
+        versionCode = 20067
+        versionName = "2.0.67-test-logs57"
+        buildConfigField("String", "GOOGLE_ANDROID_CLIENT_ID", googleConfig("NUVIO_GOOGLE_ANDROID_CLIENT_ID"))
+        buildConfigField("String", "GOOGLE_TV_CLIENT_ID", googleConfig("NUVIO_GOOGLE_TV_CLIENT_ID"))
+        buildConfigField("String", "GOOGLE_TV_CLIENT_SECRET", googleConfig("NUVIO_GOOGLE_TV_CLIENT_SECRET"))
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         externalNativeBuild {
             cmake {
@@ -122,6 +135,7 @@ val copiaSdlJava = tasks.register<Copy>("copiaSdlJava") {
 tasks.named("preBuild") { dependsOn(copiaSdlJava) }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-auth:22.0.0")
     // Video (NvPlayer.kt, de outro agente): Media3 ExoPlayer.
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.8.0")

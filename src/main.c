@@ -68,6 +68,7 @@
 #include "text.h"
 #include "detail.h"
 #include "dados.h"
+#include "backupdisco.h"
 #include "negcache.h"
 #include "p2pmotor.h"
 #include <pthread.h>
@@ -1113,6 +1114,17 @@ int main(int argc, char **argv) {
   // ja esta resolvido desde o topo do main.
   NV_ETAPA("dados_iniciar");
   dados_iniciar(dirArte);
+  // Recover the previous local restore BEFORE any preferences/migration can
+  // write over its journal. Account credentials and caches are not targets.
+  { int recuperou=backupdisco_recuperar_arranque(dados_dir()[0]?dados_dir():dirArte);
+    if(recuperou<0) {
+      fprintf(stderr,"[backup] local settings recovery incomplete; journal retained\n");
+      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,i18n("Falha ao recuperar os ajustes"),
+        i18n("Não foi possível recuperar os ajustes locais. Feche e abra o aplicativo para tentar novamente."),NULL);
+      SDL_Quit();return 1;
+    }
+    if(recuperou>0)printf("[backup] local settings recovery complete%s\n",recuperou==BACKUP_RESTORE_LIMPEZA?"; journal cleanup pending":"");
+  }
   dados_espaco_iniciar(dirArte);
   negcache_disco(dados_ler, dados_gravar_leve);   // 404 de API de metadados lembrado entre arranques
   #ifdef NV_LEVE

@@ -72,6 +72,7 @@ class NuvioActivity : SDLActivity() {
     private var touchInsetTop = 0
     private var touchInsetRight = 0
     @Volatile private var interfaceMobile = false
+    private var automaticMobile = false
     @Volatile private var playerTelaCheiaTouch = false
     private var superficieTvW = 0
     private var superficieTvH = 0
@@ -143,6 +144,22 @@ class NuvioActivity : SDLActivity() {
     private val fontImport by lazy { FontImport(this) }
     fun importarFonte(): Boolean = fontImport.abrir()
     fun proximaFonteImportada(): String? = fontImport.proximo()
+    private val driveAuthorization by lazy { DriveAuthorization(this) }
+    private val driveCredentials by lazy { DriveCredentialStore(this) }
+
+    // Physical device classification is independent of the saved TV/Mobile UI.
+    fun driveAutorizar(request: Long, chooseAccount: Boolean, rejectedToken: String): Boolean =
+        automaticMobile && BuildConfig.GOOGLE_ANDROID_CLIENT_ID.isNotEmpty() &&
+            driveAuthorization.begin(request, chooseAccount, rejectedToken)
+    fun driveAutorizacaoEvento(): String? = driveAuthorization.poll()
+    fun driveAutorizacaoCancelar() = driveAuthorization.cancel()
+    fun driveVinculoLer(owner: String, profile: Int): String? = driveCredentials.read(owner, profile)
+    fun driveVinculoGravar(owner: String, profile: Int, token: String): Boolean = driveCredentials.write(owner, profile, token)
+    fun driveConfiguracaoTv(): String? =
+        if (!automaticMobile && BuildConfig.GOOGLE_TV_CLIENT_ID.isNotEmpty() &&
+            BuildConfig.GOOGLE_TV_CLIENT_SECRET.isNotEmpty())
+            BuildConfig.GOOGLE_TV_CLIENT_ID + "\n" + BuildConfig.GOOGLE_TV_CLIENT_SECRET
+        else null
 
     // Chamado pelo fio SDL, sem ler arquivos nem abrir a tela naquele fio.
     fun baixarRegistro(arquivo: String, sucesso: String, falha: String) {
@@ -627,6 +644,7 @@ class NuvioActivity : SDLActivity() {
     override fun onDestroy() {
         registroDownload.fechar()
         fontImport.fechar()
+        driveAuthorization.close()
         vigia?.parar()
         fecharRede()
         NvPlayer.encerrar()
@@ -642,7 +660,7 @@ class NuvioActivity : SDLActivity() {
     private fun prepararAmbiente() {
         val dados = File(filesDir, "dados").apply { mkdirs() }
         val uiMode = (getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager)?.currentModeType
-        val automaticMobile = InterfaceMode.automaticMobile(
+        automaticMobile = InterfaceMode.automaticMobile(
             uiMode == Configuration.UI_MODE_TYPE_TELEVISION,
             packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION),
             packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
@@ -1128,6 +1146,7 @@ class NuvioActivity : SDLActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (registroDownload.resultado(requestCode, resultCode, data)) return
         if (fontImport.resultado(requestCode, resultCode, data)) return
+        if (driveAuthorization.activityResult(requestCode, resultCode, data)) return
         if (requestCode == PEDIDO_DITADO) esperandoTela = false
         if (requestCode == PEDIDO_DITADO) {
             val t = if (resultCode == RESULT_OK)

@@ -15,6 +15,16 @@ void android_interface_modo(int mobile);
 void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha);
 // Android device classification captured before SDL starts; never a screen heuristic.
 int android_interface_mobile_auto(void);
+// Drive authorization is bound to a caller's request/profile generation.
+// Phone path uses Google Play Services; TV configuration is build-provided.
+// Empty rejected token = normal authorization; otherwise clear Google's cached
+// token before retrying. Results/configuration are private, malloc/free, no logs.
+int android_drive_autorizar(long long pedido,int escolher,const char *rejeitado);
+void android_drive_cancelar(void);
+char *android_drive_evento(void);
+char *android_drive_configuracao_tv(void);
+char *android_drive_vinculo_ler(const char *dono,int perfil);
+int android_drive_vinculo_gravar(const char *dono,int perfil,const char *token);
 #ifdef NV_TOUCH_UI
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.
