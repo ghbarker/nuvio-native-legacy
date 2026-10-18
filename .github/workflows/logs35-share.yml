@@ -63,7 +63,10 @@ jobs:
           report['test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
           report['application_code_matches_test_commit']=True
           report['macos_test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
-          report['validation_scope']='Linux/macOS normal and ASan/UBSan: real full-source Settings, EPG memory policy/window and serial worker queues, cached full-schedule restoration without new requests, account-scoped guide data, large streaming XMLTV, source-specific category hiding/reload/rename/order/profile guards/failed-write rollback, guide loading and routing. Linux shared failover Settings normal retained from the preceding successful Logs49 build (same Settings source). Android both ARM builds and font import unit tests.'
+          report['validation_scope']='Linux/macOS normal regression suites and real full-source Settings; ASan/UBSan coverage for memory policy/windows, serial EPG worker queues and cached restoration, scoped EPG/streamed XMLTV, category visibility and cached grouping, native guide loading/routing, and full-source Settings. The normal-only helpers are listed separately. Linux shared failover Settings normal retained from the preceding successful Logs49 run with identical Settings code. Android both ARM builds and font import unit tests.'
+          report['normal_regression_suites']=['epg_memory', 'epg_accounts', 'epg_streaming', 'guia_grupos', 'guia_loading', 'guia_epg_estado', 'guiaepg', 'guia_catalogo_tv', 'guia_stream_headers', 'guiaaddons', 'guiacorte', 'ajustes_iptv', 'ajustes_secoes']
+          report['asan_ubsan_suites']=['epg_memory', 'epg_accounts', 'epg_streaming', 'guia_grupos', 'guia_loading', 'guia_epg_estado', 'guiaepg', 'guia_catalogo_tv', 'guia_stream_headers', 'ajustes_iptv']
+          report['normal_only_suites']=['guiaaddons', 'guiacorte', 'ajustes_secoes']
           report['new_translation_keys_verified']=True
           report['new_translation_keys']=5;report['translation_tables']=29
           report['full_language_audit_existing_findings']=60;report['full_language_audit_new_findings']=0
@@ -79,4 +82,9 @@ jobs:
           if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target f4f7e804dc33207199d5fb105dd00e0194ca2a9b --title 'Nuvio TV/Mobile Test - Logs49: Guide memory and categories' --notes-file dist/Logs49-testing.txt
           fi
-          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs49.apk dist/Logs49-validation.json dist/Logs49-testing.txt
+          for name in Nuvio-TV-Mobile-Test-Logs49.apk Logs49-testing.txt; do
+            if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
+              gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" "dist/$name"
+            fi
+          done
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs49-validation.json --clobber
