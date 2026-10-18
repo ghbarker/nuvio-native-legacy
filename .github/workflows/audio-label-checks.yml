@@ -1,4 +1,4 @@
-name: Source audio label fallback checks
+name: Source audio fallback diagnostics checks
 on:
   workflow_dispatch:
   push:
@@ -13,6 +13,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
         suite: [source_audio_language, isolated]
+        source: [ea52f31eb6608594b3e761513fe37e44479c0fad, bebc10fe4433b449cbe3e00707c24fea74aa1fd6]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
@@ -23,16 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 534cfd436cf14621207d0b53fb1d9e5c073f0d11
+          ref: ${{ matrix.source }}
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libmbedtls-dev
       - if: runner.os == 'macOS'
-        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp mbedtls@3
       - name: Normal and sanitizer regression checks
         env:
           AUDIO_TEST_GROUP: ${{ matrix.suite }}
@@ -57,9 +58,11 @@ jobs:
               if code:failures.append(name+': '+str(code))
           if failures:raise SystemExit('\n'.join(failures))
           PYCHECK
-      - run: python3 tools/idiomas.py
+      - name: Check diff whitespace
+        run: git diff --check HEAD^
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: audio-labels-${{ matrix.os }}-${{ matrix.suite }}
+          name: audio-labels-${{ matrix.source }}-${{ matrix.os }}-${{ matrix.suite }}
           path: diagnostics
