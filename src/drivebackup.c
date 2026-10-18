@@ -138,6 +138,7 @@ static void aviso(const char *mensagem) {
   D.mensagem=mensagem;D.estado=*D.acesso?V_PRONTO:V_ENTRAR;D.foco=0;
 }
 static void erroLocal(int r) {
+  printf("[backup] Drive operation failed: result=%d\n",r);
   aviso(r==DRIVE_LOCAL_SENHA?"Senha incorreta ou backup danificado. Nenhuma configuração foi alterada.":
         r==DRIVE_LOCAL_NEGADO?"O Google Drive não autorizou esta operação.":
         r==DRIVE_LOCAL_AUSENTE?"Este backup não está mais disponível.":
@@ -265,7 +266,9 @@ void drivebackup_atualizar(void) {
     else if(t->op==O_BAIXAR) {
       apagarMemoria(D.senha,sizeof D.senha);
       BackupLocal *portavel=NULL;
-      int valido=backupapp_selecionar(&D.contexto,t->baixado,0,&portavel) && backupapp_validar(&D.contexto,portavel);
+      int selecionado=backupapp_selecionar(&D.contexto,t->baixado,0,&portavel);
+      int valido=selecionado && backupapp_validar(&D.contexto,portavel);
+      printf("[backup] download decrypted; selection=%d validation=%d\n",selecionado,valido);
       backuplocal_liberar(portavel);
       if(valido) {
         backuplocal_liberar(D.restauro);D.restauro=t->baixado;t->baixado=NULL;D.hardware=0;D.estado=V_CONFIRMAR;novaLista();

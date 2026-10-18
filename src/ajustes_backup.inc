@@ -140,6 +140,49 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
   }
   *saida=out;return 1;
 }
+// Reclassify only the display preferences moved out of the early device
+// snapshot. Account-owned values are parsed, then omitted without depending
+// on the destination's dynamic choices (fonts, languages, installed players).
+int ajustes_backup_selecionar(const char *const entrada[3],int hardware,char *saida[3]) {
+  if(!entrada || !saida)return 0;
+  for(int i=0;i<3;i++)saida[i]=NULL;
+  const char *escopos[]={"device","profile","hardware"};
+  unsigned char vistos[AB_N]={0};size_t usado[3]={0};
+  for(int i=0;i<3;i++) {
+    if(i==AJ_BACKUP_HARDWARE && !hardware)continue;
+    saida[i]=calloc(AB_MAX_TEXTO+1u,1);if(!saida[i])goto falha;
+    usado[i]=(size_t)snprintf(saida[i],AB_MAX_TEXTO+1u,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",escopos[i]);
+  }
+  for(int origem=0;origem<3;origem++) {
+    if(!entrada[origem])continue;
+    char cab[80];int k=snprintf(cab,sizeof cab,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",escopos[origem]);
+    if(!abTexto(entrada[origem]) || strncmp(entrada[origem],cab,(size_t)k))goto falha;
+    for(const char *p=entrada[origem]+k;*p;) {
+      char chave[80];const char *fim,*v;const char *proximo=abLinha(p,&fim,chave,&v);
+      int op=abOp(chave),valorLido;
+      if(op<0 || vistos[op] || !abNumero(v,fim,&valorLido)) {
+        printf("[backup] scalar syntax rejected: scope=%d known-key=%s\n",origem,op>=0?abNome(op):"unknown");goto falha;
+      }
+      vistos[op]=1;p=proximo;
+      if((op<AJ_N && ajustePortavel(op)) || op==AJ_N || op==AJ_N+1)continue;
+      int destino=abDesteDispositivo(op)?AJ_BACKUP_HARDWARE:!!dePerfil(op);
+      int legado=origem==AJ_BACKUP_APARELHO && destino==AJ_BACKUP_HARDWARE &&
+        (op==AJ_QUALIDADE_IMG || op==AJ_ITENS_FILEIRA || op==AJ_TAMANHO_UI || op==AJ_TAMANHO_AJUSTES);
+      if((origem!=destino && !legado) || !abLocal(op,destino,valorLido)) {
+        printf("[backup] scalar scope rejected: scope=%d key=%s\n",origem,abNome(op));goto falha;
+      }
+      if(destino==AJ_BACKUP_HARDWARE && !hardware)continue;
+      if(!abValido(op,valorLido) || !abEscrever(saida[destino],AB_MAX_TEXTO+1u,&usado[destino],op,valorLido)) {
+        printf("[backup] scalar value rejected: scope=%d key=%s\n",origem,abNome(op));goto falha;
+      }
+    }
+  }
+  return 1;
+falha:
+  for(int i=0;i<3;i++){free(saida[i]);saida[i]=NULL;}
+  return 0;
+}
+
 int ajustes_backup_capturar(int perfil,char **saida) {
   if(saida)*saida=NULL;
   if(!saida || (perfil<AJ_BACKUP_APARELHO || perfil>AJ_BACKUP_HARDWARE))return 0;
