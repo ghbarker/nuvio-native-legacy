@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     env:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 20ab23d639c67e4eb9c02bdc8bafbb927a63f31f
+          ref: 90c6d4feb00a6a7ab90057e89cbfc2bedc5391c1
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
