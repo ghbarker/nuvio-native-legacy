@@ -1,4 +1,4 @@
-name: Logs48 multiple Live TV accounts macOS validation
+name: Logs49 multiple Live TV accounts macOS validation
 on:
   workflow_dispatch:
 permissions:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 352d35f81e0e692204966be19ba86efd47f5bbb5
+          ref: a07380183c23a85c8be67dc18ea6f4c07db91fab
           fetch-depth: 3
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
@@ -23,10 +23,12 @@ jobs:
         run: |
           set -euo pipefail
           bash tests/ajustes_secoes.sh
+          for suite in epg_memory epg_accounts epg_streaming guia_grupos guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
       - name: Full-source account Settings ASan and UBSan regressions
         env:
           SANITIZE: '1'
         run: |
           set -euo pipefail
+          for suite in epg_memory epg_accounts epg_streaming guia_grupos guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
