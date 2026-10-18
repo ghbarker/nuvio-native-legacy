@@ -34,6 +34,11 @@ static int hashAdicionar(Grupo *g,uint64_t h) {
   uint64_t *v=realloc(g->hashes,(size_t)(g->nh+1)*sizeof *v);if(!v)return 0;
   g->hashes=v;g->hashes[g->nh++]=h;return 1;
 }
+static int mapaNumero(const char *s,unsigned max,unsigned *out) {
+  unsigned v=0;if(!s || !*s)return 0;
+  for(;*s;s++){unsigned d=(unsigned char)*s-'0';if(d>9 || d>max || v>(max-d)/10u)return 0;v=v*10u+d;}
+  *out=v;return 1;
+}
 int backupcategorias_ler(const char *s,BackupCategorias **saida) {
   if(saida)*saida=NULL;
   if(!s || !saida || strnlen(s,BC_BYTES+1u)>BC_BYTES)return 0;
@@ -46,10 +51,10 @@ int backupcategorias_ler(const char *s,BackupCategorias **saida) {
     if(!strcmp(p,"group") || !strcmp(p,"group show")) {
       if(b->n>=BC_GRUPOS){ok=0;break;}g=&b->grupos[b->n++];g->mostrar=!strcmp(p,"group show");
     } else if(!strncmp(p,"map ",4)) {
-      int tipo,usado=0;unsigned a,d;
-      ok=g && g->nm<BC_MAPAS && sscanf(p,"map %d %u %u%n",&tipo,&a,&d,&usado)==3 && usado && !p[usado] &&
-        tipo>=0 && tipo<=3 && a<UINT_MAX && d<UINT_MAX && (tipo || (!a && !d));
-      if(ok)g->mapas[g->nm++]=(BackupCategoriaMapa){tipo,a,d};
+      int usado=0;unsigned tipo,a,d;char t[12],antes[12],depois[12];
+      ok=g && g->nm<BC_MAPAS && sscanf(p,"map %11s %11s %11s%n",t,antes,depois,&usado)==3 && usado && !p[usado] &&
+        mapaNumero(t,3,&tipo) && mapaNumero(antes,UINT_MAX-1u,&a) && mapaNumero(depois,UINT_MAX-1u,&d) && (tipo || (!a && !d));
+      if(ok)g->mapas[g->nm++]=(BackupCategoriaMapa){(int)tipo,a,d};
     } else if(!strncmp(p,"hash ",5)) {
       uint64_t h;ok=g && hashLer(p+5,&h) && hashAdicionar(g,h);
     } else ok=!*p;

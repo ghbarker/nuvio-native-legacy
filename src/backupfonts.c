@@ -188,11 +188,11 @@ static int lerArquivos(const char *s,Arquivos *a) {
   if(!s || strnlen(s,2049)>2048 || strncmp(s,cab,sizeof cab-1))return 0;
   for(const char *p=s+sizeof cab-1;*p;) {
     const char *e=strchr(p,'\n');if(!e || e-p>63)return 0;
-    char l[64],id[21],key[7];int existe,usado=0;memcpy(l,p,(size_t)(e-p));l[e-p]=0;
-    if(sscanf(l,"font %20s %d%n",id,&existe,&usado)==2 && usado && !l[usado]) {
-      if(!backupfonts_id(id) || (existe!=0 && existe!=1) || a->n>=BACKUP_FONT_N*2)return 0;
+    char l[64],id[21],key[7],existe[2];int usado=0;memcpy(l,p,(size_t)(e-p));l[e-p]=0;
+    if(sscanf(l,"font %20s %1[01]%n",id,existe,&usado)==2 && usado && !l[usado]) {
+      if(!backupfonts_id(id) || a->n>=BACKUP_FONT_N*2)return 0;
       for(int i=0;i<a->n;i++)if(!strcmp(a->a[i].id,id))return 0;
-      strcpy(a->a[a->n].id,id);a->a[a->n++].existe=existe;
+      strcpy(a->a[a->n].id,id);a->a[a->n++].existe=existe[0]-'0';
     } else if(sscanf(l,"stage %6s%n",key,&usado)==1 && usado && !l[usado] && !*a->stage && chaveStage(key))strcpy(a->stage,key);
     else return 0;
     p=e+1;
