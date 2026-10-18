@@ -1,4 +1,4 @@
-name: Logs51 live recovery macOS regression checks
+name: Logs52 GIF and live recovery macOS regression checks
 on:
   workflow_dispatch:
 permissions:
@@ -15,17 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a1f8f66286b39470403e4938d9c6cdc0476350b9
+          ref: d485bbe98158340ebac309a0af13bfe3e690c110
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
-      - name: Real Android JNI and stale source error regressions
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+      - name: GIF decoding, collection selection and live recovery regressions
         run: |
           set -euo pipefail
           for san in 0 1; do
+            SANITIZE="$san" bash tests/gif.sh
+            SANITIZE="$san" bash tests/gifcolecao.sh
+            SANITIZE="$san" bash tests/gifwebp.sh
             SANITIZE="$san" bash tests/livestall_window.sh
             SANITIZE="$san" bash tests/video_android_live_window.sh
             SANITIZE="$san" bash tests/live_error_recovery.sh
