@@ -74,8 +74,8 @@ int main(void) {
   addon("\"audioLanguages\":[\"en\"],\"title\":\"🇹🇷 TUR Dublaj\"","tr",0);
   addon("\"audioLanguages\":[\"tr\"],\"title\":\"English\"","tr",1);
   addon("\"title\":\"English\",\"description\":\"Audio: Turkish\"","en",0);
-  const char *languages[]={"PL","Polish","Polski","🇵🇱","German","Deutsch","🇩🇪","French","VFF","🇫🇷","Spanish","🇲🇽","English","🇺🇸","Japanese","🇯🇵"};
-  const char *codes[]={"pl","pl","pl","pl","de","de","de","fr","fr","fr","es","es","en","en","ja","ja"};
+  const char *languages[]={"PL","Polish","Polski","🇵🇱","German","Deutsch","🇩🇪","French","VFF","🇫🇷","Spanish","🇲🇽","English","🇺🇸","Japanese","🇯🇵","ESP","Latino","LATAM","💃🏻","CHS","CHT","JP"};
+  const char *codes[]={"pl","pl","pl","pl","de","de","de","fr","fr","fr","es","es","en","en","ja","ja","es","es","es","es","zh","zh","ja"};
   for(size_t i=0;i<sizeof languages/sizeof *languages;i++) {
     char field[256];snprintf(field,sizeof field,"\"title\":\"Movie [ %s ] 1080p\"",languages[i]);addon(field,codes[i],1);
   }
