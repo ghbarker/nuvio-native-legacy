@@ -11,6 +11,7 @@ internal class LiveWindowRecovery(
     private val schedule: (Runnable, Long) -> Unit,
     private val unschedule: (Runnable) -> Unit,
     private val active: () -> Boolean,
+    private val status: (Boolean) -> Unit = {},
 ) {
     private var pending: Runnable? = null
     private var windowStart = -1L
@@ -30,11 +31,12 @@ internal class LiveWindowRecovery(
             override fun run() {
                 if (pending !== this) return
                 pending = null
-                if (active()) failed()
+                if (active()) { status(false); failed() }
             }
         }
         pending = deadline
         try {
+            status(true)
             // No setMediaItem, stop, release, play or URL lookup: retain the
             // session, surface, track choices, volume and requested pause state.
             player.seekToDefaultPosition()
@@ -54,7 +56,9 @@ internal class LiveWindowRecovery(
     }
 
     fun cancel() {
-        pending?.let(unschedule)
+        val task = pending ?: return
         pending = null
+        unschedule(task)
+        status(false)
     }
 }

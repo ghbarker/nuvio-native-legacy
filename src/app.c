@@ -5411,6 +5411,9 @@ void app_atualizar(float dt, Uint32 agora) {
     canalFonteDesde = SDL_GetTicks();
   }
   if (canalFonteIdx >= 0 && (player_aberto() || player_mini_ativo()) &&
+#ifdef NV_ANDROID
+      !video_recuperando_live() &&
+#endif
       !player_quer_sair() && player_id_canal()[0]) {
     // TRAVOU DEPOIS DE ABRIR conta como morta, e sem isto nao contava.
     //

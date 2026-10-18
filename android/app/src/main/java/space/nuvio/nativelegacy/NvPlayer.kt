@@ -89,6 +89,7 @@ object NvPlayer {
     private const val EV_PRIMEIRO_QUADRO = 8
     private const val EV_AUDIO_SEM_DECODER = 9
     private const val EV_SUPERFICIE_ESTAVEL = 10
+    private const val EV_LIVE_RECOVERY = 11
 
     private const val TELA_W = 1920   // coordenadas de layout do app
     private const val TELA_H = 1080
@@ -1834,14 +1835,16 @@ object NvPlayer {
 
     // --- eventos do player ----------------------------------------------------
 
-    private fun ouvinte(minha: Int): Player.Listener {
-        val live = LiveWindowRecovery(
+    private fun ouvinte(minha: Int) = object : Player.Listener {
+        private val live = LiveWindowRecovery(
             schedule = { tarefa, atraso -> principal.postDelayed(tarefa, atraso) },
             unschedule = { tarefa -> principal.removeCallbacks(tarefa) },
             active = { atual(minha) },
+            status = { recuperando ->
+                if (atual(minha)) ev(EV_LIVE_RECOVERY, if (recuperando) 8000 else 0, geracaoNative)
+            },
         )
-        recuperacaoLive = live
-        return object : Player.Listener {
+        init { recuperacaoLive = live }
         override fun onPlaybackStateChanged(state: Int) {
             if (!atual(minha)) return
             val p = player ?: return
@@ -2012,8 +2015,6 @@ object NvPlayer {
             }
             ev(EV_ERRO, error.errorCode, tipo)
         }
-    }
-
     }
 
     private fun analitico(minha: Int) = object : AnalyticsListener {
