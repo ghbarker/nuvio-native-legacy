@@ -322,3 +322,7 @@
   0, 0, /* guide category/account order and account reorder action */
   0, 0, /* EPG memory policy and hidden-category editor */
   1, /* prepared source details (#457): off, preserve the existing title layout */
+
+#ifdef NV_ANDROID
+  0, /* Google Drive backup action, append-only */
+#endif
