@@ -35,6 +35,10 @@ int main(void) {
   assert(W.nCanais==1 && W.nEvs==3);
   assert(!strcmp(W.arena+W.evs[0].tit,"Current"));assert(!strcmp(W.arena+W.evs[2].tit,"Boundary"));
   gradeLiberar(&W);
+  assert(wAbrir(&W));int programas=0;
+  assert(xmltvExtra(xml,(long)strlen(xml),NULL,NULL,0,NULL,NULL));
+  assert(xmltvExtra(xml,(long)strlen(xml),&W,NULL,0,&programas,NULL) && programas==3);
+  assert(W.nCanais==1 && W.nEvs==3);gradeLiberar(&W);
   puts("PASS: device policy, explicit overrides, immutable in-flight snapshot, current programme and 24-hour boundaries; full mode restores provider schedule and channel metadata stays intact");
   return 0;
 }

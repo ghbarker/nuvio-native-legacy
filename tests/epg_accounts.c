@@ -102,5 +102,29 @@ int main(int argc,char **argv) {
   for(int i=0;i<5000 && atomic_load(&epgFios);i++) {epg_passo();struct timespec t={0,1000000};nanosleep(&t,NULL);}
   assert(!atomic_load(&epgFios));assert(epg_match_canal("xtream:@00000001:7","news","News HD")==-1);
   puts("PASS: switching profiles cancels an in-flight account and discards its unpublished grade");
+  epg_abrir_sessao(4);epg_so_provedores(1);epg_memoria_definir(EPG_MEMORIA_BAIXA,1024);
+  // Public EPG can also wait for a worker slot during a mode transition.
+  atomic_store(&epgFios,1);epg_iniciar();assert(reiniciarPend && !fioVivo);
+  atomic_store(&epgFios,0);epg_passo();
+  for(int i=0;i<5000 && (fioVivo || estado!=EPG_PRONTO);i++) {
+    epg_passo();struct timespec t={0,1000000};nanosleep(&t,NULL);
+  }
+  assert(estado==EPG_PRONTO && !fioVivo && !atomic_load(&epgFios));
+  atomic_store(&liberar,1);epg_contas_configurar(fs,3);epg_iniciar();
+  for(int i=0;i<5000;i++) {
+    epg_passo();assert(atomic_load(&epgFios)<=1);
+    int prontas=0;for(int j=0;j<3;j++) { EpgContexto *c=contaContexto(fs[j].tipo,fs[j].id);prontas+=c->estado_==EPG_PRONTO && !c->fioVivo_; }
+    if(prontas==3)break;
+    struct timespec t={0,1000000};nanosleep(&t,NULL);
+  }
+  for(int i=0;i<3;i++) { EpgContexto *c=contaContexto(fs[i].tipo,fs[i].id);assert(c->estado_==EPG_PRONTO && !c->fioVivo_ && c->p_.nCanais==1 && !c->p_.nEvs); }
+  int antesMudanca=atomic_load(&chamadas);
+  epg_memoria_definir(EPG_MEMORIA_COMPLETA,1024);
+  esperar(1,1);esperar(1,2);esperar(2,3);assert(atomic_load(&chamadas)==antesMudanca);
+  programa("xtream:@00000001:7","Account two");
+  programa("xtream:@00000002:7","Account two");
+  programa("nvm3u:@00000003:1234","Account one");
+  puts("PASS: one-worker mode drains every account and queued public EPG; switching to full restores programmes from disk without new downloads");
+
   return 0;
 }
