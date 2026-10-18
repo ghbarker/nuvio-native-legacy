@@ -5,6 +5,7 @@
 enum { IPTV_XTREAM = 1, IPTV_M3U, IPTV_STALKER };
 typedef struct { unsigned id; int tipo, ativa; char nome[96]; } IptvConta;
 // Metadata only. Each backend owns its credentials and playback state.
+void iptv_contas_recarregar(void);
 int iptv_contas(IptvConta *out, int max);
 int iptv_conta_selecionada(IptvConta *out);
 int iptv_conta_indice(void);

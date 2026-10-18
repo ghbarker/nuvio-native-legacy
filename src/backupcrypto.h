@@ -7,7 +7,7 @@
  * The full header and owner/profile/purpose context are authenticated.
  * No password, key, settings or account details are written to logs.
  * Blocking worker-only calls. Returned buffers belong to the caller. */
-#define BACKUP_CRYPTO_MAX (8u * 1024u * 1024u)
+#define BACKUP_CRYPTO_MAX (24u * 1024u * 1024u)
 #define BACKUP_CRYPTO_CONTEXT_MAX 192u
 #define BACKUP_CRYPTO_OVERHEAD (54u + BACKUP_CRYPTO_CONTEXT_MAX + 16u)
 int backupcrypto_disponivel(void);

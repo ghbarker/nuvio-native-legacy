@@ -3,6 +3,10 @@
 #endif
 #define _POSIX_C_SOURCE 200809L
 #include "backupdisco.h"
+#include "backupstores.h"
+#include "backupfonts.h"
+#include "backupcrypto.h"
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
@@ -41,13 +45,12 @@ static int regular(BackupDisco *d,const char *arq,int *existe) {
   if(fstatat(d->raiz,arq,&st,AT_SYMLINK_NOFOLLOW)==0){*existe=1;return S_ISREG(st.st_mode);}
   *existe=0;return errno==ENOENT;
 }
-static int ler(void *ctx,const char *dono,int perfil,int tipo,char **out,size_t *n) {
+static int lerArquivo(BackupDisco *d,const char *arq,size_t limite,char **out,size_t *n) {
   if(out)*out=NULL;
   if(n)*n=0;
-  BackupDisco *d=ctx;char arq[160];if(!d || !out || !n || !nome(dono,perfil,tipo,arq))return -1;
+  if(!d || !out || !n)return -1;
   int fd=openat(d->raiz,arq,O_RDONLY|O_CLOEXEC|O_NOFOLLOW|O_NONBLOCK);
   if(fd<0)return errno==ENOENT?0:-1;
-  size_t limite=tipo==BACKUP_IO_DIARIO?BACKUP_LOCAL_MAX+128u:BACKUP_PARTE_MAX;
   struct stat st;
   if(fstat(fd,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size<0 || (uintmax_t)st.st_size>limite){close(fd);return -1;}
   size_t tamanho=(size_t)st.st_size,lido=0;char *s=malloc(tamanho+1);
@@ -68,10 +71,9 @@ static int ler(void *ctx,const char *dono,int perfil,int tipo,char **out,size_t 
 static int sincronizar(int fd) {
   int r;do{r=fsync(fd);}while(r<0 && errno==EINTR);return r==0;
 }
-static int gravar(void *ctx,const char *dono,int perfil,int tipo,const char *s,size_t n) {
-  BackupDisco *d=ctx;char arq[160],tmp[80];int existe;
-  size_t limite=tipo==BACKUP_IO_DIARIO?BACKUP_LOCAL_MAX+128u:BACKUP_PARTE_MAX;
-  if(!d || !s || n>limite || !nome(dono,perfil,tipo,arq) || !regular(d,arq,&existe))return 0;
+static int gravarArquivo(BackupDisco *d,const char *arq,const char *s,size_t n) {
+  char tmp[80];int existe;
+  if(!d || !s || !regular(d,arq,&existe))return 0;
   int fd=-1;
   for(int i=0;i<100;i++) {
     snprintf(tmp,sizeof tmp,".nuvio-restore-%ld-%u.tmp",(long)getpid(),++d->seq);
@@ -94,13 +96,75 @@ static int gravar(void *ctx,const char *dono,int perfil,int tipo,const char *s,s
   if(!ok)unlinkat(d->raiz,tmp,0);
   return ok;
 }
-static int apagar(void *ctx,const char *dono,int perfil,int tipo) {
-  BackupDisco *d=ctx;char arq[160];int existe;
-  if(!d || !nome(dono,perfil,tipo,arq) || !regular(d,arq,&existe))return 0;
+static int apagarArquivo(BackupDisco *d,const char *arq) {
+  int existe;
+  if(!d || !regular(d,arq,&existe))return 0;
   if(existe && unlinkat(d->raiz,arq,0)!=0)return 0;
   // ENOENT still needs a barrier: a previous removal may have succeeded just
   // before its directory fsync failed, so absence alone is not durable proof.
   return sincronizar(d->raiz);
+}
+/* One typed bundle is journalled as a module, while every individual file
+ * uses the same no-follow, private, durable atomic writer as scalar stores. */
+static int ler(void *ctx,const char *dono,int perfil,int tipo,char **out,size_t *n) {
+  BackupDisco *d=ctx;char arq[160];
+  if(out)*out=NULL;
+  if(n)*n=0;
+  if(!d || !out || !n)return -1;
+  if(tipo==BACKUP_FONTES_IMPORTADAS) {
+    if(!backupstores_nome(BS_HOME_ROWS,0,dono,perfil,arq,sizeof arq))return -1;
+    return backupfonts_disco_ler(d->raiz,out,n)?1:-1;
+  }
+  if(tipo!=BACKUP_LOCAIS) {
+    if(!nome(dono,perfil,tipo,arq))return -1;
+    return lerArquivo(d,arq,tipo==BACKUP_IO_DIARIO?BACKUP_LOCAL_MAX+128u:BACKUP_PARTE_MAX,out,n);
+  }
+  if(!backupstores_nome(BS_HOME_ROWS,0,dono,perfil,arq,sizeof arq))return -1;
+  BackupStores *b=backupstores_novo();if(!b)return -1;
+  int fd=openat(d->raiz,".",O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+  DIR *dir=fd<0?NULL:fdopendir(fd);
+  if(!dir){if(fd>=0)close(fd);backupstores_liberar(b);return -1;}
+  int ok=1;struct dirent *e;
+  errno=0;
+  while((e=readdir(dir))) {
+    int t;uint32_t sub;
+    if(!backupstores_reconhecer(e->d_name,dono,perfil,&t,&sub))continue;
+    char *s=NULL;size_t len=0;
+    int estado=lerArquivo(d,e->d_name,BACKUP_STORE_BYTES,&s,&len);
+    if(estado<0 || (estado==1 && !backupstores_adicionar(b,t,sub,1,s,len)))ok=0;
+    backupcrypto_limpar(s,len);free(s);
+    if(!ok)break;
+    errno=0;
+  }
+  if(errno)ok=0;
+  if(closedir(dir)!=0)ok=0;
+  if(ok)ok=backupstores_exportar(b,out,n);
+  backupstores_liberar(b);return ok?1:-1;
+}
+static int gravar(void *ctx,const char *dono,int perfil,int tipo,const char *s,size_t n) {
+  BackupDisco *d=ctx;char arq[160];
+  if(!d || !s || n>(tipo==BACKUP_IO_DIARIO?BACKUP_LOCAL_MAX+128u:BACKUP_PARTE_MAX))return 0;
+  if(tipo==BACKUP_FONTES_IMPORTADAS)return backupstores_nome(BS_HOME_ROWS,0,dono,perfil,arq,sizeof arq) && backupfonts_disco_gravar(d->raiz,s,n);
+  if(tipo!=BACKUP_LOCAIS)return nome(dono,perfil,tipo,arq) && gravarArquivo(d,arq,s,n);
+  BackupStores *b=NULL;
+  if(!backupstores_nome(BS_HOME_ROWS,0,dono,perfil,arq,sizeof arq) || !backupstores_ler(s,n,&b))return 0;
+  // Resolve every path before the first mutation. Content validation/merging
+  // belongs to planning; rollback must accept the exact original file bytes.
+  int ok=1;
+  for(int i=0;i<backupstores_n(b) && ok;i++) {
+    BackupStore item;ok=backupstores_item(b,i,&item) && backupstores_nome(item.tipo,item.sub,dono,perfil,arq,sizeof arq);
+  }
+  for(int i=0;i<backupstores_n(b) && ok;i++) {
+    BackupStore item;backupstores_item(b,i,&item);backupstores_nome(item.tipo,item.sub,dono,perfil,arq,sizeof arq);
+    ok=item.existe?gravarArquivo(d,arq,item.texto,item.n):apagarArquivo(d,arq);
+  }
+  backupstores_liberar(b);return ok;
+}
+static int apagar(void *ctx,const char *dono,int perfil,int tipo) {
+  BackupDisco *d=ctx;char arq[160];
+  // A bundle is always an existing logical module, even when it has no files.
+  // Deleting it without a typed footprint would erase unrelated connections.
+  return d && tipo!=BACKUP_LOCAIS && nome(dono,perfil,tipo,arq) && apagarArquivo(d,arq);
 }
 static int atual(void *ctx,const char *dono,int perfil,uint64_t sessao) {
   BackupDisco *d=ctx;return d && d->atual && d->atual(d->ctx,dono,perfil,sessao);

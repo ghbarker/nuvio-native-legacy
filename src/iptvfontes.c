@@ -218,3 +218,5 @@ void iptv_contas_esquecer_todas(void) {
   pthread_mutex_lock(&trava); perfil = -1; nContas = selecionada = 0; proxima = 1;
   pthread_mutex_unlock(&trava);
 }
+
+void iptv_contas_recarregar(void) { pthread_mutex_lock(&trava);perfil=-1;sessao=0;pthread_mutex_unlock(&trava); }

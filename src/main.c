@@ -69,6 +69,7 @@
 #include "detail.h"
 #include "dados.h"
 #include "backupdisco.h"
+#include "backupfonts.h"
 #include "negcache.h"
 #include "p2pmotor.h"
 #include <pthread.h>
@@ -1115,7 +1116,7 @@ int main(int argc, char **argv) {
   NV_ETAPA("dados_iniciar");
   dados_iniciar(dirArte);
   // Recover the previous local restore BEFORE any preferences/migration can
-  // write over its journal. Account credentials and caches are not targets.
+  // write over its journal. Nuvio/Google login sessions and caches are not targets.
   { int recuperou=backupdisco_recuperar_arranque(dados_dir()[0]?dados_dir():dirArte);
     if(recuperou<0) {
       fprintf(stderr,"[backup] local settings recovery incomplete; journal retained\n");
@@ -1125,6 +1126,7 @@ int main(int argc, char **argv) {
     }
     if(recuperou>0)printf("[backup] local settings recovery complete%s\n",recuperou==BACKUP_RESTORE_LIMPEZA?"; journal cleanup pending":"");
   }
+  backupfonts_limpar_pendentes(dados_dir()[0]?dados_dir():dirArte);
   dados_espaco_iniciar(dirArte);
   negcache_disco(dados_ler, dados_gravar_leve);   // 404 de API de metadados lembrado entre arranques
   #ifdef NV_LEVE

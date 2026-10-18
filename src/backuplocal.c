@@ -1,4 +1,5 @@
 #include "backuplocal.h"
+#include "backupfonts.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,9 +7,11 @@
 #include <zlib.h>
 
 static const char *const tipos[BACKUP_PARTES_N]={
-  "device-settings","profile-settings","player-style","sources-shared","sources-profile","home-rows"
+  "device-settings","profile-settings","player-style","sources-shared","sources-profile","home-rows",
+  "hardware-settings","local-stores","imported-fonts"
 };
 struct BackupLocal {
+  BackupFontStage *fontes;
   char dono[81];int perfil;long long criado;
   struct {char *texto;size_t n;} parte[BACKUP_PARTES_N];
 };
@@ -28,9 +31,18 @@ BackupLocal *backuplocal_novo(const char *dono,int perfil,long long criado) {
 }
 void backuplocal_liberar(BackupLocal *b) {
   if(!b)return;
-  for(int i=0;i<BACKUP_PARTES_N;i++)free(b->parte[i].texto);
-  free(b);
+  for(int i=0;i<BACKUP_PARTES_N;i++) {
+    volatile char *p=b->parte[i].texto;size_t n=b->parte[i].n;
+    if(p)while(n--)*p++=0;
+    free(b->parte[i].texto);
+  }
+  backupfonts_soltar(b->fontes);free(b);
 }
+void backuplocal_fontes_vincular(BackupLocal *b,BackupFontStage *fontes) {
+  if(!b || b->fontes==fontes)return;
+  backupfonts_reter(fontes);backupfonts_soltar(b->fontes);b->fontes=fontes;
+}
+BackupFontStage *backuplocal_fontes(const BackupLocal *b){return b?b->fontes:NULL;}
 int backuplocal_adicionar(BackupLocal *b,int tipo,const char *texto,size_t n) {
   if(!b || tipo<0 || tipo>=BACKUP_PARTES_N || b->parte[tipo].texto || !texto || !n || n>BACKUP_PARTE_MAX || memchr(texto,0,n))return 0;
   char *p=malloc(n+1);if(!p)return 0;
@@ -51,19 +63,23 @@ int backuplocal_exportar(const BackupLocal *b,char **saida,size_t *n) {
   if(n)*n=0;
   int partes=backuplocal_quantidade(b);
   if(!saida || !n || !b || !partes)return 0;
-  // Six bounded parts plus fixed metadata fit below the aggregate limit.
-  char *out=malloc(BACKUP_LOCAL_MAX+1u);if(!out)return 0;
-  size_t usado=(size_t)snprintf(out,BACKUP_LOCAL_MAX+1u,"NUVIO-LOCAL-BACKUP 1\nowner %s\nprofile %d\ncreated %lld\nparts %d\n",b->dono,b->perfil,b->criado,partes);
+  size_t capacidade=256;
   for(int i=0;i<BACKUP_PARTES_N;i++)if(b->parte[i].texto) {
-    int k=snprintf(out+usado,BACKUP_LOCAL_MAX+1u-usado,"part %s %zu\n",tipos[i],b->parte[i].n);
-    if(k<0 || (size_t)k>=BACKUP_LOCAL_MAX-usado){free(out);return 0;}
+    if(b->parte[i].n+100u>BACKUP_LOCAL_MAX-capacidade)return 0;
+    capacidade+=b->parte[i].n+100u;
+  }
+  char *out=malloc(capacidade);if(!out)return 0;
+  size_t usado=(size_t)snprintf(out,capacidade,"NUVIO-LOCAL-BACKUP 1\nowner %s\nprofile %d\ncreated %lld\nparts %d\n",b->dono,b->perfil,b->criado,partes);
+  for(int i=0;i<BACKUP_PARTES_N;i++)if(b->parte[i].texto) {
+    int k=snprintf(out+usado,capacidade-usado,"part %s %zu\n",tipos[i],b->parte[i].n);
+    if(k<0 || (size_t)k>=capacidade-usado){free(out);return 0;}
     usado+=(size_t)k;
-    if(b->parte[i].n+1u>=BACKUP_LOCAL_MAX-usado){free(out);return 0;}
+    if(b->parte[i].n+1u>=capacidade-usado){free(out);return 0;}
     memcpy(out+usado,b->parte[i].texto,b->parte[i].n);usado+=b->parte[i].n;out[usado++]='\n';
   }
   uLong crc=crc32(0L,(const Bytef *)out,(uInt)usado);
-  int k=snprintf(out+usado,BACKUP_LOCAL_MAX+1u-usado,"crc32 %08lx\n",(unsigned long)crc);
-  if(k!=15 || (size_t)k>BACKUP_LOCAL_MAX-usado){free(out);return 0;}
+  int k=snprintf(out+usado,capacidade-usado,"crc32 %08lx\n",(unsigned long)crc);
+  if(k!=15 || (size_t)k>capacidade-usado){free(out);return 0;}
   *saida=out;*n=usado+(size_t)k;return 1;
 }
 typedef struct {const char *p,*fim;} BlLeitor;

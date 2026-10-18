@@ -729,11 +729,12 @@ int ajustes_mesclar_blob(const char *base, char **saida);
 // forbidden keys and validates the complete backup before producing output.
 // Both functions are pure: no disk writes, runtime changes or network access.
 // Call after Settings has initialized dynamic choices. Caller frees *saida.
-enum { AJ_BACKUP_APARELHO = 0, AJ_BACKUP_PERFIL = 1 };
+enum { AJ_BACKUP_APARELHO = 0, AJ_BACKUP_PERFIL = 1, AJ_BACKUP_HARDWARE = 2 };
 int ajustes_backup_exportar(int perfil, const char *origem, char **saida);
 int ajustes_backup_mesclar(int perfil, const char *atual, const char *backup, char **saida);
 // Main thread: captures current values, including defaults not yet written.
-// Device hardware/input/account-sharing and log-consent choices stay local.
+// Hardware/input choices have a separate opt-in restore scope. Account
+// sharing policy and telemetry consent remain owned by the destination.
 int ajustes_backup_capturar(int perfil, char **saida);
 // After a validated restore: same native loader/effects, no startup migrations.
 void ajustes_backup_recarregar(const char *dir);

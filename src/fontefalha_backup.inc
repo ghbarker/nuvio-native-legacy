@@ -77,16 +77,19 @@ static int fbNumeros(FbLeitor *r,const char *chave,int *out,int n,int min,int ma
 int fontefalha_backup_ler(const char *texto,size_t n,FonteFalhaConfig *saida) {
   if(!texto || !saida || !n || n>FB_MAX_TEXTO || memchr(texto,0,n))return 0;
   FbLeitor r={texto,texto+n};FonteFalhaConfig c={0};char linha[1100];
-  if(!fbLinha(&r,linha,sizeof linha) || strcmp(linha,"NUVIO-SOURCE-SETTINGS 2") ||
-     !fbNumeros(&r,"provedores",&c.provedores,1,0,1) || !fbNumeros(&r,"addons",&c.addons,1,0,1) ||
+  if(!fbLinha(&r,linha,sizeof linha))return 0;
+  int versao=!strcmp(linha,"NUVIO-SOURCE-SETTINGS 2")?2:!strcmp(linha,"NUVIO-SOURCE-SETTINGS 1")?1:0;
+  if(!versao || !fbNumeros(&r,"provedores",&c.provedores,1,0,1) || !fbNumeros(&r,"addons",&c.addons,1,0,1) ||
      !fbNumeros(&r,"ordem",c.ordem,4,0,3) || !fbNumeros(&r,"limites",c.limites,4,1,FONTEFALHA_MAX_LINKS) ||
      !fbNumeros(&r,"contagem",&c.nAddons,1,0,FONTEFALHA_MAX_ADDONS))return 0;
   for(int i=0;i<c.nAddons;i++) {
     char *p=fbValor(&r,"addon",linha,sizeof linha),*k;if(!p || !(k=fbPalavra(&p)) || !chaveVale(k))return 0;
     snprintf(c.addon[i].chave,sizeof c.addon[i].chave,"%s",k);
     if(!fbInteiro(fbPalavra(&p),1,FONTEFALHA_MAX_LINKS,&c.addon[i].limite) || fbPalavra(&p))return 0;
-    p=fbValor(&r,"addon_live",linha,sizeof linha);if(!p || !(k=fbPalavra(&p)) || strcmp(k,c.addon[i].chave) ||
-      !fbInteiro(fbPalavra(&p),0,1,&c.addon[i].aoVivo) || fbPalavra(&p))return 0;
+    if(versao>=2) {
+      p=fbValor(&r,"addon_live",linha,sizeof linha);if(!p || !(k=fbPalavra(&p)) || strcmp(k,c.addon[i].chave) ||
+        !fbInteiro(fbPalavra(&p),0,1,&c.addon[i].aoVivo) || fbPalavra(&p))return 0;
+    }
   }
   for(int i=0;i<FONTEFILTRO_N;i++) {
     char *p=fbValor(&r,filtroChaves[i],linha,sizeof linha);
@@ -94,7 +97,7 @@ int fontefalha_backup_ler(const char *texto,size_t n,FonteFalhaConfig *saida) {
   }
   char *p=fbValor(&r,"filtro_maxgb",linha,sizeof linha);
   if(!p || !filtroMaximo(p,&c.filtro.maxGB))return 0;
-  p=fbValor(&r,"filtro_cache",linha,sizeof linha);if(!p || !filtroCache(p,&c.filtro.cache))return 0;
+  if(versao>=2) {p=fbValor(&r,"filtro_cache",linha,sizeof linha);if(!p || !filtroCache(p,&c.filtro.cache))return 0;}
   p=fbValor(&r,"filtro_grupos",linha,sizeof linha);
   if(!p || !filtroGruposLer(p,c.filtro.grupos,sizeof c.filtro.grupos) || r.p!=r.fim || !fbConfigValida(&c))return 0;
   *saida=c;return 1;

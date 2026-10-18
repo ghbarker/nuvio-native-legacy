@@ -1,4 +1,5 @@
 #include "legfontes.h"
+#include "backupfonts.h"
 #include "assrender.h"
 #include "perfisessao.h"
 #ifdef NV_ANDROID
@@ -410,4 +411,22 @@ const char *legfontes_atualizar(void) {
 #else
   return NULL;
 #endif
+}
+
+int legfontes_backup_validar(BackupFontStage *stage) {
+  if(!stage)return 1;
+  if(backupfonts_stage_validado(stage))return 1;
+  const BackupFontManifest *m=backupfonts_stage_manifest(stage);if(!m)return 0;
+  for(int i=0;i<m->n;i++) {
+    unsigned char *bytes=NULL;size_t n=0;char nome[96],nomeAss[96];
+    if(!backupfonts_stage_ler(stage,i,&bytes,&n))return 0;
+    int ok=nomeFace(bytes,n,nome,sizeof nome) && legfontes_nome_sfnt(bytes,n,nomeAss,sizeof nomeAss);
+    free(bytes);if(!ok)return 0;
+  }
+  backupfonts_stage_validar(stage);return 1;
+}
+void legfontes_backup_recarregar(const char *dir) {
+  // Invalidate the same-directory fast path only after committed selections
+  // and admitted immutable font files are both present.
+  pasta[0]=0;legfontes_dir(dir);carregar();
 }

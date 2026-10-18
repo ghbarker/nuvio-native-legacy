@@ -41,6 +41,7 @@
 // nunca tocam no staging — mesma disciplina do epg.c.
 #include "horafmt.h"
 #include "guia.h"
+#include "backupcategories.h"
 #include "registro.h"
 #include "guiaaddons.h"
 #include "plrui.h"
@@ -1845,25 +1846,31 @@ int guia_categorias_definir(const GuiaCategoria *categorias,int n) {
   if(!nv_perfil_sessao_atual(sessao))return 0;
   for(int i=0;i<n;i++)if(!categorias[i].chave || categorias[i].sessao!=sessao)return 0;
   categoriasGarantir();
-  uint64_t novas[G_MAX_OCULTAS];int nNovas=nCategoriasOcultas,mudou=0;
-  memcpy(novas,categoriasOcultas,(size_t)nNovas*sizeof *novas);
-  // Unhiding first frees capacity for new selections in the same transaction.
-  for(int ocultar=0;ocultar<=1;ocultar++)for(int k=0;k<n;k++) {
-    const GuiaCategoria *c=&categorias[k];if(!!c->oculta!=ocultar)continue;
-    int i=0;for(;i<nNovas;i++)if(novas[i]==c->chave)break;
-    if((i<nNovas)==ocultar)continue;
-    if(ocultar) { if(nNovas>=G_MAX_OCULTAS)return 0;novas[nNovas++]=c->chave; }
-    else novas[i]=novas[--nNovas];
+  uint64_t novas[G_MAX_OCULTAS],visiveis[G_MAX_OCULTAS];int nNovas=nCategoriasOcultas,nVisiveis=nCategoriasVisiveis,mudou=0;
+  memcpy(novas,categoriasOcultas,(size_t)nNovas*sizeof *novas);memcpy(visiveis,categoriasVisiveis,(size_t)nVisiveis*sizeof *visiveis);
+  for(int k=0;k<n;k++) {
+    const GuiaCategoria *c=&categorias[k];int ocultar=!!c->oculta;
+    if(categoriaOcultaPorChave(c->chave)==ocultar)continue;
+    int i=0,j=0;for(;i<nNovas;i++)if(novas[i]==c->chave)break;
+    for(;j<nVisiveis;j++)if(visiveis[j]==c->chave)break;
+    if(ocultar) {
+      if(i==nNovas){if(nNovas>=G_MAX_OCULTAS)return 0;novas[nNovas++]=c->chave;}
+      if(j<nVisiveis)visiveis[j]=visiveis[--nVisiveis];
+    } else {
+      if(i<nNovas)novas[i]=novas[--nNovas];
+      if(j==nVisiveis){if(nVisiveis>=G_MAX_OCULTAS)return 0;visiveis[nVisiveis++]=c->chave;}
+    }
     mudou=1;
   }
   if(!mudou)return 1;
-  char *texto=calloc((size_t)nNovas*17+1,1);int ok=0;
+  char *texto=calloc((size_t)nNovas*17+(size_t)nVisiveis*22+1,1);int ok=0;
   if(texto) {
     for(int k=0;k<nNovas;k++)snprintf(texto+(size_t)k*17,18,"%016llx\n",(unsigned long long)novas[k]);
+    for(int k=0;k<nVisiveis;k++)snprintf(texto+(size_t)nNovas*17+(size_t)k*22,23,"show %016llx\n",(unsigned long long)visiveis[k]);
     if(nv_perfil_sessao_travar(sessao)) {
       char nome[64];arquivoPerfil("categorias",nome,sizeof nome);
       ok=dados_gravar(nome,texto);
-      if(ok) { memcpy(categoriasOcultas,novas,(size_t)nNovas*sizeof *novas);nCategoriasOcultas=nNovas; }
+      if(ok) { memcpy(categoriasOcultas,novas,(size_t)nNovas*sizeof *novas);nCategoriasOcultas=nNovas;memcpy(categoriasVisiveis,visiveis,(size_t)nVisiveis*sizeof *visiveis);nCategoriasVisiveis=nVisiveis; }
       nv_perfil_sessao_destravar();
     }
     free(texto);

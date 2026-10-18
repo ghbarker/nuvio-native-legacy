@@ -1,5 +1,8 @@
 #include "backuprestauro.h"
 #include "backupplano_interno.h"
+#include "backupstores.h"
+#include "backupfonts.h"
+#include "backupcrypto.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,9 +51,16 @@ static int antigoIgual(const BackupPlano *p,const BackupIO *io,int tipo) {
   char *s=NULL;size_t n=0;int estado=io->ler(io->ctx,p->dono,p->perfil,tipo,&s,&n);
   int ok=estado==p->parte[tipo].existia;
   if(estado==0)ok=ok && !s && !n;
-  else if(estado==1)ok=ok && s && n==p->parte[tipo].nAntes && (!n || !memcmp(s,p->parte[tipo].antes,n));
+  else if(estado==1) {
+    if(tipo==BACKUP_LOCAIS) {
+      BackupStores *a=NULL,*b=NULL;
+      ok=ok && s && backupstores_ler(s,n,&a) && backupstores_ler(p->parte[tipo].antes,p->parte[tipo].nAntes,&b) && backupstores_iguais(a,b);
+      backupstores_liberar(a);backupstores_liberar(b);
+    } else if(tipo==BACKUP_FONTES_IMPORTADAS)ok=ok && s && backupfonts_iguais(s,p->parte[tipo].antes);
+    else ok=ok && s && n==p->parte[tipo].nAntes && (!n || !memcmp(s,p->parte[tipo].antes,n));
+  }
   else ok=0;
-  free(s);return ok;
+  backupcrypto_limpar(s,n);free(s);return ok;
 }
 static int desfazer(const BackupPlano *p,const BackupIO *io) {
   // Rewrite PREPARED durably first: a failed commit-marker write may have

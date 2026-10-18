@@ -5,14 +5,20 @@
 enum {
   BACKUP_AJUSTES_APARELHO, BACKUP_AJUSTES_PERFIL, BACKUP_PLAYER,
   BACKUP_FONTES_COMPARTILHADAS, BACKUP_FONTES_PERFIL, BACKUP_FILEIRAS,
+  BACKUP_AJUSTES_HARDWARE, BACKUP_LOCAIS, BACKUP_FONTES_IMPORTADAS,
   BACKUP_PARTES_N
 };
-#define BACKUP_LOCAL_MAX (512u * 1024u)
-#define BACKUP_PARTE_MAX 65536u
+#define BACKUP_LOCAL_MAX (24u * 1024u * 1024u)
+#define BACKUP_PARTE_MAX (9u * 1024u * 1024u)
 typedef struct BackupLocal BackupLocal;
+typedef struct BackupFontStage BackupFontStage;
+// Local-only staged assets are never serialized as filesystem paths.
+void backuplocal_fontes_vincular(BackupLocal *,BackupFontStage *);
+BackupFontStage *backuplocal_fontes(const BackupLocal *);
 BackupLocal *backuplocal_novo(const char *dono,int perfil,long long criado);
 void backuplocal_liberar(BackupLocal *b);
-// Copies bounded text; binary assets, credentials and arbitrary paths are not parts.
+// Copies bounded text. Local connections live only in an encrypted transport;
+// module IDs are fixed allowlisted stores, never arbitrary downloaded paths.
 int backuplocal_adicionar(BackupLocal *b,int tipo,const char *texto,size_t n);
 const char *backuplocal_parte(const BackupLocal *b,int tipo,size_t *n);
 int backuplocal_quantidade(const BackupLocal *b);

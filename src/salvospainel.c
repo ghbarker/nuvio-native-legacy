@@ -5303,3 +5303,5 @@ const char *spainel_foco_social(void) {
 }
 
 int spainel_n_continuar(void) { if (listaVelha()) reconstruir(); return nCont; }
+
+void spainel_backup_recarregar(void){abaPerfil=-1;}

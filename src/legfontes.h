@@ -10,6 +10,9 @@
 #define LEGFONTE_SECUNDARIA 1
 #define LEGFONTE_INTERFACE 2
 #define LEGFONTES_SLOTS 3
+typedef struct BackupFontStage BackupFontStage;
+int legfontes_backup_validar(BackupFontStage *);
+void legfontes_backup_recarregar(const char *dir);
 void legfontes_dir(const char *dir);
 int legfontes_n(void);
 const char *legfontes_nome(int indice);

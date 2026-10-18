@@ -8,6 +8,7 @@ typedef struct {char usuario[81];int perfil;uint64_t sessao;} BackupContexto;
 int backupapp_contexto(BackupContexto *saida);
 int backupapp_capturar(const BackupContexto *,long long criado,BackupLocal **saida);
 // Pure module validation for the restore preview, before closing any UI.
+int backupapp_selecionar(const BackupContexto *,const BackupLocal *,int hardware,BackupLocal **saida);
 int backupapp_validar(const BackupContexto *,const BackupLocal *);
 // Main thread, after the app has stopped playback/preloads and closed the
 // outgoing profile's transient UI. Selected store writers run on this thread;

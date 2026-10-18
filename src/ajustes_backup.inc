@@ -29,6 +29,13 @@ static int abDesteDispositivo(int op) {
 }
 static int abLocal(int op,int perfil,int v) {
   if(op<0 || op>=AB_N)return 0;
+  // Sharing policy and telemetry consent always belong to the destination.
+  if(op==AJ_PROVEDORES_ESCOPO || op==AJ_ENVIO_AUTO)return 0;
+  if(perfil==AJ_BACKUP_HARDWARE) {
+    if(!abDesteDispositivo(op))return 0;
+    if(op>=AJ_N)return op==AJ_N+2;
+    return CHAVE[op] && OPCOES[op].tipo!=OP_ACAO && OPCOES[op].tipo!=OP_LEITURA;
+  }
   if(abDesteDispositivo(op))return 0;
   if(op>=AJ_N)return !perfil;
   // These Settings rows mirror separate stores; scalar shadow values would
@@ -83,7 +90,7 @@ static int abEscrever(char *out,size_t cap,size_t *n,int op,int v) {
 }
 int ajustes_backup_exportar(int perfil,const char *origem,char **saida) {
   if(saida)*saida=NULL;
-  if(!saida || (perfil!=0 && perfil!=1) || !abTexto(origem))return 0;
+  if(!saida || (perfil<AJ_BACKUP_APARELHO || perfil>AJ_BACKUP_HARDWARE) || !abTexto(origem))return 0;
   unsigned char viu[AB_N]={0};int valores[AB_N]={0};
   for(const char *p=origem;*p;) {
     char chave[80];const char *fim,*v;const char *proximo=abLinha(p,&fim,chave,&v);
@@ -102,14 +109,14 @@ int ajustes_backup_exportar(int perfil,const char *origem,char **saida) {
     p=proximo;
   }
   char *out=calloc(AB_MAX_TEXTO+1u,1);if(!out)return 0;
-  size_t n=(size_t)snprintf(out,AB_MAX_TEXTO+1u,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",perfil?"profile":"device");
+  size_t n=(size_t)snprintf(out,AB_MAX_TEXTO+1u,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",perfil==AJ_BACKUP_HARDWARE?"hardware":perfil?"profile":"device");
   for(int i=0;i<AB_N;i++)if(viu[i] && !abEscrever(out,AB_MAX_TEXTO+1u,&n,i,valores[i])) { free(out);return 0; }
   *saida=out;return 1;
 }
 int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char **saida) {
   if(saida)*saida=NULL;
-  if(!saida || (perfil!=0 && perfil!=1) || !abTexto(atual) || !abTexto(backup))return 0;
-  char cab[80];int k=snprintf(cab,sizeof cab,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",perfil?"profile":"device");
+  if(!saida || (perfil<AJ_BACKUP_APARELHO || perfil>AJ_BACKUP_HARDWARE) || !abTexto(atual) || !abTexto(backup))return 0;
+  char cab[80];int k=snprintf(cab,sizeof cab,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",perfil==AJ_BACKUP_HARDWARE?"hardware":perfil?"profile":"device");
   if(strncmp(backup,cab,(size_t)k))return 0;
   unsigned char viu[AB_N]={0},escreveu[AB_N]={0};int valores[AB_N]={0};
   for(const char *p=backup+k;*p;) {
@@ -139,13 +146,14 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
 }
 int ajustes_backup_capturar(int perfil,char **saida) {
   if(saida)*saida=NULL;
-  if(!saida || (perfil!=0 && perfil!=1))return 0;
+  if(!saida || (perfil<AJ_BACKUP_APARELHO || perfil>AJ_BACKUP_HARDWARE))return 0;
   char *origem=calloc(AB_MAX_TEXTO+1u,1);if(!origem)return 0;
   size_t n=0;int ok=1;
   for(int i=0;i<AJ_N && ok;i++)if(abLocal(i,perfil,valor[i])) {
     int v=i==AJ_IDIOMA?ajustes_idioma():valor[i];
     ok=abValido(i,v) && abEscrever(origem,AB_MAX_TEXTO+1u,&n,i,v);
   }
+  if(ok && perfil==AJ_BACKUP_HARDWARE)ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+2,memoriaEscolhida);
   if(ok && !perfil)ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N,valor[AJ_IDIOMA]==0) &&
                        abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+1,idiomaFonteGravada);
   if(ok)ok=ajustes_backup_exportar(perfil,origem,saida);
