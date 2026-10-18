@@ -1,5 +1,11 @@
 // #424: actual guide storage, deduplication, stable category packing and cache.
 #include <stdlib.h>
+#include "perfis.h"
+#define NV_PERFIL_SESSAO_FORTE
+uint64_t perfis_sessao_geracao(void) { return 1; }
+int perfis_sessao_atual(uint64_t s) { return s == 1; }
+int perfis_sessao_travar(uint64_t s) { return s == 1; }
+void perfis_sessao_destravar(void) {}
 static int falharMalloc;
 static void *testeMalloc(size_t n) { return falharMalloc ? NULL : malloc(n); }
 #define malloc testeMalloc
