@@ -40,8 +40,25 @@ typedef struct {
 enum { EPG_PARADO, EPG_BAIXANDO, EPG_PRONTO, EPG_FALHOU };
 int epg_estado(void);
 
+// Device-local memory policy, set on the drawing thread. Workers capture it;
+// changing modes rebuilds programme data from cache, without expiring downloads.
+enum { EPG_MEMORIA_AUTO, EPG_MEMORIA_BAIXA, EPG_MEMORIA_COMPLETA };
+void epg_memoria_definir(int modo, long ramMB);
+
+// Native account schedules never match another account's IDs or names.
+// Configure on the drawing thread; the worker captures each URL and profile.
+typedef struct { int tipo; unsigned id; char url[1100]; } EpgContaFonte;
+void epg_contas_configurar(const EpgContaFonte *fontes, int n);
+void epg_conta_ids(int tipo, unsigned id, const char *const *ids, int n);
+int epg_canal_estado(const char *canal);
+int epg_match_canal(const char *canal, const char *epgId, const char *nome);
+unsigned epg_revisao(void);
+
 // Dispara o fio de carga se ainda nao rodou. Idempotente.
 void epg_iniciar(void);
+void epg_fonte_m3u(const char *url);
+void epg_so_provedores(int so);
+void epg_recarregar(void);
 // Invalida a grade privada e o worker anterior. Os arquivos publicos de
 // epgshare01 continuam no disco, prontos para reaproveitar sem rede.
 void epg_abrir_sessao(int perfil);
