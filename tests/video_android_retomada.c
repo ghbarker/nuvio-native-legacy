@@ -97,6 +97,31 @@ int main(int argc, char **argv) {
   assert(video_tocar_posicao("https://example.invalid/um.mp4", 612.345));
   assert(chamadasPosicao == 1 && recebidoMs == 612345 && chamadasNormais == 0);
   assert(video_retomada_inicial_estado() == 0);
+  // The live-window grace period belongs only to this open, is clamped,
+  // expires without a Kotlin callback, and is cleared by READY/stop messages.
+  unsigned liveSessao = video_android_sessao();
+  unsigned liveInicio = relogio;
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 8000, (int)liveSessao);
+  assert(video_recuperando_live() && chamadasPosicao == 1 && chamadasNormais == 0);
+  relogio = liveInicio + 7999; assert(video_recuperando_live());
+  relogio++; assert(!video_recuperando_live());
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, INT_MAX, (int)liveSessao);
+  assert(video_recuperando_live());
+  relogio += 8000; assert(!video_recuperando_live());
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 8000, (int)liveSessao);
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 0, (int)liveSessao);
+  assert(!video_recuperando_live());
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 8000, (int)liveSessao - 1);
+  assert(!video_recuperando_live());
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 8000, (int)liveSessao);
+  video_parar(); assert(!video_recuperando_live());
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 8000, (int)liveSessao);
+  assert(!video_recuperando_live());
+  assert(video_tocar_posicao("https://example.invalid/live-window-test.m3u8", 612.345));
+  Java_space_nuvio_nativelegacy_NvPlayer_nativeEvento(NULL, NULL, EV_LIVE_RECOVERY, 8000, (int)liveSessao);
+  assert(!video_recuperando_live());
+  puts("ok bounded live recovery, native expiry, stale sessions and stop; no automatic reopen");
+  chamadasPosicao--;
   int antigo = recebidoGeracao;
   Java_space_nuvio_nativelegacy_NvPlayer_nativeRetomada(&env, NULL, antigo, 1);
   assert(video_retomada_inicial_estado() == 1);

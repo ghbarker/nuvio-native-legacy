@@ -9,6 +9,7 @@ import java.lang.reflect.Proxy
 class LiveWindowRecoveryTest {
     private class Fixture {
         val calls = ArrayList<String>()
+        val status = ArrayList<Boolean>()
         val scheduled = LinkedHashMap<Runnable, Long>()
         var active = true
         var failed = 0
@@ -33,6 +34,7 @@ class LiveWindowRecoveryTest {
             schedule = { task, delay -> scheduled[task] = delay },
             unschedule = { task -> scheduled.remove(task) },
             active = { active },
+            status = { status.add(it) },
         )
         fun recover(now: Long = 0, code: Int = PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) =
             recovery.recover(player, code, now) { failed++ }
@@ -47,12 +49,14 @@ class LiveWindowRecoveryTest {
         assertTrue(f.recovery.ready())
         assertTrue(f.scheduled.isEmpty())
         assertFalse(f.recovery.ready())
+        assertEquals(listOf(true, false), f.status)
     }
 
     @Test fun ordinaryNetworkAuthenticationAndDecoderErrorsKeepNormalFallback() {
         val f = Fixture()
         for (code in listOf(2001, 2002, 2004, 4001, 4003)) assertFalse(f.recover(code = code))
         assertTrue(f.calls.isEmpty())
+        assertTrue(f.status.isEmpty())
         assertTrue(f.scheduled.isEmpty())
     }
 
@@ -64,6 +68,7 @@ class LiveWindowRecoveryTest {
         task.run()
         task.run()
         assertEquals(1, f.failed)
+        assertEquals(listOf(true, false), f.status)
     }
 
     @Test fun readyInvalidatesAlreadyQueuedTimeout() {
