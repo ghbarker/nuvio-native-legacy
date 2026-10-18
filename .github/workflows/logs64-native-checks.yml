@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 4e0c29fbb7e8167270cd8698e6bc79af2bd6d43d
+  SOURCE_SHA: 0abe666aadbd3e3013c271ae5b3d93260d1c6dd8
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
