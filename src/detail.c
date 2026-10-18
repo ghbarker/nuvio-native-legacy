@@ -4500,7 +4500,9 @@ static float fonteInfoLinha(const FonteInfo *info, float x, float y, float w, fl
   }
   for (int k = 0; k < info->nTextos; k++) {
     char s[sizeof info->texto[0]];
-    snprintf(s,sizeof s,"%s",info->texto[k]); plrui_decimal(s);
+    snprintf(s,sizeof s,"%s",info->texto[k]);
+    size_t n = strlen(s);
+    if (n >= 3 && (!strcmp(s+n-3," GB") || !strcmp(s+n-3," MB"))) plrui_decimal(s);
     TxtLinha l = txt_linha_corta(TXT_HERO_META,s,235,235,235,255,w);
     if (dx > 0 && dx + l.w > w) { dx = 0; dy += passo; }
     if (a > 0) txt_desenhar_alpha(l,x+dx,y+dy+(h-l.h)*0.5f,a);
