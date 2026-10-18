@@ -48,6 +48,7 @@ static jmethodID JNICALL metodo(JNIEnv *e, jclass c, const char *nome, const cha
     if (ausenteFracao) { excecao = 1; return NULL; }
     return (jmethodID)(uintptr_t)5;
   }
+  if (!strcmp(nome, "kbps")) return (jmethodID)(uintptr_t)8;
   if (!strcmp(nome, "pausar")) return (jmethodID)(uintptr_t)6;
   if (!strcmp(nome, "buscar")) return (jmethodID)(uintptr_t)7;
   return (jmethodID)(uintptr_t)1;
@@ -60,7 +61,7 @@ static jboolean JNICALL temExcecao(JNIEnv *e) { (void)e; return excecao; }
 static void JNICALL limparExcecao(JNIEnv *e) { (void)e; excecao = 0; }
 static void JNICALL chamar(JNIEnv *e, jclass c, jmethodID m, ...) {
   (void)e; (void)c;
-  if (m == mParar) return;
+  if (m == mParar || (uintptr_t)m == 8) return;
   if (m == mPausar) {
     va_list ap; va_start(ap, m); ultimoPausar = va_arg(ap, jint); va_end(ap);
     chamadasPausa++; return;
