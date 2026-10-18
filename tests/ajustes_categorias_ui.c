@@ -17,10 +17,10 @@ static Uint32 agora(void) { return clockTest; }
 static void quadro(void) {
   ponteiro_teste_janela((int)NV_TELA_W,(int)NV_TELA_H);
   ponteiro_quadro(clockTest);ponteiro_camada();ajPontEditor=1;
-  txt_novo_quadro();gfx_novo_quadro();
+  txt_novo_quadro();tex_novo_quadro();tex_bombear(6);gfx_novo_quadro();
   glClearColor(.065f,.067f,.085f,1);glClear(GL_COLOR_BUFFER_BIT);
   AJ_ESCALA_INI();aj2EditorEscolha(aj2EditorR());AJ_ESCALA_FIM();
-  ponteiro_desenhar();clockTest+=100;
+  ponteiro_desenhar();clockTest+=100;SDL_Delay(2);
 }
 static void clicar(PonteiroFn fn,int a) {
   const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v),achou=0;
@@ -55,7 +55,8 @@ int main(int argc,char **argv) {
   puts("UI fixture: create GL context");
   SDL_Window *win=SDL_CreateWindow("Category Settings",0,0,1080,1920,SDL_WINDOW_OPENGL|SDL_WINDOW_HIDDEN);assert(win);
   SDL_GLContext gl=SDL_GL_CreateContext(win);assert(gl);puts("UI fixture: gfx/fonts");gfx_tamanho_alvo(1080,1920);assert(gfx_iniciar());
-  assert(txt_iniciar("deploy/app",1));gfx_icones_dir("deploy/app/art");ajustes_recursos("deploy/app/art");
+  assert(txt_iniciar("deploy/app",1));assert(tex_iniciar(64));
+  char art[1024];assert(realpath("deploy/app/art",art));gfx_icones_dir(art);ajustes_recursos(art);
   dados_iniciar(getenv("NUVIO_DADOS"));ajustes_iniciar();layout_modo_definir(1);layout_tela_definir(1080,1920);
   for(int i=0;i<12;i++) { fixture[i].chave=i+1;fixture[i].sessao=nv_perfil_sessao_ler();
     snprintf(fixture[i].nome,sizeof fixture[i].nome,"US| 24/7 ACTION/ADVENTURE RAW 60fps - Category %d",i+1);
@@ -82,6 +83,6 @@ int main(int argc,char **argv) {
     clicar(ajIptvToqueEscolher,0);assert(!uxCategorias[0].oculta);quadro();clicar(ajToqueCancelar,0);
     assert(!uxEditor && fixture[0].oculta && saves==1);fixture[0].oculta=0;saves=0;
   }
-  txt_encerrar();gfx_encerrar();SDL_GL_DeleteContext(gl);SDL_DestroyWindow(win);SDL_Quit();
+  tex_encerrar();txt_encerrar();gfx_encerrar();SDL_GL_DeleteContext(gl);SDL_DestroyWindow(win);SDL_Quit();
   puts("PASS: actual renderer/pointer targets in portrait and TV layout, 100/150% Settings scale; row/Confirm/Cancel and footer separation");
 }
