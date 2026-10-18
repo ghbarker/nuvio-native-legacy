@@ -50,6 +50,8 @@ static void caminho(char out[512],const char *dir,const char *nome) {assert(snpr
 int main(void) {
   char dir[]="/tmp/nuvio-backup-disk.XXXXXX",arquivo[512],outro[512];assert(mkdtemp(dir));int valido=1;
   BackupDisco *d=backupdisco_abrir(dir,sessao,&valido);assert(d);BackupIO io=backupdisco_io(d);
+  assert(backupdisco_recuperar_arranque(dir)==BACKUP_RESTORE_NADA);
+  assert(backupdisco_recuperar_arranque("/no-such-nuvio-backup-directory")==BACKUP_RESTORE_NADA);
   char *s=NULL;size_t n=0;
   assert(!backupdisco_abrir("/no-such-nuvio-backup-directory",sessao,&valido));
   assert(io.ler(io.ctx,"../escape",7,BACKUP_PLAYER,&s,&n)==-1 && !s && !n);
@@ -74,13 +76,17 @@ int main(void) {
   // Restart from an interrupted prepared restore, with a different session.
   assert(io.gravar(io.ctx,NULL,0,BACKUP_IO_DIARIO,espia.preparado,strlen(espia.preparado)));
   backupdisco_fechar(d);valido=0;d=backupdisco_abrir(dir,sessao,&valido);assert(d);io=backupdisco_io(d);
-  assert(backuprestauro_recuperar(&io)==BACKUP_RESTORE_OK);conferir(&io,0);
+  assert(backupdisco_recuperar_arranque(dir)==BACKUP_RESTORE_OK);conferir(&io,0);
   // COMMITTED cleanup after restart retains every new store.
   for(int i=0;i<5;i++)assert(io.gravar(io.ctx,"user-1",7,i,novos[i],strlen(novos[i])));
   assert(io.gravar(io.ctx,NULL,0,BACKUP_IO_DIARIO,espia.confirmado,strlen(espia.confirmado)));
   backupdisco_fechar(d);d=backupdisco_abrir(dir,sessao,&valido);assert(d);io=backupdisco_io(d);
-  assert(backuprestauro_recuperar(&io)==BACKUP_RESTORE_OK);conferir(&io,1);
+  assert(backupdisco_recuperar_arranque(dir)==BACKUP_RESTORE_OK);conferir(&io,1);
   assert(backuprestauro_recuperar(&io)==BACKUP_RESTORE_NADA);
+  assert(io.gravar(io.ctx,NULL,0,BACKUP_IO_DIARIO,"corrupt-journal",15));
+  assert(backupdisco_recuperar_arranque(dir)==BACKUP_RESTORE_RECUPERAR);conferir(&io,1);
+  assert(io.ler(io.ctx,NULL,0,BACKUP_IO_DIARIO,&s,&n)==1 && n==15 && !strcmp(s,"corrupt-journal"));free(s);
+  assert(io.apagar(io.ctx,NULL,0,BACKUP_IO_DIARIO));
   // Symlinks, directories and FIFOs cannot turn fixed stores into other files
   // or block reads of a malformed private store.
   caminho(arquivo,dir,"player.txt");caminho(outro,dir,"outside.txt");
