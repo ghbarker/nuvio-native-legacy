@@ -14,9 +14,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083822801/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083822801 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083824187 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084222011/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084222011 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084224256 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083822801 --jq '.jobs // .conclusion')" = success
       - uses: actions/checkout@v4
         with:
           ref: f4f7e804dc33207199d5fb105dd00e0194ca2a9b
@@ -27,8 +28,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39083822801
-          name: Nuvio-TV-Mobile-Test-Logs49-55bc02ef842d5fb7c2a22be256b3abb43e502bab
+          run-id: 39084222011
+          name: Nuvio-TV-Mobile-Test-Logs49-fe3603aeea900bcb8cdd68e26645092b17f4240f
           path: dist
       - name: Verify Android page alignment and the retained package identity
         run: |
@@ -48,18 +49,19 @@ jobs:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist()
               assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
           report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,native_account_regressions=True,macos_native_account_regressions=True,android_16k_alignment=True)
-          report['android_run']=39083822801;report['linux_run']=39083822801;report['macos_run']=39083824187
+          report['android_run']=39084222011;report['linux_run']=39084222011;report['macos_run']=39084224256
           report['android_job']='apk-build'
+          report['shared_failover_baseline_run']=39083822801
           report['test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
           report['application_code_matches_test_commit']=True
           report['macos_test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
-          report['validation_scope']='Linux/macOS normal and ASan/UBSan: real full-source Settings, EPG memory policy/window and serial worker queues, cached full-schedule restoration without new requests, account-scoped guide data, large streaming XMLTV, source-specific category hiding/reload/rename/order/profile guards/failed-write rollback, guide loading and routing. Linux shared failover Settings normal. Android both ARM builds and font import unit tests.'
+          report['validation_scope']='Linux/macOS normal and ASan/UBSan: real full-source Settings, EPG memory policy/window and serial worker queues, cached full-schedule restoration without new requests, account-scoped guide data, large streaming XMLTV, source-specific category hiding/reload/rename/order/profile guards/failed-write rollback, guide loading and routing. Linux shared failover Settings normal retained from the preceding successful Logs49 build (same Settings source). Android both ARM builds and font import unit tests.'
           report['new_translation_keys_verified']=True
           report['new_translation_keys']=5;report['translation_tables']=29
           report['full_language_audit_existing_findings']=60;report['full_language_audit_new_findings']=0
           report['baseline_release']='tv-mobile-test-logs-v47'
           (root/'Logs49-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-          (root/'Logs49-testing.txt').write_text('Nuvio TV/Mobile Test - Logs49: Live TV memory and category controls\n\nInstall over Nuvio TV/Mobile Test by choosing Update. Keep the app and its data to retain accounts/settings. This has a higher version than Logs47; the package and persistent signing key are unchanged.\n\n1. Main Settings menu: Live TV should show Live TV accounts: N, including your saved M3U playlists, instead of Not set up. Open Live TV > M3U and confirm your existing accounts remain. Disabled saved accounts are included in the count; this is setup status, not a connection check.\n2. Settings > Live TV > Guide memory: choose Low memory and confirm. It keeps the current programme and next 24 hours loaded and runs one bulk EPG load at a time. Open the guide and check now/next programmes and playback. Channel lists/order remain unchanged. The provider may supply fewer than 24 hours.\n3. Choose Full guide and return to the guide. Later programmes should return if supplied by the provider, within the existing safety limits. Mode changes reuse the compressed disk cache; Low memory reduces loaded programme data, not the downloaded EPG file size. Automatic uses Low memory for devices with up to 2 GiB or unknown RAM (also browser/WASM targets), and Full guide for higher-memory native devices. You can override it.\n4. Keep Guide sources set to All and open the guide once so saved categories are loaded. Settings > Live TV > Hide categories lists every loaded category, including hidden ones, with account names on separate lines. Tap a category or press OK to toggle Hidden in the guide; each change saves immediately. Back closes the picker.\n5. Hide one category from Account A. It should disappear from the guide AND its top-left Categories drawer, while a matching category from Account B remains. Return to Hide categories and tap it again to restore it. Favorites remain available independently; no accounts or channels are deleted. If every category is hidden, the guide shows the path back to this setting.\n6. In the Categories drawer, long category names and account names should appear on separate lines rather than losing the account suffix. Category/Account sorting and saved account order should retain their approved behavior.\n7. Fully close and reopen the app. The account count, memory choice, hidden categories and account order should remain saved. Hidden choices are per profile; memory mode is per device and does not change when switching profiles. Renaming/reordering a saved account should not reset its hidden choices.\n\nNo new upstream Live TV PR will be published until this test build is approved. Test-only local logs and app packaging remain outside upstream product changes.\n')
+          (root/'Logs49-testing.txt').write_text('Nuvio TV/Mobile Test - Logs49: Live TV memory and category controls\n\nInstall over Nuvio TV/Mobile Test by choosing Update. Keep the app and its data to retain accounts/settings. This has a higher version than Logs47; the package and persistent signing key are unchanged.\n\n1. Main Settings menu: Live TV should show Live TV accounts: N, including your saved M3U playlists, instead of Not set up. With working M3U channels, the guide header must also avoid the old no-IPTV-portal warning. Open Live TV > M3U and confirm your existing accounts remain. Disabled saved accounts are included in the count; this is setup status, not a connection check.\n2. Settings > Live TV > Guide memory: choose Low memory and confirm. It keeps the current programme and next 24 hours loaded and runs one bulk EPG load at a time. Open the guide and check now/next programmes and playback. Channel lists/order remain unchanged. The provider may supply fewer than 24 hours.\n3. Choose Full guide and return to the guide. Later programmes should return if supplied by the provider, within the existing safety limits. Mode changes reuse the compressed disk cache; Low memory reduces loaded programme data, not the downloaded EPG file size. Automatic uses Low memory for devices with up to 2 GiB or unknown RAM (also browser/WASM targets), and Full guide for higher-memory native devices. You can override it.\n4. Keep Guide sources set to All and open the guide once so saved categories are loaded. Settings > Live TV > Hide categories lists every loaded category, including hidden ones, with account names on separate lines. Tap a category or press OK to toggle Hidden in the guide; each change saves immediately. Back closes the picker.\n5. Hide one category from Account A. It should disappear from the guide AND its top-left Categories drawer, while a matching category from Account B remains. Return to Hide categories and tap it again to restore it. Favorites remain available independently; no accounts or channels are deleted. If every category is hidden, the guide shows the path back to this setting.\n6. In the Categories drawer, long category names and account names should appear on separate lines rather than losing the account suffix. Category/Account sorting and saved account order should retain their approved behavior.\n7. Fully close and reopen the app. The account count, memory choice, hidden categories and account order should remain saved. Hidden choices are per profile; memory mode is per device and does not change when switching profiles. Renaming/reordering a saved account should not reset its hidden choices.\n\nNo new upstream Live TV PR will be published until this test build is approved. Test-only local logs and app packaging remain outside upstream product changes.\n')
           PY
       - name: Publish the verified test download
         env:
