@@ -1,4 +1,4 @@
-name: Standalone issue424 large IPTV PR checks
+name: Live TV search Linux and macOS native checks
 on:
   workflow_dispatch:
 permissions:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f213ce72e9887fc5271af6bc12a243ca65e76554
+          ref: 8934c1837013a88e6327c0ff506d20f07aa05de5
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           for san in 0 1; do
-            for suite in xtream guia_grande; do
+            for suite in guiabusca_incremental guiabusca_paginacao guia_grupos guia_loading guia_epg_estado; do
               SANITIZE="$san" bash "tests/$suite.sh"
             done
           done
