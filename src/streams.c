@@ -3865,14 +3865,12 @@ static float desenharFaixas(const Stream *s, float x, float y, float w, int sel,
   }
   return altura;
 }
-static int audioDeclaradoEm(const Stream *s, const char *pref) {
-  const char *p = s->audioIdiomas;
-  const char *fim = p + strnlen(p, sizeof s->audioIdiomas);
-  // A mesma lista que aparece em "Audio:" governa o chip. Legendas nunca
-  // entram nesta leitura, e audio declarado prevalece sobre o nome do arquivo.
+static int audioListaEm(const char *p,size_t limite,const char *pref) {
+  const char *fim = p + strnlen(p,limite);
+  // Both lists contain audio language tokens; subtitle hints stay separate.
   while (p < fim) {
     const char *f = memchr(p, ',', (size_t)(fim - p)), *ate = f ? f : fim;
-    char raw[sizeof s->audioIdiomas + 1], codigo[32];
+    char raw[513], codigo[32];
     while (p < ate && isspace((unsigned char)*p)) p++;
     while (ate > p && isspace((unsigned char)ate[-1])) ate--;
     size_t len = (size_t)(ate - p);
@@ -3883,6 +3881,9 @@ static int audioDeclaradoEm(const Stream *s, const char *pref) {
     p = f ? f + 1 : fim;
   }
   return 0;
+}
+static int audioDeclaradoEm(const Stream *s,const char *pref) {
+  return audioListaEm(s->audioIdiomas,sizeof s->audioIdiomas,pref);
 }
 // O IDIOMA nao tem logo no pacote de selos, entao vai como texto no fim da
 // fileira. Os rotulos antigos continuam onde o addon nao informa audio;
@@ -3900,10 +3901,10 @@ static const char *idiomaDa(const Stream *s) {
 }
 static int temAudioPreferido(const Stream *s) {
   const char *pref = idiomaFiltroAudio();
-  // An explicit "All" (or an unresolved "Original") is not a guessed
-  // language. Otherwise require declared audio metadata, never subtitles,
-  // filenames or generic "dub/dual" labels whose language is unknown.
-  return !pref[0] || audioDeclaradoEm(s, pref);
+  // Explicit audio wins. Add-on release labels are a fallback only; their
+  // hints do not claim that a playback track has been inspected.
+  return !pref[0] || (s->audioIdiomas[0] ? audioDeclaradoEm(s,pref) :
+    audioListaEm(s->audioRotulos,sizeof s->audioRotulos,pref));
 }
 static const char *ajudaFiltroAudio(void) {
   static char ajuda[512];
