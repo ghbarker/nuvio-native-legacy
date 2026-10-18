@@ -178,7 +178,8 @@ int main(void) {
   AJ_FUNDO_DIN == AJ_VIDRO_QUALIDADE + 1 &&         // #205: fundo da Dinamica
   AJ_FUNDO_DIN_COR == AJ_FUNDO_DIN + 1 &&
   AJ_ESCALA_TEXTO == AJ_FUNDO_DIN_COR + 1 &&
-  AJ_FOCO_ACENTO == AJ_ESCALA_TEXTO + 1 &&
+  AJ_DET_ESPACO == AJ_ESCALA_TEXTO + 1 &&
+  AJ_FOCO_ACENTO == AJ_DET_ESPACO + 1 &&
   AJ_GUIA_FONTE == AJ_FOCO_ACENTO + 1 &&
   AJ_N == AJ_GUIA_CATEGORIAS + 1);
   assert(ajustes_guia_fonte()==0 && somenteDesteAparelho(AJ_GUIA_FONTE) && dePerfil(AJ_GUIA_FONTE));

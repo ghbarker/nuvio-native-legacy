@@ -8,17 +8,20 @@
 static void vc_frame(int screen, int frame) {
   Uint32 now = 30000u + (Uint32)frame * 16u;
   corviva_quadro(1.0f / 60, ajustes_cor_viva(), ajustes_cor_logo(), ajustes_animacoes_reduzidas());
-  txt_novo_quadro(); tex_novo_quadro(); tex_bombear(16); gfx_novo_quadro();
+  txt_novo_quadro(); tex_bombear(16);
+  // Match main.c: updates may warm invisible text before draw accounting
+  // resets. Counting those warmups closes the backdrop before it is painted.
+  if (screen == 0) {
+    home_atualizar(1.0f / 60, now);
+    menu_pilula_mostrar(1); menu_atualizar(1.0f / 60, now);
+  } else if (screen == 1) detail_atualizar(1.0f / 60, now);
+  else ajustes_atualizar(1.0f / 60, now);
+  gfx_novo_quadro(); tex_novo_quadro();
   glClearColor(NV_COR_FUNDO_R, NV_COR_FUNDO_G, NV_COR_FUNDO_B, 1);
   glClear(GL_COLOR_BUFFER_BIT);
-  if (screen == 0) {
-    home_atualizar(1.0f / 60, now); home_desenhar(now);
-    menu_pilula_mostrar(1); menu_atualizar(1.0f / 60, now); menu_desenhar(now);
-  } else if (screen == 1) {
-    detail_atualizar(1.0f / 60, now); detail_desenhar(now);
-  } else {
-    ajustes_atualizar(1.0f / 60, now); ajustes_desenhar(now);
-  }
+  if (screen == 0) { home_desenhar(now); menu_desenhar(now); }
+  else if (screen == 1) detail_desenhar(now);
+  else ajustes_desenhar(now);
   ilha_desenhar(now);
 }
 static int vc_run(void) {
@@ -38,7 +41,7 @@ static int vc_run(void) {
     if (screen == 0) menu_abrir();
     if (screen == 1) { menu_fechar(); abrir(1, 0, 0, 0); }
     if (screen == 2) { ajustes_iniciar(); ajustes_shot_valor("fundoLocal", FUNDO_FROST); }
-    for (int i = 0; i < 180; i++) vc_frame(screen, 200 + i);
+    for (int i = 0; i < 180; i++) { vc_frame(screen, 200 + i); SDL_Delay(16); }
     for (int phase = 0; phase < 2; phase++) {
       int captures = 0, passes = 0, sources = 0;
       double fill = 0, copy = 0;
@@ -49,6 +52,8 @@ static int vc_run(void) {
         if (!screen) menu_evento(&e);
         else if (screen == 1) detail_evento(&e);
         else ajustes_evento(&e);
+        // Let the accent-focus transition settle before measuring cache reuse.
+        for (int i = 0; i < 180; i++) { vc_frame(screen, 380 + i); SDL_Delay(16); }
       }
       for (int i = 0; i < 30; i++) {
         // Text LRU retires labels while focus/clock/diagnostics change. This
@@ -58,7 +63,7 @@ static int vc_run(void) {
         unsigned char pixel[4] = {255, 255, 255, 255};
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
         gfx_tex_esquecer(label); glDeleteTextures(1, &label);
-        vc_frame(screen, 380 + phase * 30 + i);
+        vc_frame(screen, 380 + phase * 180 + i);
         captures += gfx_vidro_capturas; passes += gfx_vidro_passadas;
         sources += gfx_vidro_com_fonte;
         fill += gfx_vidro_fill; copy += gfx_vidro_copia;
