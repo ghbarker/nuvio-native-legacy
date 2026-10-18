@@ -82,6 +82,41 @@ int main(void) {
  // Legacy scalar payloads cannot replay account-managed language preferences.
  char *merged=NULL;assert(ajustes_backup_mesclar(AJ_BACKUP_PERFIL,"legendaIdioma 2\n","NUVIO-LOCAL-SETTINGS 1\nscope profile\nlegendaIdioma 1\n",&merged));
  assert(!strcmp(merged,"legendaIdioma 2\n"));free(merged);
+ // Earlier encrypted previews kept display settings in the device section.
+ // They remain restorable, but must still require the hardware opt-in.
+ BackupLocal *legacy=backuplocal_novo(c.usuario,c.perfil,1792330001);
+ const char *legacyDevice="NUVIO-LOCAL-SETTINGS 1\nscope device\nqualidadeImagem 2\nitensFileiraLocal 0\ntamanhoUiLocal 0\ntamanhoAjustesLocal 1\n";
+ assert(backuplocal_adicionar(legacy,BACKUP_AJUSTES_APARELHO,legacyDevice,strlen(legacyDevice)));
+ BackupLocal *legacySelected=NULL;
+ assert(backupapp_selecionar(&c,legacy,0,&legacySelected));
+ assert(backupapp_validar(&c,legacySelected));
+ assert(!backuplocal_parte(legacySelected,BACKUP_AJUSTES_HARDWARE,NULL));
+ assert(!strstr(backuplocal_parte(legacySelected,BACKUP_AJUSTES_APARELHO,NULL),"qualidadeImagem"));
+ int oldQuality=valor[AJ_QUALIDADE_IMG];
+ assert(backupapp_restaurar(&c,legacySelected)==BACKUP_RESTORE_OK && valor[AJ_QUALIDADE_IMG]==oldQuality);
+ backuplocal_liberar(legacySelected);legacySelected=NULL;
+ assert(backupapp_selecionar(&c,legacy,1,&legacySelected));
+ assert(backupapp_validar(&c,legacySelected));
+ assert(strstr(backuplocal_parte(legacySelected,BACKUP_AJUSTES_HARDWARE,NULL),"qualidadeImagem 2\n"));
+ assert(backupapp_restaurar(&c,legacySelected)==BACKUP_RESTORE_OK && valor[AJ_QUALIDADE_IMG]==2);
+ backuplocal_liberar(legacySelected);backuplocal_liberar(legacy);
+ // Ignore account-managed dynamic choices without requiring the old font or
+ // language list to be installed on the destination. Never replay the value.
+ const char *oldSections[3]={0};
+ char *newSections[3]={0};
+ // Use the actual persisted key, independent of the displayed font label.
+ char oldFont[160];snprintf(oldFont,sizeof oldFont,"NUVIO-LOCAL-SETTINGS 1\nscope device\n%s 99\n",CHAVE[AJ_FONTE_UI]);oldSections[0]=oldFont;
+ assert(ajustes_backup_selecionar(oldSections,0,newSections));
+ assert(!strstr(newSections[0],CHAVE[AJ_FONTE_UI]));
+ for(int i=0;i<3;i++)free(newSections[i]);
+ oldSections[0]="NUVIO-LOCAL-SETTINGS 1\nscope device\nunknownKey 0\n";
+ assert(!ajustes_backup_selecionar(oldSections,0,newSections));
+ for(int i=0;i<3;i++)assert(!newSections[i]);
+ oldSections[0]="NUVIO-LOCAL-SETTINGS 1\nscope device\nqualidadeImagem 1\n";
+ oldSections[2]="NUVIO-LOCAL-SETTINGS 1\nscope hardware\nqualidadeImagem 2\n";
+ assert(!ajustes_backup_selecionar(oldSections,1,newSections));
+ oldSections[0]="NUVIO-LOCAL-SETTINGS 1\nscope device\ninterfaceModoLocal 1\n";oldSections[2]=NULL;
+ assert(!ajustes_backup_selecionar(oldSections,0,newSections));
  BackupLocal *bad=backuplocal_novo(c.usuario,c.perfil,1792330001);assert(bad);
  assert(backuplocal_adicionar(bad,BACKUP_AJUSTES_APARELHO,"bad",3));
  assert(!backupapp_validar(&c,bad) && backupapp_restaurar(&c,bad)==BACKUP_RESTORE_INVALIDO);backuplocal_liberar(bad);
