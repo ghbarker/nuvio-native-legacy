@@ -1,3 +1,4 @@
+#include "stub_perfisessao.h"
 // Xtream (src/xtream.c): cadastro, lista de canais e URL, sem rede e sem disco.
 //
 // rede_baixar e dados_* sao DUBLES: a lista vem de um corpo canned no formato

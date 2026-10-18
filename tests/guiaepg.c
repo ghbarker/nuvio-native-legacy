@@ -1,3 +1,4 @@
+#include "stub_perfisessao.h"
 // Guia de TV: o EPG externo (epg.c) precisa casar o NOME que o addon da com o
 // canal da grade XMLTV, e responder "o que esta no ar" e "o que vem a seguir".
 //
@@ -307,6 +308,21 @@ int main(void) {
       e = carregar(); }
     confere("trocar o pais recarrega a grade", strstr(urlsPedidas, "epg_ripper_BR1.xml.gz") != NULL);
     roCorpo = NULL; free(z); epg_paises_definir(""); }
+
+  // Provider-only guides must not wait for unrelated country downloads.
+  { int antes=extraPedidos;
+    urlsPedidas[0]=0;extraCorpo=xml;extraN=(long)strlen(xml);
+    epg_fonte_extra("https://xtream.invalid/guide.xml");
+    epg_fonte_m3u("https://m3u.invalid/guide.xml");epg_so_provedores(1);
+    epg_iniciar();int e=carregar();
+    confere("native-only: both provider guides load without public files",e==EPG_PRONTO&&extraPedidos==antes+2&&!urlsPedidas[0]);
+    confere("M3U XMLTV is independent from the Xtream URL",!strcmp(extraUltimaUrl,"https://m3u.invalid/guide.xml"));
+    antes=extraPedidos;epg_fonte_extra("");epg_fonte_m3u("https://m3u.invalid/only.xml");
+    e=carregar();confere("M3U-only guide loads without Xtream or country files",e==EPG_PRONTO&&extraPedidos==antes+1&&!urlsPedidas[0]);
+    extraCorpo=NULL;epg_recarregar();e=carregar();
+    confere("failed refresh retains the last working guide",e==EPG_PRONTO&&epg_match("Globo RJ")>=0);
+    epg_fonte_m3u("");epg_so_provedores(0);
+  }
 
   if (falhas) { printf("FALHOU: %d checagem(ns)\n", falhas); return 1; }
   puts("PASS: EPG casa nomes do addon com a grade e responde agora/proximos.");

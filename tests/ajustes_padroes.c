@@ -177,8 +177,12 @@ int main(void) {
   AJ_VIDRO_QUALIDADE == AJ_TITULO_FIL + 1 &&   // glass quality (local)
   AJ_FUNDO_DIN == AJ_VIDRO_QUALIDADE + 1 &&         // #205: fundo da Dinamica
   AJ_FUNDO_DIN_COR == AJ_FUNDO_DIN + 1 &&
-  AJ_ESCALA_TEXTO == AJ_FUNDO_DIN_COR + 1 &&   // text and component scale (local)
-  AJ_N == AJ_ESCALA_TEXTO + 1);   // 2.0.6: master's #535 views appended after
+  AJ_ESCALA_TEXTO == AJ_FUNDO_DIN_COR + 1 &&
+  AJ_FOCO_ACENTO == AJ_ESCALA_TEXTO + 1 &&
+  AJ_GUIA_FONTE == AJ_FOCO_ACENTO + 1 &&
+  AJ_N == AJ_GUIA_CATEGORIAS + 1);
+  assert(ajustes_guia_fonte()==0 && somenteDesteAparelho(AJ_GUIA_FONTE) && dePerfil(AJ_GUIA_FONTE));
+  assert(!strcmp(CHAVE[AJ_GUIA_FONTE],"guiaFonteLocal"));
   // #492: retomada morna e o prazo do video pronto
   assert(valor[AJ_RETOMADA_MORNA] == 0 && ajustes_retomada_morna());   // V_LIGA: 0 = Ligado
   assert(!strcmp(CHAVE[AJ_RETOMADA_MORNA], "retomadaMornaLocal") && somenteDesteAparelho(AJ_RETOMADA_MORNA) && !dePerfil(AJ_RETOMADA_MORNA));
