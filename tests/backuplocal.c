@@ -29,6 +29,10 @@ int main(void) {
   assert(!strcmp(backuplocal_parte(l,BACKUP_FONTES_PERFIL,&tam),fontes) && tam==sizeof fontes-1);
   assert(backuplocal_criado(l)==1792330000 && backuplocal_quantidade(l)==2);
   backuplocal_liberar(l);
+  char dono[81]="untouched";int perfil=99;
+  assert(backuplocal_identidade(s,n,dono,sizeof dono,&perfil) && !strcmp(dono,"user-1") && perfil==7);
+  assert(!backuplocal_identidade(s,n,dono,2,&perfil));
+  assert(backuplocal_compativel(b,"user-1",7) && !backuplocal_compativel(b,"user-2",7));
   recusar(s,n,"user-2",7);recusar(s,n,"user-1",8);recusar(s,n,"",7);
   for(size_t i=0;i<n;i++){char c=s[i];s[i]^=1;recusar(s,n,"user-1",7);s[i]=c;}
   for(size_t i=0;i<n;i++)recusar(s,i,"user-1",7);
