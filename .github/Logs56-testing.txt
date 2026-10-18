@@ -1,0 +1,14 @@
+Nuvio TV/Mobile Test — Logs56: repeated Live TV search
+
+Install this APK as Update over Nuvio TV/Mobile Test. Do not uninstall or clear app data. Package space.nuvio.nativelegacy.touch, persistent signing key and both ARM ABIs are retained. Version code 20066 / 2.0.66-test-logs56.
+
+1. Open Live TV with the same accounts enabled. Tap Search, enter Jaguars, and finish the keyboard/search form.
+2. The results panel should appear without freezing the entire guide while programmes are searched. Channel matches can appear before programme matches; the footer shows that the programme search is still loading. Once finished, expect the same matches if the listings have not changed (the previous log showed 5 channels and 15 programmes).
+3. Close results with Back. Open Search again, leave Jaguars filled in, and tap Conclude. Repeat at least three times. The panel should remain visible every time.
+4. Immediately after submitting a search, tap empty space around the results. This must not start a channel, close the panel or activate the guide underneath. Back should still close it, and tapping a result should still open that result.
+5. Open a result, return from playback to the guide, then search Jaguars again. Check that the results remain visible after the phone returns to portrait orientation.
+6. Choose New search from the results. The keyboard form must appear above the previous results. Cancel it to return to results, or submit another query to replace them. Try a query with no matches: the final no-results message must not overlap New search.
+
+If the panel still disappears, save and share a fresh log after reproducing it. This test build does not publish an upstream PR; approval of the build comes first.
+
+Automated checks use deterministic EPG fixtures and clocks with the actual guide search, keyboard, renderer and pointer dispatch. They do not represent Android emulator or physical-device playback testing. macOS checks are native C regression/sanitizer tests, not a macOS app build.
