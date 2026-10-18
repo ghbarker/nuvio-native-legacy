@@ -1,0 +1,47 @@
+name: Publish verified Drive test APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/drive-preview-publish.yml]
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nuvio-TV-Mobile-Test-Logs57-df8c152f26081430bf38048416b8f5c2758b6388
+          run-id: 39151349438
+          github-token: ${{ github.token }}
+      - name: Verify exact checked artifact and attach final check results
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,pathlib,zipfile
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs57.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='b11b0321e7ba3528c510099b2672cedf94cf4c75131ad05235e12d4e6b646775'
+          report=pathlib.Path('Logs57-validation.json');d=json.loads(report.read_text())
+          assert d['source_commit']=='ae64dc019f872bbbf871189cf2495b4a76b0cd9d'
+          assert d['source_tree']=='a7f85f0064bcc8e1567344226b192965feae3076'
+          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20067
+          assert d['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          with zipfile.ZipFile(apk) as z:
+              assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
+          d.update(automated_checks_passed=True,native_account_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,live_google_roundtrip='pending_user_test',android_authorization_result_routing_test=True)
+          d['check_runs']={'android':39151349438,'linux_native':39150640328,'macos_native':39151403033}
+          d['linux_native_source']='09980a57; identical native C to the release, later changes only Android callback and its test'
+          report.write_text(json.dumps(d,indent=2)+'\n')
+          PY
+      - name: Check completed runs and upload the test release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ghbarker/nuvio-native-legacy
+        run: |
+          set -euo pipefail
+          for id in 39151349438 39150640328 39151403033; do
+            test "$(gh api "repos/$GH_REPO/actions/runs/$id" --jq .conclusion)" = success
+          done
+          test "$(gh api "repos/$GH_REPO/git/ref/tags/tv-mobile-test-logs-v57" --jq .object.sha)" = ae64dc019f872bbbf871189cf2495b4a76b0cd9d
+          gh release upload tv-mobile-test-logs-v57 Nuvio-TV-Mobile-Test-Logs57.apk Logs57-validation.json
