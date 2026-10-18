@@ -23,6 +23,8 @@ int android_drive_autorizar(long long pedido,int escolher,const char *rejeitado)
 void android_drive_cancelar(void);
 char *android_drive_evento(void);
 char *android_drive_configuracao_tv(void);
+char *android_drive_vinculo_ler(const char *dono,int perfil);
+int android_drive_vinculo_gravar(const char *dono,int perfil,const char *token);
 #ifdef NV_TOUCH_UI
 #include <SDL2/SDL.h>
 // Sinal do host enfileirado antes do finger UP sintetizado pelo SDL.

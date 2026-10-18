@@ -142,6 +142,7 @@ class NuvioActivity : SDLActivity() {
 
     private val registroDownload by lazy { RegistroDownload(this) }
     private val driveAuthorization by lazy { DriveAuthorization(this) }
+    private val driveCredentials by lazy { DriveCredentialStore(this) }
 
     // Physical device classification is independent of the saved TV/Mobile UI.
     fun driveAutorizar(request: Long, chooseAccount: Boolean, rejectedToken: String): Boolean =
@@ -149,6 +150,8 @@ class NuvioActivity : SDLActivity() {
             driveAuthorization.begin(request, chooseAccount, rejectedToken)
     fun driveAutorizacaoEvento(): String? = driveAuthorization.poll()
     fun driveAutorizacaoCancelar() = driveAuthorization.cancel()
+    fun driveVinculoLer(owner: String, profile: Int): String? = driveCredentials.read(owner, profile)
+    fun driveVinculoGravar(owner: String, profile: Int, token: String): Boolean = driveCredentials.write(owner, profile, token)
     fun driveConfiguracaoTv(): String? =
         if (!automaticMobile && BuildConfig.GOOGLE_TV_CLIENT_ID.isNotEmpty() &&
             BuildConfig.GOOGLE_TV_CLIENT_SECRET.isNotEmpty())

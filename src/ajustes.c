@@ -3,6 +3,7 @@
 // cancela. A lista mostra valor e chevron, a ficha explica alcance e padrao.
 // IDs, chaves persistidas e indices de valores continuam os legados.
 #include "ajustes.h"
+#include "drivebackup.h"
 #include "player.h"
 #include "legenda.h"
 #include "legenda2.h"
@@ -643,6 +644,9 @@ typedef enum {
   AJ_ESCALA_TEXTO,     // text and component scale (gfx.h): 85/90/100/110/120/130%, default 100%; local, append-only
   AJ_DET_ESPACO,       // title page row spacing (detail.h): 0 Compacto, 1 Normal (default), 2 Confortavel; local, append-only
   AJ_FOCO_ACENTO,      // focus plate in the accent colour instead of gray (glass only); default off; local, append-only
+#ifdef NV_ANDROID
+  AJ_DRIVE_BACKUP,
+#endif
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1681,6 +1685,9 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Escala de texto e componentes", V_ESCALA_TEXTO, 6),   // local: escalaTextoLocal
   ESC("Espaçamento das fileiras", V_DET_ESPACO, 3),          // local: detEspacoLocal
   ESC("Foco na cor de destaque", V_LIGA, 2),   // local: focoAcentoLocal
+#ifdef NV_ANDROID
+  ACAO("Backup no Google Drive"),
+#endif
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -1979,6 +1986,9 @@ static const char *CHAVE[] = {
   "escalaTextoLocal",
   "detEspacoLocal",
   "focoAcentoLocal",
+#ifdef NV_ANDROID
+  "-googleDriveBackup",
+#endif
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -5938,6 +5948,7 @@ int ajustes_iniciar(void) {
 }
 static int fileirasBusca;  // network cycle owed; run once when Settings closes
 void ajustes_encerrar(void) {
+  drivebackup_fechar();
   // One network cycle for all row changes made in this visit (low-end TVs).
   if (fileirasBusca) { fileirasBusca = 0; desc_repetir(); }
   pediuRelogio = 0; faRetornarFolha = 0; uxCancelar(); uxRetornarOp = -1; guiaFechar(); ajlog_vazar_tudo();
@@ -8553,6 +8564,7 @@ static const char *uxCaminho(int op);
 static const char *uxBloco(int op);
 static void eventoTela(const SDL_Event *e);
 void ajustes_evento(const SDL_Event *e) {
+  if(drivebackup_aberto()){drivebackup_evento(e);return;}
   pediuRelogio = 0;
 #ifdef NV_TOUCH_UI
   if (e->type == SDL_KEYDOWN) ajToqueLimpar();
@@ -8645,6 +8657,7 @@ static void eventoTela(const SDL_Event *e) {
     if (focoOp == AJ_AVISO_LEGAL) { registro_legal_abrir(); return; }
     if (focoOp == AJ_VER_REGISTRO) { registro_abrir(); return; }
 #ifdef NV_ANDROID
+    if (focoOp == AJ_DRIVE_BACKUP) { drivebackup_abrir(); return; }
     if (focoOp == AJ_BAIXAR_REGISTRO) {
       android_baixar_registro(registro_arquivo(), i18n("Registro salvo."),
                              i18n("Não foi possível salvar o registro. Tente outro local."));
@@ -8813,6 +8826,7 @@ static void eventoTela(const SDL_Event *e) {
 
 static void aj2Atualizar(float dt);
 void ajustes_atualizar(float dt, Uint32 agora) {
+  if(drivebackup_aberto()){drivebackup_atualizar();return;}
   ajLegendaEspelhar();
   AJ_ESCALA_INI();
   guiaAtualizar(dt);
@@ -9578,6 +9592,7 @@ static int ajQuadroPlugins;  // captura: a de plugins (foco + 1)
 static void ajDesenharTudo(Uint32 agora);
 // Own Settings scale: the virtual canvas and the active drawing factor agree.
 void ajustes_desenhar(Uint32 agora) {
+  if(drivebackup_aberto()){drivebackup_desenhar();return;}
 #ifdef NV_TOUCH_UI
   ajToqueCamada();
 #endif
@@ -9641,8 +9656,9 @@ static void ajDesenharTudo(Uint32 agora) {
 }
 
 float ajustes_ilha_x(void) { return aj2X0() * ajustes_tamanho_ajustes(); }
-int ajustes_edicao_ativa(void) { return uxEditor != 0; }
+int ajustes_edicao_ativa(void) { return uxEditor != 0 || drivebackup_aberto(); }
 int ajustes_relogio_cabe(void) {
+  if(drivebackup_aberto())return 0;
   TraEstado ta = traktauth_estado();
   SmkEstado sa = simklauth_estado();
   if (teclado_aberto() || (ajModalAberto() && !filAberta)) return 0;
