@@ -1,4 +1,4 @@
-name: Share verified Logs54 large IPTV guide APK
+name: Share verified Logs55 category editor APK
 on:
   workflow_dispatch:
 permissions:
@@ -9,60 +9,63 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TEST_RELEASE: tv-mobile-test-logs-v54
+      TEST_RELEASE: tv-mobile-test-logs-v55
     steps:
       - name: Require Android, Linux and macOS checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39101175443 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39101175443/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39101453995 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39125573864 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39125573864/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39125576383 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: bff8f62a83787362ba164f590a2e57dcc59c8589
+          ref: 98bdc9dc86ca7855b7224e843187e7a897e314c3
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39101175443
-          name: Nuvio-TV-Mobile-Test-Logs54-13b1d6947d27fbd5d9687c325c98a46d0bbfe424
+          run-id: 39125573864
+          name: Nuvio-TV-Mobile-Test-Logs55-c5c6bbaa164ce689db9c4982d59704b0afa51edb
           path: dist
       - name: Verify and describe the test build
         run: |
           set -euo pipefail
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs54.apk
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs55.apk
           python3 - <<'PYCODE'
           import hashlib,json,pathlib,zipfile,os
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs54.apk'
-          p=root/'Logs54-validation.json';r=json.loads(p.read_text())
-          assert r['source_commit']=='bff8f62a83787362ba164f590a2e57dcc59c8589' and r['source_tree']=='c9e0989bf19e8f41cc0ebf5cb760636c39b03e3f'
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs55.apk'
+          p=root/'Logs55-validation.json';r=json.loads(p.read_text())
+          assert r['source_commit']=='98bdc9dc86ca7855b7224e843187e7a897e314c3' and r['source_tree']=='7f6b913c6e20ace11bd99ea330e6e871d603af38'
           assert r['package']=='space.nuvio.nativelegacy.touch'
-          assert r['version_code']==20064 and r['version_name']=='2.0.64-test-logs54'
+          assert r['version_code']==20065 and r['version_name']=='2.0.65-test-logs55'
           assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==r['apk_bytes'] and hashlib.sha256(apk.read_bytes()).hexdigest()==r['apk_sha256']
           assert os.environ['TEST_RELEASE']=='tv-mobile-test-logs-v'+r['version_name'].split('-logs')[-1]
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          r.update(all_passed=True,android_16k_alignment=True,android_run=39101175443,linux_run=39101175443,macos_run=39101453995,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v53',device_approval_pending=True)
+          r.update(all_passed=True,android_16k_alignment=True,android_run=39125573864,linux_run=39125573864,macos_run=39125576383,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v54',device_approval_pending=True)
           r['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+os.environ['TEST_RELEASE']+'/'+apk.name
           r['android_jvm_unit_suites']=['LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest']
-          r['normal_regression_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window', 'guiacorte', 'fonteantecipa', 'ajustes_secoes', 'livestall', 'livestall_seco']
-          r['asan_ubsan_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window']
-          r['macos_asan_ubsan_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window']
-          r['macos_normal_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window', 'guiacorte', 'fonteantecipa', 'ajustes_secoes', 'livestall', 'livestall_seco']
+          r['normal_regression_suites']=['ajustes_iptv', 'xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window', 'guiacorte', 'fonteantecipa', 'ajustes_secoes', 'livestall', 'livestall_seco']
+          r['asan_ubsan_suites']=['ajustes_iptv', 'xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window']
+          r['macos_asan_ubsan_suites']=['ajustes_iptv', 'xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window']
+          r['macos_normal_suites']=['ajustes_iptv', 'xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window', 'guiacorte', 'fonteantecipa', 'ajustes_secoes', 'livestall', 'livestall_seco']
           r['included_upstream_gif_fix']='b2aa59adabf39f4f8e014a3e15b0dd37a61afeef'
-          r['macos_test_source_commit']='84d99848233857784cb7ec940154130346ffee93'
+          r['macos_test_source_commit']='98bdc9dc86ca7855b7224e843187e7a897e314c3'
           r['clean_feature_source_commit']='8cfededfd4b03f89a57ff339f2afdae2ef3d9f74'
+          r['local_rendered_ui_source_commit']='35d6bc41fcaad524603e21bfc9918555f524b519'
+          r['local_rendered_ui_log']='editor-ui-assets.log; real textures and corrected resize projection, same product sources'
+          r['linux_rendered_ui_suite']='ajustes_categorias_ui: portrait/TV, 100/150% Settings scale, real pointer dispatch'
           r['native_account_regressions']=True
           r['issue']=424
           r['upstream_pr_pending_device_approval']=True
           r['sanitizer_regressions']=True
-          r['retained_baseline_checks']='Logs54 adds large IPTV guide, Xtream, category visibility, cache and native-account/EPG checks; prepared-source, GIF and live-recovery regressions are retained. Android app source is unchanged by the subsequent profile-session test-fixture correction.'
+          r['retained_baseline_checks']='Logs55 fixes category editor staging and layout; large IPTV, prepared-source, GIF and live-recovery regression suites are retained.'
           r['test_scope']='JVM tests exercise the real Media3 Player interface with a strict fake; JNI backend tests use fake JNI and a deterministic clock, including a simulated pause acknowledgement. No emulator or device playback pass is claimed. Android both ARM ABIs are built and apksigner verified.'
           p.write_text(json.dumps(r,indent=2)+'\n')
-          (root/'Logs54-testing.txt').write_text("Nuvio TV/Mobile Test - Logs54: large IPTV lists and guide category visibility (#424)\n\nInstall as an Update over Nuvio TV/Mobile Test. Do not uninstall or clear app data. Version code 20064; version 2.0.64-test-logs54; persistent package/signing key retained. Includes the approved Logs53 prepared-source details feature.\n\n1. Open Live TV using your existing large Xtream account. Use Refresh once so the app fetches a new list instead of only showing the old cache. Open Categories and scroll to categories near the end. Names after the old 256-category parser limit should retain their real names, and Android lists can now retain up to 30,000 channels instead of 3,000. Existing per-account sharing applies when multiple sources are selected. The guide still reports safety-limit truncation; this is not unlimited storage.\n2. Select channels from an early and a late category. Confirm channel names, logos, playback, and programme listings still correspond to the selected account/channel. Switch between Cards and List and check scrolling and selection.\n3. Open Settings > Live TV > Hide categories. Hide one recognisable category belonging to one account. Return to Live TV: its row and its entry in the top-left Categories menu must both be absent. A matching category from another account must remain visible.\n4. Refresh the guide, then fully close and reopen the app. The hidden category must remain absent from both places. It must remain listed in Hide categories so you can restore it. Unhide it and confirm it returns in both places.\n5. If convenient, switch profiles: hiding categories in one profile must not hide them in another. Hide all categories in one profile only if you want to test the empty state; you can restore them through Settings.\n\nThe synthetic checks cover 12,000 channels in 600 categories and the 30,000-channel Android safety bound, cache round trips, stable ordering, duplicate detection, and allocation failures. These checks do not measure your provider's network speed. macOS validation is native regression/sanitizer testing, not a macOS app build.\n\nPlease report whether category names/counts, scrolling, playback and hide/restore behaviour pass. A diagnostic log immediately after Refresh is useful if channels or categories are still missing. No upstream PR or draft-ready change for #424 until this test build is approved.\n")
+          (root/'Logs55-testing.txt').write_text("Nuvio TV/Mobile Test — Logs55: category Confirm/Cancel and layout\n\nInstall as an Update over Nuvio TV/Mobile Test. Do not uninstall or clear app data. Package, persistent signing key and both ARM ABIs are retained. Version code 20065 / 2.0.65-test-logs55.\n\nHow many categories: Hide categories lists all imported account/category pairs, including hidden ones so they can be restored. The same category name from two accounts appears twice, with its account beneath it. The new Categories count gives the imported total. The guide's Categories drawer lists only visible categories; Favorites may add a separate entry. The screenshot alone cannot establish the number your current accounts should import. Refresh and share a log if the imported total appears incomplete. The guide retains a 30,000-channel Android safety limit, shared between enabled accounts.\n\n1. Open Settings > Live TV > Hide categories. Check the new total and scroll through the list. Long category names, account labels and selected checkboxes must remain separate. If convenient, also check at a larger Settings text scale.\n2. Select one recognisable category and tap Cancel. Reopen the editor: that category must keep its original state, and the guide must remain unchanged. Repeat using Back instead of Cancel.\n3. Select that category again, then tap Confirm. The editor should close. In Live TV, both its channel row and its entry in the top-left Categories drawer must be gone. The editor must still list it with a checked box so you can restore it.\n4. Select multiple categories, including categories from different accounts, and Confirm once. All selected changes should save. Hiding an account's category must leave an identically named category from another account visible unless you also selected it.\n5. Refresh the guide, then close and reopen the app. Hidden categories must remain absent. Clear their checkboxes and Confirm to restore them.\n6. On a remote: OK toggles a category; Right focuses Confirm; Left from the footer selects Cancel; Up returns to the list. Back discards pending changes. Confirm saves the draft once.\n\nAutomated coverage exercises actual Settings touch/remote dispatch, save failure, stale profile rejection, atomic persistence and reload. Native rendered-layout checks cover portrait and TV layouts at 100% and 150% Settings scale. macOS checks are native regression/sanitizer tests, not a macOS application build. No Android emulator or physical-device test is claimed.\n\nThe category editor previously saved each row immediately, then Confirm toggled the highlighted row a second time. Cancel consequently did not undo changes. Logs55 stages all choices until Confirm and uses separate checkboxes instead of overlapping status text.\n\nPlease test this APK before any upstream category-editor PR update is published.\n")
           PYCODE
       - name: Publish verified APK and instructions
         env:
@@ -70,11 +73,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target bff8f62a83787362ba164f590a2e57dcc59c8589 --title 'Nuvio TV/Mobile Test - Logs54: Large IPTV guides' --notes-file dist/Logs54-testing.txt
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target 98bdc9dc86ca7855b7224e843187e7a897e314c3 --title 'Nuvio TV/Mobile Test - Logs55: Category Confirm and Cancel' --notes-file dist/Logs55-testing.txt
           fi
-          for name in Nuvio-TV-Mobile-Test-Logs54.apk Logs54-testing.txt; do
+          for name in Nuvio-TV-Mobile-Test-Logs55.apk Logs55-testing.txt; do
             if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
               gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" "dist/$name"
             fi
           done
-          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs54-validation.json --clobber
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs55-validation.json --clobber
