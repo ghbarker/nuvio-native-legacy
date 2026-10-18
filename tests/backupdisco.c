@@ -6,6 +6,8 @@
 #define _POSIX_C_SOURCE 200809L
 #include "backupdisco.h"
 #include "backupplano_interno.h"
+#include "backupstores.h"
+#include "backupfonts.h"
 #include <assert.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -47,6 +49,51 @@ static void conferir(BackupIO *io,int novo) {
   }
 }
 static void caminho(char out[512],const char *dir,const char *nome) {assert(snprintf(out,512,"%s/%s",dir,nome)<512);}
+static void bundleRecovery(const char *dir,BackupIO io) {
+  BackupStores *before=backupstores_novo(),*after=backupstores_novo(),*partial=backupstores_novo();assert(before && after && partial);
+  assert(backupstores_adicionar(before,BS_LIBRARY_UI,0,1,"old-layout",10));
+  assert(backupstores_adicionar(before,BS_SAVED_TABS,0,0,NULL,0));
+  assert(backupstores_adicionar(after,BS_LIBRARY_UI,0,1,"new-layout",10));
+  assert(backupstores_adicionar(after,BS_SAVED_TABS,0,1,"new-tabs",8));
+  assert(backupstores_adicionar(partial,BS_SAVED_TABS,0,1,"partial",7));
+  char *old=NULL,*new=NULL,*part=NULL;size_t no,nn,np;
+  assert(backupstores_exportar(before,&old,&no) && backupstores_exportar(after,&new,&nn) && backupstores_exportar(partial,&part,&np));
+  assert(io.gravar(io.ctx,"user-1",7,BACKUP_LOCAIS,old,no));
+  const unsigned char fontBytes[]="new-immutable-font-fixture";uint64_t hash=UINT64_C(14695981039346656037);
+  for(size_t i=0;i<sizeof fontBytes;i++)hash=(hash^fontBytes[i])*UINT64_C(1099511628211);
+  BackupFontManifest m={.n=1};snprintf(m.font[0].id,21,"%016llx.ttf",(unsigned long long)hash);
+  m.font[0].n=sizeof fontBytes;m.font[0].chunks=1;strcpy(m.font[0].remoto[0],"Fixture");
+  BackupFontStage *stage=backupfonts_stage(dir);assert(stage);
+  assert(backupfonts_stage_chunk(stage,&m.font[0],0,fontBytes,sizeof fontBytes) && backupfonts_stage_completo(stage,&m));
+  char *fontPlan=NULL,*fontBefore=NULL,*fontRollback=NULL,*fontAfter=NULL;size_t nf;
+  assert(backupfonts_stage_plano(stage,&fontPlan,&nf));int root=open(dir,O_RDONLY|O_DIRECTORY);assert(root>=0);
+  assert(backupfonts_disco_ler(root,&fontBefore,&nf) && backupfonts_plano(fontBefore,fontPlan,&fontRollback,&fontAfter));
+  BackupPlano *p=calloc(1,sizeof *p);assert(p);strcpy(p->dono,"user-1");p->perfil=7;p->sessao=33;p->criado=1792330000;
+  p->parte[BACKUP_LOCAIS].usada=p->parte[BACKUP_LOCAIS].existia=1;
+  p->parte[BACKUP_LOCAIS].antes=old;p->parte[BACKUP_LOCAIS].nAntes=no;
+  p->parte[BACKUP_LOCAIS].depois=new;p->parte[BACKUP_LOCAIS].nDepois=nn;
+  p->parte[BACKUP_FONTES_IMPORTADAS].usada=p->parte[BACKUP_FONTES_IMPORTADAS].existia=1;
+  p->parte[BACKUP_FONTES_IMPORTADAS].antes=fontRollback;p->parte[BACKUP_FONTES_IMPORTADAS].nAntes=strlen(fontRollback);
+  p->parte[BACKUP_FONTES_IMPORTADAS].depois=fontAfter;p->parte[BACKUP_FONTES_IMPORTADAS].nDepois=strlen(fontAfter);
+  Espia spy={.disco=io};BackupIO wrapped={&spy,ler,gravar,apagar,atual};
+  assert(backuprestauro_aplicar(p,&wrapped)==BACKUP_RESTORE_OK);
+  assert(io.gravar(io.ctx,NULL,0,BACKUP_IO_DIARIO,spy.preparado,strlen(spy.preparado)));
+  /* Simulate a power loss after arbitrary files were replaced and before the
+   * newly introduced font finished copying. Staging can already be gone. */
+  assert(io.gravar(io.ctx,"user-1",7,BACKUP_LOCAIS,part,np));
+  int fonts=openat(root,"fontes-importadas",O_RDONLY|O_DIRECTORY);assert(fonts>=0);
+  int fd=openat(fonts,m.font[0].id,O_WRONLY|O_TRUNC);assert(fd>=0 && !close(fd));
+  backupfonts_soltar(stage);
+  assert(backupdisco_recuperar_arranque(dir)==BACKUP_RESTORE_OK);
+  char *value=NULL;size_t nv;assert(io.ler(io.ctx,"user-1",7,BACKUP_LOCAIS,&value,&nv)==1);
+  BackupStores *restored=NULL;assert(backupstores_ler(value,nv,&restored));BackupStore v;
+  assert(backupstores_buscar(restored,BS_LIBRARY_UI,0,&v) && v.existe && !strcmp(v.texto,"old-layout"));
+  assert(!backupstores_buscar(restored,BS_SAVED_TABS,0,&v));
+  assert(faccessat(fonts,m.font[0].id,F_OK,0)!=0);
+  close(fonts);close(root);backupplano_liberar(p);backupstores_liberar(before);backupstores_liberar(after);backupstores_liberar(partial);backupstores_liberar(restored);
+  free(value);free(part);free(fontPlan);free(fontBefore);free(spy.preparado);free(spy.confirmado);
+  char path[512];caminho(path,dir,"fontes-importadas");assert(!rmdir(path));
+}
 int main(void) {
   char dir[]="/tmp/nuvio-backup-disk.XXXXXX",arquivo[512],outro[512];assert(mkdtemp(dir));int valido=1;
   BackupDisco *d=backupdisco_abrir(dir,sessao,&valido);assert(d);BackupIO io=backupdisco_io(d);
@@ -87,6 +134,7 @@ int main(void) {
   assert(backupdisco_recuperar_arranque(dir)==BACKUP_RESTORE_RECUPERAR);conferir(&io,1);
   assert(io.ler(io.ctx,NULL,0,BACKUP_IO_DIARIO,&s,&n)==1 && n==15 && !strcmp(s,"corrupt-journal"));free(s);
   assert(io.apagar(io.ctx,NULL,0,BACKUP_IO_DIARIO));
+  valido=1;bundleRecovery(dir,io);
   // Symlinks, directories and FIFOs cannot turn fixed stores into other files
   // or block reads of a malformed private store.
   caminho(arquivo,dir,"player.txt");caminho(outro,dir,"outside.txt");

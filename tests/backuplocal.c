@@ -39,14 +39,16 @@ int main(void) {
   const char *de[]={"BACKUP 1","profile 7","parts 2","profile-settings","part sources-profile"};
   const char *para[]={"BACKUP 9","profile 0","parts 9","../../sessao.txt","part profile-setting"};
   for(size_t i=0;i<sizeof de/sizeof *de;i++){char *m=alterar(s,n,de[i],para[i]);recusar(m,n,"user-1",7);free(m);}
-  // Full capacity across every allowed part stays bounded and round-trips.
-  BackupLocal *cheio=backuplocal_novo("user-1",7,1792330000);assert(cheio);
+  // Many small modules and one large store fit within the aggregate bound;
+  // independently valid parts must still be rejected if their total is too big.
   char *parte=malloc(BACKUP_PARTE_MAX);assert(parte);memset(parte,'x',BACKUP_PARTE_MAX);
-  for(int i=0;i<BACKUP_PARTES_N;i++)assert(backuplocal_adicionar(cheio,i,parte,BACKUP_PARTE_MAX));
-  char *grande=NULL;size_t ng=0;assert(backuplocal_exportar(cheio,&grande,&ng));assert(ng<BACKUP_LOCAL_MAX);
-  assert(backuplocal_ler(grande,ng,"user-1",7,&l));backuplocal_liberar(l);
-  recusar(grande,BACKUP_LOCAL_MAX+1u,"user-1",7);
-  free(grande);free(parte);backuplocal_liberar(cheio);
+  BackupLocal *cheio=backuplocal_novo("user-1",7,1);assert(cheio);
+  for(int i=0;i<BACKUP_PARTES_N;i++)assert(backuplocal_adicionar(cheio,i,parte,i==BACKUP_LOCAIS?BACKUP_PARTE_MAX:65536));
+  char *grande=NULL;size_t ng;assert(backuplocal_exportar(cheio,&grande,&ng));
+  assert(backuplocal_ler(grande,ng,"user-1",7,&l));backuplocal_liberar(l);free(grande);backuplocal_liberar(cheio);
+  cheio=backuplocal_novo("user-1",7,1);assert(cheio);
+  for(int i=0;i<3;i++)assert(backuplocal_adicionar(cheio,i,parte,BACKUP_PARTE_MAX));
+  assert(!backuplocal_exportar(cheio,&grande,&ng) && !grande && !ng);free(parte);backuplocal_liberar(cheio);
   BackupLocal *vazio=backuplocal_novo("user-1",7,1);char *out=(char*)1;size_t no=1;
   assert(!backuplocal_exportar(vazio,&out,&no) && !out && !no);backuplocal_liberar(vazio);
   assert(!backuplocal_novo("../sessao",7,1));assert(!backuplocal_novo("user-1",0,1));

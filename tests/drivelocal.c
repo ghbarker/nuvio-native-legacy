@@ -1,7 +1,9 @@
 // Drive protocol checks use a mock transport and the real network job,
 // envelope and JSON modules. No Google API/account sign-in occurs here.
+#define _GNU_SOURCE 1
 #define _POSIX_C_SOURCE 200809L
 #include "drivelocal.h"
+#include "backupcrypto.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,14 +42,22 @@ static int pedir(void *ctx,const RedePedido *p,RedeResposta *r) {
     assert(!strcmp(p->url,"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"));
     assert(p->max_bytes==16384 && p->corpo && p->n_corpo>m->ns);
     assert(p->cabecalhos[1] && strstr(p->cabecalhos[1],"Content-Type: multipart/related; boundary="));
-    const char *s=p->corpo;assert(!strstr(s,"test-token"));
+    const char *s=p->corpo;assert(!strstr(s,"test-token") && !strstr(s,"backup-password"));
     assert(strstr(s,"\"parents\":[\"Folder_1\"]") && strstr(s,"\"nuvioOwner\":\"user-1\""));
-    assert(strstr(s,"\"nuvioProfile\":\"7\"") && strstr(s,"Nuvio-settings-p7-1792319400.txt"));
-    const char *payload=strstr(s,m->snapshot);assert(payload && !memcmp(payload,m->snapshot,m->ns));
-    assert(p->n_corpo==strlen(s));
+    assert(strstr(s,"\"nuvioProfile\":\"7\"") && strstr(s,"Nuvio-settings-p7-1792319400.nvbackup"));
+    assert(strstr(s,"\"nuvioBackupVersion\":\"2\""));
+    const char *payload=strstr(s,"NUVIO-AES256GCM1");assert(payload);
+    size_t span=p->n_corpo-(size_t)(payload-s);
+    char tail[160];snprintf(tail,sizeof tail,"\r\n--%s--\r\n",strstr(p->cabecalhos[1],"boundary=")+9);
+    assert(span>strlen(tail) && !memcmp(s+p->n_corpo-strlen(tail),tail,strlen(tail)));
+    span-=strlen(tail);
+    assert(!strstr(s,m->snapshot));
+    unsigned char *decoded=NULL;size_t nd=0;
+    assert(backupcrypto_abrir(payload,span,"backup-password",15,"user-1:p7:settings",&decoded,&nd));
+    assert(nd==m->ns && !memcmp(decoded,m->snapshot,nd));backupcrypto_limpar(decoded,nd);free(decoded);
   } else {
     assert(!strcmp(p->metodo,"GET") && !p->corpo && !p->n_corpo && !p->cabecalhos[1]);
-    assert(p->max_bytes==(m->operacao==2?BACKUP_LOCAL_MAX:128u*1024u));
+    assert(p->max_bytes==(m->operacao==2?BACKUP_LOCAL_MAX+BACKUP_CRYPTO_OVERHEAD:128u*1024u));
   }
   if(m->cancelar){assert(p->job);rede_job_cancelar(p->job);}
   memset(r,0,sizeof *r);r->status=m->status;r->erro=m->erro;
@@ -66,7 +76,7 @@ int main(void) {
   const char texto[]="NUVIO-LOCAL-SETTINGS 1\nscope profile\n";
   assert(backuplocal_adicionar(b,BACKUP_AJUSTES_PERFIL,texto,sizeof texto-1));
   char *snapshot=NULL;size_t ns=0;assert(backuplocal_exportar(b,&snapshot,&ns));backuplocal_liberar(b);
-  Mock m={.snapshot=snapshot,.ns=ns};DriveLocal c={.token="test-token",.dono="user-1",.perfil=7,.pedir=pedir,.ctx=&m};
+  Mock m={.snapshot=snapshot,.ns=ns};DriveLocal c={.token="test-token",.dono="user-1",.perfil=7,.pedir=pedir,.ctx=&m,.senha="backup-password"};
   char id[200];DrivePagina *pagina=malloc(sizeof *pagina);assert(pagina);
   configurar(&m,NULL,0);
   assert(drivelocal_pasta(&c,0,id)==DRIVE_LOCAL_OK && !strcmp(id,"Folder_1") && m.pastaChamadas==1 && !m.criarChamadas);
@@ -125,6 +135,25 @@ int main(void) {
   assert(!strcmp(m.url,"https://www.googleapis.com/drive/v3/files/Backup_1?alt=media"));backuplocal_liberar(baixado);baixado=NULL;
   assert(drivelocal_baixar(&outra,"Backup_1",&baixado)==DRIVE_LOCAL_RESPOSTA && !baixado);
   snapshot[ns/2]^=1;assert(drivelocal_baixar(&c,"Backup_1",&baixado)==DRIVE_LOCAL_RESPOSTA && !baixado);snapshot[ns/2]^=1;
+  // Encrypted wire data must be decrypted before native parsing. Wrong
+  // passwords, truncated tags and a downgraded v2 file never return a snapshot.
+  unsigned char *sealed=NULL;size_t sealedN=0;
+  assert(backupcrypto_selar(snapshot,ns,c.senha,strlen(c.senha),"user-1:p7:settings",&sealed,&sealedN));
+  configurar(&m,(const char *)sealed,2);m.n=sealedN;c.exigirCriptografia=1;
+  assert(drivelocal_baixar(&c,"Backup_1",&baixado)==DRIVE_LOCAL_OK && baixado);
+  backuplocal_liberar(baixado);baixado=NULL;
+  c.senha="wrong-password";
+  assert(drivelocal_baixar(&c,"Backup_1",&baixado)==DRIVE_LOCAL_SENHA && !baixado);
+  c.senha="backup-password";sealed[sealedN-1]^=1;
+  assert(drivelocal_baixar(&c,"Backup_1",&baixado)==DRIVE_LOCAL_SENHA && !baixado);
+  sealed[sealedN-1]^=1;m.n--;
+  assert(drivelocal_baixar(&c,"Backup_1",&baixado)==DRIVE_LOCAL_SENHA && !baixado);
+  configurar(&m,snapshot,2);
+  assert(drivelocal_baixar(&c,"Backup_1",&baixado)==DRIVE_LOCAL_SENHA && !baixado);
+  c.exigirCriptografia=0;free(sealed);
+  configurar(&m,NULL,1);c.senha=NULL;
+  assert(drivelocal_enviar(&c,snapshot,ns,id)==DRIVE_LOCAL_SENHA && !m.chamadas && !m.pastaChamadas);
+  c.senha="backup-password";
   configurar(&m,snapshot,2);int antes=m.chamadas;
   assert(drivelocal_baixar(&c,"../escape?alt=media",&baixado)==DRIVE_LOCAL_INVALIDO && !baixado && m.chamadas==antes);
   outra=c;outra.token="token\r\nX-Injected: yes";

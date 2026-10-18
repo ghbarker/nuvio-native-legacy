@@ -73,6 +73,22 @@ static int checkedUnlink(const char *file) {
 #undef fopen
 #undef link
 #undef unlink
+static void backupFace(const char *root,const unsigned char *bytes,size_t n,int expected) {
+  BackupFontManifest m={.n=1};uint64_t h=UINT64_C(14695981039346656037);
+  for(size_t i=0;i<n;i++)h=(h^bytes[i])*UINT64_C(1099511628211);
+  snprintf(m.font[0].id,sizeof m.font[0].id,"%016llx.ttf",(unsigned long long)h);
+  m.font[0].n=n;m.font[0].chunks=(int)((n+BACKUP_FONT_CHUNK-1u)/BACKUP_FONT_CHUNK);
+  for(int i=0;i<m.font[0].chunks;i++)snprintf(m.font[0].remoto[i],200,"fixture_%d",i);
+  BackupFontStage *staged=backupfonts_stage(root);CHECK(staged!=NULL);
+  for(int i=0;i<m.font[0].chunks;i++) {
+    size_t offset=(size_t)i*BACKUP_FONT_CHUNK,k=n-offset;if(k>BACKUP_FONT_CHUNK)k=BACKUP_FONT_CHUNK;
+    CHECK(backupfonts_stage_chunk(staged,&m.font[0],i,bytes+offset,k));
+  }
+  CHECK(backupfonts_stage_completo(staged,&m));
+  CHECK(legfontes_backup_validar(staged)==expected);
+  CHECK(backupfonts_stage_validado(staged)==expected);
+  backupfonts_soltar(staged);
+}
 int main(int argc, char **argv) {
   assert(argc == 2); CHECK(TTF_Init() == 0);
   unsigned char sfnt[64] = {0,1,0,0,0,1};
@@ -113,6 +129,7 @@ int main(int argc, char **argv) {
   CHECK(!legfontes_importar(0, "entrada-1.tmp")); /* SFNT header alone is not a font. */
   char p[1024]; path(p, sizeof p, root, "entrada-1.tmp"); CHECK(access(p, F_OK) != 0);
   size_t n; unsigned char *b = font(argv[1], &n);
+  backupFace(root,b,n,1);backupFace(root,sfnt,sizeof sfnt,0);
   CHECK(legfontes_nome_sfnt(b, n, faceName, sizeof faceName));
   stage(root, "entrada-2.tmp", b, n);
   CHECK(legfontes_importar(0, "entrada-2.tmp")); CHECK(legfontes_n() == 1);

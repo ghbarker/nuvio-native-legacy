@@ -32,6 +32,20 @@ int main(int argc,char **argv) {
   for(size_t i=0;i<sizeof de/sizeof *de;i++){char *m=trocar(s,de[i],para[i]);recusar(m,strlen(m));free(m);}
   char *m=trocar(s,"filtro_resolucao 00000000000000ff","filtro_resolucao 8000000000000000");recusar(m,strlen(m));free(m);
   m=trocar(s,"addon 00000000000000000000000000000001 2","addon 00000000000000000000000000000000 2");recusar(m,strlen(m));free(m);
+  // Original unencrypted preview snapshots used v1, before cache/live flags.
+  // They must stay readable, with absent options defaulting to Off/All.
+  char *legacy=calloc(strlen(s)+1,1);assert(legacy);size_t used=0;
+  for(const char *p=s;*p;) {
+    const char *end=strchr(p,'\n');assert(end);size_t len=(size_t)(end-p)+1;
+    if(strncmp(p,"addon_live ",11) && strncmp(p,"filtro_cache ",13)) {
+      memcpy(legacy+used,p,len);used+=len;
+    }
+    p=end+1;
+  }
+  char *version=strstr(legacy,"SETTINGS 2");assert(version);version[9]='1';
+  assert(fontefalha_backup_ler(legacy,strlen(legacy),&d));
+  assert(d.filtro.cache==0 && d.addon[0].aoVivo==0 && d.nAddons==c.nAddons);
+  free(legacy);
   // Every truncation, trailing credentials/garbage and embedded NUL fails.
   for(size_t n=0;n<strlen(s);n++)recusar(s,n);
   m=malloc(strlen(s)+100);assert(m);strcpy(m,s);strcat(m,"token secret\n");recusar(m,strlen(m));
