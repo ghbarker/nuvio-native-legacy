@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a07380183c23a85c8be67dc18ea6f4c07db91fab
+          ref: f4f7e804dc33207199d5fb105dd00e0194ca2a9b
           fetch-depth: 3
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi

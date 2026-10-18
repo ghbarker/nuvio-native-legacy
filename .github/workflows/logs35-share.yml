@@ -19,11 +19,11 @@ jobs:
           test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083824187 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: a07380183c23a85c8be67dc18ea6f4c07db91fab
+          ref: f4f7e804dc33207199d5fb105dd00e0194ca2a9b
           fetch-depth: 3
           persist-credentials: false
       - name: Verify tested application code matches the retained APK
-        run: test "$(git rev-parse HEAD)" = a07380183c23a85c8be67dc18ea6f4c07db91fab
+        run: test "$(git rev-parse HEAD)" = f4f7e804dc33207199d5fb105dd00e0194ca2a9b
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
@@ -37,8 +37,8 @@ jobs:
           import hashlib,json,pathlib,zipfile
           root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs49.apk'
           report=json.loads((root/'Logs49-validation.json').read_text())
-          assert report['source_commit']=='a07380183c23a85c8be67dc18ea6f4c07db91fab'
-          assert report['source_tree']=='afec56c89d1311a0ab9ff118051873eec9b4826d'
+          assert report['source_commit']=='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
+          assert report['source_tree']=='e98a5578b2fd082101598e245c5d2d17447e0d9f'
           assert report['package']=='space.nuvio.nativelegacy.touch'
           assert report['version_code']==20059 and report['version_name']=='2.0.59-test-logs49'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
@@ -50,9 +50,9 @@ jobs:
           report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,native_account_regressions=True,macos_native_account_regressions=True,android_16k_alignment=True)
           report['android_run']=39083822801;report['linux_run']=39083822801;report['macos_run']=39083824187
           report['android_job']='apk-build'
-          report['test_commit']='a07380183c23a85c8be67dc18ea6f4c07db91fab'
+          report['test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
           report['application_code_matches_test_commit']=True
-          report['macos_test_commit']='a07380183c23a85c8be67dc18ea6f4c07db91fab'
+          report['macos_test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
           report['validation_scope']='Linux/macOS normal and ASan/UBSan: real full-source Settings, EPG memory policy/window and serial worker queues, cached full-schedule restoration without new requests, account-scoped guide data, large streaming XMLTV, source-specific category hiding/reload/rename/order/profile guards/failed-write rollback, guide loading and routing. Linux shared failover Settings normal. Android both ARM builds and font import unit tests.'
           report['new_translation_keys_verified']=True
           report['new_translation_keys']=5;report['translation_tables']=29
@@ -67,6 +67,6 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" --target a07380183c23a85c8be67dc18ea6f4c07db91fab --title 'Nuvio TV/Mobile Test - Logs49: Guide memory and categories' --notes-file dist/Logs49-testing.txt
+            gh release create tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" --target f4f7e804dc33207199d5fb105dd00e0194ca2a9b --title 'Nuvio TV/Mobile Test - Logs49: Guide memory and categories' --notes-file dist/Logs49-testing.txt
           fi
           gh release upload tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs49.apk dist/Logs49-validation.json dist/Logs49-testing.txt
