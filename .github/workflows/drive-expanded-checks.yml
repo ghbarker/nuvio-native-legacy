@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 71238dbe7991ec25ade6b2ddbbed5ae4781bebc7
+          ref: de35ddd0e8d290431c81c31d51beb3832d94b602
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -35,7 +35,7 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libmbedtls-dev
       - if: runner.os == 'macOS'
-        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp mbedtls
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp mbedtls@3
       - run: python3 -m pip install cryptography
       - name: Normal and ASan/UBSan checks, each with a timeout
         env:
