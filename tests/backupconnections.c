@@ -24,6 +24,9 @@ int main(void) {
   char category[32];snprintf(category,sizeof category,"%016llx\n",(unsigned long long)backupcategorias_chave(2,1,"","Sports"));
   put(b,BS_GUIDE_CATEGORIES,0,category);
   assert(backupconnections_mesclar(a,b,&out));
+  BackupCategorias *badCats=NULL;
+  assert(!backupcategorias_ler("group\nmap 2 4294967297 3\nhash 0000000000000001\n",&badCats));
+  assert(!backupcategorias_ler("group\nmap 2 -2 3\nhash 0000000000000001\n",&badCats));
   BackupStore aliases;assert(backupstores_buscar(out,BS_GUIDE_CATEGORY_ALIASES,0,&aliases));
   BackupCategorias *categorias=NULL;assert(backupcategorias_ler(aliases.texto,&categorias));
   assert(backupcategorias_oculta(categorias,2,3,"","Sports")==1);

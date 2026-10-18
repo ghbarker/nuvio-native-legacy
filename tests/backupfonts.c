@@ -29,6 +29,8 @@ int main(int argc,char **argv) {
   BackupFontManifest decoded;assert(backupfonts_manifest_ler(manifest,nm,&decoded) && decoded.n==1 && decoded.font[0].n==BACKUP_FONT_BYTES);
   assert(!backupfonts_manifest_ler(manifest,nm-1,&decoded));free(manifest);
   assert(!backupfonts_id("../../sessions.txt") && !backupfonts_id("000000000000000g.ttf"));
+  char *badBefore=NULL,*badAfter=NULL;
+  assert(!backupfonts_plano("NUVIO-FONT-FILES 1\nfont 0000000000000001.ttf 4294967297\n","NUVIO-FONT-FILES 1\nstage aB12cd\n",&badBefore,&badAfter));
   BackupFontStage *stage=backupfonts_stage(argv[1]);assert(stage && stages(root)==1);
   assert(!backupfonts_stage_chunk(stage,&m.font[0],1,data,BACKUP_FONT_CHUNK));
   for(int j=0;j<BACKUP_FONT_CHUNKS;j++) {
