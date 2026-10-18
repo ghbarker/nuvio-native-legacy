@@ -1,4 +1,4 @@
-name: Share verified Logs50 live recovery APK
+name: Share verified Logs51 live recovery APK
 on:
   workflow_dispatch:
 permissions:
@@ -9,53 +9,54 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TEST_RELEASE: tv-mobile-test-logs-v50
+      TEST_RELEASE: tv-mobile-test-logs-v51
     steps:
       - name: Require Android, Linux and macOS checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39095218772 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39095218772/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39095220375 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39097318443 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39097318443/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39097320266 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: 08cd14e7c544a5268a15b3b057deff0913c6c2b2
+          ref: a1f8f66286b39470403e4938d9c6cdc0476350b9
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39095218772
-          name: Nuvio-TV-Mobile-Test-Logs50-43f22dd4f4ccc8739528f788e770ab4fe7f1976b
+          run-id: 39097318443
+          name: Nuvio-TV-Mobile-Test-Logs51-3dac8547052790b83b441f4100f17f914391c105
           path: dist
       - name: Verify and describe the test build
         run: |
           set -euo pipefail
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs50.apk
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs51.apk
           python3 - <<'PYCODE'
           import hashlib,json,pathlib,zipfile,os
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs50.apk'
-          p=root/'Logs50-validation.json';r=json.loads(p.read_text())
-          assert r['source_commit']=='08cd14e7c544a5268a15b3b057deff0913c6c2b2' and r['source_tree']=='4685c8432ee2ce0294146b82907b7e335f2f7f68'
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs51.apk'
+          p=root/'Logs51-validation.json';r=json.loads(p.read_text())
+          assert r['source_commit']=='a1f8f66286b39470403e4938d9c6cdc0476350b9' and r['source_tree']=='ea8f504a5517d6ca7f5217b5e753cd6a53ded882'
           assert r['package']=='space.nuvio.nativelegacy.touch'
-          assert r['version_code']==20060 and r['version_name']=='2.0.60-test-logs50'
+          assert r['version_code']==20061 and r['version_name']=='2.0.61-test-logs51'
           assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==r['apk_bytes'] and hashlib.sha256(apk.read_bytes()).hexdigest()==r['apk_sha256']
           assert os.environ['TEST_RELEASE']=='tv-mobile-test-logs-v'+r['version_name'].split('-logs')[-1]
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          r.update(all_passed=True,android_16k_alignment=True,android_run=39095218772,linux_run=39095218772,macos_run=39095220375,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v49',device_approval_pending=True)
+          r.update(all_passed=True,android_16k_alignment=True,android_run=39097318443,linux_run=39097318443,macos_run=39097320266,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v50',device_approval_pending=True)
           r['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+os.environ['TEST_RELEASE']+'/'+apk.name
           r['android_jvm_unit_suites']=['LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest']
-          r['normal_regression_suites']=['live_error_recovery','video_android_live_window','livestall','livestall_seco','epg_memory','epg_accounts','epg_streaming','guia_grupos','guia_loading','guia_epg_estado','guiaepg','guia_catalogo_tv','guia_stream_headers','guiaaddons','guiacorte','ajustes_iptv','ajustes_secoes']
-          r['asan_ubsan_suites']=['live_error_recovery','video_android_live_window','epg_memory','epg_accounts','epg_streaming','guia_grupos','guia_loading','guia_epg_estado','guiaepg','guia_catalogo_tv','guia_stream_headers','ajustes_iptv']
-          r['macos_asan_ubsan_suites']=['live_error_recovery','video_android_live_window']
-          r['macos_normal_suites']=['live_error_recovery','video_android_live_window','livestall','livestall_seco']
-          r['sanitizer_regressions']=True;r['native_account_regressions']=True
+          r['normal_regression_suites']=['livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
+          r['asan_ubsan_suites']=['livestall_window','live_error_recovery','video_android_live_window']
+          r['macos_asan_ubsan_suites']=['livestall_window','live_error_recovery','video_android_live_window']
+          r['macos_normal_suites']=['livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
+          r['sanitizer_regressions']=True
+          r['retained_baseline_checks']='Logs50 broader account/EPG/settings regressions passed; not rerun for the four-line watchdog change in Logs51.'
           r['test_scope']='JVM tests exercise the real Media3 Player interface with a strict fake; JNI backend tests use fake JNI and a deterministic clock, including a simulated pause acknowledgement. No emulator or device playback pass is claimed. Android both ARM ABIs are built and apksigner verified.'
           p.write_text(json.dumps(r,indent=2)+'\n')
-          (root/'Logs50-testing.txt').write_text("Nuvio TV/Mobile Test - Logs50: Live playback recovery\n\nInstall over the existing Nuvio TV/Mobile Test app by choosing Update. Do not uninstall or clear data. Package and persistent signing key are unchanged; version code is 20060 (2.0.60-test-logs50).\n\nChanges:\n- Media3 error 1002 (behind live window) first seeks to the source's current default live position and prepares the SAME player. It preserves the URL/session, surface, audio/subtitle selection, volume and pause intent, without refreshing the M3U playlist.\n- Native stall/source watchdogs defer during that specific recovery, for at most 8 seconds and only the matching playback session. Repeated or stalled repairs still reach ordinary error handling rather than retrying invisibly forever.\n- A stale source-error card clears when live playback is prepared and playing again, even when Android cannot report a buffer end. Buffering, paused, failed and unrelated playback are protected.\n\nCheck on the Cube or Samsung phone:\n1. Open Live TV and play the SAME channel that was reconnecting every 8-15 seconds. Leave it playing for at least 10 minutes. Check for reconnect messages, freezes and source-error cards. Note how long it takes if a problem returns.\n2. Try channels from another account for 3-5 minutes each. Check that channel switching, account selection and normal playback still work.\n3. Pause a live channel for 30-60 seconds, then resume. If its old position has left the provider's window, recovery may jump forward to the currently available live programme. A brief wait can still happen if no video is buffered; seamless playback is not guaranteed during a provider outage.\n4. Open and leave a channel quickly, then wait 10 seconds. Back/Stop must stay stopped and no old recovery should reopen it or show an error over the next screen.\n5. After any recovery, check volume, the selected audio/subtitle language and pause/resume still behave as expected. Existing accounts and settings should remain saved.\n6. If the error card appears while playback continues, let it run briefly and export the log immediately. Send the log with the channel/account and approximate time of the failure. The native log records event 11 with the current open generation: positive duration starts bounded in-place recovery, zero ends it. Repeated failures can still use the ordinary M3U renewal fallback.\n\nNo upstream PR for this fix until this APK is tested and approved.\n")
+          (root/'Logs51-testing.txt').write_text("Nuvio TV/Mobile Test - Logs51: stop false live-channel restarts\n\nInstall as an UPDATE over Nuvio TV/Mobile Test. Do not uninstall or clear app data. Package and persistent signing key are unchanged; version code20061, version2.0.61-test-logs51. Logs50 recovery and error-screen fixes remain included. The Android document-picker Save button issue is not changed by this APK; use the ADB log capture below if needed.\n\nThe Cube's Logs50 capture shows the native stall watchdog restarting a READY, nonbuffering stream at00:26:04,00:26:34 and00:27:01. The live clock rolls backward as the playback window moves. The watchdog compared against the greatest old position and could declare healthy playback stalled8s later. A synthetic healthy4s sliding window reproduces a false restart at11.75s before the fix. Logs51 rebases only the comparison point; subsequent forward progress is still required to reset the stall clock. Actual freezes, explicit buffering, EOF, pause and retry limits retain their normal handling.\n\n1. On the Cube, play the SAME channel that restarted in the last log. Leave it running for at least10minutes. It should avoid periodic reconnect messages, full player restarts and the source-error screen while playback remains healthy.\n2. Try at least one channel from another account for3-5minutes. Check ordinary switching and playback.\n3. Pause30-60seconds and resume. Live playback may jump to the provider's available live position if old segments have expired. Stop/Back must stay stopped; wait10seconds to check no late recovery reopens it.\n4. If it reconnects or shows an error, collect a log immediately while Nuvio remains open. In Bugjaeger Commands/Shell, without an adb shell prefix, run:\n\ndumpsys package space.nuvio.nativelegacy.touch | grep versionName > /sdcard/Download/Nuvio-Cube-Live.txt; logcat -d -v threadtime -s nuvio:I NvPlayer:V >> /sdcard/Download/Nuvio-Cube-Live.txt 2>&1; wc -c /sdcard/Download/Nuvio-Cube-Live.txt\n\nDownload the file through Bugjaeger Files from /sdcard/Download and share it privately. This direct ADB capture bypasses the app's normal credential redaction. The first line should show2.0.61-test-logs51.\n\nAutomated coverage includes rolling4/6/10/15/30-second windows, ordinary and TPK configurations, genuine freezes even after a clock rebase, backwards changes without forward playback, buffering, EOF, pause and retry-budget reset. New and existing native recovery/error-card suites run normally and under ASan/UBSan; existing dry-source/stall checks run normally. No upstream PR until device approval.\n")
           PYCODE
       - name: Publish verified APK and instructions
         env:
@@ -63,11 +64,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target 08cd14e7c544a5268a15b3b057deff0913c6c2b2 --title 'Nuvio TV/Mobile Test - Logs50: Live playback recovery' --notes-file dist/Logs50-testing.txt
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target a1f8f66286b39470403e4938d9c6cdc0476350b9 --title 'Nuvio TV/Mobile Test - Logs51: Stop false live-channel restarts' --notes-file dist/Logs51-testing.txt
           fi
-          for name in Nuvio-TV-Mobile-Test-Logs50.apk Logs50-testing.txt; do
+          for name in Nuvio-TV-Mobile-Test-Logs51.apk Logs51-testing.txt; do
             if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
               gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" "dist/$name"
             fi
           done
-          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs50-validation.json --clobber
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs51-validation.json --clobber
