@@ -606,3 +606,7 @@ int stalker_resolver_sessao(const char *id, char *url, unsigned n, uint64_t sess
 int stalker_resolver(const char *id, char *url, unsigned n) {
   return stalker_resolver_sessao(id, url, n, nv_perfil_sessao_ler());
 }
+
+void stalker_backup_recarregar(void) {
+  pthread_mutex_lock(&travaSessao);perfilLido=-1;lido=0;pthread_mutex_unlock(&travaSessao);
+}

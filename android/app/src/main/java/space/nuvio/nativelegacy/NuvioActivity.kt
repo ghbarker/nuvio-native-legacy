@@ -40,6 +40,8 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
@@ -72,6 +74,7 @@ class NuvioActivity : SDLActivity() {
     private var touchInsetTop = 0
     private var touchInsetRight = 0
     @Volatile private var interfaceMobile = false
+    private var automaticMobile = false
     @Volatile private var playerTelaCheiaTouch = false
     private var superficieTvW = 0
     private var superficieTvH = 0
@@ -140,6 +143,22 @@ class NuvioActivity : SDLActivity() {
     }
 
     private val registroDownload by lazy { RegistroDownload(this) }
+    private val driveAuthorization by lazy { DriveAuthorization(this) }
+    private val driveCredentials by lazy { DriveCredentialStore(this) }
+
+    // Physical device classification is independent of the saved TV/Mobile UI.
+    fun driveAutorizar(request: Long, chooseAccount: Boolean, rejectedToken: String): Boolean =
+        automaticMobile && BuildConfig.GOOGLE_ANDROID_CLIENT_ID.isNotEmpty() &&
+            driveAuthorization.begin(request, chooseAccount, rejectedToken)
+    fun driveAutorizacaoEvento(): String? = driveAuthorization.poll()
+    fun driveAutorizacaoCancelar() = driveAuthorization.cancel()
+    fun driveVinculoLer(owner: String, profile: Int): String? = driveCredentials.read(owner, profile)
+    fun driveVinculoGravar(owner: String, profile: Int, token: String): Boolean = driveCredentials.write(owner, profile, token)
+    fun driveConfiguracaoTv(): String? =
+        if (!automaticMobile && BuildConfig.GOOGLE_TV_CLIENT_ID.isNotEmpty() &&
+            BuildConfig.GOOGLE_TV_CLIENT_SECRET.isNotEmpty())
+            BuildConfig.GOOGLE_TV_CLIENT_ID + "\n" + BuildConfig.GOOGLE_TV_CLIENT_SECRET
+        else null
 
     // Chamado pelo fio SDL, sem ler arquivos nem abrir a tela naquele fio.
     fun baixarRegistro(arquivo: String, sucesso: String, falha: String) {
@@ -621,6 +640,7 @@ class NuvioActivity : SDLActivity() {
 
     override fun onDestroy() {
         registroDownload.fechar()
+        driveAuthorization.close()
         vigia?.parar()
         fecharRede()
         NvPlayer.encerrar()
@@ -636,7 +656,7 @@ class NuvioActivity : SDLActivity() {
     private fun prepararAmbiente() {
         val dados = File(filesDir, "dados").apply { mkdirs() }
         val uiMode = (getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager)?.currentModeType
-        val automaticMobile = InterfaceMode.automaticMobile(
+        automaticMobile = InterfaceMode.automaticMobile(
             uiMode == Configuration.UI_MODE_TYPE_TELEVISION,
             packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION),
             packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
@@ -773,6 +793,9 @@ class NuvioActivity : SDLActivity() {
     // INTEIRO (com a composicao em andamento) vai ao C a cada mudanca: o campo
     // desenhado pelo app e um espelho deste.
     private var campo: CampoIme? = null
+    private var campoPainel: LinearLayout? = null
+    private var campoTitulo: TextView? = null
+    private var campoDica: TextView? = null
     private var campoAberto = false
     private var campoImeVisto = false
     private var ignorarMudanca = false
@@ -793,7 +816,6 @@ class NuvioActivity : SDLActivity() {
     private fun criarCampo(): CampoIme {
         campo?.let { return it }
         val c = CampoIme(this)
-        c.alpha = if (interfaceMobile) 1f else 0f
         c.isFocusable = true
         c.isFocusableInTouchMode = true
         c.setSingleLine(true)
@@ -849,9 +871,26 @@ class NuvioActivity : SDLActivity() {
                 setStroke(dp(1).coerceAtLeast(1), Color.rgb(125, 170, 255))
             }
             c.elevation = dp(8).toFloat()
-            c.visibility = View.GONE
         }
-        mLayout.addView(c, RelativeLayout.LayoutParams(1, 1))
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (12 * resources.displayMetrics.density + 0.5f).toInt()
+            setPadding(pad, pad, pad, pad)
+            elevation = (8 * resources.displayMetrics.density)
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(20, 23, 29)); cornerRadius = pad.toFloat()
+            }
+        }
+        campoTitulo = TextView(this).apply {
+            textSize = 20f; setTextColor(Color.WHITE); maxLines = 2
+        }.also { panel.addView(it) }
+        campoDica = TextView(this).apply {
+            textSize = 14f; setTextColor(Color.rgb(205, 210, 220)); maxLines = 3
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }.also { panel.addView(it) }
+        panel.addView(c, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        mLayout.addView(panel, RelativeLayout.LayoutParams(1, 1))
+        campoPainel = panel
         campo = c
         aplicarCampoModo()
         posicionarCampoTouch()
@@ -859,7 +898,11 @@ class NuvioActivity : SDLActivity() {
     }
 
     private fun aplicarCampoModo() {
-        val c = campo ?: return
+        val c = campoPainel ?: return
+        campoTitulo?.visibility = if (interfaceMobile && !campoTitulo?.text.isNullOrEmpty()) View.VISIBLE else View.GONE
+        campoDica?.visibility = if (interfaceMobile && !campoDica?.text.isNullOrEmpty()) View.VISIBLE else View.GONE
+        val padding = if (interfaceMobile) (12 * resources.displayMetrics.density + 0.5f).toInt() else 0
+        c.setPadding(padding, padding, padding, padding)
         c.alpha = if (interfaceMobile) 1f else 0f
         c.visibility = if (interfaceMobile && !campoAberto) View.GONE else View.VISIBLE
         c.layoutParams = if (interfaceMobile) RelativeLayout.LayoutParams(
@@ -871,7 +914,7 @@ class NuvioActivity : SDLActivity() {
 
     private fun posicionarCampoTouch() {
         if (!interfaceMobile) return
-        val c = campo ?: return
+        val c = campoPainel ?: return
         val p = c.layoutParams as? RelativeLayout.LayoutParams ?: return
         fun dp(value: Int) = (value * resources.displayMetrics.density + 0.5f).toInt()
         val left = dp(16) + touchInsetLeft
@@ -889,7 +932,7 @@ class NuvioActivity : SDLActivity() {
         campoImeVisto = false
         (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
             .hideSoftInputFromWindow(c.windowToken, 0)
-        if (interfaceMobile) c.visibility = View.GONE
+        if (interfaceMobile) campoPainel?.visibility = View.GONE
         c.clearFocus()
         mSurface?.requestFocus()
         telaCheiaTouch()
@@ -899,11 +942,14 @@ class NuvioActivity : SDLActivity() {
     // Chamado pelo C (android_st_teclado). Nao bloqueia.
     // `pedido` = max | tipo << 16 (tipo: 0 texto, 1 e-mail, 2 senha; ST_IME_* em
     // src/sistexto.h). Senha: teclado sem sugestao e sem aprender o texto.
-    fun abrirTeclado(inicial: String, pedido: Int): Boolean {
+    fun abrirTeclado(inicial: String, pedido: Int, titulo: String, dica: String): Boolean {
         val max = pedido and 0xFFFF
         val tipo = (pedido ushr 16) and 0xFF
         runOnUiThread {
             val c = criarCampo()
+            campoTitulo?.text = titulo
+            campoDica?.text = dica
+            aplicarCampoModo()
             ignorarMudanca = true
             c.inputType = when (tipo) {
                 1 -> InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
@@ -923,8 +969,8 @@ class NuvioActivity : SDLActivity() {
             campoImeVisto = false
             teclaDesceuNoCampo = 0
             if (interfaceMobile) {
-                c.visibility = View.VISIBLE
-                c.bringToFront()
+                campoPainel?.visibility = View.VISIBLE
+                campoPainel?.bringToFront()
             }
             c.requestFocus()
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -1121,6 +1167,7 @@ class NuvioActivity : SDLActivity() {
     @Deprecated("startActivityForResult e o que o SDLActivity (Activity) oferece")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (registroDownload.resultado(requestCode, resultCode, data)) return
+        if (driveAuthorization.activityResult(requestCode, resultCode, data)) return
         if (requestCode == PEDIDO_DITADO) esperandoTela = false
         if (requestCode == PEDIDO_DITADO) {
             val t = if (resultCode == RESULT_OK)

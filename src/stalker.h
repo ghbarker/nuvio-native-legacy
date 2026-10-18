@@ -98,4 +98,6 @@ int stalker_e_id(const char *id);
 int stalker_resolver(const char *id, char *url, unsigned n);
 int stalker_resolver_sessao(const char *id, char *url, unsigned n, uint64_t sessao);
 
+// Reload committed connection settings without deleting credentials.
+void stalker_backup_recarregar(void);
 #endif

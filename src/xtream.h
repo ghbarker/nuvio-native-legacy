@@ -138,4 +138,6 @@ int xtream_epg_parse(const char *json, XtreamProg *out, int cap);
 // 0 sem cadastro, ou na Samsung com painel http (bloqueado, ver xtream.c).
 int xtream_url_xmltv(char *url, unsigned n);
 
+// Reload committed connection settings without deleting credentials.
+void xtream_backup_recarregar(void);
 #endif

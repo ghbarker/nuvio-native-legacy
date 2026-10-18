@@ -777,3 +777,7 @@ int xtream_url(const char *id, char *url, unsigned n) {
   int k = xtream_formatos(ext);
   return xtream_url_formato(id, k > 0 ? ext[0] : "m3u8", url, n);
 }
+
+void xtream_backup_recarregar(void) {
+  pthread_mutex_lock(&trava);perfilLido=-1;lido=0;pthread_mutex_unlock(&trava);
+}
