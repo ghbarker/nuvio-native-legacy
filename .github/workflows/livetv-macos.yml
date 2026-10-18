@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: b7294a2028a0d43de5d5cf0871a864e293bb918c
+          ref: 5f538ccb49ffa78ac3f8605a3393991b56fc3b33
           persist-credentials: false
       - name: Normal and ASan UBSan Drive protocol tests (mock transport)
         shell: bash
