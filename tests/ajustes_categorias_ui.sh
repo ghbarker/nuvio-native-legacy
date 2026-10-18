@@ -1,5 +1,5 @@
 #!/bin/bash
-# Real Settings editors and pointer dispatch; no window or network requests.
+# Real Settings renderer and pointer dispatch in a hidden GL window; no network requests.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 sources=()
