@@ -28,6 +28,8 @@ jobs:
       GH_REPO: ghbarker/nuvio-native-legacy
       SOURCE_SHA: 0abe666aadbd3e3013c271ae5b3d93260d1c6dd8
       SOURCE_TREE: 44baf3b305e6e4404fb29193bb93ee6f6685d41f
+      # Android is already building this exact immutable source; retain it.
+      ANDROID_CONFIG_COMMIT: 2a8cb2b1d1d5cd69359c1deca40a6005f5b1ee74
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
       APK_SHA256: ${{ inputs.apk_sha256 }}
@@ -45,7 +47,8 @@ jobs:
               run=os.environ[name];assert re.fullmatch(r'[0-9]+',run)
               data=api('actions/runs/'+run)
               assert data['status']=='completed' and data['conclusion']=='success',(name,data['status'],data['conclusion'])
-              assert data['head_sha']==os.environ['GITHUB_SHA'],'Checks must use this exact fork CI configuration commit'
+              expected_config=os.environ['ANDROID_CONFIG_COMMIT'] if name=='ANDROID_RUN' else os.environ['GITHUB_SHA']
+              assert data['head_sha']==expected_config,(name,'Unexpected fork CI configuration commit')
               assert data['path']==path,(name,data['path'])
               assert data['head_repository']['full_name']==repo
               jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
@@ -58,7 +61,7 @@ jobs:
       - name: Download exact Android artifact
         uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs64-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs64-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - name: Download all native evidence
@@ -78,7 +81,7 @@ jobs:
           validation=pathlib.Path('Logs64-validation.json');data=json.loads(validation.read_text())
           assert data['apk_sha256']==expected and data['apk_bytes']==apk.stat().st_size
           assert data['source_commit']==os.environ['SOURCE_SHA'] and data['source_tree']==os.environ['SOURCE_TREE']
-          assert data['workflow_commit']==os.environ['GITHUB_SHA'] and data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
+          assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT'] and data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20074
           assert data['version_name']=='2.0.74-test-logs64'
           assert data['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
@@ -100,6 +103,7 @@ jobs:
               assert results and all(result['code']==0 for result in results),name
               invocations.extend(results)
           data.update(android_build=True,linux_native_checks=True,macos_native_checks=True,native_matrix_jobs=22,native_suite_invocations=len(invocations),sanitizer_suite_invocations=sum(result['sanitizers'] for result in invocations))
+          data['check_configuration_commits']={'android':os.environ['ANDROID_CONFIG_COMMIT'],'linux_macos':os.environ['GITHUB_SHA']}
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
           data['translation_lint']='No added diagnostics against unchanged upstream415544; baseline contains pre-existing empty translations.'
           data['native_checks_note']='Native normal/ASan+UBSan regressions are not macOS, webOS or Tizen packaged application builds.'

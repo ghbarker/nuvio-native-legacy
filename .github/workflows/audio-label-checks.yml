@@ -64,11 +64,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libgl1-mesa-dri libmbedtls-dev xvfb x11-utils
+          sudo apt-get install -y -qq ripgrep pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libgl1-mesa-dri libmbedtls-dev xvfb x11-utils
       - name: macOS native dependencies
         if: runner.os == 'macOS'
         run: |
-          packages=(pkg-config sdl2 sdl2_image sdl2_ttf webp libass fribidi mbedtls@3)
+          packages=(ripgrep pkg-config sdl2 sdl2_image sdl2_ttf webp libass fribidi mbedtls@3)
           missing=()
           for package in "${packages[@]}"; do
             if ! brew list --versions "$package" >/dev/null 2>&1; then missing+=("$package"); fi
@@ -85,7 +85,15 @@ jobs:
       - name: Native include paths and dependency validation
         run: |
           python3 - <<'PY'
-          import os,pathlib,shlex,subprocess,sys
+          import json,os,pathlib,shlex,shutil,subprocess,sys
+          commands=['bash','cc','git','python3','pkg-config','rg','dirname','uname','mktemp','rm','mkdir','ld','ar']
+          commands += ['Xvfb','xdpyinfo'] if sys.platform=='linux' else ['brew']
+          available={command:shutil.which(command) for command in commands}
+          pathlib.Path('diagnostics/runtime-commands.json').write_text(json.dumps(available,indent=2)+'\n')
+          missing=[command for command,path in available.items() if not path]
+          assert not missing,'Missing runtime commands: '+', '.join(missing)
+          if '${{ matrix.group }}'=='backup-state':
+              import cryptography
           packages=['sdl2','SDL2_image','SDL2_ttf','libass','fribidi']
           subprocess.run(['pkg-config','--exists',*packages],check=True)
           flags=shlex.split(subprocess.check_output(['pkg-config','--cflags-only-I',*packages],text=True))
