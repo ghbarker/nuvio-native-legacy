@@ -40,6 +40,11 @@ typedef struct {
 enum { EPG_PARADO, EPG_BAIXANDO, EPG_PRONTO, EPG_FALHOU };
 int epg_estado(void);
 
+// Device-local memory policy, set on the drawing thread. Workers capture it;
+// changing modes rebuilds programme data from cache, without expiring downloads.
+enum { EPG_MEMORIA_AUTO, EPG_MEMORIA_BAIXA, EPG_MEMORIA_COMPLETA };
+void epg_memoria_definir(int modo, long ramMB);
+
 // Native account schedules never match another account's IDs or names.
 // Configure on the drawing thread; the worker captures each URL and profile.
 typedef struct { int tipo; unsigned id; char url[1100]; } EpgContaFonte;

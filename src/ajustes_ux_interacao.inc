@@ -16,6 +16,7 @@ static void uxNotificar(const char *s) {
   uxAvisoAte = SDL_GetTicks() + 4500;
 }
 static void uxCancelar(void) {
+  free(uxCategorias);uxCategorias=NULL;uxNCategorias=0;
   uxEditor = uxRestaurar = uxConfirmar = uxRodape = uxAvisoRisco = 0;
   emEdicao = 0;
   if (faRetornarFolha) { frAberta = faRetornarFolha; faRetornarFolha = 0; faAddonEditar[0] = 0; }
@@ -113,6 +114,15 @@ static int uxLigarRequisitos(int op, int aplicar) {
 static void uxAbrirEditor(int op) {
   if (op < 0 || op >= AJ_N || !ajOpcaoDisponivel(op) || soLeitura(op)) return;
   uxCancelar();
+  if(op==AJ_GUIA_CATEGORIAS) {
+    guia_preparar_busca();int n=guia_categorias(NULL,0);
+    if(n>0) {
+      uxCategorias=calloc((size_t)n,sizeof *uxCategorias);
+      if(!uxCategorias) { uxNotificar("Não foi possível agora. Tente novamente.");return; }
+      uxNCategorias=guia_categorias(uxCategorias,n);
+    }
+    iptvListaSessao=nv_perfil_sessao_ler();
+  }
   uxOp = op; uxOriginal = uxValorAtual(op); uxPendente = uxOriginal;
   if(op==AJ_IPTV_CONTA || ajIptvGerenciador(op))iptvListaSessao=nv_perfil_sessao_ler();
   if(ajIptvGerenciador(op))iptvTipoPagina=ajIptvTipo(op);
@@ -200,6 +210,15 @@ static int uxRiscoFinal(int op, int novo) {
   return 0;
 }
 static void uxAplicar(void) {
+  if(uxOp==AJ_GUIA_CATEGORIAS) {
+    if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
+    if(uxPendente>=0 && uxPendente<uxNCategorias) {
+      GuiaCategoria *c=&uxCategorias[uxPendente];
+      if(guia_categoria_definir(c,!c->oculta))c->oculta=!c->oculta;
+      else uxNotificar("Não foi possível salvar. O valor anterior foi mantido.");
+    }
+    return;
+  }
   if(ajIptvGerenciador(uxOp)) {
     if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
     int tipo=ajIptvTipo(uxOp),n=ajIptvQuantos(tipo),i=ajIptvDoTipo(tipo,uxPendente);

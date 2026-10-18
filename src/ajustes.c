@@ -23,6 +23,7 @@
 #include "iptvfontes.h"
 #include "perfisessao.h"
 #include "guia.h"
+#include "epg.h"
 #include "xtepg.h"
 #include "teclado.h"
 #include "descoberta.h"
@@ -650,7 +651,7 @@ typedef enum {
   AJ_IPTV_NOME, AJ_IPTV_ATIVA, AJ_IPTV_REMOVER,
   AJ_IPTV_LISTA_XTREAM, AJ_IPTV_LISTA_M3U, AJ_IPTV_LISTA_STALKER,
   AJ_IPTV_ACOES, AJ_IPTV_EXCLUIR, AJ_IPTV_SALVAR, AJ_IPTV_CANCELAR,
-  AJ_GUIA_ORDEM, AJ_IPTV_ORDEM,
+  AJ_GUIA_ORDEM, AJ_IPTV_ORDEM, AJ_EPG_MEMORIA, AJ_GUIA_CATEGORIAS,
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1230,6 +1231,7 @@ static NvPerfilSessao iptvAlvoSessao;
 static int iptvTipoPagina;
 static const char *V_IPTV_ACOES[] = { "Editar", "Remover" };
 static const char *V_IPTV_EXCLUIR[] = { "Cancelar", "Remover" };
+static const char *V_EPG_MEMORIA[] = { "Automático", "Pouca memória", "Grade completa" };
 static const char *V_GUIA_ORDEM[] = { "Categoria", "Conta" };
 static NvPerfilSessao iptvListaSessao;
 
@@ -1720,6 +1722,8 @@ static const Opcao OPCOES[AJ_N] = {
   ACAO("Cancelar"),
   ESC("Ordenação", V_GUIA_ORDEM, 2),
   ACAO("Ordem"),
+  ESC("Memória da programação", V_EPG_MEMORIA, 3),
+  ESC("Ocultar categorias", NULL, 1),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -2020,7 +2024,7 @@ static const char *CHAVE[] = {
   "-iptvNome", "-iptvAtiva", "-iptvRemover",
   "-iptvListaXtream", "-iptvListaM3u", "-iptvListaStalker",
   "-iptvAcoes", "-iptvExcluir", "-iptvSalvar", "-iptvCancelar",
-  "guiaOrdemLocal", "-iptvOrdem",
+  "guiaOrdemLocal", "-iptvOrdem", "epgMemoriaLocal", "-guiaCategorias",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -2240,11 +2244,17 @@ static int ajIptvLinhaVisivel(int op) {
   if(op==AJ_IPTV_CANCELAR || op==AJ_IPTV_NOME || op==AJ_IPTV_ATIVA)return iptvForm.tipo!=0;
   int tipo=ajIptvCampoTipo(op);
   if(tipo)return iptvForm.tipo==tipo && (!iptvForm.nova || op!=AJ_XTREAM_CONTA);
-  if(op==AJ_GUIA_ORDEM || op==AJ_IPTV_ORDEM || op==AJ_GUIA_FONTE || op==AJ_GUIA_RECARREGAR || op==AJ_EPG_PAIS ||
+  if(op==AJ_GUIA_CATEGORIAS || op==AJ_EPG_MEMORIA || op==AJ_GUIA_ORDEM || op==AJ_IPTV_ORDEM || op==AJ_GUIA_FONTE || op==AJ_GUIA_RECARREGAR || op==AJ_EPG_PAIS ||
      op==AJ_LIVETV_DIAG || op==AJ_LIVETV_RES || op==AJ_LIVETV_ESPERA ||
      op==AJ_LIVETV_FORMATO || op==AJ_LIVETV_MODO || op==AJ_LIVETV_PROXY)
     return !iptvForm.tipo;
   return 1;
+}
+static void ajEpgMemoriaAplicar(void) {
+  long ram = 0;
+  tex_orcamento_info(NULL, &ram, NULL, NULL);
+  if (ram <= 0) ram = SDL_GetSystemRAM();
+  epg_memoria_definir(valor[AJ_EPG_MEMORIA], ram);
 }
 static char faAddonEditar[FONTEFALHA_CHAVE];
 static char faAddonTitulo[FR_NOME_MAX + 48];
@@ -2552,6 +2562,8 @@ static int uxVoltarOp = -1;
 void ajustes_voltar_de_lista(int plugins) { uxVoltarOp = plugins ? AJ_PLUGINS : AJ_ADDONS; }
 static int uxDifs[AJ_N], uxNDifs, uxDifFoco;
 static int uxEditor, uxOp, uxPendente, uxOriginal, uxRodape;
+static GuiaCategoria *uxCategorias;
+static int uxNCategorias;
 static int uxRestaurar, uxConfirmar, uxAvisoRisco;
 int  ajustes_teste_editor(int *pendente, int *rodape, int *restaurar, int *confirmar) {
   if (pendente) *pendente = uxPendente;
@@ -4346,6 +4358,7 @@ void ajustes_dir(const char *dir) {
 #endif
     gfx_escala_ui_definir(ajustes_tamanho_ui());
     interfaceAplicar();
+    ajEpgMemoriaAplicar();
     legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
     ajSombraSync();
     return;
@@ -4679,6 +4692,7 @@ void ajustes_dir(const char *dir) {
   // de Ajustes e aberta. tex_iniciar ja rodou (main.c); isto so o corrige.
   if (valor[AJ_TEX_MB] > 0) tex_definir_orcamento_mb(ajustes_tex_mb());
   pstAplicar();
+  ajEpgMemoriaAplicar();
   legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
   ppReconciliar();
   ajSombraSync();   // o que veio do disco nao e mudanca de ninguem
@@ -5998,6 +6012,7 @@ static void conferirPadroes(void) {
 
 static void ajMovReiniciar(void);
 int ajustes_iniciar(void) {
+  ajEpgMemoriaAplicar();
   pediuRelogio = 0;
 #ifdef NV_ANDROID
   extplayer_atualizar_apps();   // app instalado com o Nuvio aberto
@@ -6889,6 +6904,8 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_XTREAM_SENHA: return "A senha da assinatura. É credencial: vai dentro de cada URL de canal e nunca aparece nesta tela em claro.";
     case AJ_XTREAM_LIMPAR: return "Apaga servidor, usuário e senha deste perfil, e os canais somem do Guia. Sair da conta também apaga.";
     case AJ_XTREAM_CONTA: return "O que o servidor Xtream disse da assinatura na última carga do Guia: se está ativa, quando vence e quantas telas estão em uso.";
+    case AJ_GUIA_CATEGORIAS: return "Oculto no guia";
+    case AJ_EPG_MEMORIA: return "Pouca memória: programa atual e próximas 24 horas. Grade completa: programação disponível. Automático adapta ao aparelho. Não altera canais nem cache no disco.";
     case AJ_EPG_PAIS: return "De que país vem a programação dos canais no Guia. Automático escolhe pelo idioma e pelos nomes dos canais (RO:, |RO|…). A grade do próprio provedor Xtream entra sempre que existir.";
     case AJ_FONTE_MANUAL: return "Ao mandar reproduzir, abre a lista de fontes em vez de escolher sozinho. Canal ao vivo não pergunta.";
     case AJ_FONTE_AUTO: return "Melhor fonte: prefere 4K, Dolby Vision e MP4 e confere uma fonte por vez. Primeira da lista: toca a primeira que o addon mandou e não confere nenhuma outra — para quem já filtra e ordena no AIOStreams.";
@@ -8748,6 +8765,7 @@ static int definirValorDireto(int op, int novo) {
   if (op == AJ_CW_ORDEM || op == AJ_CW_NAO_EXIBIDOS || op == AJ_CW_CONCLUIDO || op == AJ_CW_MINIMO || op == AJ_CW_RETIDO_TAMBEM)
     desc_refazer_continuar();
   if (op == AJ_TEX_MB) tex_definir_orcamento_mb(ajustes_tex_mb());
+  if (op == AJ_EPG_MEMORIA) ajEpgMemoriaAplicar();
   // Picking 4K again = try again: forget that this TV did not hold it.
   if (op == AJ_RESOLUCAO && novo == RES_4K) {
     char *m = dados_ler(RES_ARQ_RECUO);
@@ -9296,6 +9314,7 @@ static int nValores(int op) {
 #endif
     return n + (legfontes_selecionada(ajFonteSlot(op)) >= 0);
   }
+  if(op==AJ_GUIA_CATEGORIAS)return uxNCategorias>0?uxNCategorias:1;
   if(ajIptvGerenciador(op)) { int n=ajIptvQuantos(ajIptvTipo(op));return (n?n:1)+1; }
   if(op==AJ_IPTV_CONTA){int n=iptv_contas(NULL,0);return n>0?n:1;}
   if (op == AJ_LEG_LINGUA || op == AJ_LEG_LINGUA2 || op == AJ_AUD_LINGUA || op == AJ_AUD_LINGUA2) return nLingua > 0 ? nLingua : 1;
@@ -9318,6 +9337,7 @@ static int nValores(int op) {
 // por vez dentro de desenhaLinha.
 static const char *textoValor(int op) {
   if (ajFonte(op)) return ajFonteNome(op, ajFonteAtual(op));
+  if(op==AJ_GUIA_CATEGORIAS)return i18n("Abrir");
   if(ajIptvGerenciador(op))return i18n("Abrir");
   if(op==AJ_IPTV_CONTA)return ajIptvNome(iptv_conta_indice());
   static char buf[48];

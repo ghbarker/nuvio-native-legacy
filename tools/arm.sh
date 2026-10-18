@@ -368,7 +368,7 @@ if [ "$1" = "--ipk" ]; then
     printf '%s\n' "$LISTA" | grep -qE "art/$pre[0-9]+\.txt$" && VAZOU="$VAZOU $pre*.txt"
   done
   printf '%s\n' "$LISTA" | grep -qE "art/(trakt-fluxo|simkl)\.txt$" && VAZOU="$VAZOU trakt-fluxo.txt/simkl.txt"
-  printf '%s\n' "$LISTA" | grep -qE '(^|/)(livetv-contas-|epg-conta-|m3u-|debrid|provider-scope|fontefalha|fontesmortas|catalogo-|guia-(fav|modo|preview|cache|addons|lembretes)|epg-extra|recomendacoes|amigos-vistos)[^/]*\.(txt|json|bin|ts|id)(\.tmp[^/]*)?$' && VAZOU="$VAZOU private profile files"
+  printf '%s\n' "$LISTA" | grep -qE '(^|/)(livetv-contas-|epg-conta-|m3u-|debrid|provider-scope|fontefalha|fontesmortas|catalogo-|guia-(fav|modo|preview|cache|addons|lembretes|categorias)|epg-extra|recomendacoes|amigos-vistos)[^/]*\.(txt|json|bin|ts|id)(\.tmp[^/]*)?$' && VAZOU="$VAZOU private profile files"
   printf '%s\n' "$LISTA" | grep -qE '(^|/)conta-[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU conta-*.txt/conta-*.txt.tmp"
   printf '%s\n' "$LISTA" | grep -qE '(^|/)discord-p[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU discord profile tokens"
   printf '%s\n' "$LISTA" | grep -qE '(^|/)(jellyfin|emby|plex)-p[^/]*\.txt(\.tmp)?$' && VAZOU="$VAZOU media-server profile tokens"

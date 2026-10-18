@@ -627,28 +627,29 @@ static int recInstalado(const GRec *r) {
 }
 
 #include "guia_grupos.inc"
+#include "guia_categorias.inc"
 
 // --- linhas -------------------------------------------------------------------
 // Linha 0 = Favoritos (quando ha algum); as demais sao as categorias com canal.
-static int nLinhas(void) { return nCats + (nFavOrd > 0 ? 1 : 0); }
+static int nLinhas(void) { return (nCats?nCatsVisiveis:0) + (nFavOrd > 0 ? 1 : 0); }
 static int linhaEhFav(int l) { return nFavOrd > 0 && l == 0; }
 static int linhaN(int l) {
   if (l < 0 || l >= nLinhas()) return 0;
-  return linhaEhFav(l) ? nFavOrd : catN[l - (nFavOrd > 0 ? 1 : 0)];
+  return linhaEhFav(l) ? nFavOrd : catN[catsVisiveis[l - (nFavOrd > 0 ? 1 : 0)]];
 }
 static const char *linhaNome(int l) {
   if (linhaEhFav(l)) return i18n("Favoritos");
   // As secoes de categoriaPorNome sao chaves da tabela; genero vindo do
   // addon nao e, e i18n devolve o texto como veio.
-  return categoriaRotulo(l - (nFavOrd > 0 ? 1 : 0));
+  return categoriaRotulo(catsVisiveis[l - (nFavOrd > 0 ? 1 : 0)] );
 }
 static GCanal *linhaItem(int l, int c) {
   if (c < 0 || c >= linhaN(l)) return NULL;
   if (linhaEhFav(l)) return &canais[favOrd[c]];
-  return &canais[catIni[l - (nFavOrd > 0 ? 1 : 0)] + c];
+  return &canais[catIni[catsVisiveis[l - (nFavOrd > 0 ? 1 : 0)]] + c];
 }
 static int linhaCatDe(int l) {  // indice em cats[], -1 = favoritos
-  return linhaEhFav(l) ? -1 : l - (nFavOrd > 0 ? 1 : 0);
+  return linhaEhFav(l) || l<0 || l>=nLinhas() ? -1 : catsVisiveis[l - (nFavOrd > 0 ? 1 : 0)];
 }
 
 // --- carga --------------------------------------------------------------------
@@ -1132,6 +1133,7 @@ static void empacotar(void) {
     for (i = 0; i < nCanais; i++)
       if (canais[i].cat >= 0) tmp[pos[canais[i].cat]++] = canais[i];
     memcpy(canais, tmp, sizeof(GCanal) * (size_t)nCanais); }
+  categoriasReunir();
   favAplicar();
   nFavOrd = 0;
   for (i = 0; i < nCanais && nFavOrd < G_MAX_FAV; i++)
@@ -1768,6 +1770,33 @@ void guia_reordenar(void) {
   char id[80];GCanal *c=linhaItem(focoLin,focoCol);
   snprintf(id,sizeof id,"%s",c?c->id:"");
   empacotar();if(id[0])guia_focar_id(id);
+}
+
+int guia_categoria_definir(const GuiaCategoria *categoria,int ocultar) {
+  if(!categoria || !categoria->chave || !nv_perfil_sessao_atual(categoria->sessao))return 0;
+  categoriasGarantir();int i=0;
+  for(;i<nCategoriasOcultas;i++)if(categoriasOcultas[i]==categoria->chave)break;
+  if((i<nCategoriasOcultas)==!!ocultar)return 1;
+  if(ocultar && nCategoriasOcultas>=G_MAX_OCULTAS)return 0;
+  uint64_t antes[G_MAX_OCULTAS];int nAntes=nCategoriasOcultas;
+  memcpy(antes,categoriasOcultas,sizeof antes);
+  if(ocultar)categoriasOcultas[nCategoriasOcultas++]=categoria->chave;
+  else categoriasOcultas[i]=categoriasOcultas[--nCategoriasOcultas];
+  char *texto=calloc((size_t)nCategoriasOcultas*17+1,1);int ok=0;
+  if(texto) {
+    for(int k=0;k<nCategoriasOcultas;k++)snprintf(texto+(size_t)k*17,18,"%016llx\n",(unsigned long long)categoriasOcultas[k]);
+    char nome[64];arquivoPerfil("categorias",nome,sizeof nome);
+    if(nv_perfil_sessao_travar(categoria->sessao)) {
+      ok=dados_gravar(nome,texto);nv_perfil_sessao_destravar();
+    }
+    free(texto);
+  }
+  if(!ok) { memcpy(categoriasOcultas,antes,sizeof antes);nCategoriasOcultas=nAntes;return 0; }
+  guia_reordenar();focoPend[0]=0;
+  if(focoLin>=nLinhas())focoLin=nLinhas()>0?nLinhas()-1:0;
+  if(focoCol>=linhaN(focoLin))focoCol=0;
+  catFoco=focoLin;rolY=velY=rolL=velL=0.0f;
+  return 1;
 }
 
 const char *guia_id_focado(void) {
@@ -3501,9 +3530,18 @@ static void desenharPainelCategorias(float a) {
     txt_desenhar_alpha(tc, r.x + r.w - 16.0f - (float)tc.w, r.y + (r.h - (float)tc.h) * 0.5f, la);
     { float nw = r.w - 24.0f - 16.0f - (float)tc.w - 16.0f;
       int cn = atual ? 245 : 205;
-      tn = foc ? txt_linha_corta(TXT_BODY, linhaNome(i), tf, tf, tf, 255, nw)
-               : txt_linha_corta(TXT_BODY, linhaNome(i), cn, cn + 1, cn + 5 > 255 ? 255 : cn + 5, 255, nw);
-      txt_desenhar_alpha(tn, r.x + 24.0f, r.y + (r.h - (float)tn.h) * 0.5f, la); }
+      int cat=linhaCatDe(i);
+      const char *conta=cat>=0?grupos[catGrupo[cat]].nome:"";
+      const char *nome=cat>=0?i18n(cats[cat]):linhaNome(i);
+      tn = foc ? txt_linha_corta(TXT_BODY, nome, tf, tf, tf, 255, nw)
+               : txt_linha_corta(TXT_BODY, nome, cn, cn + 1, cn + 5 > 255 ? 255 : cn + 5, 255, nw);
+      if(conta[0]) {
+        TxtLinha origem=txt_linha_corta(TXT_CAPTION,conta,160,163,172,255,nw);
+        float altura=(float)tn.h+(float)origem.h;
+        float yy=r.y+(r.h-altura)*0.5f;
+        txt_desenhar_alpha(tn,r.x+24.0f,yy,la);
+        txt_desenhar_alpha(origem,r.x+24.0f,yy+(float)tn.h,la*0.8f);
+      } else txt_desenhar_alpha(tn, r.x + 24.0f, r.y + (r.h - (float)tn.h) * 0.5f, la); }
   }
   gfx_sem_recorte();
   { TxtLinha t = txt_linha_corta(TXT_CAPTION, i18n("OK entra  ·  Voltar fecha"),
@@ -5208,7 +5246,8 @@ void guia_abrir_sessao(void) {
   // pedido e o desenho descarta o resultado pela geracao da abertura.
   cargaCancelada = 1;
   estado = G_PARADO; recarregarPend = 0; recargaDoPainel = 0;
-  nCanais = nCats = nFontes = nSabe = nFav = nFavOrd = 0;
+  nCanais = nCats = nFontes = nSabe = nFav = nFavOrd = nCatsVisiveis = 0;
+  categoriasPerfil=-1;nCategoriasOcultas=0;
   fontesOk = cacheLido = favLido = modoLido = previewLido = 0; fonteAtual = -1;
   modoLista = previewLigado = 0; assinaturaPublicada = 0;
   falhas = xtFalha = xtHttp = 0;

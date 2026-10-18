@@ -175,7 +175,8 @@ typedef struct {
   struct {
     NvPerfilSessao sessao;
     volatile int cancelada;
-    int perfil, nArq, nFiltro, apenasProvedores;
+    int perfil, nArq, nFiltro, apenasProvedores, memoriaBaixa;
+    time_t agora;
     char arq[EPG_MAX_FONTES][8], extra[1100], m3u[1100];
     char (*filtro)[64];
   } carga_;
@@ -190,6 +191,8 @@ static EpgContexto *epgContas[EPG_MAX_CONTAS];
 static _Thread_local EpgContexto *epgEscopo;
 static atomic_int epgFios;
 static unsigned epgRevisao;
+static int epgMemoriaBaixa, epgMemoriaFios = EPG_MAX_FIOS, epgMemoriaModo = -1;
+static long epgMemoriaRam = -1;
 static EpgContexto *epgContexto(void) { return epgEscopo ? epgEscopo : &epgPublico; }
 #define W (epgContexto()->w_)
 #define P (epgContexto()->p_)
@@ -217,6 +220,35 @@ static int epg_janela_total_local(time_t *ini, time_t *fim);
 
 static int cargaAtual(void) {
   return !carga.cancelada && nv_perfil_sessao_atual(carga.sessao);
+}
+
+// Low-memory devices keep the current programme and the next 24 hours.
+// Unknown memory is conservative; the WASM heap is bounded regardless of RAM.
+void epg_memoria_definir(int modo, long ramMB) {
+  if (modo < EPG_MEMORIA_AUTO || modo > EPG_MEMORIA_COMPLETA) modo = EPG_MEMORIA_AUTO;
+  int baixa = modo == EPG_MEMORIA_BAIXA ||
+              (modo == EPG_MEMORIA_AUTO && (ramMB <= 0 || ramMB <= 2048));
+#ifdef __EMSCRIPTEN__
+  if (modo == EPG_MEMORIA_AUTO) baixa = 1;
+#endif
+  epgMemoriaFios = baixa ? 1 : EPG_MAX_FIOS;
+#ifdef __EMSCRIPTEN__
+  epgMemoriaFios = 1;
+#endif
+  if (modo != epgMemoriaModo || ramMB != epgMemoriaRam) {
+    printf("[epg] memoria: modo=%d baixa=%d ram_mb=%ld fios=%d\n",modo,baixa,ramMB,epgMemoriaFios);
+    fflush(stdout);epgMemoriaModo=modo;epgMemoriaRam=ramMB;
+  }
+  if (baixa == epgMemoriaBaixa) return;
+  epgMemoriaBaixa = baixa;
+  for (int i = -1; i < EPG_MAX_CONTAS; i++) {
+    EpgContexto *c = i < 0 ? &epgPublico : epgContas[i];
+    if (!c) continue;
+    pthread_mutex_lock(&c->trava_);
+    c->extraMudou_ = 1;
+    if (c->fioVivo_) { c->carga_.cancelada = 1; c->reiniciarPend_ = 1; }
+    pthread_mutex_unlock(&c->trava_);
+  }
 }
 
 // --- normalizacao de nomes ---------------------------------------------------
@@ -663,7 +695,10 @@ static int wProcessarF(EpgGrade *g, char *xml, char (*filtro)[64], int nFiltro, 
     if (!achaAtr(p, fecha, "start", iniS, sizeof iniS) ||
         !achaAtr(p, fecha, "stop",  fimS, sizeof fimS)) { p = fecha + 12; continue; }
     ini = xmltvTempo(iniS); fimp = xmltvTempo(fimS);
-    if (fimp <= ini || fimp < agora - EPG_JANELA_PASSADO) { p = fecha + 12; continue; }
+    if (fimp <= ini || fimp < agora - EPG_JANELA_PASSADO ||
+        (carga.memoriaBaixa && (fimp <= carga.agora || ini >= carga.agora + 24 * 3600))) {
+      p = fecha + 12; continue;
+    }
     t = strstr(p, "<title");
     if (t && t < fecha) {
       char *a = strchr(t, '>'), *b = strstr(t, "</title>");
@@ -1169,10 +1204,11 @@ static void epg_iniciar_local(void) {
     if (!cargaAtual()) reiniciarPend = 1;
     return;
   }
-  if (atomic_load(&epgFios) >= EPG_MAX_FIOS) return;
+  if (atomic_load(&epgFios) >= epgMemoriaFios) return;
   atomic_fetch_add(&epgFios, 1);
   carga.sessao = nv_perfil_sessao_ler(); carga.cancelada = 0;
   carga.perfil = perfilGrade; carga.nFiltro = 0;
+  carga.memoriaBaixa = epgMemoriaBaixa; carga.agora = time(NULL);
   pthread_mutex_lock(&trava);
   snprintf(carga.extra, sizeof carga.extra, "%s", extraUrl);
   snprintf(carga.m3u,sizeof carga.m3u,"%s",m3uUrl);carga.apenasProvedores=soProvedores;

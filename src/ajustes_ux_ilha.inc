@@ -893,7 +893,7 @@ static void ajPontEdValor(int i, int b) {
   uxRodape = 0; uxPendente = i;
 }
 static void ajIptvToqueEscolher(int i,int b) {
-  if(!ajPontEdVale() || (uxOp!=AJ_IPTV_CONTA && !ajIptvMenu(uxOp)) || i<0 || i>=nValores(uxOp))return;
+  if(!ajPontEdVale() || (uxOp!=AJ_GUIA_CATEGORIAS && uxOp!=AJ_IPTV_CONTA && !ajIptvMenu(uxOp)) || i<0 || i>=nValores(uxOp))return;
   ajPontEdValor(i,b);uxAplicar();
 
 }
@@ -1065,7 +1065,7 @@ static void aj2EditorNumero(GfxRect m) {
     if (ef && ef[0] && y + 12 + 80 <= aj2EditorBase(m) + 4.0f) {
       y += 12; y += aj2Ef("aj_info", i18n(ef), lx, y, lw, 1); } }
   if (pw > 0) aj2PreviaPendente(m.x + m.w - 52 - pw, aj2CabecalhoEditor(m), pw);
-  { AjDica d[3] = { { "← →", "Ajustar" }, { "OK", "Confirmar" }, { "Voltar", "Cancelar" } };
+  { AjDica d[3] = { { "← →", "Ajustar" }, { "OK", "Confirmar" }, { "Voltar", uxOp==AJ_GUIA_CATEGORIAS?"Fechar":"Cancelar" } };
     aj2RodapeEditor(m, lw, d, 3); }
 }
 static void aj2EditorEscolha(GfxRect m) {
@@ -1104,7 +1104,7 @@ static void aj2EditorEscolha(GfxRect m) {
     if (uxOp == AJ_TEX_MB && texAcima(i)) snprintf(t, sizeof t, "%s", i18n(o->valores[i]));
     if (ajPontEditor) {
       PonteiroFn ac = uxOp == AJ_TEX_MB && texAcima(i) ? NULL : ajPontEdValor;
-      PonteiroFn ativar = uxOp==AJ_IPTV_CONTA || ajIptvMenu(uxOp) ? ajIptvToqueEscolher : NULL;
+      PonteiroFn ativar = uxOp==AJ_GUIA_CATEGORIAS || uxOp==AJ_IPTV_CONTA || ajIptvMenu(uxOp) ? ajIptvToqueEscolher : NULL;
 #ifdef NV_TOUCH_UI
       if (ajTelaCheia())
         ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, y0, aj2EditorBase(m), ac, ativar, i, 0);
@@ -1127,7 +1127,12 @@ static void aj2EditorEscolha(GfxRect m) {
       }
       int indisp = uxOp == AJ_TEX_MB && texAcima(i);
       TxtLinha l = ajTxtC(TXT_V2_ROT, t, lw - 210 - (textoX - r.x));
-      txt_desenhar_alpha(l, textoX, r.y + (96 - l.h) * 0.5f, indisp ? 0.4f : foco ? 1.0f : 0.88f);
+      if(uxOp==AJ_GUIA_CATEGORIAS && i<uxNCategorias && uxCategorias[i].conta[0]) {
+        TxtLinha conta=ajTxtC(TXT_V2_24,uxCategorias[i].conta,lw-210-(textoX-r.x));
+        float yy=r.y+(96-l.h-conta.h-4)*0.5f;
+        txt_desenhar_alpha(l,textoX,yy,foco?1.0f:0.88f);
+        txt_desenhar_alpha(conta,textoX,yy+l.h+4,0.55f);
+      } else txt_desenhar_alpha(l, textoX, r.y + (96 - l.h) * 0.5f, indisp ? 0.4f : foco ? 1.0f : 0.88f);
       if (indisp) {
         char mot[96];
         TxtLinha m;
@@ -1138,8 +1143,9 @@ static void aj2EditorEscolha(GfxRect m) {
         txt_desenhar_alpha(m, mx - m.w, r.y + (96 - m.h) * 0.5f, 0.5f);
       }
     }
-    if (i == uxOriginal && uxOp!=AJ_IPTV_ACOES && uxOp!=AJ_IPTV_EXCLUIR && (!ajIptvGerenciador(uxOp) || ajIptvDoTipo(ajIptvTipo(uxOp),i)==iptv_conta_indice())) {
-      TxtLinha s = ajTxt(TXT_V2_28, "Salvo");
+    if ((uxOp==AJ_GUIA_CATEGORIAS && i<uxNCategorias && uxCategorias[i].oculta) ||
+        (uxOp!=AJ_GUIA_CATEGORIAS && i == uxOriginal && uxOp!=AJ_IPTV_ACOES && uxOp!=AJ_IPTV_EXCLUIR && (!ajIptvGerenciador(uxOp) || ajIptvDoTipo(ajIptvTipo(uxOp),i)==iptv_conta_indice()))) {
+      TxtLinha s = ajTxt(TXT_V2_28, uxOp==AJ_GUIA_CATEGORIAS?"Oculto no guia":"Salvo");
       float sx = r.x + r.w - 30 - s.w;
       txt_desenhar_alpha(s, sx, r.y + (96 - s.h) * 0.5f, 0.55f);
       ajIcone("aj_check", sx - 12 - 26, r.y + 35, 26, 0.55f);
@@ -1151,7 +1157,7 @@ static void aj2EditorEscolha(GfxRect m) {
 #endif
   if (pw > 0 && uxOp == AJ_P2P_DESTINO) ajUsbPainel(m.x + m.w - 52 - pw, y0, pw, 1);
   else if (pw > 0) aj2PreviaPendente(m.x + m.w - 52 - pw, y0, pw);
-  { AjDica d[3] = { { "↑ ↓", "Escolher" }, { "OK", "Confirmar" }, { "Voltar", "Cancelar" } };
+  { AjDica d[3] = { { "↑ ↓", "Escolher" }, { "OK", "Confirmar" }, { "Voltar", uxOp==AJ_GUIA_CATEGORIAS?"Fechar":"Cancelar" } };
     aj2RodapeEditor(m, lw, d, 3); }
 }
 static int aj2EditorPainel(void) {
