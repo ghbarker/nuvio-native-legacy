@@ -136,6 +136,7 @@ static void capturaPainel(const char *nome, SDL_Window *win, int addonsPane) {
 }
 
 static void poeCanal(int i, const char *nome, const char *logo) {
+  assert(canaisReservar(i+1));
   snprintf(canais[i].id, sizeof canais[i].id, "c%d", i);
   snprintf(canais[i].nome, sizeof canais[i].nome, "%s", nome);
   snprintf(canais[i].logo, sizeof canais[i].logo, "%s", logo);
@@ -240,6 +241,7 @@ static void semearGuia(void) {
 }
 
 int main(int argc, char **argv) {
+  assert(canaisReservar(G_MAX_CANAL));
   const char *saida = argc > 1 ? argv[1] : nvt("/nuvio-guia");
   char nome[600];
   SDL_Window *w;

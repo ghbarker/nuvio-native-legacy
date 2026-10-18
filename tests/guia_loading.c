@@ -74,14 +74,14 @@ static void duasContas(void) {
   assert(sCanais[0].epg==-1 && sCanais[1].epg==-1);
   puts("PASS: two accounts of the same native type both reach the guide with separate identities");
 }
-int main(void){duasContas();
+int main(void){assert(canaisReservar(2));duasContas();
   for(int i=0;i<=4;i++)executar(i,0);
   executar(0,1);
   nCanais=2;fontesOk=1;nFontes=0;estado=G_PRONTO;assert(!guiaSemCanais());
   estado=G_FALHOU;assert(!guiaSemCanais()); // Cached native channels still work.
   nCanais=0;assert(guiaSemCanais());estado=G_BAIXANDO;assert(!guiaSemCanais());
   nCanais=2;nCats=1;nCatsVisiveis=1;catsVisiveis[0]=0;nFavOrd=0;catIni[0]=0;catN[0]=2;
-  memset(canais,0,sizeof canais);strcpy(canais[0].id,"xtream:1");strcpy(canais[1].id,"xtream:2");
+  assert(canaisReservar(2));memset(canais,0,2*sizeof *canais);strcpy(canais[0].id,"xtream:1");strcpy(canais[1].id,"xtream:2");
   guia_focar_id("xtream:2");assert(focoCol==1&&!focoPend[0]);
   guia_focar_id("xtream:missing");assert(!strcmp(focoPend,"xtream:missing"));
   guia_focar_id("xtream:1");assert(focoCol==0&&!focoPend[0]);
