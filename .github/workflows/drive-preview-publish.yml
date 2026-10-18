@@ -1,4 +1,4 @@
-name: Publish verified encrypted Drive test APK
+name: Publish verified Drive scope test APK
 on:
   workflow_dispatch:
   push:
@@ -16,80 +16,97 @@ jobs:
     steps:
       - name: Require completed Android and Linux/macOS checks
         run: |
-          python3 - <<'PYVERIFY'
+          python3 - <<'VERIFY'
           import json,subprocess
-          for run in (39162545474,39162545376):
+          for run in (39166925586,39166925605):
               d=json.loads(subprocess.check_output(['gh','api',f'repos/ghbarker/nuvio-native-legacy/actions/runs/{run}']))
               assert d['status']=='completed' and d['conclusion']=='success'
-              assert d['head_sha']=='85e0824d43725c0c5486be2a88e9acff2ff7063a'
-          jobs=json.loads(subprocess.check_output(['gh','api','repos/ghbarker/nuvio-native-legacy/actions/runs/39162545376/jobs']))['jobs']
-          assert len(jobs)==4 and all(j['conclusion']=='success' for j in jobs)
-          PYVERIFY
+              assert d['head_sha']=='e0a93d345128ef48ef313a4265366da9f01543ba'
+          jobs=json.loads(subprocess.check_output(['gh','api','repos/ghbarker/nuvio-native-legacy/actions/runs/39166925605/jobs']))['jobs']
+          assert len(jobs)==10 and all(j['conclusion']=='success' for j in jobs)
+          VERIFY
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs61-85e0824d43725c0c5486be2a88e9acff2ff7063a
-          run-id: 39162545474
+          name: Nuvio-TV-Mobile-Test-Logs62-e0a93d345128ef48ef313a4265366da9f01543ba
+          run-id: 39166925586
           github-token: ${{ github.token }}
       - name: Verify exact APK and record validation
         run: |
-          python3 - <<'PYVERIFY'
+          python3 - <<'VERIFY'
           import hashlib,json,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs61.apk')
-          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='c2896699150a532bb076951724f90664e701eb0a330b7eec0a85dc6dac64c057'
-          p=pathlib.Path('Logs61-validation.json');d=json.loads(p.read_text())
-          assert d['source_commit']=='534cfd436cf14621207d0b53fb1d9e5c073f0d11'
-          assert d['source_tree']=='6c67a6d7fef69815732500517e0cd587869d6c03'
-          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20071
-          assert d['version_name']=='2.0.71-test-logs61'
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs62.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='43499fac5a77beb1c8b63179a2462aa1aa39fb5e7c681d542448b428f6e381f0'
+          p=pathlib.Path('Logs62-validation.json');d=json.loads(p.read_text())
+          assert d['source_commit']=='16b2e8e9823b7322d7da1e5f665447bdf1f33786'
+          assert d['source_tree']=='b9a7d1135c4bf789a947c659f195f9e6e41ab0ba'
+          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20072
+          assert d['version_name']=='2.0.72-test-logs62'
           assert d['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           with zipfile.ZipFile(apk) as z:
               assert z.testzip() is None
-              assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          d.pop('all_passed',None)
-          d.pop('native_account_regressions',None)
-          d.update(automated_checks_passed=True,audio_label_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,android_unit_tests=True,arm64_16kb_alignment=True)
-          d['check_runs']={'android':39162545474,'linux_macos':39162545376}
-          d['backup_baseline_run']=39160900704
-          d['source_audio_label_test']='Automated fixtures passed; awaiting APK approval; follow-up to PR #532'
-          d['excluded_logins']='Nuvio, Google Drive, Trakt, Discord and Simkl login sessions remain device-local'
-          d['password']='Chosen by user in app, never uploaded or persisted'
+              assert {s.split('/')[1] for s in z.namelist() if s.startswith('lib/') and s.endswith('.so')}=={'arm64-v8a','armeabi-v7a'}
+          for field in ('all_passed','native_account_regressions','included_prs'):d.pop(field,None)
+          d.update(backup_scope_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,linux_full_source_checks=True,android_build=True,android_unit_tests=True,arm64_16kb_alignment=True,native_suite_invocations=64)
+          d['check_runs']={'android':39166925586,'linux_macos':39166925605}
+          d['clean_pr_commit']='3e3f8d1166a1c88e92e0ec045852d78bb3a0466e'
+          d['implementation_equivalence']='30 backup/Drive source files identical to the clean PR'
+          d['ownership']='Actual upstream c_settings_v1 policy; 46 local scalar choices, 216 account-sync choices excluded on the clean branch'
+          d['translation_lint']='No added failures; the same 47 existing errors are reproduced on unchanged upstream'
+          d['user_approval']='Pending this corrected build; no upstream PR published'
+          d['excluded_logins']='Nuvio, Google Drive, Trakt, Discord and Simkl login sessions'
           p.write_text(json.dumps(d,indent=2)+'\n')
-          PYVERIFY
-      - name: Publish update-compatible preview and test steps
+          VERIFY
+      - name: Publish preview and precise verification steps
         run: |
           set -euo pipefail
           cat > notes.txt <<'NOTES'
-          Update Nuvio TV/Mobile Test without uninstalling.
-
-          Follow-up to PR #532: when declared audio metadata is absent, the audio-language chip can use flags, language names and ISO tags from that stream's title, name, description and filename. Explicit audio metadata wins. Subtitle-only labels and generic Dual/Multi hints do not identify an audio language. No playback probing or track selection changes.
-
-          Includes the Logs60 Drive backup fixes: visible Create/Confirm/Restore password instructions and expanded native-only setting coverage, including all four audio/subtitle language choices. Nuvio-synced settings stay separate. Create a NEW backup for previously omitted choices.
-
-          Android build/unit checks and Linux/macOS source-filter/parser regressions passed, including full-source normal and ASan/UBSan checks. Package, persistent signer, increasing version, both ARM ABIs and 16KB alignment verified.
-
-          See Logs61-test-steps.txt. No new product PR is published before APK approval.
-          NOTES
-          cat > Logs61-test-steps.txt <<'TESTSTEPS'
-          Logs61 — audio label fallback and Drive backup corrections
-
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall.
-          This build includes all Logs60 Drive fixes.
 
-          Audio filter (follow-up to PR #532):
-          1. In Settings, choose Turkish as the audio language. Check that the Sources audio-language chip/help identifies Turkish.
-          2. Open a movie or episode with AIOStreams, Torrentio, MediaFusion, Comet or another installed add-on. Open the full Sources list with the audio filter OFF first.
-          3. Find a source showing a Turkish audio hint in its own title, filename or description: the Turkish flag, [TR], TUR, Turkish, Türkçe/Turkce or Dublaj. Turn the audio-language chip ON. Those sources should remain even without separate declared audio metadata.
-          4. A source explicitly declaring English-only audio should stay excluded despite a conflicting Turkish filename label. Turkish subtitles alone, or generic Dual/Multi/Dubbed without a language hint, should not qualify.
-          5. Change the audio preference to another available language, such as Polish or German. Reopen Sources and toggle the chip. It should match that language's names, codes and flags instead. Turn it OFF to recover the complete list. Restore your usual audio-language preference after testing.
+          Final Drive backup audit fixes: use the current Nuvio account-sync policy rather than duplicate synchronized settings. Include current upstream Live TV URL/source preferences, guide favorites and manual EPG mappings. Preserve existing connections/logins; hardware restore stays opt-in. The clean upstream PR branch is independent of pending font/Live TV UI implementations.
 
-          No video probing is involved. Release labels are hints; explicit audio declarations take priority. The fallback changes only the audio-language chip and does not alter actual playback track selection, subtitle preferences, or the separate shared source filters.
+          Android build/unit checks and all 64 Linux/macOS normal/sanitizer suite invocations passed. Package, persistent signer, increasing version, both ARM ABIs and ARM64 16KB alignment verified. The complete translation lint retains 47 pre-existing upstream errors; no new failures were introduced.
 
-          Drive corrections (if you have not tested Logs60):
-          1. Choose your main and second subtitle languages, main and second audio languages, and a recognizable native preference such as synopsis size.
-          2. Settings > Account and services > Google Drive backup > Make backup now. Check that the keyboard panel says Create a backup password, then Confirm the backup password. Use the same password of at least 8 characters.
-          3. Change those settings. Restore the NEW backup: check the Restore password heading, then leave hardware settings Off and confirm restore.
-          4. Check all four languages/native preferences returned, addons work immediately, and the choices survive restarting. Earlier backups never contained the missing language fields, so use a new backup made in Logs60/61.
+          See Logs62-test-steps.txt for the short local/hardware restore check. No product PR is published before approval of this corrected test build.
+          NOTES
+          cat > Logs62-test-steps.txt <<'TESTSTEPS'
+          Logs62 — final Google Drive backup scope check
 
-          Nuvio-synced settings remain separate. Rotating service login tokens remain excluded. No new product PR will be opened before approval of this APK.
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear app data.
+          Package: space.nuvio.nativelegacy.touch
+          Version: 2.0.72-test-logs62 (20072)
+          This build keeps your existing accounts and the same signing identity.
+
+          The backup now follows upstream's current Nuvio-sync policy. Languages, subtitle
+          appearance, source rules and Home-row preferences are handled by Nuvio account
+          sync. Drive backs up the remaining local choices/connections. Hardware settings
+          are included in the encrypted backup but require restore opt-in.
+
+          1. Record your existing Performance meter and Image quality choices.
+          2. Settings > This TV > Performance meter: select Minimal and Confirm.
+             In the same section, set Image quality to High and Confirm.
+          3. Settings > Account and services > Google Drive backup > Back up now.
+             Create and confirm a password of at least 8 characters. Wait for
+             "Backup saved to your Google Drive." Use a NEW backup created in Logs62.
+          4. Change Performance meter to Off and Image quality to Low. Confirm both.
+          5. Google Drive backup > Restore backup > choose the newest dated backup.
+             Enter its password. Leave "Include hardware settings: No", then choose
+             "Restore settings".
+          6. Verify Performance meter returned to Minimal. Image quality must remain Low
+             because you did not opt into restoring hardware settings. Confirm your
+             audio/subtitle language choices and add-ons remain available immediately.
+          7. Restore that SAME backup again, this time choosing
+             "Include hardware settings: Yes" before "Restore settings".
+             Image quality should now return to High. Existing provider and Live TV
+             accounts should still be present, with no duplicate accounts from repeating
+             the restore. Restart the app and confirm the restored local choices persist.
+          8. Put Performance meter and Image quality back to the choices recorded in step 1.
+
+          If the Settings layout groups these rows differently, Performance meter and
+          Image quality are in the "This TV" section; the Drive entry is under
+          "Account and services". In a translated interface, use their translated labels.
+
+          The on-phone backup password headings and backup/restore process were already
+          tested. This short check verifies the corrected ownership and hardware boundary.
+          No source-language filter changes are included beyond those already in Logs61.
           TESTSTEPS
-          gh release create tv-mobile-test-logs-v61 Nuvio-TV-Mobile-Test-Logs61.apk Logs61-validation.json Logs61-test-steps.txt --target 534cfd436cf14621207d0b53fb1d9e5c073f0d11 --title 'TV/Mobile Test Logs61: audio language label fallback' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v62 Nuvio-TV-Mobile-Test-Logs62.apk Logs62-validation.json Logs62-test-steps.txt --target 16b2e8e9823b7322d7da1e5f665447bdf1f33786 --title 'TV/Mobile Test Logs62: final Drive backup audit fixes' --notes-file notes.txt --prerelease
