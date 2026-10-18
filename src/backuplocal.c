@@ -122,3 +122,17 @@ int backuplocal_ler(const char *texto,size_t n,const char *dono,int perfil,Backu
 falha:
   backuplocal_liberar(b);return 0;
 }
+
+int backuplocal_compativel(const BackupLocal *b,const char *dono,int perfil) {
+  return b && dono && b->perfil==perfil && !strcmp(b->dono,dono);
+}
+int backuplocal_identidade(const char *texto,size_t n,char *dono,size_t cap,int *perfil) {
+  if(!texto || !dono || !perfil || n>BACKUP_LOCAL_MAX || memchr(texto,0,n) || !verificarCrc(texto,n))return 0;
+  BlLeitor r={texto,texto+n-15};char l[160],usuario[81];unsigned long long p;
+  if(!linha(&r,l,sizeof l) || strcmp(l,"NUVIO-LOCAL-BACKUP 1") ||
+     !linha(&r,l,sizeof l) || strncmp(l,"owner ",6) || !donoValido(l+6) || strlen(l+6)>=sizeof usuario)return 0;
+  memcpy(usuario,l+6,strlen(l+6)+1);
+  if(!campoNumero(&r,"profile",2147483647,&p) || !p || strlen(usuario)>=cap)return 0;
+  BackupLocal *b=NULL;if(!backuplocal_ler(texto,n,usuario,(int)p,&b))return 0;
+  backuplocal_liberar(b);memcpy(dono,usuario,strlen(usuario)+1);*perfil=(int)p;return 1;
+}

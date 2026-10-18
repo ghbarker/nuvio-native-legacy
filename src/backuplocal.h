@@ -17,6 +17,10 @@ int backuplocal_adicionar(BackupLocal *b,int tipo,const char *texto,size_t n);
 const char *backuplocal_parte(const BackupLocal *b,int tipo,size_t *n);
 int backuplocal_quantidade(const BackupLocal *b);
 long long backuplocal_criado(const BackupLocal *b);
+int backuplocal_compativel(const BackupLocal *b,const char *dono,int perfil);
+// Read-only metadata for listing/local journal recovery, not authorization.
+// Imports still call backuplocal_ler with the CURRENT authenticated identity.
+int backuplocal_identidade(const char *texto,size_t n,char *dono,size_t cap,int *perfil);
 // Allocates output. The caller frees it. CRC32 detects accidental corruption;
 // it is not authentication. Module payloads still need their owners' validation.
 int backuplocal_exportar(const BackupLocal *b,char **saida,size_t *n);
