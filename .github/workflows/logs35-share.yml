@@ -1,4 +1,4 @@
-name: Share verified Logs52 live recovery APK
+name: Share verified Logs53 live recovery APK
 on:
   workflow_dispatch:
 permissions:
@@ -9,57 +9,57 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TEST_RELEASE: tv-mobile-test-logs-v52
+      TEST_RELEASE: tv-mobile-test-logs-v53
     steps:
       - name: Require Android, Linux and macOS checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39098081921 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39098081921/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39098083360 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39099494248 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39099494248/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39099495837 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: d485bbe98158340ebac309a0af13bfe3e690c110
+          ref: f4517ef13e42774514edb72a92c3b1093bfdb7a6
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39098081921
-          name: Nuvio-TV-Mobile-Test-Logs52-e419020f879bfcbc9e4d29fd8ef4be37cbc3c7f1
+          run-id: 39099494248
+          name: Nuvio-TV-Mobile-Test-Logs53-662f3d992eab21d78a6e7e562164006165657736
           path: dist
       - name: Verify and describe the test build
         run: |
           set -euo pipefail
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs52.apk
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs53.apk
           python3 - <<'PYCODE'
           import hashlib,json,pathlib,zipfile,os
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs52.apk'
-          p=root/'Logs52-validation.json';r=json.loads(p.read_text())
-          assert r['source_commit']=='d485bbe98158340ebac309a0af13bfe3e690c110' and r['source_tree']=='a018e8120af0fef2bb2763d056e57e1687ca4c71'
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs53.apk'
+          p=root/'Logs53-validation.json';r=json.loads(p.read_text())
+          assert r['source_commit']=='f4517ef13e42774514edb72a92c3b1093bfdb7a6' and r['source_tree']=='0f9be00e81438d7abd0f16311b9471244ac4bcbe'
           assert r['package']=='space.nuvio.nativelegacy.touch'
-          assert r['version_code']==20062 and r['version_name']=='2.0.62-test-logs52'
+          assert r['version_code']==20063 and r['version_name']=='2.0.63-test-logs53'
           assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==r['apk_bytes'] and hashlib.sha256(apk.read_bytes()).hexdigest()==r['apk_sha256']
           assert os.environ['TEST_RELEASE']=='tv-mobile-test-logs-v'+r['version_name'].split('-logs')[-1]
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          r.update(all_passed=True,android_16k_alignment=True,android_run=39098081921,linux_run=39098081921,macos_run=39098083360,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v51',device_approval_pending=True)
+          r.update(all_passed=True,android_16k_alignment=True,android_run=39099494248,linux_run=39099494248,macos_run=39099495837,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v52',device_approval_pending=True)
           r['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+os.environ['TEST_RELEASE']+'/'+apk.name
           r['android_jvm_unit_suites']=['LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest']
-          r['normal_regression_suites']=['gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
-          r['asan_ubsan_suites']=['gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window']
-          r['macos_asan_ubsan_suites']=['gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window']
-          r['macos_normal_suites']=['gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
+          r['normal_regression_suites']=['fonteinfo','fonteinfo_layout','fontefalha','fonteantecipa','ajustes_secoes','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
+          r['asan_ubsan_suites']=['fonteinfo','fonteinfo_layout','fontefalha','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window']
+          r['macos_asan_ubsan_suites']=['fonteinfo','fonteinfo_layout','fontefalha','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window']
+          r['macos_normal_suites']=['fonteinfo','fonteinfo_layout','fontefalha','fonteantecipa','ajustes_secoes','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
           r['included_upstream_gif_fix']='b2aa59adabf39f4f8e014a3e15b0dd37a61afeef'
-          r['issue']=589
-          r['duplicate_upstream_pr_needed']=False
+          r['issue']=457
+          r['upstream_pr_pending_device_approval']=True
           r['sanitizer_regressions']=True
-          r['retained_baseline_checks']='Logs50 broader account/EPG/settings checks retained; Logs51 live-playback fix device-approved. Logs52 reruns GIF and focused live-recovery suites.'
+          r['retained_baseline_checks']='Earlier account/EPG checks retained; Logs53 adds prepared-source metadata/layout/policy checks and reruns GIF and live-recovery regressions. Clean feature branch full-source Settings/pointer checks and i18n scanner also passed locally.'
           r['test_scope']='JVM tests exercise the real Media3 Player interface with a strict fake; JNI backend tests use fake JNI and a deterministic clock, including a simulated pause acknowledgement. No emulator or device playback pass is claimed. Android both ARM ABIs are built and apksigner verified.'
           p.write_text(json.dumps(r,indent=2)+'\n')
-          (root/'Logs52-testing.txt').write_text('Nuvio TV/Mobile Test - Logs52: upstream GIF animation fix (#589)\n\nInstall as an Update over the existing Nuvio TV/Mobile Test app. Do not uninstall or clear data. Same package and persistent signer; version code 20062, version 2.0.62-test-logs52. Includes the Logs51 live-playback fix already approved on the Cube.\n\nThis imports the existing upstream commit b2aa59ad for #589. No duplicate upstream PR is needed. The animation decode budget is preserved; moderately heavy GIFs animate more slowly instead of remaining static. Extremely heavy GIFs and devices whose animation budget is zero keep their safety limits. WebOS animation support is unchanged. Automated host tests do not constitute a Samsung Tizen hardware test.\n\nTest steps:\n1. Open the Home row with streaming-provider collections. Focus Netflix for 10 seconds, then Apple TV for 10 seconds. If those are your configured collection covers, both should animate. On a device with under 4GB RAM, Apple TV may animate slightly slower. The exact issue assets decode correctly; Apple TV uses a 1.323x longer playback clock at the 20MiB/s tier.\n2. Move focus between several collection cards. Check artwork, navigation and opening a collection still work. Return Home and focus the animated cards again.\n3. Play the previously troublesome Live TV channel for 5 minutes to confirm the Logs51 reconnect fix remains effective.\n4. If a card remains static, export a log immediately after focusing it and send the collection name. A GIF being over twice the budget, or a <=1GB animation-disabled device, can intentionally remain static.\n\nThe fix is already on upstream master. This build brings it into our test integration, which did not yet include it. No new product changes beyond that upstream GIF commit and the test version bump.\n')
+          (root/'Logs53-testing.txt').write_text("Nuvio TV/Mobile Test - Logs53: prepared source details (#457)\n\nInstall as an Update over Nuvio TV/Mobile Test. Do not uninstall or clear data. Package and persistent signing key are unchanged; version code 20063, version 2.0.63-test-logs53. Includes the approved Logs51 live-restart fix and the upstream GIF fix from Logs52.\n\n1. Open Settings > Playback > More options > Source selection. Enable Prepared source details. Keep Prepare the source when a title opens or Preload video enabled. Automatic source selection must be enabled; manual selection does not prepare a winner. The new switch defaults Off. You can also find it with Settings search: Prepared source details.\n2. Open a movie and wait for its existing source preparation. Below Play, known specifications should appear: resolution/quality/HDR/audio/channel/codec badges, file size and release group, when supplied by that source. Compare against the selected source in Sources. No title-level guesses, URL/provider-name inference or new media probes are used for these fields. Unknown information is omitted.\n3. Open a series and change the selected episode. Details must correspond to that episode's prepared source; the previous episode's details must disappear while its replacement prepares. Back out and open another title, and switch profiles if possible: details must not leak between targets or profiles.\n4. On the phone, try portrait/landscape and a larger interface font/text scale. The specifications should wrap without covering Play or the synopsis. On the Cube, check remote focus and Play still work. Toggle the new switch Off and reopen a title: the extra row should disappear and the choice should remain saved.\n5. Optional preparation check: turn both source preparation and Preload video Off, reopen a new title, and leave Prepared source details On. The row should stay absent; this switch alone never starts source searches/resolution or buffering. Restore your preferred preparation settings afterward.\n\nThe feature adds no buffering policy changes. For the separately reported 4K TorBox/AIOStreams buffering, compare the same source after Buffer size is set to 128 MB and also compare a 1080p source. The supplied Logs51 capture shows real buffering, with no false live-stall recovery. More network-reader evidence is needed before claiming a cause or code fix.\n\nIf playback buffers again, leave Nuvio open and run in Bugjaeger Commands/Shell (no adb shell prefix):\ndumpsys package space.nuvio.nativelegacy.touch | grep versionName > /sdcard/Download/Nuvio-Cube-Playback.txt; logcat -d -v threadtime -s nuvio:I NvPlayer:V nuvio-paralelo:V >> /sdcard/Download/Nuvio-Cube-Playback.txt 2>&1; wc -c /sdcard/Download/Nuvio-Cube-Playback.txt\nDownload via Bugjaeger Files from /sdcard/Download. Share privately because direct ADB capture bypasses app credential redaction.\n\nNo upstream PR for #457 until this APK is tested and approved. Product and regression coverage stay in separate commits. Test packaging and local log export stay out of the product PR.\n")
           PYCODE
       - name: Publish verified APK and instructions
         env:
@@ -67,11 +67,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target d485bbe98158340ebac309a0af13bfe3e690c110 --title 'Nuvio TV/Mobile Test - Logs52: Upstream collection GIF animation fix' --notes-file dist/Logs52-testing.txt
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target f4517ef13e42774514edb72a92c3b1093bfdb7a6 --title 'Nuvio TV/Mobile Test - Logs53: Prepared source details' --notes-file dist/Logs53-testing.txt
           fi
-          for name in Nuvio-TV-Mobile-Test-Logs52.apk Logs52-testing.txt; do
+          for name in Nuvio-TV-Mobile-Test-Logs53.apk Logs53-testing.txt; do
             if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
               gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" "dist/$name"
             fi
           done
-          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs52-validation.json --clobber
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs53-validation.json --clobber
