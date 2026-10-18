@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ae64dc019f872bbbf871189cf2495b4a76b0cd9d
+          ref: 3cc639cc6ee29314f194f4547905041ac65c093c
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -30,7 +30,7 @@ jobs:
           mkdir -p diagnostics
           python3 - <<'PY'
           import os, pathlib, signal, subprocess
-          for suite in ('backupapp', 'drivebackup'):
+          for suite in ('backup_restore_addons',):
               for sanitize in ('0', '1'):
                   name = suite + ('-sanitizers' if sanitize == '1' else '-normal')
                   path = pathlib.Path('diagnostics', name + '.log')
