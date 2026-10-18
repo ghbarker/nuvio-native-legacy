@@ -110,13 +110,49 @@ int main(void) {
  assert(!strstr(newSections[0],CHAVE[AJ_FONTE_UI]));
  for(int i=0;i<3;i++)free(newSections[i]);
  oldSections[0]="NUVIO-LOCAL-SETTINGS 1\nscope device\nunknownKey 0\n";
- assert(!ajustes_backup_selecionar(oldSections,0,newSections));
- for(int i=0;i<3;i++)assert(!newSections[i]);
+ assert(ajustes_backup_selecionar(oldSections,0,newSections));
+ assert(!strstr(newSections[0],"unknownKey"));
+ for(int i=0;i<3;i++)free(newSections[i]);
  oldSections[0]="NUVIO-LOCAL-SETTINGS 1\nscope device\nqualidadeImagem 1\n";
  oldSections[2]="NUVIO-LOCAL-SETTINGS 1\nscope hardware\nqualidadeImagem 2\n";
  assert(!ajustes_backup_selecionar(oldSections,1,newSections));
  oldSections[0]="NUVIO-LOCAL-SETTINGS 1\nscope device\ninterfaceModoLocal 1\n";oldSections[2]=NULL;
- assert(!ajustes_backup_selecionar(oldSections,0,newSections));
+ assert(ajustes_backup_selecionar(oldSections,0,newSections));
+ assert(!strstr(newSections[0],"interfaceModoLocal"));
+ for(int i=0;i<3;i++)free(newSections[i]);
+ // Mixed-version backups restore compatible settings and connections even
+ // when adjacent settings were removed, changed type/range, or moved scope.
+ // Keep current values for skipped settings; never print the rejected values.
+ BackupLocal *future=backuplocal_novo(c.usuario,c.perfil,1792330002);assert(future);
+ const char *futureDevice="NUVIO-LOCAL-SETTINGS 1\nscope device\nremovedFutureSetting PRIVATE_BACKUP_SENTINEL\ninterfaceModoLocal 1\n";
+ char futureHardware[512];snprintf(futureHardware,sizeof futureHardware,
+   "NUVIO-LOCAL-SETTINGS 1\nscope hardware\nqualidadeImagem 999\ntamanhoAjustesLocal 1\n%s PRIVATE_BACKUP_SENTINEL\n%s 99999999999999999999999\n",
+   CHAVE[AJ_BUFFER],CHAVE[AJ_TEX_MB]);
+ assert(backuplocal_adicionar(future,BACKUP_AJUSTES_APARELHO,futureDevice,strlen(futureDevice)));
+ assert(backuplocal_adicionar(future,BACKUP_AJUSTES_HARDWARE,futureHardware,strlen(futureHardware)));
+ size_t storesSize=0;const char *stores=backuplocal_parte(b,BACKUP_LOCAIS,&storesSize);assert(stores);
+ assert(backuplocal_adicionar(future,BACKUP_LOCAIS,stores,storesSize));
+ int oldBuffer=valor[AJ_BUFFER],oldMemory=valor[AJ_TEX_MB];
+ valor[AJ_INTERFACE_MODO]=0;valor[AJ_QUALIDADE_IMG]=1;valor[AJ_TAMANHO_AJUSTES]=0;assert(gravar());
+ BackupLocal *futureSelected=NULL;assert(backupapp_selecionar(&c,future,0,&futureSelected));
+ assert(backupapp_validar(&c,futureSelected));assert(backupapp_restaurar(&c,futureSelected)==BACKUP_RESTORE_OK);
+ assert(valor[AJ_TAMANHO_AJUSTES]==0);backuplocal_liberar(futureSelected);
+ assert(backupapp_selecionar(&c,future,1,&futureSelected));
+ assert(backupapp_validar(&c,futureSelected));assert(backupapp_restaurar(&c,futureSelected)==BACKUP_RESTORE_OK);
+ assert(valor[AJ_TAMANHO_AJUSTES]==1 && valor[AJ_INTERFACE_MODO]==0 && valor[AJ_QUALIDADE_IMG]==1);
+ assert(valor[AJ_BUFFER]==oldBuffer && valor[AJ_TEX_MB]==oldMemory);
+ same("ltv-urls-p7.txt","m3u\tDestination\thttps://destination.invalid/list\nm3u\tSource\thttps://source.invalid/list\n");
+ same("sessao.txt",session);same("trakt-p7.txt","destination-rotating-token\n");
+ // The plan's direct merge path has the same skip behaviour. A rejected
+ // setting does not erase the original persisted line or its current value.
+ assert(ajustes_backup_mesclar(AJ_BACKUP_HARDWARE,"qualidadeImagem 1\ntamanhoAjustesLocal 0\n",futureHardware,&merged));
+ assert(strstr(merged,"qualidadeImagem 1\n") && strstr(merged,"tamanhoAjustesLocal 1\n"));free(merged);
+ assert(backupapp_validar(&c,future));assert(backupapp_restaurar(&c,future)==BACKUP_RESTORE_OK);
+ assert(valor[AJ_INTERFACE_MODO]==0 && valor[AJ_QUALIDADE_IMG]==1);
+ backuplocal_liberar(futureSelected);backuplocal_liberar(future);
+ // Version/identity and duplicate-key ambiguity are still structural errors.
+ oldSections[0]="NUVIO-LOCAL-SETTINGS 99\nscope device\n";
+ assert(!ajustes_backup_selecionar(oldSections,1,newSections));
  BackupLocal *bad=backuplocal_novo(c.usuario,c.perfil,1792330001);assert(bad);
  assert(backuplocal_adicionar(bad,BACKUP_AJUSTES_APARELHO,"bad",3));
  assert(!backupapp_validar(&c,bad) && backupapp_restaurar(&c,bad)==BACKUP_RESTORE_INVALIDO);backuplocal_liberar(bad);

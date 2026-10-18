@@ -22,4 +22,8 @@ else
 fi
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer);fi
 cc "${sources[@]}" tests/backupapp.c "${flags[@]}" -o "$task_dir/teste" "${libs[@]}" -Wno-deprecated-declarations
-"$task_dir/teste"
+"$task_dir/teste" | tee "$task_dir/output.log"
+if grep -q 'PRIVATE_BACKUP_SENTINEL' "$task_dir/output.log"; then
+  echo 'FAIL: restore diagnostics exposed a rejected backup value' >&2
+  exit 1
+fi
