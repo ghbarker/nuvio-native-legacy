@@ -24,7 +24,7 @@ cc ${backup_extra[@]+"${backup_extra[@]}"} ${flags[@]+"${flags[@]}"} tests/guiac
   src/epg.c src/xtepg.c src/lembrete.c src/guialembrete.c \
   src/fontecache.c src/cachearte.c src/cachedisco.c \
   -Isrc -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
-  -O1 -g -Wno-macro-redefined -o "$work/test"
+  -O1 -g -Wno-macro-redefined -lpthread -lm -o "$work/test"
 NUVIO_DADOS="$work/dados" "$work/test" "$work/dados"
 if [ "${GUIACACHE_BASELINE:-0}" != 1 ]; then
   GUIACACHE_CONTRAST_ONLY=1 "$work/test" "$work/dados"
