@@ -342,3 +342,6 @@
   0, /* clear cache action */
   0, /* tunneled playback: Off */
   1, /* experimental P7 conversion: Off until explicitly enabled */
+#ifdef NV_ANDROID
+  0, /* Google Drive backup action */
+#endif

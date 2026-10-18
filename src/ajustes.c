@@ -5,6 +5,7 @@
 #include "ajustes.h"
 #include "jsw.h"
 #include <limits.h>
+#include "drivebackup.h"
 #include "player.h"
 #include "legenda.h"
 #include "legenda2.h"
@@ -697,6 +698,9 @@ typedef enum {
   AJ_LIMPAR_CACHE,
   AJ_TUNNELING,        // Android-only, device-local; off by default, append-only.
   AJ_DV7, // independent P7 conversion, append-only
+#ifdef NV_ANDROID
+  AJ_DRIVE_BACKUP,
+#endif
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1817,6 +1821,9 @@ static const Opcao OPCOES[AJ_N] = {
   ACAO("Limpar cache"),
   ESC("Reprodução em túnel", V_VIDRO_FOSCO, 2),
   ESC("Dolby Vision P7 para P8.1 (experimental)", V_LIGA, 2),
+#ifdef NV_ANDROID
+  ACAO("Backup no Google Drive"),
+#endif
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -2139,6 +2146,9 @@ static const char *CHAVE[] = {
   "-limparCache",
   "tunneledPlaybackLocal",
   "dv7ConversionLocal",
+#ifdef NV_ANDROID
+  "-googleDriveBackup",
+#endif
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -4633,6 +4643,7 @@ static const char *urlAddTexto(void) {
 static const char *URL_ALFA =
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?=&%#+~@!,;|";
 
+static int backupRecarregando;
 void ajustes_dir(const char *dir) {
   FILE *f;
   char caminho[600], linha[96];
@@ -4670,12 +4681,12 @@ void ajustes_dir(const char *dir) {
   valor[AJ_NT_ORDEM] = 0;
   f = fopen(caminho, "r");
   if (!f) {
-    efeitos720Migrar(0);
+    if (!backupRecarregando) efeitos720Migrar(0);
     // Nunca gravou nada: o idioma nasce automatico (o padrao de valor[]).
     valor[AJ_IDIOMA] = 0;
-    performanceAutoMigrar();
+    if (!backupRecarregando) performanceAutoMigrar();
 #ifdef NV_TEX_MB_FIXO
-    memoriaMigrar();
+    if (!backupRecarregando) memoriaMigrar();
     if (valor[AJ_TEX_MB] > 0) tex_definir_orcamento_mb(ajustes_tex_mb());
 #endif
     gfx_escala_ui_definir(ajustes_tamanho_ui());
@@ -4849,7 +4860,7 @@ void ajustes_dir(const char *dir) {
   // gravar() e DEPOIS do idioma restaurado: gravar antes levava ao disco o
   // idioma do arranque com a marca de automatico, e a escolha manual desta TV
   // se perdia no arranque seguinte.
-  if (lig(AJ_DET_TRAILER_SOM)) {
+  if (!backupRecarregando && lig(AJ_DET_TRAILER_SOM)) {
     valor[AJ_DET_TRAILER_SOM] = 1;
     if (!lig(AJ_HERO_TRAILER_SOM)) {
       valor[AJ_HERO_TRAILER_SOM] = 0;
@@ -4859,6 +4870,9 @@ void ajustes_dir(const char *dir) {
   }
   }
   fclose(f);
+  // Restored settings already use this version's validated schema. Running
+  // startup migrations here can overwrite them, or re-enable log consent.
+  if (!backupRecarregando) {
   efeitos720Migrar(1);
   if (escalaVersao < 1) gravar();
   // "DINAMICA ESTILIZADA" SAIU (03/10/2026): a base tingida virou o Fundo
@@ -5041,6 +5055,7 @@ void ajustes_dir(const char *dir) {
   // Owner: reset even saved manual performance choices once per device.
   // Run after legacy migrations so they cannot replace Automatic.
   performanceAutoMigrar();
+  }
   // O limite mora em fileiras.c; esta linha e so o espelho dele. Ler daqui em
   // vez de gravar evita a divergencia: o arquivo de ajustes nao guarda o
   // numero, entao nao ha como os dois discordarem.
@@ -5063,6 +5078,10 @@ void ajustes_dir(const char *dir) {
   legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
   ppReconciliar();
   ajSombraSync();   // o que veio do disco nao e mudanca de ninguem
+}
+void ajustes_backup_recarregar(const char *dir) {
+  int antes=backupRecarregando;backupRecarregando=1;
+  ajustes_dir(dir);backupRecarregando=antes;
 }
 
 static int gravar(void) {
@@ -6023,6 +6042,9 @@ static int dePerfil(int i) {
   return !somenteDesteAparelho(i);
 }
 
+static int ajustePortavel(int op);
+#include "ajustes_backup.inc"
+
 static void nomePerfil(char *dst, size_t tam, int perfil) {
   snprintf(dst, tam, "ajustes-p%d.txt", perfil);
 }
@@ -6530,6 +6552,7 @@ void ajustes_encerrar(void) {
   // during periodic sync; no editor-specific cloud hook is required.
   if (sessao_logada()) sync_iniciar();
   ajIptvLimparForm(); teclado_esquecer();
+  drivebackup_fechar();
   // One network cycle for all row changes made in this visit (low-end TVs).
   if (fileirasBusca) { fileirasBusca = 0; desc_repetir(); }
   pediuRelogio = 0; faRetornarFolha = 0; uxCancelar(); uxRetornarOp = -1; guiaFechar(); ajlog_vazar_tudo();
@@ -9293,6 +9316,7 @@ static const char *uxCaminho(int op);
 static const char *uxBloco(int op);
 static void eventoTela(const SDL_Event *e);
 void ajustes_evento(const SDL_Event *e) {
+  if(drivebackup_aberto()){drivebackup_evento(e);return;}
   pediuRelogio = 0;
 #ifdef NV_TOUCH_UI
   if (e->type == SDL_KEYDOWN) ajToqueLimpar();
@@ -9405,6 +9429,7 @@ static void eventoTela(const SDL_Event *e) {
     if (focoOp == AJ_AVISO_LEGAL) { registro_legal_abrir(); return; }
     if (focoOp == AJ_VER_REGISTRO) { registro_abrir(); return; }
 #ifdef NV_ANDROID
+    if (focoOp == AJ_DRIVE_BACKUP) { drivebackup_abrir(); return; }
     if (focoOp == AJ_BAIXAR_REGISTRO) {
       android_baixar_registro(registro_arquivo(), i18n("Registro salvo."),
                              i18n("Não foi possível salvar o registro. Tente outro local."));
@@ -9612,6 +9637,7 @@ static void eventoTela(const SDL_Event *e) {
 
 static void aj2Atualizar(float dt);
 void ajustes_atualizar(float dt, Uint32 agora) {
+  if(drivebackup_aberto()){drivebackup_atualizar();return;}
   if(iptvForm.tipo && !nv_perfil_sessao_atual(iptvForm.sessao)) { ajIptvLimparForm();uxCancelar();stCampo=0;teclado_esquecer(); }
   ajLegendaEspelhar(); ajIptvEspelhar();
   AJ_ESCALA_INI();
@@ -10422,6 +10448,7 @@ static int ajQuadroPlugins;  // captura: a de plugins (foco + 1)
 static void ajDesenharTudo(Uint32 agora);
 // Own Settings scale: the virtual canvas and the active drawing factor agree.
 void ajustes_desenhar(Uint32 agora) {
+  if(drivebackup_aberto()){drivebackup_desenhar();return;}
 #ifdef NV_TOUCH_UI
   ajToqueCamada();
 #endif
@@ -10486,8 +10513,9 @@ static void ajDesenharTudo(Uint32 agora) {
 }
 
 float ajustes_ilha_x(void) { return aj2X0() * ajustes_tamanho_ajustes(); }
-int ajustes_edicao_ativa(void) { return uxEditor != 0; }
+int ajustes_edicao_ativa(void) { return uxEditor != 0 || drivebackup_aberto(); }
 int ajustes_relogio_cabe(void) {
+  if(drivebackup_aberto())return 0;
   TraEstado ta = traktauth_estado();
   SmkEstado sa = simklauth_estado();
   if (teclado_aberto() || (ajModalAberto() && !filAberta)) return 0;

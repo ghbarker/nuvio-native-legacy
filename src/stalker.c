@@ -726,3 +726,7 @@ void stalker_fontes_invalidar(void) {
     pthread_mutex_unlock(&c->travaSessao_); }
   pthread_mutex_unlock(&fontesTrava);
 }
+
+void stalker_backup_recarregar(void) {
+  stalker_fontes_invalidar();
+}
