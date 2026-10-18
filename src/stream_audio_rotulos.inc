@@ -8,7 +8,8 @@ static const char *audioRotuloIdioma(const char *p,const char *fim,char token[12
     {"Türkçe","tr"},{"TÜRKÇE","tr"},{"Turkce","tr"},{"Dublaj","tr"},{"Dublajlı","tr"},
     {"Deutsch","de"},{"Polski","pl"},{"Français","fr"},{"Francais","fr"},
     {"VFF","fr"},{"VFQ","fr"},{"TrueFrench","fr"},{"Castellano","es"},
-    {"Espanol","es"},{"Nederlands","nl"},{"Svenska","sv"},{"Dansk","da"},
+    {"Espanol","es"},{"ESP","es"},{"Latino","es"},{"LATAM","es"},{"💃🏻","es"},
+    {"CHS","zh"},{"CHT","zh"},{"JP","ja"},{"Nederlands","nl"},{"Svenska","sv"},{"Dansk","da"},
     {"Norsk","no"},{"Suomi","fi"},{"Magyar","hu"}
   };
   for(size_t i=0;i<sizeof aliases/sizeof *aliases;i++)
