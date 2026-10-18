@@ -43,5 +43,17 @@ jobs:
           for id in 39151349438 39150640328 39151403033; do
             test "$(gh api "repos/$GH_REPO/actions/runs/$id" --jq .conclusion)" = success
           done
-          test "$(gh api "repos/$GH_REPO/git/ref/tags/tv-mobile-test-logs-v57" --jq .object.sha)" = ae64dc019f872bbbf871189cf2495b4a76b0cd9d
-          gh release upload tv-mobile-test-logs-v57 Nuvio-TV-Mobile-Test-Logs57.apk Logs57-validation.json
+          cat > notes.txt <<'NOTES'
+          Google Drive backup/restore preview for Nuvio TV/Mobile Test. Update the existing test app; keep accounts and settings.
+
+          Settings > Account and services > Google Drive backup.
+
+          Phones use Google account authorization. TVs use the Google device-code screen. Backups are stored in your own private Nuvio Backups folder using drive.file permission.
+
+          This preview backs up local scalar settings, playback/subtitle appearance, and native source/filter/failover preferences. Nuvio-synced data, account credentials, logs, imported font files, collection presentation overrides and Live TV account definitions are not exported.
+
+          Android APK and unit tests passed. Linux and macOS native backup/restore and profile isolation passed normally and under ASan/UBSan. Package, version, persistent signer, ARM64/ARMv7 and 16KB alignment verified. Check links are in Logs57-validation.json.
+
+          Real Google sign-in/upload/restore awaits testing with the registered Google test account. No upstream Drive PR has been submitted.
+          NOTES
+          gh release create tv-mobile-test-logs-v57 Nuvio-TV-Mobile-Test-Logs57.apk Logs57-validation.json --target ae64dc019f872bbbf871189cf2495b4a76b0cd9d --title 'TV/Mobile Test Logs57: Google Drive backup preview' --notes-file notes.txt --prerelease
