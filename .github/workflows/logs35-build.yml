@@ -1,4 +1,4 @@
-name: Logs61 Google Drive backup APK and Linux validation
+name: Logs62 Google Drive backup APK and Linux validation
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: all
 
 concurrency:
-  group: logs61-final-apk-${{ github.ref }}-${{ inputs.mode }}
+  group: logs62-final-apk-${{ github.ref }}-${{ inputs.mode }}
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 534cfd436cf14621207d0b53fb1d9e5c073f0d11
+          ref: 0a3026ce6a415146b710f9815b67888ad9363b21
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: logs61-native-regression-logs
+          name: logs62-native-regression-logs
           path: '*-checks.log'
           if-no-files-found: ignore
 
@@ -61,12 +61,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 534cfd436cf14621207d0b53fb1d9e5c073f0d11
+          ref: 0a3026ce6a415146b710f9815b67888ad9363b21
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 534cfd436cf14621207d0b53fb1d9e5c073f0d11
-          test "$(git rev-parse HEAD^{tree})" = 6c67a6d7fef69815732500517e0cd587869d6c03
+          test "$(git rev-parse HEAD)" = 0a3026ce6a415146b710f9815b67888ad9363b21
+          test "$(git rev-parse HEAD^{tree})" = c4afc7b18f2b3cc90a66bfeee3837130eb6b7bae
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -87,7 +87,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs61'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs62'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
@@ -128,7 +128,7 @@ jobs:
           find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs61 APK
+      - name: Build update-compatible Logs62 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -159,19 +159,19 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20071' versionName='2.0.71-test-logs61'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20072' versionName='2.0.72-test-logs62'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
           python3 tools/android-apk-pages.py "$apk"
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs61.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs62.apk
           python3 - <<'PY'
           import hashlib,json,pathlib
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs61.apk')
-          out={'all_passed':False,'source_commit':'534cfd436cf14621207d0b53fb1d9e5c073f0d11','source_tree':'6c67a6d7fef69815732500517e0cd587869d6c03','package':'space.nuvio.nativelegacy.touch','version_code':20071,'version_name':'2.0.71-test-logs61','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
-          pathlib.Path('Logs61-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs62.apk')
+          out={'all_passed':False,'source_commit':'0a3026ce6a415146b710f9815b67888ad9363b21','source_tree':'c4afc7b18f2b3cc90a66bfeee3837130eb6b7bae','package':'space.nuvio.nativelegacy.touch','version_code':20072,'version_name':'2.0.72-test-logs62','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          pathlib.Path('Logs62-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -187,13 +187,13 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs61-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs62-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs61.apk
-            Logs61-validation.json
+            Nuvio-TV-Mobile-Test-Logs62.apk
+            Logs62-validation.json
           if-no-files-found: error
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs61"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs62"
 
