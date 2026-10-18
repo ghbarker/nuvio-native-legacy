@@ -47,7 +47,7 @@ jobs:
         run: |
           mkdir -p build/check-headers/SDL2
           cp "$HOME/.cache/nuvio-android/src/SDL2-2.30.9/include/"*.h build/check-headers/SDL2/
-          cp "$HOME/.cache/nuvio-android/src/SDL2_image-2.8.2/SDL_image.h" "$HOME/.cache/nuvio-android/src/SDL2_ttf-2.22.0/SDL_ttf.h" build/check-headers/SDL2/
+          cp "$HOME/.cache/nuvio-android/src/SDL2_image-2.8.2/include/SDL_image.h" "$HOME/.cache/nuvio-android/src/SDL2_ttf-2.22.0/SDL_ttf.h" build/check-headers/SDL2/
           compiler="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
           for arch in aarch64-linux-android24 armv7a-linux-androideabi24; do
             "$compiler/$arch-clang" -std=gnu11 -Wall -Wextra -Werror -DNV_ANDROID -DNV_TOUCH_UI -Isrc -Ibuild/check-headers -Ibuild/check-headers/SDL2 -fsyntax-only src/android.c src/drivetv.c src/drivebackup.c
