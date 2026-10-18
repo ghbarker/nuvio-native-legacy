@@ -11,9 +11,9 @@ int ajustes_livetv_formato(void);  // ajustes.h puxa SDL; o teste do xtream nao
 #include <pthread.h>
 #include <strings.h>
 #include <time.h>
+#include <limits.h>
 
 #define XT_ARQ_FMT   "xtream-p%d.txt"
-#define XT_MAX_CAT   256
 #define XT_PRAZO_S   20
 #define XT_PRAZO_LISTA_S 60
 
@@ -307,7 +307,7 @@ static char *chamar(const char *acao, NvPerfilSessao sessao) {
 }
 
 // --- canais -------------------------------------------------------------
-typedef struct { char id[24]; char nome[64]; } XtCat;
+typedef struct { char id[24]; char nome[64]; int ordem; } XtCat;
 
 // Um campo que o servidor manda ora como texto ("5") ora como numero (5):
 // tenta os dois. E o caso de category_id e stream_id, conforme o painel.
@@ -321,32 +321,50 @@ static int campoTextoOuNumero(const char *ini, const char *fim, const char *chav
   return 1;
 }
 
-static int lerCategorias(XtCat *cats, int max, NvPerfilSessao sessao) {
+static int compararCategorias(const void *aa, const void *bb) {
+  const XtCat *a = aa, *b = bb;
+  int c = strcmp(a->id, b->id);
+  return c ? c : (a->ordem > b->ordem) - (a->ordem < b->ordem);
+}
+static XtCat *lerCategorias(int *quantos, NvPerfilSessao sessao) {
   char *corpo = chamar("get_live_categories", sessao);
-  const char *p;
-  int n = 0;
-  if (!corpo) return 0;
-  p = strchr(corpo, '[');
-  p = p ? p + 1 : NULL;
-  while (p && *p && n < max) {
-    const char *fim;
-    while (*p && (unsigned char)*p <= ' ') p++;
-    if (*p != '{') break;
-    fim = js_fim(p);
+  const char *p = corpo ? js_raiz_array(corpo) : NULL;
+  XtCat *cats = NULL;
+  int n = 0, cap = 0;
+  *quantos = 0;
+  while (p && *p) {
+    const char *fim = js_fim(p);
+    XtCat c = {0};
     if (!fim) break;
-    if (campoTextoOuNumero(p, fim, "category_id", cats[n].id, sizeof cats[n].id) &&
-        js_texto(p, fim, "category_name", cats[n].nome, sizeof cats[n].nome))
-      n++;
+    if (campoTextoOuNumero(p, fim, "category_id", c.id, sizeof c.id) &&
+        js_texto(p, fim, "category_name", c.nome, sizeof c.nome)) {
+      if (n == cap) {
+        if (cap > INT_MAX / 2) break;
+        int nova = cap ? cap * 2 : 64;
+        if ((size_t)nova > SIZE_MAX / sizeof *cats) break;
+        XtCat *tmp = realloc(cats, (size_t)nova * sizeof *cats);
+        if (!tmp) { printf("[xtream] memoria insuficiente para categorias\n"); break; }
+        cats = tmp; cap = nova;
+      }
+      c.ordem = n; cats[n++] = c;
+    }
     p = js_prox(fim);
   }
   free(corpo);
-  return n;
+  if (n > 1) qsort(cats, (size_t)n, sizeof *cats, compararCategorias);
+  *quantos = n;
+  return cats;
 }
 
 static const char *nomeDaCategoria(const XtCat *cats, int n, const char *id) {
-  int i;
-  for (i = 0; i < n; i++) if (!strcmp(cats[i].id, id)) return cats[i].nome;
-  return "Outros";
+  // Lower bound keeps the first definition when a provider repeats an ID.
+  int lo = 0, hi = n;
+  while (lo < hi) {
+    int m = lo + (hi - lo) / 2;
+    if (strcmp(cats[m].id, id) < 0) lo = m + 1;
+    else hi = m;
+  }
+  return lo < n && !strcmp(cats[lo].id, id) ? cats[lo].nome : "Outros";
 }
 
 // Escrito so pelo fio do guia (o unico que chama xtream_canais) e lido pelo
@@ -359,7 +377,7 @@ int xtream_ultimo_http(void) { return ultimoHttp; }
 static int contaLerSessao(XtreamConta *out, NvPerfilSessao sessao);
 
 int xtream_canais_sessao(XtreamCanal *saida, int max, uint64_t sessao) {
-  static XtCat cats[XT_MAX_CAT];
+  XtCat *cats;
   int nCat, n = 0, total = 0, st = 0, classe;
   char *corpo;
   const char *p;
@@ -369,7 +387,7 @@ int xtream_canais_sessao(XtreamCanal *saida, int max, uint64_t sessao) {
   // uso, formatos) e o que a tela precisa quando a lista falha. Sem resposta
   // aqui a lista ainda e tentada — o login pode ter caido por prazo.
   { XtreamConta c; contaLerSessao(&c, sessao); }
-  nCat = lerCategorias(cats, XT_MAX_CAT, sessao);
+  cats = lerCategorias(&nCat, sessao);
   // PRAZO MAIOR SO PARA A LISTA. get_live_streams de um provedor europeu passa
   // de 7 MB (pesquisa do #158); 20 s num painel lento estoura antes do fim.
   corpo = chamarSt("get_live_streams", XT_PRAZO_LISTA_S, &st, sessao);
@@ -378,7 +396,7 @@ int xtream_canais_sessao(XtreamCanal *saida, int max, uint64_t sessao) {
   if (!corpo || st == 0) {
     printf("[xtream] servidor nao respondeu a lista de canais\n");
     ultimaFalha = XT_SEM_RESPOSTA;
-    free(corpo);
+    free(corpo); free(cats);
     return 0;
   }
   if (st >= 400) {
@@ -390,7 +408,7 @@ int xtream_canais_sessao(XtreamCanal *saida, int max, uint64_t sessao) {
     // painel nao respondeu no prazo: para a pessoa, e "nao respondeu".
     ultimaFalha = (strstr(corpo, "\"auth\":0") || st == 401) ? XT_RECUSOU
                 : (st == 502 || st == 504) ? XT_SEM_RESPOSTA : XT_HTTP;
-    free(corpo);
+    free(corpo); free(cats);
     return 0;
   }
   // Credencial errada nao e "[]": o servidor responde {"user_info":{"auth":0}}
@@ -407,7 +425,7 @@ int xtream_canais_sessao(XtreamCanal *saida, int max, uint64_t sessao) {
              st, nomeClasse(classe), (long)strlen(corpo));
       ultimaFalha = classe == XC_HTML ? XT_PAGINA : XT_SEM_RESPOSTA;
     }
-    free(corpo);
+    free(corpo); free(cats);
     return 0;
   }
   p++;
@@ -434,7 +452,7 @@ int xtream_canais_sessao(XtreamCanal *saida, int max, uint64_t sessao) {
     }
     p = js_prox(fim);
   }
-  free(corpo);
+  free(corpo); free(cats);
   ultimoTotal = total;
   // Contagem, e so: servidor, usuario e senha nao entram em log (registro.c
   // desenha o stdout na tela).
