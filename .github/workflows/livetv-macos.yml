@@ -1,12 +1,16 @@
-name: Logs55 large IPTV guide and retained macOS regression checks
+name: Approved Live TV category PR checks
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  native-recovery:
-    runs-on: macos-15
-    timeout-minutes: 15
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     env:
       SDL_MAC_BACKGROUND_APP: '1'
       DYLD_LIBRARY_PATH: /opt/homebrew/lib
@@ -15,55 +19,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 98bdc9dc86ca7855b7224e843187e7a897e314c3
+          ref: 8906f3f7cabeb07d37a09f990a7489be1b9e852a
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
-      - name: Category confirmation, large IPTV guide and retained regressions
+      - name: Native dependencies
+        shell: bash
+        run: |
+          if [ '${{ runner.os }}' = macOS ]; then
+            brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+          else
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
+          fi
+      - name: Normal and ASan UBSan Live TV regression suites
+        shell: bash
         run: |
           set -euo pipefail
           for san in 0 1; do
-            SANITIZE="$san" bash tests/ajustes_iptv.sh
-            SANITIZE="$san" bash tests/xtream.sh
-            SANITIZE="$san" bash tests/guia_grande.sh
-            SANITIZE="$san" bash tests/guia_grupos.sh
-            SANITIZE="$san" bash tests/guia_loading.sh
-            SANITIZE="$san" bash tests/guia_catalogo_tv.sh
-            SANITIZE="$san" bash tests/guia_epg_estado.sh
-            SANITIZE="$san" bash tests/m3u.sh
-            SANITIZE="$san" bash tests/iptv_accounts.sh
-            SANITIZE="$san" bash tests/epg_accounts.sh
-            SANITIZE="$san" bash tests/epg_memory.sh
-            SANITIZE="$san" bash tests/xtepg_bounded.sh
-            SANITIZE="$san" bash tests/fonteinfo.sh
-            SANITIZE="$san" bash tests/fonteinfo_layout.sh
-            SANITIZE="$san" bash tests/fontefalha.sh
-            SANITIZE="$san" bash tests/gif.sh
-            SANITIZE="$san" bash tests/gifcolecao.sh
-            SANITIZE="$san" bash tests/gifwebp.sh
-            SANITIZE="$san" bash tests/livestall_window.sh
-            SANITIZE="$san" bash tests/video_android_live_window.sh
-            SANITIZE="$san" bash tests/live_error_recovery.sh
+            for suite in ajustes_iptv xtream guia_grande guia_grupos guia_loading guia_catalogo_tv guia_epg_estado m3u iptv_accounts epg_accounts epg_streaming epg_memory xtepg_bounded; do
+              SANITIZE="$san" bash "tests/$suite.sh"
+            done
           done
           bash tests/guiacorte.sh
-          bash tests/livestall.sh
-          bash tests/livestall_seco.sh
-          bash tests/fonteantecipa.sh
           bash tests/ajustes_secoes.sh
           python3 tools/varredura-i18n.py
-      - uses: actions/checkout@v4
-        with:
-          ref: 8cfededfd4b03f89a57ff339f2afdae2ef3d9f74
-          path: clean424
-          persist-credentials: false
-      - name: Check isolated upstream feature branch
-        working-directory: clean424
-        run: |
-          set -euo pipefail
-          for san in 0 1; do
-            SANITIZE="$san" bash tests/xtream.sh
-            SANITIZE="$san" bash tests/guia_grande.sh
-          done
+      - name: Merged Settings defaults
+        if: runner.os == 'macOS'
+        run: bash tests/ajustes_padroes.sh
+      - name: Rendered portrait and TV category editor
+        if: runner.os == 'Linux'
+        run: xvfb-run -a bash tests/ajustes_categorias_ui.sh
