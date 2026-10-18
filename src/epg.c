@@ -1204,7 +1204,8 @@ static void epg_iniciar_local(void) {
     if (!cargaAtual()) reiniciarPend = 1;
     return;
   }
-  if (atomic_load(&epgFios) >= epgMemoriaFios) return;
+  if (atomic_load(&epgFios) >= epgMemoriaFios) { reiniciarPend = 1; return; }
+  reiniciarPend = 0;
   atomic_fetch_add(&epgFios, 1);
   carga.sessao = nv_perfil_sessao_ler(); carga.cancelada = 0;
   carga.perfil = perfilGrade; carga.nFiltro = 0;
@@ -1272,6 +1273,7 @@ static void epg_passo_local(void) {
     fflush(stdout);
     return;
   }
+  if (!fioVivo && reiniciarPend) { epg_iniciar_local(); return; }
   // Grade velha e o fio parado: tenta de novo quando o relogio diz que o cache
   // envelheceu (o download decide sozinho se reusa o arquivo ou baixa de novo).
   if (estado == EPG_PRONTO && !fioVivo &&
