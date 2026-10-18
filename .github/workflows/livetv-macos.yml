@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: bff8f62a83787362ba164f590a2e57dcc59c8589
+          ref: 84d99848233857784cb7ec940154130346ffee93
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -53,3 +53,16 @@ jobs:
           bash tests/fonteantecipa.sh
           bash tests/ajustes_secoes.sh
           python3 tools/varredura-i18n.py
+      - uses: actions/checkout@v4
+        with:
+          ref: cdaa66cfaa5d5905dcdd02ec802c7f6de94e0e67
+          path: clean424
+          persist-credentials: false
+      - name: Check isolated upstream feature branch
+        working-directory: clean424
+        run: |
+          set -euo pipefail
+          for san in 0 1; do
+            SANITIZE="$san" bash tests/xtream.sh
+            SANITIZE="$san" bash tests/guia_grande.sh
+          done
