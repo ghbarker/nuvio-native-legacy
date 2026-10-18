@@ -22,12 +22,12 @@ cc "${flags[@]}" -Dajustes_cw_concluido=nv_base_ajustes_cw_concluido -Dajustes_m
 cc "${flags[@]}" -Dvisto_titulo=nv_base_visto_titulo -Dvisto_episodios=nv_base_visto_episodios -c src/visto.c -o "$dir/visto.o"
 # Episode responses are controlled by the fixture, without HTTP threads.
 renomes=()
-for nome in episodios episodios_garantir episodios_carregando episodios_pendente; do
+for nome in episodios episodios_garantir episodios_carregando episodios_pendente refazer_continuar; do
   renomes+=("-Ddesc_$nome=nv_base_desc_$nome")
 done
 cc "${flags[@]}" "${renomes[@]}" -c src/descoberta.c -o "$dir/descoberta.o"
 # Relogio controlado so no player: nao intercepta libc/SDL/sanitizadores.
-cc "${flags[@]}" -DNV_SHOT_HOOKS -Dtrakt_scrobble=nv_cnt_trakt_scrobble -Dsimkl_scrobble=nv_cnt_simkl_scrobble -Dclock_gettime=nv_test_clock_gettime -c src/player.c -o "$dir/player.o"
+cc "${flags[@]}" -DNV_SHOT_HOOKS -Dtrakt_scrobble=nv_cnt_trakt_scrobble -Dtrakt_scrobble_alvo=nv_cnt_trakt_scrobble_alvo -Dsimkl_scrobble=nv_cnt_simkl_scrobble -Dclock_gettime=nv_test_clock_gettime -c src/player.c -o "$dir/player.o"
 cc "${flags[@]}" -Drede_pedir=nv_base_rede_pedir -c src/rede.c -o "$dir/rede.o"
 sources=()
 for source in src/*.c src/dts/*.c; do
