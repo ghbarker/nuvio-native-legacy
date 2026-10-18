@@ -92,7 +92,9 @@ int main(int argc,char **argv) {
       assert(iptv_contas(NULL,0)==1 && selecionada().id==0);
       adicionar(IPTV_M3U,"https://new.invalid/list",NULL);
       editar(IPTV_M3U,1);campo(AJ_M3U_EPG,"https://new.invalid/epg.xml");
+      assert(definirValorDireto(AJ_GUIA_ORDEM,1));
     } else assert(!strcmp(argv[1],"reload"));
+    assert(ajustes_guia_ordem()==1);
     assert(iptv_contas(NULL,0)==2 && selecionada().id!=0);
     editar(IPTV_M3U,1);assert(!strcmp(m3u_lista(),"https://new.invalid/list"));
     assert(!strcmp(m3u_epg(),"https://new.invalid/epg.xml"));
@@ -130,6 +132,17 @@ int main(int argc,char **argv) {
   tocar(AJ_IPTV_ATIVA);assert(selecionada().ativa);
   editar(IPTV_XTREAM,1);assert(!strcmp(xtream_usuario(),"two"));
   puts("PASS: explicit Save validates all fields and saves name/enabled state; two Xtream accounts keep independent credentials");
+  raiz();tocar(AJ_GUIA_ORDEM);key(SDLK_RIGHT);key(SDLK_RETURN);
+  assert(ajustes_guia_ordem()==1 && perfilLocal(AJ_GUIA_ORDEM) && somenteDesteAparelho(AJ_GUIA_ORDEM));
+  tocar(AJ_GUIA_ORDEM);key(SDLK_LEFT);key(SDLK_RETURN);assert(!ajustes_guia_ordem());
+  tocar(AJ_IPTV_ORDEM);assert(frAberta==7 && faN==2);
+  faContaFocar(0,0);assert(iptv_conta_indice()==1); // selecting a row does not move or switch accounts
+  faPont(1,0);key(SDLK_RETURN);IptvConta cs[IPTV_MAX_CONTAS];assert(iptv_contas(cs,IPTV_MAX_CONTAS)==2);
+  assert(cs[0].id==dois.id && selecionada().id==dois.id && !strcmp(xtream_usuario(),"two"));
+  faPont(0,1);key(SDLK_RETURN);assert(iptv_contas(cs,IPTV_MAX_CONTAS)==2 && cs[0].id==um.id);
+  assert(selecionada().id==dois.id);key(SDLK_ESCAPE);
+  tocar(AJ_IPTV_ORDEM);perfis_invalidar_sessao();key(SDLK_RETURN);assert(!frAberta);
+  puts("PASS: guide-order setting and account arrow controls preserve selection/credentials and reject stale profiles");
   adicionar(IPTV_M3U,"https://three.invalid/list",NULL);IptvConta tres=selecionada();
   editar(IPTV_M3U,0);campo(AJ_M3U_EPG,"https://three.invalid/epg.xml");
   adicionar(IPTV_M3U,"https://four.invalid/list",NULL);IptvConta quatro=selecionada();

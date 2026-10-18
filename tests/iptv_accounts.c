@@ -91,6 +91,16 @@ int main(int argc,char **argv){
   int n=iptv_contas(c,32);assert(n==6);assert(iptv_conta_renomear("Second portal"));assert(iptv_conta_ativar(0));
   assert(iptv_conta_selecionada(&selected)&&!selected.ativa&&!strcmp(selected.nome,"Second portal"));
   assert(!iptv_conta_renomear("bad\nname"));falhar=1;assert(!iptv_conta_adicionar(IPTV_XTREAM)&&iptv_contas(NULL,0)==n);falhar=0;
+  IptvConta antesOrdem[IPTV_MAX_CONTAS];assert(iptv_contas(antesOrdem,IPTV_MAX_CONTAS)==n);
+  assert(iptv_conta_mover(n-1,-1));assert(iptv_contas(c,32)==n && c[n-2].id==sb);
+  assert(iptv_conta_selecionada(&selected) && selected.id==sb && !selected.ativa);
+  falhar=1;assert(!iptv_conta_mover(n-2,-1));falhar=0;
+  assert(iptv_contas(c,32)==n && c[n-2].id==sb);
+  assert(!iptv_conta_mover(-1,1) && !iptv_conta_mover(2147483647,1) && !iptv_conta_mover(0,0));
+  sessao++;assert(iptv_contas(c,32)==n && c[n-2].id==sb);
+  assert(iptv_conta_mover(n-2,1));assert(iptv_contas(c,32)==n);
+  for(int i=0;i<n;i++)assert(c[i].id==antesOrdem[i].id && c[i].tipo==antesOrdem[i].tipo && c[i].ativa==antesOrdem[i].ativa && !strcmp(c[i].nome,antesOrdem[i].nome));
+  puts("PASS: account reorder persists without changing identities/selected account, failed writes roll back, invalid indices are rejected");
   perfil=2;sessao++;assert(!iptv_contas(NULL,0));assert(!xtream_fonte_configurado(xb));assert(!m3u_fonte_configurado(mb));assert(!stalker_fonte_configurado(sb));
   perfil=1;sessao++;assert(iptv_contas(c,32)==n);assert(iptv_conta_selecionada(&selected)&&selected.id==sb&&!selected.ativa);
   assert(iptv_conta_remover(&selected)&&selected.id==sb);stalker_fonte_esquecer(sb);
