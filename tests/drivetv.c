@@ -31,7 +31,7 @@ int main(void) {
   DriveTvCodigo code;DriveTvToken token;
   assert(drivetv_iniciar(&c,1000,&code)==DRIVE_TV_OK);
   assert(!strcmp(m.url,"https://oauth2.googleapis.com/device/code"));
-  assert(!strcmp(m.sent,"client_id=" CLIENT "&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.appdata"));
+  assert(!strcmp(m.sent,"client_id=" CLIENT "&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file"));
   assert(!strcmp(code.codigo,"ABCD-EFGH") && code.expiraMs==1801000 && code.proximaMs==6000 && code.intervalo==5);
   response(&m,428,"{\"error\":\"authorization_pending\"}");
   assert(drivetv_consultar(&c,&code,5999,&token)==DRIVE_TV_AGUARDAR && !m.calls && !*token.acesso);

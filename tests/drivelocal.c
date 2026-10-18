@@ -7,24 +7,41 @@
 #include <stdlib.h>
 #include <string.h>
 #define META "{\"id\":\"Backup_1\",\"name\":\"設定 Türkçe\",\"mimeType\":\"application/vnd.nuvio.local-settings\",\"size\":\"256\",\"createdTime\":\"2026-10-18T10:30:00Z\",\"appProperties\":{\"nuvioBackupVersion\":\"1\",\"nuvioOwner\":\"user-1\",\"nuvioProfile\":\"7\"}}"
+#define PASTA "{\"files\":[{\"id\":\"Folder_1\",\"mimeType\":\"application/vnd.google-apps.folder\",\"appProperties\":{\"nuvioBackupFolder\":\"1\"}}]}"
 typedef struct {
   const char *resposta,*snapshot;size_t n,ns;int status,chamadas,operacao,transporte,cancelar;
   RedeErro erro;
+  const char *pasta,*criada;int pastaChamadas,criarChamadas,pastaStatus,criarStatus;
   char url[20000];
 } Mock;
 static int pedir(void *ctx,const RedePedido *p,RedeResposta *r) {
-  Mock *m=ctx;m->chamadas++;snprintf(m->url,sizeof m->url,"%s",p->url);
+  Mock *m=ctx;snprintf(m->url,sizeof m->url,"%s",p->url);
   assert(!strncmp(p->url,"https://www.googleapis.com/",27));
   assert(!p->seguir && !p->tls_pessoal && p->prazo_ms==30000 && p->max_cabecalhos==16384);
   assert(p->cabecalhos && !strcmp(p->cabecalhos[0],"Authorization: Bearer test-token"));
   assert(!strstr(p->url,"test-token"));
+  if(strstr(p->url,"pageSize=1&") || !strcmp(p->url,"https://www.googleapis.com/drive/v3/files?fields=id")) {
+    const char *body;
+    if(!strcmp(p->metodo,"GET")) {
+      m->pastaChamadas++;assert(strstr(p->url,"spaces=drive") && strstr(p->url,"nuvioBackupFolder"));
+      assert(!p->corpo && !p->cabecalhos[1]);body=m->pasta?m->pasta:PASTA;r->status=m->pastaStatus?m->pastaStatus:200;
+    } else {
+      m->criarChamadas++;assert(!strcmp(p->metodo,"POST") && p->corpo);
+      assert(!strcmp(p->cabecalhos[1],"Content-Type: application/json; charset=UTF-8"));
+      assert(strstr(p->corpo,"\"name\":\"Nuvio Backups\"") && strstr(p->corpo,"nuvioBackupFolder"));
+      assert(!strstr(p->corpo,"permissions") && !strstr(p->corpo,"anyone"));
+      body=m->criada?m->criada:"{\"id\":\"Folder_1\"}";r->status=m->criarStatus?m->criarStatus:200;
+    }
+    r->corpo=strdup(body);assert(r->corpo);r->n_corpo=strlen(body);return 1;
+  }
+  m->chamadas++;
   if(m->operacao==1) {
     assert(!strcmp(p->metodo,"POST"));
     assert(!strcmp(p->url,"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"));
     assert(p->max_bytes==16384 && p->corpo && p->n_corpo>m->ns);
     assert(p->cabecalhos[1] && strstr(p->cabecalhos[1],"Content-Type: multipart/related; boundary="));
     const char *s=p->corpo;assert(!strstr(s,"test-token"));
-    assert(strstr(s,"\"parents\":[\"appDataFolder\"]") && strstr(s,"\"nuvioOwner\":\"user-1\""));
+    assert(strstr(s,"\"parents\":[\"Folder_1\"]") && strstr(s,"\"nuvioOwner\":\"user-1\""));
     assert(strstr(s,"\"nuvioProfile\":\"7\"") && strstr(s,"Nuvio-settings-p7-1792319400.txt"));
     const char *payload=strstr(s,m->snapshot);assert(payload && !memcmp(payload,m->snapshot,m->ns));
     assert(p->n_corpo==strlen(s));
@@ -51,8 +68,20 @@ int main(void) {
   char *snapshot=NULL;size_t ns=0;assert(backuplocal_exportar(b,&snapshot,&ns));backuplocal_liberar(b);
   Mock m={.snapshot=snapshot,.ns=ns};DriveLocal c={.token="test-token",.dono="user-1",.perfil=7,.pedir=pedir,.ctx=&m};
   char id[200];DrivePagina *pagina=malloc(sizeof *pagina);assert(pagina);
+  configurar(&m,NULL,0);
+  assert(drivelocal_pasta(&c,0,id)==DRIVE_LOCAL_OK && !strcmp(id,"Folder_1") && m.pastaChamadas==1 && !m.criarChamadas);
+  configurar(&m,NULL,0);m.pasta="{\"files\":[]}";
+  assert(drivelocal_pasta(&c,0,id)==DRIVE_LOCAL_AUSENTE && !*id && !m.criarChamadas);
+  assert(drivelocal_pasta(&c,1,id)==DRIVE_LOCAL_OK && !strcmp(id,"Folder_1") && m.criarChamadas==1);
+  configurar(&m,NULL,0);m.pasta="{\"files\":[]}";m.criarStatus=503;
+  assert(drivelocal_pasta(&c,1,id)==DRIVE_LOCAL_REPETIR && !*id && m.criarChamadas==1);
+  configurar(&m,NULL,0);m.pasta="{\"files\":[{\"id\":\"WrongFolder\",\"mimeType\":\"application/vnd.google-apps.folder\",\"appProperties\":{\"nuvioBackupFolder\":\"0\"}}]}";
+  assert(drivelocal_pasta(&c,1,id)==DRIVE_LOCAL_RESPOSTA && !*id && !m.criarChamadas);
+  configurar(&m,NULL,0);m.pastaStatus=403;
+  assert(drivelocal_pasta(&c,1,id)==DRIVE_LOCAL_NEGADO && !*id && !m.criarChamadas);
   configurar(&m,"{\"nested\":{\"id\":\"wrong\"},\"id\":\"Backup_1\"}",1);
   assert(drivelocal_enviar(&c,snapshot,ns,id)==DRIVE_LOCAL_OK && !strcmp(id,"Backup_1") && m.chamadas==1);
+  assert(m.pastaChamadas==1 && !m.criarChamadas);
   char *semNul=malloc(ns);assert(semNul);memcpy(semNul,snapshot,ns);
   assert(drivelocal_enviar(&c,semNul,ns,id)==DRIVE_LOCAL_OK && !strcmp(id,"Backup_1"));free(semNul);
   configurar(&m,"{\"id\":\"../bad\"}",1);
@@ -63,7 +92,7 @@ int main(void) {
   assert(drivelocal_listar(&c,NULL,pagina)==DRIVE_LOCAL_OK && pagina->n==1);
   assert(!strcmp(pagina->arquivo[0].id,"Backup_1") && !strcmp(pagina->arquivo[0].nome,"設定 Türkçe"));
   assert(pagina->arquivo[0].bytes==256 && pagina->arquivo[0].criadoMs>0 && !strcmp(pagina->proxima,"a+/= &?"));
-  assert(strstr(m.url,"spaces=appDataFolder") && strstr(m.url,"orderBy=createdTime%20desc") && !strstr(m.url,"pageToken="));
+  assert(strstr(m.url,"spaces=drive") && strstr(m.url,"orderBy=createdTime%20desc") && !strstr(m.url,"pageToken="));
   assert(strstr(m.url,"nuvioOwner") && strstr(m.url,"user-1") && strstr(m.url,"nuvioProfile"));
   configurar(&m,"{\"files\":[]}",0);
   assert(drivelocal_listar(&c,"a+/= &?",pagina)==DRIVE_LOCAL_OK && !pagina->n && !*pagina->proxima);
@@ -113,5 +142,5 @@ int main(void) {
   assert(drivelocal_listar(&c,NULL,pagina)==DRIVE_LOCAL_CANCELADO && m.chamadas==1 && !pagina->n);
   m.chamadas=0;assert(drivelocal_listar(&c,NULL,pagina)==DRIVE_LOCAL_CANCELADO && !m.chamadas);
   rede_job_soltar(c.job);rede_grupo_soltar(grupo);free(pagina);free(snapshot);
-  puts("PASS: Drive private-folder protocol, multipart snapshots, pagination, owner/profile isolation, bounded responses, HTTP failures, no automatic upload retry and cancellation (mock transport)");
+  puts("PASS: Drive app-owned visible folder, no automatic sharing, multipart snapshots, pagination, owner/profile isolation, bounded responses, HTTP failures, no automatic POST retry and cancellation (mock transport)");
 }
