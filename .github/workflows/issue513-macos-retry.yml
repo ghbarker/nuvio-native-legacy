@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 191badb595a6e73a818e42b75ae5e6d083db98ac
+          ref: 958f6a4fd0132fbbf260cebc3791ea81d7e354bf
           persist-credentials: false
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev
       - name: Episode and tracker regressions, normal and ASan/UBSan
@@ -22,11 +22,7 @@ jobs:
           for san in 0 1; do
             export SANITIZE="$san"
             for suite in episode_identity512 catalog_episode_identity512 episodiosdup trakt_episode_identity_512 visto_identidade512 trakt_alvos512 trakt_contracts trakt_scrobble_ids contapend; do bash "tests/$suite.sh"; done
-            task_dir="$(mktemp -d)"
-            flags=(-ffunction-sections -fdata-sections -Wl,--gc-sections -O1 -g -Isrc)
-            if [ "$san" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
-            cc "${flags[@]}" src/trakt.c src/metaep.c tests/stub_fichameta.c src/js.c src/metaprov.c tests/trakt_cw_vistas.c -lpthread -o "$task_dir/test"
-            for mode in current missing stale; do TRAKT_META="$mode" "$task_dir/test"; done
+            bash tests/trakt_cw_vistas.sh
           done
   macos:
     runs-on: macos-15
@@ -39,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 191badb595a6e73a818e42b75ae5e6d083db98ac
+          ref: 958f6a4fd0132fbbf260cebc3791ea81d7e354bf
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Episode, tracker and full-source player regressions
