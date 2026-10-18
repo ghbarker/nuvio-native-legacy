@@ -63,9 +63,24 @@ int main(void) {
   assert(ajustes_backup_mesclar(AJ_BACKUP_PERFIL,mau,p,&out));
   assert(strstr(out,perfil) && !strstr(strstr(out,perfil)+strlen(perfil),perfil));
   free(out);out=NULL;
-  // Automatic language and explicit memory-budget markers are local metadata.
+  // Automatic language is portable; physical memory choices stay on target.
   assert(ajustes_backup_exportar(AJ_BACKUP_APARELHO,"idiomaAutoLocal 1\ntexturasEscolhaLocal 1\n",&out));
-  assert(strstr(out,"idiomaAutoLocal 1") && strstr(out,"texturasEscolhaLocal 1"));free(out);out=NULL;
+  assert(strstr(out,"idiomaAutoLocal 1") && !strstr(out,"texturasEscolhaLocal"));free(out);out=NULL;
+  int exclusivos[]={AJ_INTERFACE_MODO,AJ_RESOLUCAO,AJ_TEX_MB,AJ_PROVEDORES_ESCOPO,AJ_ENVIO_AUTO,AJ_BUFFER};
+  for(size_t i=0;i<sizeof exclusivos/sizeof *exclusivos;i++) {
+    char dado[128];linha(dado,sizeof dado,exclusivos[i],valorPadrao[exclusivos[i]]);
+    assert(ajustes_backup_exportar(AJ_BACKUP_APARELHO,dado,&out));
+    assert(!strstr(out,CHAVE[exclusivos[i]]));free(out);out=NULL;
+    snprintf(mau,sizeof mau,"NUVIO-LOCAL-SETTINGS 1\nscope device\n%s",dado);
+    recusar(AJ_BACKUP_APARELHO,original,mau);
+  }
+  // Runtime capture includes unsaved local defaults, not stale scalar files,
+  // and leaves account-managed values and active configuration untouched.
+  valor[AJ_TAMANHO_AJUSTES]=0;valor[AJ_OCULTAR_FILMES_VISTOS]=1;
+  assert(ajustes_backup_capturar(AJ_BACKUP_APARELHO,&out) && strstr(out,aparelho));
+  assert(!strstr(out,CHAVE[AJ_INTERFACE_MODO]) && !strstr(out,CHAVE[AJ_HERO]));free(out);out=NULL;
+  assert(ajustes_backup_capturar(AJ_BACKUP_PERFIL,&out) && strstr(out,perfil));free(out);out=NULL;
+  memcpy(valor,antes,sizeof antes);
   // Main subtitle appearance and failover rows are backend views. Never
   // export stale scalar shadows or accept an ineffective scalar restore.
   int externos[]={AJ_LEG1_TAMANHO,AJ_LEG1_COR,AJ_FALHA_PROVEDORES,AJ_FILTRO_TAM_MAX};
