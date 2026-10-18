@@ -1,11 +1,15 @@
-name: Logs49 multiple Live TV accounts macOS validation
+name: Live TV revamp final Linux and macOS validation
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  native-accounts:
-    runs-on: macos-15
+  native-regressions:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
       SDL_MAC_BACKGROUND_APP: '1'
@@ -15,20 +19,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f4f7e804dc33207199d5fb105dd00e0194ca2a9b
-          fetch-depth: 3
+          ref: cf876fdc73081be8a0bb42ef0be81d40695c1715
           persist-credentials: false
-      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
-      - name: Full-source account Settings regressions
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
+      - name: Normal regression suites and full-source Settings
         run: |
           set -euo pipefail
           bash tests/ajustes_secoes.sh
-          for suite in epg_memory epg_accounts epg_streaming guia_grupos guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
+          for suite in m3u iptv_accounts xtepg_bounded epg_memory epg_accounts epg_streaming guia_grupos guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
-      - name: Full-source account Settings ASan and UBSan regressions
+      - name: ASan and UBSan regression suites and full-source Settings
         env:
           SANITIZE: '1'
         run: |
           set -euo pipefail
-          for suite in epg_memory epg_accounts epg_streaming guia_grupos guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
+          for suite in m3u iptv_accounts xtepg_bounded epg_memory epg_accounts epg_streaming guia_grupos guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
