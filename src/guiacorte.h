@@ -9,19 +9,15 @@
 #define NV_GUIACORTE_H
 #include <stdio.h>
 
-// TV: 900 canais / 48 categorias (GCanal tem ~2,4 KB e o guia mantem tres
-// vetores dele: 900 x 2,4 KB x 3 = ~6,5 MB, numa TV de 2016 que ainda guarda
-// cache de texturas). Android TV: 3000 / 128. Os vetores sao estaticos (BSS) e
-// o Linux so aloca a pagina que e tocada: custa ~2,4 KB x canais lidos x 3,
-// e no teto 3000 x 2,4 KB x 3 = ~21,6 MB, em aparelhos de 2 GB ou mais. O
-// cache em disco do guia tem o mesmo tamanho (~7 MB no teto).
+// Android: grow channel storage on demand, up to a bounded 30,000 channels.
+// Other TVs retain their existing 900-channel memory budget. Categories may
+// use one slot per channel; no separate 48/128-category cutoff discards them.
 #ifdef NV_ANDROID
-#define GUIACORTE_MAX_CANAL 3000
-#define GUIACORTE_MAX_CAT    128
+#define GUIACORTE_MAX_CANAL 30000
 #else
-#define GUIACORTE_MAX_CANAL  900
-#define GUIACORTE_MAX_CAT     48
+#define GUIACORTE_MAX_CANAL 900
 #endif
+#define GUIACORTE_MAX_CAT GUIACORTE_MAX_CANAL
 
 typedef struct {
   int porCanais;   // perdidos porque o teto de canais encheu
