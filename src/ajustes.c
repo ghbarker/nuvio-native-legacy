@@ -4162,6 +4162,7 @@ static void memoriaMigrar(void) {
 }
 #endif
 
+static int backupRecarregando;
 void ajustes_dir(const char *dir) {
   FILE *f;
   char caminho[600], linha[96];
@@ -4194,7 +4195,7 @@ void ajustes_dir(const char *dir) {
     // Nunca gravou nada: o idioma nasce automatico (o padrao de valor[]).
     valor[AJ_IDIOMA] = 0;
 #ifdef NV_TEX_MB_FIXO
-    memoriaMigrar();
+    if (!backupRecarregando) memoriaMigrar();
     if (valor[AJ_TEX_MB] > 0) tex_definir_orcamento_mb(ajustes_tex_mb());
 #endif
     gfx_escala_ui_definir(ajustes_tamanho_ui());
@@ -4344,7 +4345,7 @@ void ajustes_dir(const char *dir) {
   // gravar() e DEPOIS do idioma restaurado: gravar antes levava ao disco o
   // idioma do arranque com a marca de automatico, e a escolha manual desta TV
   // se perdia no arranque seguinte.
-  if (lig(AJ_DET_TRAILER_SOM)) {
+  if (!backupRecarregando && lig(AJ_DET_TRAILER_SOM)) {
     valor[AJ_DET_TRAILER_SOM] = 1;
     if (!lig(AJ_HERO_TRAILER_SOM)) {
       valor[AJ_HERO_TRAILER_SOM] = 0;
@@ -4354,6 +4355,9 @@ void ajustes_dir(const char *dir) {
   }
   }
   fclose(f);
+  // Restored settings already use this version's validated schema. Running
+  // startup migrations here can overwrite them, or re-enable log consent.
+  if (!backupRecarregando) {
   // "DINAMICA ESTILIZADA" SAIU (03/10/2026): a base tingida virou o Fundo
   // Frost, que vale para qualquer acento. Quem a tinha abre em Da arte + Frost
   // — a mesma cor viva, o mesmo fundo de um matiz so — e o arquivo e regravado.
@@ -4516,6 +4520,7 @@ void ajustes_dir(const char *dir) {
       dados_gravar("idiomas-206.txt", "1\n");
       if (mexeu) gravar();
     } }
+  }
   // O limite mora em fileiras.c; esta linha e so o espelho dele. Ler daqui em
   // vez de gravar evita a divergencia: o arquivo de ajustes nao guarda o
   // numero, entao nao ha como os dois discordarem.
@@ -4537,6 +4542,10 @@ void ajustes_dir(const char *dir) {
   legenda2_atualizar_offset_manual(ajustes_leg2_atraso());
   ppReconciliar();
   ajSombraSync();   // o que veio do disco nao e mudanca de ninguem
+}
+void ajustes_backup_recarregar(const char *dir) {
+  int antes=backupRecarregando;backupRecarregando=1;
+  ajustes_dir(dir);backupRecarregando=antes;
 }
 
 static int gravar(void) {

@@ -12,8 +12,23 @@ static int abOp(const char *chave) {
   for(int i=0;i<3;i++)if(!strcmp(abExtras[i],chave))return AJ_N+i;
   return -1;
 }
+static int abDesteDispositivo(int op) {
+  switch(op) {
+    // A phone backup must not force TV mode, memory/panel limits, input
+    // routing, account-sharing policy or telemetry consent on another device.
+    case AJ_INTERFACE_MODO:case AJ_RESOLUCAO:case AJ_TEX_MB:
+    case AJ_GPU_EFEITOS:case AJ_VIDRO_QUALIDADE:case AJ_BUFFER:case AJ_CACHE_SEEK:
+    case AJ_HDR_UI:case AJ_ESMAECER:case AJ_BRILHO_PLAYER:case AJ_DV_MKV:
+    case AJ_ENVIO_AUTO:case AJ_TECLADO_ANDROID:case AJ_PROVEDORES_ESCOPO:
+    case AJ_PLAYER_EXTERNO:case AJ_PLAYER_ANIME:
+    case AJ_P2P_LIGADO:case AJ_P2P_LIMITE:case AJ_P2P_DESTINO:
+      return 1;
+    default:return op==AJ_N+2; // explicit image-memory budget marker
+  }
+}
 static int abLocal(int op,int perfil,int v) {
   if(op<0 || op>=AB_N)return 0;
+  if(abDesteDispositivo(op))return 0;
   if(op>=AJ_N)return !perfil;
   // These Settings rows mirror separate stores; scalar shadow values would
   // restore without changing the real subtitle or failover preferences.
@@ -120,4 +135,18 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
     if(!abEscrever(out,cap,&n,i,valores[i])) { free(out);return 0; }
   }
   *saida=out;return 1;
+}
+int ajustes_backup_capturar(int perfil,char **saida) {
+  if(saida)*saida=NULL;
+  if(!saida || (perfil!=0 && perfil!=1))return 0;
+  char *origem=calloc(AB_MAX_TEXTO+1u,1);if(!origem)return 0;
+  size_t n=0;int ok=1;
+  for(int i=0;i<AJ_N && ok;i++)if(abLocal(i,perfil,valor[i])) {
+    int v=i==AJ_IDIOMA?ajustes_idioma():valor[i];
+    ok=abValido(i,v) && abEscrever(origem,AB_MAX_TEXTO+1u,&n,i,v);
+  }
+  if(ok && !perfil)ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N,valor[AJ_IDIOMA]==0) &&
+                       abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+1,idiomaFonteGravada);
+  if(ok)ok=ajustes_backup_exportar(perfil,origem,saida);
+  free(origem);return ok;
 }

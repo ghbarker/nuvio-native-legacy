@@ -731,6 +731,11 @@ int ajustes_mesclar_blob(const char *base, char **saida);
 enum { AJ_BACKUP_APARELHO = 0, AJ_BACKUP_PERFIL = 1 };
 int ajustes_backup_exportar(int perfil, const char *origem, char **saida);
 int ajustes_backup_mesclar(int perfil, const char *atual, const char *backup, char **saida);
+// Main thread: captures current values, including defaults not yet written.
+// Device hardware/input/account-sharing and log-consent choices stay local.
+int ajustes_backup_capturar(int perfil, char **saida);
+// After a validated restore: same native loader/effects, no startup migrations.
+void ajustes_backup_recarregar(const char *dir);
 // #187: uma linha "[tmdb] idioma dos metadados: ..." com o que a TV pede ao
 // TMDB, de onde vem (ajuste desta TV) e o tmdb_language cru da conta.
 void ajustes_tmdb_idioma_relatar(const char *blob);
