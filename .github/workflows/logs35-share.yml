@@ -17,14 +17,16 @@ jobs:
           test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084222011/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
           test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084222011 --jq .conclusion)" = success
           test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084224256 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083822801 --jq '.jobs // .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083822801 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
           ref: f4f7e804dc33207199d5fb105dd00e0194ca2a9b
-          fetch-depth: 3
+          fetch-depth: 4
           persist-credentials: false
-      - name: Verify tested application code matches the retained APK
-        run: test "$(git rev-parse HEAD)" = f4f7e804dc33207199d5fb105dd00e0194ca2a9b
+      - name: Verify tested application code and retained Settings baseline
+        run: |
+          test "$(git rev-parse HEAD)" = f4f7e804dc33207199d5fb105dd00e0194ca2a9b
+          git diff --exit-code a07380183c23a85c8be67dc18ea6f4c07db91fab HEAD -- src/ajustes.c 'src/ajustes_*.inc'
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
