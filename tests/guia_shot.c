@@ -232,7 +232,8 @@ static void semearGuia(void) {
   nCanais = w;
   snprintf(cats[0], sizeof cats[0], "%s", "Abertos");
   snprintf(cats[1], sizeof cats[1], "%s", "Esportes");
-  nCats = 2;
+  nCats = nCatsVisiveis = 2;catsVisiveis[0]=0;catsVisiveis[1]=1;
+  catGrupo[0]=catGrupo[1]=0;snprintf(grupos[0].nome,sizeof grupos[0].nome,"M3U 1");
   catIni[0] = 0; catN[0] = 6;
   catIni[1] = 6; catN[1] = 2;
   nFavOrd = 0;
@@ -307,7 +308,9 @@ int main(int argc, char **argv) {
   poeCanal(3, "Canal Com Fundo HD", "tests/fixtures/logos/comfundo.png");
   nCanais = 4;
   snprintf(cats[0], sizeof cats[0], "%s", "Aberta");
-  nCats = 1; catIni[0] = 0; catN[0] = 4;
+  nCats = nCatsVisiveis = 1;catsVisiveis[0]=0;catGrupo[0]=0;
+  snprintf(grupos[0].nome,sizeof grupos[0].nome,"M3U 1");
+  catIni[0] = 0; catN[0] = 4;
 
   // O MOLDE DA DESCRICAO nas duas formas medidas na C9, e texto livre.
   { GDesc d;
@@ -453,7 +456,8 @@ int main(int argc, char **argv) {
       catIni[k] = k * 2 > 6 ? 6 : k * 2; catN[k] = k % 3 == 0 ? 117 : 4 + k;
     }
     // So o painel le catN; a grade nao e desenhada com foco nela.
-    nCats = nc; }
+    nCats = nCatsVisiveis = nc;
+    for(int k=0;k<nc;k++){catsVisiveis[k]=k;catGrupo[k]=0;} }
   modoLista = 1; focoLin = 0; focoCol = 0; focoAnelOk = 0;
   catAberto = 2; catFoco = 14; catAnim = 1.0f;
   { float areaH = G_CAT_BASE - G_CAT_TOPO;
