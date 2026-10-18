@@ -129,6 +129,7 @@ object NvPlayer {
     private var cabAtual = ""
     private var abriuEm = 0L
     private var retentou = false
+    private var recuperacaoLive: LiveWindowRecovery? = null
     private var pronto = false
     private var duracaoEnviada = -1
     private var videoW = 0
@@ -1398,6 +1399,8 @@ object NvPlayer {
     // Sobe a sessao e solta tudo; qualquer callback pendente do player velho
     // morre na conferencia do numero.
     private fun liberar() {
+        recuperacaoLive?.cancel()
+        recuperacaoLive = null
         sessao++
         medidor.encerrar()
         val recursos = recursosAtuais
@@ -1831,7 +1834,14 @@ object NvPlayer {
 
     // --- eventos do player ----------------------------------------------------
 
-    private fun ouvinte(minha: Int) = object : Player.Listener {
+    private fun ouvinte(minha: Int): Player.Listener {
+        val live = LiveWindowRecovery(
+            schedule = { tarefa, atraso -> principal.postDelayed(tarefa, atraso) },
+            unschedule = { tarefa -> principal.removeCallbacks(tarefa) },
+            active = { atual(minha) },
+        )
+        recuperacaoLive = live
+        return object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             if (!atual(minha)) return
             val p = player ?: return
@@ -1839,6 +1849,7 @@ object NvPlayer {
             when (state) {
                 Player.STATE_BUFFERING -> ev(EV_BUFFER, 0)
                 Player.STATE_READY -> {
+                    if (live.ready()) Log.i(TAG, "[live] janela recuperada na mesma sessao=$minha")
                     ev(EV_BUFFER, 100)
                     relatarAudio(minha, "pronto volume=${p.volume} playWhenReady=${p.playWhenReady} suppression=${p.playbackSuppressionReason}")
                     if (!pronto) {
@@ -1943,6 +1954,15 @@ object NvPlayer {
             if (!atual(minha)) return
             val exo = error as? ExoPlaybackException
             val p = player
+            if (p != null && live.recover(p, error.errorCode, SystemClock.elapsedRealtime()) {
+                    Log.w(TAG, "[live] recuperacao excedeu 8000 ms sessao=$minha; seguindo erro normal")
+                    try { nativeErroTexto("ERROR_CODE_BEHIND_LIVE_WINDOW (1002): recovery timeout") } catch (_: Throwable) {}
+                    ev(EV_ERRO, PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW, C.TRACK_TYPE_UNKNOWN)
+                }) {
+                Log.i(TAG, "[live] atras da janela; buscando posicao ao vivo sem trocar URL sessao=$minha")
+                return
+            }
+            live.cancel()
             val timeout = generateSequence(error.cause) { it.cause }
                 .filterIsInstance<androidx.media3.exoplayer.ExoTimeoutException>().firstOrNull()
             if (p != null && RecriaHdr.timeoutRecuperavel(error.errorCode,
@@ -1992,6 +2012,8 @@ object NvPlayer {
             }
             ev(EV_ERRO, error.errorCode, tipo)
         }
+    }
+
     }
 
     private fun analitico(minha: Int) = object : AnalyticsListener {
