@@ -105,7 +105,17 @@ int main(int argc,char **argv){
   perfil=1;sessao++;assert(iptv_contas(c,32)==n);assert(iptv_conta_selecionada(&selected)&&selected.id==sb&&!selected.ativa);
   assert(iptv_conta_remover(&selected)&&selected.id==sb);stalker_fonte_esquecer(sb);
   assert(iptv_conta_adicionar(IPTV_STALKER)&&iptv_conta_selecionada(&selected)&&selected.id>sb);
-  assert(dados_gravar("keep.txt","keep"));iptv_contas_esquecer_todas();
+  assert(dados_gravar("keep.txt","keep"));
+  // Source-keyed guide files can contain private playback URLs. Account IDs
+  // restart after logout; neither those caches nor URL configurations survive.
+  const char *privateGuide[]={"ltv-xta00000001-p1.bin","ltv-st-p2.bin","ltv-sta00000005-p2.bin",
+    "ltv-ma00000003-p1.bin","ltv-m12345678-p2.bin","epg-x-ma00000003-p1.bin",
+    "epg-x-xta00000001-p1.bin","ltv-urls-p2.txt","ltv-fontes-p1.txt","ltv-indice-p1.txt"};
+  for(unsigned i=0;i<sizeof privateGuide/sizeof *privateGuide;i++)assert(dados_gravar(privateGuide[i],"private-fixture"));
+  assert(dados_gravar("ltv-a12345678-p1.bin","public-addon-cache"));
+  iptv_contas_esquecer_todas();
+  for(unsigned i=0;i<sizeof privateGuide/sizeof *privateGuide;i++)assert(!dados_ler(privateGuide[i]));
+  char *publicCache=dados_ler("ltv-a12345678-p1.bin");assert(publicCache && !strcmp(publicCache,"public-addon-cache"));free(publicCache);
   xtream_fontes_invalidar();m3u_fontes_invalidar();stalker_fontes_invalidar();
   assert(!iptv_contas(NULL,0));assert(!xtream_fonte_configurado(0)&&!m3u_fonte_configurado(0)&&!stalker_fonte_configurado(0));
   char *keep=dados_ler("keep.txt");assert(keep&&!strcmp(keep,"keep"));free(keep);

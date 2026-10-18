@@ -189,7 +189,12 @@ int main(void) {
   AJ_URL_XMLTV_ADD == AJ_URL_M3U_ADD + 1 &&
   AJ_URL_REM == AJ_URL_XMLTV_ADD + 1 &&
   AJ_GUIA_FONTE == AJ_URL_REM + 1 &&
-  AJ_N == AJ_GUIA_CATEGORIAS + 1);   // 2.0.6: master's #535 views appended after
+  AJ_FONTE_INFO == AJ_GUIA_CATEGORIAS + 1 &&
+#ifdef NV_ANDROID
+  AJ_DRIVE_BACKUP == AJ_FONTE_INFO + 1 && AJ_N == AJ_DRIVE_BACKUP + 1);
+#else
+  AJ_N == AJ_FONTE_INFO + 1);
+#endif   // 2.0.6: master's #535 views appended after
   // #492: retomada morna e o prazo do video pronto
   assert(valor[AJ_RETOMADA_MORNA] == 0 && ajustes_retomada_morna());   // V_LIGA: 0 = Ligado
   assert(!strcmp(CHAVE[AJ_RETOMADA_MORNA], "retomadaMornaLocal") && somenteDesteAparelho(AJ_RETOMADA_MORNA) && !dePerfil(AJ_RETOMADA_MORNA));
