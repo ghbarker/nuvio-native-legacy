@@ -42,8 +42,8 @@ android {
         applicationId = "space.nuvio.nativelegacy.touch"
         minSdk = 24
         targetSdk = 35
-        versionCode = 20067
-        versionName = "2.0.67-test-logs57"
+        versionCode = 20068
+        versionName = "2.0.68-test-logs58"
         buildConfigField("String", "GOOGLE_ANDROID_CLIENT_ID", googleConfig("NUVIO_GOOGLE_ANDROID_CLIENT_ID"))
         buildConfigField("String", "GOOGLE_TV_CLIENT_ID", googleConfig("NUVIO_GOOGLE_TV_CLIENT_ID"))
         buildConfigField("String", "GOOGLE_TV_CLIENT_SECRET", googleConfig("NUVIO_GOOGLE_TV_CLIENT_SECRET"))
