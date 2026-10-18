@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8441240c
+          ref: 8441240cd769512d935613b8544bb6d42455fe68
           persist-credentials: false
       - name: Check private TV configuration availability
         env:
