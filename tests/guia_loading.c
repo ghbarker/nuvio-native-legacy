@@ -77,7 +77,7 @@ static void duasContas(void) {
 int main(void){duasContas();
   for(int i=0;i<=4;i++)executar(i,0);
   executar(0,1);
-  nCanais=2;nCats=1;nFavOrd=0;catIni[0]=0;catN[0]=2;
+  nCanais=2;nCats=1;nCatsVisiveis=1;catsVisiveis[0]=0;nFavOrd=0;catIni[0]=0;catN[0]=2;
   memset(canais,0,sizeof canais);strcpy(canais[0].id,"xtream:1");strcpy(canais[1].id,"xtream:2");
   guia_focar_id("xtream:2");assert(focoCol==1&&!focoPend[0]);
   guia_focar_id("xtream:missing");assert(!strcmp(focoPend,"xtream:missing"));

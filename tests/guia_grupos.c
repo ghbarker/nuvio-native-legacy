@@ -1,4 +1,11 @@
-#include "stub_perfisessao.h"
+#include "perfis.h"
+#define NV_PERFIL_SESSAO_FORTE
+static int perfilTeste=1, falharGravacao;
+static uint64_t sessaoTeste=1;
+uint64_t perfis_sessao_geracao(void){return sessaoTeste;}
+int perfis_sessao_atual(uint64_t s){return s==sessaoTeste;}
+int perfis_sessao_travar(uint64_t s){return s==sessaoTeste;}
+void perfis_sessao_destravar(void){}
 #include "../src/guia.c"
 #include <assert.h>
 static int ordem;
@@ -11,8 +18,16 @@ int addons_n(void){return 1;}
 const char *addons_base(int i){(void)i;return "https://addon.invalid";}
 const char *addons_nome(int i){(void)i;return "Addon C";}
 int addons_ativo(int i){(void)i;return 1;}
-int perfis_ativo(void){return 1;}
-char *dados_ler(const char *nome){(void)nome;return NULL;}
+int perfis_ativo(void){return perfilTeste;}
+char *dados_ler(const char *nome){
+  char cam[1024];snprintf(cam,sizeof cam,"%s/%s",pasta,nome);FILE *f=fopen(cam,"rb");if(!f)return NULL;
+  assert(!fseek(f,0,SEEK_END));long n=ftell(f);assert(n>=0);rewind(f);char *b=calloc((size_t)n+1,1);assert(b);
+  assert(fread(b,1,(size_t)n,f)==(size_t)n);fclose(f);return b;
+}
+int dados_gravar(const char *nome,const char *texto){
+  if(falharGravacao)return 0;char cam[1024];snprintf(cam,sizeof cam,"%s/%s",pasta,nome);
+  FILE *f=fopen(cam,"wb");assert(f);assert(fwrite(texto,1,strlen(texto),f)==strlen(texto));return !fclose(f);
+}
 char *dados_caminho(char *out,unsigned n,const char *nome){snprintf(out,n,"%s/%s",pasta,nome);return out;}
 int ajustes_guia_fonte(void){return 0;}
 void marco(const char *nome){(void)nome;}
@@ -53,5 +68,27 @@ int main(int argc,char **argv) {
   for(int i=0;i<nCats;i++)snprintf(cats[i],sizeof cats[i],"Category %03d",i);
   for(int i=0;i<nCanais;i++) { canais[i].cat=i/2;snprintf(canais[i].id,sizeof canais[i].id,"xtream:@%08x:%d",i%2?11:22,i); }
   empacotar();assert(nCats==GUIACORTE_MAX_CAT*2 && nCanais==GUIACORTE_MAX_CAT*2);
+  semear();ordem=0;empacotar();GuiaCategoria categorias[4];assert(guia_categorias(categorias,4)==4);
+  int a=-1;for(int i=0;i<4;i++)if(!strcmp(categorias[i].nome,"Sports") && !strcmp(categorias[i].conta,"Account A"))a=i;
+  assert(a>=0);GuiaCategoria alvo=categorias[a];
+  char outro[80];snprintf(outro,sizeof outro,"%s",linhaItem(0,0)->id);guia_focar_id(outro);
+  assert(guia_categoria_definir(&alvo,1));assert(nLinhas()==3 && nCanais==4 && nCats==4);
+  assert(!strcmp(guia_id_focado(),outro));
+  int esportes=0;for(int i=0;i<nLinhas();i++)esportes+=!strcmp(cats[linhaCatDe(i)],"Sports");assert(esportes==1);
+  categoriasPerfil=-1;empacotar();assert(nLinhas()==3); // Disk reload.
+  IptvConta troca=contasTeste[0];contasTeste[0]=contasTeste[1];contasTeste[1]=troca;
+  for(int i=0;i<2;i++)if(contasTeste[i].id==11)strcpy(contasTeste[i].nome,"Renamed A");
+  ordem=1;guia_reordenar();assert(nLinhas()==3 && guia_categorias(categorias,4)==4);
+  int oculta=-1;for(int i=0;i<4;i++)if(categorias[i].chave==alvo.chave)oculta=i;
+  assert(oculta>=0 && categorias[oculta].oculta && !strcmp(categorias[oculta].conta,"Renamed A"));
+  falharGravacao=1;assert(!guia_categoria_definir(&categorias[oculta],0));assert(nLinhas()==3);falharGravacao=0;
+  perfilTeste=2;sessaoTeste++;categoriasReunir();assert(nLinhas()==4);
+  assert(!guia_categoria_definir(&alvo,1)); // Old editor cannot affect new profile.
+  perfilTeste=1;sessaoTeste++;categoriasReunir();assert(nLinhas()==3);
+  assert(guia_categorias(categorias,4)==4);
+  for(int i=0;i<4;i++)assert(guia_categoria_definir(&categorias[i],1));
+  assert(!nLinhas() && nCanais==4 && nCats==4 && !guia_id_focado()[0]);
+  assert(guia_categoria_definir(&categorias[oculta],0));assert(nLinhas()==1 && nCanais==4);
+  puts("PASS: source-specific hiding, disk reload, rename/order stability, failed-save rollback, profile isolation, all-hidden and restore without deleting channels");
   puts("PASS: shared guide, labeled duplicate categories, both order modes, account reorder/rename, favorites/focus/EPG, add-ons and legacy-cache regrouping");
 }

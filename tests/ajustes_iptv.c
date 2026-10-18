@@ -1,15 +1,33 @@
 // Real Settings navigation, keyboard results and per-account persistence.
 #include "text.h"
 #include "gfx.h"
+#include "guia.h"
 static void recorteTeste(float x,float y,float w,float h){(void)x;(void)y;(void)w;(void)h;}
 static void semRecorteTeste(void){}
 static int recargasTeste;
 static void recarregarTeste(int limpar){(void)limpar;recargasTeste++;}
+static GuiaCategoria categoriasTeste[2];
+static int nCategoriasTeste, categoriaGravacoes;
+static int categoriasLerTeste(GuiaCategoria *out,int max) {
+  int n=out && max<nCategoriasTeste?max:nCategoriasTeste;
+  if(out && n>0)memcpy(out,categoriasTeste,sizeof *out*(size_t)n);
+  return n;
+}
+static int categoriaDefinirTeste(const GuiaCategoria *c,int ocultar) {
+  for(int i=0;i<nCategoriasTeste;i++)if(categoriasTeste[i].chave==c->chave) {
+    categoriasTeste[i].oculta=!!ocultar;categoriaGravacoes++;return 1;
+  }
+  return 0;
+}
+#define guia_categorias categoriasLerTeste
+#define guia_categoria_definir categoriaDefinirTeste
 #define guia_recarregar recarregarTeste
 #define gfx_recorte recorteTeste
 #define gfx_sem_recorte semRecorteTeste
 #include "../src/ajustes.c"
 #undef guia_recarregar
+#undef guia_categorias
+#undef guia_categoria_definir
 #undef gfx_recorte
 #undef gfx_sem_recorte
 #include <assert.h>
@@ -100,8 +118,9 @@ int main(int argc,char **argv) {
       adicionar(IPTV_M3U,"https://new.invalid/list",NULL);
       editar(IPTV_M3U,1);campo(AJ_M3U_EPG,"https://new.invalid/epg.xml");
       assert(definirValorDireto(AJ_GUIA_ORDEM,1));
+      assert(definirValorDireto(AJ_EPG_MEMORIA,1));
     } else assert(!strcmp(argv[1],"reload"));
-    assert(ajustes_guia_ordem()==1);
+    assert(ajustes_guia_ordem()==1 && valor[AJ_EPG_MEMORIA]==1);
     assert(iptv_contas(NULL,0)==2 && selecionada().id!=0);resumoContas(2);
     editar(IPTV_M3U,1);assert(!strcmp(m3u_lista(),"https://new.invalid/list"));
     assert(!strcmp(m3u_epg(),"https://new.invalid/epg.xml"));
@@ -151,6 +170,24 @@ int main(int argc,char **argv) {
   assert(selecionada().id==dois.id);key(SDLK_ESCAPE);
   tocar(AJ_IPTV_ORDEM);perfis_invalidar_sessao();key(SDLK_RETURN);assert(!frAberta);
   puts("PASS: guide-order setting and account arrow controls preserve selection/credentials and reject stale profiles");
+  raiz();tocar(AJ_EPG_MEMORIA);key(SDLK_RIGHT);key(SDLK_RETURN);
+  assert(valor[AJ_EPG_MEMORIA]==1 && somenteDesteAparelho(AJ_EPG_MEMORIA) && !dePerfil(AJ_EPG_MEMORIA));
+  tocar(AJ_EPG_MEMORIA);key(SDLK_RIGHT);key(SDLK_RETURN);assert(valor[AJ_EPG_MEMORIA]==2);
+  tocar(AJ_GUIA_CATEGORIAS);assert(uxEditor && !uxNCategorias);key(SDLK_RETURN);assert(!categoriaGravacoes);key(SDLK_ESCAPE);
+  nCategoriasTeste=2;
+  categoriasTeste[0]=(GuiaCategoria){.chave=11,.sessao=nv_perfil_sessao_ler()};
+  categoriasTeste[1]=(GuiaCategoria){.chave=22,.sessao=nv_perfil_sessao_ler()};
+  strcpy(categoriasTeste[0].nome,"Sports");strcpy(categoriasTeste[0].conta,"Account A");
+  strcpy(categoriasTeste[1].nome,"Sports");strcpy(categoriasTeste[1].conta,"Account B");
+  tocar(AJ_GUIA_CATEGORIAS);assert(uxNCategorias==2 && nValores(uxOp)==2);
+  ajIptvToqueEscolher(0,0);assert(uxEditor && uxCategorias[0].oculta && !uxCategorias[1].oculta && categoriaGravacoes==1);
+  key(SDLK_RETURN);assert(!uxCategorias[0].oculta && categoriaGravacoes==2);
+  key(SDLK_DOWN);key(SDLK_RETURN);assert(uxCategorias[1].oculta && !uxCategorias[0].oculta);
+  key(SDLK_ESCAPE);assert(!uxCategorias && !uxNCategorias);tocar(AJ_GUIA_CATEGORIAS);assert(uxCategorias[1].oculta);
+  int gravacoes=categoriaGravacoes;perfis_invalidar_sessao();key(SDLK_RETURN);
+  assert(!uxEditor && !uxCategorias && categoriaGravacoes==gravacoes);
+  puts("PASS: device-local EPG memory choice, empty categories, touch and remote multi-select, reopening saved visibility and stale-profile rejection");
+
   adicionar(IPTV_M3U,"https://three.invalid/list",NULL);IptvConta tres=selecionada();
   editar(IPTV_M3U,0);campo(AJ_M3U_EPG,"https://three.invalid/epg.xml");
   adicionar(IPTV_M3U,"https://four.invalid/list",NULL);IptvConta quatro=selecionada();
