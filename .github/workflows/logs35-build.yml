@@ -5,11 +5,11 @@ on:
     inputs:
       mode:
         type: choice
-        options: [all, apk]
+        options: [all, apk, native]
         default: all
 
 concurrency:
-  group: logs57-final-apk-${{ github.ref }}
+  group: logs57-final-apk-${{ github.ref }}-${{ inputs.mode }}
   cancel-in-progress: true
 
 jobs:
@@ -62,6 +62,7 @@ jobs:
           if-no-files-found: ignore
 
   apk-build:
+    if: ${{ inputs.mode != 'native' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     permissions:
