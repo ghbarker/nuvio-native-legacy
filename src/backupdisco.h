@@ -8,4 +8,8 @@ typedef int (*BackupSessaoAtual)(void *ctx,const char *dono,int perfil,uint64_t 
 BackupDisco *backupdisco_abrir(const char *dir,BackupSessaoAtual atual,void *ctx);
 void backupdisco_fechar(BackupDisco *d);
 BackupIO backupdisco_io(BackupDisco *d);
+// Before preferences or any writers start. A missing journal is a no-op,
+// including installations that have never used backup. Negative => do not
+// load partially restored preferences; retain the journal for recovery.
+int backupdisco_recuperar_arranque(const char *dir);
 #endif

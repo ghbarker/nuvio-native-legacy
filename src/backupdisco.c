@@ -118,3 +118,20 @@ BackupDisco *backupdisco_abrir(const char *dir,BackupSessaoAtual verificar,void 
 }
 void backupdisco_fechar(BackupDisco *d){if(d){close(d->raiz);free(d);}}
 BackupIO backupdisco_io(BackupDisco *d){return (BackupIO){d,ler,gravar,apagar,atual};}
+int backupdisco_recuperar_arranque(const char *dir) {
+#ifdef __EMSCRIPTEN__
+  (void)dir;return BACKUP_RESTORE_NADA;
+#else
+  if(!dir || !*dir)return BACKUP_RESTORE_INVALIDO;
+  // Probe only the fixed private journal. No change to ordinary startup and
+  // no fsync/temporary file when this installation has no pending restore.
+  char caminho[4096];int n=snprintf(caminho,sizeof caminho,"%s/backup-restore-journal.txt",dir);
+  if(n<0 || (size_t)n>=sizeof caminho)return BACKUP_RESTORE_INVALIDO;
+  struct stat st;
+  if(lstat(caminho,&st)!=0)return errno==ENOENT?BACKUP_RESTORE_NADA:BACKUP_RESTORE_RECUPERAR;
+  if(!S_ISREG(st.st_mode))return BACKUP_RESTORE_RECUPERAR;
+  BackupDisco *d=backupdisco_abrir(dir,NULL,NULL);if(!d)return BACKUP_RESTORE_RECUPERAR;
+  BackupIO io=backupdisco_io(d);int resultado=backuprestauro_recuperar(&io);
+  backupdisco_fechar(d);return resultado;
+#endif
+}
