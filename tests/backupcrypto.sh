@@ -8,7 +8,7 @@ libs=(-lmbedcrypto)
 if [ -n "${MBEDTLS_INCLUDE:-}" ]; then flags+=("-I$MBEDTLS_INCLUDE"); fi
 if [ -n "${MBEDTLS_LIBRARY:-}" ]; then libs=("$MBEDTLS_LIBRARY"); fi
 if [[ "$(uname -s)" == Darwin ]]; then
-  prefix="$(brew --prefix mbedtls)";flags+=("-I$prefix/include" "-L$prefix/lib")
+  prefix="${MBEDTLS_PREFIX:-$(brew --prefix mbedtls@3)}";flags+=("-I$prefix/include" "-L$prefix/lib")
 fi
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
 cc "${flags[@]}" src/backupcrypto.c tests/backupcrypto.c "${libs[@]}" -o "$task_dir/test"
