@@ -8,6 +8,8 @@ jobs:
   share:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      TEST_RELEASE: tv-mobile-test-logs-v49
     steps:
       - name: Require successful checks on the final integrated source
         env:
@@ -37,13 +39,17 @@ jobs:
         run: |
           python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs49.apk
           python3 - <<'PY'
-          import hashlib,json,pathlib,zipfile
+          import hashlib,json,pathlib,zipfile,os
           root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs49.apk'
           report=json.loads((root/'Logs49-validation.json').read_text())
           assert report['source_commit']=='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
           assert report['source_tree']=='e98a5578b2fd082101598e245c5d2d17447e0d9f'
           assert report['package']=='space.nuvio.nativelegacy.touch'
           assert report['version_code']==20059 and report['version_name']=='2.0.59-test-logs49'
+          release=os.environ['TEST_RELEASE']
+          assert release=='tv-mobile-test-logs-v'+report['version_name'].split('-logs')[-1]
+          report['release']=release
+          report['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+release+'/'+apk.name
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
@@ -70,7 +76,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" --target f4f7e804dc33207199d5fb105dd00e0194ca2a9b --title 'Nuvio TV/Mobile Test - Logs49: Guide memory and categories' --notes-file dist/Logs49-testing.txt
+          if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target f4f7e804dc33207199d5fb105dd00e0194ca2a9b --title 'Nuvio TV/Mobile Test - Logs49: Guide memory and categories' --notes-file dist/Logs49-testing.txt
           fi
-          gh release upload tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs49.apk dist/Logs49-validation.json dist/Logs49-testing.txt
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs49.apk dist/Logs49-validation.json dist/Logs49-testing.txt
