@@ -26,6 +26,7 @@
 //      congelado sem saber o que houve.
 #include "horafmt.h"
 #include "player.h"
+#include "playerbackup.h"
 #include "memlog.h"
 #include "dvtela.h"
 #include "abrecine.h"
@@ -1260,14 +1261,7 @@ const VideoLegendaEstilo *player_leg_estilo_padrao(void) {
   return &padrao;
 }
 int player_leg_estilo_definir(const VideoLegendaEstilo *estilo, int tocou) {
-  if (!estilo || estilo->tamanho < TXT_LEG_PCT_MIN || estilo->tamanho > TXT_LEG_PCT_MAX ||
-      estilo->tamanho % 10 || estilo->cor < 0 || estilo->cor >= VIDEO_LEG_NCORES ||
-      estilo->corBorda < -1 || estilo->corBorda >= VIDEO_LEG_NCORES ||
-      estilo->familia < 0 || estilo->familia >= TXT_FAMILIA_N ||
-      estilo->fundo < 0 || estilo->fundo > 4 || estilo->posicao < 0 || estilo->posicao > 7 ||
-      estilo->borda < 0 || estilo->borda > 2 || estilo->opacidade < 0 || estilo->opacidade > 3 ||
-      estilo->negrito < 0 || estilo->negrito > 1 ||
-      estilo->atrasoMs < -LEG_ATRASO_MANUAL_MAX || estilo->atrasoMs > LEG_ATRASO_MANUAL_MAX) return 0;
+  if (!playerbackup_estilo_valido(estilo)) return 0;
   player_leg_estilo_carregar();
   VideoLegendaEstilo antes = legEstilo;
   int tocadoAntes = legTocado;
@@ -1285,6 +1279,11 @@ int player_leg_estilo_definir(const VideoLegendaEstilo *estilo, int tocou) {
   if (!prefsGravar()) { legEstilo = antes; legTocado = tocadoAntes; return 0; }
   video_legenda_estilo(&legEstilo);
   return 1;
+}
+void player_backup_capturar(PlayerBackup *out) {
+  if(!out)return;
+  player_leg_estilo_carregar();
+  *out=(PlayerBackup){.aspecto=aspecto,.estilo=legEstilo,.tocado=legTocado};
 }
 void player_leg_estilo_tocou(int campos) {
   if (campos == PLR_LEG_NADA) legTocado = PLR_LEG_NADA;
