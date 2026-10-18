@@ -80,6 +80,11 @@ static int abEscrever(char *out,size_t cap,size_t *n,int op,int v) {
   char linha[128];int len=snprintf(linha,sizeof linha,"%s %d\n",abNome(op),v);
   return len>0 && (size_t)len<sizeof linha && abJuntar(out,cap,n,linha,(size_t)len);
 }
+static void abIgnorado(int perfil,int op,const char *motivo) {
+  // Never log backup values or unrecognised text, which may contain secrets.
+  printf("[backup] setting skipped: scope=%d key=%s reason=%s; keeping current value\n",
+    perfil,op>=0?abNome(op):"unknown",motivo);
+}
 int ajustes_backup_exportar(int perfil,const char *origem,char **saida) {
   if(saida)*saida=NULL;
   if(!saida || (perfil<AJ_BACKUP_APARELHO || perfil>AJ_BACKUP_HARDWARE) || !abTexto(origem))return 0;
@@ -114,13 +119,17 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
   for(const char *p=backup+k;*p;) {
     char chave[80];const char *fim,*v;const char *proximo=abLinha(p,&fim,chave,&v);
     int op=abOp(chave),valorLido;
-    if(op<0 || viu[op] || !abNumero(v,fim,&valorLido) || !abValido(op,valorLido))return 0;
+    p=proximo;
+    if(op<0){abIgnorado(perfil,op,"unknown setting");continue;}
+    if(viu[op])return 0;
+    viu[op]=2;
     // Old encrypted previews contained native choices which Nuvio now syncs.
-    // Validate their representation, then leave current account values alone.
-    if(op<AJ_N && ajustePortavel(op)){viu[op]=2;p=proximo;continue;}
-    if(op==AJ_N || op==AJ_N+1){viu[op]=2;p=proximo;continue;}
-    if(!abLocal(op,perfil,valorLido))return 0;
-    viu[op]=1;valores[op]=valorLido;p=proximo;
+    // Leave current account values alone, even if their representation changed.
+    if((op<AJ_N && ajustePortavel(op)) || op==AJ_N || op==AJ_N+1)continue;
+    if(!abNumero(v,fim,&valorLido)){abIgnorado(perfil,op,"unsupported value format");continue;}
+    if(!abLocal(op,perfil,valorLido)){abIgnorado(perfil,op,"changed scope or excluded setting");continue;}
+    if(!abValido(op,valorLido)){abIgnorado(perfil,op,"unsupported value");continue;}
+    viu[op]=1;valores[op]=valorLido;
   }
   // Complete validation precedes output construction. The caller later owns
   // atomic persistence, identity checks and module reloads.
@@ -140,9 +149,9 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
   }
   *saida=out;return 1;
 }
-// Reclassify only the display preferences moved out of the early device
-// snapshot. Account-owned values are parsed, then omitted without depending
-// on the destination's dynamic choices (fonts, languages, installed players).
+// Migrate known old scopes, and omit individual unsupported settings before
+// validation. Do not guess meanings for renamed keys or changed values.
+// Account-owned values never depend on the destination's dynamic choices.
 int ajustes_backup_selecionar(const char *const entrada[3],int hardware,char *saida[3]) {
   if(!entrada || !saida)return 0;
   for(int i=0;i<3;i++)saida[i]=NULL;
@@ -160,21 +169,23 @@ int ajustes_backup_selecionar(const char *const entrada[3],int hardware,char *sa
     for(const char *p=entrada[origem]+k;*p;) {
       char chave[80];const char *fim,*v;const char *proximo=abLinha(p,&fim,chave,&v);
       int op=abOp(chave),valorLido;
-      if(op<0 || vistos[op] || !abNumero(v,fim,&valorLido)) {
-        printf("[backup] scalar syntax rejected: scope=%d known-key=%s\n",origem,op>=0?abNome(op):"unknown");goto falha;
+      p=proximo;
+      if(op<0){abIgnorado(origem,op,"unknown setting");continue;}
+      if(vistos[op]) {
+        printf("[backup] duplicate scalar rejected: scope=%d key=%s\n",origem,abNome(op));goto falha;
       }
-      vistos[op]=1;p=proximo;
+      vistos[op]=1;
       if((op<AJ_N && ajustePortavel(op)) || op==AJ_N || op==AJ_N+1)continue;
+      if(!abNumero(v,fim,&valorLido)){abIgnorado(origem,op,"unsupported value format");continue;}
       int destino=abDesteDispositivo(op)?AJ_BACKUP_HARDWARE:!!dePerfil(op);
       int legado=origem==AJ_BACKUP_APARELHO && destino==AJ_BACKUP_HARDWARE &&
         (op==AJ_QUALIDADE_IMG || op==AJ_ITENS_FILEIRA || op==AJ_TAMANHO_UI || op==AJ_TAMANHO_AJUSTES);
       if((origem!=destino && !legado) || !abLocal(op,destino,valorLido)) {
-        printf("[backup] scalar scope rejected: scope=%d key=%s\n",origem,abNome(op));goto falha;
+        abIgnorado(origem,op,"changed scope or excluded setting");continue;
       }
       if(destino==AJ_BACKUP_HARDWARE && !hardware)continue;
-      if(!abValido(op,valorLido) || !abEscrever(saida[destino],AB_MAX_TEXTO+1u,&usado[destino],op,valorLido)) {
-        printf("[backup] scalar value rejected: scope=%d key=%s\n",origem,abNome(op));goto falha;
-      }
+      if(!abValido(op,valorLido)){abIgnorado(origem,op,"unsupported value");continue;}
+      if(!abEscrever(saida[destino],AB_MAX_TEXTO+1u,&usado[destino],op,valorLido))goto falha;
     }
   }
   return 1;
