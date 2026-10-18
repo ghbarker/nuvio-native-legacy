@@ -19,12 +19,12 @@ TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float
   TxtLinha l=txt_linha(e,s,r,g,b,a);if(l.w>maxW)l.w=(int)maxW;return l;
 }
 void txt_desenhar_alpha(TxtLinha l,float x,float y,float a) {(void)a;record(x,y,l.w,l.h);}
-void plrui_decimal(char *s) {(void)s;}
+void plrui_decimal(char *s) {assert(strstr(s," GB") || strstr(s," MB"));}
 int main(void) {
   FonteInfo f={.selos=31,.nTextos=3};
   snprintf(f.texto[0],sizeof f.texto[0],"12.9 GB");
-  snprintf(f.texto[1],sizeof f.texto[1],"ReleaseGroupLongName");
-  snprintf(f.texto[2],sizeof f.texto[2],"AAC");
+  snprintf(f.texto[1],sizeof f.texto[1],"ReleaseGroup.2.0");
+  snprintf(f.texto[2],sizeof f.texto[2],"2.0");
   for(int width=180;width<=1080;width+=180)for(int h=24;h<=60;h+=12) {
     limit=(float)width;textHeight=h;drawn=0;bottom=0;
     float measured=fonteInfoLinha(&f,0,0,limit,0);assert(!drawn);
