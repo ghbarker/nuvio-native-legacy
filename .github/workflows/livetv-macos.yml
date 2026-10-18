@@ -1,52 +1,56 @@
-name: Active settings backup and restore checks
+name: Drive authorization checks
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  native:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-15]
-    runs-on: ${{ matrix.os }}
+  android:
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
-    env:
-      SDL_MAC_BACKGROUND_APP: '1'
-      DYLD_LIBRARY_PATH: /opt/homebrew/lib
-      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8f1b95ba846007a5115e1d9b6cd67db67143d57f
+          ref: 8441240c
           persist-credentials: false
+      - name: Check private TV configuration availability
+        env:
+          DRIVE_TV_SECRET: ${{ secrets.NUVIO_GOOGLE_TV_CLIENT_SECRET }}
+        run: |
+          if [ -z "$DRIVE_TV_SECRET" ]; then
+            echo 'TV client secret is not available to this workflow.'
+            exit 1
+          fi
+          echo 'TV client secret is configured; value is not displayed.'
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Native dependencies
-        shell: bash
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: drive-auth-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: logs34-gradle-Linux-
+      - name: Prepare Android and SDL Java headers
         run: |
-          if [ '${{ runner.os }}' = macOS ]; then
-            brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
-          else
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq pkg-config libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
-          fi
-      - name: Startup recovery, normal and sanitizers
-        shell: bash
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+          mkdir -p "$HOME/.cache/nuvio-android/src"
+          curl -fsSL https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz | tar xz -C "$HOME/.cache/nuvio-android/src"
+      - name: Compile Android authorization and test profile cancellation
+        env:
+          NUVIO_GOOGLE_ANDROID_CLIENT_ID: 332670494075-e1ocg7dmruau58n7h0vl1k231pdpstqq.apps.googleusercontent.com
+          NUVIO_GOOGLE_TV_CLIENT_ID: 332670494075-u7892oim0t6c0s21uj9ao2houjthkl17.apps.googleusercontent.com
+          NUVIO_GOOGLE_TV_CLIENT_SECRET: compile-check-placeholder
         run: |
-          set -euo pipefail
-          for san in 0 1; do
-            SANITIZE="$san" bash tests/backupdisco.sh
-          done
-      - name: Active local restore through native owners
-        shell: bash
-        run: bash tests/backupapp.sh
-      - name: Active local restore with ASan and UBSan
-        shell: bash
-        run: SANITIZE=1 bash tests/backupapp.sh
-      - name: Translation tables
-        shell: bash
-        run: python3 tools/idiomas.py
+          bash android/gradlew -p android --console=plain --max-workers=2 :app:compileDebugKotlin :app:testDebugUnitTest --tests space.nuvio.nativelegacy.DriveAuthStateTest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drive-android-authorization-tests
+          path: android/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
