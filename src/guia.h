@@ -34,6 +34,7 @@ int  guia_visivel(void);         // qualquer um dos dois
 // da fileira de canais ja abre no canal focado) e pelo player (o overlay abre
 // no canal que esta tocando).
 void guia_focar_id(const char *id);
+void guia_reordenar(void); // presentation only; retain cached channels and focus
 
 // Dispara a carga de canais sem abrir nada — o CH+/- do controle funciona
 // mesmo com o guia nunca aberto, e precisa da lista para saber quem vem depois.

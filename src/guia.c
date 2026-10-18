@@ -93,7 +93,7 @@
 
 // Tetos: ver guiacorte.h (TV 900/48, Android TV 3000/128 e a conta de memoria).
 #define G_MAX_CANAL  GUIACORTE_MAX_CANAL
-#define G_MAX_CAT    GUIACORTE_MAX_CAT
+#define G_MAX_CAT    G_MAX_CANAL // displayed (source, category) pairs, bounded by channels
 #define G_MAX_FAV    400
 // Cada addon pode declarar VARIOS catalogos de canal no manifesto; 8 so
 // bastava para um FrostView.
@@ -626,6 +626,8 @@ static int recInstalado(const GRec *r) {
   return 0;
 }
 
+#include "guia_grupos.inc"
+
 // --- linhas -------------------------------------------------------------------
 // Linha 0 = Favoritos (quando ha algum); as demais sao as categorias com canal.
 static int nLinhas(void) { return nCats + (nFavOrd > 0 ? 1 : 0); }
@@ -638,7 +640,7 @@ static const char *linhaNome(int l) {
   if (linhaEhFav(l)) return i18n("Favoritos");
   // As secoes de categoriaPorNome sao chaves da tabela; genero vindo do
   // addon nao e, e i18n devolve o texto como veio.
-  return i18n(cats[l - (nFavOrd > 0 ? 1 : 0)]);
+  return categoriaRotulo(l - (nFavOrd > 0 ? 1 : 0));
 }
 static GCanal *linhaItem(int l, int c) {
   if (c < 0 || c >= linhaN(l)) return NULL;
@@ -745,7 +747,7 @@ static const char *categoriaPorNome(const char *nome) {
 
 static int sCatDe(const char *nome) {
   for (int i = 0; i < sNCats; i++) if (!strcmp(sCats[i], nome)) return i;
-  if (sNCats >= G_MAX_CAT) return -1;
+  if (sNCats >= GUIACORTE_MAX_CAT) return -1;
   snprintf(sCats[sNCats], 64, "%s", nome);
   return sNCats++;
 }
@@ -1116,35 +1118,7 @@ static void empacotar(void) {
     if (contaCanalAtiva(canais[i].id) && (!canais[i].base[0] || (baseLigada(canais[i].base) && !baseOculta(canais[i].base))))
       canais[w++] = canais[i];
   nCanais = w;
-  // Categoria que ficou sem canal sai da lista — senao vira uma fileira so
-  // de cabecalho, com o foco caindo nela.
-  { int mapa[G_MAX_CAT], k;
-    for (i = 0; i < nCats; i++) catN[i] = 0;
-    for (i = 0; i < nCanais; i++) if (canais[i].cat >= 0) catN[canais[i].cat]++;
-    for (i = 0, k = 0; i < nCats; i++) {
-      mapa[i] = catN[i] ? k : -1;
-      if (catN[i]) { if (k != i) memcpy(cats[k], cats[i], sizeof cats[k]); k++; }
-    }
-    for (i = 0; i < nCanais; i++) if (canais[i].cat >= 0) canais[i].cat = mapa[canais[i].cat];
-    nCats = k; }
-  // ORDEM ALFABETICA DAS SECOES, pedido do dono (18/09): a ordem de chegada
-  // muda conforme qual addon respondeu primeiro, e "segurar para pular
-  // secao" sem uma ordem previsivel e pular no escuro. Insercao: sao ate 48
-  // nomes, uma vez por carga.
-  { int a, b, mapa[G_MAX_CAT];
-    for (a = 0; a < nCats; a++) mapa[a] = a;
-    for (a = 1; a < nCats; a++) {
-      char tmpN[64]; int tmpM = mapa[a];
-      memcpy(tmpN, cats[a], sizeof tmpN);
-      for (b = a - 1; b >= 0 && strcasecmp(cats[b], tmpN) > 0; b--) {
-        memcpy(cats[b + 1], cats[b], sizeof cats[b]); mapa[b + 1] = mapa[b];
-      }
-      memcpy(cats[b + 1], tmpN, sizeof tmpN); mapa[b + 1] = tmpM;
-    }
-    // mapa[nova] = antiga; o canal precisa do inverso.
-    { int inv[G_MAX_CAT];
-      for (a = 0; a < nCats; a++) inv[mapa[a]] = a;
-      for (i = 0; i < nCanais; i++) if (canais[i].cat >= 0) canais[i].cat = inv[canais[i].cat]; } }
+  gruposReunir();
   // `tmp` e estatico: sao ~2 MB (900 canais x ~2,4 KB). Na pilha estourava o
   // fio do SDL no Android (1 MB por padrao) e e grande demais para qualquer
   // pilha. So o fio principal chama empacotar().
@@ -1786,6 +1760,14 @@ void guia_focar_id(const char *id) {
   for (l = 0; l < nLinhas(); l++)
     for (c = 0; c < linhaN(l); c++)
       if (!strcmp(linhaItem(l, c)->id, id)) { focoLin = l; focoCol = c; focoPend[0]=0; return; }
+}
+
+// Settings changes presentation immediately without re-fetching providers.
+void guia_reordenar(void) {
+  if(nCanais<1)return;
+  char id[80];GCanal *c=linhaItem(focoLin,focoCol);
+  snprintf(id,sizeof id,"%s",c?c->id:"");
+  empacotar();if(id[0])guia_focar_id(id);
 }
 
 const char *guia_id_focado(void) {
@@ -3256,7 +3238,7 @@ static void desenharHero(float a, time_t agoraT, time_t tFoco) {
     float tx = x + 132.0f, tw = w - 132.0f, ey;
     TxtLinha n;
     snprintf(num, sizeof num, "%d", (int)(c - canais) + 1);
-    snprintf(cat, sizeof cat, "%s", c->cat >= 0 ? i18n(cats[c->cat]) : "");
+    snprintf(cat, sizeof cat, "%s", categoriaRotulo(c->cat));
     logoNaCaixa(c, lx, 112.0f, 60.0f, G_LOGO_CLARO, ha);
     n = txt_linha(TXT_DET_META2, num, 150, 153, 162, 255);
     if (tem) {

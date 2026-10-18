@@ -136,6 +136,18 @@ int iptv_conta_selecionar(int i) {
   if (ok) { selecionada = i; if (!(ok = gravar())) selecionada = anterior; }
   pthread_mutex_unlock(&trava); return ok;
 }
+int iptv_conta_mover(int i,int delta) {
+  pthread_mutex_lock(&trava);carregar();
+  int ok=(delta==1 || delta==-1) && i>=0 && i<nContas;
+  int j=ok?i+delta:0;ok=ok && j>=0 && j<nContas;
+  if(ok) {
+    IptvConta c=contas[i];int anterior=selecionada;
+    contas[i]=contas[j];contas[j]=c;
+    if(selecionada==i)selecionada=j;else if(selecionada==j)selecionada=i;
+    if(!(ok=gravar())) { contas[j]=contas[i];contas[i]=c;selecionada=anterior; }
+  }
+  pthread_mutex_unlock(&trava);return ok;
+}
 int iptv_conta_adicionar(int tipo) {
   pthread_mutex_lock(&trava); carregar();
   int ok = tipo >= IPTV_XTREAM && tipo <= IPTV_STALKER && nContas < IPTV_MAX_CONTAS && proxima < UINT_MAX;

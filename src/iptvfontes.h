@@ -9,6 +9,7 @@ int iptv_contas(IptvConta *out, int max);
 int iptv_conta_selecionada(IptvConta *out);
 int iptv_conta_indice(void);
 int iptv_conta_selecionar(int indice);
+int iptv_conta_mover(int indice,int delta);
 int iptv_conta_adicionar(int tipo);
 int iptv_conta_renomear(const char *nome);
 int iptv_conta_ativar(int ativa);

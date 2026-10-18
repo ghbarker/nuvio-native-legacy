@@ -1872,15 +1872,18 @@ static void desenhaFolhaOrdem(void) {
 // Same reorder/number-editor interaction as the add-on order sheet, with
 // explicit targets in TV and Mobile. Labels never identify persisted rows.
 static void faPont(int i, int col) {
-  if (frAberta < 4 || teclado_aberto() || i < 0 || i >= faN || col < 0 || col > 2) return;
+  if (frAberta < 4 || teclado_aberto() || i < 0 || i >= faN || col < 0 || col > (frAberta==7?1:2)) return;
   faFoco = i; faCol = col;
 }
+static void faContaFocar(int i,int b) { (void)b;faFoco=i; }
 static void faFechar(int a, int b) { (void)a; (void)b; if (frAberta >= 4) frAberta = 0; }
 static void desenhaFolhaFalha(void) {
   GfxRect m = {460, 90, 1000, 900}; float topo, base, y, alvo;
+  if(frAberta==7 && !nv_perfil_sessao_atual(faIptvSessao)) { frAberta=0;return; }
+  int contas=frAberta==7;
   faMontar(); ponteiro_camada(); ajVeuModal(); ajCentraModal(&m); ajIlha(m, 36, 1, 1);
-  topo = ajCabecalhoFolha(m, "Fontes e addons", frAberta == 4 ? "Ordem e limites dos provedores" : "Ordem e limites dos add-ons",
-                         i18n("Limites contam links distintos, incluindo o primeiro. Use as setas para ordenar e o número para ajustar."), 0, 1);
+  topo = ajCabecalhoFolha(m, contas?"TV ao vivo":"Fontes e addons", contas?"Contas de TV ao vivo":frAberta == 4 ? "Ordem e limites dos provedores" : "Ordem e limites dos add-ons",
+                         contas?"":i18n("Limites contam links distintos, incluindo o primeiro. Use as setas para ordenar e o número para ajustar."), 0, 1);
   base = m.y + m.h - 96.0f;
   alvo = faFoco * 84.0f - (base - topo - 80.0f) * 0.5f;
   if (alvo > faN * 84.0f - (base - topo)) alvo = faN * 84.0f - (base - topo);
@@ -1896,17 +1899,17 @@ static void desenhaFolhaFalha(void) {
   for (int i = 0; i < faN; i++, y += 84.0f) {
     if (y + 80.0f < topo || y > base) continue;
     GfxRect r = {m.x + 18.0f, y, m.w - 36.0f, 80.0f};
-    int f = i == faFoco; float bw = 56.0f, bx = r.x + r.w - 22.0f - 3.0f * bw - 16.0f;
+    int f = i == faFoco; float bw = 56.0f, bx = r.x + r.w - 22.0f - (contas?2.0f:3.0f) * bw - 16.0f;
     float tw = fmaxf(1.0f, bx - (r.x + 36.0f) - 24.0f);
     // Tapping the row edits its limit; reorder always has an explicit arrow.
-    ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, faPont, NULL, i, 2);
+    ponteiro_alvo_faixa(r.x, r.y, r.w, r.h, topo, base, faPont, contas?faContaFocar:NULL, i, contas?0:2);
     if (f) ajFocoLinha(r, 22.0f, 1.0f, 1.0f);
     TxtLinha t = txt_linha_corta(TXT_AJ_ROTULO, faItem[i].nome, AJ_TX, tw);
     TxtLinha ap = ajTxtC(TXT_ILHA_GENERO, faItem[i].apoio, tw);
     float ty = y + 40.0f - (t.h + (faItem[i].apoio[0] ? 4.0f + ap.h : 0.0f)) * 0.5f;
     txt_desenhar_alpha(t, r.x + 36.0f, ty, f ? 1.0f : 0.86f);
     if (faItem[i].apoio[0]) txt_desenhar_alpha(ap, r.x + 36.0f, ty + t.h + 4.0f, 0.42f);
-    for (int col = 0; col < 3; col++) {
+    for (int col = 0; col < (contas?2:3); col++) {
       GfxRect b = {bx + col * (bw + 8.0f), y + 12.0f, bw, bw};
       int bf = f && faCol == col, sem = (col == 0 && i == 0) || (col == 1 && i + 1 == faN);
       ponteiro_alvo_faixa(b.x, b.y, b.w, b.h, topo, base, faPont, NULL, i, col);
@@ -1922,7 +1925,7 @@ static void desenhaFolhaFalha(void) {
     }
   }
   if (!faN) {
-    TxtLinha empty = ajTxtC(TXT_AJ_ROTULO, "Nenhum add-on instalado.", m.w - 88.0f);
+    TxtLinha empty = ajTxtC(TXT_AJ_ROTULO, contas?"Nenhuma":"Nenhum add-on instalado.", m.w - 88.0f);
     txt_desenhar_alpha(empty, m.x + 44.0f, topo + 24.0f, 0.7f);
   }
   gfx_sem_recorte();
@@ -1932,7 +1935,7 @@ static void desenhaFolhaFalha(void) {
   txt_desenhar_alpha(close, fechar.x + 20.0f, fechar.y + (fechar.h - close.h) * 0.5f, 0.9f);
   ponteiro_alvo(fechar.x, fechar.y, fechar.w, fechar.h, NULL, faFechar, 0, 0);
   if (!ajTelaCheia()) {
-    AjDica d[2] = {{"OK", "Editar"}, {"Voltar", "Fechar"}};
+    AjDica d[2] = {{"OK", contas?"Mover":"Editar"}, {"Voltar", "Fechar"}};
     ajDicasLinha(d, 2, m.x + 44.0f, m.y + m.h - 66.0f, 1.0f);
   }  if (uxAviso[0]) {
     TxtLinha aviso = ajTxtC(TXT_AJ_SUB, uxAviso, NV_VTELA_W - 80.0f);
