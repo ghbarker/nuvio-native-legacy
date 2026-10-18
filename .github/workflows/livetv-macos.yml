@@ -1,4 +1,4 @@
-name: Logs50 live recovery macOS regression checks
+name: Logs51 live recovery macOS regression checks
 on:
   workflow_dispatch:
 permissions:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 08cd14e7c544a5268a15b3b057deff0913c6c2b2
+          ref: a1f8f66286b39470403e4938d9c6cdc0476350b9
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -26,6 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           for san in 0 1; do
+            SANITIZE="$san" bash tests/livestall_window.sh
             SANITIZE="$san" bash tests/video_android_live_window.sh
             SANITIZE="$san" bash tests/live_error_recovery.sh
           done
