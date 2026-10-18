@@ -44,7 +44,7 @@ int android_instalar_apk(const char *caminho);
 // Texto do sistema (sistexto.h). Teclado do sistema com `inicial` no campo;
 // voz no idioma dado ("pt-BR"); fechar os dois; e o proximo evento da fila do
 // NuvioActivity (1 = veio um em dst). O formato dos eventos esta em sistexto.c.
-int  android_st_teclado(const char *inicial, int max);
+int  android_st_teclado(const char *inicial, int max, const char *titulo, const char *dica);
 int  android_st_ditar(const char *idioma);
 void android_st_fechar(void);
 int android_importar_fonte(int slot);

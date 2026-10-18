@@ -368,8 +368,20 @@ static int chamaBool(const char *nome, const char *assin, const char *s, int i, 
   return ok;
 }
 
-int android_st_teclado(const char *inicial, int max) {
-  return chamaBool("abrirTeclado", "(Ljava/lang/String;I)Z", inicial ? inicial : "", max, 1);
+int android_st_teclado(const char *inicial,int max,const char *titulo,const char *dica) {
+  JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();if(!env)return 0;
+  jobject act=(jobject)SDL_AndroidGetActivity();if(!act)return 0;
+  jclass cls=(*env)->GetObjectClass(env,act);
+  jmethodID m=cls?(*env)->GetMethodID(env,cls,"abrirTeclado","(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)Z"):NULL;
+  jstring valor=(*env)->NewStringUTF(env,inicial?inicial:""),rotulo=(*env)->NewStringUTF(env,titulo?titulo:""),ajuda=(*env)->NewStringUTF(env,dica?dica:"");int ok=0;
+  if(m && valor && rotulo && ajuda && !(*env)->ExceptionCheck(env))
+    ok=(*env)->CallBooleanMethod(env,act,m,valor,(jint)max,rotulo,ajuda)==JNI_TRUE;
+  if((*env)->ExceptionCheck(env)){(*env)->ExceptionClear(env);ok=0;}
+  if(valor)(*env)->DeleteLocalRef(env,valor);
+  if(rotulo)(*env)->DeleteLocalRef(env,rotulo);
+  if(ajuda)(*env)->DeleteLocalRef(env,ajuda);
+  if(cls)(*env)->DeleteLocalRef(env,cls);
+  (*env)->DeleteLocalRef(env,act);return ok;
 }
 int android_st_ditar(const char *idioma) {
   return chamaBool("ditar", "(Ljava/lang/String;)Z", idioma ? idioma : "", 0, 0);

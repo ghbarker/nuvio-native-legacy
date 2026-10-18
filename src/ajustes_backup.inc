@@ -37,6 +37,20 @@ static int abLocal(int op,int perfil,int v) {
     return CHAVE[op] && OPCOES[op].tipo!=OP_ACAO && OPCOES[op].tipo!=OP_LEITURA;
   }
   if(abDesteDispositivo(op))return 0;
+  // Native-only choices can live in the profile file even though the sync
+  // guard calls them account settings. The cloud has no matching fields.
+  // Language overrides likewise differ from its ISO-valued language fields.
+  // Follow the real Settings owner so a reload can actually apply the value.
+  switch(op) {
+    case AJ_LEG_LINGUA:case AJ_LEG_LINGUA2:case AJ_AUD_LINGUA:case AJ_AUD_LINGUA2:
+    case AJ_QUALIDADE:case AJ_DV:case AJ_ATMOS:
+    case AJ_PS_FUNDO:case AJ_CW_OK:
+    case AJ_FONTE_OUTROS:case AJ_FONTE_REGEX:case AJ_FONTE_ORDEM_USO:
+    case AJ_HERO_TRAILER:case AJ_DET_VEU:case AJ_DET_TRAILER_AUTO:
+    case AJ_TRAILER_QUAL:case AJ_TRAILER_ASPECTO:
+      return !!dePerfil(op)==perfil;
+    default:break;
+  }
   if(op>=AJ_N)return !perfil;
   // These Settings rows mirror separate stores; scalar shadow values would
   // restore without changing the real subtitle or failover preferences.
