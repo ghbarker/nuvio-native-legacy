@@ -56,6 +56,8 @@ static const Tipo tipos[BS_N]={
   {"external-player","player-externo.txt",H},
   {"live-urls","ltv-urls-p%d.txt",P|C},
   {"live-source-preferences","ltv-fontes-p%d.txt",P},
+  {"live-favorites","guia-ltv-fav-p%d.txt",P},
+  {"live-epg-mapping","ltv-epgmapa-p%d.txt",P},
 };
 #undef P
 #undef C
