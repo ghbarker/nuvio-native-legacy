@@ -2,7 +2,7 @@
 #define NV_DRIVETV_H
 #include "rede.h"
 #include <stdint.h>
-#define DRIVE_APPLICACAO_SCOPE "https://www.googleapis.com/auth/drive.appdata"
+#define DRIVE_APPLICACAO_SCOPE "https://www.googleapis.com/auth/drive.file"
 typedef struct {
   const char *cliente,*segredo;
   RedeJob *job;

@@ -19,6 +19,10 @@ enum {
 // Blocking worker-only operations. Tokens stay in the Authorization header;
 // no credentials or raw provider URLs belong in Drive metadata. No auto POST
 // retry: a lost response may already have created a backup.
+// drive.file: only files this app can access in the CURRENT Google account.
+// New backups use a visible, app-marked "Nuvio Backups" folder. Listing uses
+// private app properties, so moving a backup/folder does not orphan it.
+int drivelocal_pasta(const DriveLocal *,int criar,char id[200]);
 int drivelocal_listar(const DriveLocal *,const char *pagina,DrivePagina *saida);
 int drivelocal_enviar(const DriveLocal *,const char *snapshot,size_t n,char id[200]);
 // Download checks the envelope against the CURRENT authenticated Nuvio owner

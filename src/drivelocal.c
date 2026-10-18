@@ -92,6 +92,44 @@ static int arquivo(const DriveLocal *c,const char *s,const char *fim,DriveBackup
   a->criadoMs=js_ms_iso(data);if(!bytes || a->criadoMs<=0)return -1;
   a->bytes=bytes;return 1;
 }
+int drivelocal_pasta(const DriveLocal *c,int criar,char id[200]) {
+  if(id)*id=0;
+  if(!id || !valido(c))return DRIVE_LOCAL_INVALIDO;
+  const char consulta[]="trashed=false and mimeType='application/vnd.google-apps.folder' and 'me' in owners and appProperties has { key='nuvioBackupFolder' and value='1' }";
+  char *q=escapar(consulta,sizeof consulta-1);if(!q)return DRIVE_LOCAL_INVALIDO;
+  char url[1024];int tamanho=snprintf(url,sizeof url,DRIVE_API
+    "?spaces=drive&pageSize=1&orderBy=createdTime&q=%s&fields=files(id,mimeType,appProperties)",q);free(q);
+  if(tamanho<0 || (size_t)tamanho>=sizeof url)return DRIVE_LOCAL_INVALIDO;
+  char *s=NULL;size_t n=0;int resultado=executar(c,"GET",url,NULL,NULL,0,16384,&s,&n);
+  if(resultado!=DRIVE_LOCAL_OK)return resultado;
+  char lista[16384],mime[80],props[512],marca[8],arquivoId[200];
+  resultado=DRIVE_LOCAL_RESPOSTA;
+  if(!objeto(s) || !js_bruto(s,NULL,"files",lista,sizeof lista) || *lista!='[')goto fim;
+  const char *p=pular(lista+1);
+  if(*p!=']') {
+    const char *f=js_fim(p);
+    if(*p!='{' || f<=p || f[-1]!='}' || *pular(f)!=']' || *pular(pular(f)+1) ||
+       !js_texto_raiz_em(p,f,"id",arquivoId,sizeof arquivoId) || !identificador(arquivoId,199) ||
+       !js_texto_raiz_em(p,f,"mimeType",mime,sizeof mime) || strcmp(mime,"application/vnd.google-apps.folder") ||
+       !js_bruto(p,f,"appProperties",props,sizeof props) || !objeto(props) ||
+       !js_texto_raiz(props,"nuvioBackupFolder",marca,sizeof marca) || strcmp(marca,"1"))goto fim;
+    strcpy(id,arquivoId);resultado=DRIVE_LOCAL_OK;goto fim;
+  }
+  if(*pular(p+1))goto fim;
+  resultado=DRIVE_LOCAL_AUSENTE;
+  if(criar) {
+    free(s);s=NULL;
+    const char corpo[]="{\"name\":\"Nuvio Backups\",\"mimeType\":\"application/vnd.google-apps.folder\",\"appProperties\":{\"nuvioBackupFolder\":\"1\"}}";
+    resultado=executar(c,"POST",DRIVE_API "?fields=id","Content-Type: application/json; charset=UTF-8",
+                       corpo,sizeof corpo-1,16384,&s,&n);
+    if(resultado==DRIVE_LOCAL_OK) {
+      if(!objeto(s) || !js_texto_raiz(s,"id",arquivoId,sizeof arquivoId) || !identificador(arquivoId,199))resultado=DRIVE_LOCAL_RESPOSTA;
+      else strcpy(id,arquivoId);
+    }
+  }
+fim:
+  free(s);return resultado;
+}
 int drivelocal_listar(const DriveLocal *c,const char *pagina,DrivePagina *saida) {
   if(saida)memset(saida,0,sizeof *saida);
   if(!saida || !valido(c))return DRIVE_LOCAL_INVALIDO;
@@ -99,7 +137,7 @@ int drivelocal_listar(const DriveLocal *c,const char *pagina,DrivePagina *saida)
     "trashed=false and appProperties has { key='nuvioBackupVersion' and value='1' } and appProperties has { key='nuvioOwner' and value='%s' } and appProperties has { key='nuvioProfile' and value='%d' }",c->dono,c->perfil);
   char *q=escapar(consulta,511),*pg=escapar(pagina?pagina:"",4095);if(!q || !pg){free(q);free(pg);return DRIVE_LOCAL_INVALIDO;}
   size_t cap=strlen(q)+strlen(pg)+512;char *url=malloc(cap);if(!url){free(q);free(pg);return DRIVE_LOCAL_INVALIDO;}
-  snprintf(url,cap,DRIVE_API "?spaces=appDataFolder&pageSize=50&orderBy=createdTime%%20desc&q=%s&fields=nextPageToken,files(id,name,mimeType,size,createdTime,appProperties)%s%s",q,*pg?"&pageToken=":"",pg);
+  snprintf(url,cap,DRIVE_API "?spaces=drive&pageSize=50&orderBy=createdTime%%20desc&q=%s&fields=nextPageToken,files(id,name,mimeType,size,createdTime,appProperties)%s%s",q,*pg?"&pageToken=":"",pg);
   free(q);free(pg);char *corpo=NULL;size_t n=0;int resultado=executar(c,"GET",url,NULL,NULL,0,128u*1024u,&corpo,&n);free(url);
   if(resultado!=DRIVE_LOCAL_OK)return resultado;
   DrivePagina *out=calloc(1,sizeof *out);char *lista=malloc(n+1);
@@ -129,13 +167,15 @@ int drivelocal_enviar(const DriveLocal *c,const char *snapshot,size_t n,char id[
   // boundary collision detection without assuming the caller supplied one.
   char *texto=malloc(n+1);if(!texto){backuplocal_liberar(b);return DRIVE_LOCAL_INVALIDO;}
   memcpy(texto,snapshot,n);texto[n]=0;
+  char pasta[200];int resultado=drivelocal_pasta(c,1,pasta);
+  if(resultado!=DRIVE_LOCAL_OK){free(texto);backuplocal_liberar(b);return resultado;}
   char nome[128],perfil[16],fronteira[80];snprintf(nome,sizeof nome,"Nuvio-settings-p%d-%lld.txt",c->perfil,backuplocal_criado(b));
   snprintf(perfil,sizeof perfil,"%d",c->perfil);backuplocal_liberar(b);
   unsigned k=0;
   do{snprintf(fronteira,sizeof fronteira,"nuvio-local-settings-%u",k++);}while(strstr(texto,fronteira) && k<1000);
   if(strstr(texto,fronteira)){free(texto);return DRIVE_LOCAL_INVALIDO;}
   Jsw w;jsw_iniciar(&w);jsw_obj_ini(&w);jsw_cs(&w,"name",nome);jsw_cs(&w,"mimeType",DRIVE_MIME);
-  jsw_chave(&w,"parents");jsw_arr_ini(&w);jsw_str(&w,"appDataFolder");jsw_arr_fim(&w);
+  jsw_chave(&w,"parents");jsw_arr_ini(&w);jsw_str(&w,pasta);jsw_arr_fim(&w);
   jsw_chave(&w,"appProperties");jsw_obj_ini(&w);jsw_cs(&w,"nuvioBackupVersion","1");
   jsw_cs(&w,"nuvioOwner",c->dono);jsw_cs(&w,"nuvioProfile",perfil);jsw_obj_fim(&w);jsw_obj_fim(&w);
   const char *meta=jsw_texto_final(&w);char *corpo=NULL;
@@ -150,7 +190,7 @@ int drivelocal_enviar(const DriveLocal *c,const char *snapshot,size_t n,char id[
   if(fim<0 || (size_t)fim>=cap-pos){free(corpo);return DRIVE_LOCAL_INVALIDO;}
   char tipo[128];snprintf(tipo,sizeof tipo,"Content-Type: multipart/related; boundary=%s",fronteira);
   char *resposta=NULL;size_t nr=0;
-  int resultado=executar(c,"POST",DRIVE_UPLOAD,tipo,corpo,(size_t)inicio+n+(size_t)fim,16384,&resposta,&nr);free(corpo);
+  resultado=executar(c,"POST",DRIVE_UPLOAD,tipo,corpo,(size_t)inicio+n+(size_t)fim,16384,&resposta,&nr);free(corpo);
   if(resultado==DRIVE_LOCAL_OK) {
     char arquivo[200];
     if(!objeto(resposta) || !js_texto_raiz(resposta,"id",arquivo,sizeof arquivo) || !identificador(arquivo,sizeof arquivo-1))resultado=DRIVE_LOCAL_RESPOSTA;
