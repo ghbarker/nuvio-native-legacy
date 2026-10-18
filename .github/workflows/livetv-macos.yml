@@ -1,4 +1,4 @@
-name: Logs53 source details, GIF and live recovery macOS regression checks
+name: Logs54 large IPTV guide and retained macOS regression checks
 on:
   workflow_dispatch:
 permissions:
@@ -15,17 +15,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f4517ef13e42774514edb72a92c3b1093bfdb7a6
+          ref: bff8f62a83787362ba164f590a2e57dcc59c8589
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
-      - name: Prepared-source metadata, responsive layout and retained regressions
+      - name: Large IPTV guide, hidden categories and retained regressions
         run: |
           set -euo pipefail
           for san in 0 1; do
+            SANITIZE="$san" bash tests/xtream.sh
+            SANITIZE="$san" bash tests/guia_grande.sh
+            SANITIZE="$san" bash tests/guia_grupos.sh
+            SANITIZE="$san" bash tests/guia_loading.sh
+            SANITIZE="$san" bash tests/guia_catalogo_tv.sh
+            SANITIZE="$san" bash tests/guia_epg_estado.sh
+            SANITIZE="$san" bash tests/m3u.sh
+            SANITIZE="$san" bash tests/iptv_accounts.sh
+            SANITIZE="$san" bash tests/epg_accounts.sh
+            SANITIZE="$san" bash tests/epg_memory.sh
+            SANITIZE="$san" bash tests/xtepg_bounded.sh
             SANITIZE="$san" bash tests/fonteinfo.sh
             SANITIZE="$san" bash tests/fonteinfo_layout.sh
             SANITIZE="$san" bash tests/fontefalha.sh
@@ -36,6 +47,7 @@ jobs:
             SANITIZE="$san" bash tests/video_android_live_window.sh
             SANITIZE="$san" bash tests/live_error_recovery.sh
           done
+          bash tests/guiacorte.sh
           bash tests/livestall.sh
           bash tests/livestall_seco.sh
           bash tests/fonteantecipa.sh
