@@ -71,7 +71,8 @@ class RegistroDownload(private val activity: Activity) {
         }
         Thread({
             val mensagem = try {
-                val texto = limpar(lerFim(atual.arquivo)).toByteArray(Charsets.UTF_8)
+                val texto = if (BuildConfig.NV_TEST_LOCAL_LOGS) TestLocalLogs(activity).snapshot()
+                            else limpar(lerFim(atual.arquivo)).toByteArray(Charsets.UTF_8)
                 activity.contentResolver.openOutputStream(uri, "wt")?.use { it.write(texto) }
                     ?: throw IllegalStateException()
                 atual.sucesso
