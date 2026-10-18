@@ -1,0 +1,68 @@
+name: Drive full-source macOS final checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/drive-macos-final.yml]
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      SDL_MAC_BACKGROUND_APP: '1'
+      DYLD_LIBRARY_PATH: /opt/homebrew/lib
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ae64dc019f872bbbf871189cf2495b4a76b0cd9d
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+      - name: Native owner and modal integration, normal and ASan/UBSan
+        run: |
+          mkdir -p diagnostics
+          python3 - <<'PY'
+          import os, pathlib, signal, subprocess
+          for suite in ('backupapp', 'drivebackup'):
+              for sanitize in ('0', '1'):
+                  name = suite + ('-sanitizers' if sanitize == '1' else '-normal')
+                  path = pathlib.Path('diagnostics', name + '.log')
+                  print('Starting ' + name, flush=True)
+                  with path.open('w') as output:
+                      process = subprocess.Popen(['bash', 'tests/' + suite + '.sh'], env={**os.environ, 'SANITIZE': sanitize}, stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
+                      try:
+                          code = process.wait(timeout=240)
+                      except subprocess.TimeoutExpired:
+                          listing = subprocess.check_output(['ps', '-ax', '-o', 'pid=,ppid=,command='], text=True)
+                          pathlib.Path('diagnostics', name + '-processes.txt').write_text(listing)
+                          children = {process.pid}
+                          rows = [row.split(None, 2) for row in listing.splitlines()]
+                          for _ in range(10):
+                              for row in rows:
+                                  if len(row) == 3 and int(row[1]) in children:
+                                      children.add(int(row[0]))
+                          for pid in children - {process.pid}:
+                              try:
+                                  subprocess.run(['sample', str(pid), '2', '-file', 'diagnostics/' + name + '-' + str(pid) + '.sample'], timeout=8, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                              except subprocess.TimeoutExpired:
+                                  pass
+                          os.killpg(process.pid, signal.SIGKILL)
+                          process.wait()
+                          code = 124
+                  print('\n'.join(path.read_text().splitlines()[-35:]), flush=True)
+                  if code:
+                      raise SystemExit(name + ' failed: ' + str(code))
+          PY
+      - run: python3 tools/idiomas.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drive-macos-final-diagnostics
+          path: diagnostics
