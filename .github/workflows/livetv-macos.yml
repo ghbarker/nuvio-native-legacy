@@ -55,7 +55,7 @@ jobs:
           python3 tools/varredura-i18n.py
       - uses: actions/checkout@v4
         with:
-          ref: cdaa66cfaa5d5905dcdd02ec802c7f6de94e0e67
+          ref: 8cfededfd4b03f89a57ff339f2afdae2ef3d9f74
           path: clean424
           persist-credentials: false
       - name: Check isolated upstream feature branch
