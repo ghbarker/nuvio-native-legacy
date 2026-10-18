@@ -31,6 +31,16 @@ static size_t audioRotuloBandeira(const char *p,const char *fim) {
   return (unsigned char)p[3]>=0xA6 && (unsigned char)p[3]<=0xBF &&
     (unsigned char)p[7]>=0xA6 && (unsigned char)p[7]<=0xBF?8:0;
 }
+// Flags and formatter icons delimit words even without a space (1080p🇹🇷).
+// Keep UTF-8 letters together so Türkçe remains a complete language token.
+static const char *audioRotuloFimPalavra(const char *p,const char *fim) {
+  while(p<fim && audioRotuloPalavra((unsigned char)*p)) {
+    int tipo;
+    if(audioRotuloBandeira(p,fim) || faixasMarcadorTexto(p,fim,&tipo))break;
+    p++;
+  }
+  return p;
+}
 static const char *audioRotuloSeparadores(const char *p,const char *fim) {
   while(p<fim && (isspace((unsigned char)*p) || strchr(".,/|;_+-[]()",*p)))p++;
   return p;
@@ -41,11 +51,11 @@ static int audioRotuloSufixoSubs(const char *p,const char *fim) {
   for(int i=0;i<16;i++) {
     p=audioRotuloSeparadores(p,fim);if(p==fim)return 0;
     if(audioRotuloSubs(p,fim)) {
-      const char *q=p;while(q<fim && audioRotuloPalavra((unsigned char)*q))q++;
+      const char *q=audioRotuloFimPalavra(p,fim);
       q=faixasEspacos(q,fim);return q==fim || *q!='/';
     }
     size_t flag=audioRotuloBandeira(p,fim);if(flag){p+=flag;continue;}
-    const char *q=p;while(q<fim && audioRotuloPalavra((unsigned char)*q))q++;
+    const char *q=audioRotuloFimPalavra(p,fim);
     char token[128];if(q==p || !audioRotuloIdioma(p,q,token))return 0;
     p=q;
   }
@@ -53,13 +63,14 @@ static int audioRotuloSufixoSubs(const char *p,const char *fim) {
 }
 static void audioRotulosTexto(const char *texto,char *dst,unsigned tam) {
   if(!texto || !faixasUtf8((const unsigned char *)texto))return;
+  int tipo=1;
   for(const char *linha=texto;*linha;) {
-    const char *fim=linha+strcspn(linha,"\r\n");int tipo=1;
+    const char *fim=linha+strcspn(linha,"\r\n");
     for(const char *p=linha;p<fim;) {
       int rotulo=tipo;
       const char *q=faixasRotuloTexto(p,fim,&rotulo);
       if(q!=p){tipo=rotulo;p=q;continue;}
-      if(audioRotuloSubs(p,fim)){tipo=2;while(p<fim && audioRotuloPalavra((unsigned char)*p))p++;continue;}
+      if(audioRotuloSubs(p,fim)){tipo=2;p=audioRotuloFimPalavra(p,fim);continue;}
       size_t n=audioRotuloBandeira(p,fim);
       if(n) {
         const char *idioma=faixaIdiomaEmoji(p,p+n);
@@ -70,10 +81,12 @@ static void audioRotulosTexto(const char *texto,char *dst,unsigned tam) {
         p+=n;continue;
       }
       n=faixasMarcadorTexto(p,fim,&rotulo);
-      if(n){tipo=rotulo==2?2:1;p+=n;continue;}
-      if(*p=='|' || *p==';'){tipo=1;p++;continue;}
+      if(n){if(rotulo)tipo=rotulo==2?2:1;p+=n;continue;}
+      // Separators and line breaks do not turn a subtitle list into audio.
+      // A following explicit audio label/icon can start a new audio section.
+      if(*p=='|' || *p==';'){p++;continue;}
       if(!audioRotuloPalavra((unsigned char)*p)){p++;continue;}
-      q=p;while(q<fim && audioRotuloPalavra((unsigned char)*q))q++;
+      q=audioRotuloFimPalavra(p,fim);
       // URLs are transport details, not language tags, even inside a title.
       if(fim-q>=3 && !memcmp(q,"://",3)) {
         while(q<fim && !isspace((unsigned char)*q) && *q!='|')q++;
