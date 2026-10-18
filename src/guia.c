@@ -1827,7 +1827,7 @@ static void empacotar(void) {
   memcpy(pos, catIni, sizeof(int) * (size_t)nCats);
   for (i = 0, w = 0; i < nCanais; i++)
     if (canais[i].cat >= 0) { tmp[pos[canais[i].cat]++] = canais[i]; w++; }
-  memcpy(canais, tmp, sizeof(GCanal) * (size_t)w);
+  if(w) memcpy(canais, tmp, sizeof(GCanal) * (size_t)w);
   nCanais = w;
   free(ordem); free(mapa); free(pos); free(tmp);
   for (i = 0; i < nCanais; i++) if (canais[i].fonte >= 0 && canais[i].fonte < nLtvF) ltvF[canais[i].fonte].nCanais++;
