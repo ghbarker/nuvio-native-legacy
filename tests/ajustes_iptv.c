@@ -13,21 +13,26 @@ static int categoriasLerTeste(GuiaCategoria *out,int max) {
   if(out && n>0)memcpy(out,categoriasTeste,sizeof *out*(size_t)n);
   return n;
 }
-static int categoriaDefinirTeste(const GuiaCategoria *c,int ocultar) {
-  for(int i=0;i<nCategoriasTeste;i++)if(categoriasTeste[i].chave==c->chave) {
-    categoriasTeste[i].oculta=!!ocultar;categoriaGravacoes++;return 1;
+static int categoriaFalhar;
+static int categoriasDefinirTeste(const GuiaCategoria *cs,int n) {
+  if(categoriaFalhar)return 0;
+  if(!n)return 1;
+  for(int k=0;k<n;k++) {
+    int achou=0;for(int i=0;i<nCategoriasTeste;i++)if(categoriasTeste[i].chave==cs[k].chave)achou=1;
+    if(!achou)return 0;
   }
-  return 0;
+  for(int k=0;k<n;k++)for(int i=0;i<nCategoriasTeste;i++)if(categoriasTeste[i].chave==cs[k].chave)categoriasTeste[i].oculta=cs[k].oculta;
+  categoriaGravacoes++;return 1;
 }
 #define guia_categorias categoriasLerTeste
-#define guia_categoria_definir categoriaDefinirTeste
+#define guia_categorias_definir categoriasDefinirTeste
 #define guia_recarregar recarregarTeste
 #define gfx_recorte recorteTeste
 #define gfx_sem_recorte semRecorteTeste
 #include "../src/ajustes.c"
 #undef guia_recarregar
 #undef guia_categorias
-#undef guia_categoria_definir
+#undef guia_categorias_definir
 #undef gfx_recorte
 #undef gfx_sem_recorte
 #include <assert.h>
@@ -173,20 +178,35 @@ int main(int argc,char **argv) {
   raiz();tocar(AJ_EPG_MEMORIA);key(SDLK_RIGHT);key(SDLK_RETURN);
   assert(valor[AJ_EPG_MEMORIA]==1 && somenteDesteAparelho(AJ_EPG_MEMORIA) && !dePerfil(AJ_EPG_MEMORIA));
   tocar(AJ_EPG_MEMORIA);key(SDLK_RIGHT);key(SDLK_RETURN);assert(valor[AJ_EPG_MEMORIA]==2);
-  tocar(AJ_GUIA_CATEGORIAS);assert(uxEditor && !uxNCategorias);key(SDLK_RETURN);assert(!categoriaGravacoes);key(SDLK_ESCAPE);
+  tocar(AJ_GUIA_CATEGORIAS);assert(uxEditor && !uxNCategorias);key(SDLK_RETURN);assert(!categoriaGravacoes);ajToqueConfirmar(0,0);assert(!uxEditor && !categoriaGravacoes);
   nCategoriasTeste=2;
   categoriasTeste[0]=(GuiaCategoria){.chave=11,.sessao=nv_perfil_sessao_ler()};
   categoriasTeste[1]=(GuiaCategoria){.chave=22,.sessao=nv_perfil_sessao_ler()};
   strcpy(categoriasTeste[0].nome,"Sports");strcpy(categoriasTeste[0].conta,"Account A");
   strcpy(categoriasTeste[1].nome,"Sports");strcpy(categoriasTeste[1].conta,"Account B");
   tocar(AJ_GUIA_CATEGORIAS);assert(uxNCategorias==2 && nValores(uxOp)==2);
-  ajIptvToqueEscolher(0,0);assert(uxEditor && uxCategorias[0].oculta && !uxCategorias[1].oculta && categoriaGravacoes==1);
-  key(SDLK_RETURN);assert(!uxCategorias[0].oculta && categoriaGravacoes==2);
-  key(SDLK_DOWN);key(SDLK_RETURN);assert(uxCategorias[1].oculta && !uxCategorias[0].oculta);
-  key(SDLK_ESCAPE);assert(!uxCategorias && !uxNCategorias);tocar(AJ_GUIA_CATEGORIAS);assert(uxCategorias[1].oculta);
-  int gravacoes=categoriaGravacoes;perfis_invalidar_sessao();key(SDLK_RETURN);
+  // A row click is a draft checkbox, not a disk write. Confirm must not
+  // toggle it a second time; Cancel and Back discard all staged choices.
+  ajIptvToqueEscolher(0,0);assert(uxCategorias[0].oculta && !uxCategorias[1].oculta && !categoriaGravacoes);
+  ajToqueConfirmar(0,0);assert(!uxEditor && categoriasTeste[0].oculta && !categoriasTeste[1].oculta && categoriaGravacoes==1);
+  tocar(AJ_GUIA_CATEGORIAS);ajIptvToqueEscolher(1,0);ajToqueCancelar(0,0);
+  assert(!uxEditor && !categoriasTeste[1].oculta && categoriaGravacoes==1);
+  tocar(AJ_GUIA_CATEGORIAS);key(SDLK_DOWN);key(SDLK_RETURN);
+  assert(uxCategorias[1].oculta && !categoriasTeste[1].oculta);key(SDLK_ESCAPE);
+  assert(!uxEditor && !categoriasTeste[1].oculta && categoriaGravacoes==1);
+  tocar(AJ_GUIA_CATEGORIAS);key(SDLK_RETURN);key(SDLK_DOWN);key(SDLK_RETURN);
+  assert(!uxCategorias[0].oculta && uxCategorias[1].oculta && categoriaGravacoes==1);
+  key(SDLK_RIGHT);assert(uxRodape==1);key(SDLK_RETURN);
+  assert(!uxEditor && !categoriasTeste[0].oculta && categoriasTeste[1].oculta && categoriaGravacoes==2);
+  tocar(AJ_GUIA_CATEGORIAS);key(SDLK_RETURN);key(SDLK_DOWN);key(SDLK_DOWN);assert(uxRodape==1);
+  key(SDLK_LEFT);assert(uxRodape==2);key(SDLK_RETURN);
+  assert(!uxEditor && !categoriasTeste[0].oculta && categoriaGravacoes==2);
+  tocar(AJ_GUIA_CATEGORIAS);ajIptvToqueEscolher(0,0);categoriaFalhar=1;ajToqueConfirmar(0,0);
+  assert(uxEditor && uxCategorias[0].oculta && !categoriasTeste[0].oculta && categoriaGravacoes==2);
+  categoriaFalhar=0;ajToqueConfirmar(0,0);assert(!uxEditor && categoriasTeste[0].oculta && categoriaGravacoes==3);
+  tocar(AJ_GUIA_CATEGORIAS);int gravacoes=categoriaGravacoes;perfis_invalidar_sessao();ajToqueConfirmar(0,0);
   assert(!uxEditor && !uxCategorias && categoriaGravacoes==gravacoes);
-  puts("PASS: device-local EPG memory choice, empty categories, touch and remote multi-select, reopening saved visibility and stale-profile rejection");
+  puts("PASS: touch/remote draft checkboxes; Confirm saves once; Cancel/Back discard; failed save retains draft; stale profile cannot save");
 
   adicionar(IPTV_M3U,"https://three.invalid/list",NULL);IptvConta tres=selecionada();
   editar(IPTV_M3U,0);campo(AJ_M3U_EPG,"https://three.invalid/epg.xml");
