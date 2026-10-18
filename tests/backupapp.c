@@ -8,6 +8,10 @@
 #include "debrid.h"
 #include <assert.h>
 static const char sessaoFixture[]="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyLTEiLCJleHAiOjQxMDI0NDQ4MDB9.test-signature\nfixture-refresh\n0\n";
+static int idiomaIndice(const char *codigo) {
+  for(int i=0;i<ling_opcao_n();i++)if(!strcmp(ling_opcao_codigo(i),codigo))return i;
+  assert(!"missing language option");return -1;
+}
 static void igual(const char *nome,const char *esperado) {
   char *s=dados_ler(nome);assert(s && !strcmp(s,esperado));free(s);
 }
@@ -24,7 +28,17 @@ int main(void) {
   assert(backupapp_contexto(&c) && c.perfil==7 && !strcmp(c.usuario,"user-1"));
   assert(dados_gravar("debrid.txt","fixture-account-must-stay-local\n"));
   assert(dados_gravar("xtream.txt","fixture-iptv-must-stay-local\n"));
+  int nativeOptions[]={AJ_QUALIDADE,AJ_DV,AJ_ATMOS,AJ_PS_FUNDO,AJ_CW_OK,AJ_FONTE_OUTROS,AJ_FONTE_REGEX,AJ_FONTE_ORDEM_USO,
+    AJ_HERO_TRAILER,AJ_DET_VEU,AJ_DET_TRAILER_AUTO,AJ_TRAILER_QUAL,AJ_TRAILER_ASPECTO};
+  int nativeValues[sizeof nativeOptions/sizeof *nativeOptions];
+  for(size_t i=0;i<sizeof nativeOptions/sizeof *nativeOptions;i++) {
+    int op=nativeOptions[i];nativeValues[i]=OPCOES[op].tipo==OP_NUMERO?OPCOES[op].max:nValores(op)-1;
+    valor[op]=nativeValues[i];
+  }
   valor[AJ_TAMANHO_AJUSTES]=0;valor[AJ_OCULTAR_FILMES_VISTOS]=1;
+  valor[AJ_LEG_LINGUA]=idiomaIndice("en");valor[AJ_LEG_LINGUA2]=idiomaIndice("tr");
+  valor[AJ_AUD_LINGUA]=idiomaIndice("ja");valor[AJ_AUD_LINGUA2]=idiomaIndice("es");
+  aplicarIdioma(AJ_LEG_LINGUA);aplicarIdioma(AJ_LEG_LINGUA2);aplicarIdioma(AJ_AUD_LINGUA);aplicarIdioma(AJ_AUD_LINGUA2);
   assert(fontefalha_definir_provedores(1));
   PlayerBackup pl;player_backup_capturar(&pl);pl.estilo.tamanho=150;
   assert(player_leg_estilo_definir(&pl.estilo,PLR_LEG_FONTE));
@@ -36,6 +50,9 @@ int main(void) {
   for(size_t i=0;i<sizeof loginFiles/sizeof *loginFiles;i++)
     assert(dados_gravar(loginFiles[i],"fixture-destination-login\n"));
   // Target credentials, hardware and Nuvio-managed values remain the target's.
+  for(size_t i=0;i<sizeof nativeOptions/sizeof *nativeOptions;i++)valor[nativeOptions[i]]=0;
+  valor[AJ_LEG_LINGUA]=idiomaIndice("it");valor[AJ_LEG_LINGUA2]=0;
+  valor[AJ_AUD_LINGUA]=idiomaIndice("de");valor[AJ_AUD_LINGUA2]=0;
   valor[AJ_TAMANHO_AJUSTES]=1;valor[AJ_OCULTAR_FILMES_VISTOS]=0;
   valor[AJ_HERO]=1;valor[AJ_INTERFACE_MODO]=0;valor[AJ_TEX_MB]=2;
   assert(gravar());ajustes_perfil_guardar(7);
@@ -47,6 +64,14 @@ int main(void) {
   assert(backupapp_restaurar(&c,b)==BACKUP_RESTORE_OK);
   assert(valor[AJ_TAMANHO_AJUSTES]==0 && valor[AJ_OCULTAR_FILMES_VISTOS]==1);
   assert(valor[AJ_HERO]==1 && valor[AJ_INTERFACE_MODO]==0 && valor[AJ_TEX_MB]==2);
+  assert(!strcmp(ling_legenda(),"en") && !strcmp(ling_legenda2(),"tr"));
+  assert(!strcmp(ling_audio(),"ja") && !strcmp(ling_audio2(),"es"));
+  for(size_t i=0;i<sizeof nativeOptions/sizeof *nativeOptions;i++)assert(valor[nativeOptions[i]]==nativeValues[i]);
+  ajustes_backup_recarregar(dados_dir());ajustes_perfil_restaurar(7);
+  for(size_t i=0;i<sizeof nativeOptions/sizeof *nativeOptions;i++)assert(valor[nativeOptions[i]]==nativeValues[i]);
+  ajustes_idiomas_da_conta("{\"subtitle_preferred_language\":\"it\",\"preferred_audio_language\":\"de\"}");
+  assert(!strcmp(ling_legenda(),"en") && !strcmp(ling_legenda2(),"tr"));
+  assert(!strcmp(ling_audio(),"ja") && !strcmp(ling_audio2(),"es"));
   player_backup_capturar(&pl);assert(pl.estilo.tamanho==150 && (pl.tocado&PLR_LEG_FONTE));
   assert(fontefalha_provedores());igual("sessao.txt",sessaoFixture);
   igual("debrid.txt","fixture-account-must-stay-local\n");igual("xtream.txt","fixture-iptv-must-stay-local\n");

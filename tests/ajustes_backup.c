@@ -1,5 +1,6 @@
 #include "../src/ajustes.c"
 #include <assert.h>
+#include "backup_options.inc"
 
 static void linha(char *dst,size_t n,int op,int v) {
   snprintf(dst,n,"%s %d\n",CHAVE[op],v);
@@ -10,6 +11,7 @@ static void recusar(int perfil,const char *atual,const char *corpo) {
 }
 int main(void) {
   rotulosDeIdioma();
+  conferirCobertura();
   int antes[AJ_N];memcpy(antes,valor,sizeof antes);
   char conta[128],aparelho[128],perfil[128],dinamica[128],original[1024];
   linha(conta,sizeof conta,AJ_HERO,1);
