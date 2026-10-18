@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: de35ddd0e8d290431c81c31d51beb3832d94b602
+          ref: fbe68ad946d7c818e547cd1ee3b39e353a974106
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -44,7 +44,7 @@ jobs:
           mkdir -p diagnostics
           python3 - <<'PY'
           import os, pathlib, signal, subprocess
-          small = ('backupcrypto','backuplocal','backupstores','backupconnections','backupfonts','backupdisco','backuprestauro','playerbackup','fontefalha_backup','drivelocal','drivefontes','drivetv','legfontes','ajustes_backup')
+          small = ('backupcrypto','backuplocal','backupstores','backupconnections','backupfonts','backupdisco','backuprestauro','playerbackup','fontefalha_backup','drivelocal','drivefontes','drivetv','legfontes','ajustes_backup','ime_context')
           group = os.environ['BACKUP_TEST_GROUP']
           suites = small if group == 'small' else (group,)
           failures = []
