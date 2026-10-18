@@ -1,4 +1,4 @@
-name: Share verified Logs49 provider-account test APK
+name: Share verified Logs50 live recovery APK
 on:
   workflow_dispatch:
 permissions:
@@ -9,82 +9,65 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TEST_RELEASE: tv-mobile-test-logs-v49
+      TEST_RELEASE: tv-mobile-test-logs-v50
     steps:
-      - name: Require successful checks on the final integrated source
+      - name: Require Android, Linux and macOS checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084222011/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084222011 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39084224256 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39083822801 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39095218772 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39095218772/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39095220375 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: f4f7e804dc33207199d5fb105dd00e0194ca2a9b
-          fetch-depth: 4
+          ref: 08cd14e7c544a5268a15b3b057deff0913c6c2b2
           persist-credentials: false
-      - name: Verify tested application code and retained Settings baseline
-        run: |
-          test "$(git rev-parse HEAD)" = f4f7e804dc33207199d5fb105dd00e0194ca2a9b
-          git diff --exit-code a07380183c23a85c8be67dc18ea6f4c07db91fab HEAD -- src/ajustes.c 'src/ajustes_*.inc'
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39084222011
-          name: Nuvio-TV-Mobile-Test-Logs49-fe3603aeea900bcb8cdd68e26645092b17f4240f
+          run-id: 39095218772
+          name: Nuvio-TV-Mobile-Test-Logs50-43f22dd4f4ccc8739528f788e770ab4fe7f1976b
           path: dist
-      - name: Verify Android page alignment and the retained package identity
+      - name: Verify and describe the test build
         run: |
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs49.apk
-          python3 - <<'PY'
+          set -euo pipefail
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs50.apk
+          python3 - <<'PYCODE'
           import hashlib,json,pathlib,zipfile,os
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs49.apk'
-          report=json.loads((root/'Logs49-validation.json').read_text())
-          assert report['source_commit']=='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
-          assert report['source_tree']=='e98a5578b2fd082101598e245c5d2d17447e0d9f'
-          assert report['package']=='space.nuvio.nativelegacy.touch'
-          assert report['version_code']==20059 and report['version_name']=='2.0.59-test-logs49'
-          release=os.environ['TEST_RELEASE']
-          assert release=='tv-mobile-test-logs-v'+report['version_name'].split('-logs')[-1]
-          report['release']=release
-          report['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+release+'/'+apk.name
-          assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
-          assert apk.stat().st_size==report['apk_bytes']
-          assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs50.apk'
+          p=root/'Logs50-validation.json';r=json.loads(p.read_text())
+          assert r['source_commit']=='08cd14e7c544a5268a15b3b057deff0913c6c2b2' and r['source_tree']=='4685c8432ee2ce0294146b82907b7e335f2f7f68'
+          assert r['package']=='space.nuvio.nativelegacy.touch'
+          assert r['version_code']==20060 and r['version_name']=='2.0.60-test-logs50'
+          assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          assert apk.stat().st_size==r['apk_bytes'] and hashlib.sha256(apk.read_bytes()).hexdigest()==r['apk_sha256']
+          assert os.environ['TEST_RELEASE']=='tv-mobile-test-logs-v'+r['version_name'].split('-logs')[-1]
           with zipfile.ZipFile(apk) as z:
-              assert 'lib/arm64-v8a/libmain.so' in z.namelist()
-              assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,native_account_regressions=True,macos_native_account_regressions=True,android_16k_alignment=True)
-          report['android_run']=39084222011;report['linux_run']=39084222011;report['macos_run']=39084224256
-          report['android_job']='apk-build'
-          report['shared_failover_baseline_run']=39083822801
-          report['test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
-          report['application_code_matches_test_commit']=True
-          report['macos_test_commit']='f4f7e804dc33207199d5fb105dd00e0194ca2a9b'
-          report['validation_scope']='Linux/macOS normal regression suites and real full-source Settings; ASan/UBSan coverage for memory policy/windows, serial EPG worker queues and cached restoration, scoped EPG/streamed XMLTV, category visibility and cached grouping, native guide loading/routing, and full-source Settings. The normal-only helpers are listed separately. Linux shared failover Settings normal retained from the preceding successful Logs49 run with identical Settings code. Android both ARM builds and font import unit tests.'
-          report['normal_regression_suites']=['epg_memory', 'epg_accounts', 'epg_streaming', 'guia_grupos', 'guia_loading', 'guia_epg_estado', 'guiaepg', 'guia_catalogo_tv', 'guia_stream_headers', 'guiaaddons', 'guiacorte', 'ajustes_iptv', 'ajustes_secoes']
-          report['asan_ubsan_suites']=['epg_memory', 'epg_accounts', 'epg_streaming', 'guia_grupos', 'guia_loading', 'guia_epg_estado', 'guiaepg', 'guia_catalogo_tv', 'guia_stream_headers', 'ajustes_iptv']
-          report['normal_only_suites']=['guiaaddons', 'guiacorte', 'ajustes_secoes']
-          report['new_translation_keys_verified']=True
-          report['new_translation_keys']=5;report['translation_tables']=29
-          report['full_language_audit_existing_findings']=60;report['full_language_audit_new_findings']=0
-          report['baseline_release']='tv-mobile-test-logs-v47'
-          (root/'Logs49-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-          (root/'Logs49-testing.txt').write_text('Nuvio TV/Mobile Test - Logs49: Live TV memory and category controls\n\nInstall over Nuvio TV/Mobile Test by choosing Update. Keep the app and its data to retain accounts/settings. This has a higher version than Logs47; the package and persistent signing key are unchanged.\n\n1. Main Settings menu: Live TV should show Live TV accounts: N, including your saved M3U playlists, instead of Not set up. With working M3U channels, the guide header must also avoid the old no-IPTV-portal warning. Open Live TV > M3U and confirm your existing accounts remain. Disabled saved accounts are included in the count; this is setup status, not a connection check.\n2. Settings > Live TV > Guide memory: choose Low memory and confirm. It keeps the current programme and next 24 hours loaded and runs one bulk EPG load at a time. Open the guide and check now/next programmes and playback. Channel lists/order remain unchanged. The provider may supply fewer than 24 hours.\n3. Choose Full guide and return to the guide. Later programmes should return if supplied by the provider, within the existing safety limits. Mode changes reuse the compressed disk cache; Low memory reduces loaded programme data, not the downloaded EPG file size. Automatic uses Low memory for devices with up to 2 GiB or unknown RAM (also browser/WASM targets), and Full guide for higher-memory native devices. You can override it.\n4. Keep Guide sources set to All and open the guide once so saved categories are loaded. Settings > Live TV > Hide categories lists every loaded category, including hidden ones, with account names on separate lines. Tap a category or press OK to toggle Hidden in the guide; each change saves immediately. Back closes the picker.\n5. Hide one category from Account A. It should disappear from the guide AND its top-left Categories drawer, while a matching category from Account B remains. Return to Hide categories and tap it again to restore it. Favorites remain available independently; no accounts or channels are deleted. If every category is hidden, the guide shows the path back to this setting.\n6. In the Categories drawer, long category names and account names should appear on separate lines rather than losing the account suffix. Category/Account sorting and saved account order should retain their approved behavior.\n7. Fully close and reopen the app. The account count, memory choice, hidden categories and account order should remain saved. Hidden choices are per profile; memory mode is per device and does not change when switching profiles. Renaming/reordering a saved account should not reset its hidden choices.\n\nNo new upstream Live TV PR will be published until this test build is approved. Test-only local logs and app packaging remain outside upstream product changes.\n')
-          PY
-      - name: Publish the verified test download
+              assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
+          r.update(all_passed=True,android_16k_alignment=True,android_run=39095218772,linux_run=39095218772,macos_run=39095220375,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v49',device_approval_pending=True)
+          r['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+os.environ['TEST_RELEASE']+'/'+apk.name
+          r['android_jvm_unit_suites']=['LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest']
+          r['normal_regression_suites']=['live_error_recovery','video_android_live_window','livestall','livestall_seco','epg_memory','epg_accounts','epg_streaming','guia_grupos','guia_loading','guia_epg_estado','guiaepg','guia_catalogo_tv','guia_stream_headers','guiaaddons','guiacorte','ajustes_iptv','ajustes_secoes']
+          r['asan_ubsan_suites']=['live_error_recovery','video_android_live_window','epg_memory','epg_accounts','epg_streaming','guia_grupos','guia_loading','guia_epg_estado','guiaepg','guia_catalogo_tv','guia_stream_headers','ajustes_iptv']
+          r['macos_asan_ubsan_suites']=['live_error_recovery','video_android_live_window']
+          r['macos_normal_suites']=['live_error_recovery','video_android_live_window','livestall','livestall_seco']
+          r['sanitizer_regressions']=True;r['native_account_regressions']=True
+          r['test_scope']='JVM tests exercise the real Media3 Player interface with a strict fake; JNI backend tests use fake JNI and a deterministic clock, including a simulated pause acknowledgement. No emulator or device playback pass is claimed. Android both ARM ABIs are built and apksigner verified.'
+          p.write_text(json.dumps(r,indent=2)+'\n')
+          (root/'Logs50-testing.txt').write_text("Nuvio TV/Mobile Test - Logs50: Live playback recovery\n\nInstall over the existing Nuvio TV/Mobile Test app by choosing Update. Do not uninstall or clear data. Package and persistent signing key are unchanged; version code is 20060 (2.0.60-test-logs50).\n\nChanges:\n- Media3 error 1002 (behind live window) first seeks to the source's current default live position and prepares the SAME player. It preserves the URL/session, surface, audio/subtitle selection, volume and pause intent, without refreshing the M3U playlist.\n- Native stall/source watchdogs defer during that specific recovery, for at most 8 seconds and only the matching playback session. Repeated or stalled repairs still reach ordinary error handling rather than retrying invisibly forever.\n- A stale source-error card clears when live playback is prepared and playing again, even when Android cannot report a buffer end. Buffering, paused, failed and unrelated playback are protected.\n\nCheck on the Cube or Samsung phone:\n1. Open Live TV and play the SAME channel that was reconnecting every 8-15 seconds. Leave it playing for at least 10 minutes. Check for reconnect messages, freezes and source-error cards. Note how long it takes if a problem returns.\n2. Try channels from another account for 3-5 minutes each. Check that channel switching, account selection and normal playback still work.\n3. Pause a live channel for 30-60 seconds, then resume. If its old position has left the provider's window, recovery may jump forward to the currently available live programme. A brief wait can still happen if no video is buffered; seamless playback is not guaranteed during a provider outage.\n4. Open and leave a channel quickly, then wait 10 seconds. Back/Stop must stay stopped and no old recovery should reopen it or show an error over the next screen.\n5. After any recovery, check volume, the selected audio/subtitle language and pause/resume still behave as expected. Existing accounts and settings should remain saved.\n6. If the error card appears while playback continues, let it run briefly and export the log immediately. Send the log with the channel/account and approximate time of the failure. The native log records event 11 with the current open generation: positive duration starts bounded in-place recovery, zero ends it. Repeated failures can still use the ordinary M3U renewal fallback.\n\nNo upstream PR for this fix until this APK is tested and approved.\n")
+          PYCODE
+      - name: Publish verified APK and instructions
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target f4f7e804dc33207199d5fb105dd00e0194ca2a9b --title 'Nuvio TV/Mobile Test - Logs49: Guide memory and categories' --notes-file dist/Logs49-testing.txt
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target 08cd14e7c544a5268a15b3b057deff0913c6c2b2 --title 'Nuvio TV/Mobile Test - Logs50: Live playback recovery' --notes-file dist/Logs50-testing.txt
           fi
-          for name in Nuvio-TV-Mobile-Test-Logs49.apk Logs49-testing.txt; do
+          for name in Nuvio-TV-Mobile-Test-Logs50.apk Logs50-testing.txt; do
             if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
               gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" "dist/$name"
             fi
           done
-          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs49-validation.json --clobber
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs50-validation.json --clobber
