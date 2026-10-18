@@ -1,4 +1,4 @@
-name: Logs63 source audio fallback APK and Linux validation
+name: Logs64 latest development plus approved changes APK
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: all
 
 concurrency:
-  group: logs63-final-apk-${{ github.ref }}-${{ inputs.mode }}
+  group: logs64-final-apk-${{ github.ref }}-${{ inputs.mode }}
   cancel-in-progress: true
 
 jobs:
@@ -26,24 +26,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: bebc10fe4433b449cbe3e00707c24fea74aa1fd6
+          ref: 4e0c29fbb7e8167270cd8698e6bc79af2bd6d43d
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
-      - name: Source audio fallback regressions
+      - name: Combined source audio smoke regressions
         run: |
           set -euo pipefail
           bash tests/source_audio_language.sh > audio-checks.log 2>&1
           SANITIZE=1 bash tests/source_audio_language.sh >> audio-checks.log 2>&1
           tail -30 audio-checks.log
-          python3 tools/idiomas.py
+          # Full Linux/macOS integration coverage runs in logs64-native-checks.yml.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: logs63-native-regression-logs
+          name: logs64-native-regression-logs
           path: '*-checks.log'
           if-no-files-found: ignore
 
@@ -61,12 +61,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: bebc10fe4433b449cbe3e00707c24fea74aa1fd6
+          ref: 4e0c29fbb7e8167270cd8698e6bc79af2bd6d43d
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = bebc10fe4433b449cbe3e00707c24fea74aa1fd6
-          test "$(git rev-parse HEAD^{tree})" = 5ce494b4a0d53d6c49b4b6f50b818657c9a7f673
+          test "$(git rev-parse HEAD)" = 4e0c29fbb7e8167270cd8698e6bc79af2bd6d43d
+          test "$(git rev-parse HEAD^{tree})" = 1ee13d109c302176f927eaf3c250d4f897786758
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -87,7 +87,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs63'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs64'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
@@ -121,14 +121,34 @@ jobs:
             logs34-gradle-${{ runner.os }}-
             logs33-gradle-${{ runner.os }}-
             rebases10e3-gradle-v1-${{ runner.os }}-
+      - name: Fetch unchanged upstream translation baseline
+        run: git fetch --no-tags --depth=1 origin 4155445395a94cbd40a9f1f9558311e3ebb26da0
       - name: Validate source and translations
         run: |
           git diff --check HEAD^
-          python3 tools/idiomas.py
+          python3 - <<'PYI18N'
+          import pathlib,subprocess,tempfile,re
+          current=pathlib.Path.cwd()
+          with tempfile.TemporaryDirectory() as temp:
+              baseline=pathlib.Path(temp)
+              for part in ('tools','src','deploy/app'): (baseline/part).mkdir(parents=True,exist_ok=True)
+              (baseline/'tools/idiomas.py').write_bytes((current/'tools/idiomas.py').read_bytes())
+              (baseline/'deploy/app/fonts').symlink_to(current/'deploy/app/fonts',target_is_directory=True)
+              for path in (current/'src').glob('idioma_*.h'):
+                  result=subprocess.run(['git','show','4155445395a94cbd40a9f1f9558311e3ebb26da0:src/'+path.name],capture_output=True)
+                  if result.returncode==0: (baseline/'src'/path.name).write_bytes(result.stdout)
+              old=subprocess.run(['python3',str(baseline/'tools/idiomas.py')],capture_output=True,text=True)
+              new=subprocess.run(['python3','tools/idiomas.py'],capture_output=True,text=True)
+              normalize=lambda text:re.sub(r':\d+:',':LINE:',text)
+              pathlib.Path('Logs64-translation-baseline.txt').write_text(old.stdout+old.stderr)
+              pathlib.Path('Logs64-translation-current.txt').write_text(new.stdout+new.stderr)
+              assert old.returncode==new.returncode and normalize(old.stdout+old.stderr)==normalize(new.stdout+new.stderr),'Translation diagnostics differ from unchanged upstream; inspect logs'
+              print('PASS: translation diagnostics match unchanged upstream; this is not a clean-lint claim.')
+          PYI18N
           find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs63 APK
+      - name: Build update-compatible Logs64 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -146,7 +166,7 @@ jobs:
           bash tools/android.sh
       # tools/android.sh prepares the SDL Java sources and generated build
       # inputs that compiling this Android unit-test source set also requires.
-      - name: Run live recovery, HTTP source and font import unit tests
+      - name: Run live recovery, HTTP source, font import and Drive auth unit tests
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
         run: |
@@ -159,19 +179,19 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20073' versionName='2.0.73-test-logs63'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20074' versionName='2.0.74-test-logs64'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
           python3 tools/android-apk-pages.py "$apk"
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs63.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs64.apk
           python3 - <<'PY'
           import hashlib,json,pathlib
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs63.apk')
-          out={'all_passed':False,'source_commit':'bebc10fe4433b449cbe3e00707c24fea74aa1fd6','source_tree':'5ce494b4a0d53d6c49b4b6f50b818657c9a7f673','package':'space.nuvio.nativelegacy.touch','version_code':20073,'version_name':'2.0.73-test-logs63','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
-          pathlib.Path('Logs63-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs64.apk')
+          out={'source_commit':'4e0c29fbb7e8167270cd8698e6bc79af2bd6d43d','source_tree':'1ee13d109c302176f927eaf3c250d4f897786758','package':'space.nuvio.nativelegacy.touch','version_code':20074,'version_name':'2.0.74-test-logs64','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','included_prs':[573,575,576,587,596,597,598,601,602,609,611],'android_build':True,'android_unit_tests':['LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest'],'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
+          pathlib.Path('Logs64-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -187,13 +207,23 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs63-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs64-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs63.apk
-            Logs63-validation.json
+            Nuvio-TV-Mobile-Test-Logs64.apk
+            Logs64-validation.json
           if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Logs64-Android-evidence-${{ github.sha }}
+          path: |
+            Logs64-translation-*.txt
+            android/app/build/test-results/testDebugUnitTest
+            android/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs63"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs64"
 
