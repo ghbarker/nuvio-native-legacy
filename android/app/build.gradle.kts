@@ -32,8 +32,8 @@ android {
         applicationId = "space.nuvio.nativelegacy.touch"
         minSdk = 24
         targetSdk = 35
-        versionCode = 20058
-        versionName = "2.0.58-test-logs48"
+        versionCode = 20059
+        versionName = "2.0.59-test-logs49"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         externalNativeBuild {
             cmake {
