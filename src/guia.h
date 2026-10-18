@@ -42,6 +42,8 @@ void guia_reordenar(void); // presentation only; retain cached channels and focu
 typedef struct { uint64_t chave, sessao; char nome[64], conta[96]; int oculta; } GuiaCategoria;
 int guia_categorias(GuiaCategoria *out, int max);
 int guia_categoria_definir(const GuiaCategoria *categoria, int ocultar);
+// Save a multi-selection atomically; failed or stale editors change nothing.
+int guia_categorias_definir(const GuiaCategoria *categorias, int n);
 
 // Dispara a carga de canais sem abrir nada — o CH+/- do controle funciona
 // mesmo com o guia nunca aberto, e precisa da lista para saber quem vem depois.

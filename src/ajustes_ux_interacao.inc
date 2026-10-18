@@ -212,12 +212,10 @@ static int uxRiscoFinal(int op, int novo) {
 static void uxAplicar(void) {
   if(uxOp==AJ_GUIA_CATEGORIAS) {
     if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
-    if(uxPendente>=0 && uxPendente<uxNCategorias) {
-      GuiaCategoria *c=&uxCategorias[uxPendente];
-      if(guia_categoria_definir(c,!c->oculta))c->oculta=!c->oculta;
-      else uxNotificar("Não foi possível salvar. O valor anterior foi mantido.");
+    if(!guia_categorias_definir(uxCategorias,uxNCategorias)) {
+      uxNotificar("Não foi possível salvar. O valor anterior foi mantido.");return;
     }
-    return;
+    uxCancelar();return;
   }
   if(ajIptvGerenciador(uxOp)) {
     if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
@@ -294,6 +292,10 @@ static int uxAlternarLayout(void) {
   else uxNotificar("Não foi possível salvar. O valor anterior foi mantido.");
   return 1;
 }
+static void uxCategoriaAlternar(int i) {
+  if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return; }
+  if(i>=0 && i<uxNCategorias)uxCategorias[i].oculta=!uxCategorias[i].oculta;
+}
 static int uxEvento(SDL_Keycode k) {
   int layoutOculto = !ajLayoutSelecionavel() && (uxCabLayout || uxTopo == AJ2_T_LAYOUT ||
                        (uxEditor && uxOp == AJ_LAYOUT_AJUSTES));
@@ -312,6 +314,21 @@ static int uxEvento(SDL_Keycode k) {
         if (uxAvisoRisco) { seguro_aviso_marcar(uxAvisoRisco); uxAvisoRisco = 0; }
         if (uxRestaurar) uxPendente = uxValorPadrao(uxOp);
         uxAplicar();
+      }
+      return 1;
+    }
+    if(uxEditor==1 && uxOp==AJ_GUIA_CATEGORIAS) {
+      if(!nv_perfil_sessao_atual(iptvListaSessao)) { uxCancelar();return 1; }
+      if(uxOk(k)) {
+        if(uxRodape==1)uxAplicar();
+        else if(uxRodape==2)uxCancelar();
+        else uxCategoriaAlternar(uxPendente);
+      } else if(k==SDLK_RIGHT)uxRodape=1;
+      else if(k==SDLK_LEFT && uxRodape)uxRodape=2;
+      else if(k==SDLK_UP) { if(uxRodape)uxRodape=0;else if(uxPendente>0)uxPendente--; }
+      else if(k==SDLK_DOWN) {
+        if(!uxRodape && uxPendente+1<uxNCategorias)uxPendente++;
+        else if(!uxRodape)uxRodape=1;
       }
       return 1;
     }
