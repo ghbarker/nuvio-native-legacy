@@ -1,4 +1,4 @@
-name: Share verified Logs47 provider-account test APK
+name: Share verified Logs48 provider-account test APK
 on:
   workflow_dispatch:
 permissions:
@@ -14,33 +14,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39081743147/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39081743147 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39081744577 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39082867080/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39082867080 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39082868869 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: 0027eadc3497c09e50293f012ae9689a7ec352a6
+          ref: 352d35f81e0e692204966be19ba86efd47f5bbb5
           fetch-depth: 3
           persist-credentials: false
       - name: Verify tested application code matches the retained APK
-        run: test "$(git rev-parse HEAD)" = 0027eadc3497c09e50293f012ae9689a7ec352a6
+        run: test "$(git rev-parse HEAD)" = 352d35f81e0e692204966be19ba86efd47f5bbb5
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39081743147
-          name: Nuvio-TV-Mobile-Test-Logs47-bdd64e94f7f0c5a8a7ccfb1a8124ba7b680347bc
+          run-id: 39082867080
+          name: Nuvio-TV-Mobile-Test-Logs48-78d7a5e9f48fabd49324f2eae17e3ff17c96b351
           path: dist
       - name: Verify Android page alignment and the retained package identity
         run: |
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs47.apk
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs48.apk
           python3 - <<'PY'
           import hashlib,json,pathlib,zipfile
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs47.apk'
-          report=json.loads((root/'Logs47-validation.json').read_text())
-          assert report['source_commit']=='0027eadc3497c09e50293f012ae9689a7ec352a6'
-          assert report['source_tree']=='f269186234bcfc986c306481363ab5ee49cbf3c8'
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs48.apk'
+          report=json.loads((root/'Logs48-validation.json').read_text())
+          assert report['source_commit']=='352d35f81e0e692204966be19ba86efd47f5bbb5'
+          assert report['source_tree']=='18a8043180d92c69588bb087d27c1395c567d56a'
           assert report['package']=='space.nuvio.nativelegacy.touch'
-          assert report['version_code']==20057 and report['version_name']=='2.0.57-test-logs47'
+          assert report['version_code']==20058 and report['version_name']=='2.0.58-test-logs48'
           assert report['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==report['apk_bytes']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==report['apk_sha256']
@@ -48,28 +48,27 @@ jobs:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist()
               assert 'lib/armeabi-v7a/libmain.so' in z.namelist()
           report.update(all_passed=True,linux_regressions=True,sanitizer_regressions=True,native_account_regressions=True,macos_native_account_regressions=True,android_16k_alignment=True)
-          report['android_run']=39081743147;report['linux_run']=39081743147;report['macos_run']=39081744577
+          report['android_run']=39082867080;report['linux_run']=39082867080;report['macos_run']=39082868869
           report['android_job']='apk-build'
-          report['test_commit']='0027eadc3497c09e50293f012ae9689a7ec352a6'
+          report['test_commit']='352d35f81e0e692204966be19ba86efd47f5bbb5'
           report['application_code_matches_test_commit']=True
-          report['macos_test_commit']='0027eadc3497c09e50293f012ae9689a7ec352a6'
-          report['validation_scope']='Linux/macOS shared guide grouping and cached reload, category/account modes, account order persistence/rollback, native guide loading and ownership, real full-source Settings normal and ASan/UBSan; Linux failover Settings regression; Android ARM builds and font import unit tests.'
+          report['macos_test_commit']='352d35f81e0e692204966be19ba86efd47f5bbb5'
+          report['validation_scope']='Linux/macOS real full-source Settings normal and ASan/UBSan: saved-account summary with M3U-only legacy migration/restart, disabled account and deletion; existing account UI, saving, cancellation, ordering and profile guards. Android ARM builds and font import unit tests. Unchanged guide/provider behavior retains the approved Logs47 checks.'
           report['new_translation_keys_verified']=True
-          report['baseline_release']='tv-mobile-test-logs-v46'
-          (root/'Logs47-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-          (root/'Logs47-testing.txt').write_text('''Nuvio TV/Mobile Test - Logs47: Multiple Live TV accounts
+          report['baseline_release']='tv-mobile-test-logs-v47'
+          (root/'Logs48-validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          (root/'Logs48-testing.txt').write_text('''Nuvio TV/Mobile Test - Logs48: Live TV account status
 
-          Install over Nuvio TV/Mobile Test by choosing Update. Keep the existing app installed and keep its data so accounts/settings remain.
+          Install over Nuvio TV/Mobile Test by choosing Update. Keep the existing app and its data to retain accounts and settings.
 
-          1. Use your existing saved accounts; keep at least two enabled and set Settings > Live TV > Guide sources to All so both can appear.
-          2. Under Guide TV, set Sort order to Category (confirm if prompted). Matching categories should be adjacent but separate: News - Account A, News - Account B, Sports - Account A, Sports - Account B. Your provider's category names may differ.
-          3. Set Sort order to Account. The same shared guide should show A's categories together, then B's. There should be no separate account pages in the guide.
-          4. Under Live TV accounts, open Order. Use each account's up/down arrows to change its position; changes save immediately. Tapping the account name should only select the row. Return to the guide and check the account order changes both modes as expected.
-          5. Play a channel from each account and check its own EPG. Favorites should remain. Change modes and confirm your focused channel remains selected.
-          6. Fully close and reopen the app. Account order and selected mode should remain; saved channels should still appear from cache while normal background updates run.
-          7. Existing M3U > Add still opens a blank URL input immediately. Cancelling creates nothing. Saved account editing and confirmed removal retain their approved behavior.
+          1. Open the main Settings menu. With saved Live TV accounts, Live TV should show Live TV accounts: N instead of Not set up. N includes all saved native M3U, Xtream and Stalker accounts, including disabled accounts. It does not claim a connection or authentication check.
+          2. Open Live TV > M3U. Your saved playlists should still be listed with their existing names. Do not re-enter credentials or delete your real accounts for this test.
+          3. Fully close and reopen the app. Check the Settings summary again before opening the guide; it should still show your saved account count.
+          4. Check the approved category/account guide ordering and play a channel. This build changes the summary only; your accounts, channel identities, EPG, ordering and favorites should remain.
 
-          Install as an Update over Nuvio TV/Mobile Test. Package identity and signing key are unchanged. Includes the earlier approved fonts and app changes. No upstream Live TV PR will be published until this APK is approved; channel grouping follows account testing.
+          Automated coverage also checks no accounts, M3U-only legacy migration and a fresh-process reload, disabled saved accounts, deletion, and that reading the summary never changes the selected account. Normal and ASan/UBSan full-source Settings checks pass on Linux and macOS; Android builds for both ARM ABIs pass.
+
+          Package, signing key and label match Logs47; this is a higher version. No new upstream Live TV PR until this APK is approved.
           '''.replace('\n          ','\n'))
           PY
       - name: Publish the verified test download
@@ -78,6 +77,6 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" --target 0027eadc3497c09e50293f012ae9689a7ec352a6 --title 'Nuvio TV/Mobile Test - Logs47: Shared guide ordering' --notes-file dist/Logs47-testing.txt
+            gh release create tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" --target 352d35f81e0e692204966be19ba86efd47f5bbb5 --title 'Nuvio TV/Mobile Test - Logs48: Live TV account status' --notes-file dist/Logs48-testing.txt
           fi
-          gh release upload tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs47.apk dist/Logs47-validation.json dist/Logs47-testing.txt
+          gh release upload tv-mobile-test-logs-v47 --repo "$GITHUB_REPOSITORY" dist/Nuvio-TV-Mobile-Test-Logs48.apk dist/Logs48-validation.json dist/Logs48-testing.txt
