@@ -40,6 +40,13 @@ static void campo(int op,const char *t) {
   salvarTeclado(t);
 }
 static IptvConta selecionada(void){IptvConta c;assert(iptv_conta_selecionada(&c));return c;}
+static void resumoContas(int quantas) {
+  char texto[160],esperado[160];int antes=iptv_conta_indice();
+  aj2MenuValor(AJS_TVAOVIVO,texto,sizeof texto);
+  if(quantas)snprintf(esperado,sizeof esperado,"%s: %d",i18n("Contas de TV ao vivo"),quantas);
+  else snprintf(esperado,sizeof esperado,"%s",i18n("Não configurado"));
+  assert(!strcmp(texto,esperado) && iptv_conta_indice()==antes);
+}
 static int listaOp(int tipo){return AJ_IPTV_LISTA_XTREAM+tipo-IPTV_XTREAM;}
 static void raiz(void) {
   for(int i=0;i<6 && (uxEditor || iptvForm.tipo || teclado_aberto());i++) {
@@ -89,13 +96,13 @@ int main(int argc,char **argv) {
   assert(dados_gravar("aviso-legal.txt","1\n"));
   if(argc>1) {
     if(!strcmp(argv[1],"legacy")) {
-      assert(iptv_contas(NULL,0)==1 && selecionada().id==0);
+      assert(iptv_contas(NULL,0)==1 && selecionada().id==0);resumoContas(1);
       adicionar(IPTV_M3U,"https://new.invalid/list",NULL);
       editar(IPTV_M3U,1);campo(AJ_M3U_EPG,"https://new.invalid/epg.xml");
       assert(definirValorDireto(AJ_GUIA_ORDEM,1));
     } else assert(!strcmp(argv[1],"reload"));
     assert(ajustes_guia_ordem()==1);
-    assert(iptv_contas(NULL,0)==2 && selecionada().id!=0);
+    assert(iptv_contas(NULL,0)==2 && selecionada().id!=0);resumoContas(2);
     editar(IPTV_M3U,1);assert(!strcmp(m3u_lista(),"https://new.invalid/list"));
     assert(!strcmp(m3u_epg(),"https://new.invalid/epg.xml"));
     editar(IPTV_M3U,0);assert(selecionada().id==0);
@@ -105,7 +112,7 @@ int main(int argc,char **argv) {
     puts("PASS: migrated account and two independent M3U/EPG pairs survive restart");
     ajustes_encerrar();SDL_Quit();return 0;
   }
-  assert(!iptv_contas(NULL,0));
+  assert(!iptv_contas(NULL,0));resumoContas(0);
   focarOpcao(AJ_IPTV_LISTA_XTREAM);
   int n=0;for(int i=secIni[secAtual]+1;i<secFim(secAtual);i++)
     if(TELA[i].tipo==IT_OPC && visivel(i) && ajIptvGerenciador(TELA[i].op))n++;
@@ -126,6 +133,7 @@ int main(int argc,char **argv) {
   assert(strcmp(textoLeitura(AJ_XTREAM_SENHA),"fixture"));
   campo(AJ_IPTV_NOME,"First provider");tocar(AJ_IPTV_ATIVA);
   tocar(AJ_IPTV_SALVAR);assert(iptv_contas(NULL,0)==1);
+  resumoContas(1); // A disabled saved account is still set up.
   IptvConta um=selecionada();assert(!um.ativa && !strcmp(um.nome,"First provider"));
   adicionar(IPTV_XTREAM,"https://two.invalid","two");IptvConta dois=selecionada();assert(dois.id!=um.id);
   editar(IPTV_XTREAM,0);assert(!strcmp(xtream_usuario(),"one"));
@@ -150,7 +158,7 @@ int main(int argc,char **argv) {
   conta(IPTV_M3U,1);ajIptvToqueEscolher(1,0);key(SDLK_RETURN);
   assert(uxOp==AJ_IPTV_ACOES && iptv_contas(NULL,0)==4); // default Cancel
   ajIptvToqueEscolher(1,0);key(SDLK_ESCAPE);assert(uxOp==AJ_IPTV_ACOES && iptv_contas(NULL,0)==4);
-  excluir(IPTV_M3U,1);assert(iptv_contas(NULL,0)==3 && !m3u_fonte_configurado(quatro.id));
+  excluir(IPTV_M3U,1);resumoContas(3);assert(iptv_contas(NULL,0)==3 && !m3u_fonte_configurado(quatro.id));
   editar(IPTV_M3U,0);assert(selecionada().id==tres.id);
   assert(!strcmp(m3u_lista(),"https://three.invalid/list") && !strcmp(m3u_epg(),"https://three.invalid/epg.xml"));
   assert(xtream_fonte_configurado(um.id) && xtream_fonte_configurado(dois.id));
@@ -163,6 +171,11 @@ int main(int argc,char **argv) {
   lista(IPTV_M3U);perfis_invalidar_sessao();key(SDLK_RETURN);assert(!uxEditor);
   conta(IPTV_M3U,0);ajIptvToqueEscolher(1,0);perfis_invalidar_sessao();ajIptvToqueEscolher(1,0);
   assert(iptv_contas(NULL,0)==4 && !uxEditor);
+  while(ajIptvQuantos(IPTV_XTREAM))excluir(IPTV_XTREAM,0);
+  while(ajIptvQuantos(IPTV_STALKER))excluir(IPTV_STALKER,0);
+  resumoContas(1); // M3U-only setup, regardless of the previously selected type.
+  excluir(IPTV_M3U,0);resumoContas(0);
+  puts("PASS: Live TV summary counts saved accounts including M3U-only, disabled, migrated and reloaded accounts; deletion updates the count without switching accounts");
   // An explicit close must erase credentials from the unsaved form.
   nova(IPTV_XTREAM);salvarTeclado("https://draft.invalid");campo(AJ_XTREAM_SENHA,"do-not-retain");ajustes_encerrar();
   assert(!iptvForm.senha[0] && !iptvForm.tipo);
