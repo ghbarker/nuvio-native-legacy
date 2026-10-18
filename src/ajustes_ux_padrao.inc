@@ -323,3 +323,10 @@
   0, /* art tone: Vivid, identical to existing art colors */
   0, /* Modern Stage background: Black */
   0, 0, 0, 0, /* URL lists and guides (Guia de TV, M9): choice (none) and three actions */
+  0, 0, 0, 0, 0, /* guide source, refresh and M3U actions */
+
+  0, 0, 0, 0, 0, 0, 0, /* native Live TV account registry views/actions */
+  0, 0, 0, /* saved accounts by provider type */
+  0, 0, 0, 0, /* account actions, confirmation, Save and Cancel */
+  0, 0, /* guide category/account order and account reorder action */
+  0, 0, /* EPG memory policy and hidden-category editor */
