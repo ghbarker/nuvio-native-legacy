@@ -1,5 +1,8 @@
 // Native filesystem adapter integration. Transaction fault injection is in
 // backuprestauro.c; this checks actual private files and restart recovery.
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE 1
+#endif
 #define _POSIX_C_SOURCE 200809L
 #include "backupdisco.h"
 #include "backupplano_interno.h"
