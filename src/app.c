@@ -3023,7 +3023,11 @@ static int restaurarBackupConfirmado(void) {
       i18n("A restauração precisa ser recuperada. Reabra o aplicativo para concluir."),NULL);
     return 1;
   }
-  trocarTela(TELA_HOME);perfilAbrirSessao(0);menu_definir_destino(MENU_INICIO);
+  perfilAbrirSessao(0);
+  // Reopening clears the live addon list. Restore its account/profile cache
+  // and resume sync before Home/discovery can treat that empty list as final.
+  sync_iniciar();
+  trocarTela(TELA_HOME);menu_definir_destino(MENU_INICIO);
   if(r==BACKUP_RESTORE_OK || r==BACKUP_RESTORE_LIMPEZA)
     ilhaacao_feita(&(IlhaAcao){.icone="check",.frase=i18n("Configurações restauradas."),.titulo="",.onde=i18n("Backup no Google Drive")});
   else SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,i18n("Backup no Google Drive"),
