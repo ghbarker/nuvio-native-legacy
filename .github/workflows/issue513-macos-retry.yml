@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 958f6a4fd0132fbbf260cebc3791ea81d7e354bf
+          ref: 1c73f8652fd9739df2add0370411d5ca2d389ce3
           persist-credentials: false
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev
       - name: Episode and tracker regressions, normal and ASan/UBSan
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 958f6a4fd0132fbbf260cebc3791ea81d7e354bf
+          ref: 1c73f8652fd9739df2add0370411d5ca2d389ce3
           persist-credentials: false
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf libass fribidi
       - name: Episode, tracker and full-source player regressions
