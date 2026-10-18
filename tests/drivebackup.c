@@ -60,11 +60,12 @@ int main(void) {
   drivebackup_abrir();D.estado=V_PRONTO;snprintf(D.acesso,sizeof D.acesso,"test-token");
   m.esperar=1;ativar(1,0);
   for(int i=0;i<1000 && !atomic_load(&m.entrou);i++)SDL_Delay(1);
-  assert(atomic_load(&m.entrou));drivebackup_fechar();
+  assert(atomic_load(&m.entrou));Trabalho *antigo=D.trabalho;atomic_fetch_add(&antigo->refs,1);drivebackup_fechar();
   assert(dados_gravar("perfil.txt","8\n"));perfis_carregar_ativo();perfis_invalidar_sessao();
   drivebackup_abrir();assert(D.contexto.perfil==8 && !*D.acesso && D.estado==V_ENTRAR);
   atomic_store(&m.saiu,1);
-  for(int i=0;i<50;i++){drivebackup_atualizar();SDL_Delay(1);}
+  for(int i=0;i<2000 && !atomic_load_explicit(&antigo->pronto,memory_order_acquire);i++){drivebackup_atualizar();SDL_Delay(1);}
+  assert(atomic_load_explicit(&antigo->pronto,memory_order_acquire));soltar(antigo);
   assert(D.contexto.perfil==8 && D.estado==V_ENTRAR && !D.lista.n && !*D.acesso && !D.restauro);
   drivebackup_fechar();free(snapshot);
   puts("PASS: Drive modal worker/list/download/confirmation ownership and profile cancellation (mock Google HTTP, real native owners)");
