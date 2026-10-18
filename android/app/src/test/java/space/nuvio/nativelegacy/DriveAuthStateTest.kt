@@ -4,6 +4,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DriveAuthStateTest {
+    @Test fun authorizationResultDoesNotRouteToDocumentPickers() {
+        assertNotEquals(FontImport.PEDIDO, DriveAuthorization.REQUEST)
+        assertNotEquals(RegistroDownload.PEDIDO, DriveAuthorization.REQUEST)
+    }
+
     @Test fun cancelledProfileCannotReceiveALateToken() {
         val state = DriveAuthState()
         val first = state.begin(10)!!
