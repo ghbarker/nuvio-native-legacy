@@ -39,6 +39,51 @@ int android_interface_mobile_auto(void) {
   return modo && !strcmp(modo, "1");
 }
 
+int android_drive_autorizar(long long pedido,int escolher,const char *rejeitado) {
+  JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();
+  if(!env || pedido<=0)return 0;
+  jobject act=(jobject)SDL_AndroidGetActivity();if(!act)return 0;
+  jclass cls=(*env)->GetObjectClass(env,act);
+  jmethodID m=cls?(*env)->GetMethodID(env,cls,"driveAutorizar","(JZLjava/lang/String;)Z"):NULL;
+  jstring token=(*env)->NewStringUTF(env,rejeitado?rejeitado:"");int ok=0;
+  if(m && token && !(*env)->ExceptionCheck(env))
+    ok=(*env)->CallBooleanMethod(env,act,m,(jlong)pedido,escolher?JNI_TRUE:JNI_FALSE,token)==JNI_TRUE;
+  if((*env)->ExceptionCheck(env)){(*env)->ExceptionClear(env);ok=0;}
+  if(token)(*env)->DeleteLocalRef(env,token);
+  if(cls)(*env)->DeleteLocalRef(env,cls);
+  (*env)->DeleteLocalRef(env,act);return ok;
+}
+
+void android_drive_cancelar(void) {
+  JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();if(!env)return;
+  jobject act=(jobject)SDL_AndroidGetActivity();if(!act)return;
+  jclass cls=(*env)->GetObjectClass(env,act);
+  jmethodID m=cls?(*env)->GetMethodID(env,cls,"driveAutorizacaoCancelar","()V"):NULL;
+  if(m)(*env)->CallVoidMethod(env,act,m);
+  if((*env)->ExceptionCheck(env))(*env)->ExceptionClear(env);
+  if(cls)(*env)->DeleteLocalRef(env,cls);
+  (*env)->DeleteLocalRef(env,act);
+}
+
+static char *driveTexto(const char *nome) {
+  JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();if(!env)return NULL;
+  jobject act=(jobject)SDL_AndroidGetActivity();if(!act)return NULL;
+  jclass cls=(*env)->GetObjectClass(env,act);
+  jmethodID m=cls?(*env)->GetMethodID(env,cls,nome,"()Ljava/lang/String;"):NULL;
+  jstring js=m?(jstring)(*env)->CallObjectMethod(env,act,m):NULL;char *out=NULL;
+  if(js && !(*env)->ExceptionCheck(env)) {
+    const char *s=(*env)->GetStringUTFChars(env,js,NULL);
+    if(s){size_t n=strlen(s);if(n<=16384){out=malloc(n+1);if(out)memcpy(out,s,n+1);}
+      (*env)->ReleaseStringUTFChars(env,js,s);}
+  }
+  if((*env)->ExceptionCheck(env)){(*env)->ExceptionClear(env);free(out);out=NULL;}
+  if(js)(*env)->DeleteLocalRef(env,js);
+  if(cls)(*env)->DeleteLocalRef(env,cls);
+  (*env)->DeleteLocalRef(env,act);return out;
+}
+char *android_drive_evento(void){return driveTexto("driveAutorizacaoEvento");}
+char *android_drive_configuracao_tv(void){return driveTexto("driveConfiguracaoTv");}
+
 void android_baixar_registro(const char *arquivo, const char *sucesso, const char *falha) {
   JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
   jobject act;
