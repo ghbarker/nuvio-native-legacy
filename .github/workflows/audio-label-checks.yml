@@ -1,4 +1,4 @@
-name: Combined approved changes integration checks
+name: Logs65 backup restore Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 0abe666aadbd3e3013c271ae5b3d93260d1c6dd8
+  SOURCE_SHA: 96a79431701d98685d028e4be40ef174ee8b8155
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -26,17 +26,9 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
         group:
-          - providers
-          - guide
-          - guide-ui
-          - sources
-          - source-policy
           - backup-state
           - backup-drive
           - backup-addons
-          - fonts
-          - settings
-          - identity
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
