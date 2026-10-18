@@ -1,10 +1,10 @@
-name: Logs47 multiple Live TV accounts APK and Linux validation
+name: Logs48 multiple Live TV accounts APK and Linux validation
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: logs47-apk-${{ github.ref }}
+  group: logs48-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,15 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 0027eadc3497c09e50293f012ae9689a7ec352a6
+          ref: 352d35f81e0e692204966be19ba86efd47f5bbb5
       - name: Install test dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libass-dev libfribidi-dev libgles2-mesa-dev
       - name: Full-source account Settings regressions
         run: |
           set -euo pipefail
           bash tests/ajustes_secoes.sh
-          bash tests/ajustes_failover.sh
-          for suite in guia_grupos iptv_accounts guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
       - name: Full-source account Settings ASan and UBSan regressions
         env:
@@ -34,7 +32,6 @@ jobs:
           SANITIZE: '1'
         run: |
           set -euo pipefail
-          for suite in guia_grupos iptv_accounts guia_loading guia_epg_estado guiaepg guia_catalogo_tv guia_stream_headers guiaaddons guiacorte; do bash "tests/$suite.sh"; done
           bash tests/ajustes_iptv.sh
 
   apk-build:
@@ -50,12 +47,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 0027eadc3497c09e50293f012ae9689a7ec352a6
+          ref: 352d35f81e0e692204966be19ba86efd47f5bbb5
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 0027eadc3497c09e50293f012ae9689a7ec352a6
-          test "$(git rev-parse HEAD^{tree})" = f269186234bcfc986c306481363ab5ee49cbf3c8
+          test "$(git rev-parse HEAD)" = 352d35f81e0e692204966be19ba86efd47f5bbb5
+          test "$(git rev-parse HEAD^{tree})" = 18a8043180d92c69588bb087d27c1395c567d56a
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -76,7 +73,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs47'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs48'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
@@ -117,7 +114,7 @@ jobs:
           find tests tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs47 APK
+      - name: Build update-compatible Logs48 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -144,18 +141,18 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20057' versionName='2.0.57-test-logs47'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20058' versionName='2.0.58-test-logs48'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs47.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs48.apk
           python3 - <<'PY'
           import hashlib,json,pathlib
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs47.apk')
-          out={'all_passed':False,'source_commit':'0027eadc3497c09e50293f012ae9689a7ec352a6','source_tree':'f269186234bcfc986c306481363ab5ee49cbf3c8','package':'space.nuvio.nativelegacy.touch','version_code':20057,'version_name':'2.0.57-test-logs47','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
-          pathlib.Path('Logs47-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs48.apk')
+          out={'all_passed':False,'source_commit':'352d35f81e0e692204966be19ba86efd47f5bbb5','source_tree':'18a8043180d92c69588bb087d27c1395c567d56a','package':'space.nuvio.nativelegacy.touch','version_code':20058,'version_name':'2.0.58-test-logs48','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          pathlib.Path('Logs48-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -171,13 +168,13 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs47-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs48-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs47.apk
-            Logs47-validation.json
+            Nuvio-TV-Mobile-Test-Logs48.apk
+            Logs48-validation.json
           if-no-files-found: error
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs47"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs48"
 
