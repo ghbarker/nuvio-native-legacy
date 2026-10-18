@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 09980a574d80a864538d9f5f7de470497ddbfb69
+          ref: ae64dc019f872bbbf871189cf2495b4a76b0cd9d
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -75,12 +75,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 09980a574d80a864538d9f5f7de470497ddbfb69
+          ref: ae64dc019f872bbbf871189cf2495b4a76b0cd9d
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 09980a574d80a864538d9f5f7de470497ddbfb69
-          test "$(git rev-parse HEAD^{tree})" = 70564a08f5eb03ab83347da36275830b87d4d7b8
+          test "$(git rev-parse HEAD)" = ae64dc019f872bbbf871189cf2495b4a76b0cd9d
+          test "$(git rev-parse HEAD^{tree})" = a7f85f0064bcc8e1567344226b192965feae3076
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -184,7 +184,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,pathlib
           p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs57.apk')
-          out={'all_passed':False,'source_commit':'09980a574d80a864538d9f5f7de470497ddbfb69','source_tree':'70564a08f5eb03ab83347da36275830b87d4d7b8','package':'space.nuvio.nativelegacy.touch','version_code':20067,'version_name':'2.0.67-test-logs57','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          out={'all_passed':False,'source_commit':'ae64dc019f872bbbf871189cf2495b4a76b0cd9d','source_tree':'a7f85f0064bcc8e1567344226b192965feae3076','package':'space.nuvio.nativelegacy.touch','version_code':20067,'version_name':'2.0.67-test-logs57','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
           pathlib.Path('Logs57-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
