@@ -252,6 +252,7 @@ static void semearGuia(void) {
 }
 
 int main(int argc, char **argv) {
+  assert(canaisReservar(G_MAX_CANAL));
   const char *saida = argc > 1 ? argv[1] : nvt("/nuvio-guia");
   char nome[600];
   SDL_Window *w;

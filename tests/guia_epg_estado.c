@@ -1,9 +1,12 @@
+#include "stub_perfisessao.h"
 // #316: finished or empty schedules must stop showing the loading state.
 #include "../src/guia.c"
 #include "../src/xtepg.c"
 #include <assert.h>
 
 static int xmlEstado = EPG_PRONTO, xmlMatch = -1;
+int epg_canal_estado(const char *id) { (void)id;return xmlEstado; }
+int epg_match_canal(const char *id,const char *epgId,const char *nome) { (void)id;(void)epgId;(void)nome;return xmlMatch; }
 int epg_estado(void) { return xmlEstado; }
 int epg_match(const char *nome) { (void)nome; return xmlMatch; }
 int epg_match_id(const char *id) { (void)id; return xmlMatch; }
@@ -26,7 +29,7 @@ int main(void) {
   c.id = "addon:1"; c.nome = c.epgId = c.tvgNome = ""; c.epg = -1;
   assert(gEstadoGrade(&c) == -2); // XMLTV finished, no matching schedule.
   xmlEstado = EPG_FALHOU; c.epg = -1;
-  assert(gEstadoGrade(&c) == -2);
+  assert(gEstadoGrade(&c) == -3);
   xmlEstado = EPG_BAIXANDO; c.epg = -1;
   assert(gEstadoGrade(&c) == -1);
   xmlEstado = EPG_PRONTO; xmlMatch = 5; c.epg = -1;
@@ -37,11 +40,14 @@ int main(void) {
   fioVivo = 1;
   xtepg_querer(c.id);
   assert(gEstadoGrade(&c) == -1);
+  xmlEstado = EPG_BAIXANDO; c.epg = -1;
   prontos[0] = (XeResp){.n = 0, .st = 200};
-  strcpy(prontos[0].id, c.id); nProntos = 1; xtepg_passo();
+  strcpy(prontos[0].id, c.id); prontos[0].pedido = achar(c.id)->pedido; nProntos = 1; xtepg_passo();
   assert(gEstadoGrade(&c) == -2); // Panel has no programs.
+  achar(c.id)->estado = XE_PEDIDO;
   prontos[0].n = -1; prontos[0].st = 503; nProntos = 1; xtepg_passo();
-  assert(gEstadoGrade(&c) == -2); // Panel failed; no request still pending.
+  assert(gEstadoGrade(&c) == -3); // Panel failed; no request still pending.
+  achar(c.id)->estado = XE_PEDIDO;
   prontos[0].n = 1; prontos[0].st = 200;
   prontos[0].p[0].ini = time(NULL) - 60;
   prontos[0].p[0].fim = time(NULL) + 3600;
