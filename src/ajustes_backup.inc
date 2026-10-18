@@ -15,6 +15,9 @@ static int abOp(const char *chave) {
 static int abLocal(int op,int perfil,int v) {
   if(op<0 || op>=AB_N)return 0;
   if(op>=AJ_N)return !perfil;
+  // These Settings rows mirror separate stores; scalar shadow values would
+  // restore without changing the real subtitle or failover preferences.
+  if(ajLegendaPrincipal(op) || ajFalhaBackend(op))return 0;
   if(!CHAVE[op] || CHAVE[op][0]=='-' ||
      OPCOES[op].tipo==OP_ACAO || OPCOES[op].tipo==OP_LEITURA)return 0;
   // Fixed account themes remain Nuvio's. Native dynamic themes are the
