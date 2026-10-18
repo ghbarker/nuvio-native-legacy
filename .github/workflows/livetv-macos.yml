@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8441240cd769512d935613b8544bb6d42455fe68
+          ref: c9f82ef87a24edece62b38301b7ca31df426a593
           persist-credentials: false
       - name: Check private TV configuration availability
         env:
@@ -41,6 +41,14 @@ jobs:
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
           mkdir -p "$HOME/.cache/nuvio-android/src"
           curl -fsSL https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz | tar xz -C "$HOME/.cache/nuvio-android/src"
+      - name: Check native Android bridge on both ARM ABIs
+        run: |
+          mkdir -p build/check-headers
+          ln -s "$HOME/.cache/nuvio-android/src/SDL2-2.30.9/include" build/check-headers/SDL2
+          compiler="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          for arch in aarch64-linux-android24 armv7a-linux-androideabi24; do
+            "$compiler/$arch-clang" -std=gnu11 -Wall -Wextra -Werror -DNV_ANDROID -DNV_TOUCH_UI -Isrc -Ibuild/check-headers -fsyntax-only src/android.c src/drivetv.c
+          done
       - name: Compile Android authorization and test profile cancellation
         env:
           NUVIO_GOOGLE_ANDROID_CLIENT_ID: 332670494075-e1ocg7dmruau58n7h0vl1k231pdpstqq.apps.googleusercontent.com
@@ -54,3 +62,23 @@ jobs:
           name: drive-android-authorization-tests
           path: android/app/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c9f82ef87a24edece62b38301b7ca31df426a593
+          persist-credentials: false
+      - name: TV OAuth protocol normal and sanitizers
+        shell: bash
+        run: |
+          bash tests/drivetv.sh
+          SANITIZE=1 bash tests/drivetv.sh
