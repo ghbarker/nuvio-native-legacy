@@ -91,7 +91,7 @@
 #include <stdatomic.h>
 #include <time.h>
 
-// Tetos: ver guiacorte.h (TV 900/48, Android TV 3000/128 e a conta de memoria).
+// Safety bounds and platform budgets: see guiacorte.h.
 #define G_MAX_CANAL  GUIACORTE_MAX_CANAL
 #define G_MAX_CAT    G_MAX_CANAL // displayed (source, category) pairs, bounded by channels
 #define G_MAX_FAV    400
@@ -281,11 +281,12 @@ typedef struct {
 } GCanal;
 
 // Publicados (so o fio de desenho le).
-static GCanal canais[G_MAX_CANAL];   static int nCanais;
+static GCanal *canais;             static int nCanais, capCanais;
+static int *ordemCanais;
 static char   cats[G_MAX_CAT][64];   static int nCats;
 static int    catIni[G_MAX_CAT], catN[G_MAX_CAT];
 // Staging (so o fio de carga escreve).
-static GCanal sCanais[G_MAX_CANAL];  static int sNCanais;
+static GCanal *sCanais;            static int sNCanais, sCapCanais;
 static char   sCats[G_MAX_CAT][64];  static int sNCats;
 
 enum { G_PARADO, G_BAIXANDO, G_PRONTO, G_FALHOU };
@@ -749,10 +750,49 @@ static const char *categoriaPorNome(const char *nome) {
   return NULL;
 }
 
+// Reserve only channels actually received, rather than three maximum-size
+// GCanal arrays. The UI owns its permutation scratch; the worker owns staging.
+static int canaisReservar(int n) {
+  if (n <= capCanais) return 1;
+  if (n > G_MAX_CANAL) return 0;
+  GCanal *novo = malloc((size_t)n * sizeof *novo);
+  int *ordem = malloc((size_t)n * sizeof *ordem);
+  if (!novo || !ordem) { free(novo); free(ordem); return 0; }
+  if (nCanais) memcpy(novo,canais,(size_t)nCanais * sizeof *novo);
+  free(canais); free(ordemCanais);
+  canais = novo; ordemCanais = ordem; capCanais = n;
+  return 1;
+}
+static int sCanalGuardar(const GCanal *c) {
+  if (!guiacorte_entra(&sCorte,sNCanais,c->cat >= 0)) return 0;
+  if (sNCanais == sCapCanais) {
+    int cap = sCapCanais ? sCapCanais * 2 : 128;
+    if (cap > G_MAX_CANAL) cap = G_MAX_CANAL;
+    GCanal *novo = realloc(sCanais,(size_t)cap * sizeof *novo);
+    if (!novo) { sCorte.porCanais++; return 0; }
+    sCanais = novo; sCapCanais = cap;
+  }
+  sCanais[sNCanais++] = *c;
+  return 1;
+}
+#define G_INDEX_N (G_MAX_CANAL * 2 + 1)
+static int sCanalIndice[G_INDEX_N], sCatIndice[G_INDEX_N], sIndexados;
+static unsigned indiceTexto(const char *s) {
+  unsigned h = 2166136261u;
+  for (; *s; s++) h = (h ^ (unsigned char)*s) * 16777619u;
+  return h % G_INDEX_N;
+}
 static int sCatDe(const char *nome) {
-  for (int i = 0; i < sNCats; i++) if (!strcmp(sCats[i], nome)) return i;
-  if (sNCats >= GUIACORTE_MAX_CAT) return -1;
-  snprintf(sCats[sNCats], 64, "%s", nome);
+  char normal[64] = {0}; snprintf(normal,sizeof normal,"%s",nome);
+  unsigned k = indiceTexto(normal);
+  while (sCatIndice[k]) {
+    int i = sCatIndice[k] - 1;
+    if (!strcmp(sCats[i],normal)) return i;
+    k = (k + 1) % G_INDEX_N;
+  }
+  if (sNCats >= G_MAX_CAT) return -1;
+  memcpy(sCats[sNCats],normal,sizeof normal);
+  sCatIndice[k] = sNCats + 1;
   return sNCats++;
 }
 
@@ -766,7 +806,19 @@ static int lerStrEl(const char *p, char *dst, int tam) {
 }
 
 static int sCanalPorId(const char *id) {
-  for (int i = 0; i < sNCanais; i++) if (!strcmp(sCanais[i].id, id)) return i;
+  // Index only new records since the previous query. O(1) expected lookup
+  // keeps large lists from repeatedly scanning every preceding channel.
+  for (; sIndexados < sNCanais; sIndexados++) {
+    unsigned k = indiceTexto(sCanais[sIndexados].id);
+    while (sCanalIndice[k]) k = (k + 1) % G_INDEX_N;
+    sCanalIndice[k] = sIndexados + 1;
+  }
+  unsigned k = indiceTexto(id);
+  while (sCanalIndice[k]) {
+    int i = sCanalIndice[k] - 1;
+    if (!strcmp(sCanais[i].id,id)) return i;
+    k = (k + 1) % G_INDEX_N;
+  }
   return -1;
 }
 
@@ -833,8 +885,7 @@ static int lerPagina(const GFonte *f, int skip, int teto, int *novos) {
       // Base que nao cabe fica VAZIA, nunca cortada (ver GCanal.base).
       if (strlen(f->base) < sizeof c.base) snprintf(c.base, sizeof c.base, "%s", f->base);
       else { c.base[0] = 0; semBase++; }
-      if (c.cat >= 0) { sCanais[sNCanais++] = c; (*novos)++; }
-      else sCorte.porCats++;
+      if (sCanalGuardar(&c)) (*novos)++;
     }
     p = js_prox(fim);
   }
@@ -1010,6 +1061,8 @@ static void sondaManifestos(void) {
 static void *fioGuia(void *u) {
   int ok = 0;
   (void)u;
+  sIndexados = 0;
+  memset(sCanalIndice,0,sizeof sCanalIndice); memset(sCatIndice,0,sizeof sCatIndice);
   sNCanais = 0; sNCats = 0; sFalhas = 0; sXtFalha = XT_OK;
   memset(&sCorte, 0, sizeof sCorte);
   sNSabe = 0;sPublicados=0;
@@ -1032,7 +1085,7 @@ static void *fioGuia(void *u) {
         snprintf(c.logo,sizeof c.logo,"%s",xt[i].logo);
         snprintf(c.epgId,sizeof c.epgId,"%s",xt[i].epgId);
         c.cat=sCatDe(xt[i].categoria[0]?xt[i].categoria:"Outros");
-        if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+        if(sCanalGuardar(&c))ok=1;
       }
       guiacorte_perdeu_canais(&sCorte,xtream_fonte_total(conta->id)-n);free(xt);
     } else if(conta->tipo==IPTV_M3U) {
@@ -1048,7 +1101,7 @@ static void *fioGuia(void *u) {
         snprintf(c.epgId,sizeof c.epgId,"%s",m[i].epgId);
         snprintf(c.tipo,sizeof c.tipo,"tv");
         c.cat=sCatDe(m[i].categoria[0]?m[i].categoria:"Outros");
-        if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+        if(sCanalGuardar(&c))ok=1;
       }
       guiacorte_perdeu_canais(&sCorte,m3u_fonte_total(conta->id)-n);free(m);
     } else {
@@ -1061,7 +1114,7 @@ static void *fioGuia(void *u) {
         snprintf(c.nome,sizeof c.nome,"%s",st[i].nome);
         snprintf(c.logo,sizeof c.logo,"%s",st[i].logo);
         c.cat=sCatDe(st[i].categoria[0]?st[i].categoria:"Outros");
-        if(guiacorte_entra(&sCorte,sNCanais,c.cat>=0)){sCanais[sNCanais++]=c;ok=1;}
+        if(sCanalGuardar(&c))ok=1;
       }
       free(st);
     }
@@ -1119,23 +1172,26 @@ static void empacotar(void) {
   // ele ligado e chegaria inteira; a recarga seguinte (recarregarPend) e que
   // corrige a lista de fontes, mas a tela nao precisa esperar por ela.
   for (i = 0, w = 0; i < nCanais; i++)
-    if (contaCanalAtiva(canais[i].id) && (!canais[i].base[0] || (baseLigada(canais[i].base) && !baseOculta(canais[i].base))))
+    if (canais[i].cat >= 0 && canais[i].cat < nCats && contaCanalAtiva(canais[i].id) && (!canais[i].base[0] || (baseLigada(canais[i].base) && !baseOculta(canais[i].base))))
       canais[w++] = canais[i];
   nCanais = w;
   gruposReunir();
-  // `tmp` e estatico: sao ~2 MB (900 canais x ~2,4 KB). Na pilha estourava o
-  // fio do SDL no Android (1 MB por padrao) e e grande demais para qualquer
-  // pilha. So o fio principal chama empacotar().
-  { static GCanal tmp[G_MAX_CANAL];
+  // Stable counting sort through an index permutation. One channel-sized
+  // temporary replaces the former third full GCanal array.
+  {
     int pos[G_MAX_CAT];
     for (i = 0; i < nCats; i++) catN[i] = 0;
     for (i = 0; i < nCanais; i++) if (canais[i].cat >= 0) catN[canais[i].cat]++;
     catIni[0] = 0;
     for (i = 1; i < nCats; i++) catIni[i] = catIni[i - 1] + catN[i - 1];
-    memcpy(pos, catIni, sizeof pos);
-    for (i = 0; i < nCanais; i++)
-      if (canais[i].cat >= 0) tmp[pos[canais[i].cat]++] = canais[i];
-    memcpy(canais, tmp, sizeof(GCanal) * (size_t)nCanais); }
+    memcpy(pos,catIni,(size_t)nCats * sizeof *pos);
+    for (i = 0; i < nCanais; i++) ordemCanais[i] = pos[canais[i].cat]++;
+    for (i = 0; i < nCanais; i++) while (ordemCanais[i] != i) {
+      int j = ordemCanais[i], destino = ordemCanais[j];
+      GCanal tmp = canais[i]; canais[i] = canais[j]; canais[j] = tmp;
+      ordemCanais[j] = j; ordemCanais[i] = destino;
+    }
+  }
   categoriasReunir();
   favAplicar();
   nFavOrd = 0;
@@ -1244,6 +1300,7 @@ static int cacheLer(void) {
        cab.tamSabe == sizeof(GSabe) && cab.perfil == perfis_ativo() &&
        cab.nCanais > 0 && cab.nCanais <= G_MAX_CANAL && cab.nCats > 0 && cab.nCats <= G_MAX_CAT &&
        cab.nFontes >= 0 && cab.nFontes <= G_MAX_FONTE && cab.nSabe >= 0 && cab.nSabe <= G_MAX_SABE;
+  if (ok) ok = canaisReservar(cab.nCanais);
   if (ok) ok = fread(canais, sizeof(GCanal), (size_t)cab.nCanais, f) == (size_t)cab.nCanais &&
                fread(cats, sizeof cats[0], (size_t)cab.nCats, f) == (size_t)cab.nCats &&
                fread(fontes, sizeof(GFonte), (size_t)cab.nFontes, f) == (size_t)cab.nFontes &&
@@ -1282,6 +1339,10 @@ static void publicar(void) {
     fflush(stdout);
     return;
   }
+  if (!canaisReservar(sNCanais)) {
+    printf("[guia] memoria insuficiente para publicar %d canais; preservada a lista anterior\n",sNCanais);
+    sOk = 0; return;
+  }
   { unsigned long nova = assinaturaDe(sCanais, sNCanais, sCats);
     if (nCanais > 0 && nova == assinaturaPublicada) {
       memcpy(sabe, sSabe, sizeof sSabe); nSabe = sNSabe;
@@ -1295,8 +1356,8 @@ static void publicar(void) {
     }
     assinaturaPublicada = nova; }
   corte = sCorte;
-  memcpy(canais, sCanais, sizeof(GCanal) * (size_t)sNCanais);
-  memcpy(cats, sCats, sizeof sCats);
+  if (sNCanais) memcpy(canais, sCanais, sizeof(GCanal) * (size_t)sNCanais);
+  memcpy(cats, sCats, (size_t)sNCats * sizeof sCats[0]);
   nCanais = sNCanais; nCats = sNCats;
   // As fontes efetivas sao as do fio — fileiras + manifestos. Sem a copia, a
   // mensagem "Nenhum catalogo de canais" e o loop de re-tentativa liam a
@@ -2669,7 +2730,10 @@ static void drenarCarga(void) {
     // faz guia_carregar tentar de novo.
     estado = pend == 2 ? (atual ? G_BAIXANDO : G_PARADO) : atual ? (sOk ? G_PRONTO : G_FALHOU) : G_PARADO;
     atomic_store_explicit(&pendPronto, 0, memory_order_relaxed);
-    if (pend == 1) fioVivo = 0;
+    if (pend == 1) {
+      fioVivo = 0;
+      free(sCanais); sCanais = NULL; sCapCanais = sNCanais = sNCats = sIndexados = 0;
+    }
     pthread_cond_broadcast(&publicacaoSinal);
     if (atual) {
       focoValido();
@@ -5257,6 +5321,7 @@ void guia_abrir_sessao(void) {
   // pedido e o desenho descarta o resultado pela geracao da abertura.
   cargaCancelada = 1;
   estado = G_PARADO; recarregarPend = 0; recargaDoPainel = 0;
+  free(canais); canais = NULL; free(ordemCanais); ordemCanais = NULL; capCanais = 0;
   nCanais = nCats = nFontes = nSabe = nFav = nFavOrd = nCatsVisiveis = 0;
   categoriasPerfil=-1;nCategoriasOcultas=0;
   fontesOk = cacheLido = favLido = modoLido = previewLido = 0; fonteAtual = -1;
