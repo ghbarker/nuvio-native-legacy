@@ -21,7 +21,7 @@ jobs:
           test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39136221894 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: 8934c1837013a88e6327c0ff506d20f07aa05de5
+          ref: d843ad531db93793e094209188ab2328a3993c2c
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
