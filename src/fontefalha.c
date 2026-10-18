@@ -502,3 +502,5 @@ int fontefalha_teto(const FonteFalhaSessao *s) {
   } else n++;
   return n < s->total ? s->total : n;
 }
+
+#include "fontefalha_backup.inc"

@@ -2,6 +2,7 @@
 #define NV_FONTEFALHA_H
 
 #include "fontefiltro.h"
+#include <stddef.h>
 
 // Limites contam links distintos, incluindo o primeiro; nunca repeticoes de
 // transporte/decoder do mesmo link. A configuracao nao contem credenciais.
@@ -21,6 +22,13 @@ typedef struct {
   FonteFalhaAddon addon[FONTEFALHA_MAX_ADDONS];
   FonteFiltroConfig filtro;
 } FonteFalhaConfig;
+
+// Pure, bounded snapshot codec. Export allocates a string (caller frees).
+// Read validates the whole snapshot before assigning output; neither mutates
+// active preferences or disk. The restore coordinator must validate identity
+// and persist all stores transactionally before reloading their owners.
+int fontefalha_backup_exportar(const FonteFalhaConfig *cfg, char **saida);
+int fontefalha_backup_ler(const char *texto, size_t n, FonteFalhaConfig *saida);
 
 // Chamar com o diretorio de dados ao iniciar ajustes. Setters gravam antes
 // de publicar a mudanca e retornam 0 se a gravacao falhar.
