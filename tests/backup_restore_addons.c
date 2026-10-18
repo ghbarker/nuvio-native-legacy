@@ -40,6 +40,7 @@ int main(void) {
   snprintf(addon.url, sizeof addon.url, "%s", "https://own.invalid/manifest.json");
   snprintf(addon.nome, sizeof addon.nome, "%s", "Own source"); addon.ativo = 1;
   assert(addons_definir_lista(&addon, 1)); addons_marcar_da_conta(1);
+  AddonRemoto esperado = {0}; assert(addons_exportar(&esperado, 1) == 1);
   nuvem_falhou(); assert(nuvem_freio_ativo());
   for (int vez = 0; vez < 2; vez++) {
     assert(backupapp_contexto(&contextoConfirmado));
@@ -50,7 +51,7 @@ int main(void) {
     assert(addons_n() == 1 && addons_perfil_da_lista() == 1);
     assert(prontas == vez + 1);
     AddonRemoto atual = {0}; assert(addons_exportar(&atual, 1) == 1);
-    assert(!strcmp(atual.url, addon.url) && !strcmp(atual.nome, addon.nome));
+    assert(!strcmp(atual.url, esperado.url) && !strcmp(atual.nome, esperado.nome));
     assert(!strcmp(sessao_usuario(), "user-1") && perfis_ativo() == 1);
     assert(perfis_sessao_geracao() != contextoConfirmado.sessao);
     char *s = dados_ler("sessao.txt"); assert(s && !strcmp(s, sessao)); free(s);
