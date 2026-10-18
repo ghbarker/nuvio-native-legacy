@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 519d4e34a45c03e985fd25ca520fa1a026979ad4
+          ref: f4517ef13e42774514edb72a92c3b1093bfdb7a6
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -60,12 +60,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 519d4e34a45c03e985fd25ca520fa1a026979ad4
+          ref: f4517ef13e42774514edb72a92c3b1093bfdb7a6
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 519d4e34a45c03e985fd25ca520fa1a026979ad4
-          test "$(git rev-parse HEAD^{tree})" = 101b02a0987e86f676ea6d7b7a89420af21c9e78
+          test "$(git rev-parse HEAD)" = f4517ef13e42774514edb72a92c3b1093bfdb7a6
+          test "$(git rev-parse HEAD^{tree})" = 0f9be00e81438d7abd0f16311b9471244ac4bcbe
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -164,7 +164,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,pathlib
           p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs53.apk')
-          out={'all_passed':False,'source_commit':'519d4e34a45c03e985fd25ca520fa1a026979ad4','source_tree':'101b02a0987e86f676ea6d7b7a89420af21c9e78','package':'space.nuvio.nativelegacy.touch','version_code':20063,'version_name':'2.0.63-test-logs53','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
+          out={'all_passed':False,'source_commit':'f4517ef13e42774514edb72a92c3b1093bfdb7a6','source_tree':'0f9be00e81438d7abd0f16311b9471244ac4bcbe','package':'space.nuvio.nativelegacy.touch','version_code':20063,'version_name':'2.0.63-test-logs53','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'included_prs':[573,575,576,587],'native_account_regressions':False,'sanitizer_regressions':False,'android_font_unit_test':True,'both_arm_abis':True}
           pathlib.Path('Logs53-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
