@@ -317,3 +317,7 @@
   2, /* text and component scale: 100% */
   1, /* title page row spacing: Normal */
   1, /* accent focus: Off (gray plate) */
+
+#ifdef NV_ANDROID
+  0, /* Google Drive backup action, append-only */
+#endif
