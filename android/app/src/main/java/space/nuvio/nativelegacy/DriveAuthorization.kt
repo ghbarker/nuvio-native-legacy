@@ -32,8 +32,8 @@ internal class DriveAuthorization(private val activity: Activity) {
             if (rejectedToken.isNotEmpty()) {
                 try {
                     client.clearToken(ClearTokenRequest.builder().setToken(rejectedToken).build())
-                        .addOnSuccessListener(activity) { authorize(ticket, chooseAccount) }
-                        .addOnFailureListener(activity) { state.finish(ticket, "failed") }
+                        .addOnSuccessListener { authorize(ticket, chooseAccount) }
+                        .addOnFailureListener { state.finish(ticket, "failed") }
                 } catch (_: Exception) { state.finish(ticket, "failed") }
             } else authorize(ticket, chooseAccount)
         }
@@ -42,29 +42,30 @@ internal class DriveAuthorization(private val activity: Activity) {
 
     private fun authorize(ticket: DriveAuthState.Ticket, chooseAccount: Boolean) {
         if (!state.current(ticket)) return
+        if (activity.isFinishing || activity.isDestroyed) { state.finish(ticket, "unavailable"); return }
         try {
-                val builder = AuthorizationRequest.builder()
-                    .setRequestedScopes(listOf(Scope(SCOPE)))
-                    .setOptOutIncludingGrantedScopes(true)
-                if (chooseAccount) builder.setPrompt(AuthorizationRequest.Prompt.SELECT_ACCOUNT)
-                client.authorize(builder.build())
-                    .addOnSuccessListener(activity) { result ->
-                        if (!state.current(ticket)) return@addOnSuccessListener
-                        if (result.hasResolution()) {
-                            val pending = result.pendingIntent
-                            if (pending == null) state.finish(ticket, "failed")
-                            else if (state.waitForResolution(ticket)) {
-                                try {
-                                    @Suppress("DEPRECATION")
-                                    activity.startIntentSenderForResult(pending.intentSender, REQUEST, null, 0, 0, 0)
-                                } catch (_: Exception) {
-                                    state.takeResolution()
-                                    state.finish(ticket, "failed")
-                                }
+            val builder = AuthorizationRequest.builder()
+                .setRequestedScopes(listOf(Scope(SCOPE)))
+                .setOptOutIncludingGrantedScopes(true)
+            if (chooseAccount) builder.setPrompt(AuthorizationRequest.Prompt.SELECT_ACCOUNT)
+            client.authorize(builder.build())
+                .addOnSuccessListener { result ->
+                    if (!state.current(ticket)) return@addOnSuccessListener
+                    if (result.hasResolution()) {
+                        val pending = result.pendingIntent
+                        if (pending == null) state.finish(ticket, "failed")
+                        else if (state.waitForResolution(ticket)) {
+                            try {
+                                @Suppress("DEPRECATION")
+                                activity.startIntentSenderForResult(pending.intentSender, REQUEST, null, 0, 0, 0)
+                            } catch (_: Exception) {
+                                state.takeResolution()
+                                state.finish(ticket, "failed")
                             }
-                        } else complete(ticket, result)
-                    }
-                    .addOnFailureListener(activity) { state.finish(ticket, "failed") }
+                        }
+                    } else complete(ticket, result)
+                }
+                .addOnFailureListener { state.finish(ticket, "failed") }
         } catch (_: Exception) { state.finish(ticket, "failed") }
     }
 
@@ -81,7 +82,7 @@ internal class DriveAuthorization(private val activity: Activity) {
 
     private fun complete(ticket: DriveAuthState.Ticket, result: AuthorizationResult) {
         val token = result.accessToken
-        if (result.grantedScopes.none { it.scopeUri == SCOPE } || token.isNullOrEmpty() ||
+        if (result.grantedScopes.none { it == SCOPE } || token.isNullOrEmpty() ||
             token.length > 4096 || token.any { it.code !in 33..126 }) {
             state.finish(ticket, "denied")
         } else state.finish(ticket, "ok", token)
