@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c9f82ef87a24edece62b38301b7ca31df426a593
+          ref: 20de02c81a99732b168ed5a68f83f36e445dd0e7
           persist-credentials: false
       - name: Check private TV configuration availability
         env:
@@ -40,14 +40,18 @@ jobs:
         run: |
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
           mkdir -p "$HOME/.cache/nuvio-android/src"
-          curl -fsSL https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz | tar xz -C "$HOME/.cache/nuvio-android/src"
+          for url in https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.2/SDL2_image-2.8.2.tar.gz https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.22.0/SDL2_ttf-2.22.0.tar.gz; do
+            curl -fsSL "$url" | tar xz -C "$HOME/.cache/nuvio-android/src"
+          done
       - name: Check native Android bridge on both ARM ABIs
         run: |
-          mkdir -p build/check-headers
-          ln -s "$HOME/.cache/nuvio-android/src/SDL2-2.30.9/include" build/check-headers/SDL2
+          mkdir -p build/check-headers/SDL2
+          cp "$HOME/.cache/nuvio-android/src/SDL2-2.30.9/include/"*.h build/check-headers/SDL2/
+          cp "$HOME/.cache/nuvio-android/src/SDL2_image-2.8.2/SDL_image.h" "$HOME/.cache/nuvio-android/src/SDL2_ttf-2.22.0/SDL_ttf.h" build/check-headers/SDL2/
           compiler="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
           for arch in aarch64-linux-android24 armv7a-linux-androideabi24; do
-            "$compiler/$arch-clang" -std=gnu11 -Wall -Wextra -Werror -DNV_ANDROID -DNV_TOUCH_UI -Isrc -Ibuild/check-headers -fsyntax-only src/android.c src/drivetv.c
+            "$compiler/$arch-clang" -std=gnu11 -Wall -Wextra -Werror -DNV_ANDROID -DNV_TOUCH_UI -Isrc -Ibuild/check-headers -Ibuild/check-headers/SDL2 -fsyntax-only src/android.c src/drivetv.c src/drivebackup.c
+            "$compiler/$arch-clang" -std=gnu11 -DNV_ANDROID -DNV_TOUCH_UI -Isrc -Ibuild/check-headers -Ibuild/check-headers/SDL2 -fsyntax-only src/ajustes.c src/app.c
           done
       - name: Compile Android authorization and test profile cancellation
         env:
@@ -68,17 +72,42 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 25
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c9f82ef87a24edece62b38301b7ca31df426a593
+          ref: 20de02c81a99732b168ed5a68f83f36e445dd0e7
           persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Native dependencies
+        shell: bash
+        run: |
+          if [ '${{ runner.os }}' = macOS ]; then
+            brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+          else
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq pkg-config libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
+          fi
       - name: TV OAuth protocol normal and sanitizers
         shell: bash
         run: |
           bash tests/drivetv.sh
           SANITIZE=1 bash tests/drivetv.sh
+      - name: Visible Drive folder transfers normal and sanitizers
+        shell: bash
+        run: |
+          bash tests/drivelocal.sh
+          SANITIZE=1 bash tests/drivelocal.sh
+      - name: Actual native modal workers and profile isolation
+        shell: bash
+        run: |
+          bash tests/drivebackup.sh
+          SANITIZE=1 bash tests/drivebackup.sh
+      - name: Translation tables
+        run: python3 tools/idiomas.py
