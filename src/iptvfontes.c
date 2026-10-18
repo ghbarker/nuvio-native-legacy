@@ -211,7 +211,10 @@ void iptv_contas_esquecer_todas(void) {
       if (!strncmp(n,"livetv-contas-p",14) || !strncmp(n,"xtream-p",8) ||
           !strncmp(n,"stalker-p",9) || !strncmp(n,"m3u-p",5) ||
           !strncmp(n,"m3u-cache-p",11) || !strncmp(n,"epg-conta-",10) ||
-          !strncmp(n,"epg-extra-p",11) || !strncmp(n,"epg-extra-m3u-p",15)) dados_apagar(n);
+          !strncmp(n,"epg-extra-p",11) || !strncmp(n,"epg-extra-m3u-p",15) ||
+          !strncmp(n,"ltv-urls",8) || !strncmp(n,"ltv-fontes",10) || !strncmp(n,"ltv-indice",10) ||
+          !strncmp(n,"ltv-xt",6) || !strncmp(n,"ltv-st",6) || !strncmp(n,"ltv-m",5) ||
+          !strncmp(n,"epg-x-xt",8) || !strncmp(n,"epg-x-st",8) || !strncmp(n,"epg-x-m",7)) dados_apagar(n);
     }
     closedir(dir);
   }
