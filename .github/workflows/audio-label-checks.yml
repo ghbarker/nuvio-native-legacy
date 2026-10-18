@@ -1,0 +1,65 @@
+name: Source audio label fallback checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/audio-label-checks.yml]
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+        suite: [source_audio_language, isolated]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      SDL_MAC_BACKGROUND_APP: '1'
+      DYLD_LIBRARY_PATH: /opt/homebrew/lib
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 8872e5581c794cc58d8c351a10c5355e6384b442
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
+      - if: runner.os == 'macOS'
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+      - name: Normal and sanitizer regression checks
+        env:
+          AUDIO_TEST_GROUP: ${{ matrix.suite }}
+        run: |
+          mkdir -p diagnostics
+          python3 - <<'PYCHECK'
+          import os,pathlib,signal,subprocess
+          full=os.environ['AUDIO_TEST_GROUP']=='source_audio_language'
+          suites=[('source_audio_language','0'),('source_audio_language','1')] if full else [('stream_parser','0'),('stream_parser','1'),('source_exclusion_languages','0'),('fontenota','0'),('fontecache','0'),('fontecache','1')]
+          env={**os.environ,'NUVIO_CFLAGS':subprocess.check_output(['pkg-config','--cflags','sdl2'],text=True).strip()}
+          failures=[]
+          for suite,sanitize in suites:
+              name=suite+('-sanitizers' if sanitize=='1' else '-normal')
+              path=pathlib.Path('diagnostics',name+'.log')
+              print('Starting '+name,flush=True)
+              with path.open('w') as out:
+                  proc=subprocess.Popen(['bash','tests/'+suite+'.sh'],env={**env,'SANITIZE':sanitize},stdout=out,stderr=subprocess.STDOUT,start_new_session=True)
+                  try:code=proc.wait(timeout=300)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(proc.pid,signal.SIGKILL);proc.wait();code=124
+              print('\n'.join(path.read_text().splitlines()[-12:]),flush=True)
+              if code:failures.append(name+': '+str(code))
+          if failures:raise SystemExit('\n'.join(failures))
+          PYCHECK
+      - run: python3 tools/idiomas.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-labels-${{ matrix.os }}-${{ matrix.suite }}
+          path: diagnostics
