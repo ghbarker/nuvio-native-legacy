@@ -1,4 +1,4 @@
-name: Approved Live TV category PR checks
+name: Standalone issue424 large IPTV PR checks
 on:
   workflow_dispatch:
 permissions:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8906f3f7cabeb07d37a09f990a7489be1b9e852a
+          ref: f213ce72e9887fc5271af6bc12a243ca65e76554
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -39,16 +39,9 @@ jobs:
         run: |
           set -euo pipefail
           for san in 0 1; do
-            for suite in ajustes_iptv xtream guia_grande guia_grupos guia_loading guia_catalogo_tv guia_epg_estado m3u iptv_accounts epg_accounts epg_streaming epg_memory xtepg_bounded; do
+            for suite in xtream guia_grande; do
               SANITIZE="$san" bash "tests/$suite.sh"
             done
           done
           bash tests/guiacorte.sh
-          bash tests/ajustes_secoes.sh
           python3 tools/varredura-i18n.py
-      - name: Merged Settings defaults
-        if: runner.os == 'macOS'
-        run: bash tests/ajustes_padroes.sh
-      - name: Rendered portrait and TV category editor
-        if: runner.os == 'Linux'
-        run: xvfb-run -a bash tests/ajustes_categorias_ui.sh
