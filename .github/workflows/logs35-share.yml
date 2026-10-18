@@ -1,4 +1,4 @@
-name: Share verified Logs53 live recovery APK
+name: Share verified Logs54 large IPTV guide APK
 on:
   workflow_dispatch:
 permissions:
@@ -9,57 +9,60 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TEST_RELEASE: tv-mobile-test-logs-v53
+      TEST_RELEASE: tv-mobile-test-logs-v54
     steps:
       - name: Require Android, Linux and macOS checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39099494248 --jq .conclusion)" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39099494248/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
-          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39099495837 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39101175443 --jq .conclusion)" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39101175443/jobs --jq '.jobs[] | select(.name == "apk-build") | .conclusion')" = success
+          test "$(gh api repos/ghbarker/nuvio-native-legacy/actions/runs/39101453995 --jq .conclusion)" = success
       - uses: actions/checkout@v4
         with:
-          ref: f4517ef13e42774514edb72a92c3b1093bfdb7a6
+          ref: bff8f62a83787362ba164f590a2e57dcc59c8589
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39099494248
-          name: Nuvio-TV-Mobile-Test-Logs53-662f3d992eab21d78a6e7e562164006165657736
+          run-id: 39101175443
+          name: Nuvio-TV-Mobile-Test-Logs54-13b1d6947d27fbd5d9687c325c98a46d0bbfe424
           path: dist
       - name: Verify and describe the test build
         run: |
           set -euo pipefail
-          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs53.apk
+          python3 tools/android-apk-pages.py dist/Nuvio-TV-Mobile-Test-Logs54.apk
           python3 - <<'PYCODE'
           import hashlib,json,pathlib,zipfile,os
-          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs53.apk'
-          p=root/'Logs53-validation.json';r=json.loads(p.read_text())
-          assert r['source_commit']=='f4517ef13e42774514edb72a92c3b1093bfdb7a6' and r['source_tree']=='0f9be00e81438d7abd0f16311b9471244ac4bcbe'
+          root=pathlib.Path('dist');apk=root/'Nuvio-TV-Mobile-Test-Logs54.apk'
+          p=root/'Logs54-validation.json';r=json.loads(p.read_text())
+          assert r['source_commit']=='bff8f62a83787362ba164f590a2e57dcc59c8589' and r['source_tree']=='c9e0989bf19e8f41cc0ebf5cb760636c39b03e3f'
           assert r['package']=='space.nuvio.nativelegacy.touch'
-          assert r['version_code']==20063 and r['version_name']=='2.0.63-test-logs53'
+          assert r['version_code']==20064 and r['version_name']=='2.0.64-test-logs54'
           assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert apk.stat().st_size==r['apk_bytes'] and hashlib.sha256(apk.read_bytes()).hexdigest()==r['apk_sha256']
           assert os.environ['TEST_RELEASE']=='tv-mobile-test-logs-v'+r['version_name'].split('-logs')[-1]
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          r.update(all_passed=True,android_16k_alignment=True,android_run=39099494248,linux_run=39099494248,macos_run=39099495837,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v52',device_approval_pending=True)
+          r.update(all_passed=True,android_16k_alignment=True,android_run=39101175443,linux_run=39101175443,macos_run=39101453995,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v53',device_approval_pending=True)
           r['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+os.environ['TEST_RELEASE']+'/'+apk.name
           r['android_jvm_unit_suites']=['LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest']
-          r['normal_regression_suites']=['fonteinfo','fonteinfo_layout','fontefalha','fonteantecipa','ajustes_secoes','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
-          r['asan_ubsan_suites']=['fonteinfo','fonteinfo_layout','fontefalha','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window']
-          r['macos_asan_ubsan_suites']=['fonteinfo','fonteinfo_layout','fontefalha','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window']
-          r['macos_normal_suites']=['fonteinfo','fonteinfo_layout','fontefalha','fonteantecipa','ajustes_secoes','gif','gifcolecao','gifwebp','livestall_window','live_error_recovery','video_android_live_window','livestall','livestall_seco']
+          r['normal_regression_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window', 'guiacorte', 'fonteantecipa', 'ajustes_secoes', 'livestall', 'livestall_seco']
+          r['asan_ubsan_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window']
+          r['macos_asan_ubsan_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window']
+          r['macos_normal_suites']=['xtream', 'guia_grande', 'guia_grupos', 'guia_loading', 'guia_catalogo_tv', 'guia_epg_estado', 'm3u', 'iptv_accounts', 'epg_accounts', 'epg_memory', 'xtepg_bounded', 'fonteinfo', 'fonteinfo_layout', 'fontefalha', 'gif', 'gifcolecao', 'gifwebp', 'livestall_window', 'live_error_recovery', 'video_android_live_window', 'guiacorte', 'fonteantecipa', 'ajustes_secoes', 'livestall', 'livestall_seco']
           r['included_upstream_gif_fix']='b2aa59adabf39f4f8e014a3e15b0dd37a61afeef'
-          r['issue']=457
+          r['macos_test_source_commit']='84d99848233857784cb7ec940154130346ffee93'
+          r['clean_feature_source_commit']='8cfededfd4b03f89a57ff339f2afdae2ef3d9f74'
+          r['native_account_regressions']=True
+          r['issue']=424
           r['upstream_pr_pending_device_approval']=True
           r['sanitizer_regressions']=True
-          r['retained_baseline_checks']='Earlier account/EPG checks retained; Logs53 adds prepared-source metadata/layout/policy checks and reruns GIF and live-recovery regressions. Clean feature branch full-source Settings/pointer checks and i18n scanner also passed locally.'
+          r['retained_baseline_checks']='Logs54 adds large IPTV guide, Xtream, category visibility, cache and native-account/EPG checks; prepared-source, GIF and live-recovery regressions are retained. Android app source is unchanged by the subsequent profile-session test-fixture correction.'
           r['test_scope']='JVM tests exercise the real Media3 Player interface with a strict fake; JNI backend tests use fake JNI and a deterministic clock, including a simulated pause acknowledgement. No emulator or device playback pass is claimed. Android both ARM ABIs are built and apksigner verified.'
           p.write_text(json.dumps(r,indent=2)+'\n')
-          (root/'Logs53-testing.txt').write_text("Nuvio TV/Mobile Test - Logs53: prepared source details (#457)\n\nInstall as an Update over Nuvio TV/Mobile Test. Do not uninstall or clear data. Package and persistent signing key are unchanged; version code 20063, version 2.0.63-test-logs53. Includes the approved Logs51 live-restart fix and the upstream GIF fix from Logs52.\n\n1. Open Settings > Playback > More options > Source selection. Enable Prepared source details. Keep Prepare the source when a title opens or Preload video enabled. Automatic source selection must be enabled; manual selection does not prepare a winner. The new switch defaults Off. You can also find it with Settings search: Prepared source details.\n2. Open a movie and wait for its existing source preparation. Below Play, known specifications should appear: resolution/quality/HDR/audio/channel/codec badges, file size and release group, when supplied by that source. Compare against the selected source in Sources. No title-level guesses, URL/provider-name inference or new media probes are used for these fields. Unknown information is omitted.\n3. Open a series and change the selected episode. Details must correspond to that episode's prepared source; the previous episode's details must disappear while its replacement prepares. Back out and open another title, and switch profiles if possible: details must not leak between targets or profiles.\n4. On the phone, try portrait/landscape and a larger interface font/text scale. The specifications should wrap without covering Play or the synopsis. On the Cube, check remote focus and Play still work. Toggle the new switch Off and reopen a title: the extra row should disappear and the choice should remain saved.\n5. Optional preparation check: turn both source preparation and Preload video Off, reopen a new title, and leave Prepared source details On. The row should stay absent; this switch alone never starts source searches/resolution or buffering. Restore your preferred preparation settings afterward.\n\nThe feature adds no buffering policy changes. For the separately reported 4K TorBox/AIOStreams buffering, keep Buffer size on Automatic initially and compare a 1080p source. The Cube log also shows low-memory warnings down to about139MB available; increasing the buffer is not the first diagnostic step. The supplied Logs51 capture shows real buffering, with no false live-stall recovery. More network-reader evidence is needed before claiming a cause or code fix.\n\nIf playback buffers again, leave Nuvio open and run in Bugjaeger Commands/Shell (no adb shell prefix):\ndumpsys package space.nuvio.nativelegacy.touch | grep versionName > /sdcard/Download/Nuvio-Cube-Playback.txt; logcat -d -v threadtime -s nuvio:I NvPlayer:V nuvio-paralelo:V >> /sdcard/Download/Nuvio-Cube-Playback.txt 2>&1; wc -c /sdcard/Download/Nuvio-Cube-Playback.txt\nDownload via Bugjaeger Files from /sdcard/Download. Share privately because direct ADB capture bypasses app credential redaction.\n\nNo upstream PR for #457 until this APK is tested and approved. Product and regression coverage stay in separate commits. Test packaging and local log export stay out of the product PR.\n")
+          (root/'Logs54-testing.txt').write_text("Nuvio TV/Mobile Test - Logs54: large IPTV lists and guide category visibility (#424)\n\nInstall as an Update over Nuvio TV/Mobile Test. Do not uninstall or clear app data. Version code 20064; version 2.0.64-test-logs54; persistent package/signing key retained. Includes the approved Logs53 prepared-source details feature.\n\n1. Open Live TV using your existing large Xtream account. Use Refresh once so the app fetches a new list instead of only showing the old cache. Open Categories and scroll to categories near the end. Names after the old 256-category parser limit should retain their real names, and Android lists can now retain up to 30,000 channels instead of 3,000. Existing per-account sharing applies when multiple sources are selected. The guide still reports safety-limit truncation; this is not unlimited storage.\n2. Select channels from an early and a late category. Confirm channel names, logos, playback, and programme listings still correspond to the selected account/channel. Switch between Cards and List and check scrolling and selection.\n3. Open Settings > Live TV > Hide categories. Hide one recognisable category belonging to one account. Return to Live TV: its row and its entry in the top-left Categories menu must both be absent. A matching category from another account must remain visible.\n4. Refresh the guide, then fully close and reopen the app. The hidden category must remain absent from both places. It must remain listed in Hide categories so you can restore it. Unhide it and confirm it returns in both places.\n5. If convenient, switch profiles: hiding categories in one profile must not hide them in another. Hide all categories in one profile only if you want to test the empty state; you can restore them through Settings.\n\nThe synthetic checks cover 12,000 channels in 600 categories and the 30,000-channel Android safety bound, cache round trips, stable ordering, duplicate detection, and allocation failures. These checks do not measure your provider's network speed. macOS validation is native regression/sanitizer testing, not a macOS app build.\n\nPlease report whether category names/counts, scrolling, playback and hide/restore behaviour pass. A diagnostic log immediately after Refresh is useful if channels or categories are still missing. No upstream PR or draft-ready change for #424 until this test build is approved.\n")
           PYCODE
       - name: Publish verified APK and instructions
         env:
@@ -67,11 +70,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target f4517ef13e42774514edb72a92c3b1093bfdb7a6 --title 'Nuvio TV/Mobile Test - Logs53: Prepared source details' --notes-file dist/Logs53-testing.txt
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target bff8f62a83787362ba164f590a2e57dcc59c8589 --title 'Nuvio TV/Mobile Test - Logs54: Large IPTV guides' --notes-file dist/Logs54-testing.txt
           fi
-          for name in Nuvio-TV-Mobile-Test-Logs53.apk Logs53-testing.txt; do
+          for name in Nuvio-TV-Mobile-Test-Logs54.apk Logs54-testing.txt; do
             if ! gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
               gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" "dist/$name"
             fi
           done
-          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs53-validation.json --clobber
+          gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs54-validation.json --clobber
