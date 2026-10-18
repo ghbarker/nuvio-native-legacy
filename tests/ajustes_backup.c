@@ -66,6 +66,20 @@ int main(void) {
   // Automatic language and explicit memory-budget markers are local metadata.
   assert(ajustes_backup_exportar(AJ_BACKUP_APARELHO,"idiomaAutoLocal 1\ntexturasEscolhaLocal 1\n",&out));
   assert(strstr(out,"idiomaAutoLocal 1") && strstr(out,"texturasEscolhaLocal 1"));free(out);out=NULL;
+  // Main subtitle appearance and failover rows are backend views. Never
+  // export stale scalar shadows or accept an ineffective scalar restore.
+  int externos[]={AJ_LEG1_TAMANHO,AJ_LEG1_COR,AJ_FALHA_PROVEDORES,AJ_FILTRO_TAM_MAX};
+  for(size_t i=0;i<sizeof externos/sizeof *externos;i++) {
+    char sombra[128];linha(sombra,sizeof sombra,externos[i],valorPadrao[externos[i]]);
+    assert(ajustes_backup_exportar(AJ_BACKUP_APARELHO,sombra,&out));
+    assert(!strstr(out,CHAVE[externos[i]]));free(out);out=NULL;
+    snprintf(mau,sizeof mau,"NUVIO-LOCAL-SETTINGS 1\nscope device\n%s",sombra);
+    recusar(AJ_BACKUP_APARELHO,original,mau);
+  }
+  // Secondary subtitle overrides really are owned by Settings.
+  char secundaria[128];linha(secundaria,sizeof secundaria,AJ_LEG2_COR,1);
+  assert(ajustes_backup_exportar(AJ_BACKUP_APARELHO,secundaria,&out));
+  assert(strstr(out,secundaria));free(out);out=NULL;
   char *grande=malloc(AB_MAX_TEXTO+2);assert(grande);memset(grande,'x',AB_MAX_TEXTO+1);grande[AB_MAX_TEXTO+1]=0;
   assert(!ajustes_backup_exportar(0,grande,&out) && !out);
   recusar(0,original,grande);free(grande);
