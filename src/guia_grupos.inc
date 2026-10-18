@@ -40,22 +40,32 @@ static int grupoComparar(const void *aa,const void *bb) {
 static void gruposReunir(void) {
   static char nomes[G_MAX_CAT][64];
   int mapa[G_MAX_CAT],inverso[G_MAX_CAT],origens[G_MAX_CAT],antes=nCats;
-  memcpy(nomes,cats,sizeof nomes);
+  memcpy(nomes,cats,(size_t)antes*sizeof nomes[0]);
+  static int indice[G_MAX_CANAL*2+1];memset(indice,0,sizeof indice);
   grupoNContas=iptv_contas(grupoContas,IPTV_MAX_CONTAS);nGrupos=nCats=0;
   for(int i=0;i<nCanais;i++) {
     GCanal *c=&canais[i];
     const char *nome=c->cat>=0 && c->cat<antes?nomes[c->cat]:"Outros";
-    int grupo=grupoDoCanal(c),cat=0;
-    for(;cat<nCats;cat++)if(catGrupo[cat]==grupo && !strcmp(cats[cat],nome))break;
+    int grupo=grupoDoCanal(c);
+    unsigned h=2166136261u;
+    for(const unsigned char *p=(const unsigned char*)nome;*p;p++)h=(h^*p)*16777619u;
+    h=(h^(unsigned)grupo)*16777619u;
+    unsigned slot=h%(G_MAX_CANAL*2+1);
+    while(indice[slot]) {
+      int cat=indice[slot]-1;
+      if(catGrupo[cat]==grupo && !strcmp(cats[cat],nome))break;
+      slot=(slot+1)%(G_MAX_CANAL*2+1);
+    }
+    int cat=indice[slot]?indice[slot]-1:nCats;
     if(cat==nCats) { // At most one displayed category per retained channel.
-      snprintf(cats[cat],sizeof cats[cat],"%s",nome);catGrupo[cat]=grupo;nCats++;
+      snprintf(cats[cat],sizeof cats[cat],"%s",nome);catGrupo[cat]=grupo;nCats++;indice[slot]=cat+1;
     }
     c->cat=cat;
   }
   grupoOrdemConta=ajustes_guia_ordem()==1;
   for(int i=0;i<nCats;i++)mapa[i]=i;
   qsort(mapa,(size_t)nCats,sizeof *mapa,grupoComparar);
-  memcpy(nomes,cats,sizeof nomes);memcpy(origens,catGrupo,sizeof origens);
+  memcpy(nomes,cats,(size_t)nCats*sizeof nomes[0]);memcpy(origens,catGrupo,(size_t)nCats*sizeof *origens);
   for(int i=0;i<nCats;i++) {
     memcpy(cats[i],nomes[mapa[i]],sizeof cats[i]);catGrupo[i]=origens[mapa[i]];inverso[mapa[i]]=i;
   }
