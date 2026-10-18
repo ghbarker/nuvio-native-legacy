@@ -64,8 +64,9 @@ int main(int argc,char **argv) {
   for(int mode=0;mode<2;mode++)for(int scale=100;scale<=150;scale+=50) {
     printf("UI fixture: mode=%d scale=%d\n",mode,scale);
     int w=mode?1920:1080,h=mode?1080:1920;
-    SDL_SetWindowSize(win,w,h);glViewport(0,0,w,h);gfx_tamanho_alvo(w,h);
-    layout_modo_definir(!mode);layout_tela_definir(w,h);ajEscalaTestePct=scale;
+    SDL_SetWindowSize(win,w,h);SDL_PumpEvents();SDL_GL_SwapWindow(win);
+    layout_modo_definir(!mode);layout_tela_definir(w,h);
+    gfx_tamanho_alvo(w,h);glViewport(0,0,w,h);ajEscalaTestePct=scale;
     uxAbrirEditor(AJ_GUIA_CATEGORIAS);ponteiro_iniciar();ponteiro_teste_toque(1);ponteiro_teste_relogio(agora);
     for(int i=0;i<12;i++)quadro();
     const PonteiroAlvo *v;int n=ponteiro_teste_lista(&v),rows=0,buttons=0;
