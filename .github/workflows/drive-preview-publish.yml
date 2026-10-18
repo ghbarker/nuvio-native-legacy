@@ -13,25 +13,25 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs57-df8c152f26081430bf38048416b8f5c2758b6388
-          run-id: 39151349438
+          name: Nuvio-TV-Mobile-Test-Logs58-f94dc17713a3e49cc725969df221277bc5fecc90
+          run-id: 39154147636
           github-token: ${{ github.token }}
       - name: Verify exact checked artifact and attach final check results
         run: |
           python3 - <<'PY'
           import hashlib,json,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs57.apk')
-          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='b11b0321e7ba3528c510099b2672cedf94cf4c75131ad05235e12d4e6b646775'
-          report=pathlib.Path('Logs57-validation.json');d=json.loads(report.read_text())
-          assert d['source_commit']=='ae64dc019f872bbbf871189cf2495b4a76b0cd9d'
-          assert d['source_tree']=='a7f85f0064bcc8e1567344226b192965feae3076'
-          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20067
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs58.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='f606b704531baabb2462ae3a1791b5fb619af7c3073d1277860ca0182fd67caf'
+          report=pathlib.Path('Logs58-validation.json');d=json.loads(report.read_text())
+          assert d['source_commit']=='3cc639cc6ee29314f194f4547905041ac65c093c'
+          assert d['source_tree']=='66a7eb96c8305ca5a343150159e1de56b477d215'
+          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20068
           assert d['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          d.update(automated_checks_passed=True,native_account_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,live_google_roundtrip='pending_user_test',android_authorization_result_routing_test=True)
-          d['check_runs']={'android':39151349438,'linux_native':39150640328,'macos_native':39151403033}
-          d['linux_native_source']='09980a57; identical native C to the release, later changes only Android callback and its test'
+          d.update(automated_checks_passed=True,native_account_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,live_google_roundtrip='user confirmed save and restore on Logs57; addon reload fix awaits Logs58 verification',android_authorization_result_routing_test=True)
+          d['check_runs']={'android':39154147636,'linux_native':39154254021,'macos_native':39154253636}
+          d['native_test_source']='33f6eff3172ff43ffb308552bf0c7d1795c9f1e7; production code identical to APK source; only test export expectation corrected'
           report.write_text(json.dumps(d,indent=2)+'\n')
           PY
       - name: Check completed runs and upload the test release assets
@@ -40,11 +40,13 @@ jobs:
           GH_REPO: ghbarker/nuvio-native-legacy
         run: |
           set -euo pipefail
-          for id in 39151349438 39150640328 39151403033; do
+          for id in 39154254021 39154253636; do
             test "$(gh api "repos/$GH_REPO/actions/runs/$id" --jq .conclusion)" = success
           done
+          test "$(gh api "repos/$GH_REPO/actions/runs/39154147636/jobs" --jq '[.jobs[] | select(.name=="apk-build" and .conclusion=="success")] | length')" = 1
+          test "$(gh api "repos/$GH_REPO/compare/3cc639cc6ee29314f194f4547905041ac65c093c...33f6eff3172ff43ffb308552bf0c7d1795c9f1e7" --jq '.files | map(.filename) | join(",")')" = tests/backup_restore_addons.c
           cat > notes.txt <<'NOTES'
-          Google Drive backup/restore preview for Nuvio TV/Mobile Test. Update the existing test app; keep accounts and settings.
+          Fix the empty addon list after Google Drive restore. Reload the current profile addon cache and resume sync before returning Home. Update the existing Nuvio TV/Mobile Test app; keep accounts and settings.
 
           Settings > Account and services > Google Drive backup.
 
@@ -52,8 +54,8 @@ jobs:
 
           This preview backs up local scalar settings, playback/subtitle appearance, and native source/filter/failover preferences. Nuvio-synced data, account credentials, logs, imported font files, collection presentation overrides and Live TV account definitions are not exported.
 
-          Android APK and unit tests passed. Linux and macOS native backup/restore and profile isolation passed normally and under ASan/UBSan. Package, version, persistent signer, ARM64/ARMv7 and 16KB alignment verified. Check links are in Logs57-validation.json.
+          Android APK and unit tests passed. Linux and macOS native backup/restore and profile isolation passed normally and under ASan/UBSan. Package, version, persistent signer, ARM64/ARMv7 and 16KB alignment verified. Check links are in Logs58-validation.json.
 
-          Real Google sign-in/upload/restore awaits testing with the registered Google test account. No upstream Drive PR has been submitted.
+          Google sign-in, save and restore were tested on Logs57. This update needs verification that addons and collections are available immediately after repeated restores. This is a limited settings backup preview; it does not yet cover all local settings or API keys. No upstream Drive PR has been submitted.
           NOTES
-          gh release create tv-mobile-test-logs-v57 Nuvio-TV-Mobile-Test-Logs57.apk Logs57-validation.json --target ae64dc019f872bbbf871189cf2495b4a76b0cd9d --title 'TV/Mobile Test Logs57: Google Drive backup preview' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v58 Nuvio-TV-Mobile-Test-Logs58.apk Logs58-validation.json --target 3cc639cc6ee29314f194f4547905041ac65c093c --title 'TV/Mobile Test Logs58: Google Drive backup preview' --notes-file notes.txt --prerelease
