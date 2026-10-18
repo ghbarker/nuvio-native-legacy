@@ -146,6 +146,7 @@ static BackupLocal *normalizar(const BackupContexto *c,const BackupLocal *origem
   if(s) {
     BackupStores *legado=NULL;
     if(!backupstores_ler(s,ns,&legado) || !backupconnections_capturar(legado,&stores)) {
+      printf("[backup] normalization failed: local stores\n");
       backupstores_liberar(legado);goto falha;
     }
     BackupStore chavesLegadas;
@@ -186,7 +187,7 @@ static BackupLocal *normalizar(const BackupContexto *c,const BackupLocal *origem
       BackupFontManifest m;if(!backupfonts_manifest_ler(parte,n,&m))goto falha;
       if(!m.n)continue;
       BackupFontStage *stage=backuplocal_fontes(origem);const BackupFontManifest *disponivel=backupfonts_stage_manifest(stage);
-      if(!disponivel || m.n!=disponivel->n || !backupFontesValidar(stage))goto falha;
+      if(!disponivel || m.n!=disponivel->n || !backupFontesValidar(stage)){printf("[backup] normalization failed: staged fonts\n");goto falha;}
       for(int j=0;j<m.n;j++)if(strcmp(m.font[j].id,disponivel->font[j].id) || m.font[j].n!=disponivel->font[j].n)goto falha;
       char *plano=NULL;size_t np=0;
       int ok=backupfonts_stage_plano(stage,&plano,&np) && backuplocal_adicionar(b,i,plano,np);
@@ -204,8 +205,17 @@ int backupapp_selecionar(const BackupContexto *c,const BackupLocal *origem,int h
   if(saida)*saida=NULL;
   if(!saida || !c || !backuplocal_compativel(origem,c->usuario,c->perfil))return 0;
   BackupLocal *b=backuplocal_novo(c->usuario,c->perfil,backuplocal_criado(origem));if(!b)return 0;
+  const int partes[]={BACKUP_AJUSTES_APARELHO,BACKUP_AJUSTES_PERFIL,BACKUP_AJUSTES_HARDWARE};
+  const char *entrada[3];char *escolhidos[3]={0};int temAjustes=0;
+  for(int i=0;i<3;i++){entrada[i]=backuplocal_parte(origem,partes[i],NULL);temAjustes|=entrada[i]!=NULL;}
+  if(temAjustes) {
+    int ok=ajustes_backup_selecionar(entrada,hardware,escolhidos);
+    for(int i=0;i<3 && ok;i++)if(escolhidos[i])ok=backuplocal_adicionar(b,partes[i],escolhidos[i],strlen(escolhidos[i]));
+    for(int i=0;i<3;i++)free(escolhidos[i]);
+    if(!ok){printf("[backup] selection failed: scalar settings\n");goto falha;}
+  }
   for(int i=0;i<BACKUP_PARTES_N;i++) {
-    if(i==BACKUP_AJUSTES_HARDWARE && !hardware)continue;
+    if(i==BACKUP_AJUSTES_APARELHO || i==BACKUP_AJUSTES_PERFIL || i==BACKUP_AJUSTES_HARDWARE)continue;
     size_t n;const char *s=backuplocal_parte(origem,i,&n);if(!s)continue;
     if(i==BACKUP_LOCAIS && !hardware) {
       BackupStores *todos=NULL,*filtrado=NULL;char *texto=NULL;size_t nt=0;
@@ -224,11 +234,13 @@ static int lerAtual(void *ctx,int tipo,char **s,size_t *n) {
   Atual *a=ctx;return a->io.ler(a->io.ctx,a->c->usuario,a->c->perfil,tipo,s,n);
 }
 int backupapp_validar(const BackupContexto *c,const BackupLocal *backup) {
-  if(!contexto(c) || !perfis_sessao_travar(c->sessao))return 0;
+  if(!contexto(c) || !perfis_sessao_travar(c->sessao)){printf("[backup] validation failed: session\n");return 0;}
   BackupLocal *b=atual(c)?normalizar(c,backup):NULL;BackupPlano *plano=NULL;
   BackupDisco *disco=backupdisco_abrir(dados_dir(),NULL,NULL);Atual a={.c=c};
   if(disco)a.io=backupdisco_io(disco);
-  int ok=b && disco && backupplano_criar(b,c->usuario,c->perfil,c->sessao,lerAtual,&a,&plano)==BACKUP_PLANO_OK;
+  int resultado=b && disco?backupplano_criar(b,c->usuario,c->perfil,c->sessao,lerAtual,&a,&plano):BACKUP_PLANO_INVALIDO;
+  int ok=b && disco && resultado==BACKUP_PLANO_OK;
+  if(!ok)printf("[backup] validation failed: normalized=%d disk=%d plan=%d fonts=%d\n",b!=NULL,disco!=NULL,resultado,backuplocal_parte(backup,BACKUP_FONTES_IMPORTADAS,NULL)!=NULL);
   backupplano_liberar(plano);backuplocal_liberar(b);backupdisco_fechar(disco);perfis_sessao_destravar();return ok;
 }
 static int mesmaSessao(void *ctx,const char *dono,int perfil,uint64_t sessao) {

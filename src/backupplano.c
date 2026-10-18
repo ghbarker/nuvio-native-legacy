@@ -42,7 +42,7 @@ int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint
     // The old reserved row part is unsupported; row settings now belong to
     // the validated local-store bundle inside the encrypted transport.
     if(i==BACKUP_FILEIRAS){erro=BACKUP_PLANO_NAO_SUPORTADO;goto falha;}
-    if(!validar(i,texto,n,&p->parte[i].depois))goto falha;
+    if(!validar(i,texto,n,&p->parte[i].depois)){printf("[backup] invalid restore section: type=%d\n",i);goto falha;}
     p->parte[i].nDepois=strlen(p->parte[i].depois);p->parte[i].usada=i!=BACKUP_AJUSTES_HARDWARE;
   }
   // Hardware and ordinary device settings share ajustes.txt. Merge both into
@@ -58,6 +58,7 @@ int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint
     char *atual=NULL;size_t n=0;int estado=ler(ctx,i,&atual,&n);
     if(estado<0 || estado>1 || (estado==0 && (atual || n)) ||
        (estado==1 && (!atual || n>BACKUP_PARTE_MAX-2u || memchr(atual,0,n)))) {
+      printf("[backup] current store read failed: type=%d status=%d\n",i,estado);
       free(atual);erro=BACKUP_PLANO_LEITURA;goto falha;
     }
     p->parte[i].existia=estado;p->parte[i].antes=atual;p->parte[i].nAntes=n;
@@ -83,7 +84,7 @@ int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint
       char *antes=NULL,*depois=NULL;size_t na=0,nd=0;
       if(ok)ok=backupstores_exportar(antigo,&antes,&na) && backupstores_exportar(junto,&depois,&nd);
       backupstores_liberar(antigo);backupstores_liberar(entrada);backupstores_liberar(junto);
-      if(!ok){free(antes);free(depois);goto falha;}
+      if(!ok){printf("[backup] local store merge failed\n");free(antes);free(depois);goto falha;}
       backupcrypto_limpar(p->parte[i].antes,p->parte[i].nAntes);free(p->parte[i].antes);free(p->parte[i].depois);
       p->parte[i].antes=antes;p->parte[i].nAntes=na;p->parte[i].existia=1;
       p->parte[i].depois=depois;p->parte[i].nDepois=nd;
