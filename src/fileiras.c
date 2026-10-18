@@ -2301,3 +2301,10 @@ int fil_migrar_197(const char *const *contaLigadas, int n) {
   pthread_mutex_unlock(&trava);
   return feito;
 }
+
+void fil_recarregar(void) {
+  pthread_mutex_lock(&trava);
+  nLinhas=0;ordemLocal=0;limiteOrigem=0;registroSujo=0;
+  memset(linhas,0,sizeof linhas);carregar();revisao++;
+  pthread_mutex_unlock(&trava);
+}

@@ -5,13 +5,15 @@
 #include "fontefalha.h"
 #include "perfis.h"
 #include "player.h"
-#include "playerbackup.h"
 #include "sessao.h"
 #include "backupstores.h"
 #include "backupconnections.h"
 #include "backupcrypto.h"
 #include "backupfonts.h"
+#if __has_include("legfontes.h")
 #include "legfontes.h"
+#define BACKUP_HAS_FONTS 1
+#endif
 #include "debrid.h"
 #include "fileiras.h"
 #include "legmemoria.h"
@@ -26,14 +28,40 @@
 #include "servidores.h"
 #include "plugins.h"
 #include "curadoria.h"
-#include "iptvfontes.h"
+
 #include "xtream.h"
+#if __has_include("m3u.h")
 #include "m3u.h"
+#define BACKUP_HAS_M3U 1
+#endif
+#include "ltv.h"
 #include "stalker.h"
 #include "iconeapp.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef BACKUP_HAS_FONTS
+#include <SDL2/SDL_ttf.h>
+#endif
+
+static int backupFontesValidar(BackupFontStage *stage) {
+  const BackupFontManifest *m=backupfonts_stage_manifest(stage);
+  if(!m)return 0;
+#ifndef BACKUP_HAS_FONTS
+  return m->n==0;
+#else
+  if(backupfonts_stage_validado(stage))return 1;
+  for(int i=0;i<m->n;i++) {
+    unsigned char *bytes=NULL;size_t n=0;char nome[96];
+    if(!backupfonts_stage_ler(stage,i,&bytes,&n))return 0;
+    int ok=legfontes_sfnt_valido(bytes,n) && legfontes_nome_sfnt(bytes,n,nome,sizeof nome);
+    SDL_RWops *rw=ok?SDL_RWFromConstMem(bytes,(int)n):NULL;
+    TTF_Font *face=rw?TTF_OpenFontRW(rw,1,16):NULL;
+    ok=ok && face!=NULL;if(face)TTF_CloseFont(face);free(bytes);if(!ok)return 0;
+  }
+  backupfonts_stage_validar(stage);return 1;
+#endif
+}
 static int atual(const BackupContexto *c) {
   return c && memchr(c->usuario,0,sizeof c->usuario) && c->usuario[0] && c->perfil>0 &&
     perfis_sessao_atual(c->sessao) && perfis_ativo()==c->perfil && !strcmp(sessao_usuario(),c->usuario);
@@ -91,11 +119,6 @@ int backupapp_capturar(const BackupContexto *c,long long criado,BackupLocal **sa
   if(!ajustes_backup_capturar(AJ_BACKUP_APARELHO,&texto) || !adicionar(b,BACKUP_AJUSTES_APARELHO,&texto) ||
      !ajustes_backup_capturar(AJ_BACKUP_PERFIL,&texto) || !adicionar(b,BACKUP_AJUSTES_PERFIL,&texto) ||
      !ajustes_backup_capturar(AJ_BACKUP_HARDWARE,&texto) || !adicionar(b,BACKUP_AJUSTES_HARDWARE,&texto))goto fim;
-  PlayerBackup pl;player_backup_capturar(&pl);
-  if(!playerbackup_exportar(&pl,&texto) || !adicionar(b,BACKUP_PLAYER,&texto))goto fim;
-  FonteFalhaConfig cfg;fontefalha_config(&cfg);
-  int tipo=ajustes_provedores_compartilhados()?BACKUP_FONTES_COMPARTILHADAS:BACKUP_FONTES_PERFIL;
-  if(!fontefalha_backup_exportar(&cfg,&texto) || !adicionar(b,tipo,&texto) || !atual(c))goto fim;
   BackupDisco *disco=backupdisco_abrir(dados_dir(),NULL,NULL);
   if(!disco)goto fim;
   BackupIO io=backupdisco_io(disco);char *local=NULL;size_t nl=0;BackupStores *todos=NULL,*portavel=NULL;
@@ -117,14 +140,20 @@ fim:
 }
 static BackupLocal *normalizar(const BackupContexto *c,const BackupLocal *origem) {
   if(!backuplocal_compativel(origem,c->usuario,c->perfil))return NULL;
-  int nfontes=!!backuplocal_parte(origem,BACKUP_FONTES_COMPARTILHADAS,NULL)+
-              !!backuplocal_parte(origem,BACKUP_FONTES_PERFIL,NULL);
-  if(nfontes>1)return NULL;
   BackupLocal *b=backuplocal_novo(c->usuario,c->perfil,backuplocal_criado(origem));if(!b)return NULL;
   BackupStores *stores=NULL;char *normalizado=NULL;size_t nn=0,ns=0;
   const char *s=backuplocal_parte(origem,BACKUP_LOCAIS,&ns);int privado=0;
   if(s) {
-    if(!backupstores_ler(s,ns,&stores))goto falha;
+    BackupStores *legado=NULL;
+    if(!backupstores_ler(s,ns,&legado) || !backupconnections_capturar(legado,&stores)) {
+      backupstores_liberar(legado);goto falha;
+    }
+    BackupStore chavesLegadas;
+    if(backupstores_buscar(legado,BS_DEBRID_PROFILE,0,&chavesLegadas) &&
+       !backupstores_definir(stores,BS_DEBRID_PROFILE,0,chavesLegadas.existe,chavesLegadas.texto,chavesLegadas.n)) {
+      backupstores_liberar(legado);goto falha;
+    }
+    backupstores_liberar(legado);
     BackupStore v;DebridConta entradas={0},locais={0};DebridContexto efetivas={0};char chaves[1024];
     int ok=1;
     if(backupstores_buscar(stores,BS_DEBRID_PROFILE,0,&v) && v.existe)ok=provedoresLer(v.texto,&entradas);
@@ -146,28 +175,26 @@ static BackupLocal *normalizar(const BackupContexto *c,const BackupLocal *origem
     backupcrypto_limpar(&efetivas,sizeof efetivas);backupcrypto_limpar(chaves,sizeof chaves);
     if(!ok || !backupstores_exportar(stores,&normalizado,&nn))goto falha;
   }
-  int destino=privado || !ajustes_provedores_compartilhados()?BACKUP_FONTES_PERFIL:BACKUP_FONTES_COMPARTILHADAS;
+
   for(int i=0;i<BACKUP_PARTES_N;i++) {
     size_t n=0;const char *parte=backuplocal_parte(origem,i,&n);if(!parte)continue;
+    // These preferences now belong to Nuvio c_settings_v1, including old
+    // preview backups. Never replay them over the current account values.
+    if(i==BACKUP_PLAYER || i==BACKUP_FONTES_COMPARTILHADAS || i==BACKUP_FONTES_PERFIL)continue;
     if(i==BACKUP_LOCAIS){parte=normalizado;n=nn;}
     if(i==BACKUP_FONTES_IMPORTADAS) {
       BackupFontManifest m;if(!backupfonts_manifest_ler(parte,n,&m))goto falha;
       if(!m.n)continue;
       BackupFontStage *stage=backuplocal_fontes(origem);const BackupFontManifest *disponivel=backupfonts_stage_manifest(stage);
-      if(!disponivel || m.n!=disponivel->n || !legfontes_backup_validar(stage))goto falha;
+      if(!disponivel || m.n!=disponivel->n || !backupFontesValidar(stage))goto falha;
       for(int j=0;j<m.n;j++)if(strcmp(m.font[j].id,disponivel->font[j].id) || m.font[j].n!=disponivel->font[j].n)goto falha;
       char *plano=NULL;size_t np=0;
       int ok=backupfonts_stage_plano(stage,&plano,&np) && backuplocal_adicionar(b,i,plano,np);
       free(plano);if(!ok)goto falha;
       backuplocal_fontes_vincular(b,stage);continue;
     }
-    int tipo=(i==BACKUP_FONTES_COMPARTILHADAS || i==BACKUP_FONTES_PERFIL)?destino:i;
+    int tipo=i;
     if(!backuplocal_adicionar(b,tipo,parte,n))goto falha;
-  }
-  if(privado && !nfontes) {
-    FonteFalhaConfig cfg;char *texto=NULL;fontefalha_config(&cfg);
-    int ok=fontefalha_backup_exportar(&cfg,&texto) && backuplocal_adicionar(b,BACKUP_FONTES_PERFIL,texto,strlen(texto));
-    free(texto);if(!ok)goto falha;
   }
   backupcrypto_limpar(normalizado,nn);free(normalizado);backupstores_liberar(stores);return b;
 falha:
@@ -230,7 +257,6 @@ fim:
     }
     if(backuplocal_parte(b,BACKUP_LOCAIS,NULL) || backuplocal_parte(b,BACKUP_FONTES_COMPARTILHADAS,NULL) || backuplocal_parte(b,BACKUP_FONTES_PERFIL,NULL))
       ajustes_provedores_abrir_sessao();
-    if(backuplocal_parte(b,BACKUP_PLAYER,NULL)){player_dir(dados_dir());player_leg_estilo_carregar();}
     if(backuplocal_parte(b,BACKUP_LOCAIS,NULL)) {
       fil_backup_recarregar();central_backup_recarregar();sorg_backup_recarregar();spainel_backup_recarregar();
       estatvivo_backup_recarregar();selospacote_backup_recarregar();
@@ -238,9 +264,16 @@ fim:
       audiomem_definir_perfil(0);audiomem_definir_perfil(c->perfil);
       arteesc_definir_perfil(0);arteesc_definir_perfil(c->perfil);
       fontepref_definir_perfil(0);fontepref_definir_perfil(c->perfil);
-      iptv_contas_recarregar();xtream_fontes_invalidar();m3u_fontes_invalidar();stalker_fontes_invalidar();
+      xtream_backup_recarregar();stalker_backup_recarregar();
+#ifdef BACKUP_HAS_M3U
+      m3u_fontes_invalidar();
+#endif
+      ltv_urls_carregar(c->perfil);ltv_pref_carregar(c->perfil);
       servidores_perfil_trocou();plugins_iniciar();
-      legfontes_backup_recarregar(dados_dir());curadoria_backup_recarregar();
+#ifdef BACKUP_HAS_FONTS
+      legfontes_dir(NULL);legfontes_dir(dados_dir());(void)legfontes_n();
+#endif
+      curadoria_backup_recarregar();
     }
   }
   backuplocal_liberar(b);return resultado;

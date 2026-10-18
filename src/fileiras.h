@@ -517,4 +517,5 @@ void fil_esquecer(void);
 // linhas mudaram.
 int fil_migrar_197(const char *const *contaLigadas, int n);
 
+void fil_recarregar(void);
 #endif

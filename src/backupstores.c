@@ -54,6 +54,8 @@ static const Tipo tipos[BS_N]={
   {"art-memory","arte-escolhida-p%d.txt",P},
   {"manual-source-memory","fontepref-p%d.txt",P},
   {"external-player","player-externo.txt",H},
+  {"live-urls","ltv-urls-p%d.txt",P|C},
+  {"live-source-preferences","ltv-fontes-p%d.txt",P},
 };
 #undef P
 #undef C

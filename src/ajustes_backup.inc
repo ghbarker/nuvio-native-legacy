@@ -18,6 +18,8 @@ static int abDesteDispositivo(int op) {
     // A phone backup must not force TV mode, memory/panel limits, input
     // routing, account-sharing policy or telemetry consent on another device.
     case AJ_INTERFACE_MODO:case AJ_RESOLUCAO:case AJ_TEX_MB:
+    case AJ_QUALIDADE_IMG:case AJ_ITENS_FILEIRA:case AJ_TAMANHO_UI:case AJ_TAMANHO_AJUSTES:
+    case AJ_ESCALA_TEXTO:case AJ_DTS_AC3:case AJ_PROPORCAO_PADRAO:
     case AJ_GPU_EFEITOS:case AJ_VIDRO_QUALIDADE:case AJ_BUFFER:case AJ_CACHE_SEEK:
     case AJ_HDR_UI:case AJ_ESMAECER:case AJ_BRILHO_PLAYER:case AJ_DV_MKV:
     case AJ_ENVIO_AUTO:case AJ_TECLADO_ANDROID:case AJ_PROVEDORES_ESCOPO:
@@ -28,39 +30,15 @@ static int abDesteDispositivo(int op) {
   }
 }
 static int abLocal(int op,int perfil,int v) {
-  if(op<0 || op>=AB_N)return 0;
-  // Sharing policy and telemetry consent always belong to the destination.
-  if(op==AJ_PROVEDORES_ESCOPO || op==AJ_ENVIO_AUTO)return 0;
-  if(perfil==AJ_BACKUP_HARDWARE) {
-    if(!abDesteDispositivo(op))return 0;
-    if(op>=AJ_N)return op==AJ_N+2;
-    return CHAVE[op] && OPCOES[op].tipo!=OP_ACAO && OPCOES[op].tipo!=OP_LEITURA;
-  }
-  if(abDesteDispositivo(op))return 0;
-  // Native-only choices can live in the profile file even though the sync
-  // guard calls them account settings. The cloud has no matching fields.
-  // Language overrides likewise differ from its ISO-valued language fields.
-  // Follow the real Settings owner so a reload can actually apply the value.
-  switch(op) {
-    case AJ_LEG_LINGUA:case AJ_LEG_LINGUA2:case AJ_AUD_LINGUA:case AJ_AUD_LINGUA2:
-    case AJ_QUALIDADE:case AJ_DV:case AJ_ATMOS:
-    case AJ_PS_FUNDO:case AJ_CW_OK:
-    case AJ_FONTE_OUTROS:case AJ_FONTE_REGEX:case AJ_FONTE_ORDEM_USO:
-    case AJ_HERO_TRAILER:case AJ_DET_VEU:case AJ_DET_TRAILER_AUTO:
-    case AJ_TRAILER_QUAL:case AJ_TRAILER_ASPECTO:
-      return !!dePerfil(op)==perfil;
-    default:break;
-  }
-  if(op>=AJ_N)return !perfil;
-  // These Settings rows mirror separate stores; scalar shadow values would
-  // restore without changing the real subtitle or failover preferences.
-  if(ajLegendaPrincipal(op) || ajFalhaBackend(op))return 0;
-  if(!CHAVE[op] || CHAVE[op][0]=='-' ||
-     OPCOES[op].tipo==OP_ACAO || OPCOES[op].tipo==OP_LEITURA)return 0;
-  // Fixed account themes remain Nuvio's. Native dynamic themes are the
-  // existing deliberate exception in ajustes_mesclar_blob().
-  if(op==AJ_TEMA)return perfil && v>=AJ_N_TEMAS && v<AJ_N_TEMAS_OPC;
-  return somenteDesteAparelho(op) && !!perfilLocal(op)==perfil;
+  (void)v;
+  if(op<0 || op>=AB_N || op==AJ_PROVEDORES_ESCOPO || op==AJ_ENVIO_AUTO)return 0;
+  // Use the actual account-sync policy, not a second list of portable keys.
+  // Language/row/source/subtitle choices now travel in c_settings_v1.
+  if(op<AJ_N && (ajustePortavel(op) || !CHAVE[op] || CHAVE[op][0]=='-' ||
+      OPCOES[op].tipo==OP_ACAO || OPCOES[op].tipo==OP_LEITURA))return 0;
+  if(op>=AJ_N)return perfil==AJ_BACKUP_HARDWARE && op==AJ_N+2;
+  if(abDesteDispositivo(op))return perfil==AJ_BACKUP_HARDWARE;
+  return perfil!=AJ_BACKUP_HARDWARE && !!dePerfil(op)==perfil;
 }
 static int abValido(int op,int v) {
   if(op==AJ_N+1)return v>=IDA_TMDB && v<=IDA_PADRAO;
@@ -136,8 +114,12 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
   for(const char *p=backup+k;*p;) {
     char chave[80];const char *fim,*v;const char *proximo=abLinha(p,&fim,chave,&v);
     int op=abOp(chave),valorLido;
-    if(op<0 || viu[op] || !abNumero(v,fim,&valorLido) ||
-       !abLocal(op,perfil,valorLido) || !abValido(op,valorLido))return 0;
+    if(op<0 || viu[op] || !abNumero(v,fim,&valorLido) || !abValido(op,valorLido))return 0;
+    // Old encrypted previews contained native choices which Nuvio now syncs.
+    // Validate their representation, then leave current account values alone.
+    if(op<AJ_N && ajustePortavel(op)){viu[op]=2;p=proximo;continue;}
+    if(op==AJ_N || op==AJ_N+1){viu[op]=2;p=proximo;continue;}
+    if(!abLocal(op,perfil,valorLido))return 0;
     viu[op]=1;valores[op]=valorLido;p=proximo;
   }
   // Complete validation precedes output construction. The caller later owns
@@ -146,13 +128,13 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
   for(const char *p=atual;*p;) {
     char chave[80];const char *fim,*v;const char *proximo=abLinha(p,&fim,chave,&v);
     int op=abOp(chave),ok=1;
-    if(op>=0 && viu[op]) {
+    if(op>=0 && viu[op]==1) {
       if(!escreveu[op])ok=abEscrever(out,cap,&n,op,valores[op]);
       escreveu[op]=1;
     } else ok=abJuntar(out,cap,&n,p,(size_t)(proximo-p));
     if(!ok) { free(out);return 0; }p=proximo;
   }
-  for(int i=0;i<AB_N;i++)if(viu[i] && !escreveu[i]) {
+  for(int i=0;i<AB_N;i++)if(viu[i]==1 && !escreveu[i]) {
     if(n && out[n-1]!='\n' && !abJuntar(out,cap,&n,"\n",1)) { free(out);return 0; }
     if(!abEscrever(out,cap,&n,i,valores[i])) { free(out);return 0; }
   }
@@ -168,8 +150,6 @@ int ajustes_backup_capturar(int perfil,char **saida) {
     ok=abValido(i,v) && abEscrever(origem,AB_MAX_TEXTO+1u,&n,i,v);
   }
   if(ok && perfil==AJ_BACKUP_HARDWARE)ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+2,memoriaEscolhida);
-  if(ok && !perfil)ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N,valor[AJ_IDIOMA]==0) &&
-                       abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+1,idiomaFonteGravada);
   if(ok)ok=ajustes_backup_exportar(perfil,origem,saida);
   free(origem);return ok;
 }

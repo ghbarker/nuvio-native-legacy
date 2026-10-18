@@ -38,7 +38,7 @@ int main(void) {
   eq(out,BS_M3U,2,"lista\thttps://orphan.invalid/keep-but-dont-export\n");
   eq(out,BS_M3U,3,"lista\thttps://new.invalid/private\nepg\thttps://new.invalid/epg\n");
   eq(out,BS_GUIDE_FAVORITES,0,"nvm3u:@00000003:channel\nxtream:@00000002:42\n");
-  eq(out,BS_SOURCE_ORDER,0,"regex account-managed\naddon official\nordem New\n");
+  eq(out,BS_SOURCE_ORDER,0,"regex account-managed\naddon official\nordem Old\n");
   eq(out,BS_JELLYFIN,0,"host\thttps://existing-server.invalid\nkey\texisting-key\n");
   eq(out,BS_LIBRARY_UI,0,"layout 2\n");
   BackupStore reg;assert(backupstores_buscar(out,BS_IPTV_REGISTRY,0,&reg));
@@ -47,7 +47,7 @@ int main(void) {
   assert(backupstores_iguais(out,again)); /* repeated restore never adds duplicates */
   assert(backupconnections_capturar(out,&portable));
   BackupStore unused;assert(!backupstores_buscar(portable,BS_M3U,2,&unused));
-  eq(portable,BS_SOURCE_ORDER,0,"ordem New\n");
+  assert(!backupstores_buscar(portable,BS_SOURCE_ORDER,0,&reg));
   put(a,BS_HOME_ROWS,0,"limite 7\nordem 0\n");
   put(b,BS_HOME_ROWS,0,"limite 200\nordem 1\n");
   put(b,BS_EXTERNAL_PLAYER,0,"device-player");
@@ -56,8 +56,20 @@ int main(void) {
   assert(!backupstores_buscar(selected,BS_EXTERNAL_PLAYER,0,&unused));
   eq(selected,BS_HOME_ROWS,0,"ordem 1\n");
   assert(backupconnections_mesclar(a,selected,&hardwareMerged));
-  eq(hardwareMerged,BS_HOME_ROWS,0,"ordem 1\nlimite 7\n");
+  eq(hardwareMerged,BS_HOME_ROWS,0,"ordem 0\nlimite 7\n");
   backupstores_liberar(selected);backupstores_liberar(hardwareMerged);
+  // Current upstream URL accounts: append missing connections, preserve
+  // names/credentials, avoid duplicates, and reject full/malformed imports.
+  put(a,BS_LTV_URLS,0,"m3u\tExisting\thttps://existing.invalid/list\n");
+  put(b,BS_LTV_URLS,0,"m3u\tRename ignored\thttps://existing.invalid/list\nxmltv\tGuide\thttps://guide.invalid/epg\n");
+  BackupStores *urls=NULL,*twice=NULL;
+  assert(backupconnections_mesclar(a,b,&urls));
+  eq(urls,BS_LTV_URLS,0,"m3u\tExisting\thttps://existing.invalid/list\nxmltv\tGuide\thttps://guide.invalid/epg\n");
+  assert(backupconnections_mesclar(urls,b,&twice) && backupstores_iguais(urls,twice));
+  backupstores_liberar(urls);backupstores_liberar(twice);
+  put(b,BS_LTV_URLS,0,"m3u\tBad\tfile:///private/file\n");
+  assert(!backupconnections_capturar(b,&urls) && !urls);
+  backupstores_remover(b,BS_LTV_URLS,0);
   put(b,BS_IPTV_REGISTRY,0,"next\t4294967296\nselected\t0\n");
   BackupStores *invalid=(void *)1;assert(!backupconnections_mesclar(a,b,&invalid) && !invalid);
   put(b,BS_IPTV_REGISTRY,0,"next\t2\nselected\t0\naccount\t-2\t2\t1\tBad signed id\n");

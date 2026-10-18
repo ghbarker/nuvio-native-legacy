@@ -3,6 +3,7 @@
 // cancela. A lista mostra valor e chevron, a ficha explica alcance e padrao.
 // IDs, chaves persistidas e indices de valores continuam os legados.
 #include "ajustes.h"
+#include "jsw.h"
 #include "legfontes.h"
 #include "drivebackup.h"
 #include "player.h"
@@ -5335,6 +5336,7 @@ static const char *chaveConta(int i) {
   return i == AJ_FOCO_TRAILER ? "focusedPosterBackdropTrailerEnabled" : CHAVE[i];
 }
 
+static int ajustesExtrasAplicar(const char *json);
 int ajustes_aplicar_blob(const char *json) {
   const char *fim;
   int i, mudou = 0, reconhecidas = 0;
@@ -5452,7 +5454,7 @@ int ajustes_aplicar_blob(const char *json) {
   // na primeira verificacao na TV.
   printf("[ajustes] blob da conta: %d chave(s) reconhecida(s), %d mudou(aram)\n",
          reconhecidas, mudou);
-  return mudou;
+  return mudou + ajustesExtrasAplicar(json);
 }
 
 // ---------------------------------------------------------------- subir (#85)
@@ -5651,6 +5653,10 @@ static int dePerfil(int i) {
   return !somenteDesteAparelho(i);
 }
 
+// Preview compatibility: upstream's new text-scale row is not part of this
+// APK's older integration. It has no persisted option in this build.
+#define AJ_ESCALA_TEXTO (-999)
+static int ajustePortavel(int op);
 #include "ajustes_backup.inc"
 
 static void nomePerfil(char *dst, size_t tam, int perfil) {
@@ -5847,7 +5853,7 @@ static int textoDoValor(int op, const char *vi, const char *vf,
 
 typedef struct { const char *vi, *vf; char texto[160]; } Troca;
 
-int ajustes_mesclar_blob(const char *base, char **saida) {
+static int ajustesMesclarWeb(const char *base, char **saida) {
   Troca troca[AJ_N];
   int n = 0, i, j;
   const char *fim, *p;
@@ -5921,6 +5927,9 @@ int ajustes_mesclar_blob(const char *base, char **saida) {
   printf("[ajustes] %d ajuste(s) desta TV entram no blob da conta\n", n);
   return n;
 }
+
+#include "ajustes_sync.inc"
+
 
 // TODA OPCAO APARECE NA TELA, E UMA VEZ SO. Nao da para exigir isso do
 // compilador (TELA e uma lista de itens, nao um vetor indexado pelo enum),

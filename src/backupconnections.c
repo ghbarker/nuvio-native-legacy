@@ -4,7 +4,10 @@
 #include "backupconnections.h"
 #include "backupcrypto.h"
 #include "backupcategories.h"
-#include "iptvfontes.h"
+// Backup wire layout, independent of the optional native multi-account UI.
+#define IPTV_MAX_CONTAS 32
+enum { IPTV_XTREAM=1, IPTV_M3U, IPTV_STALKER };
+typedef struct {unsigned id;int tipo,ativa;char nome[96];} IptvConta;
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -178,6 +181,36 @@ static char *pluginsLocais(const char *s,int local) {
   }
   out[pos]=0;return out;
 }
+
+static char *urlsMesclar(const char *dst,const char *src,int preferencias) {
+  size_t cap=strlen(dst)+strlen(src)+3u;char *out=calloc(cap,1);if(!out)return NULL;
+  const char *listas[]={dst,src};int n=0;
+  for(int l=0;l<2;l++)for(const char *p=listas[l];*p;) {
+    const char *e=strchr(p,'\n');if(!e)e=p+strlen(p);size_t len=(size_t)(e-p);
+    if(!len){p=*e?e+1:e;continue;}
+    const char *a=memchr(p,'\t',len),*b=a?memchr(a+1,'\t',(size_t)(e-a-1)):NULL;
+    if(len>2300 || !a || (!preferencias && (!b ||
+        !((a-p==3 && !memcmp(p,"m3u",3)) || (a-p==5 && !memcmp(p,"xmltv",5))) ||
+        b-a>64 || e-b<2 || e-b>1024 ||
+        (strncmp(b+1,"http://",7) && strncmp(b+1,"https://",8))))){free(out);return NULL;}
+    int repetido=0;
+    for(const char *q=out;*q;) {
+      const char *fim=strchr(q,'\n');if(!fim)fim=q+strlen(q);
+      const char *qa=memchr(q,'\t',(size_t)(fim-q));
+      const char *qb=qa?memchr(qa+1,'\t',(size_t)(fim-qa-1)):NULL;
+      if(preferencias)repetido=qa && qa-q==a-p && !memcmp(q,p,(size_t)(a-p));
+      else repetido=qa && qb && qa-q==a-p && !memcmp(q,p,(size_t)(a-p)) && e-b==fim-qb && !memcmp(b,qb,(size_t)(e-b));
+      if(repetido)break;
+      q=*fim?fim+1:fim;
+    }
+    if(!repetido) {
+      if(!preferencias && ++n>8){free(out);return NULL;}
+      size_t pos=strlen(out);memcpy(out+pos,p,len);out[pos+len]='\n';out[pos+len+1]=0;
+    }
+    p=*e?e+1:e;
+  }
+  return out;
+}
 int backupconnections_capturar(const BackupStores *atual,BackupStores **saida) {
   if(saida)*saida=NULL;
   if(!saida || !atual)return 0;
@@ -185,12 +218,19 @@ int backupconnections_capturar(const BackupStores *atual,BackupStores **saida) {
   BackupStores *b=backupstores_novo();if(!b)return 0;
   for(int i=0;i<backupstores_n(atual);i++) {
     BackupStore v;backupstores_item(atual,i,&v);int incluir=1;
+    if(v.tipo==BS_SOURCE_ORDER)continue; // Nuvio c_settings_v1 owns source rules.
     if(v.tipo==BS_PROVIDER_SCOPE || v.tipo==BS_DEBRID_SHARED || v.tipo==BS_DEBRID_PROFILE)continue; /* effective local overrides added by owner */
     if(v.tipo==BS_XTREAM || v.tipo==BS_M3U || v.tipo==BS_STALKER) {
       incluir=0;for(int j=0;j<c.n;j++)if(backend(c.contas[j].tipo)==v.tipo && c.contas[j].id==v.sub)incluir=1;
     }
     if(!incluir)continue;
-    if(v.tipo==BS_SOURCE_ORDER || v.tipo==BS_PLUGINS_SHARED || v.tipo==BS_PLUGINS_PROFILE) {
+    if(v.tipo==BS_LTV_URLS || v.tipo==BS_LTV_PREFS) {
+      char *verificado=urlsMesclar("",v.texto,v.tipo==BS_LTV_PREFS);if(!verificado)goto falha;
+      int ok=backupstores_adicionar(b,v.tipo,v.sub,v.existe,verificado,strlen(verificado));free(verificado);if(!ok)goto falha;
+    } else if(v.tipo==BS_HOME_ROWS) {
+      char *limite=limiteLocal(v.texto,1);if(!limite)goto falha;
+      int ok=backupstores_adicionar(b,v.tipo,v.sub,v.existe,limite,strlen(limite));free(limite);if(!ok)goto falha;
+    } else if(v.tipo==BS_SOURCE_ORDER || v.tipo==BS_PLUGINS_SHARED || v.tipo==BS_PLUGINS_PROFILE) {
       char *ordem=v.tipo==BS_SOURCE_ORDER?ordemLocal(v.texto,1):pluginsLocais(v.texto,1);if(!ordem)goto falha;
       int ok=backupstores_adicionar(b,v.tipo,v.sub,1,ordem,strlen(ordem));free(ordem);if(!ok)goto falha;
     } else if(!copiarItem(b,&v))goto falha;
@@ -229,22 +269,23 @@ int backupconnections_mesclar(const BackupStores *atual,const BackupStores *entr
   }
   for(int i=0;i<backupstores_n(entrada);i++) {
     BackupStore v,d;backupstores_item(entrada,i,&v);
+    if(v.tipo==BS_SOURCE_ORDER)continue;
     if(!v.existe || v.tipo==BS_IPTV_REGISTRY || v.tipo==BS_XTREAM || v.tipo==BS_M3U || v.tipo==BS_STALKER ||
        v.tipo==BS_DEBRID_SHARED)continue;
     if(v.tipo==BS_GUIDE_CATEGORIES || v.tipo==BS_GUIDE_CATEGORY_ALIASES)continue;
-    if(v.tipo==BS_HOME_ROWS) {
-      char *limite=limiteLocal(v.texto,1);if(!limite)goto falha;
-      int ok=1;
-      if(!*limite && tem(atual,v.tipo,0,&d)) {
-        free(limite);limite=limiteLocal(d.texto,1);
-        if(!limite)goto falha;
-        size_t n=v.n+strlen(limite);char *junto=malloc(n+2u);
-        if(!junto){free(limite);goto falha;}
-        memcpy(junto,v.texto,v.n);size_t pos=v.n;
-        if(pos && junto[pos-1]!='\n')junto[pos++]='\n';
-        strcpy(junto+pos,limite);ok=backupstores_definir(b,v.tipo,0,1,junto,pos+strlen(limite));free(junto);
-      } else ok=copiarItem(b,&v);
-      free(limite);if(!ok)goto falha;
+    if(v.tipo==BS_LTV_URLS || v.tipo==BS_LTV_PREFS) {
+      const char *velho=tem(atual,v.tipo,0,&d)?d.texto:"";
+      char *junto=urlsMesclar(velho,v.texto,v.tipo==BS_LTV_PREFS);if(!junto)goto falha;
+      int ok=backupstores_definir(b,v.tipo,0,1,junto,strlen(junto));free(junto);if(!ok)goto falha;
+    } else if(v.tipo==BS_HOME_ROWS) {
+      const char *velho=tem(atual,v.tipo,0,&d)?d.texto:"";
+      char *limite=limiteLocal(v.texto,1),*resto=limiteLocal(velho,0);
+      if(!limite || !resto){free(limite);free(resto);goto falha;}
+      if(!*limite){free(limite);limite=limiteLocal(velho,1);if(!limite){free(resto);goto falha;}}
+      size_t n=strlen(resto)+strlen(limite);char *junto=malloc(n+1u);
+      if(!junto){free(limite);free(resto);goto falha;}
+      strcpy(junto,resto);strcat(junto,limite);
+      int ok=backupstores_definir(b,v.tipo,0,1,junto,n);free(junto);free(resto);free(limite);if(!ok)goto falha;
     } else if(v.tipo==BS_SOURCE_ORDER || v.tipo==BS_PLUGINS_SHARED || v.tipo==BS_PLUGINS_PROFILE) {
       const char *velho=tem(atual,v.tipo,0,&d)?d.texto:"";
       char *local=v.tipo==BS_SOURCE_ORDER?ordemLocal(v.texto,1):pluginsLocais(v.texto,1);

@@ -1,6 +1,5 @@
 #include "backupplano_interno.h"
 #include "ajustes.h"
-#include "playerbackup.h"
 #include "fontefalha.h"
 #include "backupstores.h"
 #include "backupconnections.h"
@@ -28,14 +27,6 @@ static int validar(int tipo,const char *texto,size_t n,char **nativo) {
   }
   if(tipo==BACKUP_AJUSTES_APARELHO || tipo==BACKUP_AJUSTES_PERFIL || tipo==BACKUP_AJUSTES_HARDWARE)
     return ajustes_backup_mesclar(tipo==BACKUP_AJUSTES_HARDWARE?AJ_BACKUP_HARDWARE:tipo==BACKUP_AJUSTES_PERFIL,"",texto,nativo);
-  if(tipo==BACKUP_PLAYER) {
-    PlayerBackup b;if(!playerbackup_ler(texto,n,&b))return 0;
-    return playerbackup_exportar(&b,nativo);
-  }
-  if(tipo==BACKUP_FONTES_COMPARTILHADAS || tipo==BACKUP_FONTES_PERFIL) {
-    FonteFalhaConfig c;if(!fontefalha_backup_ler(texto,n,&c))return 0;
-    return fontefalha_backup_exportar(&c,nativo);
-  }
   return 0;
 }
 int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint64_t sessao,
