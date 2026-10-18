@@ -35,6 +35,11 @@ int main(void) {
  assert(dados_gravar("sessao.txt",session));sessao_iniciar();
  assert(dados_gravar("perfil.txt","7\n"));perfis_carregar_ativo();
  ajustes_dir(dados_dir());coverage();
+ // Verify that excluded preferences really enter the native account payload,
+ // while hardware choices and credentials do not. No account HTTP is used.
+ char *cloud=NULL;assert(ajustes_mesclar_blob("{}",&cloud)>0 && cloud);
+ assert(strstr(cloud,"c_settings_v1") && strstr(cloud,"c_legendaIdioma") && strstr(cloud,"c_audioIdioma"));
+ assert(!strstr(cloud,"c_interfaceModo") && !strstr(cloud,"fixture-refresh"));free(cloud);
  BackupContexto c;assert(backupapp_contexto(&c));
  assert(dados_gravar("trakt-p7.txt","destination-rotating-token\n"));
  assert(dados_gravar("discord-p7.txt","destination-discord-token\n"));
