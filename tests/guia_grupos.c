@@ -89,6 +89,17 @@ int main(int argc,char **argv) {
   for(int i=0;i<4;i++)assert(guia_categoria_definir(&categorias[i],1));
   assert(!nLinhas() && nCanais==4 && nCats==4 && !guia_id_focado()[0]);
   assert(guia_categoria_definir(&categorias[oculta],0));assert(nLinhas()==1 && nCanais==4);
+  assert(guia_categorias(categorias,4)==4);
+  for(int i=0;i<4;i++)categorias[i].oculta=0;
+  int antes=nLinhas();falharGravacao=1;assert(!guia_categorias_definir(categorias,4));
+  assert(nLinhas()==antes);falharGravacao=0;
+  assert(guia_categorias_definir(categorias,4) && nLinhas()==4);
+  for(int i=0;i<4;i++)categorias[i].oculta=i%2;
+  assert(guia_categorias_definir(categorias,4) && nLinhas()==2);
+  categoriasPerfil=-1;empacotar();assert(nLinhas()==2);
+  GuiaCategoria invalida[2]={categorias[0],categorias[1]};invalida[1].sessao--;
+  assert(!guia_categorias_definir(invalida,2) && nLinhas()==2);
+  puts("PASS: atomic multi-category save, failed-save rollback, persisted batch and mixed-session rejection");
   puts("PASS: source-specific hiding, disk reload, rename/order stability, failed-save rollback, profile isolation, all-hidden and restore without deleting channels");
   puts("PASS: shared guide, labeled duplicate categories, both order modes, account reorder/rename, favorites/focus/EPG, add-ons and legacy-cache regrouping");
 }
