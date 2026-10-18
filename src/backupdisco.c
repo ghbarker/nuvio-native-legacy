@@ -1,3 +1,6 @@
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE 1
+#endif
 #define _POSIX_C_SOURCE 200809L
 #include "backupdisco.h"
 #include <errno.h>
