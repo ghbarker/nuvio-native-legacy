@@ -1,4 +1,4 @@
-name: Publish verified Drive test APK
+name: Publish verified encrypted Drive test APK
 on:
   workflow_dispatch:
   push:
@@ -10,52 +10,81 @@ jobs:
     permissions:
       actions: read
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ghbarker/nuvio-native-legacy
     steps:
+      - name: Require completed Android and Linux/macOS checks
+        run: |
+          python3 - <<'PYVERIFY'
+          import json,subprocess
+          for run in (39159007298,39159004121):
+              d=json.loads(subprocess.check_output(['gh','api',f'repos/ghbarker/nuvio-native-legacy/actions/runs/{run}']))
+              assert d['status']=='completed' and d['conclusion']=='success'
+              assert d['head_sha']=='f1254b64b7432e948f72e4aabb0908cf8c221b58'
+          jobs=json.loads(subprocess.check_output(['gh','api','repos/ghbarker/nuvio-native-legacy/actions/runs/39159004121/jobs']))['jobs']
+          assert len(jobs)==8 and all(j['conclusion']=='success' for j in jobs)
+          PYVERIFY
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs58-f94dc17713a3e49cc725969df221277bc5fecc90
-          run-id: 39154147636
+          name: Nuvio-TV-Mobile-Test-Logs59-f1254b64b7432e948f72e4aabb0908cf8c221b58
+          run-id: 39159007298
           github-token: ${{ github.token }}
-      - name: Verify exact checked artifact and attach final check results
+      - name: Verify exact APK and record validation
         run: |
-          python3 - <<'PY'
+          python3 - <<'PYVERIFY'
           import hashlib,json,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs58.apk')
-          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='f606b704531baabb2462ae3a1791b5fb619af7c3073d1277860ca0182fd67caf'
-          report=pathlib.Path('Logs58-validation.json');d=json.loads(report.read_text())
-          assert d['source_commit']=='3cc639cc6ee29314f194f4547905041ac65c093c'
-          assert d['source_tree']=='66a7eb96c8305ca5a343150159e1de56b477d215'
-          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20068
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs59.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='0aad30df05bcf046aaefd1c9e701d2cabd7399dc2ca155c570e72e1a91442a29'
+          p=pathlib.Path('Logs59-validation.json');d=json.loads(p.read_text())
+          assert d['source_commit']=='de35ddd0e8d290431c81c31d51beb3832d94b602'
+          assert d['source_tree']=='4ef2e650328d132eaf87c5fa89718b0914b105f1'
+          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20069
+          assert d['version_name']=='2.0.69-test-logs59'
           assert d['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           with zipfile.ZipFile(apk) as z:
+              assert z.testzip() is None
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          d.update(automated_checks_passed=True,native_account_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,live_google_roundtrip='user confirmed save and restore on Logs57; addon reload fix awaits Logs58 verification',android_authorization_result_routing_test=True)
-          d['check_runs']={'android':39154147636,'linux_native':39154254021,'macos_native':39154253636}
-          d['native_test_source']='33f6eff3172ff43ffb308552bf0c7d1795c9f1e7; production code identical to APK source; only test export expectation corrected'
-          report.write_text(json.dumps(d,indent=2)+'\n')
-          PY
-      - name: Check completed runs and upload the test release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ghbarker/nuvio-native-legacy
+          d.pop('all_passed',None)
+          d.update(automated_checks_passed=True,native_account_regressions=True,sanitizer_regressions=True,macos_full_source_checks=True,android_unit_tests=True,arm64_16kb_alignment=True)
+          d['check_runs']={'android':39159007298,'linux_macos':39159004121}
+          d['live_encrypted_drive_roundtrip']='Awaiting user test; no upstream PR published'
+          d['excluded_logins']='Nuvio, Google Drive, Trakt, Discord and Simkl login sessions remain device-local'
+          d['password']='Chosen by user in app, never uploaded or persisted'
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          PYVERIFY
+      - name: Publish update-compatible preview and test steps
         run: |
           set -euo pipefail
-          for id in 39154254021 39154253636; do
-            test "$(gh api "repos/$GH_REPO/actions/runs/$id" --jq .conclusion)" = success
-          done
-          test "$(gh api "repos/$GH_REPO/actions/runs/39154147636/jobs" --jq '[.jobs[] | select(.name=="apk-build" and .conclusion=="success")] | length')" = 1
-          test "$(gh api "repos/$GH_REPO/compare/3cc639cc6ee29314f194f4547905041ac65c093c...33f6eff3172ff43ffb308552bf0c7d1795c9f1e7" --jq '.files | map(.filename) | join(",")')" = tests/backup_restore_addons.c
           cat > notes.txt <<'NOTES'
-          Fix the empty addon list after Google Drive restore. Reload the current profile addon cache and resume sync before returning Home. Update the existing Nuvio TV/Mobile Test app; keep accounts and settings.
-
+          Update the existing Nuvio TV/Mobile Test app; do not uninstall.
+          
+          Google Drive backup now encrypts local settings, source/filter/failover preferences, local native provider keys, IPTV connections and imported font assets on the device with a password you choose. Decryption happens on the destination device. The password is not saved or uploaded.
+          
+          Existing destination connections are kept; new IPTV accounts are merged and their favourites/category preferences remapped. Hardware choices are included in the backup but remain Off by default during restore. Nuvio/Google and third-party service login sessions are excluded. Trakt/Discord rotating tokens are never copied.
+          
           Settings > Account and services > Google Drive backup.
-
-          Phones use Google account authorization. TVs use the Google device-code screen. Backups are stored in your own private Nuvio Backups folder using drive.file permission.
-
-          This preview backs up local scalar settings, playback/subtitle appearance, and native source/filter/failover preferences. Nuvio-synced data, account credentials, logs, imported font files, collection presentation overrides and Live TV account definitions are not exported.
-
-          Android APK and unit tests passed. Linux and macOS native backup/restore and profile isolation passed normally and under ASan/UBSan. Package, version, persistent signer, ARM64/ARMv7 and 16KB alignment verified. Check links are in Logs58-validation.json.
-
-          Google sign-in, save and restore were tested on Logs57. This update needs verification that addons and collections are available immediately after repeated restores. This is a limited settings backup preview; it does not yet cover all local settings or API keys. No upstream Drive PR has been submitted.
+          
+          See Logs59-test-steps.txt for backup, wrong-password, restore and optional second-device checks. The new encrypted Google Drive round trip needs user verification before an upstream PR.
+          Automated checks passed: Android build and unit tests; Linux and macOS native backup/restore/protocol checks, normally and under ASan/UBSan; translation alignment. Package, increasing version, persistent signer, ARM64/ARMv7 and 16KB alignment verified. Check run links are recorded in Logs59-validation.json.
           NOTES
-          gh release create tv-mobile-test-logs-v58 Nuvio-TV-Mobile-Test-Logs58.apk Logs58-validation.json --target 3cc639cc6ee29314f194f4547905041ac65c093c --title 'TV/Mobile Test Logs58: Google Drive backup preview' --notes-file notes.txt --prerelease
+          cat > Logs59-test-steps.txt <<'TESTSTEPS'
+          Logs59 — encrypted Google Drive backup
+          
+          Install the APK as an update to Nuvio TV/Mobile Test. Do not uninstall.
+          
+          1. In the profile to back up, choose Settings > Account and services > Google Drive backup.
+          2. Choose Make backup now. Choose a backup password of at least 8 characters, confirm it, and wait for Backup saved.
+          3. Change two easy-to-recognize local preferences, such as synopsis size and subtitle appearance. If you use an imported font, choose a different font after backing up.
+          4. Return to Google Drive backup > Restore backup and select the new backup. Try a wrong password first. It should report an incorrect password and leave your settings unchanged.
+          5. Select that backup again and enter the correct password. Leave Include hardware settings set to No for the first test, then confirm Restore.
+          6. Check that your earlier preferences and selected imported font returned, addons and collections work immediately, and your existing provider/Live TV connections and service logins still work.
+          7. Close and reopen the app; confirm the restored preferences remain.
+          
+          Optional second-device test: sign into the same Nuvio account/profile and your own same Google account on the Cube, select the new backup, and enter its password. Keep hardware settings Off unless you deliberately want the source device's hardware choices. Existing destination connections should stay; missing native provider keys and additional IPTV accounts should be merged without duplicating accounts. Imported font files should become available. Trakt/Discord login tokens are excluded; sign into services separately on each device.
+          
+          Encryption: new settings backups and imported font assets are encrypted on the device before upload. The password is not saved or uploaded and cannot be recovered. Your own private Nuvio Backups folder remains visible in Google Drive. Existing earlier preview backups remain readable, but do not include the expanded settings/connection/font coverage.
+          
+          This is a test release. No upstream Drive backup PR is published before approval.
+          TESTSTEPS
+          gh release create tv-mobile-test-logs-v59 Nuvio-TV-Mobile-Test-Logs59.apk Logs59-validation.json Logs59-test-steps.txt --target de35ddd0e8d290431c81c31d51beb3832d94b602 --title 'TV/Mobile Test Logs59: encrypted Google Drive backup' --notes-file notes.txt --prerelease
