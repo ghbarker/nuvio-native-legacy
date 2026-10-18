@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 37812522880577afdf293753e7ff4c4ad3ad1fed
+          ref: 20ab23d639c67e4eb9c02bdc8bafbb927a63f31f
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           for san in 0 1; do
-            for suite in backuplocal fontefalha_backup playerbackup playerbackup_store fontefalha ajustes_backup; do
+            for suite in backuplocal fontefalha_backup playerbackup playerbackup_store backuprestauro backupdisco fontefalha ajustes_backup backupplano; do
               SANITIZE="$san" bash "tests/$suite.sh"
             done
           done
