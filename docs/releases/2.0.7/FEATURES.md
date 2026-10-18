@@ -1,7 +1,7 @@
 # Nuvio Legacy 2.0.7
 
 Everything merged into `integracao/2.0.5` after the `v2.0.6` tag (base `ae9c3c138`), plus the owner requests
-that landed in the same window. Last tracking sync: 2026-10-17T20:53:24-03:00. Community server:
+that landed in the same window. Last tracking sync: 2026-10-18T06:48:15-03:00. Community server:
 **https://discord.gg/9NWr6SHyzJ**
 
 Release engineering is already merged on `agente/205-release207` (`b72189c5d`): version bumped to 2.0.7 in
@@ -82,6 +82,8 @@ needs the built .ipk (url, sha256, size) and the frost performance line below ha
   is slow. All platforms. Refs #545 #551 #552 #504, `26b9c635b`, `1c9043ed0`, `455135df2`, `cbcf467f5`, `27988615e`.
 
 ### New
+
+- **Clearer title pages with adjustable spacing**: Tint-only cast, trailer and rating cards share the page backdrop, while Compact, Normal and Comfortable row spacing keeps ratings, seasons and cast aligned at different text sizes. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `b8e94cf5c`, `5a3f41c11`, `83177ade2`, `79eca720f`, `e0c9ba77b`.
 
 - **Optional accent focus plate**: Appearance offers an accent-colour focus plate, including spotlight and profile rows, disabled by default. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `09e9a00ba`, `cc0222525`.
 - **Smoother Sources tabs**: Sources drops its panel shadow and slides the selected tab while fading lists, loading messages and errors, respecting reduced animation. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `fe6ebfd6d`, `e7a84b249`.
@@ -177,6 +179,8 @@ needs the built .ipk (url, sha256, size) and the frost performance line below ha
   episode, even with two identical tracks. All platforms. `3486c616b`.
 
 ### Fixes
+
+- **Discord activity keeps public artwork**: Unsupported poster URLs are converted to public Discord artwork URLs so shared activity can display its image. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `115220cef`, `e476d1707`.
 
 - **Player controls stay translucent**: Video controls, post-play cards, error panels, PiP close and hints respect glass opacity even with glass disabled, while other screens retain their normal surfaces. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `aafbe8739`, `d2ebbd9bd`, `5331d4239`, `e272873d1`.
 - **Watched action stays on the selected title (#595)**: Switching titles cannot send a queued watched action to the wrong title in Trakt history. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `4c7d236ba`.
@@ -334,7 +338,7 @@ needs the built .ipk (url, sha256, size) and the frost performance line below ha
 
 ### Internal
 
-- **C9 rendering and subtitle timing checks**: Regression checks cover glass-cache budgets and unchanged frost images, plus production readiness and the complete initial 12-second ASS window. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `b12b8e11f`, `9e778e588`, `3934284c5`, `8e8a90415`, `0661e272d`.
+- **C9 rendering and subtitle timing checks**: Regression checks cover glass-cache budgets and unchanged frost images, plus production readiness, the complete initial 12-second ASS window, and deterministic prefetch timeout checks. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `5f29a8095`, `b12b8e11f`, `9e778e588`, `3934284c5`, `8e8a90415`, `0661e272d`.
 
 - **Broader visual regression coverage**: Sources shadows, profile-cache pressure and deterministic text-scale fixtures cover more UI states. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `45aef45f9`, `915e360a4`, `d6b0c2363`, `cff9c7e1b`, `15903519f`, `0c0c80d58`, `0d5d0d735`, `04ed0d150`, `207e0a283`.
 - **Tracking and release documentation**: Release notes, issue tracking and fixed-width caller documentation stay synchronized. Platforms: webOS, Android, Samsung .tpk, WASM. Refs `733bc65e0`, `442021716`, `0eee6cbc3`, `71a57d7b4`.
@@ -399,6 +403,25 @@ Work on open branches with no merge — **not** part of 2.0.7 as it stands:
 - **PR #493 v2 / v3** (profile and session) — `agente/205-pr493`, 12 commits out. VEREDITO **BLOQUEIA**
   `j-revg-pr493` (newer); the OK `j-revpr493-v3` came before. Needs a new fix + review.
   Android, LG webOS.
+- **Tizen/homebrew, glassmock, mock21, perfis21, owner answers** — branches with a finished job and no review
+  (`agente/205-homebrew`, `agente/205-tizenbrew`, `agente/205-glassmock`, `agente/205-mock21`,
+  `agente/205-perfis21`, `agente/205-respostas`). No confirmed user-facing content.
+- **Custom subtitle font** — the other half of #501, no branch. Android.
+- **Manual subtitle sync** — `agente/205-legajuste`, spec only. Deferred to 2.1.
+- **Open PRs with no local branch**: #456/#457/#466/#467/#468/#469/#478/#482 (out-of-scope ones stay in the
+  map). Triage, not lost.
+
+
+- **Hero A layout polish**: Wide hero cards and focus rendering receive layout and draw-budget fixes. Platforms: webOS, Android, Samsung .tpk, WASM. Refs agente/205-heroisA, `c3985174d`. Latest fix is complete; queued review work and device checks remain before integration.
+
+- **Frost recovery**: Glass recovery receives fixes for texture-upload failures and memory pressure. Platforms: webOS, Android, Samsung .tpk, WASM. Refs agente/205-frostpisca, `67dc816cc`. Latest fix is complete; queued review work and device checks remain before integration.
+
+- **Fixed poster sizes with text scaling**: Text-scale follow-ups preserve poster dimensions and improve row anchors. Platforms: webOS, Android, Samsung .tpk, WASM. Refs agente/205-escalafixa, `d3fff84c9`. Latest fix is complete; queued review work and device checks remain before integration.
+
+- **PR #567 port follow-ups**: Source-font preference and launch behavior receive follow-up fixes. Platforms: webOS, Android, Samsung .tpk, WASM. Refs agente/205-pr567port, `385b44106`. Latest fix is complete; queued review work and device checks remain before integration.
+
+### Previously pending, now integrated
+
 - **Cheap frost identical to the one approved on the LG C9** — `agente/205-foscovelho` was **merged**
   (`76bc9d0c3`) and then **reverted** (`f40a93dc3`): on the TCL the owner found the previous frosted glass
   (screen capture + blur) prettier and lighter. The pre-blurred art source (`ab02d4aaa`, `d0789c13a`,
@@ -431,14 +454,6 @@ Work on open branches with no merge — **not** part of 2.0.7 as it stands:
   after a run of BLOQUEIAS. It ships in 2.0.7; no longer pending.
 - **Different collection header** (owner request) — `agente/205-colhdr` was **merged** (`fec2dc0ac`),
   review OK `j-revg-colhdr`; no longer pending.
-- **Tizen/homebrew, glassmock, mock21, perfis21, owner answers** — branches with a finished job and no review
-  (`agente/205-homebrew`, `agente/205-tizenbrew`, `agente/205-glassmock`, `agente/205-mock21`,
-  `agente/205-perfis21`, `agente/205-respostas`). No confirmed user-facing content.
-- **Custom subtitle font** — the other half of #501, no branch. Android.
-- **Manual subtitle sync** — `agente/205-legajuste`, spec only. Deferred to 2.1.
-- **Open PRs with no local branch**: #456/#457/#466/#467/#468/#469/#478/#482 (out-of-scope ones stay in the
-  map). Triage, not lost.
-
 ### Merged in this window (not pending any more)
 
 Landing in 2.0.7, already in the sections above:
