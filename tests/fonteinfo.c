@@ -31,6 +31,11 @@ int main(void) {
   assert(tem(&f,"MgB") && tem(&f,"12.9 GB"));
   fonteinfo_guardar(&s,"tt123:1:1",4,18,2);
   assert(fonteinfo_ler("tt123:1:1",4,18,&f));
+  s.tamanhoBytes = UINT64_C(2147483648);
+  snprintf(s.filtro.grupo,sizeof s.filtro.grupo,"NewGroup");
+  fonteinfo_guardar(&s,"tt123:1:1",4,18,2);
+  assert(fonteinfo_ler("tt123:1:1",4,18,&f));
+  assert(tem(&f,"2.0 GB") && tem(&f,"NewGroup") && !tem(&f,"MgB"));
   assert(!fonteinfo_ler("tt123:1:2",4,18,&f) && !f.selos && !f.nTextos);
   assert(!fonteinfo_ler("tt999:1:1",4,18,&f));
   assert(!fonteinfo_ler("tt123:1:1",5,18,&f));

@@ -4487,7 +4487,8 @@ static int mostrarNomeLogo(const CatItem *ci, const char *url, int loaded,
 // Same specification logos as Sources, with wrapping instead of dropping
 // metadata that does not fit the first line. Measuring never draws anything.
 static float fonteInfoLinha(const FonteInfo *info, float x, float y, float w, float a) {
-  const float h = 30.0f, gap = 14.0f, passo = 42.0f;
+  const float h = fmaxf(30.0f, (float)txt_linha(TXT_HERO_META,"Mg",235,235,235,255).h);
+  const float gap = 14.0f, passo = h + 12.0f;
   float dx = 0, dy = 0;
   int tem = 0;
   for (int k = 0; k < 64; k++) if (info->selos & (UINT64_C(1) << k)) {

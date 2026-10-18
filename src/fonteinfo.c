@@ -10,6 +10,10 @@ static struct {
   unsigned geracao;
   uint64_t sessao;
   int indice, valido;
+  uint64_t badges, tamanhoBytes;
+  long tamanhoMB;
+  int altura, dolbyVision, dolbyAtmos;
+  FonteFiltroDados filtro;
 } atual;
 static void texto(FonteInfo *f, const char *s) {
   if (s && *s) for (int i = 0; i < f->nTextos; i++) if (!strcmp(f->texto[i],s)) return;
@@ -72,7 +76,8 @@ void fonteinfo_montar(const Stream *s, FonteInfo *f) {
     if (conhecido(d,FONTEFILTRO_ENCODE,k)) texto(f,fontefiltro_opcao(FONTEFILTRO_ENCODE,k));
   texto(f,d->grupo);
   uint64_t bytes = s->tamanhoBytes ? s->tamanhoBytes : d->tamanhoBytes;
-  if (!bytes && s->tamanhoMB > 0) bytes = (uint64_t)s->tamanhoMB * UINT64_C(1048576);
+  if (!bytes && s->tamanhoMB > 0 && (uint64_t)s->tamanhoMB <= UINT64_MAX / UINT64_C(1048576))
+    bytes = (uint64_t)s->tamanhoMB * UINT64_C(1048576);
   if (bytes) {
     char tam[48];
     if (bytes >= UINT64_C(1073741824)) snprintf(tam,sizeof tam,"%.1f GB",(double)bytes / 1073741824.0);
@@ -83,10 +88,23 @@ void fonteinfo_montar(const Stream *s, FonteInfo *f) {
 void fonteinfo_limpar(void) { memset(&atual, 0, sizeof atual); }
 void fonteinfo_guardar(const Stream *s, const char *alvo, unsigned geracao, uint64_t sessao, int indice) {
   if (!s || !alvo || !*alvo || strlen(alvo) >= sizeof atual.alvo || indice < 0) { fonteinfo_limpar(); return; }
-  if (atual.valido && atual.geracao == geracao && atual.sessao == sessao && atual.indice == indice && !strcmp(atual.alvo,alvo)) return;
+  // Enrichment can arrive without changing the source index or list generation.
+  // Compare only display metadata; never copy playback URLs or credentials.
+  if (atual.valido && atual.geracao == geracao && atual.sessao == sessao &&
+      atual.indice == indice && !strcmp(atual.alvo,alvo) &&
+      atual.badges == s->badges && atual.altura == s->altura &&
+      atual.dolbyVision == s->dolbyVision && atual.dolbyAtmos == s->dolbyAtmos &&
+      atual.tamanhoBytes == s->tamanhoBytes && atual.tamanhoMB == s->tamanhoMB &&
+      atual.filtro.tamanhoBytes == s->filtro.tamanhoBytes &&
+      !memcmp(atual.filtro.valores,s->filtro.valores,sizeof s->filtro.valores) &&
+      !strcmp(atual.filtro.grupo,s->filtro.grupo)) return;
   fonteinfo_montar(s,&atual.info);
   snprintf(atual.alvo,sizeof atual.alvo,"%s",alvo);
   atual.geracao = geracao; atual.sessao = sessao; atual.indice = indice;
+  atual.badges = s->badges; atual.altura = s->altura;
+  atual.dolbyVision = s->dolbyVision; atual.dolbyAtmos = s->dolbyAtmos;
+  atual.tamanhoBytes = s->tamanhoBytes; atual.tamanhoMB = s->tamanhoMB;
+  atual.filtro = s->filtro;
   atual.valido = atual.info.selos || atual.info.nTextos;
 }
 int fonteinfo_ler(const char *alvo, unsigned geracao, uint64_t sessao, FonteInfo *f) {
