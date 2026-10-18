@@ -11,6 +11,7 @@ void *SDL_AndroidGetActivity(void);
 #include <stdint.h>
 #include <stdlib.h>
 
+int stream_kbps_atual(void) { return 0; }
 static int cap4k[4];
 void stream_definir_decoder4k(int h, int a, int v, int av) {
   cap4k[0] = h; cap4k[1] = a; cap4k[2] = v; cap4k[3] = av;
