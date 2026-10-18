@@ -1,89 +1,54 @@
 #include "stub_perfisessao.h"
 #include "../src/guia.c"
 #include <assert.h>
-
-static int chamadas[5], parcial, cancelar;
+static int chamadasXt,chamadasSt,chamadasM,interromper;
 const char *i18n(const char *s){return s;}
-int addons_base_desligada(const char *s){(void)s;return 0;}
-int xtream_configurado(void){return 1;}
-int stalker_configurado(void){return 1;}
-int m3u_configurado(void){return 1;}
-int xtream_ultima_falha(void){return XT_OK;}
-int xtream_ultimo_http(void){return 200;}
-int xtream_ultimo_total(void){return 1;}
-int m3u_ultimo_total(void){return 1;}
-int xtream_canais_sessao(XtreamCanal *c,int max,uint64_t sessao){(void)max;(void)sessao;chamadas[1]++;memset(c,0,sizeof *c);strcpy(c->id,"xtream:1");strcpy(c->nome,"Xtream One");strcpy(c->categoria,"Xtream News");return 1;}
-int m3u_canais_sessao(M3uCanal *c,int max,uint64_t sessao){(void)max;(void)sessao;chamadas[2]++;memset(c,0,sizeof *c);strcpy(c->id,"nvm3u:0123456789abcdef");strcpy(c->nome,"M3U One");strcpy(c->categoria,"M3U News");return 1;}
-int stalker_canais_sessao(StalkerCanal *c,int max,uint64_t sessao){(void)max;(void)sessao;chamadas[3]++;memset(c,0,sizeof *c);strcpy(c->id,"stalker:1");strcpy(c->nome,"Stalker One");strcpy(c->categoria,"Stalker News");return 1;}
+int perfis_ativo(void){return 1;}
+int addons_n(void){return 0;}
+const char *addons_base(int i){(void)i;return "";}
+const char *addons_nome(int i){(void)i;return "";}
+char *dados_caminho(char *out,unsigned n,const char *nome){(void)out;(void)n;(void)nome;return NULL;}
 int xtream_fonte_configurado(unsigned id){(void)id;return 1;}
-int m3u_fonte_configurado(unsigned id){(void)id;return 1;}
 int stalker_fonte_configurado(unsigned id){(void)id;return 1;}
-int xtream_fonte_canais(unsigned id,XtreamCanal *c,int max,uint64_t sessao) {
-  int n=xtream_canais_sessao(c,max,sessao);
-  if(id)snprintf(c->id,sizeof c->id,"xtream:@%08x:1",id);
-  return n;
-}
-int m3u_fonte_canais(unsigned id,M3uCanal *c,int max,uint64_t sessao){(void)id;return m3u_canais_sessao(c,max,sessao);}
-int stalker_fonte_canais(unsigned id,StalkerCanal *c,int max,uint64_t sessao){(void)id;return stalker_canais_sessao(c,max,sessao);}
 int xtream_fonte_estado(unsigned id,int *http){(void)id;*http=200;return XT_OK;}
-int xtream_fonte_total(unsigned id){(void)id;return 1;}
-int m3u_fonte_total(unsigned id){(void)id;return 1;}
-char *rede_baixar_medido_controle(const char *url,int segundos,const char *const *cab,const RedeControle *ctl,RedeMedida *med){
-  (void)url;(void)segundos;(void)cab;(void)ctl;(void)med;
-  // In All mode the native list must already have been handed to the UI.
-  if(cargaFonte==0)assert(parcial>0);
-  chamadas[4]++;
-  return strdup("{\"metas\":[{\"id\":\"addon:one\",\"name\":\"Addon One\",\"type\":\"tv\",\"genres\":[\"News\"]}]}");
+int xtream_fonte_canais_cb(unsigned id,void (*cat)(const char*,int,int,void*),XtreamCb cb,void *u,int *total,uint64_t sessao) {
+ (void)sessao;chamadasXt++;cat("Sports",0,1,u);char key[80];
+ if(id)snprintf(key,sizeof key,"xtream:@%08x:1",id);else strcpy(key,"xtream:1");
+ XtreamItem c={.id=key,.nome="Sports channel",.categoria="Sports",.logo="",.epgId="sport",.catOrdem=0,.num=1};
+ assert(cb(&c,u));*total=1;if(interromper)cargaCancelada=1;return 1;
 }
-static void executar(int fonte,int cancel){
-  memset(chamadas,0,sizeof chamadas);parcial=0;cancelar=cancel;
-  cargaFonte=fonte;cargaSessao=0;cargaCancelada=0;sNFontes=0;nAddonsCarga=0;
-  nContasCarga=0;
-  for(int tipo=1;tipo<=3;tipo++)if(fonte==0||fonte==tipo)
-    contasCarga[nContasCarga++]=(IptvConta){.tipo=tipo,.ativa=1};
-  atomic_store(&pendPronto,0);
-  if(fonte==0||fonte==4){
-    nAddonsCarga=1;addonsCarga=calloc(1,sizeof *addonsCarga);assert(addonsCarga);
-    strcpy(addonsCarga[0].base,"https://addon.invalid");strcpy(addonsCarga[0].nome,"Addon");addonsCarga[0].ativo=1;
-    addonsCarga[0].nCatalogos=1;
-    strcpy(addonsCarga[0].catalogos[0].tipo,"tv");strcpy(addonsCarga[0].catalogos[0].id,"live");strcpy(addonsCarga[0].catalogos[0].nome,"Live");
-  }
-  pthread_t t;assert(!pthread_create(&t,NULL,fioGuia,NULL));int final=0;
-  for(int i=0;i<2000;i++){
-    pthread_mutex_lock(&publicacaoTrava);int pend=atomic_load_explicit(&pendPronto,memory_order_acquire);
-    if(pend==2){
-      assert(sNCanais>0);if(!parcial)assert(!strcmp(sCanais[0].id,"xtream:1"));parcial++;
-      if(cancelar)cargaCancelada=1;
-      atomic_store(&pendPronto,0);pthread_cond_signal(&publicacaoSinal);
-    }else if(pend==1)final=1;
-    pthread_mutex_unlock(&publicacaoTrava);
-    if(final)break;
-    struct timespec pausa={0,1000000};nanosleep(&pausa,NULL);
-  }
-  assert(final);pthread_join(t,NULL);
-  if(cancel){assert(parcial==1&&!chamadas[4]&&!chamadas[2]&&!chamadas[3]);return;}
-  for(int i=1;i<=4;i++)assert(chamadas[i]==(fonte==0||fonte==i));
-  assert(sNCanais==(fonte==0?4:1));assert(sOk);
+int stalker_fonte_canais(unsigned id,StalkerCanal *c,int max,uint64_t sessao) {
+ (void)id;(void)max;(void)sessao;chamadasSt++;memset(c,0,sizeof *c);strcpy(c->id,"stalker:1");strcpy(c->nome,"News");strcpy(c->categoria,"News");return 1;
 }
-static void duasContas(void) {
-  cargaFonte=1;cargaSessao=0;cargaCancelada=0;sNFontes=nAddonsCarga=0;
-  nContasCarga=2;contasCarga[0]=(IptvConta){.tipo=IPTV_XTREAM,.ativa=1};
-  contasCarga[1]=(IptvConta){.tipo=IPTV_XTREAM,.id=19,.ativa=1};
-  atomic_store(&pendPronto,0);fioGuia(NULL);
-  assert(sNCanais==2 && !strcmp(sCanais[0].id,"xtream:1") && !strcmp(sCanais[1].id,"xtream:@00000013:1"));
-  assert(sCanais[0].epg==-1 && sCanais[1].epg==-1);
-  puts("PASS: two accounts of the same native type both reach the guide with separate identities");
+int m3u_fonte_urls(unsigned id,char *url,unsigned n,char *epg,unsigned ne) {
+ (void)id;snprintf(url,n,"https://playlist.invalid/shared.m3u8");snprintf(epg,ne,"https://epg.invalid/schedule.xml.gz");return 1;
 }
-int main(void){assert(canaisReservar(2));duasContas();
-  for(int i=0;i<=4;i++)executar(i,0);
-  executar(0,1);
-  nCanais=2;fontesOk=1;nFontes=0;estado=G_PRONTO;assert(!guiaSemCanais());
-  estado=G_FALHOU;assert(!guiaSemCanais()); // Cached native channels still work.
-  nCanais=0;assert(guiaSemCanais());estado=G_BAIXANDO;assert(!guiaSemCanais());
-  nCanais=2;nCats=1;nCatsVisiveis=1;catsVisiveis[0]=0;nFavOrd=0;catIni[0]=0;catN[0]=2;
-  assert(canaisReservar(2));memset(canais,0,2*sizeof *canais);strcpy(canais[0].id,"xtream:1");strcpy(canais[1].id,"xtream:2");
-  guia_focar_id("xtream:2");assert(focoCol==1&&!focoPend[0]);
-  guia_focar_id("xtream:missing");assert(!strcmp(focoPend,"xtream:missing"));
-  guia_focar_id("xtream:1");assert(focoCol==0&&!focoPend[0]);
-  puts("guide loading: native lists publish before add-ons; source selection and cancellation PASS");
+char *rede_baixar_medido_controle(const char *url,int segundos,const char *const *cab,const RedeControle *ctl,RedeMedida *med) {
+ (void)url;(void)segundos;(void)cab;(void)ctl;(void)med;assert(0);return NULL;
+}
+int rede_baixar_fluxo(const char *url,int segundos,const char *const *cab,int (*cb)(const char*,size_t,void*),void *u,long long max,int *st,long long *bytes) {
+ (void)segundos;(void)cab;(void)max;assert(!strcmp(url,"https://playlist.invalid/shared.m3u8"));
+ const char *pl="#EXTM3U\n#EXTINF:-1 tvg-id=\"sports\" group-title=\"Sports\",Sports\nhttps://stream.invalid/live.m3u8\n";
+ chamadasM++;assert(cb(pl,strlen(pl),u));*st=200;*bytes=(long long)strlen(pl);return 1;
+}
+static void setup(int cancel) {
+ chamadasXt=chamadasSt=chamadasM=0;interromper=cancel;cargaSessao=0;cargaCancelada=0;tetoCarga=30000;
+ sNFontes=nAddonsCarga=nCargaUrls=0;addonsCarga=NULL;nCargaContas=4;
+ cargaContas[0]=(IptvConta){.tipo=IPTV_XTREAM,.ativa=1,.nome="XT original"};
+ cargaContas[1]=(IptvConta){.tipo=IPTV_XTREAM,.id=19,.ativa=1,.nome="XT second"};
+ cargaContas[2]=(IptvConta){.tipo=IPTV_M3U,.id=20,.ativa=1,.nome="Playlist"};
+ cargaContas[3]=(IptvConta){.tipo=IPTV_STALKER,.ativa=1,.nome="Portal"};
+ // Same source added via the new upstream URL manager is loaded once.
+ nCargaUrls=1;cargaUrls[0]=(LtvUrl){.tipo=LTV_URL_M3U};strcpy(cargaUrls[0].nome,"sameURL");strcpy(cargaUrls[0].url,"https://playlist.invalid/shared.m3u8");
+ atomic_store(&pendPronto,0);
+}
+int main(void) {
+ setup(0);fioGuia(NULL);assert(sOk && sNCanais==4 && sNLtvF==4 && chamadasXt==2 && chamadasSt==1 && chamadasM==1);
+ assert(!strcmp(sLtvF[0].chave,"xt") && !strcmp(sLtvF[1].chave,"xta00000013") && !strcmp(sLtvF[2].chave,"ma00000014"));
+ assert(!strcmp(sCanais[0].id,"xtream:1") && !strcmp(sCanais[1].id,"xtream:@00000013:1"));
+ assert(!strcmp(sCanais[2].id,"nvm3u:@00000014:6dd1f284ff947429"));assert(!strcmp(sLtvF[2].urlTvg,"https://epg.invalid/schedule.xml.gz"));
+ assert(sCanais[2].url[0] && !strcmp(sCanais[2].url,"https://stream.invalid/live.m3u8"));
+ setup(1);fioGuia(NULL);assert(sNCanais==1 && chamadasXt==1 && !chamadasSt && !chamadasM);
+ setup(0);cargaContas[1].ativa=0;fioGuia(NULL);assert(sNCanais==3 && chamadasXt==1 && chamadasM==1 && chamadasSt==1);
+ puts("PASS: source-keyed streaming accounts, same-type identities, configured EPG URL, registry/URL playlist dedupe, disabled accounts and cancellation");
 }

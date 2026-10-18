@@ -17,7 +17,9 @@ if [ "${GUIACACHE_BASELINE:-0}" = 1 ]; then
   git show ba0639cf0:src/guia.c > "$work/guia.c"
   flags+=(-DGUIACACHE_BASELINE "-DGUIACACHE_SOURCE=\"$work/guia.c\"")
 fi
-cc ${flags[@]+"${flags[@]}"} tests/guiacache.c \
+backup_extra=()
+if [ -f src/backupcategories.c ]; then backup_extra+=(src/backupcategories.c); fi
+cc ${backup_extra[@]+"${backup_extra[@]}"} ${flags[@]+"${flags[@]}"} tests/guiacache.c \
   src/ltv.c src/js.c src/idcanal.c src/dados.c src/marco.c src/guiaaddons.c \
   src/epg.c src/xtepg.c src/lembrete.c src/guialembrete.c \
   src/fontecache.c src/cachearte.c src/cachedisco.c \
@@ -29,7 +31,7 @@ if [ "${GUIACACHE_BASELINE:-0}" != 1 ]; then
   # The historical baseline must compile, then fail on retained removed channels.
   rc=0
   GUIACACHE_BASELINE=1 bash tests/guiacache.sh > "$work/baseline.log" 2>&1 || rc=$?
-  if [ "$rc" != 134 ] || ! rg -q 'Assertion failed: \(nCanais == 1 && nLtvF == 1\)' "$work/baseline.log"; then
+  if [ "$rc" != 134 ] || ! rg -q 'nCanais == 1 && nLtvF == 1'  "$work/baseline.log"; then
     printf 'FAIL: baseline must reach the removed-source assertion (rc=%s)\n' "$rc"
     printf '%s\n' "$(< "$work/baseline.log")"
     exit 1

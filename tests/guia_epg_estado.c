@@ -8,6 +8,7 @@ static int xmlEstado = EPG_PRONTO, xmlMatch = -1;
 int epg_canal_estado(const char *id) { (void)id;return xmlEstado; }
 int epg_match_canal(const char *id,const char *epgId,const char *nome) { (void)id;(void)epgId;(void)nome;return xmlMatch; }
 int epg_estado(void) { return xmlEstado; }
+int epg_fonte_estado(const char *chave) {(void)chave;return xmlEstado;}
 int epg_match(const char *nome) { (void)nome; return xmlMatch; }
 int epg_match_id(const char *id) { (void)id; return xmlMatch; }
 int epg_casar(const char *f, const char *id, const char *tv, const char *nm, int *m) {
@@ -15,8 +16,6 @@ int epg_casar(const char *f, const char *id, const char *tv, const char *nm, int
 }
 int epg_achar(const char *f, const char *id) { (void)f; (void)id; return xmlMatch; }
 int perfis_ativo(void) { return 1; }
-uint64_t perfis_sessao_geracao(void) { return 0; }
-int perfis_sessao_atual(uint64_t s) { return s == 0; }
 char *dados_ler(const char *n) { (void)n; return NULL; }
 int xtream_e_id(const char *id) { return id && !strncmp(id, "xtream:", 7); }
 int xtream_ultimo_retry_after(void) { return 0; }

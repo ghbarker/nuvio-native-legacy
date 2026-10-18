@@ -13,6 +13,8 @@ fi
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
 for platform in tv android; do
   extra=();if [ "$platform" = android ]; then extra+=(-DNV_ANDROID); fi
-  cc "${flags[@]}" ${extra[@]+"${extra[@]}"} tests/guia_grande.c src/guiaaddons.c -lpthread -lm -o "$work/test"
+  backup_extra=()
+  if [ -f src/backupcategories.c ]; then backup_extra+=(src/backupcategories.c); fi
+  cc ${backup_extra[@]+"${backup_extra[@]}"} "${flags[@]}" ${extra[@]+"${extra[@]}"} tests/guia_grande.c src/ltv.c src/guiaaddons.c src/js.c -lpthread -lm -o "$work/test"
   "$work/test" "$work"
 done

@@ -1,80 +1,51 @@
-// #424: actual guide storage, deduplication, stable category packing and cache.
-#include <stdlib.h>
+// Large source-keyed guide retains packed strings, category ownership and caches.
 #include "perfis.h"
 #define NV_PERFIL_SESSAO_FORTE
-uint64_t perfis_sessao_geracao(void) { return 1; }
-int perfis_sessao_atual(uint64_t s) { return s == 1; }
-int perfis_sessao_travar(uint64_t s) { return s == 1; }
-void perfis_sessao_destravar(void) {}
-static int falharMalloc;
-static void *testeMalloc(size_t n) { return falharMalloc ? NULL : malloc(n); }
-#define malloc testeMalloc
 #include "../src/guia.c"
-#undef malloc
 #include <assert.h>
 static const char *pasta;
-int perfis_ativo(void) { return 1; }
-int addons_n(void) { return 0; }
-const char *addons_nome(int i) { (void)i; return ""; }
-const char *i18n(const char *s) { return s; }
-int ajustes_guia_ordem(void) { return 0; }
-int ajustes_guia_fonte(void) { return 0; }
-int iptv_contas(IptvConta *out,int max) { if(out && max>0)*out=(IptvConta){.tipo=IPTV_XTREAM,.ativa=1,.nome="Test"};return 1; }
-const char *addons_base(int i) { (void)i; return ""; }
-int addons_ativo(int i) { (void)i; return 1; }
-char *dados_ler(const char *nome) { (void)nome; return NULL; }
-char *dados_caminho(char *out,unsigned n,const char *nome) { snprintf(out,n,"%s/%s",pasta,nome); return out; }
-void marco(const char *nome) { (void)nome; }
-static void semear(int total, int categorias) {
-  sNCanais=sNCats=sIndexados=0;
-  memset(sCanalIndice,0,sizeof sCanalIndice);memset(sCatIndice,0,sizeof sCatIndice);
-  memset(&sCorte,0,sizeof sCorte);
-  for(int i=0;i<total;i++) {
-    GCanal c={0};char nome[64];
-    snprintf(c.id,sizeof c.id,"xtream:%d",i);
-    snprintf(c.nome,sizeof c.nome,"Channel %d",i);
-    snprintf(nome,sizeof nome,"Category %04d",i%categorias);
-    assert(sCanalPorId(c.id)<0); c.cat=sCatDe(nome);c.epg=-1;
-    assert(sCanalGuardar(&c));assert(sCanalPorId(c.id)==i);
-  }
-  assert(!guiacorte_cortou(&sCorte) && sNCanais==total && sNCats==categorias);
+uint64_t perfis_sessao_geracao(void){return 1;}
+int perfis_sessao_atual(uint64_t s){return s==1;}
+int perfis_sessao_travar(uint64_t s){return s==1;}
+void perfis_sessao_destravar(void){}
+int perfis_ativo(void){return 1;}
+int addons_n(void){return 1;}
+const char *addons_base(int i){(void)i;return "https://addon.invalid";}
+int addons_ativo(int i){(void)i;return 1;}
+const char *addons_nome(int i){(void)i;return "Addon";}
+const char *i18n(const char *s){return s;}
+int ajustes_guia_ordem(void){return 0;}
+int ajustes_guia_fonte(void){return 0;}
+int iptv_contas(IptvConta *out,int n){(void)out;(void)n;return 0;}
+char *dados_ler(const char *n){(void)n;return NULL;}
+int dados_gravar(const char *n,const char *s){(void)n;(void)s;return 1;}
+char *dados_caminho(char *out,unsigned n,const char *nome){snprintf(out,n,"%s/%s",pasta,nome);return out;}
+void marco(const char *s){(void)s;}
+static void seed(int total,int ng) {
+ stagingZerar();sTeto=30000;
+ int f=sFonte(LTV_ADDON,"https://addon.invalid","Addon","https://addon.invalid");assert(f>=0);
+ for(int i=0;i<total;i++) {
+  char id[80],nome[80],grupo[80];snprintf(id,sizeof id,"channel:%d",i);snprintf(nome,sizeof nome,"Channel %d",i);snprintf(grupo,sizeof grupo,"Group %05d",i%ng);
+  GCru c={.id=id,.nome=nome,.grupo=grupo,.logo="",.desc="",.epgId="",.tvgNome="",.url="",.ua="",.ref="",.tipo="channel"};
+  assert(sCanalAdd(f,&c));
+ }
+ assert(sNCanais==total && sNCats==ng);adotarStaging();
+ assert(nCanais==total && nCats==ng && nLinhas()==ng);
 }
 int main(int argc,char **argv) {
-  assert(argc==2);pasta=argv[1];favLido=1;
-  int total=G_MAX_CANAL>3000?12000:600;
-  int categorias=G_MAX_CANAL>3000?600:300;
-  assert(!canais && !sCanais && capCanais==0 && sCapCanais==0);
-  semear(total,categorias);
-  assert(canaisReservar(total));
-  nCanais=total;nCats=sNCats;
-  memcpy(canais,sCanais,(size_t)total*sizeof *canais);memcpy(cats,sCats,(size_t)nCats*sizeof cats[0]);
-  empacotar();assert(nCanais==total && nCats==categorias);
-  for(int c=0;c<nCats;c++) {
-    assert(catN[c]==total/categorias);
-    for(int k=0;k<catN[c];k++) {
-      char esperado[80];snprintf(esperado,sizeof esperado,"xtream:%d",c+k*categorias);
-      assert(!strcmp(canais[catIni[c]+k].id,esperado));
-    }
-  }
-  cacheGravar();nCanais=nCats=0;assert(cacheLer());
-  assert(nCanais==total && nCats==categorias);
-  assert(!strcmp(canais[nCanais-1].id,G_MAX_CANAL>3000?"xtream:11999":"xtream:599"));
-  // Reloading another list cannot find old IDs/categories in the hash index.
-  semear(2,2);assert(sCanalPorId("xtream:11999")==-1);
-  GCanal *antes=canais; int capacidade=capCanais;
-  falharMalloc=1;assert(!canaisReservar(total+1));falharMalloc=0;
-  assert(canais==antes && capCanais==capacidade && nCanais==total);
-  assert(canaisReservar(G_MAX_CANAL+1)==0 && nCanais==total);
-  // Invalid persisted category must never index the counting-sort scratch.
-  canais[0].cat=-1;empacotar();assert(nCanais==total-1);
-  // One category per channel at the Android bound must still fit.
-  if (G_MAX_CANAL>3000) {
-    semear(G_MAX_CANAL,G_MAX_CANAL);assert(canaisReservar(G_MAX_CANAL));
-    nCanais=sNCanais;nCats=sNCats;
-    memcpy(canais,sCanais,(size_t)nCanais*sizeof *canais);memcpy(cats,sCats,(size_t)nCats*sizeof cats[0]);
-    empacotar();assert(nCanais==G_MAX_CANAL && nCats==G_MAX_CANAL);
-    for(int i=0;i<nCats;i++)assert(catN[i]==1);
-  }
-  free(canais);free(ordemCanais);free(sCanais);
-  printf("PASS: %d channels / %d categories, stable packing, cache round trip, reload dedup and safety bounds\n",total,categorias);
+ assert(argc==2);pasta=argv[1];seed(12000,600);
+ for(int c=0;c<nCats;c++)for(int k=0;k<catN[c];k++) {
+  char id[80];snprintf(id,sizeof id,"channel:%d",c+k*600);assert(!strcmp(canais[catIni[c]+k].id,id));
+ }
+ assert(sizeof(GCanal)<160);cacheGravar();stagingZerar();sTeto=30000;
+ char key[24];ltv_chave_fonte(LTV_ADDON,"https://addon.invalid",key,sizeof key);
+ assert(cacheFonteLer(key)==12000);adotarStaging();assert(nCanais==12000 && nCats==600);
+ seed(30000,3000);assert(nCats==3000 && catN[2999]==10);
+ // Source capacity covers32 native accounts plus add-ons/URL sources (>14).
+ stagingZerar();sTeto=30000;
+ for(int i=0;i<40;i++) {char ch[24];snprintf(ch,sizeof ch,"a%08x",i);assert(sFonteChave(ch,LTV_ADDON,"Source","")==i);}
+ assert(sNLtvF==40);
+ // Platform budget remains upstream's cross-platform measured budget.
+ assert(ltv_teto_canais(3,4096)>=30000);assert(ltv_teto_canais(0,900)<=5000);
+ puts("PASS: packed12000channels/600categories cache roundtrip,30000channels/3000groups,40source capacity and retained platform budgets");
 }

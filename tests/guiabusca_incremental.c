@@ -21,10 +21,20 @@ int epg_faixa_desde(int canal,time_t de,time_t ate,int pular,EpgProg *out,int ca
       .titulo=semResultado?"Other programme":"Jaguars"};
   return n;
 }
+int ajustes_guia_fonte(void) { return 0; }
+int perfis_ativo(void) { return 1; }
+char *dados_ler(const char *n) {(void)n;return NULL;}
+int epg_fonte_estado(const char *n) {(void)n;return EPG_PRONTO;}
+int epg_casar(const char *f,const char *id,const char *tv,const char *nm,int *met) {(void)f;(void)id;(void)tv;(void)nm;*met=0;return 0;}
+int epg_achar(const char *f,const char *id) {(void)f;(void)id;return 0;}
 static void semear(int n) {
-  assert(canaisReservar(n));memset(canais,0,(size_t)n*sizeof *canais);nCanais=n;
-  for(int i=0;i<n;i++) { canais[i].epg=i;snprintf(canais[i].nome,sizeof canais[i].nome,"Channel %d",i+1); }
-  strcpy(canais[0].nome,"Jaguars channel");canaisRevisao++;chamadas=0;tick=0;
+  free(canais);ltv_arena_soltar(&arena);
+  canais=calloc((size_t)n,sizeof *canais);assert(canais);nCanais=capCanais=n;
+  if(!cats)cats=calloc(1,sizeof *cats);assert(cats);nCats=1;cats[0]=(GCat){.nome="Sports",.fonte=0};
+  nLtvF=1;ltvF[0].tipo=LTV_ADDON;ltvF[0].base="";strcpy(ltvF[0].chave,"fixture");
+  for(int i=0;i<n;i++) { char nome[80],id[80];snprintf(nome,sizeof nome,"Channel %d",i+1);snprintf(id,sizeof id,"fixture:%d",i);
+    canais[i]=(GCanal){.id=ltv_dup(&arena,id),.nome=ltv_dup(&arena,nome),.epg=i,.cat=0,.fonte=0,.numero=i+1}; }
+  canais[0].nome=ltv_dup(&arena,"Jaguars channel");canaisRevisao++;chamadas=0;tick=0;
 }
 static void concluir(void) { int passos=0;while(buscaPendente.ativa){assert(++passos<1000);buscaPasso();} }
 int main(void) {
@@ -51,6 +61,6 @@ int main(void) {
   chamadas=0;buscaFazer("2");assert(buscaNC==G_BUSCA_CANAIS && buscaCanal[0]==1 && !buscaPendente.ativa && !chamadas);
   // Restarting the saved query must not overwrite its own input buffer.
   buscaFazer("Jaguars");buscaFazer(buscaTexto);assert(!strcmp(buscaTexto,"Jaguars") && buscaNC==1);
-  free(canais);free(ordemCanais);
+  free(canais);free(cats);ltv_arena_soltar(&arena);
   puts("PASS: bounded search, pagination, cancellation, replacement, ordering, result cap and channel numbers");
 }

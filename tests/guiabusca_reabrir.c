@@ -55,8 +55,8 @@ static void pesquisar(int repetir) {
   assert(buscaAnim>.99f && alvos>5 && buscaNP==15);
   tocar(32,70);assert(buscaEstado==2 && !pediuCanal);
   // Republishing/reordering must rebuild saved result indices.
-  strcpy(canais[0].nome,"Other channel");canaisRevisao++;quadro();assert(buscaNC==4);
-  strcpy(canais[0].nome,"US| Jaguars 1");canaisRevisao++;quadro();assert(buscaNC==5);
+  canais[0].nome="Other channel";canaisRevisao++;quadro();assert(buscaNC==4);
+  canais[0].nome="US| Jaguars 1";canaisRevisao++;quadro();assert(buscaNC==5);
   // Opening New search must show keyboard controls above the old results.
   ponteiroBuscaItem(-1,0);tecla(SDLK_RETURN);quadro();
   n=ponteiro_teste_lista(&v);
@@ -80,10 +80,12 @@ int main(void) {
   dados_iniciar(getenv("NUVIO_DADOS"));ajustes_dir("deploy/app/art");
   layout_modo_definir(1);layout_tela_definir(1080,2340);gfx_tamanho_alvo(1080,2340);
   ponteiro_iniciar();ponteiro_teste_toque(1);ponteiro_teste_relogio(relogioTeste);st_teste_ligar(1);teclado_teste_modos(1,0,0);
-  assert(canaisReservar(5));nCanais=5;memset(canais,0,5*sizeof *canais);
+  canais=calloc(5,sizeof *canais);assert(canais);nCanais=capCanais=5;
+  cats=calloc(1,sizeof *cats);assert(cats);nCats=capCats=1;
+  cats[0]=(GCat){.nome="Sports",.fonte=0};nLtvF=1;ltvF[0].tipo=LTV_ADDON;ltvF[0].base="";strcpy(ltvF[0].chave,"fixture");
   for(int i=0;i<5;i++) {
-    snprintf(canais[i].id,sizeof canais[i].id,"fixture:%d",i);
-    snprintf(canais[i].nome,sizeof canais[i].nome,"US| Jaguars %d",i+1);canais[i].epg=i;
+    char id[80],nome[80];snprintf(id,sizeof id,"fixture:%d",i);snprintf(nome,sizeof nome,"US| Jaguars %d",i+1);
+    canais[i]=(GCanal){.id=ltv_dup(&arena,id),.nome=ltv_dup(&arena,nome),.epg=i,.cat=0,.fonte=0,.numero=i+1};
   }
   aberta=1;entrada=1;
   for(int i=0;i<5;i++) {

@@ -41,6 +41,8 @@ static void caso(const char *nome, const char *id, const int (*iv)[2], int n) {
   canais[0].epg = epg_match_id(id);
   assert(canais[0].epg >= 0);
   nCanais = 1;
+  if(!cats)cats=calloc(1,sizeof *cats);assert(cats);nCats=capCats=1;
+  cats[0]=(GCat){.nome="Programs",.fonte=0};nLtvF=1;ltvF[0].tipo=LTV_ADDON;ltvF[0].base="";strcpy(ltvF[0].chave,"fixture");
   buscaFazer("show");
   while (buscaPendente.ativa) buscaPasso();
   printf("%s: %d programa(s)\n", nome, buscaNP);

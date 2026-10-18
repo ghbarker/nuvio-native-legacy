@@ -51,9 +51,11 @@ const char *i18n(const char *s) { return s; }
 int main(void) {
   GFonte f = {0};
   int novos;
+  GAddonCarga addon={.ativo=1};addonsCarga=&addon;nAddonsCarga=1;
   sTeto = 30000;
   strcpy(f.base, "https://addon.example?v=1.4.0&probe=1");
   strcpy(f.tipo, "tv"); strcpy(f.id, "canais"); strcpy(f.nome, "Canais Abertos");
+  snprintf(addon.base,sizeof addon.base,"%s",f.base);
   assert(ehCanal(f.tipo));
   int fl = sFonte(LTV_ADDON, f.base, f.nome, f.base);
   assert(fl >= 0);
@@ -74,6 +76,7 @@ int main(void) {
   memset(&f, 0, sizeof f);
   strcpy(f.base, "https://mux.example/TK");
   strcpy(f.tipo, "channel"); strcpy(f.id, "m3u-channels"); strcpy(f.nome, "Live TV");
+  snprintf(addon.base,sizeof addon.base,"%s",f.base);
   fl = sFonte(LTV_ADDON, f.base, f.nome, f.base);
   assert(fl >= 0);
   assert(lerPagina(&f, fl, 0, &novos) == 4);
