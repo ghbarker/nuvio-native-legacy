@@ -32,7 +32,7 @@ char *dados_caminho(char *out,unsigned n,const char *nome){snprintf(out,n,"%s/%s
 int ajustes_guia_fonte(void){return 0;}
 void marco(const char *nome){(void)nome;}
 static void semear(void) {
-  memset(canais,0,sizeof canais);nCanais=4;nCats=2;nFav=nFavOrd=0;
+  assert(canaisReservar(5));memset(canais,0,5*sizeof *canais);nCanais=4;nCats=2;nFav=nFavOrd=0;
   strcpy(cats[0],"Sports");strcpy(cats[1],"News");
   for(int i=0;i<4;i++) {
     snprintf(canais[i].id,sizeof canais[i].id,"xtream:@%08x:%d",i<2?11:22,i%2+1);
@@ -63,11 +63,12 @@ int main(int argc,char **argv) {
   semear();cacheGravar();nCanais=nCats=0;assert(cacheLer());
   assert(nCanais==4 && nCats==4);rotulo(0,"News · Renamed B");
   // Display splitting can exceed the old raw category cap without losing channels.
-  nCanais=GUIACORTE_MAX_CAT*2;nCats=GUIACORTE_MAX_CAT;nFav=nFavOrd=0;
-  memset(canais,0,sizeof canais);
+  const int grandes=300;assert(canaisReservar(grandes*2));
+  nCanais=grandes*2;nCats=grandes;nFav=nFavOrd=0;
+  memset(canais,0,(size_t)nCanais*sizeof *canais);
   for(int i=0;i<nCats;i++)snprintf(cats[i],sizeof cats[i],"Category %03d",i);
   for(int i=0;i<nCanais;i++) { canais[i].cat=i/2;snprintf(canais[i].id,sizeof canais[i].id,"xtream:@%08x:%d",i%2?11:22,i); }
-  empacotar();assert(nCats==GUIACORTE_MAX_CAT*2 && nCanais==GUIACORTE_MAX_CAT*2);
+  empacotar();assert(nCats==grandes*2 && nCanais==grandes*2);
   semear();ordem=0;empacotar();GuiaCategoria categorias[4];assert(guia_categorias(categorias,4)==4);
   int a=-1;for(int i=0;i<4;i++)if(!strcmp(categorias[i].nome,"Sports") && !strcmp(categorias[i].conta,"Account A"))a=i;
   assert(a>=0);GuiaCategoria alvo=categorias[a];
@@ -75,7 +76,14 @@ int main(int argc,char **argv) {
   assert(guia_categoria_definir(&alvo,1));assert(nLinhas()==3 && nCanais==4 && nCats==4);
   assert(!strcmp(guia_id_focado(),outro));
   int esportes=0;for(int i=0;i<nLinhas();i++)esportes+=!strcmp(cats[linhaCatDe(i)],"Sports");assert(esportes==1);
-  categoriasPerfil=-1;empacotar();assert(nLinhas()==3); // Disk reload.
+  // The Categories drawer uses these same visible lines. Both duplicate
+  // Sports entries remain in Settings, but only Account B remains in the drawer.
+  for(int i=0;i<nLinhas();i++)assert(categoriaChave(linhaCatDe(i))!=alvo.chave);
+  cacheGravar();nCanais=nCats=0;categoriasPerfil=-1;assert(cacheLer());
+  assert(nLinhas()==3);
+  for(int i=0;i<nLinhas();i++)assert(categoriaChave(linhaCatDe(i))!=alvo.chave);
+  // Simulate a fresh provider publication from the saved channel records.
+  empacotar();assert(nLinhas()==3);
   IptvConta troca=contasTeste[0];contasTeste[0]=contasTeste[1];contasTeste[1]=troca;
   for(int i=0;i<2;i++)if(contasTeste[i].id==11)strcpy(contasTeste[i].nome,"Renamed A");
   ordem=1;guia_reordenar();assert(nLinhas()==3 && guia_categorias(categorias,4)==4);

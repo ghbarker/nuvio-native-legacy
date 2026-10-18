@@ -33,7 +33,7 @@ static void caso(const char *nome, const char *id, const int (*iv)[2], int n) {
   epg_teste_limpar();
   assert(epg_xml_processar(xml) > 0);
   free(xml);
-  memset(canais, 0, sizeof canais);
+  assert(canaisReservar(1));memset(canais, 0, sizeof *canais);
   snprintf(canais[0].nome, sizeof canais[0].nome, "Canal Qualquer");
   canais[0].epg = epg_match_id(id);
   assert(canais[0].epg >= 0);

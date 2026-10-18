@@ -9,6 +9,11 @@ static void *testeMalloc(size_t n) { return falharMalloc ? NULL : malloc(n); }
 static const char *pasta;
 int perfis_ativo(void) { return 1; }
 int addons_n(void) { return 0; }
+const char *addons_nome(int i) { (void)i; return ""; }
+const char *i18n(const char *s) { return s; }
+int ajustes_guia_ordem(void) { return 0; }
+int ajustes_guia_fonte(void) { return 0; }
+int iptv_contas(IptvConta *out,int max) { if(out && max>0)*out=(IptvConta){.tipo=IPTV_XTREAM,.ativa=1,.nome="Test"};return 1; }
 const char *addons_base(int i) { (void)i; return ""; }
 int addons_ativo(int i) { (void)i; return 1; }
 char *dados_ler(const char *nome) { (void)nome; return NULL; }
