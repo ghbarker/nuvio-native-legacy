@@ -1,4 +1,4 @@
-name: Logs52 GIF and live recovery macOS regression checks
+name: Logs53 source details, GIF and live recovery macOS regression checks
 on:
   workflow_dispatch:
 permissions:
@@ -15,17 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: d485bbe98158340ebac309a0af13bfe3e690c110
+          ref: 519d4e34a45c03e985fd25ca520fa1a026979ad4
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
-      - name: GIF decoding, collection selection and live recovery regressions
+      - name: Prepared-source metadata, responsive layout and retained regressions
         run: |
           set -euo pipefail
           for san in 0 1; do
+            SANITIZE="$san" bash tests/fonteinfo.sh
+            SANITIZE="$san" bash tests/fonteinfo_layout.sh
+            SANITIZE="$san" bash tests/fontefalha.sh
             SANITIZE="$san" bash tests/gif.sh
             SANITIZE="$san" bash tests/gifcolecao.sh
             SANITIZE="$san" bash tests/gifwebp.sh
@@ -35,3 +38,6 @@ jobs:
           done
           bash tests/livestall.sh
           bash tests/livestall_seco.sh
+          bash tests/fonteantecipa.sh
+          bash tests/ajustes_secoes.sh
+          python3 tools/varredura-i18n.py
