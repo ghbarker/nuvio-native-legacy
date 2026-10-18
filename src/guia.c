@@ -1779,31 +1779,47 @@ void guia_reordenar(void) {
   empacotar();if(id[0])guia_focar_id(id);
 }
 
-int guia_categoria_definir(const GuiaCategoria *categoria,int ocultar) {
-  if(!categoria || !categoria->chave || !nv_perfil_sessao_atual(categoria->sessao))return 0;
-  categoriasGarantir();int i=0;
-  for(;i<nCategoriasOcultas;i++)if(categoriasOcultas[i]==categoria->chave)break;
-  if((i<nCategoriasOcultas)==!!ocultar)return 1;
-  if(ocultar && nCategoriasOcultas>=G_MAX_OCULTAS)return 0;
-  uint64_t antes[G_MAX_OCULTAS];int nAntes=nCategoriasOcultas;
-  memcpy(antes,categoriasOcultas,sizeof antes);
-  if(ocultar)categoriasOcultas[nCategoriasOcultas++]=categoria->chave;
-  else categoriasOcultas[i]=categoriasOcultas[--nCategoriasOcultas];
-  char *texto=calloc((size_t)nCategoriasOcultas*17+1,1);int ok=0;
+int guia_categorias_definir(const GuiaCategoria *categorias,int n) {
+  if(n<0 || n>G_MAX_CAT || (n && !categorias))return 0;
+  if(!n)return 1;
+  uint64_t sessao=categorias[0].sessao;
+  if(!nv_perfil_sessao_atual(sessao))return 0;
+  for(int i=0;i<n;i++)if(!categorias[i].chave || categorias[i].sessao!=sessao)return 0;
+  categoriasGarantir();
+  uint64_t novas[G_MAX_OCULTAS];int nNovas=nCategoriasOcultas,mudou=0;
+  memcpy(novas,categoriasOcultas,(size_t)nNovas*sizeof *novas);
+  // Unhiding first frees capacity for new selections in the same transaction.
+  for(int ocultar=0;ocultar<=1;ocultar++)for(int k=0;k<n;k++) {
+    const GuiaCategoria *c=&categorias[k];if(!!c->oculta!=ocultar)continue;
+    int i=0;for(;i<nNovas;i++)if(novas[i]==c->chave)break;
+    if((i<nNovas)==ocultar)continue;
+    if(ocultar) { if(nNovas>=G_MAX_OCULTAS)return 0;novas[nNovas++]=c->chave; }
+    else novas[i]=novas[--nNovas];
+    mudou=1;
+  }
+  if(!mudou)return 1;
+  char *texto=calloc((size_t)nNovas*17+1,1);int ok=0;
   if(texto) {
-    for(int k=0;k<nCategoriasOcultas;k++)snprintf(texto+(size_t)k*17,18,"%016llx\n",(unsigned long long)categoriasOcultas[k]);
-    char nome[64];arquivoPerfil("categorias",nome,sizeof nome);
-    if(nv_perfil_sessao_travar(categoria->sessao)) {
-      ok=dados_gravar(nome,texto);nv_perfil_sessao_destravar();
+    for(int k=0;k<nNovas;k++)snprintf(texto+(size_t)k*17,18,"%016llx\n",(unsigned long long)novas[k]);
+    if(nv_perfil_sessao_travar(sessao)) {
+      char nome[64];arquivoPerfil("categorias",nome,sizeof nome);
+      ok=dados_gravar(nome,texto);
+      if(ok) { memcpy(categoriasOcultas,novas,(size_t)nNovas*sizeof *novas);nCategoriasOcultas=nNovas; }
+      nv_perfil_sessao_destravar();
     }
     free(texto);
   }
-  if(!ok) { memcpy(categoriasOcultas,antes,sizeof antes);nCategoriasOcultas=nAntes;return 0; }
+  if(!ok)return 0;
   guia_reordenar();focoPend[0]=0;
   if(focoLin>=nLinhas())focoLin=nLinhas()>0?nLinhas()-1:0;
   if(focoCol>=linhaN(focoLin))focoCol=0;
   catFoco=focoLin;rolY=velY=rolL=velL=0.0f;
   return 1;
+}
+int guia_categoria_definir(const GuiaCategoria *categoria,int ocultar) {
+  if(!categoria)return 0;
+  GuiaCategoria c=*categoria;c.oculta=!!ocultar;
+  return guia_categorias_definir(&c,1);
 }
 
 const char *guia_id_focado(void) {
