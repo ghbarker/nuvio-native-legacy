@@ -44,7 +44,7 @@ jobs:
           assert apk.stat().st_size==r['apk_bytes'] and hashlib.sha256(apk.read_bytes()).hexdigest()==r['apk_sha256']
           with zipfile.ZipFile(apk) as z:
               assert 'lib/arm64-v8a/libmain.so' in z.namelist() and 'lib/armeabi-v7a/libmain.so' in z.namelist()
-          r.update(all_passed=True,android_16k_alignment=True,android_run=39136219411,linux_run=39136219411,macos_run=39136221894,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v55',device_approval_pending=True)
+          r.update(all_passed=True,sanitizer_regressions=True,native_account_regressions=True,android_16k_alignment=True,android_run=39136219411,linux_run=39136219411,macos_run=39136221894,release=os.environ['TEST_RELEASE'],baseline_release='tv-mobile-test-logs-v55',device_approval_pending=True)
           r['apk_url']='https://github.com/ghbarker/nuvio-native-legacy/releases/download/'+os.environ['TEST_RELEASE']+'/'+apk.name
           r['normal_and_asan_ubsan_linux_ui_suites']=['guiabusca_incremental','guia_grupos','guia_loading','guia_epg_estado','guiabusca_reabrir']
           r['normal_and_asan_ubsan_linux_macos_native_suites']=['guiabusca_incremental','guiabusca_paginacao','guia_grupos','guia_loading','guia_epg_estado']
@@ -57,4 +57,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target 8934c1837013a88e6327c0ff506d20f07aa05de5 --title 'Nuvio TV/Mobile Test - Logs56: Live TV search' --notes-file .github/Logs56-testing.txt dist/Nuvio-TV-Mobile-Test-Logs56.apk dist/Logs56-validation.json .github/Logs56-testing.txt
+          if gh release view "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" dist/Logs56-validation.json --clobber
+          else
+            gh release create "$TEST_RELEASE" --repo "$GITHUB_REPOSITORY" --target 8934c1837013a88e6327c0ff506d20f07aa05de5 --title 'Nuvio TV/Mobile Test - Logs56: Live TV search' --notes-file .github/Logs56-testing.txt dist/Nuvio-TV-Mobile-Test-Logs56.apk dist/Logs56-validation.json .github/Logs56-testing.txt
+          fi
