@@ -39,6 +39,7 @@ static void caso(const char *nome, const char *id, const int (*iv)[2], int n) {
   assert(canais[0].epg >= 0);
   nCanais = 1;
   buscaFazer("show");
+  while (buscaPendente.ativa) buscaPasso();
   printf("%s: %d programa(s)\n", nome, buscaNP);
   if (buscaNP != n) { printf("  FALHOU: esperava %d\n", n); falhas++; }
   for (k = 1; k <= n; k++) {
