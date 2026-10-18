@@ -915,3 +915,5 @@ void xtream_fontes_invalidar(void) {
     pthread_mutex_unlock(&c->trava_); }
   pthread_mutex_unlock(&fontesTrava);
 }
+
+void xtream_backup_recarregar(void) { xtream_fontes_invalidar(); }

@@ -104,4 +104,6 @@ int stalker_fonte_configurado(unsigned id);
 int stalker_fonte_canais(unsigned id,StalkerCanal *out,int max,uint64_t sessao);
 void stalker_fonte_esquecer(unsigned id);
 void stalker_fontes_invalidar(void);
+// Reload committed connection settings without deleting credentials.
+void stalker_backup_recarregar(void);
 #endif
