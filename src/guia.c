@@ -631,6 +631,9 @@ static int recInstalado(const GRec *r) {
 
 // --- linhas -------------------------------------------------------------------
 // Linha 0 = Favoritos (quando ha algum); as demais sao as categorias com canal.
+static int guiaSemCanais(void) {
+  return !nCanais && (estado == G_FALHOU || (fontesOk && !nFontes && estado != G_BAIXANDO));
+}
 static int nLinhas(void) { return (nCats?nCatsVisiveis:0) + (nFavOrd > 0 ? 1 : 0); }
 static int linhaEhFav(int l) { return nFavOrd > 0 && l == 0; }
 static int linhaN(int l) {
@@ -3649,7 +3652,7 @@ static int guiaCamadaAberta(void) { return catAberto || buscaEstado || painel; }
 #ifdef NV_TOUCH_UI
 static int guiaVazioTelefone(void) {
   return telefoneui_ativo() && aberta && !overlay && !nCanais &&
-    (estado == G_FALHOU || (fontesOk && !nFontes && estado != G_BAIXANDO));
+    guiaSemCanais();
 }
 static void ponteiroConfigGuia(int i, int b) {
   (void)i; (void)b;
@@ -4921,7 +4924,7 @@ void guia_desenhar(Uint32 agora) {
                : xtFalha == XT_PAGINA
                ? i18n("O Xtream devolveu uma página da web em vez da lista.")
                : i18n("A lista do Xtream não respondeu."));
-    else if (estado == G_FALHOU || (fontesOk && !nFontes))
+    else if (guiaSemCanais())
       snprintf(sub, sizeof sub, "%s",
                i18n("Nenhum canal: sem addon de canais e sem portal IPTV."));
     // A falha do Xtream toma o lugar da contagem simples, e so ela: os canais
@@ -5113,7 +5116,7 @@ void guia_desenhar(Uint32 agora) {
     }
     gfx_sem_recorte();
 
-  } else if (estado == G_FALHOU || (fontesOk && !nFontes && estado != G_BAIXANDO)) {
+  } else if (guiaSemCanais()) {
     // DUAS FRASES, e a diferenca entre elas e a diferenca entre acusar a
     // pessoa e contar o que houve. `falhas` diz que alguem foi tentado e nao
     // respondeu; sem ele, a lista vazia e mesmo falta de addon.
