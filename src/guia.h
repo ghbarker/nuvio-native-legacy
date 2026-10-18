@@ -22,6 +22,7 @@
 #include <SDL2/SDL.h>
 #include "catalogo.h"
 #include "epg.h"
+#include <stdint.h>
 #include "gfx.h"   /* GfxRect de guia_logo_desenhar */
 
 void guia_abrir(void);           // tela cheia

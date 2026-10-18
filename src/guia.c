@@ -4953,6 +4953,14 @@ void guia_desenhar(Uint32 agora) {
                               : G_TOPO_Y + (G_TOPO_H - (float)st.h) * 0.5f + 2.0f;
       txt_desenhar_alpha(st, subX, subY, a); } }
 
+  if (nCanais > 0 && !nLinhas()) {
+    char caminho[256];
+    snprintf(caminho,sizeof caminho,"%s → %s → %s",i18n("Ajustes"),i18n("TV ao vivo"),i18n("Ocultar categorias"));
+    TxtLinha titulo=txt_linha_corta(TXT_HEADLINE,i18n("Oculto no guia"),230,232,238,255,G_AREA_W);
+    TxtLinha dica=txt_linha_corta(TXT_BODY,caminho,150,153,162,255,G_AREA_W);
+    txt_desenhar_alpha(titulo,G_AREA_X,G_TOPO+40,a);
+    txt_desenhar_alpha(dica,G_AREA_X,G_TOPO+70+titulo.h,a);
+  }
   if (temLinhas) desenharHero(a, agoraT, tFoco);
 
   // Fileiras de canais. G_BAIXANDO com linhas publicadas e a RECARGA pedida
