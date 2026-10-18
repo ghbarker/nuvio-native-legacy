@@ -1,0 +1,102 @@
+name: Publish verified dubbed-language test APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/audio-preview-publish.yml]
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ghbarker/nuvio-native-legacy
+    steps:
+      - name: Require exact successful Android and native checks
+        run: |
+          python3 - <<'VERIFY'
+          import json,subprocess
+          for run,sha in [(39169181340,'ccb42692fc78a527237c7bc0481aff712a09ebe8'),(39169274422,'26e16080666985241c620b8619adde197f9df53f')]:
+              d=json.loads(subprocess.check_output(['gh','api',f'repos/ghbarker/nuvio-native-legacy/actions/runs/{run}']))
+              assert d['status']=='completed' and d['conclusion']=='success'
+              assert d['head_sha']==sha
+          jobs=json.loads(subprocess.check_output(['gh','api','repos/ghbarker/nuvio-native-legacy/actions/runs/39169274422/jobs']))['jobs']
+          assert len(jobs)==8 and all(j['conclusion']=='success' for j in jobs)
+          VERIFY
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nuvio-TV-Mobile-Test-Logs63-ccb42692fc78a527237c7bc0481aff712a09ebe8
+          run-id: 39169181340
+          github-token: ${{ github.token }}
+      - name: Verify APK identity and record exact checks
+        run: |
+          python3 - <<'VERIFY'
+          import hashlib,json,pathlib,zipfile
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs63.apk')
+          expected='9cd863d93d2ba861f7d3ab923fd4b60d2d19d1f921384bc9b69d960d31de8095'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==expected
+          p=pathlib.Path('Logs63-validation.json');d=json.loads(p.read_text())
+          assert d['apk_sha256']==expected and d['apk_bytes']==apk.stat().st_size
+          assert d['source_commit']=='bebc10fe4433b449cbe3e00707c24fea74aa1fd6'
+          assert d['source_tree']=='5ce494b4a0d53d6c49b4b6f50b818657c9a7f673'
+          assert d['package']=='space.nuvio.nativelegacy.touch' and d['version_code']==20073
+          assert d['version_name']=='2.0.73-test-logs63'
+          assert d['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          with zipfile.ZipFile(apk) as z:
+              assert z.testzip() is None
+              assert {s.split('/')[1] for s in z.namelist() if s.startswith('lib/') and s.endswith('.so')}=={'arm64-v8a','armeabi-v7a'}
+          for field in ('all_passed','native_account_regressions','included_prs'):d.pop(field,None)
+          d.update(audio_filter_regressions=True,android_build=True,android_unit_tests=True,linux_full_source_checks=True,macos_full_source_checks=True,sanitizer_regressions=True,arm64_16kb_alignment=True,native_suite_invocations=32)
+          d['check_runs']={'android':39169181340,'linux_macos':39169274422}
+          d['clean_product_commit']='ea52f31eb6608594b3e761513fe37e44479c0fad'
+          d['source_audio_label_test']='Adjacent flags, known names/codes, subtitle isolation, declared precedence and aggregate diagnostic counts passed; awaiting device test approval.'
+          d['translation_lint']='No new UI strings; preview translation checker passed.'
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          VERIFY
+      - name: Publish update-compatible APK and test instructions
+        run: |
+          set -euo pipefail
+          cat > notes.txt <<'NOTES'
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
+
+          Follow-up to PR #532: source audio-language fallback handles adjacent flags such as 1080p🇹🇷 and keeps subtitle-only lists separate across separators and line breaks. Explicit audio metadata stays authoritative. The Sources log now reports aggregate audio-language match and exclusion counts without URLs, filenames, descriptions or credentials.
+
+          Includes the previously approved Logs62 backup corrections. Android build/unit/identity checks and 32 Linux/macOS normal/sanitizer suite invocations passed. Package, increasing version, persistent signer, both ARM ABIs and ARM64 16KB alignment verified.
+
+          See Logs63-test-steps.txt. No new dubbing PR before this build is approved.
+          NOTES
+          cat > Logs63-test-steps.txt <<'TESTSTEPS'
+          Logs63 — dubbed/audio-language filter check
+          
+          Install Nuvio-TV-Mobile-Test-Logs63.apk as an UPDATE to Nuvio TV/Mobile Test.
+          Do not uninstall or clear app data. Your accounts and settings should remain.
+          Version: 2.0.73-test-logs63 (20073).
+          
+          1. Record your current Settings > Playback > Audio language choice.
+          2. Choose Turkish and Confirm. Open the same movie you used for the empty list
+             (Kung Fu Panda or Avengers: Endgame), then open Sources / All sources.
+          3. Select the All add-ons tab. Leave MP4 only and Cached OFF for this first check.
+             The Audio: TR button shows the chosen language even before the filter is on.
+          4. Tap Audio: TR ON. Let the add-ons finish returning sources.
+             Turkish audio declared by the add-on OR Turkish-labelled releases should stay.
+             A Turkish subtitle by itself must not make a source pass the audio filter.
+             A source explicitly declaring a different audio language must not be overridden
+             by a filename hint.
+          5. If the list is empty, that is useful evidence now: download/share a log immediately
+             while the Audio: TR filter is ON. The log contains an audio-filter count line
+             showing whether Turkish audio matches were found or other filters hid them.
+             There is no need to keep guessing different films.
+          6. As a second check, choose English in Playback > Audio language and Confirm.
+             Reopen Sources, choose All add-ons, and turn Audio: EN ON. English matches
+             should remain if your add-ons identify English audio for this title. Try Cached
+             separately if desired; it may remove sources whose cache state is unconfirmed.
+          7. Restore your original Audio language choice from step 1.
+          
+          The release-label parser now handles adjacent flags such as 1080p🇹🇷 and keeps
+          subtitle-only lists separate across separators and line breaks. It uses metadata
+          and labels only; it does not open or inspect video tracks to filter sources.
+          No dubbed-language change will be submitted upstream before this build is approved.
+          TESTSTEPS
+          gh release create tv-mobile-test-logs-v63 Nuvio-TV-Mobile-Test-Logs63.apk Logs63-validation.json Logs63-test-steps.txt --target bebc10fe4433b449cbe3e00707c24fea74aa1fd6 --title 'TV/Mobile Test Logs63: dubbed-language filter fixes and diagnostics' --notes-file notes.txt --prerelease
