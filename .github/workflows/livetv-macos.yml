@@ -1,28 +1,52 @@
-name: Drive backup transfer protocol checks
+name: Active settings backup and restore checks
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  protocol:
+  native:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 25
     env:
+      SDL_MAC_BACKGROUND_APP: '1'
+      DYLD_LIBRARY_PATH: /opt/homebrew/lib
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 5f538ccb49ffa78ac3f8605a3393991b56fc3b33
+          ref: 8f1b95ba846007a5115e1d9b6cd67db67143d57f
           persist-credentials: false
-      - name: Normal and ASan UBSan Drive protocol tests (mock transport)
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Native dependencies
+        shell: bash
+        run: |
+          if [ '${{ runner.os }}' = macOS ]; then
+            brew install pkg-config sdl2 sdl2_image sdl2_ttf webp
+          else
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq pkg-config libegl1-mesa-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev
+          fi
+      - name: Startup recovery, normal and sanitizers
         shell: bash
         run: |
           set -euo pipefail
           for san in 0 1; do
-            SANITIZE="$san" bash tests/drivelocal.sh
+            SANITIZE="$san" bash tests/backupdisco.sh
           done
+      - name: Active local restore through native owners
+        shell: bash
+        run: bash tests/backupapp.sh
+      - name: Active local restore with ASan and UBSan
+        shell: bash
+        run: SANITIZE=1 bash tests/backupapp.sh
+      - name: Translation tables
+        shell: bash
+        run: python3 tools/idiomas.py
