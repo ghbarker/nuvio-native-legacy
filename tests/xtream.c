@@ -141,6 +141,35 @@ int main(void) {
   puts("ok  lg: lista direto no painel");
 #endif
 
+  // #424: categories beyond 256 retain their names, including the last
+  // channels of a large provider list. Preserve provider channel order.
+  {
+    const int nc = 600, ns = 12000;
+    char *cc = calloc((size_t)nc * 100 + 4, 1);
+    char *ss = calloc((size_t)ns * 130 + 4, 1);
+    XtreamCanal *large = calloc((size_t)ns, sizeof *large);
+    assert(cc && ss && large);
+    size_t a = 0, b = 0;
+    a += sprintf(cc+a, "["); b += sprintf(ss+b, "[");
+    for (int i = 0; i < nc; i++) a += sprintf(cc+a,
+      "%s{\"category_id\":%d,\"category_name\":\"Category %03d\"}", i?",":"", i+1, i);
+    for (int i = 0; i < ns; i++) b += sprintf(ss+b,
+      "%s{\"stream_id\":%d,\"name\":\"Channel %d\",\"category_id\":%d}", i?",":"", i+1, i, i%nc+1);
+    strcpy(cc+a, "]"); strcpy(ss+b, "]");
+    const char *oldCats = respCats, *oldStreams = respStreams;
+    respCats = cc; respStreams = ss;
+    assert(xtream_canais(large, ns) == ns && xtream_ultimo_total() == ns);
+    for (int i = 0; i < ns; i++) {
+      char expected[64]; snprintf(expected,sizeof expected,"Category %03d",i%nc);
+      assert(!strcmp(large[i].categoria,expected));
+      snprintf(expected,sizeof expected,"xtream:%d",i+1); assert(!strcmp(large[i].id,expected));
+    }
+    assert(xtream_canais(large, 17) == 17 && xtream_ultimo_total() == ns);
+    respCats = oldCats; respStreams = oldStreams;
+    free(large); free(ss); free(cc);
+    puts("ok  #424: 12000 ordered channels in 600 categories; tail names and total survive caller limit");
+  }
+
   assert(xtream_e_id("xtream:101") && !xtream_e_id("stalker:1") && !xtream_e_id(NULL));
   assert(xtream_url("xtream:101", url, sizeof url));
   assert(!strcmp(url, "http://meu.servidor.tv:8080/live/joao%40x/s%26nha%201/101.m3u8"));
