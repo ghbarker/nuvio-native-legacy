@@ -139,11 +139,15 @@ int drivelocal_enviar(const DriveLocal *c,const char *snapshot,size_t n,char id[
   jsw_chave(&w,"appProperties");jsw_obj_ini(&w);jsw_cs(&w,"nuvioBackupVersion","1");
   jsw_cs(&w,"nuvioOwner",c->dono);jsw_cs(&w,"nuvioProfile",perfil);jsw_obj_fim(&w);jsw_obj_fim(&w);
   const char *meta=jsw_texto_final(&w);char *corpo=NULL;
-  if(meta)corpo=malloc(strlen(meta)+n+512);
+  size_t cap=meta?strlen(meta)+n+512:0;
+  if(meta)corpo=malloc(cap);
   if(!corpo){jsw_livre(&w);free(texto);return DRIVE_LOCAL_INVALIDO;}
-  int inicio=sprintf(corpo,"--%s\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n%s\r\n--%s\r\nContent-Type: " DRIVE_MIME "\r\n\r\n",fronteira,meta,fronteira);
+  int inicio=snprintf(corpo,cap,"--%s\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n%s\r\n--%s\r\nContent-Type: " DRIVE_MIME "\r\n\r\n",fronteira,meta,fronteira);
+  if(inicio<0 || (size_t)inicio+n>=cap){free(corpo);jsw_livre(&w);free(texto);return DRIVE_LOCAL_INVALIDO;}
   jsw_livre(&w);memcpy(corpo+inicio,texto,n);free(texto);
-  int fim=sprintf(corpo+(size_t)inicio+n,"\r\n--%s--\r\n",fronteira);
+  size_t pos=(size_t)inicio+n;
+  int fim=snprintf(corpo+pos,cap-pos,"\r\n--%s--\r\n",fronteira);
+  if(fim<0 || (size_t)fim>=cap-pos){free(corpo);return DRIVE_LOCAL_INVALIDO;}
   char tipo[128];snprintf(tipo,sizeof tipo,"Content-Type: multipart/related; boundary=%s",fronteira);
   char *resposta=NULL;size_t nr=0;
   int resultado=executar(c,"POST",DRIVE_UPLOAD,tipo,corpo,(size_t)inicio+n+(size_t)fim,16384,&resposta,&nr);free(corpo);
