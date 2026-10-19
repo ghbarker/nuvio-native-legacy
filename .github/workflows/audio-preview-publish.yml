@@ -1,5 +1,8 @@
 name: Publish verified Logs84 Sports preview
 on:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/audio-preview-publish.yml]
   workflow_dispatch:
     inputs:
       android_run_id:
@@ -12,6 +15,7 @@ permissions:
   contents: read
 jobs:
   publish:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs84]')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -26,8 +30,8 @@ jobs:
       NATIVE_CONFIG: 358b35cad7a9e4d41c2f0a2f5d040743554dfdd7
       NATIVE_SOURCE_SHA: eeeb2091902f445cbc9ae8f7bca3127315c7acf4
       NATIVE_SOURCE_TREE: a01a26671217a07cac9e2cf261e412b92abed4cf
-      ANDROID_RUN: ${{ inputs.android_run_id }}
-      NATIVE_RUN: ${{ inputs.native_run_id }}
+      ANDROID_RUN: ${{ inputs.android_run_id || '39297730389' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39297734529' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +39,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Wait for the pinned checks
+        run: |
+          python3 - <<'WAIT'
+          import json,os,subprocess,time
+          for key,config in [('ANDROID_RUN','BUILD_CONFIG'),('NATIVE_RUN','NATIVE_CONFIG')]:
+              for attempt in range(60):
+                  r=json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GH_REPO']+'/actions/runs/'+os.environ[key]]))
+                  assert r['head_sha']==os.environ[config]
+                  if r['status']=='completed':
+                      assert r['conclusion']=='success',r['conclusion']
+                      break
+                  print(key,r['status'],flush=True)
+                  time.sleep(10)
+              else:raise RuntimeError(key+' did not finish in time')
+          WAIT
       - name: Verify successful pinned checks
         run: |
           python3 - <<'CHECK'
@@ -54,13 +73,13 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: Nuvio-TV-Mobile-Test-Logs84-${{ env.BUILD_CONFIG }}
-          run-id: ${{ inputs.android_run_id }}
+          run-id: ${{ env.ANDROID_RUN }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
         with:
           pattern: integration-*
           path: native-evidence
-          run-id: ${{ inputs.native_run_id }}
+          run-id: ${{ env.NATIVE_RUN }}
           github-token: ${{ github.token }}
       - name: Verify APK and native test evidence
         run: |
