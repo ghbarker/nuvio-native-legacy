@@ -554,6 +554,12 @@ static int idxAtual(void) {
   return idx;
 }
 static int ehCanal(void) { return canalSessao; }
+static int bufferPresetAtual(void) {
+#ifdef NV_ANDROID
+  if (ehCanal()) return ajustes_livetv_buffer_preset();
+#endif
+  return ajustes_buffer_preset();
+}
 // A MARCA DO DTS da faixa que esta tocando (DTS, DTS-HD, DTS:X), ou -1. Aparece
 // em todo estado do DTS — a TV tocando sozinha, o app convertendo, a conversao
 // desligada ou falha (dono, 06/10: "a badge do DTS ... quando for ativado ou
@@ -1885,7 +1891,7 @@ void player_abrir(int indiceCatalogo, const char *url) {
   cacheboost_backend_cache(ehCanal() ? 0 : ajustes_cache_seek_mb());
   epT = itemFixo.temporada; epE = itemFixo.episodio;
   armarTituloGuardado();
-  cacheboost_backend_buffer(cacheboost_buffer_mb(ajustes_buffer_preset(), memlog_livre_mb()));
+  cacheboost_backend_buffer(cacheboost_buffer_mb(bufferPresetAtual(), memlog_livre_mb()));
   loadEm = SDL_GetTicks();
   { char px[96];
     if (url && *url) { memlog_evento("load"); memQuadroPendente = 1; }
@@ -2080,7 +2086,7 @@ static void tocarFonteInterno(const char *url) {
   cacheboost_backend_cache(ehCanal() ? 0 : ajustes_cache_seek_mb());   // F07, ver player_abrir
   armarTituloGuardado();
   memlog_evento("load"); memQuadroPendente = 1;
-  cacheboost_backend_buffer(cacheboost_buffer_mb(ajustes_buffer_preset(), memlog_livre_mb()));
+  cacheboost_backend_buffer(cacheboost_buffer_mb(bufferPresetAtual(), memlog_livre_mb()));
   { char px[96];
 #ifdef NV_ANDROID
     // app.c define episodio e "do inicio" antes de entregar a fonte. O

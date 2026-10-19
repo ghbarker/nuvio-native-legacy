@@ -703,6 +703,7 @@ typedef enum {
 #ifdef NV_ANDROID
   AJ_DRIVE_BACKUP,
 #endif
+  AJ_LIVETV_BUFFER,
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1827,6 +1828,7 @@ static const Opcao OPCOES[AJ_N] = {
 #ifdef NV_ANDROID
   ACAO("Backup no Google Drive"),
 #endif
+  ESC("Tamanho do buffer", V_BUFFER, 4),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -2153,6 +2155,7 @@ static const char *CHAVE[] = {
 #ifdef NV_ANDROID
   "-googleDriveBackup",
 #endif
+  "bufferLiveLocal",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -2392,7 +2395,7 @@ static int ajIptvLinhaVisivel(int op) {
   if(op==AJ_IPTV_CANCELAR || op==AJ_IPTV_NOME || op==AJ_IPTV_ATIVA)return iptvForm.tipo!=0;
   int tipo=ajIptvCampoTipo(op);
   if(tipo)return iptvForm.tipo==tipo && (!iptvForm.nova || op!=AJ_XTREAM_CONTA);
-  if(op==AJ_GUIA_CATEGORIAS || op==AJ_EPG_MEMORIA || op==AJ_GUIA_ORDEM || op==AJ_IPTV_ORDEM || op==AJ_GUIA_FONTE || op==AJ_GUIA_RECARREGAR || op==AJ_EPG_PAIS ||
+  if(op==AJ_LIVETV_BUFFER || op==AJ_GUIA_CATEGORIAS || op==AJ_EPG_MEMORIA || op==AJ_GUIA_ORDEM || op==AJ_IPTV_ORDEM || op==AJ_GUIA_FONTE || op==AJ_GUIA_RECARREGAR || op==AJ_EPG_PAIS ||
      op==AJ_LIVETV_DIAG || op==AJ_LIVETV_RES || op==AJ_LIVETV_ESPERA ||
      op==AJ_LIVETV_FORMATO || op==AJ_LIVETV_MODO || op==AJ_LIVETV_PROXY)
     return !iptvForm.tipo;
@@ -3088,7 +3091,7 @@ static int ajOpcaoDisponivel(int op) {
   if (op == AJ_FALHA_ADDON_LIMITE) return faAddonEditar[0] != 0;
   if (op == AJ_HDR_INTERFACE) return 0;
 #ifndef NV_ANDROID
-  if (op == AJ_FONTE_PRECARREGAR || op == AJ_TUNNELING) return 0;
+  if (op == AJ_FONTE_PRECARREGAR || op == AJ_TUNNELING || op == AJ_LIVETV_BUFFER) return 0;
 #endif
 #ifndef NV_TOUCH_UI
   if (op == AJ_INTERFACE_MODO) return 0;
@@ -3199,6 +3202,10 @@ int ajustes_player_externo(int anime) {
 const char *ajustes_player_pacote(int anime) { return ppPkg[anime ? 1 : 0]; }
 int ajustes_buffer_preset(void) {
   int v = valor[AJ_BUFFER];
+  return v >= 0 && v < 4 ? v : 0;
+}
+int ajustes_livetv_buffer_preset(void) {
+  int v = valor[AJ_LIVETV_BUFFER];
   return v >= 0 && v < 4 ? v : 0;
 }
 int ajustes_fonte_idioma_audio(void) { return valor[AJ_FONTE_IDIOMA_AUDIO] == 0; }
@@ -6017,6 +6024,7 @@ static int somenteDesteAparelho(int op) {
     case AJ_LEG2_POS: case AJ_LEG2_TAMANHO: case AJ_LEG2_COR: case AJ_LEG2_FUNDO: case AJ_LEG2_BORDA: /* estilo da legenda e desta TV */
     case AJ_LEG_CONTORNO_COR: /* #475: idem */
     case AJ_CACHE_SEEK:     /* F07: o disco e o player sao desta TV */
+    case AJ_LIVETV_BUFFER:
     case AJ_BUFFER:         /* #338: o buffer e do player desta TV */
     case AJ_PLAYER_EXTERNO: case AJ_PLAYER_ANIME: /* #501: o app externo e deste aparelho */
     case AJ_ESTAT_TAMANHO:  /* #338: o painel de estatisticas e desta TV */
@@ -7747,6 +7755,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_ESTAT_LADO: return "O lado do player onde as Estatísticas ao vivo ficam, com a mesma margem das listas de Áudio e Legendas. Direita é o padrão. Com o painel aberto, Esquerda/Direita trocam o lado. Vale só nesta TV.";
     case AJ_PLAYER_EXTERNO: return "Escolha onde o vídeo toca: neste app, em um player instalado (VLC, MX Player...) ou perguntando a cada vez. O player externo não sincroniza o progresso.";
     case AJ_PLAYER_ANIME: return "Player só para anime (kitsu, MAL, AniList, ou animação japonesa). Igual ao Player usa a escolha acima. O player externo não sincroniza o progresso.";
+    case AJ_LIVETV_BUFFER:
     case AJ_BUFFER: return "Quanto vídeo o app guarda à frente. Automático é o de sempre; 64, 128 ou 256 MB ajudam arquivos 4K pesados e caem sozinhos se faltar memória na TV. No webOS vale para a conversão de DTS e Dolby Vision. Vale a partir do próximo vídeo.";
     case AJ_FONTE_IDIOMA_AUDIO: return "Na escolha automática, fontes com o seu Idioma do áudio ou áudio duplo passam na frente na mesma resolução. Não é filtro: sem elas, a melhor das outras toca.";
     case AJ_CACHE_SEEK: return "Com retomada rápida, guarda só o último título por até 3 horas. Trocar de perfil ou pouco espaço apagam o trecho.";

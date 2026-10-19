@@ -139,6 +139,7 @@ static const char *ajVisualIcone(int op) {
     case AJ_FONTE_PREPARAR: return "aj_download";
     case AJ_FONTE_PRECARREGAR: return "aj_download";
     case AJ_RETOMADA_MORNA: case AJ_MANTER_PRAZO: return "aj_rotate-ccw-clock";
+    case AJ_LIVETV_BUFFER:
     case AJ_BUFFER: return "aj_gauge";
     case AJ_FONTE_IDIOMA_AUDIO: return "aj_audio-lines";
     case AJ_FILTROS_FONTES: return "aj_funnel";
