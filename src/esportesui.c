@@ -1,5 +1,8 @@
 #include "esportesui.h"
 #include "esportes.h"
+#include "streams.h"
+#include "fontescanais.h"
+#include "ctxlista.h"
 #include "guia.h"
 #include "epg.h"
 #include "xtepg.h"
@@ -21,13 +24,13 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { ESP_LIGAS, ESP_EVENTOS, ESP_DETALHE, ESP_CANAIS, ESP_CONFIG };
+enum { ESP_LIGAS, ESP_EVENTOS, ESP_DETALHE, ESP_CONFIG };
 #define FOCO_MODALIDADE 100
 static int pagina, modalidade, foco, sair, pediuRelogio, soFavoritos, entradaTexto;
 static int indices[ESP_MAX_LIGAS], nItens;
 static EspLiga liga;
 static EspEvento evento;
-static char consulta[160], pedidoCanal[128], aviso[160];
+static char consulta[160], aviso[160];
 static unsigned revisao;
 static float rolagem, menuRolagem, topoLista, alturaLista, larguraLista, xLista, linhaH;
 static int colunas = 1;
@@ -49,11 +52,12 @@ static void medidas(void) {
   colunas=(pagina==ESP_LIGAS || pagina==ESP_EVENTOS)?(int)((larguraLista+vao)/(minimo+vao)):1;
   if (colunas<1) colunas=1;
   if (colunas>5) colunas=5;
-  linhaH=pagina==ESP_LIGAS?292:pagina==ESP_EVENTOS?286:pagina==ESP_CANAIS?120:92;
+  linhaH=pagina==ESP_LIGAS?292:pagina==ESP_EVENTOS?286:92;
 }
 static int linhas(void) { return (nItens+colunas-1)/colunas; }
 static Uint32 ultimoRefresh;
-static int retornoFoco[5];
+static int retornoFoco[4];
+static CtxHold eventoHold;
 #ifdef NV_TOUCH_UI
 static ToqueRolagem toque, toqueMenu;
 static int rolar(const PonteiroRolagem *e) {
@@ -62,7 +66,7 @@ static int rolar(const PonteiroRolagem *e) {
 #endif
 typedef struct { char id[128], nome[200], fonte[120], programa[240]; time_t ini, fim; int confirmado; } EspCanal;
 static EspCanal canais[64];
-static int nCanais, cursorCanal, cursorPrograma, procurando;
+static int nCanais, cursorCanal, cursorPrograma, procurando, canaisSujos;
 static unsigned guiaRevisao, epgRevisao;
 static Uint32 buscaDesde;
 
@@ -92,7 +96,6 @@ static void montar(void) {
       if (contem(e->nome) || contem(e->liga)) indices[nItens++] = i;
     }
   } else if (pagina == ESP_DETALHE) nItens = 1 + evento.nParticipantes;
-  else if (pagina == ESP_CANAIS) nItens = nCanais;
   if (foco >= nItens) foco = nItens > 0 ? nItens - 1 : 0;
 }
 static void abrir(int p) {
@@ -102,33 +105,43 @@ static void abrir(int p) {
   memset(&toqueMenu,0,sizeof toqueMenu);
 #endif
   medidas();
-  limparToque(); montar();
+  ctxhold_cancelar(&eventoHold);limparToque(); montar();
 }
 void esportesui_iniciar(void) {
   esportes_abrir_sessao(); pagina = ESP_LIGAS; modalidade=primeiroEsporte();
   foco = modalidade>=0?-FOCO_MODALIDADE-modalidade:0; sair = pediuRelogio = 0;
-  entradaTexto = soFavoritos = 0; consulta[0] = aviso[0] = pedidoCanal[0] = 0;
+  entradaTexto = soFavoritos = 0; consulta[0] = aviso[0] = 0;
+  ctxhold_cancelar(&eventoHold);
   rolagem = menuRolagem = 0; procurando = 0; limparToque(); medidas(); montar();
   if (modalidade>=0) esportes_pedir_ligas(modalidade,0);
   montar(); revisao = esportes_revisao();
 }
-void esportesui_fechar(void) { esportes_cancelar(); procurando = entradaTexto = 0; limparToque(); }
+void esportesui_fechar(void) { stream_folha_canais_fechar();ctxhold_cancelar(&eventoHold);esportes_cancelar(); procurando = entradaTexto = 0; limparToque(); }
 int esportesui_quer_sair(void) { int v = sair; sair = 0; return v; }
 int esportesui_pediu_relogio(void) { int v = pediuRelogio; pediuRelogio = 0; return v; }
-int esportesui_pediu_canal(char *id, unsigned n) {
-  if (!pedidoCanal[0]) return 0;
-  snprintf(id, n, "%s", pedidoCanal); pedidoCanal[0] = 0; return 1;
+int esportesui_pediu_canal(char *id, unsigned n) { return fontescanais_consumir(id,n); }
+static void publicarCanais(void) {
+  if(!canaisSujos)return;
+  FonteCanal lista[FONTESCANAIS_MAX];
+  for(int i=0;i<nCanais;i++) {
+    FonteCanal *c=&lista[i];memset(c,0,sizeof *c);
+    memcpy(c->id,canais[i].id,sizeof c->id);
+    memcpy(c->nome,canais[i].nome,sizeof c->nome);
+    memcpy(c->conta,canais[i].fonte,sizeof c->conta);
+    memcpy(c->programa,canais[i].programa,sizeof c->programa);c->inicio=canais[i].ini;
+  }
+  fontescanais_publicar(lista,nCanais,procurando);canaisSujos=0;
 }
 static void buscarCanais(void) {
-  guia_carregar(); epg_iniciar(); nItens = nCanais = cursorCanal = cursorPrograma = 0;
-  pedidoCanal[0]=0;
-  procurando = 1; buscaDesde = SDL_GetTicks();
+  guia_carregar(); epg_iniciar(); nCanais = cursorCanal = cursorPrograma = 0;
+  procurando = canaisSujos = 1; buscaDesde = SDL_GetTicks();
   guiaRevisao = guia_busca_revisao(); epgRevisao = epg_revisao();
+  publicarCanais();
 }
 static void voltar(void) {
   procurando = 0;
   if (pagina == ESP_LIGAS) { sair = 1; return; }
-  int p = pagina == ESP_CONFIG ? ESP_LIGAS : pagina == ESP_CANAIS ? ESP_DETALHE : pagina - 1;
+  int p = pagina == ESP_CONFIG ? ESP_LIGAS : pagina - 1;
   int configurar=pagina==ESP_CONFIG;
   abrir(p); foco=retornoFoco[p];
   if (p==ESP_LIGAS && configurar) {
@@ -148,24 +161,17 @@ static void agir(void) {
     liga = *l; abrir(ESP_EVENTOS); esportes_pedir_eventos(modalidade, &liga, 0); ultimoRefresh = SDL_GetTicks();
   } else if (pagina == ESP_EVENTOS) {
     const EspEvento *e = esportes_evento(indices[foco]); if (!e) return;
-    evento = *e; abrir(ESP_DETALHE);
+    evento = *e;stream_folha_canais_abrir(evento.nome);buscarCanais();
   } else if (pagina == ESP_DETALHE) {
-    if (foco == 0) { abrir(ESP_CANAIS); buscarCanais(); }
+    if (foco == 0) { stream_folha_canais_abrir(evento.nome);buscarCanais(); }
     else if (!esportes_alternar_favorito(&evento, foco - 1)) snprintf(aviso, sizeof aviso, "%s", i18n("Não foi possível salvar"));
-  } else if (pagina == ESP_CANAIS) {
-    EspCanal *c = &canais[foco];
-    if (c->confirmado && c->ini > time(NULL)) {
-      snprintf(aviso, sizeof aviso, "%s", i18n("Este evento ainda não começou")); return;
-    }
-    snprintf(pedidoCanal, sizeof pedidoCanal, "%s", c->id);
   }
 }
 static int nTopo(void) { return pagina == ESP_LIGAS || pagina == ESP_EVENTOS ? 4 : 3; }
 static void acaoTopo(int i) {
   if (i == 0) { voltar(); return; }
-  if (i == 1 && (pagina == ESP_DETALHE || pagina == ESP_CANAIS)) {
-    if (pagina == ESP_DETALHE) abrir(ESP_CANAIS);
-    buscarCanais(); return;
+  if (i == 1 && pagina == ESP_DETALHE) {
+    stream_folha_canais_abrir(evento.nome);buscarCanais();return;
   }
   if (i == 1) {
     entradaTexto = 1; teclado_abrir_com("Buscar esportes", "Digite para buscar", 159, teclado_alfabeto(), consulta);
@@ -174,7 +180,6 @@ static void acaoTopo(int i) {
   } else if (i == 3 && pagina == ESP_EVENTOS) { soFavoritos = !soFavoritos; foco = 0; montar(); limparToque(); }
   else if (i == 3) {
     if (pagina == ESP_LIGAS && modalidade>=0) esportes_pedir_ligas(modalidade, 1);
-    else if (pagina == ESP_CANAIS) buscarCanais();
   }
 }
 static void pointerFoco(int i, int b) { (void)b; foco = i; }
@@ -191,10 +196,20 @@ static void escolherModalidade(int m) {
 }
 static void pointerModalidade(int m,int b) { (void)b; foco=-FOCO_MODALIDADE-m; }
 static void pointerModalidadeAgir(int m,int b) { (void)b; limparToque(); escolherModalidade(m); }
+static void pointerDetalhe(int i,int b) {
+  (void)b;foco=i;
+  const EspEvento *e=i>=0 && i<nItens?esportes_evento(indices[i]):NULL;
+  if (e) { evento=*e;abrir(ESP_DETALHE); }
+}
 void esportesui_evento(const SDL_Event *e) {
   if (entradaTexto) { teclado_evento(e); return; }
+  int gesto=ctxhold_evento(&eventoHold,e,pagina==ESP_EVENTOS && foco>=0 && foco<nItens);
+  if (gesto==CTXH_CONSUMIDO) return;
+  if (gesto==CTXH_TOQUE) { agir();return; }
+  if (gesto==CTXH_LONGO) { pointerDetalhe(foco,0);return; }
   if (e->type != SDL_KEYDOWN) return;
   SDL_Keycode k = e->key.keysym.sym;
+  if (k==SDLK_MENU && pagina==ESP_EVENTOS && foco>=0) { pointerDetalhe(foco,0);return; }
   if (nv_tecla_voltar(e)) { voltar(); return; }
   limparToque(); medidas();
   if (foco<=-FOCO_MODALIDADE) {
@@ -243,20 +258,20 @@ static void adicionar(const char *id, const char *nome, const char *fonte, const
   snprintf(c->id, sizeof c->id, "%s", id); snprintf(c->nome, sizeof c->nome, "%s", nome);
   snprintf(c->fonte, sizeof c->fonte, "%s", fonte); c->confirmado = confirmado;
   if (p) { c->ini = p->ini; c->fim = p->fim; snprintf(c->programa, sizeof c->programa, "%s", p->titulo ? p->titulo : ""); }
-  nCanais++; nItens = nCanais; if (foco < 0 && nItens == 1) foco = 0;
+  nCanais++;canaisSujos=1;
 }
 static void buscarPasso(void) {
   if (!procurando) return;
   epg_passo(); xtepg_passo();
   if (guiaRevisao != guia_busca_revisao() || epgRevisao != epg_revisao()) {
-    guiaRevisao = guia_busca_revisao(); epgRevisao = epg_revisao(); nItens = nCanais = cursorCanal = cursorPrograma = 0;
+    guiaRevisao = guia_busca_revisao(); epgRevisao = epg_revisao(); nCanais = cursorCanal = cursorPrograma = 0;canaisSujos=1;
   }
   Uint32 inicio = SDL_GetTicks(); int lote = 0;
   for (; lote++ < 24 && SDL_GetTicks() - inicio < 3; ) {
     const char *id, *nome; const char *fonte;
     if (!guia_canal_campos(cursorCanal, &id, &nome, NULL, NULL, NULL)) {
       if (guia_busca_carregando() || epg_estado() == EPG_BAIXANDO) { cursorCanal = cursorPrograma = 0; return; }
-      procurando = 0; montar(); return;
+      procurando = 0;canaisSujos=1; return;
     }
     if (!guia_busca_elegivel(cursorCanal)) { cursorCanal++; cursorPrograma=0; continue; }
     fonte = guia_busca_conta(cursorCanal);
@@ -267,10 +282,11 @@ static void buscarPasso(void) {
      * A confirmed programme must name both opponents and overlap its time. */
     if (n == 16) cursorPrograma += n; else { cursorCanal++; cursorPrograma = 0; }
   }
-  if (SDL_GetTicks() - buscaDesde > 30000) { procurando = 0; montar(); }
+  if (SDL_GetTicks() - buscaDesde > 30000) { procurando=0;canaisSujos=1; }
 }
 void esportesui_atualizar(float dt, Uint32 agora) {
   (void)dt; medidas();
+  if (ctxhold_passo(&eventoHold,agora,1)) pointerDetalhe(foco,0);
   char selecionado[100]="";
   if (pagina == ESP_EVENTOS && foco >= 0 && foco < nItens) {
     const EspEvento *e=esportes_evento(indices[foco]);
@@ -292,7 +308,10 @@ void esportesui_atualizar(float dt, Uint32 agora) {
       if (!strcmp(esportes_evento(indices[i])->id,selecionado)) { foco=i; break; }
     }
   }
-  buscarPasso();
+  if (stream_folha_canais_aberta()) {
+    if (fontescanais_pediu_atualizar()) buscarCanais();
+    buscarPasso();publicarCanais();
+  } else procurando=0;
   if ((pagina == ESP_EVENTOS || pagina == ESP_DETALHE) && !entradaTexto && !esportes_carregando() && agora - ultimoRefresh >= 60000) {
     /* Refresh only the visible league. Never poll hundreds of leagues or
      * touch a media URL while playback is active. */
@@ -405,7 +424,7 @@ void esportesui_desenhar(Uint32 agora) {
   txt(TXT_TITULO2,i18n("Esportes"),xLista,68,larguraLista,245);
   const char *sub=pagina==ESP_CONFIG?"ESPN":pagina==ESP_LIGAS?(modalidade>=0?i18n(esportes_modalidade(modalidade)->nome):i18n("Esportes")):pagina==ESP_EVENTOS?liga.nome:evento.nome;
   txt(TXT_CAPTION2,sub,xLista,126,larguraLista,170);
-  const char *botoes[]={"Voltar",pagina==ESP_DETALHE?"Encontrar canais":pagina==ESP_CANAIS?"Atualizar":"Buscar","Esportes",pagina==ESP_EVENTOS?(soFavoritos?"Todos":"Favoritos"):"Atualizar"};
+  const char *botoes[]={"Voltar",pagina==ESP_DETALHE?"Encontrar canais":"Buscar","Esportes",pagina==ESP_EVENTOS?(soFavoritos?"Todos":"Favoritos"):"Atualizar"};
   int nBotoes=nTopo();
   float bw=fminf(210,(larguraLista-(nBotoes-1)*12)/nBotoes),by=172;
   for (int i=0;i<nBotoes;i++) {
@@ -436,24 +455,23 @@ void esportesui_desenhar(Uint32 agora) {
       const EspLiga *l=esportes_liga(indices[i]);if (l) cartaoLiga(l,r,foco==i);
     } else {
       if (foco==i) plrui_linha_foco(r,18,1);
-      const char *nome="",*subt="";char s[400];
+      const char *nome="",*subt="";
       if (pagina==ESP_CONFIG) {
         int m=indices[i];nome=i18n(esportes_modalidade(m)->nome);
         subt=esportes_habilitado(m)?i18n("Ligado"):i18n("Desligado");
       } else if (pagina==ESP_DETALHE) {
         nome=i==0?i18n("Encontrar canais"):evento.participantes[i-1].nome;
         subt=i==0?i18n("Buscar este evento no seu guia"):esportes_favorito(&evento,i-1)?i18n("Remover dos favoritos"):i18n("Adicionar aos favoritos");
-      } else if (pagina==ESP_CANAIS) {
-        const EspCanal *c=&canais[i];nome=c->nome;
-        snprintf(s,sizeof s,"%s · %s",c->fonte,c->programa);subt=s;
+
       }
       txt(TXT_BODY,nome,r.x+22,r.y+14,r.w-44,245);
       txt(TXT_CAPTION2,subt,r.x+22,r.y+51,r.w-44,170);
     }
     ponteiro_alvo_faixa(r.x,r.y,r.w,r.h,topoLista,topoLista+alturaLista,pointerFoco,pointerAtivar,i,0);
+    if (pagina==ESP_EVENTOS) ponteiro_alvo_segurar(pointerDetalhe);
   }
   if (!nItens) {
-    const char *s=procurando?"Buscando no guia…":esportes_carregando()?"Carregando…":esportes_erro()?"Não foi possível carregar. Use Atualizar para tentar novamente.":pagina==ESP_CANAIS?"Nenhum canal encontrado para este evento":"Nenhum resultado";
+    const char *s=procurando?"Buscando no guia…":esportes_carregando()?"Carregando…":esportes_erro()?"Não foi possível carregar. Use Atualizar para tentar novamente.":"Nenhum resultado";
     txt(TXT_BODY,i18n(s),xLista+22,topoLista+30,larguraLista-44,170);
   }
   gfx_sem_recorte();
