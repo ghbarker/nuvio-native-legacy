@@ -39,6 +39,7 @@ typedef struct {
 // grade em memoria; FALHOU e terminal ate a proxima guia_iniciar.
 enum { EPG_PARADO, EPG_BAIXANDO, EPG_PRONTO, EPG_FALHOU };
 int epg_estado(void);
+unsigned epg_revisao(void);
 
 // Dispara o fio de carga se ainda nao rodou. Idempotente.
 void epg_iniciar(void);
