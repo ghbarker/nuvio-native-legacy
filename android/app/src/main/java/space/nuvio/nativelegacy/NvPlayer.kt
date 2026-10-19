@@ -1337,7 +1337,8 @@ object NvPlayer {
                         .setUserAgent(ua).setDefaultRequestProperties(props.filterKeys {
                             !it.equals("If-None-Match", true) && !it.equals("If-Modified-Since", true)
                         }),
-                    report = { Log.i(TAG, it) },
+                    // TEST BUILD ONLY: mirror playlist decisions into exported logs.
+                    report = { liveDiagnostic(it) },
                 ))
             if (construir) construirPlayer(act, r)
             Log.i(TAG, "[player] buffer preset=$preset min=${minMs / 1000}s max=${maxMs / 1000}s teto=${bytes shr 20}MB preparo=$preparando")
@@ -2230,6 +2231,14 @@ object NvPlayer {
                 info.bytesLoaded, info.loadDurationMs, failed)
         }
 
+        // TEST BUILD ONLY: session-salted fingerprints correlate requests without
+        // exposing hosts, paths, query tokens, response bodies or auth headers.
+        private val traceSalt = java.util.UUID.randomUUID().toString()
+        private val failedLoads = LinkedHashMap<Long, Triple<Long, Long, Int>>()
+        private fun traceId(value: String): String = java.security.MessageDigest.getInstance("SHA-256")
+            .digest((traceSalt + value).toByteArray(Charsets.UTF_8)).take(8)
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+
         // Task IDs correlate retries/completion without retaining a source URI.
         private fun traceLoad(kind: String, info: LoadEventInfo, data: MediaLoadData,
                               error: java.io.IOException? = null, canceled: Boolean = false) {
@@ -2238,6 +2247,21 @@ object NvPlayer {
             if (!p.isCurrentMediaItemLive && p.currentManifest !is HlsManifest) return
             val causes = error?.let { generateSequence<Throwable>(it) { cause -> cause.cause }
                 .take(8).joinToString(" <- ") { cause -> camposErroCausa(cause) } } ?: "none"
+            val now = SystemClock.elapsedRealtime()
+            if (error != null) {
+                val previous = failedLoads[info.loadTaskId]
+                if (previous == null && failedLoads.size >= 32) failedLoads.remove(failedLoads.keys.first())
+                failedLoads[info.loadTaskId] = Triple(previous?.first ?: now,
+                    previous?.second ?: p.totalBufferedDuration, (previous?.third ?: 0) + 1)
+            }
+            val failure = failedLoads[info.loadTaskId]
+            val list = (p.currentManifest as? HlsManifest)?.mediaPlaylist
+            val age = info.responseHeaders.entries.firstOrNull { it.key.equals("Age", true) }
+                ?.value?.firstOrNull()?.toLongOrNull() ?: -1L
+            val request = traceId(info.dataSpec.uri.toString())
+            val destination = traceId(info.uri.toString())
+            liveDiagnostic("[live-request] session=$minha event=$kind task=${info.loadTaskId} request=$request destination=$destination redirected=${info.dataSpec.uri != info.uri} offset=${info.dataSpec.position} length=${info.dataSpec.length} ageSeconds=$age failures=${failure?.third ?: 0} sinceFirstFailureMs=${failure?.let { now - it.first } ?: 0} firstFailureBufferMs=${failure?.second ?: -1} bufferNowMs=${p.totalBufferedDuration} playing=${p.isPlaying} positionMs=${p.currentPosition} sequence=${list?.mediaSequence ?: -1} segments=${list?.segments?.size ?: -1} targetUs=${list?.targetDurationUs ?: -1}")
+            if (kind == "complete" || kind == "cancel" || canceled) failedLoads.remove(info.loadTaskId)
             liveDiagnostic("[live-load] session=$minha event=$kind task=${info.loadTaskId} type=${data.dataType} track=${data.trackType} startMs=${data.mediaStartTimeMs} endMs=${data.mediaEndTimeMs} bytes=${info.bytesLoaded} durationMs=${info.loadDurationMs} canceled=$canceled state=${p.playbackState} bufferedMs=${p.totalBufferedDuration} causes=$causes")
         }
 
