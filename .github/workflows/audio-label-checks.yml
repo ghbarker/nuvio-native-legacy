@@ -1,4 +1,4 @@
-name: Logs71 HLS buffering recovery Linux and macOS checks
+name: Logs72 HLS buffering recovery Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: a8e7d33cd9a04d72b314715f95c57b6f92e85d61
+  SOURCE_SHA: 9596dece9f5bcbbf9788fd91a84ac115d02f4356
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -26,7 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
         group:
-          - live-watchdog
+          - live-buffer
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
@@ -145,6 +145,7 @@ jobs:
               'guide-ui':normal('guiabusca_reabrir'),
               'sources':both('source_audio_language'),
               'source-policy':both('source_cache_filter','fontefalha')+normal('source_exclusion_languages','fonteregra'),
+              'live-buffer':both('cacheboost','backupapp')+normal('ajustes_iptv'),
               'live-watchdog':both('livestall_window','video_android_live_window','live_error_recovery')+normal('livestall','livestall_seco'),
               'backup-state':both('backupapp','backupfonts','backuplocal','backupcrypto'),
               'backup-drive':both('drivebackup'),
