@@ -31,15 +31,15 @@ jobs:
           cat > Logs80-test-steps.txt <<'STEPS'
           Logs80: IntroDB skip-marker backup and season-button fix
           Version 2.0.90-test-logs80 (20090).
-          
+
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
           app data; the package and persistent signing key retain your accounts.
-          
+
           1. Confirm the season-button fix: open Game of Thrones, select seasons
              1 and 8, then leave and reopen. Episode cards and tabs should agree.
           2. To test MANUAL buttons, temporarily disable automatic Skip intro,
              Skip recap and Skip credits in Playback settings.
-             lookup enabled. Automatic skipping can hide the manual button.
+             Automatic skipping can hide the manual button.
           3. Open Supernatural S01E01. Allow about 20 seconds for both databases
              to respond, then seek to 2:25 and let it play. The public IntroDB
              backup currently lists an intro from 2:30 to 3:30. A Skip intro
@@ -55,10 +55,10 @@ jobs:
           7. If a button is missing, save a log and include title, season/episode,
              source, playback time, and whether automatic skipping was enabled.
              Look for IntroDB backup HTTP/status and added-marker diagnostics.
-          
+
           Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs80.txt
           In a phone ADB shell app: logcat -d -v threadtime
-          
+
           These are test instructions, not a guarantee of database coverage for
           every episode or video cut. Existing timing safeguards remain enabled.
           Awaiting approval of this build before publishing the IntroDB PR.
@@ -180,8 +180,8 @@ jobs:
           1. Confirm the season-button fix: open Game of Thrones, select seasons
              1 and 8, then leave and reopen. Episode cards and tabs should agree.
           2. To test MANUAL buttons, temporarily disable automatic Skip intro,
-             Skip recap and Skip credits in Playback settings. Keep skip-marker
-             lookup enabled. Automatic skipping can hide the manual button.
+             Skip recap and Skip credits in Playback settings.
+             Automatic skipping can hide the manual button.
           3. Open Supernatural S01E01. Allow about 20 seconds for both databases
              to respond, then seek to 2:25 and let it play. The public IntroDB
              backup currently lists an intro from 2:30 to 3:30. A Skip intro
