@@ -3,7 +3,7 @@
 /* Navigation/matching fixture: no SDL video/audio runtime is needed. */
 Uint32 SDLCALL SDL_GetTicks(void) { return 1000; }
 static unsigned rev=1;
-static int ligasProntas=1;
+static int ligasProntas=1, visitasOcultas;
 static int habilitados[16], pediuLigas, pediuEventos, favorito, tecladoResultado;
 static EspLiga lTeste={"nba","NBA",""};
 static EspEvento eTeste;
@@ -40,15 +40,17 @@ int epg_estado(void) { return EPG_PRONTO; }
 unsigned epg_revisao(void) { return 1; }
 unsigned guia_busca_revisao(void) { return 1; }
 int guia_busca_carregando(void) { return 0; }
+int guia_busca_elegivel(int i) { return i>=0 && i<3; }
 int guia_canal_campos(int i,const char **id,const char **n,const char **l,const char **c,const char **b) {
   (void)l;(void)c;(void)b;
-  static const char *ids[]={"wrong","match","broadcaster"},*names[]={"Sports One","Sports Two","ESPN HD"};
-  if(i<0 || i>=3)return 0;
+  static const char *ids[]={"wrong","match","broadcaster","hidden"},*names[]={"Sports One","Sports Two","ESPN HD","Hidden channel"};
+  if(i<0 || i>=4)return 0;
   *id=ids[i];*n=names[i];return 1;
 }
 const char *guia_busca_conta(int i) { return i==1?"Account Two":"Account One"; }
 int guia_busca_programas(int i,time_t d,time_t a,int p,EpgProg *out,int cap) {
   (void)d;(void)a;(void)p;(void)cap;
+  if(i==3)visitasOcultas++;
   if(i==2)return 0;
   *out=(EpgProg){eTeste.inicio,eTeste.inicio+7200,i==0?"Celtics vs Cavaliers":"Celtics vs Magic"};return 1;
 }
@@ -74,7 +76,7 @@ int main(void) {
   foco=1;tecla(SDLK_RETURN);assert(favorito);
   foco=0;tecla(SDLK_RETURN);assert(pagina==ESP_CANAIS);
   esportesui_atualizar(0.016f,SDL_GetTicks());
-  assert(nCanais==2 && !procurando);
+  assert(nCanais==2 && !procurando && !visitasOcultas);
   assert(canais[0].confirmado && !strcmp(canais[0].id,"match"));
   assert(!strcmp(canais[0].fonte,"Account Two"));assert(!canais[1].confirmado);
   foco=0;tecla(SDLK_RETURN);char id[128];assert(esportesui_pediu_canal(id,sizeof id) && !strcmp(id,"match"));
