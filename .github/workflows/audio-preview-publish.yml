@@ -1,13 +1,13 @@
-name: Publish verified Logs68 combined test APK
+name: Publish verified Logs69 combined test APK
 on:
   workflow_dispatch:
     inputs:
       android_run_id:
-        description: Successful Logs68 Android APK workflow run ID
+        description: Successful Logs69 Android APK workflow run ID
         required: true
         type: string
       native_run_id:
-        description: Successful 2-job Logs68 native integration workflow run ID
+        description: Successful 2-job Logs68 native backup workflow run ID (unchanged C sources)
         required: true
         type: string
       apk_sha256:
@@ -26,10 +26,13 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 9e23de2c6b2eee6ed631486b89dc33b93fdfbce7
-      SOURCE_TREE: a5b82ebf5bac95019d8363cd2915f52ad793f8e4
+      SOURCE_SHA: 8046d1835a0bf12f3eaea9a0503e01553b994ca0
+      SOURCE_TREE: 1483d11dcd85e25079b0c4caef671e22ee5ea093
       # Android is already building this exact immutable source; retain it.
       ANDROID_CONFIG_COMMIT: ${{ github.sha }}
+      NATIVE_CONFIG_COMMIT: 2c357859de53284b86ac7c9a39c2238f499fe9df
+      NATIVE_SOURCE_SHA: 9e23de2c6b2eee6ed631486b89dc33b93fdfbce7
+      NATIVE_SOURCE_TREE: a5b82ebf5bac95019d8363cd2915f52ad793f8e4
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
       APK_SHA256: ${{ inputs.apk_sha256 }}
@@ -43,11 +46,15 @@ jobs:
           assert re.fullmatch(r'[0-9a-f]{40}',os.environ['SOURCE_SHA'])
           assert re.fullmatch(r'[0-9a-f]{40}',os.environ['SOURCE_TREE'])
           assert re.fullmatch(r'[0-9a-f]{64}',os.environ['APK_SHA256'])
+          comparison=api('compare/'+os.environ['NATIVE_SOURCE_SHA']+'...'+os.environ['SOURCE_SHA'])
+          allowed={'android/app/build.gradle.kts','android/app/src/main/java/space/nuvio/nativelegacy/NvPlayer.kt','android/app/src/main/java/space/nuvio/nativelegacy/LiveSegmentTrace.kt','android/app/src/test/java/space/nuvio/nativelegacy/LiveSegmentTraceTest.kt'}
+          assert comparison['status']=='ahead' and comparison['total_commits']==1
+          assert {file['filename'] for file in comparison['files']}==allowed,'Native evidence is reusable only with unchanged native sources'
           for name,path in [('ANDROID_RUN','.github/workflows/logs35-build.yml'),('NATIVE_RUN','.github/workflows/audio-label-checks.yml')]:
               run=os.environ[name];assert re.fullmatch(r'[0-9]+',run)
               data=api('actions/runs/'+run)
               assert data['status']=='completed' and data['conclusion']=='success',(name,data['status'],data['conclusion'])
-              expected_config=os.environ['ANDROID_CONFIG_COMMIT']
+              expected_config=os.environ['NATIVE_CONFIG_COMMIT' if name=='NATIVE_RUN' else 'ANDROID_CONFIG_COMMIT']
               assert data['head_sha']==expected_config,(name,'Unexpected fork CI configuration commit')
               assert data['path']==path,(name,data['path'])
               assert data['head_repository']['full_name']==repo
@@ -61,7 +68,7 @@ jobs:
       - name: Download exact Android artifact
         uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs68-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs69-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - name: Download all native evidence
@@ -75,18 +82,18 @@ jobs:
         run: |
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs68.apk')
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs69.apk')
           expected=os.environ['APK_SHA256']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==expected
-          validation=pathlib.Path('Logs68-validation.json');data=json.loads(validation.read_text())
+          validation=pathlib.Path('Logs69-validation.json');data=json.loads(validation.read_text())
           assert data['apk_sha256']==expected and data['apk_bytes']==apk.stat().st_size
           assert data['source_commit']==os.environ['SOURCE_SHA'] and data['source_tree']==os.environ['SOURCE_TREE']
           assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT'] and data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
-          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20078
-          assert data['version_name']=='2.0.78-test-logs68'
+          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20079
+          assert data['version_name']=='2.0.79-test-logs69'
           assert data['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert data['android_build'] and data['both_arm_abis'] and data['arm64_16kb_alignment']
-          assert set(data['android_unit_tests'])=={'LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest'}
+          assert set(data['android_unit_tests'])=={'LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest','LiveSegmentTraceTest'}
           assert set(data['included_prs'])=={573,575,576,587,596,597,598,601,602,609,611}
           with zipfile.ZipFile(apk) as archive:
               assert archive.testzip() is None
@@ -98,15 +105,17 @@ jobs:
           invocations=[]
           for name,directory in directories.items():
               source=json.loads((directory/'source.json').read_text())
-              assert source['source_commit']==os.environ['SOURCE_SHA'] and source['source_tree']==os.environ['SOURCE_TREE'],name
+              assert source['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and source['source_tree']==os.environ['NATIVE_SOURCE_TREE'],name
               results=json.loads((directory/'results.json').read_text())
               assert results and all(result['code']==0 for result in results),name
               invocations.extend(results)
           data.update(android_build=True,linux_native_checks=True,macos_native_checks=True,native_matrix_jobs=2,native_suite_invocations=len(invocations),sanitizer_suite_invocations=sum(result['sanitizers'] for result in invocations))
-          data['check_configuration_commits']={'android':os.environ['ANDROID_CONFIG_COMMIT'],'linux_macos':os.environ['ANDROID_CONFIG_COMMIT']}
+          data['check_configuration_commits']={'android':os.environ['ANDROID_CONFIG_COMMIT'],'linux_macos':os.environ['NATIVE_CONFIG_COMMIT']}
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
           data['translation_lint']='No added diagnostics against unchanged upstream415544; baseline contains pre-existing empty translations.'
-          data['native_checks_note']='Native normal/ASan+UBSan regressions are not macOS, webOS or Tizen packaged application builds.'
+          data['native_source_commit']=os.environ['NATIVE_SOURCE_SHA']
+          data['native_source_tree']=os.environ['NATIVE_SOURCE_TREE']
+          data['native_checks_note']='Retains Logs68 normal/ASan+UBSan checks on identical native source files; guarded comparison permits only the four Android diagnostic/packaging files. Not macOS, webOS or Tizen packaged builds.'
           validation.write_text(json.dumps(data,indent=2)+'\n')
           VERIFY
       - name: Write release inventory and instructions
@@ -114,14 +123,14 @@ jobs:
           python3 - <<'INVENTORY'
           import json,os,pathlib
           items=[{'number': 573, 'title': 'Fonts: import local TTF/OTF for subtitles and interface', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/573'}, {'number': 575, 'title': 'Sources: add persistent cached/uncached filtering', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/575'}, {'number': 576, 'title': 'Episodes: keep canonical identity after metadata updates', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/576'}, {'number': 587, 'title': 'Live TV: bypass source filters and add per-add-on overrides', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/587'}, {'number': 596, 'title': 'Live TV: add M3U, multiple accounts and responsive EPG loading', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/596'}, {'number': 597, 'title': 'Live TV: prevent false stall restarts and recover expired live windows', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/597'}, {'number': 598, 'title': 'Details: show prepared-source specifications below Play', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/598'}, {'number': 601, 'title': 'Live TV: fix large category lists and category Confirm/Cancel', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/601'}, {'number': 602, 'title': 'Live TV: keep repeated search results visible and responsive', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/602'}, {'number': 609, 'title': 'Backup: add encrypted Google Drive backup and restore for local settings', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/609'}, {'number': 611, 'title': 'Sources: match audio-language filters against release labels', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/611'}]
-          pathlib.Path('Logs68-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
+          pathlib.Path('Logs69-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
           INVENTORY
-          cat > Logs68-test-steps.txt <<'TESTSTEPS'
-          Logs68 — TV backup menu and existing-password guidance
+          cat > Logs69-test-steps.txt <<'TESTSTEPS'
+          Logs69 — live segment diagnostics and corrected backup menu
 
-          Install Nuvio-TV-Mobile-Test-Logs68.apk as an UPDATE to Nuvio TV/Mobile Test.
-          Do not uninstall or clear data. Version: 2.0.78-test-logs68 (20078).
-          This retains all changes in Logs67; no additional playback fix is claimed.
+          Install Nuvio-TV-Mobile-Test-Logs69.apk as an UPDATE to Nuvio TV/Mobile Test.
+          Do not uninstall or clear data. Version: 2.0.79-test-logs69 (20079).
+          This retains all changes in Logs68 and adds bounded numeric HLS diagnostics. No new playback fix is claimed.
 
           1. On the TV, open Settings > Google Drive backup.
           2. Move up and down through every option. The focused row should have a
@@ -136,9 +145,13 @@ jobs:
              then confirm it. Cancel if you do not need another backup.
           7. Check the same menu on your phone; choices and text should remain usable.
 
-          Live TV follow-up: Logs67 is retained. If picture/audio repeats, note the
-          exact time and save a log while playback is open. Include whether the
-          loading screen appeared or playback stayed visible.
+          Live TV replay check:
+          1. On the affected Ugoos, open the same channel in Nuvio.
+          2. Watch until the picture/audio repeats. Note the clock time.
+          3. Leave the channel playing for another 20 seconds, then save a fresh log.
+          4. Send the log with the channel name and the other player that works.
+          5. The added [live-segments] lines record segment time ranges and playlist
+             sequence numbers. URLs, credentials and media payloads are excluded.
           No product PR update is included in this test release.
           TESTSTEPS
           cat > notes.txt <<'NOTES'
@@ -146,12 +159,12 @@ jobs:
 
           Fixes the misplaced TV backup-menu focus highlight and uses the Settings accent with contrasting text. Restore now explicitly asks for the password used to create the selected backup, with translated guidance.
 
-          Retains Logs67 backup compatibility and live recovery changes. This release does not claim an additional fix for repeated Live TV picture/audio.
+          Adds a bounded, numeric HLS segment trace for the repeat/jump investigation, including playlist sequence and segment time ranges. No URLs, credentials or payloads are logged. This is diagnostic instrumentation, not a new playback fix. Retains the Logs68 backup menu and password guidance fixes.
 
-          Android build/unit checks and Linux/macOS Drive backup normal/ASan+UBSan checks passed. Native checks are not packaged macOS/webOS/Tizen builds.
+          Android build/unit checks passed, including segment-history bounds and rate limiting. Retains successful Linux/macOS Drive backup normal/ASan+UBSan checks on unchanged native sources; publishing verifies the changes are limited to four Android diagnostic/packaging files. Native checks are not packaged macOS/webOS/Tizen builds.
 
           Please follow the attached TV and phone verification steps before the product PR is updated.
           NOTES
       - name: Publish verified update APK
         run: |
-          gh release create tv-mobile-test-logs-v68 Nuvio-TV-Mobile-Test-Logs68.apk Logs68-validation.json Logs68-inventory.json Logs68-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs68: TV backup menu and restore password' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v69 Nuvio-TV-Mobile-Test-Logs69.apk Logs69-validation.json Logs69-inventory.json Logs69-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs69: live segment trace and backup menu' --notes-file notes.txt --prerelease
