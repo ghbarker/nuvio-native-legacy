@@ -47,5 +47,12 @@ int main(void) {
   assert(!esportes_corresponde(e,"F1 Italian Grand Prix",t,t+7200));
   assert(esportes_eventos_ler(race,"racing",&liga,e,1)==1);
   assert(esportes_eventos_ler("{\"events\":[]}","soccer",&liga,e,5)==0);
+  /* Real-shaped artwork variants: dark league mark, team mark and athlete portrait. */
+  assert(esportes_ligas_ler("{\"leagues\":[{\"slug\":\"nfl\",\"name\":\"NFL\",\"logos\":[{\"href\":\"light.png\",\"rel\":[\"default\"]},{\"href\":\"dark.png\",\"rel\":[\"dark\"]}]}]}",ls,3)==1);
+  assert(!strcmp(ls[0].logo,"dark.png"));
+  const char *art="{\"events\":[{\"id\":\"art\",\"name\":\"A at B\",\"date\":\"2026-10-19T20:00Z\",\"competitions\":[{\"competitors\":[{\"team\":{\"id\":\"a\",\"displayName\":\"A\",\"logo\":\"team.png\",\"logoDark\":\"team-dark.png\"}},{\"athlete\":{\"id\":\"b\",\"displayName\":\"B\",\"headshot\":{\"href\":\"portrait.png\"}}}]}]}]}";
+  assert(esportes_eventos_ler(art,"basketball",&liga,e,5)==1);
+  assert(!strcmp(e[0].participantes[0].logo,"team-dark.png"));
+  assert(!strcmp(e[0].participantes[1].logo,"portrait.png"));
   puts("sports parsing and event matching: passed"); return 0;
 }
