@@ -22,7 +22,7 @@ jobs:
       GH_REPO: ghbarker/nuvio-native-legacy
       SOURCE_SHA: 84644cf59434d1de47b55447371a0532e099efd6
       SOURCE_TREE: e0fd5a91db444fd7455fa6f5dfb803e744f0dfaa
-      BUILD_CONFIG: 1e7a72a57ab8fcb0bb7aba0b540545ab00d27f28
+      BUILD_CONFIG: 3a12144eb9ec970aa4416ca4015edb1016ea5376
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
