@@ -227,6 +227,27 @@ static int frase(const char *hay, const char *name, int min) {
   }
   return 0;
 }
+/* Two-letter codes (KC, SF, NE, GB) are too ambiguous as loose words.
+ * Accept them only as an explicit pair of this event's opponent codes. */
+static int dueloSiglas(const EspEvento *e,const char *titulo) {
+  char a[40],b[40],raw[800],expanded[1600],norm[1600],par[100];
+  normalizar(e->participantes[0].sigla,a,sizeof a);
+  normalizar(e->participantes[1].sigla,b,sizeof b);
+  if(strlen(a)<2 || strlen(b)<2 || !strcmp(a,b))return 0;
+  busca_normalizar(titulo?titulo:"",raw,sizeof raw);
+  size_t w=0;
+  for(size_t i=0;raw[i] && w+5<sizeof expanded;i++) {
+    if(raw[i]=='@'){memcpy(expanded+w," vs ",4);w+=4;}
+    else expanded[w++]=raw[i];
+  }
+  expanded[w]=0;normalizar(expanded,norm,sizeof norm);
+  static const char *seps[]={" vs "," v "," at "," x "," versus "};
+  for(size_t i=0;i<sizeof seps/sizeof *seps;i++) {
+    snprintf(par,sizeof par,"%s%s%s",a,seps[i],b);if(frase(norm,par,5))return 1;
+    snprintf(par,sizeof par,"%s%s%s",b,seps[i],a);if(frase(norm,par,5))return 1;
+  }
+  return 0;
+}
 int esportes_corresponde(const EspEvento *e, const char *titulo, time_t ini, time_t fim) {
   char norm[800];
   if (!e || !e->inicio || !ini || fim <= ini || e->estado == 3) return 0;
@@ -247,11 +268,12 @@ int esportes_corresponde(const EspEvento *e, const char *titulo, time_t ini, tim
   if ((strstr(norm,"women") || strstr(norm,"feminino")) && !strstr(league,"women") && !strstr(league,"feminino")) return 0;
   if (strstr(norm, "replay") || strstr(norm, "highlights") || strstr(norm, "reprise")) return 0;
   if (e->nParticipantes == 2) {
+    int ambos=1;
     for (int i = 0; i < 2; i++) {
       const EspParticipante *v = &e->participantes[i];
-      if (!frase(norm, v->nome, 4) && !frase(norm, v->curto, 4) && !frase(norm, v->sigla, 3)) return 0;
+      if (!frase(norm, v->nome, 4) && !frase(norm, v->curto, 4) && !frase(norm, v->sigla, 3)) ambos=0;
     }
-    return 100;
+    return ambos || dueloSiglas(e,titulo)?100:0;
   }
   if (!frase(norm, e->nome, 8)) return 0;
   if (!strcmp(e->modalidade, "racing") && e->sessao[0]) {
