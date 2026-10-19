@@ -63,14 +63,27 @@ static void texto(const char *p, const char *fim, const char *key, char *dst, si
   const char *v = valor(p, fim, key); dst[0] = 0;
   if (v && *v == '\"') (void)js_cadeia(v, dst, n);
 }
+/* Prefer the provider's dark-background variant when it supplies one. */
+static void imagem(const char *p,const char *fim,char *dst,size_t n) {
+  for (const char *a=array(p,fim,"logos");a;) {
+    const char *end=js_fim(a); char url[512];
+    if (!end || end<=a) break;
+    texto(a,end,"href",url,sizeof url);
+    const char *rel=valor(a,end,"rel");
+    int escuro=0;
+    if (rel && *rel=='[') { const char *re=js_fim(rel),*d=strstr(rel,"\"dark\"");escuro=d && re && d<re; }
+    if (url[0] && (!dst[0] || escuro)) snprintf(dst,n,"%s",url);
+    if (escuro && url[0]) break;
+    a=js_prox(end);
+  }
+}
 int esportes_ligas_ler(const char *json, EspLiga *out, int cap) {
   const char *p = array(json, NULL, "leagues"); int n = 0;
   for (; p && n < cap; ) {
     const char *end = js_fim(p); EspLiga l = {0};
     if (!end || end <= p) break;
     texto(p, end, "slug", l.id, sizeof l.id); texto(p, end, "name", l.nome, sizeof l.nome);
-    const char *logo = array(p, end, "logos");
-    if (logo) texto(logo, js_fim(logo), "href", l.logo, sizeof l.logo);
+    imagem(p,end,l.logo,sizeof l.logo);
     if (slug(l.id) && l.nome[0]) out[n++] = l;
     p = js_prox(end);
   }
@@ -109,7 +122,14 @@ static void competicao(const char *p, const char *fim, EspEvento *e) {
       texto(t, js_fim(t), "shortDisplayName", v->curto, sizeof v->curto);
       if (!v->curto[0]) texto(t, js_fim(t), "shortName", v->curto, sizeof v->curto);
       texto(t, js_fim(t), "abbreviation", v->sigla, sizeof v->sigla);
-      texto(t, js_fim(t), "logo", v->logo, sizeof v->logo);
+      texto(t,js_fim(t),"logoDark",v->logo,sizeof v->logo);
+      if (!v->logo[0]) texto(t,js_fim(t),"logo",v->logo,sizeof v->logo);
+      if (!v->logo[0]) imagem(t,js_fim(t),v->logo,sizeof v->logo);
+      if (!v->logo[0]) {
+        const char *img=objeto(t,js_fim(t),"headshot");
+        if (!img) img=objeto(t,js_fim(t),"flag");
+        if (img) texto(img,js_fim(img),"href",v->logo,sizeof v->logo);
+      }
       texto(a, end, "score", v->pontos, sizeof v->pontos);
       if (!v->pontos[0]) {
         const char *score = objeto(a,end,"score");
