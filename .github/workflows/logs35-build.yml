@@ -171,7 +171,7 @@ jobs:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
         run: |
           cd android
-          ./gradlew --no-daemon testDebugUnitTest --tests space.nuvio.nativelegacy.LiveWindowRecoveryTest --tests space.nuvio.nativelegacy.ParaleloDataSourceTest --tests space.nuvio.nativelegacy.FontImportTest --tests space.nuvio.nativelegacy.DriveAuthStateTest
+          ./gradlew --no-daemon testDebugUnitTest --tests space.nuvio.nativelegacy.LiveWindowRecoveryTest --tests space.nuvio.nativelegacy.ParaleloDataSourceTest --tests space.nuvio.nativelegacy.FontImportTest --tests space.nuvio.nativelegacy.DriveAuthStateTest --tests space.nuvio.nativelegacy.LiveSegmentTraceTest
       - name: Verify safe audio timestamp diagnostics
         run: NUVIO_TEST_JAVA="$JAVA_HOME/bin/java" python3 tests/audio_diagnostics_android.py
       - name: Verify package, version, signer and both ABIs
