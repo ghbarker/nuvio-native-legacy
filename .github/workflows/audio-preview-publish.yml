@@ -1,4 +1,4 @@
-name: Publish verified Logs86 Sports preview
+name: Publish verified Logs87 Sports preview
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -15,7 +15,7 @@ permissions:
   contents: read
 jobs:
   publish:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs86]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs87]')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -24,14 +24,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: dc2d236eac4883691fb1687e36808c890d220d46
-      SOURCE_TREE: d94354e643fbd03cf56423942d7f3029ed72fac6
-      BUILD_CONFIG: 8d6db8f4da6fe682e10579d937cbaa20a1a2afc3
-      NATIVE_CONFIG: 8d6db8f4da6fe682e10579d937cbaa20a1a2afc3
-      NATIVE_SOURCE_SHA: dc2d236eac4883691fb1687e36808c890d220d46
-      NATIVE_SOURCE_TREE: d94354e643fbd03cf56423942d7f3029ed72fac6
-      ANDROID_RUN: ${{ inputs.android_run_id || '39304727384' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39304732381' }}
+      SOURCE_SHA: c774a1c8f0d47ec08c78e0196eabdf31382bafd0
+      SOURCE_TREE: f6f6daa8f578f08ba0c1e054822b808de3ade842
+      BUILD_CONFIG: e884f6d3c9d821207f9937189febfda579c43e35
+      NATIVE_CONFIG: e884f6d3c9d821207f9937189febfda579c43e35
+      NATIVE_SOURCE_SHA: c774a1c8f0d47ec08c78e0196eabdf31382bafd0
+      NATIVE_SOURCE_TREE: f6f6daa8f578f08ba0c1e054822b808de3ade842
+      ANDROID_RUN: ${{ inputs.android_run_id || '39309174655' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39309179401' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,7 +72,7 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs86-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs87-${{ env.BUILD_CONFIG }}
           run-id: ${{ env.ANDROID_RUN }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -86,11 +86,11 @@ jobs:
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs86.apk');p=pathlib.Path('Logs86-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs87.apk');p=pathlib.Path('Logs87-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20096','--version-name','2.0.96-test-logs86','--output','Logs86-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20097','--version-name','2.0.97-test-logs87','--output','Logs87-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
           assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-intel-sports'}
           results=[]
@@ -116,68 +116,64 @@ jobs:
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs86-test-steps.txt <<'STEPS'
-          Logs86: Sports catalog preview. Version 2.0.96-test-logs86 (20096).
+          cat > Logs87-test-steps.txt <<'STEPS'
+          Logs87: Sports All and combined Favorites. Version 2.0.97-test-logs87 (20097).
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          1. Install Logs86 as an UPDATE. Open Sports > a sport > a league.
-          2. Tap an event card once, or press and release OK on the remote.
-             The normal Sources sheet must open immediately over the event grid.
-             No event-details page or separate channel-list page comes first.
-          3. The sheet shows a search indicator, then matching guide channels.
-             Check channel name, account and programme. The right side of each row
-             must show Live while that matched programme is airing, or its local
-             start time otherwise. Other days include a date. Tap a result:
-             Sources should close and open the selected Live TV channel.
-          4. Close the sheet with Back or X. You should return to the same league
-             and event position. Open another event: no old results may appear.
-             Refresh in the sheet should search the selected event again.
-          5. Repeat with NFL and college football, then another sport such as
-             NBA, soccer, hockey, tennis or UFC where your guide lists a match.
-             Both opponents and a compatible programme time are required.
-             Explicit short-code pairings such as KC @ SF should match too.
-             ESPN/ESPN+ affiliation, a different opponent/game, replays, highlights
-             and programmes from the wrong day must not count as event matches.
-          6. If your guide has no identifying EPG programme, an empty result is
-             expected. The app must not substitute generic broadcaster channels.
-             For an upcoming event, selecting a source must tune its live channel
-             immediately. It shows whatever is airing now, until the event starts.
-          7. Hide a matching channel category and repeat the search. The hidden
-             channel must remain excluded. Check labels for different accounts.
-          8. Long-press an event (or hold remote OK) for the secondary team-favorite
-             actions. Short tap/OK must continue to open Sources directly.
-          9. Confirm league/team artwork, sport toggles, grid navigation and normal
-             Home movie/episode Sources still work. Check the chooser while a
-             mini-player is active: it should not replace that video's source list.
+          1. Open Sports. All should be selected, with cards for every enabled sport.
+             Select a sport to see its leagues, then a league for its event cards.
+          2. Open and close the left app menu. The Sports content must stay in place.
+          3. In Sports > Sports, hide one sport. Return to Home, then open Sports.
+             All should be selected again, and the hidden sport must stay absent.
+             Selecting Sports again in the left app menu must also reset to All.
+          4. Short-tap an event or press and release remote OK. The existing Sources
+             sheet should open, and selecting a matched channel should play it.
+          5. Long-press the same event or hold remote OK. Only team favorite options
+             should open. Releasing the hold must not open Sources or favorite a team.
+             Add a team, then add a team from a different sport or league.
+          6. Return to All. One combined Favorites row should show live/upcoming
+             matches for both teams, followed by the enabled sport cards.
+             It must not require reopening each team's league. Soccer favorites
+             include cup competitions when ESPN supplies those fixtures.
+             A game between two favorite teams must appear only once.
+          7. Swipe the Favorites row horizontally. Swipe vertically to reach sports.
+             On a remote, Left/Right moves through favorites; Down reaches sports.
+             No full-screen background artwork should appear behind this row.
+          8. Short-tap a favorite match for Sources. Long-press for favorite options.
+             Remove a favorite, leave Sports and return. Its games should be removed
+             unless the other participant remains a favorite.
+          9. With app language English, event dates and other-day source dates must
+             use MM/DD. Source rows still show Live during the matched programme,
+             otherwise the start time, respecting the existing 12/24-hour setting.
+          10. Check the Favorites/Add/Remove/search labels in another app language.
+              App-owned labels are translated; ESPN team/event names depend on its
+              coverage of that language. Normal movie/episode Sources should work.
 
-          10. Change the app's clock format between 12-hour and 24-hour.
-              Source start times should follow that choice. Long channel names
-              should shorten without overlapping the Live/time label.
-
-          Limits remain 1024 leagues per sport, 400 events per league and 64
-          confirmed channel matches. Metadata is ESPN; channel matches use your
-          loaded IPTV guide. No upstream Sports PR until this build is approved.
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs86.txt
+          Limits: 1024 leagues per sport, 400 events per league, 400 combined favorite
+          events and 64 confirmed channel matches. Favorites load progressively in
+          one background metadata worker, separate from league loading. Finished
+          games are excluded. Unsupported team schedules fall back to league data.
+          ESPN data and your loaded IPTV EPG determine coverage and channel matches.
+          No upstream Sports PR until this build is approved.
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs87.txt
           STEPS
           cat > notes.txt <<'NOTES'
-          Separate Sports destination using the app's existing UI components.
-          Event cards open the existing Sources sheet directly, using channel choices
-          separate from the active playback source list. Matches require both
-          opponents and a compatible EPG time. ESPN/ESPN+ names alone do not match.
-          Source rows show translated Live during the matched EPG programme, or
-          local start time with a date for other days. Existing 12/24-hour clock
-          preference applies; long channel names cannot overlap the time.
-          Channels can still be watched before an upcoming event starts.
-          Channel-selection and playback handoff logs help diagnose failures.
-          Existing sports artwork, menu, scores and per-profile favorites remain.
-          No video stream is opened or probed while browsing sports metadata.
+          Sports now opens at All: one combined Favorites row above cards for all
+          enabled sports. Selecting a sport opens its leagues. Leaving and reopening
+          Sports resets to All; hidden sports remain hidden.
+          Favorite teams load independently of the currently selected league, with
+          soccer schedules covering multiple competitions. Long press opens only
+          team favorite options; short tap opens the existing Sources chooser.
+          Opening the app sidebar no longer shifts Sports content. English dates
+          use MM/DD, and Favorites/search labels have translation keys in all locales.
+          Existing channel matching and playback behavior is retained.
 
           Android build and independent APK verification passed. Linux/macOS
           parsing, profile/state and headless UI fixtures passed in normal and
           ASan/UBSan modes (20 invocations). These are not visual/device tests
           or packaged macOS/webOS/Tizen builds. Install as an update and follow
-          Logs86-test-steps.txt. No upstream Sports PR has been published.
+          Logs87-test-steps.txt. No upstream Sports PR has been published.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v86 Nuvio-TV-Mobile-Test-Logs86.apk Logs86-validation.json Logs86-independent-verification.json Logs86-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs86: Sports source Live/time labels' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v86 Nuvio-TV-Mobile-Test-Logs87.apk Logs87-validation.json Logs87-independent-verification.json Logs87-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs87: All sports and combined Favorites' --notes-file notes.txt --prerelease
