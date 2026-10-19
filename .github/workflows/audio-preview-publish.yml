@@ -1,9 +1,13 @@
-name: Publish Logs78 diagnostic APK
+name: Publish verified Logs79 season tabs APK
 on:
   workflow_dispatch:
     inputs:
       android_run_id:
-        description: Successful diagnostics-only Android build run
+        description: Successful Logs79 Android build run
+        required: true
+        type: string
+      native_run_id:
+        description: Successful Logs79 Linux/macOS metadata checks
         required: true
         type: string
 permissions:
@@ -18,10 +22,11 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: f1c7fe38f0f257b9b98dd7dba8634fa29d0b1796
-      SOURCE_TREE: 07c014e08e6fdb692f9cec1bb5cda91ef7e2fef7
-      ANDROID_CONFIG_COMMIT: 81a972d8472e32f9d10ab7b6794d48c040ec7e17
+      SOURCE_SHA: bfcc4737b42e6bff77105f1b32ecea311b311762
+      SOURCE_TREE: 814c6a09216a2a7a1c6960bf3867351ec22f5142
+      ANDROID_CONFIG_COMMIT: 411b8d6a3eb47b35a38440666f5892c6f7dca83a
       ANDROID_RUN: ${{ inputs.android_run_id }}
+      NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,67 +52,105 @@ jobs:
           jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
           assert any(j['name']=='apk-build' and j['conclusion']=='success' for j in jobs)
           assert all(j['conclusion'] in ('success','skipped') for j in jobs)
+          run=os.environ['NATIVE_RUN'];assert re.fullmatch(r'[0-9]+',run)
+          data=api('actions/runs/'+run)
+          assert data['status']=='completed' and data['conclusion']=='success'
+          assert data['head_sha']==os.environ['ANDROID_CONFIG_COMMIT']
+          assert data['path']=='.github/workflows/audio-label-checks.yml'
+          assert data['head_repository']['full_name']=='ghbarker/nuvio-native-legacy'
+          jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
+          assert len(jobs)==2 and all(j['conclusion']=='success' for j in jobs)
           PY
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs78-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs79-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
+          github-token: ${{ github.token }}
+      - name: Download native metadata evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: integration-*
+          path: native-evidence
+          run-id: ${{ inputs.native_run_id }}
           github-token: ${{ github.token }}
       - name: Verify APK signature, identity, version and ARM libraries
         run: |
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs78.apk')
-          p=pathlib.Path('Logs78-validation.json');data=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs79.apk')
+          p=pathlib.Path('Logs79-validation.json');data=json.loads(p.read_text())
           assert data['source_commit']==os.environ['SOURCE_SHA']
           assert data['source_tree']==os.environ['SOURCE_TREE']
           assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT']
           assert data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert data['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest()
           assert data['apk_bytes']==apk.stat().st_size
-          assert data['android_unit_tests']==[] and data['tests_skipped_by_request']
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',data['apk_sha256'],'--version-code','20088','--version-name','2.0.88-test-logs78','--output','Logs78-independent-verification.json'],check=True)
-          data['validation_note']='Android build and APK packaging/signature verification only. Test suites skipped at user request. No new playback recovery changes.'
+          assert data['android_unit_tests']==[] and not data['tests_skipped_by_request']
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',data['apk_sha256'],'--version-code','20089','--version-name','2.0.89-test-logs79','--output','Logs79-independent-verification.json'],check=True)
+          dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
+          assert set(dirs)=={'integration-'+system+'-season-metadata' for system in ('ubuntu-24.04','macos-15')}
+          results=[]
+          for directory in dirs.values():
+              source=json.loads((directory/'source.json').read_text())
+              assert source['source_commit']==os.environ['SOURCE_SHA'] and source['source_tree']==os.environ['SOURCE_TREE']
+              checks=json.loads((directory/'results.json').read_text())
+              assert len(checks)==6 and all(c['code']==0 for c in checks)
+              assert {(c['suite'],c['sanitizers']) for c in checks}=={(n,b) for n in ('episodiosdup','epsrapido','detalheanime') for b in (False,True)}
+              results.extend(checks)
+          data['native_metadata_check_invocations']=len(results)
+          data['sanitizer_invocations']=sum(c['sanitizers'] for c in results)
+          data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
+          data['validation_note']='Android build and APK identity verification; Linux/macOS native metadata tests normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.' 
           p.write_text(json.dumps(data,indent=2)+'\n')
           PY
       - name: Write instructions
         run: |
-          cat > Logs78-test-steps.txt <<'STEPS'
-          Logs78: Live TV diagnostics only
-          Version 2.0.88-test-logs78 (20088).
+          cat > Logs79-test-steps.txt <<'STEPS'
+          Logs79: publish season tabs with episode cards
+          Version 2.0.89-test-logs79 (20089).
 
-          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
-          This keeps Logs77 playback behavior. The proposed stuck/403 retries are excluded.
+          Install as an UPDATE to Nuvio TV/Mobile Test. Keep your accounts and settings;
+          do not uninstall or clear app data.
 
-          1. Keep your current Live TV buffer setting. Play an affected channel for
-             10-15 minutes, or until a repeat, pause or error occurs.
-          2. Note the approximate time and channel. Export the log promptly before
-             closing the app. If playback is smooth, that log is useful too.
-          3. Send the log and say whether the picture paused, repeated, jumped,
-             or showed an error while audio continued.
+          1. Open Game of Thrones. Once episode cards appear, season buttons should
+             also be present. Expect regular seasons 1-8; Specials depends on the
+             metadata source supplying season 0.
+          2. Select season 1, then season 8. Check that the episode cards switch to
+             the selected season (10 episodes in S1 and 6 in S8 with standard metadata).
+          3. Leave the title page and reopen it. The buttons must remain available.
+             Also close/reopen the app and check the saved/cached title.
+          4. Open a series whose Specials previously worked. Confirm season 0 and
+             its episodes are still accessible.
+          5. If buttons are missing, save a log immediately after opening the page
+             and note whether episode cards were already visible.
 
-          App: use Download log or View log.
+          App: Download log or View log.
           Phone ADB shell app: logcat -d -v threadtime
-          Computer: adb logcat -d -v threadtime > Nuvio-Live-Logs78.txt
+          Computer: adb logcat -d -v threadtime > Nuvio-Logs79.txt
 
-          New live-request lines identify repeated requests with session-salted
-          fingerprints and record buffer at first failure, current buffer, failure
-          count, manifest sequence and request timing. Live-playlist lines explain
-          refresh rejection. The new entries contain no raw URLs or credentials.
-
-          Android compilation and APK identity/signature/ARM checks passed.
-          Test suites were skipped as requested; no functional test pass is claimed.
+          Android build, persistent signer, identity/version, both ARM ABIs and
+          ARM64 16-KiB alignment verified. Linux/macOS native metadata tests passed
+          normally and under ASan/UBSan (12 invocations). No packaged desktop/TV
+          build is claimed. Awaiting device approval before publishing a product PR.
           STEPS
           cat > notes.txt <<'NOTES'
-          Adds privacy-safe Live TV request and playlist diagnostics to Logs77.
-          Keeps its playback/recovery behavior; the experimental stuck/403 retries
-          are excluded. Test-only changes are not being published to the upstream PR.
+          Fixes episode cards appearing without season buttons. Every selected
+          episode-list publication now updates the matching season tabs; cached
+          lists with missing tabs are allowed to refresh on reopening.
 
-          Install as an update to retain accounts and settings. Persistent signing,
-          package, increased version code, both ARM ABIs and 16-KiB ARM64 alignment
-          verified. Test suites skipped at user request.
-          Follow Logs78-test-steps.txt and send the captured log.
+          Before/after reproduction with public Game of Thrones metadata:
+          73 episodes / zero published tabs becomes 73 episodes / eight tabs.
+          Cinemeta also preserves season 0 when specials are provided.
+
+          Android build and independent APK signing/package/version/ARM checks
+          passed. Twelve Linux/macOS native metadata test invocations passed,
+          including six under ASan/UBSan. Native checks are not packaged macOS,
+          webOS or Tizen builds.
+
+          Install as an update to keep accounts and settings. Follow Logs79-test-steps.txt.
+          Awaiting device approval before a product PR. Test packaging and local
+          diagnostics stay outside the product change.
           NOTES
       - name: Publish diagnostic download
         run: |
-          gh release create tv-mobile-test-logs-v78 Nuvio-TV-Mobile-Test-Logs78.apk Logs78-validation.json Logs78-independent-verification.json Logs78-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs78: Live TV diagnostics' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v78 Nuvio-TV-Mobile-Test-Logs79.apk Logs79-validation.json Logs79-independent-verification.json Logs79-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs79: Restore season buttons' --notes-file notes.txt --prerelease
