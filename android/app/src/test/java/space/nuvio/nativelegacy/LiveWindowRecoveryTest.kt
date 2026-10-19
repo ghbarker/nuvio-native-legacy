@@ -3,6 +3,8 @@ package space.nuvio.nativelegacy
 import android.net.Uri
 import androidx.media3.exoplayer.hls.playlist.HlsPlaylistTracker
 import java.io.IOException
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import org.junit.Assert.*
@@ -13,6 +15,7 @@ class LiveWindowRecoveryTest {
     private class Fixture {
         val calls = ArrayList<String>()
         val status = ArrayList<Long>()
+        val reports = ArrayList<String>()
         val scheduled = LinkedHashMap<Runnable, Long>()
         var active = true
         var isLive = true
@@ -43,6 +46,7 @@ class LiveWindowRecoveryTest {
             unschedule = { task -> scheduled.remove(task) },
             active = { active },
             status = { status.add(it) },
+            report = { reports.add(it) },
         )
         fun recover(now: Long = 0, code: Int = PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW, timeoutMs: Long = 8_000L, cause: Throwable? = null) =
             recovery.recover(player, PlaybackException("fixture", cause, code), now, timeoutMs) { calls.add("failed"); failed++ }
@@ -213,8 +217,6 @@ class LiveWindowRecoveryTest {
         f.isLive = true
         assertFalse(f.recover(code = 2004, cause = playlistReset()))
         assertFalse(f.recover(code = 2000, cause = IOException("PlaylistResetException")))
-        assertFalse(f.recover(code = 2000,
-            cause = HlsPlaylistTracker.PlaylistStuckException(Uri.parse("https://example.test/live.m3u8"))))
         assertTrue(f.calls.isEmpty())
         assertTrue(f.status.isEmpty())
     }
@@ -252,4 +254,91 @@ class LiveWindowRecoveryTest {
         assertEquals(listOf("live position", "prepare"), f.calls)
         assertEquals(0, f.failed)
     }
+    private fun stuck() = HlsPlaylistTracker.PlaylistStuckException(Uri.parse("https://example.test/live.m3u8"))
+    private fun http(code: Int) = HttpDataSource.InvalidResponseCodeException(
+        code, "secret response", null, mapOf("Secret" to listOf("credential")),
+        DataSpec(Uri.parse("https://example.test/secret-token/segment.ts")), byteArrayOf())
+
+    @Test fun stuckPlaylistGetsOnlyOneAttemptEvenAfterMinuteAndReady() {
+        val f = Fixture()
+        assertTrue(f.recover(code = 2000, cause = IOException(stuck())))
+        assertTrue(f.recovery.ready())
+        assertFalse(f.recover(now = 60_000, code = 2000, cause = stuck()))
+        assertEquals(listOf("live position", "prepare"), f.calls)
+        assertTrue(f.reports.last().contains("policy=stuck-used"))
+    }
+
+    @Test fun refusedSegmentRepreparesOriginalLiveItemOnlyOnce() {
+        val f = Fixture()
+        assertTrue(f.recover(code = 2004, cause = IOException(http(403))))
+        assertEquals(listOf("live position", "prepare"), f.calls)
+        assertTrue(f.recovery.ready())
+        assertFalse(f.recover(now = 60_000, code = 2004, cause = http(403)))
+        assertTrue(f.reports.last().contains("policy=refused-used"))
+        val text = f.reports.joinToString()
+        assertFalse(text.contains("secret"))
+        assertFalse(text.contains("credential"))
+        assertFalse(text.contains("https:"))
+    }
+
+    @Test fun vodAndOtherHttpFailuresAreNotReopened() {
+        val f = Fixture()
+        f.isLive = false
+        assertFalse(f.recover(code = 2000, cause = stuck()))
+        assertFalse(f.recover(code = 2004, cause = http(403)))
+        f.isLive = true
+        for (code in listOf(401, 404, 429, 500, 502))
+            assertFalse(f.recover(code = 2004, cause = http(code)))
+        assertFalse(f.recover(code = 2004, cause = IOException("HTTP 403")))
+        assertTrue(f.calls.isEmpty())
+    }
+
+    @Test fun stuckAndRefusedShareExistingTwoPerMinuteBudget() {
+        val f = Fixture()
+        assertTrue(f.recover(code = 2000, cause = stuck())); f.recovery.ready()
+        assertTrue(f.recover(now = 10_000, code = 2004, cause = http(403))); f.recovery.ready()
+        assertFalse(f.recover(now = 59_999))
+        assertTrue(f.reports.last().contains("policy=rate-limit"))
+        assertTrue(f.recover(now = 60_000))
+    }
+
+    @Test fun failedRecoveryDoesNotChainAnotherKindOfRetry() {
+        val f = Fixture()
+        assertTrue(f.recover(code = 2000, cause = stuck()))
+        assertFalse(f.recover(now = 1, code = 2004, cause = http(403)))
+        assertTrue(f.reports.last().contains("policy=pending-error"))
+        f.recovery.cancel()
+        assertEquals(listOf("live position", "prepare"), f.calls)
+        assertTrue(f.scheduled.isEmpty())
+    }
+
+    @Test fun refusedRecoveryTimeoutStopsBeforeOneTerminalFailure() {
+        val f = Fixture()
+        assertTrue(f.recover(code = 2004, cause = http(403), timeoutMs = 30_000))
+        val task = f.timeout()
+        task.run(); task.run()
+        assertEquals(listOf("live position", "prepare", "stop", "failed"), f.calls)
+        assertEquals(1, f.failed)
+        assertTrue(f.reports.last().contains("event=timeout reason=refused"))
+    }
+
+    @Test fun successfulStuckRecoveryCancelsDeadlineAndReportsReason() {
+        val f = Fixture()
+        assertTrue(f.recover(code = 2000, cause = stuck()))
+        val task = f.timeout()
+        assertTrue(f.recovery.ready())
+        task.run()
+        assertEquals(0, f.failed)
+        assertTrue(f.reports.last().contains("event=ready reason=stuck"))
+    }
+
+    @Test fun replacingSessionPreventsStuckAndRefusedRecovery() {
+        val f = Fixture()
+        f.active = false
+        assertFalse(f.recover(code = 2000, cause = stuck()))
+        assertFalse(f.recover(code = 2004, cause = http(403)))
+        assertTrue(f.calls.isEmpty())
+        assertTrue(f.reports.isEmpty())
+    }
+
 }
