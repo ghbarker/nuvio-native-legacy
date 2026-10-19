@@ -11,6 +11,8 @@
 
 static uint64_t sessao = 1;
 static int perfil = 1, falharGravacao;
+/* Freeze UTC around a provider/date-boundary regression. */
+time_t time(time_t *out) { time_t t=1792411200; if(out)*out=t; return t; }
 static char salvoNome[160], salvo[27000];
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -36,7 +38,14 @@ char *rede_baixar_medido_controle(const char *url, int s, const char *const *h, 
     return strdup("{\"leagues\":[{\"slug\":\"nfl\",\"name\":\"NFL\"}]}");
   }
   assert(strstr(url,"/sports/football/nfl/scoreboard?"));
-  assert(strstr(url,"limit=400")); return strdup("{\"events\":[]}");
+  assert(strstr(url,"limit=400"));
+  const char *d=strstr(url,"dates=");
+  if(d) {
+    time_t t=time(NULL)+(pedidos-4)*86400;struct tm tm;char esperado[16];
+    gmtime_r(&t,&tm);strftime(esperado,sizeof esperado,"%Y%m%d",&tm);
+    assert(!strncmp(d+6,esperado,8));
+  }
+  return strdup("{\"events\":[]}");
 }
 static void pausa(void) { struct timespec t={0,1000000}; nanosleep(&t,NULL); }
 static void drenar(void) {
@@ -67,6 +76,6 @@ int main(void) {
   EspLiga l=*esportes_liga(0); assert(!strcmp(l.id,"nfl"));
   esportes_pedir_eventos(1,&l,0); drenar(); assert(!esportes_erro() && !esportes_eventos_n());
   esportes_pedir_ligas(1,1); esportes_cancelar(); drenar();
-  assert(pedidos==9);
+  assert(pedidos==10);
   puts("sports profile settings, cancellation and URL contracts: passed"); return 0;
 }
