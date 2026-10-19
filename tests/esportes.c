@@ -35,6 +35,18 @@ static void variosEsportes(void) {
     snprintf(reprise,sizeof reprise,"%s Replay",casos[i].sim);
     assert(!esportes_corresponde(&e,reprise,inicio,inicio+7200));
   }
+  EspEvento nfl={0};nfl.inicio=inicio;nfl.nParticipantes=2;
+  strcpy(nfl.modalidade,"football");strcpy(nfl.liga,"NFL");
+  strcpy(nfl.participantes[0].nome,"Kansas City Chiefs");strcpy(nfl.participantes[0].sigla,"KC");
+  strcpy(nfl.participantes[1].nome,"San Francisco 49ers");strcpy(nfl.participantes[1].sigla,"SF");
+  assert(esportes_corresponde(&nfl,"NFL: KC @ SF",inicio,inicio+7200));
+  assert(esportes_corresponde(&nfl,"NFL: SF vs KC",inicio,inicio+7200));
+  assert(esportes_corresponde(&nfl,"SF at KC",inicio,inicio+7200));
+  assert(!esportes_corresponde(&nfl,"NFL: KC vs SEA",inicio,inicio+7200));
+  assert(!esportes_corresponde(&nfl,"KC news and SF weather",inicio,inicio+7200));
+  assert(!esportes_corresponde(&nfl,"NHL: KC @ SF",inicio,inicio+7200));
+  assert(!esportes_corresponde(&nfl,"KC @ SF Replay",inicio,inicio+7200));
+  assert(!esportes_corresponde(&nfl,"KC @ SF",inicio-86400,inicio-80000));
   printf("sports matching: %zu sports/matchups, 56 positive/negative cases passed\n",sizeof casos/sizeof *casos);
 }
 int main(void) {
