@@ -1,4 +1,4 @@
-name: Logs65 backup restore Linux and macOS checks
+name: Logs66 backup restore Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 96a79431701d98685d028e4be40ef174ee8b8155
+  SOURCE_SHA: b22ad7ad512d31ab04ca19ea0b595314bc79cbf3
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1

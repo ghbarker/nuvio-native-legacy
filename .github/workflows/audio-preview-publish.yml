@@ -1,13 +1,13 @@
-name: Publish verified Logs65 combined test APK
+name: Publish verified Logs66 combined test APK
 on:
   workflow_dispatch:
     inputs:
       android_run_id:
-        description: Successful Logs65 Android APK workflow run ID
+        description: Successful Logs66 Android APK workflow run ID
         required: true
         type: string
       native_run_id:
-        description: Successful 6-job Logs65 native integration workflow run ID
+        description: Successful 6-job Logs66 native integration workflow run ID
         required: true
         type: string
       apk_sha256:
@@ -26,8 +26,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 96a79431701d98685d028e4be40ef174ee8b8155
-      SOURCE_TREE: 828c0fdd0fd25295aa95fb3ac673ca43dc25ec1a
+      SOURCE_SHA: b22ad7ad512d31ab04ca19ea0b595314bc79cbf3
+      SOURCE_TREE: d804d4ae45d446b80a079feeebe5d2588b927da6
       # Android is already building this exact immutable source; retain it.
       ANDROID_CONFIG_COMMIT: ${{ github.sha }}
       ANDROID_RUN: ${{ inputs.android_run_id }}
@@ -61,7 +61,7 @@ jobs:
       - name: Download exact Android artifact
         uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs65-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs66-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - name: Download all native evidence
@@ -75,15 +75,15 @@ jobs:
         run: |
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs65.apk')
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs66.apk')
           expected=os.environ['APK_SHA256']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==expected
-          validation=pathlib.Path('Logs65-validation.json');data=json.loads(validation.read_text())
+          validation=pathlib.Path('Logs66-validation.json');data=json.loads(validation.read_text())
           assert data['apk_sha256']==expected and data['apk_bytes']==apk.stat().st_size
           assert data['source_commit']==os.environ['SOURCE_SHA'] and data['source_tree']==os.environ['SOURCE_TREE']
           assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT'] and data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
-          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20075
-          assert data['version_name']=='2.0.75-test-logs65'
+          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20076
+          assert data['version_name']=='2.0.76-test-logs66'
           assert data['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert data['android_build'] and data['both_arm_abis'] and data['arm64_16kb_alignment']
           assert set(data['android_unit_tests'])=={'LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest'}
@@ -114,20 +114,20 @@ jobs:
           python3 - <<'INVENTORY'
           import json,os,pathlib
           items=[{'number': 573, 'title': 'Fonts: import local TTF/OTF for subtitles and interface', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/573'}, {'number': 575, 'title': 'Sources: add persistent cached/uncached filtering', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/575'}, {'number': 576, 'title': 'Episodes: keep canonical identity after metadata updates', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/576'}, {'number': 587, 'title': 'Live TV: bypass source filters and add per-add-on overrides', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/587'}, {'number': 596, 'title': 'Live TV: add M3U, multiple accounts and responsive EPG loading', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/596'}, {'number': 597, 'title': 'Live TV: prevent false stall restarts and recover expired live windows', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/597'}, {'number': 598, 'title': 'Details: show prepared-source specifications below Play', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/598'}, {'number': 601, 'title': 'Live TV: fix large category lists and category Confirm/Cancel', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/601'}, {'number': 602, 'title': 'Live TV: keep repeated search results visible and responsive', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/602'}, {'number': 609, 'title': 'Backup: add encrypted Google Drive backup and restore for local settings', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/609'}, {'number': 611, 'title': 'Sources: match audio-language filters against release labels', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/611'}]
-          pathlib.Path('Logs65-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
+          pathlib.Path('Logs66-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
           INVENTORY
-          cat > Logs65-test-steps.txt <<'TESTSTEPS'
-          Logs65 — older backup compatibility
+          cat > Logs66-test-steps.txt <<'TESTSTEPS'
+          Logs66 — compatible-settings restore
 
-          Install Nuvio-TV-Mobile-Test-Logs65.apk as an UPDATE to Nuvio TV/Mobile Test.
-          Do not uninstall or clear data. Version: 2.0.75-test-logs65 (20075).
-          This retains the Logs64 integration and adds restore compatibility and diagnostics.
+          Install Nuvio-TV-Mobile-Test-Logs66.apk as an UPDATE to Nuvio TV/Mobile Test.
+          Do not uninstall or clear data. Version: 2.0.76-test-logs66 (20076).
+          This retains the Logs64 integration and skips incompatible individual scalar settings during restore.
 
           1. Open the same Nuvio account and profile used for your original backup.
           2. Open Settings > Google Drive backup, connect if prompted, and choose Restore.
           3. Select the SAME older backup that failed in Logs64. Keep that backup.
           4. Enter its original backup password. Leave hardware settings Off.
-          5. The restore confirmation should now appear. Confirm Restore.
+          5. The restore confirmation should appear. Confirm Restore. Supported settings should restore; unsupported settings keep their current values.
           6. Check local settings and Live TV accounts. Existing connections should remain,
              and add-ons should be available without restarting the app.
           7. Optional: on a device where you WANT the saved display settings, repeat with
@@ -135,18 +135,19 @@ jobs:
 
           If it still fails, save a new log immediately and send it with the exact error.
           This version records the validation stage without passwords, tokens or backup data.
-          The reproduced older-format defect is fixed; your specific backup still needs this
-          device check. No product PR update is included in this test release.
+          Unknown settings, obsolete scopes and unsupported values are skipped and logged.
+          Damaged backup structure, incorrect passwords and profile mismatches still stop restore.
+          No product PR update is included in this test release.
           TESTSTEPS
           cat > notes.txt <<'NOTES'
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          Fixes restore validation for older backup previews that stored display preferences in the device settings section. Display preferences now require the hardware restore opt-in. Account-managed preferences remain separate. Adds safe failure-stage diagnostics.
+          Restores compatible scalar settings while skipping unknown keys, unsupported values and obsolete scopes. Skipped settings retain their current values, with reasons logged without backup values. Preserves the earlier display-scope migration, hardware opt-in and separate Nuvio account preferences. Encryption, backup structure, profile identity and transactional checks remain enforced.
 
           Retains the Logs64 development integration and all 11 approved PRs. Android build/unit checks and all six Linux/macOS backup test jobs passed. Native checks are not packaged macOS/webOS/Tizen builds.
 
-          Retry the original backup using the attached instructions. This reproduces and fixes an older-format defect; the reported backup needs device verification before updating the product PR.
+          Retry the original backup using the attached instructions. Mixed-version restore fixtures pass; device verification is still required before updating the product PR.
           NOTES
       - name: Publish verified update APK
         run: |
-          gh release create tv-mobile-test-logs-v65 Nuvio-TV-Mobile-Test-Logs65.apk Logs65-validation.json Logs65-inventory.json Logs65-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs65: older backup restore compatibility' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v65 Nuvio-TV-Mobile-Test-Logs66.apk Logs66-validation.json Logs66-inventory.json Logs66-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs66: compatible-settings restore' --notes-file notes.txt --prerelease
