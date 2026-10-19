@@ -124,8 +124,10 @@ int main(int argc,char **argv) {
       editar(IPTV_M3U,1);campo(AJ_M3U_EPG,"https://new.invalid/epg.xml");
       assert(definirValorDireto(AJ_GUIA_ORDEM,1));
       assert(definirValorDireto(AJ_EPG_MEMORIA,1));
+      assert(definirValorDireto(AJ_LIVETV_BUFFER,2));
     } else assert(!strcmp(argv[1],"reload"));
     assert(ajustes_guia_ordem()==1 && valor[AJ_EPG_MEMORIA]==1);
+    assert(ajustes_livetv_buffer_preset()==2 && ajustes_buffer_preset()==0);
     assert(iptv_contas(NULL,0)==2 && selecionada().id!=0);resumoContas(2);
     editar(IPTV_M3U,1);assert(!strcmp(m3u_lista(),"https://new.invalid/list"));
     assert(!strcmp(m3u_epg(),"https://new.invalid/epg.xml"));
@@ -136,6 +138,13 @@ int main(int argc,char **argv) {
     puts("PASS: migrated account and two independent M3U/EPG pairs survive restart");
     ajustes_encerrar();SDL_Quit();return 0;
   }
+  assert(somenteDesteAparelho(AJ_LIVETV_BUFFER) && !dePerfil(AJ_LIVETV_BUFFER));
+  assert(abDesteDispositivo(AJ_LIVETV_BUFFER));
+  for(int preset=0;preset<4;preset++) {
+    assert(definirValorDireto(AJ_LIVETV_BUFFER,preset));
+    assert(ajustes_livetv_buffer_preset()==preset && ajustes_buffer_preset()==0);
+  }
+  assert(definirValorDireto(AJ_LIVETV_BUFFER,0));
   assert(!iptv_contas(NULL,0));resumoContas(0);
   focarOpcao(AJ_IPTV_LISTA_XTREAM);
   int n=0;for(int i=secIni[secAtual]+1;i<secFim(secAtual);i++)

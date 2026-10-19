@@ -120,6 +120,15 @@ int main(void) {
  assert(ajustes_backup_selecionar(oldSections,0,newSections));
  assert(!strstr(newSections[0],"interfaceModoLocal"));
  for(int i=0;i<3;i++)free(newSections[i]);
+ // Live buffer restores only with hardware opt-in; never changes the movie allowance.
+ char liveHardware[256];snprintf(liveHardware,sizeof liveHardware,
+   "NUVIO-LOCAL-SETTINGS 1\nscope hardware\n%s 2\n",CHAVE[AJ_LIVETV_BUFFER]);
+ oldSections[0]=NULL;oldSections[1]=NULL;oldSections[2]=liveHardware;
+ assert(ajustes_backup_selecionar(oldSections,0,newSections));
+ for(int i=0;i<3;i++){if(newSections[i])assert(!strstr(newSections[i],CHAVE[AJ_LIVETV_BUFFER]));free(newSections[i]);}
+ assert(ajustes_backup_selecionar(oldSections,1,newSections));
+ assert(newSections[2] && strstr(newSections[2],"bufferLiveLocal 2\n"));
+ for(int i=0;i<3;i++)free(newSections[i]);
  // Mixed-version backups restore compatible settings and connections even
  // when adjacent settings were removed, changed type/range, or moved scope.
  // Keep current values for skipped settings; never print the rejected values.
