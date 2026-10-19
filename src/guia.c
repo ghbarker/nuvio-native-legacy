@@ -1774,10 +1774,12 @@ static int cmpCat(const void *a, const void *b) {
 // Ordena os canais por grupo (estavel na ordem de chegada) para que cada
 // linha seja uma janela contigua, e refaz Favoritos, contas e a vista. Roda ao
 // publicar e ao desligar um addon no painel (que tira canais sem esperar o fio).
+static unsigned buscaRevisao;
 static void empacotar(void) {
   canaisRevisao++;
   grupoNContas = iptv_contas(grupoContas, IPTV_MAX_CONTAS);
   for(int f=0;f<nLtvF;f++)grupoOrdFonte[f]=fonteOrdem(f);
+  buscaRevisao++;
   int i, w, *ordem = NULL, *mapa = NULL, *pos = NULL;
   int az[G_MAX_LTV];
   GCanal *tmp;
@@ -6820,6 +6822,7 @@ int guia_canal_campos(int i, const char **id, const char **nome, const char **lo
 }
 
 void guia_abrir_sessao(void) {
+  buscaRevisao++;
   // Nunca tocar no staging de um fio vivo. Ele sai no proximo limite de
   // pedido e o desenho descarta o resultado pela geracao da abertura.
   cargaCancelada = 1;
@@ -6871,4 +6874,22 @@ void guia_recarregar(int limparLista) {
   for (int i=0;i<n;i++) if(contas[i].tipo==IPTV_M3U) m3u_fonte_recarregar(contas[i].id);
   epgExtrasMontar(); epg_recarregar();
   recarregarPend = 1; recargaDoPainel = 1; estado = G_PARADO;
+}
+
+unsigned guia_busca_revisao(void) { return buscaRevisao; }
+int guia_busca_carregando(void) { return fioVivo || recarregarPend || estado == G_BAIXANDO; }
+const char *guia_busca_conta(int i) {
+  if (i < 0 || i >= nCanais) return "";
+  int f = canais[i].fonte;
+  return f >= 0 && f < nLtvF ? ltvF[f].nome : "";
+}
+int guia_busca_programas(int i, time_t de, time_t ate, int pular, EpgProg *out, int cap) {
+  if (i < 0 || i >= nCanais || !out || cap < 1 || pular < 0) return 0;
+  return gFaixaDesde(&canais[i], de, ate, pular, out, cap);
+}
+
+int guia_pedir_canal_id(const char *id) {
+  GCanal *c = canalPorId(id);
+  if (!c) return 0;
+  pedirCanal(c); return 1;
 }

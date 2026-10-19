@@ -84,6 +84,8 @@
 #include "biblioteca.h"
 #include "explorar.h"
 #include "agendaui.h"
+#include "esportesui.h"
+#include "esportes.h"
 #include "agenda.h"
 #include "agendaviso.h"
 #include "perfil.h"
@@ -862,7 +864,7 @@ static int backupRecuperacaoPendente;
 const char *app_tela_nome(void) {
   static const char *const NOMES[] = {
     "login", "escolha-perfil", "home", "explorar", "guia", "busca", "biblioteca", "perfil",
-    "ajustes", "diagnostico", "player", "social", "addons", "agenda", "livetv-diag", "plugins"
+    "ajustes", "diagnostico", "player", "social", "addons", "agenda", "livetv-diag", "esportes", "plugins"
   };
   if (stream_folha_aberta()) return "fontes";
   if (episodios_aberto()) return "episodios";
@@ -902,6 +904,7 @@ SIDEBAR_TOQUE_TELA(sidebarToqueDiagnostico, TELA_DIAGNOSTICO)
 SIDEBAR_TOQUE_TELA(sidebarToqueSocial, TELA_SOCIAL)
 SIDEBAR_TOQUE_TELA(sidebarToqueAddons, TELA_ADDONS)
 SIDEBAR_TOQUE_TELA(sidebarToqueAgenda, TELA_AGENDA)
+SIDEBAR_TOQUE_TELA(sidebarToqueEsportes, TELA_ESPORTES)
 SIDEBAR_TOQUE_TELA(sidebarToqueLiveTVDiag, TELA_LIVETV_DIAG)
 SIDEBAR_TOQUE_TELA(sidebarToquePlugins, TELA_PLUGINS)
 #undef SIDEBAR_TOQUE_TELA
@@ -932,6 +935,7 @@ static void sidebarToqueRegistrar(int contexto) {
       case TELA_SOCIAL: fn = sidebarToqueSocial; break;
       case TELA_ADDONS: fn = sidebarToqueAddons; break;
       case TELA_AGENDA: fn = sidebarToqueAgenda; break;
+      case TELA_ESPORTES: fn = sidebarToqueEsportes; break;
       case TELA_LIVETV_DIAG: fn = sidebarToqueLiveTVDiag; break;
       case TELA_PLUGINS: fn = sidebarToquePlugins; break;
       default: break;
@@ -1027,6 +1031,7 @@ static void trocarTela(Tela nova) {
   // barra), o Perfil fecha aqui: senao perfil_atualizar/socialvis_atualizar
   // seguiam rodando todo quadro. Voltar ao Perfil passa por perfil_abrir.
   if (tela == TELA_PERFIL) perfil_fechar();
+  if (tela == TELA_ESPORTES) esportesui_fechar();
   // #318: a tela piscava e congelava logo depois de uma troca de tela
   // (Android). A linha fica para o proximo relato, com teto: as 120 primeiras
   // trocas e depois no maximo uma a cada 10 s.
@@ -1044,6 +1049,7 @@ static void trocarTela(Tela nova) {
     case TELA_BUSCA:      busca_iniciar();      break;
     case TELA_BIBLIOTECA: biblioteca_iniciar(); break;
     case TELA_AGENDA:     agendaui_iniciar();   break;
+    case TELA_ESPORTES:   esportesui_iniciar(); break;
     case TELA_PERFIL:     perfil_abrir(); pedirPerfil(); break;
     case TELA_AJUSTES:    ajustes_iniciar();    break;
     case TELA_DIAGNOSTICO: diagnostico_iniciar(); break;
@@ -3537,6 +3543,7 @@ static void perfilAbrirSessao(int antes) {
   recomenda_abrir_sessao();
   biblioteca_abrir_sessao();
   guia_abrir_sessao();
+  esportes_abrir_sessao();
   avisos_abrir_sessao();
   home_abrir_sessao();
   menu_definir_destino(MENU_INICIO);
@@ -4084,6 +4091,7 @@ static int relogioPedidoPagina(void) {
     case TELA_BUSCA: return busca_pediu_relogio();
     case TELA_BIBLIOTECA: return biblioteca_pediu_relogio();
     case TELA_AGENDA: return agendaui_pediu_relogio();
+    case TELA_ESPORTES: return esportesui_pediu_relogio();
     case TELA_PERFIL: return perfil_pediu_relogio();
     case TELA_SOCIAL: return amigoperfil_pediu_relogio();
     case TELA_ADDONS: return addonsui_pediu_relogio();
@@ -4497,6 +4505,7 @@ void app_evento(const SDL_Event *e) {
     case TELA_BUSCA:      busca_evento(e);      break;
     case TELA_BIBLIOTECA: biblioteca_evento(e); break;
     case TELA_AGENDA:     agendaui_evento(e);   break;
+    case TELA_ESPORTES:   esportesui_evento(e); break;
     case TELA_PERFIL:     perfil_evento(e);     break;
     case TELA_SOCIAL:     amigoperfil_evento(e); break;
     case TELA_ADDONS:     addonsui_evento(e);   break;
@@ -5424,6 +5433,7 @@ void app_atualizar(float dt, Uint32 agora) {
               || (tela == TELA_BUSCA      && busca_quer_sair())
               || (tela == TELA_BIBLIOTECA && biblioteca_quer_sair())
               || (tela == TELA_AGENDA     && agendaui_quer_sair())
+              || (tela == TELA_ESPORTES   && esportesui_quer_sair())
               || (tela == TELA_PERFIL      && perfil_quer_sair())
               || (tela == TELA_SOCIAL      && amigoperfil_quer_sair())
               || (tela == TELA_AJUSTES    && ajustes_quer_sair())
@@ -5487,6 +5497,7 @@ void app_atualizar(float dt, Uint32 agora) {
       case MENU_BUSCAR:     trocarTela(TELA_BUSCA);      break;
       case MENU_BIBLIOTECA: trocarTela(TELA_BIBLIOTECA); break;
       case MENU_AGENDA:     trocarTela(TELA_AGENDA);     break;
+      case MENU_ESPORTES:   trocarTela(TELA_ESPORTES);   break;
       // DIRETO PARA A TELA, e nao mais para o painel lateral. O item do menu
       // se chama "Perfil e Stats" e abria um resumo de tres botoes por cima da
       // home — para ver as estatisticas de verdade era preciso descer ate "Ver
@@ -6447,6 +6458,10 @@ void app_atualizar(float dt, Uint32 agora) {
     nomeParaFolha(); stream_folha_abrir();
   }
 
+  { char idEsporte[128];
+    if (tela == TELA_ESPORTES && aguardandoFonte != 2 && esportesui_pediu_canal(idEsporte, sizeof idEsporte))
+      guia_pedir_canal_id(idEsporte);
+  }
   // CANAL ESCOLHIDO NO GUIA — tela cheia ou faixa, mesma acao: toca direto.
   { CatItem it;
     if (aguardandoFonte != 2 && guia_pediu_canal(&it)) tocarCanal(&it); }
@@ -6713,6 +6728,7 @@ void app_atualizar(float dt, Uint32 agora) {
     case TELA_BUSCA:      busca_atualizar(dt, agora);      break;
     case TELA_BIBLIOTECA: biblioteca_atualizar(dt, agora); break;
     case TELA_AGENDA:     agendaui_atualizar(dt, agora);   break;
+    case TELA_ESPORTES:   if (!player_aberto()) esportesui_atualizar(dt, agora); break;
     case TELA_PERFIL:     break;
     case TELA_AJUSTES:    ajustes_atualizar(dt, agora);    break;
     case TELA_DIAGNOSTICO: diagnostico_atualizar(dt, agora); break;
@@ -6821,6 +6837,7 @@ static void desenharAtrasDoPainel(void *ctx) {
       case TELA_BUSCA:      busca_desenhar(agora);      break;
       case TELA_BIBLIOTECA: biblioteca_desenhar(agora); break;
       case TELA_AGENDA:     agendaui_desenhar(agora);   break;
+      case TELA_ESPORTES:   esportesui_desenhar(agora); break;
       case TELA_PERFIL:     perfil_desenhar(agora);     break;
       case TELA_SOCIAL:     amigoperfil_desenhar(agora);     break;
       case TELA_ADDONS:     addonsui_desenhar(agora);   break;
@@ -7045,7 +7062,7 @@ static int relogioCabe(void) {
   if (tela == TELA_HOME) { if (!homePronta) return 0; }
   else if (tela != TELA_EXPLORAR && tela != TELA_BUSCA &&
            tela != TELA_BIBLIOTECA && tela != TELA_PERFIL && tela != TELA_SOCIAL &&
-           tela != TELA_ADDONS && tela != TELA_PLUGINS && tela != TELA_AGENDA) return 0;
+           tela != TELA_ADDONS && tela != TELA_PLUGINS && tela != TELA_AGENDA && tela != TELA_ESPORTES) return 0;
   // O MENU ABERTO NAO ESCONDE MAIS O RELOGIO (Glass UI, mockup "ilha" tela 1):
   // a ilha do menu nasce logo abaixo da do relogio, na mesma margem
   // (ilha_posicionar), e as duas formam a coluna da esquerda.
@@ -7386,6 +7403,7 @@ int app_central_pode(void) {
 void app_encerrar(void) {
   if(backupRecuperacaoPendente)return;
   drivebackup_fechar();
+  esportes_cancelar();
   avisos_encerrar();   // saida limpa: apaga a marca de sessao viva
   preparoInvalidar();
   proximopreparo_encerrar();
