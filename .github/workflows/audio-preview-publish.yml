@@ -24,14 +24,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 501ce031afa0c2bcbb5865c33280831ea26e9d43
-      SOURCE_TREE: 826084f5140a8cf5e724cdeec2d2e488a9d2d06d
-      BUILD_CONFIG: fe7bc3700378169a94d465c5a4efff359eec6f38
-      NATIVE_CONFIG: fe7bc3700378169a94d465c5a4efff359eec6f38
-      NATIVE_SOURCE_SHA: 501ce031afa0c2bcbb5865c33280831ea26e9d43
-      NATIVE_SOURCE_TREE: 826084f5140a8cf5e724cdeec2d2e488a9d2d06d
-      ANDROID_RUN: ${{ inputs.android_run_id || '39311909620' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39311914189' }}
+      SOURCE_SHA: cfc730ad1721d4f12b197b03b5e7c2fb046b5f59
+      SOURCE_TREE: 37f46a7d6a7fd0e22b13a4673e2d636d65192beb
+      BUILD_CONFIG: bc115d0641fd0da65c55356eea9a64e6250b570a
+      NATIVE_CONFIG: bc115d0641fd0da65c55356eea9a64e6250b570a
+      NATIVE_SOURCE_SHA: cfc730ad1721d4f12b197b03b5e7c2fb046b5f59
+      NATIVE_SOURCE_TREE: 37f46a7d6a7fd0e22b13a4673e2d636d65192beb
+      ANDROID_RUN: ${{ inputs.android_run_id || '39312152688' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39312158665' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -148,7 +148,10 @@ jobs:
              The full existing event grid should open. Short-tap a match for Sources.
           9. Favorite teams from different leagues/sports. All should show one
              combined Favorites row with their live/upcoming fixtures. Soccer
-             favorites still include cup matches supplied by ESPN.
+             favorites still include cup matches supplied by ESPN. Remove the last
+             favorite and return: navigation must focus a valid league row. From a
+             full league grid, Favorites must return to All with every enabled
+             league visible, rather than retaining the league's sport filter.
           10. Open and close the left app menu: content must stay in place. Leave
               Sports and return: it should open at All, with hidden choices retained.
               English dates remain MM/DD. Normal Home/movie/episode Sources should
