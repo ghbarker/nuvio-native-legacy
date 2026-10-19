@@ -1,85 +1,28 @@
-name: Publish verified Logs80 IntroDB fallback APK
+name: Publish verified Logs81 Sports preview
 on:
   workflow_dispatch:
     inputs:
-      instructions_only:
-        description: Repair the released test instructions only
-        type: boolean
-        default: false
       android_run_id:
-        description: Successful Logs80 Android build run
         required: true
         type: string
       native_run_id:
-        description: Successful Logs80 Linux/macOS marker checks
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  instructions:
-    if: inputs.instructions_only
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ghbarker/nuvio-native-legacy
-    steps:
-      - name: Restore corrected instructions asset
-        run: |
-          cat > Logs80-test-steps.txt <<'STEPS'
-          Logs80: IntroDB skip-marker backup and season-button fix
-          Version 2.0.90-test-logs80 (20090).
-
-          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
-          app data; the package and persistent signing key retain your accounts.
-
-          1. Confirm the season-button fix: open Game of Thrones, select seasons
-             1 and 8, then leave and reopen. Episode cards and tabs should agree.
-          2. To test MANUAL buttons, temporarily disable automatic Skip intro,
-             Skip recap and Skip credits in Playback settings.
-             Automatic skipping can hide the manual button.
-          3. Open Supernatural S01E01. Allow about 20 seconds for both databases
-             to respond, then seek to 2:25 and let it play. The public IntroDB
-             backup currently lists an intro from 2:30 to 3:30. A Skip intro
-             button should appear in that interval; press it to seek to 3:30.
-             Availability and timings depend on the databases and your video cut.
-          4. Control: Game of Thrones S01E02 has TheIntroDB intro markers around
-             0:05-1:46. After lookup finishes, seek to 0:15. Its existing marker
-             should still work. If the button auto-hid, reopen playback controls.
-          5. Re-enable your usual automatic skip choices and repeat a known intro.
-             Check one anime whose AniSkip/chapter markers already worked too.
-          6. Leave during lookup, then open another episode. A late response must
-             not show the old episode's skip markers on the new one.
-          7. If a button is missing, save a log and include title, season/episode,
-             source, playback time, and whether automatic skipping was enabled.
-             Look for IntroDB backup HTTP/status and added-marker diagnostics.
-
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs80.txt
-          In a phone ADB shell app: logcat -d -v threadtime
-
-          These are test instructions, not a guarantee of database coverage for
-          every episode or video cut. Existing timing safeguards remain enabled.
-          Awaiting approval of this build before publishing the IntroDB PR.
-          STEPS
-          gh release upload tv-mobile-test-logs-v80 Logs80-test-steps.txt --clobber
   publish:
-    if: ${{ !inputs.instructions_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      actions: read
       contents: write
+      actions: read
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 20638b6e37d79496f500243c92f7a91541ddd995
-      SOURCE_TREE: f82f9efe72ab792cd8df39dad2c2463dba89ce84
-      ANDROID_CONFIG_COMMIT: 251f3da3ee37b57bf34c283d7ca4382ad79c01ba
-      NATIVE_CONFIG_COMMIT: c0d74b5d5b49721a5b5f819aeda97f8095731ede
-      NATIVE_SOURCE_SHA: affe70f448807b5aad2ff7c1127d483149271e8b
-      NATIVE_SOURCE_TREE: 2fdae25f83b76ab88e1a0fe0924c908ee67b89a1
+      SOURCE_SHA: 2019432b70258652ce2496ad30dbb69e299fdad9
+      SOURCE_TREE: 7ba7eb1b192573df3cfadc966aadb7ccc6c600d1
+      BUILD_CONFIG: 1e7a72a57ab8fcb0bb7aba0b540545ab00d27f28
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -89,140 +32,107 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install APK signature verifier dependency
-        run: python3 -m pip install 'cryptography>=42,<47'
-      - name: Verify exact successful build
+      - name: Verify successful pinned checks
         run: |
-          python3 - <<'PY'
+          python3 - <<'CHECK'
           import json,os,re,subprocess
-          run=os.environ['ANDROID_RUN']
-          assert re.fullmatch(r'[0-9]+',run)
-          repo='repos/ghbarker/nuvio-native-legacy/'
-          api=lambda path:json.loads(subprocess.check_output(['gh','api',repo+path]))
-          data=api('actions/runs/'+run)
-          assert data['status']=='completed' and data['conclusion']=='success'
-          assert data['head_sha']==os.environ['ANDROID_CONFIG_COMMIT']
-          assert data['path']=='.github/workflows/logs35-build.yml'
-          assert data['head_repository']['full_name']=='ghbarker/nuvio-native-legacy'
-          jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
-          assert any(j['name']=='apk-build' and j['conclusion']=='success' for j in jobs)
-          assert all(j['conclusion'] in ('success','skipped') for j in jobs)
-          run=os.environ['NATIVE_RUN'];assert re.fullmatch(r'[0-9]+',run)
-          data=api('actions/runs/'+run)
-          assert data['status']=='completed' and data['conclusion']=='success'
-          assert data['head_sha']==os.environ['NATIVE_CONFIG_COMMIT']
-          assert data['path']=='.github/workflows/audio-label-checks.yml'
-          assert data['head_repository']['full_name']=='ghbarker/nuvio-native-legacy'
-          jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
-          assert len(jobs)==2 and all(j['conclusion']=='success' for j in jobs)
-          PY
+          api=lambda path:json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GH_REPO']+'/'+path]))
+          for key,path in [('ANDROID_RUN','.github/workflows/logs35-build.yml'),('NATIVE_RUN','.github/workflows/audio-label-checks.yml')]:
+              run=os.environ[key];assert re.fullmatch('[0-9]+',run)
+              r=api('actions/runs/'+run)
+              assert r['status']=='completed' and r['conclusion']=='success'
+              assert r['head_sha']==os.environ['BUILD_CONFIG'] and r['path']==path
+              assert r['head_repository']['full_name']==os.environ['GH_REPO']
+              jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
+              assert all(j['conclusion'] in ('success','skipped') for j in jobs)
+              if key=='ANDROID_RUN':assert any(j['name']=='apk-build' and j['conclusion']=='success' for j in jobs)
+              else:assert len(jobs)==2 and all(j['conclusion']=='success' for j in jobs)
+          CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs80-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs81-${{ env.BUILD_CONFIG }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
-      - name: Download native metadata evidence
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           pattern: integration-*
           path: native-evidence
           run-id: ${{ inputs.native_run_id }}
           github-token: ${{ github.token }}
-      - name: Verify APK signature, identity, version and ARM libraries
+      - name: Verify APK and native test evidence
         run: |
-          python3 - <<'PY'
+          python3 -m pip install 'cryptography>=42,<47'
+          python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs80.apk')
-          p=pathlib.Path('Logs80-validation.json');data=json.loads(p.read_text())
-          assert data['source_commit']==os.environ['SOURCE_SHA']
-          assert data['source_tree']==os.environ['SOURCE_TREE']
-          assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT']
-          assert data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
-          assert data['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest()
-          assert data['apk_bytes']==apk.stat().st_size
-          assert data['android_unit_tests']==[] and not data['tests_skipped_by_request']
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',data['apk_sha256'],'--version-code','20090','--version-name','2.0.90-test-logs80','--output','Logs80-independent-verification.json'],check=True)
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs81.apk');p=pathlib.Path('Logs81-validation.json');v=json.loads(p.read_text())
+          assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
+          assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
+          assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20091','--version-name','2.0.91-test-logs81','--output','Logs81-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
-          assert set(dirs)=={'integration-'+system+'-intro-backup' for system in ('ubuntu-24.04','macos-15')}
+          assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-sports'}
           results=[]
-          for directory in dirs.values():
-              source=json.loads((directory/'source.json').read_text())
-              assert source['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and source['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-              checks=json.loads((directory/'results.json').read_text())
-              assert len(checks)==7 and all(c['code']==0 for c in checks)
-              assert {(c['suite'],c['sanitizers']) for c in checks}=={(n,b) for n in ('intro','creditos_limitados') for b in (False,True)} | {(n,False) for n in ('player_identity524','player_identity524_guards','cwinicio')}
-              results.extend(checks)
-          data['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
-          data['native_metadata_check_invocations']=len(results)
-          data['sanitizer_invocations']=sum(c['sanitizers'] for c in results)
-          data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          data['validation_note']='Android build and APK identity verification; Linux/macOS native skip-marker and identity tests; marker suites also under ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.'
-          p.write_text(json.dumps(data,indent=2)+'\n')
-          PY
-      - name: Verify test harness repairs preserve Android product source
+          for d in dirs.values():
+              s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['SOURCE_SHA'] and s['source_tree']==os.environ['SOURCE_TREE']
+              checks=json.loads((d/'results.json').read_text());assert len(checks)==6 and all(x['code']==0 for x in checks)
+              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['esportes','esportes_estado','esportes_ui'] for b in [False,True]}
+              results+=checks
+          v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
+          v['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
+          v['validation_note']='Android APK build and independent identity/signature/ABI verification; Linux/macOS sports parsing, state and headless input/guide-match fixtures, normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen builds or visual/device tests.'
+          p.write_text(json.dumps(v,indent=2)+'\n')
+          VERIFY
+      - name: Write test instructions
         run: |
-          git fetch --no-tags --depth=5 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
-          python3 - <<'PY'
-          import os,subprocess
-          changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          assert changed=={'tests/cwinicio.sh','tests/player_identity524.c','tests/player_identity524.sh','tests/player_identity524_guards.c','tests/player_identity524_guards.sh'},changed
-          print('Native source differs only in test harnesses; Android product source is identical.')
-          PY
-      - name: Write instructions
-        run: |
-          cat > Logs80-test-steps.txt <<'STEPS'
-          Logs80: IntroDB skip-marker backup and season-button fix
-          Version 2.0.90-test-logs80 (20090).
+          cat > Logs81-test-steps.txt <<'STEPS'
+          Logs81: Sports catalog preview. Version 2.0.91-test-logs81 (20091).
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
-          app data; the package and persistent signing key retain your accounts.
+          1. Open the normal navigation menu and choose Sports. On mobile, use
+             the existing sidebar gesture/menu. On TV, use the remote arrows.
+          2. Open the Sports button at the top. Turn one sport off, go Back and
+             confirm it disappears. Restart and check that the choice persists.
+             Another profile should retain its own choices. Re-enable it afterward.
+          3. Choose Basketball > NBA, or American football > NFL. Events should
+             appear without waiting for the entire upcoming schedule to download.
+             ESPN supplies current results and the next six days where available.
+             An empty or unavailable league must not freeze navigation.
+          4. Open an event. Check participants, venue/time and live scores where
+             ESPN supplies them. Choose a participant to add/remove a favorite.
+             Back on that league's event list, Favorites filters to those teams.
+          5. For an event your IPTV guide actually lists, select Find channels.
+             Confirmed matches should name BOTH opponents and have a compatible
+             programme time. Check the channel and account labels, then open a
+             currently airing match. Playback uses the existing Live TV player.
+          6. Broader broadcaster suggestions are explicitly labelled unconfirmed.
+             A channel carrying a different match in the same league must not be
+             presented as a confirmed match. Missing EPG cannot confirm an event.
+             Future confirmed events do not play early; use a currently live one.
+          7. Test scrolling, Back, search within lists and top controls on phone
+             or remote. Check that Sports fits the existing theme, text sizing,
+             cards and button style. Existing Home and Live TV should behave normally.
+          8. Send a log if matching is wrong; include the event, channel/account,
+             local kickoff time and the exact EPG programme title shown.
 
-          1. Confirm the season-button fix: open Game of Thrones, select seasons
-             1 and 8, then leave and reopen. Episode cards and tabs should agree.
-          2. To test MANUAL buttons, temporarily disable automatic Skip intro,
-             Skip recap and Skip credits in Playback settings.
-             Automatic skipping can hide the manual button.
-          3. Open Supernatural S01E01. Allow about 20 seconds for both databases
-             to respond, then seek to 2:25 and let it play. The public IntroDB
-             backup currently lists an intro from 2:30 to 3:30. A Skip intro
-             button should appear in that interval; press it to seek to 3:30.
-             Availability and timings depend on the databases and your video cut.
-          4. Control: Game of Thrones S01E02 has TheIntroDB intro markers around
-             0:05-1:46. After lookup finishes, seek to 0:15. Its existing marker
-             should still work. If the button auto-hid, reopen playback controls.
-          5. Re-enable your usual automatic skip choices and repeat a known intro.
-             Check one anime whose AniSkip/chapter markers already worked too.
-          6. Leave during lookup, then open another episode. A late response must
-             not show the old episode's skip markers on the new one.
-          7. If a button is missing, save a log and include title, season/episode,
-             source, playback time, and whether automatic skipping was enabled.
-             Look for IntroDB backup HTTP/status and added-marker diagnostics.
-
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs80.txt
-          In a phone ADB shell app: logcat -d -v threadtime
-
-          These are test instructions, not a guarantee of database coverage for
-          every episode or video cut. Existing timing safeguards remain enabled.
-          Awaiting approval of this build before publishing the IntroDB PR.
+          This first preview uses ESPN; no TheSportsDB key is required. It offers
+          16 validated sports categories; other providers can expand coverage later.
+          Coverage and live-score freshness depend on ESPN and your loaded EPG.
+          Awaiting this APK's approval before any upstream Sports PR.
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs81.txt
           STEPS
           cat > notes.txt <<'NOTES'
-          Adds IntroDB (api.introdb.app) as a backup for missing intro, recap and
-          credits markers. Existing TheIntroDB, AniSkip and file chapters retain
-          priority. Existing markers publish before the bounded backup lookup.
-          Requests use original IMDb episode coordinates, and malformed or wrong
-          identities are rejected. Results are cached for 30 minutes; failures
-          remain retryable. Existing timing guards and post-credit scenes remain
-          protected. This build also retains the Logs79 season-button fix.
+          Separate Sports destination using the app's existing UI components.
+          ESPN leagues, current/upcoming events, scores and per-profile sport
+          toggles/favorites. Find channels searches the existing IPTV guide;
+          confirmed event matches precede explicitly unconfirmed broadcasters.
+          No video stream is opened or probed while browsing sports metadata.
 
-          Android build and independent signer/package/version/ARM checks are
-          verified. Linux/macOS skip-marker and playback-identity checks passed
-          (14 invocations, including four ASan/UBSan runs). These native checks
-          are not packaged macOS, webOS or Tizen application builds.
-
-          Install as an update and follow Logs80-test-steps.txt. Awaiting device
-          approval before publishing the IntroDB product PR. Test packaging and
-          local log-export code stay out of that PR.
+          Android build and independent APK verification passed. Linux/macOS
+          parsing, profile/state and headless UI fixtures passed in normal and
+          ASan/UBSan modes (12 invocations). These are not visual/device tests
+          or packaged macOS/webOS/Tizen builds. Install as an update and follow
+          Logs81-test-steps.txt. No upstream Sports PR has been published.
           NOTES
-      - name: Publish diagnostic download
+      - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v80 Nuvio-TV-Mobile-Test-Logs80.apk Logs80-validation.json Logs80-independent-verification.json Logs80-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs80: IntroDB marker backup' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v81 Nuvio-TV-Mobile-Test-Logs81.apk Logs81-validation.json Logs81-independent-verification.json Logs81-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs81: Sports catalog' --notes-file notes.txt --prerelease
