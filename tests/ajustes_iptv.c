@@ -139,7 +139,7 @@ int main(int argc,char **argv) {
     ajustes_encerrar();SDL_Quit();return 0;
   }
   assert(somenteDesteAparelho(AJ_LIVETV_BUFFER) && !dePerfil(AJ_LIVETV_BUFFER));
-  assert(abDesteDispositivo(AJ_LIVETV_BUFFER));
+  assert(abDesteDispositivo(AJ_LIVETV_BUFFER) && !ajustePortavel(AJ_LIVETV_BUFFER));
   for(int preset=0;preset<4;preset++) {
     valor[AJ_LIVETV_BUFFER]=preset;assert(gravar());
     assert(ajustes_livetv_buffer_preset()==preset && ajustes_buffer_preset()==0);
