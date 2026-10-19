@@ -1,4 +1,4 @@
-name: Logs85 sports Linux and macOS Intel checks
+name: Logs86 sports Linux and macOS Intel checks
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -7,12 +7,12 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: cf68a922cf8459f4dc47791b2d9b76205042ddb3
+  SOURCE_SHA: dc2d236eac4883691fb1687e36808c890d220d46
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
   native:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs85-native-intel]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs86-native-intel]')
     strategy:
       fail-fast: false
       matrix:
