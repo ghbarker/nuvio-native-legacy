@@ -1,13 +1,13 @@
-name: Publish verified Logs79 season tabs APK
+name: Publish verified Logs80 IntroDB fallback APK
 on:
   workflow_dispatch:
     inputs:
       android_run_id:
-        description: Successful Logs79 Android build run
+        description: Successful Logs80 Android build run
         required: true
         type: string
       native_run_id:
-        description: Successful Logs79 Linux/macOS metadata checks
+        description: Successful Logs80 Linux/macOS marker checks
         required: true
         type: string
 permissions:
@@ -22,12 +22,12 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: bfcc4737b42e6bff77105f1b32ecea311b311762
-      SOURCE_TREE: 814c6a09216a2a7a1c6960bf3867351ec22f5142
-      ANDROID_CONFIG_COMMIT: 411b8d6a3eb47b35a38440666f5892c6f7dca83a
-      NATIVE_CONFIG_COMMIT: 0fa4c31de3e5536ff417bdfd36c238b920e655f5
-      NATIVE_SOURCE_SHA: c088e5514488220c3aff1c331a1f7873ee8bd5ec
-      NATIVE_SOURCE_TREE: 05a3d2c58e89816e060cfb05bfcc95936931c83c
+      SOURCE_SHA: 20638b6e37d79496f500243c92f7a91541ddd995
+      SOURCE_TREE: f82f9efe72ab792cd8df39dad2c2463dba89ce84
+      ANDROID_CONFIG_COMMIT: 251f3da3ee37b57bf34c283d7ca4382ad79c01ba
+      NATIVE_CONFIG_COMMIT: 251f3da3ee37b57bf34c283d7ca4382ad79c01ba
+      NATIVE_SOURCE_SHA: 20638b6e37d79496f500243c92f7a91541ddd995
+      NATIVE_SOURCE_TREE: f82f9efe72ab792cd8df39dad2c2463dba89ce84
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -66,7 +66,7 @@ jobs:
           PY
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs79-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs80-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - name: Download native metadata evidence
@@ -80,8 +80,8 @@ jobs:
         run: |
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs79.apk')
-          p=pathlib.Path('Logs79-validation.json');data=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs80.apk')
+          p=pathlib.Path('Logs80-validation.json');data=json.loads(p.read_text())
           assert data['source_commit']==os.environ['SOURCE_SHA']
           assert data['source_tree']==os.environ['SOURCE_TREE']
           assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT']
@@ -89,81 +89,88 @@ jobs:
           assert data['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest()
           assert data['apk_bytes']==apk.stat().st_size
           assert data['android_unit_tests']==[] and not data['tests_skipped_by_request']
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',data['apk_sha256'],'--version-code','20089','--version-name','2.0.89-test-logs79','--output','Logs79-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',data['apk_sha256'],'--version-code','20090','--version-name','2.0.90-test-logs80','--output','Logs80-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
-          assert set(dirs)=={'integration-'+system+'-season-metadata' for system in ('ubuntu-24.04','macos-15')}
+          assert set(dirs)=={'integration-'+system+'-intro-backup' for system in ('ubuntu-24.04','macos-15')}
           results=[]
           for directory in dirs.values():
               source=json.loads((directory/'source.json').read_text())
               assert source['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and source['source_tree']==os.environ['NATIVE_SOURCE_TREE']
               checks=json.loads((directory/'results.json').read_text())
-              assert len(checks)==6 and all(c['code']==0 for c in checks)
-              assert {(c['suite'],c['sanitizers']) for c in checks}=={(n,b) for n in ('episodiosdup','epsrapido','detalheanime') for b in (False,True)}
+              assert len(checks)==7 and all(c['code']==0 for c in checks)
+              assert {(c['suite'],c['sanitizers']) for c in checks}=={(n,b) for n in ('intro','creditos_limitados') for b in (False,True)} | {(n,False) for n in ('player_identity524','player_identity524_guards','cwinicio')}
               results.extend(checks)
           data['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           data['native_metadata_check_invocations']=len(results)
           data['sanitizer_invocations']=sum(c['sanitizers'] for c in results)
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          data['validation_note']='Android build and APK identity verification; Linux/macOS native metadata tests normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.'
+          data['validation_note']='Android build and APK identity verification; Linux/macOS native skip-marker and identity tests; marker suites also under ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.'
           p.write_text(json.dumps(data,indent=2)+'\n')
           PY
-      - name: Verify repaired test inputs preserve the built product source
+      - name: Verify Android and native source are identical
         run: |
           git fetch --no-tags --depth=5 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
           python3 - <<'PY'
           import os,subprocess
           changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          assert changed=={'tests/epsrapido.sh','tests/detalheanime.sh'},changed
-          print('Product source unchanged; native evidence uses repaired test link inputs.')
+          assert not changed,changed
+          print('Android and native checks use the exact same source tree.')
           PY
       - name: Write instructions
         run: |
-          cat > Logs79-test-steps.txt <<'STEPS'
-          Logs79: publish season tabs with episode cards
-          Version 2.0.89-test-logs79 (20089).
+          cat > Logs80-test-steps.txt <<'STEPS'
+          Logs80: IntroDB skip-marker backup and season-button fix
+          Version 2.0.90-test-logs80 (20090).
 
-          Install as an UPDATE to Nuvio TV/Mobile Test. Keep your accounts and settings;
-          do not uninstall or clear app data.
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
+          app data; the package and persistent signing key retain your accounts.
 
-          1. Open Game of Thrones. Once episode cards appear, season buttons should
-             also be present. Expect regular seasons 1-8; Specials depends on the
-             metadata source supplying season 0.
-          2. Select season 1, then season 8. Check that the episode cards switch to
-             the selected season (10 episodes in S1 and 6 in S8 with standard metadata).
-          3. Leave the title page and reopen it. The buttons must remain available.
-             Also close/reopen the app and check the saved/cached title.
-          4. Open a series whose Specials previously worked. Confirm season 0 and
-             its episodes are still accessible.
-          5. If buttons are missing, save a log immediately after opening the page
-             and note whether episode cards were already visible.
+          1. Confirm the season-button fix: open Game of Thrones, select seasons
+             1 and 8, then leave and reopen. Episode cards and tabs should agree.
+          2. To test MANUAL buttons, temporarily disable automatic Skip intro,
+             Skip recap and Skip credits in Playback settings. Keep skip-marker
+             lookup enabled. Automatic skipping can hide the manual button.
+          3. Open Supernatural S01E01. Allow about 20 seconds for both databases
+             to respond, then seek to 2:25 and let it play. The public IntroDB
+             backup currently lists an intro from 2:30 to 3:30. A Skip intro
+             button should appear in that interval; press it to seek to 3:30.
+             Availability and timings depend on the databases and your video cut.
+          4. Control: Game of Thrones S01E02 has TheIntroDB intro markers around
+             0:05-1:46. After lookup finishes, seek to 0:15. Its existing marker
+             should still work. If the button auto-hid, reopen playback controls.
+          5. Re-enable your usual automatic skip choices and repeat a known intro.
+             Check one anime whose AniSkip/chapter markers already worked too.
+          6. Leave during lookup, then open another episode. A late response must
+             not show the old episode's skip markers on the new one.
+          7. If a button is missing, save a log and include title, season/episode,
+             source, playback time, and whether automatic skipping was enabled.
+             Look for IntroDB backup HTTP/status and added-marker diagnostics.
 
-          App: Download log or View log.
-          Phone ADB shell app: logcat -d -v threadtime
-          Computer: adb logcat -d -v threadtime > Nuvio-Logs79.txt
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs80.txt
+          In a phone ADB shell app: logcat -d -v threadtime
 
-          Android build, persistent signer, identity/version, both ARM ABIs and
-          ARM64 16-KiB alignment verified. Linux/macOS native metadata tests passed
-          normally and under ASan/UBSan (12 invocations). No packaged desktop/TV
-          build is claimed. Awaiting device approval before publishing a product PR.
+          These are test instructions, not a guarantee of database coverage for
+          every episode or video cut. Existing timing safeguards remain enabled.
+          Awaiting approval of this build before publishing the IntroDB PR.
           STEPS
           cat > notes.txt <<'NOTES'
-          Fixes episode cards appearing without season buttons. Every selected
-          episode-list publication now updates the matching season tabs; cached
-          lists with missing tabs are allowed to refresh on reopening.
+          Adds IntroDB (api.introdb.app) as a backup for missing intro, recap and
+          credits markers. Existing TheIntroDB, AniSkip and file chapters retain
+          priority. Existing markers publish before the bounded backup lookup.
+          Requests use original IMDb episode coordinates, and malformed or wrong
+          identities are rejected. Results are cached for 30 minutes; failures
+          remain retryable. Existing timing guards and post-credit scenes remain
+          protected. This build also retains the Logs79 season-button fix.
 
-          Before/after reproduction with public Game of Thrones metadata:
-          73 episodes / zero published tabs becomes 73 episodes / eight tabs.
-          Cinemeta also preserves season 0 when specials are provided.
+          Android build and independent signer/package/version/ARM checks are
+          verified. Linux/macOS skip-marker and playback-identity checks passed
+          (14 invocations, including four ASan/UBSan runs). These native checks
+          are not packaged macOS, webOS or Tizen application builds.
 
-          Android build and independent APK signing/package/version/ARM checks
-          passed. Twelve Linux/macOS native metadata test invocations passed,
-          including six under ASan/UBSan. Native checks are not packaged macOS,
-          webOS or Tizen builds.
-
-          Install as an update to keep accounts and settings. Follow Logs79-test-steps.txt.
-          Awaiting device approval before a product PR. Test packaging and local
-          diagnostics stay outside the product change.
+          Install as an update and follow Logs80-test-steps.txt. Awaiting device
+          approval before publishing the IntroDB product PR. Test packaging and
+          local log-export code stay out of that PR.
           NOTES
       - name: Publish diagnostic download
         run: |
-          gh release create tv-mobile-test-logs-v79 Nuvio-TV-Mobile-Test-Logs79.apk Logs79-validation.json Logs79-independent-verification.json Logs79-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs79: Restore season buttons' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v80 Nuvio-TV-Mobile-Test-Logs80.apk Logs80-validation.json Logs80-independent-verification.json Logs80-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs80: IntroDB marker backup' --notes-file notes.txt --prerelease
