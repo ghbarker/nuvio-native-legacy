@@ -1,5 +1,7 @@
 #include "../src/esportesui.c"
 #include <assert.h>
+/* Navigation/matching fixture: no SDL video/audio runtime is needed. */
+Uint32 SDLCALL SDL_GetTicks(void) { return 1000; }
 static unsigned rev=1;
 static int ligasProntas=1;
 static int habilitados[16], pediuLigas, pediuEventos, favorito, tecladoResultado;
