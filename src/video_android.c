@@ -637,7 +637,8 @@ JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeErroTexto(JN
 
 // #345: keep audio diagnostics in the uploaded app log, not only logcat.
 JNIEXPORT void JNICALL Java_space_nuvio_nativelegacy_NvPlayer_nativeAudioLog(JNIEnv *env, jclass cls, jstring texto) {
-  char t[512];
+  /* TEST BUILD ONLY: retain the complete numeric live diagnostic. */
+  char t[1536];
   (void)cls;
   deJString(env, texto, t, sizeof t);
   printf("[video] android audio: %s\n", t);
