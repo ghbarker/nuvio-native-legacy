@@ -1,5 +1,8 @@
-name: Logs84 sports Linux and macOS checks
+name: Logs84 sports Linux and macOS Intel checks
 on:
+  push:
+    branches: [review/logs34-integration-20261017]
+    paths: [.github/workflows/audio-label-checks.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -9,10 +12,11 @@ env:
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
   native:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs84-native-intel]')
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [ubuntu-24.04, macos-15-intel]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -31,13 +35,14 @@ jobs:
           done
       - name: Sports checks
         run: |
+          if [ "$RUNNER_OS" = macOS ]; then export C_INCLUDE_PATH="$(brew --prefix)/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}"; fi
           python3 - <<'PYCODE'
           import json,os,pathlib,subprocess,time
           p=pathlib.Path('diagnostics');p.mkdir()
           sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
           assert sha==os.environ['SOURCE_SHA']
-          (p/'source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree}))
+          (p/'source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree,'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH']}))
           results=[]
           for suite in ['esportes','esportes_estado','esportes_ui','fontescanais_folha','streamfit_sheet']:
             for san in [False,True]:
