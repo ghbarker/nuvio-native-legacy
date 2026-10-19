@@ -20,7 +20,8 @@ void fontescanais_publicar(const FonteCanal *lista,int n,int buscando) {
 }
 int fontescanais_escolher(int i,time_t agora) {
   if (!estado.ativo || !nv_perfil_sessao_atual(estado.perfil) || i<0 || i>=estado.n) return 0;
-  if (estado.canais[i].inicio>agora) return -1;
+  /* A future EPG match still points to a live channel, not a recording. */
+  (void)agora;
   snprintf(estado.escolha,sizeof estado.escolha,"%s",estado.canais[i].id);
   return estado.escolha[0]!=0;
 }
