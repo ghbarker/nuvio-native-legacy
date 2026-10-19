@@ -184,11 +184,11 @@ void esportes_passo(void) {
         /* Default scoreboard first, then one date per request: several ESPN
          * leagues reject ranges. Publish every day's results immediately;
          * user navigation/profile changes discard the remaining work. */
-        if (!erro && !j->atualizar && j->dia < 6 && nEventos < ESP_MAX_EVENTOS) {
+        if (!erro && !j->atualizar && j->dia < 7 && nEventos < ESP_MAX_EVENTOS) {
           EspJob *proximo=calloc(1,sizeof *proximo);
           if (proximo) {
             *proximo=*j; proximo->ligas=NULL; proximo->eventos=NULL; proximo->n=0; proximo->dia++;
-            char dia[16]; struct tm tm; time_t t=time(NULL)+proximo->dia*86400;
+            char dia[16]; struct tm tm; time_t t=time(NULL)+(proximo->dia-1)*86400;
             gmtime_r(&t,&tm); strftime(dia,sizeof dia,"%Y%m%d",&tm);
             snprintf(proximo->url,sizeof proximo->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?dates=%s&limit=%d",esportes_modalidade(j->modalidade)->id,j->liga.id,dia,ESP_MAX_EVENTOS);
             soltar(fila); fila=proximo;
