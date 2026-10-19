@@ -1,4 +1,4 @@
-name: Logs70 HLS buffering recovery Linux and macOS checks
+name: Logs71 HLS buffering recovery Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 2d7b4912dfb1a9b8707f98b84cb2f4759aef5ccb
+  SOURCE_SHA: a8e7d33cd9a04d72b314715f95c57b6f92e85d61
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1

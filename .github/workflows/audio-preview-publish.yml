@@ -1,13 +1,13 @@
-name: Publish verified Logs70 combined test APK
+name: Publish verified Logs71 combined test APK
 on:
   workflow_dispatch:
     inputs:
       android_run_id:
-        description: Successful Logs70 Android APK workflow run ID
+        description: Successful Logs71 Android APK workflow run ID
         required: true
         type: string
       native_run_id:
-        description: Successful 2-job Logs70 native integration workflow run ID
+        description: Successful 2-job Logs71 native integration workflow run ID
         required: true
         type: string
       apk_sha256:
@@ -26,8 +26,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 2d7b4912dfb1a9b8707f98b84cb2f4759aef5ccb
-      SOURCE_TREE: 3fb265e49cadbdcf7f45d05a8a8e75241075c9b9
+      SOURCE_SHA: a8e7d33cd9a04d72b314715f95c57b6f92e85d61
+      SOURCE_TREE: 0c2d3943da87ab40e88746269d121db5ca6e337c
       # Android is already building this exact immutable source; retain it.
       ANDROID_CONFIG_COMMIT: ${{ github.sha }}
       ANDROID_RUN: ${{ inputs.android_run_id }}
@@ -61,7 +61,7 @@ jobs:
       - name: Download exact Android artifact
         uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs70-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs71-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - name: Download all native evidence
@@ -75,15 +75,15 @@ jobs:
         run: |
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs70.apk')
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs71.apk')
           expected=os.environ['APK_SHA256']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==expected
-          validation=pathlib.Path('Logs70-validation.json');data=json.loads(validation.read_text())
+          validation=pathlib.Path('Logs71-validation.json');data=json.loads(validation.read_text())
           assert data['apk_sha256']==expected and data['apk_bytes']==apk.stat().st_size
           assert data['source_commit']==os.environ['SOURCE_SHA'] and data['source_tree']==os.environ['SOURCE_TREE']
           assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT'] and data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
-          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20080
-          assert data['version_name']=='2.0.80-test-logs70'
+          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20081
+          assert data['version_name']=='2.0.81-test-logs71'
           assert data['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert data['android_build'] and data['both_arm_abis'] and data['arm64_16kb_alignment']
           assert set(data['android_unit_tests'])=={'LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest','LiveSegmentTraceTest'}
@@ -114,42 +114,46 @@ jobs:
           python3 - <<'INVENTORY'
           import json,os,pathlib
           items=[{'number': 573, 'title': 'Fonts: import local TTF/OTF for subtitles and interface', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/573'}, {'number': 575, 'title': 'Sources: add persistent cached/uncached filtering', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/575'}, {'number': 576, 'title': 'Episodes: keep canonical identity after metadata updates', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/576'}, {'number': 587, 'title': 'Live TV: bypass source filters and add per-add-on overrides', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/587'}, {'number': 596, 'title': 'Live TV: add M3U, multiple accounts and responsive EPG loading', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/596'}, {'number': 597, 'title': 'Live TV: prevent false stall restarts and recover expired live windows', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/597'}, {'number': 598, 'title': 'Details: show prepared-source specifications below Play', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/598'}, {'number': 601, 'title': 'Live TV: fix large category lists and category Confirm/Cancel', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/601'}, {'number': 602, 'title': 'Live TV: keep repeated search results visible and responsive', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/602'}, {'number': 609, 'title': 'Backup: add encrypted Google Drive backup and restore for local settings', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/609'}, {'number': 611, 'title': 'Sources: match audio-language filters against release labels', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/611'}]
-          pathlib.Path('Logs70-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
+          pathlib.Path('Logs71-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
           INVENTORY
-          cat > Logs70-test-steps.txt <<'TESTSTEPS'
-          Logs70 — bounded HLS buffering recovery
+          cat > Logs71-test-steps.txt <<'TESTSTEPS'
+          Logs71 — live recovery deadline and stale error screen
 
-          Install this APK as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall
-          or clear data. Version 2.0.80-test-logs70 (20080), same persistent signer.
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
+          data. Version 2.0.81-test-logs71 (20081), same persistent signing key.
 
-          1. On the Ugoos, play the same live channel used in Logs69 for 5 minutes.
-          2. If it buffers, let it recover. Check whether playback resumes without
-             reopening the channel, repeating earlier content or jumping forward.
-          3. If a repeat or reconnect happens, note the clock time, leave it playing
-             another 20 seconds and save a fresh log with the channel name.
-          4. Change to another channel and back. Confirm both start normally.
-          5. Pause for 40 seconds, then resume. Pausing must not trigger reconnects.
-          6. Check Settings > Google Drive backup: the highlight should sit behind
-             the row text, and Restore should ask for the original backup password.
+          1. On the Ugoos, play the same channel that failed in Logs70 for 5 minutes.
+          2. If it buffers, let it recover. Check that the picture returns with sound
+             and no "Could not open the source" screen covers recovered playback.
+          3. If a repeat, error or long buffer occurs, note the time, keep the app
+             open another 20 seconds, then save and send the fresh log.
+          4. Change channel and back, then test pause/resume. Recovery state from
+             the previous channel must not affect the new one.
+          5. To verify a real failure, briefly disconnect network access: recovery
+             must stay bounded, and an eventual error must not leave hidden audio.
+             Reconnect and reopen the channel afterward.
 
-          Live HLS buffering now gets 3 target segment durations (30–60 seconds)
-          before a watchdog reconnect. Fatal errors and EOF retain their handling;
-          a frozen decoder outside buffering still has its usual 8-second limit.
-          Slow downloads can still buffer. This fixes premature reconnects, not a
-          guarantee that every visible repeat has the same cause.
-          Numeric segment tracing remains test-only. No upstream PR update yet.
+          Fixes a separate eight-second live-window recovery deadline that Logs70
+          still used. Both Kotlin recovery and its native guard now use the same
+          bounded HLS allowance. READY wins over a queued timeout; a truly timed-out
+          player is stopped before a failure is reported.
+
+          Test-only [http-transfer] diagnostics distinguish server/first-byte wait
+          from receiving the video body. They record numbers only, not URLs or
+          credentials. This is measurement, not a claim of faster downloads yet.
+          No upstream PR update until this build is verified.
           TESTSTEPS
           cat > notes.txt <<'NOTES'
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          Logs69 recorded a 7.8-second HLS segment taking 20.7 seconds to download, with the shared watchdog allowed to reopen after 8 seconds without playback progress. Android live HLS now gets a bounded buffering allowance based on the target segment duration, while actual playback errors, EOF and frozen decoders retain recovery. The source-failure timeout uses the same allowance so it cannot preempt the reconnect watchdog.
+          Logs70 recorded live-window recovery timing out at eight seconds, followed by READY 0.9 seconds later in the same session. That marked the source failed while playback continued behind its error screen. This build aligns the recovery deadline and native guard with the bounded HLS segment allowance, checks actual READY state before declaring failure, and stops a genuinely timed-out player before reporting failure.
 
-          Keeps the backup menu and restore-password guidance fixes and test-only numeric segment trace. Slow downloads may still buffer; this is not a claim to fix every repeat without a reconnect.
+          Adds test-only numeric first-byte/body transfer timing to investigate intermittent slow HLS downloads. No stream URLs, headers or credentials are logged by the new trace. Download speed improvements are not claimed.
 
-          Android build and 43 selected unit tests passed. Linux/macOS checks cover normal and ASan/UBSan live watchdog, Android JNI recovery and error handling; these are not packaged macOS/webOS/Tizen builds. Translation diagnostics did not increase from the existing upstream baseline.
+          Android build and 49 selected unit tests passed. All 16 Linux/macOS native regression invocations passed, including ASan/UBSan checks. These are not packaged macOS/webOS/Tizen builds. Translation diagnostics did not increase from the existing upstream baseline.
 
-          Follow Logs70-test-steps.txt before the product PR is updated.
+          Follow Logs71-test-steps.txt before updating the product PR.
           NOTES
       - name: Publish verified update APK
         run: |
-          gh release create tv-mobile-test-logs-v70 Nuvio-TV-Mobile-Test-Logs70.apk Logs70-validation.json Logs70-inventory.json Logs70-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs70: bounded HLS buffering recovery' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v71 Nuvio-TV-Mobile-Test-Logs71.apk Logs71-validation.json Logs71-inventory.json Logs71-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs71: live recovery and stale error screen' --notes-file notes.txt --prerelease
