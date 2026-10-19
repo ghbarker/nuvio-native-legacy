@@ -7,7 +7,7 @@
 #define FONTESCANAIS_MAX 64
 typedef struct {
   char id[128], nome[200], conta[120], programa[240];
-  time_t inicio;
+  time_t inicio, fim;
 } FonteCanal;
 typedef struct {
   FonteCanal canais[FONTESCANAIS_MAX];
