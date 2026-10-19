@@ -5522,6 +5522,9 @@ void app_atualizar(float dt, Uint32 agora) {
   if (menu_escolheu()) {
     if (detail_aberto()) detail_fechar_seco();
     if (vertudo_aberta()) vertudo_fechar_seco();
+    if(tela==TELA_ESPORTES && menu_destino()==MENU_ESPORTES) {
+      esportesui_fechar();esportesui_iniciar();
+    }
   }
   if (menu_pediu_trocar()) {
     player_descartar_retido();

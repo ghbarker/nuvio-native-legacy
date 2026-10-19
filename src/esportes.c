@@ -5,6 +5,10 @@
 #include "sessao.h"
 #include "perfisessao.h"
 #include "rede.h"
+#include "idiomacod.h"
+#include <ctype.h>
+/* Keep the metadata worker independent of the graphics/settings headers. */
+int ajustes_idioma(void);
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -18,7 +22,7 @@ typedef struct {
   EspLiga liga;
   EspLiga *ligas;
   EspEvento *eventos;
-  char url[500], arquivo[160];
+  char url[500], arquivo[160], time[80], idioma[8];
 } EspJob;
 static EspLiga *ligas;
 static EspEvento *eventos;
@@ -31,6 +35,15 @@ static char arquivo[160];
 static atomic_int pronto;
 static int ocupado;
 static EspJob *resultado, *fila;
+static EspJob *resultadoFav, *filaFav;
+static atomic_int prontoFav;
+static int ocupadoFav, favoritoCursor, favoritoAtivo, favoritoAtualizar, erroFav, idiomaFav=-1;
+static unsigned geracaoFav;
+static time_t favoritosDesde;
+static int favoritosCompleto;
+static EspEvento *eventosFav;
+static int nEventosFav;
+static void favoritosPasso(void);
 static pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 
 static unsigned hash(const char *s) {
@@ -42,12 +55,17 @@ static void soltar(EspJob *j) {
   if (!j) return;
   free(j->ligas); free(j->eventos); free(j);
 }
-void esportes_cancelar(void) { geracao++; soltar(fila); fila = NULL; }
+void esportes_cancelar(void) {
+  geracao++;soltar(fila);fila=NULL;
+  if(ocupadoFav||filaFav||favoritoAtivo)favoritosCompleto=0;
+  geracaoFav++;soltar(filaFav);filaFav=NULL;favoritoAtivo=0;
+}
 void esportes_abrir_sessao(void) {
   NvPerfilSessao atual = nv_perfil_sessao_ler();
   if (arquivo[0] && atual == perfil) return;
   esportes_cancelar(); perfil = atual; desligados = 0; nFavoritos = 0;
   free(ligas); ligas = NULL; free(eventos); eventos = NULL;
+  free(eventosFav);eventosFav=NULL;nEventosFav=erroFav=0;favoritosDesde=0;
   nLigas = nEventos = erro = 0; revisao++;
   snprintf(arquivo, sizeof arquivo, "esportes-%08x-p%d.txt", hash(sessao_usuario()), perfis_ativo());
   char *buf = dados_ler(arquivo), *salvar = NULL;
@@ -73,20 +91,32 @@ int esportes_habilitar(int m, int on) {
   unsigned antes = desligados;
   if (on) desligados &= ~(1u << m); else desligados |= 1u << m;
   if (!gravar()) { desligados = antes; return 0; }
-  return 1;
+  esportes_pedir_favoritos(1);return 1;
 }
 static int chaveFav(const EspEvento *e, int p, char *out, size_t n) {
   if (!e || p < 0 || p >= e->nParticipantes || !e->participantes[p].id[0]) return 0;
   snprintf(out, n, "%s|%s|%s", e->modalidade, e->ligaId, e->participantes[p].id); return 1;
 }
-int esportes_favorito(const EspEvento *e, int p) {
-  char c[200]; if (!chaveFav(e, p, c, sizeof c)) return 0;
-  for (int i = 0; i < nFavoritos; i++) if (!strcmp(c, favoritos[i])) return 1;
-  return 0;
+static int favoritoIndice(const char *c) {
+  for(int i=0;i<nFavoritos;i++) {
+    if(!strcmp(c,favoritos[i]))return i;
+    /* Soccer team IDs span league/cup competitions. Other sports may reuse
+     * numeric IDs between professional, college and women's leagues. */
+    if(!strncmp(c,"soccer|",7) && !strncmp(favoritos[i],"soccer|",7)) {
+      const char *a=strrchr(c,'|'),*b=strrchr(favoritos[i],'|');
+      if(a && b && !strcmp(a,b))return i;
+    }
+  }
+  return -1;
+}
+int esportes_favorito(const EspEvento *e,int p) {
+  char c[200];return chaveFav(e,p,c,sizeof c) && favoritoIndice(c)>=0;
 }
 int esportes_alternar_favorito(const EspEvento *e, int p) {
   char c[200]; if (!chaveFav(e, p, c, sizeof c)) return 0;
-  int i; for (i = 0; i < nFavoritos; i++) if (!strcmp(c, favoritos[i])) break;
+  int i=favoritoIndice(c);if(i<0)i=nFavoritos;
+  /* Removal from another competition must restore the original key on failure. */
+  if (i<nFavoritos) snprintf(c,sizeof c,"%s",favoritos[i]);
   if (i < nFavoritos) {
     char ultimo[200]; memcpy(ultimo, favoritos[nFavoritos-1], sizeof ultimo);
     memcpy(favoritos[i], ultimo, sizeof ultimo); nFavoritos--;
@@ -96,7 +126,7 @@ int esportes_alternar_favorito(const EspEvento *e, int p) {
     snprintf(favoritos[nFavoritos++], sizeof favoritos[0], "%s", c);
     if (!gravar()) { nFavoritos--; return 0; }
   }
-  revisao++; return 1;
+  esportes_pedir_favoritos(1);revisao++; return 1;
 }
 static int ordem(const void *a, const void *b) {
   const EspEvento *x = a, *y = b;
@@ -139,8 +169,10 @@ static void *buscar(void *arg) {
   } else j->erro = 1;
   printf("[esportes] ESPN %s: %d itens, erro=%d\n", j->tipo == 1 ? "ligas" : "eventos", j->n, j->erro);
   free(baixado); free(cache);
-  pthread_mutex_lock(&trava); resultado = j; pthread_mutex_unlock(&trava);
-  atomic_store_explicit(&pronto, 1, memory_order_release); return NULL;
+  pthread_mutex_lock(&trava);
+  if (j->tipo>=3) resultadoFav=j;else resultado=j;
+  pthread_mutex_unlock(&trava);
+  atomic_store_explicit(j->tipo>=3?&prontoFav:&pronto,1,memory_order_release);return NULL;
 }
 static void agendar(EspJob *j) {
   if (!j) { erro = 1; return; }
@@ -151,7 +183,8 @@ void esportes_pedir_ligas(int m, int atualizar) {
   if (!esportes_habilitado(m)) return;
   EspJob *j = calloc(1, sizeof *j); if (!j) { erro = 1; return; }
   j->tipo = 1; j->modalidade = m; j->atualizar = atualizar;
-  snprintf(j->url, sizeof j->url, "https://site.api.espn.com/apis/site/v2/leagues/dropdown?lang=en&region=us&sport=%s", esportes_modalidade(m)->id);
+  snprintf(j->idioma,sizeof j->idioma,"%s",idioma_iso(ajustes_idioma()));
+  snprintf(j->url, sizeof j->url, "https://site.api.espn.com/apis/site/v2/leagues/dropdown?lang=%s&region=us&sport=%s",j->idioma,esportes_modalidade(m)->id);
   snprintf(j->arquivo, sizeof j->arquivo, "esportes-ligas-%s.json", esportes_modalidade(m)->id);
   free(ligas); ligas = NULL; nLigas = 0; revisao++; agendar(j);
 }
@@ -159,7 +192,8 @@ void esportes_pedir_eventos(int m, const EspLiga *l, int atualizar) {
   if (!l || !esportes_habilitado(m)) return;
   EspJob *j = calloc(1, sizeof *j); if (!j) { erro = 1; return; }
   j->tipo = 2; j->modalidade = m; j->atualizar = atualizar; j->liga = *l;
-  snprintf(j->url, sizeof j->url, "https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?limit=%d", esportes_modalidade(m)->id, l->id, ESP_MAX_EVENTOS);
+  snprintf(j->idioma,sizeof j->idioma,"%s",idioma_iso(ajustes_idioma()));
+  snprintf(j->url, sizeof j->url, "https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?limit=%d&lang=%s", esportes_modalidade(m)->id, l->id, ESP_MAX_EVENTOS,j->idioma);
   snprintf(j->arquivo, sizeof j->arquivo, "esportes-eventos-cache.json");
   if (!atualizar) { free(eventos); eventos = NULL; nEventos = 0; revisao++; }
   agendar(j);
@@ -190,7 +224,7 @@ void esportes_passo(void) {
             *proximo=*j; proximo->ligas=NULL; proximo->eventos=NULL; proximo->n=0; proximo->dia++;
             char dia[16]; struct tm tm; time_t t=time(NULL)+(proximo->dia-1)*86400;
             gmtime_r(&t,&tm); strftime(dia,sizeof dia,"%Y%m%d",&tm);
-            snprintf(proximo->url,sizeof proximo->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?dates=%s&limit=%d",esportes_modalidade(j->modalidade)->id,j->liga.id,dia,ESP_MAX_EVENTOS);
+            snprintf(proximo->url,sizeof proximo->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?dates=%s&limit=%d&lang=%s",esportes_modalidade(j->modalidade)->id,j->liga.id,dia,ESP_MAX_EVENTOS,j->idioma);
             soltar(fila); fila=proximo;
           }
         }
@@ -204,6 +238,7 @@ void esportes_passo(void) {
     if (pthread_create(&fio, NULL, buscar, j)) { ocupado = 0; erro = 1; soltar(j); }
     else pthread_detach(fio);
   }
+  favoritosPasso();
 }
 int esportes_carregando(void) { return ocupado || fila != NULL; }
 int esportes_erro(void) { return erro; }
@@ -212,3 +247,128 @@ int esportes_ligas_n(void) { return nLigas; }
 const EspLiga *esportes_liga(int i) { return i >= 0 && i < nLigas ? &ligas[i] : NULL; }
 int esportes_eventos_n(void) { return nEventos; }
 const EspEvento *esportes_evento(int i) { return i >= 0 && i < nEventos ? &eventos[i] : NULL; }
+
+static int modalidadeDe(const char *id) {
+  for(int i=0;i<esportes_modalidades_n();i++) if(!strcmp(esportes_modalidade(i)->id,id))return i;
+  return -1;
+}
+static int idSeguro(const char *id) {
+  if(!id[0])return 0;
+  for(;*id;id++)if(!isalnum((unsigned char)*id) && *id!='-' && *id!='.' && *id!='_')return 0;
+  return 1;
+}
+static int favoritoAtual(const EspEvento *e) {
+  int m=modalidadeDe(e->modalidade);
+  return m>=0 && esportes_habilitado(m) && (esportes_favorito(e,0)||esportes_favorito(e,1));
+}
+static int eventoDisponivel(const EspEvento *e,time_t agora) {
+  return e->estado==1 || (e->estado==0 && e->inicio>=agora-6*3600);
+}
+static void podarFavoritos(void) {
+  int n=0;time_t agora=time(NULL);
+  for(int i=0;i<nEventosFav;i++)if(favoritoAtual(&eventosFav[i]) && eventoDisponivel(&eventosFav[i],agora))eventosFav[n++]=eventosFav[i];
+  nEventosFav=n;
+}
+void esportes_pedir_favoritos(int atualizar) {
+  int idioma=ajustes_idioma();time_t agora=time(NULL);
+  if(!atualizar && idioma==idiomaFav && favoritosDesde && agora>=favoritosDesde && agora-favoritosDesde<60 && (favoritosCompleto||favoritoAtivo))return;
+  geracaoFav++;soltar(filaFav);filaFav=NULL;
+  favoritosCompleto=0;favoritoCursor=0;favoritoAtivo=1;favoritoAtualizar=atualizar;erroFav=0;
+  idiomaFav=idioma;favoritosDesde=agora;podarFavoritos();revisao++;
+}
+static void urlFavorito(EspJob *j) {
+  const char *mod=esportes_modalidade(j->modalidade)->id;
+  if(j->tipo==3) {
+    snprintf(j->url,sizeof j->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/teams/%s/schedule?fixture=true&lang=%s",mod,!strcmp(mod,"soccer")?"all":j->liga.id,j->time,j->idioma);
+  } else if(j->dia) {
+    time_t t=time(NULL)+(j->dia-1)*86400;struct tm tm;char dia[16];
+    gmtime_r(&t,&tm);strftime(dia,sizeof dia,"%Y%m%d",&tm);
+    snprintf(j->url,sizeof j->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?dates=%s&limit=%d&lang=%s",mod,j->liga.id,dia,ESP_MAX_EVENTOS,j->idioma);
+  } else snprintf(j->url,sizeof j->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?limit=%d&lang=%s",mod,j->liga.id,ESP_MAX_EVENTOS,j->idioma);
+}
+static EspJob *proximoFavorito(void) {
+  while(favoritoAtivo && favoritoCursor<nFavoritos) {
+    const char *chave=favoritos[favoritoCursor++];char mod[32],ligaId[80],timeId[80],extra;
+    if(sscanf(chave,"%31[^|]|%79[^|]|%79[^|]%c",mod,ligaId,timeId,&extra)!=3 ||
+       !idSeguro(ligaId)||!idSeguro(timeId))continue;
+    int m=modalidadeDe(mod);if(m<0 || !esportes_habilitado(m))continue;
+    EspJob *j=calloc(1,sizeof *j);if(!j){erroFav=1;return NULL;}
+    j->tipo=(!strcmp(mod,"tennis")||!strcmp(mod,"mma"))?4:3;
+    j->modalidade=m;j->geracao=geracaoFav;j->perfil=perfil;j->atualizar=favoritoAtualizar;
+    snprintf(j->liga.id,sizeof j->liga.id,"%s",ligaId);
+    snprintf(j->liga.nome,sizeof j->liga.nome,"%s",ligaId);
+    for(int k=0;k<nLigas;k++)if(!strcmp(ligas[k].id,ligaId)){j->liga=ligas[k];break;}
+    snprintf(j->time,sizeof j->time,"%s",timeId);
+    snprintf(j->idioma,sizeof j->idioma,"%s",idioma_iso(idiomaFav));
+    /* One bounded public cache slot; profile-owned favorites never go here. */
+    snprintf(j->arquivo,sizeof j->arquivo,"esportes-favoritos-cache.json");
+    urlFavorito(j);return j;
+  }
+  favoritoAtivo=0;favoritosCompleto=1;return NULL;
+}
+static void publicarFavoritos(const EspJob *j) {
+  if(!eventosFav)eventosFav=calloc(ESP_MAX_EVENTOS,sizeof *eventosFav);
+  if(!eventosFav){erroFav=1;return;}
+  if(j->tipo==3) {
+    int n=0;const char *mod=esportes_modalidade(j->modalidade)->id;
+    for(int i=0;i<nEventosFav;i++) {
+      const EspEvento *e=&eventosFav[i];int pertence=0;
+      if(!strcmp(e->modalidade,mod) && (!strcmp(mod,"soccer") || !strcmp(e->ligaId,j->liga.id)))
+        for(int p=0;p<e->nParticipantes;p++)if(!strcmp(e->participantes[p].id,j->time))pertence=1;
+      if(!pertence)eventosFav[n++]=*e;
+    }
+    nEventosFav=n;
+  }
+  for(int k=0;k<j->n;k++) {
+    const EspEvento *e=&j->eventos[k];if(!favoritoAtual(e))continue;
+    int pos;for(pos=0;pos<nEventosFav;pos++)
+      if(!strcmp(eventosFav[pos].modalidade,e->modalidade) && !strcmp(eventosFav[pos].ligaId,e->ligaId) && !strcmp(eventosFav[pos].id,e->id))break;
+    if(pos==ESP_MAX_EVENTOS) {
+      qsort(eventosFav,(size_t)nEventosFav,sizeof *eventosFav,ordem);
+      if(ordem(e,&eventosFav[pos-1])>=0)continue;
+      pos--;
+    }
+    eventosFav[pos]=*e;if(pos==nEventosFav)nEventosFav++;
+  }
+  podarFavoritos();qsort(eventosFav,(size_t)nEventosFav,sizeof *eventosFav,ordem);revisao++;
+}
+static void favoritosPasso(void) {
+  if(atomic_load_explicit(&prontoFav,memory_order_acquire)) {
+    pthread_mutex_lock(&trava);EspJob *j=resultadoFav;resultadoFav=NULL;pthread_mutex_unlock(&trava);
+    atomic_store_explicit(&prontoFav,0,memory_order_release);ocupadoFav=0;
+    if(j && j->geracao==geracaoFav && j->perfil==perfil && nv_perfil_sessao_atual(j->perfil)) {
+      if(j->erro && j->tipo==3) {
+        j->tipo=4;j->dia=0;j->erro=0;free(j->eventos);j->eventos=NULL;j->n=0;urlFavorito(j);
+        filaFav=j;j=NULL; /* Unsupported team schedule: existing league metadata path. */
+      } else if(!j->erro) {
+        publicarFavoritos(j);
+        if(j->tipo==4 && j->dia<7) {
+          EspJob *p=calloc(1,sizeof *p);
+          if(p){*p=*j;p->eventos=NULL;p->ligas=NULL;p->n=0;p->dia++;urlFavorito(p);filaFav=p;}
+          else erroFav=1;
+        }
+      } else {erroFav=1;revisao++;}
+    }
+    soltar(j);
+  }
+  if(!ocupadoFav) {
+    EspJob *j=filaFav;filaFav=NULL;if(!j)j=proximoFavorito();
+    if(j) {
+      pthread_t fio;ocupadoFav=1;
+      if(pthread_create(&fio,NULL,buscar,j)){ocupadoFav=0;erroFav=1;soltar(j);revisao++;}
+      else pthread_detach(fio);
+    }
+  }
+}
+int esportes_favoritos_times(void) {
+  int n=0;
+  for(int i=0;i<nFavoritos;i++) {
+    char mod[32];if(sscanf(favoritos[i],"%31[^|]",mod)!=1)continue;
+    int m=modalidadeDe(mod);if(m>=0 && esportes_habilitado(m))n++;
+  }
+  return n;
+}
+int esportes_favoritos_n(void){return nEventosFav;}
+const EspEvento *esportes_favoritos_evento(int i){return i>=0 && i<nEventosFav?&eventosFav[i]:NULL;}
+int esportes_favoritos_carregando(void){return ocupadoFav||filaFav||favoritoAtivo;}
+int esportes_favoritos_erro(void){return erroFav;}
