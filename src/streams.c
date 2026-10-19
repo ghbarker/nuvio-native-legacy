@@ -5509,7 +5509,7 @@ static int canaisHorario(const FonteCanal *c,time_t agora,char *out,size_t n) {
   if (!localtime_r(&c->inicio,&inicio) || !localtime_r(&agora,&hoje)) return 0;
   hora_tela(hora,sizeof hora,&inicio);
   if (inicio.tm_year==hoje.tm_year && inicio.tm_yday==hoje.tm_yday) snprintf(out,n,"%s",hora);
-  else { strftime(data,sizeof data,"%d/%m",&inicio);snprintf(out,n,"%s %s",data,hora); }
+  else { strftime(data,sizeof data,ajustes_idioma()==IDIOMA_EN?"%m/%d":"%d/%m",&inicio);snprintf(out,n,"%s %s",data,hora); }
   return 0;
 }
 static void corpoCanais(float lx,float rw,float tx,float tr,float a,Uint32 agora,int ptr) {

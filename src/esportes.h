@@ -40,6 +40,13 @@ int esportes_habilitado(int modalidade);
 int esportes_habilitar(int modalidade, int ligado);
 int esportes_favorito(const EspEvento *ev, int participante);
 int esportes_alternar_favorito(const EspEvento *ev, int participante);
+/* Combined favorites feed; loaded independently of the selected league. */
+void esportes_pedir_favoritos(int atualizar);
+int esportes_favoritos_times(void);
+int esportes_favoritos_n(void);
+const EspEvento *esportes_favoritos_evento(int i);
+int esportes_favoritos_carregando(void);
+int esportes_favoritos_erro(void);
 void esportes_pedir_ligas(int modalidade, int atualizar);
 void esportes_pedir_eventos(int modalidade, const EspLiga *liga, int atualizar);
 void esportes_passo(void);

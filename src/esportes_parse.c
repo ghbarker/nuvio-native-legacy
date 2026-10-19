@@ -169,6 +169,12 @@ static void acrescentar(const char *p, const char *fim, const char *comp,
   snprintf(e.modalidade, sizeof e.modalidade, "%s", mod);
   snprintf(e.liga, sizeof e.liga, "%s", l->nome);
   snprintf(e.ligaId, sizeof e.ligaId, "%s", l->id);
+  const char *le=objeto(p,fim,"league");
+  if (le) {
+    char id[80],nome[160];texto(le,js_fim(le),"slug",id,sizeof id);texto(le,js_fim(le),"name",nome,sizeof nome);
+    if (slug(id)) snprintf(e.ligaId,sizeof e.ligaId,"%s",id);
+    if (nome[0]) snprintf(e.liga,sizeof e.liga,"%s",nome);
+  }
   competicao(p, fim, &e);
   if (comp) {
     e.nParticipantes = e.nEmissoras = 0;
