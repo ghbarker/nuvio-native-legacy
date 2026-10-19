@@ -47,6 +47,22 @@ int esportes_favoritos_n(void);
 const EspEvento *esportes_favoritos_evento(int i);
 int esportes_favoritos_carregando(void);
 int esportes_favoritos_erro(void);
+/* League rows share the foreground worker, with visible rows requested first.
+ * Only eight row payloads are retained; metadata has no player side effects. */
+#define ESP_MAX_FILEIRAS (16 * ESP_MAX_LIGAS)
+void esportes_catalogo_iniciar(int modalidade, int atualizar);
+int esportes_catalogo_n(void);
+int esportes_catalogo_modalidade(int linha);
+const EspLiga *esportes_catalogo_liga(int linha);
+int esportes_liga_habilitada(int modalidade, const char *id);
+int esportes_liga_habilitar(int modalidade, const char *id, int ligado);
+void esportes_catalogo_suspender(void);
+void esportes_catalogo_visiveis(void);
+void esportes_catalogo_pedir(int linha);
+int esportes_catalogo_eventos_n(int linha);
+const EspEvento *esportes_catalogo_evento(int linha, int evento);
+int esportes_catalogo_estado(int linha); /* 0 loading, 1 ready, -1 failed */
+int esportes_catalogo_carregando(void);
 void esportes_pedir_ligas(int modalidade, int atualizar);
 void esportes_pedir_eventos(int modalidade, const EspLiga *liga, int atualizar);
 void esportes_passo(void);

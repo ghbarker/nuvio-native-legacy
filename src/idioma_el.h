@@ -2676,6 +2676,7 @@ T("Digite para buscar", "Πληκτρολογήστε για αναζήτηση"
   T("Ligar e desligar sem sair do guia", "Ενεργοποίηση και απενεργοποίηση χωρίς έξοδο από τον οδηγό"),
   T("Ligar ou desligar", "Ενεργοποίηση ή απενεργοποίηση"),
   T("Ligar ou desligar aqui vale para o app inteiro, não só para o guia.", "Η ενεργοποίηση ή απενεργοποίηση ενός πρόσθετου εδώ ισχύει για ολόκληρη την εφαρμογή, όχι μόνο για τον οδηγό."),
+T("Ligas", "Πρωταθλήματα"),
   T("Ligas e eventos", "Leagues and events"),
   T("Ligue o P2P em Ajustes ou conecte uma conta de debrid.", "Ενεργοποιήστε το P2P στις Ρυθμίσεις ή συνδέστε έναν λογαριασμό debrid."),
   T("Ligue o P2P em Ajustes.", "Ενεργοποιήστε το P2P στις Ρυθμίσεις."),
