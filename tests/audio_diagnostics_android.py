@@ -137,10 +137,10 @@ fun main() {
     check(f.native.last().contains("expectedUs=0 actualUs=500000"))
     repeat(10000) { a.onAudioSinkError(event, discontinuity) }
     check(f.native.size == before + 1)
-    SystemClock.now = 29999
+    SystemClock.now = 999
     a.onAudioSinkError(event, discontinuity)
     check(f.native.size == before + 1)
-    SystemClock.now = 30000
+    SystemClock.now = 1000
     a.onAudioSinkError(event, discontinuity)
     check(f.native.last().endsWith("repeticoes=10002"))
     a.onAudioCodecError(event, codec)
@@ -150,7 +150,7 @@ fun main() {
     val count = f.native.size
     repeat(10000) { a.onAudioSinkError(event, discontinuity) }
     check(f.native.size == count)
-    SystemClock.now = 60000
+    SystemClock.now = 2000
     a.onAudioSinkError(event, discontinuity)
     check(f.native.last().endsWith("repeticoes=20003"))
 
