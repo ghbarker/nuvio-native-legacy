@@ -1,10 +1,10 @@
-name: Logs82 sports Linux and macOS checks
+name: Logs83 sports Linux and macOS checks
 on:
   workflow_dispatch:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
+  SOURCE_SHA: 78dbce37cad5013dcf894bca894155c19ed08655
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:

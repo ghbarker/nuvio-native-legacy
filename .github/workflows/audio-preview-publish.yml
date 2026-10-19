@@ -1,4 +1,4 @@
-name: Publish verified Logs82 Sports preview
+name: Publish verified Logs83 Sports preview
 on:
   workflow_dispatch:
     inputs:
@@ -20,12 +20,12 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
-      SOURCE_TREE: dc9a2d7824757317c18e46e96e4246e9e5d49e9e
+      SOURCE_SHA: 78dbce37cad5013dcf894bca894155c19ed08655
+      SOURCE_TREE: acfe2606f6803dfc6a75da6d172857479f81767d
       BUILD_CONFIG: 6e015ab26a56467666f1a837e8ef14be76fc6f4e
       NATIVE_CONFIG: 6e015ab26a56467666f1a837e8ef14be76fc6f4e
-      NATIVE_SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
-      NATIVE_SOURCE_TREE: dc9a2d7824757317c18e46e96e4246e9e5d49e9e
+      NATIVE_SOURCE_SHA: 78dbce37cad5013dcf894bca894155c19ed08655
+      NATIVE_SOURCE_TREE: acfe2606f6803dfc6a75da6d172857479f81767d
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -53,7 +53,7 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs82-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs83-${{ env.BUILD_CONFIG }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -67,11 +67,11 @@ jobs:
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs82.apk');p=pathlib.Path('Logs82-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs83.apk');p=pathlib.Path('Logs83-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20092','--version-name','2.0.92-test-logs82','--output','Logs82-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20093','--version-name','2.0.93-test-logs83','--output','Logs83-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
           assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-sports'}
           results=[]
@@ -97,57 +97,59 @@ jobs:
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs82-test-steps.txt <<'STEPS'
-          Logs82: Sports catalog preview. Version 2.0.92-test-logs82 (20092).
+          cat > Logs83-test-steps.txt <<'STEPS'
+          Logs83: Sports catalog preview. Version 2.0.93-test-logs83 (20093).
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          1. Open the normal navigation menu and choose Sports. On mobile, use
-             the existing sidebar gesture/menu. On TV, use the remote arrows.
-          2. Open the Sports button at the top. Turn one sport off, go Back and
-             confirm it disappears. Restart and check that the choice persists.
-             Another profile should retain its own choices. Re-enable it afterward.
-          3. Choose Basketball > NBA, or American football > NFL. Events should
-             appear without waiting for the entire upcoming schedule to download.
-             ESPN supplies current results and the next six days where available.
-             An empty or unavailable league must not freeze navigation.
-          4. Open an event. Check participants, venue/time and live scores where
-             ESPN supplies them. Choose a participant to add/remove a favorite.
-             Back on that league's event list, Favorites filters to those teams.
-          5. For an event your IPTV guide actually lists, select Find channels.
-             Confirmed matches should name BOTH opponents and have a compatible
-             programme time. Check the channel and account labels, then open a
-             currently airing match. Playback uses the existing Live TV player.
-          6. Broader broadcaster suggestions are explicitly labelled unconfirmed.
-             A channel carrying a different match in the same league must not be
-             presented as a confirmed match. Missing EPG cannot confirm an event.
-             Future confirmed events do not play early; use a currently live one.
-          7. Test scrolling, Back, search within lists and top controls on phone
-             or remote. Check that Sports fits the existing theme, text sizing,
-             cards and button style. Existing Home and Live TV should behave normally.
-          8. Hide a guide category that contains a matching channel. Repeat Find
-             channels and confirm that category stays hidden in Sports too.
-          9. Send a log if matching is wrong; include the event, channel/account,
-             local kickoff time and the exact EPG programme title shown.
+          1. Open Sports from the normal app menu. Sports now form a horizontal
+             menu above league cards. Swipe that menu on mobile or use Left/Right
+             on the remote. Disabled sports should not appear in it.
+          2. Choose American football, then open the NFL card. Its ESPN logo
+             should appear on the league card. Other leagues without supplied
+             artwork use a text fallback. Check Basketball > NBA too.
+          3. Open a league and check the event-card grid. Team logos should be
+             visible without being stretched; cards show names, time/live state,
+             scores when supplied and venue. Open a card for event details.
+          4. Use Back, search, scrolling and remote grid navigation. Up from the
+             first league row returns to the sports menu. Check enlarged text/UI
+             sizes. Home, existing collections and Live TV should be unchanged.
+          5. In the top Sports button, disable a sport, return and restart.
+             It should stay absent. Re-enable it. Choices remain per profile.
+          6. Repeat Oklahoma Sooners at North Carolina Tar Heels > Find channels.
+             Generic ESPN/ESPN+ channels and channels listing unrelated NFL games
+             must NOT appear merely because their names contain ESPN.
+          7. For an event explicitly listed in your IPTV guide, Find channels
+             should show programmes naming BOTH opponents at a compatible time.
+             Check account and channel labels, then open a currently airing match.
+             If the guide cannot confirm the event, an empty result is expected.
+             Upcoming matches must not start playing before programme time.
+          8. Hide a guide category containing a matching channel. Repeat the
+             search and confirm hidden categories remain excluded in Sports.
+          9. Check favorites on an event and the league's Favorites filter.
+             If a match is missing or wrong, send a log with the selected event,
+             channel/account, local kickoff and exact guide programme title.
 
-          This first preview uses ESPN; no TheSportsDB key is required. It offers
-          16 validated sports categories; other providers can expand coverage later.
-          Coverage and live-score freshness depend on ESPN and your loaded EPG.
-          Awaiting this APK's approval before any upstream Sports PR.
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs82.txt
+          Existing bounds remain: up to 1024 leagues per sport, 400 events per
+          league (current scoreboard plus today and the next six UTC dates),
+          and 64 confirmed channel matches. There is no pagination yet.
+          ESPN provides metadata and artwork where available; no SportsDB key
+          is required. No upstream Sports PR until this build is approved.
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs83.txt
           STEPS
           cat > notes.txt <<'NOTES'
           Separate Sports destination using the app's existing UI components.
-          ESPN leagues, current/upcoming events, scores and per-profile sport
+          Home-style sports menu, league/event cards with ESPN artwork, current and
+          upcoming events, scores and per-profile sport
           toggles/favorites. Find channels searches the existing IPTV guide;
-          confirmed event matches precede explicitly unconfirmed broadcasters.
+          only programmes matching the selected event are returned.
           No video stream is opened or probed while browsing sports metadata.
 
           Android build and independent APK verification passed. Linux/macOS
           parsing, profile/state and headless UI fixtures passed in normal and
           ASan/UBSan modes (12 invocations). These are not visual/device tests
           or packaged macOS/webOS/Tizen builds. Install as an update and follow
-          Logs82-test-steps.txt. No upstream Sports PR has been published.
+          Logs83-test-steps.txt. No upstream Sports PR has been published.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v82 Nuvio-TV-Mobile-Test-Logs82.apk Logs82-validation.json Logs82-independent-verification.json Logs82-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs82: Sports catalog' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v83 Nuvio-TV-Mobile-Test-Logs83.apk Logs83-validation.json Logs83-independent-verification.json Logs83-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs83: Sports cards and exact event matches' --notes-file notes.txt --prerelease
