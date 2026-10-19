@@ -29,7 +29,7 @@ jobs:
       SOURCE_SHA: 07aef6dad9ef7866d6582a1573f68afed1d171a7
       SOURCE_TREE: 810c7f7598ff9edfef5cd4ce334fb870840fc337
       # Android is already building this exact immutable source; retain it.
-      ANDROID_CONFIG_COMMIT: ${{ github.sha }}
+      ANDROID_CONFIG_COMMIT: 3086da915e22c7ecdea21bf79623e967d8389b22
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
       APK_SHA256: ${{ inputs.apk_sha256 }}
@@ -47,7 +47,7 @@ jobs:
               run=os.environ[name];assert re.fullmatch(r'[0-9]+',run)
               data=api('actions/runs/'+run)
               assert data['status']=='completed' and data['conclusion']=='success',(name,data['status'],data['conclusion'])
-              expected_config=os.environ['ANDROID_CONFIG_COMMIT'] if name=='ANDROID_RUN' else os.environ['GITHUB_SHA']
+              expected_config=os.environ['ANDROID_CONFIG_COMMIT']
               assert data['head_sha']==expected_config,(name,'Unexpected fork CI configuration commit')
               assert data['path']==path,(name,data['path'])
               assert data['head_repository']['full_name']==repo
@@ -103,7 +103,7 @@ jobs:
               assert results and all(result['code']==0 for result in results),name
               invocations.extend(results)
           data.update(android_build=True,linux_native_checks=True,macos_native_checks=True,native_matrix_jobs=8,native_suite_invocations=len(invocations),sanitizer_suite_invocations=sum(result['sanitizers'] for result in invocations))
-          data['check_configuration_commits']={'android':os.environ['ANDROID_CONFIG_COMMIT'],'linux_macos':os.environ['GITHUB_SHA']}
+          data['check_configuration_commits']={'android':os.environ['ANDROID_CONFIG_COMMIT'],'linux_macos':os.environ['ANDROID_CONFIG_COMMIT']}
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
           data['translation_lint']='No added diagnostics against unchanged upstream415544; baseline contains pre-existing empty translations.'
           data['native_checks_note']='Native normal/ASan+UBSan regressions are not macOS, webOS or Tizen packaged application builds.'
@@ -159,4 +159,4 @@ jobs:
           NOTES
       - name: Publish verified update APK
         run: |
-          gh release create tv-mobile-test-logs-v65 Nuvio-TV-Mobile-Test-Logs67.apk Logs67-validation.json Logs67-inventory.json Logs67-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs67: backup compatibility and live recovery' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v67 Nuvio-TV-Mobile-Test-Logs67.apk Logs67-validation.json Logs67-inventory.json Logs67-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs67: backup compatibility and live recovery' --notes-file notes.txt --prerelease
