@@ -1,4 +1,4 @@
-name: Logs73 HLS buffering recovery Linux and macOS checks
+name: Logs74 HLS buffering recovery Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 5429d3ab9b5c3300f0b9eded155a6ba58b4a75c7
+  SOURCE_SHA: 9b2998ef8b49086636472464f30d7e8662018100
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -27,6 +27,7 @@ jobs:
         os: [ubuntu-24.04, macos-15]
         group:
           - live-watchdog
+          - live-buffer
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
