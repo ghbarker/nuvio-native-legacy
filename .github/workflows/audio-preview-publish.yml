@@ -1,4 +1,4 @@
-name: Publish verified Logs89 add-on order preview
+name: Publish verified Logs90 GIF avatar preview
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -15,7 +15,7 @@ permissions:
   contents: read
 jobs:
   publish:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs89]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs90]')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -24,14 +24,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 801206c9a9dd72feeb2c295234589f4d7134a170
-      SOURCE_TREE: ec4cbc84cf18dcbefb6c19277734c83c13d6746b
-      BUILD_CONFIG: f9a69cf01439f5efbe06b22e5de72a5a8a8c8c6b
-      NATIVE_CONFIG: f9a69cf01439f5efbe06b22e5de72a5a8a8c8c6b
-      NATIVE_SOURCE_SHA: 801206c9a9dd72feeb2c295234589f4d7134a170
-      NATIVE_SOURCE_TREE: ec4cbc84cf18dcbefb6c19277734c83c13d6746b
-      ANDROID_RUN: ${{ inputs.android_run_id || '39325251228' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39325250746' }}
+      SOURCE_SHA: de609e87e719630058cfb94fa42fa291b5de2b97
+      SOURCE_TREE: 46205e3dada96afdf2f60aa6875b239100edf2b4
+      BUILD_CONFIG: 5c6fd0ace8bbc756ddd2e5e79ae50b9b44191bc6
+      NATIVE_CONFIG: 5c6fd0ace8bbc756ddd2e5e79ae50b9b44191bc6
+      NATIVE_SOURCE_SHA: de609e87e719630058cfb94fa42fa291b5de2b97
+      NATIVE_SOURCE_TREE: 46205e3dada96afdf2f60aa6875b239100edf2b4
+      ANDROID_RUN: ${{ inputs.android_run_id || '39333530996' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39333517538' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,7 +72,7 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs89-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs90-${{ env.BUILD_CONFIG }}
           run-id: ${{ env.ANDROID_RUN }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -86,23 +86,23 @@ jobs:
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs89.apk');p=pathlib.Path('Logs89-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs90.apk');p=pathlib.Path('Logs90-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20099','--version-name','2.0.99-test-logs89','--output','Logs89-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20100','--version-name','2.0.100-test-logs90','--output','Logs90-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
-          assert set(dirs)=={'integration-ubuntu-24.04-addon-order','integration-macos-15-intel-addon-order'}
+          assert set(dirs)=={'integration-ubuntu-24.04-gif-avatar','integration-macos-15-intel-gif-avatar'}
           results=[]
           for d in dirs.values():
               s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and s['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-              checks=json.loads((d/'results.json').read_text());assert len(checks)==8 and all(x['code']==0 for x in checks)
-              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['addon_order_settings','fontefalha_worker','streamfit_sheet','fontefalha'] for b in [False,True]}
+              checks=json.loads((d/'results.json').read_text());assert len(checks)==10 and all(x['code']==0 for x in checks)
+              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['perfilsel_avatar','gif_avatar','gif','gifcolecao','perfilsel'] for b in [False,True]}
               results+=checks
           v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
           v['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          v['validation_note']='Android APK build and independent identity/signature/ABI verification; Linux/macOS source settings, actual source worker/preparation, Sources sheet and failover policy fixtures, normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen builds or visual/device tests.'
+          v['validation_note']='Android APK build and independent identity/signature/ABI verification; Linux/macOS profile-avatar draw, Android animation decode/upload, GIF decoder, collection GIF and profile-session fixtures, normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen builds or visual/device tests.'
           p.write_text(json.dumps(v,indent=2)+'\n')
           VERIFY
       - name: Verify identical Android and native-check product source
@@ -116,52 +116,43 @@ jobs:
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs89-test-steps.txt <<'STEPS'
-          Logs89: Explicit add-on order. Version 2.0.99-test-logs89 (20099).
+          cat > Logs90-test-steps.txt <<'STEPS'
+          Logs90: Preserve animated avatar proportions (#621).
+          Version 2.0.100-test-logs90 (20100).
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          1. Open Settings > Playback > Source selection > What Nuvio prioritizes.
-             Select the new fourth choice: From the addon. This does not require Instant.
-             Automatic source now shows First in list. The source-memory/reuse rows are
-             inactive in this mode; their saved choices return when you switch modes.
-          2. Keep the AIOStreams configuration you already sort on the addon side.
-             Under Playback > More options > Source selection, check the permitted
-             autoplay addons for the current profile. Select your intended AIOStreams.
-             Existing required filters, decoder safety and provider failover still apply.
-          3. Open a movie and its Sources list. Each addon's results should keep their
-             supplied order rather than being grouped by quality or file size. A known
-             uncached source may be visible in place but is not eligible for autoplay.
-             Note the first permitted/playable source, then tap Play. That source should
-             be selected, even if a later source has a higher resolution/quality score
-             or a previously watched source was remembered. A failed source can advance
-             to the next eligible source under the existing failure budget.
-          4. Enable source preparation/video preload if you use them. Open another title,
-             wait for preparation, then Play. The prepared selection must follow the same
-             order. Repeat for an episode and automatic Next. Changing this priority
-             must invalidate preparation made under the old setting.
-          5. Pick a different source manually from Sources. That exact choice must still
-             play. Selecting From the addon governs automatic selection, not manual taps.
-          6. Switch to another profile with a different permitted AIOStreams configuration
-             and repeat. The permitted-addon rules must still apply to that profile.
-          7. Change What Nuvio prioritizes back to Balanced, Maximum quality or Quick start.
-             The original Best source/First in list and source-memory preferences should
-             become available again, with their previous saved values preserved.
+          1. Use a profile with one of the two GIF avatars linked in issue #621:
+             https://github.com/iqui27/nuvio-native-legacy/issues/621
+             If needed, download a sample and assign it using your usual Nuvio
+             account/profile editor, then refresh profiles in the test app.
+             One sample is wide (500x207); the other is tall (280x498).
+          2. Open the profile selector. Leave Reduced animations Off so the selected
+             profile's avatar can animate. Move focus onto the GIF profile.
+          3. Watch the transition from its still preview into animation. Faces and
+             other shapes should retain their proportions, without being stretched
+             or squeezed into the circle. Normal center cropping is expected:
+             a wide image loses its side edges; a tall image loses top/bottom edges.
+          4. Move focus to another profile, then back. Repeat with the other sample
+             and with an ordinary square/static avatar. Each should keep its shape.
+          5. Turn Reduced animations On and reopen the profile selector. The still
+             fallback should retain the correct crop too. Restore your preference.
 
-          If a different source is selected, save a fresh log immediately after Play.
-          The normal auto-pick diagnostic identifies priority=addon-order.
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs89.txt
-          No upstream PR until this build has been tested and approved.
+          The previous approved features, including From the addon ordering, remain
+          included. No upstream PR until this build has been tested and approved.
+          If distortion remains, save a fresh log and a screenshot of the focused
+          avatar. ADB: adb logcat -d -v threadtime > Nuvio-Logs90.txt
           STEPS
           cat > notes.txt <<'NOTES'
-          Test preview for issue #618: explicit From the addon priority, matching
-          Sources order/automatic choice, and consistent prepared/next-episode selection.
+          Test preview for issue #621: preserve rectangular GIF avatar proportions
+          when the focused profile starts animating. Keeps all approved Logs89 features.
           Use the APK as an update to Nuvio TV/Mobile Test; do not uninstall.
 
-          Checks: Android APK build, package/signer/ARM ABI verification; four headless
-          native suites in normal and ASan/UBSan modes on Linux and macOS Intel (16 runs).
+          Checks: Android APK build, package/signer/ARM ABI verification; five headless
+          native suites in normal and ASan/UBSan modes on Linux and macOS Intel (20 runs).
+          The original issue's 24 GIF frames also matched FFmpeg's visible pixels.
           These are not packaged macOS/webOS/Tizen builds or Android device test passes.
-          See Logs89-test-steps.txt for exact verification steps.
+          See Logs90-test-steps.txt for exact verification steps.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v89 Nuvio-TV-Mobile-Test-Logs89.apk Logs89-validation.json Logs89-independent-verification.json Logs89-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs89: Add-on source order' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v89 Nuvio-TV-Mobile-Test-Logs90.apk Logs90-validation.json Logs90-independent-verification.json Logs90-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs90: GIF avatar proportions' --notes-file notes.txt --prerelease
