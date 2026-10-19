@@ -50,6 +50,9 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.LoadEventInfo
+import androidx.media3.exoplayer.source.MediaLoadData
+import androidx.media3.exoplayer.hls.HlsManifest
 import androidx.media3.exoplayer.source.WrappingMediaSource
 import androidx.media3.exoplayer.source.preload.PreloadException
 import androidx.media3.exoplayer.source.preload.PreloadMediaSource
@@ -2147,6 +2150,37 @@ object NvPlayer {
 
         override fun onAudioCodecError(eventTime: AnalyticsListener.EventTime, audioCodecError: Exception) {
             relatarErroAudio("codec", audioCodecError)
+        }
+
+        // TEST BUILD ONLY: segment order around a repeated live picture/audio.
+        private val liveSegments = LiveSegmentTrace()
+        private fun recordLiveLoad(info: LoadEventInfo, data: MediaLoadData, failed: Boolean) {
+            if (!atual(minha) || data.dataType != C.DATA_TYPE_MEDIA) return
+            val p = player ?: return
+            if (p.currentManifest !is HlsManifest) return
+            liveSegments.record(data.trackType, data.mediaStartTimeMs, data.mediaEndTimeMs,
+                info.bytesLoaded, info.loadDurationMs, failed)
+        }
+
+        override fun onLoadCompleted(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo,
+                                     mediaLoadData: MediaLoadData) {
+            recordLiveLoad(loadEventInfo, mediaLoadData, false)
+        }
+
+        override fun onLoadError(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo,
+                                 mediaLoadData: MediaLoadData, error: java.io.IOException, wasCanceled: Boolean) {
+            recordLiveLoad(loadEventInfo, mediaLoadData, true)
+        }
+
+        override fun onTimelineChanged(eventTime: AnalyticsListener.EventTime, reason: Int) {
+            if (!atual(minha)) return
+            val p = player ?: return
+            val manifest = p.currentManifest as? HlsManifest ?: return
+            val history = liveSegments.snapshot(SystemClock.elapsedRealtime()) ?: return
+            val list = manifest.mediaPlaylist
+            val line = "[live-segments] sessao=$minha live=${p.isCurrentMediaItemLive} state=${p.playbackState} posMs=${p.currentPosition} bufferedMs=${p.totalBufferedDuration} sequence=${list.mediaSequence} discontinuity=${list.discontinuitySequence} startUs=${list.startTimeUs} durationUs=${list.durationUs} targetUs=${list.targetDurationUs} partTargetUs=${list.partTargetDurationUs} segments=${list.segments.size} parts=${list.trailingParts.size} ended=${list.hasEndTag} loads=[$history]"
+            Log.i(TAG, line)
+            try { nativeAudioLog(line) } catch (_: UnsatisfiedLinkError) { }
         }
 
         override fun onDroppedVideoFrames(eventTime: AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) {
