@@ -26,11 +26,11 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 4cad0ddbd7bd581329a3c9464b617f4b5d520363
-      SOURCE_TREE: 90f0d13a218e34587a702515f42f3567724b0b2d
+      SOURCE_SHA: 5429d3ab9b5c3300f0b9eded155a6ba58b4a75c7
+      SOURCE_TREE: 71e24d66d2ad20b04874f3a483b3b650c4ea3f43
       # Android is already building this exact immutable source; retain it.
-      ANDROID_CONFIG_COMMIT: db1a52dc119a3f99755a724fad1baf1da252964e
-      NATIVE_CONFIG_COMMIT: db1a52dc119a3f99755a724fad1baf1da252964e
+      ANDROID_CONFIG_COMMIT: ${{ github.sha }}
+      NATIVE_CONFIG_COMMIT: ${{ github.sha }}
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
       APK_SHA256: ${{ inputs.apk_sha256 }}
