@@ -1,4 +1,4 @@
-name: Sports PR619 Linux and macOS Intel checks
+name: Add-on order Linux and macOS Intel checks
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -7,12 +7,12 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: e68948688bd80dfd9d54bdbd8ba0ee9fd9ef40bc
+  SOURCE_SHA: 801206c9a9dd72feeb2c295234589f4d7134a170
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
   native:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs88-native-intel]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs89-native]')
     strategy:
       fail-fast: false
       matrix:
@@ -33,7 +33,7 @@ jobs:
           for pkg in pkg-config sdl2; do
             if ! brew list --versions "$pkg" >/dev/null 2>&1; then brew install "$pkg"; fi
           done
-      - name: Sports checks
+      - name: Add-on order checks
         run: |
           if [ "$RUNNER_OS" = macOS ]; then export C_INCLUDE_PATH="$(brew --prefix)/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}"; fi
           python3 - <<'PYCODE'
@@ -44,7 +44,7 @@ jobs:
           assert sha==os.environ['SOURCE_SHA']
           (p/'source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree,'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH']}))
           results=[]
-          for suite in ['esportes','esportes_estado','esportes_ui','fontescanais_folha','streamfit_sheet']:
+          for suite in ['addon_order_settings','fontefalha_worker','streamfit_sheet','fontefalha']:
             for san in [False,True]:
               start=time.monotonic()
               with (p/(suite+('-san' if san else '')+'.log')).open('w') as f:
@@ -53,11 +53,11 @@ jobs:
               results.append({'suite':suite,'sanitizers':san,'code':code,'seconds':round(time.monotonic()-start,2)})
               (p/'results.json').write_text(json.dumps(results,indent=2))
               print(results[-1],flush=True)
-          assert len(results)==10 and all(x['code']==0 for x in results),results
+          assert len(results)==8 and all(x['code']==0 for x in results),results
           PYCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-${{ matrix.os }}-sports
+          name: integration-${{ matrix.os }}-addon-order
           path: diagnostics
           if-no-files-found: error
