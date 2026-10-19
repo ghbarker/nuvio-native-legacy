@@ -1629,6 +1629,13 @@ object NvPlayer {
         }
     }
 
+    // TEST BUILD ONLY: numeric state, copied to the shareable native log.
+    // One sample per second; no URLs, account names, headers or exception messages.
+    private fun liveDiagnostic(line: String) {
+        Log.i(TAG, line)
+        try { nativeAudioLog(line) } catch (_: UnsatisfiedLinkError) { }
+    }
+
     // Uma vez por segundo, do fio principal: leituras baratas, nada alocado
     // alem da string do host (que o JNI copia).
     private fun relatarStats(p: ExoPlayer) {
@@ -1640,6 +1647,16 @@ object NvPlayer {
             c.ensureUpdated()
             quadros = (c.renderedOutputBufferCount + c.droppedBufferCount).toLong()
             perdidos = quadrosPerdidos
+        }
+        if (p.isCurrentMediaItemLive) {
+            val manifest = p.currentManifest as? HlsManifest
+            val window = Timeline.Window()
+            val timeline = p.currentTimeline
+            val windowUs = if (!timeline.isEmpty) {
+                timeline.getWindow(p.currentMediaItemIndex, window)
+                window.positionInFirstPeriodUs
+            } else C.TIME_UNSET
+            liveDiagnostic("[live-progress] session=$sessao generation=$geracaoNative elapsedMs=${SystemClock.elapsedRealtime()} rawPosMs=${p.currentPosition} nativePosMs=${p.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong())} windowUs=$windowUs state=${p.playbackState} playing=${p.isPlaying} playWhenReady=${p.playWhenReady} suppression=${p.playbackSuppressionReason} loading=${p.isLoading} bufferedMs=${p.totalBufferedDuration} liveOffsetMs=${p.currentLiveOffset} speed=${p.playbackParameters.speed} rendered=${p.videoDecoderCounters?.renderedOutputBufferCount ?: -1} dropped=$quadrosPerdidos sequence=${manifest?.mediaPlaylist?.mediaSequence ?: -1} playlistStartUs=${manifest?.mediaPlaylist?.startTimeUs ?: -1} maxMB=${bufferBytes shr 20}")
         }
         try {
             nativeStats(if (e.usado) e.bytes.get() else -1L, buf,
@@ -2083,6 +2100,8 @@ object NvPlayer {
             if (!atual(minha)) return
             val exo = error as? ExoPlaybackException
             val p = player
+            liveDiagnostic("[live-error] session=$minha code=${error.errorCode} state=${p?.playbackState} rawPosMs=${p?.currentPosition} bufferedMs=${p?.totalBufferedDuration} causes=" +
+                generateSequence<Throwable>(error) { it.cause }.take(8).joinToString(" <- ") { camposErroCausa(it) })
             val recoveryTimeout = LiveWindowRecovery.timeoutForSegment(liveSegmentMs)
             if (p != null && live.recover(p, error.errorCode, SystemClock.elapsedRealtime(), recoveryTimeout) {
                     Log.w(TAG, "[live] recuperacao excedeu $recoveryTimeout ms sessao=$minha; seguindo erro normal")
@@ -2146,7 +2165,7 @@ object NvPlayer {
 
     private fun analitico(minha: Int) = object : AnalyticsListener {
         // Per listener/session and callback/exception type, on the main looper.
-        // First occurrence immediately, then at most once every 30 seconds.
+        // TEST BUILD ONLY: first occurrence immediately, then at most once per second.
         private val errosAudio = HashMap<Pair<String, Class<*>>, Pair<Long, Long>>()
         private fun relatarErroAudio(tipo: String, erro: Exception) {
             if (!atual(minha)) return
@@ -2154,7 +2173,7 @@ object NvPlayer {
             val anterior = errosAudio[chave]
             val agora = SystemClock.elapsedRealtime()
             val ocorrencias = (anterior?.second ?: 0L) + 1L
-            if (anterior != null && agora - anterior.first < 30_000L) {
+            if (anterior != null && agora - anterior.first < 1_000L) {
                 errosAudio[chave] = anterior.first to ocorrencias
                 return
             }
@@ -2198,13 +2217,36 @@ object NvPlayer {
                 info.bytesLoaded, info.loadDurationMs, failed)
         }
 
+        // Task IDs correlate retries/completion without retaining a source URI.
+        private fun traceLoad(kind: String, info: LoadEventInfo, data: MediaLoadData,
+                              error: java.io.IOException? = null, canceled: Boolean = false) {
+            if (!atual(minha)) return
+            val p = player ?: return
+            if (!p.isCurrentMediaItemLive && p.currentManifest !is HlsManifest) return
+            val causes = error?.let { generateSequence<Throwable>(it) { cause -> cause.cause }
+                .take(8).joinToString(" <- ") { cause -> camposErroCausa(cause) } } ?: "none"
+            liveDiagnostic("[live-load] session=$minha event=$kind task=${info.loadTaskId} type=${data.dataType} track=${data.trackType} startMs=${data.mediaStartTimeMs} endMs=${data.mediaEndTimeMs} bytes=${info.bytesLoaded} durationMs=${info.loadDurationMs} canceled=$canceled state=${p.playbackState} bufferedMs=${p.totalBufferedDuration} causes=$causes")
+        }
+
+        override fun onLoadStarted(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo,
+                                   mediaLoadData: MediaLoadData) {
+            traceLoad("start", loadEventInfo, mediaLoadData)
+        }
+
+        override fun onLoadCanceled(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo,
+                                    mediaLoadData: MediaLoadData) {
+            traceLoad("cancel", loadEventInfo, mediaLoadData, canceled = true)
+        }
+
         override fun onLoadCompleted(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo,
                                      mediaLoadData: MediaLoadData) {
+            traceLoad("complete", loadEventInfo, mediaLoadData)
             recordLiveLoad(loadEventInfo, mediaLoadData, false)
         }
 
         override fun onLoadError(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo,
                                  mediaLoadData: MediaLoadData, error: java.io.IOException, wasCanceled: Boolean) {
+            traceLoad("error", loadEventInfo, mediaLoadData, error, wasCanceled)
             recordLiveLoad(loadEventInfo, mediaLoadData, true)
         }
 
