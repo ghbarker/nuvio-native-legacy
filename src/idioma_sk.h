@@ -4755,6 +4755,7 @@
   T("Sem vidro", "Bez skla"),
   T("Senha", "Heslo"),
   T("Senha Xtream", "Heslo Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Zadajte heslo, ktoré ste použili pri vytváraní tejto zálohy."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Heslo Emby"),
   T("Senha do Jellyfin", "Heslo Jellyfin"),

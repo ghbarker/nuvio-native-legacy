@@ -4754,6 +4754,7 @@
   T("Sem vidro", "Без скла"),
   T("Senha", "Пароль"),
   T("Senha Xtream", "Пароль Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Введіть пароль, який ви використали для створення цієї резервної копії."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Пароль Emby"),
   T("Senha do Jellyfin", "Пароль Jellyfin"),

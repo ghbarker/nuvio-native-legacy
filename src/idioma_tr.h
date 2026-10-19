@@ -4755,6 +4755,7 @@
   T("Sem vidro", "Camsız"),
   T("Senha", "Şifre"),
   T("Senha Xtream", "Xtream şifresi"),
+  T("Digite a senha que você usou ao criar este backup.", "Bu yedeği oluştururken kullandığınız şifreyi girin."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Emby parolası"),
   T("Senha do Jellyfin", "Jellyfin parolası"),

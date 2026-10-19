@@ -4755,6 +4755,7 @@
   T("Sem vidro", "Zonder glas"),
   T("Senha", "Wachtwoord"),
   T("Senha Xtream", "Xtream-wachtwoord"),
+  T("Digite a senha que você usou ao criar este backup.", "Voer het wachtwoord in waarmee je deze back-up hebt gemaakt."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Emby-wachtwoord"),
   T("Senha do Jellyfin", "Jellyfin-wachtwoord"),

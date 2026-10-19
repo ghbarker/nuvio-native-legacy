@@ -4754,6 +4754,7 @@
   T("Sem vidro", "Fără sticlă"),
   T("Senha", "Parolă"),
   T("Senha Xtream", "Parola Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Introduceți parola folosită la crearea acestei copii de siguranță."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Parola Emby"),
   T("Senha do Jellyfin", "Parola Jellyfin"),

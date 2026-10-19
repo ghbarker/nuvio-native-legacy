@@ -4755,6 +4755,7 @@
   T("Sem vidro", "ガラスなし"),
   T("Senha", "パスワード"),
   T("Senha Xtream", "Xtream のパスワード"),
+  T("Digite a senha que você usou ao criar este backup.", "このバックアップを作成したときのパスワードを入力してください。"),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Emby のパスワード"),
   T("Senha do Jellyfin", "Jellyfin のパスワード"),
