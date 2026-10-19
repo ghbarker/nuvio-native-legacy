@@ -476,6 +476,25 @@ int main(void) {
                               NULL, 0, &tp, 0) == 0);
     assert(cat_n_episodios(0) == 2);
   }
+  // Complete primary metadata must publish season tabs with its episode cards,
+  // before any optional addon text/artwork request can block or be cancelled.
+  {
+    const char *body = "{\"videos\":["
+      "{\"id\":\"tt0944947:1:1\",\"season\":1,\"episode\":1,\"name\":\"Winter Is Coming\"},"
+      "{\"id\":\"tt0944947:8:6\",\"season\":8,\"episode\":6,\"name\":\"The Iron Throne\"},"
+      "{\"id\":\"tt0944947:0:1\",\"season\":0,\"episode\":1,\"name\":\"Special\"}]}";
+    TempsPub tp = {0};
+    catalogoCom("tt0944947", "series", "Game of Thrones");
+    snprintf(epAlvoId, sizeof epAlvoId, "%s", "tt0944947");
+    assert(publicarEpisodios(body, 0, "Game of Thrones", NULL, 0, &tp) == 3);
+    const CatItem *item = cat_item(0);
+    assert(cat_n_episodios(0) == 3 && !item->epsParciais);
+    assert(item->nTemporadas == 3);
+    assert(item->temporadas[0] == 1 && item->temporadas[1] == 8 && item->temporadas[2] == 0);
+    // An empty follow-up must preserve the usable cards and their matching tabs.
+    assert(publicarEpisodios("{\"videos\":[]}", 0, "Game of Thrones", NULL, 0, &tp) == 0);
+    assert(cat_n_episodios(0) == 3 && cat_item(0)->nTemporadas == 3);
+  }
   // Kaiju No. 8: Cinemeta's complete-looking 23-episode S1 must still be
   // replaced when the selected metadata addon proves a 35-episode S1/S2
   // topology. Keeping both numeric layouts scatters duplicate episodes.
