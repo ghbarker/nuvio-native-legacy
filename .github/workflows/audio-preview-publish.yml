@@ -22,8 +22,8 @@ jobs:
       GH_REPO: ghbarker/nuvio-native-legacy
       SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
       SOURCE_TREE: dc9a2d7824757317c18e46e96e4246e9e5d49e9e
-      BUILD_CONFIG: 010a88b59c0a81f7832635ef880895606fad13fb
-      NATIVE_CONFIG: aac8745f83585d4d664af4998894a44b6f227dc1
+      BUILD_CONFIG: 6e015ab26a56467666f1a837e8ef14be76fc6f4e
+      NATIVE_CONFIG: 6e015ab26a56467666f1a837e8ef14be76fc6f4e
       NATIVE_SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
       NATIVE_SOURCE_TREE: dc9a2d7824757317c18e46e96e4246e9e5d49e9e
       ANDROID_RUN: ${{ inputs.android_run_id }}
@@ -86,7 +86,7 @@ jobs:
           v['validation_note']='Android APK build and independent identity/signature/ABI verification; Linux/macOS sports parsing, state and headless input/guide-match fixtures, normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen builds or visual/device tests.'
           p.write_text(json.dumps(v,indent=2)+'\n')
           VERIFY
-      - name: Preserve successful Android build across test-only harness repairs
+      - name: Verify identical Android and native-check product source
         run: |
           git fetch --no-tags --depth=3 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
           python3 - <<'DIFF'
