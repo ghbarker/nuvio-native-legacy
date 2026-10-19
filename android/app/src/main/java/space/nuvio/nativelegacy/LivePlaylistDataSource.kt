@@ -89,10 +89,17 @@ internal class LivePlaylistDataSource private constructor(
                     report("[live-playlist] revalidated advanced=true elapsedMs=${clock() - started}")
                     return bytes
                 }
-                report("[live-playlist] revalidated advanced=false elapsedMs=${clock() - started}")
-            } catch (_: IOException) {
+                val reason = when {
+                    source.uri != resolved -> "redirect-changed"
+                    fresh == null -> "unsupported-or-invalid"
+                    fresh.sequence < snapshot.sequence -> "sequence-backward"
+                    else -> "no-new-segments"
+                }
+                report("[live-playlist] revalidated advanced=false reason=$reason sequence=${snapshot.sequence} segments=${snapshot.count} elapsedMs=${clock() - started}")
+            } catch (error: IOException) {
                 // A failed optimization must not turn a successful normal request into an error.
-                report("[live-playlist] revalidation unavailable elapsedMs=${clock() - started}")
+                val http = (error as? androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException)?.responseCode ?: 0
+                report("[live-playlist] revalidation unavailable http=$http elapsedMs=${clock() - started}")
             } finally {
                 try { source.close() } catch (_: IOException) { }
             }

@@ -1978,6 +1978,7 @@ object NvPlayer {
             schedule = { tarefa, atraso -> principal.postDelayed(tarefa, atraso) },
             unschedule = { tarefa -> principal.removeCallbacks(tarefa) },
             active = { atual(minha) },
+            report = { Log.i(TAG, "$it session=$minha") },
             status = { prazoMs ->
                 if (atual(minha)) ev(EV_LIVE_RECOVERY, prazoMs.toInt(), geracaoNative)
             },
