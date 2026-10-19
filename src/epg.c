@@ -1236,6 +1236,8 @@ void epg_iniciar(void) {
   else pthread_detach(t);
 }
 
+static unsigned revisaoPublicada;
+unsigned epg_revisao(void) { return revisaoPublicada; }
 int epg_estado(void) { return estado; }
 
 void epg_passo(void) {
@@ -1256,7 +1258,7 @@ void epg_passo(void) {
       return;
     }
     gradeSoltar(&P);
-    P = W;
+    P = W; revisaoPublicada++;
     memset(&W, 0, sizeof W);
     memcpy(chaveFonteP, chaveFonteW, sizeof chaveFonteP); nChaveFonteP = nChaveFonteW;
     memcpy(hashFonteP, hashFonteW, sizeof hashFonteP);
@@ -1285,6 +1287,7 @@ void epg_passo(void) {
 }
 
 void epg_abrir_sessao(int perfil) {
+  revisaoPublicada++;
   carga.cancelada = 1;
   pthread_mutex_lock(&trava);
   gradeSoltar(&P);
