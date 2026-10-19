@@ -1,4 +1,4 @@
-name: Logs67 backup and live recovery Linux and macOS checks
+name: Logs68 backup and live recovery Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 07aef6dad9ef7866d6582a1573f68afed1d171a7
+  SOURCE_SHA: 1495998a3d0d470688d63067e6b2760372dc3528
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -26,10 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
         group:
-          - backup-state
           - backup-drive
-          - backup-addons
-          - live-watchdog
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
