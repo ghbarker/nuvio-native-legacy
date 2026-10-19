@@ -123,10 +123,10 @@ static void montar(void) {
   } else if (pagina == ESP_DETALHE) nItens = evento.nParticipantes;
   if(focoLinha()) {
     int l=linhaFoco(),e=eventoLinhaFoco(),n=esportes_catalogo_eventos_n(l);
-    if(posLinha(l)<0)foco=nItens?codLinha(indices[0],-1):FOCO_TODOS;
+    if(posLinha(l)<0)foco=nItens?codLinha(indices[0],-1):-FOCO_MODALIDADE-modalidade;
     else if(e>=n)foco=codLinha(l,n-1);
   } else if(focoFavorito()) {
-    int n=esportes_favoritos_n();if(foco-FOCO_FAVORITO>=n)foco=n?FOCO_FAVORITO+n-1:0;
+    int n=esportes_favoritos_n();if(foco-FOCO_FAVORITO>=n)foco=n?FOCO_FAVORITO+n-1:nItens?codLinha(indices[0],-1):FOCO_TODOS;
   } else if(telaFileiras() && foco>=0)foco=nItens?codLinha(indices[0],-1):-FOCO_MODALIDADE-modalidade;
   else if (foco >= nItens) foco = nItens > 0 ? nItens - 1 : 0;
 }
@@ -211,7 +211,7 @@ static void acaoTopo(int i) {
     entradaTexto = 1; teclado_abrir_com("Buscar esportes", "Digite para buscar", 159, teclado_alfabeto(), consulta);
   } else if (i == 2) {
     if (pagina == ESP_CONFIG) voltar(); else { procurando = 0; esportes_cancelar(); abrir(ESP_CONFIG); }
-  } else if (i==3 && pagina==ESP_EVENTOS) { abrir(ESP_TODOS);modalidade=-1;foco=esportes_favoritos_n()?FOCO_FAVORITO:FOCO_TODOS;esportes_pedir_favoritos(0);esportes_catalogo_iniciar(-1,0); }
+  } else if (i==3 && pagina==ESP_EVENTOS) { modalidade=-1;abrir(ESP_TODOS);foco=esportes_favoritos_n()?FOCO_FAVORITO:FOCO_TODOS;esportes_pedir_favoritos(0);esportes_catalogo_iniciar(-1,0); }
   else if(i==3 && telaFileiras()){abrir(ESP_LIGAS_CONFIG);esportes_catalogo_iniciar(modalidade,0);}
   else if(i==4 && telaFileiras()){esportes_catalogo_iniciar(modalidade,1);esportes_pedir_favoritos(1);}
 }
