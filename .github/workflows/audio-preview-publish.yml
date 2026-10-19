@@ -152,4 +152,4 @@ jobs:
           NOTES
       - name: Publish verified update APK
         run: |
-          gh release create tv-mobile-test-logs-v68 Nuvio-TV-Mobile-Test-Logs70.apk Logs70-validation.json Logs70-inventory.json Logs70-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs70: TV backup menu and restore password' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v70 Nuvio-TV-Mobile-Test-Logs70.apk Logs70-validation.json Logs70-inventory.json Logs70-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs70: bounded HLS buffering recovery' --notes-file notes.txt --prerelease
