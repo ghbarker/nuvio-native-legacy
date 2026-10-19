@@ -1,4 +1,4 @@
-name: Publish verified Logs81 Sports preview
+name: Publish verified Logs82 Sports preview
 on:
   workflow_dispatch:
     inputs:
@@ -20,12 +20,12 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 00f73b32d1f38205e51cc9267d9950102e4d8e6e
-      SOURCE_TREE: b6bbb35d515dc03c27ab3afe531af10f647f4c37
+      SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
+      SOURCE_TREE: dc9a2d7824757317c18e46e96e4246e9e5d49e9e
       BUILD_CONFIG: 010a88b59c0a81f7832635ef880895606fad13fb
       NATIVE_CONFIG: aac8745f83585d4d664af4998894a44b6f227dc1
-      NATIVE_SOURCE_SHA: a1d809e245bfcdfe0f764e8d3ac888b7833a5aad
-      NATIVE_SOURCE_TREE: 683c4f5d08b0e1cba8062813bb65a42061a7f6ff
+      NATIVE_SOURCE_SHA: c33a7ce71fa68377883672196991e90f5137406d
+      NATIVE_SOURCE_TREE: dc9a2d7824757317c18e46e96e4246e9e5d49e9e
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -53,7 +53,7 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs81-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs82-${{ env.BUILD_CONFIG }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -67,11 +67,11 @@ jobs:
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs81.apk');p=pathlib.Path('Logs81-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs82.apk');p=pathlib.Path('Logs82-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20091','--version-name','2.0.91-test-logs81','--output','Logs81-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20092','--version-name','2.0.92-test-logs82','--output','Logs82-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
           assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-sports'}
           results=[]
@@ -92,13 +92,13 @@ jobs:
           python3 - <<'DIFF'
           import os,subprocess
           changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          assert changed=={'tests/esportes_ui.c','tests/esportes_ui.sh'},changed
-          print('Android product source is identical; only the headless test harness differs.')
+          assert not changed,changed
+          print('Android and native checks use the identical source tree.')
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs81-test-steps.txt <<'STEPS'
-          Logs81: Sports catalog preview. Version 2.0.91-test-logs81 (20091).
+          cat > Logs82-test-steps.txt <<'STEPS'
+          Logs82: Sports catalog preview. Version 2.0.92-test-logs82 (20092).
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
           1. Open the normal navigation menu and choose Sports. On mobile, use
@@ -124,14 +124,16 @@ jobs:
           7. Test scrolling, Back, search within lists and top controls on phone
              or remote. Check that Sports fits the existing theme, text sizing,
              cards and button style. Existing Home and Live TV should behave normally.
-          8. Send a log if matching is wrong; include the event, channel/account,
+          8. Hide a guide category that contains a matching channel. Repeat Find
+             channels and confirm that category stays hidden in Sports too.
+          9. Send a log if matching is wrong; include the event, channel/account,
              local kickoff time and the exact EPG programme title shown.
 
           This first preview uses ESPN; no TheSportsDB key is required. It offers
           16 validated sports categories; other providers can expand coverage later.
           Coverage and live-score freshness depend on ESPN and your loaded EPG.
           Awaiting this APK's approval before any upstream Sports PR.
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs81.txt
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs82.txt
           STEPS
           cat > notes.txt <<'NOTES'
           Separate Sports destination using the app's existing UI components.
@@ -144,8 +146,8 @@ jobs:
           parsing, profile/state and headless UI fixtures passed in normal and
           ASan/UBSan modes (12 invocations). These are not visual/device tests
           or packaged macOS/webOS/Tizen builds. Install as an update and follow
-          Logs81-test-steps.txt. No upstream Sports PR has been published.
+          Logs82-test-steps.txt. No upstream Sports PR has been published.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v81 Nuvio-TV-Mobile-Test-Logs81.apk Logs81-validation.json Logs81-independent-verification.json Logs81-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs81: Sports catalog' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v81 Nuvio-TV-Mobile-Test-Logs82.apk Logs82-validation.json Logs82-independent-verification.json Logs82-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs82: Sports catalog' --notes-file notes.txt --prerelease
