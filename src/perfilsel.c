@@ -1156,8 +1156,8 @@ void perfilsel_continuar_ativo(void) {
 // GIF NO AVATAR (issue #45). A foto de perfil pode ser um .gif subido pela
 // conta, e ate aqui ele virava a primeira imagem parada — todo arquivo passa
 // pelo decodificador de UM quadro. So o perfil em foco anima (gif.c segura
-// UMA animacao por vez) e so no Tizen: no webOS gif_textura devolve 0 e fica
-// a foto parada, a mesma regra das capas de colecao (#29).
+// UMA animacao por vez). Onde gif_textura devolve 0 fica a foto parada,
+// a mesma regra das capas de colecao (#29).
 static const ContaPerfil *gifDono;
 static int    gifAnima = -1;
 static GLuint gifTex;
@@ -1193,9 +1193,9 @@ static void disco(GfxRect a, const ContaPerfil *p, float f, float alfa,
     }
   }
   if (foto) {
-    // O GIF vem na proporcao dele: o aspecto registrado e da foto parada,
-    // que nao vale para o quadro animado. Zero deixa a moldura decidir.
-    gfx_tex_aspect_atual = emGif ? 0 : tex_aspecto(p->avatarUrl);
+    // O quadro animado tem a proporcao da tela logica do GIF, mesmo antes
+    // de a foto parada entrar no cache. Cover recorta sem esticar (#621).
+    gfx_tex_aspect_atual = emGif ? gif_aspecto() : tex_aspecto(p->avatarUrl);
     gfx_rect(a, foto, GFX_AVATAR, 0, 0, 0, 0, 1, 1, 1, vivo * alfa);
     gfx_tex_aspect_atual = 0;
   } else {

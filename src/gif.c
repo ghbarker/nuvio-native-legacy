@@ -1094,6 +1094,10 @@ GLuint gif_textura(const char *caminho, int largAlvo) {
   return mostrou ? tex : 0;
 }
 
+float gif_aspecto(void) {
+  return fio && telaH > 0 ? (float)telaW / (float)telaH : 0.0f;
+}
+
 void gif_parar(void) {
   if (!preso[0]) return;
   soltarFioAtual();
@@ -1130,6 +1134,7 @@ GLuint gif_textura(const char *caminho, int largAlvo) {
   return 0;
 }
 void gif_parar(void) {}
+float gif_aspecto(void) { return 0.0f; }
 void gif_ocioso(void) {}
 int gif_recusou(const char *caminho) { (void)caminho; return 0; }
 
