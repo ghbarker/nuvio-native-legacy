@@ -6,7 +6,39 @@
 
 static const EspLiga liga = {"nba", "NBA", ""};
 static const char *jogo = "{\"events\":[{\"id\":\"10\",\"date\":\"2026-10-19T20:00Z\",\"name\":\"Boston Celtics at Orlando Magic\",\"competitions\":[{\"id\":\"10\",\"date\":\"2026-10-19T20:00Z\",\"status\":{\"type\":{\"state\":\"in\",\"shortDetail\":\"Q2\"}},\"venue\":{\"fullName\":\"Arena\"},\"competitors\":[{\"score\":\"80\",\"team\":{\"id\":\"1\",\"displayName\":\"Boston Celtics\",\"shortDisplayName\":\"Celtics\",\"abbreviation\":\"BOS\"}},{\"score\":\"70\",\"team\":{\"id\":\"2\",\"displayName\":\"Orlando Magic\",\"shortDisplayName\":\"Magic\",\"abbreviation\":\"ORL\"}}],\"broadcasts\":[{\"names\":[\"ESPN\",\"ABC\"]}]}]}]}";
+static void variosEsportes(void) {
+  static const struct {const char *mod,*liga,*a,*b,*curtoA,*curtoB,*sim,*nao;} casos[]={
+    {"football","NFL","Jacksonville Jaguars","New England Patriots","Jaguars","Patriots","NFL: Jacksonville Jaguars vs New England Patriots","NFL: Dallas Cowboys vs Green Bay Packers"},
+    {"football","NCAA Football","Oklahoma Sooners","North Carolina Tar Heels","Sooners","Tar Heels","NCAA Football: Oklahoma Sooners at North Carolina Tar Heels","NFL: Dallas Cowboys vs Green Bay Packers"},
+    {"soccer","Premier League","Manchester United","Liverpool","Man United","Liverpool","Premier League: Man United v Liverpool","Manchester United v Manchester City"},
+    {"basketball","NBA","Boston Celtics","Orlando Magic","Celtics","Magic","NBA: Celtics vs Magic","NBA: Celtics vs Cavaliers"},
+    {"hockey","NHL","Toronto Maple Leafs","Boston Bruins","Maple Leafs","Bruins","NHL: Boston Bruins at Toronto Maple Leafs","NHL: Toronto Maple Leafs vs Montreal Canadiens"},
+    {"tennis","ATP","Carlos Alcaraz","Jannik Sinner","Alcaraz","Sinner","ATP Tennis: Alcaraz v Sinner","ATP: Alcaraz v Novak Djokovic"},
+    {"mma","UFC","Islam Makhachev","Charles Oliveira","Makhachev","Oliveira","UFC: Makhachev vs Oliveira","UFC: Makhachev vs Dustin Poirier"}
+  };
+  time_t inicio=1800000000;
+  for(size_t i=0;i<sizeof casos/sizeof *casos;i++) {
+    EspEvento e={0};e.inicio=inicio;e.nParticipantes=2;
+    snprintf(e.modalidade,sizeof e.modalidade,"%s",casos[i].mod);snprintf(e.liga,sizeof e.liga,"%s",casos[i].liga);
+    snprintf(e.participantes[0].nome,sizeof e.participantes[0].nome,"%s",casos[i].a);
+    snprintf(e.participantes[1].nome,sizeof e.participantes[1].nome,"%s",casos[i].b);
+    snprintf(e.participantes[0].curto,sizeof e.participantes[0].curto,"%s",casos[i].curtoA);
+    snprintf(e.participantes[1].curto,sizeof e.participantes[1].curto,"%s",casos[i].curtoB);
+    assert(esportes_corresponde(&e,casos[i].sim,inicio-1800,inicio+7200));
+    assert(!esportes_corresponde(&e,casos[i].nao,inicio,inicio+7200));
+    assert(!esportes_corresponde(&e,"ESPN HD",inicio,inicio+7200));
+    assert(!esportes_corresponde(&e,casos[i].a,inicio,inicio+7200));
+    assert(!esportes_corresponde(&e,casos[i].sim,inicio-86400,inicio-80000));
+    assert(!esportes_corresponde(&e,casos[i].sim,inicio+86400,inicio+90000));
+    char reprise[600];snprintf(reprise,sizeof reprise,"%s Highlights",casos[i].sim);
+    assert(!esportes_corresponde(&e,reprise,inicio,inicio+7200));
+    snprintf(reprise,sizeof reprise,"%s Replay",casos[i].sim);
+    assert(!esportes_corresponde(&e,reprise,inicio,inicio+7200));
+  }
+  printf("sports matching: %zu sports/matchups, 56 positive/negative cases passed\n",sizeof casos/sizeof *casos);
+}
 int main(void) {
+  variosEsportes();
   EspEvento e[5]; EspLiga ls[3];
   assert(esportes_modalidades_n() == 16);
   assert(!esportes_modalidade(-1)); assert(!esportes_modalidade(16));
