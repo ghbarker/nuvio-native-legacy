@@ -6505,8 +6505,10 @@ void app_atualizar(float dt, Uint32 agora) {
   }
 
   { char idEsporte[128];
-    if (tela == TELA_ESPORTES && aguardandoFonte != 2 && esportesui_pediu_canal(idEsporte, sizeof idEsporte))
-      guia_pedir_canal_id(idEsporte);
+    if (tela == TELA_ESPORTES && aguardandoFonte != 2 && esportesui_pediu_canal(idEsporte, sizeof idEsporte)) {
+      int aceito=guia_pedir_canal_id(idEsporte);
+      printf("[esportes] pedido de reproducao: %s\n",aceito?"aceito":"canal indisponivel");fflush(stdout);
+    }
   }
   // CANAL ESCOLHIDO NO GUIA — tela cheia ou faixa, mesma acao: toca direto.
   { CatItem it;

@@ -5440,8 +5440,10 @@ static void canaisFoco(int i,int b) { (void)b;grupo=1;foco=i; }
 static void canaisEscolher(int i,int b) {
   canaisFoco(i,b);
   int r=fontescanais_escolher(i,time(NULL));
-  if (r>0) aberta=0;
-  else if (r<0) snprintf(canaisAviso,sizeof canaisAviso,"%s",i18n("Este evento ainda não começou"));
+  if (r>0) {
+    printf("[esportes] canal escolhido: linha=%d\n",i);fflush(stdout);
+    aberta=0;
+  }
 }
 static void canaisBotao(int i,int b) { (void)b;grupo=-1;foco=i; }
 static void canaisBotaoAgir(int i,int b) {
