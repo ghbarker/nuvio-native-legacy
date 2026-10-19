@@ -21,3 +21,25 @@ internal class LiveSegmentTrace {
         return result
     }
 }
+
+// TEST BUILD ONLY: transport timing, never addresses, headers or content.
+internal class LiveTransferTiming(private val startMs: Long) {
+    private var openedMs = startMs
+    private var firstMs: Long? = null
+    private var previousMs: Long? = null
+    private var largestGapMs = 0L
+    private var received = 0L
+
+    fun opened(nowMs: Long) { openedMs = nowMs }
+    fun bytes(count: Int, nowMs: Long) {
+        if (count <= 0) return
+        if (firstMs == null) firstMs = nowMs
+        previousMs?.let { largestGapMs = maxOf(largestGapMs, nowMs - it) }
+        previousMs = nowMs
+        received += count
+    }
+    fun summary(nowMs: Long): String? {
+        if (received < 262144) return null
+        return "bytes=$received openMs=${openedMs - startMs} firstByteMs=${(firstMs ?: openedMs) - startMs} bodyMs=${nowMs - (firstMs ?: openedMs)} maxReadGapMs=$largestGapMs totalMs=${nowMs - startMs}"
+    }
+}

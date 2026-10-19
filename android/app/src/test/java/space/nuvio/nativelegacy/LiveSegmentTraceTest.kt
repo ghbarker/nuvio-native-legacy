@@ -27,4 +27,20 @@ class LiveSegmentTraceTest {
         fresh.record(2, 0, 1000, 200, 10, false)
         assertNotNull(fresh.snapshot(15_101))
     }
+    @Test fun distinguishesServerWaitFromSlowBody() {
+        val timing = LiveTransferTiming(100)
+        timing.opened(6100)
+        timing.bytes(262144, 6200)
+        timing.bytes(262144, 9200)
+        assertEquals("bytes=524288 openMs=6000 firstByteMs=6100 bodyMs=3100 maxReadGapMs=3000 totalMs=9200", timing.summary(9300))
+    }
+
+    @Test fun smallResponsesAndEmptyTransfersDoNotProduceLogs() {
+        val timing = LiveTransferTiming(0)
+        assertNull(timing.summary(500))
+        timing.bytes(-1, 500)
+        timing.bytes(1024, 600)
+        assertNull(timing.summary(1000))
+    }
+
 }

@@ -1245,6 +1245,32 @@ object NvPlayer {
         try {
             val http = DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true)
                 .setConnectTimeoutMs(15000).setReadTimeoutMs(20000)
+            // TEST BUILD ONLY: distinguish slow connection/first byte from body
+            // throughput. Bounded per-player state; no URL/header is retained.
+            if (!preparando) http.setTransferListener(object : TransferListener {
+                private val transfers = LinkedHashMap<DataSource, LiveTransferTiming>()
+                override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                    if (!isNetwork) return
+                    synchronized(transfers) {
+                        if (transfers.size >= 16) transfers.remove(transfers.keys.first())
+                        transfers[source] = LiveTransferTiming(SystemClock.elapsedRealtime())
+                    }
+                }
+                override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                    synchronized(transfers) { transfers[source]?.opened(SystemClock.elapsedRealtime()) }
+                }
+                override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
+                    synchronized(transfers) { transfers[source]?.bytes(bytesTransferred, SystemClock.elapsedRealtime()) }
+                }
+                override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                    val report = synchronized(transfers) {
+                        transfers.remove(source)?.summary(SystemClock.elapsedRealtime())
+                    } ?: return
+                    val line = "[http-transfer] nativeSession=$geracao $report"
+                    Log.i(TAG, line)
+                    try { nativeAudioLog(line) } catch (_: UnsatisfiedLinkError) { }
+                }
+            })
             val props = HashMap<String, String>()
             var ua: String? = null
             for (linha in cabecalhos.split('\n')) {
