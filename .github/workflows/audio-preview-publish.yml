@@ -22,8 +22,8 @@ jobs:
       GH_REPO: ghbarker/nuvio-native-legacy
       SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
       SOURCE_TREE: c68c3aca36933b0e358743938b16a344bce3d3d9
-      BUILD_CONFIG: 872fcfebc7763d85d78ae595fdd620dcd83435c4
-      NATIVE_CONFIG: 872fcfebc7763d85d78ae595fdd620dcd83435c4
+      BUILD_CONFIG: 291816106ea126d29d4c597903bb66f4a3ebf29a
+      NATIVE_CONFIG: 291816106ea126d29d4c597903bb66f4a3ebf29a
       NATIVE_SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
       NATIVE_SOURCE_TREE: c68c3aca36933b0e358743938b16a344bce3d3d9
       ANDROID_RUN: ${{ inputs.android_run_id }}
@@ -83,7 +83,7 @@ jobs:
           v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
           v['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          v['validation_note']='Android APK build and independent identity/signature/ABI verification; Linux/macOS sports parsing, state and headless input/guide-match fixtures, normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen builds or visual/device tests.'
+          v['validation_note']='Android APK build and independent identity/signature/ABI verification; Linux/macOS sports parsing, state, headless input/guide-match and shared source-picker ownership fixtures, normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen builds or visual/device tests.'
           p.write_text(json.dumps(v,indent=2)+'\n')
           VERIFY
       - name: Verify identical Android and native-check product source
