@@ -1,4 +1,4 @@
-name: Publish verified Logs83 Sports preview
+name: Publish verified Logs84 Sports preview
 on:
   workflow_dispatch:
     inputs:
@@ -20,12 +20,12 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: f37059d8cb71419328984ab8f8d37306119e1844
-      SOURCE_TREE: cb4016374db73ed9076f682842e1f40321553818
+      SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
+      SOURCE_TREE: c68c3aca36933b0e358743938b16a344bce3d3d9
       BUILD_CONFIG: 872fcfebc7763d85d78ae595fdd620dcd83435c4
       NATIVE_CONFIG: 872fcfebc7763d85d78ae595fdd620dcd83435c4
-      NATIVE_SOURCE_SHA: f37059d8cb71419328984ab8f8d37306119e1844
-      NATIVE_SOURCE_TREE: cb4016374db73ed9076f682842e1f40321553818
+      NATIVE_SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
+      NATIVE_SOURCE_TREE: c68c3aca36933b0e358743938b16a344bce3d3d9
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -53,7 +53,7 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs83-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs84-${{ env.BUILD_CONFIG }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -67,18 +67,18 @@ jobs:
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs83.apk');p=pathlib.Path('Logs83-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs84.apk');p=pathlib.Path('Logs84-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20093','--version-name','2.0.93-test-logs83','--output','Logs83-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20094','--version-name','2.0.94-test-logs84','--output','Logs84-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
           assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-sports'}
           results=[]
           for d in dirs.values():
               s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and s['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-              checks=json.loads((d/'results.json').read_text());assert len(checks)==6 and all(x['code']==0 for x in checks)
-              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['esportes','esportes_estado','esportes_ui'] for b in [False,True]}
+              checks=json.loads((d/'results.json').read_text());assert len(checks)==8 and all(x['code']==0 for x in checks)
+              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['esportes','esportes_estado','esportes_ui','fontescanais_folha'] for b in [False,True]}
               results+=checks
           v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
@@ -97,59 +97,55 @@ jobs:
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs83-test-steps.txt <<'STEPS'
-          Logs83: Sports catalog preview. Version 2.0.93-test-logs83 (20093).
+          cat > Logs84-test-steps.txt <<'STEPS'
+          Logs84: Sports catalog preview. Version 2.0.94-test-logs84 (20094).
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          1. Open Sports from the normal app menu. Sports now form a horizontal
-             menu above league cards. Swipe that menu on mobile or use Left/Right
-             on the remote. Disabled sports should not appear in it.
-          2. Choose American football, then open the NFL card. Its ESPN logo
-             should appear on the league card. Other leagues without supplied
-             artwork use a text fallback. Check Basketball > NBA too.
-          3. Open a league and check the event-card grid. Team logos should be
-             visible without being stretched; cards show names, time/live state,
-             scores when supplied and venue. Open a card for event details.
-          4. Use Back, search, scrolling and remote grid navigation. Up from the
-             first league row returns to the sports menu. Check enlarged text/UI
-             sizes. Home, existing collections and Live TV should be unchanged.
-          5. In the top Sports button, disable a sport, return and restart.
-             It should stay absent. Re-enable it. Choices remain per profile.
-          6. Repeat Oklahoma Sooners at North Carolina Tar Heels > Find channels.
-             Generic ESPN/ESPN+ channels and channels listing unrelated NFL games
-             must NOT appear merely because their names contain ESPN.
-          7. For an event explicitly listed in your IPTV guide, Find channels
-             should show programmes naming BOTH opponents at a compatible time.
-             Check account and channel labels, then open a currently airing match.
-             If the guide cannot confirm the event, an empty result is expected.
-             Upcoming matches must not start playing before programme time.
-          8. Hide a guide category containing a matching channel. Repeat the
-             search and confirm hidden categories remain excluded in Sports.
-          9. Check favorites on an event and the league's Favorites filter.
-             If a match is missing or wrong, send a log with the selected event,
-             channel/account, local kickoff and exact guide programme title.
+          1. Install Logs84 as an UPDATE. Open Sports > a sport > a league.
+          2. Tap an event card once, or press and release OK on the remote.
+             The normal Sources sheet must open immediately over the event grid.
+             No event-details page or separate channel-list page comes first.
+          3. The sheet shows a search indicator, then matching guide channels.
+             Check channel name, account and programme. Choose a currently airing
+             result: it should open using the existing Live TV playback path.
+          4. Close the sheet with Back or X. You should return to the same league
+             and event position. Open another event: no old results may appear.
+             Refresh in the sheet should search the selected event again.
+          5. Repeat with NFL and college football, then another sport such as
+             NBA, soccer, hockey, tennis or UFC where your guide lists a match.
+             Both opponents and a compatible programme time are required.
+             ESPN/ESPN+ affiliation, a different opponent/game, replays, highlights
+             and programmes from the wrong day must not count as event matches.
+          6. If your guide has no identifying EPG programme, an empty result is
+             expected. The app must not substitute generic broadcaster channels.
+             A programme starting in the future must not begin playing early.
+          7. Hide a matching channel category and repeat the search. The hidden
+             channel must remain excluded. Check labels for different accounts.
+          8. Long-press an event (or hold remote OK) for the secondary team-favorite
+             actions. Short tap/OK must continue to open Sources directly.
+          9. Confirm league/team artwork, sport toggles, grid navigation and normal
+             Home movie/episode Sources still work. Check the chooser while a
+             mini-player is active: it should not replace that video's source list.
 
-          Existing bounds remain: up to 1024 leagues per sport, 400 events per
-          league (current scoreboard plus today and the next six UTC dates),
-          and 64 confirmed channel matches. There is no pagination yet.
-          ESPN provides metadata and artwork where available; no SportsDB key
-          is required. No upstream Sports PR until this build is approved.
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs83.txt
+          Limits remain 1024 leagues per sport, 400 events per league and 64
+          confirmed channel matches. Metadata is ESPN; channel matches use your
+          loaded IPTV guide. No upstream Sports PR until this build is approved.
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs84.txt
           STEPS
           cat > notes.txt <<'NOTES'
           Separate Sports destination using the app's existing UI components.
-          Home-style sports menu, league/event cards with ESPN artwork, current and
-          upcoming events, scores and per-profile sport
-          toggles/favorites. Find channels searches the existing IPTV guide;
-          only programmes matching the selected event are returned.
+          Event cards open the existing Sources sheet directly, using channel choices
+          separate from the active playback source list. Matches require both
+          opponents and a compatible EPG time. ESPN/ESPN+ names alone do not match.
+          Existing sports artwork, menu, scores and per-profile favorites remain.
           No video stream is opened or probed while browsing sports metadata.
 
           Android build and independent APK verification passed. Linux/macOS
           parsing, profile/state and headless UI fixtures passed in normal and
-          ASan/UBSan modes (12 invocations). These are not visual/device tests
+          ASan/UBSan modes (16 invocations). These are not visual/device tests
           or packaged macOS/webOS/Tizen builds. Install as an update and follow
-          Logs83-test-steps.txt. No upstream Sports PR has been published.
+          Logs84-test-steps.txt. No upstream Sports PR has been published.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v83 Nuvio-TV-Mobile-Test-Logs83.apk Logs83-validation.json Logs83-independent-verification.json Logs83-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs83: Sports cards and exact event matches' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v84 Nuvio-TV-Mobile-Test-Logs84.apk Logs84-validation.json Logs84-independent-verification.json Logs84-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs84: Direct Sports source picker' --notes-file notes.txt --prerelease
