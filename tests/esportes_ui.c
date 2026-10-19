@@ -144,6 +144,8 @@ int main(void) {
   assert(!strcmp(fontescanais_estado()->titulo,eTeste.nome));
   assert(!strcmp(fontescanais_estado()->canais[0].conta,"Account Two"));
   assert(!strcmp(fontescanais_estado()->canais[0].id,"match"));
+  assert(fontescanais_estado()->canais[0].inicio==eTeste.inicio &&
+         fontescanais_estado()->canais[0].fim==eTeste.inicio+7200);
   assert(fontescanais_escolher(0,time(NULL))==1);fonteAberta=0;
   char id[128];assert(esportesui_pediu_canal(id,sizeof id) && !strcmp(id,"match"));
   assert(!esportesui_pediu_canal(id,sizeof id));

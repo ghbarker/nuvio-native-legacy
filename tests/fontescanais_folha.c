@@ -7,10 +7,29 @@ int perfis_sessao_atual(uint64_t g) { return g==perfilTeste; }
 int video_pode_forcar_sdr(void) { return 0; }
 int player_aberto(void) { return 0; }
 int ajustes_relogio_ligado(void) { return 0; }
+static int relogio12;
+int ajustes_relogio_12h(void) { return relogio12; }
 int ilha_rect(float *x,float *y,float *w,float *h) { (void)x;(void)y;(void)w;(void)h;return 0; }
 const char *i18n(const char *s) { return s; }
 static void teclaCanal(SDL_Keycode k) { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=k;canaisEvento(&e); }
+static void horarios(void) {
+  setenv("TZ","UTC0",1);tzset();
+  struct tm t={.tm_year=126,.tm_mon=9,.tm_mday=19,.tm_hour=13,.tm_min=30};
+  time_t inicio=mktime(&t);FonteCanal c={.inicio=inicio,.fim=inicio+7200};char s[64];
+  assert(!canaisHorario(&c,inicio-3600,s,sizeof s) && !strcmp(s,"13:30"));
+  assert(canaisHorario(&c,inicio,s,sizeof s) && !strcmp(s,"Ao vivo"));
+  assert(canaisHorario(&c,c.fim-1,s,sizeof s));
+  assert(!canaisHorario(&c,c.fim,s,sizeof s) && !strcmp(s,"13:30"));
+  relogio12=1;
+  assert(!canaisHorario(&c,inicio-3600,s,sizeof s) && !strcmp(s,"1:30 PM"));
+  assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"19/10 1:30 PM"));
+  relogio12=0;
+  assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"19/10 13:30"));
+  c.fim=0;assert(!canaisHorario(&c,inicio+60,s,sizeof s)); /* No invented Live state. */
+  c.inicio=0;assert(!canaisHorario(&c,inicio,s,sizeof s) && !s[0]);
+}
 int main(void) {
+  horarios();
   Stream tocando={0};strcpy(tocando.url,"https://playback.example/existing.m3u8");
   lista=&tocando;n=1;atual=0;listaGeracao=42;canalFolha=0;
   strcpy(alvoLista,"existing");strcpy(alvoPedido,"existing");
