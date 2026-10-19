@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: 84644cf59434d1de47b55447371a0532e099efd6
+  SOURCE_SHA: 00f73b32d1f38205e51cc9267d9950102e4d8e6e
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
