@@ -178,13 +178,14 @@ int main(void) {
   /* Combined team favorites remain above league rows, independent of switches. */
   timesFavTeste=2;nFavTeste=2;favTeste[0]=eTeste;favTeste[1]=eTeste;
   strcpy(favTeste[1].id,"soccer-event");strcpy(favTeste[1].nome,"Arsenal at Chelsea");strcpy(favTeste[1].modalidade,"soccer");
-  pointerTopoAgir(3,0);assert(pagina==ESP_TODOS && foco==FOCO_FAVORITO && linhaFavoritos());
+  pointerTopoAgir(3,0);assert(pagina==ESP_TODOS && modalidade==-1 && nItens==3 && foco==FOCO_FAVORITO && linhaFavoritos());
   esportesui_desenhar(1000);assert(favAlvos>=2);tecla(SDLK_RIGHT);assert(foco==FOCO_FAVORITO+1);
   trocarFav=1;esportesui_atualizar(.016f,1000);assert(foco==FOCO_FAVORITO);
   abertas=aberturasFonte;pointerAtivar(FOCO_FAVORITO,0);assert(fonteAberta && aberturasFonte==abertas+1);
   stream_folha_canais_fechar();pointerDetalhe(FOCO_FAVORITO,0);assert(pagina==ESP_DETALHE && detalheOrigem==ESP_TODOS);
   int pedidosAntes=pediuEventos;esportesui_atualizar(.016f,70000);assert(pediuEventos==pedidosAntes);tecla(SDLK_ESCAPE);
   tecla(SDLK_DOWN);assert(foco==codLinha(0,0));tecla(SDLK_UP);assert(focoFavorito());tecla(SDLK_UP);assert(foco==FOCO_TODOS);
+  nFavTeste=0;foco=FOCO_FAVORITO;montar();assert(focoLinha() && linhaFoco()==0);nFavTeste=2;
   /* Horizontal row gestures and the next vertical gesture use distinct offsets. */
   esportesui_desenhar(1000);PonteiroRolagem gesto={.fase=PONT_ROL_INICIO,.eixoY=0,.x=xLista+60,.y=topoLista+alturaFavoritos()+120};
   assert(rolar(&gesto));gesto.fase=PONT_ROL_MOVER;gesto.delta=-200;assert(rolar(&gesto));assert(linhasRolagem[0]>0);
