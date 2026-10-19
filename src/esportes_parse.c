@@ -215,6 +215,16 @@ int esportes_corresponde(const EspEvento *e, const char *titulo, time_t ini, tim
   time_t ate = e->fim > e->inicio ? e->fim : e->inicio + 6 * 3600;
   if (fim <= e->inicio - 30 * 60 || ini > ate || ini < e->inicio - 3 * 3600) return 0;
   normalizar(titulo, norm, sizeof norm);
+  static const struct { const char *palavra, *modalidade; } rotulos[] = {
+    {"NBA","basketball"},{"WNBA","basketball"},{"basketball","basketball"},
+    {"NFL","football"},{"college football","football"},
+    {"NHL","hockey"},{"ice hockey","hockey"},
+    {"MLB","baseball"},{"baseball","baseball"},{"soccer","soccer"}
+  };
+  for (size_t i=0;i<sizeof rotulos/sizeof *rotulos;i++)
+    if (frase(norm,rotulos[i].palavra,3) && strcmp(e->modalidade,rotulos[i].modalidade)) return 0;
+  char league[200]; normalizar(e->liga,league,sizeof league);
+  if ((strstr(norm,"women") || strstr(norm,"feminino")) && !strstr(league,"women") && !strstr(league,"feminino")) return 0;
   if (strstr(norm, "replay") || strstr(norm, "highlights") || strstr(norm, "reprise")) return 0;
   if (e->nParticipantes == 2) {
     for (int i = 0; i < 2; i++) {

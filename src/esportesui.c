@@ -57,7 +57,7 @@ static void montar(void) {
       if ((pagina == ESP_CONFIG || esportes_habilitado(i)) && contem(i18n(esportes_modalidade(i)->nome))) indices[nItens++] = i;
   } else if (pagina == ESP_LIGAS) {
     for (int i = 0; i < esportes_ligas_n() && nItens < ESP_MAX_LIGAS; i++)
-      if (contem(esportes_liga(i)->nome)) indices[nItens++] = i;
+      if (contem(esportes_liga(i)->nome) || contem(esportes_liga(i)->id)) indices[nItens++] = i;
   } else if (pagina == ESP_EVENTOS) {
     for (int i = 0; i < esportes_eventos_n(); i++) {
       const EspEvento *e = esportes_evento(i);
