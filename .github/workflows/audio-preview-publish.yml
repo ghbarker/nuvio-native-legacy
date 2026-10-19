@@ -1,13 +1,13 @@
-name: Publish verified Logs72 combined test APK
+name: Publish verified Logs73 combined test APK
 on:
   workflow_dispatch:
     inputs:
       android_run_id:
-        description: Successful Logs72 Android APK workflow run ID
+        description: Successful Logs73 Android APK workflow run ID
         required: true
         type: string
       native_run_id:
-        description: Successful 2-job Logs72 native integration workflow run ID
+        description: Successful 2-job Logs73 native integration workflow run ID
         required: true
         type: string
       apk_sha256:
@@ -26,8 +26,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: c430388aec08ebbed69a648075763e1337209f24
-      SOURCE_TREE: f219bfcc781066b7d21461b248a74a1e4d84bf23
+      SOURCE_SHA: 214037b62556d9472d838d834ba91f34c466f32c
+      SOURCE_TREE: 323f8e74f10639b8c172052c0afb7bca1111c987
       # Android is already building this exact immutable source; retain it.
       ANDROID_CONFIG_COMMIT: ${{ github.sha }}
       NATIVE_CONFIG_COMMIT: ${{ github.sha }}
@@ -62,7 +62,7 @@ jobs:
       - name: Download exact Android artifact
         uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs72-${{ env.ANDROID_CONFIG_COMMIT }}
+          name: Nuvio-TV-Mobile-Test-Logs73-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
       - name: Download all native evidence
@@ -76,15 +76,15 @@ jobs:
         run: |
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,zipfile
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs72.apk')
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs73.apk')
           expected=os.environ['APK_SHA256']
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==expected
-          validation=pathlib.Path('Logs72-validation.json');data=json.loads(validation.read_text())
+          validation=pathlib.Path('Logs73-validation.json');data=json.loads(validation.read_text())
           assert data['apk_sha256']==expected and data['apk_bytes']==apk.stat().st_size
           assert data['source_commit']==os.environ['SOURCE_SHA'] and data['source_tree']==os.environ['SOURCE_TREE']
           assert data['workflow_commit']==os.environ['ANDROID_CONFIG_COMMIT'] and data['workflow_run_id']==int(os.environ['ANDROID_RUN'])
-          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20082
-          assert data['version_name']=='2.0.82-test-logs72'
+          assert data['package']=='space.nuvio.nativelegacy.touch' and data['version_code']==20083
+          assert data['version_name']=='2.0.83-test-logs73'
           assert data['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert data['android_build'] and data['both_arm_abis'] and data['arm64_16kb_alignment']
           assert set(data['android_unit_tests'])=={'LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest','LiveSegmentTraceTest'}
@@ -92,7 +92,7 @@ jobs:
           with zipfile.ZipFile(apk) as archive:
               assert archive.testzip() is None
               assert {name.split('/')[1] for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')}=={'arm64-v8a','armeabi-v7a'}
-          groups={'live-buffer'}
+          groups={'live-watchdog'}
           expected_artifacts={'integration-'+system+'-'+group for system in ('ubuntu-24.04','macos-15') for group in groups}
           directories={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
           assert set(directories)==expected_artifacts,'Missing or unexpected native evidence'
@@ -115,40 +115,40 @@ jobs:
           python3 - <<'INVENTORY'
           import json,os,pathlib
           items=[{'number': 573, 'title': 'Fonts: import local TTF/OTF for subtitles and interface', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/573'}, {'number': 575, 'title': 'Sources: add persistent cached/uncached filtering', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/575'}, {'number': 576, 'title': 'Episodes: keep canonical identity after metadata updates', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/576'}, {'number': 587, 'title': 'Live TV: bypass source filters and add per-add-on overrides', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/587'}, {'number': 596, 'title': 'Live TV: add M3U, multiple accounts and responsive EPG loading', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/596'}, {'number': 597, 'title': 'Live TV: prevent false stall restarts and recover expired live windows', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/597'}, {'number': 598, 'title': 'Details: show prepared-source specifications below Play', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/598'}, {'number': 601, 'title': 'Live TV: fix large category lists and category Confirm/Cancel', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/601'}, {'number': 602, 'title': 'Live TV: keep repeated search results visible and responsive', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/602'}, {'number': 609, 'title': 'Backup: add encrypted Google Drive backup and restore for local settings', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/609'}, {'number': 611, 'title': 'Sources: match audio-language filters against release labels', 'url': 'https://github.com/iqui27/nuvio-native-legacy/pull/611'}]
-          pathlib.Path('Logs72-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
+          pathlib.Path('Logs73-inventory.json').write_text(json.dumps({'integration_base':'4155445395a94cbd40a9f1f9558311e3ebb26da0','source_commit':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'approved_feature_prs':items,'integration_note':'Newest upstream development plus the11approved features, adapted together to the source-keyed streaming Live TV guide. This combined test APK is awaiting device testing.'},indent=2)+'\n')
           INVENTORY
-          cat > Logs72-test-steps.txt <<'TESTSTEPS'
-          Logs72 — separate Live TV buffer size
+          cat > Logs73-test-steps.txt <<'TESTSTEPS'
+          Logs73 — Live TV repetition and server-refusal diagnostics
 
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
-          data. Version 2.0.82-test-logs72 (20082), same persistent signing key.
+          data. Version 2.0.83-test-logs73 (20083), same persistent signing key.
 
-          1. Open Settings > Live TV > TV guide > Buffer size.
-          2. Choose 128 MB and Confirm. Reopen the setting to verify it saved.
-          3. Exit the current channel and open it again. The setting applies to
-             new playback; it does not restart a channel already playing.
-          4. Watch the same channel for 5 minutes and send a fresh log. It records
-             the requested buffer and the actual device-limited memory cap.
-          5. Restart the app and confirm 128 MB is still selected. Check that the
-             separate Playback > Buffer size setting was not changed.
-          6. Try Auto again and reopen the channel to compare.
+          1. Keep the same Live TV buffer setting as the failing test.
+          2. Open a channel that repeats. Leave it playing for 3–5 minutes or
+             until the repeat/error occurs. Avoid switching channels during capture.
+          3. Note the clock time when picture/audio repeats and when any error appears.
+          4. Capture the log AFTER the error appears, before restarting the app.
+             From an ADB shell app on your phone use: logcat -d -v threadtime
+             Save/share its output as Nuvio-Live-Logs73.txt.
+             From a computer with ADB connected use:
+             adb logcat -d -v threadtime > Nuvio-Live-Logs73.txt
+             Or use the app's View/Download log option if accessible.
+          5. Send the log with those times and whether audio kept playing behind
+             the error screen. No need to share your playlist URL or account keys.
 
-          Choices: Auto, 64 MB, 128 MB, 256 MB. More memory does not guarantee
-          more buffered seconds: the server must make enough video available.
-          The app retains free-memory and Android heap limits. The setting is
-          device-local and restored from Drive only with hardware-settings opt-in.
-          Existing Logs71 recovery fixes and numeric transfer timing are retained.
-          No upstream PR until this build is verified.
+          This is a diagnostic build, not a confirmed playback fix. It retains
+          Logs72 playback behavior and adds numeric progress, rendered-frame,
+          watchdog, HLS load/retry and HTTP error evidence. New diagnostics omit
+          URLs, headers, account names and raw exception messages.
+          Test-only diagnostics will not be included in an upstream product PR.
           TESTSTEPS
           cat > notes.txt <<'NOTES'
-          Adds a separate Buffer size setting under Settings > Live TV: Auto, 64 MB, 128 MB or 256 MB. It applies when opening or reopening a channel, keeps movie playback settings separate and retains device memory safeguards.
+          Test-only diagnostics for repeated Live TV playback and source refusal: raw/native progress, rendered frames, watchdog state, HLS load lifecycle and numeric HTTP errors. Playback policy remains unchanged from Logs72; this is not a confirmed fix.
 
-          Includes the previous live recovery fix and test-only numeric HTTP timing. Increasing memory does not itself increase download speed.
+          Android build and 49 selected unit tests passed. All 16 Linux/macOS watchdog/recovery check invocations passed, including 12 ASan/UBSan invocations. These are not packaged macOS/webOS/Tizen builds. Translation diagnostics matched the upstream baseline.
 
-          Android build and 49 selected unit tests passed. All 8 Linux/macOS native check invocations passed, including two ASan/UBSan invocations, covering buffer policy, settings persistence and hardware-backup opt-in. These are not packaged macOS/webOS/Tizen builds. Translation diagnostics did not increase from the upstream baseline.
-
-          Install as an update to preserve accounts. Follow Logs72-test-steps.txt. Awaiting device testing before a product PR.
+          Install as an update to preserve accounts. Follow Logs73-test-steps.txt and capture the log after the symptom. No upstream PR for test-only diagnostics.
           NOTES
       - name: Publish verified update APK
         run: |
-          gh release create tv-mobile-test-logs-v72 Nuvio-TV-Mobile-Test-Logs72.apk Logs72-validation.json Logs72-inventory.json Logs72-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs72: Live TV buffer size' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v73 Nuvio-TV-Mobile-Test-Logs73.apk Logs73-validation.json Logs73-inventory.json Logs73-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs73: Live playback diagnostics' --notes-file notes.txt --prerelease
