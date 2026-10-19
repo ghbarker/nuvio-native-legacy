@@ -166,4 +166,4 @@ jobs:
           NOTES
       - name: Publish diagnostic download
         run: |
-          gh release create tv-mobile-test-logs-v78 Nuvio-TV-Mobile-Test-Logs79.apk Logs79-validation.json Logs79-independent-verification.json Logs79-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs79: Restore season buttons' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v79 Nuvio-TV-Mobile-Test-Logs79.apk Logs79-validation.json Logs79-independent-verification.json Logs79-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs79: Restore season buttons' --notes-file notes.txt --prerelease
