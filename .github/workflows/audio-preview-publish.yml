@@ -176,4 +176,4 @@ jobs:
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v86 Nuvio-TV-Mobile-Test-Logs87.apk Logs87-validation.json Logs87-independent-verification.json Logs87-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs87: All sports and combined Favorites' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v87 Nuvio-TV-Mobile-Test-Logs87.apk Logs87-validation.json Logs87-independent-verification.json Logs87-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs87: All sports and combined Favorites' --notes-file notes.txt --prerelease
