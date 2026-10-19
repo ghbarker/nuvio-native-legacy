@@ -100,7 +100,7 @@ jobs:
           data['native_metadata_check_invocations']=len(results)
           data['sanitizer_invocations']=sum(c['sanitizers'] for c in results)
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          data['validation_note']='Android build and APK identity verification; Linux/macOS native metadata tests normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.' 
+          data['validation_note']='Android build and APK identity verification; Linux/macOS native metadata tests normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.'
           p.write_text(json.dumps(data,indent=2)+'\n')
           PY
       - name: Write instructions
