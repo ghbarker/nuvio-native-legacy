@@ -124,7 +124,7 @@ int main(void) {
   esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1);
   tecla(SDLK_RETURN);assert(pagina==ESP_DETALHE);
   foco=1;tecla(SDLK_RETURN);assert(favorito);
-  foco=0;tecla(SDLK_RETURN);assert(pagina==ESP_CANAIS);
+  foco=0;tecla(SDLK_RETURN);assert(pagina==ESP_CANAIS && !nItens);
   esportesui_atualizar(0.016f,SDL_GetTicks());
   assert(nCanais==1 && !procurando && !visitasOcultas);
   assert(canais[0].confirmado && !strcmp(canais[0].id,"match"));
@@ -135,6 +135,8 @@ int main(void) {
   assert(!esportesui_pediu_canal(id,sizeof id));
   tecla(SDLK_ESCAPE);assert(pagina==ESP_DETALHE);tecla(SDLK_ESCAPE);assert(pagina==ESP_EVENTOS);
   pointerTopoAgir(1,0);assert(entradaTexto);tecladoResultado=1;esportesui_atualizar(0.016f,SDL_GetTicks());assert(!entradaTexto && !nItens);
+  /* Opening another search must not expose results from the last event. */
+  abrir(ESP_DETALHE);foco=0;agir();assert(pagina==ESP_CANAIS && !nItens && !pedidoCanal[0]);
   /* Suggestions cannot crowd a later exact match out of the bounded list. */
   nCanais=0;for(int i=0;i<64;i++){char c[24];snprintf(c,sizeof c,"suggestion-%d",i);adicionar(c,c,"Account",NULL,0);}
   EpgProg p={time(NULL)-60,time(NULL)+60,"Celtics vs Magic"};adicionar("exact","Channel","Account",&p,1);
