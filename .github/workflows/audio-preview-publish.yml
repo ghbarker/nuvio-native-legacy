@@ -155,4 +155,4 @@ jobs:
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v89 Nuvio-TV-Mobile-Test-Logs90.apk Logs90-validation.json Logs90-independent-verification.json Logs90-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs90: GIF avatar proportions' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v90 Nuvio-TV-Mobile-Test-Logs90.apk Logs90-validation.json Logs90-independent-verification.json Logs90-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs90: GIF avatar proportions' --notes-file notes.txt --prerelease
