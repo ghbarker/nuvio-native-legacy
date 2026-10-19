@@ -145,7 +145,7 @@ jobs:
               'guide-ui':normal('guiabusca_reabrir'),
               'sources':both('source_audio_language'),
               'source-policy':both('source_cache_filter','fontefalha')+normal('source_exclusion_languages','fonteregra'),
-              'live-buffer':both('cacheboost','backupapp')+normal('ajustes_iptv'),
+              'live-buffer':both('buffer_tamanho','backupapp')+normal('ajustes_iptv'),
               'live-watchdog':both('livestall_window','video_android_live_window','live_error_recovery')+normal('livestall','livestall_seco'),
               'backup-state':both('backupapp','backupfonts','backuplocal','backupcrypto'),
               'backup-drive':both('drivebackup'),
