@@ -10,6 +10,25 @@ static uint64_t fixtureNow(void) { return fakeNow; }
 #include "../src/streams.c"
 #undef streamfit_agora_ms
 #include <assert.h>
+/* Parts/P2P are unavailable in this source-sheet-only fixture. */
+const char *ajustes_p2p_url(void) { return ""; }
+int partes_disponivel(void) { return 0; }
+const PartesLista *partes_sessao_lista(void) { return NULL; }
+void partes_lista_limpar(PartesLista *l) { if(l)memset(l,0,sizeof *l); }
+int partes_lista_copiar(PartesLista *d,const PartesLista *o) { (void)d;(void)o;return 0; }
+int partes_hashes_texto(const char *s,char out[][41],int max) { (void)s;(void)out;(void)max;return 0; }
+void partes_pedir(const Stream *s,const char *t) { (void)s;(void)t; }
+void partes_pedir_cedo(const Stream *s,const char *t) { (void)s;(void)t; }
+void partes_pedir_item(const Stream *s,int i) { (void)s;(void)i; }
+int partes_resultado(PartesLista *l) { (void)l;return PARTES_VAZIO; }
+void partes_aquecer(void) {}
+void partes_cancelar(void) {}
+void ctxhold_cancelar(CtxHold *h) { memset(h,0,sizeof *h); }
+int ctxhold_passo(CtxHold *h,Uint32 t,int f) { (void)h;(void)t;(void)f;return 0; }
+int ctxhold_evento(CtxHold *h,const SDL_Event *e,int c) { (void)h;(void)e;(void)c;return CTXH_NADA; }
+float txt_bloco(TxtEstilo e,const char *s,int r,int g,int b,float x,float y,float w,float lh,float alpha,int n) {
+ (void)e;(void)r;(void)g;(void)b;(void)x;(void)y;(void)w;(void)n;(void)alpha;return s&&s[0]?lh:0;
+}
 static int streamfitpassiva_test_ok(int v) { return v; }
 
 Uint32 SDL_GetTicks(void) { return (Uint32)fakeNow; }
@@ -308,6 +327,9 @@ int main(void) {
   assert(queue[0]==0 && queue[1]==1 && queue[2]==2 && fonteauto_tentativas(FONTEAUTO_PRIMEIRA,9)==1);
   liveTvActions();
   playbackActions();
+  /* Opening normal movie Sources resets the independent channel chooser. */
+  stream_folha_canais_abrir("Sports event");assert(canaisFolha && fontescanais_estado()->ativo);
+  stream_folha_abrir();assert(!canaisFolha && !fontescanais_estado()->ativo);
   stream_definir_lista(NULL,0);free(ordem);free(linhaY);free(linhaH);free(grupoTmp);free(grupoFitTmp);free(fitResultados);free(fitClasses);
   puts("streamfit sheet: PASS (stable groups, raw identities, freeze, incremental/focus, OndeVer, first-source)");return 0;
 }
