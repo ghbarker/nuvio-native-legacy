@@ -16,7 +16,7 @@ time_t time(time_t *out) { time_t t=1792411200; if(out)*out=t; return t; }
 static char salvoNome[160], salvo[27000];
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-static int entrou, liberado, pedidos,pedidosFav,modoFav,segurarFav,entrouFav;
+static int entrou, liberado, pedidos,pedidosFav,modoFav,segurarFav,entrouFav,modoCatalogo,pedidosCatalogo,pedidosLinha;
 int ajustes_idioma(void) { return 1; }
 static const char *eventosNfl="{\"events\":["
  "{\"id\":\"game\",\"date\":\"2026-10-21T12:00Z\",\"name\":\"Team at Other\",\"competitions\":[{\"competitors\":[{\"team\":{\"id\":\"team\",\"displayName\":\"Team\"}},{\"team\":{\"id\":\"other\",\"displayName\":\"Other\"}}]}]},"
@@ -36,6 +36,14 @@ int dados_gravar(const char *nome, const char *t) {
 int dados_gravar_leve(const char *nome, const char *t) { (void)nome; (void)t; return 1; }
 char *rede_baixar_medido_controle(const char *url,int s,const char *const *h,const RedeControle *c,RedeMedida *m) {
   (void)h;assert(s==8 && c->max_bytes==2*1024*1024 && strstr(url,"lang=en"));
+  if(modoCatalogo) {
+    m->status=200;
+    if(strstr(url,"/leagues/dropdown")) {
+      pedidosCatalogo++;assert(strstr(url,"sport=football"));
+      return strdup("{\"leagues\":[{\"slug\":\"nfl\",\"name\":\"NFL\"},{\"slug\":\"college-football\",\"name\":\"College football\"},{\"slug\":\"third\",\"name\":\"Third\"},{\"slug\":\"fourth\",\"name\":\"Fourth\"},{\"slug\":\"fifth\",\"name\":\"Fifth\"},{\"slug\":\"sixth\",\"name\":\"Sixth\"},{\"slug\":\"seventh\",\"name\":\"Seventh\"},{\"slug\":\"eighth\",\"name\":\"Eighth\"},{\"slug\":\"ninth\",\"name\":\"Ninth\"}]}");
+    }
+    pedidosLinha++;assert(strstr(url,"/scoreboard?") && !strstr(url,"/schedule?"));return strdup(eventosNfl);
+  }
   int fav=strstr(url,"/schedule?")!=NULL || (modoFav==4 && strstr(url,"/scoreboard?"));
   pthread_mutex_lock(&mutex);
   int numero=fav?++pedidosFav:++pedidos;entrou=1;if(fav)entrouFav=1;pthread_cond_broadcast(&cond);
@@ -118,5 +126,31 @@ int main(void) {
   modoFav=4;int antesFav=pedidosFav;assert(esportes_alternar_favorito(&e,0));drenar();
   assert(esportes_favoritos_n()==1 && pedidosFav-antesFav==9 && !esportes_favoritos_erro());
   modoFav=5;esportes_pedir_favoritos(1);drenar();assert(!esportes_favoritos_n());
-  puts("sports profile settings, cancellation and URL contracts: passed"); return 0;
+  /* League rows: persist visibility separately from whole-sport visibility. */
+  modoCatalogo=1;sessao++;perfil=5;esportes_abrir_sessao();
+  for(int i=0;i<esportes_modalidades_n();i++)if(i!=1)assert(esportes_habilitar(i,0));
+  assert(esportes_liga_habilitada(1,"nfl"));
+  falharGravacao=1;assert(!esportes_liga_habilitar(1,"nfl",0) && esportes_liga_habilitada(1,"nfl"));falharGravacao=0;
+  assert(esportes_liga_habilitar(1,"nfl",0));assert(!esportes_liga_habilitada(1,"nfl") && esportes_liga_habilitada(2,"nfl"));
+  sessao++;esportes_abrir_sessao();assert(!esportes_liga_habilitada(1,"nfl"));
+  falharGravacao=1;assert(!esportes_liga_habilitar(1,"nfl",1) && !esportes_liga_habilitada(1,"nfl"));falharGravacao=0;
+  esportes_catalogo_iniciar(-1,0);esportes_passo();drenar();
+  assert(pedidosCatalogo==1 && esportes_catalogo_n()==9 && !pedidosLinha);
+  assert(esportes_catalogo_modalidade(0)==1 && !strcmp(esportes_catalogo_liga(0)->id,"nfl"));
+  esportes_catalogo_visiveis();esportes_catalogo_pedir(0);esportes_passo();drenar();assert(!pedidosLinha); /* Hidden rows never fetch. */
+  assert(esportes_liga_habilitar(1,"nfl",1));
+  esportes_catalogo_pedir(0);esportes_passo();drenar();
+  assert(pedidosLinha==8 && esportes_catalogo_eventos_n(0)==2 && esportes_catalogo_estado(0)==1);
+  assert(!strcmp(esportes_catalogo_evento(0,0)->ligaId,"nfl"));
+  esportes_catalogo_pedir(0);esportes_passo();drenar();assert(pedidosLinha==8); /* Cached, not polled per frame. */
+  /* At most eight row payloads survive; switching rows evicts the oldest. */
+  for(int i=1;i<9;i++) {
+    esportes_catalogo_visiveis();esportes_catalogo_pedir(i);esportes_passo();drenar();
+    assert(esportes_catalogo_eventos_n(i)==2);
+  }
+  assert(!esportes_catalogo_eventos_n(0) && !esportes_catalogo_evento(0,0));
+  assert(!strcmp(esportes_catalogo_evento(8,0)->ligaId,"ninth"));
+  esportes_cancelar();sessao++;perfil=6;esportes_abrir_sessao();
+  assert(!esportes_catalogo_n() && !esportes_catalogo_eventos_n(8) && esportes_liga_habilitada(1,"nfl"));
+  puts("sports profile settings, league visibility, bounded row caching, cancellation and URL contracts: passed");return 0;
 }
