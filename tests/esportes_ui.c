@@ -49,7 +49,8 @@ const EspEvento *esportes_catalogo_evento(int l,int e){return l>=0 && l<3 && e>=
 int esportes_catalogo_estado(int l){(void)l;return 1;}
 int esportes_catalogo_carregando(void){return 0;}
 const char *i18n(const char *s) { return s; }
-int layout_modo_mobile(void) { return 1; }
+static int mobileTeste;
+int layout_modo_mobile(void) { return mobileTeste; }
 void esportes_abrir_sessao(void) { static int primeira=1;if(primeira){for(int i=0;i<16;i++)habilitados[i]=1;primeira=0;} }
 int esportes_habilitado(int i) { return i>=0 && i<16 && habilitados[i]; }
 int esportes_habilitar(int i,int v) { habilitados[i]=v; return 1; }
@@ -188,9 +189,18 @@ int main(void) {
   nFavTeste=0;foco=FOCO_FAVORITO;montar();assert(focoLinha() && linhaFoco()==0);nFavTeste=2;
   /* Horizontal row gestures and the next vertical gesture use distinct offsets. */
   esportesui_desenhar(1000);PonteiroRolagem gesto={.fase=PONT_ROL_INICIO,.eixoY=0,.x=xLista+60,.y=topoLista+alturaFavoritos()+120};
+  /* A touch-capable APK in saved TV mode keeps remote navigation and never
+   * captures touch scrolling. Enabling Mobile takes effect on the same screen. */
+  assert(!mobileTeste && !rolar(&gesto));
+  float offsetTv=linhasRolagem[0];
+  gesto.fase=PONT_ROL_MOVER;gesto.delta=-200;
+  assert(!rolar(&gesto) && linhasRolagem[0]==offsetTv && rolagem==0);
+  mobileTeste=1;gesto.fase=PONT_ROL_INICIO;
   assert(rolar(&gesto));gesto.fase=PONT_ROL_MOVER;gesto.delta=-200;assert(rolar(&gesto));assert(linhasRolagem[0]>0);
   float offsetAntes=linhasRolagem[0];gesto.fase=PONT_ROL_INICIO;gesto.eixoY=1;assert(rolar(&gesto));
   gesto.fase=PONT_ROL_MOVER;gesto.delta=-180;assert(rolar(&gesto));assert(rolagem>0 && linhasRolagem[0]==offsetAntes);
+  mobileTeste=0;float offsetMobile=rolagem;
+  assert(!rolar(&gesto) && rolagem==offsetMobile && !toquerol_livre(&toque));
   limparToque();
   /* League/team artwork and row pointer targets fit TV/phone and UI scaling. */
   strcpy(eTeste.participantes[0].logo,"https://art.example/celtics.png");strcpy(eTeste.participantes[1].logo,"https://art.example/magic.png");
@@ -198,6 +208,7 @@ int main(void) {
   const float tamanhos[][3]={{1920,1080,1},{1080,2300,1},{1920,1080,1.5},{1080,2300,1.5}};
   for(int i=0;i<4;i++) {
     nv_layout_w=tamanhos[i][0];nv_layout_h=tamanhos[i][1];escalaTeste=tamanhos[i][2];
+    mobileTeste=nv_layout_h>nv_layout_w;
     esportesui_fechar();esportesui_iniciar();imagens=imagensDesenhadas=0;esportesui_desenhar(1000);assert(imagens && imagens==imagensDesenhadas);
   }
   pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG);pointerAtivar(1,0);tecla(SDLK_ESCAPE);assert(nItens==1 && indices[0]==1);
