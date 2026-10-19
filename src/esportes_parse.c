@@ -104,12 +104,26 @@ static void competicao(const char *p, const char *fim, EspEvento *e) {
     if (t) {
       EspParticipante *v = &e->participantes[e->nParticipantes];
       texto(t, js_fim(t), "id", v->id, sizeof v->id);
+      if (!v->id[0]) texto(a, end, "id", v->id, sizeof v->id);
       texto(t, js_fim(t), "displayName", v->nome, sizeof v->nome);
       texto(t, js_fim(t), "shortDisplayName", v->curto, sizeof v->curto);
       if (!v->curto[0]) texto(t, js_fim(t), "shortName", v->curto, sizeof v->curto);
       texto(t, js_fim(t), "abbreviation", v->sigla, sizeof v->sigla);
       texto(t, js_fim(t), "logo", v->logo, sizeof v->logo);
       texto(a, end, "score", v->pontos, sizeof v->pontos);
+      if (!v->pontos[0]) {
+        const char *score = objeto(a,end,"score");
+        if (score) texto(score,js_fim(score),"displayValue",v->pontos,sizeof v->pontos);
+      }
+      if (!v->pontos[0]) {
+        size_t usado=0;
+        for (const char *ls=array(a,end,"linescores"); ls && usado+5<sizeof v->pontos; ) {
+          const char *le=js_fim(ls); if (!le || le<=ls) break;
+          double val=js_num(ls,le,"value",-1);
+          if (val>=0 && val<=999) usado+=(size_t)snprintf(v->pontos+usado,sizeof v->pontos-usado,"%s%.0f",usado?" ":"",val);
+          ls=js_prox(le);
+        }
+      }
       if (v->nome[0]) e->nParticipantes++;
     }
     a = js_prox(end);
