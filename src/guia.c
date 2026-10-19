@@ -6866,7 +6866,6 @@ void guia_abrir_sessao(void) {
   glem_abrir_sessao();
 }
 
-<<<<<<< HEAD
 // Refresh retains the published source caches until replacements arrive.
 void guia_recarregar(int limparLista) {
   cargaCancelada = 1; xtepg_limpar();
@@ -6877,7 +6876,6 @@ void guia_recarregar(int limparLista) {
   recarregarPend = 1; recargaDoPainel = 1; estado = G_PARADO;
 }
 
-=======
 int guia_busca_elegivel(int i) {
   return i >= 0 && i < nCanais && fonteAtiva(canais[i].fonte) && !categoriaOculta(canais[i].cat);
 }
