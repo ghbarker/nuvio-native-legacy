@@ -4841,6 +4841,7 @@
   T("Sem vidro", "Tanpa kaca"),
   T("Senha", "Kata sandi"),
   T("Senha Xtream", "Kata sandi Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Masukkan kata sandi yang Anda gunakan saat membuat cadangan ini."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Kata sandi Emby"),
   T("Senha do Jellyfin", "Kata sandi Jellyfin"),

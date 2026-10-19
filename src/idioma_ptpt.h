@@ -4841,6 +4841,7 @@
   T("Sem vidro", "Sem vidro"),
   T("Senha", "Palavra-passe"),
   T("Senha Xtream", "Palavra-passe Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Introduza a palavra-passe que usou para criar esta cópia de segurança."),
   T("Senha deste backup", "Senha deste backup"),
   T("Senha do Emby", "Palavra-passe do Emby"),
   T("Senha do Jellyfin", "Palavra-passe do Jellyfin"),

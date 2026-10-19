@@ -4841,6 +4841,7 @@
   T("Sem vidro", "無玻璃效果"),
   T("Senha", "密碼"),
   T("Senha Xtream", "Xtream 密碼"),
+  T("Digite a senha que você usou ao criar este backup.", "請輸入建立此備份時使用的密碼。"),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Emby 密碼"),
   T("Senha do Jellyfin", "Jellyfin 密碼"),

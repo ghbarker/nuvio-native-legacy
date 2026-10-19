@@ -4840,6 +4840,7 @@
   { "Sem vidro", "No glass" },
   { "Senha", "Password" },
   { "Senha Xtream", "Xtream password" },
+  { "Digite a senha que você usou ao criar este backup.", "Enter the password you used to create this backup." },
   { "Senha deste backup", "Password for this backup" },
   { "Senha do Emby", "Emby password" },
   { "Senha do Jellyfin", "Jellyfin password" },

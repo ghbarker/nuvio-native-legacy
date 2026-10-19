@@ -4841,6 +4841,7 @@
   T("Sem vidro", "Không kính"),
   T("Senha", "Mật khẩu"),
   T("Senha Xtream", "Mật khẩu Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Nhập mật khẩu bạn đã dùng để tạo bản sao lưu này."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Mật khẩu Emby"),
   T("Senha do Jellyfin", "Mật khẩu Jellyfin"),

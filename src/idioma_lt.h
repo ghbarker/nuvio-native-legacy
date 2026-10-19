@@ -4841,6 +4841,7 @@
   T("Sem vidro", "Be stiklo"),
   T("Senha", "Slaptažodis"),
   T("Senha Xtream", "Xtream slaptažodis"),
+  T("Digite a senha que você usou ao criar este backup.", "Įveskite slaptažodį, kurį naudojote kurdami šią atsarginę kopiją."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Emby slaptažodis"),
   T("Senha do Jellyfin", "Jellyfin slaptažodis"),

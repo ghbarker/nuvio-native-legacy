@@ -4841,6 +4841,7 @@
   T("Sem vidro", "Χωρίς γυαλί"),
   T("Senha", "Κωδικός"),
   T("Senha Xtream", "Κωδικός Xtream"),
+  T("Digite a senha que você usou ao criar este backup.", "Εισαγάγετε τον κωδικό που χρησιμοποιήσατε για τη δημιουργία αυτού του αντιγράφου ασφαλείας."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Κωδικός Emby"),
   T("Senha do Jellyfin", "Κωδικός Jellyfin"),

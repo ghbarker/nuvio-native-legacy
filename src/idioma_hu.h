@@ -4841,6 +4841,7 @@
   T("Sem vidro", "Üveg nélkül"),
   T("Senha", "Jelszó"),
   T("Senha Xtream", "Xtream-jelszó"),
+  T("Digite a senha que você usou ao criar este backup.", "Add meg a biztonsági mentés létrehozásakor használt jelszót."),
   T("Senha deste backup", "Password for this backup"),
   T("Senha do Emby", "Emby-jelszó"),
   T("Senha do Jellyfin", "Jellyfin-jelszó"),
