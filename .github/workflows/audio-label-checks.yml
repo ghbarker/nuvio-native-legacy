@@ -1,4 +1,4 @@
-name: Logs80 IntroDB fallback Linux and macOS checks
+name: Season tabs exact PR source Linux and macOS checks
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Pin once the final integration commit contains the adapted guide fixtures.
-  SOURCE_SHA: 20638b6e37d79496f500243c92f7a91541ddd995
+  SOURCE_SHA: 649f5cd3741876019db3d29460ee08170b0ec1de
   SDL_MAC_BACKGROUND_APP: '1'
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -26,7 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
         group:
-          - intro-backup
+          - season-tabs
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
@@ -140,7 +140,7 @@ jobs:
           both=lambda *names:[(name,san) for name in names for san in ('0','1')]
           normal=lambda *names:[(name,'0') for name in names]
           profiles={
-              'intro-backup':both('intro','creditos_limitados')+normal('player_identity524','player_identity524_guards','cwinicio'),
+              'season-tabs':both('episodiosdup'),
               'providers':both('iptv_accounts','xtream','m3u','epg_accounts','epg_memory','epg_streaming')+normal('livetv_regras'),
               'guide':both('guiacache','guia_grupos','guia_epg_estado','guia_grande','guia_loading','guiabusca_incremental'),
               'guide-ui':normal('guiabusca_reabrir'),
