@@ -20,8 +20,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 2019432b70258652ce2496ad30dbb69e299fdad9
-      SOURCE_TREE: 7ba7eb1b192573df3cfadc966aadb7ccc6c600d1
+      SOURCE_SHA: 84644cf59434d1de47b55447371a0532e099efd6
+      SOURCE_TREE: e0fd5a91db444fd7455fa6f5dfb803e744f0dfaa
       BUILD_CONFIG: 1e7a72a57ab8fcb0bb7aba0b540545ab00d27f28
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
