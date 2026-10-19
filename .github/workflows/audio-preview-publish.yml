@@ -73,6 +73,13 @@ jobs:
           name: Nuvio-TV-Mobile-Test-Logs75-${{ env.ANDROID_CONFIG_COMMIT }}
           run-id: ${{ inputs.android_run_id }}
           github-token: ${{ github.token }}
+      - name: Download Android test results
+        uses: actions/download-artifact@v4
+        with:
+          name: Logs75-Android-evidence-${{ env.ANDROID_CONFIG_COMMIT }}
+          path: android-evidence
+          run-id: ${{ inputs.android_run_id }}
+          github-token: ${{ github.token }}
       - name: Download all native evidence
         uses: actions/download-artifact@v4
         with:
@@ -114,6 +121,11 @@ jobs:
               results=json.loads((directory/'results.json').read_text())
               assert results and all(result['code']==0 for result in results),name
               invocations.extend(results)
+          import xml.etree.ElementTree as ET
+          suites=[ET.parse(p).getroot() for p in pathlib.Path('android-evidence').rglob('TEST-*.xml')]
+          assert len(suites)==5 and all(int(s.get('failures','0'))==0 and int(s.get('errors','0'))==0 and int(s.get('skipped','0'))==0 for s in suites)
+          assert sum(int(s.get('tests','0')) for s in suites)==54
+          data['android_unit_test_count']=54
           data.update(android_build=True,linux_native_checks=True,macos_native_checks=True,native_matrix_jobs=4,native_suite_invocations=len(invocations),sanitizer_suite_invocations=sum(result['sanitizers'] for result in invocations))
           data['check_configuration_commits']={'android':os.environ['ANDROID_CONFIG_COMMIT'],'linux_macos':os.environ['NATIVE_CONFIG_COMMIT']}
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
