@@ -2,6 +2,10 @@ name: Publish verified Logs80 IntroDB fallback APK
 on:
   workflow_dispatch:
     inputs:
+      instructions_only:
+        description: Repair the released test instructions only
+        type: boolean
+        default: false
       android_run_id:
         description: Successful Logs80 Android build run
         required: true
@@ -13,7 +17,55 @@ on:
 permissions:
   contents: read
 jobs:
+  instructions:
+    if: inputs.instructions_only
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ghbarker/nuvio-native-legacy
+    steps:
+      - name: Restore corrected instructions asset
+        run: |
+          cat > Logs80-test-steps.txt <<'STEPS'
+          Logs80: IntroDB skip-marker backup and season-button fix
+          Version 2.0.90-test-logs80 (20090).
+          
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear
+          app data; the package and persistent signing key retain your accounts.
+          
+          1. Confirm the season-button fix: open Game of Thrones, select seasons
+             1 and 8, then leave and reopen. Episode cards and tabs should agree.
+          2. To test MANUAL buttons, temporarily disable automatic Skip intro,
+             Skip recap and Skip credits in Playback settings.
+             lookup enabled. Automatic skipping can hide the manual button.
+          3. Open Supernatural S01E01. Allow about 20 seconds for both databases
+             to respond, then seek to 2:25 and let it play. The public IntroDB
+             backup currently lists an intro from 2:30 to 3:30. A Skip intro
+             button should appear in that interval; press it to seek to 3:30.
+             Availability and timings depend on the databases and your video cut.
+          4. Control: Game of Thrones S01E02 has TheIntroDB intro markers around
+             0:05-1:46. After lookup finishes, seek to 0:15. Its existing marker
+             should still work. If the button auto-hid, reopen playback controls.
+          5. Re-enable your usual automatic skip choices and repeat a known intro.
+             Check one anime whose AniSkip/chapter markers already worked too.
+          6. Leave during lookup, then open another episode. A late response must
+             not show the old episode's skip markers on the new one.
+          7. If a button is missing, save a log and include title, season/episode,
+             source, playback time, and whether automatic skipping was enabled.
+             Look for IntroDB backup HTTP/status and added-marker diagnostics.
+          
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs80.txt
+          In a phone ADB shell app: logcat -d -v threadtime
+          
+          These are test instructions, not a guarantee of database coverage for
+          every episode or video cut. Existing timing safeguards remain enabled.
+          Awaiting approval of this build before publishing the IntroDB PR.
+          STEPS
+          gh release upload tv-mobile-test-logs-v80 Logs80-test-steps.txt --clobber
   publish:
+    if: ${{ !inputs.instructions_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
