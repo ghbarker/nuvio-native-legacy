@@ -1337,7 +1337,8 @@ object NvPlayer {
                         .setUserAgent(ua).setDefaultRequestProperties(props.filterKeys {
                             !it.equals("If-None-Match", true) && !it.equals("If-Modified-Since", true)
                         }),
-                    report = { Log.i(TAG, it) },
+                    // TEST BUILD ONLY: include playlist decisions in exported logs.
+                    report = { liveDiagnostic(it) },
                 ))
             if (construir) construirPlayer(act, r)
             Log.i(TAG, "[player] buffer preset=$preset min=${minMs / 1000}s max=${maxMs / 1000}s teto=${bytes shr 20}MB preparo=$preparando")
@@ -1978,7 +1979,8 @@ object NvPlayer {
             schedule = { tarefa, atraso -> principal.postDelayed(tarefa, atraso) },
             unschedule = { tarefa -> principal.removeCallbacks(tarefa) },
             active = { atual(minha) },
-            report = { Log.i(TAG, "$it session=$minha") },
+            // TEST BUILD ONLY: include bounded recovery decisions in exported logs.
+            report = { liveDiagnostic("$it session=$minha") },
             status = { prazoMs ->
                 if (atual(minha)) ev(EV_LIVE_RECOVERY, prazoMs.toInt(), geracaoNative)
             },
