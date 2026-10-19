@@ -25,6 +25,9 @@ jobs:
       SOURCE_SHA: bfcc4737b42e6bff77105f1b32ecea311b311762
       SOURCE_TREE: 814c6a09216a2a7a1c6960bf3867351ec22f5142
       ANDROID_CONFIG_COMMIT: 411b8d6a3eb47b35a38440666f5892c6f7dca83a
+      NATIVE_CONFIG_COMMIT: 0fa4c31de3e5536ff417bdfd36c238b920e655f5
+      NATIVE_SOURCE_SHA: c088e5514488220c3aff1c331a1f7873ee8bd5ec
+      NATIVE_SOURCE_TREE: 05a3d2c58e89816e060cfb05bfcc95936931c83c
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -55,7 +58,7 @@ jobs:
           run=os.environ['NATIVE_RUN'];assert re.fullmatch(r'[0-9]+',run)
           data=api('actions/runs/'+run)
           assert data['status']=='completed' and data['conclusion']=='success'
-          assert data['head_sha']==os.environ['ANDROID_CONFIG_COMMIT']
+          assert data['head_sha']==os.environ['NATIVE_CONFIG_COMMIT']
           assert data['path']=='.github/workflows/audio-label-checks.yml'
           assert data['head_repository']['full_name']=='ghbarker/nuvio-native-legacy'
           jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
@@ -92,16 +95,26 @@ jobs:
           results=[]
           for directory in dirs.values():
               source=json.loads((directory/'source.json').read_text())
-              assert source['source_commit']==os.environ['SOURCE_SHA'] and source['source_tree']==os.environ['SOURCE_TREE']
+              assert source['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and source['source_tree']==os.environ['NATIVE_SOURCE_TREE']
               checks=json.loads((directory/'results.json').read_text())
               assert len(checks)==6 and all(c['code']==0 for c in checks)
               assert {(c['suite'],c['sanitizers']) for c in checks}=={(n,b) for n in ('episodiosdup','epsrapido','detalheanime') for b in (False,True)}
               results.extend(checks)
+          data['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           data['native_metadata_check_invocations']=len(results)
           data['sanitizer_invocations']=sum(c['sanitizers'] for c in results)
           data['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
           data['validation_note']='Android build and APK identity verification; Linux/macOS native metadata tests normal and ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.'
           p.write_text(json.dumps(data,indent=2)+'\n')
+          PY
+      - name: Verify repaired test inputs preserve the built product source
+        run: |
+          git fetch --no-tags --depth=5 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
+          python3 - <<'PY'
+          import os,subprocess
+          changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
+          assert changed=={'tests/epsrapido.sh','tests/detalheanime.sh'},changed
+          print('Product source unchanged; native evidence uses repaired test link inputs.')
           PY
       - name: Write instructions
         run: |
