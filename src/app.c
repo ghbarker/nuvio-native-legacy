@@ -6118,6 +6118,10 @@ void app_atualizar(float dt, Uint32 agora) {
         lsIdx = canalFonteIdx;
         snprintf(lsId, sizeof lsId, "%s", player_id_canal());
       }
+      double livePos = video_pronto() ? video_pos() : 0.0, liveFim = video_buffer_fim();
+#ifdef NV_ANDROID
+      if (video_pronto()) video_live_progresso(&livePos, &liveFim);
+#endif
       /* TEST BUILD ONLY: watchdog evidence before its state is mutated. */
       static unsigned liveDiagEm;
       static int liveDiagMorta;
@@ -6127,16 +6131,12 @@ void app_atualizar(float dt, Uint32 agora) {
         liveDiagMorta = morta;
         printf("[live-watchdog] elapsedMs=%u source=%d ready=%d playing=%d paused=%d ended=%d pos=%.3f bufferEnd=%.3f bufferingMs=%u noMovementMs=%u lastPos=%.3f moved=%d pending=%d attempts=%d deadlineMs=%u dead=%d sourceFailed=%d videoFailed=%d loading=%d noDecoder=%d\n",
           liveDiagAgora, canalFonteIdx, video_pronto(), video_tocando(), player_pausa_pessoa(),
-          video_terminou(), video_pos(), video_buffer_fim(), bufferMs,
+          video_terminou(), livePos, liveFim, bufferMs,
           (unsigned)(liveDiagAgora - liveStall.movEm), liveStall.pos, liveStall.andou,
           liveStall.pendente, liveStall.tentativa, paradoMs, morta,
           player_fonte_falhou(), video_falhou(), player_carregando(), semDecoder);
         fflush(stdout);
       }
-      double livePos = video_pronto() ? video_pos() : 0.0, liveFim = video_buffer_fim();
-#ifdef NV_ANDROID
-      if (video_pronto()) video_live_progresso(&livePos, &liveFim);
-#endif
       int estavaPendente = liveStall.pendente;
       ls = nv_ls_passo_buf_prazo(&liveStall, SDL_GetTicks(), livePos,
                            video_pronto(), player_pausa_pessoa(), video_terminou(),
