@@ -7,7 +7,8 @@ int perfis_sessao_atual(uint64_t g) { return g==perfilTeste; }
 int video_pode_forcar_sdr(void) { return 0; }
 int player_aberto(void) { return 0; }
 int ajustes_relogio_ligado(void) { return 0; }
-static int relogio12;
+static int relogio12,idiomaTeste=IDIOMA_EN;
+int ajustes_idioma(void) { return idiomaTeste; }
 int ajustes_relogio_12h(void) { return relogio12; }
 int ilha_rect(float *x,float *y,float *w,float *h) { (void)x;(void)y;(void)w;(void)h;return 0; }
 const char *i18n(const char *s) { return s; }
@@ -22,9 +23,10 @@ static void horarios(void) {
   assert(!canaisHorario(&c,c.fim,s,sizeof s) && !strcmp(s,"13:30"));
   relogio12=1;
   assert(!canaisHorario(&c,inicio-3600,s,sizeof s) && !strcmp(s,"1:30 PM"));
-  assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"19/10 1:30 PM"));
+  assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"10/19 1:30 PM"));
   relogio12=0;
-  assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"19/10 13:30"));
+  assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"10/19 13:30"));
+  idiomaTeste=IDIOMA_PT;assert(!canaisHorario(&c,inicio-86400,s,sizeof s) && !strcmp(s,"19/10 13:30"));idiomaTeste=IDIOMA_EN;
   c.fim=0;assert(!canaisHorario(&c,inicio+60,s,sizeof s)); /* No invented Live state. */
   c.inicio=0;assert(!canaisHorario(&c,inicio,s,sizeof s) && !s[0]);
 }
