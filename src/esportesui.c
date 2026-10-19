@@ -257,8 +257,9 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
     for (int i=0;i<2;i++) {
       const EspParticipante *p=&e->participantes[i]; float y=r.y+52+i*52;
       logo(p->logo,(GfxRect){x,y,36,36});
-      txt(TXT_BODY,p->nome,x+50,y+3,w-120,245);
-      if (e->estado == 1 || e->estado == 2) txt(TXT_BODY,p->pontos,r.x+r.w-70,y+3,55,245);
+      float scoreW=strlen(p->pontos)>3?112:55;
+      txt(TXT_BODY,p->nome,x+50,y+3,w-scoreW-65,245);
+      if (e->estado == 1 || e->estado == 2) txt(TXT_BODY,p->pontos,r.x+r.w-scoreW-15,y+3,scoreW,245);
     }
   } else txt(TXT_BODY,e->nome,x,r.y+62,w,245);
   if (e->local[0]) txt(TXT_CAPTION2,e->local,x,r.y+r.h-38,w,158);
