@@ -31,10 +31,12 @@ int main(void) {
   e[0].estado=3; assert(!esportes_corresponde(e,"Celtics vs Magic",t,t+10800));
   /* Do not inherit a participant ID/name/date as missing event identity. */
   assert(!esportes_eventos_ler("{\"events\":[{\"competitions\":[{\"competitors\":[{\"team\":{\"id\":\"wrong\",\"name\":\"wrong\",\"date\":\"2026-10-19T20:00Z\"}}]}]}]}","basketball",&liga,e,5));
-  const char *tennis="{\"events\":[{\"id\":\"tour\",\"name\":\"Tournament\",\"date\":\"2026-10-19T10:00Z\",\"groupings\":[{\"competitions\":[{\"id\":\"match\",\"date\":\"2026-10-19T20:00Z\",\"competitors\":[{\"athlete\":{\"id\":\"7\",\"displayName\":\"Player One\"}},{\"athlete\":{\"id\":\"8\",\"displayName\":\"Player Two\"}}]}]}]}]}";
+  const char *tennis="{\"events\":[{\"id\":\"tour\",\"name\":\"Tournament\",\"date\":\"2026-10-19T10:00Z\",\"groupings\":[{\"competitions\":[{\"id\":\"match\",\"date\":\"2026-10-19T20:00Z\",\"competitors\":[{\"id\":\"7\",\"linescores\":[{\"value\":6},{\"value\":7}],\"athlete\":{\"displayName\":\"Player One\"}},{\"athlete\":{\"id\":\"8\",\"displayName\":\"Player Two\"}}]}]}]}]}";
   assert(esportes_eventos_ler(tennis,"tennis",&liga,e,5)==1);
   assert(!strcmp(e[0].id,"tour:match") && e[0].inicio==t);
   assert(e[0].nParticipantes==2 && strstr(e[0].nome,"Player One"));
+  assert(!strcmp(e[0].participantes[0].id,"7"));
+  assert(!strcmp(e[0].participantes[0].pontos,"6 7"));
   const char *race="{\"events\":[{\"id\":\"race\",\"name\":\"United States Grand Prix\",\"date\":\"2026-10-19T20:00Z\",\"competitions\":[{\"id\":\"p1\",\"date\":\"2026-10-19T20:00Z\",\"type\":{\"abbreviation\":\"FP1\"}},{\"id\":\"p2\",\"date\":\"2026-10-20T20:00Z\",\"type\":{\"abbreviation\":\"FP2\"}}]}]}";
   assert(esportes_eventos_ler(race,"racing",&liga,e,5)==2);
   assert(!strcmp(e[1].id,"race:p2") && !strcmp(e[1].sessao,"FP2"));
