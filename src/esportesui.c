@@ -120,7 +120,8 @@ int esportesui_pediu_canal(char *id, unsigned n) {
   snprintf(id, n, "%s", pedidoCanal); pedidoCanal[0] = 0; return 1;
 }
 static void buscarCanais(void) {
-  guia_carregar(); epg_iniciar(); nCanais = cursorCanal = cursorPrograma = 0;
+  guia_carregar(); epg_iniciar(); nItens = nCanais = cursorCanal = cursorPrograma = 0;
+  pedidoCanal[0]=0;
   procurando = 1; buscaDesde = SDL_GetTicks();
   guiaRevisao = guia_busca_revisao(); epgRevisao = epg_revisao();
 }
@@ -248,7 +249,7 @@ static void buscarPasso(void) {
   if (!procurando) return;
   epg_passo(); xtepg_passo();
   if (guiaRevisao != guia_busca_revisao() || epgRevisao != epg_revisao()) {
-    guiaRevisao = guia_busca_revisao(); epgRevisao = epg_revisao(); nCanais = cursorCanal = cursorPrograma = 0;
+    guiaRevisao = guia_busca_revisao(); epgRevisao = epg_revisao(); nItens = nCanais = cursorCanal = cursorPrograma = 0;
   }
   Uint32 inicio = SDL_GetTicks(); int lote = 0;
   for (; lote++ < 24 && SDL_GetTicks() - inicio < 3; ) {
