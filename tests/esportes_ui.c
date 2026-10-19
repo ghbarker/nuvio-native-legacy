@@ -4,6 +4,10 @@
 Uint32 SDLCALL SDL_GetTicks(void) { return 1000; }
 static unsigned rev=1;
 static int ligasProntas=1, visitasOcultas;
+float nv_layout_w=1920,nv_layout_h=1080;
+static float escalaTeste=1;
+float gfx_escala_ui(void) { return escalaTeste; }
+float menu_barra_borda(void) { return 0; }
 static int habilitados[16], pediuLigas, pediuEventos, favorito, tecladoResultado;
 static EspLiga lTeste={"nba","NBA",""};
 static EspEvento eTeste;
@@ -22,7 +26,7 @@ int esportes_carregando(void) { return 0; }
 int esportes_erro(void) { return 0; }
 unsigned esportes_revisao(void) { return rev; }
 int esportes_ligas_n(void) { return ligasProntas; }
-const EspLiga *esportes_liga(int i) { return i==0?&lTeste:NULL; }
+const EspLiga *esportes_liga(int i) { return i>=0 && i<ligasProntas?&lTeste:NULL; }
 int esportes_eventos_n(void) { return 1; }
 const EspEvento *esportes_evento(int i) { return i==0?&eTeste:NULL; }
 const char *teclado_alfabeto(void) { return "abc"; }
@@ -54,31 +58,79 @@ int guia_busca_programas(int i,time_t d,time_t a,int p,EpgProg *out,int cap) {
   if(i==2)return 0;
   *out=(EpgProg){eTeste.inicio,eTeste.inicio+7200,i==0?"Celtics vs Cavaliers":"Celtics vs Magic"};return 1;
 }
+/* Record calls from the real draw routine, without an SDL/GL runtime. */
+static int imagens,imagensDesenhadas,alvosGrade;
+float gfx_escala(void) { return 1; }
+float gfx_escala_entrar(void) { return 1; }
+void gfx_escala_sair(float v) { (void)v; }
+void gfx_recorte(float x,float y,float w,float h) { (void)x;(void)y;assert(w>0 && h>0); }
+void gfx_sem_recorte(void) {}
+void gfx_rect(GfxRect r,GLuint t,GfxModo m,float f,float px,float py,float raio,float a,float b,float c,float d) {
+  (void)m;(void)f;(void)px;(void)py;(void)raio;(void)a;(void)b;(void)c;(void)d;
+  assert(r.w>0 && r.h>0);if(t)imagensDesenhadas++;
+}
+void plrui_cartao(GfxRect r,float raio,float a) { (void)raio;(void)a;assert(r.w>0 && r.h>0); }
+void plrui_linha_foco(GfxRect r,float raio,float a) { plrui_cartao(r,raio,a); }
+void plrui_pilula_foco(GfxRect r,float a) { plrui_cartao(r,0,a); }
+void plrui_botao_repouso(GfxRect r,float a) { plrui_cartao(r,0,a); }
+int plrui_tinta(void) { return 245; }
+float ajustes_raio_poster_px(void) { return 20; }
+int ajustes_relogio_12h(void) { return 0; }
+TxtLinha txt_linha(TxtEstilo e,const char *s,int r,int g,int b,int a) {
+  (void)e;(void)r;(void)g;(void)b;(void)a;return (TxtLinha){0,(int)strlen(s)*12,24,0,0};
+}
+TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float w) {
+  assert(w>0);TxtLinha t=txt_linha(e,s,r,g,b,a);if(t.w>w)t.w=(int)w;return t;
+}
+void txt_desenhar(TxtLinha t,float x,float y) { (void)t;(void)x;(void)y; }
+GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);imagens++;return 1; }
+float tex_aspecto(const char *url) { (void)url;return 2; }
+int tex_marca_escura(const char *url) { (void)url;return 0; }
+void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int b) {
+  (void)x;(void)y;(void)w;(void)h;(void)f;(void)a;(void)i;(void)b;
+}
+void ponteiro_alvo_faixa(float x,float y,float w,float h,float y0,float y1,PonteiroFn f,PonteiroFn a,int i,int b) {
+  assert(x>=xLista && x+w<=xLista+larguraLista+0.1f);alvosGrade++;
+  (void)y0;(void)y1;ponteiro_alvo(x,y,w,h,f,a,i,b);
+}
+void ponteiro_rolagem(PonteiroRolagemFn fn) { (void)fn; }
+void teclado_desenhar(Uint32 a) { (void)a; }
 static void tecla(SDL_Keycode k) { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=k;esportesui_evento(&e); }
 int main(void) {
   strcpy(eTeste.id,"event");strcpy(eTeste.nome,"Celtics at Magic");strcpy(eTeste.modalidade,"basketball");strcpy(eTeste.ligaId,"nba");
   eTeste.nParticipantes=2;eTeste.estado=1;eTeste.inicio=time(NULL)-60;
   strcpy(eTeste.participantes[0].nome,"Celtics");strcpy(eTeste.participantes[1].nome,"Magic");
   eTeste.nEmissoras=1;strcpy(eTeste.emissoras[0],"ESPN");
-  esportesui_iniciar();assert(nItens==16);
-  /* Normal remote controls: top controls move in the direction pressed. */
+  esportesui_iniciar();assert(pagina==ESP_LIGAS && pediuLigas==1 && !nItens);
+  assert(foco==-FOCO_MODALIDADE);
   tecla(SDLK_UP);assert(foco==-1);tecla(SDLK_RIGHT);assert(foco==-2);tecla(SDLK_LEFT);assert(foco==-1);
-  /* Same toggle path used by pointer activation, then normal Back. */
   pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG);
-  pointerAtivar(0,0);assert(!habilitados[0]);tecla(SDLK_ESCAPE);assert(pagina==ESP_HOME && nItens==15);
-  pointerAtivar(0,0);assert(pagina==ESP_LIGAS && pediuLigas==1);
-  esportesui_atualizar(0.016f,SDL_GetTicks());assert(!nItens && foco==0);
-  ligasProntas=1;rev++;
-  esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1 && foco==0);
+  pointerAtivar(0,0);assert(!habilitados[0]);tecla(SDLK_ESCAPE);assert(pagina==ESP_LIGAS && modalidade==1);
+  assert(foco==-FOCO_MODALIDADE-1);
+  tecla(SDLK_RIGHT);assert(modalidade==2 && pediuLigas==3);
+  esportesui_atualizar(0.016f,SDL_GetTicks());assert(!nItens);
+  ligasProntas=7;rev++;
+  esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==7 && foco==-FOCO_MODALIDADE-2);
+  /* Grid arrows use columns, including the incomplete final row. */
+  tecla(SDLK_DOWN);assert(foco==0 && colunas==5);
+  tecla(SDLK_RIGHT);assert(foco==1);tecla(SDLK_DOWN);assert(foco==6);
+  tecla(SDLK_UP);assert(foco==1);tecla(SDLK_UP);assert(foco==-FOCO_MODALIDADE-2);
+  /* Hidden sports are skipped in both remote directions. */
+  tecla(SDLK_LEFT);assert(modalidade==1);tecla(SDLK_LEFT);assert(modalidade==1 && esportesui_quer_sair());
+  /* A touch tab opens the league grid, not another sport-selection list. */
+  pointerModalidadeAgir(2,0);ligasProntas=1;rev++;
+  esportesui_atualizar(0.016f,SDL_GetTicks());tecla(SDLK_DOWN);assert(foco==0);
   tecla(SDLK_RETURN);assert(pagina==ESP_EVENTOS && pediuEventos==1);
   esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1);
   tecla(SDLK_RETURN);assert(pagina==ESP_DETALHE);
   foco=1;tecla(SDLK_RETURN);assert(favorito);
   foco=0;tecla(SDLK_RETURN);assert(pagina==ESP_CANAIS);
   esportesui_atualizar(0.016f,SDL_GetTicks());
-  assert(nCanais==2 && !procurando && !visitasOcultas);
+  assert(nCanais==1 && !procurando && !visitasOcultas);
   assert(canais[0].confirmado && !strcmp(canais[0].id,"match"));
-  assert(!strcmp(canais[0].fonte,"Account Two"));assert(!canais[1].confirmado);
+  assert(!strcmp(canais[0].fonte,"Account Two"));
+  /* An ESPN channel name without the selected game in EPG is not a result. */
+  for (int i=0;i<nCanais;i++) assert(strcmp(canais[i].id,"broadcaster"));
   foco=0;tecla(SDLK_RETURN);char id[128];assert(esportesui_pediu_canal(id,sizeof id) && !strcmp(id,"match"));
   assert(!esportesui_pediu_canal(id,sizeof id));
   tecla(SDLK_ESCAPE);assert(pagina==ESP_DETALHE);tecla(SDLK_ESCAPE);assert(pagina==ESP_EVENTOS);
@@ -87,5 +139,21 @@ int main(void) {
   nCanais=0;for(int i=0;i<64;i++){char c[24];snprintf(c,sizeof c,"suggestion-%d",i);adicionar(c,c,"Account",NULL,0);}
   EpgProg p={time(NULL)-60,time(NULL)+60,"Celtics vs Magic"};adicionar("exact","Channel","Account",&p,1);
   assert(nCanais==64 && canais[0].confirmado && !strcmp(canais[0].id,"exact"));
+  /* Real drawing requests league and participant artwork and lays out cards
+   * inside the content area on TV, portrait phone and enlarged interface. */
+  strcpy(lTeste.logo,"https://art.example/nba.png");
+  strcpy(eTeste.participantes[0].logo,"https://art.example/celtics.png");
+  strcpy(eTeste.participantes[1].logo,"https://art.example/magic.png");
+  const float tamanhos[][3]={{1920,1080,1},{1080,2300,1},{1920,1080,1.5},{1080,2300,1.5}};
+  for (int i=0;i<4;i++) {
+    nv_layout_w=tamanhos[i][0];nv_layout_h=tamanhos[i][1];escalaTeste=tamanhos[i][2];
+    abrir(ESP_LIGAS);modalidade=2;ligasProntas=7;montar();foco=0;imagens=imagensDesenhadas=alvosGrade=0;
+    esportesui_desenhar(1000);assert(imagens && imagensDesenhadas==imagens && alvosGrade);
+    abrir(ESP_EVENTOS);montar();imagens=imagensDesenhadas=0;
+    esportesui_desenhar(1000);assert(imagens==2 && imagensDesenhadas==2);
+  }
+  for(int i=0;i<16;i++)habilitados[i]=0;
+  abrir(ESP_CONFIG);tecla(SDLK_ESCAPE);assert(modalidade==-1 && !nItens);
+  esportesui_desenhar(1000); /* No stale leagues when every sport is hidden. */
   esportesui_fechar();puts("sports remote/touch actions, settings and guide matches: passed");return 0;
 }
