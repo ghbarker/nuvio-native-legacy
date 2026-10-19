@@ -1,4 +1,4 @@
-name: Publish verified Logs84 Sports preview
+name: Publish verified Logs85 Sports preview
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -15,7 +15,7 @@ permissions:
   contents: read
 jobs:
   publish:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs84]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs85]')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -24,14 +24,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: eeeb2091902f445cbc9ae8f7bca3127315c7acf4
-      SOURCE_TREE: a01a26671217a07cac9e2cf261e412b92abed4cf
-      BUILD_CONFIG: 358b35cad7a9e4d41c2f0a2f5d040743554dfdd7
-      NATIVE_CONFIG: 358b35cad7a9e4d41c2f0a2f5d040743554dfdd7
-      NATIVE_SOURCE_SHA: eeeb2091902f445cbc9ae8f7bca3127315c7acf4
-      NATIVE_SOURCE_TREE: a01a26671217a07cac9e2cf261e412b92abed4cf
-      ANDROID_RUN: ${{ inputs.android_run_id || '39297730389' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39297734529' }}
+      SOURCE_SHA: cf68a922cf8459f4dc47791b2d9b76205042ddb3
+      SOURCE_TREE: 7f03ca36adb3c59fce7834bc423edeb0b39e32a9
+      BUILD_CONFIG: 5b10b5d44cf448b2794279c6d338aa4908027a25
+      NATIVE_CONFIG: 5b10b5d44cf448b2794279c6d338aa4908027a25
+      NATIVE_SOURCE_SHA: cf68a922cf8459f4dc47791b2d9b76205042ddb3
+      NATIVE_SOURCE_TREE: 7f03ca36adb3c59fce7834bc423edeb0b39e32a9
+      ANDROID_RUN: ${{ inputs.android_run_id || '39302766425' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39302771411' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,7 +72,7 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs84-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs85-${{ env.BUILD_CONFIG }}
           run-id: ${{ env.ANDROID_RUN }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -86,13 +86,13 @@ jobs:
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs84.apk');p=pathlib.Path('Logs84-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs85.apk');p=pathlib.Path('Logs85-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20094','--version-name','2.0.94-test-logs84','--output','Logs84-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20095','--version-name','2.0.95-test-logs85','--output','Logs85-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
-          assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-sports'}
+          assert set(dirs)=={'integration-ubuntu-24.04-sports','integration-macos-15-intel-sports'}
           results=[]
           for d in dirs.values():
               s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and s['source_tree']==os.environ['NATIVE_SOURCE_TREE']
@@ -116,17 +116,17 @@ jobs:
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs84-test-steps.txt <<'STEPS'
-          Logs84: Sports catalog preview. Version 2.0.94-test-logs84 (20094).
+          cat > Logs85-test-steps.txt <<'STEPS'
+          Logs85: Sports catalog preview. Version 2.0.95-test-logs85 (20095).
           Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
 
-          1. Install Logs84 as an UPDATE. Open Sports > a sport > a league.
+          1. Install Logs85 as an UPDATE. Open Sports > a sport > a league.
           2. Tap an event card once, or press and release OK on the remote.
              The normal Sources sheet must open immediately over the event grid.
              No event-details page or separate channel-list page comes first.
           3. The sheet shows a search indicator, then matching guide channels.
-             Check channel name, account and programme. Choose a currently airing
-             result: it should open using the existing Live TV playback path.
+             Check channel name, account and programme. Tap a result: it should
+             close Sources and open the selected Live TV channel.
           4. Close the sheet with Back or X. You should return to the same league
              and event position. Open another event: no old results may appear.
              Refresh in the sheet should search the selected event again.
@@ -138,7 +138,8 @@ jobs:
              and programmes from the wrong day must not count as event matches.
           6. If your guide has no identifying EPG programme, an empty result is
              expected. The app must not substitute generic broadcaster channels.
-             A programme starting in the future must not begin playing early.
+             For an upcoming event, selecting a source must tune its live channel
+             immediately. It shows whatever is airing now, until the event starts.
           7. Hide a matching channel category and repeat the search. The hidden
              channel must remain excluded. Check labels for different accounts.
           8. Long-press an event (or hold remote OK) for the secondary team-favorite
@@ -150,13 +151,15 @@ jobs:
           Limits remain 1024 leagues per sport, 400 events per league and 64
           confirmed channel matches. Metadata is ESPN; channel matches use your
           loaded IPTV guide. No upstream Sports PR until this build is approved.
-          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs84.txt
+          Computer ADB: adb logcat -d -v threadtime > Nuvio-Logs85.txt
           STEPS
           cat > notes.txt <<'NOTES'
           Separate Sports destination using the app's existing UI components.
           Event cards open the existing Sources sheet directly, using channel choices
           separate from the active playback source list. Matches require both
           opponents and a compatible EPG time. ESPN/ESPN+ names alone do not match.
+          Channels can now be watched before a matched upcoming event starts.
+          Channel-selection and playback handoff logs help diagnose failures.
           Existing sports artwork, menu, scores and per-profile favorites remain.
           No video stream is opened or probed while browsing sports metadata.
 
@@ -164,8 +167,8 @@ jobs:
           parsing, profile/state and headless UI fixtures passed in normal and
           ASan/UBSan modes (20 invocations). These are not visual/device tests
           or packaged macOS/webOS/Tizen builds. Install as an update and follow
-          Logs84-test-steps.txt. No upstream Sports PR has been published.
+          Logs85-test-steps.txt. No upstream Sports PR has been published.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v84 Nuvio-TV-Mobile-Test-Logs84.apk Logs84-validation.json Logs84-independent-verification.json Logs84-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs84: Direct Sports source picker' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v85 Nuvio-TV-Mobile-Test-Logs85.apk Logs85-validation.json Logs85-independent-verification.json Logs85-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs85: Sports live channel selection' --notes-file notes.txt --prerelease
