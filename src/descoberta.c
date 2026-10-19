@@ -7630,14 +7630,6 @@ static int publicarEpisodiosEscolhidos(const char *corpo, int alvoItem,
       // enrichment was already applied above to matching final pairs.
       descCatEpisodios(alvoItem, eps, n);
       if (tp) temporadasDosEps(eps, n, tp);
-      if (cat_copiar_item(alvoItem, &atual)) {
-        atual.epsParciais = 0;
-        if (tp) {
-          atual.nTemporadas = tp->n;
-          memcpy(atual.temporadas, tp->t, sizeof(int) * (size_t)tp->n);
-        }
-        descCatAtualizar(cat_atualizar_item, alvoItem, &atual);
-      }
     } else if (estavel) {
       int k = 0;
       // Mantem os pares e a ordem ja vistos; novos pares entram no fim.
@@ -7671,12 +7663,17 @@ static int publicarEpisodiosEscolhidos(const char *corpo, int alvoItem,
         memcpy(tp->t, atual.temporadas, sizeof tp->t);
       }
     }
-    if (cedo && tp) {
+    // Publish the tabs with every selected episode list, not only a provisional
+    // one. Otherwise cards arrive with zero tabs until optional addon metadata
+    // finishes; a cancelled tail can leave that state cached on reopening.
+    if (tp || trocarTopologia) {
       CatItem edit;
       if (cat_copiar_item(alvoItem, &edit)) {
-        edit.epsParciais = 1;
-        edit.nTemporadas = tp->n;
-        memcpy(edit.temporadas, tp->t, sizeof(int) * (size_t)tp->n);
+        edit.epsParciais = cedo ? 1 : 0;
+        if (tp) {
+          edit.nTemporadas = tp->n;
+          memcpy(edit.temporadas, tp->t, sizeof(int) * (size_t)tp->n);
+        }
         descCatAtualizar(cat_atualizar_item, alvoItem, &edit);
       }
     }
