@@ -172,6 +172,7 @@ int  guia_canal_campos(int i, const char **id, const char **nome, const char **l
 
 // Bounded programme search for the Sports catalog, on the UI thread.
 unsigned guia_busca_revisao(void);
+int guia_busca_elegivel(int indice);
 int guia_pedir_canal_id(const char *id);
 int guia_busca_carregando(void);
 const char *guia_busca_conta(int indice);

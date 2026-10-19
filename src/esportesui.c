@@ -187,6 +187,7 @@ static void buscarPasso(void) {
       if (guia_busca_carregando() || epg_estado() == EPG_BAIXANDO) { cursorCanal = cursorPrograma = 0; return; }
       procurando = 0; montar(); return;
     }
+    if (!guia_busca_elegivel(cursorCanal)) { cursorCanal++; cursorPrograma=0; continue; }
     fonte = guia_busca_conta(cursorCanal);
     EpgProg ps[16]; time_t ate = evento.fim > evento.inicio ? evento.fim : evento.inicio + 6*3600;
     int n = guia_busca_programas(cursorCanal, evento.inicio - 3*3600, ate, cursorPrograma, ps, 16);

@@ -6866,6 +6866,7 @@ void guia_abrir_sessao(void) {
   glem_abrir_sessao();
 }
 
+<<<<<<< HEAD
 // Refresh retains the published source caches until replacements arrive.
 void guia_recarregar(int limparLista) {
   cargaCancelada = 1; xtepg_limpar();
@@ -6876,6 +6877,10 @@ void guia_recarregar(int limparLista) {
   recarregarPend = 1; recargaDoPainel = 1; estado = G_PARADO;
 }
 
+=======
+int guia_busca_elegivel(int i) {
+  return i >= 0 && i < nCanais && fonteAtiva(canais[i].fonte) && !categoriaOculta(canais[i].cat);
+}
 unsigned guia_busca_revisao(void) { return buscaRevisao; }
 int guia_busca_carregando(void) { return fioVivo || recarregarPend || estado == G_BAIXANDO; }
 const char *guia_busca_conta(int i) {
@@ -6890,6 +6895,6 @@ int guia_busca_programas(int i, time_t de, time_t ate, int pular, EpgProg *out, 
 
 int guia_pedir_canal_id(const char *id) {
   GCanal *c = canalPorId(id);
-  if (!c) return 0;
+  if (!c || !guia_busca_elegivel((int)(c-canais))) return 0;
   pedirCanal(c); return 1;
 }
