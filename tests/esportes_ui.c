@@ -2,6 +2,19 @@
 #include <assert.h>
 /* Navigation/matching fixture: no SDL video/audio runtime is needed. */
 Uint32 SDLCALL SDL_GetTicks(void) { return 1000; }
+static int fonteAberta,aberturasFonte;
+static uint64_t perfilTeste=1;
+uint64_t perfis_sessao_geracao(void) { return perfilTeste; }
+int perfis_sessao_atual(uint64_t v) { return v==perfilTeste; }
+void stream_folha_canais_abrir(const char *titulo) { fontescanais_iniciar(titulo);fonteAberta=1;aberturasFonte++; }
+int stream_folha_canais_aberta(void) { return fonteAberta; }
+void stream_folha_canais_fechar(void) { fonteAberta=0;fontescanais_limpar(); }
+int ctx_aberto(void) { return 0; }
+int ponteiro_ok_longo(void) { return 0; }
+int segurar_venceu(Uint32 a,Uint32 d,const char *t) { (void)t;return a-d>=600; }
+void ilha_atividade(const char *t,float p) { (void)t;(void)p; }
+float anim_clamp(float v,float a,float b) { return fmaxf(a,fminf(v,b)); }
+void ponteiro_alvo_segurar(PonteiroFn f) { (void)f; }
 static unsigned rev=1;
 static int ligasProntas=1, visitasOcultas;
 float nv_layout_w=1920,nv_layout_h=1080;
@@ -122,21 +135,30 @@ int main(void) {
   esportesui_atualizar(0.016f,SDL_GetTicks());tecla(SDLK_DOWN);assert(foco==0);
   tecla(SDLK_RETURN);assert(pagina==ESP_EVENTOS && pediuEventos==1);
   esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1);
-  tecla(SDLK_RETURN);assert(pagina==ESP_DETALHE);
-  foco=1;tecla(SDLK_RETURN);assert(favorito);
-  foco=0;tecla(SDLK_RETURN);assert(pagina==ESP_CANAIS && !nItens);
+  /* A normal event tap opens the shared Sources sheet without navigation. */
+  pointerAtivar(0,0);assert(pagina==ESP_EVENTOS && fonteAberta && aberturasFonte==1);
+  assert(!fontescanais_estado()->n && fontescanais_estado()->buscando);
   esportesui_atualizar(0.016f,SDL_GetTicks());
   assert(nCanais==1 && !procurando && !visitasOcultas);
-  assert(canais[0].confirmado && !strcmp(canais[0].id,"match"));
-  assert(!strcmp(canais[0].fonte,"Account Two"));
-  /* An ESPN channel name without the selected game in EPG is not a result. */
-  for (int i=0;i<nCanais;i++) assert(strcmp(canais[i].id,"broadcaster"));
-  foco=0;tecla(SDLK_RETURN);char id[128];assert(esportesui_pediu_canal(id,sizeof id) && !strcmp(id,"match"));
+  assert(fontescanais_estado()->n==1 && !fontescanais_estado()->buscando);
+  assert(!strcmp(fontescanais_estado()->titulo,eTeste.nome));
+  assert(!strcmp(fontescanais_estado()->canais[0].conta,"Account Two"));
+  assert(!strcmp(fontescanais_estado()->canais[0].id,"match"));
+  assert(fontescanais_escolher(0,time(NULL))==1);fonteAberta=0;
+  char id[128];assert(esportesui_pediu_canal(id,sizeof id) && !strcmp(id,"match"));
   assert(!esportesui_pediu_canal(id,sizeof id));
-  tecla(SDLK_ESCAPE);assert(pagina==ESP_DETALHE);tecla(SDLK_ESCAPE);assert(pagina==ESP_EVENTOS);
-  pointerTopoAgir(1,0);assert(entradaTexto);tecladoResultado=1;esportesui_atualizar(0.016f,SDL_GetTicks());assert(!entradaTexto && !nItens);
-  /* Opening another search must not expose results from the last event. */
-  abrir(ESP_DETALHE);foco=0;agir();assert(pagina==ESP_CANAIS && !nItens && !pedidoCanal[0]);
+  /* Team favorites remain a secondary action, not a page before Sources. */
+  tecla(SDLK_MENU);assert(pagina==ESP_DETALHE);foco=1;tecla(SDLK_RETURN);assert(favorito);
+  tecla(SDLK_ESCAPE);assert(pagina==ESP_EVENTOS);
+  pointerAtivar(0,0);assert(!fontescanais_estado()->n && !fontescanais_estado()->escolha[0]);
+  fontescanais_atualizar();esportesui_atualizar(0.016f,1000);assert(fontescanais_estado()->n==1);
+  /* Future events cannot start early; profile changes invalidate choices. */
+  FonteCanal futuro={0};strcpy(futuro.id,"future");futuro.inicio=time(NULL)+3600;
+  fontescanais_publicar(&futuro,1,0);assert(fontescanais_escolher(0,time(NULL))==-1);
+  futuro.inicio=time(NULL)-60;fontescanais_publicar(&futuro,1,0);assert(fontescanais_escolher(0,time(NULL))==1);
+  perfilTeste++;assert(!esportesui_pediu_canal(id,sizeof id) && !fontescanais_estado()->ativo);
+  stream_folha_canais_fechar();
+  pointerTopoAgir(1,0);assert(entradaTexto);tecladoResultado=1;esportesui_atualizar(0.016f,1000);assert(!entradaTexto && !nItens);
   /* Suggestions cannot crowd a later exact match out of the bounded list. */
   nCanais=0;for(int i=0;i<64;i++){char c[24];snprintf(c,sizeof c,"suggestion-%d",i);adicionar(c,c,"Account",NULL,0);}
   EpgProg p={time(NULL)-60,time(NULL)+60,"Celtics vs Magic"};adicionar("exact","Channel","Account",&p,1);
