@@ -29,7 +29,7 @@ jobs:
       SOURCE_SHA: 493450732520be87829237f133523383542da585
       SOURCE_TREE: 46d98cd912c53ec26de8189acf64db185efe02bd
       # Android is already building this exact immutable source; retain it.
-      ANDROID_CONFIG_COMMIT: ${{ github.sha }}
+      ANDROID_CONFIG_COMMIT: 322aa4d70715db81c4d96223397e889e00bec379
       NATIVE_CONFIG_COMMIT: 0e26dba4a5b7ec65f1f50cb37c904290dd9249f2
       NATIVE_SOURCE_SHA: abd8afaa5f7964b149929dc9f8668cbd27e80787
       NATIVE_SOURCE_TREE: 7fd154b929c37ba61e02d54acecbd7cfe34a42be
@@ -107,7 +107,7 @@ jobs:
           import subprocess
           subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',expected,'--version-code','20087','--version-name','2.0.87-test-logs77','--output','Logs77-independent-verification.json'],check=True)
 
-          assert set(data['android_unit_tests'])=={'LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest','LiveSegmentTraceTest'}
+          assert set(data['android_unit_tests'])=={'LivePlaylistDataSourceTest','LiveWindowRecoveryTest','ParaleloDataSourceTest','FontImportTest','DriveAuthStateTest','LiveSegmentTraceTest'}
           assert set(data['included_prs'])=={573,575,576,587,596,597,598,601,602,609,611}
           with zipfile.ZipFile(apk) as archive:
               assert archive.testzip() is None
