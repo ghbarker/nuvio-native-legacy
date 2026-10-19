@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
+  SOURCE_SHA: eeeb2091902f445cbc9ae8f7bca3127315c7acf4
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
@@ -39,7 +39,7 @@ jobs:
           assert sha==os.environ['SOURCE_SHA']
           (p/'source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree}))
           results=[]
-          for suite in ['esportes','esportes_estado','esportes_ui','fontescanais_folha']:
+          for suite in ['esportes','esportes_estado','esportes_ui','fontescanais_folha','streamfit_sheet']:
             for san in [False,True]:
               start=time.monotonic()
               with (p/(suite+('-san' if san else '')+'.log')).open('w') as f:
@@ -48,7 +48,7 @@ jobs:
               results.append({'suite':suite,'sanitizers':san,'code':code,'seconds':round(time.monotonic()-start,2)})
               (p/'results.json').write_text(json.dumps(results,indent=2))
               print(results[-1],flush=True)
-          assert len(results)==8 and all(x['code']==0 for x in results),results
+          assert len(results)==10 and all(x['code']==0 for x in results),results
           PYCODE
       - uses: actions/upload-artifact@v4
         if: always()

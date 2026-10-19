@@ -20,12 +20,12 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
-      SOURCE_TREE: c68c3aca36933b0e358743938b16a344bce3d3d9
+      SOURCE_SHA: eeeb2091902f445cbc9ae8f7bca3127315c7acf4
+      SOURCE_TREE: a01a26671217a07cac9e2cf261e412b92abed4cf
       BUILD_CONFIG: 291816106ea126d29d4c597903bb66f4a3ebf29a
       NATIVE_CONFIG: 291816106ea126d29d4c597903bb66f4a3ebf29a
-      NATIVE_SOURCE_SHA: 6ddd39d813d6a90dc6dc136ca4a986e773afac64
-      NATIVE_SOURCE_TREE: c68c3aca36933b0e358743938b16a344bce3d3d9
+      NATIVE_SOURCE_SHA: eeeb2091902f445cbc9ae8f7bca3127315c7acf4
+      NATIVE_SOURCE_TREE: a01a26671217a07cac9e2cf261e412b92abed4cf
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -77,8 +77,8 @@ jobs:
           results=[]
           for d in dirs.values():
               s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and s['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-              checks=json.loads((d/'results.json').read_text());assert len(checks)==8 and all(x['code']==0 for x in checks)
-              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['esportes','esportes_estado','esportes_ui','fontescanais_folha'] for b in [False,True]}
+              checks=json.loads((d/'results.json').read_text());assert len(checks)==10 and all(x['code']==0 for x in checks)
+              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['esportes','esportes_estado','esportes_ui','fontescanais_folha','streamfit_sheet'] for b in [False,True]}
               results+=checks
           v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
@@ -114,6 +114,7 @@ jobs:
           5. Repeat with NFL and college football, then another sport such as
              NBA, soccer, hockey, tennis or UFC where your guide lists a match.
              Both opponents and a compatible programme time are required.
+             Explicit short-code pairings such as KC @ SF should match too.
              ESPN/ESPN+ affiliation, a different opponent/game, replays, highlights
              and programmes from the wrong day must not count as event matches.
           6. If your guide has no identifying EPG programme, an empty result is
@@ -142,7 +143,7 @@ jobs:
 
           Android build and independent APK verification passed. Linux/macOS
           parsing, profile/state and headless UI fixtures passed in normal and
-          ASan/UBSan modes (16 invocations). These are not visual/device tests
+          ASan/UBSan modes (20 invocations). These are not visual/device tests
           or packaged macOS/webOS/Tizen builds. Install as an update and follow
           Logs84-test-steps.txt. No upstream Sports PR has been published.
           NOTES
