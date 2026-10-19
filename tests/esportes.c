@@ -21,6 +21,8 @@ int main(void) {
   assert(esportes_corresponde(e,"BOS @ ORL",t,t+10800)==100);
   assert(!esportes_corresponde(e,"Celtics vs Cavaliers",t,t+10800));
   assert(!esportes_corresponde(e,"NBA Basketball",t,t+10800));
+  assert(!esportes_corresponde(e,"NHL Celtics vs Magic",t,t+10800));
+  assert(!esportes_corresponde(e,"Women: Celtics vs Magic",t,t+10800));
   assert(!esportes_corresponde(e,"Celtics vs Magic",t-86400,t-80000));
   assert(!esportes_corresponde(e,"Celtics vs Magic Highlights",t,t+10800));
   assert(!esportes_corresponde(e,"BOSTON ORLANDO",t,t+10800));
