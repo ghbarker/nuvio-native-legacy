@@ -9421,7 +9421,8 @@ void desc_episodios(int indiceItem, int temporada) {
   // Uma lista antecipada continua visivel, mas precisa retomar a mescla.
   CatItem atual;
   if (!cat_copiar_item(indiceItem, &atual)) return;
-  if (cat_n_episodios(indiceItem) > 0 && !atual.epsParciais) return;
+  // A cached list without its tabs is incomplete too; reopening must repair it.
+  if (cat_n_episodios(indiceItem) > 0 && !atual.epsParciais && atual.nTemporadas > 0) return;
   EpPedido *p = calloc(1, sizeof *p);
   if (!p) return;
   p->item = indiceItem;
@@ -9475,7 +9476,7 @@ int desc_episodios_precarregar(int indiceItem) {
   if (!ci || !ci->imdb[0]) return 0;
   if (!(!strcmp(ci->tipo, "series") || strcmp(ci->tipo, "movie") ||
         ci->nElenco == 0 || descElencoPrecisaPessoas(ci))) return 0;
-  if (cat_n_episodios(indiceItem) > 0 && !ci->epsParciais) return 0;
+  if (cat_n_episodios(indiceItem) > 0 && !ci->epsParciais && ci->nTemporadas > 0) return 0;
   if (fioEpVivo || pendItem >= 0) return -1;
   desc_episodios(indiceItem, 0);
   return fioEpVivo ? 1 : 0;
