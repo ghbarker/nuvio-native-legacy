@@ -233,7 +233,7 @@ static int dueloSiglas(const EspEvento *e,const char *titulo) {
   char a[40],b[40],raw[800],expanded[1600],norm[1600],par[100];
   normalizar(e->participantes[0].sigla,a,sizeof a);
   normalizar(e->participantes[1].sigla,b,sizeof b);
-  if(strlen(a)<2 || strlen(b)<2 || !strcmp(a,b))return 0;
+  if(strlen(a)<2 || strlen(b)<2 || !strcmp(a,b) || (strlen(a)!=2 && strlen(b)!=2))return 0;
   busca_normalizar(titulo?titulo:"",raw,sizeof raw);
   size_t w=0;
   for(size_t i=0;raw[i] && w+5<sizeof expanded;i++) {
