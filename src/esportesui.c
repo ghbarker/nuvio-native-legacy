@@ -128,7 +128,7 @@ static void publicarCanais(void) {
     memcpy(c->id,canais[i].id,sizeof c->id);
     memcpy(c->nome,canais[i].nome,sizeof c->nome);
     memcpy(c->conta,canais[i].fonte,sizeof c->conta);
-    memcpy(c->programa,canais[i].programa,sizeof c->programa);c->inicio=canais[i].ini;
+    memcpy(c->programa,canais[i].programa,sizeof c->programa);c->inicio=canais[i].ini;c->fim=canais[i].fim;
   }
   fontescanais_publicar(lista,nCanais,procurando);canaisSujos=0;
 }

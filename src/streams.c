@@ -1,5 +1,6 @@
 #include "streams.h"
 #include "fontescanais.h"
+#include "horafmt.h"
 #include "plrui.h"
 #include "ondever.h"
 #include "naovideo.h"
@@ -5496,8 +5497,24 @@ static void canaisAtualizar(float dt) {
   alvo=fmaxf(0,fminf(alvo,fmaxf(0,alturaTotal-areaLista())));
   rolagem=anim_mola2(&velRol,rolagem,alvo,dt,NV_MOLA2_SCROLL);
 }
+/* EPG times describe the matched programme, not just a live channel. */
+static int canaisHorario(const FonteCanal *c,time_t agora,char *out,size_t n) {
+  if (!n) return 0;
+  out[0]=0;
+  if (c->inicio<=0) return 0;
+  if (c->inicio<=agora && c->fim>agora) {
+    snprintf(out,n,"%s",i18n("Ao vivo"));return 1;
+  }
+  struct tm inicio,hoje;char hora[24],data[24];
+  if (!localtime_r(&c->inicio,&inicio) || !localtime_r(&agora,&hoje)) return 0;
+  hora_tela(hora,sizeof hora,&inicio);
+  if (inicio.tm_year==hoje.tm_year && inicio.tm_yday==hoje.tm_yday) snprintf(out,n,"%s",hora);
+  else { strftime(data,sizeof data,"%d/%m",&inicio);snprintf(out,n,"%s %s",data,hora); }
+  return 0;
+}
 static void corpoCanais(float lx,float rw,float tx,float tr,float a,Uint32 agora,int ptr) {
   const FontesCanais *s=fontescanais_estado();float oy=folhaOY;
+  time_t agoraT=time(NULL);
   medirCabecalho();
   txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,s->titulo,158,158,156,255,tr-tx),tx,oy+72,a);
   txt_desenhar_alpha(txt_linha_corta(TXT_ILHA_TITULO,"Fontes",243,242,239,255,titMaxCab),tx,oy+94,a);
@@ -5516,7 +5533,13 @@ static void corpoCanais(float lx,float rw,float tx,float tr,float a,Uint32 agora
     if(r.y+r.h<FOLHA_TOPO || r.y>folhaBase)continue;
     if(grupo==1&&foco==i)plrui_linha_foco(r,18,a);
     const FonteCanal *c=&s->canais[i];
-    txt_desenhar_alpha(txt_linha_corta(TXT_CALLOUT,c->nome,243,242,239,255,tr-tx),tx,r.y+15,a);
+    char quando[64];int vivo=canaisHorario(c,agoraT,quando,sizeof quando);
+    float nomeW=tr-tx;
+    if (quando[0]) {
+      TxtLinha q=txt_linha_corta(TXT_HERO_META,quando,vivo?114:158,vivo?201:158,vivo?158:156,255,(tr-tx)*.55f);
+      txt_desenhar_alpha(q,tr-q.w,r.y+21,a);nomeW=fmaxf(1,nomeW-q.w-20);
+    }
+    txt_desenhar_alpha(txt_linha_corta(TXT_CALLOUT,c->nome,243,242,239,255,nomeW),tx,r.y+15,a);
     char meta[400];snprintf(meta,sizeof meta,"%s · %s",c->conta,c->programa);
     txt_desenhar_alpha(txt_linha_corta(TXT_HERO_META,meta,158,158,156,255,tr-tx),tx,r.y+57,a);
     if(ptr)ponteiro_alvo_faixa(r.x,r.y,r.w,r.h,FOLHA_TOPO,folhaBase,canaisFoco,canaisEscolher,i,0);
