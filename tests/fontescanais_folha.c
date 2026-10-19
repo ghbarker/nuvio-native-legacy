@@ -22,9 +22,11 @@ int main(void) {
   cs[0].inicio=time(NULL)-60;cs[1].inicio=time(NULL)+3600;
   fontescanais_publicar(cs,2,0);
   teclaCanal(SDLK_DOWN);assert(foco==1);teclaCanal(SDLK_RETURN);
-  assert(aberta && canaisAviso[0]); /* Future programme cannot play early. */
-  teclaCanal(SDLK_UP);teclaCanal(SDLK_RETURN);assert(!aberta);
-  char id[128];assert(fontescanais_consumir(id,sizeof id) && !strcmp(id,"first"));
+  assert(!aberta); /* Upcoming event: tune its live channel now. */
+  char id[128];assert(fontescanais_consumir(id,sizeof id) && !strcmp(id,"second"));
+  stream_folha_canais_abrir("Current event");fontescanais_publicar(cs,2,0);
+  canaisEscolher(0,0);assert(!aberta); /* Same callback used by touch. */
+  assert(fontescanais_consumir(id,sizeof id) && !strcmp(id,"first"));
   assert(!fontescanais_consumir(id,sizeof id));
   stream_folha_canais_abrir("Another event");assert(!fontescanais_estado()->n);
   teclaCanal(SDLK_r);assert(fontescanais_pediu_atualizar() && !fontescanais_pediu_atualizar());

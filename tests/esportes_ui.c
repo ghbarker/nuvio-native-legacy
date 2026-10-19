@@ -152,9 +152,9 @@ int main(void) {
   tecla(SDLK_ESCAPE);assert(pagina==ESP_EVENTOS);
   pointerAtivar(0,0);assert(!fontescanais_estado()->n && !fontescanais_estado()->escolha[0]);
   fontescanais_atualizar();esportesui_atualizar(0.016f,1000);assert(fontescanais_estado()->n==1);
-  /* Future events cannot start early; profile changes invalidate choices. */
+  /* Upcoming programmes still allow live tuning; profile changes invalidate choices. */
   FonteCanal futuro={0};strcpy(futuro.id,"future");futuro.inicio=time(NULL)+3600;
-  fontescanais_publicar(&futuro,1,0);assert(fontescanais_escolher(0,time(NULL))==-1);
+  fontescanais_publicar(&futuro,1,0);assert(fontescanais_escolher(0,time(NULL))==1);
   futuro.inicio=time(NULL)-60;fontescanais_publicar(&futuro,1,0);assert(fontescanais_escolher(0,time(NULL))==1);
   perfilTeste++;assert(!esportesui_pediu_canal(id,sizeof id) && !fontescanais_estado()->ativo);
   stream_folha_canais_fechar();
