@@ -164,4 +164,4 @@ jobs:
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v88 Nuvio-TV-Mobile-Test-Logs89.apk Logs89-validation.json Logs89-independent-verification.json Logs89-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs89: League rows and visibility' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v89 Nuvio-TV-Mobile-Test-Logs89.apk Logs89-validation.json Logs89-independent-verification.json Logs89-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs89: Add-on source order' --notes-file notes.txt --prerelease
