@@ -2657,6 +2657,7 @@
   { "Ligar e desligar sem sair do guia", "Turn on and off without leaving the guide" },
   { "Ligar ou desligar", "Turn on or off" },
   { "Ligar ou desligar aqui vale para o app inteiro, não só para o guia.", "Turning an add-on on or off here applies to the whole app, not only the guide." },
+  { "Ligas", "Leagues" },
   { "Ligas e eventos", "Leagues and events" },
   { "Ligue o P2P em Ajustes ou conecte uma conta de debrid.", "Turn on P2P in Settings or connect a debrid account." },
   { "Ligue o P2P em Ajustes.", "Turn on P2P in Settings." },

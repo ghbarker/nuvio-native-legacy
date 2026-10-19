@@ -18,7 +18,7 @@ int ajustes_idioma(void);
 typedef struct {
   unsigned geracao;
   NvPerfilSessao perfil;
-  int tipo, modalidade, atualizar, erro, n, dia;
+  int tipo, modalidade, atualizar, erro, n, dia, indice;
   EspLiga liga;
   EspLiga *ligas;
   EspEvento *eventos;
@@ -30,6 +30,17 @@ static int nLigas, nEventos, erro;
 static unsigned geracao, revisao, desligados;
 static char favoritos[128][200];
 static int nFavoritos;
+static char (*ligasOcultas)[120];
+static int nOcultas;
+typedef struct { EspLiga liga; int modalidade; } EspFileira;
+typedef struct { int linha, n, estado, dia, visivel; time_t desde; unsigned uso; EspEvento *eventos; } EspRowCache;
+static EspFileira *catalogo;
+static int nCatalogo, catalogoAtivo, catalogoPreferido=-1, catalogoIdioma=-1, catalogoAtualizar;
+static unsigned catalogoGeracao, catalogoFeitos, catalogoUso;
+static EspRowCache rowCache[8];
+static void limparCatalogo(void);
+static EspJob *catalogoJob(void);
+static void catalogoPublicar(EspJob *j);
 static NvPerfilSessao perfil;
 static char arquivo[160];
 static atomic_int pronto;
@@ -59,11 +70,12 @@ void esportes_cancelar(void) {
   geracao++;soltar(fila);fila=NULL;
   if(ocupadoFav||filaFav||favoritoAtivo)favoritosCompleto=0;
   geracaoFav++;soltar(filaFav);filaFav=NULL;favoritoAtivo=0;
+  catalogoAtivo=0;catalogoGeracao++;
 }
 void esportes_abrir_sessao(void) {
   NvPerfilSessao atual = nv_perfil_sessao_ler();
   if (arquivo[0] && atual == perfil) return;
-  esportes_cancelar(); perfil = atual; desligados = 0; nFavoritos = 0;
+  esportes_cancelar();limparCatalogo();free(ligasOcultas);ligasOcultas=NULL;nOcultas=0; perfil = atual; desligados = 0; nFavoritos = 0;
   free(ligas); ligas = NULL; free(eventos); eventos = NULL;
   free(eventosFav);eventosFav=NULL;nEventosFav=erroFav=0;favoritosDesde=0;
   nLigas = nEventos = erro = 0; revisao++;
@@ -72,16 +84,21 @@ void esportes_abrir_sessao(void) {
   if (!buf) return;
   for (char *l = strtok_r(buf, "\n", &salvar); l; l = strtok_r(NULL, "\n", &salvar)) {
     if (!strncmp(l, "off=", 4)) desligados = (unsigned)strtoul(l + 4, NULL, 16);
+    else if(!strncmp(l,"league-off=",11) && strlen(l+11)<120 && nOcultas<ESP_MAX_FILEIRAS) {
+      void *novo=realloc(ligasOcultas,(size_t)(nOcultas+1)*sizeof *ligasOcultas);
+      if(novo){ligasOcultas=novo;snprintf(ligasOcultas[nOcultas++],120,"%s",l+11);}
+    }
     else if (!strncmp(l, "fav=", 4) && strlen(l + 4) < sizeof favoritos[0] && nFavoritos < 128)
       snprintf(favoritos[nFavoritos++], sizeof favoritos[0], "%s", l + 4);
   }
   free(buf);
 }
 static int gravar(void) {
-  char *buf = calloc(1, 27000); if (!buf) return 0;
-  size_t usado = (size_t)snprintf(buf, 27000, "off=%x\n", desligados);
-  for (int i = 0; i < nFavoritos && usado < 26500; i++)
-    usado += (size_t)snprintf(buf + usado, 27000 - usado, "fav=%s\n", favoritos[i]);
+  size_t cap=64+(size_t)nFavoritos*205+(size_t)nOcultas*135;
+  char *buf=calloc(1,cap);if(!buf)return 0;
+  size_t usado=(size_t)snprintf(buf,cap,"off=%x\n",desligados);
+  for(int i=0;i<nFavoritos;i++)usado+=(size_t)snprintf(buf+usado,cap-usado,"fav=%s\n",favoritos[i]);
+  for(int i=0;i<nOcultas;i++)usado+=(size_t)snprintf(buf+usado,cap-usado,"league-off=%s\n",ligasOcultas[i]);
   int ok = nv_perfil_sessao_atual(perfil) && dados_gravar(arquivo, buf);
   free(buf); return ok;
 }
@@ -143,7 +160,7 @@ static void *buscar(void *arg) {
     long long t = strtoll(cache, NULL, 10), idade = (long long)time(NULL) - t;
     unsigned chave = 0; char *espaco = strchr(cache, ' ');
     if (espaco) chave = (unsigned)strtoul(espaco + 1, NULL, 16);
-    if (nl && chave == hash(j->url) && idade >= 0 && idade < (j->tipo == 1 ? 86400 : 60)) corpo = nl + 1;
+    if (nl && chave == hash(j->url) && idade >= 0 && idade < ((j->tipo == 1 || j->tipo == 5) ? 86400 : 60)) corpo = nl + 1;
   }
   char *baixado = NULL;
   if (!corpo) {
@@ -152,7 +169,7 @@ static void *buscar(void *arg) {
     if (medida.status == 200 && baixado) corpo = baixado;
   }
   if (corpo) {
-    if (j->tipo == 1) {
+    if (j->tipo == 1 || j->tipo == 5) {
       j->ligas = calloc(ESP_MAX_LIGAS, sizeof *j->ligas);
       if (j->ligas) j->n = esportes_ligas_ler(corpo, j->ligas, ESP_MAX_LIGAS);
       j->erro = !j->ligas || !strstr(corpo, "\"leagues\"");
@@ -170,9 +187,9 @@ static void *buscar(void *arg) {
   printf("[esportes] ESPN %s: %d itens, erro=%d\n", j->tipo == 1 ? "ligas" : "eventos", j->n, j->erro);
   free(baixado); free(cache);
   pthread_mutex_lock(&trava);
-  if (j->tipo>=3) resultadoFav=j;else resultado=j;
+  if (j->tipo==3 || j->tipo==4) resultadoFav=j;else resultado=j;
   pthread_mutex_unlock(&trava);
-  atomic_store_explicit(j->tipo>=3?&prontoFav:&pronto,1,memory_order_release);return NULL;
+  atomic_store_explicit((j->tipo==3 || j->tipo==4)?&prontoFav:&pronto,1,memory_order_release);return NULL;
 }
 static void agendar(EspJob *j) {
   if (!j) { erro = 1; return; }
@@ -202,7 +219,8 @@ void esportes_passo(void) {
   if (atomic_load_explicit(&pronto, memory_order_acquire)) {
     pthread_mutex_lock(&trava); EspJob *j = resultado; resultado = NULL; pthread_mutex_unlock(&trava);
     atomic_store_explicit(&pronto, 0, memory_order_release); ocupado = 0;
-    if (j && j->geracao == geracao && j->perfil == perfil && nv_perfil_sessao_atual(j->perfil)) {
+    if(j && j->tipo>=5)catalogoPublicar(j);
+    else if (j && j->geracao == geracao && j->perfil == perfil && nv_perfil_sessao_atual(j->perfil)) {
       erro = j->erro;
       if (!j->erro && j->tipo == 1) { free(ligas); ligas = j->ligas; j->ligas = NULL; nLigas = j->n; }
       else if (!j->erro) {
@@ -233,6 +251,7 @@ void esportes_passo(void) {
     }
     soltar(j);
   }
+  if(!ocupado && !fila)fila=catalogoJob();
   if (!ocupado && fila) {
     EspJob *j = fila; fila = NULL; pthread_t fio; ocupado = 1;
     if (pthread_create(&fio, NULL, buscar, j)) { ocupado = 0; erro = 1; soltar(j); }
@@ -372,3 +391,122 @@ int esportes_favoritos_n(void){return nEventosFav;}
 const EspEvento *esportes_favoritos_evento(int i){return i>=0 && i<nEventosFav?&eventosFav[i]:NULL;}
 int esportes_favoritos_carregando(void){return ocupadoFav||filaFav||favoritoAtivo;}
 int esportes_favoritos_erro(void){return erroFav;}
+
+/* The home catalog is independent of the selected league. Keep public league
+ * metadata, but retain payloads only for visible/recent rows. Requests use the
+ * existing foreground worker: no unbounded league fanout or extra thread. */
+static void limparCatalogo(void) {
+  free(catalogo);catalogo=NULL;nCatalogo=0;catalogoFeitos=0;catalogoIdioma=-1;
+  for(int i=0;i<8;i++){free(rowCache[i].eventos);memset(&rowCache[i],0,sizeof rowCache[i]);rowCache[i].linha=-1;}
+}
+static int chaveLiga(int m,const char *id,char *out,size_t n) {
+  if(!esportes_modalidade(m)||!id||!idSeguro(id))return 0;
+  return snprintf(out,n,"%s|%s",esportes_modalidade(m)->id,id)<(int)n;
+}
+int esportes_liga_habilitada(int m,const char *id) {
+  char chave[120];if(!chaveLiga(m,id,chave,sizeof chave))return 0;
+  for(int i=0;i<nOcultas;i++)if(!strcmp(ligasOcultas[i],chave))return 0;
+  return 1;
+}
+int esportes_liga_habilitar(int m,const char *id,int on) {
+  char chave[120];if(!chaveLiga(m,id,chave,sizeof chave))return 0;
+  int i;for(i=0;i<nOcultas;i++)if(!strcmp(ligasOcultas[i],chave))break;
+  if(on && i<nOcultas) {
+    char antiga[120];memcpy(antiga,ligasOcultas[i],120);
+    memmove(ligasOcultas+i,ligasOcultas+i+1,(size_t)(nOcultas-i-1)*120);nOcultas--;
+    if(!gravar()){memcpy(ligasOcultas[nOcultas++],antiga,120);return 0;}
+  } else if(!on && i==nOcultas) {
+    if(nOcultas==ESP_MAX_FILEIRAS)return 0;
+    void *novo=realloc(ligasOcultas,(size_t)(nOcultas+1)*120);if(!novo)return 0;
+    ligasOcultas=novo;snprintf(ligasOcultas[nOcultas++],120,"%s",chave);
+    if(!gravar()){nOcultas--;return 0;}
+  }
+  revisao++;return 1;
+}
+void esportes_catalogo_iniciar(int m,int atualizar) {
+  int idioma=ajustes_idioma();
+  if(idioma!=catalogoIdioma){catalogoGeracao++;limparCatalogo();catalogoIdioma=idioma;revisao++;}
+  catalogoAtivo=1;catalogoPreferido=m;catalogoAtualizar=atualizar;
+  if(atualizar){catalogoFeitos=0;for(int i=0;i<8;i++){rowCache[i].desde=0;rowCache[i].dia=0;}}
+}
+int esportes_catalogo_n(void){return nCatalogo;}
+int esportes_catalogo_modalidade(int i){return i>=0 && i<nCatalogo?catalogo[i].modalidade:-1;}
+const EspLiga *esportes_catalogo_liga(int i){return i>=0 && i<nCatalogo?&catalogo[i].liga:NULL;}
+static EspRowCache *rowObter(int linha) {
+  for(int i=0;i<8;i++)if(rowCache[i].linha==linha)return &rowCache[i];
+  return NULL;
+}
+void esportes_catalogo_suspender(void){catalogoAtivo=0;esportes_catalogo_visiveis();}
+void esportes_catalogo_visiveis(void){for(int i=0;i<8;i++)rowCache[i].visivel=0;}
+void esportes_catalogo_pedir(int linha) {
+  if(linha<0 || linha>=nCatalogo)return;
+  int m=catalogo[linha].modalidade;if(!esportes_habilitado(m)||!esportes_liga_habilitada(m,catalogo[linha].liga.id))return;
+  EspRowCache *r=rowObter(linha);
+  if(!r){
+    for(int i=0;i<8;i++)if(!rowCache[i].visivel && (!r || rowCache[i].uso<r->uso))r=&rowCache[i];
+    if(!r)return;
+    free(r->eventos);memset(r,0,sizeof *r);r->linha=linha;
+  }
+  r->visivel=1;r->uso=++catalogoUso;
+  if(r->desde && time(NULL)-r->desde>=60){r->desde=0;r->dia=0;}
+}
+int esportes_catalogo_eventos_n(int i){EspRowCache *r=rowObter(i);return r?r->n:0;}
+const EspEvento *esportes_catalogo_evento(int i,int e){EspRowCache *r=rowObter(i);return r && e>=0 && e<r->n?&r->eventos[e]:NULL;}
+int esportes_catalogo_estado(int i){EspRowCache *r=rowObter(i);return r?r->estado:0;}
+int esportes_catalogo_carregando(void) {
+  if(!catalogoAtivo)return 0;
+  for(int m=0;m<esportes_modalidades_n();m++)if(esportes_habilitado(m) && !(catalogoFeitos&(1u<<m)))return 1;
+  return 0;
+}
+static EspJob *catalogoJob(void) {
+  if(!catalogoAtivo)return NULL;
+  EspJob *j=NULL;int slot=-1,m=catalogoPreferido;
+  if(m<0 || !esportes_habilitado(m) || (catalogoFeitos&(1u<<m)))
+    for(m=0;m<esportes_modalidades_n();m++)if(esportes_habilitado(m) && !(catalogoFeitos&(1u<<m)))break;
+  /* Each newly visible row gets its default scoreboard before date expansion. */
+  for(int i=0;i<8;i++)if(rowCache[i].visivel && !rowCache[i].desde && rowCache[i].linha>=0 && rowCache[i].linha<nCatalogo &&
+      esportes_habilitado(catalogo[rowCache[i].linha].modalidade) &&
+      esportes_liga_habilitada(catalogo[rowCache[i].linha].modalidade,catalogo[rowCache[i].linha].liga.id) && (slot<0 || rowCache[i].dia<rowCache[slot].dia))slot=i;
+  if(slot>=0 && (!rowCache[slot].dia || m==esportes_modalidades_n())) {
+    EspRowCache *r=&rowCache[slot];int k=r->linha;
+    if(k<0 || k>=nCatalogo)return NULL;
+    j=calloc(1,sizeof *j);if(!j)return NULL;
+    j->tipo=6;j->indice=k;j->modalidade=catalogo[k].modalidade;j->liga=catalogo[k].liga;j->dia=r->dia;
+    snprintf(j->arquivo,sizeof j->arquivo,"esportes-fileira-%d.json",slot);
+    char data[24]="";if(j->dia){struct tm tm;time_t t=time(NULL)+(j->dia-1)*86400;gmtime_r(&t,&tm);strftime(data,sizeof data,"&dates=%Y%m%d",&tm);}
+    snprintf(j->url,sizeof j->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?limit=%d&lang=%s%s",esportes_modalidade(j->modalidade)->id,j->liga.id,ESP_MAX_EVENTOS,idioma_iso(catalogoIdioma),data);
+  } else {
+    if(m==esportes_modalidades_n())return NULL;
+    j=calloc(1,sizeof *j);if(!j)return NULL;
+    j->tipo=5;j->modalidade=m;
+    snprintf(j->url,sizeof j->url,"https://site.api.espn.com/apis/site/v2/leagues/dropdown?lang=%s&region=us&sport=%s",idioma_iso(catalogoIdioma),esportes_modalidade(m)->id);
+    snprintf(j->arquivo,sizeof j->arquivo,"esportes-ligas-%s.json",esportes_modalidade(m)->id);
+  }
+  j->geracao=catalogoGeracao;j->perfil=perfil;j->atualizar=catalogoAtualizar;return j;
+}
+static void catalogoPublicar(EspJob *j) {
+  if(j->geracao!=catalogoGeracao || j->perfil!=perfil || !nv_perfil_sessao_atual(perfil))return;
+  if(j->tipo==5) {
+    catalogoFeitos|=1u<<j->modalidade;
+    if(!j->erro)for(int i=0;i<j->n && nCatalogo<ESP_MAX_FILEIRAS;i++) {
+      int k;for(k=0;k<nCatalogo;k++)if(catalogo[k].modalidade==j->modalidade && !strcmp(catalogo[k].liga.id,j->ligas[i].id))break;
+      if(k==nCatalogo){void *novo=realloc(catalogo,(size_t)(nCatalogo+1)*sizeof *catalogo);if(!novo)break;catalogo=novo;nCatalogo++;}
+      catalogo[k]=(EspFileira){j->ligas[i],j->modalidade};
+    }
+  } else {
+    EspRowCache *r=rowObter(j->indice);if(!r)return;
+    if(j->erro){r->estado=-1;r->desde=time(NULL);}
+    else {
+      if(!r->eventos)r->eventos=calloc(ESP_MAX_EVENTOS,sizeof *r->eventos);
+      if(!r->eventos){r->estado=-1;r->desde=time(NULL);return;}
+      if(!j->dia)r->n=0;
+      for(int i=0;i<j->n;i++) {
+        int k;for(k=0;k<r->n;k++)if(!strcmp(r->eventos[k].id,j->eventos[i].id))break;
+        if(k<ESP_MAX_EVENTOS){r->eventos[k]=j->eventos[i];if(k==r->n)r->n++;}
+      }
+      qsort(r->eventos,(size_t)r->n,sizeof *r->eventos,ordem);r->estado=r->n || j->dia==7?1:0;
+      r->dia=j->dia+1;if(r->dia>7 || r->n==ESP_MAX_EVENTOS)r->desde=time(NULL);
+    }
+  }
+  revisao++;
+}
