@@ -1,6 +1,7 @@
 #include "../src/esportesui.c"
 #include <assert.h>
 static unsigned rev=1;
+static int ligasProntas=1;
 static int habilitados[16], pediuLigas, pediuEventos, favorito, tecladoResultado;
 static EspLiga lTeste={"nba","NBA",""};
 static EspEvento eTeste;
@@ -12,13 +13,13 @@ int esportes_habilitar(int i,int v) { habilitados[i]=v; return 1; }
 void esportes_cancelar(void) {}
 int esportes_favorito(const EspEvento *e,int p) { (void)e;(void)p;return favorito; }
 int esportes_alternar_favorito(const EspEvento *e,int p) { (void)e;(void)p;favorito=!favorito;rev++;return 1; }
-void esportes_pedir_ligas(int m,int a) { (void)m;(void)a;pediuLigas++;rev++; }
+void esportes_pedir_ligas(int m,int a) { (void)m;(void)a;pediuLigas++;ligasProntas=0;rev++; }
 void esportes_pedir_eventos(int m,const EspLiga *l,int a) { (void)m;(void)l;(void)a;pediuEventos++;rev++; }
 void esportes_passo(void) {}
 int esportes_carregando(void) { return 0; }
 int esportes_erro(void) { return 0; }
 unsigned esportes_revisao(void) { return rev; }
-int esportes_ligas_n(void) { return 1; }
+int esportes_ligas_n(void) { return ligasProntas; }
 const EspLiga *esportes_liga(int i) { return i==0?&lTeste:NULL; }
 int esportes_eventos_n(void) { return 1; }
 const EspEvento *esportes_evento(int i) { return i==0?&eTeste:NULL; }
@@ -62,7 +63,9 @@ int main(void) {
   pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG);
   pointerAtivar(0,0);assert(!habilitados[0]);tecla(SDLK_ESCAPE);assert(pagina==ESP_HOME && nItens==15);
   pointerAtivar(0,0);assert(pagina==ESP_LIGAS && pediuLigas==1);
-  esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1);
+  esportesui_atualizar(0.016f,SDL_GetTicks());assert(!nItens && foco==0);
+  ligasProntas=1;rev++;
+  esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1 && foco==0);
   tecla(SDLK_RETURN);assert(pagina==ESP_EVENTOS && pediuEventos==1);
   esportesui_atualizar(0.016f,SDL_GetTicks());assert(nItens==1);
   tecla(SDLK_RETURN);assert(pagina==ESP_DETALHE);
