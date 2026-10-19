@@ -66,7 +66,7 @@ static void montar(void) {
     }
   } else if (pagina == ESP_DETALHE) nItens = 1 + evento.nParticipantes;
   else nItens = nCanais;
-  if (foco >= nItens) foco = nItens > 0 ? nItens - 1 : -1;
+  if (foco >= nItens) foco = nItens > 0 ? nItens - 1 : 0;
 }
 static void abrir(int p) {
   retornoFoco[pagina] = foco;
@@ -296,7 +296,10 @@ void esportesui_desenhar(Uint32 agora) {
   for (int i=0;i<nItens;i++) {
     GfxRect r={xLista,topoLista+i*linhaH-rolagem,larguraLista,linhaH-12};
     if (r.y+r.h<topoLista || r.y>topoLista+alturaLista) continue;
-    if (pagina==ESP_EVENTOS) linhaEvento(esportes_evento(indices[i]),r,foco==i);
+    if (pagina==ESP_EVENTOS) {
+      const EspEvento *e=esportes_evento(indices[i]);
+      if (e) linhaEvento(e,r,foco==i);
+    }
     else {
       if (foco==i) plrui_linha_foco(r,18,1);
       const char *nome="", *subt=""; char s[400];
