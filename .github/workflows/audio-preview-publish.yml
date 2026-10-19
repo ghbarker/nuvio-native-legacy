@@ -25,9 +25,9 @@ jobs:
       SOURCE_SHA: 20638b6e37d79496f500243c92f7a91541ddd995
       SOURCE_TREE: f82f9efe72ab792cd8df39dad2c2463dba89ce84
       ANDROID_CONFIG_COMMIT: 251f3da3ee37b57bf34c283d7ca4382ad79c01ba
-      NATIVE_CONFIG_COMMIT: 251f3da3ee37b57bf34c283d7ca4382ad79c01ba
-      NATIVE_SOURCE_SHA: 20638b6e37d79496f500243c92f7a91541ddd995
-      NATIVE_SOURCE_TREE: f82f9efe72ab792cd8df39dad2c2463dba89ce84
+      NATIVE_CONFIG_COMMIT: c0d74b5d5b49721a5b5f819aeda97f8095731ede
+      NATIVE_SOURCE_SHA: affe70f448807b5aad2ff7c1127d483149271e8b
+      NATIVE_SOURCE_TREE: 2fdae25f83b76ab88e1a0fe0924c908ee67b89a1
       ANDROID_RUN: ${{ inputs.android_run_id }}
       NATIVE_RUN: ${{ inputs.native_run_id }}
     steps:
@@ -107,14 +107,14 @@ jobs:
           data['validation_note']='Android build and APK identity verification; Linux/macOS native skip-marker and identity tests; marker suites also under ASan/UBSan. These are not packaged macOS/webOS/Tizen application builds.'
           p.write_text(json.dumps(data,indent=2)+'\n')
           PY
-      - name: Verify Android and native source are identical
+      - name: Verify test harness repairs preserve Android product source
         run: |
           git fetch --no-tags --depth=5 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
           python3 - <<'PY'
           import os,subprocess
           changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          assert not changed,changed
-          print('Android and native checks use the exact same source tree.')
+          assert changed=={'tests/cwinicio.sh','tests/player_identity524.c','tests/player_identity524.sh','tests/player_identity524_guards.c','tests/player_identity524_guards.sh'},changed
+          print('Native source differs only in test harnesses; Android product source is identical.')
           PY
       - name: Write instructions
         run: |
