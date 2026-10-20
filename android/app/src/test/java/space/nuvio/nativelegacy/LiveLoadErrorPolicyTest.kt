@@ -47,6 +47,8 @@ class LiveLoadErrorPolicyTest {
         assertEquals(ordinary.getMinimumLoadableRetryCount(C.DATA_TYPE_MEDIA), policy.getMinimumLoadableRetryCount(C.DATA_TYPE_MEDIA))
         val f = failure(503)
         assertEquals(ordinary.getRetryDelayMsFor(f), policy.getRetryDelayMsFor(f))
+        val later = failure(503, 4)
+        assertEquals(ordinary.getRetryDelayMsFor(later), policy.getRetryDelayMsFor(later))
         assertEquals("none", recovery.report().owner)
     }
     @Test fun exhaustedParallelCycleCannotBecomeAnExtendedHttpRetry() {
@@ -60,6 +62,7 @@ class LiveLoadErrorPolicyTest {
     }
     @Test fun pauseAndStaleUiObservationsRestoreTheOrdinaryBudget() {
         observe()
+        policy.getMinimumLoadableRetryCount(C.DATA_TYPE_MEDIA)
         policy.getRetryDelayMsFor(failure(503))
         observe(paused = true)
         assertEquals(C.TIME_UNSET, policy.getRetryDelayMsFor(failure(503, 4)))
