@@ -108,6 +108,7 @@ class LiveDeliveryBenchTest {
         val watch = java.util.concurrent.atomic.AtomicBoolean()
         var blackSamples = 0
         var pixelSamples = 0
+        var missingPictureSamples = 0
         var previousPixels = 0
         var pictureChangedAt = 0L
         var maxUnchangedImageMs = 0L
@@ -187,7 +188,7 @@ class LiveDeliveryBenchTest {
                             if (pixelSamples == 1 || hash != previousPixels) pictureChangedAt = now
                             else maxUnchangedImageMs = maxOf(maxUnchangedImageMs, now - pictureChangedAt)
                             previousPixels = hash
-                        }
+                        } else missingPictureSamples++
                         done.countDown()
                     }, main)
                 }
@@ -196,10 +197,15 @@ class LiveDeliveryBenchTest {
                 Thread.sleep(200)
             }
             val report = recovery.report()
+            synchronized(recovery) {
+                if (lastFrameNs != 0L)
+                    maxFrameGapMs = maxOf(maxFrameGapMs, (System.nanoTime() - lastFrameNs) / 1_000_000)
+            }
             synchronized(recovery) { JSONObject().put("coordinated", coordinated).put("outageMs", outageMs).put("initialBufferMs", reserve)
                 .put("errors", errors).put("rebuffers", buffering).put("renderedFrames", frames)
                 .put("maxFrameGapMs", maxFrameGapMs).put("backwardPts", ptsBackwards)
                 .put("pixelSamples", pixelSamples).put("blackSamples", blackSamples)
+                .put("missingPictureSamples", missingPictureSamples)
                 .put("requestsDuringCase", source.requests.get() - before).put("http503", source.rejected.get())
                 .put("retryDecisions", report.retries).put("maxUnchangedImageMs", maxUnchangedImageMs) }
         } finally {
@@ -216,6 +222,7 @@ class LiveDeliveryBenchTest {
                 assertEquals(coordinated.toString(), 0, coordinated.getInt("errors"))
                 assertEquals(coordinated.toString(), 0, coordinated.getInt("backwardPts"))
                 assertEquals(coordinated.toString(), 0, coordinated.getInt("blackSamples"))
+                assertEquals(coordinated.toString(), 0, coordinated.getInt("missingPictureSamples"))
                 assertTrue(coordinated.toString(), coordinated.getInt("renderedFrames") > 200)
                 if (outage < coordinated.getLong("initialBufferMs")) {
                     assertEquals(coordinated.toString(), 0, coordinated.getInt("rebuffers"))
