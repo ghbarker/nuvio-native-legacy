@@ -1,4 +1,4 @@
-name: Publish verified Logs91 artwork cache preview
+name: Publish verified Logs92 HLS recovery preview
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -15,7 +15,7 @@ permissions:
   contents: read
 jobs:
   publish:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs91]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs92]')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -24,14 +24,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 5ab3c53d1d89c8f757d4d9331834df8072e8c901
-      SOURCE_TREE: d53c228d2ad9be32572c222408e267ba2851ec2a
-      BUILD_CONFIG: a3b88045bffddca43aad9780f31ec5dc6bad5a74
-      NATIVE_CONFIG: a3b88045bffddca43aad9780f31ec5dc6bad5a74
-      NATIVE_SOURCE_SHA: 5ab3c53d1d89c8f757d4d9331834df8072e8c901
-      NATIVE_SOURCE_TREE: d53c228d2ad9be32572c222408e267ba2851ec2a
-      ANDROID_RUN: ${{ inputs.android_run_id || '39429538289' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39429537222' }}
+      SOURCE_SHA: 3c8d71f95cc79512fa6b877c08065fa2da103619
+      SOURCE_TREE: 247e5afedd78a9ece3873fe363829bd7f6885fbe
+      BUILD_CONFIG: 3007a44d30026aa75decbc59aa5dd36e0c096d7d
+      NATIVE_CONFIG: a7b557e784bee980a9e71b59ed13c62013295b87
+      NATIVE_SOURCE_SHA: 99e7bb211c79be4725f81f4d7131cc5b3e6cb30e
+      NATIVE_SOURCE_TREE: ec4e8801e8c6857e5056dcf38500995996e362f7
+      ANDROID_RUN: ${{ inputs.android_run_id || '39438577683' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39439142626' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,11 +68,11 @@ jobs:
               jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
               assert all(j['conclusion'] in ('success','skipped') for j in jobs)
               if key=='ANDROID_RUN':assert any(j['name']=='apk-build' and j['conclusion']=='success' for j in jobs)
-              else:assert len(jobs)==2 and all(j['conclusion']=='success' for j in jobs)
+              else:assert len(jobs)==3 and all(j['conclusion']=='success' for j in jobs)
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs91-${{ env.BUILD_CONFIG }}
+          name: Nuvio-TV-Mobile-Test-Logs92-${{ env.BUILD_CONFIG }}
           run-id: ${{ env.ANDROID_RUN }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
@@ -81,77 +81,111 @@ jobs:
           path: native-evidence
           run-id: ${{ env.NATIVE_RUN }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-live-bench
+          path: bench-evidence
+          run-id: ${{ env.NATIVE_RUN }}
+          github-token: ${{ github.token }}
       - name: Verify APK and native test evidence
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs91.apk');p=pathlib.Path('Logs91-validation.json');v=json.loads(p.read_text())
+          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs92.apk');p=pathlib.Path('Logs92-validation.json');v=json.loads(p.read_text())
           assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
           assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
           assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20101','--version-name','2.0.101-test-logs91','--output','Logs91-independent-verification.json'],check=True)
+          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20102','--version-name','2.0.102-test-logs92','--output','Logs92-independent-verification.json'],check=True)
           dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
-          assert set(dirs)=={'integration-ubuntu-24.04-artwork-cache','integration-macos-15-intel-artwork-cache'}
+          assert set(dirs)=={'integration-ubuntu-24.04-live-recovery','integration-macos-15-intel-live-recovery'}
           results=[]
           for d in dirs.values():
               s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and s['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-              checks=json.loads((d/'results.json').read_text());assert len(checks)==2 and all(x['code']==0 for x in checks)
-              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['cache_android'] for b in [False,True]}
+              checks=json.loads((d/'results.json').read_text());assert len(checks)==6 and all(x['code']==0 for x in checks)
+              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['livestall_window','video_android_live_window','live_error_recovery'] for b in [False,True]}
               results+=checks
+          import xml.etree.ElementTree as E
+          bench=pathlib.Path('bench-evidence')
+          source=json.loads((bench/'live-bench-source.json').read_text())
+          assert source['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and source['source_tree']==os.environ['NATIVE_SOURCE_TREE']
+          units=[E.parse(p).getroot() for p in bench.rglob('TEST-*.xml') if 'testDebugUnitTest' in str(p)]
+          expected={'space.nuvio.nativelegacy.LiveLoadRecoveryTest','space.nuvio.nativelegacy.LiveLoadErrorPolicyTest','space.nuvio.nativelegacy.LiveWindowRecoveryTest','space.nuvio.nativelegacy.LivePlaylistDataSourceTest'}
+          assert {x.attrib['name'] for x in units}==expected
+          assert all(int(x.attrib['failures'])==int(x.attrib['errors'])==0 for x in units)
+          instrument=[E.parse(p).getroot() for p in bench.rglob('TEST-*.xml') if 'androidTest-results' in str(p)]
+          assert len(instrument)==1 and sum(int(x.attrib['tests']) for x in instrument)==1
+          assert all(int(x.attrib['failures'])==int(x.attrib['errors'])==0 for x in instrument)
+          scenarios=json.loads((bench/'live-bench-results.json').read_text())
+          assert len(scenarios)==4 and {(x['coordinated'],x['outageMs']) for x in scenarios}=={(c,t) for c in (False,True) for t in (9000,25000)}
+          for x in scenarios:
+              if not x['coordinated']:continue
+              assert x['errors']==x['blackSamples']==x['missingPictureSamples']==x['backwardPts']==0,x
+              assert x['renderedFrames']>200,x
+              if x['outageMs']<x['initialBufferMs']:assert x['rebuffers']==0 and x['maxFrameGapMs']<1000 and x['maxUnchangedImageMs']<1000,x
+          v['android_coordinator_unit_tests']=sum(int(x.attrib['tests']) for x in units)
+          v['android_emulator_api']=29
+          v['android_component_benchmark']=scenarios
+          pathlib.Path('Logs92-benchmark-results.json').write_text(json.dumps(scenarios,indent=2)+'\n')
           v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
           v['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          v['validation_note']='Android APK build and independent package/signature/ABI verification; artwork migration, cache clearing, protected file pruning and retry fixtures, normal and ASan/UBSan on Linux/macOS Intel (4 runs). Not packaged macOS/webOS/Tizen builds or Android device tests.'
+          v['validation_note']='Android APK build and independent identity/signature/ABI verification; 12 Linux/macOS native fixture invocations (6 ASan/UBSan); Android coordinator/policy/window/playlist unit tests and four real Media3 component playback scenarios in an API 29 emulator. Benchmark source differs from APK only in two test/report files, verified explicitly. This is not a complete Nuvio APK/device playback test or packaged macOS/webOS/Tizen build.'
           p.write_text(json.dumps(v,indent=2)+'\n')
           VERIFY
-      - name: Verify identical Android and native-check product source
+      - name: Verify identical product source across APK and benchmark
         run: |
           git fetch --no-tags --depth=3 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
           python3 - <<'DIFF'
           import os,subprocess
           changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          assert not changed,changed
-          print('Android and native checks use the identical source tree.')
+          allowed={'tests/android-live-bench/run-connected.sh','tests/android-live-bench/src/androidTest/java/space/nuvio/nativelegacy/LiveDeliveryBenchTest.kt'}
+          assert changed==allowed,changed
+          print('Android and checks have identical product source; only benchmark/report files differ.')
           DIFF
       - name: Write test instructions
         run: |
-          cat > Logs91-test-steps.txt <<'STEPS'
-          Logs91: Android clearable artwork cache.
-          Version 2.0.101-test-logs91 (20101).
-          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall.
+          cat > Logs92-test-steps.txt <<'STEPS'
+          Logs92: Preserve buffered HLS playback through temporary delivery failures.
+          Version 2.0.102-test-logs92 (20102).
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall/clear data.
 
-          1. Before updating, note Android Settings > Apps > Nuvio TV/Mobile Test >
-             Storage: Total, User data and Cache. Take a photo if convenient.
-          2. Install this APK over the test app, open it once and browse several
-             collections/title pages. Confirm accounts, preferences and artwork.
-             The existing artwork cache moves automatically on this first launch.
-          3. Force stop the app. Reopen Android's Storage page and check Cache.
-             Cached artwork should now count there rather than as User data.
-             Android may take a short time to refresh the numbers.
-          4. Tap CLEAR CACHE only. Do NOT tap Clear data/storage: that resets accounts.
-             The Cache figure should fall, along with total storage used.
-          5. Reopen the app. Accounts/settings should still be present. Artwork will
-             download again as needed. Browse and confirm it returns normally.
-          6. Repeat Clear cache once to verify the recreated cache remains clearable.
+          1. Open Live TV and play one of your M3U/Xtream channels for one minute.
+             Leave your existing buffer setting unchanged for this comparison.
+          2. Watch for 5-10 minutes, particularly channels that previously repeated,
+             reconnected or showed an error over continuing audio. Note the time of
+             any pause, repeated section, black screen or error card.
+          3. Pause for 15 seconds, then resume. It must not switch/restart while you
+             deliberately pause. Switch channels, then exit using Back; verify no
+             playback or retry returns after you leave.
+          4. If a delivery failure occurs naturally, allow recovery to act without
+             selecting another source. A short outage may fit within the reserve.
+             An outage longer than the reserve necessarily pauses playback, but a
+             temporary HLS transport failure can now resume in the same player.
+          5. Save a fresh log after testing using About and help > Logs > Download
+             (or your existing log export). Send it with the channel/account type,
+             approximate failure time and what you saw. Logs now include recovery
+             owner/reason, retries, reserve, frame progress and buffering duration.
+             ADB alternative: adb logcat -d -v threadtime > Nuvio-Live-Recovery.txt
 
-          This addresses artwork placement, not every byte of User data. Settings,
-          accounts, installed assets and other persistent files still use User data.
-          Existing artwork disk limits and pruning remain unchanged.
-          All Logs90 features remain included. No upstream PR before approval.
-          If anything fails, share before/after storage figures and a fresh app log.
-          ADB: adb logcat -d -v threadtime > Nuvio-Logs91.txt
+          We simulated 9- and 25-second outages in an Android Media3 test harness;
+          there is no need to interrupt your household network to test this APK.
+          This change does not add quality switching or automatic speed changes.
+          VOD, direct TS and ordinary authentication/format errors keep normal handling.
+          Earlier Logs91 features remain included. No PR until this build is approved.
           STEPS
           cat > notes.txt <<'NOTES'
-          Moves downloaded artwork to Android's clearable cache directory, safely
-          migrating existing recognized images while preserving accounts/settings.
-          Keeps Logs90 features. Update Nuvio TV/Mobile Test without uninstalling.
+          Buffer-aware HLS transport retries with bounded recovery ownership and
+          additional test-only numeric diagnostics. Keeps prior Logs91 features.
+          Update Nuvio TV/Mobile Test without uninstalling or clearing its data.
 
-          Checks: Android build, package/signer/ARM ABI verification and four headless
-          Linux/macOS Intel migration/pruning checks (normal and ASan/UBSan).
-          These are not packaged macOS/webOS/Tizen builds or Android device tests.
-          See Logs91-test-steps.txt for exact storage and account-preservation checks.
+          Validated: Android APK and package/signer/ARM ABI checks; 12 Linux/macOS
+          native fixture invocations including sanitizers; Android unit tests and
+          four Media3 emulator playback scenarios (ordinary/coordinated policy,
+          9/25-second HTTP delivery outages). Long outages still exhaust a buffer.
+          The emulator harness tests player components, not the complete Nuvio app.
+          See Logs92-test-steps.txt and Logs92-benchmark-results.json.
           NOTES
       - name: Publish verified preview
         run: |
-          gh release create tv-mobile-test-logs-v91 Nuvio-TV-Mobile-Test-Logs91.apk Logs91-validation.json Logs91-independent-verification.json Logs91-test-steps.txt --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs91: clearable artwork cache' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v92 Nuvio-TV-Mobile-Test-Logs92.apk Logs92-validation.json Logs92-independent-verification.json Logs92-test-steps.txt Logs92-benchmark-results.json --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs92: buffer-aware HLS recovery' --notes-file notes.txt --prerelease
