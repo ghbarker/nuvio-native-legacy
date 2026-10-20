@@ -1709,7 +1709,7 @@ object NvPlayer {
                 val allocated = r.carga.allocator.totalBytesAllocated
                 val error = p.playerError?.errorCode ?: 0
                 val stalled = r.recoveryStallMs + if (r.recoveryStallAt >= 0) now - r.recoveryStallAt else 0
-                liveDiagnostic("[live-recovery] resource=${System.identityHashCode(r)} session=$sessao generation=$geracaoNative elapsedMs=$now owner=${report.owner} reason=${report.reason} leaseMs=${report.remainingMs} reserveMs=${p.totalBufferedDuration} offsetMs=${p.currentLiveOffset} state=${p.playbackState} playing=${p.isPlaying} playWhenReady=${p.playWhenReady} pending=${report.pending} retries=${report.retries} rendered=$frames framesDelta=$delta allocatedKiB=${allocated / 1024} stalls=${r.recoveryStalls} stallMs=$stalled errorCode=$error")
+                liveDiagnostic("[live-recovery] resource=${System.identityHashCode(r)} session=$sessao generation=$geracaoNative elapsedMs=$now protocol=${if (p.currentManifest is HlsManifest) "hls" else "other"} live=${p.isCurrentMediaItemLive} owner=${report.owner} reason=${report.reason} leaseMs=${report.remainingMs} reserveMs=${p.totalBufferedDuration} offsetMs=${p.currentLiveOffset} state=${p.playbackState} playing=${p.isPlaying} playWhenReady=${p.playWhenReady} pending=${report.pending} retries=${report.retries} rendered=$frames framesDelta=$delta allocatedKiB=${allocated / 1024} stalls=${r.recoveryStalls} stallMs=$stalled errorCode=$error")
                 r.recoveryLogAt = now
                 r.recoveryLogRevision = report.revision
                 r.recoveryLogOwner = report.owner
