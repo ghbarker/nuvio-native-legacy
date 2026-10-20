@@ -210,15 +210,21 @@ class LiveDeliveryBenchTest {
     @Test fun compareOrdinaryAndCoordinatedRecoveryOnIdenticalTimedOutage() {
         val results = JSONArray()
         try {
-            results.put(runCase(false, 9_000))
-            val coordinated = runCase(true, 9_000); results.put(coordinated)
-            assertEquals(coordinated.toString(), 0, coordinated.getInt("errors"))
-            assertEquals(coordinated.toString(), 0, coordinated.getInt("rebuffers"))
-            assertEquals(coordinated.toString(), 0, coordinated.getInt("backwardPts"))
-            assertEquals(coordinated.toString(), 0, coordinated.getInt("blackSamples"))
-            assertTrue(coordinated.toString(), coordinated.getInt("renderedFrames") > 200)
-            assertTrue(coordinated.toString(), coordinated.getLong("maxFrameGapMs") < 1000)
-            assertTrue(coordinated.toString(), coordinated.getLong("maxUnchangedImageMs") < 1000)
+            for (outage in listOf(9_000L, 25_000L)) {
+                results.put(runCase(false, outage))
+                val coordinated = runCase(true, outage); results.put(coordinated)
+                assertEquals(coordinated.toString(), 0, coordinated.getInt("errors"))
+                assertEquals(coordinated.toString(), 0, coordinated.getInt("backwardPts"))
+                assertEquals(coordinated.toString(), 0, coordinated.getInt("blackSamples"))
+                assertTrue(coordinated.toString(), coordinated.getInt("renderedFrames") > 200)
+                if (outage < coordinated.getLong("initialBufferMs")) {
+                    assertEquals(coordinated.toString(), 0, coordinated.getInt("rebuffers"))
+                    assertTrue(coordinated.toString(), coordinated.getLong("maxFrameGapMs") < 1000)
+                    assertTrue(coordinated.toString(), coordinated.getLong("maxUnchangedImageMs") < 1000)
+                }
+                // A longer outage necessarily exhausts the reserve. It must resume
+                // in the same player, not end on a terminal source error.
+            }
         } finally {
             instrumentation.targetContext.filesDir.resolve("live-bench-results.json").writeText(results.toString(2))
             android.util.Log.i("LiveBench", results.toString())
