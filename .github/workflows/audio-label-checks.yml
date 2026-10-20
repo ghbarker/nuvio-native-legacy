@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: 3c8d71f95cc79512fa6b877c08065fa2da103619
+  SOURCE_SHA: 99e7bb211c79be4725f81f4d7131cc5b3e6cb30e
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
@@ -130,12 +130,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            rc=0
-            bash android/gradlew -p tests/android-live-bench connectedDebugAndroidTest --no-daemon --stacktrace > live-bench-connected.log 2>&1 || rc=$?
-            adb exec-out run-as space.nuvio.livebench cat files/live-bench-results.json > live-bench-results.json || true
-            adb logcat -d -v threadtime > live-bench-logcat.txt
-            exit "$rc"
+          script: bash tests/android-live-bench/run-connected.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
