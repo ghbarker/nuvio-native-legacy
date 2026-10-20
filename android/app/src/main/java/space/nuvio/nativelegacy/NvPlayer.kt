@@ -1701,7 +1701,8 @@ object NvPlayer {
                 r.recoveryStallAt = -1L
             }
             val changed = report.revision != r.recoveryLogRevision || report.owner != r.recoveryLogOwner
-            if (now - r.recoveryLogAt >= 1_000 || (changed && now - r.recoveryLogAt >= 250)) {
+            val period = if (report.owner == "none" && !stalling) 5_000L else 1_000L
+            if (now - r.recoveryLogAt >= period || (changed && now - r.recoveryLogAt >= 250)) {
                 val frames = p.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: -1L
                 val delta = if (frames >= 0 && r.recoveryFrames >= 0) frames - r.recoveryFrames else -1L
                 val allocated = r.carga.allocator.totalBytesAllocated
