@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <errno.h>
+#include <time.h>
 
 typedef struct { char nome[256]; long bytes; time_t uso; } Entrada;
 static int imagem(const char *nome) {
@@ -16,6 +18,40 @@ static int imagem(const char *nome) {
   if (p - nome < 8 || p - nome > 16) return 0;
   return !strcmp(p, ".jpg") || !strcmp(p, ".jpeg") || !strcmp(p, ".png") ||
          !strcmp(p, ".webp") || !strcmp(p, ".gif");
+}
+int nv_cache_migrar_arte(const char *origem, const char *destino) {
+  struct stat a, b;
+  DIR *d;
+  struct dirent *e;
+  int movidos = 0, falhas = 0;
+  if (!destino || !*destino) return -1;
+  if (mkdir(destino, 0700) && errno != EEXIST) return -1;
+  if (lstat(destino, &b) || !S_ISDIR(b.st_mode) || access(destino, W_OK | X_OK)) return -1;
+  if (!origem || lstat(origem, &a) || !S_ISDIR(a.st_mode)) return 0;
+  if (a.st_dev == b.st_dev && a.st_ino == b.st_ino) return 0;
+  d = opendir(origem);
+  if (!d) return 0;
+  while ((e = readdir(d))) {
+    char de[1024], para[1024];
+    if (!imagem(e->d_name) && strcmp(e->d_name, ".limpo-143") &&
+        strcmp(e->d_name, ".arte-negativa")) continue;
+    if (snprintf(de, sizeof de, "%s/%s", origem, e->d_name) >= (int)sizeof de ||
+        snprintf(para, sizeof para, "%s/%s", destino, e->d_name) >= (int)sizeof para) {
+      falhas++; continue;
+    }
+    if (lstat(de, &a) || !S_ISREG(a.st_mode)) continue;
+    if (!lstat(para, &b)) {
+      // Uma abertura anterior pode ter migrado parte do cache. Nao substituir
+      // a copia nova, nem seguir links ou apagar diretorios desconhecidos.
+      if (S_ISREG(b.st_mode) && !unlink(de)) movidos++;
+      else falhas++;
+    } else if (errno == ENOENT && !rename(de, para)) movidos++;
+    else falhas++; // Mantem a origem para tentar de novo na proxima abertura.
+  }
+  closedir(d);
+  if (movidos || falhas)
+    printf("[tex] cache Android: %d arquivo(s) migrados, %d pendentes\n", movidos, falhas);
+  return movidos;
 }
 static int ordem(const void *a, const void *b) {
   const Entrada *x = a, *y = b;

@@ -59,6 +59,7 @@
 #include "tex_cache.h"
 #include "webp.h"
 #include "cachearte.h"
+#include "cachedisco.h"
 #include "artehero.h"
 #include "arteescolha.h"
 #include "artereserva.h"
@@ -1746,6 +1747,16 @@ int main(int argc, char **argv) {
     // a pasta IDBFS continua disponivel para o caminho legado de GIFs.
     char c[600];
     snprintf(c, sizeof c, "%s/cache", dirDados);
+#ifdef NV_ANDROID
+    // filesDir guarda contas/ajustes; cacheDir permite Limpar cache no Android.
+    // A migracao precede a abertura do indice e os trabalhadores de arte.
+    const char *cacheAndroid = getenv("NUVIO_CACHE_ARTE");
+    if (cacheAndroid && *cacheAndroid && strlen(cacheAndroid) < 512) {
+      if (nv_cache_migrar_arte(c, cacheAndroid) >= 0)
+        snprintf(c, sizeof c, "%s", cacheAndroid);
+      else printf("[tex] cache Android indisponivel; mantendo pasta anterior\n");
+    }
+#endif
     tex_cache_dir(c); }
   // Os icones da interface saem de art/icones (SVG do app web rasterizados).
   gfx_icones_dir(dirArte);
