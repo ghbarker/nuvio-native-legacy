@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: 605fac5e751bd7f6def864aec84f23cf60158124
+  SOURCE_SHA: a77e25a115507ea7f4d2ca4876626dda495fce93
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
@@ -98,7 +98,14 @@ jobs:
           bash tests/android-live-bench/make-fixture.sh
       - name: Compile production policy and run coordinator fixtures
         run: |
-          bash android/gradlew -p tests/android-live-bench testDebugUnitTest assembleDebug assembleDebugAndroidTest --no-daemon --stacktrace > live-bench-build.log 2>&1
+          bash android/gradlew -p tests/android-live-bench testDebugUnitTest assembleDebug assembleDebugAndroidTest --no-daemon --stacktrace > live-bench-build.log 2>&1 || { head -140 live-bench-build.log; exit 1; }
+          python3 - <<'PYTEST'
+          import pathlib,xml.etree.ElementTree as E
+          suites=[E.parse(p).getroot() for p in pathlib.Path('tests/android-live-bench/build/test-results/testDebugUnitTest').glob('TEST-*.xml')]
+          assert sum(int(s.attrib['tests']) for s in suites)>=11
+          assert all(int(s.attrib['failures'])==int(s.attrib['errors'])==0 for s in suites)
+          print('Coordinator tests:',sum(int(s.attrib['tests']) for s in suites),'passed')
+          PYTEST
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
