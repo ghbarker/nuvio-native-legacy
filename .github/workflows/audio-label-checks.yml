@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: 634de8f7943dfc759162d34cd2700a52e28fc2aa
+  SOURCE_SHA: 33c83c8fce10d4465dde6c6b9c55d7259223366b
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
@@ -91,6 +91,15 @@ jobs:
           key: live-bench-gradle-v1-${{ runner.os }}
           restore-keys: |
             logs34-gradle-${{ runner.os }}-
+      - name: Record exact benchmark source
+        run: |
+          python3 - <<'SOURCE'
+          import json,os,pathlib,subprocess
+          sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          assert sha==os.environ['SOURCE_SHA']
+          pathlib.Path('live-bench-source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree}))
+          SOURCE
       - name: Generate finite synthetic HLS broadcast
         run: |
           sudo apt-get update -qq
