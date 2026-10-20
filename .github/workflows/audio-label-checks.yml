@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: a77e25a115507ea7f4d2ca4876626dda495fce93
+  SOURCE_SHA: 634de8f7943dfc759162d34cd2700a52e28fc2aa
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
@@ -102,7 +102,7 @@ jobs:
           python3 - <<'PYTEST'
           import pathlib,xml.etree.ElementTree as E
           suites=[E.parse(p).getroot() for p in pathlib.Path('tests/android-live-bench/build/test-results/testDebugUnitTest').glob('TEST-*.xml')]
-          assert sum(int(s.attrib['tests']) for s in suites)>=11
+          assert sum(int(s.attrib['tests']) for s in suites)>=16
           assert all(int(s.attrib['failures'])==int(s.attrib['errors'])==0 for s in suites)
           print('Coordinator tests:',sum(int(s.attrib['tests']) for s in suites),'passed')
           PYTEST
@@ -114,8 +114,8 @@ jobs:
       - name: Real Media3 playback under controlled HLS delivery failure
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          target: google_apis
+          api-level: 29
+          target: default
           arch: x86_64
           profile: pixel_2
           disable-animations: true
