@@ -37,7 +37,11 @@ val copyProduction = tasks.register<Sync>("copyProduction") {
     into(layout.buildDirectory.dir("production-src"))
 }
 val copyTests = tasks.register<Sync>("copyProductionTests") {
-    from("../../android/app/src/test/java") { include("space/nuvio/nativelegacy/LiveLoadRecoveryTest.kt") }
+    from("../../android/app/src/test/java") {
+        include("android/net/Uri.java", "space/nuvio/nativelegacy/LiveLoadRecoveryTest.kt",
+            "space/nuvio/nativelegacy/LiveLoadErrorPolicyTest.kt", "space/nuvio/nativelegacy/LiveWindowRecoveryTest.kt",
+            "space/nuvio/nativelegacy/LivePlaylistDataSourceTest.kt")
+    }
     into(layout.buildDirectory.dir("production-tests"))
 }
 tasks.named("preBuild") { dependsOn(copyProduction, copyTests) }
