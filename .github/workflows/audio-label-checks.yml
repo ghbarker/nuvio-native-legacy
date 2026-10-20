@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: 33c83c8fce10d4465dde6c6b9c55d7259223366b
+  SOURCE_SHA: 3c8d71f95cc79512fa6b877c08065fa2da103619
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
@@ -123,6 +123,7 @@ jobs:
       - name: Real Media3 playback under controlled HLS delivery failure
         uses: reactivecircus/android-emulator-runner@v2
         with:
+          emulator-boot-timeout: 180
           api-level: 29
           target: default
           arch: x86_64
