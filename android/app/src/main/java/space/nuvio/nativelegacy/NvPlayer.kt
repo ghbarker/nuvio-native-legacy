@@ -624,6 +624,14 @@ object NvPlayer {
     private class RecursosPlayer(val carga: CargaPlayer, val alvoMs: Int, val idiomaAudio: String = "") {
         val recuperacao = LiveLoadRecovery { SystemClock.elapsedRealtime() }
         var prazoRecuperacaoPublicado = 0L
+        // TEST BUILD ONLY: bounded numeric recovery journal; no media/account text.
+        var recoveryLogAt = -10_000L
+        var recoveryLogRevision = -1L
+        var recoveryLogOwner = ""
+        var recoveryFrames = -1L
+        var recoveryStallAt = -1L
+        var recoveryStalls = 0
+        var recoveryStallMs = 0L
         lateinit var p: ExoPlayer
         lateinit var origem: OrigemPlayer
         lateinit var rede: (Long) -> DataSource.Factory
@@ -1521,7 +1529,14 @@ object NvPlayer {
         sessao++
         medidor.encerrar()
         val recursos = recursosAtuais
-        recursos?.recuperacao?.cancel()
+        recursos?.let { r ->
+            if (BuildConfig.NV_TEST_LOCAL_LOGS) {
+                val x = r.recuperacao.report()
+                val stalled = r.recoveryStallMs + if (r.recoveryStallAt >= 0) SystemClock.elapsedRealtime() - r.recoveryStallAt else 0
+                liveDiagnostic("[live-recovery-summary] resource=${System.identityHashCode(r)} generation=$geracaoNative owner=${x.owner} retries=${x.retries} stalls=${r.recoveryStalls} stallMs=$stalled event=stop-or-replace")
+            }
+            r.recuperacao.cancel()
+        }
         recursos?.adotado = false
         recursos?.carga?.cancelada = true
         recursos?.liberado = true
@@ -1672,7 +1687,33 @@ object NvPlayer {
 
     private fun publicarRecuperacao(r: RecursosPlayer) {
         if (recursosAtuais !== r) return
-        val remaining = r.recuperacao.report().remainingMs
+        val report = r.recuperacao.report()
+        val remaining = report.remainingMs
+        if (BuildConfig.NV_TEST_LOCAL_LOGS && r.construido()) {
+            val now = SystemClock.elapsedRealtime()
+            val p = r.p
+            val stalling = pronto && p.playWhenReady && p.playbackSuppressionReason == 0 && p.playbackState == Player.STATE_BUFFERING
+            if (stalling && r.recoveryStallAt < 0) {
+                r.recoveryStallAt = now
+                r.recoveryStalls++
+            } else if (!stalling && r.recoveryStallAt >= 0) {
+                r.recoveryStallMs += now - r.recoveryStallAt
+                r.recoveryStallAt = -1L
+            }
+            val changed = report.revision != r.recoveryLogRevision || report.owner != r.recoveryLogOwner
+            if (now - r.recoveryLogAt >= 1_000 || (changed && now - r.recoveryLogAt >= 250)) {
+                val frames = p.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: -1L
+                val delta = if (frames >= 0 && r.recoveryFrames >= 0) frames - r.recoveryFrames else -1L
+                val allocated = r.carga.allocator.totalBytesAllocated
+                val error = p.playerError?.errorCode ?: 0
+                val stalled = r.recoveryStallMs + if (r.recoveryStallAt >= 0) now - r.recoveryStallAt else 0
+                liveDiagnostic("[live-recovery] resource=${System.identityHashCode(r)} session=$sessao generation=$geracaoNative elapsedMs=$now owner=${report.owner} reason=${report.reason} leaseMs=${report.remainingMs} reserveMs=${p.totalBufferedDuration} offsetMs=${p.currentLiveOffset} state=${p.playbackState} playing=${p.isPlaying} playWhenReady=${p.playWhenReady} pending=${report.pending} retries=${report.retries} rendered=$frames framesDelta=$delta allocatedKiB=${allocated / 1024} stalls=${r.recoveryStalls} stallMs=$stalled errorCode=$error")
+                r.recoveryLogAt = now
+                r.recoveryLogRevision = report.revision
+                r.recoveryLogOwner = report.owner
+                r.recoveryFrames = frames
+            }
+        }
         val until = if (remaining > 0) SystemClock.elapsedRealtime() + remaining else 0L
         if ((until == 0L) != (r.prazoRecuperacaoPublicado == 0L) ||
             kotlin.math.abs(until - r.prazoRecuperacaoPublicado) > 250L) {
