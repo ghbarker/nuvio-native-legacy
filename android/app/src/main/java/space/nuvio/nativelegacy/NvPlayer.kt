@@ -1656,7 +1656,8 @@ object NvPlayer {
         val r = recursosAtuais ?: return
         val manifest = p.currentManifest as? HlsManifest
         r.recuperacao.observe(LiveLoadRecovery.Observation(
-            p.isCurrentMediaItemLive && manifest != null, pronto,
+            p.isCurrentMediaItemLive && manifest != null,
+            pronto && p.playerError == null && p.playbackState != Player.STATE_IDLE,
             !p.playWhenReady || p.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE,
             p.playbackState == Player.STATE_BUFFERING, p.currentPosition, p.totalBufferedDuration,
             p.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: -1L,
@@ -2131,6 +2132,10 @@ object NvPlayer {
 
         override fun onPlayerError(error: PlaybackException) {
             if (!atual(minha)) return
+            recursosAtuais?.let {
+                it.recuperacao.playerError()
+                publicarRecuperacao(it)
+            }
             val exo = error as? ExoPlaybackException
             val p = player
             val status = generateSequence(error.cause) { it.cause }

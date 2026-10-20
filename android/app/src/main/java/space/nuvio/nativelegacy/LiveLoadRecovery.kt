@@ -62,6 +62,11 @@ internal class LiveLoadRecovery(private val clock: () -> Long) {
     @Synchronized fun concluded(task: Long) {
         if (tasks.remove(task) != null) changed("load-concluded")
     }
+    @Synchronized fun playerError() {
+        tasks.clear()
+        observation = observation?.copy(started = false)
+        changed("player-error")
+    }
     @Synchronized fun window(timeoutMs: Long) {
         tasks.clear()
         windowUntil = if (timeoutMs > 0 && !closed) clock() + timeoutMs.coerceAtMost(60_000L) else 0

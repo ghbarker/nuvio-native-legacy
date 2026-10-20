@@ -2,6 +2,7 @@ package space.nuvio.nativelegacy
 
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.ParserException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
@@ -57,11 +58,9 @@ internal class LiveLoadErrorPolicy(
     companion object {
         internal fun transient(error: Throwable): Boolean {
             val causes = generateSequence(error) { it.cause }.take(16).toList()
-            if (causes.any { it is SSLException }) return false
+            if (causes.any { it is SSLException || it is ParserException || it is FalhaDownloadParalelo }) return false
             val http = causes.filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()
             if (http != null) return http.responseCode == 408 || http.responseCode == 429 || http.responseCode in 500..599
-            // A completed parallel-download cycle owns its existing fallback.
-            if (causes.any { it is FalhaDownloadParalelo }) return false
             return causes.any {
                 it is SocketTimeoutException || it is SocketException || it is EOFException ||
                     (it is HttpDataSource.HttpDataSourceException && it.reason in listOf(
