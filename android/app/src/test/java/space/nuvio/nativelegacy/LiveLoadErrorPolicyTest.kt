@@ -49,6 +49,10 @@ class LiveLoadErrorPolicyTest {
         assertEquals(ordinary.getRetryDelayMsFor(f), policy.getRetryDelayMsFor(f))
         assertEquals("none", recovery.report().owner)
     }
+    @Test fun exhaustedParallelCycleCannotBecomeAnExtendedHttpRetry() {
+        val http = failure(503).exception
+        assertFalse(LiveLoadErrorPolicy.transient(FalhaDownloadParalelo(http)))
+    }
     @Test fun retryAfterIsRespectedAndNeverCreatesAnUnboundedWait() {
         observe()
         assertEquals(12_000L, policy.getRetryDelayMsFor(failure(429, headers = mapOf("Retry-After" to listOf("12")))))

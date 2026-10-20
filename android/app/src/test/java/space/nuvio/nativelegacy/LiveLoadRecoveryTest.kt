@@ -2,6 +2,7 @@ package space.nuvio.nativelegacy
 
 import org.junit.Assert.*
 import org.junit.Test
+import androidx.media3.common.ParserException
 import java.io.EOFException
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -104,5 +105,17 @@ class LiveLoadRecoveryTest {
         assertFalse(LiveLoadErrorPolicy.transient(SSLHandshakeException("fixture")))
         assertFalse(LiveLoadErrorPolicy.transient(IOException("fixture")))
         assertFalse(LiveLoadErrorPolicy.transient(FalhaDownloadParalelo(SocketTimeoutException())))
+        assertFalse(LiveLoadErrorPolicy.transient(ParserException.createForMalformedContainer("fixture", EOFException())))
+    }
+    @Test fun terminalPlayerErrorReleasesNetworkOwnerAndRejectsLateLoaderRetries() {
+        val f = Fixture(); f.observe(); f.recovery.retry(1, 1); f.recovery.retry(2, 1)
+        f.recovery.playerError()
+        assertEquals("none", f.recovery.report().owner)
+        assertNull(f.recovery.retry(2, 2))
+        f.recovery.window(30_000)
+        f.recovery.playerError()
+        assertEquals("window", f.recovery.report().owner)
+        f.recovery.window(0)
+        assertEquals("none", f.recovery.report().owner)
     }
 }
