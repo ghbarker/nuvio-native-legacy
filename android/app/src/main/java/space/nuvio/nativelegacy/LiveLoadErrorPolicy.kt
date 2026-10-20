@@ -29,7 +29,8 @@ internal class LiveLoadErrorPolicy(
                 .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()
             val header = response?.headerFields?.entries?.firstOrNull { it.key.equals("Retry-After", true) }
                 ?.value?.firstOrNull()
-            // Unknown/date Retry-After stays with the ordinary policy; never ignore it.
+            // Extend only when Retry-After fits the bounded deadline. Unknown/date
+            // values decline recovery rather than retrying before the server allows.
             val seconds = header?.toLongOrNull()
             val minimum = if (header == null) 0L else if (seconds != null && seconds in 0..60) seconds * 1000 else 60_000L
             val decision = recovery.retry(info.loadEventInfo.loadTaskId, info.errorCount, minimum)

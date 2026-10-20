@@ -45,7 +45,7 @@ internal class LiveLoadRecovery(private val clock: () -> Long) {
         val o = observation!!
         val until = tasks[task] ?: run {
             if (tasks.size >= 8) { changed("task-limit"); return -1L }
-            val reserve = (o.bufferedMs - (now - observedAt)).coerceAtLeast(0L)
+            val reserve = (o.bufferedMs.coerceIn(0L, 60_000L) - (now - observedAt)).coerceAtLeast(0L)
             val grace = LiveWindowRecovery.timeoutForSegment(o.segmentMs)
             (now + (reserve + grace).coerceIn(8_000L, 60_000L)).also { tasks[task] = it }
         }
