@@ -24,14 +24,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 3c8d71f95cc79512fa6b877c08065fa2da103619
-      SOURCE_TREE: 247e5afedd78a9ece3873fe363829bd7f6885fbe
-      BUILD_CONFIG: 3007a44d30026aa75decbc59aa5dd36e0c096d7d
-      NATIVE_CONFIG: a7b557e784bee980a9e71b59ed13c62013295b87
-      NATIVE_SOURCE_SHA: 99e7bb211c79be4725f81f4d7131cc5b3e6cb30e
-      NATIVE_SOURCE_TREE: ec4e8801e8c6857e5056dcf38500995996e362f7
-      ANDROID_RUN: ${{ inputs.android_run_id || '39438577683' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39439142626' }}
+      SOURCE_SHA: 7f38524781592b49a64450dcbeee1e4a9cc5202f
+      SOURCE_TREE: 44e67dfbb67984318dacd1280a75f7928975b41d
+      BUILD_CONFIG: 54f185f3d4a98177d66af4cfddb0c6c11555c3d0
+      NATIVE_CONFIG: 54f185f3d4a98177d66af4cfddb0c6c11555c3d0
+      NATIVE_SOURCE_SHA: 7f38524781592b49a64450dcbeee1e4a9cc5202f
+      NATIVE_SOURCE_TREE: 44e67dfbb67984318dacd1280a75f7928975b41d
+      ANDROID_RUN: ${{ inputs.android_run_id || '39440185534' }}
+      NATIVE_RUN: ${{ inputs.native_run_id || '39440185220' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,7 +130,7 @@ jobs:
           v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
           v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
           v['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          v['validation_note']='Android APK build and independent identity/signature/ABI verification; 12 Linux/macOS native fixture invocations (6 ASan/UBSan); Android coordinator/policy/window/playlist unit tests and four real Media3 component playback scenarios in an API 29 emulator. Benchmark source differs from APK only in two test/report files, verified explicitly. This is not a complete Nuvio APK/device playback test or packaged macOS/webOS/Tizen build.'
+          v['validation_note']='Android APK build and independent identity/signature/ABI verification; 12 Linux/macOS native fixture invocations (6 ASan/UBSan); Android coordinator/policy/window/playlist unit tests and four real Media3 component playback scenarios in an API 29 emulator. APK and checks use the identical verified source tree. This is not a complete Nuvio APK/device playback test or packaged macOS/webOS/Tizen build.'
           p.write_text(json.dumps(v,indent=2)+'\n')
           VERIFY
       - name: Verify identical product source across APK and benchmark
@@ -139,9 +139,8 @@ jobs:
           python3 - <<'DIFF'
           import os,subprocess
           changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          allowed={'tests/android-live-bench/run-connected.sh','tests/android-live-bench/src/androidTest/java/space/nuvio/nativelegacy/LiveDeliveryBenchTest.kt'}
-          assert changed==allowed,changed
-          print('Android and checks have identical product source; only benchmark/report files differ.')
+          assert not changed,changed
+          print('Android, native checks and emulator benchmark use the identical source tree.')
           DIFF
       - name: Write test instructions
         run: |
@@ -156,8 +155,8 @@ jobs:
              reconnected or showed an error over continuing audio. Note the time of
              any pause, repeated section, black screen or error card.
           3. Pause for 15 seconds, then resume. It must not switch/restart while you
-             deliberately pause. Switch channels, then exit using Back; verify no
-             playback or retry returns after you leave.
+             deliberately pause. Switch channels, then stop playback using your usual
+             controls; verify that a stopped channel does not reopen itself.
           4. If a delivery failure occurs naturally, allow recovery to act without
              selecting another source. A short outage may fit within the reserve.
              An outage longer than the reserve necessarily pauses playback, but a
