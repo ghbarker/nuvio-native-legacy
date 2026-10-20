@@ -676,6 +676,7 @@ class NuvioActivity : SDLActivity() {
         fun env(k: String, v: String) = Os.setenv(k, v, true)
         env("NUVIO_INTERFACE_AUTO", if (automaticMobile) "1" else "0")
         env("NUVIO_DADOS", dados.path)
+        env("NUVIO_CACHE_ARTE", File(cacheDir, "nuvio-art").path)
         env("NUVIO_LOG", File(dados, "nuvio.log").path)
         env("NUVIO_LOG_ANTERIOR", File(dados, "nuvio-anterior.log").path)
         env("HOME", dados.path)
