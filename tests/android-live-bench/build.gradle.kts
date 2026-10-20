@@ -11,18 +11,8 @@ android {
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    // Compile the actual production policy; no copied implementation or native APK.
-    sourceSets["main"].java.apply {
-        srcDir("../../android/app/src/main/java")
-        include("space/nuvio/livebench/**", "space/nuvio/nativelegacy/LiveLoadRecovery.kt",
-            "space/nuvio/nativelegacy/LiveLoadErrorPolicy.kt", "space/nuvio/nativelegacy/LiveWindowRecovery.kt",
-            "space/nuvio/nativelegacy/LivePlaylistDataSource.kt", "space/nuvio/nativelegacy/ParaleloDataSource.kt",
-            "space/nuvio/nativelegacy/PassivoMedidor.kt")
-    }
-    sourceSets["test"].java.apply {
-        srcDir("../../android/app/src/test/java")
-        include("space/nuvio/nativelegacy/LiveLoadRecoveryTest.kt")
-    }
+    sourceSets["main"].java.srcDir(layout.buildDirectory.dir("production-src"))
+    sourceSets["test"].java.srcDir(layout.buildDirectory.dir("production-tests"))
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.isReturnDefaultValues = true }
@@ -36,3 +26,18 @@ dependencies {
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }
+
+// Select unchanged production files at build time; the harness has no native app.
+val copyProduction = tasks.register<Sync>("copyProduction") {
+    from("../../android/app/src/main/java") {
+        include("space/nuvio/nativelegacy/LiveLoadRecovery.kt", "space/nuvio/nativelegacy/LiveLoadErrorPolicy.kt",
+            "space/nuvio/nativelegacy/LiveWindowRecovery.kt", "space/nuvio/nativelegacy/LivePlaylistDataSource.kt",
+            "space/nuvio/nativelegacy/ParaleloDataSource.kt", "space/nuvio/nativelegacy/PassivoMedidor.kt")
+    }
+    into(layout.buildDirectory.dir("production-src"))
+}
+val copyTests = tasks.register<Sync>("copyProductionTests") {
+    from("../../android/app/src/test/java") { include("space/nuvio/nativelegacy/LiveLoadRecoveryTest.kt") }
+    into(layout.buildDirectory.dir("production-tests"))
+}
+tasks.named("preBuild") { dependsOn(copyProduction, copyTests) }

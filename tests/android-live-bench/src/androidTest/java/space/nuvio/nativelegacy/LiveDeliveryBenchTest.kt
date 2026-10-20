@@ -105,9 +105,12 @@ class LiveDeliveryBenchTest {
         var frames = 0
         var ptsBackwards = 0
         var lastPts = -1L
-        var watch = false
+        val watch = java.util.concurrent.atomic.AtomicBoolean()
         var blackSamples = 0
         var pixelSamples = 0
+        var previousPixels = 0
+        var pictureChangedAt = 0L
+        var maxUnchangedImageMs = 0L
         val recovery = LiveLoadRecovery { SystemClock.elapsedRealtime() }
         val ordinary = DefaultLoadErrorHandlingPolicy()
         ui {
@@ -122,7 +125,7 @@ class LiveDeliveryBenchTest {
             player.setVideoSurfaceView(activity.activity.video)
             player.setVideoFrameMetadataListener { pts, releaseNs, _, _ ->
                 synchronized(recovery) {
-                    if (watch) {
+                    if (watch.get()) {
                         if (lastFrameNs != 0L) maxFrameGapMs = maxOf(maxFrameGapMs, (releaseNs - lastFrameNs) / 1_000_000)
                         if (lastPts >= 0 && pts < lastPts) ptsBackwards++
                         lastFrameNs = releaseNs; lastPts = pts; frames++
@@ -133,7 +136,7 @@ class LiveDeliveryBenchTest {
                 override fun onRenderedFirstFrame() { firstFrame = true }
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_READY) started = true
-                    if (watch && state == Player.STATE_BUFFERING) buffering++
+                    if (watch.get() && state == Player.STATE_BUFFERING) buffering++
                 }
                 override fun onPlayerError(error: PlaybackException) { errors++ }
             })
@@ -163,7 +166,7 @@ class LiveDeliveryBenchTest {
                 Thread.sleep(100)
             }
             assertTrue("fixture must render and build a measured reserve, got $reserve", firstFrame && reserve >= 15_000)
-            ui { watch = true }
+            watch.set(true)
             val before = source.requests.get()
             val faultAt = SystemClock.elapsedRealtime()
             source.until = faultAt + outageMs
@@ -178,7 +181,12 @@ class LiveDeliveryBenchTest {
                             pixelSamples++
                             val colors = IntArray(64 * 36)
                             bitmap.getPixels(colors, 0, 64, 0, 0, 64, 36)
-                            if (colors.count { (it and 0x00ffffff) < 0x00030303 } > colors.size * 0.98) blackSamples++
+                            if (colors.count { ((it shr 16) and 255) < 8 && ((it shr 8) and 255) < 8 && (it and 255) < 8 } > colors.size * 0.98) blackSamples++
+                            val hash = colors.contentHashCode()
+                            val now = SystemClock.elapsedRealtime()
+                            if (pixelSamples == 1 || hash != previousPixels) pictureChangedAt = now
+                            else maxUnchangedImageMs = maxOf(maxUnchangedImageMs, now - pictureChangedAt)
+                            previousPixels = hash
                         }
                         done.countDown()
                     }, main)
@@ -188,14 +196,14 @@ class LiveDeliveryBenchTest {
                 Thread.sleep(200)
             }
             val report = recovery.report()
-            JSONObject().put("coordinated", coordinated).put("outageMs", outageMs).put("initialBufferMs", reserve)
+            synchronized(recovery) { JSONObject().put("coordinated", coordinated).put("outageMs", outageMs).put("initialBufferMs", reserve)
                 .put("errors", errors).put("rebuffers", buffering).put("renderedFrames", frames)
                 .put("maxFrameGapMs", maxFrameGapMs).put("backwardPts", ptsBackwards)
                 .put("pixelSamples", pixelSamples).put("blackSamples", blackSamples)
                 .put("requestsDuringCase", source.requests.get() - before).put("http503", source.rejected.get())
-                .put("retryDecisions", report.retries)
+                .put("retryDecisions", report.retries).put("maxUnchangedImageMs", maxUnchangedImageMs) }
         } finally {
-            ui { watch = false; recovery.cancel(); player.release() }
+            ui { watch.set(false); recovery.cancel(); player.release() }
         }
     }
 
@@ -210,6 +218,7 @@ class LiveDeliveryBenchTest {
             assertEquals(coordinated.toString(), 0, coordinated.getInt("blackSamples"))
             assertTrue(coordinated.toString(), coordinated.getInt("renderedFrames") > 200)
             assertTrue(coordinated.toString(), coordinated.getLong("maxFrameGapMs") < 1000)
+            assertTrue(coordinated.toString(), coordinated.getLong("maxUnchangedImageMs") < 1000)
         } finally {
             instrumentation.targetContext.filesDir.resolve("live-bench-results.json").writeText(results.toString(2))
             android.util.Log.i("LiveBench", results.toString())
