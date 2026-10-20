@@ -21,8 +21,14 @@ internal class LiveLoadErrorPolicy(
     private val recovery: LiveLoadRecovery,
     private val changed: () -> Unit = {},
 ) : LoadErrorHandlingPolicy by ordinary {
-    override fun getMinimumLoadableRetryCount(dataType: Int): Int =
-        if (recovery.ownsRetries()) Int.MAX_VALUE else ordinary.getMinimumLoadableRetryCount(dataType)
+    @Volatile private var extendedMinimumUsed = false
+    override fun getMinimumLoadableRetryCount(dataType: Int): Int {
+        if (recovery.ownsRetries()) {
+            extendedMinimumUsed = true
+            return Int.MAX_VALUE
+        }
+        return ordinary.getMinimumLoadableRetryCount(dataType)
+    }
 
     override fun getRetryDelayMsFor(info: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
         if (transient(info.exception)) {
@@ -45,7 +51,7 @@ internal class LiveLoadErrorPolicy(
         // Loader captures the minimum at startLoading. A live load may have
         // captured MAX_VALUE before it failed or the user paused; explicitly
         // retain the ordinary retry budget for every non-owned failure.
-        return if (info.errorCount > ordinary.getMinimumLoadableRetryCount(info.mediaLoadData.dataType))
+        return if (extendedMinimumUsed && info.errorCount > ordinary.getMinimumLoadableRetryCount(info.mediaLoadData.dataType))
             C.TIME_UNSET else ordinary.getRetryDelayMsFor(info)
     }
 
