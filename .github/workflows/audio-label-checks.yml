@@ -1,4 +1,4 @@
-name: GIF avatar Linux and macOS Intel checks
+name: Artwork cache Linux and macOS Intel checks
 on:
   push:
     branches: [review/logs34-integration-20261017]
@@ -7,12 +7,12 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: de609e87e719630058cfb94fa42fa291b5de2b97
+  SOURCE_SHA: 5ab3c53d1d89c8f757d4d9331834df8072e8c901
   ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
   native:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs90-native]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs91-native]')
     strategy:
       fail-fast: false
       matrix:
@@ -24,18 +24,8 @@ jobs:
         with:
           ref: ${{ env.SOURCE_SHA }}
           persist-credentials: false
-      - name: Linux dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libgles2-mesa-dev
-      - name: macOS dependencies
-        if: runner.os == 'macOS'
+      - name: Artwork cache checks
         run: |
-          for pkg in pkg-config sdl2; do
-            if ! brew list --versions "$pkg" >/dev/null 2>&1; then brew install "$pkg"; fi
-          done
-      - name: GIF avatar checks
-        run: |
-          if [ "$RUNNER_OS" = macOS ]; then export C_INCLUDE_PATH="$(brew --prefix)/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}"; fi
           python3 - <<'PYCODE'
           import json,os,pathlib,subprocess,time
           p=pathlib.Path('diagnostics');p.mkdir()
@@ -44,7 +34,7 @@ jobs:
           assert sha==os.environ['SOURCE_SHA']
           (p/'source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree,'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH']}))
           results=[]
-          for suite in ['perfilsel_avatar','gif_avatar','gif','gifcolecao','perfilsel']:
+          for suite in ['cache_android']:
             for san in [False,True]:
               start=time.monotonic()
               with (p/(suite+('-san' if san else '')+'.log')).open('w') as f:
@@ -53,11 +43,11 @@ jobs:
               results.append({'suite':suite,'sanitizers':san,'code':code,'seconds':round(time.monotonic()-start,2)})
               (p/'results.json').write_text(json.dumps(results,indent=2))
               print(results[-1],flush=True)
-          assert len(results)==10 and all(x['code']==0 for x in results),results
+          assert len(results)==2 and all(x['code']==0 for x in results),results
           PYCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-${{ matrix.os }}-gif-avatar
+          name: integration-${{ matrix.os }}-artwork-cache
           path: diagnostics
           if-no-files-found: error
