@@ -622,6 +622,8 @@ object NvPlayer {
     }
 
     private class RecursosPlayer(val carga: CargaPlayer, val alvoMs: Int, val idiomaAudio: String = "") {
+        val recuperacao = LiveLoadRecovery { SystemClock.elapsedRealtime() }
+        var prazoRecuperacaoPublicado = 0L
         lateinit var p: ExoPlayer
         lateinit var origem: OrigemPlayer
         lateinit var rede: (Long) -> DataSource.Factory
@@ -1329,7 +1331,9 @@ object NvPlayer {
                 // ParaleloDataSource faz as tres tentativas de transporte;
                 // nao empilhar outra rodada invisivel do Loader antes da
                 // maquina de reconexao 3/10/25 s do nucleo.
-                .setLoadErrorHandlingPolicy(PoliticaErroParalelo())
+                .setLoadErrorHandlingPolicy(LiveLoadErrorPolicy(PoliticaErroParalelo(), r.recuperacao) {
+                    principal.post { publicarRecuperacao(r) }
+                })
                 .setDataSourceFactory(LivePlaylistDataSource.Factory(
                     DefaultDataSource.Factory(act, r.origem),
                     DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true)
@@ -1517,6 +1521,7 @@ object NvPlayer {
         sessao++
         medidor.encerrar()
         val recursos = recursosAtuais
+        recursos?.recuperacao?.cancel()
         recursos?.adotado = false
         recursos?.carga?.cancelada = true
         recursos?.liberado = true
@@ -1629,6 +1634,7 @@ object NvPlayer {
         override fun run() {
             if (!atual(minha)) return
             val p = player ?: return
+            observarRecuperacao(p)
             // Keep the signed live-window clock for stall detection. Only the
             // native UI position is clamped; a moving negative position is valid.
             try { nativePos(p.currentPosition, p.bufferedPosition, p.isCurrentMediaItemLive,
@@ -1648,6 +1654,32 @@ object NvPlayer {
     private fun liveDiagnostic(line: String) {
         Log.i(TAG, line)
         try { nativeAudioLog(line) } catch (_: UnsatisfiedLinkError) { }
+    }
+
+    // Player is queried only on its application looper. Loader receives an
+    // immutable observation and cannot race a manual Stop or a replaced source.
+    private fun observarRecuperacao(p: ExoPlayer) {
+        val r = recursosAtuais ?: return
+        val manifest = p.currentManifest as? HlsManifest
+        r.recuperacao.observe(LiveLoadRecovery.Observation(
+            p.isCurrentMediaItemLive && manifest != null, pronto,
+            !p.playWhenReady || p.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE,
+            p.playbackState == Player.STATE_BUFFERING, p.currentPosition, p.totalBufferedDuration,
+            p.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: -1L,
+            manifest?.mediaPlaylist?.targetDurationUs?.div(1000L)?.coerceIn(0L, 60_000L)?.toInt() ?: 0))
+        publicarRecuperacao(r)
+    }
+
+    private fun publicarRecuperacao(r: RecursosPlayer) {
+        if (recursosAtuais !== r) return
+        val remaining = r.recuperacao.report().remainingMs
+        val until = if (remaining > 0) SystemClock.elapsedRealtime() + remaining else 0L
+        if ((until == 0L) != (r.prazoRecuperacaoPublicado == 0L) ||
+            kotlin.math.abs(until - r.prazoRecuperacaoPublicado) > 250L) {
+            r.prazoRecuperacaoPublicado = until
+            ev(EV_LIVE_RECOVERY, remaining.coerceIn(0L, 60_000L).toInt(), geracaoNative)
+        }
+
     }
 
     // Uma vez por segundo, do fio principal: leituras baratas, nada alocado
@@ -1980,7 +2012,10 @@ object NvPlayer {
             unschedule = { tarefa -> principal.removeCallbacks(tarefa) },
             active = { atual(minha) },
             status = { prazoMs ->
-                if (atual(minha)) ev(EV_LIVE_RECOVERY, prazoMs.toInt(), geracaoNative)
+                if (atual(minha)) recursosAtuais?.let {
+                    it.recuperacao.window(prazoMs)
+                    publicarRecuperacao(it)
+                }
             },
         )
         init { recuperacaoLive = live }
