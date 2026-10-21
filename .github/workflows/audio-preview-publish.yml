@@ -1,4 +1,4 @@
-name: Publish verified Logs96 integration preview
+name: Publish verified Logs97 Friends compatibility preview
 on:
   workflow_dispatch:
 permissions:
@@ -17,65 +17,43 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Require pinned successful Android build and native checks
+      - name: Require successful pinned Android and profile checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39551458140 > android-run.json
-          gh api repos/$GH_REPO/actions/runs/39545313593 > checks-run.json
-          gh api repos/$GH_REPO/actions/runs/39551326587 > linux-run.json
-          gh api repos/$GH_REPO/actions/runs/39551326587/jobs > linux-jobs.json
-          gh api repos/$GH_REPO/actions/runs/39551920429 > mac-run.json
-          gh api repos/$GH_REPO/actions/runs/39551923305 > browser-run.json
-          gh api repos/$GH_REPO/actions/runs/39552262033 > wasm-syntax-run.json
+          gh api repos/$GH_REPO/actions/runs/39556730901 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39557458276 > mac-run.json
+          gh api repos/$GH_REPO/actions/runs/39556733047 > shared-run.json
+          gh api repos/$GH_REPO/actions/runs/39556733047/jobs > shared-jobs.json
           python3 - <<'CHECK'
           import json
-          for path,sha in [('android-run.json','fea9d14026fea8ef963f486141ea46cf4f54b3f7'),('checks-run.json','1b4a9d69946c12bb3df72374f68ae82916884feb')]:
-              r=json.load(open(path))
-              assert r['head_sha']==sha
-              assert r['status']=='completed' and r['conclusion']=='success'
-          for path,sha in [('mac-run.json','2c2acabfef420d0b5ef2907cdb3e0abc13b72707'),('browser-run.json','2c2acabfef420d0b5ef2907cdb3e0abc13b72707'),('wasm-syntax-run.json','bd7c7388985350bfaf92219f3604541956e89bac')]:
-              r=json.load(open(path));assert r['head_sha']==sha and r['status']=='completed' and r['conclusion']=='success'
-          r=json.load(open('linux-run.json'));assert r['head_sha']=='666dc266ac86551b8f32c875f00e9f8cdc1048b5'
-          jobs={j['name']:j for j in json.load(open('linux-jobs.json'))['jobs']}
-          for name in ['native (ubuntu-24.04, drive)','native (ubuntu-24.04, fonts)']:
+          for name,sha in [('android-run.json','a649ac6b3802bdcbe12c892c27ea743108901a3d'),('mac-run.json','78f43fab2072a383ea72690cf52b0ddb1a238ee2')]:
+              r=json.load(open(name));assert r['head_sha']==sha and r['status']=='completed' and r['conclusion']=='success'
+          r=json.load(open('shared-run.json'));assert r['head_sha']=='a649ac6b3802bdcbe12c892c27ea743108901a3d'
+          jobs={j['name']:j for j in json.load(open('shared-jobs.json'))['jobs']}
+          for name in ['native (ubuntu-24.04, product)','native (ubuntu-24.04, preview)','wasm']:
               assert jobs[name]['status']=='completed' and jobs[name]['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs96-fea9d14026fea8ef963f486141ea46cf4f54b3f7
-          run-id: 39551458140
+          name: Nuvio-TV-Mobile-Test-Logs97-a649ac6b3802bdcbe12c892c27ea743108901a3d
+          run-id: 39556730901
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import json,subprocess
-          v=json.load(open('Logs96-validation.json'))
-          assert v['source_commit']=='3c578e8442055f279cf67cf4f327a74d5df479a8'
-          assert v['source_tree']=='f756561cb8164759ee970aa651b5da52d3e51ed9'
-          assert v['workflow_commit']=='fea9d14026fea8ef963f486141ea46cf4f54b3f7'
-          assert v['workflow_run_id']==39551458140
-          assert v['social_service_configured']
-          assert v['simkl_client_configured'] and v['simkl_device_registration_checked']
-          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs96.apk',
+          v=json.load(open('Logs97-validation.json'))
+          assert v['source_commit']=='cd75ea9e3878f59eabb9df2c9b987575b19260f7'
+          assert v['source_tree']=='57699dddb94721bba396ef5d9009156785b39c0d'
+          assert v['workflow_commit']=='a649ac6b3802bdcbe12c892c27ea743108901a3d'
+          assert v['workflow_run_id']==39556730901
+          assert v['social_service_configured'] and v['simkl_client_configured']
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs97.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20106','--version-name','2.0.106-test-logs96',
+            '--version-code','20107','--version-name','2.0.107-test-logs97',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
-            '--output','Logs96-independent-verification.json'],check=True)
-          v['auth_profile_native_validation_run']=39545313593
-          v['auth_profile_native_validation']='Logs94 shared auth/profile worker: Linux and macOS normal plus ASan/UBSan passed; unchanged worker in Logs96'
-          v['profile_friends_requires_social_server_deployment']=True
-          v['all_previous_rebase_checks_passed']=False
-          v['parity_native_linux_run']=39551326587
-          v['parity_native_linux_scope']='Only the successful Linux drive/fonts jobs; the initial macOS/WASM failures are superseded by the runs below'
-          v['parity_native_macos_run']=39551920429
-          v['parity_browser_storage_run']=39551923305
-          v['parity_wasm_component_compile_run']=39552262033
-          v['parity_product_branches']={'drive':'03977ef18cc4a5eb3c7340eb640a68a7c2e3ef16','fonts':'385740c23aa9b0cd5825b236f45f10066802b6ea'}
-          v['parity_component_checks_passed']=True
-          v['android_preprocessing_unchanged_by_later_darwin_fixes']=True
-          v['platform_package_builds']={'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False}
-          v['scope']='Android regression APK; LG/Samsung product extensions are staged separately. Host/browser checks are not physical-TV or platform-package validation.'
-          open('Logs96-validation.json','w').write(json.dumps(v,indent=2)+'\n')
+            '--output','Logs97-independent-verification.json'],check=True)
+          v.update({'profile_friends_requires_social_server_deployment':False,'profile_friends_legacy_code_handshake':True,'profile_friends_account_rpc_fresh_before_add':True,'profile_worker_linux_run':39556733047,'profile_worker_macos_intel_run':39557458276,'profile_worker_wasm_compile_run':39556733047,'profile_worker_tests':'Normal and ASan/UBSan product/preview workers; 15 server identity tests; WGT shared-worker compilation','all_previous_rebase_checks_passed':False,'platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Android Friends compatibility test; no real account linking or physical TV validation claimed before user test'})
+          open('Logs97-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          tag=$(python3 -c "import json,re; v=json.load(open('Logs96-validation.json')); m=re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+-test-logs([0-9]+)',v['version_name']); assert m; print('tv-mobile-test-logs-v'+m.group(1))")
-          gh release create "$tag" Nuvio-TV-Mobile-Test-Logs96.apk Logs96-validation.json Logs96-independent-verification.json preview-release/Logs96-test-steps.txt --target 3c578e8442055f279cf67cf4f327a74d5df479a8 --title 'Nuvio TV/Mobile Test Logs96 — Drive and font parity regression preview' --notes-file preview-release/Logs96-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v97 Nuvio-TV-Mobile-Test-Logs97.apk Logs97-validation.json Logs97-independent-verification.json preview-release/Logs97-test-steps.txt --target cd75ea9e3878f59eabb9df2c9b987575b19260f7 --title 'Nuvio TV/Mobile Test Logs97 — connect account profiles without code entry' --notes-file preview-release/Logs97-release-notes.txt --prerelease

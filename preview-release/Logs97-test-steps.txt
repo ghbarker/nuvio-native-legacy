@@ -1,0 +1,19 @@
+Nuvio TV/Mobile Test Logs97 — same-account Friends compatibility
+
+Install the APK as Update. Do not uninstall or clear app data.
+
+1. Stay in the Nuvio profile from which you want to add a friend.
+2. Open Settings > Account and services. Turn Social features On for this profile if needed.
+3. Open Profile > Profiles on this account (or search Settings for that label).
+4. The account's other profiles should appear instead of “The service does not support this option yet.”
+5. Select ONE profile that is not already a friend. Wait for the connection to finish.
+6. Open Friends. Confirm that selected profile appears. A code should never be requested.
+7. Confirm you are still in your original profile, with the same Home/add-ons/settings.
+8. Switch to the profile you selected and open Friends with Social features enabled there. Confirm the original profile appears too.
+9. Restart the app and confirm the friendship remains. Unselected profiles must remain unconnected.
+
+Privacy: this registers the selected profile's Social identity and connects the chosen pair. It does not enable searchable profiles, activity sharing or automatic friendship for the rest of the account. Existing blocks are enforced by the server.
+
+If it fails, download a log immediately after the attempt. The new diagnostics contain request stages/status only, not tokens or pairing codes. Include which profile you started in and which you selected.
+
+Also retains the Logs96 platform additions and the latest font-prompt cleanup. Android font/Drive behavior stays on its existing platform paths. LG/Samsung device validation is separate from this Android APK test.

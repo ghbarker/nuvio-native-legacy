@@ -1,0 +1,9 @@
+Adds a compatible same-account Friends connection path for Social servers that do not yet implement the new account-profile endpoint.
+
+The app reads the signed-in account's current profiles, registers only the selected target profile, obtains its existing pairing code internally and links it to the current profile through the existing friend-code API. No visible profile switch or code entry is required. Profile/account changes cancel subsequent requests and discard stale results. Discovery and activity-sharing preferences are preserved; server blocks still apply.
+
+Install as Update over Nuvio TV/Mobile Test. Do not uninstall. Existing package identity, persistent signing certificate and both ARM ABIs are verified before publication.
+
+Read Logs97-test-steps.txt for the exact test. The Friends change remains separate from the published font/Drive PR updates and awaits device approval before a new product PR.
+
+Validation: Linux worker checks passed normally and under ASan/UBSan; 15 real-server identity tests passed against local SQLite with mocked identity issuers. macOS checks and WGT shared-worker compilation are recorded in Logs97-validation.json. Host/browser checks are not physical LG/Samsung validation or platform-package builds. A test fixture does not prove a real account connection; this APK is for that test.
