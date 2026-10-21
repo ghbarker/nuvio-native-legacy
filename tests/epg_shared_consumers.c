@@ -1,5 +1,16 @@
 #include "stub_perfisessao.h"
+/* This fixture imports the guide for its EPG consumers. Renderer-only
+ * diagnostics in the imported translation unit are outside this harness;
+ * keep -Werror on the fixture and all real EPG ownership assertions. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+#pragma GCC diagnostic ignored "-Waddress"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#ifndef __clang__
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
 #include "../src/guia.c"
+#pragma GCC diagnostic pop
 #include <assert.h>
 
 // Compile the production player resolver alongside the real guide and EPG.
