@@ -4,7 +4,6 @@
 //
 //   bash tests/episodiosdup.sh
 int ajustes_social(void) { return 1; }
-int ajustes_fonte_biblioteca(void) { return 0; }
 int ajustes_nota_episodio(int fonte) { (void)fonte; return 0; }
 int ajustes_hist_conta(void) { return 1; }
 int ajustes_busca_cinemeta(void) { return 1; }
