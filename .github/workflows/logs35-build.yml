@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 3b0dcf794b9f0bc3edec294b60043ba260230660
+          ref: 8f4bef954da75ccf529b6e0c95553930edd1cc09
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -61,12 +61,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 3b0dcf794b9f0bc3edec294b60043ba260230660
+          ref: 8f4bef954da75ccf529b6e0c95553930edd1cc09
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 3b0dcf794b9f0bc3edec294b60043ba260230660
-          test "$(git rev-parse HEAD^{tree})" = fae881631f2550eb4f0c57aee17b2ef4e6434706
+          test "$(git rev-parse HEAD)" = 8f4bef954da75ccf529b6e0c95553930edd1cc09
+          test "$(git rev-parse HEAD^{tree})" = 64eaa8245f5ad0267bb403df27771db66be6e607
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -159,7 +159,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,pathlib
           p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs93.apk')
-          out={'source_commit':'3b0dcf794b9f0bc3edec294b60043ba260230660','source_tree':'fae881631f2550eb4f0c57aee17b2ef4e6434706','package':'space.nuvio.nativelegacy.touch','version_code':20103,'version_name':'2.0.103-test-logs93','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'1890f9f674adf646df3360b01d3b303024da3494','included_prs':[573,575,576,587,596,597,598,601,602,609,611],'android_build':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
+          out={'source_commit':'8f4bef954da75ccf529b6e0c95553930edd1cc09','source_tree':'64eaa8245f5ad0267bb403df27771db66be6e607','package':'space.nuvio.nativelegacy.touch','version_code':20103,'version_name':'2.0.103-test-logs93','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'1890f9f674adf646df3360b01d3b303024da3494','included_prs':[573,575,576,598,609,611,614,615,619],'upstream_ports':[596,601,602,631],'android_build':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
           pathlib.Path('Logs93-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
