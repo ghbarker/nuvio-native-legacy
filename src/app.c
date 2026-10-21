@@ -3637,6 +3637,7 @@ static void perfilAbrirSessao(int antes) {
 }
 
 int app_iniciar(const char *dirArte) {
+  esportesui_recursos(dirArte);
   // #415: MemAvailable abaixo do piso -> despeja texturas, mkvass, texto,
   // libass e heap; sem isto o aviso so rodava malloc_trim.
   memlog_quando_aviso(aliviarMemoria);
