@@ -22,10 +22,10 @@ Google Cloud projects, and the app does not share backups automatically.
    supported package/signing certificate combination separately. The test
    package and test certificate must not be used as production defaults.
 5. Create a **TVs and Limited Input devices** client in the same project. This
-   enables device-code sign-in on supported Android TV/Fire TV devices without
-   requiring Google Play Services. Keep the client configuration in release
+   enables the shared device-code sign-in on Android TV/Fire TV, LG webOS,
+   and Samsung Tizen (TPK and WGT) without requiring Google Play Services. Keep the client configuration in release
    configuration, outside source control.
-6. Set the build environment values consumed by Gradle:
+6. Set the build environment values consumed by Gradle and `tools/env.sh`:
 
    ```text
    NUVIO_GOOGLE_ANDROID_CLIENT_ID=<owner Android client ID>
@@ -61,11 +61,35 @@ Google Cloud projects, and the app does not share backups automatically.
 - Google authorization is tied to the release registration. Do not promise
   that development-registration backups will be visible to a different
   production OAuth project under `drive.file`; validate migration separately.
-- The current authorization UI is for Android phones and TVs. Shared C code
-  does not establish Google sign-in support on LG webOS, Tizen or desktop.
+- Android phones retain Google's native authorization UI and Android's
+  encrypted credential store. LG webOS and Samsung Tizen use the same
+  limited-input OAuth client and device-code flow as Android TV. Keep all
+  platform clients in the same Google Cloud project for `drive.file` visibility.
+- LG/Samsung keep a separate refresh credential per Nuvio account/profile and
+  OAuth client in the app's private installation storage; it is not a backup
+  section. Native files use mode 0600; WGT persists through the app's IndexedDB.
+  Backup passwords and access tokens are never written to that file.
+- WGT restore waits for an acknowledged IDBFS flush after each transaction
+  phase. A rejected/timed-out flush retains recovery state instead of reporting
+  success. Ordinary background persistence keeps its existing scheduling.
+- Desktop builds are development targets; a TV device-code OAuth registration
+  is not used as a desktop or browser sign-in fallback.
 
 ## References
 
 - https://developers.google.com/workspace/drive/api/guides/api-specific-auth
 - https://developers.google.com/identity/authorization/android
 - https://developers.google.com/identity/protocols/oauth2/limited-input-device
+
+## Cross-platform verification
+
+The backup envelope is unchanged: AES-256-GCM with PBKDF2-HMAC-SHA256 (600,000
+iterations), the same account/profile binding and password on every target.
+The TV build scripts bundle only the required mbedTLS 3.6.7 primitives from a
+checksum-verified source archive. Android continues using its existing mbedTLS.
+
+Verify phone -> TV and TV -> phone backup/restore with the same Nuvio profile
+and Google project, including imported fonts, service connections, password
+errors, cancellation, a restart and optional hardware settings. On WGT, inject
+a storage error and reload during restore: a memory-only write is not a pass.
+Real Google approval and physical-TV operation remain release validation steps.

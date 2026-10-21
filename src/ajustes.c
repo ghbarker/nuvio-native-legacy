@@ -7,6 +7,7 @@
 #include <limits.h>
 #include "legfontes.h"
 #include "drivebackup.h"
+#include "driveplatform.h"
 #include "player.h"
 #include "legenda.h"
 #include "legenda2.h"
@@ -701,7 +702,7 @@ typedef enum {
   AJ_TUNNELING,        // Android-only, device-local; off by default, append-only.
   AJ_DV7, // independent P7 conversion, append-only
   AJ_FONTE_INFO,       // #457: display-only prepared-source metadata, local
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
   AJ_DRIVE_BACKUP,
 #endif
   AJ_LIVETV_BUFFER,
@@ -1827,7 +1828,7 @@ static const Opcao OPCOES[AJ_N] = {
   ESC("Reprodução em túnel", V_VIDRO_FOSCO, 2),
   ESC("Dolby Vision P7 para P8.1 (experimental)", V_LIGA, 2),
   ESC("Detalhes da fonte preparada", V_LIGA, 2),
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
   ACAO("Backup no Google Drive"),
 #endif
   ESC("Tamanho do buffer", V_BUFFER, 4),
@@ -2155,7 +2156,7 @@ static const char *CHAVE[] = {
   "tunneledPlaybackLocal",
   "dv7ConversionLocal",
   "fonteInfoLocal",
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
   "-googleDriveBackup",
 #endif
   "bufferLiveLocal",
@@ -9544,8 +9545,10 @@ static void eventoTela(const SDL_Event *e) {
     if (focoOp == AJ_ENVIAR_LOG) { registro_envio_abrir(); return; }
     if (focoOp == AJ_AVISO_LEGAL) { registro_legal_abrir(); return; }
     if (focoOp == AJ_VER_REGISTRO) { registro_abrir(); return; }
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
     if (focoOp == AJ_DRIVE_BACKUP) { drivebackup_abrir(); return; }
+#endif
+#ifdef NV_ANDROID
     if (focoOp == AJ_BAIXAR_REGISTRO) {
       android_baixar_registro(registro_arquivo(), i18n("Registro salvo."),
                              i18n("Não foi possível salvar o registro. Tente outro local."));

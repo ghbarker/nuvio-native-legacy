@@ -343,7 +343,7 @@
   0, /* tunneled playback: Off */
   1, /* experimental P7 conversion: Off until explicitly enabled */
   1, /* prepared source details (#457): off, preserve the existing title layout */
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
   0, /* Google Drive backup action */
 #endif
   0, /* Live TV buffer allowance: Automatic */
