@@ -30,7 +30,7 @@
 #include <assert.h>
 
 static RecContato fxC[REC_CONTATOS_MAX];
-static int fxN, fxEstado, fxTemPerfis, fxAdicionou;
+static int fxN, fxEstado, fxTemPerfis, fxAdicionou, fxSettings;
 static uint64_t fxSessao=1;
 int fx_perfis_carregar(void) { return 1; }
 int fx_perfis_estado(void) { return AP_PRONTO; }
@@ -108,6 +108,7 @@ static void captura(const char *dir, const char *nome, SDL_Window *win) {
     recenviar_atualizar(1.0f / 60.0f, relogio);
     glClearColor(.03f,.03f,.035f,1); glClear(GL_COLOR_BUFFER_BIT);
     if (vidroFundoAtivo()) vidroFundoDesenhar(); else shot_arte_desenhar(0);
+    if(fxSettings)ajustes_desenhar(relogio);
     recenviar_desenhar(relogio);
     if (q == 69) {
       unsigned char *pix = malloc(1920*1080*4);
@@ -190,6 +191,17 @@ int main(int argc,char **argv) {
   if (getenv("NUVIO_VIDRO_ILHA")) return ilhaTeste(win);
   if (getenv("NUVIO_SHOT_PROFILE_FRIENDS")) {
     fxTemPerfis=1;fxN=0;
+    extern int ajustes_teste_op_por_chave(const char *);
+    extern int ajustes_teste_focar_opcao(int);
+    ajustes_iniciar();
+    int op=ajustes_teste_op_por_chave("-amigosPerfis");assert(op>=0);
+    assert(ajustes_teste_focar_opcao(op));fxSettings=1;
+    captura(out,"settings-entry",win);
+    SDL_Event click={0};click.type=SDL_KEYDOWN;click.key.keysym.sym=SDLK_RETURN;
+    ajustes_evento(&click);quadros(3);
+    assert(aberto && pagina==RE_PAG_PERFIS && perfisDireto && nLinhas()==4);
+    captura(out,"settings-picker",win);
+    tecla(SDLK_AC_BACK);assert(!recenviar_aberto());fxSettings=0;
     recenviar_abrir_amigos();quadros(3);
     assert(nLinhas()==3 && linhaTipo(2)==RL_PERFIS);
     teclaN(SDLK_DOWN,2);tecla(SDLK_RETURN);
