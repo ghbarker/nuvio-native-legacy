@@ -154,7 +154,12 @@ static int ordem(const void *a, const void *b) {
   int gx = x->estado == 1 ? 0 : x->estado == 0 ? 1 : 2;
   int gy = y->estado == 1 ? 0 : y->estado == 0 ? 1 : 2;
   if (gx != gy) return gx - gy;
-  return x->inicio < y->inicio ? -1 : x->inicio > y->inicio;
+  if(x->inicio!=y->inicio)return x->inicio<y->inicio?-1:1;
+  /* qsort is not stable on every platform. Equal kickoffs must not exchange
+   * cards whenever a date page or score refresh republishes the list. */
+  int m=strcmp(x->modalidade,y->modalidade);if(m)return m;
+  int l=strcmp(x->ligaId,y->ligaId);if(l)return l;
+  return strcmp(x->id,y->id);
 }
 static void *buscar(void *arg) {
   EspJob *j = arg;
