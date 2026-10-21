@@ -1,14 +1,15 @@
-name: Simkl and account-profile checks
+name: Drive and font platform parity checks
 on:
   workflow_dispatch:
 jobs:
-  checks:
+  native:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15-intel]
+        feature: [drive, fonts]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
     env:
@@ -17,35 +18,102 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 2f0f3d34324b0846f4b10fa0f15dce143a4384a8
           persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
+          ref: ${{ matrix.feature == 'drive' && '52fa6f009' || 'e07307875' }}
       - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev libmbedtls-dev python3-cryptography
       - name: macOS dependencies
         if: runner.os == 'macOS'
         run: |
-          brew install pkg-config sdl2
+          brew install pkg-config sdl2 sdl2_image sdl2_ttf mbedtls@3
           echo "C_INCLUDE_PATH=$(brew --prefix)/include:$(brew --prefix)/include/SDL2" >> "$GITHUB_ENV"
           echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
           echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
-      - name: Account ownership and direct profile pairing
-        run: node --test servidor/recomendacoes/teste-identidade.mjs > account-server-checks.log 2>&1
-      - name: Normal and sanitizer regressions
+          python3 -m venv "$RUNNER_TEMP/backup-python"
+          "$RUNNER_TEMP/backup-python/bin/pip" install cryptography
+          echo "$RUNNER_TEMP/backup-python/bin" >> "$GITHUB_PATH"
+      - name: Drive checks
+        if: matrix.feature == 'drive'
         shell: bash
         run: |
           set -euo pipefail
-          for script in tests/simklauth.sh tests/simklauth_v2.sh tests/simkl_scrobble.sh tests/amigosperfis.sh; do
-            logfile="$(basename "$script" .sh)-checks.log"
-            bash "$script" > "$logfile" 2>&1
-            SANITIZE=1 bash "$script" >> "$logfile" 2>&1
-            tail -12 "$logfile"
+          sh tools/backup-crypto-source.sh "$PWD/build/backup-crypto-source"
+          sh tools/build-backup-crypto.sh "$PWD/build/backup-crypto-source/mbedtls-3.6.7" "$PWD/build/backup-crypto-test"
+          export MBEDTLS_INCLUDE="$PWD/build/backup-crypto-test/include"
+          export MBEDTLS_LIBRARY="$PWD/build/backup-crypto-test/lib/libnuvio-backup-crypto.a"
+          bash tests/backupcrypto.sh > crypto-checks.log 2>&1
+          for test in tests/drivevinculo.sh tests/drivetv.sh tests/backupdisco.sh; do
+            logfile="$(basename "$test" .sh)-checks.log"
+            bash "$test" > "$logfile" 2>&1
+            SANITIZE=1 bash "$test" >> "$logfile" 2>&1
+            tail -8 "$logfile"
           done
+          bash tests/drivebackup.sh > drive-modal-checks.log 2>&1
+          tail -5 drive-modal-checks.log
+      - name: Font checks
+        if: matrix.feature == 'fonts'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/idiomas.py > translations-checks.log
+          for sanitizer in 0 1; do
+            SANITIZE="$sanitizer" bash tests/fonteurl.sh >> url-checks.log 2>&1
+            SANITIZE="$sanitizer" bash tests/legfontes.sh >> android-registry-checks.log 2>&1
+            FONT_URL_TEST=1 SANITIZE="$sanitizer" bash tests/legfontes.sh >> tv-registry-checks.log 2>&1
+          done
+          tail -8 url-checks.log
+          tail -8 tv-registry-checks.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: logs94-auth-profile-checks-${{ matrix.os }}
+          name: platform-parity-${{ matrix.feature }}-${{ matrix.os }}
           path: '*-checks.log'
+          if-no-files-found: warn
+  wasm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: 52fa6f009
+          path: drive
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: e07307875
+          path: fonts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '4.0.17'
+          actions-cache-folder: emsdk-cache
+      - name: Install browser test dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/browser-tests" playwright
+          "$RUNNER_TEMP/browser-tests/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Compile shared backup primitives for WASM
+        working-directory: drive
+        run: |
+          sh tools/backup-crypto-source.sh "$PWD/build/backup-crypto-source"
+          CC=emcc AR=emar CFLAGS='-O2 -pthread' sh tools/build-backup-crypto.sh "$PWD/build/backup-crypto-source/mbedtls-3.6.7" "$PWD/build/backup-crypto-wasm"
+      - name: Real browser persistence and restore
+        working-directory: drive
+        run: |
+          NODE_PATH="$RUNNER_TEMP/browser-tests/node_modules" EMCC="$(command -v emcc)" BACKUP_CRYPTO_ROOT="$PWD/build/backup-crypto-wasm" node tests/backup_wasm.cjs > ../wasm-checks.log 2>&1
+          tail -20 ../wasm-checks.log
+      - name: Compile TV font integration for WASM
+        working-directory: fonts
+        run: |
+          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/ajustes.c src/legfontes.c src/fonteurl.c > ../wasm-font-checks.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-parity-wasm
+          path: '*-checks.log'
+          if-no-files-found: warn
