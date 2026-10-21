@@ -343,3 +343,6 @@
   0, /* tunneled playback: Off */
   1, /* experimental P7 conversion: Off until explicitly enabled */
   1, /* prepared source details (#457): off, preserve the existing title layout */
+#ifdef NV_ANDROID
+  0, /* Google Drive backup action */
+#endif
