@@ -48,7 +48,7 @@ jobs:
           assert v['social_service_configured'] and v['simkl_client_configured']
           subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs101.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20111','--version-name','2.0.111-test-logs99',
+            '--version-code','20111','--version-name','2.0.111-test-logs101',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
             '--output','Logs101-independent-verification.json'],check=True)
           v.update({'sports_product_commit':'00bae0c1b6765caabbc0df8198fcfb5380726997','sports_checks_run':39680768316,'sports_checks':'Linux and macOS Sports navigation, matching, bounded cache, quality persistence, artwork dimensions and deterministic match order; normal and ASan/UBSan; WGT shared compilation with and without touch','platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Sports artwork, quality selection and stable match-order preview; upstream PR unchanged pending user approval'})
