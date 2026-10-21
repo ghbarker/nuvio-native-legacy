@@ -346,3 +346,4 @@
 #ifdef NV_ANDROID
   0, /* Google Drive backup action */
 #endif
+  0, /* Live TV buffer allowance: Automatic */
