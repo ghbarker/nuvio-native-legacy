@@ -50,6 +50,8 @@ const char *simklauth_codigo(void);
 const char *simklauth_url(void);
 const char *simklauth_erro(void);
 
+// Blocking refresh for worker threads only; never call on the render thread.
+int simklauth_atualizar(void);
 void simklauth_cancelar(void);
 int  simklauth_carregar(void);    // le o token guardado; 1 quando havia
 // Token de acesso, ou "" quando nao ha vinculo. Existe desde que a Biblioteca

@@ -29,6 +29,13 @@
 #include <sys/wait.h>
 
 static char disco[256];
+const char *metaprov_idioma(void) { return "en-US"; }
+char *fichameta_ler(const char *c,long ttl) { (void)c;(void)ttl;return NULL; }
+int rede_pedir(const RedePedido *p,RedeResposta *r) { (void)p;(void)r;abort(); }
+void rede_resposta_limpar(RedeResposta *r) { (void)r;abort(); }
+char *rede_baixar_st_retry(const char *u,int s,const char *const *h,int *st,int *retry) {
+  (void)u;(void)s;(void)h;(void)st;(void)retry;abort();
+}
 char *dados_ler(const char *nome) {
   char caminho[512], buf[8192];
   FILE *f;
@@ -567,6 +574,26 @@ static void fallbackNaoTrocaDePerfil(void) {
   OK("P2: fallback do stop nao usa o perfil trocado e fica pendente para o original");
 }
 
+static void renovarJornal(void) {
+  const char *antigo="grant-access-old", *novo="grant-access-new";
+  char de[64],para[64];
+  unsigned long long h=14695981039346656037ULL;
+  for(const char *p=antigo;*p;p++)h=(h^(unsigned char)*p)*1099511628211ULL;
+  snprintf(de,sizeof de,"simkl-vistos-%016llx.txt",h);
+  h=14695981039346656037ULL;
+  for(const char *p=novo;*p;p++)h=(h^(unsigned char)*p)*1099511628211ULL;
+  snprintf(para,sizeof para,"simkl-vistos-%016llx.txt",h);
+  assert(dados_gravar(de,"tt8000001:1:1\ntt8000002:1:2\n"));
+  assert(dados_gravar(para,"tt8000002:1:2\ntt8000003:1:3\n"));
+  simkl_credencial_renovada(antigo,novo);
+  char *b=dados_ler(para);assert(b && !dados_ler(de));
+  assert(strstr(b,"tt8000001:1:1\n") && strstr(b,"tt8000002:1:2\n") && strstr(b,"tt8000003:1:3\n"));
+  const char *p=strstr(b,"tt8000002:1:2\n");assert(!strstr(p+1,"tt8000002:1:2\n"));free(b);
+  simkl_credencial_renovada(antigo,novo);
+  b=dados_ler(para);assert(b && strstr(b,"tt8000001:1:1\n"));free(b);
+  OK("access token refresh merges every pending watched mark without duplicates");
+}
+
 int main(int argc, char **argv) {
   char caminho[NVT_MAX]; nvt_set(caminho, sizeof caminho, "/nuvio-simkl-scr-XXXXXX");
   int fd = mkstemp(caminho), salvo = dup(1);
@@ -583,6 +610,7 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[1], "logout")) logoutDuranteEspera();
     else if (!strcmp(argv[1], "shutdown")) vistoSobreviveSaida();
     else if (!strcmp(argv[1], "perfil")) fallbackNaoTrocaDePerfil();
+    else if (!strcmp(argv[1], "refresh")) renovarJornal();
     else abort();
   } else {
     semVinculo();

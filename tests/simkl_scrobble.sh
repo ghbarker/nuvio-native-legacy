@@ -29,6 +29,7 @@ else
     "$tmp/simkl_scrobble" pause
     "$tmp/simkl_scrobble" shutdown
     "$tmp/simkl_scrobble" perfil
+    "$tmp/simkl_scrobble" refresh
     compilar 1100
     "$tmp/simkl_scrobble" logout
   fi

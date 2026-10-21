@@ -105,3 +105,8 @@ int main(void) {
   printf("simklauth_poll: tudo ok\n");
   return 0;
 }
+
+char *rede_postar_st(const char *u,int seg,const char *const *cab,const char *body,int *st) {
+  (void)u;(void)seg;(void)cab;(void)body;if(st)*st=0;return NULL;
+}
+void simkl_credencial_renovada(const char *a,const char *b) { (void)a;(void)b; }

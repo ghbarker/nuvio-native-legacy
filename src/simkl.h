@@ -187,5 +187,7 @@ void simkl_scrobble_drenar(unsigned ms);
 // desvincular). O token e de simklauth.c.
 void simkl_esquecer(void);
 void simkl_abrir_sessao(void);
+// Auth refresh keeps durable watched marks under the renewed credential.
+void simkl_credencial_renovada(const char *antigo,const char *novo);
 
 #endif
