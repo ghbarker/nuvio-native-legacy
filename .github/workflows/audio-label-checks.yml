@@ -4,11 +4,11 @@ on:
     inputs:
       mode:
         type: choice
-        options: [all, wasm, mac]
+        options: [all, wasm, mac, syntax]
         default: all
 jobs:
   native:
-    if: ${{ inputs.mode != 'wasm' }}
+    if: ${{ inputs.mode == 'all' || inputs.mode == 'mac' }}
     strategy:
       fail-fast: false
       matrix:
@@ -112,19 +112,26 @@ jobs:
           version: '4.0.17'
           actions-cache-folder: emsdk-cache
       - name: Install browser test dependencies
+        if: inputs.mode != 'syntax'
         run: |
           npm install --prefix "$RUNNER_TEMP/browser-tests" playwright
           "$RUNNER_TEMP/browser-tests/node_modules/.bin/playwright" install --with-deps chromium
       - name: Compile shared backup primitives for WASM
+        if: inputs.mode != 'syntax'
         working-directory: drive
         run: |
           sh tools/backup-crypto-source.sh "$PWD/build/backup-crypto-source"
           CC=emcc AR=emar CFLAGS='-O2 -pthread' sh tools/build-backup-crypto.sh "$PWD/build/backup-crypto-source/mbedtls-3.6.7" "$PWD/build/backup-crypto-wasm"
       - name: Real browser persistence and restore
+        if: inputs.mode != 'syntax'
         working-directory: drive
         run: |
           NODE_PATH="$RUNNER_TEMP/browser-tests/node_modules" EMCC="$(command -v emcc)" BACKUP_CRYPTO_ROOT="$PWD/build/backup-crypto-wasm" node tests/backup_wasm.cjs > ../wasm-checks.log 2>&1
           tail -20 ../wasm-checks.log
+      - name: Compile Drive menu and sign-in integration for WASM
+        working-directory: drive
+        run: |
+          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/ajustes.c src/drivebackup.c src/driveplatform.c src/drivevinculo.c > ../wasm-drive-ui-checks.log 2>&1
       - name: Compile TV font integration for WASM
         working-directory: fonts
         run: |

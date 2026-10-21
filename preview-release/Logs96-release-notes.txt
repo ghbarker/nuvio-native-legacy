@@ -1,0 +1,19 @@
+Platform-parity audit of our nine open PRs found missing import/auth adapters in
+#573 and #609. The other seven changes already use shared feature code.
+
+The staged product extensions add direct HTTPS font import for LG/Samsung and
+shared Google TV device-code authorization, installation-private connections,
+bundled AES/PBKDF2/GCM primitives and acknowledged WGT restore persistence.
+Android retains its native font picker, phone sign-in and encrypted token store.
+
+This APK is the Android regression preview; it is not an LG/Samsung package.
+Platform compilation and browser storage checks are reported separately. Physical
+TV authorization/operation has not been established by host tests.
+
+The Android APK source is pinned to the integration revision in the validation
+asset. Later Darwin-only header fixes have byte-identical Android preprocessing;
+they do not require rebuilding the successful Android binary.
+
+Install as Update without uninstalling. See Logs96-test-steps.txt. No new upstream
+PR or ready-for-review change is published before approval of this test build.
+Test-only logging and packaging remain outside upstream product commits.

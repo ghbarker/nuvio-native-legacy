@@ -1,0 +1,37 @@
+Logs96 — Drive and font platform-parity regression preview
+
+Install Nuvio-TV-Mobile-Test-Logs96.apk over Nuvio TV/Mobile Test and choose Update.
+Do not uninstall or clear app data. The package and persistent signer are retained.
+
+ANDROID / FIRE TV REGRESSION CHECKS
+1. Open Settings -> Appearance -> Interface font -> Import TTF/OTF font. Android keeps its
+   normal file picker. Choose a valid TTF/OTF you already have, then Confirm.
+2. Reopen Interface font and verify the imported font remains selected. Restart the app
+   and verify the selection, accounts and add-ons remain present.
+3. Open Settings -> Account and services -> Google Drive backup. Use your
+   existing Google connection, or connect your own Google account.
+4. Create a backup. Create and confirm a backup password, and keep it for restore.
+5. Change the interface font back to a bundled font. Restore the backup using
+   the password from step 4. Leave hardware settings unchecked for this test.
+6. Verify the imported font is selected again, accounts remain connected, and
+   add-ons load without requiring an app restart. Restart once to check storage.
+7. If you use custom main/second subtitle fonts, check each Font selection in
+   Settings -> Playback -> Main subtitle / Second subtitle and during playback.
+
+LG / SAMSUNG IMPLEMENTATION CHECKLIST
+This APK is Android; it cannot install on LG webOS or Samsung Tizen. Their new
+paths are in the separate product branches, with native/browser checks reported
+separately. A real TV package and Google authorization still need device validation.
+- In Appearance or either subtitle Font setting, Import TTF/OTF font opens the
+  app's normal keyboard for a direct HTTPS font URL, not Android's file picker.
+- Paste a link to an actual .ttf/.otf file, not a webpage, ZIP, or font catalog.
+- Confirm; reopen the picker and verify the imported font is selected.
+- Cancel an import and try an invalid URL: the previous font must remain intact.
+- Open Google Drive backup, approve the device code using your own Google account,
+  and verify backup/restore with the same Nuvio profile and backup password.
+- On WGT, verify the restored choices survive closing/reopening the app. A
+  successful memory-only restore is not sufficient.
+
+Retained preview features: Social service configuration and direct Profiles on
+this account entry from Logs95, plus Simkl V2 support. Same-account friend linking
+still requires the owner's matching /v1/contatos/perfis server deployment.
