@@ -16,7 +16,18 @@ void ilha_atividade(const char *t,float p) { (void)t;(void)p; }
 float anim_clamp(float v,float a,float b) { return fmaxf(a,fminf(v,b)); }
 void ponteiro_alvo_segurar(PonteiroFn f) { (void)f; }
 static unsigned rev=1;
-static int ligasProntas=1, visitasOcultas;
+static int ligasProntas=1, visitasOcultas, qualidadeFundo, aparelhoFraco;
+int esportes_fundo_qualidade(void){return qualidadeFundo;}
+int esportes_fundo_definir_qualidade(int q){qualidadeFundo=q;rev++;return 1;}
+int memlog_android_fraco(void){return aparelhoFraco;}
+long memlog_livre_mb(void){return 4096;}
+int ptv_gpu_fraca_atual(void){return 0;}
+int gfx_efeitos_minimos(void){return 0;}
+int ajustes_qualidade_imagem(void){return 1;}
+void ajustes_acento(float *r,float *g,float *b){*r=.8f;*g=.5f;*b=.1f;}
+float gfx_tex_aspect_atual;
+void gfx_cor(GfxRect r,float raio,float cr,float cg,float cb,float ca){(void)r;(void)raio;(void)cr;(void)cg;(void)cb;(void)ca;}
+void gfx_anel(GfxRect r,float raio,float esp,float cr,float cg,float cb,float ca){(void)r;(void)raio;(void)esp;(void)cr;(void)cg;(void)cb;(void)ca;}
 float nv_layout_w=1920,nv_layout_h=1080;
 static float escalaTeste=1;
 float gfx_escala_ui(void) { return escalaTeste; }
@@ -97,7 +108,7 @@ int guia_busca_programas(int i,time_t d,time_t a,int p,EpgProg *out,int cap) {
   *out=(EpgProg){eTeste.inicio,eTeste.inicio+7200,i==0?"Celtics vs Cavaliers":"Celtics vs Magic"};return 1;
 }
 /* Record calls from the real draw routine, without an SDL/GL runtime. */
-static int imagens,imagensDesenhadas,alvosGrade,icones,favAlvos;
+static int imagens,imagensDesenhadas,alvosGrade,icones,favAlvos,baixos,altos;
 void gfx_icone(GfxRect r,const char *n,float cr,float cg,float cb,float ca) { (void)n;(void)cr;(void)cg;(void)cb;(void)ca;assert(r.w>0 && r.h>0);icones++; }
 float gfx_escala(void) { return 1; }
 float gfx_escala_entrar(void) { return 1; }
@@ -123,7 +134,7 @@ TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float
   assert(w>0);TxtLinha t=txt_linha(e,s,r,g,b,a);if(t.w>w)t.w=(int)w;return t;
 }
 void txt_desenhar(TxtLinha t,float x,float y) { (void)t;(void)x;(void)y; }
-GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);imagens++;return 1; }
+GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);imagens++;if(strstr(url,"-low.jpg"))baixos++;if(strstr(url,"-high.jpg"))altos++;return 1; }
 float tex_aspecto(const char *url) { (void)url;return 2; }
 int tex_marca_escura(const char *url) { (void)url;return 0; }
 void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int b) {
@@ -220,7 +231,17 @@ int main(void) {
     mobileTeste=nv_layout_h>nv_layout_w;
     esportesui_fechar();esportesui_iniciar();imagens=imagensDesenhadas=0;esportesui_desenhar(1000);assert(imagens && imagens==imagensDesenhadas);
   }
-  pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG);pointerAtivar(1,0);tecla(SDLK_ESCAPE);assert(nItens==1 && indices[0]==1);
+  pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG);pointerAtivar(2,0);tecla(SDLK_ESCAPE);assert(nItens==1 && indices[0]==1);
+  /* All three quality choices use ordinary touch/remote settings rows. */
+  pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG && indices[0]==-1);esportesui_desenhar(1000);
+  pointerAtivar(0,0);assert(pagina==ESP_QUALIDADE && nItens==3 && nTopo()==1);esportesui_desenhar(1000);
+  pointerAtivar(1,0);assert(qualidadeFundo==1);tecla(SDLK_ESCAPE);assert(pagina==ESP_CONFIG);
+  tecla(SDLK_ESCAPE);assert(pagina==ESP_TODOS);
+  esportesui_recursos("fixture/art");baixos=altos=0;esportesui_desenhar(1000);assert(baixos && !altos);
+  qualidadeFundo=2;baixos=altos=0;esportesui_desenhar(1000);assert(altos && !baixos);
+  qualidadeFundo=0;aparelhoFraco=1;esportesui_iniciar();baixos=altos=0;esportesui_desenhar(1000);assert(baixos && !altos);
+  aparelhoFraco=0;esportesui_desenhar(1000);assert(!altos); /* Auto cannot flicker per frame. */
+  esportesui_iniciar();baixos=altos=0;esportesui_desenhar(1000);assert(altos && !baixos);
   for(int i=0;i<16;i++)habilitados[i]=0;
   timesFavTeste=nFavTeste=0;esportesui_fechar();esportesui_iniciar();assert(!nItens);esportesui_desenhar(1000);
   FonteCanal futuro={0};strcpy(futuro.id,"future");futuro.inicio=time(NULL)+3600;
