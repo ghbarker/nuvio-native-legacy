@@ -1,95 +1,51 @@
-name: Final integrated rebase validation 20261021
+name: Simkl and account-profile checks
 on:
   workflow_dispatch:
 jobs:
-  regression:
+  checks:
     strategy:
       fail-fast: false
       matrix:
-        include: [{"pr": "intro-fixture-final", "ref": "be613c39e70d4fb0697a9aa7d33e8636abe39379", "os": "ubuntu-24.04", "scripts": "tests/intro.sh"}, {"pr": "intro-fixture-final", "ref": "be613c39e70d4fb0697a9aa7d33e8636abe39379", "os": "macos-15-intel", "scripts": "tests/intro.sh"}, {"pr": "epg-fixture-final", "ref": "1543dbfb3f89397a72b0b178c365195945e1d5d6", "os": "ubuntu-24.04", "scripts": "tests/epg_accounts.sh"}, {"pr": "epg-fixture-final", "ref": "1543dbfb3f89397a72b0b178c365195945e1d5d6", "os": "macos-15-intel", "scripts": "tests/epg_accounts.sh"}]
-    name: PR ${{ matrix.pr }} / ${{ matrix.os }}
+        os: [ubuntu-24.04, macos-15-intel]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-      LIBGL_ALWAYS_SOFTWARE: "1"
-      SDL_AUDIODRIVER: dummy
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ matrix.ref }}
+          ref: 2f0f3d34324b0846f4b10fa0f15dce143a4384a8
           persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libcurl4-openssl-dev libssl-dev libxml2-dev libmbedtls-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev zlib1g-dev xvfb xauth python3-pil
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev
       - name: macOS dependencies
         if: runner.os == 'macOS'
-        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp libass fribidi openssl@3 mbedtls@3
-      - name: Independent crypto verification dependency
+        run: |
+          brew install pkg-config sdl2
+          echo "C_INCLUDE_PATH=$(brew --prefix)/include:$(brew --prefix)/include/SDL2" >> "$GITHUB_ENV"
+          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+          echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+      - name: Account ownership and direct profile pairing
+        run: node --test servidor/recomendacoes/teste-identidade.mjs > account-server-checks.log 2>&1
+      - name: Normal and sanitizer regressions
         shell: bash
         run: |
-          python3 -m venv "$RUNNER_TEMP/rebase-py"
-          "$RUNNER_TEMP/rebase-py/bin/python" -m pip install --quiet cryptography pillow
-          echo "$RUNNER_TEMP/rebase-py/bin" >> "$GITHUB_PATH"
-      - name: Normal and sanitizer regression invocations
-        shell: bash
-        env:
-          SCRIPTS: ${{ matrix.scripts }}
-        run: |
-          set +e
-          mkdir -p rebase-check-results
-          if [ "$(uname -s)" = Darwin ]; then
-            export PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-          fi
-          export C_INCLUDE_PATH="$(pkg-config --variable=includedir sdl2):$(pkg-config --variable=includedir sdl2)/SDL2:${C_INCLUDE_PATH:-}"
-          if [ "$(uname -s)" = Darwin ]; then
-            export NV_TEST_SDL3_PATH="$(brew --prefix sdl3)/lib/libSDL3.dylib"
-            test -f "$NV_TEST_SDL3_PATH"
-            cc() {
-              /usr/bin/cc "$@" || return $?
-              local output=a.out take=0 compile=0 item
-              for item in "$@"; do
-                if [ "$take" = 1 ]; then output="$item"; take=0; fi
-                case "$item" in -o) take=1;; -c|-E|-S) compile=1;; esac
-              done
-              if [ "$compile" = 0 ] && [ -f "$output" ]; then
-                ln -sf "$NV_TEST_SDL3_PATH" "$(dirname "$output")/libSDL3.dylib"
-              fi
-            }
-            export -f cc
-          elif [ "${{ matrix.pr }}" = upstream-epg ]; then
-            # Exercise the upstream fixture with the compiler used by Android/macOS.
-            cc() { clang "$@"; }
-            export -f cc
-          fi
-          failed=0
-          for sanitize in 0 1; do
-            for script in $SCRIPTS; do
-              name=$(basename "$script" .sh)
-              echo "START $script sanitize=$sanitize"
-              export SANITIZE="$sanitize" SCRIPT="$script" RESULT_LOG="rebase-check-results/$name-$sanitize.log"
-              python3 - <<'PYRUN'
-          import os,subprocess,sys,time,signal
-          cmd=['bash',os.environ['SCRIPT']]
-          if sys.platform.startswith('linux'):cmd=['xvfb-run','-a',*cmd]
-          with open(os.environ['RESULT_LOG'],'w') as log:
-              child=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
-              try: rc=child.wait(timeout=420)
-              except subprocess.TimeoutExpired:
-                  os.killpg(child.pid,signal.SIGKILL);child.wait();log.write('\nCHECK TIMEOUT after 420 seconds\n');rc=124
-          sys.exit(rc)
-          PYRUN
-              result=$?
-              echo "$script sanitize=$sanitize result=$result"
-              if [ "$result" -ne 0 ]; then tail -45 "rebase-check-results/$name-$sanitize.log"; failed=1; fi
-            done
+          set -euo pipefail
+          for script in tests/simklauth.sh tests/simklauth_v2.sh tests/simkl_scrobble.sh tests/amigosperfis.sh; do
+            logfile="$(basename "$script" .sh)-checks.log"
+            bash "$script" > "$logfile" 2>&1
+            SANITIZE=1 bash "$script" >> "$logfile" 2>&1
+            tail -12 "$logfile"
           done
-          exit "$failed"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rebase-${{ matrix.pr }}-${{ matrix.os }}
-          path: rebase-check-results/
+          name: logs94-auth-profile-checks-${{ matrix.os }}
+          path: '*-checks.log'
