@@ -18,7 +18,7 @@ static char salvoNome[160], salvo[27000];
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static int entrou, liberado, pedidos,pedidosFav,modoFav,segurarFav,entrouFav,modoCatalogo,pedidosCatalogo,pedidosLinha;
-static int segurarLinha, entrouLinha, erroLinha;
+static int segurarLinha, entrouLinha, erroLinha, segurarDatas, entrouData, pedidosPadrao;
 int ajustes_idioma(void) { return 1; }
 static const char *eventosNfl="{\"events\":["
  "{\"id\":\"game\",\"date\":\"2026-10-21T12:00Z\",\"name\":\"Team at Other\",\"competitions\":[{\"competitors\":[{\"team\":{\"id\":\"team\",\"displayName\":\"Team\"}},{\"team\":{\"id\":\"other\",\"displayName\":\"Other\"}}]}]},"
@@ -44,8 +44,10 @@ char *rede_baixar_medido_controle(const char *url,int s,const char *const *h,con
       pedidosCatalogo++;assert(strstr(url,"sport=football"));
       return strdup("{\"leagues\":[{\"slug\":\"nfl\",\"name\":\"NFL\"},{\"slug\":\"college-football\",\"name\":\"College football\"},{\"slug\":\"third\",\"name\":\"Third\"},{\"slug\":\"fourth\",\"name\":\"Fourth\"},{\"slug\":\"fifth\",\"name\":\"Fifth\"},{\"slug\":\"sixth\",\"name\":\"Sixth\"},{\"slug\":\"seventh\",\"name\":\"Seventh\"},{\"slug\":\"eighth\",\"name\":\"Eighth\"},{\"slug\":\"ninth\",\"name\":\"Ninth\"}]}");
     }
-    pthread_mutex_lock(&mutex);pedidosLinha++;entrouLinha=1;pthread_cond_broadcast(&cond);
-    while(segurarLinha)pthread_cond_wait(&cond,&mutex);
+    pthread_mutex_lock(&mutex);pedidosLinha++;entrouLinha=1;
+    int data=strstr(url,"dates=")!=NULL;if(data)entrouData=1;else pedidosPadrao++;
+    pthread_cond_broadcast(&cond);
+    while(segurarLinha || (segurarDatas && data))pthread_cond_wait(&cond,&mutex);
     int falha=erroLinha;pthread_mutex_unlock(&mutex);
     assert(strstr(url,"/scoreboard?") && !strstr(url,"/schedule?"));
     if(falha){m->status=503;return NULL;}return strdup(eventosNfl);
@@ -176,6 +178,17 @@ int main(void) {
   erroLinha=0;esportes_pedir_eventos(1,&nona,0);assert(esportes_eventos_n()==2);drenar();assert(!esportes_erro());
   pedidosAntes=pedidosLinha;esportes_pedir_eventos(1,&nona,0);drenar();assert(pedidosLinha==pedidosAntes);
   esportes_pedir_eventos(1,&nona,1);assert(esportes_eventos_n()==2);drenar();assert(pedidosLinha==pedidosAntes+1);
+  /* Back/reopen during date expansion resumes the remaining date pages;
+   * it does not fetch a default scoreboard that would blank cached games. */
+  pthread_mutex_lock(&mutex);segurarDatas=1;entrouData=0;pthread_mutex_unlock(&mutex);
+  esportes_pedir_eventos(1,&nfl,0);
+  int aguardando=0;
+  for(int k=0;k<3000;k++) {
+    esportes_passo();pausa();pthread_mutex_lock(&mutex);aguardando=entrouData;pthread_mutex_unlock(&mutex);if(aguardando)break;
+  }
+  assert(aguardando && esportes_eventos_n()==2 && !strcmp(esportes_evento(0)->ligaId,"nfl"));
+  esportes_cancelar();pthread_mutex_lock(&mutex);segurarDatas=0;pthread_cond_broadcast(&cond);pthread_mutex_unlock(&mutex);drenar();
+  pedidosAntes=pedidosPadrao;esportes_pedir_eventos(1,&nfl,0);assert(esportes_eventos_n()==2);drenar();assert(pedidosPadrao==pedidosAntes);
   /* An in-flight old-profile league response cannot revive the cached cards. */
   pthread_mutex_lock(&mutex);segurarLinha=1;entrouLinha=0;pthread_mutex_unlock(&mutex);
   esportes_pedir_eventos(1,&nona,1);esportes_passo();
