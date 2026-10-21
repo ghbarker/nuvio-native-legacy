@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: bc52c431ccf2a838bb37995af8fbc7d7ab5d1482
+          ref: 4abeea9ac6dbd4036cd302d7be08109978a7f82c
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: b656ec5a927327b5565ce150b1214faad22faca7
+          ref: 6dd0bb6b16fc1d70391432c53c076223a2252480
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
