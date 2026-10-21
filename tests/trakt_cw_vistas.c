@@ -139,3 +139,5 @@ int main(void) {
   puts("trakt_cw_vistas: PASS");
   return 0;
 }
+
+#include "trakt_transport_fixture.inc"

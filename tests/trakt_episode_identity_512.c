@@ -113,3 +113,5 @@ int main(int argc, char **argv) {
   puts("trakt_episode_identity_512: PASS");
   return 0;
 }
+
+#include "trakt_transport_fixture.inc"
