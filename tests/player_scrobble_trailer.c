@@ -8,11 +8,11 @@
 #undef trakt_scrobble_alvo
 #undef main
 #include "traktscrobble.h"   // SCR_EV_TOCANDO / SCR_EV_PAUSOU / SCR_EV_SAIU
-static double posTk[4], durTk[4], posSk[4], durSk[4];
-static int nTk[4], nSk[4];   // [SCR_EV_TOCANDO, SCR_EV_PAUSOU, SCR_EV_SAIU]
+static double posTk[SCR_EV_PONTO + 1], durTk[SCR_EV_PONTO + 1], posSk[SCR_EV_PONTO + 1], durSk[SCR_EV_PONTO + 1];
+static int nTk[SCR_EV_PONTO + 1], nSk[SCR_EV_PONTO + 1];   // [SCR_EV_TOCANDO, SCR_EV_PAUSOU, SCR_EV_SAIU]
 static void zera(void) { memset(nTk, 0, sizeof nTk); memset(nSk, 0, sizeof nSk); }
 int nv_cnt_trakt_scrobble(int ev, const char *id, double p, double d, double a, int x) {
-  (void)id; (void)a; (void)x; posTk[ev] = p; durTk[ev] = d; nTk[ev]++; return 0;
+  (void)id; (void)a; (void)x; assert(ev > 0 && ev <= SCR_EV_PONTO); posTk[ev] = p; durTk[ev] = d; nTk[ev]++; return 0;
 }
 int nv_cnt_trakt_scrobble_alvo(int ev, const TraktScrobbleAlvo *alvo,
                                double p, double d, double a, int x) {
@@ -20,7 +20,7 @@ int nv_cnt_trakt_scrobble_alvo(int ev, const TraktScrobbleAlvo *alvo,
   return nv_cnt_trakt_scrobble(ev, alvo->id, p, d, a, x);
 }
 int nv_cnt_simkl_scrobble(int ev, const char *id, double p, double d, double a, int x) {
-  (void)id; (void)a; (void)x; posSk[ev] = p; durSk[ev] = d; nSk[ev]++; return 0;
+  (void)id; (void)a; (void)x; assert(ev > 0 && ev <= SCR_EV_PONTO); posSk[ev] = p; durSk[ev] = d; nSk[ev]++; return 0;
 }
 // Abre o titulo `imdb` ("1 h 46 min" no catalogo) com a pipeline dizendo `d`.
 static void ao_vivo(const char *imdb, double d) {
