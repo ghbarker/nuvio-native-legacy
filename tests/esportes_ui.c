@@ -156,16 +156,27 @@ int main(void) {
   /* Missing, downloading and failed logos have a local, centered icon;
    * a recovered image replaces it without changing the card geometry. */
   GfxRect caixa={20,40,320,160};int ic=icones,draw=imagensDesenhadas;
-  logo("","menu_sports",caixa);assert(icones==ic+1 && !strcmp(ultimoIcone,"menu_sports"));
+  logo("",1,caixa);assert(icones==ic+1 && !strcmp(ultimoIcone,"esp_football"));
   assert(caixaIcone.x==100 && caixaIcone.y==40 && caixaIcone.w==160 && caixaIcone.h==160);
-  logo(NULL,"aj_shield",caixa);assert(icones==ic+2 && !strcmp(ultimoIcone,"aj_shield"));
-  imagemPronta=0;logo("https://art.example/missing.png","aj_shield",caixa);
-  logo("https://art.example/missing.png","aj_shield",caixa);
+  logo(NULL,0,caixa);assert(icones==ic+2 && !strcmp(ultimoIcone,"esp_soccer"));
+  imagemPronta=0;logo("https://art.example/missing.png",1,caixa);
+  logo("https://art.example/missing.png",1,caixa);
   assert(icones==ic+4 && imagensDesenhadas==draw);
-  imagemPronta=1;logo("https://art.example/recovered.png","aj_shield",caixa);
+  imagemPronta=1;logo("https://art.example/recovered.png",1,caixa);
   assert(icones==ic+4 && imagensDesenhadas==draw+1);
-  aspectoTeste=0;logo("https://art.example/invalid.png","aj_shield",caixa);
+  aspectoTeste=0;logo("https://art.example/invalid.png",1,caixa);
   assert(icones==ic+5 && imagensDesenhadas==draw+1);aspectoTeste=2;
+  for(int m=0;m<esportes_modalidades_n();m++) {
+    char esperado[80];snprintf(esperado,sizeof esperado,"esp_%s",esportes_modalidade(m)->id);
+    logo("",m,caixa);assert(!strcmp(ultimoIcone,esperado));
+    imagemPronta=0;logo("https://art.example/failed.png",m,caixa);imagemPronta=1;
+    assert(!strcmp(ultimoIcone,esperado));
+    EspEvento falta={0};snprintf(falta.modalidade,sizeof falta.modalidade,"%s",esportes_modalidade(m)->id);
+    falta.nParticipantes=2;int antes=icones;
+    linhaEvento(&falta,(GfxRect){0,0,470,294},0);
+    assert(icones==antes+3 && !strcmp(ultimoIcone,esperado));
+  }
+  logo("",-1,caixa);assert(!strcmp(ultimoIcone,"menu_sports"));
   strcpy(eTeste.id,"event");strcpy(eTeste.nome,"Celtics at Magic");strcpy(eTeste.modalidade,"basketball");strcpy(eTeste.ligaId,"nba");
   eTeste.nParticipantes=2;eTeste.estado=1;eTeste.inicio=time(NULL)-60;
   strcpy(eTeste.participantes[0].nome,"Celtics");strcpy(eTeste.participantes[1].nome,"Magic");

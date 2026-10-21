@@ -38,7 +38,15 @@ for sport in sports:
     assert low.stat().st_size < high.stat().st_size
     total += low.stat().st_size + high.stat().st_size
 assert total < 2 * 1024 * 1024, total
-for icon in ("aj_shield", "menu_sports"):
+for icon in ("menu_sports", *("esp_" + sport for sport in sports)):
     path = art.parent / "icones" / f"{icon}.png"
     assert path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), path
+fingerprints = set()
+for sport in sports:
+    path = art.parent / "icones" / f"esp_{sport}.png"
+    data = path.read_bytes()
+    assert struct.unpack_from(">II", data, 16) == (256, 256), path
+    assert (art.parent / "icones/esportes" / f"{sport}.svg").is_file(), sport
+    fingerprints.add(data)
+assert len(fingerprints) == len(sports), "Every sport needs its own distinct default"
 print(f"Sports backgrounds: {len(sports)} sports, {len(expected)} JPEGs, {total} bytes; Low/High sizes passed")
