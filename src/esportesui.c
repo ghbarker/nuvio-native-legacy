@@ -73,12 +73,12 @@ static void medidas(void) {
   colunas=(pagina==ESP_EVENTOS)?(int)((larguraLista+vao)/(minimo+vao)):1;
   if (colunas<1) colunas=1;
   if (colunas>5) colunas=5;
-  linhaH=telaFileiras()?270:pagina==ESP_EVENTOS?286:92;
+  linhaH=telaFileiras()?270:pagina==ESP_EVENTOS?310:92;
 }
 static int linhas(void) { return telaFileiras()?nGrupos:(nItens+colunas-1)/colunas; }
 static int linhaFavoritos(void) { return pagina==ESP_TODOS && esportes_favoritos_times()>0; }
 static int focoFavorito(void) { return pagina==ESP_TODOS && foco>=FOCO_FAVORITO && foco<FOCO_LINHA; }
-static float alturaFavoritos(void) { return linhaFavoritos()?332.0f:0.0f; }
+static float alturaFavoritos(void) { return linhaFavoritos()?356.0f:0.0f; }
 static float larguraFavorito(void) { return fminf(470,larguraLista*.90f); }
 static const EspEvento *eventoFocado(void) {
   if(focoLinha())return NULL;
@@ -508,16 +508,16 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
   if(marca[0])logo(marca,e->liga,(GfxRect){x,r.y+12,34,34});
   txt(TXT_CAPTION2,meta,x+cab,r.y+20,w-cab,230);
   if(e->nParticipantes==2) {
-    float metade=w*.5f,sz=fminf(88,metade-42);
+    float metade=w*.5f,sz=fminf(160,metade-24);
     for(int i=0;i<2;i++) {
       const EspParticipante *p=&e->participantes[i];float px=x+i*metade;
-      logo(p->logo,p->sigla[0]?p->sigla:p->nome,(GfxRect){px+(metade-sz)*.5f,r.y+66,sz,sz});
+      logo(p->logo,p->sigla[0]?p->sigla:p->nome,(GfxRect){px+(metade-sz)*.5f,r.y+52,sz,sz});
       const char *nome=p->curto[0]?p->curto:p->nome;
       float placar=e->estado==1 || e->estado==2?(strlen(p->pontos)>3?96:55):0;
-      txt(TXT_BODY,nome,px+5,r.y+170,metade-10-placar,245);
-      if(placar)txt(placar>55?TXT_CAPTION2:TXT_BODY,p->pontos,px+metade-placar,r.y+170,placar-5,245);
+      txt(TXT_BODY,nome,px+5,r.y+224,metade-10-placar,245);
+      if(placar)txt(placar>55?TXT_CAPTION2:TXT_BODY,p->pontos,px+metade-placar,r.y+224,placar-5,245);
     }
-    txt(TXT_BODY,"×",r.x+r.w*.5f-10,r.y+99,24,245);
+    txt(TXT_BODY,"×",r.x+r.w*.5f-10,r.y+118,24,245);
   } else {
     logo(marca,e->liga,(GfxRect){x,r.y+72,78,78});
     txt(TXT_BODY,e->nome,x+96,r.y+84,w-96,245);
@@ -575,12 +575,12 @@ static void desenharFavoritos(void) {
   favoritosRolagem=fmaxf(0,fminf(favoritosRolagem,fmaxf(0,n*passo-vao-larguraLista)));
   txt(TXT_BODY,i18n("Favoritos"),xLista,y,larguraLista,245);
 #ifdef NV_TOUCH_UI
-  float de=fmaxf(topoLista,y+42),ate=fminf(topoLista+alturaLista,y+314);
+  float de=fmaxf(topoLista,y+42),ate=fminf(topoLista+alturaLista,y+338);
   toquerol_vincular(&toqueFavoritos,(GfxRect){xLista,de,larguraLista,fmaxf(0,ate-de)},gfx_escala(),0,n*passo-vao-larguraLista,0,&favoritosRolagem);
 #endif
   int primeiro=(int)(favoritosRolagem/passo),ultimo=primeiro+(int)(larguraLista/passo)+2;
   for(int i=primeiro;i<n && i<ultimo;i++) {
-    GfxRect r={xLista+i*passo-favoritosRolagem,y+42,cw,270};
+    GfxRect r={xLista+i*passo-favoritosRolagem,y+42,cw,294};
     const EspEvento *e=esportes_favoritos_evento(i);if(!e)continue;
     if(r.x>=xLista+larguraLista || r.x+r.w<=xLista)continue;
     linhaEvento(e,r,foco==FOCO_FAVORITO+i);
