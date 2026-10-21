@@ -1,153 +1,74 @@
-name: Drive and font platform parity checks
+name: Compatible account-profile Friends checks
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        type: choice
-        options: [all, wasm, mac, syntax]
-        default: all
+permissions:
+  contents: read
 jobs:
   native:
-    if: ${{ inputs.mode == 'all' || inputs.mode == 'mac' }}
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ inputs.mode == 'mac' && fromJSON('["macos-15-intel"]') || fromJSON('["ubuntu-24.04","macos-15-intel"]') }}
-        feature: [drive, fonts]
+        os: [ubuntu-24.04, macos-15]
+        source: [product, preview]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
-    permissions:
-      contents: read
+    timeout-minutes: 15
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      HOMEBREW_NO_AUTO_UPDATE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ${{ matrix.feature == 'drive' && '599bf7b9951467f5a6e5ebeb6dd6901b3abfb4c9' || '6892d1872a83e0268d851bc7967bfe8c16bc0259' }}
-      - name: Linux dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev libmbedtls-dev python3-cryptography
-      - name: macOS dependencies
-        if: runner.os == 'macOS'
-        run: |
-          brew install pkg-config sdl2 sdl2_image sdl2_ttf mbedtls@3
-          echo "C_INCLUDE_PATH=$(brew --prefix)/include:$(brew --prefix)/include/SDL2" >> "$GITHUB_ENV"
-          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
-          echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
-          if [ '${{ matrix.feature }}' = drive ]; then
-            python3 -m venv "$RUNNER_TEMP/backup-python"
-            "$RUNNER_TEMP/backup-python/bin/pip" install --only-binary=:all: 'cryptography>=42,<47'
-            echo "$RUNNER_TEMP/backup-python/bin" >> "$GITHUB_PATH"
-          fi
-      - name: Drive checks
-        if: matrix.feature == 'drive'
-        shell: bash
-        run: |
-          set -euo pipefail
-          sh tools/backup-crypto-source.sh "$PWD/build/backup-crypto-source"
-          sh tools/build-backup-crypto.sh "$PWD/build/backup-crypto-source/mbedtls-3.6.7" "$PWD/build/backup-crypto-test"
-          export MBEDTLS_INCLUDE="$PWD/build/backup-crypto-test/include"
-          export MBEDTLS_LIBRARY="$PWD/build/backup-crypto-test/lib/libnuvio-backup-crypto.a"
-          bash tests/backupcrypto.sh > crypto-checks.log 2>&1
-          for test in tests/drivevinculo.sh tests/drivetv.sh tests/backupdisco.sh; do
-            logfile="$(basename "$test" .sh)-checks.log"
-            bash "$test" > "$logfile" 2>&1
-            SANITIZE=1 bash "$test" >> "$logfile" 2>&1
-            tail -8 "$logfile"
-          done
-          bash tests/drivebackup.sh > drive-modal-checks.log 2>&1
-          tail -5 drive-modal-checks.log
-      - name: Font checks
-        if: matrix.feature == 'fonts'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/idiomas.py > translations-checks.log
-          for sanitizer in 0 1; do
-            SANITIZE="$sanitizer" bash tests/fonteurl.sh >> url-checks.log 2>&1
-            SANITIZE="$sanitizer" bash tests/legfontes.sh >> android-registry-checks.log 2>&1
-            FONT_URL_TEST=1 SANITIZE="$sanitizer" bash tests/legfontes.sh >> tv-registry-checks.log 2>&1
-          done
-          tail -8 url-checks.log
-          tail -8 tv-registry-checks.log
-      - name: Expose bounded native diagnostics
-        if: failure()
-        run: |
-          python3 - <<'PYLOG'
-          import pathlib
-          for p in pathlib.Path('.').glob('*-checks.log'):
-              message=p.read_text(errors='replace')[-7000:].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
-              print('::warning title='+p.name+'::'+message)
-          PYLOG
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: platform-parity-${{ matrix.feature }}-${{ matrix.os }}
-          path: '*-checks.log'
-          if-no-files-found: warn
-  wasm:
-    if: ${{ inputs.mode != 'mac' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: 599bf7b9951467f5a6e5ebeb6dd6901b3abfb4c9
-          path: drive
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: 6892d1872a83e0268d851bc7967bfe8c16bc0259
-          path: fonts
+          ref: ${{ matrix.source == 'product' && 'c259d5969bbf740a01b17d1f371f3f0406d082ed' || 'cd75ea9e3878f59eabb9df2c9b987575b19260f7' }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
+      - name: Profile-pairing protocol and ownership checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/amigosperfis.sh > worker-checks.log 2>&1
+          SANITIZE=1 bash tests/amigosperfis.sh >> worker-checks.log 2>&1
+          node --test servidor/recomendacoes/teste-identidade.mjs > server-checks.log 2>&1
+          cc -fsyntax-only -std=gnu11 -Isrc $(pkg-config --cflags sdl2 SDL2_ttf SDL2_image) src/recomenda.c > syntax-checks.log 2>&1
+          if [ '${{ runner.os }}' = Linux ]; then
+            for platform in NV_WEBOS NV_TPK; do
+              cc -fsyntax-only -std=gnu11 -D$platform -Isrc $(pkg-config --cflags sdl2 SDL2_ttf SDL2_image) src/recomenda.c >> syntax-checks.log 2>&1
+            done
+          fi
+          tail -3 worker-checks.log
+          tail -9 server-checks.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Logs97-friends-${{ matrix.os }}-${{ matrix.source }}
+          path: '*-checks.log'
+          if-no-files-found: error
+  wasm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: cd75ea9e3878f59eabb9df2c9b987575b19260f7
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
           actions-cache-folder: emsdk-cache
-      - name: Install browser test dependencies
-        if: inputs.mode != 'syntax'
+      - name: WGT shared worker and protocol fixture compilation
         run: |
-          npm install --prefix "$RUNNER_TEMP/browser-tests" playwright
-          "$RUNNER_TEMP/browser-tests/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Compile shared backup primitives for WASM
-        if: inputs.mode != 'syntax'
-        working-directory: drive
-        run: |
-          sh tools/backup-crypto-source.sh "$PWD/build/backup-crypto-source"
-          CC=emcc AR=emar CFLAGS='-O2 -pthread' sh tools/build-backup-crypto.sh "$PWD/build/backup-crypto-source/mbedtls-3.6.7" "$PWD/build/backup-crypto-wasm"
-      - name: Real browser persistence and restore
-        if: inputs.mode != 'syntax'
-        working-directory: drive
-        run: |
-          NODE_PATH="$RUNNER_TEMP/browser-tests/node_modules" EMCC="$(command -v emcc)" BACKUP_CRYPTO_ROOT="$PWD/build/backup-crypto-wasm" node tests/backup_wasm.cjs > ../wasm-checks.log 2>&1
-          tail -20 ../wasm-checks.log
-      - name: Compile Drive menu and sign-in integration for WASM
-        working-directory: drive
-        run: |
-          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/ajustes.c src/drivebackup.c src/driveplatform.c src/drivevinculo.c > ../wasm-drive-ui-checks.log 2>&1
-      - name: Compile TV font integration for WASM
-        working-directory: fonts
-        run: |
-          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/ajustes.c src/legfontes.c src/fonteurl.c > ../wasm-font-checks.log 2>&1
-      - name: Expose bounded WASM diagnostics
-        if: failure()
-        run: |
-          python3 - <<'PYLOG'
-          import pathlib
-          for p in pathlib.Path('.').glob('*-checks.log'):
-              message=p.read_text(errors='replace')[-7000:].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
-              print('::warning title='+p.name+'::'+message)
-          PYLOG
+          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/recomenda.c tests/amigosperfis_compat.c > wasm-checks.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: platform-parity-wasm
+          name: Logs97-friends-wasm
           path: '*-checks.log'
-          if-no-files-found: warn
+          if-no-files-found: error
