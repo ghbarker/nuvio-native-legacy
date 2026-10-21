@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ${{ matrix.feature == 'drive' && '52fa6f009' || 'e07307875' }}
+          ref: ${{ matrix.feature == 'drive' && '52fa6f009f18dd5050d4592e0fb12c3c77638f71' || 'e073078755278d6f174e5e729bb022becfbdad3d' }}
       - name: Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev libmbedtls-dev python3-cryptography
@@ -79,12 +79,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 52fa6f009
+          ref: 52fa6f009f18dd5050d4592e0fb12c3c77638f71
           path: drive
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: e07307875
+          ref: e073078755278d6f174e5e729bb022becfbdad3d
           path: fonts
       - uses: actions/setup-node@v4
         with:
