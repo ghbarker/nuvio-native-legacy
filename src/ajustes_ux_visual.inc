@@ -264,7 +264,7 @@ static const char *ajVisualIcone(int op) {
     case AJ_PLUGINS: return "aj_puzzle";
     case AJ_ADDONS_PRINCIPAL: return "aj_user-round";
     case AJ_PERFIL_PESQ: return "aj_user-round";
-    case AJ_PERFIL_EDITAR: return "aj_user-round";
+    case AJ_PERFIL_EDITAR: case AJ_AMIGOS_PERFIS: return "aj_user-round";
     case AJ_SAIR: return "aj_log-out";
     case AJ_TRAKT: return "aj_plug";
     case AJ_SIMKL: return "aj_plug";

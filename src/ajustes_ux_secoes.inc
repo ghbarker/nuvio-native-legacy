@@ -251,7 +251,7 @@ static int ajCenaSecao(int op) {
 #ifdef NV_ANDROID
     case AJ_DRIVE_BACKUP:
 #endif
-    case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_SAIR:
+    case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_AMIGOS_PERFIS: case AJ_SAIR:
       return AJC_CON_PERFIS;
     case AJ_ADDONS: case AJ_PLUGINS: case AJ_ADDONS_PRINCIPAL: return AJC_FON_ADDONS;
     case AJ_ENQUETES: return AJC_CON_AVISOS;

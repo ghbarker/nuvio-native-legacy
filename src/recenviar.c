@@ -109,7 +109,7 @@ static CatItem item;               // COPIA; ver recenviar.h
 static RecContato ctts[REC_CONTATOS_MAX];
 static int   nCtts;
 static AmigoPerfil perfisConta[CONTA_PERFIL_MAX];
-static int nPerfisConta, temPerfisConta;
+static int nPerfisConta, temPerfisConta, perfisDireto;
 static uint64_t aberturaSessao;
 static int primeiroAmigo(void) { return 2 + temPerfisConta; }
 static char  alvoId[96], alvoNome[64], alvoAvatar[256], alvoIdCor[96];
@@ -231,6 +231,7 @@ static void abrirComum(void) {
   aberturaSessao=perfis_sessao_geracao();
   temPerfisConta=perfis_n()>1;
   nPerfisConta=0;
+  perfisDireto=0;
   aberto = 1;
   foco = 0; topo = 0;
   alvoId[0] = 0; alvoNome[0] = 0; alvoAvatar[0] = 0; alvoIdCor[0] = 0;
@@ -269,6 +270,13 @@ int recenviar_abrir_amigos(void) {
   voltaParaContatos = 0;
   pagina = RE_PAG_AMIGOS;
   abrirComum();
+  return 1;
+}
+
+int recenviar_abrir_perfis(void) {
+  if (!recenviar_abrir_amigos()) return 0;
+  pagina=RE_PAG_PERFIS; perfisDireto=1;
+  amigosperfis_carregar();
   return 1;
 }
 
@@ -447,7 +455,11 @@ void recenviar_evento(const SDL_Event *e) {
       irPara(RE_PAG_MODELOS, modeloEsc);
       return;
     }
-    if (pagina == RE_PAG_PERFIS) { irPara(RE_PAG_AMIGOS,2); return; }
+    if (pagina == RE_PAG_PERFIS) {
+      if (perfisDireto) aberto=0;
+      else irPara(RE_PAG_AMIGOS,2);
+      return;
+    }
     if (pagina == RE_PAG_MODELOS)  { irPara(RE_PAG_CONTATOS, focoContato); return; }
     if (pagina == RE_PAG_AMIGOS && voltaParaContatos) {
       voltaParaContatos = 0;

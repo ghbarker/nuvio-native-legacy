@@ -347,3 +347,4 @@
   0, /* Google Drive backup action */
 #endif
   0, /* Live TV buffer allowance: Automatic */
+  0, /* direct account-profile friends action */
