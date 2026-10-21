@@ -55,6 +55,12 @@ int main(void) {
   assert(amigosperfis_estado()==AP_INDISPONIVEL && !amigosperfis_listar(a,8));
   assert(amigosperfis_carregar());stResposta=503;tratarPerfisConta(NULL);assert(amigosperfis_estado()==AP_ERRO);
   assert(amigosperfis_carregar());stResposta=200;resposta="{}";tratarPerfisConta(NULL);assert(amigosperfis_estado()==AP_ERRO);
+  assert(amigosperfis_carregar());
+  resposta="{\"perfis\":[{\"indice\":1e300},{\"indice\":-1e300},{\"indice\":2.5},"
+    "{\"indice\":3,\"id\":\"nuvio:account-a:3\",\"nome\":\"Çağrı\",\"estado\":\"disponivel\"}]}";
+  recPerfil=2;tratarPerfisConta(NULL);
+  assert(amigosperfis_listar(a,8)==1 && a[0].perfil.indice==3 && !strcmp(a[0].perfil.nome,"Çağrı"));
+  recPerfil=1;
   assert(amigosperfis_carregar());invalidar=1;tratarPerfisConta(NULL);
   assert(amigosperfis_estado()==AP_NADA && !amigosperfis_listar(a,8));
   strcpy(meuId,"trakt:unlinked");assert(amigosperfis_carregar());int antes=leituras;
