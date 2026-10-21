@@ -1,6 +1,7 @@
 #include "drivebackup.h"
 #include "drivelocal.h"
 #include "drivetv.h"
+#include "driveplatform.h"
 #include "perfis.h"
 #include "idioma.h"
 #include "ponteiro.h"
@@ -90,10 +91,8 @@ static void *executar(void *arg) {
   uint64_t agora=SDL_GetTicks64();
   switch(t->op) {
     case O_CARREGAR:
-#ifdef NV_ANDROID
-      {char *s=android_drive_vinculo_ler(t->contexto.usuario,t->contexto.perfil);
+      {char *s=driveplatform_vinculo_ler(t->contexto.usuario,t->contexto.perfil,t->cliente);
       if(s){snprintf(t->renovacao,sizeof t->renovacao,"%s",s);apagarMemoria(s,strlen(s));free(s);}}
-#endif
       t->resultado=t->renovacao[0]?drivetv_renovar(&tv,t->renovacao,agora,&t->token):0;break;
     case O_CODIGO:t->resultado=drivetv_iniciar(&tv,agora,&t->codigo);break;
     case O_POLL:t->resultado=drivetv_consultar(&tv,&t->codigo,agora,&t->token);break;
@@ -155,10 +154,10 @@ static void autorizar(int escolher) {
     if(!android_drive_autorizar((long long)D.pedido,escolher,escolher?"":D.acesso)) {
       D.pedido=0;D.repetir=0;aviso("O login Google não está disponível neste aparelho.");
     }
-  } else if(!iniciar(escolher?O_CODIGO:O_RENOVAR)){D.repetir=0;aviso("Não foi possível iniciar o login Google.");}
-#else
-  (void)escolher;D.repetir=0;aviso("O login Google não está disponível neste aparelho.");
+    return;
+  }
 #endif
+  if(!iniciar(escolher?O_CODIGO:O_RENOVAR)){D.repetir=0;aviso("Não foi possível iniciar o login Google.");}
 }
 void drivebackup_abrir(void) {
   drivebackup_fechar();D.aberta=1;D.mensagem="Faça backup das configurações locais deste perfil.";
@@ -166,15 +165,15 @@ void drivebackup_abrir(void) {
   D.grupo=rede_grupo_criar();
 #ifdef NV_ANDROID
   D.telefone=android_interface_mobile_auto();
+#endif
   if(!D.telefone) {
-    char *config=android_drive_configuracao_tv(),*p=config?strchr(config,'\n'):NULL;
+    char *config=driveplatform_configuracao_tv(),*p=config?strchr(config,'\n'):NULL;
     if(p && (size_t)(p-config)<sizeof D.cliente && strlen(p+1)<sizeof D.segredo) {
       *p=0;snprintf(D.cliente,sizeof D.cliente,"%s",config);snprintf(D.segredo,sizeof D.segredo,"%s",p+1);
       apagarMemoria(config,strlen(config)+strlen(p+1)+1);free(config);
       if(!iniciar(O_CARREGAR))aviso("Não foi possível iniciar o login Google.");
     } else {if(config){apagarMemoria(config,strlen(config));free(config);}D.mensagem="O login Google não está configurado nesta versão.";}
   }
-#endif
 }
 static void novaLista(void) {D.foco=0;D.offset=0;}
 static void pedirSenha(int etapa) {
@@ -247,15 +246,11 @@ void drivebackup_atualizar(void) {
       else if(r==DRIVE_TV_OK) {
         snprintf(D.acesso,sizeof D.acesso,"%s",t->token.acesso);snprintf(D.renovacao,sizeof D.renovacao,"%s",t->token.renovacao);
         aviso("Google Drive conectado.");
-#ifdef NV_ANDROID
-        if(!android_drive_vinculo_gravar(D.contexto.usuario,D.contexto.perfil,D.renovacao))D.mensagem="Conectado nesta sessão. Não foi possível salvar o login Google.";
-#endif
+        if(!driveplatform_vinculo_gravar(D.contexto.usuario,D.contexto.perfil,D.cliente,D.renovacao))D.mensagem="Conectado nesta sessão. Não foi possível salvar o login Google.";
         retomar();
       } else {
         D.repetir=0;apagarMemoria(D.acesso,sizeof D.acesso);apagarMemoria(D.renovacao,sizeof D.renovacao);
-#ifdef NV_ANDROID
-        if(r==DRIVE_TV_EXPIRADO)android_drive_vinculo_gravar(D.contexto.usuario,D.contexto.perfil,"");
-#endif
+        if(r==DRIVE_TV_EXPIRADO)driveplatform_vinculo_gravar(D.contexto.usuario,D.contexto.perfil,D.cliente,"");
         aviso(r==DRIVE_TV_CONFIGURACAO?"O login Google não está configurado nesta versão.":
               r==DRIVE_TV_NEGADO?"O Google Drive não autorizou esta operação.":
               r==DRIVE_TV_EXPIRADO?"O login Google expirou. Conecte novamente.":"Não foi possível iniciar o login Google.");
@@ -306,9 +301,7 @@ static void ativar(int idx,int b) {
     } else if(idx==1){*D.pagina=0;D.mensagem="Buscando backups no Google Drive…";if(!iniciar(O_LISTAR))erroLocal(DRIVE_LOCAL_REDE);}
     else if(idx==2){apagarMemoria(D.acesso,sizeof D.acesso);apagarMemoria(D.renovacao,sizeof D.renovacao);autorizar(1);}
     else if(idx==3) {
-#ifdef NV_ANDROID
-      if(!android_drive_vinculo_gravar(D.contexto.usuario,D.contexto.perfil,"")){aviso("Não foi possível remover o login Google deste aparelho.");return;}
-#endif
+      if(!driveplatform_vinculo_gravar(D.contexto.usuario,D.contexto.perfil,D.cliente,"")){aviso("Não foi possível remover o login Google deste aparelho.");return;}
       apagarMemoria(D.acesso,sizeof D.acesso);apagarMemoria(D.renovacao,sizeof D.renovacao);aviso("Google Drive desconectado neste aparelho.");
     } else voltar();
   } else if(D.estado==V_LISTA) {

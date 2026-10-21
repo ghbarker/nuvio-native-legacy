@@ -6,6 +6,9 @@
 #include "backupstores.h"
 #include "backupfonts.h"
 #include "backupcrypto.h"
+#ifdef __EMSCRIPTEN__
+#include "dados.h"
+#endif
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -87,6 +90,18 @@ static int gravarArquivo(BackupDisco *d,const char *arq,const char *s,size_t n) 
     if(k<0 && errno==EINTR)continue;
     if(k<=0)ok=0;else feito+=(size_t)k;
   }
+#ifdef __EMSCRIPTEN__
+  if(ok && existe) {
+    struct stat antes,novo;
+    if(fstatat(d->raiz,arq,&antes,AT_SYMLINK_NOFOLLOW) || fstat(fd,&novo))ok=0;
+    else if(novo.st_mtim.tv_sec<antes.st_mtim.tv_sec ||
+      (novo.st_mtim.tv_sec==antes.st_mtim.tv_sec && novo.st_mtim.tv_nsec/1000000<=antes.st_mtim.tv_nsec/1000000)) {
+      struct timespec tempo[2]={novo.st_atim,antes.st_mtim};tempo[1].tv_nsec+=1000000;
+      if(tempo[1].tv_nsec>=1000000000){tempo[1].tv_sec++;tempo[1].tv_nsec-=1000000000;}
+      ok=futimens(fd,tempo)==0;
+    }
+  }
+#endif
   if(ok)ok=sincronizar(fd);
   if(close(fd)!=0)ok=0;
   if(ok)ok=renameat(d->raiz,tmp,d->raiz,arq)==0;
@@ -141,7 +156,7 @@ static int ler(void *ctx,const char *dono,int perfil,int tipo,char **out,size_t 
   if(ok)ok=backupstores_exportar(b,out,n);
   backupstores_liberar(b);return ok?1:-1;
 }
-static int gravar(void *ctx,const char *dono,int perfil,int tipo,const char *s,size_t n) {
+static int gravarInterno(void *ctx,const char *dono,int perfil,int tipo,const char *s,size_t n) {
   BackupDisco *d=ctx;char arq[160];
   if(!d || !s || n>(tipo==BACKUP_IO_DIARIO?BACKUP_LOCAL_MAX+128u:BACKUP_PARTE_MAX))return 0;
   if(tipo==BACKUP_FONTES_IMPORTADAS)return backupstores_nome(BS_HOME_ROWS,0,dono,perfil,arq,sizeof arq) && backupfonts_disco_gravar(d->raiz,s,n);
@@ -160,32 +175,51 @@ static int gravar(void *ctx,const char *dono,int perfil,int tipo,const char *s,s
   }
   backupstores_liberar(b);return ok;
 }
-static int apagar(void *ctx,const char *dono,int perfil,int tipo) {
+static int apagarInterno(void *ctx,const char *dono,int perfil,int tipo) {
   BackupDisco *d=ctx;char arq[160];
   // A bundle is always an existing logical module, even when it has no files.
   // Deleting it without a typed footprint would erase unrelated connections.
   return d && tipo!=BACKUP_LOCAIS && nome(dono,perfil,tipo,arq) && apagarArquivo(d,arq);
+}
+static int gravar(void *ctx,const char *dono,int perfil,int tipo,const char *s,size_t n) {
+#ifdef __EMSCRIPTEN__
+  if(!dados_backup_aguardar())return 0;
+  dados_fs_travar();
+#endif
+  int ok=gravarInterno(ctx,dono,perfil,tipo,s,n);
+#ifdef __EMSCRIPTEN__
+  dados_fs_liberar();
+  if(ok)ok=dados_backup_sincronizar();
+#endif
+  return ok;
+}
+static int apagar(void *ctx,const char *dono,int perfil,int tipo) {
+#ifdef __EMSCRIPTEN__
+  if(!dados_backup_aguardar())return 0;
+  dados_fs_travar();
+#endif
+  int ok=apagarInterno(ctx,dono,perfil,tipo);
+#ifdef __EMSCRIPTEN__
+  dados_fs_liberar();
+  if(ok)ok=dados_backup_sincronizar();
+#endif
+  return ok;
 }
 static int atual(void *ctx,const char *dono,int perfil,uint64_t sessao) {
   BackupDisco *d=ctx;return d && d->atual && d->atual(d->ctx,dono,perfil,sessao);
 }
 BackupDisco *backupdisco_abrir(const char *dir,BackupSessaoAtual verificar,void *ctx) {
 #ifdef __EMSCRIPTEN__
-  // IDBFS requires an asynchronous persistent-storage adapter, not fsync().
-  (void)dir;(void)verificar;(void)ctx;return NULL;
-#else
+  if(!dados_persistente())return NULL;
+#endif
   if(!dir || !*dir)return NULL;
   int fd=open(dir,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);if(fd<0)return NULL;
   BackupDisco *d=calloc(1,sizeof *d);if(!d){close(fd);return NULL;}
   d->raiz=fd;d->atual=verificar;d->ctx=ctx;return d;
-#endif
 }
 void backupdisco_fechar(BackupDisco *d){if(d){close(d->raiz);free(d);}}
 BackupIO backupdisco_io(BackupDisco *d){return (BackupIO){d,ler,gravar,apagar,atual};}
 int backupdisco_recuperar_arranque(const char *dir) {
-#ifdef __EMSCRIPTEN__
-  (void)dir;return BACKUP_RESTORE_NADA;
-#else
   if(!dir || !*dir)return BACKUP_RESTORE_INVALIDO;
   // Probe only the fixed private journal. No change to ordinary startup and
   // no fsync/temporary file when this installation has no pending restore.
@@ -197,5 +231,4 @@ int backupdisco_recuperar_arranque(const char *dir) {
   BackupDisco *d=backupdisco_abrir(dir,NULL,NULL);if(!d)return BACKUP_RESTORE_RECUPERAR;
   BackupIO io=backupdisco_io(d);int resultado=backuprestauro_recuperar(&io);
   backupdisco_fechar(d);return resultado;
-#endif
 }

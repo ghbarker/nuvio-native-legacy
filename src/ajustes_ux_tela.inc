@@ -243,7 +243,7 @@ static const Item TELA[] = {
   SEC("Conta e serviços", "Perfil, sincronização, Trakt, Simkl e avisos", "aj_user-round"),
     ROT("Perfil"),
       OPC(AJ_PERFIL_ATIVO), OPC(AJ_SYNC),
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
       OPC(AJ_DRIVE_BACKUP),
 #endif
       OPC(AJ_PERFIL_PESQ), OPC(AJ_PERFIL_EDITAR), OPC(AJ_SAIR),

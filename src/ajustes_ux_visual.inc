@@ -255,7 +255,7 @@ static const char *ajVisualIcone(int op) {
     case AJ_LIVETV_SUGERIR: return "aj_layers";
     case AJ_PERFIL_ATIVO: return "aj_user-round";
     case AJ_SYNC: return "aj_cloud";
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
     case AJ_DRIVE_BACKUP: return "aj_cloud";
 #endif
     case AJ_ADDONS: return "aj_user-round";

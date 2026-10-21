@@ -247,7 +247,7 @@ static int ajCenaSecao(int op) {
     case AJ_LIVETV_SUGERIR:
       return AJC_TV_PROVEDOR;
     case AJ_PERFIL_ATIVO: case AJ_SYNC:
-#ifdef NV_ANDROID
+#ifdef NV_DRIVE_UI
     case AJ_DRIVE_BACKUP:
 #endif
     case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_SAIR:
