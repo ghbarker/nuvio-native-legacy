@@ -1,0 +1,10 @@
+Nuvio TV/Mobile Test Logs103
+
+Install as an update to your existing Nuvio TV/Mobile Test app. Do not uninstall it.
+
+1. Open Sports, then a league. On cards with missing logos, American football uses a football, basketball a basketball, soccer a soccer ball, hockey a stick/puck, tennis a racket/ball, and the other sports their own symbol. Both team and league placeholders use the event or league sport. Existing official logos still load normally.
+2. Check another sport if you have missing images there. Its default should differ from the first sport's. There are 16 distinct bundled symbols, covering every supported sport, including separate rugby/rugby-league and Australian football graphics.
+3. Missing, pending and failed image downloads use the same sport-specific default. A successful download replaces it with the actual logo. If all visible teams have artwork, you will keep seeing the actual logos; offline tests and rendered fixtures cover absent/broken images for every sport.
+4. Check that the bottom-left idle ESPN label is still gone. Try Back, touch/remote navigation, source playback, and Sports > Settings > Image quality > Low/High/Automatic.
+
+Automated checks cover all 16 default selections, actual match-card drawing with absent team/league images, download failure and recovery, centered icon geometry, distinct packaged PNG files, navigation, source matching, cache behavior, and match ordering. Runs include Linux/macOS normal and ASan/UBSan, plus shared WGT source compilation. Android is the packaged preview; LG/Samsung packages are not built or device-tested here.

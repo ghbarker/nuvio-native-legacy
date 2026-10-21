@@ -1,0 +1,3 @@
+Sports default logos now follow the sport: 16 original monochrome symbols replace missing team and league artwork, including failed or pending downloads. Real logos replace the defaults when available. The complete PNG set adds about 100 KB and uses the normal shared icon renderer and bundled-asset pipeline.
+
+Retains the large logos, sport backgrounds with Low/High/Automatic quality, stable match ordering, and removal of the idle ESPN footer. Install over the existing Nuvio TV/Mobile Test app and follow Logs103-test-steps.txt. Upstream PR unchanged pending user approval.
