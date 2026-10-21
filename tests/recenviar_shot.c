@@ -94,6 +94,7 @@ static void quadros(int n) {
     relogio += 16;
     SDL_PumpEvents(); txt_novo_quadro(); tex_novo_quadro();
     tex_bombear(6); gfx_novo_quadro();
+    if(fxSettings)ajustes_atualizar(1.0f/60.0f,relogio);
     recenviar_atualizar(1.0f / 60.0f, relogio);
   }
 }
@@ -105,6 +106,7 @@ static void captura(const char *dir, const char *nome, SDL_Window *win) {
     relogio += 16;
     SDL_PumpEvents(); txt_novo_quadro(); tex_novo_quadro();
     tex_bombear(6); gfx_novo_quadro();
+    if(fxSettings)ajustes_atualizar(1.0f/60.0f,relogio);
     recenviar_atualizar(1.0f / 60.0f, relogio);
     glClearColor(.03f,.03f,.035f,1); glClear(GL_COLOR_BUFFER_BIT);
     if (vidroFundoAtivo()) vidroFundoDesenhar(); else shot_arte_desenhar(0);
