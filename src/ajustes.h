@@ -784,13 +784,17 @@ int ajustes_mesclar_blob(const char *base, char **saida);
 unsigned long long ajustes_sync_hash(void);
 // Scalar local-settings backup foundation. Scope 0 is this device's settings;
 // scope 1 is profile-local settings. Input is the native key/value file, not
-// a Nuvio account blob. Export excludes account-synced values; merge rejects
-// forbidden keys and validates the complete backup before producing output.
+// a Nuvio account blob. Export excludes account-synced values; merge logs and
+// skips incompatible settings, preserving their current values. Structural
+// errors (headers, size limits, duplicate keys) still reject the backup.
 // Both functions are pure: no disk writes, runtime changes or network access.
 // Call after Settings has initialized dynamic choices. Caller frees *saida.
 enum { AJ_BACKUP_APARELHO = 0, AJ_BACKUP_PERFIL = 1, AJ_BACKUP_HARDWARE = 2 };
 int ajustes_backup_exportar(int perfil, const char *origem, char **saida);
 int ajustes_backup_mesclar(int perfil, const char *atual, const char *backup, char **saida);
+// Normalize legacy scalar sections before preview; hardware still needs opt-in.
+// Arrays use AJ_BACKUP_* indices. Caller frees all three output strings.
+int ajustes_backup_selecionar(const char *const entrada[3], int hardware, char *saida[3]);
 // Main thread: captures current values, including defaults not yet written.
 // Hardware/input choices have a separate opt-in restore scope. Account
 // sharing policy and telemetry consent remain owned by the destination.

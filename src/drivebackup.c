@@ -12,6 +12,7 @@
 #include "backupcrypto.h"
 #include "drivefontes.h"
 #include "dados.h"
+#include "ajustes.h"
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -138,6 +139,7 @@ static void aviso(const char *mensagem) {
   D.mensagem=mensagem;D.estado=*D.acesso?V_PRONTO:V_ENTRAR;D.foco=0;
 }
 static void erroLocal(int r) {
+  printf("[backup] Drive operation failed: result=%d\n",r);
   aviso(r==DRIVE_LOCAL_SENHA?"Senha incorreta ou backup danificado. Nenhuma configuração foi alterada.":
         r==DRIVE_LOCAL_NEGADO?"O Google Drive não autorizou esta operação.":
         r==DRIVE_LOCAL_AUSENTE?"Este backup não está mais disponível.":
@@ -178,6 +180,7 @@ static void novaLista(void) {D.foco=0;D.offset=0;}
 static void pedirSenha(int etapa) {
   D.estado=V_SENHA;D.senhaEtapa=etapa;
   teclado_abrir_com(etapa==2?"Confirme a senha do backup":etapa==3?"Senha deste backup":"Crie uma senha para o backup",
+    etapa==3?"Digite a senha que você usou ao criar este backup.":
     "Guarde esta senha. Ela será necessária para restaurar em outro aparelho e não pode ser recuperada.",1024,
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()-_=+[]{};:,.<>/?\\|`~\"\'",NULL);
   teclado_tipo(TECLADO_TIPO_SENHA);teclado_mascarar(1);teclado_aceitar_utf8(1);
@@ -265,7 +268,9 @@ void drivebackup_atualizar(void) {
     else if(t->op==O_BAIXAR) {
       apagarMemoria(D.senha,sizeof D.senha);
       BackupLocal *portavel=NULL;
-      int valido=backupapp_selecionar(&D.contexto,t->baixado,0,&portavel) && backupapp_validar(&D.contexto,portavel);
+      int selecionado=backupapp_selecionar(&D.contexto,t->baixado,0,&portavel);
+      int valido=selecionado && backupapp_validar(&D.contexto,portavel);
+      printf("[backup] download decrypted; selection=%d validation=%d\n",selecionado,valido);
       backuplocal_liberar(portavel);
       if(valido) {
         backuplocal_liberar(D.restauro);D.restauro=t->baixado;t->baixado=NULL;D.hardware=0;D.estado=V_CONFIRMAR;novaLista();
@@ -386,8 +391,13 @@ void drivebackup_desenhar(void) {
         label=data;
       } else label=(*D.lista.proxima && i==D.lista.n)?"Mais backups":"Voltar";
     }
-    if(i==D.foco)gfx_cor((GfxRect){x,ly,larg,altura-8},14,.22f,.24f,.29f,1);
-    txt_desenhar(txt_linha_corta(TXT_BODY,D.estado==V_LISTA && i<D.lista.n?label:i18n(label),255,255,255,255,larg-32),x+16,ly+18);
+    int tinta=255;
+    if(i==D.foco) {
+      float r,g,b;ajustes_acento(&r,&g,&b);
+      gfx_cor((GfxRect){x,ly,larg,altura-8},14.0f/(altura-8),r,g,b,1);
+      tinta=ajustes_tinta_foco();
+    }
+    txt_desenhar(txt_linha_corta(TXT_BODY,D.estado==V_LISTA && i<D.lista.n?label:i18n(label),tinta,tinta,tinta,255,larg-32),x+16,ly+18);
     ponteiro_alvo(x,ly,larg,altura-8,foco,ativar,i,0);
   }
   ESCALA_FIM();
