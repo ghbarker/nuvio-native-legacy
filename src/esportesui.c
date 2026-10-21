@@ -346,7 +346,7 @@ static void adicionar(const char *id, const char *nome, const char *fonte, const
     nCanais--;
   }
   int pos = nCanais;
-  if (confirmado) { for (pos = 0; pos < nCanais && canais[pos].confirmado; pos++); memmove(canais+pos+1, canais+pos, (size_t)(nCanais-pos)*sizeof *canais); }
+  if (confirmado) { for (pos = 0; pos < nCanais && canais[pos].confirmado; pos++) {} memmove(canais+pos+1, canais+pos, (size_t)(nCanais-pos)*sizeof *canais); }
   EspCanal *c = &canais[pos]; memset(c, 0, sizeof *c);
   snprintf(c->id, sizeof c->id, "%s", id); snprintf(c->nome, sizeof c->nome, "%s", nome);
   snprintf(c->fonte, sizeof c->fonte, "%s", fonte); c->confirmado = confirmado;
