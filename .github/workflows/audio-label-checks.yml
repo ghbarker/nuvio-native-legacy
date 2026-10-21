@@ -1,4 +1,4 @@
-name: Focused rebase compatibility checks 20261021
+name: Final integrated rebase validation 20261021
 on:
   workflow_dispatch:
 jobs:
@@ -6,10 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: [{"pr": 573, "ref": "93e03ea1130fbc266be26d3517f450b49dc41ad1", "os": "ubuntu-24.04", "scripts": "tests/text_largura.sh"}, {"pr": 573, "ref": "93e03ea1130fbc266be26d3517f450b49dc41ad1", "os": "macos-15-intel", "scripts": "tests/text_largura.sh"}, {"pr": 576, "ref": "a3c105f1cf200edf6fadaa008e0941bb786f4fed", "os": "ubuntu-24.04", "scripts": "tests/player_scrobble_trailer.sh tests/player_visto_trailer.sh tests/trakt_cw_vistas.sh tests/trakt_episode_identity_512.sh"}, {"pr": 576, "ref": "a3c105f1cf200edf6fadaa008e0941bb786f4fed", "os": "macos-15-intel", "scripts": "tests/player_scrobble_trailer.sh tests/player_visto_trailer.sh tests/trakt_cw_vistas.sh tests/trakt_episode_identity_512.sh"}]
+        include: [{"pr": "573-final", "ref": "93e03ea1130fbc266be26d3517f450b49dc41ad1", "os": "ubuntu-24.04", "scripts": "tests/ass_fonte_local.sh tests/ass_fontes.sh tests/faixas_estilo_ctl.sh tests/interface_font.sh tests/legfontes.sh tests/text_largura.sh"}, {"pr": "573-final", "ref": "93e03ea1130fbc266be26d3517f450b49dc41ad1", "os": "macos-15-intel", "scripts": "tests/ass_fonte_local.sh tests/ass_fontes.sh tests/faixas_estilo_ctl.sh tests/interface_font.sh tests/legfontes.sh tests/text_largura.sh"}, {"pr": "576-final", "ref": "a3c105f1cf200edf6fadaa008e0941bb786f4fed", "os": "ubuntu-24.04", "scripts": "tests/catalog_episode_identity512.sh tests/contapend.sh tests/episode_identity512.sh tests/player_scrobble_trailer.sh tests/player_visto_trailer.sh tests/trakt_alvos512.sh tests/trakt_contracts.sh tests/trakt_cw_vistas.sh tests/trakt_episode_identity_512.sh tests/visto_identidade512.sh"}, {"pr": "576-final", "ref": "a3c105f1cf200edf6fadaa008e0941bb786f4fed", "os": "macos-15-intel", "scripts": "tests/catalog_episode_identity512.sh tests/contapend.sh tests/episode_identity512.sh tests/player_scrobble_trailer.sh tests/player_visto_trailer.sh tests/trakt_alvos512.sh tests/trakt_contracts.sh tests/trakt_cw_vistas.sh tests/trakt_episode_identity_512.sh tests/visto_identidade512.sh"}, {"pr": "615-final", "ref": "00d81ca896463681531aad41708f1be5589e2183", "os": "ubuntu-24.04", "scripts": "tests/cwinicio.sh tests/player_identity524.sh tests/player_identity524_guards.sh tests/intro.sh"}, {"pr": "615-final", "ref": "00d81ca896463681531aad41708f1be5589e2183", "os": "macos-15-intel", "scripts": "tests/cwinicio.sh tests/player_identity524.sh tests/player_identity524_guards.sh tests/intro.sh"}, {"pr": "611-final", "ref": "651bd8e2e73f4a6677b8aa11f70220fc30054787", "os": "ubuntu-24.04", "scripts": "tests/source_audio_language.sh"}, {"pr": "611-final", "ref": "651bd8e2e73f4a6677b8aa11f70220fc30054787", "os": "macos-15-intel", "scripts": "tests/source_audio_language.sh"}, {"pr": "609-backup_restore_addons", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "ubuntu-24.04", "scripts": "tests/backup_restore_addons.sh"}, {"pr": "609-backup_restore_addons", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "macos-15-intel", "scripts": "tests/backup_restore_addons.sh"}, {"pr": "609-backupapp", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "ubuntu-24.04", "scripts": "tests/backupapp.sh"}, {"pr": "609-backupapp", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "macos-15-intel", "scripts": "tests/backupapp.sh"}, {"pr": "609-drivebackup", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "ubuntu-24.04", "scripts": "tests/drivebackup.sh"}, {"pr": "609-drivebackup", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "macos-15-intel", "scripts": "tests/drivebackup.sh"}, {"pr": "609-units", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "ubuntu-24.04", "scripts": "tests/backupconnections.sh tests/backupcrypto.sh tests/backupdisco.sh tests/backupfonts.sh tests/backuplocal.sh tests/backuprestauro.sh tests/backupstores.sh tests/drivefontes.sh tests/drivelocal.sh tests/drivetv.sh tests/ime_context.sh"}, {"pr": "609-units", "ref": "5b1af619b833ce9c8a08160baadb061a8092a261", "os": "macos-15-intel", "scripts": "tests/backupconnections.sh tests/backupcrypto.sh tests/backupdisco.sh tests/backupfonts.sh tests/backuplocal.sh tests/backuprestauro.sh tests/backupstores.sh tests/drivefontes.sh tests/drivelocal.sh tests/drivetv.sh tests/ime_context.sh"}, {"pr": "upstream-epg", "ref": "1890f9f674adf646df3360b01d3b303024da3494", "os": "ubuntu-24.04", "scripts": "tests/epg_accounts.sh"}, {"pr": "upstream-epg", "ref": "1890f9f674adf646df3360b01d3b303024da3494", "os": "macos-15-intel", "scripts": "tests/epg_accounts.sh"}, {"pr": "integration-source_audio_language", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "ubuntu-24.04", "scripts": "tests/source_audio_language.sh"}, {"pr": "integration-source_audio_language", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "macos-15-intel", "scripts": "tests/source_audio_language.sh"}, {"pr": "integration-interface_font", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "ubuntu-24.04", "scripts": "tests/interface_font.sh"}, {"pr": "integration-interface_font", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "macos-15-intel", "scripts": "tests/interface_font.sh"}, {"pr": "integration-backupapp", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "ubuntu-24.04", "scripts": "tests/backupapp.sh"}, {"pr": "integration-backupapp", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "macos-15-intel", "scripts": "tests/backupapp.sh"}, {"pr": "integration-backup_restore_addons", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "ubuntu-24.04", "scripts": "tests/backup_restore_addons.sh"}, {"pr": "integration-backup_restore_addons", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "macos-15-intel", "scripts": "tests/backup_restore_addons.sh"}, {"pr": "integration-player_scrobble_trailer", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "ubuntu-24.04", "scripts": "tests/player_scrobble_trailer.sh"}, {"pr": "integration-player_scrobble_trailer", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "macos-15-intel", "scripts": "tests/player_scrobble_trailer.sh"}, {"pr": "integration-units", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "ubuntu-24.04", "scripts": "tests/source_cache_filter.sh tests/catalog_episode_identity512.sh tests/episode_identity512.sh tests/fonteinfo.sh tests/esportes.sh tests/fontescanais_folha.sh tests/intro.sh tests/legfontes.sh tests/backupconnections.sh tests/backupdisco.sh tests/backuprestauro.sh"}, {"pr": "integration-units", "ref": "b8ba502c287e77e1b2787b7b213bf8713b6dc8e8", "os": "macos-15-intel", "scripts": "tests/source_cache_filter.sh tests/catalog_episode_identity512.sh tests/episode_identity512.sh tests/fonteinfo.sh tests/esportes.sh tests/fontescanais_folha.sh tests/intro.sh tests/legfontes.sh tests/backupconnections.sh tests/backupdisco.sh tests/backuprestauro.sh"}]
     name: PR ${{ matrix.pr }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 40
     permissions:
       contents: read
     env:
@@ -24,10 +24,16 @@ jobs:
           persist-credentials: false
       - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libcurl4-openssl-dev libssl-dev libxml2-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev zlib1g-dev xvfb xauth python3-pil
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libcurl4-openssl-dev libssl-dev libxml2-dev libmbedtls-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev zlib1g-dev xvfb xauth python3-pil
       - name: macOS dependencies
         if: runner.os == 'macOS'
-        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp libass fribidi ffmpeg openssl@3
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp libass fribidi openssl@3 mbedtls@3
+      - name: Independent crypto verification dependency
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/rebase-py"
+          "$RUNNER_TEMP/rebase-py/bin/python" -m pip install --quiet cryptography pillow
+          echo "$RUNNER_TEMP/rebase-py/bin" >> "$GITHUB_PATH"
       - name: Normal and sanitizer regression invocations
         shell: bash
         env:
@@ -39,6 +45,26 @@ jobs:
             export PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
           fi
           export C_INCLUDE_PATH="$(pkg-config --variable=includedir sdl2):$(pkg-config --variable=includedir sdl2)/SDL2:${C_INCLUDE_PATH:-}"
+          if [ "$(uname -s)" = Darwin ]; then
+            export NV_TEST_SDL3_PATH="$(brew --prefix sdl3)/lib/libSDL3.dylib"
+            test -f "$NV_TEST_SDL3_PATH"
+            cc() {
+              /usr/bin/cc "$@" || return $?
+              local output=a.out take=0 compile=0 item
+              for item in "$@"; do
+                if [ "$take" = 1 ]; then output="$item"; take=0; fi
+                case "$item" in -o) take=1;; -c|-E|-S) compile=1;; esac
+              done
+              if [ "$compile" = 0 ] && [ -f "$output" ]; then
+                ln -sf "$NV_TEST_SDL3_PATH" "$(dirname "$output")/libSDL3.dylib"
+              fi
+            }
+            export -f cc
+          elif [ "${{ matrix.pr }}" = upstream-epg ]; then
+            # Exercise the upstream fixture with the compiler used by Android/macOS.
+            cc() { clang "$@"; }
+            export -f cc
+          fi
           failed=0
           for sanitize in 0 1; do
             for script in $SCRIPTS; do
