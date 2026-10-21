@@ -22,6 +22,7 @@ static int uxValorAtual(int op) {
   if (op == AJ_SALVOS_DEST) return ajustes_fonte_biblioteca();
   if(op==AJ_GUIA_CATEGORIAS || op==AJ_IPTV_ACOES || op==AJ_IPTV_EXCLUIR)return 0;
   if(ajIptvGerenciador(op))return ajIptvQuantos(ajIptvTipo(op))?ajIptvAtualTipo(ajIptvTipo(op)):1;
+  if (ajFonte(op)) return ajFonteAtual(op);
   if (ajLegendaPrincipal(op)) return ajLegendaValor(op);
   if (ajFalhaBackend(op)) return ajFalhaValor(op);
   if (op == AJ_SEEKR_LIGADO && !seekrChave[0]) return 1;
@@ -103,7 +104,8 @@ static void uxValorTexto(int op, int v, char *buf, size_t tam) {
     snprintf(buf,tam,"%s",s);return;
   }
   o = &OPCOES[op];
-  if (o->tipo == OP_ACAO) texto = i18n("Abrir");
+  if (ajFonte(op)) texto = ajFonteNome(op, v);
+  else if (o->tipo == OP_ACAO) texto = i18n("Abrir");
   else if (o->tipo == OP_LEITURA) texto = i18n("Ver detalhes");
   else if (op == AJ_FILTRO_TAM_MAX && v == 0) texto = i18n("Sem limite de tamanho");
   else if (op == AJ_HERO_TRAILER_ESPERA) {
