@@ -8,7 +8,7 @@ config=$(CDPATH= cd -- "$(dirname "$0")" && pwd)/backup-mbedtls-config.h
 compiler=${CC:-cc}
 archiver=${AR:-ar}
 mkdir -p "$output/include/psa" "$output/include/mbedtls" "$output/lib" "$output/obj"
-fingerprint=$({ cat "$config"; "$compiler" --version; printf '%s' "${CFLAGS:-}"; } | cksum)
+fingerprint=$({ cat "$config" "$0" "$source_dir/include/mbedtls/version.h"; "$compiler" --version; printf '%s' "${CFLAGS:-}"; } | cksum)
 if [ -f "$output/.stamp" ] && [ "$(cat "$output/.stamp")" = "$fingerprint" ] && [ -f "$output/lib/libnuvio-backup-crypto.a" ]; then exit 0; fi
 cp "$source_dir"/include/mbedtls/*.h "$output/include/mbedtls/"
 cp "$source_dir"/include/psa/*.h "$output/include/psa/"
