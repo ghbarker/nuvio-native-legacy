@@ -453,7 +453,7 @@ static void horario(time_t quando, char *out, size_t n) {
 }
 /* The same asynchronous, size-bounded image cache as Home and collections.
  * Fit transparent league/team marks rather than stretching them as posters. */
-static void logo(const char *url, const char *generico, GfxRect r) {
+static void logo(const char *url, int modalidadeLogo, GfxRect r) {
   GLuint t=url && url[0]?tex_obter_larg(url,r.w):0;
   float ap=url && url[0]?tex_aspecto(url):0;
   if (t && ap>0) {
@@ -462,7 +462,10 @@ static void logo(const char *url, const char *generico, GfxRect r) {
     GfxRect arte={r.x+(r.w-w)*0.5f,r.y+(r.h-h)*0.5f,w,h};
     gfx_rect(arte,t,tex_marca_escura(url)?GFX_MARCA:GFX_TEXTO,0,0,0,0,1,1,1,1);
   } else {
-    /* Bundled app icons cover absent, pending and failed remote images. */
+    /* The event's sport selects the same local fallback for teams and leagues. */
+    const EspModalidade *esporte=esportes_modalidade(modalidadeLogo);
+    char generico[80]="menu_sports";
+    if(esporte)snprintf(generico,sizeof generico,"esp_%s",esporte->id);
     float lado=fminf(r.w,r.h);
     gfx_icone((GfxRect){r.x+(r.w-lado)*.5f,r.y+(r.h-lado)*.5f,lado,lado},generico,1,1,1,1);
   }
@@ -503,13 +506,13 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
   const char *estado=e->estado==1?i18n("Ao vivo"):e->estado==2?i18n("Encerrado"):e->estado==3?e->detalhe:data;
   snprintf(meta,sizeof meta,"%s%s%s",estado,e->sessao[0]?" · ":"",e->sessao);
   const char *marca=logoLiga(e,m);float cab=48;
-  logo(marca,"menu_sports",(GfxRect){x,r.y+12,34,34});
+  logo(marca,m,(GfxRect){x,r.y+12,34,34});
   txt(TXT_CAPTION2,meta,x+cab,r.y+20,w-cab,230);
   if(e->nParticipantes==2) {
     float metade=w*.5f,sz=fminf(160,metade-24);
     for(int i=0;i<2;i++) {
       const EspParticipante *p=&e->participantes[i];float px=x+i*metade;
-      logo(p->logo,"aj_shield",(GfxRect){px+(metade-sz)*.5f,r.y+52,sz,sz});
+      logo(p->logo,m,(GfxRect){px+(metade-sz)*.5f,r.y+52,sz,sz});
       const char *nome=p->curto[0]?p->curto:p->nome;
       float placar=e->estado==1 || e->estado==2?(strlen(p->pontos)>3?96:55):0;
       txt(TXT_BODY,nome,px+5,r.y+224,metade-10-placar,245);
@@ -517,7 +520,7 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
     }
     txt(TXT_BODY,"×",r.x+r.w*.5f-10,r.y+118,24,245);
   } else {
-    logo(marca,"menu_sports",(GfxRect){x,r.y+72,78,78});
+    logo(marca,m,(GfxRect){x,r.y+72,78,78});
     txt(TXT_BODY,e->nome,x+96,r.y+84,w-96,245);
   }
   txt(TXT_CAPTION2,e->local[0]?e->local:e->liga,x,r.y+r.h-38,w,220);
@@ -619,7 +622,7 @@ static void desenharLigas(void) {
       if(r.x>=xLista+larguraLista || r.x+r.w<=xLista)continue;
       plrui_cartao(r,20,1);if(foco==codLinha(k,-1))plrui_linha_foco(r,20,1);
       int arte=fundoCartao(r,m,foco==codLinha(k,-1));
-      logo(l->logo,"menu_sports",(GfxRect){r.x+28,r.y+18,r.w-56,r.h-82});
+      logo(l->logo,m,(GfxRect){r.x+28,r.y+18,r.w-56,r.h-82});
       txt(TXT_BODY,l->nome,r.x+22,r.y+r.h-49,r.w-44,245);
       if(arte && foco==codLinha(k,-1))anelCartao(r);
       float x=fmaxf(xLista,r.x),fim=fminf(xLista+larguraLista,r.x+r.w);
