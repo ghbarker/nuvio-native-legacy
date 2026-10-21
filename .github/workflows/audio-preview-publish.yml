@@ -77,4 +77,5 @@ jobs:
           v['scope']='Android regression APK; LG/Samsung product extensions are staged separately. Host/browser checks are not physical-TV or platform-package validation.'
           open('Logs96-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          gh release create tv-mobile-test-logs-v95 Nuvio-TV-Mobile-Test-Logs96.apk Logs96-validation.json Logs96-independent-verification.json preview-release/Logs96-test-steps.txt --target 3c578e8442055f279cf67cf4f327a74d5df479a8 --title 'Nuvio TV/Mobile Test Logs96 — Drive and font parity regression preview' --notes-file preview-release/Logs96-release-notes.txt --prerelease
+          tag=$(python3 -c "import json,re; v=json.load(open('Logs96-validation.json')); m=re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+-test-logs([0-9]+)',v['version_name']); assert m; print('tv-mobile-test-logs-v'+m.group(1))")
+          gh release create "$tag" Nuvio-TV-Mobile-Test-Logs96.apk Logs96-validation.json Logs96-independent-verification.json preview-release/Logs96-test-steps.txt --target 3c578e8442055f279cf67cf4f327a74d5df479a8 --title 'Nuvio TV/Mobile Test Logs96 — Drive and font parity regression preview' --notes-file preview-release/Logs96-release-notes.txt --prerelease
