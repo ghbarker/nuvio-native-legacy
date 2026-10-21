@@ -1,11 +1,6 @@
-name: Compatible account-profile Friends checks
+name: Friends row touch and empty-state regression checks
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        type: choice
-        options: [all, mac]
-        default: all
 permissions:
   contents: read
 jobs:
@@ -13,10 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ inputs.mode == 'mac' && fromJSON('["macos-15-intel"]') || fromJSON('["ubuntu-24.04","macos-15-intel"]') }}
-        source: [product, preview]
+        os: [ubuntu-24.04, macos-15-intel]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -26,13 +20,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ${{ matrix.source == 'product' && 'c259d5969bbf740a01b17d1f371f3f0406d082ed' || 'cd75ea9e3878f59eabb9df2c9b987575b19260f7' }}
+          ref: bc52c431ccf2a838bb37995af8fbc7d7ab5d1482
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev
       - name: macOS dependencies
         if: runner.os == 'macOS'
         run: |
@@ -40,63 +37,54 @@ jobs:
           echo "C_INCLUDE_PATH=$(brew --prefix)/include:$(brew --prefix)/include/SDL2" >> "$GITHUB_ENV"
           echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
           echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
-      - name: Profile-pairing protocol and ownership checks
+      - name: Render all six row styles and deliver real finger taps
         shell: bash
         run: |
-          set -euo pipefail
           python3 - <<'CHECK'
-          import os,signal,subprocess,sys
-          with open('worker-checks.log','w') as f:
-              for sanitize in ('0','1'):
-                  print('RUN profile worker SANITIZE='+sanitize,flush=True)
-                  p=subprocess.Popen(['bash','tests/amigosperfis.sh'],env={**os.environ,'SANITIZE':sanitize},stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
-                  try: rc=p.wait(timeout=75)
+          import os,signal,subprocess
+          for sanitizer in ('0','1'):
+              logfile='row-'+sanitizer+'-checks.log'
+              cmd=['bash','tests/amigosfil_toque.sh']
+              if os.environ['RUNNER_OS']=='Linux':cmd=['xvfb-run','-a','-s','-screen 0 2560x2560x24']+cmd
+              with open(logfile,'w') as f:
+                  p=subprocess.Popen(cmd,env={**os.environ,'SANITIZE':sanitizer},stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
+                  try: rc=p.wait(timeout=600)
                   except subprocess.TimeoutExpired:
-                      subprocess.run(['ps','-eo','pid,ppid,etime,comm'],stdout=f,stderr=subprocess.STDOUT)
-                      if sys.platform=='darwin':
-                          for line in subprocess.check_output(['ps','-axo','pid=,comm='],text=True).splitlines():
-                              if '/nuvio-profile-friends.' in line and line.rstrip().endswith('/test'):
-                                  subprocess.run(['sample',line.split()[0],'3','-file','macos-worker-sample.log'],timeout=15)
                       os.killpg(p.pid,signal.SIGKILL);p.wait()
-                      raise SystemExit('Profile worker exceeded 75 seconds; diagnostics are not a pass')
-                  if rc: raise SystemExit(rc)
+                      raise SystemExit('Rendered touch test timed out; not counted as a pass')
+              print(open(logfile).read()[-6000:])
+              if rc:raise SystemExit(rc)
           CHECK
+          bash tests/amigosperfis.sh > worker-checks.log 2>&1
+          SANITIZE=1 bash tests/amigosperfis.sh >> worker-checks.log 2>&1
           node --test servidor/recomendacoes/teste-identidade.mjs > server-checks.log 2>&1
-          cc -fsyntax-only -std=gnu11 -Isrc $(pkg-config --cflags sdl2 SDL2_ttf SDL2_image) src/recomenda.c > syntax-checks.log 2>&1
-          if [ '${{ runner.os }}' = Linux ]; then
-            for platform in NV_WEBOS NV_TPK; do
-              cc -fsyntax-only -std=gnu11 -D$platform -Isrc $(pkg-config --cflags sdl2 SDL2_ttf SDL2_image) src/recomenda.c >> syntax-checks.log 2>&1
-            done
-          fi
-          tail -3 worker-checks.log
+          tail -2 worker-checks.log
           tail -9 server-checks.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs97-friends-${{ matrix.os }}-${{ matrix.source }}
-          path: |
-            *-checks.log
-            macos-worker-sample.log
+          name: Logs98-friend-cards-${{ matrix.os }}
+          path: '*-checks.log'
           if-no-files-found: error
   wasm:
-    if: inputs.mode != 'mac'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: cd75ea9e3878f59eabb9df2c9b987575b19260f7
+          ref: b656ec5a927327b5565ce150b1214faad22faca7
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
           actions-cache-folder: emsdk-cache
-      - name: WGT shared worker and protocol fixture compilation
+      - name: WGT shared row compilation with and without touch UI
         run: |
-          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/recomenda.c tests/amigosperfis_compat.c > wasm-checks.log 2>&1
+          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/amigosfil.c > wasm-checks.log 2>&1
+          emcc -fsyntax-only -std=gnu11 -DNV_TOUCH_UI -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/amigosfil.c >> wasm-checks.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs97-friends-wasm
+          name: Logs98-friend-cards-wasm
           path: '*-checks.log'
           if-no-files-found: error
