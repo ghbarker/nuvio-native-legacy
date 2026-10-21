@@ -29,7 +29,7 @@ static EspEvento *eventos;
 static int nLigas, nEventos, erro;
 static unsigned geracao, revisao, desligados;
 static char favoritos[128][200];
-static int nFavoritos;
+static int nFavoritos, fundoQualidade;
 static char (*ligasOcultas)[120];
 static int nOcultas;
 typedef struct { EspLiga liga; int modalidade; } EspFileira;
@@ -79,7 +79,7 @@ void esportes_cancelar(void) {
 void esportes_abrir_sessao(void) {
   NvPerfilSessao atual = nv_perfil_sessao_ler();
   if (arquivo[0] && atual == perfil) return;
-  esportes_cancelar();limparCatalogo();free(ligasOcultas);ligasOcultas=NULL;nOcultas=0; perfil = atual; desligados = 0; nFavoritos = 0;
+  esportes_cancelar();limparCatalogo();free(ligasOcultas);ligasOcultas=NULL;nOcultas=0; perfil = atual; desligados = 0; nFavoritos = fundoQualidade = 0;
   free(ligas); ligas = NULL; free(eventos); eventos = NULL;
   free(eventosFav);eventosFav=NULL;nEventosFav=erroFav=0;favoritosDesde=0;
   nLigas = nEventos = erro = 0; eventosModalidade=eventosIdioma=-1;eventosLiga[0]=0;revisao++;
@@ -87,7 +87,8 @@ void esportes_abrir_sessao(void) {
   char *buf = dados_ler(arquivo), *salvar = NULL;
   if (!buf) return;
   for (char *l = strtok_r(buf, "\n", &salvar); l; l = strtok_r(NULL, "\n", &salvar)) {
-    if (!strncmp(l, "off=", 4)) desligados = (unsigned)strtoul(l + 4, NULL, 16);
+    if(!strncmp(l,"bg-quality=",11)) {int q=atoi(l+11);if(q>=0 && q<=2)fundoQualidade=q;}
+    else if (!strncmp(l, "off=", 4)) desligados = (unsigned)strtoul(l + 4, NULL, 16);
     else if(!strncmp(l,"league-off=",11) && strlen(l+11)<120 && nOcultas<ESP_MAX_FILEIRAS) {
       void *novo=realloc(ligasOcultas,(size_t)(nOcultas+1)*sizeof *ligasOcultas);
       if(novo){ligasOcultas=novo;snprintf(ligasOcultas[nOcultas++],120,"%s",l+11);}
@@ -100,11 +101,18 @@ void esportes_abrir_sessao(void) {
 static int gravar(void) {
   size_t cap=64+(size_t)nFavoritos*205+(size_t)nOcultas*135;
   char *buf=calloc(1,cap);if(!buf)return 0;
-  size_t usado=(size_t)snprintf(buf,cap,"off=%x\n",desligados);
+  size_t usado=(size_t)snprintf(buf,cap,"off=%x\nbg-quality=%d\n",desligados,fundoQualidade);
   for(int i=0;i<nFavoritos;i++)usado+=(size_t)snprintf(buf+usado,cap-usado,"fav=%s\n",favoritos[i]);
   for(int i=0;i<nOcultas;i++)usado+=(size_t)snprintf(buf+usado,cap-usado,"league-off=%s\n",ligasOcultas[i]);
   int ok = nv_perfil_sessao_atual(perfil) && dados_gravar(arquivo, buf);
   free(buf); return ok;
+}
+int esportes_fundo_qualidade(void){return fundoQualidade;}
+int esportes_fundo_definir_qualidade(int qualidade) {
+  if(qualidade<0 || qualidade>2)return 0;
+  int antes=fundoQualidade;fundoQualidade=qualidade;
+  if(!gravar()){fundoQualidade=antes;return 0;}
+  revisao++;return 1;
 }
 int esportes_habilitado(int m) { return esportes_modalidade(m) && !(desligados & (1u << m)); }
 int esportes_habilitar(int m, int on) {

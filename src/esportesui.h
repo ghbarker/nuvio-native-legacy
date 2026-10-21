@@ -1,6 +1,7 @@
 #ifndef NV_ESPORTESUI_H
 #define NV_ESPORTESUI_H
 #include <SDL2/SDL.h>
+void esportesui_recursos(const char *dirArte);
 void esportesui_iniciar(void);
 void esportesui_fechar(void);
 void esportesui_evento(const SDL_Event *e);

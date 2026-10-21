@@ -18,6 +18,8 @@
 #include "rolagemtoque.h"
 #include "telefoneui.h"
 #include "horafmt.h"
+#include "memlog.h"
+#include "perfiltv.h"
 #define NV_ESCALA_TELA
 #include "escala.h"
 #include <math.h>
@@ -25,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { ESP_LIGAS, ESP_EVENTOS, ESP_DETALHE, ESP_CONFIG, ESP_TODOS, ESP_LIGAS_CONFIG };
+enum { ESP_LIGAS, ESP_EVENTOS, ESP_DETALHE, ESP_CONFIG, ESP_TODOS, ESP_LIGAS_CONFIG, ESP_QUALIDADE };
 #define FOCO_MODALIDADE 100
 #define FOCO_TODOS (-FOCO_MODALIDADE+1)
 #define FOCO_FAVORITO (ESP_MAX_LIGAS+1)
@@ -40,6 +42,10 @@ static EspLiga liga;
 static EspEvento evento;
 static char consulta[160], aviso[160];
 static unsigned revisao;
+static char dirEsportes[1024];
+static int fundoAutoBaixo;
+void esportesui_recursos(const char *dirArte){snprintf(dirEsportes,sizeof dirEsportes,"%s",dirArte?dirArte:"");}
+static const char *nomeQualidade(int q){return i18n(q==1?"Baixa":q==2?"Alta":"Automático");}
 static float rolagem, menuRolagem, topoLista, alturaLista, larguraLista, xLista, linhaH;
 static int colunas = 1;
 static float vao = 24, favoritosRolagem, linhasRolagem[ESP_MAX_FILEIRAS];
@@ -80,9 +86,9 @@ static const EspEvento *eventoFocado(void) {
   return pagina==ESP_EVENTOS && foco>=0 && foco<nItens?esportes_evento(indices[foco]):NULL;
 }
 static Uint32 ultimoRefresh;
-static int retornoFoco[6];
-static float retornoRolagem[6];
-static char retornoConsulta[6][160];
+static int retornoFoco[7];
+static float retornoRolagem[7];
+static char retornoConsulta[7][160];
 static void escolherModalidade(int m);
 static CtxHold eventoHold;
 static void limparToque(void);
@@ -116,7 +122,9 @@ static int contem(const char *s) {
 }
 static void montar(void) {
   nItens = nGrupos = 0;
-  if (pagina == ESP_CONFIG) {
+  if(pagina==ESP_QUALIDADE){for(int i=0;i<3;i++)indices[nItens++]=i;}
+  else if (pagina == ESP_CONFIG) {
+    if(contem(i18n("Qualidade da imagem")))indices[nItens++]=-1;
     for (int i = 0; i < esportes_modalidades_n(); i++)
       if (contem(i18n(esportes_modalidade(i)->nome))) indices[nItens++] = i;
   } else if(telaFileiras() || pagina==ESP_LIGAS_CONFIG) {
@@ -159,6 +167,9 @@ static void abrir(int p) {
 }
 void esportesui_iniciar(void) {
   esportes_abrir_sessao();pagina=ESP_TODOS;modalidade=-1;
+  long livre=memlog_livre_mb();
+  fundoAutoBaixo=(livre>0 && livre<512) || memlog_android_fraco() || ptv_gpu_fraca_atual() || gfx_efeitos_minimos() || ajustes_qualidade_imagem()==0;
+  fprintf(stderr,"[esportes] artwork quality=%d auto_low=%d available_mb=%ld\n",esportes_fundo_qualidade(),fundoAutoBaixo,livre);
   foco=FOCO_TODOS; sair = pediuRelogio = 0;
   entradaTexto=esperaSoltura=0;favoritosRolagem=0;consulta[0]=aviso[0]=0;
   memset(linhasRolagem,0,sizeof linhasRolagem);memset(retornoFoco,0,sizeof retornoFoco);
@@ -193,7 +204,7 @@ static void buscarCanais(void) {
 static void voltar(void) {
   procurando = 0;
   if(pagina==ESP_TODOS){sair=1;return;}
-  int p=pagina==ESP_LIGAS_CONFIG?(modalidade<0?ESP_TODOS:ESP_LIGAS):pagina==ESP_CONFIG || pagina==ESP_LIGAS?ESP_TODOS:pagina==ESP_DETALHE?detalheOrigem:eventosOrigem;
+  int p=pagina==ESP_QUALIDADE?ESP_CONFIG:pagina==ESP_LIGAS_CONFIG?(modalidade<0?ESP_TODOS:ESP_LIGAS):pagina==ESP_CONFIG || pagina==ESP_LIGAS?ESP_TODOS:pagina==ESP_DETALHE?detalheOrigem:eventosOrigem;
   int configurar=pagina==ESP_CONFIG;
   if(pagina==ESP_EVENTOS)modalidade=eventosModalidade;
   int f=retornoFoco[p];float r=retornoRolagem[p];char q[160];snprintf(q,sizeof q,"%s",retornoConsulta[p]);
@@ -216,8 +227,11 @@ static void agir(void) {
     const EspEvento *e=eventoFocado();if(e){evento=*e;stream_folha_canais_abrir(evento.nome);buscarCanais();}return;
   }
   if (foco < 0 || foco >= nItens) return;
-  if (pagina == ESP_CONFIG) {
+  if(pagina==ESP_QUALIDADE) {
+    if(!esportes_fundo_definir_qualidade(indices[foco]))snprintf(aviso,sizeof aviso,"%s",i18n("Não foi possível salvar"));
+  } else if (pagina == ESP_CONFIG) {
     int m = indices[foco];
+    if(m<0){abrir(ESP_QUALIDADE);foco=esportes_fundo_qualidade();return;}
     if (!esportes_habilitar(m, !esportes_habilitado(m))) snprintf(aviso, sizeof aviso, "%s", i18n("Não foi possível salvar"));
   } else if(pagina==ESP_LIGAS_CONFIG) {
     int k=indices[foco],m=esportes_catalogo_modalidade(k);const EspLiga *l=esportes_catalogo_liga(k);
@@ -229,7 +243,7 @@ static void agir(void) {
     if (!esportes_alternar_favorito(&evento,foco)) snprintf(aviso,sizeof aviso,"%s",i18n("Não foi possível salvar"));
   }
 }
-static int nTopo(void) { return pagina==ESP_DETALHE?1:telaFileiras()?5:pagina==ESP_EVENTOS?4:3; }
+static int nTopo(void) { return pagina==ESP_DETALHE || pagina==ESP_QUALIDADE?1:telaFileiras()?5:pagina==ESP_EVENTOS?4:3; }
 static void acaoTopo(int i) {
   if (i == 0) { voltar(); return; }
   if (i == 1) {
@@ -455,33 +469,61 @@ static void logo(const char *url, const char *nome, GfxRect r) {
     txt_desenhar(t,r.x+(r.w-t.w)*0.5f,r.y+(r.h-t.h)*0.5f);
   }
 }
+/* Bundled, reusable venue art: no per-game image request or extra worker.
+ * The low source also bounds decode cost, rather than only drawing it smaller. */
+static int fundoCartao(GfxRect r,int m,int selecionado) {
+  if(!dirEsportes[0] || !esportes_modalidade(m))return 0;
+  int q=esportes_fundo_qualidade(),baixo=q==1 || (!q && fundoAutoBaixo);
+  char caminho[1200];snprintf(caminho,sizeof caminho,"%s/esportes/%s-%s.jpg",dirEsportes,esportes_modalidade(m)->id,baixo?"low":"high");
+  GLuint t=tex_obter_larg(caminho,baixo?fminf(r.w,320):r.w);if(!t)return 0;
+  gfx_tex_aspect_atual=tex_aspecto(caminho);
+  gfx_rect(r,t,GFX_ARTE,0,0,0,20/r.h,1,1,1,1);gfx_tex_aspect_atual=0;
+  gfx_cor(r,20/r.h,0,0,0,selecionado?.38f:.48f);
+  return 1;
+}
+static void anelCartao(GfxRect r) {
+  float cr,cg,cb;ajustes_acento(&cr,&cg,&cb);
+  gfx_anel(r,20/r.h,3,cr,cg,cb,1);
+}
+static int modalidadeEvento(const EspEvento *e) {
+  for(int m=0;m<esportes_modalidades_n();m++)if(!strcmp(esportes_modalidade(m)->id,e->modalidade))return m;
+  return -1;
+}
+static const char *logoLiga(const EspEvento *e,int m) {
+  if(!strcmp(liga.id,e->ligaId) && modalidade==m && liga.logo[0])return liga.logo;
+  for(int k=0;k<esportes_catalogo_n();k++) {
+    const EspLiga *l=esportes_catalogo_liga(k);
+    if(l && esportes_catalogo_modalidade(k)==m && !strcmp(l->id,e->ligaId))return l->logo;
+  }
+  return "";
+}
 static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
-  plrui_cartao(r,20,1); if (selecionado) plrui_linha_foco(r,20,1);
+  plrui_cartao(r,20,1);if(selecionado)plrui_linha_foco(r,20,1);
+  int m=modalidadeEvento(e),arte=fundoCartao(r,m,selecionado);
   float pad=22,x=r.x+pad,w=r.w-2*pad;
-  char data[48],meta[400]; horario(e->inicio,data,sizeof data);
+  char data[48],meta[400];horario(e->inicio,data,sizeof data);
   const char *estado=e->estado==1?i18n("Ao vivo"):e->estado==2?i18n("Encerrado"):e->estado==3?e->detalhe:data;
   snprintf(meta,sizeof meta,"%s%s%s",estado,e->sessao[0]?" · ":"",e->sessao);
-  txt(TXT_CAPTION2,meta,x,r.y+16,w,170);
-  if (e->nParticipantes==2) {
-    for (int i=0;i<2;i++) {
-      const EspParticipante *p=&e->participantes[i]; float y=r.y+59+i*72;
-      logo(p->logo,p->sigla[0]?p->sigla:p->nome,(GfxRect){x,y,54,54});
-      float scoreW=strlen(p->pontos)>3?112:55;
-      float reservado=e->estado==1 || e->estado==2?scoreW:0;
-      const char *nome=p->curto[0] && r.w<550?p->curto:p->nome;
-      txt(TXT_BODY,nome,x+68,y+11,w-reservado-78,245);
-      if (reservado) txt(TXT_BODY,p->pontos,r.x+r.w-scoreW-pad,y+11,scoreW,245);
+  const char *marca=logoLiga(e,m);float cab=marca[0]?48:0;
+  if(marca[0])logo(marca,e->liga,(GfxRect){x,r.y+12,34,34});
+  txt(TXT_CAPTION2,meta,x+cab,r.y+20,w-cab,230);
+  if(e->nParticipantes==2) {
+    float metade=w*.5f,sz=fminf(88,metade-42);
+    for(int i=0;i<2;i++) {
+      const EspParticipante *p=&e->participantes[i];float px=x+i*metade;
+      logo(p->logo,p->sigla[0]?p->sigla:p->nome,(GfxRect){px+(metade-sz)*.5f,r.y+66,sz,sz});
+      const char *nome=p->curto[0]?p->curto:p->nome;
+      float placar=e->estado==1 || e->estado==2?(strlen(p->pontos)>3?96:55):0;
+      txt(TXT_BODY,nome,px+5,r.y+170,metade-10-placar,245);
+      if(placar)txt(placar>55?TXT_CAPTION2:TXT_BODY,p->pontos,px+metade-placar,r.y+170,placar-5,245);
     }
+    txt(TXT_BODY,"×",r.x+r.w*.5f-10,r.y+99,24,245);
   } else {
-    const char *url="",*nome=e->liga;
-    for(int k=0;k<esportes_catalogo_n();k++) {
-      const EspLiga *l=esportes_catalogo_liga(k);int m=esportes_catalogo_modalidade(k);
-      if(l && !strcmp(l->id,e->ligaId) && !strcmp(esportes_modalidade(m)->id,e->modalidade)){url=l->logo;nome=l->nome;break;}
-    }
-    logo(url,nome,(GfxRect){x,r.y+62,74,74});
-    txt(TXT_BODY,e->nome,x+92,r.y+72,w-92,245);
+    logo(marca,e->liga,(GfxRect){x,r.y+72,78,78});
+    txt(TXT_BODY,e->nome,x+96,r.y+84,w-96,245);
   }
-  txt(TXT_CAPTION2,e->local[0]?e->local:e->liga,x,r.y+r.h-38,w,158);
+  txt(TXT_CAPTION2,e->local[0]?e->local:e->liga,x,r.y+r.h-38,w,220);
+  if(arte && selecionado)anelCartao(r);
 }
 static void menuModalidades(void) {
   float pos[32],larg[32],total=0;
@@ -578,8 +620,10 @@ static void desenharLigas(void) {
       GfxRect r={xLista+c*passo-*offset,y+42,cw,linhaH-58};
       if(r.x>=xLista+larguraLista || r.x+r.w<=xLista)continue;
       plrui_cartao(r,20,1);if(foco==codLinha(k,-1))plrui_linha_foco(r,20,1);
+      int arte=fundoCartao(r,m,foco==codLinha(k,-1));
       logo(l->logo,l->nome,(GfxRect){r.x+28,r.y+18,r.w-56,r.h-82});
       txt(TXT_BODY,l->nome,r.x+22,r.y+r.h-49,r.w-44,245);
+      if(arte && foco==codLinha(k,-1))anelCartao(r);
       float x=fmaxf(xLista,r.x),fim=fminf(xLista+larguraLista,r.x+r.w);
       ponteiro_alvo_faixa(x,r.y,fim-x,r.h,topoLista,topoLista+alturaLista,pointerFoco,pointerAtivar,codLinha(k,-1),0);
     }
@@ -588,9 +632,9 @@ static void desenharLigas(void) {
 void esportesui_desenhar(Uint32 agora) {
   ESCALA_INI(); medidas();
   txt(TXT_TITULO2,i18n("Esportes"),xLista,68,larguraLista,245);
-  const char *sub=pagina==ESP_LIGAS_CONFIG?i18n("Ligas"):pagina==ESP_CONFIG?"ESPN":pagina==ESP_TODOS?i18n("Todos"):pagina==ESP_LIGAS?(modalidade>=0?i18n(esportes_modalidade(modalidade)->nome):i18n("Esportes")):pagina==ESP_EVENTOS?liga.nome:evento.nome;
+  const char *sub=pagina==ESP_QUALIDADE?i18n("Qualidade da imagem"):pagina==ESP_LIGAS_CONFIG?i18n("Ligas"):pagina==ESP_CONFIG?"ESPN":pagina==ESP_TODOS?i18n("Todos"):pagina==ESP_LIGAS?(modalidade>=0?i18n(esportes_modalidade(modalidade)->nome):i18n("Esportes")):pagina==ESP_EVENTOS?liga.nome:evento.nome;
   txt(TXT_CAPTION2,sub,xLista,126,larguraLista,170);
-  const char *botoes[]={"Voltar","Buscar","Esportes",pagina==ESP_EVENTOS?"Favoritos":"Ligas","Atualizar"};
+  const char *botoes[]={"Voltar","Buscar","Ajustes",pagina==ESP_EVENTOS?"Favoritos":"Ligas","Atualizar"};
   int nBotoes=nTopo();
   float bw=fminf(210,(larguraLista-(nBotoes-1)*12)/nBotoes),by=172;
   for (int i=0;i<nBotoes;i++) {
@@ -624,9 +668,11 @@ void esportesui_desenhar(Uint32 agora) {
     } else {
       if (foco==i) plrui_linha_foco(r,18,1);
       char subtitulo[220];const char *nome="",*subt="";
-      if (pagina==ESP_CONFIG) {
-        int m=indices[i];nome=i18n(esportes_modalidade(m)->nome);
-        subt=esportes_habilitado(m)?i18n("Ligado"):i18n("Desligado");
+      if(pagina==ESP_QUALIDADE) {
+        nome=nomeQualidade(indices[i]);
+      } else if (pagina==ESP_CONFIG) {
+        int m=indices[i];nome=m<0?i18n("Qualidade da imagem"):i18n(esportes_modalidade(m)->nome);
+        subt=m<0?nomeQualidade(esportes_fundo_qualidade()):esportes_habilitado(m)?i18n("Ligado"):i18n("Desligado");
       } else if(pagina==ESP_LIGAS_CONFIG) {
         int k=indices[i],m=esportes_catalogo_modalidade(k);const EspLiga *l=esportes_catalogo_liga(k);
         nome=l?l->nome:"";
@@ -636,7 +682,8 @@ void esportesui_desenhar(Uint32 agora) {
         subt=esportes_favorito(&evento,i)?i18n("Remover dos favoritos"):i18n("Adicionar aos favoritos");
 
       }
-      txt(TXT_BODY,nome,r.x+22,r.y+14,r.w-44,245);
+      txt(TXT_BODY,nome,r.x+22,r.y+14,r.w-(pagina==ESP_QUALIDADE?90:44),245);
+      if(pagina==ESP_QUALIDADE && indices[i]==esportes_fundo_qualidade())gfx_icone((GfxRect){r.x+r.w-52,r.y+14,28,28},"check",1,1,1,1);
       txt(TXT_CAPTION2,subt,r.x+22,r.y+51,r.w-44,170);
     }
     ponteiro_alvo_faixa(r.x,r.y,r.w,r.h,topoLista,topoLista+alturaLista,pointerFoco,pointerAtivar,i,0);

@@ -36,6 +36,9 @@ int esportes_emissora(const EspEvento *ev, const char *nome);
 
 /* UI-thread ownership; background jobs publish by generation. */
 void esportes_abrir_sessao(void);
+/* Device-local, profile-scoped card background quality: 0 auto, 1 low, 2 high. */
+int esportes_fundo_qualidade(void);
+int esportes_fundo_definir_qualidade(int qualidade);
 int esportes_habilitado(int modalidade);
 int esportes_habilitar(int modalidade, int ligado);
 int esportes_favorito(const EspEvento *ev, int participante);
