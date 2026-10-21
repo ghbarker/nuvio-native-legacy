@@ -1,21 +1,10 @@
-name: Publish verified Logs92 HLS recovery preview
+name: Publish verified Logs93 integration preview
 on:
-  push:
-    branches: [review/logs34-integration-20261017]
-    paths: [.github/workflows/audio-preview-publish.yml]
   workflow_dispatch:
-    inputs:
-      android_run_id:
-        required: true
-        type: string
-      native_run_id:
-        required: true
-        type: string
 permissions:
   contents: read
 jobs:
   publish:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[publish-logs92]')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -24,167 +13,34 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
-      SOURCE_SHA: 7f38524781592b49a64450dcbeee1e4a9cc5202f
-      SOURCE_TREE: 44e67dfbb67984318dacd1280a75f7928975b41d
-      BUILD_CONFIG: 54f185f3d4a98177d66af4cfddb0c6c11555c3d0
-      NATIVE_CONFIG: 54f185f3d4a98177d66af4cfddb0c6c11555c3d0
-      NATIVE_SOURCE_SHA: 7f38524781592b49a64450dcbeee1e4a9cc5202f
-      NATIVE_SOURCE_TREE: 44e67dfbb67984318dacd1280a75f7928975b41d
-      ANDROID_RUN: ${{ inputs.android_run_id || '39440185534' }}
-      NATIVE_RUN: ${{ inputs.native_run_id || '39440185220' }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Wait for the pinned checks
+      - name: Require pinned successful Android build
         run: |
-          python3 - <<'WAIT'
-          import json,os,subprocess,time
-          for key,config in [('ANDROID_RUN','BUILD_CONFIG'),('NATIVE_RUN','NATIVE_CONFIG')]:
-              for attempt in range(60):
-                  r=json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GH_REPO']+'/actions/runs/'+os.environ[key]]))
-                  assert r['head_sha']==os.environ[config]
-                  if r['status']=='completed':
-                      assert r['conclusion']=='success',r['conclusion']
-                      break
-                  print(key,r['status'],flush=True)
-                  time.sleep(10)
-              else:raise RuntimeError(key+' did not finish in time')
-          WAIT
-      - name: Verify successful pinned checks
-        run: |
+          gh api repos/$GH_REPO/actions/runs/39539485335 > android-run.json
           python3 - <<'CHECK'
-          import json,os,re,subprocess
-          api=lambda path:json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GH_REPO']+'/'+path]))
-          for key,path in [('ANDROID_RUN','.github/workflows/logs35-build.yml'),('NATIVE_RUN','.github/workflows/audio-label-checks.yml')]:
-              run=os.environ[key];assert re.fullmatch('[0-9]+',run)
-              r=api('actions/runs/'+run)
-              assert r['status']=='completed' and r['conclusion']=='success'
-              assert r['head_sha']==os.environ['BUILD_CONFIG' if key=='ANDROID_RUN' else 'NATIVE_CONFIG'] and r['path']==path
-              assert r['head_repository']['full_name']==os.environ['GH_REPO']
-              jobs=api('actions/runs/'+run+'/jobs?per_page=100')['jobs']
-              assert all(j['conclusion'] in ('success','skipped') for j in jobs)
-              if key=='ANDROID_RUN':assert any(j['name']=='apk-build' and j['conclusion']=='success' for j in jobs)
-              else:assert len(jobs)==3 and all(j['conclusion']=='success' for j in jobs)
+          import json
+          r=json.load(open('android-run.json'))
+          assert r['head_sha']=='f7a343d0cf2f900b0d0a186bdd626d08b81f88fb'
+          assert r['status']=='completed' and r['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs92-${{ env.BUILD_CONFIG }}
-          run-id: ${{ env.ANDROID_RUN }}
+          name: Nuvio-TV-Mobile-Test-Logs93-f7a343d0cf2f900b0d0a186bdd626d08b81f88fb
+          run-id: 39539485335
           github-token: ${{ github.token }}
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: integration-*
-          path: native-evidence
-          run-id: ${{ env.NATIVE_RUN }}
-          github-token: ${{ github.token }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: android-live-bench
-          path: bench-evidence
-          run-id: ${{ env.NATIVE_RUN }}
-          github-token: ${{ github.token }}
-      - name: Verify APK and native test evidence
+      - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
-          python3 - <<'VERIFY'
-          import hashlib,json,os,pathlib,subprocess
-          apk=pathlib.Path('Nuvio-TV-Mobile-Test-Logs92.apk');p=pathlib.Path('Logs92-validation.json');v=json.loads(p.read_text())
-          assert v['source_commit']==os.environ['SOURCE_SHA'] and v['source_tree']==os.environ['SOURCE_TREE']
-          assert v['workflow_commit']==os.environ['BUILD_CONFIG'] and v['workflow_run_id']==int(os.environ['ANDROID_RUN'])
-          assert v['apk_sha256']==hashlib.sha256(apk.read_bytes()).hexdigest() and v['apk_bytes']==apk.stat().st_size
-          subprocess.run(['python3','tools/verify-test-apk.py',str(apk),'--expected-sha256',v['apk_sha256'],'--version-code','20102','--version-name','2.0.102-test-logs92','--output','Logs92-independent-verification.json'],check=True)
-          dirs={p.name:p for p in pathlib.Path('native-evidence').iterdir() if p.is_dir()}
-          assert set(dirs)=={'integration-ubuntu-24.04-live-recovery','integration-macos-15-intel-live-recovery'}
-          results=[]
-          for d in dirs.values():
-              s=json.loads((d/'source.json').read_text());assert s['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and s['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-              checks=json.loads((d/'results.json').read_text());assert len(checks)==6 and all(x['code']==0 for x in checks)
-              assert {(x['suite'],x['sanitizers']) for x in checks}=={(n,b) for n in ['livestall_window','video_android_live_window','live_error_recovery'] for b in [False,True]}
-              results+=checks
-          import xml.etree.ElementTree as E
-          bench=pathlib.Path('bench-evidence')
-          source=json.loads((bench/'live-bench-source.json').read_text())
-          assert source['source_commit']==os.environ['NATIVE_SOURCE_SHA'] and source['source_tree']==os.environ['NATIVE_SOURCE_TREE']
-          units=[E.parse(p).getroot() for p in bench.rglob('TEST-*.xml') if 'testDebugUnitTest' in str(p)]
-          expected={'space.nuvio.nativelegacy.LiveLoadRecoveryTest','space.nuvio.nativelegacy.LiveLoadErrorPolicyTest','space.nuvio.nativelegacy.LiveWindowRecoveryTest','space.nuvio.nativelegacy.LivePlaylistDataSourceTest'}
-          assert {x.attrib['name'] for x in units}==expected
-          assert all(int(x.attrib['failures'])==int(x.attrib['errors'])==0 for x in units)
-          instrument=[E.parse(p).getroot() for p in bench.rglob('TEST-*.xml') if 'androidTest-results' in str(p)]
-          assert len(instrument)==1 and sum(int(x.attrib['tests']) for x in instrument)==1
-          assert all(int(x.attrib['failures'])==int(x.attrib['errors'])==0 for x in instrument)
-          scenarios=json.loads((bench/'live-bench-results.json').read_text())
-          assert len(scenarios)==4 and {(x['coordinated'],x['outageMs']) for x in scenarios}=={(c,t) for c in (False,True) for t in (9000,25000)}
-          for x in scenarios:
-              if not x['coordinated']:continue
-              assert x['errors']==x['blackSamples']==x['missingPictureSamples']==x['backwardPts']==0,x
-              assert x['renderedFrames']>200,x
-              if x['outageMs']<x['initialBufferMs']:assert x['rebuffers']==0 and x['maxFrameGapMs']<1000 and x['maxUnchangedImageMs']<1000,x
-          v['android_coordinator_unit_tests']=sum(int(x.attrib['tests']) for x in units)
-          v['android_emulator_api']=29
-          v['android_component_benchmark']=scenarios
-          pathlib.Path('Logs92-benchmark-results.json').write_text(json.dumps(scenarios,indent=2)+'\n')
-          v['native_check_source_commit']=os.environ['NATIVE_SOURCE_SHA']
-          v['native_check_invocations']=len(results);v['sanitizer_invocations']=sum(x['sanitizers'] for x in results)
-          v['check_runs']={'android':int(os.environ['ANDROID_RUN']),'linux_macos':int(os.environ['NATIVE_RUN'])}
-          v['validation_note']='Android APK build and independent identity/signature/ABI verification; 12 Linux/macOS native fixture invocations (6 ASan/UBSan); Android coordinator/policy/window/playlist unit tests and four real Media3 component playback scenarios in an API 29 emulator. APK and checks use the identical verified source tree. This is not a complete Nuvio APK/device playback test or packaged macOS/webOS/Tizen build.'
-          p.write_text(json.dumps(v,indent=2)+'\n')
-          VERIFY
-      - name: Verify identical product source across APK and benchmark
-        run: |
-          git fetch --no-tags --depth=3 origin "$SOURCE_SHA" "$NATIVE_SOURCE_SHA"
-          python3 - <<'DIFF'
-          import os,subprocess
-          changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['SOURCE_SHA'],os.environ['NATIVE_SOURCE_SHA']],text=True).splitlines())
-          assert not changed,changed
-          print('Android, native checks and emulator benchmark use the identical source tree.')
-          DIFF
-      - name: Write test instructions
-        run: |
-          cat > Logs92-test-steps.txt <<'STEPS'
-          Logs92: Preserve buffered HLS playback through temporary delivery failures.
-          Version 2.0.102-test-logs92 (20102).
-          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall/clear data.
-
-          1. Open Live TV and play one of your M3U/Xtream channels for one minute.
-             Leave your existing buffer setting unchanged for this comparison.
-          2. Watch for 5-10 minutes, particularly channels that previously repeated,
-             reconnected or showed an error over continuing audio. Note the time of
-             any pause, repeated section, black screen or error card.
-          3. Pause for 15 seconds, then resume. It must not switch/restart while you
-             deliberately pause. Switch channels, then stop playback using your usual
-             controls; verify that a stopped channel does not reopen itself.
-          4. If a delivery failure occurs naturally, allow recovery to act without
-             selecting another source. A short outage may fit within the reserve.
-             An outage longer than the reserve necessarily pauses playback, but a
-             temporary HLS transport failure can now resume in the same player.
-          5. Save a fresh log after testing using About and help > Logs > Download
-             (or your existing log export). Send it with the channel/account type,
-             approximate failure time and what you saw. Logs now include recovery
-             owner/reason, retries, reserve, frame progress and buffering duration.
-             ADB alternative: adb logcat -d -v threadtime > Nuvio-Live-Recovery.txt
-
-          We simulated 9- and 25-second outages in an Android Media3 test harness;
-          there is no need to interrupt your household network to test this APK.
-          This change does not add quality switching or automatic speed changes.
-          VOD, direct TS and ordinary authentication/format errors keep normal handling.
-          Earlier Logs91 features remain included. No PR until this build is approved.
-          STEPS
-          cat > notes.txt <<'NOTES'
-          Buffer-aware HLS transport retries with bounded recovery ownership and
-          additional test-only numeric diagnostics. Keeps prior Logs91 features.
-          Update Nuvio TV/Mobile Test without uninstalling or clearing its data.
-
-          Validated: Android APK and package/signer/ARM ABI checks; 12 Linux/macOS
-          native fixture invocations including sanitizers; Android unit tests and
-          four Media3 emulator playback scenarios (ordinary/coordinated policy,
-          9/25-second HTTP delivery outages). Long outages still exhaust a buffer.
-          The emulator harness tests player components, not the complete Nuvio app.
-          See Logs92-test-steps.txt and Logs92-benchmark-results.json.
-          NOTES
-      - name: Publish verified preview
-        run: |
-          gh release create tv-mobile-test-logs-v92 Nuvio-TV-Mobile-Test-Logs92.apk Logs92-validation.json Logs92-independent-verification.json Logs92-test-steps.txt Logs92-benchmark-results.json --target "$SOURCE_SHA" --title 'TV/Mobile Test Logs92: buffer-aware HLS recovery' --notes-file notes.txt --prerelease
+          python3 tools/verify-test-apk.py Nuvio-TV-Mobile-Test-Logs93.apk --expected-sha256 0a5aef25698a50ccfddf603a8a36005ac7043abec86f4aa86ecc7a1224075f6e --expected-bytes 64971387 --version-code 20103 --version-name 2.0.103-test-logs93 --certificate-sha256 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6 --output Logs93-independent-verification.json
+          python3 - <<'METADATA'
+          import json
+          p='Logs93-validation.json';v=json.load(open(p))
+          assert v['source_commit']=='8f4bef954da75ccf529b6e0c95553930edd1cc09'
+          assert v['source_tree']=='64eaa8245f5ad0267bb403df27771db66be6e607'
+          v['native_validation_in_progress']=True
+          open(p,'w').write(json.dumps(v,indent=2)+'\n')
+          METADATA
+          gh release create tv-mobile-test-logs-v93 Nuvio-TV-Mobile-Test-Logs93.apk Logs93-validation.json Logs93-independent-verification.json preview-release/Logs93-test-steps.txt --target 8f4bef954da75ccf529b6e0c95553930edd1cc09 --title 'Nuvio TV/Mobile Test Logs93 — latest upstream integration' --notes-file preview-release/Logs93-release-notes.txt --prerelease

@@ -1,0 +1,18 @@
+Latest upstream master plus the rebased feature integration.
+
+Base: iqui27/nuvio-native-legacy master 1890f9f674adf646df3360b01d3b303024da3494.
+Built source: 8f4bef954da75ccf529b6e0c95553930edd1cc09.
+Remaining feature PRs included: #573, #575, #576, #598, #609, #611, #614, #615, #619. Upstream's implementations cover #596/#601/#602 and Android clearable storage (#631).
+
+Install over Nuvio TV/Mobile Test using Update. Do not uninstall or clear app data.
+Package: space.nuvio.nativelegacy.touch
+Version code: 20103
+Version: 2.0.103-test-logs93
+ABIs: arm64-v8a and armeabi-v7a
+Persistent signing certificate SHA-256: 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
+
+Android build and package checks passed. The downloaded APK was independently verified for its cryptographic signature/content digest, manifest identity, ZIP integrity and ARM64 16 KiB alignment. Linux/macOS regression validation is still being finalized; this prerelease is for the integration check. Superseded or timed-out diagnostic runs are not passes.
+
+Test-only local log export, APK packaging and the existing recovery prototype remain confined to the preview branch and are not added to the product PRs.
+
+See Logs93-test-steps.txt for the explicit regression steps. No new upstream PR is published by this release.

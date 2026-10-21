@@ -1,0 +1,20 @@
+Logs93: latest upstream plus the rebased feature PRs
+
+INSTALL
+1. Download Nuvio-TV-Mobile-Test-Logs93.apk on the device that already has Nuvio TV/Mobile Test.
+2. Open the APK and choose Update. Do not uninstall or clear app data.
+3. Open the app and confirm the existing account, profiles, add-ons and Live TV connections remain.
+
+QUICK REBASE REGRESSION CHECKS
+1. Seasons and episode identity (#614, #576): open Game of Thrones. Season buttons and episode cards should appear together on the first visit. Select another season, play an episode, return to Home, and confirm Continue Watching identifies the episode you selected. Check a series with Specials if you use those.
+2. Fonts (#573): change a built-in subtitle font, then an imported TTF/OTF. Reopen the picker: the checkmark should stay on the chosen font. Confirm visible text changes. Change the interface font and check both Settings and a title page.
+3. Source cache filter (#575): in source Settings choose Cached, then Uncached, then All. Cached requires confirmed cache hits; unknown status should appear only in All. Live TV add-ons should continue to bypass ordinary source filters.
+4. Dubbing labels (#611): set the preferred dubbing/audio language, open Sources, disable MP4-only and Cached if they would restrict your sample, then turn the Audio-language chip on. A matching declared audio language or supported release-language hint should remain; a subtitle-only language must not create an audio match. The result count depends on the add-on actually supplying matching sources.
+5. Prepared source details (#598): enable source preparation and Prepared source details. Open a title and wait for source preparation. The row below Play should show the prepared source's resolution/audio/size information when available.
+6. Drive backup (#609): back up with a password, change a local setting, then restore using that same password. Confirm the setting returns, existing connections remain, and add-ons still work without restarting. If restoring an older backup, compatible settings should restore while unsupported settings are logged and skipped. Hardware settings require restore opt-in.
+7. Sports (#619): open Sports and check league rows and the combined Favorites row. Long-press an event to favorite a team; a short press should open Sources. Pick a currently airing event with a matching EPG entry, then select its channel to play. Hidden categories should stay excluded.
+8. Skip marker fallback (#615): on an episode with known intro/recap/credits markers, verify the corresponding control appears at the appropriate time. Missing provider coverage is not itself a playback failure; save a log if the marker is expected but absent.
+9. Upstream Live TV ports (#596/#601/#602): confirm multiple saved accounts are listed, hide a category and Confirm, then change another category and Cancel. Search for a channel/programme, close results, and repeat the same search; results should remain visible and selectable.
+10. Play a familiar Live TV channel for 5-10 minutes. Pause/resume and stop normally, then export a fresh log if anything looks wrong. New recovery journal entries remain confined to this test build.
+
+Share the log and the numbered step if a regression appears.
