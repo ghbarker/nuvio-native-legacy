@@ -6591,6 +6591,10 @@ int ajustes_iniciar(void) {
 }
 static int fileirasBusca;  // network cycle owed; run once when Settings closes
 void ajustes_encerrar(void) {
+#ifndef NV_ANDROID
+  // A later Settings editor must not inherit a cancelled font-URL prompt.
+  ajFonteUrlOp = 0;
+#endif
   // Save file-backed and scalar preferences when leaving Settings as well as
   // during periodic sync; no editor-specific cloud hook is required.
   if (sessao_logada()) sync_iniciar();
