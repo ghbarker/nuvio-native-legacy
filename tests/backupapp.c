@@ -39,7 +39,13 @@ int main(void) {
  // while hardware choices and credentials do not. No account HTTP is used.
  char *cloud=NULL;assert(ajustes_mesclar_blob("{}",&cloud)>0 && cloud);
  assert(strstr(cloud,"c_settings_v1") && strstr(cloud,"c_legendaIdioma") && strstr(cloud,"c_audioIdioma"));
- assert(!strstr(cloud,"c_interfaceModo") && !strstr(cloud,"fixture-refresh"));free(cloud);
+ // Upstream now includes a separate c_devices_v1 snapshot. The hardware
+ // choice must remain absent from shared profile values, and logins from both.
+ const char *settings,*settingsEnd,*values,*valuesEnd,*ignored,*ignoredEnd;
+ assert(acharValor(cloud,cloud+strlen(cloud),"c_settings_v1",&settings,&settingsEnd));
+ assert(acharValor(settings,settingsEnd,"values",&values,&valuesEnd));
+ assert(!acharValor(values,valuesEnd,"c_interfaceModo",&ignored,&ignoredEnd));
+ assert(!strstr(cloud,"fixture-refresh"));free(cloud);
  BackupContexto c;assert(backupapp_contexto(&c));
  assert(dados_gravar("trakt-p7.txt","destination-rotating-token\n"));
  assert(dados_gravar("discord-p7.txt","destination-discord-token\n"));
