@@ -7,5 +7,7 @@ flags=(-std=gnu11 -Wall -Wextra -Werror -O1 -g -Isrc)
 if [ "${SANITIZE:-0}" = 1 ]; then flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer); fi
 read -r -a sdk <<< "$(pkg-config --cflags sdl2)"
 read -r -a libs <<< "$(pkg-config --libs sdl2)"
-cc "${flags[@]}" "${sdk[@]}" tests/amigosperfis.c src/js.c -o "$work/test" "${libs[@]}"
-"$work/test"
+for suite in amigosperfis amigosperfis_compat; do
+  cc "${flags[@]}" "${sdk[@]}" "tests/$suite.c" src/js.c -o "$work/test" "${libs[@]}"
+  "$work/test"
+done
