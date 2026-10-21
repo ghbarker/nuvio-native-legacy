@@ -1,0 +1,5 @@
+Sports now groups league cards by sport and loads match scoreboards when a league opens. The combined Favorites row is unchanged. Back restores the catalog position and search, and up to eight recently opened leagues retain match results while refreshing.
+
+Install as an update over Nuvio TV/Mobile Test; accounts and settings are retained. Includes the previously approved Logs98 features. Test packaging and local log export remain outside upstream product changes.
+
+Validation: signed Android APK with both ARM ABIs; Linux/macOS Sports navigation, matching and cache checks in normal and ASan/UBSan builds; shared WGT source compilation with/without touch. These are not LG/Tizen package or device playback tests. The Sports PR is unchanged pending approval of this preview.

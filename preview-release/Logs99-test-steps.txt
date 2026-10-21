@@ -1,0 +1,14 @@
+Nuvio TV/Mobile Test Logs99 — Sports league cards
+
+Install as Update over Nuvio TV/Mobile Test. Do not uninstall or clear data.
+
+1. Open Sports, then All. Your combined Favorites match row stays at the top. Each sport below it now has a row of league cards with logos, rather than loading every league's matches.
+2. Scroll down several sports, then back up. League cards should stay in place without fetching scoreboards as you browse. Swipe a sport row sideways or use Left/Right on a remote to reach its leagues.
+3. Open a league. Its matches should appear in the existing match-card layout. Tap a match, choose a confirmed channel in Sources, and verify playback starts.
+4. Go Back to Sports. The same sport row, league selection, horizontal position and vertical position should be retained. Reopen the league within a minute: its recent matches should appear without another loading screen.
+5. On a league's matches page, leave it open for a minute to refresh scores. Existing cards should remain visible while updating. A failed update should keep the previous cards with the existing error message.
+6. In Sports → Leagues, turn one league off and return. Its card should disappear. Turn it back on to restore it. Sports on/off choices should also continue working.
+7. Tap a Favorites match to open Sources. Long-press a match to open team-favorite options; releasing should not open Sources. League cards open their match list directly.
+8. Optional: repeat navigation with a TV remote and in phone portrait/landscape. The left sidebar should not move the Sports content.
+
+If anything reloads unexpectedly, save a fresh app log after reproducing it. The new [esportes] “abrir liga” line identifies recent-cache reuse or a match refresh using only the public league ID and item counts.

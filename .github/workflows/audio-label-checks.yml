@@ -1,4 +1,4 @@
-name: Friends final profile and touch regression checks
+name: Sports league-card navigation and cache regression checks
 on:
   workflow_dispatch:
 permissions:
@@ -10,61 +10,40 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15-intel]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 15
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       HOMEBREW_NO_AUTO_UPDATE: '1'
-      SDL_MAC_BACKGROUND_APP: '1'
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 5157d7a1febafa25e0e2a95c356c25d4399d47d6
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+          ref: c38c02685
       - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config xvfb xauth libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libgles2-mesa-dev
       - name: macOS dependencies
         if: runner.os == 'macOS'
         run: |
-          brew install pkg-config sdl2 sdl2_image sdl2_ttf
+          brew install pkg-config sdl2
           echo "C_INCLUDE_PATH=$(brew --prefix)/include:$(brew --prefix)/include/SDL2" >> "$GITHUB_ENV"
           echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
           echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
-      - name: Render all six row styles and deliver real finger taps
+      - name: Sports navigation, source matching and bounded cache checks
         shell: bash
         run: |
-          python3 - <<'CHECK'
-          import os,signal,subprocess
-          for sanitizer in ('0','1'):
-              logfile='row-'+sanitizer+'-checks.log'
-              cmd=['bash','tests/amigosfil_toque.sh']
-              if os.environ['RUNNER_OS']=='Linux':cmd=['xvfb-run','-a','-s','-screen 0 2560x2560x24']+cmd
-              with open(logfile,'w') as f:
-                  p=subprocess.Popen(cmd,env={**os.environ,'SANITIZE':sanitizer},stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
-                  try: rc=p.wait(timeout=600)
-                  except subprocess.TimeoutExpired:
-                      os.killpg(p.pid,signal.SIGKILL);p.wait()
-                      raise SystemExit('Rendered touch test timed out; not counted as a pass')
-              print(open(logfile).read()[-6000:])
-              if rc:raise SystemExit(rc)
-          CHECK
-          bash tests/ajustes_secoes.sh > settings-checks.log 2>&1
-          bash tests/amigosperfis.sh > worker-checks.log 2>&1
-          SANITIZE=1 bash tests/amigosperfis.sh >> worker-checks.log 2>&1
-          node --test servidor/recomendacoes/teste-identidade.mjs > server-checks.log 2>&1
-          tail -2 worker-checks.log
-          tail -9 server-checks.log
+          set -euo pipefail
+          for check in esportes esportes_ui esportes_estado; do
+            bash tests/$check.sh > "$check-checks.log" 2>&1
+            SANITIZE=1 bash tests/$check.sh >> "$check-checks.log" 2>&1
+            tail -2 "$check-checks.log"
+          done
+          cc -fsyntax-only -std=gnu11 -Wall -Wextra -Werror -Isrc $(pkg-config --cflags sdl2) src/esportesui.c
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs98-friend-cards-${{ matrix.os }}
+          name: Logs99-sports-${{ matrix.os }}
           path: '*-checks.log'
           if-no-files-found: error
   wasm:
@@ -74,18 +53,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 5157d7a1febafa25e0e2a95c356c25d4399d47d6
+          ref: c38c02685
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
           actions-cache-folder: emsdk-cache
-      - name: WGT shared row compilation with and without touch UI
+      - name: WGT shared Sports compilation with and without touch UI
         run: |
-          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/amigosfil.c > wasm-checks.log 2>&1
-          emcc -fsyntax-only -std=gnu11 -DNV_TOUCH_UI -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/amigosfil.c >> wasm-checks.log 2>&1
+          emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/esportes.c src/esportes_parse.c src/esportesui.c src/fontescanais.c > wasm-checks.log 2>&1
+          emcc -fsyntax-only -std=gnu11 -DNV_TOUCH_UI -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/esportes.c src/esportes_parse.c src/esportesui.c src/fontescanais.c >> wasm-checks.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs98-friend-cards-wasm
+          name: Logs99-sports-wasm
           path: '*-checks.log'
           if-no-files-found: error
