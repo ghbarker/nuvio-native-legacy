@@ -1,4 +1,4 @@
-name: Friends row touch and empty-state regression checks
+name: Friends final profile and touch regression checks
 on:
   workflow_dispatch:
 permissions:
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 4abeea9ac6dbd4036cd302d7be08109978a7f82c
+          ref: 5157d7a1febafa25e0e2a95c356c25d4399d47d6
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -55,6 +55,7 @@ jobs:
               print(open(logfile).read()[-6000:])
               if rc:raise SystemExit(rc)
           CHECK
+          bash tests/ajustes_secoes.sh > settings-checks.log 2>&1
           bash tests/amigosperfis.sh > worker-checks.log 2>&1
           SANITIZE=1 bash tests/amigosperfis.sh >> worker-checks.log 2>&1
           node --test servidor/recomendacoes/teste-identidade.mjs > server-checks.log 2>&1
@@ -73,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 6dd0bb6b16fc1d70391432c53c076223a2252480
+          ref: 5157d7a1febafa25e0e2a95c356c25d4399d47d6
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
