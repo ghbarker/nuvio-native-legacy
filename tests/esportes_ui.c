@@ -109,7 +109,11 @@ int guia_busca_programas(int i,time_t d,time_t a,int p,EpgProg *out,int cap) {
 }
 /* Record calls from the real draw routine, without an SDL/GL runtime. */
 static int imagens,imagensDesenhadas,alvosGrade,icones,favAlvos,baixos,altos;
-void gfx_icone(GfxRect r,const char *n,float cr,float cg,float cb,float ca) { (void)n;(void)cr;(void)cg;(void)cb;(void)ca;assert(r.w>0 && r.h>0);icones++; }
+static int imagemPronta=1;
+static float aspectoTeste=2;
+static char ultimoIcone[40];
+static GfxRect caixaIcone;
+void gfx_icone(GfxRect r,const char *n,float cr,float cg,float cb,float ca) { (void)cr;(void)cg;(void)cb;(void)ca;assert(r.w>0 && r.h>0);icones++;snprintf(ultimoIcone,sizeof ultimoIcone,"%s",n);caixaIcone=r; }
 float gfx_escala(void) { return 1; }
 float gfx_escala_entrar(void) { return 1; }
 void gfx_escala_sair(float v) { (void)v; }
@@ -134,8 +138,8 @@ TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float
   assert(w>0);TxtLinha t=txt_linha(e,s,r,g,b,a);if(t.w>w)t.w=(int)w;return t;
 }
 void txt_desenhar(TxtLinha t,float x,float y) { (void)t;(void)x;(void)y; }
-GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);imagens++;if(strstr(url,"-low.jpg"))baixos++;if(strstr(url,"-high.jpg"))altos++;return 1; }
-float tex_aspecto(const char *url) { (void)url;return 2; }
+GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);if(!imagemPronta)return 0;imagens++;if(strstr(url,"-low.jpg"))baixos++;if(strstr(url,"-high.jpg"))altos++;return 1; }
+float tex_aspecto(const char *url) { (void)url;return aspectoTeste; }
 int tex_marca_escura(const char *url) { (void)url;return 0; }
 void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int b) {
   (void)x;(void)y;(void)w;(void)h;(void)f;(void)a;(void)i;(void)b;
@@ -149,6 +153,19 @@ void teclado_desenhar(Uint32 a) { (void)a; }
 static void tecla(SDL_Keycode k) { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=k;esportesui_evento(&e); }
 static void soltar(SDL_Keycode k) { SDL_Event e={0};e.type=SDL_KEYUP;e.key.keysym.sym=k;esportesui_evento(&e); }
 int main(void) {
+  /* Missing, downloading and failed logos have a local, centered icon;
+   * a recovered image replaces it without changing the card geometry. */
+  GfxRect caixa={20,40,320,160};int ic=icones,draw=imagensDesenhadas;
+  logo("","menu_sports",caixa);assert(icones==ic+1 && !strcmp(ultimoIcone,"menu_sports"));
+  assert(caixaIcone.x==100 && caixaIcone.y==40 && caixaIcone.w==160 && caixaIcone.h==160);
+  logo(NULL,"aj_shield",caixa);assert(icones==ic+2 && !strcmp(ultimoIcone,"aj_shield"));
+  imagemPronta=0;logo("https://art.example/missing.png","aj_shield",caixa);
+  logo("https://art.example/missing.png","aj_shield",caixa);
+  assert(icones==ic+4 && imagensDesenhadas==draw);
+  imagemPronta=1;logo("https://art.example/recovered.png","aj_shield",caixa);
+  assert(icones==ic+4 && imagensDesenhadas==draw+1);
+  aspectoTeste=0;logo("https://art.example/invalid.png","aj_shield",caixa);
+  assert(icones==ic+5 && imagensDesenhadas==draw+1);aspectoTeste=2;
   strcpy(eTeste.id,"event");strcpy(eTeste.nome,"Celtics at Magic");strcpy(eTeste.modalidade,"basketball");strcpy(eTeste.ligaId,"nba");
   eTeste.nParticipantes=2;eTeste.estado=1;eTeste.inicio=time(NULL)-60;
   strcpy(eTeste.participantes[0].nome,"Celtics");strcpy(eTeste.participantes[1].nome,"Magic");

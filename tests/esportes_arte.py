@@ -38,4 +38,7 @@ for sport in sports:
     assert low.stat().st_size < high.stat().st_size
     total += low.stat().st_size + high.stat().st_size
 assert total < 2 * 1024 * 1024, total
+for icon in ("aj_shield", "menu_sports"):
+    path = art.parent / "icones" / f"{icon}.png"
+    assert path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), path
 print(f"Sports backgrounds: {len(sports)} sports, {len(expected)} JPEGs, {total} bytes; Low/High sizes passed")
