@@ -602,8 +602,10 @@ void esportesui_desenhar(Uint32 agora) {
   if(telaFileiras())menuModalidades();
   topoLista=pagina==ESP_LIGAS || pagina==ESP_TODOS?340:252;alturaLista=NV_TELA_H-topoLista-70;
   if (alturaLista<60) alturaLista=60;
+  float limite=fmaxf(0,alturaFavoritos()+linhas()*linhaH-alturaLista);
+  rolagem=fmaxf(0,fminf(rolagem,limite));
 #ifdef NV_TOUCH_UI
-  toquerol_vincular(&toque,(GfxRect){xLista,topoLista,larguraLista,alturaLista},gfx_escala(),0,alturaFavoritos()+linhas()*linhaH-alturaLista,1,&rolagem);
+  toquerol_vincular(&toque,(GfxRect){xLista,topoLista,larguraLista,alturaLista},gfx_escala(),0,limite,1,&rolagem);
   ponteiro_rolagem(rolar);
 #endif
   gfx_recorte(xLista-5,topoLista,larguraLista+10,alturaLista);
