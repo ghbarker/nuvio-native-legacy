@@ -1,4 +1,4 @@
-name: Logs94 Simkl and account-profile preview APK
+name: Logs95 Simkl and account-profile preview APK
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: all
 
 concurrency:
-  group: logs94-final-apk-${{ github.ref }}-${{ inputs.mode }}
+  group: logs95-final-apk-${{ github.ref }}-${{ inputs.mode }}
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 2f0f3d34324b0846f4b10fa0f15dce143a4384a8
+          ref: e36dd1f22a49cce9378559c646efc79b19d671c6
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -39,11 +39,11 @@ jobs:
           bash tests/source_audio_language.sh > audio-checks.log 2>&1
           SANITIZE=1 bash tests/source_audio_language.sh >> audio-checks.log 2>&1
           tail -30 audio-checks.log
-          # Full Linux/macOS integration coverage runs in logs94-native-checks.yml.
+          # Full Linux/macOS integration coverage runs in logs95-native-checks.yml.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: logs94-native-regression-logs
+          name: logs95-native-regression-logs
           path: '*-checks.log'
           if-no-files-found: ignore
 
@@ -99,12 +99,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: 2f0f3d34324b0846f4b10fa0f15dce143a4384a8
+          ref: e36dd1f22a49cce9378559c646efc79b19d671c6
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = 2f0f3d34324b0846f4b10fa0f15dce143a4384a8
-          test "$(git rev-parse HEAD^{tree})" = 959cf0b7eba5a8ba9b76d7e57a926925df2a0fe7
+          test "$(git rev-parse HEAD)" = e36dd1f22a49cce9378559c646efc79b19d671c6
+          test "$(git rev-parse HEAD^{tree})" = 5068aa80901c1d21bce2b454eba06613aaafacad
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -126,15 +126,16 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs94'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs95'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
           assert body, 'NUVIO_TOUCH_CORE_PROPERTIES is required'
           simkl=os.environ.get('SIMKL_CLIENT_ID','').strip()
           assert simkl and not any(c.isspace() for c in simkl), 'Simkl Client ID is required'
-          body='\n'.join(line for line in body.splitlines() if not line.startswith(('SIMKL_CLIENT_ID=','SIMKL_APP_NAME=')))
+          body='\n'.join(line for line in body.splitlines() if not line.startswith(('SIMKL_CLIENT_ID=','SIMKL_APP_NAME=','NUVIO_REC_URL=')))
           body+='\nSIMKL_CLIENT_ID='+simkl+'\nSIMKL_APP_NAME=Nuvio TV/Mobile Test\n'
+          body+='NUVIO_REC_URL=https://nuvio-recomendacoes.henriquef29.workers.dev\n'
           props.write_text(body); props.chmod(0o600)
           key=root/'debug.keystore'
           encoded=''.join(os.environ.get('DEBUG_KEYSTORE_B64','').split())
@@ -168,7 +169,7 @@ jobs:
         run: git fetch --no-tags --depth=1 origin 1890f9f674adf646df3360b01d3b303024da3494
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs94 APK
+      - name: Build update-compatible Logs95 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -193,24 +194,26 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20104' versionName='2.0.104-test-logs94'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20105' versionName='2.0.105-test-logs95'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
           python3 tools/android-apk-pages.py "$apk"
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs94.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs95.apk
           python3 - <<'PY'
           import hashlib,json,pathlib,os,zipfile
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs94.apk')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs95.apk')
           key=os.environ['SIMKL_CLIENT_ID'].strip().encode()
           with zipfile.ZipFile(p) as archive:
               for abi in ('arm64-v8a','armeabi-v7a'):
-                  assert key in archive.read('lib/'+abi+'/libmain.so'), 'Simkl Client ID missing from native binary'
+                  binary=archive.read('lib/'+abi+'/libmain.so')
+                  assert key in binary, 'Simkl Client ID missing from native binary'
+                  assert b'https://nuvio-recomendacoes.henriquef29.workers.dev' in binary, 'Social service address missing from native binary'
           print('Simkl Client ID is present in both ARM binaries.')
-          out={'source_commit':'2f0f3d34324b0846f4b10fa0f15dce143a4384a8','source_tree':'959cf0b7eba5a8ba9b76d7e57a926925df2a0fe7','package':'space.nuvio.nativelegacy.touch','version_code':20104,'version_name':'2.0.104-test-logs94','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'1890f9f674adf646df3360b01d3b303024da3494','included_prs':[573,575,576,598,609,611,614,615,619],'upstream_ports':[596,601,602,631],'android_build':True,'simkl_client_configured':True,'simkl_device_registration_checked':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
-          pathlib.Path('Logs94-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          out={'source_commit':'e36dd1f22a49cce9378559c646efc79b19d671c6','source_tree':'5068aa80901c1d21bce2b454eba06613aaafacad','package':'space.nuvio.nativelegacy.touch','version_code':20105,'version_name':'2.0.105-test-logs95','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'1890f9f674adf646df3360b01d3b303024da3494','included_prs':[573,575,576,598,609,611,614,615,619],'upstream_ports':[596,601,602,631],'android_build':True,'social_service_configured':True,'simkl_client_configured':True,'simkl_device_registration_checked':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
+          pathlib.Path('Logs95-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -226,23 +229,23 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs94-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs95-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs94.apk
-            Logs94-validation.json
+            Nuvio-TV-Mobile-Test-Logs95.apk
+            Logs95-validation.json
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs94-Android-evidence-${{ github.sha }}
+          name: Logs95-Android-evidence-${{ github.sha }}
           path: |
-            Logs94-translation-*.txt
+            Logs95-translation-*.txt
             android/app/build/test-results/testDebugUnitTest
             android/app/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs94"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs95"
 
