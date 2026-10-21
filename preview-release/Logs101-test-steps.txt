@@ -1,0 +1,11 @@
+Nuvio TV/Mobile Test Logs101
+
+Install as an update to the existing Nuvio TV/Mobile Test app. Keep the existing app installed so accounts and settings remain.
+
+1. Open Sports. League cards should show sport-specific backgrounds behind their league logos. Open a league and check the same treatment on match cards, with readable team names, scores and Live or scheduled time.
+2. Open Sports > Settings > Image quality. Choose Low, return to the cards, then try High. Low uses 320x180 images; High uses 836x470 images. Both use the same pictures. Reopen the menu to check the saved tick. Restart the app and check again.
+3. Choose Automatic. The app selects a lighter image for low-memory/weak graphics devices and keeps that decision stable while Sports remains open. A manual choice overrides Automatic.
+4. Open a league with several matches starting at the same time. Wait for loading, scroll down and up, then use Update. Matches whose status and start time have not changed should keep their order. Live/completed status changes can still move a match according to the existing sort rules.
+5. Back out to the league cards and reenter. Check that navigation/scroll position and recently loaded matches are retained. Tap a match and select an available IPTV source to confirm playback. Long-press a match to check team Favorites options.
+
+Build checks: Android APK; Linux/macOS focused Sports regressions, normally and under ASan/UBSan; shared WGT source compilation. LG and Samsung device packages were not built or run in this preview. Backgrounds are generic illustrative venues, not photographs of the actual event location.

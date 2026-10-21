@@ -1,0 +1,3 @@
+Sports artwork preview with generic venue backgrounds for all 16 supported sports, real team/league logos from ESPN, Low/High/Automatic image quality, and deterministic ordering for matches sharing a start time. Preserves the existing app layout and on-demand league loading.
+
+Install as an update to Nuvio TV/Mobile Test. Includes the previously combined features. The product PR remains unchanged until this APK is approved. Test packaging and local log export remain outside the product branch. See Logs101-test-steps.txt for exact verification steps.
