@@ -18,7 +18,7 @@ const { chromium } = require('playwright');
     const build = spawnSync(emcc, [...sources.map(s => `src/${s}.c`), 'tests/backup_wasm.c',
       '-Isrc', `-I${crypto}/include`, `${crypto}/lib/libnuvio-backup-crypto.a`, '-DNV_BACKUP_MBEDTLS',
       '-O1', '-pthread', '-sASYNCIFY=1', '-sASYNCIFY_STACK_SIZE=131072', '-sSTACK_SIZE=8388608',
-      '-lidbfs.js', '-sUSE_ZLIB=1', '--no-entry', '-sALLOW_MEMORY_GROWTH=1',
+      '-lidbfs.js', '-sUSE_ZLIB=1', '-sUSE_SDL=2', '--no-entry', '-sALLOW_MEMORY_GROWTH=1',
       '-sEXPORTED_FUNCTIONS=["_dados_iniciar","_backup_wasm_seed","_backup_wasm_restore","_backup_wasm_recover","_backup_wasm_crypto"]',
       '-sEXPORTED_RUNTIME_METHODS=["ccall","FS"]', '-o', path.join(dir, 'backup.js')], { encoding: 'utf8' });
     if (build.status !== 0) throw new Error(build.stderr || build.error || 'WASM compile failed');
