@@ -453,20 +453,18 @@ static void horario(time_t quando, char *out, size_t n) {
 }
 /* The same asynchronous, size-bounded image cache as Home and collections.
  * Fit transparent league/team marks rather than stretching them as posters. */
-static void logo(const char *url, const char *nome, GfxRect r) {
-  GLuint t=url[0]?tex_obter_larg(url,r.w):0;
-  float ap=url[0]?tex_aspecto(url):0;
+static void logo(const char *url, const char *generico, GfxRect r) {
+  GLuint t=url && url[0]?tex_obter_larg(url,r.w):0;
+  float ap=url && url[0]?tex_aspecto(url):0;
   if (t && ap>0) {
     float w=r.w,h=w/ap;
     if (h>r.h) { h=r.h; w=h*ap; }
     GfxRect arte={r.x+(r.w-w)*0.5f,r.y+(r.h-h)*0.5f,w,h};
     gfx_rect(arte,t,tex_marca_escura(url)?GFX_MARCA:GFX_TEXTO,0,0,0,0,1,1,1,1);
   } else {
-    char inicial[8]="";
-    /* ASCII short labels are a fallback, never invented remote artwork. */
-    for (int i=0,k=0;nome[i] && k<3;i++) if ((unsigned char)nome[i]<128 && nome[i]!=' ' && (i==0 || nome[i-1]==' ')) inicial[k++]=nome[i];
-    TxtLinha t=txt_linha_corta(TXT_HEADLINE,inicial,158,158,158,255,r.w);
-    txt_desenhar(t,r.x+(r.w-t.w)*0.5f,r.y+(r.h-t.h)*0.5f);
+    /* Bundled app icons cover absent, pending and failed remote images. */
+    float lado=fminf(r.w,r.h);
+    gfx_icone((GfxRect){r.x+(r.w-lado)*.5f,r.y+(r.h-lado)*.5f,lado,lado},generico,1,1,1,1);
   }
 }
 /* Bundled, reusable venue art: no per-game image request or extra worker.
@@ -504,14 +502,14 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
   char data[48],meta[400];horario(e->inicio,data,sizeof data);
   const char *estado=e->estado==1?i18n("Ao vivo"):e->estado==2?i18n("Encerrado"):e->estado==3?e->detalhe:data;
   snprintf(meta,sizeof meta,"%s%s%s",estado,e->sessao[0]?" · ":"",e->sessao);
-  const char *marca=logoLiga(e,m);float cab=marca[0]?48:0;
-  if(marca[0])logo(marca,e->liga,(GfxRect){x,r.y+12,34,34});
+  const char *marca=logoLiga(e,m);float cab=48;
+  logo(marca,"menu_sports",(GfxRect){x,r.y+12,34,34});
   txt(TXT_CAPTION2,meta,x+cab,r.y+20,w-cab,230);
   if(e->nParticipantes==2) {
     float metade=w*.5f,sz=fminf(160,metade-24);
     for(int i=0;i<2;i++) {
       const EspParticipante *p=&e->participantes[i];float px=x+i*metade;
-      logo(p->logo,p->sigla[0]?p->sigla:p->nome,(GfxRect){px+(metade-sz)*.5f,r.y+52,sz,sz});
+      logo(p->logo,"aj_shield",(GfxRect){px+(metade-sz)*.5f,r.y+52,sz,sz});
       const char *nome=p->curto[0]?p->curto:p->nome;
       float placar=e->estado==1 || e->estado==2?(strlen(p->pontos)>3?96:55):0;
       txt(TXT_BODY,nome,px+5,r.y+224,metade-10-placar,245);
@@ -519,7 +517,7 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
     }
     txt(TXT_BODY,"×",r.x+r.w*.5f-10,r.y+118,24,245);
   } else {
-    logo(marca,e->liga,(GfxRect){x,r.y+72,78,78});
+    logo(marca,"menu_sports",(GfxRect){x,r.y+72,78,78});
     txt(TXT_BODY,e->nome,x+96,r.y+84,w-96,245);
   }
   txt(TXT_CAPTION2,e->local[0]?e->local:e->liga,x,r.y+r.h-38,w,220);
@@ -621,7 +619,7 @@ static void desenharLigas(void) {
       if(r.x>=xLista+larguraLista || r.x+r.w<=xLista)continue;
       plrui_cartao(r,20,1);if(foco==codLinha(k,-1))plrui_linha_foco(r,20,1);
       int arte=fundoCartao(r,m,foco==codLinha(k,-1));
-      logo(l->logo,l->nome,(GfxRect){r.x+28,r.y+18,r.w-56,r.h-82});
+      logo(l->logo,"menu_sports",(GfxRect){r.x+28,r.y+18,r.w-56,r.h-82});
       txt(TXT_BODY,l->nome,r.x+22,r.y+r.h-49,r.w-44,245);
       if(arte && foco==codLinha(k,-1))anelCartao(r);
       float x=fmaxf(xLista,r.x),fim=fminf(xLista+larguraLista,r.x+r.w);
@@ -694,8 +692,8 @@ void esportesui_desenhar(Uint32 agora) {
     txt(TXT_BODY,i18n(s),xLista+22,topoLista+alturaFavoritos()-rolagem+30,larguraLista-44,170);
   }
   gfx_sem_recorte();
-  const char *rodape=aviso[0]?aviso:esportes_erro()?i18n("Não foi possível atualizar os eventos"):pagina==ESP_EVENTOS && esportes_eventos_n()==ESP_MAX_EVENTOS?i18n("Mostrando os primeiros 400 eventos"):"ESPN";
-  txt(TXT_CAPTION2,rodape,xLista,NV_TELA_H-48,larguraLista,158);
+  const char *rodape=aviso[0]?aviso:esportes_erro()?i18n("Não foi possível atualizar os eventos"):pagina==ESP_EVENTOS && esportes_eventos_n()==ESP_MAX_EVENTOS?i18n("Mostrando os primeiros 400 eventos"):"";
+  if(rodape[0])txt(TXT_CAPTION2,rodape,xLista,NV_TELA_H-48,larguraLista,158);
   ESCALA_FIM();
   if (entradaTexto) teclado_desenhar(agora);
 }
