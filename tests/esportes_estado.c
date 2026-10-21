@@ -78,6 +78,11 @@ static void drenar(void) {
 }
 int main(void) {
   esportes_abrir_sessao();
+  assert(esportes_fundo_qualidade()==0 && esportes_fundo_definir_qualidade(1));
+  falharGravacao=1;assert(!esportes_fundo_definir_qualidade(2) && esportes_fundo_qualidade()==1);falharGravacao=0;
+  assert(!esportes_fundo_definir_qualidade(-1) && !esportes_fundo_definir_qualidade(3));
+  sessao++;esportes_abrir_sessao();assert(esportes_fundo_qualidade()==1);
+  assert(esportes_fundo_definir_qualidade(0));
   assert(esportes_habilitado(1)); assert(esportes_habilitar(1,0));
   assert(!esportes_habilitado(1));
   esportes_pedir_ligas(1,1); assert(!esportes_carregando()); assert(!pedidos);
