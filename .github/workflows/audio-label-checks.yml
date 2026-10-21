@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: [{"pr": "intro-fixture-final", "ref": "be613c39e70d4fb0697a9aa7d33e8636abe39379", "os": "ubuntu-24.04", "scripts": "tests/intro.sh"}, {"pr": "intro-fixture-final", "ref": "be613c39e70d4fb0697a9aa7d33e8636abe39379", "os": "macos-15-intel", "scripts": "tests/intro.sh"}, {"pr": "epg-fixture-final", "ref": "f171d3256641686fe30d6c5fc744e74476008c26", "os": "ubuntu-24.04", "scripts": "tests/epg_accounts.sh"}, {"pr": "epg-fixture-final", "ref": "f171d3256641686fe30d6c5fc744e74476008c26", "os": "macos-15-intel", "scripts": "tests/epg_accounts.sh"}]
+        include: [{"pr": "intro-fixture-final", "ref": "be613c39e70d4fb0697a9aa7d33e8636abe39379", "os": "ubuntu-24.04", "scripts": "tests/intro.sh"}, {"pr": "intro-fixture-final", "ref": "be613c39e70d4fb0697a9aa7d33e8636abe39379", "os": "macos-15-intel", "scripts": "tests/intro.sh"}, {"pr": "epg-fixture-final", "ref": "1543dbfb3f89397a72b0b178c365195945e1d5d6", "os": "ubuntu-24.04", "scripts": "tests/epg_accounts.sh"}, {"pr": "epg-fixture-final", "ref": "1543dbfb3f89397a72b0b178c365195945e1d5d6", "os": "macos-15-intel", "scripts": "tests/epg_accounts.sh"}]
     name: PR ${{ matrix.pr }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
