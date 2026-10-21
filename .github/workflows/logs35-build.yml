@@ -66,6 +66,15 @@ jobs:
               with urllib.request.urlopen('https://api.simkl.com/oauth/pin?'+query,timeout=25) as response:
                   body=json.load(response)
           except urllib.error.HTTPError as e:
+              import re
+              try: error=json.loads(e.read(8192))
+              except Exception: error={}
+              for field in ('error','message','error_description'):
+                  value=error.get(field)
+                  if isinstance(value,str):
+                      value=value.replace(key,'[redacted]')
+                      value=re.sub(r'[A-Za-z0-9_-]{28,}','[redacted]',value)
+                      print('Simkl '+field+': '+value[:240])
               raise SystemExit('Simkl PIN registration check returned HTTP '+str(e.code)) from None
           except Exception:
               raise SystemExit('Simkl PIN registration check could not reach the service.') from None
