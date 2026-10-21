@@ -35,13 +35,17 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libgles2-mesa-dev libegl1-mesa-dev
       - name: macOS dependencies
         if: runner.os == 'macOS'
-        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf
+        run: |
+          brew install pkg-config sdl2 sdl2_image sdl2_ttf
+          echo "C_INCLUDE_PATH=$(brew --prefix)/include:$(brew --prefix)/include/SDL2" >> "$GITHUB_ENV"
+          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+          echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
       - name: Profile-pairing protocol and ownership checks
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'CHECK'
-          import os,signal,subprocess
+          import os,signal,subprocess,sys
           with open('worker-checks.log','w') as f:
               for sanitize in ('0','1'):
                   print('RUN profile worker SANITIZE='+sanitize,flush=True)
@@ -49,6 +53,10 @@ jobs:
                   try: rc=p.wait(timeout=75)
                   except subprocess.TimeoutExpired:
                       subprocess.run(['ps','-eo','pid,ppid,etime,comm'],stdout=f,stderr=subprocess.STDOUT)
+                      if sys.platform=='darwin':
+                          for line in subprocess.check_output(['ps','-axo','pid=,comm='],text=True).splitlines():
+                              if '/nuvio-profile-friends.' in line and line.rstrip().endswith('/test'):
+                                  subprocess.run(['sample',line.split()[0],'3','-file','macos-worker-sample.log'],timeout=15)
                       os.killpg(p.pid,signal.SIGKILL);p.wait()
                       raise SystemExit('Profile worker exceeded 75 seconds; diagnostics are not a pass')
                   if rc: raise SystemExit(rc)
@@ -66,7 +74,9 @@ jobs:
         if: always()
         with:
           name: Logs97-friends-${{ matrix.os }}-${{ matrix.source }}
-          path: '*-checks.log'
+          path: |
+            *-checks.log
+            macos-worker-sample.log
           if-no-files-found: error
   wasm:
     if: inputs.mode != 'mac'
