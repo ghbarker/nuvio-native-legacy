@@ -56,4 +56,4 @@ jobs:
           v['all_previous_rebase_checks_passed']=False
           open('Logs95-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          gh release create tv-mobile-test-logs-v94 Nuvio-TV-Mobile-Test-Logs95.apk Logs95-validation.json Logs95-independent-verification.json preview-release/Logs95-test-steps.txt --target e36dd1f22a49cce9378559c646efc79b19d671c6 --title 'Nuvio TV/Mobile Test Logs95 — Social configuration and Settings entry' --notes-file preview-release/Logs95-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v95 Nuvio-TV-Mobile-Test-Logs95.apk Logs95-validation.json Logs95-independent-verification.json preview-release/Logs95-test-steps.txt --target e36dd1f22a49cce9378559c646efc79b19d671c6 --title 'Nuvio TV/Mobile Test Logs95 — Social configuration and Settings entry' --notes-file preview-release/Logs95-release-notes.txt --prerelease
