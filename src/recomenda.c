@@ -21,6 +21,7 @@
 #include "trakt.h"
 #include "simklauth.h"
 #include "sessao.h"
+#include "nuvem.h"
 #include "gfx.h"
 #include "text.h"
 #include "tex_cache.h"

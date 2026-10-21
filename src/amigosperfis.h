@@ -4,7 +4,8 @@
 enum { AP_DISPONIVEL, AP_AMIGO, AP_BLOQUEADO };
 enum { AP_NADA, AP_CARREGANDO, AP_PRONTO, AP_ERRO, AP_INDISPONIVEL, AP_CONTA_NUVIO };
 typedef struct { ContaPerfil perfil; int estado; char id[96]; } AmigoPerfil;
-// Server-verified account profiles. No pairing codes or profile switches.
+// Authenticated account profiles. Pairing codes stay internal on older servers;
+// no active-profile switch or sharing-preference changes.
 int amigosperfis_carregar(void);
 int amigosperfis_estado(void);
 int amigosperfis_listar(AmigoPerfil *saida,int cap);
