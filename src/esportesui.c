@@ -22,6 +22,7 @@
 #include "escala.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 enum { ESP_LIGAS, ESP_EVENTOS, ESP_DETALHE, ESP_CONFIG, ESP_TODOS, ESP_LIGAS_CONFIG };
@@ -32,6 +33,9 @@ enum { ESP_LIGAS, ESP_EVENTOS, ESP_DETALHE, ESP_CONFIG, ESP_TODOS, ESP_LIGAS_CON
 #define PASSO_FOCO (ESP_MAX_EVENTOS+1)
 static int pagina, modalidade, foco, sair, pediuRelogio, entradaTexto, detalheOrigem, esperaSoltura;
 static int indices[ESP_MAX_FILEIRAS], nItens;
+typedef struct { int modalidade, inicio, n; } EspGrupo;
+static EspGrupo grupos[32];
+static int nGrupos, eventosOrigem, eventosModalidade;
 static EspLiga liga;
 static EspEvento evento;
 static char consulta[160], aviso[160];
@@ -42,9 +46,14 @@ static float vao = 24, favoritosRolagem, linhasRolagem[ESP_MAX_FILEIRAS];
 static int telaFileiras(void){return pagina==ESP_TODOS || pagina==ESP_LIGAS;}
 static int focoLinha(void){return telaFileiras() && foco>=FOCO_LINHA;}
 static int linhaFoco(void){return (foco-FOCO_LINHA)/PASSO_FOCO;}
-static int eventoLinhaFoco(void){return (foco-FOCO_LINHA)%PASSO_FOCO-1;}
 static int codLinha(int l,int e){return FOCO_LINHA+l*PASSO_FOCO+e+1;}
-static int posLinha(int l){for(int i=0;i<nItens;i++)if(indices[i]==l)return i;return -1;}
+static int posLinha(int l){for(int g=0;g<nGrupos;g++)for(int i=0;i<grupos[g].n;i++)if(indices[grupos[g].inicio+i]==l)return g;return -1;}
+static int colunaLiga(int l,int g){for(int i=0;i<grupos[g].n;i++)if(indices[grupos[g].inicio+i]==l)return i;return 0;}
+static int ordemLiga(const void *a,const void *b) {
+  int x=*(const int *)a,y=*(const int *)b;
+  int m=esportes_catalogo_modalidade(x)-esportes_catalogo_modalidade(y);
+  return m?m:strcmp(esportes_catalogo_liga(x)->nome,esportes_catalogo_liga(y)->nome);
+}
 static int modalidadeFoco(int f) { return -f - FOCO_MODALIDADE; }
 static int esporteVizinho(int m, int d) {
   for (int i=m+d;i>=0 && i<esportes_modalidades_n();i+=d) if (esportes_habilitado(i)) return i;
@@ -58,20 +67,22 @@ static void medidas(void) {
   colunas=(pagina==ESP_EVENTOS)?(int)((larguraLista+vao)/(minimo+vao)):1;
   if (colunas<1) colunas=1;
   if (colunas>5) colunas=5;
-  linhaH=telaFileiras()?332:pagina==ESP_EVENTOS?286:92;
+  linhaH=telaFileiras()?270:pagina==ESP_EVENTOS?286:92;
 }
-static int linhas(void) { return (nItens+colunas-1)/colunas; }
+static int linhas(void) { return telaFileiras()?nGrupos:(nItens+colunas-1)/colunas; }
 static int linhaFavoritos(void) { return pagina==ESP_TODOS && esportes_favoritos_times()>0; }
 static int focoFavorito(void) { return pagina==ESP_TODOS && foco>=FOCO_FAVORITO && foco<FOCO_LINHA; }
 static float alturaFavoritos(void) { return linhaFavoritos()?332.0f:0.0f; }
 static float larguraFavorito(void) { return fminf(470,larguraLista*.90f); }
 static const EspEvento *eventoFocado(void) {
-  if(focoLinha())return esportes_catalogo_evento(linhaFoco(),eventoLinhaFoco());
+  if(focoLinha())return NULL;
   if(focoFavorito())return esportes_favoritos_evento(foco-FOCO_FAVORITO);
   return pagina==ESP_EVENTOS && foco>=0 && foco<nItens?esportes_evento(indices[foco]):NULL;
 }
 static Uint32 ultimoRefresh;
 static int retornoFoco[6];
+static float retornoRolagem[6];
+static char retornoConsulta[6][160];
 static void escolherModalidade(int m);
 static CtxHold eventoHold;
 static void limparToque(void);
@@ -104,7 +115,7 @@ static int contem(const char *s) {
   return strstr(n, q) != NULL;
 }
 static void montar(void) {
-  nItens = 0;
+  nItens = nGrupos = 0;
   if (pagina == ESP_CONFIG) {
     for (int i = 0; i < esportes_modalidades_n(); i++)
       if (contem(i18n(esportes_modalidade(i)->nome))) indices[nItens++] = i;
@@ -121,17 +132,24 @@ static void montar(void) {
       if (contem(e->nome) || contem(e->liga)) indices[nItens++] = i;
     }
   } else if (pagina == ESP_DETALHE) nItens = evento.nParticipantes;
+  if(telaFileiras()) {
+    qsort(indices,(size_t)nItens,sizeof *indices,ordemLiga);
+    for(int i=0;i<nItens;i++) {
+      int m=esportes_catalogo_modalidade(indices[i]);
+      if(!nGrupos || grupos[nGrupos-1].modalidade!=m)grupos[nGrupos++]=(EspGrupo){m,i,0};
+      grupos[nGrupos-1].n++;
+    }
+  }
   if(focoLinha()) {
-    int l=linhaFoco(),e=eventoLinhaFoco(),n=esportes_catalogo_eventos_n(l);
-    if(posLinha(l)<0)foco=nItens?codLinha(indices[0],-1):-FOCO_MODALIDADE-modalidade;
-    else if(e>=n)foco=codLinha(l,n-1);
+    if(posLinha(linhaFoco())<0)foco=nItens?codLinha(indices[0],-1):-FOCO_MODALIDADE-modalidade;
   } else if(focoFavorito()) {
     int n=esportes_favoritos_n();if(foco-FOCO_FAVORITO>=n)foco=n?FOCO_FAVORITO+n-1:nItens?codLinha(indices[0],-1):FOCO_TODOS;
   } else if(telaFileiras() && foco>=0)foco=nItens?codLinha(indices[0],-1):-FOCO_MODALIDADE-modalidade;
   else if (foco >= nItens) foco = nItens > 0 ? nItens - 1 : 0;
 }
 static void abrir(int p) {
-  retornoFoco[pagina] = foco;
+  retornoFoco[pagina] = foco; retornoRolagem[pagina] = rolagem;
+  snprintf(retornoConsulta[pagina],sizeof retornoConsulta[pagina],"%s",consulta);
   pagina = p; foco = 0; rolagem = 0; consulta[0] = aviso[0] = 0;
 #ifdef NV_TOUCH_UI
   memset(&toqueMenu,0,sizeof toqueMenu);memset(&toqueFavoritos,0,sizeof toqueFavoritos);memset(toqueLinhas,0,sizeof toqueLinhas);
@@ -143,6 +161,8 @@ void esportesui_iniciar(void) {
   esportes_abrir_sessao();pagina=ESP_TODOS;modalidade=-1;
   foco=FOCO_TODOS; sair = pediuRelogio = 0;
   entradaTexto=esperaSoltura=0;favoritosRolagem=0;consulta[0]=aviso[0]=0;
+  memset(linhasRolagem,0,sizeof linhasRolagem);memset(retornoFoco,0,sizeof retornoFoco);
+  memset(retornoRolagem,0,sizeof retornoRolagem);memset(retornoConsulta,0,sizeof retornoConsulta);
   ctxhold_cancelar(&eventoHold);
   rolagem = menuRolagem = 0; procurando = 0; limparToque(); medidas(); montar();
   esportes_catalogo_iniciar(-1,0);
@@ -173,18 +193,23 @@ static void buscarCanais(void) {
 static void voltar(void) {
   procurando = 0;
   if(pagina==ESP_TODOS){sair=1;return;}
-  int p=pagina==ESP_LIGAS_CONFIG?(modalidade<0?ESP_TODOS:ESP_LIGAS):pagina==ESP_CONFIG || pagina==ESP_LIGAS?ESP_TODOS:pagina==ESP_DETALHE?detalheOrigem:ESP_LIGAS;
+  int p=pagina==ESP_LIGAS_CONFIG?(modalidade<0?ESP_TODOS:ESP_LIGAS):pagina==ESP_CONFIG || pagina==ESP_LIGAS?ESP_TODOS:pagina==ESP_DETALHE?detalheOrigem:eventosOrigem;
   int configurar=pagina==ESP_CONFIG;
-  abrir(p); foco=retornoFoco[p];
+  if(pagina==ESP_EVENTOS)modalidade=eventosModalidade;
+  int f=retornoFoco[p];float r=retornoRolagem[p];char q[160];snprintf(q,sizeof q,"%s",retornoConsulta[p]);
+  abrir(p); foco=f;rolagem=r;snprintf(consulta,sizeof consulta,"%s",q);
   if(p==ESP_TODOS){modalidade=-1;esportes_pedir_favoritos(0);if(configurar)foco=FOCO_TODOS;}
   if(telaFileiras())esportes_catalogo_iniciar(modalidade,0);
   montar();
 }
 static void agir(void) {
   if(focoLinha()) {
-    const EspEvento *e=eventoFocado();
-    if(e){evento=*e;stream_folha_canais_abrir(evento.nome);buscarCanais();}
-    else if(eventoLinhaFoco()<0){int k=linhaFoco();const EspLiga *l=esportes_catalogo_liga(k);if(l){liga=*l;modalidade=esportes_catalogo_modalidade(k);abrir(ESP_EVENTOS);esportes_pedir_eventos(modalidade,&liga,0);ultimoRefresh=SDL_GetTicks();}}
+    int k=linhaFoco();const EspLiga *l=esportes_catalogo_liga(k);
+    if(l) {
+      liga=*l;eventosOrigem=pagina;eventosModalidade=modalidade;
+      abrir(ESP_EVENTOS);modalidade=esportes_catalogo_modalidade(k);
+      esportes_pedir_eventos(modalidade,&liga,0);montar();ultimoRefresh=SDL_GetTicks();
+    }
     return;
   }
   if(focoFavorito()) {
@@ -262,20 +287,22 @@ void esportesui_evento(const SDL_Event *e) {
     if(k==SDLK_LEFT){if(foco>FOCO_FAVORITO)foco--;else sair=1;}
     else if(k==SDLK_RIGHT && foco-FOCO_FAVORITO+1<n)foco++;
     else if(k==SDLK_UP)foco=FOCO_TODOS;
-    else if(k==SDLK_DOWN && nItens)foco=codLinha(indices[0],0);
+    else if(k==SDLK_DOWN && nItens)foco=codLinha(indices[0],-1);
     else if(k==SDLK_PAGEUP)foco=foco-FOCO_FAVORITO>3?foco-3:FOCO_FAVORITO;
     else if(k==SDLK_PAGEDOWN)foco=foco-FOCO_FAVORITO+3<n?foco+3:FOCO_FAVORITO+n-1;
     return;
   }
   if(focoLinha()) {
-    int l=linhaFoco(),evIndex=eventoLinhaFoco(),pos=posLinha(l),n=esportes_catalogo_eventos_n(l);
-    if(k==SDLK_LEFT){if(evIndex>=0)foco=codLinha(l,evIndex-1);else sair=1;}
-    else if(k==SDLK_RIGHT && evIndex+1<n)foco=codLinha(l,evIndex+1);
-    else if(k==SDLK_UP || k==SDLK_PAGEUP){
-      int alvo=pos-(k==SDLK_PAGEUP?3:1);
-      foco=alvo>=0?codLinha(indices[alvo],-1):linhaFavoritos() && esportes_favoritos_n()?FOCO_FAVORITO:-FOCO_MODALIDADE-modalidade;
-    } else if(k==SDLK_DOWN || k==SDLK_PAGEDOWN){int alvo=pos+(k==SDLK_PAGEDOWN?3:1);if(alvo<nItens)foco=codLinha(indices[alvo],-1);}
-    else if((k==SDLK_RETURN || k==SDLK_KP_ENTER || k==SDLK_SPACE) && !e->key.repeat)agir();
+    int l=linhaFoco(),g=posLinha(l),c=g>=0?colunaLiga(l,g):0;
+    if(g<0)return;
+    if(k==SDLK_LEFT){if(c>0)foco=codLinha(indices[grupos[g].inicio+c-1],-1);else sair=1;}
+    else if(k==SDLK_RIGHT && c+1<grupos[g].n)foco=codLinha(indices[grupos[g].inicio+c+1],-1);
+    else if(k==SDLK_UP || k==SDLK_PAGEUP || k==SDLK_DOWN || k==SDLK_PAGEDOWN) {
+      int passo=(k==SDLK_PAGEUP || k==SDLK_PAGEDOWN)?3:1;
+      int alvo=g+((k==SDLK_UP || k==SDLK_PAGEUP)?-passo:passo);
+      if(alvo<0)foco=linhaFavoritos() && esportes_favoritos_n()?FOCO_FAVORITO:-FOCO_MODALIDADE-modalidade;
+      else if(alvo<nGrupos)foco=codLinha(indices[grupos[alvo].inicio+(c<grupos[alvo].n?c:grupos[alvo].n-1)],-1);
+    } else if((k==SDLK_RETURN || k==SDLK_KP_ENTER || k==SDLK_SPACE) && !e->key.repeat)agir();
     return;
   }
   if (foco<=FOCO_TODOS) {
@@ -285,7 +312,7 @@ void esportesui_evento(const SDL_Event *e) {
       if (outro==m && k==SDLK_LEFT) sair=1;
       else escolherModalidade(outro);
     } else if (k==SDLK_UP) foco=-1;
-    else if (k==SDLK_DOWN || k==SDLK_RETURN || k==SDLK_KP_ENTER || k==SDLK_SPACE) foco=pagina==ESP_TODOS && esportes_favoritos_n()?FOCO_FAVORITO:nItens?codLinha(indices[0],0):foco;
+    else if (k==SDLK_DOWN || k==SDLK_RETURN || k==SDLK_KP_ENTER || k==SDLK_SPACE) foco=pagina==ESP_TODOS && esportes_favoritos_n()?FOCO_FAVORITO:nItens?codLinha(indices[0],-1):foco;
     return;
   }
   if (k == SDLK_LEFT) {
@@ -354,7 +381,7 @@ void esportesui_atualizar(float dt, Uint32 agora) {
   (void)dt; medidas();
   if (ctxhold_passo(&eventoHold,agora,1)) pointerDetalhe(foco,0);
   char selecionado[100]="",selecionadoMod[32]="",selecionadoLiga[80]="";
-  int eraFavorito=focoFavorito(),eraLinha=focoLinha(),linhaAntes=eraLinha?linhaFoco():-1;
+  int eraFavorito=focoFavorito();
   const EspEvento *emFoco=eventoFocado();
   if(emFoco){
     snprintf(selecionado,sizeof selecionado,"%s",emFoco->id);
@@ -374,10 +401,10 @@ void esportesui_atualizar(float dt, Uint32 agora) {
     }
     montar();
     if(selecionado[0]) {
-      int n=eraLinha?esportes_catalogo_eventos_n(linhaAntes):eraFavorito?esportes_favoritos_n():pagina==ESP_EVENTOS?nItens:0;
+      int n=eraFavorito?esportes_favoritos_n():pagina==ESP_EVENTOS?nItens:0;
       for(int i=0;i<n;i++) {
-        const EspEvento *e=eraLinha?esportes_catalogo_evento(linhaAntes,i):eraFavorito?esportes_favoritos_evento(i):esportes_evento(indices[i]);
-        if(e && !strcmp(e->id,selecionado) && !strcmp(e->modalidade,selecionadoMod) && !strcmp(e->ligaId,selecionadoLiga)){foco=eraLinha?codLinha(linhaAntes,i):eraFavorito?FOCO_FAVORITO+i:i;break;}
+        const EspEvento *e=eraFavorito?esportes_favoritos_evento(i):esportes_evento(indices[i]);
+        if(e && !strcmp(e->id,selecionado) && !strcmp(e->modalidade,selecionadoMod) && !strcmp(e->ligaId,selecionadoLiga)){foco=eraFavorito?FOCO_FAVORITO+i:i;break;}
       }
     }
   }
@@ -522,42 +549,40 @@ static void desenharFavoritos(void) {
   if(!n)txt(TXT_BODY,i18n(esportes_favoritos_carregando()?"Carregando…":esportes_favoritos_erro()?"Não foi possível carregar. Use Atualizar para tentar novamente.":"Nenhum resultado"),xLista+22,y+90,larguraLista-44,170);
 }
 static void desenharLigas(void) {
-  float cw=larguraFavorito(),passo=cw+vao;
+  float cw=fminf(320,larguraLista*.72f),passo=cw+vao;
   int de=(int)fmaxf(0,floorf((rolagem-alturaFavoritos())/linhaH));
   int ate=(int)ceilf((rolagem+alturaLista-alturaFavoritos())/linhaH);
-  if(ate>nItens)ate=nItens;
+  if(ate>nGrupos)ate=nGrupos;
 #ifdef NV_TOUCH_UI
   for(int i=0;i<8;i++)if(i>=ate-de)memset(&toqueLinhas[i],0,sizeof toqueLinhas[i]);
 #endif
   for(int pos=de;pos<ate;pos++) {
-    int k=indices[pos],n=esportes_catalogo_eventos_n(k);
-    const EspLiga *l=esportes_catalogo_liga(k);if(!l)continue;
-    esportes_catalogo_pedir(k);
+    EspGrupo *g=&grupos[pos];int m=g->modalidade,n=g->n;
     float y=topoLista+alturaFavoritos()+pos*linhaH-rolagem;
-    GfxRect cab={xLista,y,larguraLista,38};
-    if(foco==codLinha(k,-1))plrui_linha_foco(cab,12,1);
-    txt(TXT_BODY,l->nome,xLista+8,y,larguraLista-16,245);
-    ponteiro_alvo_faixa(cab.x,cab.y,cab.w,cab.h,topoLista,topoLista+alturaLista,pointerFoco,pointerAtivar,codLinha(k,-1),0);
-    float *offset=&linhasRolagem[k];
-    if(focoLinha() && linhaFoco()==k && eventoLinhaFoco()>=0) {
+    txt(TXT_BODY,i18n(esportes_modalidade(m)->nome),xLista+8,y,larguraLista-16,245);
+    float *offset=&linhasRolagem[m];
+    if(focoLinha() && posLinha(linhaFoco())==pos) {
 #ifdef NV_TOUCH_UI
       if(!toquerol_livre(&toqueLinhas[(pos-de)%8]))
 #endif
-      {float x=eventoLinhaFoco()*passo;if(x<*offset)*offset=x;if(x+cw>*offset+larguraLista)*offset=x+cw-larguraLista;}
+      {float x=colunaLiga(linhaFoco(),pos)*passo;if(x<*offset)*offset=x;if(x+cw>*offset+larguraLista)*offset=x+cw-larguraLista;}
     }
     *offset=fmaxf(0,fminf(*offset,fmaxf(0,n*passo-vao-larguraLista)));
 #ifdef NV_TOUCH_UI
-    float inicio=fmaxf(topoLista,y+42),fim=fminf(topoLista+alturaLista,y+314);
+    float inicio=fmaxf(topoLista,y+42),fim=fminf(topoLista+alturaLista,y+linhaH-16);
     toquerol_vincular(&toqueLinhas[(pos-de)%8],(GfxRect){xLista,inicio,larguraLista,fmaxf(0,fim-inicio)},gfx_escala(),0,n*passo-vao-larguraLista,0,offset);
 #endif
     int primeiro=(int)(*offset/passo),ultimo=primeiro+(int)(larguraLista/passo)+2;
-    for(int e=primeiro;e<n && e<ultimo;e++) {
-      const EspEvento *ev=esportes_catalogo_evento(k,e);if(!ev)continue;
-      GfxRect r={xLista+e*passo-*offset,y+42,cw,270};if(r.x>=xLista+larguraLista || r.x+r.w<=xLista)continue;linhaEvento(ev,r,foco==codLinha(k,e));
+    for(int c=primeiro;c<n && c<ultimo;c++) {
+      int k=indices[g->inicio+c];const EspLiga *l=esportes_catalogo_liga(k);if(!l)continue;
+      GfxRect r={xLista+c*passo-*offset,y+42,cw,linhaH-58};
+      if(r.x>=xLista+larguraLista || r.x+r.w<=xLista)continue;
+      plrui_cartao(r,20,1);if(foco==codLinha(k,-1))plrui_linha_foco(r,20,1);
+      logo(l->logo,l->nome,(GfxRect){r.x+28,r.y+18,r.w-56,r.h-82});
+      txt(TXT_BODY,l->nome,r.x+22,r.y+r.h-49,r.w-44,245);
       float x=fmaxf(xLista,r.x),fim=fminf(xLista+larguraLista,r.x+r.w);
-      ponteiro_alvo_faixa(x,r.y,fim-x,r.h,topoLista,topoLista+alturaLista,pointerFoco,pointerAtivar,codLinha(k,e),0);ponteiro_alvo_segurar(pointerDetalhe);
+      ponteiro_alvo_faixa(x,r.y,fim-x,r.h,topoLista,topoLista+alturaLista,pointerFoco,pointerAtivar,codLinha(k,-1),0);
     }
-    if(!n){int estado=esportes_catalogo_estado(k);txt(TXT_BODY,i18n(estado<0?"Não foi possível carregar. Use Atualizar para tentar novamente.":estado>0?"Nenhum resultado":"Carregando…"),xLista+22,y+90,larguraLista-44,170);}
   }
 }
 void esportesui_desenhar(Uint32 agora) {
