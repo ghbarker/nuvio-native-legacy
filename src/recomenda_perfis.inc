@@ -85,6 +85,7 @@ static void tratarPerfisConta(const char **cab) {
     while (p && *p=='{' && contaPerfisN<CONTA_PERFIL_MAX) {
       const char *f=js_fim(p); AmigoPerfil a; memset(&a,0,sizeof a);
       double idx=js_num(p,f,"indice",0); int duplicado=0;
+      if (!(idx>=1 && idx<=32)) { p=js_prox(f); continue; }
       a.perfil.indice=(int)idx;
       for (int i=0;i<contaPerfisN;i++) if(contaPerfis[i].perfil.indice==a.perfil.indice) duplicado=1;
       if (idx>=1 && idx<=32 && idx==a.perfil.indice && a.perfil.indice!=recPerfil && !duplicado) {
