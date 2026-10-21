@@ -18,6 +18,8 @@ static int abDesteDispositivo(int op) {
     // A phone backup must not force TV mode, memory/panel limits, input
     // routing, account-sharing policy or telemetry consent on another device.
     case AJ_INTERFACE_MODO:case AJ_RESOLUCAO:case AJ_TEX_MB:
+    case AJ_AMPLIAR_UI:case AJ_AMPLIACAO_ALGO:case AJ_AMPLIACAO_NITIDEZ:
+    case AJ_HDR_INTERFACE:case AJ_TUNNELING:case AJ_DV7:case AJ_AUDIO_OFFSET:
     case AJ_QUALIDADE_IMG:case AJ_ITENS_FILEIRA:case AJ_TAMANHO_UI:case AJ_TAMANHO_AJUSTES:
     case AJ_ESCALA_TEXTO:case AJ_DTS_AC3:case AJ_PROPORCAO_PADRAO:
     case AJ_GPU_EFEITOS:case AJ_VIDRO_QUALIDADE:case AJ_BUFFER:case AJ_CACHE_SEEK:
