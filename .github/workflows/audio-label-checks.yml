@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 27e1a6a12499c16518e84cc989826bc56eee0cb0
+          ref: 00bae0c1b6765caabbc0df8198fcfb5380726997
       - name: Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libgles2-mesa-dev
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 27e1a6a12499c16518e84cc989826bc56eee0cb0
+          ref: 00bae0c1b6765caabbc0df8198fcfb5380726997
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
