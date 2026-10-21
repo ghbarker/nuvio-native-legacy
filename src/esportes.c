@@ -38,6 +38,10 @@ static EspFileira *catalogo;
 static int nCatalogo, catalogoAtivo, catalogoPreferido=-1, catalogoIdioma=-1, catalogoAtualizar;
 static unsigned catalogoGeracao, catalogoFeitos, catalogoUso;
 static EspRowCache rowCache[8];
+static int eventosModalidade=-1, eventosIdioma=-1;
+static char eventosLiga[80];
+static EspRowCache *cacheLiga(int m,const char *id);
+static void cacheEventos(const EspJob *j);
 static void limparCatalogo(void);
 static EspJob *catalogoJob(void);
 static void catalogoPublicar(EspJob *j);
@@ -78,7 +82,7 @@ void esportes_abrir_sessao(void) {
   esportes_cancelar();limparCatalogo();free(ligasOcultas);ligasOcultas=NULL;nOcultas=0; perfil = atual; desligados = 0; nFavoritos = 0;
   free(ligas); ligas = NULL; free(eventos); eventos = NULL;
   free(eventosFav);eventosFav=NULL;nEventosFav=erroFav=0;favoritosDesde=0;
-  nLigas = nEventos = erro = 0; revisao++;
+  nLigas = nEventos = erro = 0; eventosModalidade=eventosIdioma=-1;eventosLiga[0]=0;revisao++;
   snprintf(arquivo, sizeof arquivo, "esportes-%08x-p%d.txt", hash(sessao_usuario()), perfis_ativo());
   char *buf = dados_ler(arquivo), *salvar = NULL;
   if (!buf) return;
@@ -207,12 +211,31 @@ void esportes_pedir_ligas(int m, int atualizar) {
 }
 void esportes_pedir_eventos(int m, const EspLiga *l, int atualizar) {
   if (!l || !esportes_habilitado(m)) return;
+  int idioma=ajustes_idioma();
+  int mesma=eventosModalidade==m && eventosIdioma==idioma && !strcmp(eventosLiga,l->id);
+  esportes_catalogo_visiveis();
+  EspRowCache *cache=idioma==catalogoIdioma?cacheLiga(m,l->id):NULL;
+  if(!mesma) {
+    free(eventos);eventos=NULL;nEventos=0;
+    if(cache && cache->eventos) {
+      eventos=calloc(ESP_MAX_EVENTOS,sizeof *eventos);
+      if(eventos){memcpy(eventos,cache->eventos,(size_t)cache->n*sizeof *eventos);nEventos=cache->n;}
+    }
+    revisao++;
+  }
+  eventosModalidade=m;eventosIdioma=idioma;snprintf(eventosLiga,sizeof eventosLiga,"%s",l->id);
+  /* Cancel the previous league even on a cache hit. Never let an old worker
+   * append its games to the league the user has just opened. */
+  if(!atualizar && cache && cache->dia>7 && cache->desde && time(NULL)-cache->desde<60 && (!cache->n || eventos)) {
+    fprintf(stderr,"[esportes] abrir liga=%s cache=recente itens=%d\n",l->id,nEventos);
+    geracao++;soltar(fila);fila=NULL;erro=0;return;
+  }
   EspJob *j = calloc(1, sizeof *j); if (!j) { erro = 1; return; }
+  fprintf(stderr,"[esportes] abrir liga=%s cache=%s itens=%d atualizar=%d\n",l->id,nEventos?"visivel":"ausente",nEventos,atualizar);
   j->tipo = 2; j->modalidade = m; j->atualizar = atualizar; j->liga = *l;
   snprintf(j->idioma,sizeof j->idioma,"%s",idioma_iso(ajustes_idioma()));
   snprintf(j->url, sizeof j->url, "https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?limit=%d&lang=%s", esportes_modalidade(m)->id, l->id, ESP_MAX_EVENTOS,j->idioma);
   snprintf(j->arquivo, sizeof j->arquivo, "esportes-eventos-cache.json");
-  if (!atualizar) { free(eventos); eventos = NULL; nEventos = 0; revisao++; }
   agendar(j);
 }
 void esportes_passo(void) {
@@ -226,6 +249,9 @@ void esportes_passo(void) {
       else if (!j->erro) {
         if (!eventos) eventos = calloc(ESP_MAX_EVENTOS, sizeof *eventos);
         if (eventos) {
+          /* Keep the old cards visible until the replacement arrives. A new
+           * default scoreboard replaces an expired snapshot; date pages merge. */
+          if(!j->atualizar && !j->dia)nEventos=0;
           for (int k=0;k<j->n;k++) {
             int pos;
             for (pos=0;pos<nEventos;pos++) if (!strcmp(eventos[pos].id,j->eventos[k].id)) break;
@@ -233,6 +259,7 @@ void esportes_passo(void) {
           }
           qsort(eventos,(size_t)nEventos,sizeof *eventos,ordem);
         } else erro = 1;
+        if(!erro)cacheEventos(j);
         /* Default scoreboard first, then one date per request: several ESPN
          * leagues reject ranges. Publish every day's results immediately;
          * user navigation/profile changes discard the remaining work. */
@@ -392,9 +419,9 @@ const EspEvento *esportes_favoritos_evento(int i){return i>=0 && i<nEventosFav?&
 int esportes_favoritos_carregando(void){return ocupadoFav||filaFav||favoritoAtivo;}
 int esportes_favoritos_erro(void){return erroFav;}
 
-/* The home catalog is independent of the selected league. Keep public league
- * metadata, but retain payloads only for visible/recent rows. Requests use the
- * existing foreground worker: no unbounded league fanout or extra thread. */
+/* Public league metadata is independent of the selected league. Keep at most
+ * eight recent match payloads; browsing league cards never requests scoreboards.
+ * Requests reuse the foreground worker, without an extra thread or fanout. */
 static void limparCatalogo(void) {
   free(catalogo);catalogo=NULL;nCatalogo=0;catalogoFeitos=0;catalogoIdioma=-1;
   for(int i=0;i<8;i++){free(rowCache[i].eventos);memset(&rowCache[i],0,sizeof rowCache[i]);rowCache[i].linha=-1;}
@@ -435,6 +462,21 @@ const EspLiga *esportes_catalogo_liga(int i){return i>=0 && i<nCatalogo?&catalog
 static EspRowCache *rowObter(int linha) {
   for(int i=0;i<8;i++)if(rowCache[i].linha==linha)return &rowCache[i];
   return NULL;
+}
+static EspRowCache *cacheLiga(int m,const char *id) {
+  for(int i=0;i<nCatalogo;i++)if(catalogo[i].modalidade==m && !strcmp(catalogo[i].liga.id,id)) {
+    esportes_catalogo_pedir(i);return rowObter(i);
+  }
+  return NULL;
+}
+static void cacheEventos(const EspJob *j) {
+  if(eventosIdioma!=catalogoIdioma)return;
+  EspRowCache *r=cacheLiga(j->modalidade,j->liga.id);if(!r)return;
+  if(!r->eventos)r->eventos=calloc(ESP_MAX_EVENTOS,sizeof *r->eventos);
+  if(!r->eventos)return;
+  memcpy(r->eventos,eventos,(size_t)nEventos*sizeof *eventos);r->n=nEventos;r->estado=1;
+  if(!j->atualizar){r->dia=nEventos==ESP_MAX_EVENTOS?8:j->dia+1;r->desde=r->dia>7?time(NULL):0;}
+  else if(r->dia>7)r->desde=time(NULL);
 }
 void esportes_catalogo_suspender(void){catalogoAtivo=0;esportes_catalogo_visiveis();}
 void esportes_catalogo_visiveis(void){for(int i=0;i<8;i++)rowCache[i].visivel=0;}
