@@ -1,4 +1,4 @@
-name: Publish verified Logs98 Friends card touch preview
+name: Publish verified Logs99 on-demand Sports preview
 on:
   workflow_dispatch:
 permissions:
@@ -17,41 +17,41 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Require successful pinned Android and profile checks
+      - name: Require successful pinned Android and Sports checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39598488334 > android-run.json
-          gh api repos/$GH_REPO/actions/runs/39598492393 > shared-run.json
-          gh api repos/$GH_REPO/actions/runs/39598492393/jobs > shared-jobs.json
+          gh api repos/$GH_REPO/actions/runs/39673649345 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39673813224 > shared-run.json
+          gh api repos/$GH_REPO/actions/runs/39673813224/jobs > shared-jobs.json
           python3 - <<'CHECK'
           import json
-          for name in ['android-run.json','shared-run.json']:
-              r=json.load(open(name));assert r['head_sha']=='a4c42a1aef245bdf665584f0c9f8a8616ba5143e' and r['status']=='completed' and r['conclusion']=='success'
+          for name,head in [('android-run.json','60734c5d7fdd6405c4c2bcdf10595ecd1b0e1c93'),('shared-run.json','35b6635f2466645b3eda7322795a63659ad74453')]:
+              r=json.load(open(name));assert r['head_sha']==head and r['status']=='completed' and r['conclusion']=='success'
           jobs={j['name']:j for j in json.load(open('shared-jobs.json'))['jobs']}
           for name in ['native (ubuntu-24.04)','native (macos-15-intel)','wasm']:
               assert jobs[name]['status']=='completed' and jobs[name]['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs98-a4c42a1aef245bdf665584f0c9f8a8616ba5143e
-          run-id: 39598488334
+          name: Nuvio-TV-Mobile-Test-Logs99-60734c5d7fdd6405c4c2bcdf10595ecd1b0e1c93
+          run-id: 39673649345
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import json,subprocess
-          v=json.load(open('Logs98-validation.json'))
-          assert v['source_commit']=='6dd0bb6b16fc1d70391432c53c076223a2252480'
-          assert v['source_tree']=='d2556804a696b1270a3792cad46361fba3f56611'
-          assert v['workflow_commit']=='a4c42a1aef245bdf665584f0c9f8a8616ba5143e'
-          assert v['workflow_run_id']==39598488334
+          v=json.load(open('Logs99-validation.json'))
+          assert v['source_commit']=='c407c5475ca90914348ca524111e66a10cd4b4ec'
+          assert v['source_tree']=='947a1142a8376d766d06a3002935f05c64656e18'
+          assert v['workflow_commit']=='60734c5d7fdd6405c4c2bcdf10595ecd1b0e1c93'
+          assert v['workflow_run_id']==39673649345
           assert v['social_service_configured'] and v['simkl_client_configured']
-          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs98.apk',
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs99.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20108','--version-name','2.0.108-test-logs98',
+            '--version-code','20109','--version-name','2.0.109-test-logs99',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
-            '--output','Logs98-independent-verification.json'],check=True)
-          v.update({'profile_friends_requires_social_server_deployment':False,'profile_friends_legacy_code_handshake':True,'profile_friends_account_rpc_fresh_before_add':True,'friend_row_product_commit':'4abeea9ac6dbd4036cd302d7be08109978a7f82c','friend_row_checks_run':39598492393,'friend_row_checks':'Linux and macOS rendered real finger taps in six layouts and both orientations, normal and ASan/UBSan; protocol worker normal and ASan/UBSan; 15 server identity tests; WGT row compilation with/without touch','all_previous_rebase_checks_passed':False,'platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Friends card touch/empty-state preview; physical-device and real-account activity validation await the user'})
-          open('Logs98-validation.json','w').write(json.dumps(v,indent=2)+'\n')
+            '--output','Logs99-independent-verification.json'],check=True)
+          v.update({'sports_product_commit':'c38c0268595998b1ea504a30af70312770e067dc','sports_checks_run':39673813224,'sports_checks':'Linux and macOS Sports navigation, match/channel matching, recent league cache and cancellation, normal and ASan/UBSan; shared WGT source compilation with and without touch','platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'On-demand Sports league-card preview; upstream PR unchanged pending user approval'})
+          open('Logs99-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          gh release create tv-mobile-test-logs-v98 Nuvio-TV-Mobile-Test-Logs98.apk Logs98-validation.json Logs98-independent-verification.json preview-release/Logs98-test-steps.txt --target 6dd0bb6b16fc1d70391432c53c076223a2252480 --title 'Nuvio TV/Mobile Test Logs98 — open Friends cards and settle empty activity' --notes-file preview-release/Logs98-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v99 Nuvio-TV-Mobile-Test-Logs99.apk Logs99-validation.json Logs99-independent-verification.json preview-release/Logs99-test-steps.txt --target c407c5475ca90914348ca524111e66a10cd4b4ec --title 'Nuvio TV/Mobile Test Logs99 — league cards by sport and on-demand matches' --notes-file preview-release/Logs99-release-notes.txt --prerelease
