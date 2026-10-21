@@ -1,8 +1,14 @@
 name: Drive and font platform parity checks
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [all, wasm]
+        default: all
 jobs:
   native:
+    if: ${{ inputs.mode != 'wasm' }}
     strategy:
       fail-fast: false
       matrix:
@@ -111,6 +117,15 @@ jobs:
         working-directory: fonts
         run: |
           emcc -fsyntax-only -std=gnu11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -Isrc src/ajustes.c src/legfontes.c src/fonteurl.c > ../wasm-font-checks.log 2>&1
+      - name: Expose bounded WASM diagnostics
+        if: failure()
+        run: |
+          python3 - <<'PYLOG'
+          import pathlib
+          for p in pathlib.Path('.').glob('*-checks.log'):
+              message=p.read_text(errors='replace')[-7000:].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+              print('::warning title='+p.name+'::'+message)
+          PYLOG
       - uses: actions/upload-artifact@v4
         if: always()
         with:
