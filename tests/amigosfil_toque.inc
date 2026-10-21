@@ -46,7 +46,8 @@ static int amigosToqueAuditar(void) {
         int col=0;for(int frame=0;frame<30;frame++)amigosfil_atualizar(1.f/60,1,&col);
         amigosfil_desenhar(72,220,400,200,1,col,SDL_GetTicks());assert(amigosfil_teste_cartao(0,&after)>=0);
         assert(before.x-after.x>100);
-        puts("PASS: friend-row swipe stays at the user's position instead of snapping back");
+        amigosfil_retomar_foco(&col);assert(col==1);
+        puts("PASS: friend-row swipe keeps its position and remote focus returns to the nearest visible card");
       }
     }
   }
