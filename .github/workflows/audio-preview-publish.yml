@@ -1,4 +1,4 @@
-name: Publish verified Logs94 integration preview
+name: Publish verified Logs95 integration preview
 on:
   workflow_dispatch:
 permissions:
@@ -19,40 +19,41 @@ jobs:
           persist-credentials: false
       - name: Require pinned successful Android build and native checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39545256722 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39548593255 > android-run.json
           gh api repos/$GH_REPO/actions/runs/39545313593 > checks-run.json
           python3 - <<'CHECK'
           import json
-          for path,sha in [('android-run.json','81531ee1e7a30880f64ae900c3264fb3961a28a6'),('checks-run.json','1b4a9d69946c12bb3df72374f68ae82916884feb')]:
+          for path,sha in [('android-run.json','8b6463260a4bc6398f30789cba9eea777544418b'),('checks-run.json','1b4a9d69946c12bb3df72374f68ae82916884feb')]:
               r=json.load(open(path))
               assert r['head_sha']==sha
               assert r['status']=='completed' and r['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs94-81531ee1e7a30880f64ae900c3264fb3961a28a6
-          run-id: 39545256722
+          name: Nuvio-TV-Mobile-Test-Logs95-8b6463260a4bc6398f30789cba9eea777544418b
+          run-id: 39548593255
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import json,subprocess
-          v=json.load(open('Logs94-validation.json'))
-          assert v['source_commit']=='2f0f3d34324b0846f4b10fa0f15dce143a4384a8'
-          assert v['source_tree']=='959cf0b7eba5a8ba9b76d7e57a926925df2a0fe7'
-          assert v['workflow_commit']=='81531ee1e7a30880f64ae900c3264fb3961a28a6'
-          assert v['workflow_run_id']==39545256722
+          v=json.load(open('Logs95-validation.json'))
+          assert v['source_commit']=='e36dd1f22a49cce9378559c646efc79b19d671c6'
+          assert v['source_tree']=='5068aa80901c1d21bce2b454eba06613aaafacad'
+          assert v['workflow_commit']=='8b6463260a4bc6398f30789cba9eea777544418b'
+          assert v['workflow_run_id']==39548593255
+          assert v['social_service_configured']
           assert v['simkl_client_configured'] and v['simkl_device_registration_checked']
-          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs94.apk',
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs95.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20104','--version-name','2.0.104-test-logs94',
+            '--version-code','20105','--version-name','2.0.105-test-logs95',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
-            '--output','Logs94-independent-verification.json'],check=True)
+            '--output','Logs95-independent-verification.json'],check=True)
           v['auth_profile_native_validation_run']=39545313593
-          v['auth_profile_native_validation']='Linux and macOS normal plus ASan/UBSan passed'
+          v['auth_profile_native_validation']='Logs94 shared auth/profile worker: Linux and macOS normal plus ASan/UBSan passed; unchanged worker in Logs95'
           v['profile_friends_requires_social_server_deployment']=True
           v['all_previous_rebase_checks_passed']=False
-          open('Logs94-validation.json','w').write(json.dumps(v,indent=2)+'\n')
+          open('Logs95-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          gh release create tv-mobile-test-logs-v94 Nuvio-TV-Mobile-Test-Logs94.apk Logs94-validation.json Logs94-independent-verification.json preview-release/Logs94-test-steps.txt --target 2f0f3d34324b0846f4b10fa0f15dce143a4384a8 --title 'Nuvio TV/Mobile Test Logs94 — Simkl V2 and account-profile preview' --notes-file preview-release/Logs94-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v94 Nuvio-TV-Mobile-Test-Logs95.apk Logs95-validation.json Logs95-independent-verification.json preview-release/Logs95-test-steps.txt --target e36dd1f22a49cce9378559c646efc79b19d671c6 --title 'Nuvio TV/Mobile Test Logs95 — Social configuration and Settings entry' --notes-file preview-release/Logs95-release-notes.txt --prerelease

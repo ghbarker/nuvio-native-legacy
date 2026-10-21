@@ -1,0 +1,29 @@
+Logs95 — Social service configuration and direct profile-friends Settings entry
+
+Install Nuvio-TV-Mobile-Test-Logs95.apk over Nuvio TV/Mobile Test and choose Update.
+Do not uninstall or clear app data. Package identity and persistent signer match.
+
+1. Open Settings -> Account and services.
+2. Make sure Social features is On. It is a per-profile setting. Searchable profile
+   does not need to be On for same-account linking.
+3. In the Profile section, choose Profiles on this account. This now opens the
+   profile picker directly, without leaving you on Account and services.
+4. Press Back. It should return to Settings directly.
+5. Tap the clock on Home to open the Saved panel. The Friends tab should now be
+   present while Social features is On. The Home invitation row should no longer
+   fall back to Account and services because the Social service URL was missing.
+6. Switch profiles and repeat: use the Social features setting for that profile.
+
+IMPORTANT: account-profile listing/linking needs the matching social-server
+/v1/contatos/perfis route deployed by the owner. If that update is not deployed,
+the picker will explain that the service does not support this option yet.
+This APK fixes the missing Social service configuration and menu entry; it does
+not deploy the owner's server. Regular existing Friends features use the existing
+published Social service.
+
+After the server update: select another profile, verify it becomes your friend
+without any code, and verify only the chosen pair is connected. An unselected
+third profile must remain unconnected.
+
+Simkl configuration and AUTH V2 support from Logs94 are retained. If testing it,
+open Settings -> Account and services -> Simkl -> Connect and approve the code.

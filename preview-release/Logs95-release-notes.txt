@@ -1,0 +1,14 @@
+Corrects the test build configuration that disabled Social/Friends and caused
+the Home invitation row to fall back to Account and services. Uses the service
+address embedded in the official 2.0.7 release; both ARM binaries are checked for
+that configuration before publication.
+
+Adds Settings -> Account and services -> Profiles on this account. Selecting it
+opens the picker directly, and Back returns directly to Settings.
+
+The new no-code account-profile route still requires the owner's social-server
+update before real account listing/linking works. No server deployment is made
+by installing this APK. Existing Friends features use the existing service.
+
+Install as an update over Nuvio TV/Mobile Test. Same package and persistent signer;
+version code 20105, version name 2.0.105-test-logs95. Simkl V2 support is retained.
