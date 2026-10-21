@@ -342,3 +342,4 @@
   0, /* clear cache action */
   0, /* tunneled playback: Off */
   1, /* experimental P7 conversion: Off until explicitly enabled */
+  0, /* direct account-profile friends action */

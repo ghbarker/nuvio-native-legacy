@@ -86,6 +86,7 @@
 #include "curadoria.h"
 #include "p2pmotor.h"
 #include "pessoas.h"
+#include "recenviar.h"
 #include "recomenda.h"
 #include "posterprov.h"
 #include "rede.h"
@@ -697,6 +698,7 @@ typedef enum {
   AJ_LIMPAR_CACHE,
   AJ_TUNNELING,        // Android-only, device-local; off by default, append-only.
   AJ_DV7, // independent P7 conversion, append-only
+  AJ_AMIGOS_PERFIS, // Account-profile friends action; append-only.
   AJ_N
 } OpcaoId;
 _Static_assert(DEBRID_RD == 0 && DEBRID_TB == 1 && DEBRID_PM == 2 && DEBRID_AD == 3,
@@ -1817,6 +1819,7 @@ static const Opcao OPCOES[AJ_N] = {
   ACAO("Limpar cache"),
   ESC("Reprodução em túnel", V_VIDRO_FOSCO, 2),
   ESC("Dolby Vision P7 para P8.1 (experimental)", V_LIGA, 2),
+  ACAO("Perfis desta conta"),
 };
 
 // Nome de cada opcao no arquivo. O formato era POSICIONAL — uma linha por
@@ -2139,6 +2142,7 @@ static const char *CHAVE[] = {
   "-limparCache",
   "tunneledPlaybackLocal",
   "dv7ConversionLocal",
+  "-amigosPerfis",
 };
 // QUATRO VETORES PARALELOS indexados pelo mesmo enum AJ_*: OPCOES, CHAVE,
 // valor e as secoes. OPCOES ja e declarado [AJ_N], e `valor` aceita inicializacao
@@ -5899,7 +5903,7 @@ static int somenteDesteAparelho(int op) {
     case AJ_LIVETV_SUGERIR:
     case AJ_HOME_LAYOUT:    /* a Dinamica nao tem par na conta (selected_layout) */
     case AJ_PERFIL_PESQ:    /* estado em recomenda.c, por conta: nunca no blob */
-    case AJ_PERFIL_EDITAR:
+    case AJ_PERFIL_EDITAR: case AJ_AMIGOS_PERFIS:
     case AJ_P2P_LIGADO:     /* o servidor P2P e um aparelho da rede desta casa */
     case AJ_P2P_LIMITE:     /* #334: o disco e desta TV */
     case AJ_P2P_DESTINO:    /* #205: pendrive USB desta TV */
@@ -7150,7 +7154,7 @@ static int maisContar(int sec, char *resumo, size_t n) {
   for (i = maisItem[sec] + 1; i < secFim(sec); i++) {
     int op = TELA[i].op;
     if (TELA[i].tipo != IT_OPC) continue;
-    if ((op == AJ_PERFIL_PESQ || op == AJ_PERFIL_EDITAR) && !recomenda_ativo()) continue;
+    if ((op == AJ_PERFIL_PESQ || op == AJ_PERFIL_EDITAR || op == AJ_AMIGOS_PERFIS) && !recomenda_ativo()) continue;
     if (op == AJ_ICONE_APP && !apoiador_ativo()) continue;
     if (resumo && u + 4 < n && k < 6) {
       const char *r = i18n(rotuloOpcao(op));
@@ -7182,7 +7186,7 @@ static int visivel(int i) {
     // #205: o fundo so existe no layout Dinamica; a cor, so com o fundo "Cor".
     if ((op == AJ_FUNDO_DIN || op == AJ_FUNDO_DIN_COR) && ajustes_home_layout() != HOME_LAYOUT_DINAMICA) return 0;
     if (op == AJ_FUNDO_DIN_COR && ajustes_fundo_din() != 1) return 0;
-    if ((op == AJ_PERFIL_PESQ || op == AJ_PERFIL_EDITAR) && !recomenda_ativo()) return 0;
+    if ((op == AJ_PERFIL_PESQ || op == AJ_PERFIL_EDITAR || op == AJ_AMIGOS_PERFIS) && !recomenda_ativo()) return 0;
     if (op == AJ_BUSCA_CINEMETA && valor[op] == 0 && !cinemetaInstalado()) return 0;
     // Only while the app upscales (App (4K) on a capable GPU); sharpness only for RCAS choices.
     if ((op == AJ_AMPLIACAO_ALGO || op == AJ_AMPLIACAO_NITIDEZ) &&
@@ -7607,6 +7611,7 @@ static const char *ajudaOpcaoBase(int op) {
     case AJ_DEBRID_RD: return "Chave de API do Real-Debrid (real-debrid.com/apitoken). Só precisa se a sua conta Nuvio não a traz. Fica só nesta TV e aparece mascarada.";
     case AJ_DEBRID_TB: return "Chave de API do TorBox. Só precisa se a sua conta Nuvio não a traz. Fica só nesta TV e aparece mascarada.";
     case AJ_DEBRID_PM: return "Chave de API do Premiumize. Só precisa se a sua conta Nuvio não a traz. Fica só nesta TV e aparece mascarada.";
+    case AJ_AMIGOS_PERFIS: return "Escolha um perfil para adicionar aos seus amigos.";
     case AJ_PERFIL_PESQ: return "Desligado por padrão. Ligado, outras pessoas do Nuvio podem te achar pelo apelido e ver o que você escolher mostrar: bio, gêneros favoritos, foto e o que assistiu recentemente. Nunca aparecem e-mail, conta, addons nem aparelho. Desligar apaga o perfil do servidor na hora.";
     case AJ_PERFIL_EDITAR: return "Apelido, bio, gêneros e o que mostrar no perfil; a atividade compartilhada só com amigos (desligada por padrão); pedidos de amizade recebidos e a lista de bloqueados.";
     case AJ_P2P_LIMITE: return "Quanto do armazenamento da TV o P2P pode usar enquanto toca; Automático usa até metade do espaço livre. Se o vídeo for maior, ele continua tocando e a TV guarda só o trecho perto de onde você está (em pendrive FAT ou exFAT, ele para no limite).";
@@ -9554,6 +9559,7 @@ static void eventoTela(const SDL_Event *e) {
     if (focoOp >= AJ_EM_SERVIDOR && focoOp <= AJ_EM_SAIR) { emAtivar(focoOp); return; }
     if (focoOp >= AJ_PX_ENTRAR && focoOp <= AJ_PX_SAIR) { pxAtivar(focoOp); return; }
     if (focoOp == AJ_PERFIL_EDITAR) { pessoas_abrir_perfil(); return; }
+    if (focoOp == AJ_AMIGOS_PERFIS) { recenviar_abrir_perfis(); return; }
     if (focoOp == AJ_P2P_TESTAR) { p2pTesteIniciar(); return; }
     if (focoOp >= AJ_POSTER_INST && focoOp <= AJ_POSTER_TESTAR) { pstAtivar(focoOp); return; }
     if (debIdx(focoOp) >= 0) {
@@ -10360,7 +10366,7 @@ static AjPreview familiaPreviaOpcao(int op) {
     case AJ_DESCANSO_ESTILO: case AJ_DESCANSO_FONTE:
       return AJPV_INTERFACE;
     case AJ_PERFIL_ATIVO: case AJ_SYNC: case AJ_SAIR:
-    case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_ADDONS_PRINCIPAL: case AJ_PROVEDORES_ESCOPO: case AJ_ENQUETES:
+    case AJ_PERFIL_PESQ: case AJ_PERFIL_EDITAR: case AJ_AMIGOS_PERFIS: case AJ_ADDONS_PRINCIPAL: case AJ_PROVEDORES_ESCOPO: case AJ_ENQUETES:
       return AJPV_CONTA;
     case AJ_SALVOS_DEST: case AJ_TRAKT: case AJ_SIMKL: case AJ_DISCORD: case AJ_HIST_CONTA: case AJ_SOCIAL:
       return AJPV_RASTREIO;
