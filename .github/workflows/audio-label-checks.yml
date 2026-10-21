@@ -1,145 +1,56 @@
-name: Live recovery Linux and macOS Intel checks
+name: Rebased PR checks 20261021
 on:
-  push:
-    branches: [review/logs34-integration-20261017]
-    paths: [.github/workflows/audio-label-checks.yml]
   workflow_dispatch:
-permissions:
-  contents: read
-env:
-  SOURCE_SHA: 7f38524781592b49a64450dcbeee1e4a9cc5202f
-  ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
-  UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
 jobs:
-  native:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs92-native]')
+  regression:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15-intel]
+        include: [{"pr": 619, "ref": "7742d8a30ce39fa9ffeccb0570bbc77e0bf6a130", "scripts": "tests/esportes.sh tests/esportes_estado.sh tests/esportes_ui.sh tests/fontescanais_folha.sh tests/streamfit_sheet.sh", "os": "ubuntu-24.04"}, {"pr": 619, "ref": "7742d8a30ce39fa9ffeccb0570bbc77e0bf6a130", "scripts": "tests/esportes.sh tests/esportes_estado.sh tests/esportes_ui.sh tests/fontescanais_folha.sh tests/streamfit_sheet.sh", "os": "macos-15-intel"}, {"pr": 615, "ref": "00d81ca896463681531aad41708f1be5589e2183", "scripts": "tests/cwinicio.sh tests/player_identity524.sh tests/player_identity524_guards.sh tests/intro.sh", "os": "ubuntu-24.04"}, {"pr": 615, "ref": "00d81ca896463681531aad41708f1be5589e2183", "scripts": "tests/cwinicio.sh tests/player_identity524.sh tests/player_identity524_guards.sh tests/intro.sh", "os": "macos-15-intel"}, {"pr": 614, "ref": "745992cb28ec87faeb82d7cf78671d2ee8792782", "scripts": "tests/episodiosdup.sh tests/temporadas_grafico.sh", "os": "ubuntu-24.04"}, {"pr": 614, "ref": "745992cb28ec87faeb82d7cf78671d2ee8792782", "scripts": "tests/episodiosdup.sh tests/temporadas_grafico.sh", "os": "macos-15-intel"}, {"pr": 611, "ref": "651bd8e2e73f4a6677b8aa11f70220fc30054787", "scripts": "tests/source_audio_language.sh", "os": "ubuntu-24.04"}, {"pr": 611, "ref": "651bd8e2e73f4a6677b8aa11f70220fc30054787", "scripts": "tests/source_audio_language.sh", "os": "macos-15-intel"}, {"pr": 609, "ref": "dae3cadcd5554f3142ffcac0429559518e05c5e2", "scripts": "tests/backup_restore_addons.sh tests/backupapp.sh tests/backupconnections.sh tests/backupcrypto.sh tests/backupdisco.sh tests/backupfonts.sh tests/backuplocal.sh tests/backuprestauro.sh tests/backupstores.sh tests/drivebackup.sh tests/drivefontes.sh tests/drivelocal.sh tests/drivetv.sh tests/ime_context.sh", "os": "ubuntu-24.04"}, {"pr": 609, "ref": "dae3cadcd5554f3142ffcac0429559518e05c5e2", "scripts": "tests/backup_restore_addons.sh tests/backupapp.sh tests/backupconnections.sh tests/backupcrypto.sh tests/backupdisco.sh tests/backupfonts.sh tests/backuplocal.sh tests/backuprestauro.sh tests/backupstores.sh tests/drivebackup.sh tests/drivefontes.sh tests/drivelocal.sh tests/drivetv.sh tests/ime_context.sh", "os": "macos-15-intel"}, {"pr": 598, "ref": "c9b4b82cfd5bc2fbb8a20e7c61f39592bfc569f0", "scripts": "tests/fonteinfo.sh tests/fonteinfo_layout.sh", "os": "ubuntu-24.04"}, {"pr": 598, "ref": "c9b4b82cfd5bc2fbb8a20e7c61f39592bfc569f0", "scripts": "tests/fonteinfo.sh tests/fonteinfo_layout.sh", "os": "macos-15-intel"}, {"pr": 576, "ref": "a0c66bbd4a630ddc70a70532d8a804f4beb41ed7", "scripts": "tests/catalog_episode_identity512.sh tests/contapend.sh tests/episode_identity512.sh tests/player_scrobble_trailer.sh tests/player_visto_trailer.sh tests/trakt_alvos512.sh tests/trakt_contracts.sh tests/trakt_cw_vistas.sh tests/trakt_episode_identity_512.sh tests/visto_identidade512.sh", "os": "ubuntu-24.04"}, {"pr": 576, "ref": "a0c66bbd4a630ddc70a70532d8a804f4beb41ed7", "scripts": "tests/catalog_episode_identity512.sh tests/contapend.sh tests/episode_identity512.sh tests/player_scrobble_trailer.sh tests/player_visto_trailer.sh tests/trakt_alvos512.sh tests/trakt_contracts.sh tests/trakt_cw_vistas.sh tests/trakt_episode_identity_512.sh tests/visto_identidade512.sh", "os": "macos-15-intel"}, {"pr": 575, "ref": "a8ec86ac92c1379d9a9a1dc4930f354d399a7636", "scripts": "tests/fontefalha.sh tests/source_cache_filter.sh tests/fontefiltro.sh", "os": "ubuntu-24.04"}, {"pr": 575, "ref": "a8ec86ac92c1379d9a9a1dc4930f354d399a7636", "scripts": "tests/fontefalha.sh tests/source_cache_filter.sh tests/fontefiltro.sh", "os": "macos-15-intel"}, {"pr": 573, "ref": "53f926f21f49a3d1b0555486cf66dbd1fe07f0ee", "scripts": "tests/ass_fonte_local.sh tests/ass_fontes.sh tests/faixas_estilo_ctl.sh tests/interface_font.sh tests/legfontes.sh tests/text_largura.sh", "os": "ubuntu-24.04"}, {"pr": 573, "ref": "53f926f21f49a3d1b0555486cf66dbd1fe07f0ee", "scripts": "tests/ass_fonte_local.sh tests/ass_fontes.sh tests/faixas_estilo_ctl.sh tests/interface_font.sh tests/legfontes.sh tests/text_largura.sh", "os": "macos-15-intel"}, {"pr": 0, "ref": "1890f9f674adf646df3360b01d3b303024da3494", "scripts": "tests/android_storage.sh tests/iptv_accounts.sh tests/m3u.sh tests/epg_accounts.sh tests/epg_memory.sh tests/guia_grupos.sh tests/ajustes_categorias_ui.sh tests/guia_grande.sh tests/guiabusca_incremental.sh tests/guiabusca_reabrir.sh", "os": "ubuntu-24.04"}, {"pr": 0, "ref": "1890f9f674adf646df3360b01d3b303024da3494", "scripts": "tests/android_storage.sh tests/iptv_accounts.sh tests/m3u.sh tests/epg_accounts.sh tests/epg_memory.sh tests/guia_grupos.sh tests/ajustes_categorias_ui.sh tests/guia_grande.sh tests/guiabusca_incremental.sh tests/guiabusca_reabrir.sh", "os": "macos-15-intel"}]
+    name: PR ${{ matrix.pr }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SOURCE_SHA }}
-          persist-credentials: false
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Native fixture dependencies
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then
-            sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libgles2-mesa-dev
-          else
-            for pkg in pkg-config sdl2; do
-              if ! brew list --versions "$pkg" >/dev/null 2>&1; then brew install "$pkg"; fi
-            done
-            echo "C_INCLUDE_PATH=$(brew --prefix)/include" >> "$GITHUB_ENV"
-          fi
-      - name: Live recovery checks
-        run: |
-          python3 - <<'PYCODE'
-          import json,os,pathlib,subprocess,time
-          p=pathlib.Path('diagnostics');p.mkdir()
-          sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
-          assert sha==os.environ['SOURCE_SHA']
-          (p/'source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree,'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH']}))
-          results=[]
-          for suite in ['livestall_window','video_android_live_window','live_error_recovery']:
-            for san in [False,True]:
-              start=time.monotonic()
-              with (p/(suite+('-san' if san else '')+'.log')).open('w') as f:
-                try:r=subprocess.run(['bash','tests/'+suite+'.sh'],env={**os.environ,'SANITIZE':str(int(san))},stdout=f,stderr=subprocess.STDOUT,timeout=180);code=r.returncode
-                except subprocess.TimeoutExpired:code=124
-              results.append({'suite':suite,'sanitizers':san,'code':code,'seconds':round(time.monotonic()-start,2)})
-              (p/'results.json').write_text(json.dumps(results,indent=2))
-              print(results[-1],flush=True)
-          assert len(results)==6 and all(x['code']==0 for x in results),results
-          PYCODE
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-${{ matrix.os }}-live-recovery
-          path: diagnostics
-          if-no-files-found: error
-
-  android-bench:
-    runs-on: ubuntu-24.04
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[logs92-native]')
     timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.SOURCE_SHA }}
+          ref: ${{ matrix.ref }}
           persist-credentials: false
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
-          log-accepted-android-sdk-licenses: false
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: live-bench-gradle-v1-${{ runner.os }}
-          restore-keys: |
-            logs34-gradle-${{ runner.os }}-
-      - name: Record exact benchmark source
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libwebp-dev libass-dev libfribidi-dev libgles2-mesa-dev libegl1-mesa-dev libcurl4-openssl-dev libssl-dev libxml2-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev zlib1g-dev xvfb xauth python3-pil
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install pkg-config sdl2 sdl2_image sdl2_ttf webp libass fribidi ffmpeg openssl@3
+      - name: Normal and sanitizer regression invocations
+        shell: bash
+        env:
+          SCRIPTS: ${{ matrix.scripts }}
         run: |
-          python3 - <<'SOURCE'
-          import json,os,pathlib,subprocess
-          sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
-          assert sha==os.environ['SOURCE_SHA']
-          pathlib.Path('live-bench-source.json').write_text(json.dumps({'source_commit':sha,'source_tree':tree}))
-          SOURCE
-      - name: Generate finite synthetic HLS broadcast
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
-          bash tests/android-live-bench/make-fixture.sh
-      - name: Compile production policy and run coordinator fixtures
-        run: |
-          bash android/gradlew -p tests/android-live-bench testDebugUnitTest assembleDebug assembleDebugAndroidTest --no-daemon --stacktrace > live-bench-build.log 2>&1 || { head -140 live-bench-build.log; exit 1; }
-          python3 - <<'PYTEST'
-          import pathlib,xml.etree.ElementTree as E
-          suites=[E.parse(p).getroot() for p in pathlib.Path('tests/android-live-bench/build/test-results/testDebugUnitTest').glob('TEST-*.xml')]
-          assert sum(int(s.attrib['tests']) for s in suites)>=16
-          assert all(int(s.attrib['failures'])==int(s.attrib['errors'])==0 for s in suites)
-          print('Coordinator tests:',sum(int(s.attrib['tests']) for s in suites),'passed')
-          PYTEST
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - name: Real Media3 playback under controlled HLS delivery failure
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          emulator-boot-timeout: 180
-          api-level: 29
-          target: default
-          arch: x86_64
-          profile: pixel_2
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash tests/android-live-bench/run-connected.sh
+          set +e
+          mkdir -p rebase-check-results
+          if [ "$(uname -s)" = Darwin ]; then
+            export PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          fi
+          failed=0
+          for sanitize in 0 1; do
+            for script in $SCRIPTS; do
+              name=$(basename "$script" .sh)
+              SANITIZE=$sanitize bash "$script" > "rebase-check-results/$name-$sanitize.log" 2>&1
+              result=$?
+              echo "$script sanitize=$sanitize result=$result"
+              if [ "$result" -ne 0 ]; then tail -45 "rebase-check-results/$name-$sanitize.log"; failed=1; fi
+            done
+          done
+          exit "$failed"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: android-live-bench
-          path: |
-            live-bench-*.log
-            live-bench-*.json
-            live-bench-*.txt
-            tests/android-live-bench/build/test-results
-            tests/android-live-bench/build/outputs/androidTest-results
-            tests/android-live-bench/build/reports
-          if-no-files-found: error
+          name: rebase-${{ matrix.pr }}-${{ matrix.os }}
+          path: rebase-check-results/
