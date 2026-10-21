@@ -1,0 +1,14 @@
+Nuvio TV/Mobile Test Logs98 — Friends cards
+
+Install as Update over Nuvio TV/Mobile Test. Do not uninstall or clear data.
+
+1. Open Home in the same profile and scroll to Friends watching.
+2. Tap Grant (or another friend showing only an avatar). The friend profile should open instead of remaining on Home.
+3. If that friend has no shared activity, the app should show the existing empty/privacy message. An avatar alone does not mean an active download. Sharing permissions are unchanged.
+4. Go back to Home. Empty friend cards should show “No activity yet” rather than the animated artwork-loading placeholder.
+5. If you have several friends, swipe the row sideways. It should stay where you release it and tapping a visible friend should open that friend.
+6. Optional: repeat in landscape or another Friends row style. Remote arrow/OK navigation should continue working.
+
+To check shared activity, opt in from the other profile's Friends privacy menu and watch something there before returning. Adding a friend does not automatically share that person's previous watch history.
+
+If a tap still stays on Home or a friend profile remains loading, save a fresh log immediately after tapping. The added [amigos] diagnostic reports only row style and activity count; it does not contain names, pairing codes or tokens.

@@ -1,4 +1,4 @@
-name: Publish verified Logs97 Friends compatibility preview
+name: Publish verified Logs98 Friends card touch preview
 on:
   workflow_dispatch:
 permissions:
@@ -19,41 +19,39 @@ jobs:
           persist-credentials: false
       - name: Require successful pinned Android and profile checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39556730901 > android-run.json
-          gh api repos/$GH_REPO/actions/runs/39557458276 > mac-run.json
-          gh api repos/$GH_REPO/actions/runs/39556733047 > shared-run.json
-          gh api repos/$GH_REPO/actions/runs/39556733047/jobs > shared-jobs.json
+          gh api repos/$GH_REPO/actions/runs/39598488334 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39598492393 > shared-run.json
+          gh api repos/$GH_REPO/actions/runs/39598492393/jobs > shared-jobs.json
           python3 - <<'CHECK'
           import json
-          for name,sha in [('android-run.json','a649ac6b3802bdcbe12c892c27ea743108901a3d'),('mac-run.json','78f43fab2072a383ea72690cf52b0ddb1a238ee2')]:
-              r=json.load(open(name));assert r['head_sha']==sha and r['status']=='completed' and r['conclusion']=='success'
-          r=json.load(open('shared-run.json'));assert r['head_sha']=='a649ac6b3802bdcbe12c892c27ea743108901a3d'
+          for name in ['android-run.json','shared-run.json']:
+              r=json.load(open(name));assert r['head_sha']=='a4c42a1aef245bdf665584f0c9f8a8616ba5143e' and r['status']=='completed' and r['conclusion']=='success'
           jobs={j['name']:j for j in json.load(open('shared-jobs.json'))['jobs']}
-          for name in ['native (ubuntu-24.04, product)','native (ubuntu-24.04, preview)','wasm']:
+          for name in ['native (ubuntu-24.04)','native (macos-15-intel)','wasm']:
               assert jobs[name]['status']=='completed' and jobs[name]['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs97-a649ac6b3802bdcbe12c892c27ea743108901a3d
-          run-id: 39556730901
+          name: Nuvio-TV-Mobile-Test-Logs98-a4c42a1aef245bdf665584f0c9f8a8616ba5143e
+          run-id: 39598488334
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import json,subprocess
-          v=json.load(open('Logs97-validation.json'))
-          assert v['source_commit']=='cd75ea9e3878f59eabb9df2c9b987575b19260f7'
-          assert v['source_tree']=='57699dddb94721bba396ef5d9009156785b39c0d'
-          assert v['workflow_commit']=='a649ac6b3802bdcbe12c892c27ea743108901a3d'
-          assert v['workflow_run_id']==39556730901
+          v=json.load(open('Logs98-validation.json'))
+          assert v['source_commit']=='6dd0bb6b16fc1d70391432c53c076223a2252480'
+          assert v['source_tree']=='d2556804a696b1270a3792cad46361fba3f56611'
+          assert v['workflow_commit']=='a4c42a1aef245bdf665584f0c9f8a8616ba5143e'
+          assert v['workflow_run_id']==39598488334
           assert v['social_service_configured'] and v['simkl_client_configured']
-          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs97.apk',
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs98.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20107','--version-name','2.0.107-test-logs97',
+            '--version-code','20108','--version-name','2.0.108-test-logs98',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
-            '--output','Logs97-independent-verification.json'],check=True)
-          v.update({'profile_friends_requires_social_server_deployment':False,'profile_friends_legacy_code_handshake':True,'profile_friends_account_rpc_fresh_before_add':True,'profile_worker_linux_run':39556733047,'profile_worker_macos_intel_run':39557458276,'profile_worker_wasm_compile_run':39556733047,'profile_worker_tests':'Normal and ASan/UBSan product/preview workers; 15 server identity tests; WGT shared-worker compilation','all_previous_rebase_checks_passed':False,'platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Android Friends compatibility test; no real account linking or physical TV validation claimed before user test'})
-          open('Logs97-validation.json','w').write(json.dumps(v,indent=2)+'\n')
+            '--output','Logs98-independent-verification.json'],check=True)
+          v.update({'profile_friends_requires_social_server_deployment':False,'profile_friends_legacy_code_handshake':True,'profile_friends_account_rpc_fresh_before_add':True,'friend_row_product_commit':'4abeea9ac6dbd4036cd302d7be08109978a7f82c','friend_row_checks_run':39598492393,'friend_row_checks':'Linux and macOS rendered real finger taps in six layouts and both orientations, normal and ASan/UBSan; protocol worker normal and ASan/UBSan; 15 server identity tests; WGT row compilation with/without touch','all_previous_rebase_checks_passed':False,'platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Friends card touch/empty-state preview; physical-device and real-account activity validation await the user'})
+          open('Logs98-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          gh release create tv-mobile-test-logs-v97 Nuvio-TV-Mobile-Test-Logs97.apk Logs97-validation.json Logs97-independent-verification.json preview-release/Logs97-test-steps.txt --target cd75ea9e3878f59eabb9df2c9b987575b19260f7 --title 'Nuvio TV/Mobile Test Logs97 — connect account profiles without code entry' --notes-file preview-release/Logs97-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v98 Nuvio-TV-Mobile-Test-Logs98.apk Logs98-validation.json Logs98-independent-verification.json preview-release/Logs98-test-steps.txt --target 6dd0bb6b16fc1d70391432c53c076223a2252480 --title 'Nuvio TV/Mobile Test Logs98 — open Friends cards and settle empty activity' --notes-file preview-release/Logs98-release-notes.txt --prerelease

@@ -1,0 +1,9 @@
+Fixes a reproduced Friends-row touch bug: five newer layouts returned before initializing the touch region, leaving their cards untappable on a cold start. All six layouts now register their own visible card targets. Swiping preserves the row position and remote navigation resumes at the nearest visible card.
+
+A friend without shared activity now has a static avatar card with the existing translated empty-state label, rather than an artwork-loading animation with no request behind it. Sharing and discovery permissions are preserved. A zero-length null feed copy found by UBSan is also guarded.
+
+Install as Update over Nuvio TV/Mobile Test. Package, persistent signing certificate, increasing version code, both ARM ABIs and ARM64 alignment are verified before publication. See Logs98-test-steps.txt.
+
+Validation results and exact source/run references are recorded in Logs98-validation.json. Rendered regression checks exercise actual SDL finger events across six layouts in portrait and landscape; protocol and server tests remain separate from real-account/device validation. WGT shared-code compilation does not claim physical LG/Samsung tests or IPK/TPK/WGT package builds.
+
+The new Friends product PR awaits approval of this APK. Test packaging and local log-export changes are not included in the product branch.
