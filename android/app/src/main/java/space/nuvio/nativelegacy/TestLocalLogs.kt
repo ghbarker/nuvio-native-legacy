@@ -12,7 +12,8 @@ class TestLocalLogs(private val activity: Activity) {
         val out = StringBuilder("Nuvio TV/Mobile Test — local diagnostic log\nVersion: $version\n")
         for (name in listOf("nuvio-anterior.log", "nuvio.log")) {
             out.append("\n--- ").append(name).append(" ---\n")
-            out.append(readTail(File(activity.filesDir, "dados/$name")))
+            val current = File(activity.cacheDir, "logs/$name")
+            out.append(readTail(if (current.exists()) current else File(activity.filesDir, "dados/$name")))
         }
         out.append("\n--- current app logcat ---\n")
         var process: java.lang.Process? = null
