@@ -199,7 +199,10 @@ void amigosfil_ok(int coluna) {
     const SvEvento *ev = afEvento(coluna);
     const SvAmigo *am = afAmigo(coluna);
     if (ev && ev->imdb[0]) { snprintf(pedTitulo, sizeof pedTitulo, "%s", ev->imdb); temTitulo = 1; }
-    else if (am) { snprintf(pedPerfil, sizeof pedPerfil, "%s", am->id); temPerfil = 1; }
+    else if (am) {
+      snprintf(pedPerfil, sizeof pedPerfil, "%s", am->id); temPerfil = 1;
+      printf("[amigos] perfil solicitado estilo=%d atividade=%d\n",ajustes_amigos_estilo(),am->nTit);
+    }
     return;
   }
   if (amigosfil_convite()) {
@@ -222,6 +225,7 @@ void amigosfil_ok(int coluna) {
   }
   snprintf(pedPerfil, sizeof pedPerfil, "%s", a->id);
   temPerfil = 1;
+  printf("[amigos] perfil solicitado estilo=%d atividade=%d\n",ajustes_amigos_estilo(),a->nTit);
   socialvis_marcar_visto(a->id);
 }
 
