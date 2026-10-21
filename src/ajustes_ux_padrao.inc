@@ -342,6 +342,7 @@
   0, /* clear cache action */
   0, /* tunneled playback: Off */
   1, /* experimental P7 conversion: Off until explicitly enabled */
+  1, /* log page on the local network (logrede.h): Desligado */
 #ifdef NV_DRIVE_UI
   0, /* Google Drive backup action */
 #endif
