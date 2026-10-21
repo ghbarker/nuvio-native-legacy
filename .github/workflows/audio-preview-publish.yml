@@ -1,4 +1,4 @@
-name: Publish verified Logs93 integration preview
+name: Publish verified Logs94 integration preview
 on:
   workflow_dispatch:
 permissions:
@@ -17,30 +17,42 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Require pinned successful Android build
+      - name: Require pinned successful Android build and native checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39539485335 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39545256722 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39545313593 > checks-run.json
           python3 - <<'CHECK'
           import json
-          r=json.load(open('android-run.json'))
-          assert r['head_sha']=='f7a343d0cf2f900b0d0a186bdd626d08b81f88fb'
-          assert r['status']=='completed' and r['conclusion']=='success'
+          for path,sha in [('android-run.json','81531ee1e7a30880f64ae900c3264fb3961a28a6'),('checks-run.json','1b4a9d69946c12bb3df72374f68ae82916884feb')]:
+              r=json.load(open(path))
+              assert r['head_sha']==sha
+              assert r['status']=='completed' and r['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs93-f7a343d0cf2f900b0d0a186bdd626d08b81f88fb
-          run-id: 39539485335
+          name: Nuvio-TV-Mobile-Test-Logs94-81531ee1e7a30880f64ae900c3264fb3961a28a6
+          run-id: 39545256722
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
-          python3 tools/verify-test-apk.py Nuvio-TV-Mobile-Test-Logs93.apk --expected-sha256 0a5aef25698a50ccfddf603a8a36005ac7043abec86f4aa86ecc7a1224075f6e --expected-bytes 64971387 --version-code 20103 --version-name 2.0.103-test-logs93 --certificate-sha256 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6 --output Logs93-independent-verification.json
-          python3 - <<'METADATA'
-          import json
-          p='Logs93-validation.json';v=json.load(open(p))
-          assert v['source_commit']=='8f4bef954da75ccf529b6e0c95553930edd1cc09'
-          assert v['source_tree']=='64eaa8245f5ad0267bb403df27771db66be6e607'
-          v['native_validation_in_progress']=True
-          open(p,'w').write(json.dumps(v,indent=2)+'\n')
-          METADATA
-          gh release create tv-mobile-test-logs-v93 Nuvio-TV-Mobile-Test-Logs93.apk Logs93-validation.json Logs93-independent-verification.json preview-release/Logs93-test-steps.txt --target 8f4bef954da75ccf529b6e0c95553930edd1cc09 --title 'Nuvio TV/Mobile Test Logs93 — latest upstream integration' --notes-file preview-release/Logs93-release-notes.txt --prerelease
+          python3 - <<'VERIFY'
+          import json,subprocess
+          v=json.load(open('Logs94-validation.json'))
+          assert v['source_commit']=='2f0f3d34324b0846f4b10fa0f15dce143a4384a8'
+          assert v['source_tree']=='959cf0b7eba5a8ba9b76d7e57a926925df2a0fe7'
+          assert v['workflow_commit']=='81531ee1e7a30880f64ae900c3264fb3961a28a6'
+          assert v['workflow_run_id']==39545256722
+          assert v['simkl_client_configured'] and v['simkl_device_registration_checked']
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs94.apk',
+            '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
+            '--version-code','20104','--version-name','2.0.104-test-logs94',
+            '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
+            '--output','Logs94-independent-verification.json'],check=True)
+          v['auth_profile_native_validation_run']=39545313593
+          v['auth_profile_native_validation']='Linux and macOS normal plus ASan/UBSan passed'
+          v['profile_friends_requires_social_server_deployment']=True
+          v['all_previous_rebase_checks_passed']=False
+          open('Logs94-validation.json','w').write(json.dumps(v,indent=2)+'\n')
+          VERIFY
+          gh release create tv-mobile-test-logs-v94 Nuvio-TV-Mobile-Test-Logs94.apk Logs94-validation.json Logs94-independent-verification.json preview-release/Logs94-test-steps.txt --target 2f0f3d34324b0846f4b10fa0f15dce143a4384a8 --title 'Nuvio TV/Mobile Test Logs94 — Simkl V2 and account-profile preview' --notes-file preview-release/Logs94-release-notes.txt --prerelease

@@ -1,0 +1,43 @@
+Logs94 — Simkl AUTH V2 and account-profile Friends preview
+
+INSTALL
+1. Download Nuvio-TV-Mobile-Test-Logs94.apk on the device with Nuvio TV/Mobile Test.
+2. Open it and choose Update. Keep the installed app and its data.
+3. Confirm your existing accounts, profiles and connections remain.
+
+SIMKL
+1. Open Settings -> Account and services -> Simkl, then Connect.
+2. The app should show a code/QR instead of "no keys" or a registration error.
+3. Open the displayed Simkl link on your phone, sign into your Simkl account and
+   approve Nuvio TV/Mobile Test. Return to the app and allow one polling interval.
+4. Confirm Simkl shows connected. Close and reopen the app; it should stay linked.
+5. Play/pause/resume a title and check the linked Simkl account for playback/watch
+   progress using your normal sync settings. Save an app log if an error appears.
+6. Switch to another Nuvio profile: it must not inherit this profile's Simkl link.
+   Sign in separately there if needed. Return to the first profile and confirm
+   its original link remains.
+
+FRIENDS ON THE SAME ACCOUNT — SERVER UPDATE REQUIRED
+This preview includes Friends -> Profiles on this account. No codes are required.
+The matching social-server GET/POST /v1/contatos/perfis endpoint must be deployed
+before the feature can list or connect real account profiles. It cannot be fully
+tested against the old server; a service-unavailable message is expected there.
+The server-side ownership checks and native menu have passed isolated tests.
+
+After the owner deploys that server update:
+1. Use a Nuvio account with at least two profiles and Social features enabled.
+2. In profile A open Friends -> Profiles on this account and select profile B.
+3. B should become Already your friend without entering, copying or viewing a code.
+4. Return to Friends and check B is listed. Switch to B and check A is listed.
+5. Any unselected profile C should remain unconnected to both.
+6. The active profile must not appear as an addable profile. Selecting an existing
+   friend must not create a duplicate. Removing a friend should remove both sides.
+
+TEST RESULTS FOR THESE CHANGES
+Normal and ASan/UBSan checks passed on Linux and macOS for Simkl authorization,
+V2 polling/refresh, scrobble ownership/journal and the account-profile worker.
+All 14 social-server identity/ownership tests passed on both platforms.
+Rendered Linux menu checks passed: selection, Back, touch focus, profile-switch
+invalidation and 100%/150% interface scale. Live V2 client registration passed.
+The wider earlier rebase matrix still has separate fixture failures/timeouts;
+these results do not claim that every older test is green.

@@ -1,0 +1,16 @@
+Update-compatible Nuvio TV/Mobile Test preview.
+
+Adds support for current Simkl AUTH V2 app registrations, including device sign-in,
+local credential persistence and token renewal. Existing legacy registrations
+remain supported. The configured client ID was accepted by Simkl's V2 device API.
+
+Also includes the direct account-profile Friends menu and matching social-server
+route. This feature requires the owner to deploy the server update before a real
+account can use it; the APK alone does not update that service.
+
+Install over Nuvio TV/Mobile Test without uninstalling. The package and persistent
+signing certificate are unchanged; version code 20104. See Logs94-test-steps.txt.
+
+Normal and sanitizer checks for the new auth/profile changes passed on Linux and
+macOS. This does not represent a pass of every older rebase check.
+No new upstream product PR has been published for these features.
