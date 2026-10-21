@@ -1,6 +1,11 @@
 name: Compatible account-profile Friends checks
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [all, mac]
+        default: all
 permissions:
   contents: read
 jobs:
@@ -8,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: ${{ inputs.mode == 'mac' && fromJSON('["macos-15-intel"]') || fromJSON('["ubuntu-24.04","macos-15-intel"]') }}
         source: [product, preview]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -16,6 +21,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       HOMEBREW_NO_AUTO_UPDATE: '1'
+      SDL_MAC_BACKGROUND_APP: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,8 +40,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash tests/amigosperfis.sh > worker-checks.log 2>&1
-          SANITIZE=1 bash tests/amigosperfis.sh >> worker-checks.log 2>&1
+          python3 - <<'CHECK'
+          import os,signal,subprocess
+          with open('worker-checks.log','w') as f:
+              for sanitize in ('0','1'):
+                  print('RUN profile worker SANITIZE='+sanitize,flush=True)
+                  p=subprocess.Popen(['bash','tests/amigosperfis.sh'],env={**os.environ,'SANITIZE':sanitize},stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
+                  try: rc=p.wait(timeout=75)
+                  except subprocess.TimeoutExpired:
+                      subprocess.run(['ps','-eo','pid,ppid,etime,comm'],stdout=f,stderr=subprocess.STDOUT)
+                      os.killpg(p.pid,signal.SIGKILL);p.wait()
+                      raise SystemExit('Profile worker exceeded 75 seconds; diagnostics are not a pass')
+                  if rc: raise SystemExit(rc)
+          CHECK
           node --test servidor/recomendacoes/teste-identidade.mjs > server-checks.log 2>&1
           cc -fsyntax-only -std=gnu11 -Isrc $(pkg-config --cflags sdl2 SDL2_ttf SDL2_image) src/recomenda.c > syntax-checks.log 2>&1
           if [ '${{ runner.os }}' = Linux ]; then
@@ -52,6 +69,7 @@ jobs:
           path: '*-checks.log'
           if-no-files-found: error
   wasm:
+    if: inputs.mode != 'mac'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
