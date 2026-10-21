@@ -39,6 +39,7 @@ typedef struct {
 // grade em memoria; FALHOU e terminal ate a proxima guia_iniciar.
 enum { EPG_PARADO, EPG_BAIXANDO, EPG_PRONTO, EPG_FALHOU };
 int epg_estado(void);
+unsigned epg_revisao(void);
 
 // Device-local memory policy, set on the drawing thread. Workers capture it;
 // low mode retains current programmes and the next 24 hours. Full mode may

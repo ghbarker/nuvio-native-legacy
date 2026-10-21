@@ -1,0 +1,221 @@
+#include "../src/esportesui.c"
+#include <assert.h>
+/* Navigation/matching fixture: no SDL video/audio runtime is needed. */
+Uint32 SDLCALL SDL_GetTicks(void) { return 1000; }
+static int fonteAberta,aberturasFonte;
+static uint64_t perfilTeste=1;
+uint64_t perfis_sessao_geracao(void) { return perfilTeste; }
+int perfis_sessao_atual(uint64_t v) { return v==perfilTeste; }
+void stream_folha_canais_abrir(const char *titulo) { fontescanais_iniciar(titulo);fonteAberta=1;aberturasFonte++; }
+int stream_folha_canais_aberta(void) { return fonteAberta; }
+void stream_folha_canais_fechar(void) { fonteAberta=0;fontescanais_limpar(); }
+int ctx_aberto(void) { return 0; }
+int ponteiro_ok_longo(void) { return 0; }
+int segurar_venceu(Uint32 a,Uint32 d,const char *t) { (void)t;return a-d>=600; }
+void ilha_atividade(const char *t,float p) { (void)t;(void)p; }
+float anim_clamp(float v,float a,float b) { return fmaxf(a,fminf(v,b)); }
+void ponteiro_alvo_segurar(PonteiroFn f) { (void)f; }
+static unsigned rev=1;
+static int ligasProntas=1, visitasOcultas;
+float nv_layout_w=1920,nv_layout_h=1080;
+static float escalaTeste=1;
+float gfx_escala_ui(void) { return escalaTeste; }
+static float bordaMenu;
+float menu_barra_borda(void) { return bordaMenu; }
+float ajustes_conteudo_x(void) { return 104; }
+static int habilitados[16], pediuLigas, pediuEventos, favorito, tecladoResultado;
+static EspLiga lTeste={"nba","NBA",""};
+static EspEvento eTeste,favTeste[4];
+static int nFavTeste,timesFavTeste,trocarFav;
+void esportes_pedir_favoritos(int a) { (void)a; }
+int esportes_favoritos_times(void) { return timesFavTeste; }
+int esportes_favoritos_n(void) { return nFavTeste; }
+const EspEvento *esportes_favoritos_evento(int i) { return i>=0 && i<nFavTeste?&favTeste[i]:NULL; }
+int esportes_favoritos_carregando(void) { return 0; }
+int esportes_favoritos_erro(void) { return 0; }
+static EspLiga ligasCat[3]={{"nfl","NFL",""},{"nba","NBA",""},{"college-football","College football",""}};
+static int catLigado[3]={1,1,1},catPedido[3],catInicio;
+void esportes_catalogo_iniciar(int m,int a){(void)m;(void)a;catInicio++;}
+void esportes_catalogo_suspender(void){}
+int esportes_catalogo_n(void){return 3;}
+int esportes_catalogo_modalidade(int l){return l==1?2:1;}
+const EspLiga *esportes_catalogo_liga(int l){return l>=0 && l<3?&ligasCat[l]:NULL;}
+int esportes_liga_habilitada(int m,const char *id){(void)m;for(int i=0;i<3;i++)if(!strcmp(id,ligasCat[i].id))return catLigado[i];return 1;}
+int esportes_liga_habilitar(int m,const char *id,int on){(void)m;for(int i=0;i<3;i++)if(!strcmp(id,ligasCat[i].id)){catLigado[i]=on;rev++;return 1;}return 0;}
+void esportes_catalogo_visiveis(void){memset(catPedido,0,sizeof catPedido);}
+void esportes_catalogo_pedir(int i){assert(i>=0 && i<3 && catLigado[i]);catPedido[i]++;}
+int esportes_catalogo_eventos_n(int l){return l>=0 && l<3?12:0;}
+const EspEvento *esportes_catalogo_evento(int l,int e){return l>=0 && l<3 && e>=0 && e<12?&eTeste:NULL;}
+int esportes_catalogo_estado(int l){(void)l;return 1;}
+int esportes_catalogo_carregando(void){return 0;}
+const char *i18n(const char *s) { return s; }
+static int mobileTeste;
+int layout_modo_mobile(void) { return mobileTeste; }
+void esportes_abrir_sessao(void) { static int primeira=1;if(primeira){for(int i=0;i<16;i++)habilitados[i]=1;primeira=0;} }
+int esportes_habilitado(int i) { return i>=0 && i<16 && habilitados[i]; }
+int esportes_habilitar(int i,int v) { habilitados[i]=v; return 1; }
+void esportes_cancelar(void) {}
+int esportes_favorito(const EspEvento *e,int p) { (void)e;(void)p;return favorito; }
+int esportes_alternar_favorito(const EspEvento *e,int p) { (void)e;(void)p;favorito=!favorito;rev++;return 1; }
+void esportes_pedir_ligas(int m,int a) { (void)m;(void)a;pediuLigas++;ligasProntas=0;rev++; }
+void esportes_pedir_eventos(int m,const EspLiga *l,int a) { (void)m;(void)l;(void)a;pediuEventos++;rev++; }
+void esportes_passo(void) { if(trocarFav){EspEvento t=favTeste[0];favTeste[0]=favTeste[1];favTeste[1]=t;trocarFav=0;rev++;} }
+int esportes_carregando(void) { return 0; }
+int esportes_erro(void) { return 0; }
+unsigned esportes_revisao(void) { return rev; }
+int esportes_ligas_n(void) { return ligasProntas; }
+const EspLiga *esportes_liga(int i) { return i>=0 && i<ligasProntas?&lTeste:NULL; }
+int esportes_eventos_n(void) { return 1; }
+const EspEvento *esportes_evento(int i) { return i==0?&eTeste:NULL; }
+const char *teclado_alfabeto(void) { return "abc"; }
+void teclado_abrir_com(const char *t,const char *d,int n,const char *a,const char *i) { (void)t;(void)d;(void)n;(void)a;(void)i; }
+void teclado_evento(const SDL_Event *e) { (void)e; }
+void teclado_atualizar(float dt,Uint32 a) { (void)dt;(void)a; }
+int teclado_resultado(void) { return tecladoResultado; }
+const char *teclado_texto(void) { return "does not match"; }
+void teclado_esquecer(void) { tecladoResultado=0; }
+void guia_carregar(void) {}
+void epg_iniciar(void) {}
+void epg_passo(void) {}
+void xtepg_passo(void) {}
+int epg_estado(void) { return EPG_PRONTO; }
+unsigned epg_revisao(void) { return 1; }
+unsigned guia_busca_revisao(void) { return 1; }
+int guia_busca_carregando(void) { return 0; }
+int guia_busca_elegivel(int i) { return i>=0 && i<3; }
+int guia_canal_campos(int i,const char **id,const char **n,const char **l,const char **c,const char **b) {
+  (void)l;(void)c;(void)b;
+  static const char *ids[]={"wrong","match","broadcaster","hidden"},*names[]={"Sports One","Sports Two","ESPN HD","Hidden channel"};
+  if(i<0 || i>=4)return 0;
+  *id=ids[i];*n=names[i];return 1;
+}
+const char *guia_busca_conta(int i) { return i==1?"Account Two":"Account One"; }
+int guia_busca_programas(int i,time_t d,time_t a,int p,EpgProg *out,int cap) {
+  (void)d;(void)a;(void)p;(void)cap;
+  if(i==3)visitasOcultas++;
+  if(i==2)return 0;
+  *out=(EpgProg){eTeste.inicio,eTeste.inicio+7200,i==0?"Celtics vs Cavaliers":"Celtics vs Magic"};return 1;
+}
+/* Record calls from the real draw routine, without an SDL/GL runtime. */
+static int imagens,imagensDesenhadas,alvosGrade,icones,favAlvos;
+void gfx_icone(GfxRect r,const char *n,float cr,float cg,float cb,float ca) { (void)n;(void)cr;(void)cg;(void)cb;(void)ca;assert(r.w>0 && r.h>0);icones++; }
+float gfx_escala(void) { return 1; }
+float gfx_escala_entrar(void) { return 1; }
+void gfx_escala_sair(float v) { (void)v; }
+void gfx_recorte(float x,float y,float w,float h) { (void)x;(void)y;assert(w>0 && h>0); }
+void gfx_sem_recorte(void) {}
+void gfx_rect(GfxRect r,GLuint t,GfxModo m,float f,float px,float py,float raio,float a,float b,float c,float d) {
+  (void)m;(void)f;(void)px;(void)py;(void)raio;(void)a;(void)b;(void)c;(void)d;
+  assert(r.w>0 && r.h>0);if(t)imagensDesenhadas++;
+}
+void plrui_cartao(GfxRect r,float raio,float a) { (void)raio;(void)a;assert(r.w>0 && r.h>0); }
+void plrui_linha_foco(GfxRect r,float raio,float a) { plrui_cartao(r,raio,a); }
+void plrui_pilula_foco(GfxRect r,float a) { plrui_cartao(r,0,a); }
+void plrui_botao_repouso(GfxRect r,float a) { plrui_cartao(r,0,a); }
+int plrui_tinta(void) { return 245; }
+float ajustes_raio_poster_px(void) { return 20; }
+int ajustes_relogio_12h(void) { return 0; }
+int ajustes_idioma(void) { return IDIOMA_EN; }
+TxtLinha txt_linha(TxtEstilo e,const char *s,int r,int g,int b,int a) {
+  (void)e;(void)r;(void)g;(void)b;(void)a;return (TxtLinha){0,(int)strlen(s)*12,24,0,0};
+}
+TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float w) {
+  assert(w>0);TxtLinha t=txt_linha(e,s,r,g,b,a);if(t.w>w)t.w=(int)w;return t;
+}
+void txt_desenhar(TxtLinha t,float x,float y) { (void)t;(void)x;(void)y; }
+GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);imagens++;return 1; }
+float tex_aspecto(const char *url) { (void)url;return 2; }
+int tex_marca_escura(const char *url) { (void)url;return 0; }
+void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int b) {
+  (void)x;(void)y;(void)w;(void)h;(void)f;(void)a;(void)i;(void)b;
+}
+void ponteiro_alvo_faixa(float x,float y,float w,float h,float y0,float y1,PonteiroFn f,PonteiroFn a,int i,int b) {
+  assert(w>0 && h>0 && x>=xLista && x+w<=xLista+larguraLista+0.1f);alvosGrade++;if(i>=FOCO_FAVORITO)favAlvos++;
+  (void)y0;(void)y1;ponteiro_alvo(x,y,w,h,f,a,i,b);
+}
+void ponteiro_rolagem(PonteiroRolagemFn fn) { (void)fn; }
+void teclado_desenhar(Uint32 a) { (void)a; }
+static void tecla(SDL_Keycode k) { SDL_Event e={0};e.type=SDL_KEYDOWN;e.key.keysym.sym=k;esportesui_evento(&e); }
+static void soltar(SDL_Keycode k) { SDL_Event e={0};e.type=SDL_KEYUP;e.key.keysym.sym=k;esportesui_evento(&e); }
+int main(void) {
+  strcpy(eTeste.id,"event");strcpy(eTeste.nome,"Celtics at Magic");strcpy(eTeste.modalidade,"basketball");strcpy(eTeste.ligaId,"nba");
+  eTeste.nParticipantes=2;eTeste.estado=1;eTeste.inicio=time(NULL)-60;
+  strcpy(eTeste.participantes[0].nome,"Celtics");strcpy(eTeste.participantes[1].nome,"Magic");
+  struct tm dataTeste={.tm_year=126,.tm_mon=9,.tm_mday=19,.tm_hour=13,.tm_min=30};char dataTexto[48];
+  horario(mktime(&dataTeste),dataTexto,sizeof dataTexto);assert(!strncmp(dataTexto,"10/19 ",6));
+  bordaMenu=120;medidas();float xFechado=xLista,wFechado=larguraLista;
+  bordaMenu=420;medidas();assert(xLista==xFechado && larguraLista==wFechado);
+  esportesui_iniciar();assert(pagina==ESP_TODOS && catInicio && nItens==3 && foco==FOCO_TODOS && nTopo()==5);
+  esportesui_desenhar(1000);assert(catPedido[0] && catPedido[1]);
+  tecla(SDLK_DOWN);assert(foco==codLinha(0,0));tecla(SDLK_RIGHT);assert(foco==codLinha(0,1));
+  tecla(SDLK_DOWN);assert(foco==codLinha(1,-1));tecla(SDLK_RIGHT);assert(foco==codLinha(1,0));
+  tecla(SDLK_UP);assert(foco==codLinha(0,-1));tecla(SDLK_UP);assert(foco==FOCO_TODOS);
+  /* League switches use the ordinary settings rows, retaining disabled entries. */
+  pointerTopoAgir(3,0);assert(pagina==ESP_LIGAS_CONFIG && nItens==3);
+  pointerAtivar(0,0);assert(!catLigado[0]);esportesui_atualizar(.016f,1000);assert(nItens==3);
+  tecla(SDLK_ESCAPE);assert(pagina==ESP_TODOS && nItens==2 && indices[0]==1);
+  esportesui_desenhar(1000);assert(!catPedido[0] && catPedido[1]);
+  esportesui_fechar();esportesui_iniciar();assert(pagina==ESP_TODOS && nItens==2 && !catLigado[0]);
+  pointerTopoAgir(3,0);pointerAtivar(0,0);tecla(SDLK_ESCAPE);assert(nItens==3 && catLigado[0]);
+  /* Sport chips filter the league rows, rather than returning a sport-card grid. */
+  pointerModalidadeAgir(2,0);assert(pagina==ESP_LIGAS && nItens==1 && indices[0]==1);
+  tecla(SDLK_DOWN);assert(foco==codLinha(1,0));
+  int abertas=aberturasFonte;tecla(SDLK_RETURN);assert(aberturasFonte==abertas);soltar(SDLK_RETURN);
+  assert(fonteAberta && aberturasFonte==abertas+1);esportesui_atualizar(.016f,1000);
+  assert(nCanais==1 && !procurando && !visitasOcultas);
+  const FonteCanal *c=&fontescanais_estado()->canais[0];assert(!strcmp(c->id,"match") && !strcmp(c->conta,"Account Two"));
+  assert(c->inicio==eTeste.inicio && c->fim==eTeste.inicio+7200);
+  assert(fontescanais_escolher(0,time(NULL)));fonteAberta=0;char id[128];assert(esportesui_pediu_canal(id,sizeof id) && !strcmp(id,"match"));
+  /* Long hold and its release never open Sources or toggle a favorite. */
+  abertas=aberturasFonte;tecla(SDLK_RETURN);esportesui_atualizar(.016f,1700);
+  assert(pagina==ESP_DETALHE && nItens==2 && nTopo()==1 && esperaSoltura && !fonteAberta);
+  tecla(SDLK_RETURN);soltar(SDLK_RETURN);assert(!esperaSoltura && !favorito && aberturasFonte==abertas);
+  tecla(SDLK_RETURN);assert(favorito && aberturasFonte==abertas);soltar(SDLK_RETURN);tecla(SDLK_ESCAPE);
+  assert(pagina==ESP_LIGAS && foco==codLinha(1,0));
+  pointerDetalhe(codLinha(1,0),0);assert(pagina==ESP_DETALHE && !fonteAberta);tecla(SDLK_ESCAPE);
+  /* The league heading opens the full event grid with the existing source actions. */
+  pointerAtivar(codLinha(1,-1),0);assert(pagina==ESP_EVENTOS && pediuEventos==1);
+  pointerAtivar(0,0);assert(fonteAberta);stream_folha_canais_fechar();
+  /* Combined team favorites remain above league rows, independent of switches. */
+  timesFavTeste=2;nFavTeste=2;favTeste[0]=eTeste;favTeste[1]=eTeste;
+  strcpy(favTeste[1].id,"soccer-event");strcpy(favTeste[1].nome,"Arsenal at Chelsea");strcpy(favTeste[1].modalidade,"soccer");
+  pointerTopoAgir(3,0);assert(pagina==ESP_TODOS && modalidade==-1 && nItens==3 && foco==FOCO_FAVORITO && linhaFavoritos());
+  esportesui_desenhar(1000);assert(favAlvos>=2);tecla(SDLK_RIGHT);assert(foco==FOCO_FAVORITO+1);
+  trocarFav=1;esportesui_atualizar(.016f,1000);assert(foco==FOCO_FAVORITO);
+  abertas=aberturasFonte;pointerAtivar(FOCO_FAVORITO,0);assert(fonteAberta && aberturasFonte==abertas+1);
+  stream_folha_canais_fechar();pointerDetalhe(FOCO_FAVORITO,0);assert(pagina==ESP_DETALHE && detalheOrigem==ESP_TODOS);
+  int pedidosAntes=pediuEventos;esportesui_atualizar(.016f,70000);assert(pediuEventos==pedidosAntes);tecla(SDLK_ESCAPE);
+  tecla(SDLK_DOWN);assert(foco==codLinha(0,0));tecla(SDLK_UP);assert(focoFavorito());tecla(SDLK_UP);assert(foco==FOCO_TODOS);
+  nFavTeste=0;foco=FOCO_FAVORITO;montar();assert(focoLinha() && linhaFoco()==0);nFavTeste=2;
+  /* Horizontal row gestures and the next vertical gesture use distinct offsets. */
+  esportesui_desenhar(1000);PonteiroRolagem gesto={.fase=PONT_ROL_INICIO,.eixoY=0,.x=xLista+60,.y=topoLista+alturaFavoritos()+120};
+  /* A touch-capable APK in saved TV mode keeps remote navigation and never
+   * captures touch scrolling. Enabling Mobile takes effect on the same screen. */
+  assert(!mobileTeste && !rolar(&gesto));
+  float offsetTv=linhasRolagem[0];
+  gesto.fase=PONT_ROL_MOVER;gesto.delta=-200;
+  assert(!rolar(&gesto) && linhasRolagem[0]==offsetTv && rolagem==0);
+  mobileTeste=1;gesto.fase=PONT_ROL_INICIO;
+  assert(rolar(&gesto));gesto.fase=PONT_ROL_MOVER;gesto.delta=-200;assert(rolar(&gesto));assert(linhasRolagem[0]>0);
+  float offsetAntes=linhasRolagem[0];gesto.fase=PONT_ROL_INICIO;gesto.eixoY=1;assert(rolar(&gesto));
+  gesto.fase=PONT_ROL_MOVER;gesto.delta=-180;assert(rolar(&gesto));assert(rolagem>0 && linhasRolagem[0]==offsetAntes);
+  mobileTeste=0;float offsetMobile=rolagem;
+  assert(!rolar(&gesto) && rolagem==offsetMobile && !toquerol_livre(&toque));
+  limparToque();
+  /* League/team artwork and row pointer targets fit TV/phone and UI scaling. */
+  strcpy(eTeste.participantes[0].logo,"https://art.example/celtics.png");strcpy(eTeste.participantes[1].logo,"https://art.example/magic.png");
+  for(int i=0;i<2;i++){strcpy(favTeste[i].participantes[0].logo,eTeste.participantes[0].logo);strcpy(favTeste[i].participantes[1].logo,eTeste.participantes[1].logo);}
+  const float tamanhos[][3]={{1920,1080,1},{1080,2300,1},{1920,1080,1.5},{1080,2300,1.5}};
+  for(int i=0;i<4;i++) {
+    nv_layout_w=tamanhos[i][0];nv_layout_h=tamanhos[i][1];escalaTeste=tamanhos[i][2];
+    mobileTeste=nv_layout_h>nv_layout_w;
+    esportesui_fechar();esportesui_iniciar();imagens=imagensDesenhadas=0;esportesui_desenhar(1000);assert(imagens && imagens==imagensDesenhadas);
+  }
+  pointerTopoAgir(2,0);assert(pagina==ESP_CONFIG);pointerAtivar(1,0);tecla(SDLK_ESCAPE);assert(nItens==1 && indices[0]==1);
+  for(int i=0;i<16;i++)habilitados[i]=0;
+  timesFavTeste=nFavTeste=0;esportesui_fechar();esportesui_iniciar();assert(!nItens);esportesui_desenhar(1000);
+  FonteCanal futuro={0};strcpy(futuro.id,"future");futuro.inicio=time(NULL)+3600;
+  fontescanais_iniciar("Future");fontescanais_publicar(&futuro,1,0);assert(fontescanais_escolher(0,time(NULL)));
+  perfilTeste++;assert(!esportesui_pediu_canal(id,sizeof id) && !fontescanais_estado()->ativo);
+  esportesui_fechar();puts("sports league rows/toggles, independent Favorites, short/hold input, touch axes and source handoff: passed");return 0;
+}
