@@ -11,7 +11,7 @@ name: Build TPK
 
 on:
   push:
-    branches-ignore: [review/logs34-integration-20261017]
+    branches-ignore: [review/logs34-integration-20261017, ci/rebase-all-20261021]
   workflow_dispatch:
     inputs:
       pacotes:
