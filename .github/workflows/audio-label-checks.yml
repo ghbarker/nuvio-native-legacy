@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 50c1ab2e49c178e520a94b6056b9255d315072f5
+          ref: 27e1a6a12
       - name: Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libgles2-mesa-dev
@@ -34,6 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 tests/esportes_arte.py
           for check in esportes esportes_ui esportes_estado esportes_ordem; do
             bash tests/$check.sh > "$check-checks.log" 2>&1
             SANITIZE=1 bash tests/$check.sh >> "$check-checks.log" 2>&1
@@ -43,7 +44,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs100-sports-${{ matrix.os }}
+          name: Logs101-sports-${{ matrix.os }}
           path: '*-checks.log'
           if-no-files-found: error
   wasm:
@@ -53,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 50c1ab2e49c178e520a94b6056b9255d315072f5
+          ref: 27e1a6a12
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
@@ -65,6 +66,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs100-sports-wasm
+          name: Logs101-sports-wasm
           path: '*-checks.log'
           if-no-files-found: error
