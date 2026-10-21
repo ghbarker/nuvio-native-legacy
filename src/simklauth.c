@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <time.h>
+#include <strings.h>
+#include <stdatomic.h>
 #include "credfio.h"
 
 // O VINCULO E POR PERFIL (simkl-p<N>.txt), pelo mesmo motivo e com a mesma
@@ -35,13 +38,18 @@ static char userCode[48];
 static char url[200];
 static char erro[200];
 static char token[300];
+static char refreshToken[300], deviceCode[300], deviceCodeFio[300];
+static long long expiresAt, refreshAfter;
+static int authV2, authV2Fio;
+static pthread_mutex_t refreshTrava = PTHREAD_MUTEX_INITIALIZER;
 static unsigned long long credGeracao = 1;
 static unsigned proximoPoll, comecouMs, limiteMs = SMK_LIMITE_PADRAO_MS, passoMs = SMK_POLL_MS;
 static unsigned ultimoAgora;
 static int falhasSeguidas;
 
 static pthread_t fio;
-static int fioVivo, fioPronto, tokenNovo;
+static int fioVivo, tokenNovo;
+static atomic_int fioPronto;
 
 // DE QUEM E O ESTADO ACIMA. Mesma costura de traktauth.c: a troca de perfil
 // sobe `geracao`, e um fio que saiu antes dela nunca publica nas variaveis
@@ -102,7 +110,14 @@ static void gravarEm(int p, const char *tk) {
   snprintf(buf, sizeof buf, "%s\n", tk);
   dados_gravar(arq(p).s, buf);
 }
-static void gravar(void) { gravarEm(perfil, token); }
+static void gravarCredEm(int p,const char *tk,const char *rt,long long exp) {
+  if (!rt || !rt[0]) { gravarEm(p,tk); return; }
+  Jsw w;jsw_iniciar(&w);jsw_obj_ini(&w);jsw_ci(&w,"version",2);
+  jsw_cs(&w,"access_token",tk);jsw_cs(&w,"refresh_token",rt);
+  jsw_ci(&w,"expires_at",exp);jsw_cs(&w,"client_id",nuvem_simkl_cliente());jsw_obj_fim(&w);
+  const char *s=jsw_texto_final(&w);if(s)dados_gravar(arq(p).s,s);jsw_livre(&w);
+}
+static void gravar(void) { gravarCredEm(perfil,token,refreshToken,expiresAt); }
 
 // simkl.txt antigo -> simkl-p1.txt. Idempotente; ver a nota no topo.
 static void migrarLegado(void) {
@@ -127,7 +142,17 @@ int simklauth_carregar(void) {
   { char *fim = b + strlen(b);
     while (fim > b && (fim[-1] == '\n' || fim[-1] == '\r')) *--fim = 0; }
   pthread_mutex_lock(&trava);
-  if (b[0] && strcmp(b, "!")) {
+  if (b[0]=='{') {
+    char tk[300]="",rt[300]="",cid[200]="";const char *fim=b+strlen(b);
+    js_texto(b,fim,"access_token",tk,sizeof tk);js_texto(b,fim,"refresh_token",rt,sizeof rt);
+    js_texto(b,fim,"client_id",cid,sizeof cid);
+    if (tk[0] && rt[0] && !strcmp(cid,nuvem_simkl_cliente())) {
+      if(strcmp(token,tk))credGeracao++;
+      snprintf(token,sizeof token,"%s",tk);snprintf(refreshToken,sizeof refreshToken,"%s",rt);
+      double exp=js_num(b,fim,"expires_at",0);
+      expiresAt=exp>=0 && exp<=4102444800.0?(long long)exp:0;authV2=1;estado=SMK_LIGADO;
+    }
+  } else if (b[0] && strcmp(b, "!")) {
     if (strcmp(token, b)) credGeracao++;
     snprintf(token, sizeof token, "%s", b); estado = SMK_LIGADO;
   }
@@ -151,6 +176,7 @@ unsigned long long simklauth_credencial_copiar(char *dst, size_t tam) {
 static void zerarEstado(void) {
   credGeracao++;
   token[0] = userCode[0] = url[0] = erro[0] = 0;
+  refreshToken[0]=deviceCode[0]=0;expiresAt=refreshAfter=0;authV2=0;
   tokenNovo = 0;
   comecouMs = 0;
   falhasSeguidas = 0;
@@ -207,6 +233,9 @@ int simklauth_invalidar_se(unsigned long long cred) {
   int atual;
   pthread_mutex_lock(&trava);
   atual = cred == credGeracao;
+  if(atual && authV2 && refreshToken[0]) {
+    expiresAt=0;refreshAfter=0;pthread_mutex_unlock(&trava);return 0;
+  }
   if (atual) {
     geracao++;
     zerarEstado();
@@ -215,6 +244,8 @@ int simklauth_invalidar_se(unsigned long long cred) {
   pthread_mutex_unlock(&trava);
   return atual;
 }
+
+#include "simklauth_v2.inc"
 
 // ---------------------------------------------------------------- fluxo
 
@@ -236,15 +267,21 @@ static void *fioPedir(void *u) {
     return NULL;
   }
 
+  int v2=0;char dc[300]="";
   r = pegar("/oauth/pin", &st);
+  if (st==400 && r && strstr(r,"unauthorized_client")) {
+    free(r);r=oauthPost("/oauth2/device","scope=media%3Aread%20media%3Awrite",&st);v2=1;
+  }
   if (r && st >= 200 && st < 300) {
     const char *fim = r + strlen(r);
     double expira;
     js_texto(r, fim, "user_code", uc, sizeof uc);
+    if(v2)js_texto(r,fim,"device_code",dc,sizeof dc);
     // O campo aparece nas duas grafias na documentacao; aceitar as duas evita
     // uma tela vazia por causa de um "i" a menos.
     if (!js_texto(r, fim, "verification_url", vu, sizeof vu))
       js_texto(r, fim, "verification_uri", vu, sizeof vu);
+    if(v2)js_texto(r,fim,"verification_uri_complete",vu,sizeof vu);
     expira = js_num(r, fim, "expires_in", 0);
     if (expira > 30.0 && expira < 3600.0) novoLimite = (unsigned)(expira * 1000.0);
     expira = js_num(r, fim, "interval", 0);   // reaproveita a variavel
@@ -259,6 +296,8 @@ static void *fioPedir(void *u) {
     return NULL;
   }
   erro[0] = 0;
+  if(v2 && !dc[0])uc[0]=0;
+  authV2=v2;snprintf(deviceCode,sizeof deviceCode,"%s",dc);
   snprintf(userCode, sizeof userCode, "%s", uc);
   snprintf(url, sizeof url, "%s", vu);
   // Cada codigo novo traz o relogio dele; sem o campo, o padrao — nunca o
@@ -291,6 +330,12 @@ SmkPoll simklauth_classificar(int st, const char *corpo, char *tk, unsigned tam)
   const char *fim;
   if (tk && tam) tk[0] = 0;
   if (st == 429) return SMK_POLL_LENTO;
+  if (corpo && (st==400 || st==401)) {
+    char e[64]="";js_texto(corpo,corpo+strlen(corpo),"error",e,sizeof e);
+    if(!strcmp(e,"authorization_pending"))return SMK_POLL_ESPERA;
+    if(!strcmp(e,"slow_down"))return SMK_POLL_LENTO;
+    if(!strcmp(e,"expired_token") || !strcmp(e,"access_denied") || !strcmp(e,"invalid_client"))return SMK_POLL_NEGADO;
+  }
   if (!corpo || st < 200 || st >= 300) return SMK_POLL_FALHA;
   fim = corpo + strlen(corpo);
   if (tk && tam && js_texto(corpo, fim, "access_token", tk, tam) && tk[0]) return SMK_POLL_OK;
@@ -319,7 +364,11 @@ static void *fioPoll(void *u) {
   int st = 0;
   (void)u;
   snprintf(caminho, sizeof caminho, "/oauth/pin/%s", userCodeFio);
-  r = pegar(caminho, &st);
+  if(authV2Fio) {
+    char dc[900],body[1100];nuvem_url_escapar(deviceCodeFio,dc,sizeof dc);
+    snprintf(body,sizeof body,"grant_type=urn%%3Aietf%%3Aparams%%3Aoauth%%3Agrant-type%%3Adevice_code&device_code=%s",dc);
+    r=oauthPost("/oauth2/token",body,&st);
+  } else r = pegar(caminho, &st);
   pthread_mutex_lock(&trava);
   if (!mesmaConta(usuarioFio)) {
     pthread_mutex_unlock(&trava);
@@ -338,7 +387,9 @@ static void *fioPoll(void *u) {
     char t[300];
     if (r && st >= 200 && st < 300 &&
         js_texto(r, r + strlen(r), "access_token", t, sizeof t) && t[0]) {
-      gravarEm(perfilFio, t);
+      char rt[300]="";long long exp=0;
+      if(authV2Fio && !tokensV2(r,rt,sizeof rt,&exp)) { pthread_mutex_unlock(&trava);free(r);fioPronto=1;return NULL; }
+      gravarCredEm(perfilFio,t,rt,exp);
       printf("[simkl] autorizacao do perfil %d chegou depois da troca; guardada no arquivo dele\n",
              perfilFio);
     }
@@ -350,6 +401,9 @@ static void *fioPoll(void *u) {
   { char t[300];
     switch (simklauth_classificar(st, r, t, sizeof t)) {
       case SMK_POLL_OK:
+        if(authV2Fio && !tokensV2(r,refreshToken,sizeof refreshToken,&expiresAt)) {
+          snprintf(erro,sizeof erro,"%s",i18n("Não foi possível agora. Tente novamente."));estado=SMK_ERRO;break;
+        }
         if (strcmp(token, t)) credGeracao++;
         snprintf(token, sizeof token, "%s", t);
         tokenNovo = 1;
@@ -397,6 +451,7 @@ static void soltar(void *(*rotina)(void *)) {
   gerFio = geracao;
   perfilFio = perfil;
   snprintf(userCodeFio, sizeof userCodeFio, "%s", userCode);
+  authV2Fio=authV2;snprintf(deviceCodeFio,sizeof deviceCodeFio,"%s",deviceCode);
   if (pthread_create(&fio, NULL, rotina, NULL) == 0) { pthread_detach(fio); fioVivo = 1; }
   else { snprintf(erro, sizeof erro, "sem fio para falar com o Simkl"); estado = SMK_ERRO; }
 }
@@ -417,7 +472,12 @@ void simklauth_passo(unsigned agoraMs) {
     return;
   }
   { int res; credfio_resultado("simkl", &res); }   // so libera o lugar (#203)
-  if (fioVivo && fioPronto) { fioVivo = 0; fioPronto = 0; }
+  if (fioVivo && fioPronto) {
+    fioVivo=0;fioPronto=0;
+    // Measure the next interval after the prior response, not before its
+    // worker was scheduled. A delayed worker must not shorten the wait.
+    if(estado==SMK_AGUARDANDO)proximoPoll=agoraMs+passoMs;
+  }
   if (fioVivo) return;
   // Pedido feito com um fio do perfil anterior ainda no ar: sai agora.
   if (estado == SMK_PEDINDO) { soltar(fioPedir); return; }
@@ -426,6 +486,9 @@ void simklauth_passo(unsigned agoraMs) {
     Jsw c;
     int saiu;
     gravar();
+    // V2 grants are per installation: never send access/refresh tokens to
+    // account credential sync, which would make two TVs refresh one grant.
+    if(authV2) { tokenNovo=0;printf("[simkl] AUTH V2 vinculado nesta TV\n");return; }
     jsw_iniciar(&c);
     jsw_obj_ini(&c);
     jsw_cs(&c, "access_token", token);
@@ -440,6 +503,10 @@ void simklauth_passo(unsigned agoraMs) {
     }
   }
 
+  if(estado==SMK_LIGADO && authV2 && refreshToken[0] &&
+     (long long)time(NULL)>=expiresAt-300 && (long long)time(NULL)>=refreshAfter) {
+    soltar(fioRefresh);return;
+  }
   if (estado != SMK_AGUARDANDO) return;
   ultimoAgora = agoraMs;
   if (!comecouMs) { comecouMs = agoraMs ? agoraMs : 1; proximoPoll = 0; }

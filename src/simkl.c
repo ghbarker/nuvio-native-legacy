@@ -446,7 +446,7 @@ const char *simkl_rota_historico(int visto) {
 static char *pedirComToken(char metodo, const char *caminho, const char *consulta,
                            const char *corpo, int *st, const char *tk) {
   char url[640], cid[200], nome[120], aut[400];
-  const char *cab[3];
+  const char *cab[4];
   char *r;
   *st = 0;
   if (!tk[0] || !nuvem_simkl_cliente()[0]) return NULL;
@@ -457,7 +457,8 @@ static char *pedirComToken(char metodo, const char *caminho, const char *consult
   snprintf(aut, sizeof aut, "Authorization: Bearer %s", tk);
   cab[0] = aut;
   cab[1] = "Accept: application/json";
-  cab[2] = NULL;
+  cab[2] = "User-Agent: Nuvio-Legacy/2";
+  cab[3] = NULL;
   if (metodo == 'P')      r = rede_postar_st(url, 20, cab, corpo ? corpo : "", st);
   else if (metodo == 'D') r = rede_apagar(url, 20, cab, st);
   else                    r = provedorBaixarSt(url, 25, cab, st);
@@ -498,7 +499,7 @@ static int pedidoAtual(SmkPedido p) {
 static char *pedir(SmkPedido pedido, char metodo, const char *caminho, const char *consulta,
                    const char *corpo, int *st) {
   char url[640];
-  const char *cab[3];
+  const char *cab[4];
   char *r;
   *st = 0;
   if (!pedido.aut[0] || (metodo == 'G' && !pedidoAtual(pedido))) return NULL;
@@ -506,7 +507,8 @@ static char *pedir(SmkPedido pedido, char metodo, const char *caminho, const cha
            SMK_API, caminho, pedido.cid, pedido.nome, consulta ? "&" : "", consulta ? consulta : "");
   cab[0] = pedido.aut;
   cab[1] = "Accept: application/json";
-  cab[2] = NULL;
+  cab[2] = "User-Agent: Nuvio-Legacy/2";
+  cab[3] = NULL;
   if (metodo == 'P')      r = rede_postar_st(url, 20, cab, corpo ? corpo : "", st);
   else if (metodo == 'D') r = rede_apagar(url, 20, cab, st);
   else {
@@ -1182,6 +1184,23 @@ static void scrobbleJornalNome(char *dst, size_t tam, const char *tk) {
 }
 
 // Sob travaScr. Preserva todos os stops sem resposta, inclusive de outros ids.
+static int scrobbleJornal(const char *,const char *,int);
+
+// Access tokens rotate on V2; keep pending watched marks with the same grant.
+void simkl_credencial_renovada(const char *antigo,const char *novo) {
+  char de[64],para[64];scrobbleJornalNome(de,sizeof de,antigo);scrobbleJornalNome(para,sizeof para,novo);
+  if(!strcmp(de,para))return;
+  pthread_mutex_lock(&travaScr);
+  char *b=dados_ler(de);int ok=1;
+  for(char *p=b;p && *p;) {
+    char *fim=strchr(p,'\n');if(fim)*fim=0;
+    if(*p && !scrobbleJornal(para,p,1))ok=0;
+    p=fim?fim+1:NULL;
+  }
+  if(b && ok)dados_apagar(de);
+  free(b);pthread_mutex_unlock(&travaScr);
+}
+
 static int scrobbleJornal(const char *nome, const char *id, int adicionar) {
   char *b = dados_ler(nome), *p, *fim, *novo;
   size_t n = b ? strlen(b) : 0, u = 0;
