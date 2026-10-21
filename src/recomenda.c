@@ -33,6 +33,7 @@
 #include "logotitulo.h"
 #include "artemetahub.h"
 #include "perfis.h"
+#include "amigosperfis.h"
 #include "recresp.h"
 #define NV_ESCALA_TELA_ATIVA   // mede pela tela do fator ativo (escala.h)
 #include "escala.h"
@@ -48,6 +49,7 @@
 #define NV_REC_URL ""
 #endif
 
+static void limparPerfisConta(void);
 static int recPerfil = 1;
 static uint64_t recSessaoDona;
 typedef struct {
@@ -1378,6 +1380,7 @@ unsigned recomenda_geracao(void) {
 }
 
 static void limparEstado(int apagar) {
+  limparPerfisConta();
   if (apagar) {
     char nome[48];
     snprintf(nome, sizeof nome, "amigos-vistos-p%d.txt", recPerfil);
@@ -2286,6 +2289,8 @@ static void confirmarVistas(const char **cab) {
   url("/v1/rec/visto");
   free(recPostar(fioUrl, REC_TEMPO_REDE, cab, corpo, NULL));
 }
+
+#include "recomenda_perfis.inc"
 
 // POST /v1/rec/resposta (recresp.h): "Ja assisti", gostei/nao gostei e a
 // mensagem curta. Uma por ciclo de 200 ms basta — sao gestos de uma pessoa.
@@ -3975,6 +3980,7 @@ static int ciclo(void) {
   tratarIdentidade(cab);
   enviarFila(cab);
   tratarContatos(cab);
+  tratarPerfisConta(cab);
   confirmarVistas(cab);
   enviarRespostas(cab);
   if (!recTravarFio()) return 0;
