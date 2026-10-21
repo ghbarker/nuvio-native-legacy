@@ -1,0 +1,12 @@
+Nuvio TV/Mobile Test Logs100 — stable match-card ordering
+
+Install as Update over the existing Nuvio TV/Mobile Test app, retaining accounts and settings.
+
+1. Open Sports, choose a league with several matches scheduled for the same time (NFL or NCAA football often provides examples).
+2. Leave the match grid visible while its dates load. Cards for matches with the same start time should retain a consistent order rather than rapidly exchanging places.
+3. Scroll down and back up. Keep one of those games selected with the remote or tap it; the selected game should remain the same as scores and dates update.
+4. Go Back and reopen the league. Check that the same tied games remain in the same order.
+5. Select a match, choose a confirmed source and check playback. Live matches should still appear before upcoming matches.
+6. If cards still swap, save a log immediately and include the league and two matches that changed places. This build addresses tied kickoff-time sorting; it does not assume that every movement has that cause.
+
+Artwork concepts are available separately. This APK retains the current artwork while the next card design is reviewed.

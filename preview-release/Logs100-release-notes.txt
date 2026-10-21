@@ -1,0 +1,5 @@
+Keep same-time Sports matches in a deterministic order across date and score refreshes. This addresses one possible cause of the reported card swapping on platforms whose qsort is unstable. Existing live/upcoming priority is preserved. Includes the previously approved test features and Logs99 league-card browsing.
+
+Install as an update over Nuvio TV/Mobile Test. Product changes remain separate from test packaging and local log export. Artwork concepts are separate from this ordering fix.
+
+Validation: signed Android APK with both ARM ABIs; Linux/macOS Sports navigation, matching, cache and equal-time ordering checks, normal and ASan/UBSan; shared WGT source compilation with/without touch. LG/Tizen package and device tests are not claimed. Upstream PR remains unchanged pending user approval.
