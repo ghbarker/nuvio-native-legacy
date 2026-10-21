@@ -1,4 +1,3 @@
-#include "stub_perfisessao.h"
 /* This fixture imports the guide for its EPG consumers. Renderer-only
  * diagnostics in the imported translation unit are outside this harness;
  * keep -Werror on the fixture and all real EPG ownership assertions. */

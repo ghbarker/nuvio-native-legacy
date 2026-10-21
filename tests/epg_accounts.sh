@@ -18,5 +18,5 @@ flags+=(-ffunction-sections -fdata-sections)
 if [ "$(uname -s)" = Darwin ]; then flags+=(-Wl,-dead_strip); else flags+=(-Wl,--gc-sections); fi
 cc "${flags[@]}" -Wno-unused-function -Wno-sign-compare -Wno-macro-redefined -I"$work" \
   -I/opt/homebrew/include -I/opt/homebrew/include/SDL2 \
-  tests/epg_shared_consumers.c tests/epg_accounts.c src/xmltv.c -lz -lpthread -lm -o "$work/test"
+  tests/epg_shared_consumers.c tests/epg_accounts.c src/backupcategories.c src/xmltv.c -lz -lpthread -lm -o "$work/test"
 "$work/test" "$work/data"
