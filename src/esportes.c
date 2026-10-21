@@ -33,7 +33,7 @@ static int nFavoritos;
 static char (*ligasOcultas)[120];
 static int nOcultas;
 typedef struct { EspLiga liga; int modalidade; } EspFileira;
-typedef struct { int linha, n, estado, dia, visivel; time_t desde; unsigned uso; EspEvento *eventos; } EspRowCache;
+typedef struct { int linha, n, estado, dia, visivel; time_t desde, instante; unsigned uso; EspEvento *eventos; } EspRowCache;
 static EspFileira *catalogo;
 static int nCatalogo, catalogoAtivo, catalogoPreferido=-1, catalogoIdioma=-1, catalogoAtualizar;
 static unsigned catalogoGeracao, catalogoFeitos, catalogoUso;
@@ -236,6 +236,13 @@ void esportes_pedir_eventos(int m, const EspLiga *l, int atualizar) {
   snprintf(j->idioma,sizeof j->idioma,"%s",idioma_iso(ajustes_idioma()));
   snprintf(j->url, sizeof j->url, "https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?limit=%d&lang=%s", esportes_modalidade(m)->id, l->id, ESP_MAX_EVENTOS,j->idioma);
   snprintf(j->arquivo, sizeof j->arquivo, "esportes-eventos-cache.json");
+  /* A quick Back/reopen can interrupt date expansion. Resume that snapshot
+   * instead of replacing visible games with an empty default scoreboard. */
+  if(!atualizar && cache && cache->dia>0 && cache->dia<=7 && cache->instante && time(NULL)-cache->instante<60) {
+    j->dia=cache->dia;char dia[16];struct tm tm;time_t t=time(NULL)+(j->dia-1)*86400;
+    gmtime_r(&t,&tm);strftime(dia,sizeof dia,"%Y%m%d",&tm);
+    snprintf(j->url,sizeof j->url,"https://site.api.espn.com/apis/site/v2/sports/%s/%s/scoreboard?dates=%s&limit=%d&lang=%s",esportes_modalidade(m)->id,l->id,dia,ESP_MAX_EVENTOS,j->idioma);
+  }
   agendar(j);
 }
 void esportes_passo(void) {
@@ -474,7 +481,7 @@ static void cacheEventos(const EspJob *j) {
   EspRowCache *r=cacheLiga(j->modalidade,j->liga.id);if(!r)return;
   if(!r->eventos)r->eventos=calloc(ESP_MAX_EVENTOS,sizeof *r->eventos);
   if(!r->eventos)return;
-  memcpy(r->eventos,eventos,(size_t)nEventos*sizeof *eventos);r->n=nEventos;r->estado=1;
+  memcpy(r->eventos,eventos,(size_t)nEventos*sizeof *eventos);r->n=nEventos;r->estado=1;r->instante=time(NULL);
   if(!j->atualizar){r->dia=nEventos==ESP_MAX_EVENTOS?8:j->dia+1;r->desde=r->dia>7?time(NULL):0;}
   else if(r->dia>7)r->desde=time(NULL);
 }
