@@ -20,8 +20,12 @@ int recomenda_ativo(void) { return social; }
 void recomenda_pedir_agora(void) {}
 static int recTravarFio(void) { if(!atual)return 0;SDL_LockMutex(mtx);return 1; }
 static void recDestravarFio(void) { SDL_UnlockMutex(mtx); }
-static int bearerSessao(char *s,size_t n) { snprintf(s,n,"Authorization: Bearer test-token");return 1; }
+static int bearerSessaoLocal(char *s,size_t n) { snprintf(s,n,"Authorization: Bearer test-token");return 1; }
 static int perfilCab(char *s,size_t n,int nuvio) { assert(nuvio);snprintf(s,n,"X-Nuvio-Perfil: %d",recPerfil);return 1; }
+static char *nuvem_rpc_com(const char *f,const char *body,const char *token,int *st) {
+  (void)f;(void)body;(void)token;*st=503;return NULL;
+}
+static void jsonEsc(char *s,size_t n,const char *v) { snprintf(s,n,"%s",v); }
 static void url(const char *p) { snprintf(fioUrl,sizeof fioUrl,"https://social.test%s",p); }
 static char *response(const char *u,const char **cab,int *st) {
   assert(!strcmp(u,"https://social.test/v1/contatos/perfis"));
@@ -52,7 +56,7 @@ int main(void) {
   assert(vincEstado==REC_VINC_OK && !strcmp(vincNome,"Alice") && recargas==1);
   assert(amigosperfis_listar(a,8)==2 && a[0].estado==AP_AMIGO && !amigosperfis_adicionar(2));
   limparPerfisConta();vincEstado=0;assert(amigosperfis_carregar());stResposta=404;tratarPerfisConta(NULL);
-  assert(amigosperfis_estado()==AP_INDISPONIVEL && !amigosperfis_listar(a,8));
+  assert(amigosperfis_estado()==AP_ERRO && !amigosperfis_listar(a,8));
   assert(amigosperfis_carregar());stResposta=503;tratarPerfisConta(NULL);assert(amigosperfis_estado()==AP_ERRO);
   assert(amigosperfis_carregar());stResposta=200;resposta="{}";tratarPerfisConta(NULL);assert(amigosperfis_estado()==AP_ERRO);
   assert(amigosperfis_carregar());

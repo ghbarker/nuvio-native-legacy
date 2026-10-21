@@ -357,3 +357,28 @@ test("direct profile pairing fails closed when ownership cannot be verified", as
   assert.equal((await api("nuvio","tok-a","POST","/v1/contatos/perfis",{perfil:2})).status,503);
   assert.equal(q(sqlite,"SELECT COUNT(*) AS n FROM contato")[0].n,0);
 });
+
+
+test("legacy registration and code pairing connect only the selected household pair", async (t) => {
+  const { sqlite, api } = cenario(t);
+  const a = await api("nuvio", "tok-a", "POST", "/v1/eu", { nome: "Parent" });
+  const b = await api("nuvio", "tok-a", "POST", "/v1/eu", { nome: "Çağrı" }, 2);
+  assert.equal(a.status, 200); assert.equal(b.status, 200);
+  assert.equal(a.body.id, "nuvio:aaa"); assert.equal(b.body.id, "nuvio:aaa:2");
+  assert.match(b.body.codigo, /^[a-zA-Z0-9]{6}$/);
+  assert.equal(q(sqlite,"SELECT COUNT(*) AS n FROM contato")[0].n,0);
+  const link = await api("nuvio", "tok-a", "POST", "/v1/contatos", { codigo: b.body.codigo });
+  assert.equal(link.status,200); assert.equal(link.body.contato.id,b.body.id);
+  assert.deepEqual((await api("nuvio","tok-a","GET","/v1/contatos")).body.contatos.map(p=>p.id),[b.body.id]);
+  assert.deepEqual((await api("nuvio","tok-a","GET","/v1/contatos",undefined,2)).body.contatos.map(p=>p.id),[a.body.id]);
+  assert.equal((await api("nuvio","tok-a","GET","/v1/contatos",undefined,3)).body.contatos.length,0);
+  // Registration/pairing do not opt either profile into discovery or activity sharing.
+  assert.deepEqual(q(sqlite,"SELECT alcance,descobrivel FROM pessoa WHERE id IN (?,?) ORDER BY id",a.body.id,b.body.id).map(p=>[p.alcance,p.descobrivel]),[[-1,0],[-1,0]]);
+  assert.equal((await api("nuvio","tok-a","POST","/v1/contatos",{codigo:b.body.codigo})).status,200);
+  assert.equal(q(sqlite,"SELECT COUNT(*) AS n FROM contato")[0].n,2);
+  // The same existing code endpoint rejects a blocked pair without unblocking it.
+  sqlite.prepare("DELETE FROM contato").run();
+  sqlite.prepare("INSERT INTO bloqueio (quem,alvo,criado) VALUES (?,?,1)").run(b.body.id,a.body.id);
+  assert.equal((await api("nuvio","tok-a","POST","/v1/contatos",{codigo:b.body.codigo})).status,404);
+  assert.equal(q(sqlite,"SELECT COUNT(*) AS n FROM contato")[0].n,0);
+});
