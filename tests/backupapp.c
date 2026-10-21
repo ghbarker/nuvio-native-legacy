@@ -54,7 +54,7 @@ int main(void) {
  assert(dados_gravar("guia-ltv-fav-p7.txt","m3u:source\tchannel-1\n"));
  assert(dados_gravar("ltv-epgmapa-p7.txt","m3u:source\tchannel-1\txmltv:guide\tprogram-1\n"));
  assert(dados_gravar("ltv-indice-p7.txt","generated-channel-cache-index\n"));
- valor[AJ_QUALIDADE_IMG]=0;valor[AJ_INTERFACE_MODO]=1;
+ valor[AJ_QUALIDADE_IMG]=0;valor[AJ_INTERFACE_MODO]=1;valor[AJ_AMPLIAR_UI]=1;
  valor[AJ_TAMANHO_AJUSTES]=0;valor[AJ_LEG_LINGUA]=1;
  assert(gravar());ajustes_perfil_guardar(7);
  BackupLocal *b=NULL;assert(backupapp_capturar(&c,1792330000,&b));
@@ -64,7 +64,7 @@ int main(void) {
  char *wire=NULL;size_t n=0;assert(backuplocal_exportar(b,&wire,&n));
  assert(!strstr(wire,"fixture-refresh") && !strstr(wire,"destination-rotating-token") && !strstr(wire,"destination-discord-token") && !strstr(wire,"generated-channel-cache-index"));
  assert(!strstr(wire,"legendaIdioma ") && !strstr(wire,"ordem 1\n"));free(wire);
- valor[AJ_INTERFACE_MODO]=0;valor[AJ_QUALIDADE_IMG]=1;valor[AJ_TAMANHO_AJUSTES]=1;valor[AJ_LEG_LINGUA]=2;
+ valor[AJ_INTERFACE_MODO]=0;valor[AJ_AMPLIAR_UI]=2;valor[AJ_QUALIDADE_IMG]=1;valor[AJ_TAMANHO_AJUSTES]=1;valor[AJ_LEG_LINGUA]=2;
  assert(gravar());ajustes_perfil_guardar(7);
  assert(dados_gravar("fileirasui-p7.txt","ordem 0\nlimite 3\n"));
  assert(dados_gravar("ltv-urls-p7.txt","m3u\tDestination\thttps://destination.invalid/list\n"));
@@ -73,6 +73,7 @@ int main(void) {
  BackupLocal *selected=NULL;assert(backupapp_selecionar(&c,b,0,&selected));
  assert(!backuplocal_parte(selected,BACKUP_AJUSTES_HARDWARE,NULL));
  assert(backupapp_validar(&c,selected));assert(backupapp_restaurar(&c,selected)==BACKUP_RESTORE_OK);
+ assert(valor[AJ_AMPLIAR_UI]==2);
  assert(valor[AJ_INTERFACE_MODO]==0 && valor[AJ_QUALIDADE_IMG]==1 && valor[AJ_TAMANHO_AJUSTES]==1 && valor[AJ_LEG_LINGUA]==2);
  same("fileirasui-p7.txt","ordem 0\nlimite 3\n");
  same("guia-ltv-fav-p7.txt","m3u:source\tchannel-1\n");
@@ -82,6 +83,7 @@ int main(void) {
  same("ltv-urls-p7.txt","m3u\tDestination\thttps://destination.invalid/list\nm3u\tSource\thttps://source.invalid/list\n");
  // Hardware opt-in restores display choices, never the account's languages.
  assert(backupapp_restaurar(&c,b)==BACKUP_RESTORE_OK);
+ assert(valor[AJ_AMPLIAR_UI]==1);
  assert(valor[AJ_INTERFACE_MODO]==1 && valor[AJ_QUALIDADE_IMG]==0 && valor[AJ_TAMANHO_AJUSTES]==0 && valor[AJ_LEG_LINGUA]==2);
  same("fileirasui-p7.txt","ordem 0\nlimite 7\n");
  same("sessao.txt",session);same("trakt-p7.txt","destination-rotating-token\n");same("discord-p7.txt","destination-discord-token\n");
