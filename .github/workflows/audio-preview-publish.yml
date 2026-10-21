@@ -1,4 +1,4 @@
-name: Publish verified Logs101 Sports photo-background preview
+name: Publish verified Logs102 Sports photo-background preview
 on:
   workflow_dispatch:
 permissions:
@@ -19,12 +19,12 @@ jobs:
           persist-credentials: false
       - name: Require successful pinned Android and Sports checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39680768779 > android-run.json
-          gh api repos/$GH_REPO/actions/runs/39680768316 > shared-run.json
-          gh api repos/$GH_REPO/actions/runs/39680768316/jobs > shared-jobs.json
+          gh api repos/$GH_REPO/actions/runs/39683353203 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39683353130 > shared-run.json
+          gh api repos/$GH_REPO/actions/runs/39683353130/jobs > shared-jobs.json
           python3 - <<'CHECK'
           import json
-          for name,head in [('android-run.json','ef293f89baf6292cf1ec40011647e15cbbf9ccf2'),('shared-run.json','ef293f89baf6292cf1ec40011647e15cbbf9ccf2')]:
+          for name,head in [('android-run.json','8f9ef80324459d086409e1b343a9a3b5517ff3c3'),('shared-run.json','8f9ef80324459d086409e1b343a9a3b5517ff3c3')]:
               r=json.load(open(name));assert r['head_sha']==head and r['status']=='completed' and r['conclusion']=='success'
           jobs={j['name']:j for j in json.load(open('shared-jobs.json'))['jobs']}
           for name in ['native (ubuntu-24.04)','native (macos-15-intel)','wasm']:
@@ -32,26 +32,26 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs101-ef293f89baf6292cf1ec40011647e15cbbf9ccf2
-          run-id: 39680768779
+          name: Nuvio-TV-Mobile-Test-Logs102-8f9ef80324459d086409e1b343a9a3b5517ff3c3
+          run-id: 39683353203
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import json,subprocess
-          v=json.load(open('Logs101-validation.json'))
-          assert v['source_commit']=='883bc6afc1e487a928b9e04b9f4f4f21a9f267b1'
-          assert v['source_tree']=='cce004c9c9f6ba6d4ce2c4de23d2950d5ee439ce'
-          assert v['workflow_commit']=='ef293f89baf6292cf1ec40011647e15cbbf9ccf2'
-          assert v['workflow_run_id']==39680768779
+          v=json.load(open('Logs102-validation.json'))
+          assert v['source_commit']=='1b7a9867e04fd9fb768c1c8e2f72b18fbb073bde'
+          assert v['source_tree']=='2b99ceea419dd28f2190754052d2d99813b94556'
+          assert v['workflow_commit']=='8f9ef80324459d086409e1b343a9a3b5517ff3c3'
+          assert v['workflow_run_id']==39683353203
           assert v['social_service_configured'] and v['simkl_client_configured']
-          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs101.apk',
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs102.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20111','--version-name','2.0.111-test-logs101',
+            '--version-code','20112','--version-name','2.0.112-test-logs102',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
-            '--output','Logs101-independent-verification.json'],check=True)
-          v.update({'sports_product_commit':'00bae0c1b6765caabbc0df8198fcfb5380726997','sports_checks_run':39680768316,'sports_checks':'Linux and macOS Sports navigation, matching, bounded cache, quality persistence, artwork dimensions and deterministic match order; normal and ASan/UBSan; WGT shared compilation with and without touch','platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Sports artwork, quality selection and stable match-order preview; upstream PR unchanged pending user approval'})
-          open('Logs101-validation.json','w').write(json.dumps(v,indent=2)+'\n')
+            '--output','Logs102-independent-verification.json'],check=True)
+          v.update({'sports_product_commit':'634359e513873568fd0a994efa35193fb1801dbd','sports_checks_run':39683353130,'sports_checks':'Linux and macOS Sports navigation, matching, bounded cache, quality persistence, artwork dimensions and deterministic match order; normal and ASan/UBSan; WGT shared compilation with and without touch','platform_package_builds':{'android_apk':True,'webos_ipk':False,'tizen_tpk':False,'tizen_wgt':False},'scope':'Sports missing-logo fallback and footer cleanup preview; upstream PR unchanged pending user approval'})
+          open('Logs102-validation.json','w').write(json.dumps(v,indent=2)+'\n')
           VERIFY
-          gh release create tv-mobile-test-logs-v101 Nuvio-TV-Mobile-Test-Logs101.apk Logs101-validation.json Logs101-independent-verification.json preview-release/Logs101-test-steps.txt --target 883bc6afc1e487a928b9e04b9f4f4f21a9f267b1 --title 'Nuvio TV/Mobile Test Logs101 — Sports photo backgrounds and Low/High quality' --notes-file preview-release/Logs101-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v102 Nuvio-TV-Mobile-Test-Logs102.apk Logs102-validation.json Logs102-independent-verification.json preview-release/Logs102-test-steps.txt --target 1b7a9867e04fd9fb768c1c8e2f72b18fbb073bde --title 'Nuvio TV/Mobile Test Logs102 — Sports generic logo fallbacks and clean footer' --notes-file preview-release/Logs102-release-notes.txt --prerelease

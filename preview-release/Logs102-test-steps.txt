@@ -1,0 +1,12 @@
+Nuvio TV/Mobile Test Logs102
+
+Install as an update to your existing Nuvio TV/Mobile Test app. Do not uninstall it.
+
+1. Open Sports, then open a league. Check that the large logos, backgrounds, names, scores and scheduled/live labels still display normally.
+2. Check cards whose team or league image was missing. Teams now show a generic shield, and leagues a trophy. These local icons also show while an image is loading or when it fails. The real logo replaces the generic icon once available. If every team shown has artwork, real logos will continue to display.
+3. Check the bottom-left corner on the Sports landing page and inside a league. The idle ESPN footer is removed. Actual errors and event-limit notices can still appear there.
+4. Try Low/High/Automatic in Sports > Settings > Image quality, return to a league, and check remote/touch navigation and Back.
+
+Missing URL, pending/failed download, invalid image aspect, successful image recovery and centered generic icon geometry are covered by offline regression checks. An offline C SDL/GLES rendering fixture also shows missing and failed logos at TV and phone sizes.
+
+Android APK and Linux/macOS focused Sports checks run separately. Shared WGT source compilation is checked, but no LG/Samsung device package is built or device-tested for this preview. The upstream Sports PR remains unchanged until this APK is approved.

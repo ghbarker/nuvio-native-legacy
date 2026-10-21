@@ -1,0 +1,3 @@
+Sports logo cleanup preview: missing team images use a bundled shield; missing league images use a bundled trophy. Loading and failed images get the same fallback until the actual image is available. Removes the idle bottom-left ESPN footer while retaining error and event-limit notices. Keeps the large logos, 16 sport backgrounds, Low/High/Automatic choices, and stable same-time match ordering from Logs101.
+
+Install as an update to the existing Nuvio TV/Mobile Test app. See Logs102-test-steps.txt. Upstream PR unchanged pending user approval.
