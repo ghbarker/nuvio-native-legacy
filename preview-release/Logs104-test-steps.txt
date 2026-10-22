@@ -1,0 +1,11 @@
+Nuvio TV/Mobile Test Logs104
+
+Install over your existing Nuvio TV/Mobile Test app. Do not uninstall it.
+
+1. Open Sports > American football > National Football League.
+2. Open the league containing a Carolina Panthers match (the Panthers vs Buccaneers card from your screenshot is suitable if still listed).
+3. The Panthers logo should retain its blue and black facial details, instead of becoming a solid white silhouette.
+4. Check the other team logos on the same screen. Coloured artwork should keep its colours, while genuinely single-tone dark artwork remains visible.
+5. Open another sport and verify its logos and sport-specific missing-image defaults still display normally.
+
+Validation includes a real Panthers PNG rendered by the shared SDL/GLES UI, regression checks for dark multitone/monochrome/unmeasured logos, Linux/macOS Sports checks and WGT source compilation. Android is the packaged preview; LG/Samsung packages are not built or device-tested here. Please approve this build before the product PR is updated.

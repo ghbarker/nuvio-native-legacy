@@ -1,0 +1,3 @@
+Fixes the solid-white Carolina Panthers logo on Sports cards. Dark artwork with multiple tones now retains its original colours; genuinely monochrome dark marks keep the existing visibility treatment.
+
+Includes all approved Logs103 features. Install as an update and follow Logs104-test-steps.txt. Product PR619 remains unchanged pending approval of this preview.

@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 7316179fd06a68633fb1f740c16f2845fd18a8cd
+          ref: d98dab565a883b5557583c70ea40633e81b34d0e
       - name: Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq pkg-config libsdl2-dev libgles2-mesa-dev
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs103-sports-${{ matrix.os }}
+          name: Logs104-sports-${{ matrix.os }}
           path: '*-checks.log'
           if-no-files-found: error
   wasm:
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: 7316179fd06a68633fb1f740c16f2845fd18a8cd
+          ref: d98dab565a883b5557583c70ea40633e81b34d0e
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '4.0.17'
@@ -66,6 +66,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs103-sports-wasm
+          name: Logs104-sports-wasm
           path: '*-checks.log'
           if-no-files-found: error
