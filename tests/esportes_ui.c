@@ -111,6 +111,8 @@ int guia_busca_programas(int i,time_t d,time_t a,int p,EpgProg *out,int cap) {
 static int imagens,imagensDesenhadas,alvosGrade,icones,favAlvos,baixos,altos;
 static int imagemPronta=1;
 static float aspectoTeste=2;
+static int marcaEscuraTeste, tomUnicoTeste;
+static GfxModo modoLogoTeste;
 static char ultimoIcone[40];
 static GfxRect caixaIcone;
 void gfx_icone(GfxRect r,const char *n,float cr,float cg,float cb,float ca) { (void)cr;(void)cg;(void)cb;(void)ca;assert(r.w>0 && r.h>0);icones++;snprintf(ultimoIcone,sizeof ultimoIcone,"%s",n);caixaIcone=r; }
@@ -120,7 +122,7 @@ void gfx_escala_sair(float v) { (void)v; }
 void gfx_recorte(float x,float y,float w,float h) { (void)x;(void)y;assert(w>0 && h>0); }
 void gfx_sem_recorte(void) {}
 void gfx_rect(GfxRect r,GLuint t,GfxModo m,float f,float px,float py,float raio,float a,float b,float c,float d) {
-  (void)m;(void)f;(void)px;(void)py;(void)raio;(void)a;(void)b;(void)c;(void)d;
+  modoLogoTeste=m;(void)f;(void)px;(void)py;(void)raio;(void)a;(void)b;(void)c;(void)d;
   assert(r.w>0 && r.h>0);if(t)imagensDesenhadas++;
 }
 void plrui_cartao(GfxRect r,float raio,float a) { (void)raio;(void)a;assert(r.w>0 && r.h>0); }
@@ -140,7 +142,8 @@ TxtLinha txt_linha_corta(TxtEstilo e,const char *s,int r,int g,int b,int a,float
 void txt_desenhar(TxtLinha t,float x,float y) { (void)t;(void)x;(void)y; }
 GLuint tex_obter_larg(const char *url,float w) { assert(url[0] && w>0);if(!imagemPronta)return 0;imagens++;if(strstr(url,"-low.jpg"))baixos++;if(strstr(url,"-high.jpg"))altos++;return 1; }
 float tex_aspecto(const char *url) { (void)url;return aspectoTeste; }
-int tex_marca_escura(const char *url) { (void)url;return 0; }
+int tex_marca_escura(const char *url) { (void)url;return marcaEscuraTeste; }
+int tex_logo_tom_unico(const char *url) { (void)url;return tomUnicoTeste; }
 void ponteiro_alvo(float x,float y,float w,float h,PonteiroFn f,PonteiroFn a,int i,int b) {
   (void)x;(void)y;(void)w;(void)h;(void)f;(void)a;(void)i;(void)b;
 }
@@ -166,6 +169,15 @@ int main(void) {
   assert(icones==ic+4 && imagensDesenhadas==draw+1);
   aspectoTeste=0;logo("https://art.example/invalid.png",1,caixa);
   assert(icones==ic+5 && imagensDesenhadas==draw+1);aspectoTeste=2;
+  /* Carolina Panthers is classified dark despite its blue/grey details.
+   * Preserve multitone artwork; only an actual monochrome mark may tint. */
+  marcaEscuraTeste=1;tomUnicoTeste=0;
+  logo("https://art.example/panthers.png",1,caixa);assert(modoLogoTeste==GFX_TEXTO);
+  tomUnicoTeste=1;
+  logo("https://art.example/black-mark.png",1,caixa);assert(modoLogoTeste==GFX_MARCA);
+  tomUnicoTeste=-1;
+  logo("https://art.example/unmeasured.png",1,caixa);assert(modoLogoTeste==GFX_TEXTO);
+  marcaEscuraTeste=0;tomUnicoTeste=0;
   for(int m=0;m<esportes_modalidades_n();m++) {
     char esperado[80];snprintf(esperado,sizeof esperado,"esp_%s",esportes_modalidade(m)->id);
     logo("",m,caixa);assert(!strcmp(ultimoIcone,esperado));
