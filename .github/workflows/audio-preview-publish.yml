@@ -19,12 +19,12 @@ jobs:
           persist-credentials: false
       - name: Require successful pinned Android and Sports checks
         run: |
-          gh api repos/$GH_REPO/actions/runs/39870871835 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39872535945 > android-run.json
           gh api repos/$GH_REPO/actions/runs/39870871779 > shared-run.json
           gh api repos/$GH_REPO/actions/runs/39870871779/jobs > shared-jobs.json
           python3 - <<'CHECK'
           import json
-          for name,head in [('android-run.json','52f3dd9d3cc7cb7928ad45110443106d0c3d03c8'),('shared-run.json','52f3dd9d3cc7cb7928ad45110443106d0c3d03c8')]:
+          for name,head in [('android-run.json','40980be6d0d6e8b1866ef787bde6aa976659c8ae'),('shared-run.json','52f3dd9d3cc7cb7928ad45110443106d0c3d03c8')]:
               r=json.load(open(name));assert r['head_sha']==head and r['status']=='completed' and r['conclusion']=='success'
           jobs={j['name']:j for j in json.load(open('shared-jobs.json'))['jobs']}
           for name in ['native (ubuntu-24.04)','native (macos-15-intel)','wasm']:
@@ -32,8 +32,8 @@ jobs:
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs104-52f3dd9d3cc7cb7928ad45110443106d0c3d03c8
-          run-id: 39870871835
+          name: Nuvio-TV-Mobile-Test-Logs104-40980be6d0d6e8b1866ef787bde6aa976659c8ae
+          run-id: 39872535945
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
@@ -43,8 +43,8 @@ jobs:
           v=json.load(open('Logs104-validation.json'))
           assert v['source_commit']=='f5b47ef2d1d5ffdd4a0c304ad3bf8b382c2be913'
           assert v['source_tree']=='97927c24a7038f29a4ce0a662f898da25c892674'
-          assert v['workflow_commit']=='52f3dd9d3cc7cb7928ad45110443106d0c3d03c8'
-          assert v['workflow_run_id']==39870871835
+          assert v['workflow_commit']=='40980be6d0d6e8b1866ef787bde6aa976659c8ae'
+          assert v['workflow_run_id']==39872535945
           assert v['social_service_configured'] and v['simkl_client_configured']
           subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs104.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
