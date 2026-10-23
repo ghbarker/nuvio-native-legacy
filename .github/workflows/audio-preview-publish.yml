@@ -1,49 +1,28 @@
-name: Publish issue687 Android trailer emulator evidence
+name: Export issue687 partial Android emulator diagnostics
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  publish:
+  export:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
     permissions:
-      actions: read
       contents: write
+      actions: read
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
     steps:
-      - name: Require completed Android emulator tests
-        run: |
-          gh api repos/$GH_REPO/actions/runs/40016952101 > run.json
-          python3 - <<'PY'
-          import json
-          r=json.load(open('run.json'))
-          assert r['head_sha']=='e62a843576b95accd980d9afd7b468d223a538b0'
-          assert r['status']=='completed' and r['conclusion']=='success'
-          PY
       - uses: actions/download-artifact@v4
         with:
           name: Issue687-Android-emulator-results-e62a843576b95accd980d9afd7b468d223a538b0
           run-id: 40016952101
           github-token: ${{ github.token }}
           path: evidence
-      - name: Verify and publish captured evidence
+      - name: Export failed Home scenario and completed case evidence
         run: |
-          python3 - <<'PY'
-          import json,pathlib,shutil
-          p=pathlib.Path('evidence');r=json.load(open(p/'summary.json'))
-          assert r['source_commit']=='6c3400b012d8d2c477221c7b6b513b73a4944f8d'
-          assert r['real_android_app'] and r['real_media3_decoding'] and r['real_apple_network_lookup']
-          cases={c['scenario']:c for c in r['completed_cases']}
-          assert len(cases)==8 and all(c['passed'] for c in cases.values())
-          for n in ['manual-german','manual-french','home-autoplay-french','detail-autoplay-german']:
-              c=cases[n];assert c['real_media3']['rendered_video_frames']>10 and c['captured_audio_seconds']>2
-              f=p/n/'02-playing-later.png';assert f.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
-              shutil.copyfile(f,n+'.png')
-          shutil.copyfile(p/'summary.json','Android-trailer-emulator-results.json')
-          pathlib.Path('README.txt').write_text('Actual Android 11/API 30 x86_64 emulator running the Logs107 product source.\nEight cases exercise manual German/French, Original, Automatic primary German, title-page autoplay German, Home autoplay French, Turkish-to-English fallback and German cache reuse after restart.\nThe fixture seeds one public movie and Settings inputs and bypasses account sign-in; the production trailer resolver, selection and Media3 playback logic are retained. The test seeks to 20 seconds for spoken-audio evidence and captures decoded PCM without changing its samples. See JSON for speech-language detection results and confidence.\nThis is an isolated emulator build using an ephemeral key, not an update-compatible user APK. Physical LG/Samsung playback has not been tested.\n')
-          PY
-          zip -qr Android-trailer-emulator-evidence.zip evidence
-          gh release create issue687-android-emulator-20261023 manual-german.png manual-french.png home-autoplay-french.png detail-autoplay-german.png Android-trailer-emulator-results.json Android-trailer-emulator-evidence.zip README.txt --target e62a843576b95accd980d9afd7b468d223a538b0 --title 'Issue 687 — Android trailer language emulator evidence' --notes-file README.txt
+          cp evidence/home-autoplay-french/logcat.txt home-autoplay-logcat.txt
+          cp evidence/home-autoplay-french/04-final-diagnostic.png home-autoplay-diagnostic.png
+          cp evidence/summary.json partial-results.json
+          zip -qr partial-evidence.zip evidence
+          gh release create issue687-emulator-diagnostics-run1-20261023 home-autoplay-logcat.txt home-autoplay-diagnostic.png partial-results.json partial-evidence.zip --target e62a843576b95accd980d9afd7b468d223a538b0 --title 'Issue687 emulator diagnostics: five completed cases, Home under investigation' --notes 'Partial Android emulator diagnostics. Five playback cases passed; Home autoplay did not start in the no-account fixture and is being investigated. This is not a claim that the complete test suite passed.' --prerelease
