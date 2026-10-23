@@ -46,7 +46,7 @@ static const char *testeAudioPref = "";
 #define AUDIO_PREFERIDO() testeAudioPref
 void extras_teste_audio_pref(const char *v) { testeAudioPref = v ? v : ""; }
 #else
-#define AUDIO_PREFERIDO() ling_audio()
+#define AUDIO_PREFERIDO() ling_audio_preferencia()
 #endif
 
 static int  notaTrakt, votosTrakt;
