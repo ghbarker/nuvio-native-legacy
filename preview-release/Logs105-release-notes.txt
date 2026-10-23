@@ -1,0 +1,7 @@
+Latest upstream master (1755d80cb8f33603ed4dbcd57dea49e5feded80d) plus approved open PRs #573, #575, #576, #598, #609, #611, #614, #619 and #644. PR #615 is already merged upstream.
+
+Preserves the Nuvio TV/Mobile Test package and signing identity. Install as an update; do not uninstall or clear data.
+
+Android ARM64/ARMv7 build and independent APK signature/manifest verification passed. Focused host checks cover fonts, source cache/audio filters, episode identity/season tabs, prepared-source details, encrypted restore, Sports and same-account Friends. These checks do not constitute physical-device testing or LG/Samsung package builds.
+
+See Logs105-test-steps.txt for verification steps.
