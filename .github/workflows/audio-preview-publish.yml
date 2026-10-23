@@ -14,6 +14,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Require completed Android emulator tests
         run: |
           gh api repos/$GH_REPO/actions/runs/40019195576 > run.json
@@ -21,7 +24,13 @@ jobs:
           import json
           r=json.load(open('run.json'))
           assert r['head_sha']=='1d057fc4c3869a20c60a1d45114de69564488790'
-          assert r['status']=='completed' and r['conclusion']=='success'
+          assert r['status']=='completed'
+          PY
+          gh api repos/$GH_REPO/actions/runs/40019195576/jobs > jobs.json
+          python3 - <<'PY'
+          import json
+          steps=json.load(open('jobs.json'))['jobs'][0]['steps']
+          assert next(s for s in steps if s['name']=='Exercise manual trailers, autoplay, language preferences and cache reuse')['conclusion']=='success' 
           PY
       - uses: actions/download-artifact@v4
         with:
@@ -29,6 +38,12 @@ jobs:
           run-id: 40019195576
           github-token: ${{ github.token }}
           path: evidence
+      - name: Verify actual decoded speech without the PyAV compatibility problem
+        env:
+          HF_HUB_DISABLE_XET: '1'
+        run: |
+          python3 -m pip install --break-system-packages --quiet faster-whisper
+          python3 tools/emulator/issue687/detect_audio.py evidence
       - name: Verify and publish captured evidence
         run: |
           python3 - <<'PY'
