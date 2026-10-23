@@ -4,6 +4,7 @@
 #include "extras.h"
 #include "trailerapple.h"
 #include "linguas.h"
+#include "novidadesfila.h"
 extern void nv687_settings(const char *, const char *, const char *);
 extern void nv687_manual_trailer(void);
 static void nv687_tick(Uint32 agora) {
@@ -17,6 +18,17 @@ static void nv687_tick(Uint32 agora) {
     if (!cfg) return;
     int n=fscanf(cfg,"%23s %15s %15s",mode,idioma,audio);fclose(cfg);
     if (n!=3) return;
+    /* Model an existing install whose introductory screens were already seen.
+       Keep all normal Home autoplay gates and playback logic intact. */
+    novidadesfila_preparar();
+    dados_gravar(NF_ARQ_180,"1\n");
+    dados_gravar(N20_ARQ,"1\n");
+    dados_gravar(N201_ARQ,"1\n");
+    dados_gravar(N202_ARQ,"1\n");
+    dados_gravar(novcartao_arquivo(),"1\n");
+    dados_gravar(DICASCONTROLE_ARQUIVO,NV_VERSAO "\n");
+    dados_gravar("telemetria-perguntado.txt","1\n");
+    dados_gravar("aviso-legal.txt","1\n");
     nv687_settings(!strcmp(idioma,"auto") ? "" : idioma,mode,!strcmp(audio,"-") ? "" : audio);
     CatItem c = {0}; CatFileira f = {0};
     snprintf(c.imdb,sizeof c.imdb,"tt1877830");

@@ -87,6 +87,6 @@ if __name__=='__main__':
  try:
   for c in cases:results.append(run(*c))
  finally:
-  (OUT/'summary.json').write_text(json.dumps({'source_commit':'6c3400b012d8d2c477221c7b6b513b73a4944f8d','platform':'Android 11 API30 x86_64 emulator','same_product_source_as':'Logs107','real_android_app':True,'real_media3_decoding':True,'real_apple_network_lookup':True,'test_only_fixture':'Seeds one public movie and Settings inputs, bypasses account sign-in, invokes the real manual handler or leaves real autoplay to run; observational PCM tap does not alter samples. No trailer resolver, ranking or playback implementation is replaced. x86_64 test APK uses an isolated key and is not a user update.','completed_cases':results},indent=2)+'\n')
+  (OUT/'summary.json').write_text(json.dumps({'source_commit':'6c3400b012d8d2c477221c7b6b513b73a4944f8d','platform':'Android 11 API30 x86_64 emulator','same_product_source_as':'Logs107','real_android_app':True,'real_media3_decoding':True,'real_apple_network_lookup':True,'test_only_fixture':'Seeds one public movie and Settings inputs, marks introductory screens already seen, bypasses account sign-in, invokes the real manual handler or leaves real autoplay to run; observational PCM tap does not alter samples. No trailer resolver, ranking or playback implementation is replaced. x86_64 test APK uses an isolated key and is not a user update.','completed_cases':results},indent=2)+'\n')
   (OUT/'trailer-cache-files.txt').write_text(adb('shell','run-as',P,'ls','-l','files/dados/trailer',check=False))
  assert len(results)==len(cases)

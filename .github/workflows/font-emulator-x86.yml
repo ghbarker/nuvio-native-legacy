@@ -116,6 +116,7 @@ jobs:
       - name: Exercise manual trailers, autoplay, language preferences and cache reuse
         run: python3 tools/emulator/issue687/driver.py
       - name: Detect speech language from the real decoded audio
+        if: success() || failure()
         env:
           HF_HUB_DISABLE_XET: '1'
         run: |
