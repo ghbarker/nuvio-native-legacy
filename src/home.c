@@ -6016,13 +6016,12 @@ static void heroTrailerVetoLog(void) {
 // for the dubbed trailer (Trailer audio), ranked first, so a failed embed
 // falls back to Apple -> IMDb instead of keeping the art.
 static int heroTrailerDepois(int qual) {
-  const CatItem *ci = cat_item_exato(heroAtual);
-  if (trailerfonte_ajuste() == TRF_AUTO && ci &&
-      (heroTrailerFalhas & (1u << TRF_APPLE)) &&
-      trailerapple_idioma_preferido(ci->imdb) > 0) {
+  unsigned falhas = heroTrailerFalhas;
+  if (qual > 0 && qual <= TRF_YOUTUBE) falhas |= 1u << qual;
+  if (trailerfonte_ajuste() == TRF_AUTO && (falhas & (1u << TRF_APPLE))) {
     int ordem[3], n = trailerfonte_ordem_destaque(TRF_AUTO, trailerfonte_tizen(), ordem);
     for (int i = 0; i < n; i++)
-      if (!(heroTrailerFalhas & (1u << ordem[i]))) return ordem[i];
+      if (!(falhas & (1u << ordem[i]))) return ordem[i];
     return 0;
   }
 #ifdef __EMSCRIPTEN__
