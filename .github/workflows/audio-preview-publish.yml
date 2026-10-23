@@ -30,7 +30,7 @@ jobs:
           python3 - <<'PY'
           import json
           steps=json.load(open('jobs.json'))['jobs'][0]['steps']
-          assert next(s for s in steps if s['name']=='Exercise manual trailers, autoplay, language preferences and cache reuse')['conclusion']=='success' 
+          assert next(s for s in steps if s['name']=='Exercise manual trailers, autoplay, language preferences and cache reuse')['conclusion']=='success'
           PY
       - uses: actions/download-artifact@v4
         with:
