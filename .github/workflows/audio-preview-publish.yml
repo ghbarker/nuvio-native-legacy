@@ -16,25 +16,25 @@ jobs:
     steps:
       - name: Require successful pinned Android build
         run: |
-          gh api repos/$GH_REPO/actions/runs/39958987809 > run.json
+          gh api repos/$GH_REPO/actions/runs/39959526451 > run.json
           python3 - <<'PY'
           import json
           r=json.load(open('run.json'))
-          assert r['head_sha']=='077aa4c1d9b8c2bf5b880da61bd81e0b6af5227c'
+          assert r['head_sha']=='0807a76bdf6575c5befa625718ed472b79d1ae90'
           assert r['status']=='completed' and r['conclusion']=='success'
           PY
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs107-077aa4c1d9b8c2bf5b880da61bd81e0b6af5227c
-          run-id: 39958987809
+          name: Nuvio-TV-Mobile-Test-Logs107-0807a76bdf6575c5befa625718ed472b79d1ae90
+          run-id: 39959526451
           github-token: ${{ github.token }}
       - name: Verify and publish test update
         run: |
           python3 - <<'PY'
           import json,hashlib,pathlib
           r=json.load(open('Logs107-validation.json'));p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs107.apk')
-          assert r['source_commit']=='bf66f407fcbe334a6a905e6e60529d3a5e8c1fa8'
-          assert r['source_tree']=='858b0e06887ebce9884a7d2554daa66b38bde504'
+          assert r['source_commit']=='6c3400b012d8d2c477221c7b6b513b73a4944f8d'
+          assert r['source_tree']=='9aaef67ad31930f68c37d5c9cf27f3815e608721'
           assert r['package']=='space.nuvio.nativelegacy.touch' and r['version_code']==20117
           assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
           assert r['both_arm_abis'] and r['arm64_16kb_alignment']
@@ -92,4 +92,4 @@ jobs:
 
           See Logs107-test-steps.txt for confirmed German/French examples and the existing Samsung audio limitations. Physical LG/Samsung playback is not verified. This is a test build; no new product PR has been published.
           NOTES
-          gh release create tv-mobile-test-logs-v107 Nuvio-TV-Mobile-Test-Logs107.apk Logs107-validation.json Logs107-test-steps.txt --target bf66f407fcbe334a6a905e6e60529d3a5e8c1fa8 --title 'TV/Mobile Test Logs107: trailer language preferences' --notes-file notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v107 Nuvio-TV-Mobile-Test-Logs107.apk Logs107-validation.json Logs107-test-steps.txt --target 6c3400b012d8d2c477221c7b6b513b73a4944f8d --title 'TV/Mobile Test Logs107: trailer language preferences' --notes-file notes.txt --prerelease
