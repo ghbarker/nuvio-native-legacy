@@ -834,6 +834,8 @@ unsigned long long ajustes_sync_hash(void);
 enum { AJ_BACKUP_APARELHO = 0, AJ_BACKUP_PERFIL = 1, AJ_BACKUP_HARDWARE = 2 };
 int ajustes_backup_exportar(int perfil, const char *origem, char **saida);
 int ajustes_backup_mesclar(int perfil, const char *atual, const char *backup, char **saida);
+// Explicit hardware opt-in: mirror only hardware keys also owned by this profile.
+int ajustes_backup_hardware_perfil(const char *atual, const char *backup, char **saida);
 // Normalize legacy scalar sections before preview; hardware still needs opt-in.
 // Arrays use AJ_BACKUP_* indices. Caller frees all three output strings.
 int ajustes_backup_selecionar(const char *const entrada[3], int hardware, char *saida[3]);

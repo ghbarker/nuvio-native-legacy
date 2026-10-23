@@ -505,7 +505,7 @@ static void linhaEvento(const EspEvento *e, GfxRect r, int selecionado) {
   int m=modalidadeEvento(e),arte=fundoCartao(r,m,selecionado);
   float pad=22,x=r.x+pad,w=r.w-2*pad;
   char data[48],meta[400];horario(e->inicio,data,sizeof data);
-  const char *estado=e->estado==1?i18n("Ao vivo"):e->estado==2?i18n("Encerrado"):e->estado==3?e->detalhe:data;
+  const char *estado=e->estado==1?i18n("Ao vivo"):e->estado==2?i18n("Encerrada"):e->estado==3?e->detalhe:data;
   snprintf(meta,sizeof meta,"%s%s%s",estado,e->sessao[0]?" · ":"",e->sessao);
   const char *marca=logoLiga(e,m);float cab=48;
   logo(marca,m,(GfxRect){x,r.y+12,34,34});

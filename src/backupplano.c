@@ -53,6 +53,13 @@ int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint
     p->parte[BACKUP_AJUSTES_APARELHO].depois=copiar("",0);
     if(!p->parte[BACKUP_AJUSTES_APARELHO].depois)goto falha;
   }
+  // Upstream profile files now also hold some optional display choices. Keep
+  // their selected hardware values in the same journal as the device file.
+  if(hardware && !p->parte[BACKUP_AJUSTES_PERFIL].usada) {
+    p->parte[BACKUP_AJUSTES_PERFIL].usada=1;
+    p->parte[BACKUP_AJUSTES_PERFIL].depois=copiar("",0);
+    if(!p->parte[BACKUP_AJUSTES_PERFIL].depois)goto falha;
+  }
   // Every payload is valid before reading the selected current stores.
   for(int i=0;i<BACKUP_PARTES_N;i++)if(p->parte[i].usada) {
     char *atual=NULL;size_t n=0;int estado=ler(ctx,i,&atual,&n);
@@ -92,7 +99,8 @@ int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint
     if(i==BACKUP_AJUSTES_APARELHO || i==BACKUP_AJUSTES_PERFIL) {
       char *entrada=atual?copiar(atual,n):copiar("",0),*mesclado=NULL;
       size_t tamanho=0;const char *snapshot=backuplocal_parte(backup,i,&tamanho);(void)tamanho;
-      if(!snapshot)snapshot="NUVIO-LOCAL-SETTINGS 1\nscope device\n";
+      if(!snapshot)snapshot=i==BACKUP_AJUSTES_PERFIL?
+        "NUVIO-LOCAL-SETTINGS 1\nscope profile\n":"NUVIO-LOCAL-SETTINGS 1\nscope device\n";
       if(!entrada || !ajustes_backup_mesclar(i==BACKUP_AJUSTES_PERFIL,entrada,snapshot,&mesclado)) {
         free(entrada);goto falha;
       }
@@ -100,6 +108,11 @@ int backupplano_criar(const BackupLocal *backup,const char *dono,int perfil,uint
       if(i==BACKUP_AJUSTES_APARELHO && hardware) {
         char *junto=NULL;
         if(!ajustes_backup_mesclar(AJ_BACKUP_HARDWARE,mesclado,hardware,&junto)){free(mesclado);goto falha;}
+        free(mesclado);mesclado=junto;
+      }
+      if(i==BACKUP_AJUSTES_PERFIL && hardware) {
+        char *junto=NULL;
+        if(!ajustes_backup_hardware_perfil(mesclado,hardware,&junto)){free(mesclado);goto falha;}
         free(mesclado);mesclado=junto;
       }
       free(p->parte[i].depois);p->parte[i].depois=mesclado;p->parte[i].nDepois=strlen(mesclado);

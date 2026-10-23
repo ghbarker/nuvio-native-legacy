@@ -38,11 +38,15 @@ static int abLocal(int op,int perfil,int v) {
   // Language/row/source/subtitle choices now travel in c_settings_v1.
   if(op<AJ_N && (ajustePortavel(op) || !CHAVE[op] || CHAVE[op][0]=='-' ||
       OPCOES[op].tipo==OP_ACAO || OPCOES[op].tipo==OP_LEITURA))return 0;
-  if(op>=AJ_N)return perfil==AJ_BACKUP_HARDWARE && op==AJ_N+2;
+  if(op>=AJ_N) {
+    if(op==AJ_N+2)return perfil==AJ_BACKUP_HARDWARE;
+    return perfil==AJ_BACKUP_APARELHO && !ajustePortavel(AJ_IDIOMA);
+  }
   if(abDesteDispositivo(op))return perfil==AJ_BACKUP_HARDWARE;
   return perfil!=AJ_BACKUP_HARDWARE && !!dePerfil(op)==perfil;
 }
 static int abValido(int op,int v) {
+  if(op==AJ_IDIOMA)return v>=0 && v<IDIOMA_N; // persisted language ID, not picker index
   if(op==AJ_N+1)return v>=IDA_TMDB && v<=IDA_PADRAO;
   if(op>=AJ_N)return v==0 || v==1;
   const Opcao *o=&OPCOES[op];
@@ -112,7 +116,7 @@ int ajustes_backup_exportar(int perfil,const char *origem,char **saida) {
   for(int i=0;i<AB_N;i++)if(viu[i] && !abEscrever(out,AB_MAX_TEXTO+1u,&n,i,valores[i])) { free(out);return 0; }
   *saida=out;return 1;
 }
-int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char **saida) {
+static int abMesclar(int perfil,const char *atual,const char *backup,char **saida,int hardwarePerfil) {
   if(saida)*saida=NULL;
   if(!saida || (perfil<AJ_BACKUP_APARELHO || perfil>AJ_BACKUP_HARDWARE) || !abTexto(atual) || !abTexto(backup))return 0;
   char cab[80];int k=snprintf(cab,sizeof cab,"NUVIO-LOCAL-SETTINGS 1\nscope %s\n",perfil==AJ_BACKUP_HARDWARE?"hardware":perfil?"profile":"device");
@@ -127,9 +131,10 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
     viu[op]=2;
     // Old encrypted previews contained native choices which Nuvio now syncs.
     // Leave current account values alone, even if their representation changed.
-    if((op<AJ_N && ajustePortavel(op)) || op==AJ_N || op==AJ_N+1)continue;
+    if((op<AJ_N && ajustePortavel(op)) || ((op==AJ_N || op==AJ_N+1) && ajustePortavel(AJ_IDIOMA)))continue;
     if(!abNumero(v,fim,&valorLido)){abIgnorado(perfil,op,"unsupported value format");continue;}
     if(!abLocal(op,perfil,valorLido)){abIgnorado(perfil,op,"changed scope or excluded setting");continue;}
+    if(hardwarePerfil && !(op<AJ_N && dePerfil(op)))continue;
     if(!abValido(op,valorLido)){abIgnorado(perfil,op,"unsupported value");continue;}
     viu[op]=1;valores[op]=valorLido;
   }
@@ -150,6 +155,12 @@ int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char 
     if(!abEscrever(out,cap,&n,i,valores[i])) { free(out);return 0; }
   }
   *saida=out;return 1;
+}
+int ajustes_backup_mesclar(int perfil,const char *atual,const char *backup,char **saida) {
+  return abMesclar(perfil,atual,backup,saida,0);
+}
+int ajustes_backup_hardware_perfil(const char *atual,const char *backup,char **saida) {
+  return abMesclar(AJ_BACKUP_HARDWARE,atual,backup,saida,1);
 }
 // Migrate known old scopes, and omit individual unsupported settings before
 // validation. Do not guess meanings for renamed keys or changed values.
@@ -177,9 +188,9 @@ int ajustes_backup_selecionar(const char *const entrada[3],int hardware,char *sa
         printf("[backup] duplicate scalar rejected: scope=%d key=%s\n",origem,abNome(op));goto falha;
       }
       vistos[op]=1;
-      if((op<AJ_N && ajustePortavel(op)) || op==AJ_N || op==AJ_N+1)continue;
+      if((op<AJ_N && ajustePortavel(op)) || ((op==AJ_N || op==AJ_N+1) && ajustePortavel(AJ_IDIOMA)))continue;
       if(!abNumero(v,fim,&valorLido)){abIgnorado(origem,op,"unsupported value format");continue;}
-      int destino=abDesteDispositivo(op)?AJ_BACKUP_HARDWARE:!!dePerfil(op);
+      int destino=abDesteDispositivo(op)?AJ_BACKUP_HARDWARE:(op<AJ_N && dePerfil(op));
       int legado=origem==AJ_BACKUP_APARELHO && destino==AJ_BACKUP_HARDWARE &&
         (op==AJ_QUALIDADE_IMG || op==AJ_ITENS_FILEIRA || op==AJ_TAMANHO_UI || op==AJ_TAMANHO_AJUSTES);
       if((origem!=destino && !legado) || !abLocal(op,destino,valorLido)) {
@@ -205,6 +216,9 @@ int ajustes_backup_capturar(int perfil,char **saida) {
     int v=i==AJ_IDIOMA?ajustes_idioma():valor[i];
     ok=abValido(i,v) && abEscrever(origem,AB_MAX_TEXTO+1u,&n,i,v);
   }
+  if(ok && perfil==AJ_BACKUP_APARELHO && !ajustePortavel(AJ_IDIOMA))
+    ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N,valor[AJ_IDIOMA]==0) &&
+       abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+1,idiomaFonteGravada);
   if(ok && perfil==AJ_BACKUP_HARDWARE)ok=abEscrever(origem,AB_MAX_TEXTO+1u,&n,AJ_N+2,memoriaEscolhida);
   if(ok)ok=ajustes_backup_exportar(perfil,origem,saida);
   free(origem);return ok;
