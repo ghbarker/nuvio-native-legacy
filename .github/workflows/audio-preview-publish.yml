@@ -1,4 +1,4 @@
-name: Publish issue675 Android emulator evidence
+name: Publish verified Logs107 trailer language test APK
 on:
   workflow_dispatch:
 permissions:
@@ -14,38 +14,82 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ghbarker/nuvio-native-legacy
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Require completed Android emulator test
+      - name: Require successful pinned Android build
         run: |
-          gh api repos/$GH_REPO/actions/runs/39902754013 > run.json
+          gh api repos/$GH_REPO/actions/runs/39957254188 > run.json
           python3 - <<'PY'
           import json
           r=json.load(open('run.json'))
-          assert r['head_sha']=='098e200c705cb1fcec717efc3304eba05b86e920'
+          assert r['head_sha']=='1fe91aab56e53b5f879d0163e2682fc4318f73db'
           assert r['status']=='completed' and r['conclusion']=='success'
           PY
       - uses: actions/download-artifact@v4
         with:
-          name: Issue675-Android-emulator-results-098e200c705cb1fcec717efc3304eba05b86e920
-          run-id: 39902754013
+          name: Nuvio-TV-Mobile-Test-Logs107-1fe91aab56e53b5f879d0163e2682fc4318f73db
+          run-id: 39957254188
           github-token: ${{ github.token }}
-          path: evidence
-      - name: Validate and publish screenshots and logs
+      - name: Verify and publish test update
         run: |
           python3 - <<'PY'
-          import json,pathlib,shutil,hashlib
-          p=pathlib.Path('evidence');r=json.load(open(p/'summary.json'))
-          assert r['real_android_apk'] and r['real_media3_decoding']
-          cases={c['scenario']:c for c in r['completed_cases']}
-          assert set(cases)=={'normal-baseline','two-second-gap-baseline','two-second-gap-guarded'}
-          for name,c in cases.items():
-              assert c['passed'] and c['real_media3_end']['duration_ms']>=120000
-              f=p/name/'03-after-ended.png';assert f.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
-              shutil.copyfile(f,name+'.png')
-          shutil.copyfile(p/'summary.json','Android-emulator-results.json')
-          pathlib.Path('README.txt').write_text('Actual Android 11/API 30 x86_64 emulator running Nuvio and Media3.\nNormal case plays a local generated 125-second MP4 and exits normally.\nFault case offsets only the clock reported to native UI by two seconds AFTER the real Media3 STATE_ENDED signal. It demonstrates the end-position guard failure; it does not establish the original reporter had that exact clock mismatch.\nThe guarded candidate uses a three-second tolerance and requires playback to be stopped.\nThese are isolated emulator builds. No product PR or installable update is published.\n')
+          import json,hashlib,pathlib
+          r=json.load(open('Logs107-validation.json'));p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs107.apk')
+          assert r['source_commit']=='b3fd0b7599d2b9b2c91613ca45c4bde9ee73b5c6'
+          assert r['source_tree']=='473f6200b8e2b2677f187a44cf8f70d2a1ccc9e7'
+          assert r['package']=='space.nuvio.nativelegacy.touch' and r['version_code']==20117
+          assert r['certificate_sha256']=='862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6'
+          assert r['both_arm_abis'] and r['arm64_16kb_alignment']
+          assert r['apk_sha256']==hashlib.sha256(p.read_bytes()).hexdigest()
+          assert r['apk_bytes']==p.stat().st_size
           PY
-          zip -qr Android-emulator-logs.zip evidence
-          gh release create issue675-android-emulator-20261023 normal-baseline.png two-second-gap-baseline.png two-second-gap-guarded.png Android-emulator-results.json Android-emulator-logs.zip README.txt --target 098e200c705cb1fcec717efc3304eba05b86e920 --title 'Issue 675 — actual Android emulator playback-end evidence' --notes-file README.txt --prerelease
+          cat > Logs107-test-steps.txt <<'TESTSTEPS'
+          Logs107 — trailer language preferences (#687)
+          
+          Install as an UPDATE to Nuvio TV/Mobile Test. Do not uninstall or clear data.
+          Package: space.nuvio.nativelegacy.touch
+          Version: 2.0.117-test-logs107 (20117)
+          Includes the existing combined test build plus the trailer-language change.
+          
+          1. Settings > Posters and trailers > Trailer audio: choose German.
+             Leave Trailer source on Automatic (or choose Apple TV for a direct check).
+             Turn Trailer sound on so you can hear the language.
+          2. Open The Batman (2022), allow a few seconds for the trailer lookup, and
+             select Watch trailer. It should speak German. Frozen II (2019) is another
+             confirmed German example.
+          3. Change Trailer audio to French and reopen The Batman (2022). Watch trailer
+             should speak French without clearing the app's cache.
+          4. Set Trailer audio to Original and reopen The Batman: it should be English.
+          5. Set Trailer audio to Automatic. Use Settings search for Audio language and
+             choose German as the preferred playback audio. Reopen The Batman: its
+             trailer should now be German while you can keep the interface in English.
+          6. For Home/focused-card and title-page autoplay, enable the relevant trailer
+             switches under Posters and trailers. After choosing a language, restart
+             the app, then focus/open one of the titles above. Autoplay should use the
+             same trailer language. Restart between same-title autoplay checks because
+             the app deliberately autoplays each title only once per session.
+          7. Restart again and verify Trailer audio retains your chosen value.
+          
+          If no localized trailer is available, an English fallback is expected. For
+          example, The Batman's Turkish Apple trailer currently has English audio.
+          Titles with no Apple trailer still use the existing IMDb/YouTube fallback
+          where supported. Choosing a fixed IMDb source still uses IMDb's default clip.
+          
+          Logs now identify the requested language, actual audio and fallback status:
+            [trailer] apple ... pedido=de-DE audio=de-DE fallback=0 HLS
+          If the audio is wrong or the trailer fails, export the log immediately after
+          opening the affected title and mention its name and the language selected.
+          
+          Platform status: Android APK built for ARM64 + ARMv7. The shared resolver,
+          cache and selection paths are checked for native, Android, Samsung TPK and
+          WGT configurations, including sanitizer checks. Physical LG/Samsung playback
+          has not been tested. Existing Samsung limits remain: WGT trailers are muted;
+          Apple's native TPK path uses video-only streams. This change does not add
+          trailer sound to those paths. No new product PR is published before approval.
+          TESTSTEPS
+          cat > notes.txt <<'NOTES'
+          Install as an update to Nuvio TV/Mobile Test; accounts and settings are retained.
+
+          Manual and autoplay trailers use the effective audio preference or the Trailer audio override. Native Apple lookup uses regional catalogs and verifies actual HLS audio. Trailer caches are separated by language. English is a fallback where a localized trailer is unavailable.
+
+          See Logs107-test-steps.txt for confirmed German/French examples and the existing Samsung audio limitations. Physical LG/Samsung playback is not verified. This is a test build; no new product PR has been published.
+          NOTES
+          gh release create tv-mobile-test-logs-v107 Nuvio-TV-Mobile-Test-Logs107.apk Logs107-validation.json Logs107-test-steps.txt --target b3fd0b7599d2b9b2c91613ca45c4bde9ee73b5c6 --title 'TV/Mobile Test Logs107: trailer language preferences' --notes-file notes.txt --prerelease
