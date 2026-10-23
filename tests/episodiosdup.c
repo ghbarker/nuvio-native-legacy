@@ -52,7 +52,6 @@ void addons_manifesto_lido_base(int i, const char *b, const char *d,
 int         ajustes_idioma_ingles(void) { return 0; }
 int ajustes_idioma(void) { return 0; }
 int ajustes_cw_minimo(void) { return 1; }
-int ajustes_cw_proximo(void) { return 1; }
 int ajustes_fonte_biblioteca(void) { return 0; }
 int   ajustes_cw_concluido(void)         { return 90; }  // factory "watched" threshold
 int ajustes_cw_proximo(void) { return 1; }
@@ -68,6 +67,9 @@ const char *idioma_mes_data(int mes, const char *nomePt) { (void)mes; return nom
 static const char *fakeDados = "";
 const char *dados_dir(void)             { return fakeDados; }
 char *dados_caminho(char *dst, unsigned tam, const char *nome) {
+  // Metadata-selection cases reset memory between fake responses. Unless a
+  // fixture provides a directory, never share a persistent cache at /meta-*.
+  if (!fakeDados[0]) return NULL;
   snprintf(dst, tam, "%s/%s", fakeDados, nome); return dst;
 }
 void addons_catalogo_chave(const char *id, const char *base, const char *tipo,

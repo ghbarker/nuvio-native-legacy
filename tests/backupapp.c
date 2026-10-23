@@ -20,8 +20,20 @@ static void coverage(void) {
   int high=OPCOES[i].tipo==OP_NUMERO?OPCOES[i].max:nValores(i)-1;
   for(int v=low;;v=high) {
    valor[i]=v;int scope=abLocal(i,AJ_BACKUP_HARDWARE,v)?AJ_BACKUP_HARDWARE:abLocal(i,AJ_BACKUP_PERFIL,v)?AJ_BACKUP_PERFIL:AJ_BACKUP_APARELHO;
-   char line[128],*b=NULL,*merged=NULL;snprintf(line,sizeof line,"%s %d\n",CHAVE[i],v);
-   assert(ajustes_backup_capturar(scope,&b) && strstr(b,line));
+   int persisted=i==AJ_IDIOMA?ajustes_idioma():v;
+   char line[128],*b=NULL,*merged=NULL;snprintf(line,sizeof line,"%s %d\n",CHAVE[i],persisted);
+   int captured=ajustes_backup_capturar(scope,&b);
+   if(!captured || !strstr(b,line))
+    fprintf(stderr,"backup coverage: missing key=%s scope=%d expected=%d\n",CHAVE[i],scope,v);
+   assert(captured && strstr(b,line));
+   if(i==AJ_IDIOMA) {
+    char marker[48];snprintf(marker,sizeof marker,"idiomaAutoLocal %d\n",v==0);
+    assert(strstr(b,marker) && strstr(b,"idiomaFonteLocal "));
+    const char *sections[3]={b,NULL,NULL};char *selected[3]={0};
+    assert(ajustes_backup_selecionar(sections,0,selected));
+    assert(strstr(selected[0],line) && strstr(selected[0],marker));
+    for(int section=0;section<3;section++)free(selected[section]);
+   }
    assert(ajustes_backup_mesclar(scope,"unknownKey untouched\n",b,&merged));
    assert(strstr(merged,line) && strstr(merged,"unknownKey untouched\n"));free(b);free(merged);
    if(v==high)break;
@@ -81,6 +93,13 @@ int main(void) {
  same("ltv-urls-p7.txt","m3u\tDestination\thttps://destination.invalid/list\nm3u\tSource\thttps://source.invalid/list\n");
  assert(backupapp_restaurar(&c,selected)==BACKUP_RESTORE_OK);
  same("ltv-urls-p7.txt","m3u\tDestination\thttps://destination.invalid/list\nm3u\tSource\thttps://source.invalid/list\n");
+ // Hardware-only restore must update profile-backed display values too.
+ BackupLocal *hardwareOnly=backuplocal_novo(c.usuario,c.perfil,1792330000);assert(hardwareOnly);
+ size_t hardwareSize=0;const char *hardwareBody=backuplocal_parte(b,BACKUP_AJUSTES_HARDWARE,&hardwareSize);
+ assert(hardwareBody && backuplocal_adicionar(hardwareOnly,BACKUP_AJUSTES_HARDWARE,hardwareBody,hardwareSize));
+ assert(backupapp_validar(&c,hardwareOnly) && backupapp_restaurar(&c,hardwareOnly)==BACKUP_RESTORE_OK);
+ assert(valor[AJ_AMPLIAR_UI]==1 && valor[AJ_TAMANHO_AJUSTES]==0);
+ backuplocal_liberar(hardwareOnly);
  // Hardware opt-in restores display choices, never the account's languages.
  assert(backupapp_restaurar(&c,b)==BACKUP_RESTORE_OK);
  assert(valor[AJ_AMPLIAR_UI]==1);
