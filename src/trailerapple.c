@@ -195,6 +195,8 @@ static int montarReduzido(const char *imdb, int teto, const char *audio, char *s
   char melhorInf[2048] = "", melhorUri[1024] = "", melhorAudio[128] = "";
   int melhorW = 0, melhorAvc = 0;
   FILE *f, *g;
+  char grupos[32][128];
+  int nGrupos = 0;
 #ifdef NV_ANDROID
   // ANDROID: "Máxima" vira 1080p. Na TCL Smart TV Pro (Mali-G52) a variante
   // 3840px hvc1 travou a interface 8 s e depois 20 s ao abrir o trailer de
@@ -205,6 +207,18 @@ static int montarReduzido(const char *imdb, int teto, const char *audio, char *s
   caminhoMaster(imdb, cm, sizeof cm, ".m3u8");
   caminhoMaster(imdb, cr, sizeof cr, "-play.m3u8");
   if (!cm[0] || !(f = fopen(cm, "r"))) return 0;
+  // Only video variants whose audio group contains the selected language.
+  // A master may expose German audio but attach the first/widest video to
+  // an English-only group; dropping that group's audio would make it silent.
+  while (audio[0] && fgets(linha, sizeof linha, f)) {
+    char lg[16], grp[128];
+    if (strncmp(linha, "#EXT-X-MEDIA:", 13) || !strstr(linha, "TYPE=AUDIO")) continue;
+    atributo(linha, "LANGUAGE", lg, sizeof lg);
+    atributo(linha, "GROUP-ID", grp, sizeof grp);
+    if (grp[0] && !strncasecmp(lg, audio, 2) && nGrupos < 32)
+      snprintf(grupos[nGrupos++], sizeof grupos[0], "%s", grp);
+  }
+  rewind(f);
   // Passo 1: escolher a variante.
   while (fgets(linha, sizeof linha, f)) {
     char res[32], cod[128], aud[128], uri[1024];
@@ -213,6 +227,11 @@ static int montarReduzido(const char *imdb, int teto, const char *audio, char *s
     atributo(linha, "RESOLUTION", res, sizeof res);
     atributo(linha, "CODECS", cod, sizeof cod);
     atributo(linha, "AUDIO", aud, sizeof aud);
+    if (nGrupos) {
+      int k;
+      for (k = 0; k < nGrupos && strcmp(aud, grupos[k]); k++) {}
+      if (k == nGrupos) continue;
+    }
     w = atoi(res);
     if (w <= 0) continue;
     if (strstr(cod, "dvh1") || strstr(cod, "dvhe")) continue;
@@ -284,13 +303,29 @@ static int montarReduzido(const char *imdb, int teto, const char *audio, char *s
 // e e o que o emulador provou. hvc1 so quando o titulo nao tem avc1. As URIs
 // do master sao absolutas; relativa e descartada (resolver contra o master
 // seria refazer justamente o que o motor da Samsung erra).
-static int varianteMidia(const char *master, int teto, char *dst, unsigned tam) {
+static int grupoTemAudio(const char *master, const char *grupo, const char *audio) {
+  const char *p = master;
+  while ((p = strstr(p, "#EXT-X-MEDIA:"))) {
+    char linha[2048], tipo[24], grp[128], lg[16];
+    size_t n = strcspn(p, "\r\n");
+    if (n >= sizeof linha) n = sizeof linha - 1;
+    memcpy(linha, p, n); linha[n] = 0;
+    atributo(linha, "TYPE", tipo, sizeof tipo);
+    atributo(linha, "GROUP-ID", grp, sizeof grp);
+    atributo(linha, "LANGUAGE", lg, sizeof lg);
+    if (!strcmp(tipo, "AUDIO") && !strcmp(grp, grupo) && !strncasecmp(lg, audio, 2)) return 1;
+    p += n ? n : 1;
+  }
+  return 0;
+}
+
+static int varianteMidia(const char *master, int teto, const char *audio, char *dst, unsigned tam) {
   const char *p = master;
   char melhorUri[1024] = "";
   int melhorW = 0, melhorAvc = 0;
   if (!master) return 0;
   while ((p = strstr(p, "#EXT-X-STREAM-INF:")) != NULL) {
-    char linha[2048], res[32], cod[128], uri[1024];
+    char linha[2048], res[32], cod[128], uri[1024], aud[128];
     const char *fimLinha = strchr(p, '\n'), *u, *fimU;
     size_t n;
     int w, avc;
@@ -307,6 +342,8 @@ static int varianteMidia(const char *master, int teto, char *dst, unsigned tam) 
     p = fimLinha;
     atributo(linha, "RESOLUTION", res, sizeof res);
     atributo(linha, "CODECS", cod, sizeof cod);
+    atributo(linha, "AUDIO", aud, sizeof aud);
+    if (audio[0] && aud[0] && !grupoTemAudio(master, aud, audio)) continue;
     w = atoi(res);
     if (w <= 0 || strncmp(uri, "http", 4)) continue;
     if (strstr(cod, "dvh1") || strstr(cod, "dvhe")) continue;
@@ -639,7 +676,7 @@ static void *buscar(void *arg) {
   }
 #ifdef NV_TRAILER_SAMSUNG
   char midia[600] = "";
-  if (master && !varianteMidia(master, ajustes_trailer_qualidade(), midia, sizeof midia)) url[0] = 0;
+  if (master && !varianteMidia(master, ajustes_trailer_qualidade(), audio, midia, sizeof midia)) url[0] = 0;
 #else
   if (master) {
     char cm[600];
