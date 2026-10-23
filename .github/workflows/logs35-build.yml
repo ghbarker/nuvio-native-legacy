@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: b3fd0b7599d2b9b2c91613ca45c4bde9ee73b5c6
+          ref: 9424c735e84524f531b93dea8e510cb64efff540
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -99,12 +99,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: b3fd0b7599d2b9b2c91613ca45c4bde9ee73b5c6
+          ref: 9424c735e84524f531b93dea8e510cb64efff540
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = b3fd0b7599d2b9b2c91613ca45c4bde9ee73b5c6
-          test "$(git rev-parse HEAD^{tree})" = 473f6200b8e2b2677f187a44cf8f70d2a1ccc9e7
+          test "$(git rev-parse HEAD)" = 9424c735e84524f531b93dea8e510cb64efff540
+          test "$(git rev-parse HEAD^{tree})" = f615d4cce24457a49312bcaeb112da8898c3703e
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -226,7 +226,7 @@ jobs:
                   assert key in binary, 'Simkl Client ID missing from native binary'
                   assert b'https://nuvio-recomendacoes.henriquef29.workers.dev' in binary, 'Social service address missing from native binary'
           print('Simkl Client ID is present in both ARM binaries.')
-          out={'source_commit':'b3fd0b7599d2b9b2c91613ca45c4bde9ee73b5c6','source_tree':'473f6200b8e2b2677f187a44cf8f70d2a1ccc9e7','package':'space.nuvio.nativelegacy.touch','version_code':20117,'version_name':'2.0.117-test-logs107','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'a419751e8cfa3e3252e6f459fff54d9955e53c2d','included_prs':[573,575,576,598,609,611,614,619,644],'merged_upstream_prs':[615],'android_build':True,'social_service_configured':True,'simkl_client_configured':True,'simkl_device_registration_checked':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
+          out={'source_commit':'9424c735e84524f531b93dea8e510cb64efff540','source_tree':'f615d4cce24457a49312bcaeb112da8898c3703e','package':'space.nuvio.nativelegacy.touch','version_code':20117,'version_name':'2.0.117-test-logs107','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'a419751e8cfa3e3252e6f459fff54d9955e53c2d','included_prs':[573,575,576,598,609,611,614,619,644],'merged_upstream_prs':[615],'android_build':True,'social_service_configured':True,'simkl_client_configured':True,'simkl_device_registration_checked':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
           pathlib.Path('Logs107-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
