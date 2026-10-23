@@ -48,4 +48,4 @@ jobs:
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
             '--output','Logs106-independent-verification.json'],check=True)
           VERIFY
-          gh release create tv-mobile-test-logs-v105 Nuvio-TV-Mobile-Test-Logs106.apk Logs106-validation.json Logs106-independent-verification.json preview-release/Logs106-test-steps.txt --target 7e40d5f0f25f1b8c605cea4c5d2322f061cf8ff1 --title 'Nuvio TV/Mobile Test Logs106 — latest upstream and approved PRs' --notes-file preview-release/Logs106-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v106 Nuvio-TV-Mobile-Test-Logs106.apk Logs106-validation.json Logs106-independent-verification.json preview-release/Logs106-test-steps.txt --target 7e40d5f0f25f1b8c605cea4c5d2322f061cf8ff1 --title 'Nuvio TV/Mobile Test Logs106 — latest upstream and approved PRs' --notes-file preview-release/Logs106-release-notes.txt --prerelease
