@@ -1,4 +1,4 @@
-name: Publish verified Logs105 upstream and open PRs preview
+name: Publish verified Logs106 upstream and open PRs preview
 on:
   workflow_dispatch:
 permissions:
@@ -19,33 +19,33 @@ jobs:
           persist-credentials: false
       - name: Require successful pinned Android build
         run: |
-          gh api repos/$GH_REPO/actions/runs/39891336701 > android-run.json
+          gh api repos/$GH_REPO/actions/runs/39892605975 > android-run.json
           python3 - <<'CHECK'
           import json
           r=json.load(open('android-run.json'))
-          assert r['head_sha']=='d6fd28a8bef833c100ff6b92d50b2466770e19a9'
+          assert r['head_sha']=='a4c360ae1fbff024f1587257d5fdf52b1d826fda'
           assert r['status']=='completed' and r['conclusion']=='success'
           CHECK
       - uses: actions/download-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs105-d6fd28a8bef833c100ff6b92d50b2466770e19a9
-          run-id: 39891336701
+          name: Nuvio-TV-Mobile-Test-Logs106-a4c360ae1fbff024f1587257d5fdf52b1d826fda
+          run-id: 39892605975
           github-token: ${{ github.token }}
       - name: Independently verify and publish the APK
         run: |
           python3 -m pip install 'cryptography>=42,<47'
           python3 - <<'VERIFY'
           import json,subprocess
-          v=json.load(open('Logs105-validation.json'))
-          assert v['source_commit']=='055e2953a70dc0eb3f80072b383843108da37427'
-          assert v['source_tree']=='571aae2e8fe71ff58013550b6abdae8134c0dae0'
-          assert v['workflow_commit']=='d6fd28a8bef833c100ff6b92d50b2466770e19a9'
-          assert v['workflow_run_id']==39891336701
+          v=json.load(open('Logs106-validation.json'))
+          assert v['source_commit']=='7e40d5f0f25f1b8c605cea4c5d2322f061cf8ff1'
+          assert v['source_tree']=='95307eb4bb7a85b920f96c5c880340ae0cd1d7f0'
+          assert v['workflow_commit']=='a4c360ae1fbff024f1587257d5fdf52b1d826fda'
+          assert v['workflow_run_id']==39892605975
           assert v['social_service_configured'] and v['simkl_client_configured']
-          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs105.apk',
+          subprocess.run(['python3','tools/verify-test-apk.py','Nuvio-TV-Mobile-Test-Logs106.apk',
             '--expected-sha256',v['apk_sha256'],'--expected-bytes',str(v['apk_bytes']),
-            '--version-code','20115','--version-name','2.0.115-test-logs105',
+            '--version-code','20116','--version-name','2.0.116-test-logs106',
             '--certificate-sha256','862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6',
-            '--output','Logs105-independent-verification.json'],check=True)
+            '--output','Logs106-independent-verification.json'],check=True)
           VERIFY
-          gh release create tv-mobile-test-logs-v105 Nuvio-TV-Mobile-Test-Logs105.apk Logs105-validation.json Logs105-independent-verification.json preview-release/Logs105-test-steps.txt --target 055e2953a70dc0eb3f80072b383843108da37427 --title 'Nuvio TV/Mobile Test Logs105 — latest upstream and approved PRs' --notes-file preview-release/Logs105-release-notes.txt --prerelease
+          gh release create tv-mobile-test-logs-v105 Nuvio-TV-Mobile-Test-Logs106.apk Logs106-validation.json Logs106-independent-verification.json preview-release/Logs106-test-steps.txt --target 7e40d5f0f25f1b8c605cea4c5d2322f061cf8ff1 --title 'Nuvio TV/Mobile Test Logs106 — latest upstream and approved PRs' --notes-file preview-release/Logs106-release-notes.txt --prerelease

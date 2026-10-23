@@ -1,0 +1,15 @@
+Logs106 — latest upstream plus all nine open PRs
+Install over the existing Nuvio TV/Mobile Test app. Do not uninstall or clear data.
+
+1. Open the app and confirm accounts, add-ons, profiles and settings remain. Scroll Home poster rows down and up to check the updated Android artwork cache.
+2. Open Game of Thrones and Kaiju No. 8; confirm season buttons and episodes appear on first opening. Open a special episode and verify its title/number.
+3. Sources → filters: try All, Cached and Uncached; reopen Settings and confirm the selected value persists. Try the preferred audio-language filter with a source that declares or labels that language.
+4. Enable source preparation and prepared-source details. Open a title, wait for preparation and confirm the source specifications appear below Play.
+5. Make a new encrypted Drive backup. Change a local setting, restore it with your existing backup password and check it returns. Restore an older backup if available. Hardware options should apply only when selected. Separate service logins should remain connected.
+6. Sports: open a league, scroll, and play a matched live channel. Check team logos (including Carolina Panthers), favorite a team, and check match ordering remains stable after refresh.
+7. Friends: tap a friend card, then check the selected same-account profiles. Confirm the card opens once and a profile switch does not show stale results.
+8. Change the interface font and both subtitle fonts independently; restart and check the selections persist.
+9. Play a familiar VOD title and a Live TV channel; check playback, source fallback and remote/touch navigation.
+
+Android APK compiled for ARM64 and ARMv7 with the persistent Test signing key.
+Host regression checks are separate from physical-device testing. No LG/Samsung package or physical-device validation is claimed for this integration.
