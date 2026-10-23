@@ -1,4 +1,4 @@
-name: Logs104 Sports photo-card quality preview APK
+name: Logs105 upstream and approved PRs preview APK
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: all
 
 concurrency:
-  group: logs104-final-apk-${{ github.ref }}-${{ inputs.mode }}
+  group: logs105-final-apk-${{ github.ref }}-${{ inputs.mode }}
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: f5b47ef2d1d5ffdd4a0c304ad3bf8b382c2be913
+          ref: 055e2953a70dc0eb3f80072b383843108da37427
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -39,11 +39,11 @@ jobs:
           bash tests/source_audio_language.sh > audio-checks.log 2>&1
           SANITIZE=1 bash tests/source_audio_language.sh >> audio-checks.log 2>&1
           tail -30 audio-checks.log
-          # Full Linux/macOS integration coverage runs in logs104-native-checks.yml.
+          # Full Linux/macOS integration coverage runs in logs105-native-checks.yml.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: logs104-native-regression-logs
+          name: logs105-native-regression-logs
           path: '*-checks.log'
           if-no-files-found: ignore
 
@@ -99,12 +99,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          ref: f5b47ef2d1d5ffdd4a0c304ad3bf8b382c2be913
+          ref: 055e2953a70dc0eb3f80072b383843108da37427
           persist-credentials: false
       - name: Verify exact integrated source
         run: |
-          test "$(git rev-parse HEAD)" = f5b47ef2d1d5ffdd4a0c304ad3bf8b382c2be913
-          test "$(git rev-parse HEAD^{tree})" = 97927c24a7038f29a4ce0a662f898da25c892674
+          test "$(git rev-parse HEAD)" = 055e2953a70dc0eb3f80072b383843108da37427
+          test "$(git rev-parse HEAD^{tree})" = 571aae2e8fe71ff58013550b6abdae8134c0dae0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -131,7 +131,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, os, pathlib, subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs104'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nuvio-logs105'
           root.mkdir(mode=0o700)
           props=root/'product.properties'
           body=os.environ.get('CORE_PROPERTIES','')
@@ -171,10 +171,10 @@ jobs:
             logs33-gradle-${{ runner.os }}-
             rebases10e3-gradle-v1-${{ runner.os }}-
       - name: Fetch unchanged upstream translation baseline
-        run: git fetch --no-tags --depth=1 origin 1890f9f674adf646df3360b01d3b303024da3494
+        run: git fetch --no-tags --depth=1 origin 1755d80cb8f33603ed4dbcd57dea49e5feded80d
       - name: Build native Android dependencies
         run: bash tools/android/deps.sh arm64-v8a armeabi-v7a
-      - name: Build update-compatible Logs104 APK
+      - name: Build update-compatible Logs105 APK
         env:
           GRADLE_OPTS: -Dorg.gradle.project.nuvio.testLocalLogs=true
           NUVIO_REQUIRE_CORE: '1'
@@ -199,17 +199,17 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           badging="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")"
-          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20114' versionName='2.0.114-test-logs104'" <<< "$badging"
+          grep -F "package: name='space.nuvio.nativelegacy.touch' versionCode='20115' versionName='2.0.115-test-logs105'" <<< "$badging"
           grep -F "application-label:'Nuvio TV/Mobile Test'" <<< "$badging"
           cert="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test "$cert" = 862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6
           unzip -Z1 "$apk" | grep -qx 'lib/arm64-v8a/libmain.so'
           unzip -Z1 "$apk" | grep -qx 'lib/armeabi-v7a/libmain.so'
           python3 tools/android-apk-pages.py "$apk"
-          cp "$apk" Nuvio-TV-Mobile-Test-Logs104.apk
+          cp "$apk" Nuvio-TV-Mobile-Test-Logs105.apk
           python3 - <<'PY'
           import hashlib,json,pathlib,os,zipfile
-          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs104.apk')
+          p=pathlib.Path('Nuvio-TV-Mobile-Test-Logs105.apk')
           key=os.environ['SIMKL_CLIENT_ID'].strip().encode()
           import re
           sports=re.findall(r'\{"([a-z-]+)",',pathlib.Path('src/esportes_parse.c').read_text().split('modalidades[] = {',1)[1].split('};',1)[0])
@@ -226,8 +226,8 @@ jobs:
                   assert key in binary, 'Simkl Client ID missing from native binary'
                   assert b'https://nuvio-recomendacoes.henriquef29.workers.dev' in binary, 'Social service address missing from native binary'
           print('Simkl Client ID is present in both ARM binaries.')
-          out={'source_commit':'f5b47ef2d1d5ffdd4a0c304ad3bf8b382c2be913','source_tree':'97927c24a7038f29a4ce0a662f898da25c892674','package':'space.nuvio.nativelegacy.touch','version_code':20114,'version_name':'2.0.114-test-logs104','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'1890f9f674adf646df3360b01d3b303024da3494','included_prs':[573,575,576,598,609,611,614,615,619],'upstream_ports':[596,601,602,631],'android_build':True,'social_service_configured':True,'simkl_client_configured':True,'simkl_device_registration_checked':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
-          pathlib.Path('Logs104-validation.json').write_text(json.dumps(out,indent=2)+'\n')
+          out={'source_commit':'055e2953a70dc0eb3f80072b383843108da37427','source_tree':'571aae2e8fe71ff58013550b6abdae8134c0dae0','package':'space.nuvio.nativelegacy.touch','version_code':20115,'version_name':'2.0.115-test-logs105','certificate_sha256':'862d7ef63a0dbde2929f6f231cae295510726d9ac28f9292496d2a38304be5e6','apk_bytes':p.stat().st_size,'apk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'integration_base':'1755d80cb8f33603ed4dbcd57dea49e5feded80d','included_prs':[573,575,576,598,609,611,614,619,644],'merged_upstream_prs':[615],'android_build':True,'social_service_configured':True,'simkl_client_configured':True,'simkl_device_registration_checked':True,'android_unit_tests':[],'tests_skipped_by_request':False,'native_metadata_checks_separate':True,'both_arm_abis':True,'arm64_16kb_alignment':True,'workflow_commit':__import__('os').environ['GITHUB_SHA'],'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID'])}
+          pathlib.Path('Logs105-validation.json').write_text(json.dumps(out,indent=2)+'\n')
           PY
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-hit != 'true'
@@ -243,23 +243,23 @@ jobs:
           key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-TV-Mobile-Test-Logs104-${{ github.sha }}
+          name: Nuvio-TV-Mobile-Test-Logs105-${{ github.sha }}
           path: |
-            Nuvio-TV-Mobile-Test-Logs104.apk
-            Logs104-validation.json
+            Nuvio-TV-Mobile-Test-Logs105.apk
+            Logs105-validation.json
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Logs104-Android-evidence-${{ github.sha }}
+          name: Logs105-Android-evidence-${{ github.sha }}
           path: |
-            Logs104-translation-*.txt
+            Logs105-translation-*.txt
             android/app/build/test-results/testDebugUnitTest
             android/app/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
           retention-days: 14
       - name: Remove private inputs
         if: always()
-        run: rm -rf "$RUNNER_TEMP/nuvio-logs104"
+        run: rm -rf "$RUNNER_TEMP/nuvio-logs105"
 
