@@ -1,4 +1,4 @@
-name: Issue675 actual Android playback-end emulator
+name: Issue687 actual Android localized trailer emulator
 on:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
-      ANDROID_AVD_HOME: /tmp/nuvio-eof-avds
+      ANDROID_AVD_HOME: /tmp/nuvio-trailer-avds
       NUVIO_ANDROID_JOBS: '2'
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
-          ref: 7e40d5f0f25f1b8c605cea4c5d2322f061cf8ff1
+          ref: 6c3400b012d8d2c477221c7b6b513b73a4944f8d
           path: font-app
           persist-credentials: false
       - uses: actions/setup-java@v4
@@ -41,13 +41,14 @@ jobs:
           sudo apt-get install -y -qq ninja-build cmake nasm ffmpeg libpulse0 libegl1 libgl1 libnss3 libxcomposite1 libxcursor1 libxdamage1 libxfixes3 libxi6 libxrandr2 libxrender1 libxtst6 libxcb-cursor0 libxkbcommon-x11-0
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' 'emulator' 'system-images;android-30;google_apis;x86_64'
           mkdir -p "$ANDROID_AVD_HOME"
-          echo no | avdmanager create avd --force -n nuvio-eof -k 'system-images;android-30;google_apis;x86_64' --device pixel_4 -p "$ANDROID_AVD_HOME/nuvio-eof.avd"
-          printf 'avd.ini.encoding=UTF-8\npath=%s/nuvio-eof.avd\ntarget=android-30\n' "$ANDROID_AVD_HOME" > "$ANDROID_AVD_HOME/nuvio-eof.ini"
+          echo no | avdmanager create avd --force -n nuvio-trailer -k 'system-images;android-30;google_apis;x86_64' --device pixel_4 -p "$ANDROID_AVD_HOME/nuvio-trailer.avd"
+          printf 'avd.ini.encoding=UTF-8\npath=%s/nuvio-trailer.avd\ntarget=android-30\n' "$ANDROID_AVD_HOME" > "$ANDROID_AVD_HOME/nuvio-trailer.ini"
       - uses: actions/cache/restore@v4
         with:
           path: ~/.cache/nuvio-android
-          key: eof675-native-x86-v1-${{ runner.os }}-${{ hashFiles('font-app/tools/android/deps.sh') }}
+          key: trailer687-native-x86-v1-${{ runner.os }}-${{ hashFiles('font-app/tools/android/deps.sh') }}
           restore-keys: |
+            trailer687-native-x86-v1-Linux-
             eof675-native-x86-v1-Linux-
             logs34-native-v1-Linux-
       - uses: actions/cache/restore@v4
@@ -55,20 +56,21 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: eof675-gradle-v1-${{ runner.os }}-${{ hashFiles('font-app/android/**/*.gradle.kts') }}
+          key: trailer687-gradle-v1-${{ runner.os }}-${{ hashFiles('font-app/android/**/*.gradle.kts') }}
           restore-keys: |
+            eof675-gradle-v1-Linux-
             logs34-gradle-Linux-
-      - name: Prepare real app with isolated local playback fixture
+      - name: Prepare Logs107 with real trailer selectors and isolated test inputs
         run: |
           set -euo pipefail
-          test "$(git -C font-app rev-parse HEAD)" = 7e40d5f0f25f1b8c605cea4c5d2322f061cf8ff1
-          mkdir -p emulator-results font-app/tools/emulator/issue675
-          cp tools/emulator/issue675/fixture.inc font-app/tools/emulator/issue675/
-          python3 tools/emulator/issue675/prepare.py font-app
-          gh release download tv-mobile-test-logs-v106 --repo ghbarker/nuvio-native-legacy --pattern Nuvio-TV-Mobile-Test-Logs106.apk
-          echo '94e902cab836124b3d8df6921dafc846c5f95a2293cfcf5a3992558a7850a04d  Nuvio-TV-Mobile-Test-Logs106.apk' | sha256sum -c -
+          test "$(git -C font-app rev-parse HEAD)" = 6c3400b012d8d2c477221c7b6b513b73a4944f8d
+          mkdir -p emulator-results font-app/tools/emulator/issue687
+          cp tools/emulator/issue687/fixture.inc font-app/tools/emulator/issue687/
+          python3 tools/emulator/issue687/prepare.py font-app
+          gh release download tv-mobile-test-logs-v107 --repo ghbarker/nuvio-native-legacy --pattern Nuvio-TV-Mobile-Test-Logs107.apk
+          echo '55b8ddb673037502e74a98436ea02d148f0b981e40c658922fc991a8cfb630b9  Nuvio-TV-Mobile-Test-Logs107.apk' | sha256sum -c -
           mkdir -p font-app/build/android/released-assets
-          unzip -q Nuvio-TV-Mobile-Test-Logs106.apk 'assets/*' -d font-app/build/android/released-assets
+          unzip -q Nuvio-TV-Mobile-Test-Logs107.apk 'assets/*' -d font-app/build/android/released-assets
           mkdir -p font-app/build/android/assets
           cp -r font-app/build/android/released-assets/assets/. font-app/build/android/assets/
           cache="$HOME/.cache/nuvio-android"
@@ -76,11 +78,17 @@ jobs:
           for u in https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.2/SDL2_image-2.8.2.tar.gz https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.22.0/SDL2_ttf-2.22.0.tar.gz https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz; do
             test -d "$cache/src/$(basename "$u" .tar.gz)" || curl -fsSL "$u" | tar xz -C "$cache/src"
           done
-          key="$RUNNER_TEMP/eof-emulator.keystore"
-          keytool -genkeypair -keystore "$key" -storepass android -keypass android -alias androiddebugkey -dname 'CN=Isolated EOF Emulator Only' -keyalg RSA -validity 30
+          key="$RUNNER_TEMP/trailer-emulator.keystore"
+          keytool -genkeypair -keystore "$key" -storepass android -keypass android -alias androiddebugkey -dname 'CN=Isolated Trailer Emulator Only' -keyalg RSA -validity 30
           echo "NUVIO_TEST_DEBUG_KEYSTORE=$key" >> "$GITHUB_ENV"
-          ffmpeg -hide_banner -loglevel error -f lavfi -i 'testsrc2=size=640x360:rate=24:duration=125' -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=125' -vf "drawbox=x=0:y=0:w=iw:h=ih:color=black:t=fill:enable='gte(t,120)'" -c:v libx264 -preset ultrafast -crf 30 -c:a aac -b:a 64k -movflags +faststart -y eof-test.mp4
-          ffprobe -v error -show_format -show_streams -of json eof-test.mp4 > emulator-results/movie-fixture.json
+          python3 - <<'PY'
+          import urllib.request,urllib.parse,json,pathlib
+          q={'caller':'web','sf':'143441','v':'76','pfm':'appletv','locale':'en-US','l':'en','utsk':'6e3013c6d6fae3c2::::::235656c069bb0efb'}
+          u='https://tv.apple.com/api/uts/v3/movies/umc.cmc.75o96q32hcm2kzx4ilop1ylmx?'+urllib.parse.urlencode(q)
+          with urllib.request.urlopen(urllib.request.Request(u,headers={'Origin':'https://tv.apple.com'}),timeout=25) as r:j=json.load(r)
+          thumb=j['data']['content']['backgroundVideo']['images']['contentImage']['url'].replace('{w}','960').replace('{h}','540').replace('{f}','jpg')
+          pathlib.Path('font-app/build/android/assets/art/687-batman.jpg').write_bytes(urllib.request.urlopen(thumb,timeout=25).read())
+          PY
       - name: Build actual Android app for emulator CPU
         working-directory: font-app
         run: |
@@ -88,28 +96,14 @@ jobs:
           bash tools/android/deps.sh x86_64
           mkdir -p build/android/jnilibs/x86_64
           cp "$HOME/.cache/nuvio-android/prefix/x86_64/lib/"*.so build/android/jnilibs/x86_64/
-          bash android/gradlew -p android --console=plain --max-workers=2 -Pnuvio.testLocalLogs=true -Pnuvio.sdlSrc="$HOME/.cache/nuvio-android/src" -Pnuvio.estagio="$PWD/build/android" assembleDebug > ../emulator-results/baseline-build.log 2>&1 || { tail -100 ../emulator-results/baseline-build.log; exit 1; }
-          cp android/app/build/outputs/apk/debug/app-debug.apk ../baseline.apk
-          git diff -- src android > ../emulator-results/baseline-test-only.patch
-      - name: Build three-second plus stopped-playback candidate
-        working-directory: font-app
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('src/player.c');s=p.read_text()
-          a='duracaoSeg > 1.0f && posSeg >= duracaoSeg - 1.0f && video_pos() >= duracaoSeg - 1.0;'
-          assert s.count(a)==1
-          s=s.replace(a,'!video_tocando() && duracaoSeg > 1.0f && posSeg >= duracaoSeg - 3.0f && video_pos() >= duracaoSeg - 3.0;')
-          p.write_text(s)
-          PY
-          bash android/gradlew -p android --console=plain --max-workers=2 -Pnuvio.testLocalLogs=true -Pnuvio.sdlSrc="$HOME/.cache/nuvio-android/src" -Pnuvio.estagio="$PWD/build/android" assembleDebug > ../emulator-results/guarded-build.log 2>&1 || { tail -100 ../emulator-results/guarded-build.log; exit 1; }
-          cp android/app/build/outputs/apk/debug/app-debug.apk ../guarded.apk
-          git diff -- src/player.c > ../emulator-results/guarded-candidate.patch
+          bash android/gradlew -p android --console=plain --max-workers=2 -Pnuvio.testLocalLogs=true -Pnuvio.sdlSrc="$HOME/.cache/nuvio-android/src" -Pnuvio.estagio="$PWD/build/android" assembleDebug > ../emulator-results/emulator-build.log 2>&1 || { tail -100 ../emulator-results/emulator-build.log; exit 1; }
+          cp android/app/build/outputs/apk/debug/app-debug.apk ../trailers.apk
+          git diff -- src android > ../emulator-results/test-only-instrumentation.patch
       - name: Boot Android emulator
         run: |
           set -euo pipefail
           "$ANDROID_HOME/emulator/emulator" -accel-check
-          nohup "$ANDROID_HOME/emulator/emulator" -avd nuvio-eof -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -feature -Vulkan > emulator-results/boot.log 2>&1 &
+          nohup "$ANDROID_HOME/emulator/emulator" -avd nuvio-trailer -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -feature -Vulkan > emulator-results/boot.log 2>&1 &
           timeout 150 adb wait-for-device
           python3 - <<'PY'
           import subprocess,time
@@ -119,18 +113,24 @@ jobs:
               time.sleep(2)
           else:raise RuntimeError('Android emulator did not finish booting')
           PY
-      - name: Exercise real Media3 completion and native navigation
-        run: python3 tools/emulator/issue675/driver.py
+      - name: Exercise manual trailers, autoplay, language preferences and cache reuse
+        run: python3 tools/emulator/issue687/driver.py
+      - name: Detect speech language from the real decoded audio
+        env:
+          HF_HUB_DISABLE_XET: '1'
+        run: |
+          python3 -m pip install --break-system-packages --quiet faster-whisper
+          python3 tools/emulator/issue687/detect_audio.py
       - uses: actions/cache/save@v4
         if: always()
         continue-on-error: true
         with:
           path: ~/.cache/nuvio-android
-          key: eof675-native-x86-v1-${{ runner.os }}-${{ hashFiles('font-app/tools/android/deps.sh') }}
+          key: trailer687-native-x86-v1-${{ runner.os }}-${{ hashFiles('font-app/tools/android/deps.sh') }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Issue675-Android-emulator-results-${{ github.sha }}
+          name: Issue687-Android-emulator-results-${{ github.sha }}
           path: emulator-results
           if-no-files-found: error
           retention-days: 14
