@@ -352,3 +352,6 @@
   0, /* show the audio codec in the format row: On (V_LIGA 0) */
   0, /* gradient smoothing: Automatic */
   1, /* prepared source details (#457): off, preserve the existing title layout */
+#ifdef NV_DRIVE_UI
+  0, /* Google Drive backup action */
+#endif
