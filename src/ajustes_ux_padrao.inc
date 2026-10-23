@@ -355,3 +355,4 @@
 #ifdef NV_DRIVE_UI
   0, /* Google Drive backup action */
 #endif
+  0, /* direct account-profile friends action */
