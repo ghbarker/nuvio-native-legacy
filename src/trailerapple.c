@@ -650,7 +650,12 @@ static void *buscar(void *arg) {
     r = buscarIdCom(p->titulo, ano, serie, id, sizeof id, arte, sizeof arte, query);
     if (r == 0 && strcmp(query, UTS_QUERY))
       r = buscarId(p->titulo, ano, serie, id, sizeof id, arte, sizeof arte);
-    if (r == 0) { serie = !serie; r = buscarIdCom(p->titulo, ano, serie, id, sizeof id, arte, sizeof arte, query); }
+    if (r == 0) {
+      serie = !serie;
+      r = buscarIdCom(p->titulo, ano, serie, id, sizeof id, arte, sizeof arte, query);
+      if (r == 0 && strcmp(query, UTS_QUERY))
+        r = buscarId(p->titulo, ano, serie, id, sizeof id, arte, sizeof arte);
+    }
     if (r >= 0) { pthread_mutex_lock(&arteTrava); guardarArte(p->imdb, ano, serie, r > 0 ? arte : ""); pthread_mutex_unlock(&arteTrava); }
     if (r < 0) semResposta = 1;
     else if (r == 1) {
